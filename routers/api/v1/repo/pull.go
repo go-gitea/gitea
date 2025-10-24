@@ -13,7 +13,6 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -52,7 +51,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: Owner of the repo
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
@@ -938,7 +937,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
 			ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
 		} else if errors.Is(err, pull_service.ErrHasMerged) {
-			ctx.APIError(http.StatusMethodNotAllowed, "")
+			ctx.APIError(http.StatusMethodNotAllowed, "The PR is already merged")
 		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
 		} else if errors.Is(err, pull_service.ErrNotMergeableState) {
@@ -989,8 +988,14 @@ func MergePullRequest(ctx *context.APIContext) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
+	deleteBranchAfterMerge, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, form.DeleteBranchAfterMerge, ctx.Repo.Repository, pr)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, form.DeleteBranchAfterMerge)
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
 		if err != nil {
 			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 				ctx.APIError(http.StatusConflict, err)
@@ -1035,47 +1040,10 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
-	// for agit flow, we should not delete the agit reference after merge
-	if form.DeleteBranchAfterMerge && pr.Flow == issues_model.PullRequestFlowGithub {
-		// check permission even it has been checked in repo_service.DeleteBranch so that we don't need to
-		// do RetargetChildrenOnMerge
-		if err := repo_service.CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, ctx.Doer); err == nil {
-			// Don't cleanup when there are other PR's that use this branch as head branch.
-			exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			if exist {
-				ctx.Status(http.StatusOK)
-				return
-			}
-
-			var headRepo *git.Repository
-			if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
-				headRepo = ctx.Repo.GitRepo
-			} else {
-				headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
-				if err != nil {
-					ctx.APIErrorInternal(err)
-					return
-				}
-				defer headRepo.Close()
-			}
-
-			if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch, pr); err != nil {
-				switch {
-				case git.IsErrBranchNotExist(err):
-					ctx.APIErrorNotFound(err)
-				case errors.Is(err, repo_service.ErrBranchIsDefault):
-					ctx.APIError(http.StatusForbidden, errors.New("can not delete default branch"))
-				case errors.Is(err, git_model.ErrBranchIsProtected):
-					ctx.APIError(http.StatusForbidden, errors.New("branch protected"))
-				default:
-					ctx.APIErrorInternal(err)
-				}
-				return
-			}
+	if deleteBranchAfterMerge {
+		if err = repo_service.DeleteBranchAfterMerge(ctx, ctx.Doer, pr.ID, nil); err != nil {
+			// no way to tell users that what error happens, and the PR has been merged, so ignore the error
+			log.Debug("DeleteBranchAfterMerge: pr %d, err: %v", pr.ID, err)
 		}
 	}
 
@@ -1085,7 +1053,7 @@ func MergePullRequest(ctx *context.APIContext) {
 type parseCompareInfoResult struct {
 	headRepo    *repo_model.Repository
 	headGitRepo *git.Repository
-	compareInfo *git.CompareInfo
+	compareInfo *pull_service.CompareInfo
 	baseRef     git.RefName
 	headRef     git.RefName
 }
@@ -1201,7 +1169,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	compareInfo, err := headGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseRef.ShortName(), headRef.ShortName(), false, false)
+	compareInfo, err := pull_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef.ShortName(), headRef.ShortName(), false, false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
@@ -1452,7 +1420,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		return
 	}
 
-	var prInfo *git.CompareInfo
+	var prInfo *pull_service.CompareInfo
 	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1461,9 +1429,9 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	defer closer.Close()
 
 	if pr.HasMerged {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName(), false, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), false, false)
 	} else {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName(), false, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), false, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1582,18 +1550,18 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	baseGitRepo := ctx.Repo.GitRepo
 
-	var prInfo *git.CompareInfo
+	var prInfo *pull_service.CompareInfo
 	if pr.HasMerged {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName(), true, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), true, false)
 	} else {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName(), true, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), true, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitRefName())
+	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -1620,7 +1588,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
-	diffShortStat, err := gitdiff.GetDiffShortStat(baseGitRepo, startCommitID, endCommitID)
+	diffShortStat, err := gitdiff.GetDiffShortStat(ctx, ctx.Repo.Repository, baseGitRepo, startCommitID, endCommitID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

@@ -47,26 +47,19 @@ func updateIssueLock(ctx context.Context, opts *IssueLockOptions, lock bool) err
 		commentType = CommentTypeUnlock
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := UpdateIssueCols(ctx, opts.Issue, "is_locked"); err != nil {
+			return err
+		}
 
-	if err := UpdateIssueCols(ctx, opts.Issue, "is_locked"); err != nil {
+		opt := &CreateCommentOptions{
+			Doer:    opts.Doer,
+			Issue:   opts.Issue,
+			Repo:    opts.Issue.Repo,
+			Type:    commentType,
+			Content: opts.Reason,
+		}
+		_, err := CreateComment(ctx, opt)
 		return err
-	}
-
-	opt := &CreateCommentOptions{
-		Doer:    opts.Doer,
-		Issue:   opts.Issue,
-		Repo:    opts.Issue.Repo,
-		Type:    commentType,
-		Content: opts.Reason,
-	}
-	if _, err := CreateComment(ctx, opt); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	})
 }

@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/packages"
 	container_module "code.gitea.io/gitea/modules/packages/container"
 
-	"github.com/opencontainers/image-spec/specs-go/v1"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 // UpdateRepositoryNames updates the repository name property for all packages of the specific owner
@@ -48,7 +48,7 @@ func ParseManifestMetadata(ctx context.Context, rd io.Reader, ownerID int64, ima
 	configDescriptor, err := container_service.GetContainerBlob(ctx, &container_service.BlobSearchOptions{
 		OwnerID: ownerID,
 		Image:   imageName,
-		Digest:  string(manifest.Config.Digest),
+		Digest:  manifest.Config.Digest.String(),
 	})
 	if err != nil {
 		return nil, nil, nil, err

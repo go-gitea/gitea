@@ -1,9 +1,11 @@
 import {defineComponent, h, type PropType} from 'vue';
 import {parseDom, serializeXml} from './utils.ts';
+import {html, htmlRaw} from './utils/html.ts';
 import giteaDoubleChevronLeft from '../../public/assets/img/svg/gitea-double-chevron-left.svg';
 import giteaDoubleChevronRight from '../../public/assets/img/svg/gitea-double-chevron-right.svg';
 import giteaEmptyCheckbox from '../../public/assets/img/svg/gitea-empty-checkbox.svg';
 import giteaExclamation from '../../public/assets/img/svg/gitea-exclamation.svg';
+import giteaRunning from '../../public/assets/img/svg/gitea-running.svg';
 import octiconArchive from '../../public/assets/img/svg/octicon-archive.svg';
 import octiconArrowSwitch from '../../public/assets/img/svg/octicon-arrow-switch.svg';
 import octiconBlocked from '../../public/assets/img/svg/octicon-blocked.svg';
@@ -14,6 +16,7 @@ import octiconCheckCircleFill from '../../public/assets/img/svg/octicon-check-ci
 import octiconChevronDown from '../../public/assets/img/svg/octicon-chevron-down.svg';
 import octiconChevronLeft from '../../public/assets/img/svg/octicon-chevron-left.svg';
 import octiconChevronRight from '../../public/assets/img/svg/octicon-chevron-right.svg';
+import octiconCircle from '../../public/assets/img/svg/octicon-circle.svg';
 import octiconClock from '../../public/assets/img/svg/octicon-clock.svg';
 import octiconCode from '../../public/assets/img/svg/octicon-code.svg';
 import octiconColumns from '../../public/assets/img/svg/octicon-columns.svg';
@@ -83,6 +86,7 @@ const svgs = {
   'gitea-double-chevron-right': giteaDoubleChevronRight,
   'gitea-empty-checkbox': giteaEmptyCheckbox,
   'gitea-exclamation': giteaExclamation,
+  'gitea-running': giteaRunning,
   'octicon-archive': octiconArchive,
   'octicon-arrow-switch': octiconArrowSwitch,
   'octicon-blocked': octiconBlocked,
@@ -93,6 +97,7 @@ const svgs = {
   'octicon-chevron-down': octiconChevronDown,
   'octicon-chevron-left': octiconChevronLeft,
   'octicon-chevron-right': octiconChevronRight,
+  'octicon-circle': octiconCircle,
   'octicon-clock': octiconClock,
   'octicon-code': octiconCode,
   'octicon-columns': octiconColumns,
@@ -165,7 +170,7 @@ export type SvgName = keyof typeof svgs;
 //  most of the SVG icons in assets couldn't be used directly.
 
 // retrieve an HTML string for given SVG icon name, size and additional classes
-export function svg(name: SvgName, size = 16, classNames?: string|string[]): string {
+export function svg(name: SvgName, size = 16, classNames?: string | string[]): string {
   const className = Array.isArray(classNames) ? classNames.join(' ') : classNames;
   if (!(name in svgs)) throw new Error(`Unknown SVG icon: ${name}`);
   if (size === 16 && !className) return svgs[name];
@@ -220,7 +225,7 @@ export const SvgIcon = defineComponent({
     const classes = Array.from(svgOuter.classList);
     if (this.symbolId) {
       classes.push('tw-hidden', 'svg-symbol-container');
-      svgInnerHtml = `<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${svgInnerHtml}</symbol>`;
+      svgInnerHtml = html`<symbol id="${this.symbolId}" viewBox="${attrs['^viewBox']}">${htmlRaw(svgInnerHtml)}</symbol>`;
     }
     // create VNode
     return h('svg', {

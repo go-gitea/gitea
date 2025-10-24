@@ -6,13 +6,11 @@ package integration
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -28,8 +26,8 @@ func TestAPIGetCommentAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2})
-	assert.NoError(t, comment.LoadIssue(db.DefaultContext))
-	assert.NoError(t, comment.LoadAttachments(db.DefaultContext))
+	assert.NoError(t, comment.LoadIssue(t.Context()))
+	assert.NoError(t, comment.LoadAttachments(t.Context()))
 	attachment := unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{ID: comment.Attachments[0].ID})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: comment.Issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -96,15 +94,13 @@ func TestAPICreateCommentAttachment(t *testing.T) {
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	filename := "image.png"
-	buff := generateImg()
 	body := &bytes.Buffer{}
 
 	// Setup multi-part
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("attachment", filename)
+	part, err := writer.CreateFormFile("attachment", "image.png")
 	assert.NoError(t, err)
-	_, err = io.Copy(part, &buff)
+	_, err = part.Write(testGeneratePngBytes())
 	assert.NoError(t, err)
 	err = writer.Close()
 	assert.NoError(t, err)

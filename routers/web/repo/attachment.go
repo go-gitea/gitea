@@ -45,7 +45,8 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	}
 	defer file.Close()
 
-	attach, err := attachment.UploadAttachment(ctx, file, allowedTypes, header.Size, &repo_model.Attachment{
+	uploaderFile := attachment.NewLimitedUploaderKnownSize(file, header.Size)
+	attach, err := attachment.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, allowedTypes, &repo_model.Attachment{
 		Name:       header.Filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     repoID,
@@ -129,7 +130,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 
 	if setting.Attachment.Storage.ServeDirect() {
 		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name, nil)
+		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name, ctx.Req.Method, nil)
 
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())

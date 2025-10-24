@@ -46,11 +46,9 @@ func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packag
 	if err := json.NewDecoder(buf).Decode(&index); err != nil {
 		return "", err
 	}
-
 	if index.SchemaVersion != 2 {
 		return "", errUnsupported.WithMessage("Schema version is not supported")
 	}
-
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		return "", err
 	}
@@ -77,24 +75,41 @@ func processManifest(ctx context.Context, mci *manifestCreationInfo, buf *packag
 	return "", errManifestInvalid
 }
 
-func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
-	manifestDigest := ""
+type processManifestTxRet struct {
+	pv      *packages_model.PackageVersion
+	pb      *packages_model.PackageBlob
+	created bool
+	digest  string
+}
 
-	err := func() error {
-		manifest, configDescriptor, metadata, err := container_service.ParseManifestMetadata(ctx, buf, mci.Owner.ID, mci.Image)
-		if err != nil {
-			return err
+func handleCreateManifestResult(ctx context.Context, err error, mci *manifestCreationInfo, contentStore *packages_module.ContentStore, txRet *processManifestTxRet) (string, error) {
+	if err != nil && txRet.created && txRet.pb != nil {
+		if err := contentStore.Delete(packages_module.BlobHash256Key(txRet.pb.HashSHA256)); err != nil {
+			log.Error("Error deleting package blob from content store: %v", err)
 		}
-		if _, err = buf.Seek(0, io.SeekStart); err != nil {
-			return err
-		}
+		return "", err
+	}
+	pd, err := packages_model.GetPackageDescriptor(ctx, txRet.pv)
+	if err != nil {
+		log.Error("Error getting package descriptor: %v", err) // ignore this error
+	} else {
+		notify_service.PackageCreate(ctx, mci.Creator, pd)
+	}
+	return txRet.digest, nil
+}
 
-		ctx, committer, err := db.TxContext(ctx)
-		if err != nil {
-			return err
-		}
-		defer committer.Close()
+func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (manifestDigest string, errRet error) {
+	manifest, configDescriptor, metadata, err := container_service.ParseManifestMetadata(ctx, buf, mci.Owner.ID, mci.Image)
+	if err != nil {
+		return "", err
+	}
+	if _, err = buf.Seek(0, io.SeekStart); err != nil {
+		return "", err
+	}
 
+	contentStore := packages_module.NewContentStore()
+	var txRet processManifestTxRet
+	err = db.WithTx(ctx, func(ctx context.Context) (err error) {
 		blobReferences := make([]*blobReference, 0, 1+len(manifest.Layers))
 		blobReferences = append(blobReferences, &blobReference{
 			Digest:       manifest.Config.Digest,
@@ -127,7 +142,7 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 		}
 
 		uploadVersion, err := packages_model.GetInternalVersionByNameAndVersion(ctx, mci.Owner.ID, packages_model.TypeContainer, mci.Image, container_module.UploadVersion)
-		if err != nil && err != packages_model.ErrPackageNotExist {
+		if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
 			return err
 		}
 
@@ -136,61 +151,26 @@ func processOciImageManifest(ctx context.Context, mci *manifestCreationInfo, buf
 				return err
 			}
 		}
+		txRet.pv = pv
+		txRet.pb, txRet.created, txRet.digest, err = createManifestBlob(ctx, contentStore, mci, pv, buf)
+		return err
+	})
 
-		pb, created, digest, err := createManifestBlob(ctx, mci, pv, buf)
-		removeBlob := false
-		defer func() {
-			if removeBlob {
-				contentStore := packages_module.NewContentStore()
-				if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
-					log.Error("Error deleting package blob from content store: %v", err)
-				}
-			}
-		}()
-		if err != nil {
-			removeBlob = created
-			return err
-		}
+	return handleCreateManifestResult(ctx, err, mci, contentStore, &txRet)
+}
 
-		if err := committer.Commit(); err != nil {
-			removeBlob = created
-			return err
-		}
-
-		if err := notifyPackageCreate(ctx, mci.Creator, pv); err != nil {
-			return err
-		}
-
-		manifestDigest = digest
-
-		return nil
-	}()
-	if err != nil {
+func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (manifestDigest string, errRet error) {
+	var index oci.Index
+	if err := json.NewDecoder(buf).Decode(&index); err != nil {
+		return "", err
+	}
+	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		return "", err
 	}
 
-	return manifestDigest, nil
-}
-
-func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *packages_module.HashedBuffer) (string, error) {
-	manifestDigest := ""
-
-	err := func() error {
-		var index oci.Index
-		if err := json.NewDecoder(buf).Decode(&index); err != nil {
-			return err
-		}
-
-		if _, err := buf.Seek(0, io.SeekStart); err != nil {
-			return err
-		}
-
-		ctx, committer, err := db.TxContext(ctx)
-		if err != nil {
-			return err
-		}
-		defer committer.Close()
-
+	contentStore := packages_module.NewContentStore()
+	var txRet processManifestTxRet
+	err := db.WithTx(ctx, func(ctx context.Context) (err error) {
 		metadata := &container_module.Metadata{
 			Type:      container_module.TypeOCI,
 			Manifests: make([]*container_module.Manifest, 0, len(index.Manifests)),
@@ -241,50 +221,12 @@ func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *p
 			return err
 		}
 
-		pb, created, digest, err := createManifestBlob(ctx, mci, pv, buf)
-		removeBlob := false
-		defer func() {
-			if removeBlob {
-				contentStore := packages_module.NewContentStore()
-				if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
-					log.Error("Error deleting package blob from content store: %v", err)
-				}
-			}
-		}()
-		if err != nil {
-			removeBlob = created
-			return err
-		}
-
-		if err := committer.Commit(); err != nil {
-			removeBlob = created
-			return err
-		}
-
-		if err := notifyPackageCreate(ctx, mci.Creator, pv); err != nil {
-			return err
-		}
-
-		manifestDigest = digest
-
-		return nil
-	}()
-	if err != nil {
-		return "", err
-	}
-
-	return manifestDigest, nil
-}
-
-func notifyPackageCreate(ctx context.Context, doer *user_model.User, pv *packages_model.PackageVersion) error {
-	pd, err := packages_model.GetPackageDescriptor(ctx, pv)
-	if err != nil {
+		txRet.pv = pv
+		txRet.pb, txRet.created, txRet.digest, err = createManifestBlob(ctx, contentStore, mci, pv, buf)
 		return err
-	}
+	})
 
-	notify_service.PackageCreate(ctx, doer, pd)
-
-	return nil
+	return handleCreateManifestResult(ctx, err, mci, contentStore, &txRet)
 }
 
 func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, metadata *container_module.Metadata) (*packages_model.PackageVersion, error) {
@@ -437,7 +379,7 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	return pf, nil
 }
 
-func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *packages_model.PackageVersion, buf *packages_module.HashedBuffer) (*packages_model.PackageBlob, bool, string, error) {
+func createManifestBlob(ctx context.Context, contentStore *packages_module.ContentStore, mci *manifestCreationInfo, pv *packages_model.PackageVersion, buf *packages_module.HashedBuffer) (_ *packages_model.PackageBlob, created bool, manifestDigest string, _ error) {
 	pb, exists, err := packages_model.GetOrInsertBlob(ctx, packages_service.NewPackageBlob(buf))
 	if err != nil {
 		log.Error("Error inserting package blob: %v", err)
@@ -446,21 +388,20 @@ func createManifestBlob(ctx context.Context, mci *manifestCreationInfo, pv *pack
 	// FIXME: Workaround to be removed in v1.20
 	// https://github.com/go-gitea/gitea/issues/19586
 	if exists {
-		err = packages_module.NewContentStore().Has(packages_module.BlobHash256Key(pb.HashSHA256))
+		err = contentStore.Has(packages_module.BlobHash256Key(pb.HashSHA256))
 		if err != nil && (errors.Is(err, util.ErrNotExist) || errors.Is(err, os.ErrNotExist)) {
 			log.Debug("Package registry inconsistent: blob %s does not exist on file system", pb.HashSHA256)
 			exists = false
 		}
 	}
 	if !exists {
-		contentStore := packages_module.NewContentStore()
 		if err := contentStore.Save(packages_module.BlobHash256Key(pb.HashSHA256), buf, buf.Size()); err != nil {
 			log.Error("Error saving package blob in content store: %v", err)
 			return nil, false, "", err
 		}
 	}
 
-	manifestDigest := digestFromHashSummer(buf)
+	manifestDigest = digestFromHashSummer(buf)
 	pf, err := createFileFromBlobReference(ctx, pv, nil, &blobReference{
 		Digest:       digest.Digest(manifestDigest),
 		MediaType:    mci.MediaType,

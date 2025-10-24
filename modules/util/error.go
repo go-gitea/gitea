@@ -6,6 +6,7 @@ package util
 import (
 	"errors"
 	"fmt"
+	"html/template"
 )
 
 // Common Errors forming the base of our error system
@@ -16,9 +17,10 @@ var (
 	ErrPermissionDenied = errors.New("permission denied")       // also implies HTTP 403
 	ErrNotExist         = errors.New("resource does not exist") // also implies HTTP 404
 	ErrAlreadyExist     = errors.New("resource already exists") // also implies HTTP 409
+	ErrContentTooLarge  = errors.New("content exceeds limit")   // also implies HTTP 413
 
-	// ErrUnprocessableContent implies HTTP 422, syntax of the request content was correct,
-	// but server was unable to process the contained instructions
+	// ErrUnprocessableContent implies HTTP 422, the syntax of the request content is correct,
+	// but the server is unable to process the contained instructions
 	ErrUnprocessableContent = errors.New("unprocessable content")
 )
 
@@ -37,22 +39,6 @@ func (w errorWrapper) Error() string {
 // Unwrap returns the underlying error
 func (w errorWrapper) Unwrap() error {
 	return w.Err
-}
-
-type LocaleWrapper struct {
-	err    error
-	TrKey  string
-	TrArgs []any
-}
-
-// Error returns the message
-func (w LocaleWrapper) Error() string {
-	return w.err.Error()
-}
-
-// Unwrap returns the underlying error
-func (w LocaleWrapper) Unwrap() error {
-	return w.err
 }
 
 // ErrorWrap returns an error that formats as the given text but unwraps as the provided error
@@ -83,15 +69,39 @@ func NewNotExistErrorf(message string, args ...any) error {
 	return ErrorWrap(ErrNotExist, message, args...)
 }
 
-// ErrorWrapLocale wraps an err with a translation key and arguments
-func ErrorWrapLocale(err error, trKey string, trArgs ...any) error {
-	return LocaleWrapper{err: err, TrKey: trKey, TrArgs: trArgs}
+// ErrorTranslatable wraps an error with translation information
+type ErrorTranslatable interface {
+	error
+	Unwrap() error
+	Translate(ErrorLocaleTranslator) template.HTML
 }
 
-func ErrorAsLocale(err error) *LocaleWrapper {
-	var e LocaleWrapper
+type errorTranslatableWrapper struct {
+	err    error
+	trKey  string
+	trArgs []any
+}
+
+type ErrorLocaleTranslator interface {
+	Tr(key string, args ...any) template.HTML
+}
+
+func (w *errorTranslatableWrapper) Error() string { return w.err.Error() }
+
+func (w *errorTranslatableWrapper) Unwrap() error { return w.err }
+
+func (w *errorTranslatableWrapper) Translate(t ErrorLocaleTranslator) template.HTML {
+	return t.Tr(w.trKey, w.trArgs...)
+}
+
+func ErrorWrapTranslatable(err error, trKey string, trArgs ...any) ErrorTranslatable {
+	return &errorTranslatableWrapper{err: err, trKey: trKey, trArgs: trArgs}
+}
+
+func ErrorAsTranslatable(err error) ErrorTranslatable {
+	var e *errorTranslatableWrapper
 	if errors.As(err, &e) {
-		return &e
+		return e
 	}
 	return nil
 }

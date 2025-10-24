@@ -65,7 +65,7 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 		decodedBytes := make([]byte, len(toDecode)/2)
 		for i := 0; i < len(toDecode)/2; i++ {
 			// Can ignore error here as we know these should be hexadecimal from the regexp
-			byteInt, _ := strconv.ParseInt(toDecode[2*i:2*i+2], 16, 0)
+			byteInt, _ := strconv.ParseInt(toDecode[2*i:2*i+2], 16, 8)
 			decodedBytes[i] = byte(byteInt)
 		}
 		if inKey {
@@ -97,7 +97,7 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 
 // decodeEnvironmentKey decode the environment key to section and key
 // The environment key is in the form of GITEA__SECTION__KEY or GITEA__SECTION__KEY__FILE
-func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, section, key string, useFileValue bool) { //nolint:unparam
+func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, section, key string, useFileValue bool) {
 	if !strings.HasPrefix(envKey, prefixGitea) {
 		return false, "", "", false
 	}

@@ -267,9 +267,10 @@ func LFSFileGet(ctx *context.Context) {
 	buf = buf[:n]
 
 	st := typesniffer.DetectContentType(buf)
+	// FIXME: there is no IsPlainText set, but template uses it
 	ctx.Data["IsTextFile"] = st.IsText()
 	ctx.Data["FileSize"] = meta.Size
-	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/%s.git/info/lfs/objects/%s/%s", setting.AppURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid), "direct")
+	ctx.Data["RawFileLink"] = fmt.Sprintf("%s/%s/%s.git/info/lfs/objects/%s", setting.AppSubURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid))
 	switch {
 	case st.IsRepresentableAsText():
 		if meta.Size >= setting.UI.MaxDisplayFileSize {
@@ -309,8 +310,6 @@ func LFSFileGet(ctx *context.Context) {
 		}
 		ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 
-	case st.IsPDF():
-		ctx.Data["IsPDFFile"] = true
 	case st.IsVideo():
 		ctx.Data["IsVideoFile"] = true
 	case st.IsAudio():

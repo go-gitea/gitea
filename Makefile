@@ -18,26 +18,30 @@ DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
 
+# By default use go's 1.25 experimental json v2 library when building
+# TODO: remove when no longer experimental
+export GOEXPERIMENT ?= jsonv2
+
 GO ?= go
 SHASUM ?= shasum -a 256
 HAS_GO := $(shell hash $(GO) > /dev/null 2>&1 && echo yes)
 COMMA := ,
 
-XGO_VERSION := go-1.24.x
+XGO_VERSION := go-1.25.x
 
 AIR_PACKAGE ?= github.com/air-verse/air@v1
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3.2.1
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.7.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.0.2
-GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.12
-MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.6.0
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.31.0
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
+GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
+MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.1
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
-GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.19.0
-GOPLS_MODERNIZE_PACKAGE ?= golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.19.0
+GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.20.0
+GOPLS_MODERNIZE_PACKAGE ?= golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -46,6 +50,17 @@ DOCKER_REF := $(DOCKER_IMAGE):$(DOCKER_TAG)
 ifeq ($(HAS_GO), yes)
 	CGO_EXTRA_CFLAGS := -DSQLITE_MAX_VARIABLE_NUMBER=32766
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
+endif
+
+CGO_ENABLED ?= 0
+ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
+	CGO_ENABLED = 1
+endif
+
+STATIC ?=
+EXTLDFLAGS ?=
+ifneq ($(STATIC),)
+	EXTLDFLAGS = -extldflags "-static"
 endif
 
 ifeq ($(GOOS),windows)
@@ -81,10 +96,18 @@ ifeq ($(RACE_ENABLED),true)
 endif
 
 STORED_VERSION_FILE := VERSION
-HUGO_VERSION ?= 0.111.3
 
 GITHUB_REF_TYPE ?= branch
 GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
+
+# Enable typescript support in Node.js before 22.18
+# TODO: Remove this once we can raise the minimum Node.js version to 22.18 (alpine >= 3.23)
+NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v 2>/dev/null | cut -c2- | tr '.' ' '))
+ifeq ($(shell test "$(NODE_VERSION)" -lt "022018000"; echo $$?),0)
+	NODE_VARS := NODE_OPTIONS="--experimental-strip-types"
+else
+	NODE_VARS :=
+endif
 
 ifneq ($(GITHUB_REF_TYPE),branch)
 	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
@@ -117,7 +140,7 @@ GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/m
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
-WEBPACK_CONFIGS := webpack.config.js tailwind.config.js
+WEBPACK_CONFIGS := webpack.config.ts tailwind.config.ts
 WEBPACK_DEST := public/assets/js/index.js public/assets/css/index.css
 WEBPACK_DEST_ENTRIES := public/assets/js public/assets/css public/assets/fonts
 
@@ -143,9 +166,9 @@ TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST)
 GO_DIRS := build cmd models modules routers services tests
 WEB_DIRS := web_src/js web_src/css
 
-ESLINT_FILES := web_src/js tools *.js *.ts *.cjs tests/e2e
+ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.js *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
 
 GO_SOURCES := $(wildcard *.go)
@@ -207,10 +230,13 @@ git-check:
 node-check:
 	$(eval MIN_NODE_VERSION_STR := $(shell grep -Eo '"node":.*[0-9.]+"' package.json | sed -n 's/.*[^0-9.]\([0-9.]*\)"/\1/p'))
 	$(eval MIN_NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_NODE_VERSION_STR)' | tr '.' ' ')))
-	$(eval NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v | cut -c2- | tr '.' ' ');))
-	$(eval NPM_MISSING := $(shell hash npm > /dev/null 2>&1 || echo 1))
-	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" -o "$(NPM_MISSING)" = "1" ]; then \
-		echo "Gitea requires Node.js $(MIN_NODE_VERSION_STR) or greater and npm to build. You can get it at https://nodejs.org/en/download/"; \
+	$(eval PNPM_MISSING := $(shell hash pnpm > /dev/null 2>&1 || echo 1))
+	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" ]; then \
+		echo "Gitea requires Node.js $(MIN_NODE_VERSION_STR) or greater to build. You can get it at https://nodejs.org/en/download/"; \
+		exit 1; \
+	fi
+	@if [ "$(PNPM_MISSING)" = "1" ]; then \
+		echo "Gitea requires pnpm to build. You can install it at https://pnpm.io/installation"; \
 		exit 1; \
 	fi
 
@@ -232,7 +258,7 @@ clean: ## delete backend and integration files
 
 .PHONY: fmt
 fmt: ## format the Go and template code
-	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
+	@GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run tools/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' or '(' and before '}}' or ')' unless there is only
 	@# whitespace before it
@@ -324,29 +350,29 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 
 .PHONY: lint-js
 lint-js: node_modules ## lint js files
-	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES)
-	npx vue-tsc
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --flag unstable_native_nodejs_ts_config $(ESLINT_FILES)
+	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js files and fix issues
-	npx eslint --color --max-warnings=0 --ext js,ts,vue $(ESLINT_FILES) --fix
-	npx vue-tsc
+	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --flag unstable_native_nodejs_ts_config $(ESLINT_FILES) --fix
+	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-css
 lint-css: node_modules ## lint css files
-	npx stylelint --color --max-warnings=0 $(STYLELINT_FILES)
+	$(NODE_VARS) pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES)
 
 .PHONY: lint-css-fix
 lint-css-fix: node_modules ## lint css files and fix issues
-	npx stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
+	$(NODE_VARS) pnpm exec stylelint --color --max-warnings=0 $(STYLELINT_FILES) --fix
 
 .PHONY: lint-swagger
 lint-swagger: node_modules ## lint swagger files
-	npx spectral lint -q -F hint $(SWAGGER_SPEC)
+	$(NODE_VARS) pnpm exec spectral lint -q -F hint $(SWAGGER_SPEC)
 
 .PHONY: lint-md
 lint-md: node_modules ## lint markdown files
-	npx markdownlint *.md
+	$(NODE_VARS) pnpm exec markdownlint *.md
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
@@ -393,12 +419,12 @@ lint-actions: ## lint action workflow files
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
-	@node tools/lint-templates-svg.js
-	@poetry run djlint $(shell find templates -type f -iname '*.tmpl')
+	@node tools/lint-templates-svg.ts
+	@uv run --frozen djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: lint-yaml
 lint-yaml: .venv ## lint yaml files
-	@poetry run yamllint -s .
+	@uv run --frozen yamllint -s .
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
@@ -407,7 +433,7 @@ watch: ## watch everything and continuously rebuild
 .PHONY: watch-frontend
 watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
-	NODE_ENV=development npx webpack --watch --progress
+	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
 
 .PHONY: watch-backend
 watch-backend: go-check ## watch backend files and continuously rebuild
@@ -423,7 +449,7 @@ test-backend: ## test backend files
 
 .PHONY: test-frontend
 test-frontend: node_modules ## test frontend files
-	npx vitest
+	$(NODE_VARS) pnpm exec vitest
 
 .PHONY: test-check
 test-check:
@@ -446,7 +472,7 @@ test\#%:
 coverage:
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' coverage.out > coverage-bodged.out
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' integration.coverage.out > integration.coverage-bodged.out
-	$(GO) run build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all
+	$(GO) run tools/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
@@ -566,7 +592,7 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
 playwright: deps-frontend
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+	$(NODE_VARS) pnpm exec playwright install $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e%
 test-e2e%: TEST_TYPE ?= e2e
@@ -744,10 +770,13 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	go run $(GOVULNCHECK_PACKAGE) -show color ./...
+	GOEXPERIMENT= go run $(GOVULNCHECK_PACKAGE) -show color ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
-	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
+ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
+  $(error pam support set via TAGS doesn't support static builds)
+endif
+	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
@@ -826,12 +855,12 @@ deps-tools: ## install tool dependencies
 	$(GO) install $(GOPLS_MODERNIZE_PACKAGE) & \
 	wait
 
-node_modules: package-lock.json
-	npm install --no-save
+node_modules: pnpm-lock.yaml
+	$(NODE_VARS) pnpm install --frozen-lockfile
 	@touch node_modules
 
-.venv: poetry.lock
-	poetry install
+.venv: uv.lock
+	uv sync
 	@touch .venv
 
 .PHONY: update
@@ -839,34 +868,34 @@ update: update-js update-py ## update js and py dependencies
 
 .PHONY: update-js
 update-js: node-check | node_modules ## update js dependencies
-	npx updates -u -f package.json
-	rm -rf node_modules package-lock.json
-	npm install --package-lock
-	npx nolyfill install
-	npm install --package-lock
+	$(NODE_VARS) pnpm exec updates -u -f package.json
+	rm -rf node_modules pnpm-lock.yaml
+	$(NODE_VARS) pnpm install
+	$(NODE_VARS) pnpm exec nolyfill install
+	$(NODE_VARS) pnpm install
 	@touch node_modules
 
 .PHONY: update-py
 update-py: node-check | node_modules ## update py dependencies
-	npx updates -u -f pyproject.toml
-	rm -rf .venv poetry.lock
-	poetry install
+	$(NODE_VARS) pnpm exec updates -u -f pyproject.toml
+	rm -rf .venv uv.lock
+	uv sync
 	@touch .venv
 
 .PHONY: webpack
 webpack: $(WEBPACK_DEST) ## build webpack files
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) package-lock.json
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@echo "Running webpack..."
-	@BROWSERSLIST_IGNORE_OLD_DATA=true npx webpack
+	@BROWSERSLIST_IGNORE_OLD_DATA=true $(NODE_VARS) pnpm exec webpack --disable-interpret
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
 svg: node-check | node_modules ## build svg files
 	rm -rf $(SVG_DEST_DIR)
-	node tools/generate-svg.js
+	node tools/generate-svg.ts
 
 .PHONY: svg-check
 svg-check: svg
@@ -880,11 +909,11 @@ svg-check: svg
 
 .PHONY: lockfile-check
 lockfile-check:
-	npm install --package-lock-only
-	@diff=$$(git diff --color=always package-lock.json); \
+	$(NODE_VARS) pnpm install --frozen-lockfile
+	@diff=$$(git diff --color=always pnpm-lock.yaml); \
 	if [ -n "$$diff" ]; then \
-		echo "package-lock.json is inconsistent with package.json"; \
-		echo "Please run 'npm install --package-lock-only' and commit the result:"; \
+		echo "pnpm-lock.yaml is inconsistent with package.json"; \
+		echo "Please run 'pnpm install --frozen-lockfile' and commit the result:"; \
 		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
@@ -904,9 +933,8 @@ generate-gitignore: ## update gitignore files
 	$(GO) run build/generate-gitignores.go
 
 .PHONY: generate-images
-generate-images: | node_modules
-	npm install --no-save fabric@6 imagemin-zopfli@7
-	node tools/generate-images.js $(TAGS)
+generate-images: | node_modules ## generate images
+	cd tools && node generate-images.ts $(TAGS)
 
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage

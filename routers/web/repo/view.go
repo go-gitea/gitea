@@ -12,6 +12,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
@@ -59,60 +60,63 @@ const (
 )
 
 type fileInfo struct {
-	isTextFile bool
-	isLFSFile  bool
-	fileSize   int64
-	lfsMeta    *lfs.Pointer
-	st         typesniffer.SniffedType
+	blobOrLfsSize int64
+	lfsMeta       *lfs.Pointer
+	st            typesniffer.SniffedType
 }
 
-func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) ([]byte, io.ReadCloser, *fileInfo, error) {
-	dataRc, err := blob.DataAsync()
+func (fi *fileInfo) isLFSFile() bool {
+	return fi.lfsMeta != nil && fi.lfsMeta.Oid != ""
+}
+
+func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []byte, dataRc io.ReadCloser, fi *fileInfo, err error) {
+	dataRc, err = blob.DataAsync()
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	buf := make([]byte, 1024)
+	const prefetchSize = lfs.MetaFileMaxSize
+
+	buf = make([]byte, prefetchSize)
 	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
-	st := typesniffer.DetectContentType(buf)
-	isTextFile := st.IsText()
+	fi = &fileInfo{blobOrLfsSize: blob.Size(), st: typesniffer.DetectContentType(buf)}
 
 	// FIXME: what happens when README file is an image?
-	if !isTextFile || !setting.LFS.StartServer {
-		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
+	if !fi.st.IsText() || !setting.LFS.StartServer {
+		return buf, dataRc, fi, nil
 	}
 
 	pointer, _ := lfs.ReadPointerFromBuffer(buf)
-	if !pointer.IsValid() { // fallback to plain file
-		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
+	if !pointer.IsValid() { // fallback to a plain file
+		return buf, dataRc, fi, nil
 	}
 
 	meta, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointer.Oid)
-	if err != nil { // fallback to plain file
+	if err != nil { // fallback to a plain file
 		log.Warn("Unable to access LFS pointer %s in repo %d: %v", pointer.Oid, repoID, err)
-		return buf, dataRc, &fileInfo{isTextFile, false, blob.Size(), nil, st}, nil
+		return buf, dataRc, fi, nil
 	}
 
-	dataRc.Close()
-
+	// close the old dataRc and open the real LFS target
+	_ = dataRc.Close()
 	dataRc, err = lfs.ReadMetaObject(pointer)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	buf = make([]byte, 1024)
+	buf = make([]byte, prefetchSize)
 	n, err = util.ReadAtMost(dataRc, buf)
 	if err != nil {
-		dataRc.Close()
-		return nil, nil, nil, err
+		_ = dataRc.Close()
+		return nil, nil, fi, err
 	}
 	buf = buf[:n]
-
-	st = typesniffer.DetectContentType(buf)
-
-	return buf, dataRc, &fileInfo{st.IsText(), true, meta.Size, &meta.Pointer, st}, nil
+	fi.st = typesniffer.DetectContentType(buf)
+	fi.blobOrLfsSize = meta.Pointer.Size
+	fi.lfsMeta = &meta.Pointer
+	return buf, dataRc, fi, nil
 }
 
 func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
@@ -147,17 +151,28 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 }
 
 func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
+	renderer, err := markup.FindRendererByContext(renderCtx)
+	if err != nil {
+		return nil, "", err
+	}
+
 	markupRd, markupWr := io.Pipe()
 	defer markupWr.Close()
+
 	done := make(chan struct{})
 	go func() {
 		sb := &strings.Builder{}
-		// We allow NBSP here this is rendered
-		escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP)
+		if markup.RendererNeedPostProcess(renderer) {
+			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP) // We allow NBSP here this is rendered
+		} else {
+			escaped = &charset.EscapeStatus{}
+			_, _ = io.Copy(sb, markupRd)
+		}
 		output = template.HTML(sb.String())
 		close(done)
 	}()
-	err = markup.Render(renderCtx, input, markupWr)
+
+	err = markup.RenderWithRenderer(renderCtx, renderer, input, markupWr)
 	_ = markupWr.CloseWithError(err)
 	<-done
 	return escaped, output, err
@@ -257,7 +272,9 @@ func prepareDirectoryFileIcons(ctx *context.Context, files []git.CommitInfo) {
 	renderedIconPool := fileicon.NewRenderedIconPool()
 	fileIcons := map[string]template.HTML{}
 	for _, f := range files {
-		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFromGitTreeEntry(f.Entry))
+		fullPath := path.Join(ctx.Repo.TreePath, f.Entry.Name())
+		entryInfo := fileicon.EntryInfoFromGitTreeEntry(ctx.Repo.Commit, fullPath, f.Entry)
+		fileIcons[f.Entry.Name()] = fileicon.RenderEntryIconHTML(renderedIconPool, entryInfo)
 	}
 	fileIcons[".."] = fileicon.RenderEntryIconHTML(renderedIconPool, fileicon.EntryInfoFolder())
 	ctx.Data["FileIcons"] = fileIcons
@@ -299,7 +316,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
+	files, latestCommit, err := allEntries.GetCommitsInfo(commitInfoCtx, ctx.Repo.RepoLink, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil

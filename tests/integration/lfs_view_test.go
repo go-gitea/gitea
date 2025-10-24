@@ -68,14 +68,17 @@ func TestLFSRender(t *testing.T) {
 		req := NewRequest(t, "GET", "/user2/lfs/src/branch/master/crypt.bin")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
-		doc := NewHTMLParser(t, resp.Body).doc
+		doc := NewHTMLParser(t, resp.Body)
 
 		fileInfo := doc.Find("div.file-info-entry").First().Text()
 		assert.Contains(t, fileInfo, "LFS")
+		fileSize := doc.Find("div.file-info-entry > .file-info-size").Text()
+		assert.Equal(t, "2.0 KiB", fileSize)
 
-		rawLink, exists := doc.Find("div.file-view > div.view-raw > a").Attr("href")
-		assert.True(t, exists, "Download link should render instead of content because this is a binary file")
-		assert.Equal(t, "/user2/lfs/media/branch/master/crypt.bin", rawLink, "The download link should use the proper /media link because it's in LFS")
+		// find new file view container
+		fileViewContainer := doc.Find("[data-global-init=initRepoFileView]")
+		assert.Equal(t, "/user2/lfs/media/branch/master/crypt.bin", fileViewContainer.AttrOr("data-raw-file-link", ""))
+		AssertHTMLElement(t, doc, ".view-raw > .file-view-render-container > .file-view-raw-prompt", 1)
 	})
 
 	// check that a directory with a README file shows its text
@@ -102,7 +105,7 @@ func TestLFSRender(t *testing.T) {
 		assert.Contains(t, content, "Testing documents in LFS")
 
 		// then make it disappear
-		assert.NoError(t, db.TruncateBeans(db.DefaultContext, &git.LFSMetaObject{}))
+		assert.NoError(t, db.TruncateBeans(t.Context(), &git.LFSMetaObject{}))
 		req = NewRequest(t, "GET", "/user2/lfs/src/branch/master/CONTRIBUTING.md")
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		content = NewHTMLParser(t, resp.Body).Find("div.file-view").Text()

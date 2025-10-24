@@ -102,6 +102,9 @@ function initAdminAuthentication() {
         break;
       }
     }
+
+    const supportSshPublicKey = document.querySelector<HTMLInputElement>(`#${provider}_SupportSSHPublicKey`)?.value === 'true';
+    toggleElem('.field.oauth2_ssh_public_key_claim_name', supportSshPublicKey);
     onOAuth2UseCustomURLChange(applyDefaultValues);
   }
 

@@ -180,20 +180,20 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 		return false
 	}
 
-	err = db_install.CheckDatabaseConnection()
+	err = db_install.CheckDatabaseConnection(ctx)
 	if err != nil {
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		return false
 	}
 
-	hasPostInstallationUser, err := db_install.HasPostInstallationUsers()
+	hasPostInstallationUser, err := db_install.HasPostInstallationUsers(ctx)
 	if err != nil {
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_table", "user", err), tplInstall, form)
 		return false
 	}
-	dbMigrationVersion, err := db_install.GetMigrationVersion()
+	dbMigrationVersion, err := db_install.GetMigrationVersion(ctx)
 	if err != nil {
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_table", "version", err), tplInstall, form)
@@ -600,7 +600,7 @@ func SubmitInstall(ctx *context.Context) {
 
 // InstallDone shows the "post-install" page, makes it easier to develop the page.
 // The name is not called as "PostInstall" to avoid misinterpretation as a handler for "POST /install"
-func InstallDone(ctx *context.Context) { //nolint
+func InstallDone(ctx *context.Context) { //nolint:revive // export stutter
 	hasUsers, _ := user_model.HasUsers(ctx)
 	ctx.Data["IsAccountCreated"] = hasUsers.HasAnyUser
 	ctx.HTML(http.StatusOK, tplPostInstall)

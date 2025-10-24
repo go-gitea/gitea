@@ -149,7 +149,7 @@ func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo
 	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
 	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
 
-	teamReaders, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepo(ctx, repo.ID, perm.AccessModeRead)
+	teamReaders, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.Owner.ID, repo.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
 	}
@@ -727,7 +727,7 @@ func ToTagProtection(ctx context.Context, pt *git_model.ProtectedTag, repo *repo
 
 	whitelistUsernames := getWhitelistEntities(readers, pt.AllowlistUserIDs)
 
-	teamReaders, err := organization.OrgFromUser(repo.Owner).TeamsWithAccessToRepo(ctx, repo.ID, perm.AccessModeRead)
+	teamReaders, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.Owner.ID, repo.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		log.Error("Repo.Owner.TeamsWithAccessToRepo: %v", err)
 	}
@@ -771,7 +771,7 @@ func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 
 // ToLFSLock convert a LFSLock to api.LFSLock
 func ToLFSLock(ctx context.Context, l *git_model.LFSLock) *api.LFSLock {
-	u, err := user_model.GetUserByID(ctx, l.OwnerID)
+	u, err := user_model.GetPossibleUserByID(ctx, l.OwnerID)
 	if err != nil {
 		return nil
 	}

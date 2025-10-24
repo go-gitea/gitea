@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
-	"gopkg.in/ini.v1" //nolint:depguard
+	"gopkg.in/ini.v1" //nolint:depguard // wrapper for this package
 )
 
 type ConfigKey interface {
@@ -202,11 +202,11 @@ func NewConfigProviderFromFile(file string) (ConfigProvider, error) {
 	loadedFromEmpty := true
 
 	if file != "" {
-		isFile, err := util.IsFile(file)
+		isExist, err := util.IsExist(file)
 		if err != nil {
-			return nil, fmt.Errorf("unable to check if %q is a file. Error: %v", file, err)
+			return nil, fmt.Errorf("unable to check if %q exists: %v", file, err)
 		}
-		if isFile {
+		if isExist {
 			if err = cfg.Append(file); err != nil {
 				return nil, fmt.Errorf("failed to load config file %q: %v", file, err)
 			}

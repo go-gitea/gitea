@@ -19,9 +19,9 @@
       "name": "MIT",
       "url": "http://opensource.org/licenses/MIT"
     },
-    "version": "{{AppVer | JSEscape}}"
+    "version": "{{.SwaggerAppVer}}"
   },
-  "basePath": "{{AppSubUrl | JSEscape}}/api/v1",
+  "basePath": "{{.SwaggerAppSubUrl}}/api/v1",
   "paths": {
     "/activitypub/user-id/{user-id}": {
       "get": {
@@ -766,7 +766,7 @@
           },
           {
             "type": "string",
-            "description": "user's login name to search for",
+            "description": "identifier of the user, provided by the external authenticator",
             "name": "login_name",
             "in": "query"
           },
@@ -842,7 +842,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to delete",
+            "description": "username of the user to delete",
             "name": "username",
             "in": "path",
             "required": true
@@ -884,7 +884,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to edit",
+            "description": "username of the user whose data is to be edited",
             "name": "username",
             "in": "path",
             "required": true
@@ -926,7 +926,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose badges are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -956,7 +956,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user to whom a badge is to be added",
             "name": "username",
             "in": "path",
             "required": true
@@ -990,7 +990,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose badge is to be deleted",
             "name": "username",
             "in": "path",
             "required": true
@@ -1032,7 +1032,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user who is to receive a public key",
             "name": "username",
             "in": "path",
             "required": true
@@ -1071,7 +1071,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose public key is to be deleted",
             "name": "username",
             "in": "path",
             "required": true
@@ -1114,7 +1114,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user that will own the created organization",
+            "description": "username of the user who will own the created organization",
             "name": "username",
             "in": "path",
             "required": true
@@ -1154,7 +1154,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "existing username of user",
+            "description": "current username of the user",
             "name": "username",
             "in": "path",
             "required": true
@@ -1197,7 +1197,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user. This user will own the created repository",
+            "description": "username of the user who will own the created repository",
             "name": "username",
             "in": "path",
             "required": true
@@ -2716,7 +2716,7 @@
           },
           {
             "type": "string",
-            "description": "user to check",
+            "description": "username of the user to check",
             "name": "username",
             "in": "path",
             "required": true
@@ -2747,7 +2747,7 @@
           },
           {
             "type": "string",
-            "description": "user to block",
+            "description": "username of the user to block",
             "name": "username",
             "in": "path",
             "required": true
@@ -2787,7 +2787,7 @@
           },
           {
             "type": "string",
-            "description": "user to unblock",
+            "description": "username of the user to unblock",
             "name": "username",
             "in": "path",
             "required": true
@@ -3258,7 +3258,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user to check for an organization membership",
             "name": "username",
             "in": "path",
             "required": true
@@ -3295,7 +3295,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user to remove from the organization",
             "name": "username",
             "in": "path",
             "required": true
@@ -3369,7 +3369,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user to check for a public organization membership",
             "name": "username",
             "in": "path",
             "required": true
@@ -3403,7 +3403,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user whose membership is to be publicized",
             "name": "username",
             "in": "path",
             "required": true
@@ -3440,7 +3440,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user whose membership is to be concealed",
             "name": "username",
             "in": "path",
             "required": true
@@ -4585,7 +4585,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4630,7 +4630,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4674,7 +4674,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4720,7 +4720,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4766,7 +4766,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4823,7 +4823,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -4869,7 +4869,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5108,7 +5108,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5165,7 +5165,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/ArtifactsList"
+            "$ref": "#/responses/WorkflowRunsList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5189,7 +5189,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5233,7 +5233,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5279,7 +5279,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5331,7 +5331,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5395,7 +5395,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "owner of the repository",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5609,7 +5609,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5660,7 +5660,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5704,7 +5704,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5758,7 +5758,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -5812,7 +5812,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the owner",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -6807,8 +6807,8 @@
         "tags": [
           "repository"
         ],
-        "summary": "Update a branch",
-        "operationId": "repoUpdateBranch",
+        "summary": "Rename a branch",
+        "operationId": "repoRenameBranch",
         "parameters": [
           {
             "type": "string",
@@ -6835,7 +6835,7 @@
             "name": "body",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/UpdateBranchRepoOption"
+              "$ref": "#/definitions/RenameBranchRepoOption"
             }
           }
         ],
@@ -6930,7 +6930,7 @@
           },
           {
             "type": "string",
-            "description": "username of the collaborator",
+            "description": "username of the user to check for being a collaborator",
             "name": "collaborator",
             "in": "path",
             "required": true
@@ -6974,7 +6974,7 @@
           },
           {
             "type": "string",
-            "description": "username of the collaborator to add",
+            "description": "username of the user to add or update as a collaborator",
             "name": "collaborator",
             "in": "path",
             "required": true
@@ -7074,7 +7074,7 @@
           },
           {
             "type": "string",
-            "description": "username of the collaborator",
+            "description": "username of the collaborator whose permissions are to be obtained",
             "name": "collaborator",
             "in": "path",
             "required": true
@@ -7424,13 +7424,14 @@
     },
     "/repos/{owner}/{repo}/contents": {
       "get": {
+        "description": "This API follows GitHub's design, and it is not easy to use. Recommend users to use our \"contents-ext\" API instead.",
         "produces": [
           "application/json"
         ],
         "tags": [
           "repository"
         ],
-        "summary": "Gets the metadata of all the entries of the root dir",
+        "summary": "Gets the metadata of all the entries of the root dir.",
         "operationId": "repoGetContentsList",
         "parameters": [
           {
@@ -7518,15 +7519,72 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/contents/{filepath}": {
+    "/repos/{owner}/{repo}/contents-ext/{filepath}": {
       "get": {
+        "description": "It guarantees that only one of the response fields is set if the request succeeds. Users can pass \"includes=file_content\" or \"includes=lfs_metadata\" to retrieve more fields. \"includes=file_content\" only works for single file, if you need to retrieve file contents in batch, use \"file-contents\" API after listing the directory.",
         "produces": [
           "application/json"
         ],
         "tags": [
           "repository"
         ],
-        "summary": "Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir",
+        "summary": "The extended \"contents\" API, to get file metadata and/or content, or list a directory.",
+        "operationId": "repoGetContentsExt",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "path of the dir, file, symlink or submodule in the repo. Swagger requires path parameter to be \"required\", you can leave it empty or pass a single dot (\".\") to get the root directory.",
+            "name": "filepath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "the name of the commit/branch/tag, default to the repository’s default branch.",
+            "name": "ref",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "By default this API's response only contains file's metadata. Use comma-separated \"includes\" options to retrieve more fields. Option \"file_content\" will try to retrieve the file content, \"lfs_metadata\" will try to retrieve LFS metadata, \"commit_metadata\" will try to retrieve commit metadata, and \"commit_message\" will try to retrieve commit message.",
+            "name": "includes",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ContentsExtResponse"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/contents/{filepath}": {
+      "get": {
+        "description": "This API follows GitHub's design, and it is not easy to use. Recommend users to use the \"contents-ext\" API instead.",
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Gets the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir.",
         "operationId": "repoGetContents",
         "parameters": [
           {
@@ -7576,7 +7634,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Update a file in a repository",
+        "summary": "Update a file in a repository if SHA is set, or create the file if SHA is not set",
         "operationId": "repoUpdateFile",
         "parameters": [
           {
@@ -7611,6 +7669,9 @@
         ],
         "responses": {
           "200": {
+            "$ref": "#/responses/FileResponse"
+          },
+          "201": {
             "$ref": "#/responses/FileResponse"
           },
           "403": {
@@ -7744,6 +7805,9 @@
           "404": {
             "$ref": "#/responses/error"
           },
+          "422": {
+            "$ref": "#/responses/error"
+          },
           "423": {
             "$ref": "#/responses/repoArchivedError"
           }
@@ -7783,7 +7847,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/UpdateFileOptions"
+              "$ref": "#/definitions/ApplyDiffPatchFileOptions"
             }
           }
         ],
@@ -7851,7 +7915,7 @@
     },
     "/repos/{owner}/{repo}/file-contents": {
       "get": {
-        "description": "See the POST method. This GET method supports to use JSON encoded request body in query parameter.",
+        "description": "See the POST method. This GET method supports using JSON encoded request body in query parameter.",
         "produces": [
           "application/json"
         ],
@@ -9048,7 +9112,7 @@
           },
           {
             "type": "string",
-            "description": "comma separated list of labels. Fetch only issues that have any of this labels. Non existent labels are discarded",
+            "description": "comma separated list of label names. Fetch only issues that have any of this label names. Non existent labels are discarded.",
             "name": "labels",
             "in": "query"
           },
@@ -9506,6 +9570,9 @@
             "$ref": "#/responses/forbidden"
           },
           "404": {
+            "$ref": "#/responses/error"
+          },
+          "413": {
             "$ref": "#/responses/error"
           },
           "422": {
@@ -10131,6 +10198,9 @@
             "$ref": "#/responses/error"
           },
           "404": {
+            "$ref": "#/responses/error"
+          },
+          "413": {
             "$ref": "#/responses/error"
           },
           "422": {
@@ -11635,7 +11705,7 @@
             "$ref": "#/responses/notFound"
           },
           "409": {
-            "description": "Cannot cancel a non existent stopwatch"
+            "description": "Cannot cancel a non-existent stopwatch"
           }
         }
       }
@@ -11741,7 +11811,7 @@
             "$ref": "#/responses/notFound"
           },
           "409": {
-            "description": "Cannot stop a non existent stopwatch"
+            "description": "Cannot stop a non-existent stopwatch"
           }
         }
       }
@@ -11890,7 +11960,7 @@
           },
           {
             "type": "string",
-            "description": "user to subscribe",
+            "description": "username of the user to subscribe the issue to",
             "name": "user",
             "in": "path",
             "required": true
@@ -11948,7 +12018,7 @@
           },
           {
             "type": "string",
-            "description": "user witch unsubscribe",
+            "description": "username of the user to unsubscribe from an issue",
             "name": "user",
             "in": "path",
             "required": true
@@ -12818,7 +12888,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -13363,7 +13433,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "Owner of the repo",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
@@ -14962,7 +15032,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch",
+            "description": "The name of the commit/branch/tag. Default to the repository’s default branch",
             "name": "ref",
             "in": "query"
           }
@@ -15449,6 +15519,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "413": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -16760,7 +16833,7 @@
           },
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose tracked times are to be listed",
             "name": "user",
             "in": "path",
             "required": true
@@ -17402,7 +17475,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "name of the template repository owner",
+            "description": "owner of the template repository",
             "name": "template_owner",
             "in": "path",
             "required": true
@@ -17783,7 +17856,7 @@
           },
           {
             "type": "string",
-            "description": "username of the member to list",
+            "description": "username of the user whose data is to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -17818,7 +17891,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user to add",
+            "description": "username of the user to add to a team",
             "name": "username",
             "in": "path",
             "required": true
@@ -17856,7 +17929,7 @@
           },
           {
             "type": "string",
-            "description": "username of the user to remove",
+            "description": "username of the user to remove from a team",
             "name": "username",
             "in": "path",
             "required": true
@@ -18835,7 +18908,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "user to check",
+            "description": "username of the user to check",
             "name": "username",
             "in": "path",
             "required": true
@@ -18859,7 +18932,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "user to block",
+            "description": "username of the user to block",
             "name": "username",
             "in": "path",
             "required": true
@@ -18892,7 +18965,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "user to unblock",
+            "description": "username of the user to unblock",
             "name": "username",
             "in": "path",
             "required": true
@@ -19054,7 +19127,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of followed user",
+            "description": "username of the user to check for authenticated followers",
             "name": "username",
             "in": "path",
             "required": true
@@ -19078,7 +19151,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to follow",
+            "description": "username of the user to follow",
             "name": "username",
             "in": "path",
             "required": true
@@ -19105,7 +19178,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to unfollow",
+            "description": "username of the user to unfollow",
             "name": "username",
             "in": "path",
             "required": true
@@ -20059,7 +20132,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to get",
+            "description": "username of the user whose data is to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20088,7 +20161,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose activity feeds are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20142,7 +20215,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose followers are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20183,7 +20256,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose followed users are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20221,14 +20294,14 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of following user",
+            "description": "username of the following user",
             "name": "username",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "username of followed user",
+            "description": "username of the followed user",
             "name": "target",
             "in": "path",
             "required": true
@@ -20257,7 +20330,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose GPG key list is to be obtained",
             "name": "username",
             "in": "path",
             "required": true
@@ -20298,7 +20371,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user to get",
+            "description": "username of the user whose heatmap is to be obtained",
             "name": "username",
             "in": "path",
             "required": true
@@ -20327,7 +20400,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose public keys are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20374,7 +20447,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose organizations are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20415,7 +20488,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose permissions are to be obtained",
             "name": "username",
             "in": "path",
             "required": true
@@ -20454,7 +20527,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose owned repos are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20495,7 +20568,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose starred repos are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20539,7 +20612,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of the user",
+            "description": "username of the user whose watched repos are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20580,7 +20653,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of to user whose access tokens are to be listed",
             "name": "username",
             "in": "path",
             "required": true
@@ -20622,7 +20695,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose token is to be created",
             "name": "username",
             "in": "path",
             "required": true
@@ -20661,7 +20734,7 @@
         "parameters": [
           {
             "type": "string",
-            "description": "username of user",
+            "description": "username of the user whose token is to be deleted",
             "name": "username",
             "in": "path",
             "required": true
@@ -20714,10 +20787,12 @@
       "type": "object",
       "properties": {
         "message": {
+          "description": "Message contains the error description",
           "type": "string",
           "x-go-name": "Message"
         },
         "url": {
+          "description": "URL contains the documentation URL for this error",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -20729,25 +20804,30 @@
       "title": "AccessToken represents an API access token.",
       "properties": {
         "created_at": {
+          "description": "The timestamp when the token was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
         },
         "id": {
+          "description": "The unique identifier of the access token",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "last_used_at": {
+          "description": "The timestamp when the token was last used",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
         },
         "name": {
+          "description": "The name of the access token",
           "type": "string",
           "x-go-name": "Name"
         },
         "scopes": {
+          "description": "The scopes granted to this access token",
           "type": "array",
           "items": {
             "type": "string"
@@ -20755,10 +20835,12 @@
           "x-go-name": "Scopes"
         },
         "sha1": {
+          "description": "The SHA1 hash of the access token",
           "type": "string",
           "x-go-name": "Token"
         },
         "token_last_eight": {
+          "description": "The last eight characters of the token",
           "type": "string",
           "x-go-name": "TokenLastEight"
         }
@@ -20919,31 +21001,38 @@
           "x-go-name": "CreatedAt"
         },
         "display_title": {
+          "description": "DisplayTitle is the display title for the workflow run",
           "type": "string",
           "x-go-name": "DisplayTitle"
         },
         "event": {
+          "description": "Event is the type of event that triggered the workflow",
           "type": "string",
           "x-go-name": "Event"
         },
         "head_branch": {
+          "description": "HeadBranch is the branch that triggered the workflow",
           "type": "string",
           "x-go-name": "HeadBranch"
         },
         "head_sha": {
+          "description": "HeadSHA is the commit SHA that triggered the workflow",
           "type": "string",
           "x-go-name": "HeadSHA"
         },
         "id": {
+          "description": "ID is the unique identifier for the action task",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "name": {
+          "description": "Name is the name of the workflow",
           "type": "string",
           "x-go-name": "Name"
         },
         "run_number": {
+          "description": "RunNumber is the sequential number of the workflow run",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RunNumber"
@@ -20954,6 +21043,7 @@
           "x-go-name": "RunStartedAt"
         },
         "status": {
+          "description": "Status indicates the current status of the workflow run",
           "type": "string",
           "x-go-name": "Status"
         },
@@ -20963,10 +21053,12 @@
           "x-go-name": "UpdatedAt"
         },
         "url": {
+          "description": "URL is the API URL for this workflow run",
           "type": "string",
           "x-go-name": "URL"
         },
         "workflow_id": {
+          "description": "WorkflowID is the identifier of the workflow",
           "type": "string",
           "x-go-name": "WorkflowID"
         }
@@ -20978,11 +21070,13 @@
       "type": "object",
       "properties": {
         "total_count": {
+          "description": "TotalCount is the total number of workflow runs",
           "type": "integer",
           "format": "int64",
           "x-go-name": "TotalCount"
         },
         "workflow_runs": {
+          "description": "Entries contains the list of workflow runs",
           "type": "array",
           "items": {
             "$ref": "#/definitions/ActionTask"
@@ -21031,6 +21125,7 @@
       "type": "object",
       "properties": {
         "badge_url": {
+          "description": "BadgeURL is the URL for the workflow badge",
           "type": "string",
           "x-go-name": "BadgeURL"
         },
@@ -21045,22 +21140,27 @@
           "x-go-name": "DeletedAt"
         },
         "html_url": {
+          "description": "HTMLURL is the web URL for viewing the workflow",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "id": {
+          "description": "ID is the unique identifier for the workflow",
           "type": "string",
           "x-go-name": "ID"
         },
         "name": {
+          "description": "Name is the name of the workflow",
           "type": "string",
           "x-go-name": "Name"
         },
         "path": {
+          "description": "Path is the file path of the workflow",
           "type": "string",
           "x-go-name": "Path"
         },
         "state": {
+          "description": "State indicates if the workflow is active or disabled",
           "type": "string",
           "x-go-name": "State"
         },
@@ -21070,6 +21170,7 @@
           "x-go-name": "UpdatedAt"
         },
         "url": {
+          "description": "URL is the API URL for this workflow",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -21183,6 +21284,25 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "TotalCount"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActionWorkflowResponse": {
+      "description": "ActionWorkflowResponse returns a ActionWorkflow",
+      "type": "object",
+      "properties": {
+        "total_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TotalCount"
+        },
+        "workflows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ActionWorkflow"
+          },
+          "x-go-name": "Workflows"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -21332,6 +21452,7 @@
           "$ref": "#/definitions/User"
         },
         "act_user_id": {
+          "description": "The ID of the user who performed the action",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ActUserID"
@@ -21340,25 +21461,30 @@
           "$ref": "#/definitions/Comment"
         },
         "comment_id": {
+          "description": "The ID of the comment associated with the activity (if applicable)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "CommentID"
         },
         "content": {
+          "description": "Additional content or details about the activity",
           "type": "string",
           "x-go-name": "Content"
         },
         "created": {
+          "description": "The date and time when the activity occurred",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
         },
         "id": {
+          "description": "The unique identifier of the activity",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "is_private": {
+          "description": "Whether this activity is from a private repository",
           "type": "boolean",
           "x-go-name": "IsPrivate"
         },
@@ -21397,6 +21523,7 @@
           "x-go-name": "OpType"
         },
         "ref_name": {
+          "description": "The name of the git reference (branch/tag) associated with the activity",
           "type": "string",
           "x-go-name": "RefName"
         },
@@ -21404,11 +21531,13 @@
           "$ref": "#/definitions/Repository"
         },
         "repo_id": {
+          "description": "The ID of the repository associated with the activity",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepoID"
         },
         "user_id": {
+          "description": "The ID of the user who receives/sees this activity",
           "type": "integer",
           "format": "int64",
           "x-go-name": "UserID"
@@ -21421,6 +21550,7 @@
       "type": "object",
       "properties": {
         "@context": {
+          "description": "Context defines the JSON-LD context for ActivityPub",
           "type": "string",
           "x-go-name": "Context"
         }
@@ -21462,7 +21592,7 @@
           "x-go-name": "Time"
         },
         "user_name": {
-          "description": "User who spent the time (optional)",
+          "description": "username of the user who spent the time working on the issue (optional)",
           "type": "string",
           "x-go-name": "User"
         }
@@ -21474,6 +21604,7 @@
       "type": "object",
       "properties": {
         "message": {
+          "description": "The message associated with the annotated tag",
           "type": "string",
           "x-go-name": "Message"
         },
@@ -21481,10 +21612,12 @@
           "$ref": "#/definitions/AnnotatedTagObject"
         },
         "sha": {
+          "description": "The SHA hash of the annotated tag",
           "type": "string",
           "x-go-name": "SHA"
         },
         "tag": {
+          "description": "The name of the annotated tag",
           "type": "string",
           "x-go-name": "Tag"
         },
@@ -21492,6 +21625,7 @@
           "$ref": "#/definitions/CommitUser"
         },
         "url": {
+          "description": "The URL to access the annotated tag",
           "type": "string",
           "x-go-name": "URL"
         },
@@ -21506,16 +21640,67 @@
       "type": "object",
       "properties": {
         "sha": {
+          "description": "The SHA hash of the tagged object",
           "type": "string",
           "x-go-name": "SHA"
         },
         "type": {
+          "description": "The type of the tagged object (e.g., commit, tree)",
           "type": "string",
           "x-go-name": "Type"
         },
         "url": {
+          "description": "The URL to access the tagged object",
           "type": "string",
           "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ApplyDiffPatchFileOptions": {
+      "description": "ApplyDiffPatchFileOptions options for applying a diff patch\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "type": "object",
+      "required": [
+        "content"
+      ],
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/Identity"
+        },
+        "branch": {
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
+          "type": "string",
+          "x-go-name": "BranchName"
+        },
+        "committer": {
+          "$ref": "#/definitions/Identity"
+        },
+        "content": {
+          "type": "string",
+          "x-go-name": "Content"
+        },
+        "dates": {
+          "$ref": "#/definitions/CommitDateOptions"
+        },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
+        "message": {
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "new_branch": {
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
+          "type": "string",
+          "x-go-name": "NewBranchName"
+        },
+        "signoff": {
+          "description": "Add a Signed-off-by trailer by the committer at the end of the commit log message.",
+          "type": "boolean",
+          "x-go-name": "Signoff"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -21525,6 +21710,7 @@
       "type": "object",
       "properties": {
         "browser_download_url": {
+          "description": "DownloadURL is the URL to download the attachment",
           "type": "string",
           "x-go-name": "DownloadURL"
         },
@@ -21534,25 +21720,30 @@
           "x-go-name": "Created"
         },
         "download_count": {
+          "description": "DownloadCount is the number of times the attachment has been downloaded",
           "type": "integer",
           "format": "int64",
           "x-go-name": "DownloadCount"
         },
         "id": {
+          "description": "ID is the unique identifier for the attachment",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "name": {
+          "description": "Name is the filename of the attachment",
           "type": "string",
           "x-go-name": "Name"
         },
         "size": {
+          "description": "Size is the file size in bytes",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Size"
         },
         "uuid": {
+          "description": "UUID is the unique identifier for the attachment file",
           "type": "string",
           "x-go-name": "UUID"
         }
@@ -21591,27 +21782,33 @@
           "$ref": "#/definitions/PayloadCommit"
         },
         "effective_branch_protection_name": {
+          "description": "EffectiveBranchProtectionName is the name of the effective branch protection rule",
           "type": "string",
           "x-go-name": "EffectiveBranchProtectionName"
         },
         "enable_status_check": {
+          "description": "EnableStatusCheck indicates if status checks are enabled",
           "type": "boolean",
           "x-go-name": "EnableStatusCheck"
         },
         "name": {
+          "description": "Name is the branch name",
           "type": "string",
           "x-go-name": "Name"
         },
         "protected": {
+          "description": "Protected indicates if the branch is protected",
           "type": "boolean",
           "x-go-name": "Protected"
         },
         "required_approvals": {
+          "description": "RequiredApprovals is the number of required approvals for pull requests",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RequiredApprovals"
         },
         "status_check_contexts": {
+          "description": "StatusCheckContexts contains the list of required status check contexts",
           "type": "array",
           "items": {
             "type": "string"
@@ -21619,10 +21816,12 @@
           "x-go-name": "StatusCheckContexts"
         },
         "user_can_merge": {
+          "description": "UserCanMerge indicates if the current user can merge to this branch",
           "type": "boolean",
           "x-go-name": "UserCanMerge"
         },
         "user_can_push": {
+          "description": "UserCanPush indicates if the current user can push to this branch",
           "type": "boolean",
           "x-go-name": "UserCanPush"
         }
@@ -21742,6 +21941,7 @@
           "x-go-name": "MergeWhitelistUsernames"
         },
         "priority": {
+          "description": "Priority is the priority of this branch protection rule",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Priority"
@@ -21778,6 +21978,7 @@
           "x-go-name": "RequiredApprovals"
         },
         "rule_name": {
+          "description": "RuleName is the name of the branch protection rule",
           "type": "string",
           "x-go-name": "RuleName"
         },
@@ -21809,7 +22010,7 @@
       ],
       "properties": {
         "content": {
-          "description": "new or updated file content, must be base64 encoded",
+          "description": "new or updated file content, it must be base64 encoded",
           "type": "string",
           "x-go-name": "ContentBase64"
         },
@@ -21819,11 +22020,13 @@
           "x-go-name": "FromPath"
         },
         "operation": {
-          "description": "indicates what to do with the file",
+          "description": "indicates what to do with the file: \"create\" for creating a new file, \"update\" for updating an existing file,\n\"upload\" for creating or updating a file, \"rename\" for renaming a file, and \"delete\" for deleting an existing file.",
           "type": "string",
           "enum": [
             "create",
             "update",
+            "upload",
+            "rename",
             "delete"
           ],
           "x-go-name": "Operation"
@@ -21834,7 +22037,7 @@
           "x-go-name": "Path"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists, required for update or delete",
+          "description": "the blob ID (SHA) for the file that already exists, required for changing existing files",
           "type": "string",
           "x-go-name": "SHA"
         }
@@ -21852,7 +22055,7 @@
           "$ref": "#/definitions/Identity"
         },
         "branch": {
-          "description": "branch (optional) to base this file from. if not given, the default branch is used",
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -21870,13 +22073,18 @@
           },
           "x-go-name": "Files"
         },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
         "message": {
-          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
           "type": "string",
           "x-go-name": "Message"
         },
         "new_branch": {
-          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
           "type": "string",
           "x-go-name": "NewBranchName"
         },
@@ -21893,41 +22101,50 @@
       "type": "object",
       "properties": {
         "additions": {
+          "description": "The number of lines added to the file",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Additions"
         },
         "changes": {
+          "description": "The total number of changes to the file",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Changes"
         },
         "contents_url": {
+          "description": "The API URL to get the file contents",
           "type": "string",
           "x-go-name": "ContentsURL"
         },
         "deletions": {
+          "description": "The number of lines deleted from the file",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Deletions"
         },
         "filename": {
+          "description": "The name of the changed file",
           "type": "string",
           "x-go-name": "Filename"
         },
         "html_url": {
+          "description": "The HTML URL to view the file changes",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "previous_filename": {
+          "description": "The previous filename if the file was renamed",
           "type": "string",
           "x-go-name": "PreviousFilename"
         },
         "raw_url": {
+          "description": "The raw URL to download the file",
           "type": "string",
           "x-go-name": "RawURL"
         },
         "status": {
+          "description": "The status of the file change (added, modified, deleted, etc.)",
           "type": "string",
           "x-go-name": "Status"
         }
@@ -21939,6 +22156,7 @@
       "type": "object",
       "properties": {
         "commit_url": {
+          "description": "CommitURL is the API URL for the commit",
           "type": "string",
           "x-go-name": "CommitURL"
         },
@@ -21946,10 +22164,12 @@
           "$ref": "#/definitions/Repository"
         },
         "sha": {
+          "description": "SHA is the commit SHA this status applies to",
           "type": "string",
           "x-go-name": "SHA"
         },
         "state": {
+          "description": "State is the overall combined status state\npending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
           "type": "string",
           "enum": [
             "pending",
@@ -21963,6 +22183,7 @@
           "x-go-name": "State"
         },
         "statuses": {
+          "description": "Statuses contains all individual commit statuses",
           "type": "array",
           "items": {
             "$ref": "#/definitions/CommitStatus"
@@ -21970,11 +22191,13 @@
           "x-go-name": "Statuses"
         },
         "total_count": {
+          "description": "TotalCount is the total number of statuses",
           "type": "integer",
           "format": "int64",
           "x-go-name": "TotalCount"
         },
         "url": {
+          "description": "URL is the API URL for this combined status",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -21986,6 +22209,7 @@
       "type": "object",
       "properties": {
         "assets": {
+          "description": "Attachments contains files attached to the comment",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Attachment"
@@ -21993,6 +22217,7 @@
           "x-go-name": "Attachments"
         },
         "body": {
+          "description": "Body contains the comment text content",
           "type": "string",
           "x-go-name": "Body"
         },
@@ -22002,28 +22227,34 @@
           "x-go-name": "Created"
         },
         "html_url": {
+          "description": "HTMLURL is the web URL for viewing the comment",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "id": {
+          "description": "ID is the unique identifier for the comment",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "issue_url": {
+          "description": "IssueURL is the API URL for the issue",
           "type": "string",
           "x-go-name": "IssueURL"
         },
         "original_author": {
+          "description": "OriginalAuthor is the original author name (for imported comments)",
           "type": "string",
           "x-go-name": "OriginalAuthor"
         },
         "original_author_id": {
+          "description": "OriginalAuthorID is the original author ID (for imported comments)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "OriginalAuthorID"
         },
         "pull_request_url": {
+          "description": "PRURL is the API URL for the pull request (if applicable)",
           "type": "string",
           "x-go-name": "PRURL"
         },
@@ -22057,6 +22288,7 @@
           "x-go-name": "Created"
         },
         "files": {
+          "description": "Files contains information about files affected by the commit",
           "type": "array",
           "items": {
             "$ref": "#/definitions/CommitAffectedFiles"
@@ -22064,10 +22296,12 @@
           "x-go-name": "Files"
         },
         "html_url": {
+          "description": "HTMLURL is the web URL for viewing the commit",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "parents": {
+          "description": "Parents contains the parent commit information",
           "type": "array",
           "items": {
             "$ref": "#/definitions/CommitMeta"
@@ -22075,6 +22309,7 @@
           "x-go-name": "Parents"
         },
         "sha": {
+          "description": "SHA is the commit SHA hash",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -22082,6 +22317,7 @@
           "$ref": "#/definitions/CommitStats"
         },
         "url": {
+          "description": "URL is the API URL for the commit",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -22093,10 +22329,12 @@
       "type": "object",
       "properties": {
         "filename": {
+          "description": "Filename is the path of the affected file",
           "type": "string",
           "x-go-name": "Filename"
         },
         "status": {
+          "description": "Status indicates how the file was affected (added, modified, deleted)",
           "type": "string",
           "x-go-name": "Status"
         }
@@ -22130,10 +22368,12 @@
           "x-go-name": "Created"
         },
         "sha": {
+          "description": "SHA is the commit SHA hash",
           "type": "string",
           "x-go-name": "SHA"
         },
         "url": {
+          "description": "URL is the API URL for the commit",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -22145,16 +22385,19 @@
       "type": "object",
       "properties": {
         "additions": {
+          "description": "Additions is the number of lines added",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Additions"
         },
         "deletions": {
+          "description": "Deletions is the number of lines deleted",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Deletions"
         },
         "total": {
+          "description": "Total is the total number of lines changed",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Total"
@@ -22167,6 +22410,7 @@
       "type": "object",
       "properties": {
         "context": {
+          "description": "Context is the unique context identifier for the status",
           "type": "string",
           "x-go-name": "Context"
         },
@@ -22179,15 +22423,18 @@
           "$ref": "#/definitions/User"
         },
         "description": {
+          "description": "Description provides a brief description of the status",
           "type": "string",
           "x-go-name": "Description"
         },
         "id": {
+          "description": "ID is the unique identifier for the commit status",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "status": {
+          "description": "State represents the status state (pending, success, error, failure)\npending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
           "type": "string",
           "enum": [
             "pending",
@@ -22201,6 +22448,7 @@
           "x-go-name": "State"
         },
         "target_url": {
+          "description": "TargetURL is the URL to link to for more details",
           "type": "string",
           "x-go-name": "TargetURL"
         },
@@ -22210,6 +22458,7 @@
           "x-go-name": "Updated"
         },
         "url": {
+          "description": "URL is the API URL for this status",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -22221,6 +22470,7 @@
       "title": "CommitUser contains information of a user in the context of a commit.",
       "properties": {
         "date": {
+          "description": "Date is the commit date in string format",
           "type": "string",
           "x-go-name": "Date"
         },
@@ -22230,6 +22480,7 @@
           "x-go-name": "Email"
         },
         "name": {
+          "description": "Name is the person's name",
           "type": "string",
           "x-go-name": "Name"
         }
@@ -22255,6 +22506,23 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ContentsExtResponse": {
+      "type": "object",
+      "properties": {
+        "dir_contents": {
+          "description": "DirContents contains directory listing when the path represents a directory",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ContentsResponse"
+          },
+          "x-go-name": "DirContents"
+        },
+        "file_contents": {
+          "$ref": "#/definitions/ContentsResponse"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "ContentsResponse": {
       "description": "ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content",
       "type": "object",
@@ -22268,6 +22536,7 @@
           "x-go-name": "Content"
         },
         "download_url": {
+          "description": "DownloadURL is the direct download URL for this file",
           "type": "string",
           "x-go-name": "DownloadURL"
         },
@@ -22277,10 +22546,12 @@
           "x-go-name": "Encoding"
         },
         "git_url": {
+          "description": "GitURL is the Git API URL for this blob or tree",
           "type": "string",
           "x-go-name": "GitURL"
         },
         "html_url": {
+          "description": "HTMLURL is the web URL for this file or directory",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
@@ -22289,7 +22560,13 @@
           "format": "date-time",
           "x-go-name": "LastAuthorDate"
         },
+        "last_commit_message": {
+          "description": "LastCommitMessage is the message of the last commit that affected this file",
+          "type": "string",
+          "x-go-name": "LastCommitMessage"
+        },
         "last_commit_sha": {
+          "description": "LastCommitSHA is the SHA of the last commit that affected this file",
           "type": "string",
           "x-go-name": "LastCommitSHA"
         },
@@ -22298,19 +22575,34 @@
           "format": "date-time",
           "x-go-name": "LastCommitterDate"
         },
+        "lfs_oid": {
+          "description": "LfsOid is the Git LFS object ID if this file is stored in LFS",
+          "type": "string",
+          "x-go-name": "LfsOid"
+        },
+        "lfs_size": {
+          "description": "LfsSize is the file size if this file is stored in LFS",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LfsSize"
+        },
         "name": {
+          "description": "Name is the file or directory name",
           "type": "string",
           "x-go-name": "Name"
         },
         "path": {
+          "description": "Path is the full path to the file or directory",
           "type": "string",
           "x-go-name": "Path"
         },
         "sha": {
+          "description": "SHA is the Git blob or tree SHA",
           "type": "string",
           "x-go-name": "SHA"
         },
         "size": {
+          "description": "Size is the file size in bytes",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Size"
@@ -22331,6 +22623,7 @@
           "x-go-name": "Type"
         },
         "url": {
+          "description": "URL is the API URL for this file or directory",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -22596,7 +22889,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CreateFileOptions": {
-      "description": "CreateFileOptions options for creating files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "description": "CreateFileOptions options for creating a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
       "required": [
         "content"
@@ -22606,7 +22899,7 @@
           "$ref": "#/definitions/Identity"
         },
         "branch": {
-          "description": "branch (optional) to base this file from. if not given, the default branch is used",
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -22621,13 +22914,18 @@
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
         },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
         "message": {
-          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
           "type": "string",
           "x-go-name": "Message"
         },
         "new_branch": {
-          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
           "type": "string",
           "x-go-name": "NewBranchName"
         },
@@ -22670,6 +22968,7 @@
           "x-go-name": "ArmoredKey"
         },
         "armored_signature": {
+          "description": "An optional armored signature for the GPG key",
           "type": "string",
           "x-go-name": "Signature"
         }
@@ -22690,10 +22989,12 @@
           "x-go-name": "Active"
         },
         "authorization_header": {
+          "description": "Authorization header to include in webhook requests",
           "type": "string",
           "x-go-name": "AuthorizationHeader"
         },
         "branch_filter": {
+          "description": "Branch filter pattern to determine which branches trigger the webhook",
           "type": "string",
           "x-go-name": "BranchFilter"
         },
@@ -22701,6 +23002,7 @@
           "$ref": "#/definitions/CreateHookOptionConfig"
         },
         "events": {
+          "description": "List of events that will trigger this webhook",
           "type": "array",
           "items": {
             "type": "string"
@@ -22848,6 +23150,7 @@
           "example": "#00aabb"
         },
         "description": {
+          "description": "Description provides additional context about the label's purpose",
           "type": "string",
           "x-go-name": "Description"
         },
@@ -22873,6 +23176,7 @@
       "type": "object",
       "properties": {
         "description": {
+          "description": "Description provides details about the milestone",
           "type": "string",
           "x-go-name": "Description"
         },
@@ -22890,6 +23194,7 @@
           "x-go-name": "State"
         },
         "title": {
+          "description": "Title is the title of the new milestone",
           "type": "string",
           "x-go-name": "Title"
         }
@@ -22901,14 +23206,17 @@
       "type": "object",
       "properties": {
         "confidential_client": {
+          "description": "Whether the client is confidential",
           "type": "boolean",
           "x-go-name": "ConfidentialClient"
         },
         "name": {
+          "description": "The name of the OAuth2 application",
           "type": "string",
           "x-go-name": "Name"
         },
         "redirect_uris": {
+          "description": "The list of allowed redirect URIs",
           "type": "array",
           "items": {
             "type": "string"
@@ -22916,6 +23224,7 @@
           "x-go-name": "RedirectURIs"
         },
         "skip_secondary_authorization": {
+          "description": "Whether to skip secondary authorization",
           "type": "boolean",
           "x-go-name": "SkipSecondaryAuthorization"
         }
@@ -22950,26 +23259,32 @@
       ],
       "properties": {
         "description": {
+          "description": "The description of the organization",
           "type": "string",
           "x-go-name": "Description"
         },
         "email": {
+          "description": "The email address of the organization",
           "type": "string",
           "x-go-name": "Email"
         },
         "full_name": {
+          "description": "The full display name of the organization",
           "type": "string",
           "x-go-name": "FullName"
         },
         "location": {
+          "description": "The location of the organization",
           "type": "string",
           "x-go-name": "Location"
         },
         "repo_admin_change_team_access": {
+          "description": "Whether repository administrators can change team access",
           "type": "boolean",
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "username": {
+          "description": "username of the organization",
           "type": "string",
           "x-go-name": "UserName"
         },
@@ -22984,6 +23299,7 @@
           "x-go-name": "Visibility"
         },
         "website": {
+          "description": "The website URL of the organization",
           "type": "string",
           "x-go-name": "Website"
         }
@@ -22995,10 +23311,12 @@
       "type": "object",
       "properties": {
         "assignee": {
+          "description": "The primary assignee username",
           "type": "string",
           "x-go-name": "Assignee"
         },
         "assignees": {
+          "description": "The list of assignee usernames",
           "type": "array",
           "items": {
             "type": "string"
@@ -23006,10 +23324,12 @@
           "x-go-name": "Assignees"
         },
         "base": {
+          "description": "The base branch for the pull request",
           "type": "string",
           "x-go-name": "Base"
         },
         "body": {
+          "description": "The description body of the pull request",
           "type": "string",
           "x-go-name": "Body"
         },
@@ -23019,10 +23339,12 @@
           "x-go-name": "Deadline"
         },
         "head": {
+          "description": "The head branch for the pull request, it could be a branch name on the base repository or\na form like `\u003cusername\u003e:\u003cbranch\u003e` which refers to the user's fork repository's branch.",
           "type": "string",
           "x-go-name": "Head"
         },
         "labels": {
+          "description": "The list of label IDs to assign to the pull request",
           "type": "array",
           "items": {
             "type": "integer",
@@ -23031,11 +23353,13 @@
           "x-go-name": "Labels"
         },
         "milestone": {
+          "description": "The milestone ID to assign to the pull request",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
         },
         "reviewers": {
+          "description": "The list of reviewer usernames",
           "type": "array",
           "items": {
             "type": "string"
@@ -23043,6 +23367,7 @@
           "x-go-name": "Reviewers"
         },
         "team_reviewers": {
+          "description": "The list of team reviewer names",
           "type": "array",
           "items": {
             "type": "string"
@@ -23050,6 +23375,7 @@
           "x-go-name": "TeamReviewers"
         },
         "title": {
+          "description": "The title of the pull request",
           "type": "string",
           "x-go-name": "Title"
         }
@@ -23114,22 +23440,27 @@
       "title": "CreatePushMirrorOption represents need information to create a push mirror of a repository.",
       "properties": {
         "interval": {
+          "description": "The sync interval for automatic updates",
           "type": "string",
           "x-go-name": "Interval"
         },
         "remote_address": {
+          "description": "The remote repository URL to push to",
           "type": "string",
           "x-go-name": "RemoteAddress"
         },
         "remote_password": {
+          "description": "The password for authentication with the remote repository",
           "type": "string",
           "x-go-name": "RemotePassword"
         },
         "remote_username": {
+          "description": "The username for authentication with the remote repository",
           "type": "string",
           "x-go-name": "RemoteUsername"
         },
         "sync_on_commit": {
+          "description": "Whether to sync on every commit",
           "type": "boolean",
           "x-go-name": "SyncOnCommit"
         }
@@ -23144,22 +23475,27 @@
       ],
       "properties": {
         "body": {
+          "description": "The release notes or description",
           "type": "string",
           "x-go-name": "Note"
         },
         "draft": {
+          "description": "Whether to create the release as a draft",
           "type": "boolean",
           "x-go-name": "IsDraft"
         },
         "name": {
+          "description": "The display title of the release",
           "type": "string",
           "x-go-name": "Title"
         },
         "prerelease": {
+          "description": "Whether to mark the release as a prerelease",
           "type": "boolean",
           "x-go-name": "IsPrerelease"
         },
         "tag_message": {
+          "description": "The message for the git tag",
           "type": "string",
           "x-go-name": "TagMessage"
         },
@@ -23168,6 +23504,7 @@
           "x-go-name": "TagName"
         },
         "target_commitish": {
+          "description": "The target commitish for the release",
           "type": "string",
           "x-go-name": "Target"
         }
@@ -23260,14 +23597,17 @@
       "type": "object",
       "properties": {
         "context": {
+          "description": "Context is the unique context identifier for the status",
           "type": "string",
           "x-go-name": "Context"
         },
         "description": {
+          "description": "Description provides a brief description of the status",
           "type": "string",
           "x-go-name": "Description"
         },
         "state": {
+          "description": "State represents the status state to set (pending, success, error, failure)\npending CommitStatusPending  CommitStatusPending is for when the CommitStatus is Pending\nsuccess CommitStatusSuccess  CommitStatusSuccess is for when the CommitStatus is Success\nerror CommitStatusError  CommitStatusError is for when the CommitStatus is Error\nfailure CommitStatusFailure  CommitStatusFailure is for when the CommitStatus is Failure\nwarning CommitStatusWarning  CommitStatusWarning is for when the CommitStatus is Warning\nskipped CommitStatusSkipped  CommitStatusSkipped is for when CommitStatus is Skipped",
           "type": "string",
           "enum": [
             "pending",
@@ -23281,6 +23621,7 @@
           "x-go-name": "State"
         },
         "target_url": {
+          "description": "TargetURL is the URL to link to for more details",
           "type": "string",
           "x-go-name": "TargetURL"
         }
@@ -23295,6 +23636,7 @@
       ],
       "properties": {
         "message": {
+          "description": "The message to associate with the tag",
           "type": "string",
           "x-go-name": "Message"
         },
@@ -23303,6 +23645,7 @@
           "x-go-name": "TagName"
         },
         "target": {
+          "description": "The target commit SHA or branch name for the tag",
           "type": "string",
           "x-go-name": "Target"
         }
@@ -23314,10 +23657,12 @@
       "type": "object",
       "properties": {
         "name_pattern": {
+          "description": "The pattern to match tag names for protection",
           "type": "string",
           "x-go-name": "NamePattern"
         },
         "whitelist_teams": {
+          "description": "List of team names allowed to create/delete protected tags",
           "type": "array",
           "items": {
             "type": "string"
@@ -23325,6 +23670,7 @@
           "x-go-name": "WhitelistTeams"
         },
         "whitelist_usernames": {
+          "description": "List of usernames allowed to create/delete protected tags",
           "type": "array",
           "items": {
             "type": "string"
@@ -23342,14 +23688,17 @@
       ],
       "properties": {
         "can_create_org_repo": {
+          "description": "Whether the team can create repositories in the organization",
           "type": "boolean",
           "x-go-name": "CanCreateOrgRepo"
         },
         "description": {
+          "description": "The description of the team",
           "type": "string",
           "x-go-name": "Description"
         },
         "includes_all_repositories": {
+          "description": "Whether the team has access to all repositories in the organization",
           "type": "boolean",
           "x-go-name": "IncludesAllRepositories"
         },
@@ -23416,39 +23765,49 @@
           "x-go-name": "Email"
         },
         "full_name": {
+          "description": "The full display name of the user",
           "type": "string",
           "x-go-name": "FullName"
         },
         "login_name": {
+          "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
+          "default": "empty",
           "x-go-name": "LoginName"
         },
         "must_change_password": {
+          "description": "Whether the user must change password on first login",
           "type": "boolean",
           "x-go-name": "MustChangePassword"
         },
         "password": {
+          "description": "The plain text password for the user",
           "type": "string",
           "x-go-name": "Password"
         },
         "restricted": {
+          "description": "Whether the user has restricted access privileges",
           "type": "boolean",
           "x-go-name": "Restricted"
         },
         "send_notify": {
+          "description": "Whether to send welcome notification email to the user",
           "type": "boolean",
           "x-go-name": "SendNotify"
         },
         "source_id": {
+          "description": "The authentication source ID to associate with the user",
           "type": "integer",
           "format": "int64",
           "x-go-name": "SourceID"
         },
         "username": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "Username"
         },
         "visibility": {
+          "description": "User visibility level: public, limited, or private",
           "type": "string",
           "x-go-name": "Visibility"
         }
@@ -23502,25 +23861,30 @@
       "type": "object",
       "properties": {
         "exec_times": {
+          "description": "The total number of times this cron task has been executed",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ExecTimes"
         },
         "name": {
+          "description": "The name of the cron task",
           "type": "string",
           "x-go-name": "Name"
         },
         "next": {
+          "description": "The next scheduled execution time",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Next"
         },
         "prev": {
+          "description": "The previous execution time",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Prev"
         },
         "schedule": {
+          "description": "The cron schedule expression (e.g., \"0 0 * * *\")",
           "type": "string",
           "x-go-name": "Schedule"
         }
@@ -23543,7 +23907,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "DeleteFileOptions": {
-      "description": "DeleteFileOptions options for deleting files (used for other File structs below)\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "description": "DeleteFileOptions options for deleting a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
       "required": [
         "sha"
@@ -23553,7 +23917,7 @@
           "$ref": "#/definitions/Identity"
         },
         "branch": {
-          "description": "branch (optional) to base this file from. if not given, the default branch is used",
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -23563,18 +23927,23 @@
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
         },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
         "message": {
-          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
           "type": "string",
           "x-go-name": "Message"
         },
         "new_branch": {
-          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
           "type": "string",
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists",
+          "description": "the blob ID (SHA) for the file to delete",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -23596,24 +23965,29 @@
           "x-go-name": "Created"
         },
         "fingerprint": {
+          "description": "Fingerprint is the key's fingerprint",
           "type": "string",
           "x-go-name": "Fingerprint"
         },
         "id": {
+          "description": "ID is the unique identifier for the deploy key",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "key": {
+          "description": "Key contains the actual SSH key content",
           "type": "string",
           "x-go-name": "Key"
         },
         "key_id": {
+          "description": "KeyID is the associated public key ID",
           "type": "integer",
           "format": "int64",
           "x-go-name": "KeyID"
         },
         "read_only": {
+          "description": "ReadOnly indicates if the key has read-only access",
           "type": "boolean",
           "x-go-name": "ReadOnly"
         },
@@ -23621,10 +23995,12 @@
           "$ref": "#/definitions/Repository"
         },
         "title": {
+          "description": "Title is the human-readable name for the key",
           "type": "string",
           "x-go-name": "Title"
         },
         "url": {
+          "description": "URL is the API URL for this deploy key",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -23651,6 +24027,7 @@
       "type": "object",
       "properties": {
         "name": {
+          "description": "Name is the new filename for the attachment",
           "type": "string",
           "x-go-name": "Name"
         }
@@ -23829,6 +24206,7 @@
       "type": "object",
       "properties": {
         "content": {
+          "description": "Content is the new script content for the hook",
           "type": "string",
           "x-go-name": "Content"
         }
@@ -23840,18 +24218,22 @@
       "type": "object",
       "properties": {
         "active": {
+          "description": "Whether the webhook is active and will be triggered",
           "type": "boolean",
           "x-go-name": "Active"
         },
         "authorization_header": {
+          "description": "Authorization header to include in webhook requests",
           "type": "string",
           "x-go-name": "AuthorizationHeader"
         },
         "branch_filter": {
+          "description": "Branch filter pattern to determine which branches trigger the webhook",
           "type": "string",
           "x-go-name": "BranchFilter"
         },
         "config": {
+          "description": "Configuration settings for the webhook",
           "type": "object",
           "additionalProperties": {
             "type": "string"
@@ -23859,6 +24241,7 @@
           "x-go-name": "Config"
         },
         "events": {
+          "description": "List of events that trigger this webhook",
           "type": "array",
           "items": {
             "type": "string"
@@ -23941,6 +24324,7 @@
           "example": "#00aabb"
         },
         "description": {
+          "description": "Description provides additional context about the label's purpose",
           "type": "string",
           "x-go-name": "Description"
         },
@@ -23955,6 +24339,7 @@
           "example": false
         },
         "name": {
+          "description": "Name is the new display name for the label",
           "type": "string",
           "x-go-name": "Name"
         }
@@ -23966,19 +24351,23 @@
       "type": "object",
       "properties": {
         "description": {
+          "description": "Description provides updated details about the milestone",
           "type": "string",
           "x-go-name": "Description"
         },
         "due_on": {
+          "description": "Deadline is the updated due date for the milestone",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Deadline"
         },
         "state": {
+          "description": "State indicates the updated state of the milestone",
           "type": "string",
           "x-go-name": "State"
         },
         "title": {
+          "description": "Title is the updated title of the milestone",
           "type": "string",
           "x-go-name": "Title"
         }
@@ -23990,22 +24379,27 @@
       "type": "object",
       "properties": {
         "description": {
+          "description": "The description of the organization",
           "type": "string",
           "x-go-name": "Description"
         },
         "email": {
+          "description": "The email address of the organization",
           "type": "string",
           "x-go-name": "Email"
         },
         "full_name": {
+          "description": "The full display name of the organization",
           "type": "string",
           "x-go-name": "FullName"
         },
         "location": {
+          "description": "The location of the organization",
           "type": "string",
           "x-go-name": "Location"
         },
         "repo_admin_change_team_access": {
+          "description": "Whether repository administrators can change team access",
           "type": "boolean",
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
@@ -24020,6 +24414,7 @@
           "x-go-name": "Visibility"
         },
         "website": {
+          "description": "The website URL of the organization",
           "type": "string",
           "x-go-name": "Website"
         }
@@ -24031,14 +24426,17 @@
       "type": "object",
       "properties": {
         "allow_maintainer_edit": {
+          "description": "Whether to allow maintainer edits",
           "type": "boolean",
           "x-go-name": "AllowMaintainerEdit"
         },
         "assignee": {
+          "description": "The new primary assignee username",
           "type": "string",
           "x-go-name": "Assignee"
         },
         "assignees": {
+          "description": "The new list of assignee usernames",
           "type": "array",
           "items": {
             "type": "string"
@@ -24046,10 +24444,12 @@
           "x-go-name": "Assignees"
         },
         "base": {
+          "description": "The new base branch for the pull request",
           "type": "string",
           "x-go-name": "Base"
         },
         "body": {
+          "description": "The new description body for the pull request",
           "type": "string",
           "x-go-name": "Body"
         },
@@ -24059,6 +24459,7 @@
           "x-go-name": "Deadline"
         },
         "labels": {
+          "description": "The new list of label IDs for the pull request",
           "type": "array",
           "items": {
             "type": "integer",
@@ -24067,19 +24468,23 @@
           "x-go-name": "Labels"
         },
         "milestone": {
+          "description": "The new milestone ID for the pull request",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
         },
         "state": {
+          "description": "The new state for the pull request",
           "type": "string",
           "x-go-name": "State"
         },
         "title": {
+          "description": "The new title for the pull request",
           "type": "string",
           "x-go-name": "Title"
         },
         "unset_due_date": {
+          "description": "Whether to remove the current deadline",
           "type": "boolean",
           "x-go-name": "RemoveDeadline"
         }
@@ -24091,6 +24496,7 @@
       "type": "object",
       "properties": {
         "content": {
+          "description": "The reaction content (e.g., emoji or reaction type)",
           "type": "string",
           "x-go-name": "Reaction"
         }
@@ -24102,26 +24508,32 @@
       "type": "object",
       "properties": {
         "body": {
+          "description": "The new release notes or description",
           "type": "string",
           "x-go-name": "Note"
         },
         "draft": {
+          "description": "Whether to change the draft status",
           "type": "boolean",
           "x-go-name": "IsDraft"
         },
         "name": {
+          "description": "The new display title of the release",
           "type": "string",
           "x-go-name": "Title"
         },
         "prerelease": {
+          "description": "Whether to change the prerelease status",
           "type": "boolean",
           "x-go-name": "IsPrerelease"
         },
         "tag_name": {
+          "description": "The new name of the git tag",
           "type": "string",
           "x-go-name": "TagName"
         },
         "target_commitish": {
+          "description": "The new target commitish for the release",
           "type": "string",
           "x-go-name": "Target"
         }
@@ -24218,6 +24630,11 @@
           "type": "boolean",
           "x-go-name": "HasActions"
         },
+        "has_code": {
+          "description": "either `true` to enable code for this repository or `false` to disable it.",
+          "type": "boolean",
+          "x-go-name": "HasCode"
+        },
         "has_issues": {
           "description": "either `true` to enable issues for this repository or `false` to disable them.",
           "type": "boolean",
@@ -24295,10 +24712,12 @@
       "type": "object",
       "properties": {
         "name_pattern": {
+          "description": "The pattern to match tag names for protection",
           "type": "string",
           "x-go-name": "NamePattern"
         },
         "whitelist_teams": {
+          "description": "List of team names allowed to create/delete protected tags",
           "type": "array",
           "items": {
             "type": "string"
@@ -24306,6 +24725,7 @@
           "x-go-name": "WhitelistTeams"
         },
         "whitelist_usernames": {
+          "description": "List of usernames allowed to create/delete protected tags",
           "type": "array",
           "items": {
             "type": "string"
@@ -24323,14 +24743,17 @@
       ],
       "properties": {
         "can_create_org_repo": {
+          "description": "Whether the team can create repositories in the organization",
           "type": "boolean",
           "x-go-name": "CanCreateOrgRepo"
         },
         "description": {
+          "description": "The description of the team",
           "type": "string",
           "x-go-name": "Description"
         },
         "includes_all_repositories": {
+          "description": "Whether the team has access to all repositories in the organization",
           "type": "boolean",
           "x-go-name": "IncludesAllRepositories"
         },
@@ -24393,26 +24816,32 @@
       ],
       "properties": {
         "active": {
+          "description": "Whether the user account is active",
           "type": "boolean",
           "x-go-name": "Active"
         },
         "admin": {
+          "description": "Whether the user has administrator privileges",
           "type": "boolean",
           "x-go-name": "Admin"
         },
         "allow_create_organization": {
+          "description": "Whether the user can create organizations",
           "type": "boolean",
           "x-go-name": "AllowCreateOrganization"
         },
         "allow_git_hook": {
+          "description": "Whether the user can use Git hooks",
           "type": "boolean",
           "x-go-name": "AllowGitHook"
         },
         "allow_import_local": {
+          "description": "Whether the user can import local repositories",
           "type": "boolean",
           "x-go-name": "AllowImportLocal"
         },
         "description": {
+          "description": "The user's personal description or bio",
           "type": "string",
           "x-go-name": "Description"
         },
@@ -24422,35 +24851,44 @@
           "x-go-name": "Email"
         },
         "full_name": {
+          "description": "The full display name of the user",
           "type": "string",
           "x-go-name": "FullName"
         },
         "location": {
+          "description": "The user's location or address",
           "type": "string",
           "x-go-name": "Location"
         },
         "login_name": {
+          "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
+          "default": "empty",
           "x-go-name": "LoginName"
         },
         "max_repo_creation": {
+          "description": "Maximum number of repositories the user can create",
           "type": "integer",
           "format": "int64",
           "x-go-name": "MaxRepoCreation"
         },
         "must_change_password": {
+          "description": "Whether the user must change password on next login",
           "type": "boolean",
           "x-go-name": "MustChangePassword"
         },
         "password": {
+          "description": "The plain text password for the user",
           "type": "string",
           "x-go-name": "Password"
         },
         "prohibit_login": {
+          "description": "Whether the user is prohibited from logging in",
           "type": "boolean",
           "x-go-name": "ProhibitLogin"
         },
         "restricted": {
+          "description": "Whether the user has restricted access privileges",
           "type": "boolean",
           "x-go-name": "Restricted"
         },
@@ -24460,10 +24898,12 @@
           "x-go-name": "SourceID"
         },
         "visibility": {
+          "description": "User visibility level: public, limited, or private",
           "type": "string",
           "x-go-name": "Visibility"
         },
         "website": {
+          "description": "The user's personal website URL",
           "type": "string",
           "x-go-name": "Website"
         }
@@ -24480,19 +24920,23 @@
           "x-go-name": "Email"
         },
         "primary": {
+          "description": "Whether this is the primary email address",
           "type": "boolean",
           "x-go-name": "Primary"
         },
         "user_id": {
+          "description": "The unique identifier of the user who owns this email",
           "type": "integer",
           "format": "int64",
           "x-go-name": "UserID"
         },
         "username": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "UserName"
         },
         "verified": {
+          "description": "Whether the email address has been verified",
           "type": "boolean",
           "x-go-name": "Verified"
         }
@@ -24554,14 +24998,17 @@
           "x-go-name": "Created"
         },
         "html_url": {
+          "description": "HTMLURL is the web URL for viewing this commit",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "message": {
+          "description": "Message is the commit message",
           "type": "string",
           "x-go-name": "Message"
         },
         "parents": {
+          "description": "Parents contains parent commit metadata",
           "type": "array",
           "items": {
             "$ref": "#/definitions/CommitMeta"
@@ -24569,6 +25016,7 @@
           "x-go-name": "Parents"
         },
         "sha": {
+          "description": "SHA is the commit SHA hash",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -24576,6 +25024,7 @@
           "$ref": "#/definitions/CommitMeta"
         },
         "url": {
+          "description": "URL is the API URL for the commit",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -24590,6 +25039,7 @@
           "$ref": "#/definitions/FileCommitResponse"
         },
         "content": {
+          "description": "Content is always null for delete operations",
           "x-go-name": "Content"
         },
         "verification": {
@@ -24603,14 +25053,17 @@
       "type": "object",
       "properties": {
         "git": {
+          "description": "GitURL is the Git API URL for this file",
           "type": "string",
           "x-go-name": "GitURL"
         },
         "html": {
+          "description": "HTMLURL is the web URL for this file",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "self": {
+          "description": "Self is the API URL for this file",
           "type": "string",
           "x-go-name": "Self"
         }
@@ -24641,6 +25094,7 @@
           "$ref": "#/definitions/FileCommitResponse"
         },
         "files": {
+          "description": "Files contains the list of file contents and metadata",
           "type": "array",
           "items": {
             "$ref": "#/definitions/ContentsResponse"
@@ -24658,18 +25112,22 @@
       "type": "object",
       "properties": {
         "can_certify": {
+          "description": "Whether the key can be used for certification",
           "type": "boolean",
           "x-go-name": "CanCertify"
         },
         "can_encrypt_comms": {
+          "description": "Whether the key can be used for encrypting communications",
           "type": "boolean",
           "x-go-name": "CanEncryptComms"
         },
         "can_encrypt_storage": {
+          "description": "Whether the key can be used for encrypting storage",
           "type": "boolean",
           "x-go-name": "CanEncryptStorage"
         },
         "can_sign": {
+          "description": "Whether the key can be used for signing",
           "type": "boolean",
           "x-go-name": "CanSign"
         },
@@ -24679,6 +25137,7 @@
           "x-go-name": "Created"
         },
         "emails": {
+          "description": "List of email addresses associated with this GPG key",
           "type": "array",
           "items": {
             "$ref": "#/definitions/GPGKeyEmail"
@@ -24691,23 +25150,28 @@
           "x-go-name": "Expires"
         },
         "id": {
+          "description": "The unique identifier of the GPG key",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "key_id": {
+          "description": "The key ID of the GPG key",
           "type": "string",
           "x-go-name": "KeyID"
         },
         "primary_key_id": {
+          "description": "The primary key ID of the GPG key",
           "type": "string",
           "x-go-name": "PrimaryKeyID"
         },
         "public_key": {
+          "description": "The public key content in armored format",
           "type": "string",
           "x-go-name": "PublicKey"
         },
         "subkeys": {
+          "description": "List of subkeys of this GPG key",
           "type": "array",
           "items": {
             "$ref": "#/definitions/GPGKey"
@@ -24715,6 +25179,7 @@
           "x-go-name": "SubsKey"
         },
         "verified": {
+          "description": "Whether the GPG key has been verified",
           "type": "boolean",
           "x-go-name": "Verified"
         }
@@ -24726,10 +25191,12 @@
       "type": "object",
       "properties": {
         "email": {
+          "description": "The email address associated with the GPG key",
           "type": "string",
           "x-go-name": "Email"
         },
         "verified": {
+          "description": "Whether the email address has been verified",
           "type": "boolean",
           "x-go-name": "Verified"
         }
@@ -24741,26 +25208,31 @@
       "type": "object",
       "properties": {
         "default_git_trees_per_page": {
+          "description": "DefaultGitTreesPerPage is the default number of Git tree items per page",
           "type": "integer",
           "format": "int64",
           "x-go-name": "DefaultGitTreesPerPage"
         },
         "default_max_blob_size": {
+          "description": "DefaultMaxBlobSize is the default maximum blob size for API responses",
           "type": "integer",
           "format": "int64",
           "x-go-name": "DefaultMaxBlobSize"
         },
         "default_max_response_size": {
+          "description": "DefaultMaxResponseSize is the default maximum response size",
           "type": "integer",
           "format": "int64",
           "x-go-name": "DefaultMaxResponseSize"
         },
         "default_paging_num": {
+          "description": "DefaultPagingNum is the default number of items per page",
           "type": "integer",
           "format": "int64",
           "x-go-name": "DefaultPagingNum"
         },
         "max_response_items": {
+          "description": "MaxResponseItems is the maximum number of items returned in API responses",
           "type": "integer",
           "format": "int64",
           "x-go-name": "MaxResponseItems"
@@ -24773,19 +25245,23 @@
       "type": "object",
       "properties": {
         "allowed_types": {
+          "description": "AllowedTypes contains the allowed file types for attachments",
           "type": "string",
           "x-go-name": "AllowedTypes"
         },
         "enabled": {
+          "description": "Enabled indicates if file attachments are enabled",
           "type": "boolean",
           "x-go-name": "Enabled"
         },
         "max_files": {
+          "description": "MaxFiles is the maximum number of files per attachment",
           "type": "integer",
           "format": "int64",
           "x-go-name": "MaxFiles"
         },
         "max_size": {
+          "description": "MaxSize is the maximum size for individual attachments",
           "type": "integer",
           "format": "int64",
           "x-go-name": "MaxSize"
@@ -24798,26 +25274,32 @@
       "type": "object",
       "properties": {
         "http_git_disabled": {
+          "description": "HTTPGitDisabled indicates if HTTP Git operations are disabled",
           "type": "boolean",
           "x-go-name": "HTTPGitDisabled"
         },
         "lfs_disabled": {
+          "description": "LFSDisabled indicates if Git LFS support is disabled",
           "type": "boolean",
           "x-go-name": "LFSDisabled"
         },
         "migrations_disabled": {
+          "description": "MigrationsDisabled indicates if repository migrations are disabled",
           "type": "boolean",
           "x-go-name": "MigrationsDisabled"
         },
         "mirrors_disabled": {
+          "description": "MirrorsDisabled indicates if repository mirroring is disabled",
           "type": "boolean",
           "x-go-name": "MirrorsDisabled"
         },
         "stars_disabled": {
+          "description": "StarsDisabled indicates if repository starring is disabled",
           "type": "boolean",
           "x-go-name": "StarsDisabled"
         },
         "time_tracking_disabled": {
+          "description": "TimeTrackingDisabled indicates if time tracking is disabled",
           "type": "boolean",
           "x-go-name": "TimeTrackingDisabled"
         }
@@ -24829,6 +25311,7 @@
       "type": "object",
       "properties": {
         "allowed_reactions": {
+          "description": "AllowedReactions contains the list of allowed emoji reactions",
           "type": "array",
           "items": {
             "type": "string"
@@ -24836,6 +25319,7 @@
           "x-go-name": "AllowedReactions"
         },
         "custom_emojis": {
+          "description": "CustomEmojis contains the list of custom emojis",
           "type": "array",
           "items": {
             "type": "string"
@@ -24843,6 +25327,7 @@
           "x-go-name": "CustomEmojis"
         },
         "default_theme": {
+          "description": "DefaultTheme is the default UI theme",
           "type": "string",
           "x-go-name": "DefaultTheme"
         }
@@ -24850,7 +25335,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "GenerateRepoOption": {
-      "description": "GenerateRepoOption options when creating repository using a template",
+      "description": "GenerateRepoOption options when creating a repository using a template",
       "type": "object",
       "required": [
         "owner",
@@ -24888,13 +25373,12 @@
           "x-go-name": "Labels"
         },
         "name": {
-          "description": "Name of the repository to create",
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "Name"
         },
         "owner": {
-          "description": "The organization or person who will own the new repository",
+          "description": "the organization's name or individual user's name who will own the new repository",
           "type": "string",
           "x-go-name": "Owner"
         },
@@ -24926,6 +25410,7 @@
       "type": "object",
       "properties": {
         "files": {
+          "description": "Files is the list of file paths to retrieve",
           "type": "array",
           "items": {
             "type": "string"
@@ -24940,23 +25425,39 @@
       "type": "object",
       "properties": {
         "content": {
+          "description": "The content of the git blob (may be base64 encoded)",
           "type": "string",
           "x-go-name": "Content"
         },
         "encoding": {
+          "description": "The encoding used for the content (e.g., \"base64\")",
           "type": "string",
           "x-go-name": "Encoding"
         },
+        "lfs_oid": {
+          "description": "The LFS object ID if this blob is stored in LFS",
+          "type": "string",
+          "x-go-name": "LfsOid"
+        },
+        "lfs_size": {
+          "description": "The size of the LFS object if this blob is stored in LFS",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LfsSize"
+        },
         "sha": {
+          "description": "The SHA hash of the git blob",
           "type": "string",
           "x-go-name": "SHA"
         },
         "size": {
+          "description": "The size of the git blob in bytes",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Size"
         },
         "url": {
+          "description": "The URL to access this git blob",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -24968,27 +25469,33 @@
       "type": "object",
       "properties": {
         "mode": {
+          "description": "Mode is the file mode (permissions)",
           "type": "string",
           "x-go-name": "Mode"
         },
         "path": {
+          "description": "Path is the file or directory path",
           "type": "string",
           "x-go-name": "Path"
         },
         "sha": {
+          "description": "SHA is the Git object SHA",
           "type": "string",
           "x-go-name": "SHA"
         },
         "size": {
+          "description": "Size is the file size in bytes",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Size"
         },
         "type": {
+          "description": "Type indicates if this is a file, directory, or symlink",
           "type": "string",
           "x-go-name": "Type"
         },
         "url": {
+          "description": "URL is the API URL for this tree entry",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -25000,14 +25507,17 @@
       "type": "object",
       "properties": {
         "content": {
+          "description": "Content contains the script content of the hook",
           "type": "string",
           "x-go-name": "Content"
         },
         "is_active": {
+          "description": "IsActive indicates if the hook is active",
           "type": "boolean",
           "x-go-name": "IsActive"
         },
         "name": {
+          "description": "Name is the name of the Git hook",
           "type": "string",
           "x-go-name": "Name"
         }
@@ -25019,14 +25529,17 @@
       "title": "GitObject represents a Git object.",
       "properties": {
         "sha": {
+          "description": "The SHA hash of the Git object",
           "type": "string",
           "x-go-name": "SHA"
         },
         "type": {
+          "description": "The type of the Git object (e.g., commit, tag, tree, blob)",
           "type": "string",
           "x-go-name": "Type"
         },
         "url": {
+          "description": "The URL to access this Git object",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -25038,20 +25551,24 @@
       "type": "object",
       "properties": {
         "page": {
+          "description": "Page is the current page number for pagination",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Page"
         },
         "sha": {
+          "description": "SHA is the tree object SHA",
           "type": "string",
           "x-go-name": "SHA"
         },
         "total_count": {
+          "description": "TotalCount is the total number of entries in the tree",
           "type": "integer",
           "format": "int64",
           "x-go-name": "TotalCount"
         },
         "tree": {
+          "description": "Entries contains the tree entries (files and directories)",
           "type": "array",
           "items": {
             "$ref": "#/definitions/GitEntry"
@@ -25059,10 +25576,12 @@
           "x-go-name": "Entries"
         },
         "truncated": {
+          "description": "Truncated indicates if the response was truncated due to size",
           "type": "boolean",
           "x-go-name": "Truncated"
         },
         "url": {
+          "description": "URL is the API URL for this tree",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -25074,10 +25593,12 @@
       "type": "object",
       "properties": {
         "name": {
+          "description": "Name is the name of the gitignore template",
           "type": "string",
           "x-go-name": "Name"
         },
         "source": {
+          "description": "Source contains the content of the gitignore template",
           "type": "string",
           "x-go-name": "Source"
         }
@@ -25089,18 +25610,22 @@
       "type": "object",
       "properties": {
         "active": {
+          "description": "Whether the webhook is active and will be triggered",
           "type": "boolean",
           "x-go-name": "Active"
         },
         "authorization_header": {
+          "description": "Authorization header to include in webhook requests",
           "type": "string",
           "x-go-name": "AuthorizationHeader"
         },
         "branch_filter": {
+          "description": "Branch filter pattern to determine which branches trigger the webhook",
           "type": "string",
           "x-go-name": "BranchFilter"
         },
         "config": {
+          "description": "Configuration settings for the webhook",
           "type": "object",
           "additionalProperties": {
             "type": "string"
@@ -25113,6 +25638,7 @@
           "x-go-name": "Created"
         },
         "events": {
+          "description": "List of events that trigger this webhook",
           "type": "array",
           "items": {
             "type": "string"
@@ -25120,11 +25646,13 @@
           "x-go-name": "Events"
         },
         "id": {
+          "description": "The unique identifier of the webhook",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "type": {
+          "description": "The type of the webhook (e.g., gitea, slack, discord)",
           "type": "string",
           "x-go-name": "Type"
         },
@@ -25146,6 +25674,7 @@
           "x-go-name": "Email"
         },
         "name": {
+          "description": "Name is the person's name",
           "type": "string",
           "x-go-name": "Name"
         }
@@ -25273,6 +25802,11 @@
         },
         "state": {
           "$ref": "#/definitions/StateType"
+        },
+        "time_estimate": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TimeEstimate"
         },
         "title": {
           "type": "string",
@@ -25418,6 +25952,7 @@
           "x-go-name": "Index"
         },
         "owner": {
+          "description": "owner of the issue's repo",
           "type": "string",
           "x-go-name": "Owner"
         },
@@ -25489,6 +26024,7 @@
           "example": "00aabb"
         },
         "description": {
+          "description": "Description provides additional context about the label's purpose",
           "type": "string",
           "x-go-name": "Description"
         },
@@ -25498,6 +26034,7 @@
           "example": false
         },
         "id": {
+          "description": "ID is the unique identifier for the label",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
@@ -25508,10 +26045,12 @@
           "example": false
         },
         "name": {
+          "description": "Name is the display name of the label",
           "type": "string",
           "x-go-name": "Name"
         },
         "url": {
+          "description": "URL is the API endpoint for accessing this label",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -25528,6 +26067,7 @@
           "example": "00aabb"
         },
         "description": {
+          "description": "Description provides additional context about the label template's purpose",
           "type": "string",
           "x-go-name": "Description"
         },
@@ -25537,6 +26077,7 @@
           "example": false
         },
         "name": {
+          "description": "Name is the display name of the label template",
           "type": "string",
           "x-go-name": "Name"
         }
@@ -25548,22 +26089,27 @@
       "type": "object",
       "properties": {
         "body": {
+          "description": "Body contains the full text of the license",
           "type": "string",
           "x-go-name": "Body"
         },
         "implementation": {
+          "description": "Implementation contains license implementation details",
           "type": "string",
           "x-go-name": "Implementation"
         },
         "key": {
+          "description": "Key is the unique identifier for the license template",
           "type": "string",
           "x-go-name": "Key"
         },
         "name": {
+          "description": "Name is the display name of the license",
           "type": "string",
           "x-go-name": "Name"
         },
         "url": {
+          "description": "URL is the reference URL for the license",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -25575,14 +26121,17 @@
       "type": "object",
       "properties": {
         "key": {
+          "description": "Key is the unique identifier for the license template",
           "type": "string",
           "x-go-name": "Key"
         },
         "name": {
+          "description": "Name is the display name of the license",
           "type": "string",
           "x-go-name": "Name"
         },
         "url": {
+          "description": "URL is the reference URL for the license",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -25802,7 +26351,7 @@
           "x-go-name": "RepoName"
         },
         "repo_owner": {
-          "description": "Name of User or Organisation who will own Repo after migration",
+          "description": "the organization's name or individual user's name who will own the migrated repository",
           "type": "string",
           "x-go-name": "RepoOwner"
         },
@@ -25822,7 +26371,7 @@
           "x-go-name": "Service"
         },
         "uid": {
-          "description": "deprecated (only for backwards compatibility)",
+          "description": "deprecated (only for backwards compatibility, use repo_owner instead)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepoOwnerID"
@@ -25844,6 +26393,7 @@
           "x-go-name": "Closed"
         },
         "closed_issues": {
+          "description": "ClosedIssues is the number of closed issues in this milestone",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ClosedIssues"
@@ -25854,6 +26404,7 @@
           "x-go-name": "Created"
         },
         "description": {
+          "description": "Description provides details about the milestone",
           "type": "string",
           "x-go-name": "Description"
         },
@@ -25863,11 +26414,13 @@
           "x-go-name": "Deadline"
         },
         "id": {
+          "description": "ID is the unique identifier for the milestone",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "open_issues": {
+          "description": "OpenIssues is the number of open issues in this milestone",
           "type": "integer",
           "format": "int64",
           "x-go-name": "OpenIssues"
@@ -25876,6 +26429,7 @@
           "$ref": "#/definitions/StateType"
         },
         "title": {
+          "description": "Title is the title of the milestone",
           "type": "string",
           "x-go-name": "Title"
         },
@@ -25907,14 +26461,17 @@
       "type": "object",
       "properties": {
         "metadata": {
+          "description": "Metadata contains free form key value pairs for software specific values",
           "type": "object",
           "x-go-name": "Metadata"
         },
         "openRegistrations": {
+          "description": "OpenRegistrations indicates if new user registrations are accepted",
           "type": "boolean",
           "x-go-name": "OpenRegistrations"
         },
         "protocols": {
+          "description": "Protocols lists the protocols supported by this server",
           "type": "array",
           "items": {
             "type": "string"
@@ -25931,6 +26488,7 @@
           "$ref": "#/definitions/NodeInfoUsage"
         },
         "version": {
+          "description": "Version specifies the schema version",
           "type": "string",
           "x-go-name": "Version"
         }
@@ -25942,6 +26500,7 @@
       "type": "object",
       "properties": {
         "inbound": {
+          "description": "Inbound lists services that can deliver content to this server",
           "type": "array",
           "items": {
             "type": "string"
@@ -25949,6 +26508,7 @@
           "x-go-name": "Inbound"
         },
         "outbound": {
+          "description": "Outbound lists services this server can deliver content to",
           "type": "array",
           "items": {
             "type": "string"
@@ -25963,18 +26523,22 @@
       "type": "object",
       "properties": {
         "homepage": {
+          "description": "Homepage is the URL to the homepage of this server software",
           "type": "string",
           "x-go-name": "Homepage"
         },
         "name": {
+          "description": "Name is the canonical name of this server software",
           "type": "string",
           "x-go-name": "Name"
         },
         "repository": {
+          "description": "Repository is the URL to the source code repository",
           "type": "string",
           "x-go-name": "Repository"
         },
         "version": {
+          "description": "Version is the version of this server software",
           "type": "string",
           "x-go-name": "Version"
         }
@@ -25986,11 +26550,13 @@
       "type": "object",
       "properties": {
         "localComments": {
+          "description": "LocalComments is the total amount of comments made by users local to this server",
           "type": "integer",
           "format": "int64",
           "x-go-name": "LocalComments"
         },
         "localPosts": {
+          "description": "LocalPosts is the total amount of posts made by users local to this server",
           "type": "integer",
           "format": "int64",
           "x-go-name": "LocalPosts"
@@ -26006,16 +26572,19 @@
       "type": "object",
       "properties": {
         "activeHalfyear": {
+          "description": "ActiveHalfyear is the amount of users that signed in at least once in the last 180 days",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ActiveHalfyear"
         },
         "activeMonth": {
+          "description": "ActiveMonth is the amount of users that signed in at least once in the last 30 days",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ActiveMonth"
         },
         "total": {
+          "description": "Total is the total amount of users on this server",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Total"
@@ -26031,6 +26600,7 @@
           "$ref": "#/definitions/Commit"
         },
         "message": {
+          "description": "The content message of the git note",
           "type": "string",
           "x-go-name": "Message"
         }
@@ -26042,6 +26612,7 @@
       "type": "object",
       "properties": {
         "new": {
+          "description": "New is the number of unread notifications",
           "type": "integer",
           "format": "int64",
           "x-go-name": "New"
@@ -26054,14 +26625,17 @@
       "type": "object",
       "properties": {
         "html_url": {
+          "description": "HTMLURL is the web URL for the notification subject",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "latest_comment_html_url": {
+          "description": "LatestCommentHTMLURL is the web URL for the latest comment",
           "type": "string",
           "x-go-name": "LatestCommentHTMLURL"
         },
         "latest_comment_url": {
+          "description": "LatestCommentURL is the API URL for the latest comment",
           "type": "string",
           "x-go-name": "LatestCommentURL"
         },
@@ -26069,6 +26643,7 @@
           "$ref": "#/definitions/StateType"
         },
         "title": {
+          "description": "Title is the title of the notification subject",
           "type": "string",
           "x-go-name": "Title"
         },
@@ -26076,6 +26651,7 @@
           "$ref": "#/definitions/NotifySubjectType"
         },
         "url": {
+          "description": "URL is the API URL for the notification subject",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -26087,11 +26663,13 @@
       "type": "object",
       "properties": {
         "id": {
+          "description": "ID is the unique identifier for the notification thread",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "pinned": {
+          "description": "Pinned indicates if the notification is pinned",
           "type": "boolean",
           "x-go-name": "Pinned"
         },
@@ -26102,15 +26680,18 @@
           "$ref": "#/definitions/NotificationSubject"
         },
         "unread": {
+          "description": "Unread indicates if the notification has been read",
           "type": "boolean",
           "x-go-name": "Unread"
         },
         "updated_at": {
+          "description": "UpdatedAt is the time when the notification was last updated",
           "type": "string",
           "format": "date-time",
           "x-go-name": "UpdatedAt"
         },
         "url": {
+          "description": "URL is the API URL for this notification thread",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -26127,32 +26708,39 @@
       "title": "OAuth2Application represents an OAuth2 application.",
       "properties": {
         "client_id": {
+          "description": "The client ID of the OAuth2 application",
           "type": "string",
           "x-go-name": "ClientID"
         },
         "client_secret": {
+          "description": "The client secret of the OAuth2 application",
           "type": "string",
           "x-go-name": "ClientSecret"
         },
         "confidential_client": {
+          "description": "Whether the client is confidential",
           "type": "boolean",
           "x-go-name": "ConfidentialClient"
         },
         "created": {
+          "description": "The timestamp when the application was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
         },
         "id": {
+          "description": "The unique identifier of the OAuth2 application",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "name": {
+          "description": "The name of the OAuth2 application",
           "type": "string",
           "x-go-name": "Name"
         },
         "redirect_uris": {
+          "description": "The list of allowed redirect URIs",
           "type": "array",
           "items": {
             "type": "string"
@@ -26160,6 +26748,7 @@
           "x-go-name": "RedirectURIs"
         },
         "skip_secondary_authorization": {
+          "description": "Whether to skip secondary authorization",
           "type": "boolean",
           "x-go-name": "SkipSecondaryAuthorization"
         }
@@ -26171,48 +26760,58 @@
       "type": "object",
       "properties": {
         "avatar_url": {
+          "description": "The URL of the organization's avatar",
           "type": "string",
           "x-go-name": "AvatarURL"
         },
         "description": {
+          "description": "The description of the organization",
           "type": "string",
           "x-go-name": "Description"
         },
         "email": {
+          "description": "The email address of the organization",
           "type": "string",
           "x-go-name": "Email"
         },
         "full_name": {
+          "description": "The full display name of the organization",
           "type": "string",
           "x-go-name": "FullName"
         },
         "id": {
+          "description": "The unique identifier of the organization",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "location": {
+          "description": "The location of the organization",
           "type": "string",
           "x-go-name": "Location"
         },
         "name": {
+          "description": "The name of the organization",
           "type": "string",
           "x-go-name": "Name"
         },
         "repo_admin_change_team_access": {
+          "description": "Whether repository administrators can change team access",
           "type": "boolean",
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "username": {
-          "description": "deprecated",
+          "description": "username of the organization\ndeprecated",
           "type": "string",
           "x-go-name": "UserName"
         },
         "visibility": {
+          "description": "The visibility level of the organization (public, limited, private)",
           "type": "string",
           "x-go-name": "Visibility"
         },
         "website": {
+          "description": "The website URL of the organization",
           "type": "string",
           "x-go-name": "Website"
         }
@@ -26224,22 +26823,27 @@
       "type": "object",
       "properties": {
         "can_create_repository": {
+          "description": "Whether the user can create repositories in the organization",
           "type": "boolean",
           "x-go-name": "CanCreateRepository"
         },
         "can_read": {
+          "description": "Whether the user can read the organization",
           "type": "boolean",
           "x-go-name": "CanRead"
         },
         "can_write": {
+          "description": "Whether the user can write to the organization",
           "type": "boolean",
           "x-go-name": "CanWrite"
         },
         "is_admin": {
+          "description": "Whether the user is an admin of the organization",
           "type": "boolean",
           "x-go-name": "IsAdmin"
         },
         "is_owner": {
+          "description": "Whether the user is an owner of the organization",
           "type": "boolean",
           "x-go-name": "IsOwner"
         }
@@ -26251,10 +26855,12 @@
       "type": "object",
       "properties": {
         "label": {
+          "description": "The display name of the branch",
           "type": "string",
           "x-go-name": "Name"
         },
         "ref": {
+          "description": "The git reference of the branch",
           "type": "string",
           "x-go-name": "Ref"
         },
@@ -26262,11 +26868,13 @@
           "$ref": "#/definitions/Repository"
         },
         "repo_id": {
+          "description": "The unique identifier of the repository",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepoID"
         },
         "sha": {
+          "description": "The commit SHA of the branch head",
           "type": "string",
           "x-go-name": "Sha"
         }
@@ -26286,15 +26894,18 @@
           "$ref": "#/definitions/User"
         },
         "html_url": {
+          "description": "The HTML URL to view the package",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "id": {
+          "description": "The unique identifier of the package",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "name": {
+          "description": "The name of the package",
           "type": "string",
           "x-go-name": "Name"
         },
@@ -26305,10 +26916,12 @@
           "$ref": "#/definitions/Repository"
         },
         "type": {
+          "description": "The type of the package (e.g., npm, maven, docker)",
           "type": "string",
           "x-go-name": "Type"
         },
         "version": {
+          "description": "The version of the package",
           "type": "string",
           "x-go-name": "Version"
         }
@@ -26320,31 +26933,38 @@
       "type": "object",
       "properties": {
         "id": {
+          "description": "The unique identifier of the package file",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "md5": {
+          "description": "The MD5 hash of the package file",
           "type": "string",
           "x-go-name": "HashMD5"
         },
         "name": {
+          "description": "The name of the package file",
           "type": "string",
           "x-go-name": "Name"
         },
         "sha1": {
+          "description": "The SHA1 hash of the package file",
           "type": "string",
           "x-go-name": "HashSHA1"
         },
         "sha256": {
+          "description": "The SHA256 hash of the package file",
           "type": "string",
           "x-go-name": "HashSHA256"
         },
         "sha512": {
+          "description": "The SHA512 hash of the package file",
           "type": "string",
           "x-go-name": "HashSHA512"
         },
         "size": {
+          "description": "The size of the package file in bytes",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Size"
@@ -26357,6 +26977,7 @@
       "type": "object",
       "properties": {
         "added": {
+          "description": "List of files added in this commit",
           "type": "array",
           "items": {
             "type": "string"
@@ -26375,10 +26996,12 @@
           "x-go-name": "ID"
         },
         "message": {
+          "description": "The commit message",
           "type": "string",
           "x-go-name": "Message"
         },
         "modified": {
+          "description": "List of files modified in this commit",
           "type": "array",
           "items": {
             "type": "string"
@@ -26386,6 +27009,7 @@
           "x-go-name": "Modified"
         },
         "removed": {
+          "description": "List of files removed in this commit",
           "type": "array",
           "items": {
             "type": "string"
@@ -26398,6 +27022,7 @@
           "x-go-name": "Timestamp"
         },
         "url": {
+          "description": "The URL to view this commit",
           "type": "string",
           "x-go-name": "URL"
         },
@@ -26412,14 +27037,17 @@
       "type": "object",
       "properties": {
         "payload": {
+          "description": "The signed payload content",
           "type": "string",
           "x-go-name": "Payload"
         },
         "reason": {
+          "description": "The reason for the verification status",
           "type": "string",
           "x-go-name": "Reason"
         },
         "signature": {
+          "description": "The GPG signature of the commit",
           "type": "string",
           "x-go-name": "Signature"
         },
@@ -26427,6 +27055,7 @@
           "$ref": "#/definitions/PayloadUser"
         },
         "verified": {
+          "description": "Whether the commit signature is verified",
           "type": "boolean",
           "x-go-name": "Verified"
         }
@@ -26448,6 +27077,7 @@
           "x-go-name": "Name"
         },
         "username": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "UserName"
         }
@@ -26483,36 +27113,44 @@
           "x-go-name": "Created"
         },
         "fingerprint": {
+          "description": "Fingerprint is the key's fingerprint",
           "type": "string",
           "x-go-name": "Fingerprint"
         },
         "id": {
+          "description": "ID is the unique identifier for the public key",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "key": {
+          "description": "Key contains the actual SSH public key content",
           "type": "string",
           "x-go-name": "Key"
         },
         "key_type": {
+          "description": "KeyType indicates the type of the SSH key",
           "type": "string",
           "x-go-name": "KeyType"
         },
         "last_used_at": {
+          "description": "Updated is the time when the key was last used",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
         },
         "read_only": {
+          "description": "ReadOnly indicates if the key has read-only access",
           "type": "boolean",
           "x-go-name": "ReadOnly"
         },
         "title": {
+          "description": "Title is the human-readable name for the key",
           "type": "string",
           "x-go-name": "Title"
         },
         "url": {
+          "description": "URL is the API URL for this key",
           "type": "string",
           "x-go-name": "URL"
         },
@@ -26527,11 +27165,13 @@
       "type": "object",
       "properties": {
         "additions": {
+          "description": "The number of lines added in the pull request",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Additions"
         },
         "allow_maintainer_edit": {
+          "description": "Whether maintainers can edit the pull request",
           "type": "boolean",
           "x-go-name": "AllowMaintainerEdit"
         },
@@ -26539,6 +27179,7 @@
           "$ref": "#/definitions/User"
         },
         "assignees": {
+          "description": "The list of users assigned to the pull request",
           "type": "array",
           "items": {
             "$ref": "#/definitions/User"
@@ -26549,10 +27190,12 @@
           "$ref": "#/definitions/PRBranchInfo"
         },
         "body": {
+          "description": "The description body of the pull request",
           "type": "string",
           "x-go-name": "Body"
         },
         "changed_files": {
+          "description": "The number of files changed in the pull request",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ChangedFiles"
@@ -26563,6 +27206,7 @@
           "x-go-name": "Closed"
         },
         "comments": {
+          "description": "The number of comments on the pull request",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Comments"
@@ -26573,15 +27217,18 @@
           "x-go-name": "Created"
         },
         "deletions": {
+          "description": "The number of lines deleted in the pull request",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Deletions"
         },
         "diff_url": {
+          "description": "The URL to download the diff patch",
           "type": "string",
           "x-go-name": "DiffURL"
         },
         "draft": {
+          "description": "Whether the pull request is a draft",
           "type": "boolean",
           "x-go-name": "Draft"
         },
@@ -26594,19 +27241,23 @@
           "$ref": "#/definitions/PRBranchInfo"
         },
         "html_url": {
+          "description": "The HTML URL to view the pull request",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "id": {
+          "description": "The unique identifier of the pull request",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "is_locked": {
+          "description": "Whether the pull request conversation is locked",
           "type": "boolean",
           "x-go-name": "IsLocked"
         },
         "labels": {
+          "description": "The labels attached to the pull request",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Label"
@@ -26614,18 +27265,22 @@
           "x-go-name": "Labels"
         },
         "merge_base": {
+          "description": "The merge base commit SHA",
           "type": "string",
           "x-go-name": "MergeBase"
         },
         "merge_commit_sha": {
+          "description": "The SHA of the merge commit",
           "type": "string",
           "x-go-name": "MergedCommitID"
         },
         "mergeable": {
+          "description": "Whether the pull request can be merged",
           "type": "boolean",
           "x-go-name": "Mergeable"
         },
         "merged": {
+          "description": "Whether the pull request has been merged",
           "type": "boolean",
           "x-go-name": "HasMerged"
         },
@@ -26641,20 +27296,24 @@
           "$ref": "#/definitions/Milestone"
         },
         "number": {
+          "description": "The pull request number",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Index"
         },
         "patch_url": {
+          "description": "The URL to download the patch file",
           "type": "string",
           "x-go-name": "PatchURL"
         },
         "pin_order": {
+          "description": "The pin order for the pull request",
           "type": "integer",
           "format": "int64",
           "x-go-name": "PinOrder"
         },
         "requested_reviewers": {
+          "description": "The users requested to review the pull request",
           "type": "array",
           "items": {
             "$ref": "#/definitions/User"
@@ -26662,6 +27321,7 @@
           "x-go-name": "RequestedReviewers"
         },
         "requested_reviewers_teams": {
+          "description": "The teams requested to review the pull request",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Team"
@@ -26678,6 +27338,7 @@
           "$ref": "#/definitions/StateType"
         },
         "title": {
+          "description": "The title of the pull request",
           "type": "string",
           "x-go-name": "Title"
         },
@@ -26687,6 +27348,7 @@
           "x-go-name": "Updated"
         },
         "url": {
+          "description": "The API URL of the pull request",
           "type": "string",
           "x-go-name": "URL"
         },
@@ -26742,6 +27404,7 @@
           "x-go-name": "Dismissed"
         },
         "html_url": {
+          "description": "HTMLURL is the web URL for viewing the review",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
@@ -26755,6 +27418,7 @@
           "x-go-name": "Official"
         },
         "pull_request_url": {
+          "description": "HTMLPullURL is the web URL for the pull request",
           "type": "string",
           "x-go-name": "HTMLPullURL"
         },
@@ -26886,10 +27550,12 @@
           "x-go-name": "CreatedUnix"
         },
         "interval": {
+          "description": "The sync interval for automatic updates",
           "type": "string",
           "x-go-name": "Interval"
         },
         "last_error": {
+          "description": "The last error message encountered during sync",
           "type": "string",
           "x-go-name": "LastError"
         },
@@ -26899,18 +27565,22 @@
           "x-go-name": "LastUpdateUnix"
         },
         "remote_address": {
+          "description": "The remote repository URL being mirrored to",
           "type": "string",
           "x-go-name": "RemoteAddress"
         },
         "remote_name": {
+          "description": "The name of the remote in the git configuration",
           "type": "string",
           "x-go-name": "RemoteName"
         },
         "repo_name": {
+          "description": "The name of the source repository",
           "type": "string",
           "x-go-name": "RepoName"
         },
         "sync_on_commit": {
+          "description": "Whether to sync on every commit",
           "type": "boolean",
           "x-go-name": "SyncOnCommit"
         }
@@ -26922,6 +27592,7 @@
       "type": "object",
       "properties": {
         "content": {
+          "description": "The reaction content (e.g., emoji or reaction type)",
           "type": "string",
           "x-go-name": "Reaction"
         },
@@ -26944,10 +27615,12 @@
           "$ref": "#/definitions/GitObject"
         },
         "ref": {
+          "description": "The name of the Git reference (e.g., refs/heads/main)",
           "type": "string",
           "x-go-name": "Ref"
         },
         "url": {
+          "description": "The URL to access this Git reference",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -26959,6 +27632,7 @@
       "type": "object",
       "properties": {
         "assets": {
+          "description": "The files attached to the release",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Attachment"
@@ -26969,6 +27643,7 @@
           "$ref": "#/definitions/User"
         },
         "body": {
+          "description": "The release notes or description",
           "type": "string",
           "x-go-name": "Note"
         },
@@ -26978,23 +27653,28 @@
           "x-go-name": "CreatedAt"
         },
         "draft": {
+          "description": "Whether the release is a draft",
           "type": "boolean",
           "x-go-name": "IsDraft"
         },
         "html_url": {
+          "description": "The HTML URL to view the release",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "id": {
+          "description": "The unique identifier of the release",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "name": {
+          "description": "The display title of the release",
           "type": "string",
           "x-go-name": "Title"
         },
         "prerelease": {
+          "description": "Whether the release is a prerelease",
           "type": "boolean",
           "x-go-name": "IsPrerelease"
         },
@@ -27004,28 +27684,50 @@
           "x-go-name": "PublishedAt"
         },
         "tag_name": {
+          "description": "The name of the git tag associated with the release",
           "type": "string",
           "x-go-name": "TagName"
         },
         "tarball_url": {
+          "description": "The URL to download the tarball archive",
           "type": "string",
           "x-go-name": "TarURL"
         },
         "target_commitish": {
+          "description": "The target commitish for the release",
           "type": "string",
           "x-go-name": "Target"
         },
         "upload_url": {
+          "description": "The URL template for uploading release assets",
           "type": "string",
           "x-go-name": "UploadURL"
         },
         "url": {
+          "description": "The API URL of the release",
           "type": "string",
           "x-go-name": "URL"
         },
         "zipball_url": {
+          "description": "The URL to download the zip archive",
           "type": "string",
           "x-go-name": "ZipURL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "RenameBranchRepoOption": {
+      "description": "RenameBranchRepoOption options when renaming a branch in a repository",
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "description": "New branch name",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -27067,10 +27769,12 @@
       "type": "object",
       "properties": {
         "permission": {
+          "description": "Permission level of the collaborator",
           "type": "string",
           "x-go-name": "Permission"
         },
         "role_name": {
+          "description": "RoleName is the name of the permission role",
           "type": "string",
           "x-go-name": "RoleName"
         },
@@ -27091,6 +27795,7 @@
           "$ref": "#/definitions/CommitUser"
         },
         "message": {
+          "description": "Message is the commit message",
           "type": "string",
           "x-go-name": "Message"
         },
@@ -27098,6 +27803,7 @@
           "$ref": "#/definitions/CommitMeta"
         },
         "url": {
+          "description": "URL is the API URL for the commit",
           "type": "string",
           "x-go-name": "URL"
         },
@@ -27246,6 +27952,10 @@
         "has_actions": {
           "type": "boolean",
           "x-go-name": "HasActions"
+        },
+        "has_code": {
+          "type": "boolean",
+          "x-go-name": "HasCode"
         },
         "has_issues": {
           "type": "boolean",
@@ -27455,6 +28165,7 @@
       "type": "object",
       "properties": {
         "data": {
+          "description": "Data contains the repository search results",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Repository"
@@ -27462,6 +28173,7 @@
           "x-go-name": "Data"
         },
         "ok": {
+          "description": "OK indicates if the search was successful",
           "type": "boolean",
           "x-go-name": "OK"
         }
@@ -27495,6 +28207,7 @@
       "type": "object",
       "properties": {
         "version": {
+          "description": "Version is the server version string",
           "type": "string",
           "x-go-name": "Version"
         }
@@ -27516,27 +28229,33 @@
           "x-go-name": "Created"
         },
         "duration": {
+          "description": "Duration is a human-readable duration string",
           "type": "string",
           "x-go-name": "Duration"
         },
         "issue_index": {
+          "description": "IssueIndex is the index number of the associated issue",
           "type": "integer",
           "format": "int64",
           "x-go-name": "IssueIndex"
         },
         "issue_title": {
+          "description": "IssueTitle is the title of the associated issue",
           "type": "string",
           "x-go-name": "IssueTitle"
         },
         "repo_name": {
+          "description": "RepoName is the name of the repository",
           "type": "string",
           "x-go-name": "RepoName"
         },
         "repo_owner_name": {
+          "description": "RepoOwnerName is the name of the repository owner",
           "type": "string",
           "x-go-name": "RepoOwnerName"
         },
         "seconds": {
+          "description": "Seconds is the total elapsed time in seconds",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Seconds"
@@ -27566,22 +28285,27 @@
           "$ref": "#/definitions/CommitMeta"
         },
         "id": {
+          "description": "The ID (SHA) of the tag",
           "type": "string",
           "x-go-name": "ID"
         },
         "message": {
+          "description": "The message associated with the tag",
           "type": "string",
           "x-go-name": "Message"
         },
         "name": {
+          "description": "The name of the tag",
           "type": "string",
           "x-go-name": "Name"
         },
         "tarball_url": {
+          "description": "The URL to download the tarball archive",
           "type": "string",
           "x-go-name": "TarballURL"
         },
         "zipball_url": {
+          "description": "The URL to download the zipball archive",
           "type": "string",
           "x-go-name": "ZipballURL"
         }
@@ -27598,11 +28322,13 @@
           "x-go-name": "Created"
         },
         "id": {
+          "description": "The unique identifier of the tag protection",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "name_pattern": {
+          "description": "The pattern to match tag names for protection",
           "type": "string",
           "x-go-name": "NamePattern"
         },
@@ -27612,6 +28338,7 @@
           "x-go-name": "Updated"
         },
         "whitelist_teams": {
+          "description": "List of team names allowed to create/delete protected tags",
           "type": "array",
           "items": {
             "type": "string"
@@ -27619,6 +28346,7 @@
           "x-go-name": "WhitelistTeams"
         },
         "whitelist_usernames": {
+          "description": "List of usernames allowed to create/delete protected tags",
           "type": "array",
           "items": {
             "type": "string"
@@ -27633,23 +28361,28 @@
       "type": "object",
       "properties": {
         "can_create_org_repo": {
+          "description": "Whether the team can create repositories in the organization",
           "type": "boolean",
           "x-go-name": "CanCreateOrgRepo"
         },
         "description": {
+          "description": "The description of the team",
           "type": "string",
           "x-go-name": "Description"
         },
         "id": {
+          "description": "The unique identifier of the team",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "includes_all_repositories": {
+          "description": "Whether the team has access to all repositories in the organization",
           "type": "boolean",
           "x-go-name": "IncludesAllRepositories"
         },
         "name": {
+          "description": "The name of the team",
           "type": "string",
           "x-go-name": "Name"
         },
@@ -27721,6 +28454,7 @@
           "$ref": "#/definitions/Team"
         },
         "body": {
+          "description": "Body contains the timeline event content",
           "type": "string",
           "x-go-name": "Body"
         },
@@ -27733,15 +28467,18 @@
           "$ref": "#/definitions/Issue"
         },
         "html_url": {
+          "description": "HTMLURL is the web URL for viewing the comment",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
         "id": {
+          "description": "ID is the unique identifier for the timeline comment",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "issue_url": {
+          "description": "IssueURL is the API URL for the issue",
           "type": "string",
           "x-go-name": "IssueURL"
         },
@@ -27781,6 +28518,7 @@
           "x-go-name": "ProjectID"
         },
         "pull_request_url": {
+          "description": "PRURL is the API URL for the pull request (if applicable)",
           "type": "string",
           "x-go-name": "PRURL"
         },
@@ -27816,6 +28554,7 @@
           "$ref": "#/definitions/TrackedTime"
         },
         "type": {
+          "description": "Type indicates the type of timeline event",
           "type": "string",
           "x-go-name": "Type"
         },
@@ -27835,6 +28574,7 @@
       "type": "object",
       "properties": {
         "topics": {
+          "description": "List of topic names",
           "type": "array",
           "items": {
             "type": "string"
@@ -27849,25 +28589,30 @@
       "type": "object",
       "properties": {
         "created": {
+          "description": "The date and time when the topic was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
         },
         "id": {
+          "description": "The unique identifier of the topic",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "repo_count": {
+          "description": "The number of repositories using this topic",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepoCount"
         },
         "topic_name": {
+          "description": "The name of the topic",
           "type": "string",
           "x-go-name": "Name"
         },
         "updated": {
+          "description": "The date and time when the topic was last updated",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
@@ -27885,6 +28630,7 @@
           "x-go-name": "Created"
         },
         "id": {
+          "description": "ID is the unique identifier for the tracked time entry",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
@@ -27911,6 +28657,7 @@
           "x-go-name": "UserID"
         },
         "user_name": {
+          "description": "username of the user",
           "type": "string",
           "x-go-name": "UserName"
         }
@@ -27955,27 +28702,10 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "UpdateBranchRepoOption": {
-      "description": "UpdateBranchRepoOption options when updating a branch in a repository",
-      "type": "object",
-      "required": [
-        "name"
-      ],
-      "properties": {
-        "name": {
-          "description": "New branch name",
-          "type": "string",
-          "uniqueItems": true,
-          "x-go-name": "Name"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "UpdateFileOptions": {
-      "description": "UpdateFileOptions options for updating files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "description": "UpdateFileOptions options for updating or creating a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
       "required": [
-        "sha",
         "content"
       ],
       "properties": {
@@ -27983,7 +28713,7 @@
           "$ref": "#/definitions/Identity"
         },
         "branch": {
-          "description": "branch (optional) to base this file from. if not given, the default branch is used",
+          "description": "branch (optional) is the base branch for the changes. If not supplied, the default branch is used",
           "type": "string",
           "x-go-name": "BranchName"
         },
@@ -27998,23 +28728,28 @@
         "dates": {
           "$ref": "#/definitions/CommitDateOptions"
         },
+        "force_push": {
+          "description": "force_push (optional) will do a force-push if the new branch already exists",
+          "type": "boolean",
+          "x-go-name": "ForcePush"
+        },
         "from_path": {
           "description": "from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL",
           "type": "string",
           "x-go-name": "FromPath"
         },
         "message": {
-          "description": "message (optional) for the commit of this file. if not supplied, a default message will be used",
+          "description": "message (optional) is the commit message of the changes. If not supplied, a default message will be used",
           "type": "string",
           "x-go-name": "Message"
         },
         "new_branch": {
-          "description": "new_branch (optional) will make a new branch from `branch` before creating the file",
+          "description": "new_branch (optional) will make a new branch from base branch for the changes. If not supplied, the changes will be committed to the base branch",
           "type": "string",
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "sha is the SHA for the file that already exists",
+          "description": "the blob ID (SHA) for the file that already exists to update, or leave it empty to create a new file",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -28152,12 +28887,12 @@
           "x-go-name": "Location"
         },
         "login": {
-          "description": "the user's username",
+          "description": "login of the user, same as `username`",
           "type": "string",
           "x-go-name": "UserName"
         },
         "login_name": {
-          "description": "the user's authentication sign-in name.",
+          "description": "identifier of the user, provided by the external authenticator (if configured)",
           "type": "string",
           "default": "empty",
           "x-go-name": "LoginName"
@@ -28322,26 +29057,32 @@
       "type": "object",
       "properties": {
         "created_at": {
+          "description": "The timestamp when the watch status was created",
           "type": "string",
           "format": "date-time",
           "x-go-name": "CreatedAt"
         },
         "ignored": {
+          "description": "Whether notifications for the repository are ignored",
           "type": "boolean",
           "x-go-name": "Ignored"
         },
         "reason": {
+          "description": "The reason for the current watch status",
           "x-go-name": "Reason"
         },
         "repository_url": {
+          "description": "The URL of the repository being watched",
           "type": "string",
           "x-go-name": "RepositoryURL"
         },
         "subscribed": {
+          "description": "Whether the repository is being watched for notifications",
           "type": "boolean",
           "x-go-name": "Subscribed"
         },
         "url": {
+          "description": "The URL for managing the watch status",
           "type": "string",
           "x-go-name": "URL"
         }
@@ -28359,10 +29100,12 @@
           "$ref": "#/definitions/CommitUser"
         },
         "message": {
+          "description": "The commit message",
           "type": "string",
           "x-go-name": "Message"
         },
         "sha": {
+          "description": "The commit SHA hash",
           "type": "string",
           "x-go-name": "ID"
         }
@@ -28374,6 +29117,7 @@
       "type": "object",
       "properties": {
         "commits": {
+          "description": "The list of wiki commits",
           "type": "array",
           "items": {
             "$ref": "#/definitions/WikiCommit"
@@ -28381,6 +29125,7 @@
           "x-go-name": "WikiCommits"
         },
         "count": {
+          "description": "The total count of commits",
           "type": "integer",
           "format": "int64",
           "x-go-name": "Count"
@@ -28393,6 +29138,7 @@
       "type": "object",
       "properties": {
         "commit_count": {
+          "description": "The number of commits that modified this page",
           "type": "integer",
           "format": "int64",
           "x-go-name": "CommitCount"
@@ -28403,10 +29149,12 @@
           "x-go-name": "ContentBase64"
         },
         "footer": {
+          "description": "The footer content for the wiki page",
           "type": "string",
           "x-go-name": "Footer"
         },
         "html_url": {
+          "description": "The HTML URL to view the wiki page",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
@@ -28414,14 +29162,17 @@
           "$ref": "#/definitions/WikiCommit"
         },
         "sidebar": {
+          "description": "The sidebar content for the wiki page",
           "type": "string",
           "x-go-name": "Sidebar"
         },
         "sub_url": {
+          "description": "The sub URL path for the wiki page",
           "type": "string",
           "x-go-name": "SubURL"
         },
         "title": {
+          "description": "The title of the wiki page",
           "type": "string",
           "x-go-name": "Title"
         }
@@ -28433,6 +29184,7 @@
       "type": "object",
       "properties": {
         "html_url": {
+          "description": "The HTML URL to view the wiki page",
           "type": "string",
           "x-go-name": "HTMLURL"
         },
@@ -28440,10 +29192,12 @@
           "$ref": "#/definitions/WikiCommit"
         },
         "sub_url": {
+          "description": "The sub URL path for the wiki page",
           "type": "string",
           "x-go-name": "SubURL"
         },
         "title": {
+          "description": "The title of the wiki page",
           "type": "string",
           "x-go-name": "Title"
         }
@@ -28482,10 +29236,7 @@
     "ActionWorkflowList": {
       "description": "ActionWorkflowList",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/ActionWorkflow"
-        }
+        "$ref": "#/definitions/ActionWorkflowResponse"
       }
     },
     "ActivityFeedsList": {
@@ -28691,6 +29442,12 @@
       "description": "",
       "schema": {
         "$ref": "#/definitions/Compare"
+      }
+    },
+    "ContentsExtResponse": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/ContentsExtResponse"
       }
     },
     "ContentsListResponse": {

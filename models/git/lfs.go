@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -42,30 +41,6 @@ func (err ErrLFSLockNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// ErrLFSUnauthorizedAction represents a "LFSUnauthorizedAction" kind of error.
-type ErrLFSUnauthorizedAction struct {
-	RepoID   int64
-	UserName string
-	Mode     perm.AccessMode
-}
-
-// IsErrLFSUnauthorizedAction checks if an error is a ErrLFSUnauthorizedAction.
-func IsErrLFSUnauthorizedAction(err error) bool {
-	_, ok := err.(ErrLFSUnauthorizedAction)
-	return ok
-}
-
-func (err ErrLFSUnauthorizedAction) Error() string {
-	if err.Mode == perm.AccessModeWrite {
-		return fmt.Sprintf("User %s doesn't have write access for lfs lock [rid: %d]", err.UserName, err.RepoID)
-	}
-	return fmt.Sprintf("User %s doesn't have read access for lfs lock [rid: %d]", err.UserName, err.RepoID)
-}
-
-func (err ErrLFSUnauthorizedAction) Unwrap() error {
-	return util.ErrPermissionDenied
-}
-
 // ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
 type ErrLFSLockAlreadyExist struct {
 	RepoID int64
@@ -91,12 +66,6 @@ type ErrLFSFileLocked struct {
 	RepoID   int64
 	Path     string
 	UserName string
-}
-
-// IsErrLFSFileLocked checks if an error is a ErrLFSFileLocked.
-func IsErrLFSFileLocked(err error) bool {
-	_, ok := err.(ErrLFSFileLocked)
-	return ok
 }
 
 func (err ErrLFSFileLocked) Error() string {
@@ -135,25 +104,18 @@ var ErrLFSObjectNotExist = db.ErrNotExist{Resource: "LFS Meta object"}
 // NewLFSMetaObject stores a given populated LFSMetaObject structure in the database
 // if it is not already present.
 func NewLFSMetaObject(ctx context.Context, repoID int64, p lfs.Pointer) (*LFSMetaObject, error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
 	m, exist, err := db.Get[LFSMetaObject](ctx, builder.Eq{"repository_id": repoID, "oid": p.Oid})
 	if err != nil {
 		return nil, err
 	} else if exist {
-		return m, committer.Commit()
+		return m, nil
 	}
 
 	m = &LFSMetaObject{Pointer: p, RepositoryID: repoID}
 	if err = db.Insert(ctx, m); err != nil {
 		return nil, err
 	}
-
-	return m, committer.Commit()
+	return m, nil
 }
 
 // GetLFSMetaObjectByOid selects a LFSMetaObject entry from database by its OID.
@@ -187,29 +149,25 @@ func RemoveLFSMetaObjectByOidFn(ctx context.Context, repoID int64, oid string, f
 		return 0, ErrLFSObjectNotExist
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return 0, err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) (int64, error) {
+		m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repoID}
+		if _, err := db.DeleteByBean(ctx, m); err != nil {
+			return -1, err
+		}
 
-	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repoID}
-	if _, err := db.DeleteByBean(ctx, m); err != nil {
-		return -1, err
-	}
-
-	count, err := db.CountByBean(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
-	if err != nil {
-		return count, err
-	}
-
-	if fn != nil {
-		if err := fn(count); err != nil {
+		count, err := db.CountByBean(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+		if err != nil {
 			return count, err
 		}
-	}
 
-	return count, committer.Commit()
+		if fn != nil {
+			if err := fn(count); err != nil {
+				return count, err
+			}
+		}
+
+		return count, nil
+	})
 }
 
 // GetLFSMetaObjects returns all LFSMetaObjects associated with a repository
@@ -250,56 +208,46 @@ func ExistsLFSObject(ctx context.Context, oid string) (bool, error) {
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects
 func LFSAutoAssociate(ctx context.Context, metas []*LFSMetaObject, user *user_model.User, repoID int64) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		oids := make([]any, len(metas))
+		oidMap := make(map[string]*LFSMetaObject, len(metas))
+		for i, meta := range metas {
+			oids[i] = meta.Oid
+			oidMap[meta.Oid] = meta
+		}
 
-	sess := db.GetEngine(ctx)
+		if !user.IsAdmin {
+			newMetas := make([]*LFSMetaObject, 0, len(metas))
+			cond := builder.In(
+				"`lfs_meta_object`.repository_id",
+				builder.Select("`repository`.id").From("repository").Where(repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)),
+			)
+			if err := db.GetEngine(ctx).Cols("oid").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas); err != nil {
+				return err
+			}
+			if len(newMetas) != len(oidMap) {
+				return fmt.Errorf("unable collect all LFS objects from database, expected %d, actually %d", len(oidMap), len(newMetas))
+			}
+			for i := range newMetas {
+				newMetas[i].Size = oidMap[newMetas[i].Oid].Size
+				newMetas[i].RepositoryID = repoID
+			}
+			return db.Insert(ctx, newMetas)
+		}
 
-	oids := make([]any, len(metas))
-	oidMap := make(map[string]*LFSMetaObject, len(metas))
-	for i, meta := range metas {
-		oids[i] = meta.Oid
-		oidMap[meta.Oid] = meta
-	}
-
-	if !user.IsAdmin {
-		newMetas := make([]*LFSMetaObject, 0, len(metas))
-		cond := builder.In(
-			"`lfs_meta_object`.repository_id",
-			builder.Select("`repository`.id").From("repository").Where(repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)),
-		)
-		err = sess.Cols("oid").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas)
-		if err != nil {
-			return err
-		}
-		if len(newMetas) != len(oidMap) {
-			return fmt.Errorf("unable collect all LFS objects from database, expected %d, actually %d", len(oidMap), len(newMetas))
-		}
-		for i := range newMetas {
-			newMetas[i].Size = oidMap[newMetas[i].Oid].Size
-			newMetas[i].RepositoryID = repoID
-		}
-		if err = db.Insert(ctx, newMetas); err != nil {
-			return err
-		}
-	} else {
 		// admin can associate any LFS object to any repository, and we do not care about errors (eg: duplicated unique key),
 		// even if error occurs, it won't hurt users and won't make things worse
 		for i := range metas {
 			p := lfs.Pointer{Oid: metas[i].Oid, Size: metas[i].Size}
-			_, err = sess.Insert(&LFSMetaObject{
+			if err := db.Insert(ctx, &LFSMetaObject{
 				Pointer:      p,
 				RepositoryID: repoID,
-			})
-			if err != nil {
+			}); err != nil {
 				log.Warn("failed to insert LFS meta object %-v for repo_id: %d into database, err=%v", p, repoID, err)
 			}
 		}
-	}
-	return committer.Commit()
+		return nil
+	})
 }
 
 // CopyLFS copies LFS data from one repo to another

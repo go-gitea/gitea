@@ -2,14 +2,13 @@ import {isDarkTheme} from '../utils.ts';
 import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
 import {queryElems} from '../utils/dom.ts';
+import {html, htmlRaw} from '../utils/html.ts';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
-// margin removal is for https://github.com/mermaid-js/mermaid/issues/4907
 const iframeCss = `:root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
-#mermaid {display: block; margin: 0 auto}
-blockquote, dd, dl, figure, h1, h2, h3, h4, h5, h6, hr, p, pre {margin: 0}`;
+#mermaid {display: block; margin: 0 auto}`;
 
 export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void> {
   // .markup code.language-mermaid
@@ -46,7 +45,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
 
       const iframe = document.createElement('iframe');
       iframe.classList.add('markup-content-iframe', 'tw-invisible');
-      iframe.srcdoc = `<html><head><style>${iframeCss}</style></head><body>${svg}</body></html>`;
+      iframe.srcdoc = html`<html><head><style>${htmlRaw(iframeCss)}</style></head><body>${htmlRaw(svg)}</body></html>`;
 
       const mermaidBlock = document.createElement('div');
       mermaidBlock.classList.add('mermaid-block', 'is-loading', 'tw-hidden');

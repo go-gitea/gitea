@@ -19,7 +19,7 @@ type EditorConfig = {
   trim_trailing_whitespace?: boolean,
   insert_final_newline?: boolean,
   root?: boolean,
-}
+};
 
 const languagesByFilename: Record<string, string> = {};
 const languagesByExt: Record<string, string> = {};
@@ -38,6 +38,9 @@ const baseOptions: MonacoOpts = {
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,
   automaticLayout: true,
+  wrappingIndent: 'none',
+  wordWrapBreakAfterCharacters: '',
+  wordWrapBreakBeforeCharacters: '',
 };
 
 function getEditorconfig(input: HTMLInputElement): EditorConfig | null {

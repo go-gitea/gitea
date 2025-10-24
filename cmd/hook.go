@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -32,6 +33,7 @@ var (
 	CmdHook = &cli.Command{
 		Name:        "hook",
 		Usage:       "(internal) Should only be called by Git",
+		Hidden:      true, // internal commands shouldn't be visible
 		Description: "Delegate commands to corresponding Git hooks",
 		Before:      PrepareConsoleLoggerLevel(log.FATAL),
 		Commands: []*cli.Command{
@@ -184,7 +186,7 @@ Gitea or set your environment appropriately.`, "")
 	userID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
 	deployKeyID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvDeployKeyID), 10, 64)
-	actionPerm, _ := strconv.ParseInt(os.Getenv(repo_module.EnvActionPerm), 10, 64)
+	actionPerm, _ := strconv.Atoi(os.Getenv(repo_module.EnvActionPerm))
 
 	hookOptions := private.HookOptions{
 		UserID:                          userID,
@@ -194,7 +196,7 @@ Gitea or set your environment appropriately.`, "")
 		GitPushOptions:                  pushOptions(),
 		PullRequestID:                   prID,
 		DeployKeyID:                     deployKeyID,
-		ActionPerm:                      int(actionPerm),
+		ActionPerm:                      actionPerm,
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -311,7 +313,7 @@ func runHookPostReceive(ctx context.Context, c *cli.Command) error {
 	setup(ctx, c.Bool("debug"))
 
 	// First of all run update-server-info no matter what
-	if _, _, err := git.NewCommand("update-server-info").RunStdString(ctx, nil); err != nil {
+	if _, _, err := gitcmd.NewCommand("update-server-info").RunStdString(ctx); err != nil {
 		return fmt.Errorf("failed to call 'git update-server-info': %w", err)
 	}
 

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -138,6 +139,11 @@ func prepareEditorCommitSubmittedForm[T forms.CommitCommonFormInterface](ctx *co
 		return nil
 	}
 
+	if !issues.CanMaintainerWriteToBranch(ctx, ctx.Repo.Permission, targetBranchName, ctx.Doer) {
+		ctx.NotFound(nil)
+		return nil
+	}
+
 	// Committer user info
 	gitCommitter, valid := WebGitOperationGetCommitChosenEmailIdentity(ctx, commonForm.CommitEmail)
 	if !valid {
@@ -238,7 +244,7 @@ func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.Read
 		return nil, nil, nil
 	}
 
-	if fInfo.isLFSFile {
+	if fInfo.isLFSFile() {
 		lfsLock, err := git_model.GetTreePathLock(ctx, ctx.Repo.Repository.ID, ctx.Repo.TreePath)
 		if err != nil {
 			_ = dataRc.Close()
@@ -289,14 +295,14 @@ func EditFile(ctx *context.Context) {
 		}
 		defer dataRc.Close()
 
-		ctx.Data["FileSize"] = fInfo.fileSize
+		ctx.Data["FileSize"] = fInfo.blobOrLfsSize
 
 		// Only some file types are editable online as text.
-		if fInfo.isLFSFile {
+		if fInfo.isLFSFile() {
 			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_lfs_files")
 		} else if !fInfo.st.IsRepresentableAsText() {
 			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
-		} else if fInfo.fileSize >= setting.UI.MaxDisplayFileSize {
+		} else if fInfo.blobOrLfsSize >= setting.UI.MaxDisplayFileSize {
 			ctx.Data["NotEditableReason"] = ctx.Tr("repo.editor.cannot_edit_too_large_file")
 		}
 

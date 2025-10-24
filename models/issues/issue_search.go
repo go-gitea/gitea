@@ -24,7 +24,7 @@ import (
 const ScopeSortPrefix = "scope-"
 
 // IssuesOptions represents options of an issue.
-type IssuesOptions struct { //nolint
+type IssuesOptions struct { //nolint:revive // export stutter
 	Paginator          *db.ListOptions
 	RepoIDs            []int64 // overwrites RepoCond if the length is not 0
 	AllPublic          bool    // include also all public repositories
@@ -106,8 +106,8 @@ func applySorts(sess *xorm.Session, sortType string, priorityRepoID int64) {
 				"WHEN milestone.deadline_unix = 0 OR milestone.deadline_unix IS NULL THEN issue.deadline_unix " +
 				"WHEN milestone.deadline_unix < issue.deadline_unix OR issue.deadline_unix = 0 THEN milestone.deadline_unix " +
 				"ELSE issue.deadline_unix END ASC").
-			Desc("issue.created_unix").
-			Desc("issue.id")
+			Asc("issue.created_unix").
+			Asc("issue.id")
 	case "farduedate":
 		sess.Join("LEFT", "milestone", "issue.milestone_id = milestone.id").
 			OrderBy("CASE " +
@@ -476,7 +476,7 @@ func applySubscribedCondition(sess *xorm.Session, subscriberID int64) {
 			),
 			builder.Eq{"issue.poster_id": subscriberID},
 			builder.In("issue.repo_id", builder.
-				Select("id").
+				Select("repo_id").
 				From("watch").
 				Where(builder.And(builder.Eq{"user_id": subscriberID},
 					builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),

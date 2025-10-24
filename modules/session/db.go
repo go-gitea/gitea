@@ -4,11 +4,12 @@
 package session
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"sync"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"gitea.com/go-chi/session"
@@ -19,6 +20,10 @@ type DBStore struct {
 	sid  string
 	lock sync.RWMutex
 	data map[any]any
+}
+
+func dbContext() context.Context {
+	return context.Background()
 }
 
 // NewDBStore creates and returns a DB session store.
@@ -72,7 +77,7 @@ func (s *DBStore) Release() error {
 		return err
 	}
 
-	return auth.UpdateSession(db.DefaultContext, s.sid, data)
+	return auth.UpdateSession(dbContext(), s.sid, data)
 }
 
 // Flush deletes all session data.
@@ -98,7 +103,7 @@ func (p *DBProvider) Init(maxLifetime int64, connStr string) error {
 
 // Read returns raw session store by session ID.
 func (p *DBProvider) Read(sid string) (session.RawStore, error) {
-	s, err := auth.ReadSession(db.DefaultContext, sid)
+	s, err := auth.ReadSession(dbContext(), sid)
 	if err != nil {
 		return nil, err
 	}
@@ -117,22 +122,22 @@ func (p *DBProvider) Read(sid string) (session.RawStore, error) {
 }
 
 // Exist returns true if session with given ID exists.
-func (p *DBProvider) Exist(sid string) bool {
-	has, err := auth.ExistSession(db.DefaultContext, sid)
+func (p *DBProvider) Exist(sid string) (bool, error) {
+	has, err := auth.ExistSession(dbContext(), sid)
 	if err != nil {
-		panic("session/DB: error checking existence: " + err.Error())
+		return false, fmt.Errorf("session/DB: error checking existence: %w", err)
 	}
-	return has
+	return has, nil
 }
 
 // Destroy deletes a session by session ID.
 func (p *DBProvider) Destroy(sid string) error {
-	return auth.DestroySession(db.DefaultContext, sid)
+	return auth.DestroySession(dbContext(), sid)
 }
 
 // Regenerate regenerates a session store from old session ID to new one.
 func (p *DBProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err error) {
-	s, err := auth.RegenerateSession(db.DefaultContext, oldsid, sid)
+	s, err := auth.RegenerateSession(dbContext(), oldsid, sid)
 	if err != nil {
 		return nil, err
 	}
@@ -151,17 +156,17 @@ func (p *DBProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err err
 }
 
 // Count counts and returns number of sessions.
-func (p *DBProvider) Count() int {
-	total, err := auth.CountSessions(db.DefaultContext)
+func (p *DBProvider) Count() (int, error) {
+	total, err := auth.CountSessions(dbContext())
 	if err != nil {
-		panic("session/DB: error counting records: " + err.Error())
+		return 0, fmt.Errorf("session/DB: error counting records: %w", err)
 	}
-	return int(total)
+	return int(total), nil
 }
 
 // GC calls GC to clean expired sessions.
 func (p *DBProvider) GC() {
-	if err := auth.CleanupSessions(db.DefaultContext, p.maxLifetime); err != nil {
+	if err := auth.CleanupSessions(dbContext(), p.maxLifetime); err != nil {
 		log.Printf("session/DB: error garbage collecting: %v", err)
 	}
 }

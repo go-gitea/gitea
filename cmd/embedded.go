@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/assetfs"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
@@ -19,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/gobwas/glob"
 	"github.com/urfave/cli/v3"
 )
 
@@ -295,16 +295,14 @@ func collectAssetFilesByPattern(c *cli.Command, globs []glob.Glob, path string, 
 	}
 }
 
-func compileCollectPatterns(args []string) ([]glob.Glob, error) {
+func compileCollectPatterns(args []string) (_ []glob.Glob, err error) {
 	if len(args) == 0 {
 		args = []string{"**"}
 	}
 	pat := make([]glob.Glob, len(args))
 	for i := range args {
-		if g, err := glob.Compile(args[i], '/'); err != nil {
-			return nil, fmt.Errorf("'%s': Invalid glob pattern: %w", args[i], err)
-		} else { //nolint:revive
-			pat[i] = g
+		if pat[i], err = glob.Compile(args[i], '/'); err != nil {
+			return nil, fmt.Errorf("invalid glob patterh %q: %w", args[i], err)
 		}
 	}
 	return pat, nil

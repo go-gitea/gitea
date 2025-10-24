@@ -4,6 +4,7 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -40,6 +41,20 @@ type Base struct {
 
 	// Locale is mainly for Web context, although the API context also uses it in some cases: message response, form validation
 	Locale translation.Locale
+}
+
+func (b *Base) ParseMultipartForm() bool {
+	err := b.Req.ParseMultipartForm(32 << 20)
+	if err != nil {
+		// TODO: all errors caused by client side should be ignored (connection closed).
+		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+			// Errors caused by server side (disk full) should be logged.
+			log.Error("Failed to parse request multipart form for %s: %v", b.Req.RequestURI, err)
+		}
+		b.HTTPError(http.StatusInternalServerError, "failed to parse request multipart form")
+		return false
+	}
+	return true
 }
 
 // AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
@@ -83,6 +98,7 @@ func (b *Base) RespHeader() http.Header {
 }
 
 // HTTPError returned an error to web browser
+// FIXME: many calls to this HTTPError are not right: it shouldn't expose err.Error() directly, it doesn't accept more than one content
 func (b *Base) HTTPError(status int, contents ...string) {
 	v := http.StatusText(status)
 	if len(contents) > 0 {
