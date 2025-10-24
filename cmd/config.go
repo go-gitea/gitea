@@ -69,7 +69,7 @@ $ ./gitea config edit-ini --config app.ini --config-keep-keys app-template.ini -
 			},
 			&cli.BoolFlag{
 				Name:  "in-place",
-				Usage: "Output to the same config file as input.",
+				Usage: "Output to the same config file as input. This flag will be ignored if --out is set.",
 			},
 			&cli.StringFlag{
 				Name:  "out",
@@ -103,15 +103,11 @@ func runConfigUpdateIni(_ context.Context, c *cli.Command) error {
 
 	inPlace := c.Bool("in-place")
 	configFileOut := c.String("out")
-	if inPlace {
-		if configFileOut != "" {
-			return errors.New("cannot use --in-place and --out together")
-		}
-		configFileOut = configFileIn
-	} else {
-		if configFileOut == "" {
+	if configFileOut == "" {
+		if !inPlace {
 			return errors.New("either --in-place or --out must be specified")
 		}
+		configFileOut = configFileIn // in-place edit
 	}
 
 	needWriteOut := configFileOut != configFileIn
