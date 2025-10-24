@@ -7634,7 +7634,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Update a file in a repository",
+        "summary": "Update a file in a repository if SHA is set, or create the file if SHA is not set",
         "operationId": "repoUpdateFile",
         "parameters": [
           {
@@ -7669,6 +7669,9 @@
         ],
         "responses": {
           "200": {
+            "$ref": "#/responses/FileResponse"
+          },
+          "201": {
             "$ref": "#/responses/FileResponse"
           },
           "403": {
@@ -22886,7 +22889,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CreateFileOptions": {
-      "description": "CreateFileOptions options for creating files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "description": "CreateFileOptions options for creating a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
       "required": [
         "content"
@@ -23904,7 +23907,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "DeleteFileOptions": {
-      "description": "DeleteFileOptions options for deleting files (used for other File structs below)\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "description": "DeleteFileOptions options for deleting a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
       "required": [
         "sha"
@@ -23940,7 +23943,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "the blob ID (SHA) for the file that already exists, it is required for changing existing files",
+          "description": "the blob ID (SHA) for the file to delete",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -28700,10 +28703,9 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "UpdateFileOptions": {
-      "description": "UpdateFileOptions options for updating files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "description": "UpdateFileOptions options for updating or creating a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
       "required": [
-        "sha",
         "content"
       ],
       "properties": {
@@ -28747,7 +28749,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "the blob ID (SHA) for the file that already exists, it is required for changing existing files",
+          "description": "the blob ID (SHA) for the file that already exists to update, or leave it empty to create a new file",
           "type": "string",
           "x-go-name": "SHA"
         },
