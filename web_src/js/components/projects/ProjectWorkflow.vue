@@ -977,21 +977,21 @@ onUnmounted(() => {
                   </div>
                 </div>
 
-                <div class="field" v-if="hasAction('close')">
+                <div class="field" v-if="hasAction('issue_state')">
                   <label for="issue-state-action">Issue state</label>
                   <select
                     v-if="isInEditMode"
                     id="issue-state-action"
                     class="column-select"
-                    v-model="store.workflowActions.issueState"
+                    v-model="store.workflowActions.issue_state"
                   >
                     <option value="">No change</option>
                     <option value="close">Close issue</option>
                     <option value="reopen">Reopen issue</option>
                   </select>
                   <div v-else class="readonly-value">
-                    {{ store.workflowActions.issueState === 'close' ? 'Close issue' :
-                       store.workflowActions.issueState === 'reopen' ? 'Reopen issue' : 'No change' }}
+                    {{ store.workflowActions.issue_state === 'close' ? 'Close issue' :
+                       store.workflowActions.issue_state === 'reopen' ? 'Reopen issue' : 'No change' }}
                   </div>
                 </div>
               </div>

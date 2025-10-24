@@ -4,6 +4,7 @@
 package projects
 
 import (
+	stdCtx "context"
 	"errors"
 	"io"
 	"net/http"
@@ -25,22 +26,56 @@ var (
 )
 
 // getFilterSummary returns a human-readable summary of the filters
-func getFilterSummary(filters []project_model.WorkflowFilter) string {
+func getFilterSummary(ctx stdCtx.Context, filters []project_model.WorkflowFilter) string {
 	if len(filters) == 0 {
 		return ""
 	}
 
+	var summary strings.Builder
+	labelIDs := make([]int64, 0)
 	for _, filter := range filters {
-		if filter.Type == "scope" {
+		switch filter.Type {
+		case project_model.WorkflowFilterTypeIssueType:
 			switch filter.Value {
 			case "issue":
-				return " (Issues only)"
+				summary.WriteString(" (Issues only)")
 			case "pull_request":
-				return " (Pull requests only)"
+				summary.WriteString(" (Pull requests only)")
+			}
+		case project_model.WorkflowFilterTypeColumn:
+			columnID, _ := strconv.ParseInt(filter.Value, 10, 64)
+			if columnID <= 0 {
+				continue
+			}
+			col, err := project_model.GetColumn(ctx, columnID)
+			if err != nil {
+				log.Error("GetColumn: %v", err)
+				continue
+			}
+			summary.WriteString(" (Column: " + col.Title + ")")
+		case project_model.WorkflowFilterTypeLabels:
+			labelID, _ := strconv.ParseInt(filter.Value, 10, 64)
+			if labelID > 0 {
+				labelIDs = append(labelIDs, labelID)
 			}
 		}
 	}
-	return ""
+	if len(labelIDs) > 0 {
+		labels, err := issues_model.GetLabelsByIDs(ctx, labelIDs)
+		if err != nil {
+			log.Error("GetLabelsByIDs: %v", err)
+		} else {
+			summary.WriteString(" (Labels: ")
+			for i, label := range labels {
+				summary.WriteString(label.Name)
+				if i < len(labels)-1 {
+					summary.WriteString(", ")
+				}
+			}
+			summary.WriteString(")")
+		}
+	}
+	return summary.String()
 }
 
 // convertFormToFilters converts form filters to WorkflowFilter objects
@@ -133,27 +168,15 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 					}
 				}
 			}
-		case "issueState":
+		case "issue_state":
 			if strValue, ok := value.(string); ok {
-				switch strings.ToLower(strValue) {
-				case "close", "closed", "true":
+				v := strings.ToLower(strValue)
+				if v == "close" || v == "reopen" {
 					actions = append(actions, project_model.WorkflowAction{
-						Type:  project_model.WorkflowActionTypeClose,
-						Value: "close",
-					})
-				case "reopen", "open", "false":
-					actions = append(actions, project_model.WorkflowAction{
-						Type:  project_model.WorkflowActionTypeClose,
-						Value: "reopen",
+						Type:  project_model.WorkflowActionTypeIssueState,
+						Value: v,
 					})
 				}
-			}
-		case "closeIssue":
-			if boolValue, ok := value.(bool); ok && boolValue {
-				actions = append(actions, project_model.WorkflowAction{
-					Type:  project_model.WorkflowActionTypeClose,
-					Value: "close",
-				})
 			}
 		}
 	}
@@ -216,7 +239,7 @@ func WorkflowsEvents(ctx *context.Context) {
 		if len(existingWorkflows) > 0 {
 			// Add all existing workflows for this event
 			for _, wf := range existingWorkflows {
-				filterSummary := getFilterSummary(wf.WorkflowFilters)
+				filterSummary := getFilterSummary(ctx, wf.WorkflowFilters)
 				outputWorkflows = append(outputWorkflows, &WorkflowConfig{
 					ID:            wf.ID,
 					EventID:       strconv.FormatInt(wf.ID, 10),
@@ -485,7 +508,7 @@ func WorkflowsPost(ctx *context.Context) {
 		}
 
 		// Return the newly created workflow with filter summary
-		filterSummary := getFilterSummary(wf.WorkflowFilters)
+		filterSummary := getFilterSummary(ctx, wf.WorkflowFilters)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"success": true,
 			"workflow": map[string]any{
@@ -518,7 +541,7 @@ func WorkflowsPost(ctx *context.Context) {
 		}
 
 		// Return the updated workflow with filter summary
-		filterSummary := getFilterSummary(wf.WorkflowFilters)
+		filterSummary := getFilterSummary(ctx, wf.WorkflowFilters)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"success": true,
 			"workflow": map[string]any{

@@ -447,7 +447,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		if issue.Project != nil && issue.Project.ID == projectID {
 			continue
 		}
-		if err := issues_servie.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
+		if err := issues_servie.AssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) {
 				continue
 			}

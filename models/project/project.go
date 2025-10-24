@@ -70,7 +70,6 @@ func (err ErrProjectNotExist) Unwrap() error {
 type ErrProjectColumnNotExist struct {
 	ColumnID  int64
 	ProjectID int64
-	Name      string
 }
 
 // IsErrProjectColumnNotExist checks if an error is a ErrProjectColumnNotExist
@@ -80,8 +79,8 @@ func IsErrProjectColumnNotExist(err error) bool {
 }
 
 func (err ErrProjectColumnNotExist) Error() string {
-	if err.ProjectID > 0 && len(err.Name) > 0 {
-		return fmt.Sprintf("project column does not exist [project_id: %d, name: %s]", err.ProjectID, err.Name)
+	if err.ProjectID > 0 {
+		return fmt.Sprintf("project column does not exist [project_id: %d, column_id: %d]", err.ProjectID, err.ColumnID)
 	}
 	return fmt.Sprintf("project column does not exist [id: %d]", err.ColumnID)
 }

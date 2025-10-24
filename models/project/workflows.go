@@ -106,7 +106,7 @@ const (
 	WorkflowActionTypeColumn       WorkflowActionType = "column"        // add the item to the project's column
 	WorkflowActionTypeAddLabels    WorkflowActionType = "add_labels"    // choose one or more labels
 	WorkflowActionTypeRemoveLabels WorkflowActionType = "remove_labels" // choose one or more labels
-	WorkflowActionTypeClose        WorkflowActionType = "close"         // close the issue
+	WorkflowActionTypeIssueState   WorkflowActionType = "issue_state"   // change the issue state (reopen/close)
 )
 
 type WorkflowAction struct {
@@ -141,7 +141,7 @@ func GetWorkflowEventCapabilities() map[WorkflowEvent]WorkflowEventCapabilities 
 		},
 		WorkflowEventItemColumnChanged: {
 			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeColumn, WorkflowFilterTypeLabels},
-			AvailableActions: []WorkflowActionType{WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeClose},
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeIssueState},
 		},
 		WorkflowEventCodeChangesRequested: {
 			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeLabels}, // only applies to pull requests

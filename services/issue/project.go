@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/services/notify"
 )
 
-func IssueAssignOrRemoveProject(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, projectID int64, position int) error {
+func AssignOrRemoveProject(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, projectID int64, position int) error {
 	if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, doer, projectID, 0); err != nil {
 		return err
 	}

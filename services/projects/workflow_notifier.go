@@ -424,8 +424,8 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 				}
 				continue
 			}
-		case project_model.WorkflowActionTypeClose:
-			if strings.EqualFold(action.Value, "reopen") || strings.EqualFold(action.Value, "false") {
+		case project_model.WorkflowActionTypeIssueState:
+			if strings.EqualFold(action.Value, "reopen") {
 				if issue.IsClosed {
 					if err := issue_service.ReopenIssue(ctx, issue, user_model.NewProjectWorkflowsUser(), ""); err != nil {
 						log.Error("ReopenIssue: %v", err)
@@ -433,7 +433,7 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 					}
 					issue.IsClosed = false
 				}
-			} else {
+			} else if strings.EqualFold(action.Value, "close") {
 				if !issue.IsClosed {
 					if err := issue_service.CloseIssue(ctx, issue, user_model.NewProjectWorkflowsUser(), ""); err != nil {
 						log.Error("CloseIssue: %v", err)
