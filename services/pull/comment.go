@@ -46,7 +46,7 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 	return commitIDs, err
 }
 
-// CreatePushPullComment create push code to pull base comment, if no diff in this pr, no comment created
+// CreatePushPullComment create push code to pull base comment
 func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *issues_model.PullRequest, oldCommitID, newCommitID string, isForcePush bool) (comment *issues_model.Comment, err error) {
 	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
 		return nil, nil
