@@ -264,13 +264,22 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	if err != nil {
 		return perm, err
 	}
-	if task.RepoID != repo.ID {
-		// FIXME allow public repo read access if tokenless pull is enabled
-		return perm, nil
-	}
 
 	var accessMode perm_model.AccessMode
-	if task.IsForkPullRequest {
+	if task.RepoID != repo.ID {
+		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
+		if err != nil || !exist {
+			return perm, err
+		}
+		actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
+			// The task repo can access the current repo only if the task repo is private and
+			// the owner of the task repo is a collaborative owner of the current repo.
+			// FIXME allow public repo read access if tokenless pull is enabled
+			return perm, nil
+		}
+		accessMode = perm_model.AccessModeRead
+	} else if task.IsForkPullRequest {
 		accessMode = perm_model.AccessModeRead
 	} else {
 		accessMode = perm_model.AccessModeWrite
