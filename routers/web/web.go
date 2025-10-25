@@ -1159,11 +1159,21 @@ func registerWebRoutes(m *web.Router) {
 				m.Post("/{lid}/unlock", repo_setting.LFSUnlock)
 			})
 		})
+		m.Group("/actions/general", func() {
+			m.Get("", repo_setting.ActionsGeneralSettings)
+			m.Post("/actions_unit", repo_setting.ActionsUnitPost)
+		})
 		m.Group("/actions", func() {
 			m.Get("", shared_actions.RedirectToDefaultSetting)
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
+			m.Group("/general", func() {
+				m.Group("/collaborative_owner", func() {
+					m.Post("/add", repo_setting.AddCollaborativeOwner)
+					m.Post("/delete", repo_setting.DeleteCollaborativeOwner)
+				})
+			})
 		}, actions.MustEnableActions)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 		m.Group("/migrate", func() {
@@ -1459,6 +1469,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
 		m.Post("/run", reqRepoActionsWriter, actions.Run)
 		m.Get("/workflow-dispatch-inputs", reqRepoActionsWriter, actions.WorkflowDispatchInputs)
+		m.Post("/approve-all-checks", reqRepoActionsWriter, actions.ApproveAllChecks)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").
