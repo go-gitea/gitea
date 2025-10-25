@@ -4,7 +4,6 @@
 package projects
 
 import (
-	stdCtx "context"
 	"io"
 	"net/http"
 	"strconv"
@@ -17,91 +16,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
+	project_service "code.gitea.io/gitea/services/projects"
 )
 
 var (
 	tmplRepoWorkflows = templates.TplName("repo/projects/workflows")
 	tmplOrgWorkflows  = templates.TplName("org/projects/workflows")
 )
-
-// getFilterSummary returns a human-readable summary of the filters
-func getFilterSummary(ctx stdCtx.Context, filters []project_model.WorkflowFilter) string {
-	if len(filters) == 0 {
-		return ""
-	}
-
-	var summary strings.Builder
-	labelIDs := make([]int64, 0)
-	for _, filter := range filters {
-		switch filter.Type {
-		case project_model.WorkflowFilterTypeIssueType:
-			switch filter.Value {
-			case "issue":
-				if summary.Len() > 0 {
-					summary.WriteString(" ")
-				}
-				summary.WriteString("(Issues only)")
-			case "pull_request":
-				if summary.Len() > 0 {
-					summary.WriteString(" ")
-				}
-				summary.WriteString("(Pull requests only)")
-			}
-		case project_model.WorkflowFilterTypeSourceColumn:
-			columnID, _ := strconv.ParseInt(filter.Value, 10, 64)
-			if columnID <= 0 {
-				continue
-			}
-			col, err := project_model.GetColumn(ctx, columnID)
-			if err != nil {
-				log.Error("GetColumn: %v", err)
-				continue
-			}
-			if summary.Len() > 0 {
-				summary.WriteString(" ")
-			}
-			summary.WriteString("(Source: " + col.Title + ")")
-		case project_model.WorkflowFilterTypeTargetColumn:
-			columnID, _ := strconv.ParseInt(filter.Value, 10, 64)
-			if columnID <= 0 {
-				continue
-			}
-			col, err := project_model.GetColumn(ctx, columnID)
-			if err != nil {
-				log.Error("GetColumn: %v", err)
-				continue
-			}
-			if summary.Len() > 0 {
-				summary.WriteString(" ")
-			}
-			summary.WriteString("(Target: " + col.Title + ")")
-		case project_model.WorkflowFilterTypeLabels:
-			labelID, _ := strconv.ParseInt(filter.Value, 10, 64)
-			if labelID > 0 {
-				labelIDs = append(labelIDs, labelID)
-			}
-		}
-	}
-	if len(labelIDs) > 0 {
-		labels, err := issues_model.GetLabelsByIDs(ctx, labelIDs)
-		if err != nil {
-			log.Error("GetLabelsByIDs: %v", err)
-		} else {
-			if summary.Len() > 0 {
-				summary.WriteString(" ")
-			}
-			summary.WriteString("(Labels: ")
-			for i, label := range labels {
-				summary.WriteString(label.Name)
-				if i < len(labels)-1 {
-					summary.WriteString(", ")
-				}
-			}
-			summary.WriteString(")")
-		}
-	}
-	return summary.String()
-}
 
 // convertFormToFilters converts form filters to WorkflowFilter objects
 func convertFormToFilters(formFilters map[string]any) []project_model.WorkflowFilter {
@@ -111,7 +32,7 @@ func convertFormToFilters(formFilters map[string]any) []project_model.WorkflowFi
 		switch key {
 		case "labels":
 			// Handle labels array
-			if labelInterfaces, ok := value.([]interface{}); ok && len(labelInterfaces) > 0 {
+			if labelInterfaces, ok := value.([]any); ok && len(labelInterfaces) > 0 {
 				for _, labelInterface := range labelInterfaces {
 					if label, ok := labelInterface.(string); ok && label != "" {
 						filters = append(filters, project_model.WorkflowFilter{
@@ -152,7 +73,7 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 				}
 			}
 		case "add_labels":
-			// Handle both []string and []interface{} from JSON unmarshaling
+			// Handle both []string and []any from JSON unmarshaling
 			if labels, ok := value.([]string); ok && len(labels) > 0 {
 				for _, label := range labels {
 					if label != "" {
@@ -162,7 +83,7 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 						})
 					}
 				}
-			} else if labelInterfaces, ok := value.([]interface{}); ok && len(labelInterfaces) > 0 {
+			} else if labelInterfaces, ok := value.([]any); ok && len(labelInterfaces) > 0 {
 				for _, labelInterface := range labelInterfaces {
 					if label, ok := labelInterface.(string); ok && label != "" {
 						actions = append(actions, project_model.WorkflowAction{
@@ -173,7 +94,7 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 				}
 			}
 		case "remove_labels":
-			// Handle both []string and []interface{} from JSON unmarshaling
+			// Handle both []string and []any from JSON unmarshaling
 			if labels, ok := value.([]string); ok && len(labels) > 0 {
 				for _, label := range labels {
 					if label != "" {
@@ -183,7 +104,7 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 						})
 					}
 				}
-			} else if labelInterfaces, ok := value.([]interface{}); ok && len(labelInterfaces) > 0 {
+			} else if labelInterfaces, ok := value.([]any); ok && len(labelInterfaces) > 0 {
 				for _, labelInterface := range labelInterfaces {
 					if label, ok := labelInterface.(string); ok && label != "" {
 						actions = append(actions, project_model.WorkflowAction{
@@ -243,7 +164,7 @@ func WorkflowsEvents(ctx *context.Context) {
 		Capabilities  project_model.WorkflowEventCapabilities `json:"capabilities"`
 		Filters       []project_model.WorkflowFilter          `json:"filters"`
 		Actions       []project_model.WorkflowAction          `json:"actions"`
-		FilterSummary string                                  `json:"filter_summary"` // Human readable filter description
+		Summary       string                                  `json:"summary"` // Human readable filter description
 		Enabled       bool                                    `json:"enabled"`
 		IsConfigured  bool                                    `json:"isConfigured"` // Whether this workflow is configured/saved
 	}
@@ -263,7 +184,7 @@ func WorkflowsEvents(ctx *context.Context) {
 		if len(existingWorkflows) > 0 {
 			// Add all existing workflows for this event
 			for _, wf := range existingWorkflows {
-				filterSummary := getFilterSummary(ctx, wf.WorkflowFilters)
+				workflowSummary := project_service.GetWorkflowSummary(ctx, wf)
 				outputWorkflows = append(outputWorkflows, &WorkflowConfig{
 					ID:            wf.ID,
 					EventID:       strconv.FormatInt(wf.ID, 10),
@@ -272,7 +193,7 @@ func WorkflowsEvents(ctx *context.Context) {
 					Capabilities:  capabilities[event],
 					Filters:       wf.WorkflowFilters,
 					Actions:       wf.WorkflowActions,
-					FilterSummary: filterSummary,
+					Summary:       workflowSummary,
 					Enabled:       wf.Enabled,
 					IsConfigured:  true,
 				})
@@ -285,7 +206,7 @@ func WorkflowsEvents(ctx *context.Context) {
 				DisplayName:   string(ctx.Tr(event.LangKey())),
 				WorkflowEvent: string(event),
 				Capabilities:  capabilities[event],
-				FilterSummary: "",
+				Summary:       "",
 				Enabled:       true, // Default to enabled for new workflows
 				IsConfigured:  false,
 			})
@@ -537,17 +458,17 @@ func WorkflowsPost(ctx *context.Context) {
 		}
 
 		// Return the newly created workflow with filter summary
-		filterSummary := getFilterSummary(ctx, wf.WorkflowFilters)
+		workflowSummary := project_service.GetWorkflowSummary(ctx, wf)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"success": true,
 			"workflow": map[string]any{
-				"id":             wf.ID,
-				"event_id":       strconv.FormatInt(wf.ID, 10),
-				"display_name":   string(ctx.Tr(wf.WorkflowEvent.LangKey())),
-				"filters":        wf.WorkflowFilters,
-				"actions":        wf.WorkflowActions,
-				"filter_summary": filterSummary,
-				"enabled":        wf.Enabled,
+				"id":           wf.ID,
+				"event_id":     strconv.FormatInt(wf.ID, 10),
+				"display_name": string(ctx.Tr(wf.WorkflowEvent.LangKey())),
+				"filters":      wf.WorkflowFilters,
+				"actions":      wf.WorkflowActions,
+				"summary":      workflowSummary,
+				"enabled":      wf.Enabled,
 			},
 		})
 	} else {
@@ -570,17 +491,17 @@ func WorkflowsPost(ctx *context.Context) {
 		}
 
 		// Return the updated workflow with filter summary
-		filterSummary := getFilterSummary(ctx, wf.WorkflowFilters)
+		workflowSummary := project_service.GetWorkflowSummary(ctx, wf)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"success": true,
 			"workflow": map[string]any{
-				"id":             wf.ID,
-				"event_id":       strconv.FormatInt(wf.ID, 10),
-				"display_name":   string(ctx.Tr(wf.WorkflowEvent.LangKey())) + filterSummary,
-				"filters":        wf.WorkflowFilters,
-				"actions":        wf.WorkflowActions,
-				"filter_summary": filterSummary,
-				"enabled":        wf.Enabled,
+				"id":           wf.ID,
+				"event_id":     strconv.FormatInt(wf.ID, 10),
+				"display_name": string(ctx.Tr(wf.WorkflowEvent.LangKey())),
+				"filters":      wf.WorkflowFilters,
+				"actions":      wf.WorkflowActions,
+				"summary":      workflowSummary,
+				"enabled":      wf.Enabled,
 			},
 		})
 	}

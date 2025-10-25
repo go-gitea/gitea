@@ -71,7 +71,7 @@ const (
 	ProjectWorkflowsUserEmail       = "workflows@gitea.io"
 )
 
-func IsGiteaWorkflowsUserName(name string) bool {
+func IsProjectWorkflowsUserName(name string) bool {
 	return strings.EqualFold(name, ProjectWorkflowsUserName)
 }
 
@@ -103,7 +103,7 @@ func GetSystemUserByName(name string) *User {
 	if IsGiteaActionsUserName(name) {
 		return NewActionsUser()
 	}
-	if IsGiteaWorkflowsUserName(name) {
+	if IsProjectWorkflowsUserName(name) {
 		return NewProjectWorkflowsUser()
 	}
 	return nil

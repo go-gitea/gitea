@@ -351,7 +351,7 @@ const createNewWorkflow = (eventType: any, capabilities: any, displayName: any) 
     capabilities,
     filters: [] as any[],
     actions: [] as any[],
-    filter_summary: '',
+    summary: '',
     workflow_event: eventType,
     enabled: true, // Ensure new workflows are enabled by default
   };
@@ -683,8 +683,8 @@ onUnmounted(() => {
                   <div class="workflow-title">
                     {{ getWorkflowDisplayName(item, index) }}
                   </div>
-                  <div v-if="item.filter_summary" class="workflow-subtitle">
-                    {{ item.filter_summary }}
+                  <div v-if="item.summary" class="workflow-subtitle">
+                    {{ item.summary }}
                   </div>
                 </div>
               </div>
