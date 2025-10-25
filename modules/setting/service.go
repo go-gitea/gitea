@@ -97,6 +97,7 @@ var Service = struct {
 		DisableUsersPage         bool `ini:"DISABLE_USERS_PAGE"`
 		DisableOrganizationsPage bool `ini:"DISABLE_ORGANIZATIONS_PAGE"`
 		DisableCodePage          bool `ini:"DISABLE_CODE_PAGE"`
+		DisablePackagesPage      bool `ini:"DISABLE_PACKAGES_PAGE"`
 	} `ini:"service.explore"`
 
 	QoS struct {
