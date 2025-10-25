@@ -249,8 +249,13 @@ func (u *User) MaxCreationLimit() int {
 }
 
 // CanCreateRepoIn checks whether the doer(u) can create a repository in the owner
-// NOTE: functions calling this assume a failure due to repository count limit; it ONLY checks the repo number LIMIT, if new checks are added, those functions should be revised
+// NOTE: functions calling this assume a failure due to repository count limit, or the owner is not a real user.
+// It ONLY checks the repo number LIMIT or whether owner user is real. If new checks are added, those functions should be revised.
+// TODO: the callers can only return ErrReachLimitOfRepo, need to fine tune to support other error types in the future.
 func (u *User) CanCreateRepoIn(owner *User) bool {
+	if u.ID <= 0 || owner.ID <= 0 {
+		return false // fake user like Ghost or Actions user
+	}
 	if u.IsAdmin {
 		return true
 	}
