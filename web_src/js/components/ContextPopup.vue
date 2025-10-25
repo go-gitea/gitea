@@ -2,62 +2,53 @@
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {getIssueColor, getIssueIcon} from '../features/issue.ts';
-import {computed, onMounted, shallowRef, useTemplateRef} from 'vue';
-import type {IssuePathInfo} from '../types.ts';
+import {computed, onMounted, shallowRef} from 'vue';
 
-const {appSubUrl, i18n} = window.config;
+const props = defineProps<{
+  repoLink: string,
+  loadIssueInfoUrl: string,
+}>();
 
 const loading = shallowRef(false);
 const issue = shallowRef(null);
 const renderedLabels = shallowRef('');
-const i18nErrorOccurred = i18n.error_occurred;
-const i18nErrorMessage = shallowRef(null);
+const errorMessage = shallowRef(null);
 
-const createdAt = computed(() => new Date(issue.value.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'}));
+const createdAt = computed(() => {
+  return new Date(issue.value.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
+});
+
 const body = computed(() => {
   const body = issue.value.body.replace(/\n+/g, ' ');
-  if (body.length > 85) {
-    return `${body.substring(0, 85)}…`;
-  }
-  return body;
+  return body.length > 85 ? `${body.substring(0, 85)}…` : body;
 });
 
-const root = useTemplateRef('root');
-
-onMounted(() => {
-  root.value.addEventListener('ce-load-context-popup', (e: CustomEventInit<IssuePathInfo>) => {
-    if (!loading.value && issue.value === null) {
-      load(e.detail);
-    }
-  });
-});
-
-async function load(issuePathInfo: IssuePathInfo) {
+onMounted(async () => {
   loading.value = true;
-  i18nErrorMessage.value = null;
-
+  errorMessage.value = null;
   try {
-    const response = await GET(`${appSubUrl}/${issuePathInfo.ownerName}/${issuePathInfo.repoName}/issues/${issuePathInfo.indexString}/info`); // backend: GetIssueInfo
-    const respJson = await response.json();
-    if (!response.ok) {
-      i18nErrorMessage.value = respJson.message ?? i18n.network_error;
+    const resp = await GET(props.loadIssueInfoUrl);
+    if (!resp.ok) {
+      errorMessage.value = resp.status ? resp.statusText : 'Unknown network error';
       return;
     }
+    const respJson = await resp.json();
     issue.value = respJson.convertedIssue;
     renderedLabels.value = respJson.renderedLabels;
-  } catch {
-    i18nErrorMessage.value = i18n.network_error;
   } finally {
     loading.value = false;
   }
-}
+});
 </script>
 
 <template>
-  <div ref="root">
+  <div class="tw-p-4">
     <div v-if="loading" class="tw-h-12 tw-w-12 is-loading"/>
-    <div v-if="!loading && issue !== null" class="tw-flex tw-flex-col tw-gap-2">
-      <div class="tw-text-12">{{ issue.repository.full_name }} on {{ createdAt }}</div>
+    <div v-else-if="issue" class="tw-flex tw-flex-col tw-gap-2">
+      <div class="tw-text-12">
+        <a :href="repoLink" class="muted">{{ issue.repository.full_name }}</a>
+        on {{ createdAt }}
+      </div>
       <div class="flex-text-block">
         <svg-icon :name="getIssueIcon(issue)" :class="['text', getIssueColor(issue)]"/>
         <span class="issue-title tw-font-semibold tw-break-anywhere">
@@ -69,9 +60,8 @@ async function load(issuePathInfo: IssuePathInfo) {
       <!-- eslint-disable-next-line vue/no-v-html -->
       <div v-if="issue.labels.length" v-html="renderedLabels"/>
     </div>
-    <div class="tw-flex tw-flex-col tw-gap-2" v-if="!loading && issue === null">
-      <div class="tw-text-12">{{ i18nErrorOccurred }}</div>
-      <div>{{ i18nErrorMessage }}</div>
+    <div v-else>
+      {{ errorMessage }}
     </div>
   </div>
 </template>
