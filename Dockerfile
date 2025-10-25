@@ -26,20 +26,16 @@ WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
  && make clean-all build
 
-# Begin env-to-ini build
-RUN go build contrib/environment-to-ini/environment-to-ini.go
-
 # Copy local files
 COPY docker/root /tmp/local
 
 # Set permissions
 RUN chmod 755 /tmp/local/usr/bin/entrypoint \
-              /tmp/local/usr/local/bin/gitea \
+              /tmp/local/usr/local/bin/* \
               /tmp/local/etc/s6/gitea/* \
               /tmp/local/etc/s6/openssh/* \
               /tmp/local/etc/s6/.s6-svscan/* \
-              /go/src/code.gitea.io/gitea/gitea \
-              /go/src/code.gitea.io/gitea/environment-to-ini
+              /go/src/code.gitea.io/gitea/gitea
 
 FROM docker.io/library/alpine:3.22
 LABEL maintainer="maintainers@gitea.io"
@@ -82,4 +78,3 @@ CMD ["/usr/bin/s6-svscan", "/etc/s6"]
 
 COPY --from=build-env /tmp/local /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
-COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
