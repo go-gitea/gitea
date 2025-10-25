@@ -83,14 +83,14 @@ const showCancelButton = computed(() => {
   return typeof eventId === 'string' && eventId.startsWith('clone-');
 });
 
-const isTemporaryWorkflow = (workflow) => {
+const isTemporaryWorkflow = (workflow: any) => {
   if (!workflow) return false;
   if (workflow.id > 0) return false;
   const eventId = typeof workflow.event_id === 'string' ? workflow.event_id : '';
   return eventId.startsWith('clone-') || eventId.startsWith('new-');
 };
 
-const removeTemporaryWorkflow = (workflow) => {
+const removeTemporaryWorkflow = (workflow: any) => {
   if (!isTemporaryWorkflow(workflow)) return;
 
   const eventId = workflow.event_id;
@@ -221,7 +221,7 @@ const deleteWorkflow = async () => {
   setEditMode(false);
 };
 
-const cloneWorkflow = (sourceWorkflow) => {
+const cloneWorkflow = (sourceWorkflow: any) => {
   if (!sourceWorkflow) return;
 
   // Generate a unique temporary ID for the cloned workflow
@@ -274,7 +274,7 @@ const cloneWorkflow = (sourceWorkflow) => {
   window.history.pushState({eventId: tempId}, '', newUrl);
 };
 
-const selectWorkflowEvent = async (event) => {
+const selectWorkflowEvent = async (event: any) => {
   // Prevent rapid successive clicks
   if (store.loading) return;
 
@@ -314,30 +314,9 @@ const saveWorkflow = async () => {
   setEditMode(false);
 };
 
-const isWorkflowConfigured = (event) => {
+const isWorkflowConfigured = (event: any) => {
   // Check if the event_id is a number (saved workflow ID) or if it has id > 0
   return !Number.isNaN(parseInt(event.event_id)) || (event.id !== undefined && event.id > 0);
-};
-
-// Generate filter description for display name
-const getFilterDescription = (workflow) => {
-  if (!workflow.filters || !Array.isArray(workflow.filters) || workflow.filters.length === 0) {
-    return '';
-  }
-
-  const descriptions = [];
-  for (const filter of workflow.filters) {
-    if (filter.type === 'issue_type' && filter.value) {
-      if (filter.value === 'issue') {
-        descriptions.push('Issues');
-      } else if (filter.value === 'pull_request') {
-        descriptions.push('Pull Requests');
-      }
-    }
-    // Add more filter types here as needed
-  }
-
-  return descriptions.length > 0 ? ` (${descriptions.join(', ')})` : '';
 };
 
 // Get flat list of all workflows - use cached data to prevent frequent recomputation
@@ -355,7 +334,7 @@ const workflowList = computed(() => {
   }));
 });
 
-const createNewWorkflow = (eventType, capabilities, displayName) => {
+const createNewWorkflow = (eventType: any, capabilities: any, displayName: any) => {
   // Store current selection before creating new workflow
   if (!isInEditMode.value) {
     previousSelection.value = {
@@ -370,8 +349,8 @@ const createNewWorkflow = (eventType, capabilities, displayName) => {
     event_id: tempId,
     display_name: displayName,
     capabilities,
-    filters: [],
-    actions: [],
+    filters: [] as any[],
+    actions: [] as any[],
     filter_summary: '',
     workflow_event: eventType,
     enabled: true, // Ensure new workflows are enabled by default
@@ -385,9 +364,9 @@ const createNewWorkflow = (eventType, capabilities, displayName) => {
 };
 
 // Add debounce mechanism
-let selectTimeout = null;
+let selectTimeout: ReturnType<typeof setTimeout> | null = null;
 
-const selectWorkflowItem = async (item) => {
+const selectWorkflowItem = async (item: any) => {
   // Prevent rapid successive clicks with debounce
   if (store.loading || selectTimeout) return;
 
@@ -428,15 +407,15 @@ const hasAvailableFilters = computed(() => {
   return store.selectedWorkflow?.capabilities?.available_filters?.length > 0;
 });
 
-const hasFilter = (filterType) => {
+const hasFilter = (filterType: any) => {
   return store.selectedWorkflow?.capabilities?.available_filters?.includes(filterType);
 };
 
-const hasAction = (actionType) => {
+const hasAction = (actionType: any) => {
   return store.selectedWorkflow?.capabilities?.available_actions?.includes(actionType);
 };
 
-const getStatusClass = (item) => {
+const getStatusClass = (item: any) => {
   if (!item.isConfigured) {
     return 'status-inactive'; // Gray dot for unconfigured
   }
@@ -449,7 +428,7 @@ const getStatusClass = (item) => {
   return 'status-active'; // Green dot for enabled
 };
 
-const isItemSelected = (item) => {
+const isItemSelected = (item: any) => {
   if (!store.selectedItem) return false;
 
   if (item.isConfigured || item.id === 0) {
@@ -461,7 +440,7 @@ const isItemSelected = (item) => {
 };
 
 // Get display name for workflow with numbering for same types
-const getWorkflowDisplayName = (item, index) => {
+const getWorkflowDisplayName = (item: any, _index: any) => {
   const list = workflowList.value;
 
   // Find all workflows of the same type
@@ -486,12 +465,12 @@ const getWorkflowDisplayName = (item, index) => {
 };
 
 // Toggle label selection for add_labels, remove_labels, or filter_labels
-const toggleLabel = (type, labelId) => {
+const toggleLabel = (type: string, labelId: any) => {
   let labels;
   if (type === 'filter_labels') {
     labels = store.workflowFilters.labels;
   } else {
-    labels = store.workflowActions[type];
+    labels = (store.workflowActions as any)[type];
   }
   const index = labels.indexOf(labelId);
   if (index > -1) {
@@ -502,7 +481,7 @@ const toggleLabel = (type, labelId) => {
 };
 
 // Calculate text color based on background color for better contrast
-const getLabelTextColor = (hexColor) => {
+const getLabelTextColor = (hexColor: any) => {
   if (!hexColor) return '#000';
   // Remove # if present
   const color = hexColor.replace('#', '');
@@ -566,7 +545,7 @@ onMounted(async () => {
   await nextTick();
   const workflowItemsContainer = elRoot.value.querySelector('.workflow-items');
   if (workflowItemsContainer) {
-    workflowClickHandler = (e) => {
+    workflowClickHandler = (e: any) => {
       const workflowItem = e.target.closest('.workflow-item');
       if (workflowItem) {
         e.preventDefault();
@@ -638,7 +617,7 @@ onMounted(async () => {
 });
 
 // Define popstateHandler at component level
-const popstateHandler = (e) => {
+const popstateHandler = (e: any) => {
   if (e.state?.eventId) {
     // Handle browser back/forward navigation
     const event = store.workflowEvents.find((ev) => ev.event_id === e.state.eventId);
@@ -658,7 +637,7 @@ const popstateHandler = (e) => {
 };
 
 // Store reference to cleanup event listener
-let workflowClickHandler = null;
+let workflowClickHandler: ((e: any) => void) | null = null;
 
 onUnmounted(() => {
   // Clean up resources
@@ -697,10 +676,8 @@ onUnmounted(() => {
             <div class="workflow-content">
               <div class="workflow-info">
                 <span class="status-indicator">
-                  <span
-                    v-html="svg('octicon-dot-fill')"
-                    :class="getStatusClass(item)"
-                  />
+                  <!-- eslint-disable-next-line vue/no-v-html -->
+                  <span v-html="svg('octicon-dot-fill')" :class="getStatusClass(item)"/>
                 </span>
                 <div class="workflow-details">
                   <div class="workflow-title">
@@ -886,22 +863,26 @@ onUnmounted(() => {
                   <label>{{ locale.onlyIfHasLabels }}</label>
                   <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
                     <input type="hidden" :value="store.workflowFilters.labels.join(',')">
-                    <i class="dropdown icon"></i>
+                    <i class="dropdown icon"/>
                     <div class="text" :class="{ default: !store.workflowFilters.labels?.length }">
                       <span v-if="!store.workflowFilters.labels?.length">{{ locale.anyLabel }}</span>
                       <template v-else>
-                        <span v-for="labelId in store.workflowFilters.labels" :key="labelId"
-                              class="ui label"
-                              :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                        <span
+                          v-for="labelId in store.workflowFilters.labels" :key="labelId"
+                          class="ui label"
+                          :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`"
+                        >
                           {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
                         </span>
                       </template>
                     </div>
                     <div class="menu">
-                      <div class="item" v-for="label in store.projectLabels" :key="label.id"
-                           :data-value="String(label.id)"
-                           @click.prevent="toggleLabel('filter_labels', String(label.id))"
-                           :class="{ active: store.workflowFilters.labels.includes(String(label.id)), selected: store.workflowFilters.labels.includes(String(label.id)) }">
+                      <div
+                        class="item" v-for="label in store.projectLabels" :key="label.id"
+                        :data-value="String(label.id)"
+                        @click.prevent="toggleLabel('filter_labels', String(label.id))"
+                        :class="{ active: store.workflowFilters.labels.includes(String(label.id)), selected: store.workflowFilters.labels.includes(String(label.id)) }"
+                      >
                         <span class="ui label" :style="`background-color: ${label.color}; color: ${getLabelTextColor(label.color)}`">
                           {{ label.name }}
                         </span>
@@ -910,9 +891,11 @@ onUnmounted(() => {
                   </div>
                   <div v-else class="ui labels">
                     <span v-if="!store.workflowFilters.labels?.length" class="text-muted">Any labels</span>
-                    <span v-for="labelId in store.workflowFilters.labels" :key="labelId"
-                          class="ui label"
-                          :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                    <span
+                      v-for="labelId in store.workflowFilters.labels" :key="labelId"
+                      class="ui label"
+                      :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`"
+                    >
                       {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
                     </span>
                   </div>
@@ -945,22 +928,26 @@ onUnmounted(() => {
                   <label>{{ locale.addLabels }}</label>
                   <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
                     <input type="hidden" :value="store.workflowActions.add_labels.join(',')">
-                    <i class="dropdown icon"></i>
+                    <i class="dropdown icon"/>
                     <div class="text" :class="{ default: !store.workflowActions.add_labels?.length }">
                       <span v-if="!store.workflowActions.add_labels?.length">Select labels...</span>
                       <template v-else>
-                        <span v-for="labelId in store.workflowActions.add_labels" :key="labelId"
-                              class="ui label"
-                              :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                        <span
+                          v-for="labelId in store.workflowActions.add_labels" :key="labelId"
+                          class="ui label"
+                          :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`"
+                        >
                           {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
                         </span>
                       </template>
                     </div>
                     <div class="menu">
-                      <div class="item" v-for="label in store.projectLabels" :key="label.id"
-                           :data-value="String(label.id)"
-                           @click.prevent="toggleLabel('add_labels', String(label.id))"
-                           :class="{ active: store.workflowActions.add_labels.includes(String(label.id)), selected: store.workflowActions.add_labels.includes(String(label.id)) }">
+                      <div
+                        class="item" v-for="label in store.projectLabels" :key="label.id"
+                        :data-value="String(label.id)"
+                        @click.prevent="toggleLabel('add_labels', String(label.id))"
+                        :class="{ active: store.workflowActions.add_labels.includes(String(label.id)), selected: store.workflowActions.add_labels.includes(String(label.id)) }"
+                      >
                         <span class="ui label" :style="`background-color: ${label.color}; color: ${getLabelTextColor(label.color)}`">
                           {{ label.name }}
                         </span>
@@ -969,9 +956,11 @@ onUnmounted(() => {
                   </div>
                   <div v-else class="ui labels">
                     <span v-if="!store.workflowActions.add_labels?.length" class="text-muted">None</span>
-                    <span v-for="labelId in store.workflowActions.add_labels" :key="labelId"
-                          class="ui label"
-                          :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                    <span
+                      v-for="labelId in store.workflowActions.add_labels" :key="labelId"
+                      class="ui label"
+                      :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`"
+                    >
                       {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
                     </span>
                   </div>
@@ -981,22 +970,26 @@ onUnmounted(() => {
                   <label>{{ locale.removeLabels }}</label>
                   <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
                     <input type="hidden" :value="store.workflowActions.remove_labels.join(',')">
-                    <i class="dropdown icon"></i>
+                    <i class="dropdown icon"/>
                     <div class="text" :class="{ default: !store.workflowActions.remove_labels?.length }">
                       <span v-if="!store.workflowActions.remove_labels?.length">Select labels...</span>
                       <template v-else>
-                        <span v-for="labelId in store.workflowActions.remove_labels" :key="labelId"
-                              class="ui label"
-                              :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                        <span
+                          v-for="labelId in store.workflowActions.remove_labels" :key="labelId"
+                          class="ui label"
+                          :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`"
+                        >
                           {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
                         </span>
                       </template>
                     </div>
                     <div class="menu">
-                      <div class="item" v-for="label in store.projectLabels" :key="label.id"
-                           :data-value="String(label.id)"
-                           @click.prevent="toggleLabel('remove_labels', String(label.id))"
-                           :class="{ active: store.workflowActions.remove_labels.includes(String(label.id)), selected: store.workflowActions.remove_labels.includes(String(label.id)) }">
+                      <div
+                        class="item" v-for="label in store.projectLabels" :key="label.id"
+                        :data-value="String(label.id)"
+                        @click.prevent="toggleLabel('remove_labels', String(label.id))"
+                        :class="{ active: store.workflowActions.remove_labels.includes(String(label.id)), selected: store.workflowActions.remove_labels.includes(String(label.id)) }"
+                      >
                         <span class="ui label" :style="`background-color: ${label.color}; color: ${getLabelTextColor(label.color)}`">
                           {{ label.name }}
                         </span>
@@ -1005,9 +998,11 @@ onUnmounted(() => {
                   </div>
                   <div v-else class="ui labels">
                     <span v-if="!store.workflowActions.remove_labels?.length" class="text-muted">None</span>
-                    <span v-for="labelId in store.workflowActions.remove_labels" :key="labelId"
-                          class="ui label"
-                          :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`">
+                    <span
+                      v-for="labelId in store.workflowActions.remove_labels" :key="labelId"
+                      class="ui label"
+                      :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`"
+                    >
                       {{ store.projectLabels.find(l => String(l.id) === labelId)?.name }}
                     </span>
                   </div>
@@ -1027,14 +1022,13 @@ onUnmounted(() => {
                   </select>
                   <div v-else class="readonly-value">
                     {{ store.workflowActions.issue_state === 'close' ? locale.closeIssue :
-                       store.workflowActions.issue_state === 'reopen' ? locale.reopenIssue : locale.noChange }}
+                      store.workflowActions.issue_state === 'reopen' ? locale.reopenIssue : locale.noChange }}
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
