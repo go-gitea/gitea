@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -207,7 +208,10 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 
 	switch pr.Flow {
 	case issues_model.PullRequestFlowGithub:
-		headBranchExist := pr.HeadRepo != nil && gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch)
+		headBranchExist := pr.HeadRepo != nil
+		if headBranchExist {
+			headBranchExist, _ = git_model.IsBranchExist(ctx, pr.HeadRepo.ID, pr.HeadBranch)
+		}
 		if !headBranchExist {
 			log.Warn("Head branch of auto merge %-v does not exist [HeadRepoID: %d, Branch: %s]", pr, pr.HeadRepoID, pr.HeadBranch)
 			return
