@@ -2,7 +2,7 @@ import {reactive} from 'vue';
 import {GET, POST} from '../../modules/fetch.ts';
 import {showErrorToast} from '../../modules/toast.ts';
 
-type WorkflowFiltersState = {
+type WorkflowFilters = {
   issue_type: string;
   source_column: string;
   target_column: string;
@@ -11,7 +11,7 @@ type WorkflowFiltersState = {
 
 type WorkflowIssueStateAction = '' | 'close' | 'reopen';
 
-type WorkflowActionsState = {
+type WorkflowActions = {
   column: string;
   add_labels: string[];
   remove_labels: string[];
@@ -19,14 +19,14 @@ type WorkflowActionsState = {
 };
 
 type WorkflowDraftState = {
-  filters: WorkflowFiltersState;
-  actions: WorkflowActionsState;
+  filters: WorkflowFilters;
+  actions: WorkflowActions;
 };
 
-const createDefaultFilters = (): WorkflowFiltersState => ({issue_type: '', source_column: '', target_column: '', labels: []});
-const createDefaultActions = (): WorkflowActionsState => ({column: '', add_labels: [], remove_labels: [], issue_state: ''});
+const createDefaultFilters = (): WorkflowFilters => ({issue_type: '', source_column: '', target_column: '', labels: []});
+const createDefaultActions = (): WorkflowActions => ({column: '', add_labels: [], remove_labels: [], issue_state: ''});
 
-function convertFilters(workflow: any): WorkflowFiltersState {
+function convertFilters(workflow: any): WorkflowFilters {
   const filters = createDefaultFilters();
   if (workflow?.filters && Array.isArray(workflow.filters)) {
     for (const filter of workflow.filters) {
@@ -44,7 +44,7 @@ function convertFilters(workflow: any): WorkflowFiltersState {
   return filters;
 }
 
-function convertActions(workflow: any): WorkflowActionsState {
+function convertActions(workflow: any): WorkflowActions {
   const actions = createDefaultActions();
 
   if (workflow?.actions && Array.isArray(workflow.actions)) {
@@ -66,14 +66,14 @@ function convertActions(workflow: any): WorkflowActionsState {
   return actions;
 }
 
-const cloneFilters = (filters: WorkflowFiltersState): WorkflowFiltersState => ({
+const cloneFilters = (filters: WorkflowFilters): WorkflowFilters => ({
   issue_type: filters.issue_type,
   source_column: filters.source_column,
   target_column: filters.target_column,
   labels: Array.from(filters.labels),
 });
 
-const cloneActions = (actions: WorkflowActionsState): WorkflowActionsState => ({
+const cloneActions = (actions: WorkflowActions): WorkflowActions => ({
   column: actions.column,
   add_labels: Array.from(actions.add_labels),
   remove_labels: Array.from(actions.remove_labels),
@@ -101,7 +101,7 @@ export function createWorkflowStore(props: any) {
       return store.workflowDrafts[eventId];
     },
 
-    updateDraft(eventId: string, filters: WorkflowFiltersState, actions: WorkflowActionsState) {
+    updateDraft(eventId: string, filters: WorkflowFilters, actions: WorkflowActions) {
       store.workflowDrafts[eventId] = {
         filters: cloneFilters(filters),
         actions: cloneActions(actions),

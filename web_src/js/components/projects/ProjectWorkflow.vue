@@ -69,25 +69,19 @@ const isInEditMode = computed(() => {
   return store.selectedWorkflow._isEditing || false;
 });
 
+// Helper to set edit mode for current workflow
+const setEditMode = (enabled: boolean) => {
+  if (store.selectedWorkflow) {
+    store.selectedWorkflow._isEditing = enabled;
+  }
+};
+
 const showCancelButton = computed(() => {
   if (!store.selectedWorkflow) return false;
   if (store.selectedWorkflow.id > 0) return true;
   const eventId = store.selectedWorkflow.event_id ?? '';
   return typeof eventId === 'string' && eventId.startsWith('clone-');
 });
-
-// Helper to set edit mode for current workflow
-const setEditMode = (enabled) => {
-  if (store.selectedWorkflow) {
-    if (enabled) {
-      store.selectedWorkflow._isEditing = true;
-    } else {
-      delete store.selectedWorkflow._isEditing;
-    }
-  }
-};
-
-// Store previous selection for cancel functionality
 
 const isTemporaryWorkflow = (workflow) => {
   if (!workflow) return false;
