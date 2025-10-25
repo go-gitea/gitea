@@ -46,8 +46,6 @@ export async function initProjectWorkflow() {
       deleteWorkflowFailed: workflowDiv.getAttribute('data-locale-delete-workflow-failed'),
     };
 
-    console.info('locale:', locale);
-
     const View = createApp(ProjectWorkflow, {
       projectLink: workflowDiv.getAttribute('data-project-link'),
       eventID: workflowDiv.getAttribute('data-event-id'),
