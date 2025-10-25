@@ -80,10 +80,10 @@ const cloneActions = (actions: WorkflowActionsState): WorkflowActionsState => ({
   issue_state: actions.issue_state,
 });
 
-export function createWorkflowStore(props: {projectLink: string, eventID: string}) {
+export function createWorkflowStore(projectLink: string, eventID: string) {
   const store = reactive({
     workflowEvents: [],
-    selectedItem: props.eventID,
+    selectedItem: eventID,
     selectedWorkflow: null,
     projectColumns: [],
     projectLabels: [], // Add labels data
@@ -113,14 +113,14 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
     },
 
     async loadEvents() {
-      const response = await GET(`${props.projectLink}/workflows/events`);
+      const response = await GET(`${projectLink}/workflows/events`);
       store.workflowEvents = await response.json();
       return store.workflowEvents;
     },
 
     async loadProjectColumns() {
       try {
-        const response = await GET(`${props.projectLink}/workflows/columns`);
+        const response = await GET(`${projectLink}/workflows/columns`);
         store.projectColumns = await response.json();
         console.log('[WorkflowStore] Loaded columns:', store.projectColumns);
         if (store.projectColumns.length > 0) {
@@ -159,7 +159,7 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
 
     async loadProjectLabels() {
       try {
-        const response = await GET(`${props.projectLink}/workflows/labels`);
+        const response = await GET(`${projectLink}/workflows/labels`);
         store.projectLabels = await response.json();
       } catch (error) {
         console.error('Failed to load project labels:', error);
@@ -195,7 +195,7 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
         // Send workflow data
         console.info('Sending workflow data:', postData);
 
-        const response = await POST(`${props.projectLink}/workflows/${eventId}`, {
+        const response = await POST(`${projectLink}/workflows/${eventId}`, {
           data: postData,
           headers: {
             'Content-Type': 'application/json',
@@ -247,7 +247,7 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
 
           // Update URL to use the new workflow ID
           if (wasNewWorkflow) {
-            const newUrl = `${props.projectLink}/workflows/${store.selectedWorkflow.event_id}`;
+            const newUrl = `${projectLink}/workflows/${store.selectedWorkflow.event_id}`;
             window.history.replaceState({eventId: store.selectedWorkflow.event_id}, '', newUrl);
           }
 
@@ -273,7 +273,7 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
 
         // Use workflow ID for status update
         const workflowId = store.selectedWorkflow.id;
-        const response = await POST(`${props.projectLink}/workflows/${workflowId}/status`, {
+        const response = await POST(`${projectLink}/workflows/${workflowId}/status`, {
           data: formData,
         });
 
@@ -312,7 +312,7 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
       try {
         // Use workflow ID for deletion
         const workflowId = store.selectedWorkflow.id;
-        const response = await POST(`${props.projectLink}/workflows/${workflowId}/delete`, {
+        const response = await POST(`${projectLink}/workflows/${workflowId}/delete`, {
           data: new FormData(),
         });
 

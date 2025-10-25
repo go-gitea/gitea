@@ -4,15 +4,52 @@ import {createWorkflowStore} from './WorkflowStore.ts';
 import {svg} from '../../svg.ts';
 import {confirmModal} from '../../features/comp/ConfirmModal.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import { locale } from 'dayjs';
 
 const elRoot = useTemplateRef('elRoot');
 
-const props = defineProps({
-  projectLink: {type: String, required: true},
-  eventID: {type: String, required: true},
-});
+const props = defineProps<{
+  projectLink: string;
+  eventID: string;
+  locale: {
+    defaultWorkflows: string;
+    moveToColumn: string;
+    viewWorkflowConfiguration: string;
+    configureWorkflow: string;
+    when: string;
+    runWhen: string;
+    filters: string;
+    applyTo: string;
+    whenMovedFromColumn: string;
+    whenMovedToColumn: string;
+    onlyIfHasLabels: string;
+    actions: string;
+    addLabels: string;
+    removeLabels: string;
+    anyLabel: string;
+    anyColumn: string;
+    issueState: string;
+    none: string;
+    noChange: string;
+    edit: string;
+    delete: string;
+    save: string;
+    clone: string;
+    cancel: string;
+    disable: string;
+    disabled: string;
+    enabled: string;
+    enable: string;
+    issuesAndPullRequests: string;
+    issuesOnly: string;
+    pullRequestsOnly: string;
+    selectColumn: string;
+    closeIssue: string;
+    reopenIssue: string;
+  },
+}>();
 
-const store = createWorkflowStore(props);
+const store = createWorkflowStore(props.projectLink, props.eventID);
 
 // Track edit state directly on workflow objects
 const previousSelection = ref(null);
@@ -648,7 +685,7 @@ onUnmounted(() => {
     <!-- Left Sidebar - Workflow List -->
     <div class="workflow-sidebar">
       <div class="sidebar-header">
-        <h3>Default Workflows</h3>
+        <h3>{{ locale.defaultWorkflows }}</h3>
       </div>
 
       <div class="sidebar-content">
@@ -692,8 +729,6 @@ onUnmounted(() => {
           <div class="placeholder-icon">
             <i class="huge settings icon"/>
           </div>
-          <h3>Select a workflow to configure</h3>
-          <p>Choose an event from the left sidebar to create or configure workflows.</p>
         </div>
       </div>
 
@@ -709,12 +744,12 @@ onUnmounted(() => {
                 class="workflow-status"
                 :class="store.selectedWorkflow.enabled ? 'status-enabled' : 'status-disabled'"
               >
-                {{ store.selectedWorkflow.enabled ? 'Enabled' : 'Disabled' }}
+                {{ store.selectedWorkflow.enabled ? locale.enabled : locale.disabled }}
               </span>
             </h2>
-            <p v-if="store.selectedWorkflow.id === 0">Configure automated actions for this workflow</p>
-            <p v-else-if="isInEditMode">Configure automated actions for this workflow</p>
-            <p v-else>View workflow configuration</p>
+            <p v-if="store.selectedWorkflow.id === 0">{{ locale.configureWorkflow }}</p>
+            <p v-else-if="isInEditMode">{{ locale.configureWorkflow }}</p>
+            <p v-else>{{ locale.viewWorkflowConfiguration }}</p>
           </div>
           <div class="editor-actions-header">
             <!-- Edit Mode Buttons -->
@@ -726,7 +761,7 @@ onUnmounted(() => {
                 @click="toggleEditMode"
               >
                 <i class="times icon"/>
-                Cancel
+                {{ locale.cancel }}
               </button>
 
               <!-- Save Button -->
@@ -736,7 +771,7 @@ onUnmounted(() => {
                 :disabled="store.saving"
               >
                 <i class="save icon"/>
-                Save
+                {{ locale.save }}
               </button>
 
               <!-- Delete Button (only for configured workflows) -->
@@ -746,7 +781,7 @@ onUnmounted(() => {
                 @click="deleteWorkflow"
               >
                 <i class="trash icon"/>
-                Delete
+                {{ locale.delete }}
               </button>
             </template>
 
@@ -758,7 +793,7 @@ onUnmounted(() => {
                 @click="toggleEditMode"
               >
                 <i class="edit icon"/>
-                Edit
+                {{ locale.edit }}
               </button>
 
               <!-- Enable/Disable Button -->
@@ -766,10 +801,9 @@ onUnmounted(() => {
                 class="btn"
                 :class="store.selectedWorkflow.enabled ? 'btn-outline-danger' : 'btn-success'"
                 @click="toggleWorkflowStatus"
-                :title="store.selectedWorkflow.enabled ? 'Disable workflow' : 'Enable workflow'"
               >
                 <i :class="store.selectedWorkflow.enabled ? 'pause icon' : 'play icon'"/>
-                {{ store.selectedWorkflow.enabled ? 'Disable' : 'Enable' }}
+                {{ store.selectedWorkflow.enabled ? locale.disable : locale.enable }}
               </button>
 
               <!-- Clone Button -->
@@ -779,7 +813,7 @@ onUnmounted(() => {
                 title="Clone this workflow"
               >
                 <i class="copy icon"/>
-                Clone
+                {{ locale.clone }}
               </button>
             </template>
           </div>
@@ -788,77 +822,77 @@ onUnmounted(() => {
         <div class="editor-content">
           <div class="form" :class="{ 'readonly': !isInEditMode }">
             <div class="field">
-              <label>When</label>
+              <label>{{ locale.when }}</label>
               <div class="segment">
                 <div class="description">
-                  This workflow will run when: <strong>{{ store.selectedWorkflow.display_name }}</strong>
+                  {{ locale.runWhen }}<strong>{{ store.selectedWorkflow.display_name }}</strong>
                 </div>
               </div>
             </div>
 
             <!-- Filters Section -->
             <div class="field" v-if="hasAvailableFilters">
-              <label>Filters</label>
+              <label>{{ locale.filters }}</label>
               <div class="segment">
                 <div class="field" v-if="hasFilter('issue_type')">
-                  <label>Apply to</label>
+                  <label>{{ locale.applyTo }}</label>
                   <select
                     v-if="isInEditMode"
                     class="column-select"
                     v-model="store.workflowFilters.issue_type"
                   >
-                    <option value="">Issues And Pull Requests</option>
-                    <option value="issue">Issues</option>
-                    <option value="pull_request">Pull requests</option>
+                    <option value="">{{ locale.issuesAndPullRequests }}</option>
+                    <option value="issue">{{ locale.issuesOnly }}</option>
+                    <option value="pull_request">{{ locale.pullRequestsOnly }}</option>
                   </select>
                   <div v-else class="readonly-value">
-                    {{ store.workflowFilters.issue_type === 'issue' ? 'Issues' :
-                      store.workflowFilters.issue_type === 'pull_request' ? 'Pull requests' :
-                      'Issues And Pull Requests' }}
+                    {{ store.workflowFilters.issue_type === 'issue' ? locale.issuesOnly :
+                      store.workflowFilters.issue_type === 'pull_request' ? locale.pullRequestsOnly :
+                      locale.issuesAndPullRequests }}
                   </div>
                 </div>
 
                 <div class="field" v-if="hasFilter('source_column')">
-                  <label>When moved from column</label>
+                  <label>{{ locale.whenMovedFromColumn }}</label>
                   <select
                     v-if="isInEditMode"
                     v-model="store.workflowFilters.source_column"
                     class="column-select"
                   >
-                    <option value="">Any column</option>
+                    <option value="">{{ locale.anyColumn }}</option>
                     <option v-for="column in store.projectColumns" :key="column.id" :value="String(column.id)">
                       {{ column.title }}
                     </option>
                   </select>
                   <div v-else class="readonly-value">
-                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.source_column)?.title || 'Any column' }}
+                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.source_column)?.title || locale.anyColumn }}
                   </div>
                 </div>
 
                 <div class="field" v-if="hasFilter('target_column')">
-                  <label>When moved to column</label>
+                  <label>{{ locale.whenMovedToColumn }}</label>
                   <select
                     v-if="isInEditMode"
                     v-model="store.workflowFilters.target_column"
                     class="column-select"
                   >
-                    <option value="">Any column</option>
+                    <option value="">{{ locale.anyColumn }}</option>
                     <option v-for="column in store.projectColumns" :key="column.id" :value="String(column.id)">
                       {{ column.title }}
                     </option>
                   </select>
                   <div v-else class="readonly-value">
-                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.target_column)?.title || 'Any column' }}
+                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.target_column)?.title || locale.anyColumn }}
                   </div>
                 </div>
 
                 <div class="field" v-if="hasFilter('labels')">
-                  <label>Only if has labels</label>
+                  <label>{{ locale.onlyIfHasLabels }}</label>
                   <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
                     <input type="hidden" :value="store.workflowFilters.labels.join(',')">
                     <i class="dropdown icon"></i>
                     <div class="text" :class="{ default: !store.workflowFilters.labels?.length }">
-                      <span v-if="!store.workflowFilters.labels?.length">Any labels</span>
+                      <span v-if="!store.workflowFilters.labels?.length">{{ locale.anyLabel }}</span>
                       <template v-else>
                         <span v-for="labelId in store.workflowFilters.labels" :key="labelId"
                               class="ui label"
@@ -892,27 +926,27 @@ onUnmounted(() => {
 
             <!-- Actions Section -->
             <div class="field">
-              <label>Actions</label>
+              <label>{{ locale.actions }}</label>
               <div class="segment">
                 <div class="field" v-if="hasAction('column')">
-                  <label>Move to column</label>
+                  <label>{{ locale.moveToColumn }}</label>
                   <select
                     v-if="isInEditMode"
                     v-model="store.workflowActions.column"
                     class="column-select"
                   >
-                    <option value="">Select column...</option>
+                    <option value="">{{ locale.selectColumn }}</option>
                     <option v-for="column in store.projectColumns" :key="column.id" :value="String(column.id)">
                       {{ column.title }}
                     </option>
                   </select>
                   <div v-else class="readonly-value">
-                    {{ store.projectColumns.find(c => String(c.id) === store.workflowActions.column)?.title || 'None' }}
+                    {{ store.projectColumns.find(c => String(c.id) === store.workflowActions.column)?.title || locale.none }}
                   </div>
                 </div>
 
                 <div class="field" v-if="hasAction('add_labels')">
-                  <label>Add labels</label>
+                  <label>{{ locale.addLabels }}</label>
                   <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
                     <input type="hidden" :value="store.workflowActions.add_labels.join(',')">
                     <i class="dropdown icon"></i>
@@ -948,7 +982,7 @@ onUnmounted(() => {
                 </div>
 
                 <div class="field" v-if="hasAction('remove_labels')">
-                  <label>Remove labels</label>
+                  <label>{{ locale.removeLabels }}</label>
                   <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
                     <input type="hidden" :value="store.workflowActions.remove_labels.join(',')">
                     <i class="dropdown icon"></i>
@@ -984,20 +1018,20 @@ onUnmounted(() => {
                 </div>
 
                 <div class="field" v-if="hasAction('issue_state')">
-                  <label for="issue-state-action">Issue state</label>
+                  <label for="issue-state-action">{{ locale.issueState }}</label>
                   <select
                     v-if="isInEditMode"
                     id="issue-state-action"
                     class="column-select"
                     v-model="store.workflowActions.issue_state"
                   >
-                    <option value="">No change</option>
-                    <option value="close">Close issue</option>
-                    <option value="reopen">Reopen issue</option>
+                    <option value="">{{ locale.noChange }}</option>
+                    <option value="close">{{ locale.closeIssue }}</option>
+                    <option value="reopen">{{ locale.reopenIssue }}</option>
                   </select>
                   <div v-else class="readonly-value">
-                    {{ store.workflowActions.issue_state === 'close' ? 'Close issue' :
-                       store.workflowActions.issue_state === 'reopen' ? 'Reopen issue' : 'No change' }}
+                    {{ store.workflowActions.issue_state === 'close' ? locale.closeIssue :
+                       store.workflowActions.issue_state === 'reopen' ? locale.reopenIssue : locale.noChange }}
                   </div>
                 </div>
               </div>

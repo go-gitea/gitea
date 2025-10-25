@@ -16,19 +16,21 @@ import (
 type WorkflowEvent string
 
 const (
-	WorkflowEventItemOpened           WorkflowEvent = "item_opened"
-	WorkflowEventItemAddedToProject   WorkflowEvent = "item_added_to_project"
-	WorkflowEventItemReopened         WorkflowEvent = "item_reopened"
-	WorkflowEventItemClosed           WorkflowEvent = "item_closed"
-	WorkflowEventItemColumnChanged    WorkflowEvent = "item_column_changed"
-	WorkflowEventCodeChangesRequested WorkflowEvent = "code_changes_requested"
-	WorkflowEventCodeReviewApproved   WorkflowEvent = "code_review_approved"
-	WorkflowEventPullRequestMerged    WorkflowEvent = "pull_request_merged"
+	WorkflowEventItemOpened             WorkflowEvent = "item_opened"
+	WorkflowEventItemAddedToProject     WorkflowEvent = "item_added_to_project"
+	WorkflowEventItemRemovedFromProject WorkflowEvent = "item_removed_from_project"
+	WorkflowEventItemReopened           WorkflowEvent = "item_reopened"
+	WorkflowEventItemClosed             WorkflowEvent = "item_closed"
+	WorkflowEventItemColumnChanged      WorkflowEvent = "item_column_changed"
+	WorkflowEventCodeChangesRequested   WorkflowEvent = "code_changes_requested"
+	WorkflowEventCodeReviewApproved     WorkflowEvent = "code_review_approved"
+	WorkflowEventPullRequestMerged      WorkflowEvent = "pull_request_merged"
 )
 
 var workflowEvents = []WorkflowEvent{
 	WorkflowEventItemOpened,
 	WorkflowEventItemAddedToProject,
+	WorkflowEventItemRemovedFromProject,
 	WorkflowEventItemReopened,
 	WorkflowEventItemClosed,
 	WorkflowEventItemColumnChanged,
@@ -56,6 +58,8 @@ func (we WorkflowEvent) LangKey() string {
 		return "projects.workflows.event.item_opened"
 	case WorkflowEventItemAddedToProject:
 		return "projects.workflows.event.item_added_to_project"
+	case WorkflowEventItemRemovedFromProject:
+		return "projects.workflows.event.item_removed_from_project"
 	case WorkflowEventItemReopened:
 		return "projects.workflows.event.item_reopened"
 	case WorkflowEventItemClosed:
@@ -121,6 +125,10 @@ func GetWorkflowEventCapabilities() map[WorkflowEvent]WorkflowEventCapabilities 
 		WorkflowEventItemAddedToProject: {
 			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
 			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeIssueState},
+		},
+		WorkflowEventItemRemovedFromProject: {
+			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
+			AvailableActions: []WorkflowActionType{WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels, WorkflowActionTypeIssueState},
 		},
 		WorkflowEventItemReopened: {
 			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
