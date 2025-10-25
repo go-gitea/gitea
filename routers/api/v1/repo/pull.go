@@ -13,6 +13,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
