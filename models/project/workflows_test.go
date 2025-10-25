@@ -4,7 +4,7 @@
 package project
 
 import (
-	"fmt"
+	"strconv"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -115,7 +115,7 @@ func TestCreateWorkflow(t *testing.T) {
 		WorkflowActions: []WorkflowAction{
 			{
 				Type:  WorkflowActionTypeColumn,
-				Value: fmt.Sprintf("%d", column.ID),
+				Value: strconv.FormatInt(column.ID, 10),
 			},
 		},
 		Enabled: true,

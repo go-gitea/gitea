@@ -4,9 +4,9 @@
 package integration
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -64,7 +65,7 @@ func TestProjectWorkflowsPage(t *testing.T) {
 		WorkflowActions: []project_model.WorkflowAction{
 			{
 				Type:  project_model.WorkflowActionTypeColumn,
-				Value: fmt.Sprintf("%d", column1.ID),
+				Value: strconv.FormatInt(column1.ID, 10),
 			},
 		},
 		Enabled: true,
@@ -84,7 +85,7 @@ func TestProjectWorkflowsPage(t *testing.T) {
 		WorkflowActions: []project_model.WorkflowAction{
 			{
 				Type:  project_model.WorkflowActionTypeColumn,
-				Value: fmt.Sprintf("%d", column2.ID),
+				Value: strconv.FormatInt(column2.ID, 10),
 			},
 		},
 		Enabled: false, // Disabled workflow
@@ -101,20 +102,20 @@ func TestProjectWorkflowsPage(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 
 	// Verify the main workflow container exists
-	assert.True(t, htmlDoc.Find("#project-workflows").Length() > 0, "Main workflow container should exist")
+	assert.Positive(t, htmlDoc.Find("#project-workflows").Length(), "Main workflow container should exist")
 
 	// Verify data attributes are set correctly
 	workflowDiv := htmlDoc.Find("#project-workflows")
-	assert.True(t, workflowDiv.Length() > 0, "Workflow div should exist")
+	assert.Positive(t, workflowDiv.Length(), "Workflow div should exist")
 
 	// Check that locale data attributes exist
-	assert.True(t, workflowDiv.AttrOr("data-locale-default-workflows", "") != "", "data-locale-default-workflows should be set")
-	assert.True(t, workflowDiv.AttrOr("data-locale-when", "") != "", "data-locale-when should be set")
-	assert.True(t, workflowDiv.AttrOr("data-locale-actions", "") != "", "data-locale-actions should be set")
-	assert.True(t, workflowDiv.AttrOr("data-locale-filters", "") != "", "data-locale-filters should be set")
-	assert.True(t, workflowDiv.AttrOr("data-locale-close-issue", "") != "", "data-locale-close-issue should be set")
-	assert.True(t, workflowDiv.AttrOr("data-locale-reopen-issue", "") != "", "data-locale-reopen-issue should be set")
-	assert.True(t, workflowDiv.AttrOr("data-locale-issues-and-pull-requests", "") != "", "data-locale-issues-and-pull-requests should be set")
+	assert.NotEmpty(t, workflowDiv.AttrOr("data-locale-default-workflows", ""), "data-locale-default-workflows should be set")
+	assert.NotEmpty(t, workflowDiv.AttrOr("data-locale-when", ""), "data-locale-when should be set")
+	assert.NotEmpty(t, workflowDiv.AttrOr("data-locale-actions", ""), "data-locale-actions should be set")
+	assert.NotEmpty(t, workflowDiv.AttrOr("data-locale-filters", ""), "data-locale-filters should be set")
+	assert.NotEmpty(t, workflowDiv.AttrOr("data-locale-close-issue", ""), "data-locale-close-issue should be set")
+	assert.NotEmpty(t, workflowDiv.AttrOr("data-locale-reopen-issue", ""), "data-locale-reopen-issue should be set")
+	assert.NotEmpty(t, workflowDiv.AttrOr("data-locale-issues-and-pull-requests", ""), "data-locale-issues-and-pull-requests should be set")
 
 	// Verify project link is set
 	projectLink := workflowDiv.AttrOr("data-project-link", "")
@@ -173,7 +174,7 @@ func TestProjectWorkflowCreate(t *testing.T) {
 			string(project_model.WorkflowFilterTypeIssueType): "issue",
 		},
 		"actions": map[string]any{
-			string(project_model.WorkflowActionTypeColumn): fmt.Sprintf("%d", column.ID),
+			string(project_model.WorkflowActionTypeColumn): strconv.FormatInt(column.ID, 10),
 		},
 	}
 
@@ -237,7 +238,7 @@ func TestProjectWorkflowUpdate(t *testing.T) {
 		WorkflowActions: []project_model.WorkflowAction{
 			{
 				Type:  project_model.WorkflowActionTypeColumn,
-				Value: fmt.Sprintf("%d", column.ID),
+				Value: strconv.FormatInt(column.ID, 10),
 			},
 		},
 		Enabled: true,
@@ -249,12 +250,12 @@ func TestProjectWorkflowUpdate(t *testing.T) {
 
 	// Update the workflow
 	updateData := map[string]any{
-		"event_id": fmt.Sprintf("%d", workflow.ID),
+		"event_id": strconv.FormatInt(workflow.ID, 10),
 		"filters": map[string]any{
 			string(project_model.WorkflowFilterTypeIssueType): "pull_request", // Change to PR
 		},
 		"actions": map[string]any{
-			string(project_model.WorkflowActionTypeColumn): fmt.Sprintf("%d", column.ID),
+			string(project_model.WorkflowActionTypeColumn): strconv.FormatInt(column.ID, 10),
 		},
 	}
 
@@ -401,7 +402,7 @@ func TestProjectWorkflowDelete(t *testing.T) {
 	// Verify we cannot delete it again (should fail gracefully)
 	req = NewRequest(t, "POST",
 		fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/delete?_csrf=%s", user.Name, repo.Name, project.ID, workflow.ID, GetUserCSRFToken(t, session)))
-	resp = session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func TestProjectWorkflowPermissions(t *testing.T) {
