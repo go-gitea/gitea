@@ -1,6 +1,6 @@
 import {reactive} from 'vue';
 import {GET, POST} from '../../modules/fetch.ts';
-import {showInfoToast, showErrorToast} from '../../modules/toast.ts';
+import {showErrorToast} from '../../modules/toast.ts';
 
 type WorkflowFiltersState = {
   issue_type: string;
@@ -23,7 +23,7 @@ type WorkflowDraftState = {
   actions: WorkflowActionsState;
 };
 
-const createDefaultFilters = (): WorkflowFiltersState => ({issue_type: '', source_column: '',target_column: '', labels: []});
+const createDefaultFilters = (): WorkflowFiltersState => ({issue_type: '', source_column: '', target_column: '', labels: []});
 const createDefaultActions = (): WorkflowActionsState => ({column: '', add_labels: [], remove_labels: [], issue_state: ''});
 
 function convertFilters(workflow: any): WorkflowFiltersState {
@@ -80,10 +80,10 @@ const cloneActions = (actions: WorkflowActionsState): WorkflowActionsState => ({
   issue_state: actions.issue_state,
 });
 
-export function createWorkflowStore(projectLink: string, eventID: string) {
+export function createWorkflowStore(props: any) {
   const store = reactive({
     workflowEvents: [],
-    selectedItem: eventID,
+    selectedItem: props.eventID,
     selectedWorkflow: null,
     projectColumns: [],
     projectLabels: [], // Add labels data
@@ -113,19 +113,15 @@ export function createWorkflowStore(projectLink: string, eventID: string) {
     },
 
     async loadEvents() {
-      const response = await GET(`${projectLink}/workflows/events`);
+      const response = await GET(`${props.projectLink}/workflows/events`);
       store.workflowEvents = await response.json();
       return store.workflowEvents;
     },
 
     async loadProjectColumns() {
       try {
-        const response = await GET(`${projectLink}/workflows/columns`);
+        const response = await GET(`${props.projectLink}/workflows/columns`);
         store.projectColumns = await response.json();
-        console.log('[WorkflowStore] Loaded columns:', store.projectColumns);
-        if (store.projectColumns.length > 0) {
-          console.log('[WorkflowStore] First column.id type:', typeof store.projectColumns[0].id, 'value:', store.projectColumns[0].id);
-        }
       } catch (error) {
         console.error('Failed to load project columns:', error);
         store.projectColumns = [];
@@ -159,7 +155,7 @@ export function createWorkflowStore(projectLink: string, eventID: string) {
 
     async loadProjectLabels() {
       try {
-        const response = await GET(`${projectLink}/workflows/labels`);
+        const response = await GET(`${props.projectLink}/workflows/labels`);
         store.projectLabels = await response.json();
       } catch (error) {
         console.error('Failed to load project labels:', error);
@@ -192,10 +188,7 @@ export function createWorkflowStore(projectLink: string, eventID: string) {
           actions: store.workflowActions,
         };
 
-        // Send workflow data
-        console.info('Sending workflow data:', postData);
-
-        const response = await POST(`${projectLink}/workflows/${eventId}`, {
+        const response = await POST(`${props.projectLink}/workflows/${eventId}`, {
           data: postData,
           headers: {
             'Content-Type': 'application/json',
@@ -205,12 +198,11 @@ export function createWorkflowStore(projectLink: string, eventID: string) {
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Response error:', errorText);
-          showErrorToast(`Failed to save workflow: ${response.status} ${response.statusText}\n${errorText}`);
+          showErrorToast(`${props.locale.failedToSaveWorkflow}: ${response.status} ${response.statusText}\n${errorText}`);
           return;
         }
 
         const result = await response.json();
-        console.log('Response result:', result);
         if (result.success && result.workflow) {
           // Always reload the events list to get the updated structure
           // This ensures we have both the base event and the new filtered event
@@ -247,18 +239,16 @@ export function createWorkflowStore(projectLink: string, eventID: string) {
 
           // Update URL to use the new workflow ID
           if (wasNewWorkflow) {
-            const newUrl = `${projectLink}/workflows/${store.selectedWorkflow.event_id}`;
+            const newUrl = `${props.projectLink}/workflows/${store.selectedWorkflow.event_id}`;
             window.history.replaceState({eventId: store.selectedWorkflow.event_id}, '', newUrl);
           }
-
-          showInfoToast('Workflow saved successfully!');
         } else {
           console.error('Unexpected response format:', result);
-          showErrorToast('Failed to save workflow: Unexpected response format');
+          showErrorToast(`${props.locale.failedToSaveWorkflow}: Unexpected response format`);
         }
       } catch (error) {
-        console.error('Error saving workflow:', error);
-        showErrorToast(`Error saving workflow: ${error.message}`);
+        console.error('Failed to save workflow:', error);
+        showErrorToast(`${props.locale.failedToSaveWorkflow}: ${error.message}`);
       } finally {
         store.saving = false;
       }
@@ -273,14 +263,14 @@ export function createWorkflowStore(projectLink: string, eventID: string) {
 
         // Use workflow ID for status update
         const workflowId = store.selectedWorkflow.id;
-        const response = await POST(`${projectLink}/workflows/${workflowId}/status`, {
+        const response = await POST(`${props.projectLink}/workflows/${workflowId}/status`, {
           data: formData,
         });
 
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Failed to update workflow status:', errorText);
-          showErrorToast(`Failed to update workflow status: ${response.status} ${response.statusText}`);
+          showErrorToast(`${props.locale.failedToUpdateWorkflowStatus}: ${response.status} ${response.statusText}`);
           // Revert the status change on error
           store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
           return;
@@ -296,13 +286,13 @@ export function createWorkflowStore(projectLink: string, eventID: string) {
         } else {
           // Revert the status change on failure
           store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
-          showErrorToast('Failed to update workflow status');
+          showErrorToast(`${props.locale.failedToUpdateWorkflowStatus}: Unexpected error`);
         }
       } catch (error) {
-        console.error('Error updating workflow status:', error);
+        console.error('Failed to update workflow status:', error);
         // Revert the status change on error
         store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
-        showErrorToast(`Error updating workflow status: ${error.message}`);
+        showErrorToast(`${props.locale.failedToUpdateWorkflowStatus}: ${error.message}`);
       }
     },
 
@@ -312,14 +302,14 @@ export function createWorkflowStore(projectLink: string, eventID: string) {
       try {
         // Use workflow ID for deletion
         const workflowId = store.selectedWorkflow.id;
-        const response = await POST(`${projectLink}/workflows/${workflowId}/delete`, {
+        const response = await POST(`${props.projectLink}/workflows/${workflowId}/delete`, {
           data: new FormData(),
         });
 
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Failed to delete workflow:', errorText);
-          showErrorToast(`Failed to delete workflow: ${response.status} ${response.statusText}`);
+          showErrorToast(`${props.locale.failedToDeleteWorkflow}: ${response.status} ${response.statusText}`);
           return;
         }
 
@@ -331,11 +321,11 @@ export function createWorkflowStore(projectLink: string, eventID: string) {
             store.workflowEvents.splice(existingIndex, 1);
           }
         } else {
-          showErrorToast('Failed to delete workflow');
+          showErrorToast(`${props.locale.failedToDeleteWorkflow}: Unexpected error`);
         }
       } catch (error) {
         console.error('Error deleting workflow:', error);
-        showErrorToast(`Error deleting workflow: ${error.message}`);
+        showErrorToast(`${props.locale.failedToDeleteWorkflow}: ${error.message}`);
       }
     },
 

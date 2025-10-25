@@ -41,6 +41,9 @@ export async function initProjectWorkflow() {
       selectColumn: workflowDiv.getAttribute('data-locale-select-column'),
       closeIssue: workflowDiv.getAttribute('data-locale-close-issue'),
       reopenIssue: workflowDiv.getAttribute('data-locale-reopen-issue'),
+      saveWorkflowFailed: workflowDiv.getAttribute('data-locale-save-workflow-failed'),
+      updateWorkflowFailed: workflowDiv.getAttribute('data-locale-update-workflow-failed'),
+      deleteWorkflowFailed: workflowDiv.getAttribute('data-locale-delete-workflow-failed'),
     };
 
     console.info('locale:', locale);

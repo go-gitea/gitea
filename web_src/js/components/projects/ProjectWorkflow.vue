@@ -4,7 +4,6 @@ import {createWorkflowStore} from './WorkflowStore.ts';
 import {svg} from '../../svg.ts';
 import {confirmModal} from '../../features/comp/ConfirmModal.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
-import { locale } from 'dayjs';
 
 const elRoot = useTemplateRef('elRoot');
 
@@ -46,10 +45,13 @@ const props = defineProps<{
     selectColumn: string;
     closeIssue: string;
     reopenIssue: string;
+    saveWorkflowFailed: string;
+    updateWorkflowFailed: string;
+    deleteWorkflowFailed: string;
   },
 }>();
 
-const store = createWorkflowStore(props.projectLink, props.eventID);
+const store = createWorkflowStore(props);
 
 // Track edit state directly on workflow objects
 const previousSelection = ref(null);
