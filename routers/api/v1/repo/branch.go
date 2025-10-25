@@ -225,7 +225,7 @@ func CreateBranch(ctx *context.APIContext) {
 			return
 		}
 	} else if len(opt.OldBranchName) > 0 { //nolint:staticcheck // deprecated field
-		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, opt.OldBranchName) { //nolint:staticcheck // deprecated field
+		if exist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, opt.OldBranchName); exist { //nolint:staticcheck // deprecated field
 			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint:staticcheck // deprecated field
 			if err != nil {
 				ctx.APIErrorInternal(err)
@@ -1011,7 +1011,11 @@ func EditBranchProtection(ctx *context.APIContext) {
 	isPlainRule := !git_model.IsRuleNameSpecial(bpName)
 	var isBranchExist bool
 	if isPlainRule {
-		isBranchExist = gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, bpName)
+		isBranchExist, err = git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, bpName)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 	}
 
 	if isBranchExist {
