@@ -3,6 +3,7 @@
 
 gitea-theme-meta-info {
   --theme-display-name: "Light";
+  --theme-color-scheme: "light";
 }
 
 :root {

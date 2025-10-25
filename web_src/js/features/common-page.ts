@@ -1,14 +1,14 @@
-import {GET} from '../modules/fetch.ts';
+import {GET, POST} from '../modules/fetch.ts';
 import {showGlobalErrorMessage} from '../bootstrap.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {queryElems} from '../utils/dom.ts';
+import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
 
-const {appUrl} = window.config;
+const {appUrl, appSubUrl} = window.config;
 
-export function initHeadNavbarContentToggle() {
+function initHeadNavbarContentToggle() {
   const navbar = document.querySelector('#navbar');
   const btn = document.querySelector('#navbar-expand-toggle');
   if (!navbar || !btn) return;
@@ -20,7 +20,7 @@ export function initHeadNavbarContentToggle() {
   });
 }
 
-export function initFootLanguageMenu() {
+function initFooterLanguageMenu() {
   document.querySelector('.ui.dropdown .menu.language-menu')?.addEventListener('click', async (e) => {
     const item = (e.target as HTMLElement).closest('.item');
     if (!item) return;
@@ -28,6 +28,26 @@ export function initFootLanguageMenu() {
     await GET(item.getAttribute('data-url'));
     window.location.reload();
   });
+}
+
+function initFooterThemeSelector() {
+  const elDropdown = document.querySelector('#footer-theme-selector');
+  const $dropdown = fomanticQuery(elDropdown);
+  $dropdown.dropdown({
+    direction: 'upward',
+    apiSettings: {url: '/-/web-theme/list', cache: false},
+  });
+  addDelegatedEventListener(elDropdown, 'click', '.menu > .item', async (el) => {
+    const themeName = el.getAttribute('data-value');
+    await POST(`${appSubUrl}/-/web-theme/apply?theme=${encodeURIComponent(themeName)}`);
+    window.location.reload();
+  });
+}
+
+export function initCommmPageComponents() {
+  initHeadNavbarContentToggle();
+  initFooterLanguageMenu();
+  initFooterThemeSelector();
 }
 
 export function initGlobalDropdown() {

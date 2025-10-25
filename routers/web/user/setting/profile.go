@@ -369,7 +369,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if !webtheme.IsThemeAvailable(form.Theme) {
+	if webtheme.GetThemeMetaInfo(form.Theme) == nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
