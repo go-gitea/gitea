@@ -24,14 +24,14 @@ Help users to edit the Gitea configuration INI file.
 # Keep Specified Keys
 
 If you need to re-create the configuration file with only a subset of keys,
-you can provide an INI template file and use the "--config-keep-keys" flag.
+you can provide an INI template file for the kept keys and use the "--config-keep-keys" flag.
 For example, if a helm chart needs to reset the settings and only keep SECRET_KEY,
 it can use a template file (only keys take effect, values are ignored):
 
   [security]
   SECRET_KEY=
 
-$ ./gitea config edit-ini --config app-old.ini --config-keep-keys app-template.ini --out app-new.ini
+$ ./gitea config edit-ini --config app-old.ini --config-keep-keys app-keys.ini --out app-new.ini
 
 # Map Environment Variables to INI Configuration
 
@@ -54,7 +54,7 @@ $ export GITEA__git_0x2E_config__foo_0x2E_bar=val
 
 # Put All Together
 
-$ ./gitea config edit-ini --config app.ini --config-keep-keys app-template.ini --apply-env {--in-place|--out app-new.ini}
+$ ./gitea config edit-ini --config app.ini --config-keep-keys app-keys.ini --apply-env {--in-place|--out app-new.ini}
 `,
 		Flags: []cli.Flag{
 			// "--config" flag is provided by global flags, and this flag is also used by "environment-to-ini" script wrapper
@@ -76,7 +76,7 @@ $ ./gitea config edit-ini --config app.ini --config-keep-keys app-template.ini -
 				Usage: "Destination config file to write to.",
 			},
 		},
-		Action: runConfigUpdateIni,
+		Action: runConfigEditIni,
 	}
 
 	return &cli.Command{
@@ -88,20 +88,22 @@ $ ./gitea config edit-ini --config app.ini --config-keep-keys app-template.ini -
 	}
 }
 
-func runConfigUpdateIni(_ context.Context, c *cli.Command) error {
+func runConfigEditIni(_ context.Context, c *cli.Command) error {
 	// the config system may change the environment variables, so get a copy first, to be used later
 	env := append([]string{}, os.Environ()...)
+
 	// don't use the guessed setting.CustomConf, instead, require the user to provide --config explicitly
 	if !c.IsSet("config") {
 		return errors.New("flag is required but not set: --config")
 	}
-
 	configFileIn := c.String("config")
+
 	cfgIn, err := setting.NewConfigProviderFromFile(configFileIn)
 	if err != nil {
 		return fmt.Errorf("failed to load config file %q: %v", configFileIn, err)
 	}
 
+	// determine output config file: use "--out" flag or use "--in-place" flag to overwrite input file
 	inPlace := c.Bool("in-place")
 	configFileOut := c.String("out")
 	if configFileOut == "" {

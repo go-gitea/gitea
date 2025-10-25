@@ -64,6 +64,7 @@ KeY = val
 		})
 		require.ErrorContains(t, err, "either --in-place or --out must be specified")
 
+		// simulate the "environment-to-ini" behavior with "--in-place"
 		err = NewMainApp(AppVersion{}).Run(t.Context(), []string{
 			"./gitea", "config", "edit-ini",
 			"--in-place",
