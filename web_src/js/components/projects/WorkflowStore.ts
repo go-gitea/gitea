@@ -4,6 +4,7 @@ import {showInfoToast, showErrorToast} from '../../modules/toast.ts';
 
 type WorkflowFiltersState = {
   issue_type: string;
+  source_column: string;
   target_column: string;
   labels: string[];
 };
@@ -22,11 +23,52 @@ type WorkflowDraftState = {
   actions: WorkflowActionsState;
 };
 
-const createDefaultFilters = (): WorkflowFiltersState => ({issue_type: '', target_column: '', labels: []});
+const createDefaultFilters = (): WorkflowFiltersState => ({issue_type: '', source_column: '',target_column: '', labels: []});
 const createDefaultActions = (): WorkflowActionsState => ({column: '', add_labels: [], remove_labels: [], issue_state: ''});
+
+function convertFilters(workflow: any): WorkflowFiltersState {
+  const filters = createDefaultFilters();
+  if (workflow?.filters && Array.isArray(workflow.filters)) {
+    for (const filter of workflow.filters) {
+      if (filter.type === 'issue_type') {
+        filters.issue_type = filter.value;
+      } else if (filter.type === 'source_column') {
+        filters.source_column = filter.value;
+      } else if (filter.type === 'target_column') {
+        filters.target_column = filter.value;
+      } else if (filter.type === 'labels') {
+        filters.labels.push(filter.value);
+      }
+    }
+  }
+  return filters;
+}
+
+function convertActions(workflow: any): WorkflowActionsState {
+  const actions = createDefaultActions();
+
+  if (workflow?.actions && Array.isArray(workflow.actions)) {
+    for (const action of workflow.actions) {
+      if (action.type === 'column') {
+        // Backend returns string, keep as string to match column.id type
+        actions.column = action.value;
+      } else if (action.type === 'add_labels') {
+        // Backend returns string, keep as string to match label.id type
+        actions.add_labels.push(action.value);
+      } else if (action.type === 'remove_labels') {
+        // Backend returns string, keep as string to match label.id type
+        actions.remove_labels.push(action.value);
+      } else if (action.type === 'issue_state') {
+        actions.issue_state = action.value as WorkflowIssueStateAction;
+      }
+    }
+  }
+  return actions;
+}
 
 const cloneFilters = (filters: WorkflowFiltersState): WorkflowFiltersState => ({
   issue_type: filters.issue_type,
+  source_column: filters.source_column,
   target_column: filters.target_column,
   labels: Array.from(filters.labels),
 });
@@ -51,7 +93,6 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
     selectedEventType: null, // For workflow creation
 
     workflowFilters: createDefaultFilters(),
-
     workflowActions: createDefaultActions(),
 
     workflowDrafts: {} as Record<string, WorkflowDraftState>,
@@ -108,67 +149,9 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
         // Find the workflow from existing workflowEvents
         const workflow = store.workflowEvents.find((e) => e.event_id === eventId);
 
-          // Load existing configuration from the workflow data
-          // Convert backend filter format to frontend format
-        const frontendFilters = {issue_type: '', target_column: '', labels: []};
-         // Convert backend action format to frontend format
-        const frontendActions: WorkflowActionsState = {column: '', add_labels: [], remove_labels: [], issue_state: ''};
-
-        if (workflow?.filters && Array.isArray(workflow.filters)) {
-          for (const filter of workflow.filters) {
-            if (filter.type === 'issue_type') {
-              frontendFilters.issue_type = filter.value;
-            } else if (filter.type === 'target_column') {
-              frontendFilters.target_column = filter.value;
-            } else if (filter.type === 'labels') {
-              frontendFilters.labels.push(filter.value);
-            }
-          }
-
-          if (workflow.actions && Array.isArray(workflow.actions)) {
-            for (const action of workflow.actions) {
-              if (action.type === 'column') {
-                // Backend returns string, keep as string to match column.id type
-                frontendActions.column = action.value;
-              } else if (action.type === 'add_labels') {
-                // Backend returns string, keep as string to match label.id type
-                frontendActions.add_labels.push(action.value);
-              } else if (action.type === 'remove_labels') {
-                // Backend returns string, keep as string to match label.id type
-                frontendActions.remove_labels.push(action.value);
-              } else if (action.type === 'close') {
-                if (action.value === 'reopen' || action.value === 'false') {
-                  frontendActions.issue_state = 'reopen';
-                } else if (action.value === 'true' || action.value === 'close') {
-                  frontendActions.issue_state = 'close';
-                }
-              }
-            }
-          }
-        } else if (workflow?.actions && Array.isArray(workflow.actions)) {
-          for (const action of workflow.actions) {
-            if (action.type === 'column') {
-              // Backend returns string, keep as string to match column.id type
-              frontendActions.column = action.value;
-            } else if (action.type === 'add_labels') {
-              // Backend returns string, keep as string to match label.id type
-              frontendActions.add_labels.push(action.value);
-            } else if (action.type === 'remove_labels') {
-              // Backend returns string, keep as string to match label.id type
-              frontendActions.remove_labels.push(action.value);
-            } else if (action.type === 'close') {
-              if (action.value === 'reopen' || action.value === 'false') {
-                frontendActions.issue_state = 'reopen';
-              } else if (action.value === 'true' || action.value === 'close') {
-                frontendActions.issue_state = 'close';
-              }
-            }
-          }
-        }
-
-        store.workflowFilters = frontendFilters;
-        store.workflowActions = frontendActions;
-        store.updateDraft(eventId, frontendFilters, frontendActions);
+        store.workflowFilters = convertFilters(workflow);
+        store.workflowActions = convertActions(workflow);
+        store.updateDraft(eventId, store.workflowFilters, store.workflowActions);
       } finally {
         store.loading = false;
       }
@@ -188,7 +171,7 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
       store.workflowFilters = createDefaultFilters();
       store.workflowActions = createDefaultActions();
 
-      const currentEventId = store.selectedWorkflow?.event_id || store.selectedWorkflow?.base_event_type;
+      const currentEventId = store.selectedWorkflow?.event_id;
       if (currentEventId) {
         store.updateDraft(currentEventId, store.workflowFilters, store.workflowActions);
       }
@@ -200,8 +183,7 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
       store.saving = true;
       try {
         // For new workflows, use the base event type
-        const eventId = store.selectedWorkflow.base_event_type || store.selectedWorkflow.event_id;
-        const previousDraftKey = store.selectedWorkflow.event_id || store.selectedWorkflow.base_event_type;
+        const eventId = store.selectedWorkflow.event_id;
 
         // Convert frontend data format to backend JSON format
         const postData = {
@@ -237,8 +219,8 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
                                  eventKey.startsWith('new-') ||
                                  eventKey.startsWith('clone-');
 
-          if (wasNewWorkflow && previousDraftKey) {
-            store.clearDraft(previousDraftKey);
+          if (wasNewWorkflow) {
+            store.clearDraft(store.selectedWorkflow.workflow_event);
           }
 
           // Reload events from server to get the correct event structure
@@ -257,45 +239,10 @@ export function createWorkflowStore(props: {projectLink: string, eventID: string
             store.selectedItem = result.workflow.event_id;
           }
 
-          // Convert backend data to frontend format and update form
-          // Use the selectedWorkflow which now points to the reloaded workflow with complete data
-          const frontendFilters = {issue_type: '', target_column: '', labels: []};
-          const frontendActions: WorkflowActionsState = {column: '', add_labels: [], remove_labels: [], issue_state: ''};
-
-          if (store.selectedWorkflow.filters && Array.isArray(store.selectedWorkflow.filters)) {
-            for (const filter of store.selectedWorkflow.filters) {
-              if (filter.type === 'issue_type') {
-                frontendFilters.issue_type = filter.value;
-              } else if (filter.type === 'target_column') {
-                frontendFilters.target_column = filter.value;
-              } else if (filter.type === 'labels') {
-                frontendFilters.labels.push(filter.value);
-              }
-            }
-          }
-
-          if (store.selectedWorkflow.actions && Array.isArray(store.selectedWorkflow.actions)) {
-            for (const action of store.selectedWorkflow.actions) {
-              if (action.type === 'column') {
-                frontendActions.column = action.value;
-              } else if (action.type === 'add_labels') {
-                frontendActions.add_labels.push(action.value);
-              } else if (action.type === 'remove_labels') {
-                frontendActions.remove_labels.push(action.value);
-              } else if (action.type === 'close') {
-                if (action.value === 'reopen' || action.value === 'false') {
-                  frontendActions.issue_state = 'reopen';
-                } else if (action.value === 'true' || action.value === 'close') {
-                  frontendActions.issue_state = 'close';
-                }
-              }
-            }
-          }
-
-          store.workflowFilters = frontendFilters;
-          store.workflowActions = frontendActions;
+          store.workflowFilters = convertFilters(store.selectedWorkflow);
+          store.workflowActions = convertActions(store.selectedWorkflow);
           if (store.selectedWorkflow?.event_id) {
-            store.updateDraft(store.selectedWorkflow.event_id, frontendFilters, frontendActions);
+            store.updateDraft(store.selectedWorkflow.event_id, store.workflowFilters, store.workflowActions);
           }
 
           // Update URL to use the new workflow ID

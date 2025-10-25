@@ -94,8 +94,8 @@ const toggleEditMode = () => {
       // If we removed a temporary item but have no previous selection, fall back to first workflow
       const fallback = store.workflowEvents.find((w) => {
         if (!canceledWorkflow) return false;
-        const baseType = canceledWorkflow.base_event_type || canceledWorkflow.workflow_event;
-        return baseType && (w.base_event_type === baseType || w.workflow_event === baseType || w.event_id === baseType);
+        const baseType = canceledWorkflow.workflow_event;
+        return baseType && (w.workflow_event === baseType || w.event_id === baseType);
       }) || store.workflowEvents[0];
       if (fallback) {
         store.selectedItem = fallback.event_id;
@@ -132,12 +132,6 @@ const deleteWorkflow = async () => {
     return;
   }
 
-  const currentBaseEventType = store.selectedWorkflow.base_event_type || store.selectedWorkflow.workflow_event || store.selectedWorkflow.event_id;
-  const currentCapabilities = store.selectedWorkflow.capabilities;
-  // Extract base name without any parenthetical descriptions
-  const currentDisplayName = (store.selectedWorkflow.display_name || store.selectedWorkflow.workflow_event || store.selectedWorkflow.event_id)
-    .replace(/\s*\([^)]*\)\s*/g, '');
-
   // If deleting a temporary workflow (new or cloned, unsaved), just remove from list
   if (store.selectedWorkflow.id === 0) {
     const tempIndex = store.workflowEvents.findIndex((w) =>
@@ -155,7 +149,7 @@ const deleteWorkflow = async () => {
 
   // Find workflows for the same base event type
   const sameEventWorkflows = store.workflowEvents.filter((w) =>
-    (w.base_event_type === currentBaseEventType || w.workflow_event === currentBaseEventType)
+    (w.workflow_event === store.selectedWorkflow.workflow_event)
   );
 
   let workflowToSelect = null;
@@ -198,7 +192,7 @@ const cloneWorkflow = (sourceWorkflow) => {
   if (!sourceWorkflow) return;
 
   // Generate a unique temporary ID for the cloned workflow
-  const tempId = `clone-${sourceWorkflow.base_event_type || sourceWorkflow.workflow_event}-${Date.now()}`;
+  const tempId = `clone-${sourceWorkflow.workflow_event}-${Date.now()}`;
 
   // Extract base name without any parenthetical descriptions
   const baseName = (sourceWorkflow.display_name || sourceWorkflow.workflow_event || sourceWorkflow.event_id)
@@ -209,8 +203,7 @@ const cloneWorkflow = (sourceWorkflow) => {
     id: 0, // New workflow
     event_id: tempId,
     display_name: `${baseName} (Copy)`,
-    base_event_type: sourceWorkflow.base_event_type || sourceWorkflow.workflow_event || sourceWorkflow.event_id,
-    workflow_event: sourceWorkflow.workflow_event || sourceWorkflow.base_event_type,
+    workflow_event: sourceWorkflow.workflow_event,
     capabilities: sourceWorkflow.capabilities,
     filters: JSON.parse(JSON.stringify(sourceWorkflow.filters || [])), // Deep clone
     actions: JSON.parse(JSON.stringify(sourceWorkflow.actions || [])), // Deep clone
@@ -325,12 +318,11 @@ const workflowList = computed(() => {
   return workflows.map((workflow) => ({
     ...workflow,
     isConfigured: isWorkflowConfigured(workflow),
-    base_event_type: workflow.base_event_type || workflow.workflow_event || workflow.event_id,
     display_name: workflow.display_name || workflow.workflow_event || workflow.event_id,
   }));
 });
 
-const createNewWorkflow = (baseEventType, capabilities, displayName) => {
+const createNewWorkflow = (eventType, capabilities, displayName) => {
   // Store current selection before creating new workflow
   if (!isInEditMode.value) {
     previousSelection.value = {
@@ -339,7 +331,7 @@ const createNewWorkflow = (baseEventType, capabilities, displayName) => {
     };
   }
 
-  const tempId = `new-${baseEventType}-${Date.now()}`;
+  const tempId = `new-${eventType}-${Date.now()}`;
   const newWorkflow = {
     id: 0,
     event_id: tempId,
@@ -348,14 +340,13 @@ const createNewWorkflow = (baseEventType, capabilities, displayName) => {
     filters: [],
     actions: [],
     filter_summary: '',
-    base_event_type: baseEventType,
-    workflow_event: baseEventType,
+    workflow_event: eventType,
     enabled: true, // Ensure new workflows are enabled by default
   };
 
   store.selectedWorkflow = newWorkflow;
   // For unconfigured events, use the base event type as selected item for UI consistency
-  store.selectedItem = baseEventType;
+  store.selectedItem = eventType;
   store.resetWorkflowData();
   // Unconfigured workflows are always in edit mode by default
 };
@@ -383,8 +374,7 @@ const selectWorkflowItem = async (item) => {
   } else {
     // This is an unconfigured event - check if we already have a workflow object for it
     const existingWorkflow = store.workflowEvents.find((w) =>
-      w.id === 0 &&
-      (w.base_event_type === item.base_event_type || w.workflow_event === item.base_event_type),
+      w.id === 0 && w.workflow_event === item.workflow_event,
     );
 
     if (existingWorkflow) {
@@ -392,12 +382,12 @@ const selectWorkflowItem = async (item) => {
       await selectWorkflowEvent(existingWorkflow);
     } else {
       // This is truly a new unconfigured event, create new workflow
-      createNewWorkflow(item.base_event_type, item.capabilities, item.display_name);
+      createNewWorkflow(item.workflow_event, item.capabilities, item.display_name);
     }
 
     // Update URL for workflow
-    const newUrl = `${props.projectLink}/workflows/${item.base_event_type}`;
-    window.history.pushState({eventId: item.base_event_type}, '', newUrl);
+    const newUrl = `${props.projectLink}/workflows/${item.workflow_event}`;
+    window.history.pushState({eventId: item.workflow_event}, '', newUrl);
   }
 };
 
@@ -433,18 +423,17 @@ const isItemSelected = (item) => {
     // For configured workflows or temporary workflows (new), match by event_id
     return store.selectedItem === item.event_id;
   }
-    // For unconfigured events, match by base_event_type
-  return store.selectedItem === item.base_event_type;
+    // For unconfigured events, match by workflow_event
+  return store.selectedItem === item.workflow_event;
 };
 
 // Get display name for workflow with numbering for same types
 const getWorkflowDisplayName = (item, index) => {
   const list = workflowList.value;
-  const baseEventType = item.base_event_type || item.workflow_event;
 
   // Find all workflows of the same type
   const sameTypeWorkflows = list.filter(w =>
-    (w.base_event_type || w.workflow_event) === baseEventType &&
+    w.workflow_event === item.workflow_event &&
     (w.isConfigured || w.id === 0) // Only count configured workflows
   );
 
@@ -517,7 +506,7 @@ watch(isInEditMode, async (newVal) => {
 
 const getCurrentDraftKey = () => {
   if (!store.selectedWorkflow) return null;
-  return store.selectedWorkflow.event_id || store.selectedWorkflow.base_event_type;
+  return store.selectedWorkflow.event_id || store.selectedWorkflow.workflow_event;
 };
 
 const persistDraftState = () => {
@@ -576,11 +565,11 @@ onMounted(async () => {
       // Check if eventID matches a base event type (unconfigured workflow)
       const items = workflowList.value;
       const matchingUnconfigured = items.find((item) =>
-        !item.isConfigured && (item.base_event_type === props.eventID || item.event_id === props.eventID),
+        !item.isConfigured && (item.workflow_event === props.eventID || item.event_id === props.eventID),
       );
       if (matchingUnconfigured) {
         // Create new workflow for this base event type
-        createNewWorkflow(matchingUnconfigured.base_event_type, matchingUnconfigured.capabilities, matchingUnconfigured.display_name);
+        createNewWorkflow(matchingUnconfigured.workflow_event, matchingUnconfigured.capabilities, matchingUnconfigured.display_name);
       } else {
         // Fallback: select first available item
         if (items.length > 0) {
@@ -626,10 +615,10 @@ const popstateHandler = (e) => {
       // Check if it's a base event type
       const items = workflowList.value;
       const matchingUnconfigured = items.find((item) =>
-        !item.isConfigured && (item.base_event_type === e.state.eventId || item.event_id === e.state.eventId),
+        !item.isConfigured && (item.workflow_event === e.state.eventId || item.event_id === e.state.eventId),
       );
       if (matchingUnconfigured) {
-        createNewWorkflow(matchingUnconfigured.base_event_type, matchingUnconfigured.capabilities, matchingUnconfigured.display_name);
+        createNewWorkflow(matchingUnconfigured.workflow_event, matchingUnconfigured.capabilities, matchingUnconfigured.display_name);
       }
     }
   }
@@ -826,6 +815,23 @@ onUnmounted(() => {
                     {{ store.workflowFilters.issue_type === 'issue' ? 'Issues' :
                       store.workflowFilters.issue_type === 'pull_request' ? 'Pull requests' :
                       'Issues And Pull Requests' }}
+                  </div>
+                </div>
+
+                <div class="field" v-if="hasFilter('source_column')">
+                  <label>When moved from column</label>
+                  <select
+                    v-if="isInEditMode"
+                    v-model="store.workflowFilters.source_column"
+                    class="column-select"
+                  >
+                    <option value="">Any column</option>
+                    <option v-for="column in store.projectColumns" :key="column.id" :value="String(column.id)">
+                      {{ column.title }}
+                    </option>
+                  </select>
+                  <div v-else class="readonly-value">
+                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.source_column)?.title || 'Any column' }}
                   </div>
                 </div>
 

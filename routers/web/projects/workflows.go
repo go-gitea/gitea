@@ -5,7 +5,6 @@ package projects
 
 import (
 	stdCtx "context"
-	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -38,9 +37,15 @@ func getFilterSummary(ctx stdCtx.Context, filters []project_model.WorkflowFilter
 		case project_model.WorkflowFilterTypeIssueType:
 			switch filter.Value {
 			case "issue":
-				summary.WriteString(" (Issues only)")
+				if summary.Len() > 0 {
+					summary.WriteString(" ")
+				}
+				summary.WriteString("(Issues only)")
 			case "pull_request":
-				summary.WriteString(" (Pull requests only)")
+				if summary.Len() > 0 {
+					summary.WriteString(" ")
+				}
+				summary.WriteString("(Pull requests only)")
 			}
 		case project_model.WorkflowFilterTypeSourceColumn:
 			columnID, _ := strconv.ParseInt(filter.Value, 10, 64)
@@ -52,7 +57,10 @@ func getFilterSummary(ctx stdCtx.Context, filters []project_model.WorkflowFilter
 				log.Error("GetColumn: %v", err)
 				continue
 			}
-			summary.WriteString(" (Source Column: " + col.Title + ")")
+			if summary.Len() > 0 {
+				summary.WriteString(" ")
+			}
+			summary.WriteString("(Source: " + col.Title + ")")
 		case project_model.WorkflowFilterTypeTargetColumn:
 			columnID, _ := strconv.ParseInt(filter.Value, 10, 64)
 			if columnID <= 0 {
@@ -63,7 +71,10 @@ func getFilterSummary(ctx stdCtx.Context, filters []project_model.WorkflowFilter
 				log.Error("GetColumn: %v", err)
 				continue
 			}
-			summary.WriteString(" (Target Column: " + col.Title + ")")
+			if summary.Len() > 0 {
+				summary.WriteString(" ")
+			}
+			summary.WriteString("(Target: " + col.Title + ")")
 		case project_model.WorkflowFilterTypeLabels:
 			labelID, _ := strconv.ParseInt(filter.Value, 10, 64)
 			if labelID > 0 {
@@ -76,7 +87,10 @@ func getFilterSummary(ctx stdCtx.Context, filters []project_model.WorkflowFilter
 		if err != nil {
 			log.Error("GetLabelsByIDs: %v", err)
 		} else {
-			summary.WriteString(" (Labels: ")
+			if summary.Len() > 0 {
+				summary.WriteString(" ")
+			}
+			summary.WriteString("(Labels: ")
 			for i, label := range labels {
 				summary.WriteString(label.Name)
 				if i < len(labels)-1 {
@@ -225,8 +239,7 @@ func WorkflowsEvents(ctx *context.Context) {
 		ID            int64                                   `json:"id"`
 		EventID       string                                  `json:"event_id"`
 		DisplayName   string                                  `json:"display_name"`
-		BaseEventType string                                  `json:"base_event_type"` // Base event type for grouping
-		WorkflowEvent string                                  `json:"workflow_event"`  // The actual workflow event
+		WorkflowEvent string                                  `json:"workflow_event"` // The workflow event
 		Capabilities  project_model.WorkflowEventCapabilities `json:"capabilities"`
 		Filters       []project_model.WorkflowFilter          `json:"filters"`
 		Actions       []project_model.WorkflowAction          `json:"actions"`
@@ -255,7 +268,6 @@ func WorkflowsEvents(ctx *context.Context) {
 					ID:            wf.ID,
 					EventID:       strconv.FormatInt(wf.ID, 10),
 					DisplayName:   string(ctx.Tr(wf.WorkflowEvent.LangKey())),
-					BaseEventType: string(wf.WorkflowEvent),
 					WorkflowEvent: string(wf.WorkflowEvent),
 					Capabilities:  capabilities[event],
 					Filters:       wf.WorkflowFilters,
@@ -271,7 +283,6 @@ func WorkflowsEvents(ctx *context.Context) {
 				ID:            0,
 				EventID:       event.EventID(),
 				DisplayName:   string(ctx.Tr(event.LangKey())),
-				BaseEventType: string(event),
 				WorkflowEvent: string(event),
 				Capabilities:  capabilities[event],
 				FilterSummary: "",
@@ -460,6 +471,7 @@ type WorkflowsPostForm struct {
 	Actions map[string]any `json:"actions"`
 }
 
+// WorkflowsPost handles creating or updating a workflow
 func WorkflowsPost(ctx *context.Context) {
 	projectID := ctx.PathParamInt64("id")
 	p, err := project_model.GetProjectByID(ctx, projectID)
@@ -495,7 +507,7 @@ func WorkflowsPost(ctx *context.Context) {
 		return
 	}
 	if form.EventID == "" {
-		ctx.ServerError("InvalidEventID", errors.New("EventID is required"))
+		ctx.JSON(http.StatusBadRequest, map[string]any{"error": "InvalidEventID", "message": "EventID is required"})
 		return
 	}
 
@@ -505,6 +517,12 @@ func WorkflowsPost(ctx *context.Context) {
 
 	eventID, _ := strconv.ParseInt(form.EventID, 10, 64)
 	if eventID == 0 {
+		// check if workflow event is valid
+		if !project_model.IsValidWorkflowEvent(form.EventID) {
+			ctx.JSON(http.StatusBadRequest, map[string]any{"error": "EventID is invalid"})
+			return
+		}
+
 		// Create a new workflow for the given event
 		wf := &project_model.Workflow{
 			ProjectID:       projectID,

@@ -41,6 +41,15 @@ func GetWorkflowEvents() []WorkflowEvent {
 	return workflowEvents
 }
 
+func IsValidWorkflowEvent(event string) bool {
+	for _, we := range workflowEvents {
+		if we.EventID() == event {
+			return true
+		}
+	}
+	return false
+}
+
 func (we WorkflowEvent) LangKey() string {
 	switch we {
 	case WorkflowEventItemOpened:

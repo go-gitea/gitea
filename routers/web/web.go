@@ -1048,7 +1048,7 @@ func registerWebRoutes(m *web.Router) {
 				m.Post("/{workflow_id}", projects.WorkflowsPost)
 				m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
 				m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
-			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
 			m.Group("", func() { //nolint:dupl // duplicates lines 1421-1441
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
@@ -1437,13 +1437,6 @@ func registerWebRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}/projects", func() {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
-		m.Group("/{id}/workflows", func() {
-			m.Get("", projects.Workflows)
-			m.Get("/{workflow_id}", projects.Workflows)
-			m.Post("/{workflow_id}", projects.WorkflowsPost)
-			m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
-			m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
-		})
 		m.Group("", func() { //nolint:dupl // duplicates lines 1034-1054
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
@@ -1462,6 +1455,14 @@ func registerWebRoutes(m *web.Router) {
 					m.Delete("", repo.DeleteProjectColumn)
 					m.Post("/default", repo.SetDefaultProjectColumn)
 					m.Post("/move", repo.MoveIssues)
+				})
+
+				m.Group("/workflows", func() {
+					m.Get("", projects.Workflows)
+					m.Get("/{workflow_id}", projects.Workflows)
+					m.Post("/{workflow_id}", projects.WorkflowsPost)
+					m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
+					m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
 				})
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
