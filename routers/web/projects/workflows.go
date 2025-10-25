@@ -619,8 +619,9 @@ func WorkflowsStatus(ctx *context.Context) {
 	}
 
 	// Get enabled status from form
+	_ = ctx.Req.ParseForm()
 	enabledStr := ctx.Req.FormValue("enabled")
-	enabled := enabledStr == "true"
+	enabled, _ := strconv.ParseBool(enabledStr)
 
 	if enabled {
 		if err := project_model.EnableWorkflow(ctx, workflowID); err != nil {
@@ -664,7 +665,11 @@ func WorkflowsDelete(ctx *context.Context) {
 
 	wf, err := project_model.GetWorkflowByID(ctx, workflowID)
 	if err != nil {
-		ctx.ServerError("GetWorkflowByID", err)
+		if db.IsErrNotExist(err) {
+			ctx.NotFound(nil)
+		} else {
+			ctx.ServerError("GetWorkflowByID", err)
+		}
 		return
 	}
 	if wf.ProjectID != projectID {

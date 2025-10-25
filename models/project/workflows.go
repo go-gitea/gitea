@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 )
 
 type WorkflowEvent string
@@ -212,7 +211,7 @@ func GetWorkflowByID(ctx context.Context, id int64) (*Workflow, error) {
 		return nil, err
 	}
 	if !exist {
-		return nil, util.ErrNotExist
+		return nil, db.ErrNotExist{Resource: "ProjectWorkflow", ID: id}
 	}
 	return p, nil
 }
