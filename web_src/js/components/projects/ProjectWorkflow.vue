@@ -730,7 +730,7 @@ onUnmounted(() => {
               <!-- Cancel Button -->
               <button
                 v-if="showCancelButton"
-                class="btn btn-outline-secondary"
+                class="ui small button"
                 @click="toggleEditMode"
               >
                 <i class="times icon"/>
@@ -739,7 +739,7 @@ onUnmounted(() => {
 
               <!-- Save Button -->
               <button
-                class="btn btn-primary"
+                class="ui small primary button"
                 @click="saveWorkflow"
                 :disabled="store.saving"
               >
@@ -750,7 +750,7 @@ onUnmounted(() => {
               <!-- Delete Button (only for configured workflows) -->
               <button
                 v-if="store.selectedWorkflow && store.selectedWorkflow.id > 0"
-                class="btn btn-danger"
+                class="ui small red button"
                 @click="deleteWorkflow"
               >
                 <i class="trash icon"/>
@@ -762,7 +762,7 @@ onUnmounted(() => {
             <template v-else-if="store.selectedWorkflow && store.selectedWorkflow.id > 0">
               <!-- Edit Button -->
               <button
-                class="btn btn-primary"
+                class="ui small primary button"
                 @click="toggleEditMode"
               >
                 <i class="edit icon"/>
@@ -771,8 +771,8 @@ onUnmounted(() => {
 
               <!-- Enable/Disable Button -->
               <button
-                class="btn"
-                :class="store.selectedWorkflow.enabled ? 'btn-outline-danger' : 'btn-success'"
+                class="ui small button"
+                :class="store.selectedWorkflow.enabled ? 'basic red' : 'green'"
                 @click="toggleWorkflowStatus"
               >
                 <i :class="store.selectedWorkflow.enabled ? 'pause icon' : 'play icon'"/>
@@ -781,7 +781,7 @@ onUnmounted(() => {
 
               <!-- Clone Button -->
               <button
-                class="btn btn-outline-secondary"
+                class="ui small button"
                 @click="cloneWorkflow(store.selectedWorkflow)"
                 title="Clone this workflow"
               >
@@ -1424,105 +1424,6 @@ onUnmounted(() => {
 .form-check input[type="checkbox"] {
   float: left;
   margin-left: -1.5em;
-}
-
-/* Button styles to replace Semantic UI */
-.btn {
-  display: inline-block;
-  padding: 0.375rem 0.75rem;
-  margin-bottom: 0;
-  font-size: 1rem;
-  font-weight: 400;
-  line-height: 1.5;
-  color: #212529;
-  text-align: center;
-  text-decoration: none;
-  vertical-align: middle;
-  cursor: pointer;
-  background-color: transparent;
-  border: 1px solid transparent;
-  border-radius: 0.375rem;
-  transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-}
-
-.btn:hover {
-  color: #212529;
-  text-decoration: none;
-}
-
-.btn:focus {
-  outline: 0;
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
-.btn:disabled {
-  pointer-events: none;
-  opacity: 0.65;
-}
-
-.btn-primary {
-  color: #fff;
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-}
-
-.btn-primary:hover {
-  color: #fff;
-  background-color: #0b5ed7;
-  border-color: #0a58ca;
-}
-
-.btn-primary:focus {
-  color: #fff;
-  background-color: #0b5ed7;
-  border-color: #0a58ca;
-  box-shadow: 0 0 0 0.25rem rgba(49, 132, 253, 0.5);
-}
-
-.btn-outline-secondary {
-  color: #6c757d;
-  border-color: #6c757d;
-}
-
-.btn-outline-secondary:hover {
-  color: #fff;
-  background-color: #6c757d;
-  border-color: #6c757d;
-}
-
-.btn-success {
-  color: #fff;
-  background-color: #198754;
-  border-color: #198754;
-}
-
-.btn-success:hover {
-  color: #fff;
-  background-color: #157347;
-  border-color: #146c43;
-}
-
-.btn-outline-danger {
-  color: #dc3545;
-  border-color: #dc3545;
-}
-
-.btn-outline-danger:hover {
-  color: #fff;
-  background-color: #dc3545;
-  border-color: #dc3545;
-}
-
-.btn-danger {
-  color: #fff;
-  background-color: #dc3545;
-  border-color: #dc3545;
-}
-
-.btn-danger:hover {
-  color: #fff;
-  background-color: #c82333;
-  border-color: #bd2130;
 }
 
 /* Label selector styles */
