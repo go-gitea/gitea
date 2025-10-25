@@ -694,7 +694,6 @@ func Test_WebhookPullRequest(t *testing.T) {
 		testAPICreateWebhookForRepo(t, sessionUser2, "user2", "repo1", provider.URL(), "pull_request_only")
 
 		testAPICreateBranch(t, sessionUser2, "user2", "repo1", "master", "master2", http.StatusCreated)
-
 		// 2. trigger the webhook
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 		testPullCreateDirectly(t, sessionUser4, createPullRequestOptions{
@@ -1438,7 +1437,7 @@ jobs:
 	assert.Equal(t, "user2/repo1", webhookData.payloads[1].Repo.FullName)
 
 	// Call rerun ui api
-	// Only a web UI API exists for cancelling workflow runs, so use the UI endpoint.
+	// Only a web UI API exists for rerunning workflow runs, so use the UI endpoint.
 	rerunURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/rerun", webhookData.payloads[0].WorkflowRun.RunNumber)
 	req = NewRequestWithValues(t, "POST", rerunURL, map[string]string{
 		"_csrf": GetUserCSRFToken(t, session),
@@ -1446,6 +1445,15 @@ jobs:
 	session.MakeRequest(t, req, http.StatusOK)
 
 	assert.Len(t, webhookData.payloads, 3)
+
+	// 5. Validate the third webhook payload
+	assert.Equal(t, "workflow_run", webhookData.triggeredEvent)
+	assert.Equal(t, "requested", webhookData.payloads[2].Action)
+	assert.Equal(t, "queued", webhookData.payloads[2].WorkflowRun.Status)
+	assert.Equal(t, repo1.DefaultBranch, webhookData.payloads[2].WorkflowRun.HeadBranch)
+	assert.Equal(t, commitID, webhookData.payloads[2].WorkflowRun.HeadSha)
+	assert.Equal(t, "repo1", webhookData.payloads[2].Repo.Name)
+	assert.Equal(t, "user2/repo1", webhookData.payloads[2].Repo.FullName)
 }
 
 func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *workflowRunWebhook, allJobsAbandoned bool) {

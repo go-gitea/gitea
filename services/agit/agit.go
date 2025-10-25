@@ -6,8 +6,8 @@ package agit
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"fmt"
-	"os"
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -31,6 +31,34 @@ func parseAgitPushOptionValue(s string) string {
 		return util.Iif(err == nil, string(decoded), s)
 	}
 	return s
+}
+
+func GetAgitBranchInfo(ctx context.Context, repoID int64, baseBranchName string) (string, string, error) {
+	baseBranchExist, err := git_model.IsBranchExist(ctx, repoID, baseBranchName)
+	if err != nil {
+		return "", "", err
+	}
+	if baseBranchExist {
+		return baseBranchName, "", nil
+	}
+
+	// try match <target-branch>/<topic-branch>
+	// refs/for have been trimmed to get baseBranchName
+	for p, v := range baseBranchName {
+		if v != '/' {
+			continue
+		}
+
+		baseBranchExist, err := git_model.IsBranchExist(ctx, repoID, baseBranchName[:p])
+		if err != nil {
+			return "", "", err
+		}
+		if baseBranchExist {
+			return baseBranchName[:p], baseBranchName[p+1:], nil
+		}
+	}
+
+	return "", "", util.NewNotExistErrorf("base branch does not exist")
 }
 
 // ProcReceive handle proc receive work
@@ -71,17 +99,19 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		baseBranchName := opts.RefFullNames[i].ForBranchName()
-		currentTopicBranch := ""
-		if !gitrepo.IsBranchExist(ctx, repo, baseBranchName) {
-			// try match refs/for/<target-branch>/<topic-branch>
-			for p, v := range baseBranchName {
-				if v == '/' && gitrepo.IsBranchExist(ctx, repo, baseBranchName[:p]) && p != len(baseBranchName)-1 {
-					currentTopicBranch = baseBranchName[p+1:]
-					baseBranchName = baseBranchName[:p]
-					break
-				}
+		baseBranchName, currentTopicBranch, err := GetAgitBranchInfo(ctx, repo.ID, opts.RefFullNames[i].ForBranchName())
+		if err != nil {
+			if !errors.Is(err, util.ErrNotExist) {
+				return nil, fmt.Errorf("failed to get branch information. Error: %w", err)
 			}
+			// If branch does not exist, we can continue
+			results = append(results, private.HookProcReceiveRefResult{
+				OriginalRef: opts.RefFullNames[i],
+				OldOID:      opts.OldCommitIDs[i],
+				NewOID:      opts.NewCommitIDs[i],
+				Err:         "base-branch does not exist",
+			})
+			continue
 		}
 
 		if len(topicBranch) == 0 && len(currentTopicBranch) == 0 {
@@ -199,9 +229,10 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		}
 
 		if !forcePush.Value() {
-			output, _, err := gitcmd.NewCommand("rev-list", "--max-count=1").
-				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
-				RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
+			output, err := gitrepo.RunCmdString(ctx, repo,
+				gitcmd.NewCommand("rev-list", "--max-count=1").
+					AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]),
+			)
 			if err != nil {
 				return nil, fmt.Errorf("failed to detect force push: %w", err)
 			} else if len(output) > 0 {

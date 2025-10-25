@@ -60,9 +60,9 @@ const (
 )
 
 type fileInfo struct {
-	fileSize int64
-	lfsMeta  *lfs.Pointer
-	st       typesniffer.SniffedType
+	blobOrLfsSize int64
+	lfsMeta       *lfs.Pointer
+	st            typesniffer.SniffedType
 }
 
 func (fi *fileInfo) isLFSFile() bool {
@@ -81,7 +81,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
-	fi = &fileInfo{fileSize: blob.Size(), st: typesniffer.DetectContentType(buf)}
+	fi = &fileInfo{blobOrLfsSize: blob.Size(), st: typesniffer.DetectContentType(buf)}
 
 	// FIXME: what happens when README file is an image?
 	if !fi.st.IsText() || !setting.LFS.StartServer {
@@ -114,7 +114,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 	}
 	buf = buf[:n]
 	fi.st = typesniffer.DetectContentType(buf)
-	fi.fileSize = blob.Size()
+	fi.blobOrLfsSize = meta.Pointer.Size
 	fi.lfsMeta = &meta.Pointer
 	return buf, dataRc, fi, nil
 }
@@ -151,17 +151,28 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 }
 
 func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
+	renderer, err := markup.FindRendererByContext(renderCtx)
+	if err != nil {
+		return nil, "", err
+	}
+
 	markupRd, markupWr := io.Pipe()
 	defer markupWr.Close()
+
 	done := make(chan struct{})
 	go func() {
 		sb := &strings.Builder{}
-		// We allow NBSP here this is rendered
-		escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP)
+		if markup.RendererNeedPostProcess(renderer) {
+			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP) // We allow NBSP here this is rendered
+		} else {
+			escaped = &charset.EscapeStatus{}
+			_, _ = io.Copy(sb, markupRd)
+		}
 		output = template.HTML(sb.String())
 		close(done)
 	}()
-	err = markup.Render(renderCtx, input, markupWr)
+
+	err = markup.RenderWithRenderer(renderCtx, renderer, input, markupWr)
 	_ = markupWr.CloseWithError(err)
 	<-done
 	return escaped, output, err

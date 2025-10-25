@@ -267,7 +267,11 @@ func Routes() *web.Router {
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	mid = append(mid, common.Sessioner(), context.Contexter())
+	if sessionMid, err := common.Sessioner(); err == nil && sessionMid != nil {
+		mid = append(mid, sessionMid, context.Contexter())
+	} else {
+		log.Fatal("common.Sessioner failed: %v", err)
+	}
 
 	// Get user from session if logged in.
 	mid = append(mid, webAuth(buildAuthGroup()))
@@ -1455,6 +1459,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
 		m.Post("/run", reqRepoActionsWriter, actions.Run)
 		m.Get("/workflow-dispatch-inputs", reqRepoActionsWriter, actions.WorkflowDispatchInputs)
+		m.Post("/approve-all-checks", reqRepoActionsWriter, actions.ApproveAllChecks)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").

@@ -104,7 +104,8 @@ func TestAgitPullPush(t *testing.T) {
 		err = gitcmd.NewCommand("push", "origin",
 			"-o", "title=test-title", "-o", "description=test-description",
 			"HEAD:refs/for/master/test-agit-push",
-		).Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+		).WithDir(dstPath).
+			Run(t.Context())
 		assert.NoError(t, err)
 
 		// check pull request exist
@@ -118,20 +119,26 @@ func TestAgitPullPush(t *testing.T) {
 		assert.NoError(t, err)
 
 		// push 2
-		err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+		err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").
+			WithDir(dstPath).
+			Run(t.Context())
 		assert.NoError(t, err)
 
 		// reset to first commit
-		err = gitcmd.NewCommand("reset", "--hard", "HEAD~1").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+		err = gitcmd.NewCommand("reset", "--hard", "HEAD~1").WithDir(dstPath).Run(t.Context())
 		assert.NoError(t, err)
 
 		// test force push without confirm
-		_, stderr, err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").RunStdString(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+		_, stderr, err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push").
+			WithDir(dstPath).
+			RunStdString(t.Context())
 		assert.Error(t, err)
 		assert.Contains(t, stderr, "[remote rejected] HEAD -> refs/for/master/test-agit-push (request `force-push` push option)")
 
 		// test force push with confirm
-		err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+		err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-push", "-o", "force-push").
+			WithDir(dstPath).
+			Run(t.Context())
 		assert.NoError(t, err)
 	})
 }
@@ -160,7 +167,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 		err = gitcmd.NewCommand("push", "origin",
 			"-o", "title=Test agit Review Staleness", "-o", "description=Testing review staleness",
 			"HEAD:refs/for/master/test-agit-review",
-		).Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+		).WithDir(dstPath).Run(t.Context())
 		assert.NoError(t, err)
 
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
@@ -200,7 +207,9 @@ func TestAgitReviewStaleness(t *testing.T) {
 		_, err = generateCommitWithNewData(t.Context(), testFileSizeSmall, dstPath, "user2@example.com", "User Two", "updated-")
 		assert.NoError(t, err)
 
-		err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-review").Run(t.Context(), &gitcmd.RunOpts{Dir: dstPath})
+		err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master/test-agit-review").
+			WithDir(dstPath).
+			Run(t.Context())
 		assert.NoError(t, err)
 
 		// Reload PR to get updated commit ID

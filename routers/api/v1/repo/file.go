@@ -355,6 +355,7 @@ func ReqChangeRepoFileOptionsAndCheck(ctx *context.APIContext) {
 		Message:   commonOpts.Message,
 		OldBranch: commonOpts.BranchName,
 		NewBranch: commonOpts.NewBranchName,
+		ForcePush: commonOpts.ForcePush,
 		Committer: &files_service.IdentityOptions{
 			GitUserName:  commonOpts.Committer.Name,
 			GitUserEmail: commonOpts.Committer.Email,
@@ -524,7 +525,7 @@ func CreateFile(ctx *context.APIContext) {
 func UpdateFile(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/contents/{filepath} repository repoUpdateFile
 	// ---
-	// summary: Update a file in a repository
+	// summary: Update a file in a repository if SHA is set, or create the file if SHA is not set
 	// consumes:
 	// - application/json
 	// produces:
@@ -553,6 +554,8 @@ func UpdateFile(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileResponse"
+	//   "201":
+	//     "$ref": "#/responses/FileResponse"
 	//   "403":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -571,8 +574,9 @@ func UpdateFile(ctx *context.APIContext) {
 		ctx.APIError(http.StatusUnprocessableEntity, err)
 		return
 	}
+	willCreate := apiOpts.SHA == ""
 	opts.Files = append(opts.Files, &files_service.ChangeRepoFile{
-		Operation:     "update",
+		Operation:     util.Iif(willCreate, "create", "update"),
 		ContentReader: contentReader,
 		SHA:           apiOpts.SHA,
 		FromTreePath:  apiOpts.FromPath,
@@ -586,11 +590,16 @@ func UpdateFile(ctx *context.APIContext) {
 		handleChangeRepoFilesError(ctx, err)
 	} else {
 		fileResponse := files_service.GetFileResponseFromFilesResponse(filesResponse, 0)
-		ctx.JSON(http.StatusOK, fileResponse)
+		ctx.JSON(util.Iif(willCreate, http.StatusCreated, http.StatusOK), fileResponse)
 	}
 }
 
 func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
+	if git.IsErrPushRejected(err) {
+		err := err.(*git.ErrPushRejected)
+		ctx.APIError(http.StatusForbidden, err.Message)
+		return
+	}
 	if files_service.IsErrUserCannotCommit(err) || pull_service.IsErrFilePathProtected(err) {
 		ctx.APIError(http.StatusForbidden, err)
 		return

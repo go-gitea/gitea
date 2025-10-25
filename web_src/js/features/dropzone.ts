@@ -28,7 +28,6 @@ async function createDropzone(el: HTMLElement, opts: DropzoneOptions) {
 export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFile>, {width, dppx}: {width?: number, dppx?: number} = {}) {
   let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
   if (isImageFile(file)) {
-    fileMarkdown = `!${fileMarkdown}`;
     if (width > 0 && dppx > 1) {
       // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
       // method to change image size in Markdown that is supported by all implementations.

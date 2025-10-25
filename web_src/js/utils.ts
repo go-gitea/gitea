@@ -35,7 +35,12 @@ export function isDarkTheme(): boolean {
 
 /** strip <tags> from a string */
 export function stripTags(text: string): string {
-  return text.replace(/<[^>]*>?/g, '');
+  let prev = '';
+  while (prev !== text) {
+    prev = text;
+    text = text.replace(/<[^>]*>?/g, '');
+  }
+  return text;
 }
 
 export function parseIssueHref(href: string): IssuePathInfo {
