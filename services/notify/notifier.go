@@ -43,7 +43,7 @@ type Notifier interface {
 	IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
 		addedLabels, removedLabels []*issues_model.Label)
 	IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newProject *project_model.Project)
-	IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newColumnID int64)
+	IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID, newColumnID int64)
 
 	NewPullRequest(ctx context.Context, pr *issues_model.PullRequest, mentions []*user_model.User)
 	MergePullRequest(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest)

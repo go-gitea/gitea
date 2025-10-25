@@ -36,6 +36,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 	if err != nil {
 		return err
 	}
+	oldColumnIDsMap := make(map[int64]int64, len(issues))
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if _, err := issues.LoadRepositories(ctx); err != nil {
@@ -62,6 +63,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 			if err != nil {
 				return err
 			}
+			oldColumnIDsMap[issueID] = projectColumnID
 
 			if projectColumnID != column.ID {
 				// add timeline to issue
@@ -90,7 +92,7 @@ func MoveIssuesOnProjectColumn(ctx context.Context, doer *user_model.User, colum
 	}
 
 	for _, issue := range issues {
-		notify.IssueChangeProjectColumn(ctx, doer, issue, column.ID)
+		notify.IssueChangeProjectColumn(ctx, doer, issue, oldColumnIDsMap[issue.ID], column.ID)
 	}
 
 	return nil
@@ -216,13 +218,17 @@ func LoadIssueNumbersForProject(ctx context.Context, project *project_model.Proj
 	return nil
 }
 
-func MoveIssueToAnotherColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, column *project_model.Column) error {
+func MoveIssueToAnotherColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newColumn *project_model.Column) error {
+	oldColumnID, err := issue.ProjectColumnID(ctx)
+	if err != nil {
+		return err
+	}
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := project_model.MoveIssueToAnotherColumn(ctx, issue.ID, column); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=? WHERE issue_id=?", newColumn.ID, issue.ID); err != nil {
 			return err
 		}
 
-		if err := column.LoadProject(ctx); err != nil {
+		if err := newColumn.LoadProject(ctx); err != nil {
 			return err
 		}
 
@@ -232,10 +238,10 @@ func MoveIssueToAnotherColumn(ctx context.Context, doer *user_model.User, issue 
 			Doer:               doer,
 			Repo:               issue.Repo,
 			Issue:              issue,
-			ProjectID:          column.ProjectID,
-			ProjectTitle:       column.Project.Title,
-			ProjectColumnID:    column.ID,
-			ProjectColumnTitle: column.Title,
+			ProjectID:          newColumn.ProjectID,
+			ProjectTitle:       newColumn.Project.Title,
+			ProjectColumnID:    newColumn.ID,
+			ProjectColumnTitle: newColumn.Title,
 		}); err != nil {
 			return err
 		}
@@ -244,6 +250,6 @@ func MoveIssueToAnotherColumn(ctx context.Context, doer *user_model.User, issue 
 		return err
 	}
 
-	notify.IssueChangeProjectColumn(ctx, doer, issue, column.ID)
+	notify.IssueChangeProjectColumn(ctx, doer, issue, oldColumnID, newColumn.ID)
 	return nil
 }

@@ -55,7 +55,7 @@ func (m *workflowNotifier) NewIssue(ctx context.Context, issue *issues_model.Iss
 	// Find workflows for the ItemOpened event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == project_model.WorkflowEventItemOpened {
-			fireIssueWorkflow(ctx, workflow, issue, 0)
+			fireIssueWorkflow(ctx, workflow, issue, 0, 0)
 		}
 	}
 }
@@ -92,7 +92,7 @@ func (m *workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_mod
 	// Find workflows for the specific event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == workflowEvent {
-			fireIssueWorkflow(ctx, workflow, issue, 0)
+			fireIssueWorkflow(ctx, workflow, issue, 0, 0)
 		}
 	}
 }
@@ -124,12 +124,12 @@ func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_mod
 	// Find workflows for the ItemOpened event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == project_model.WorkflowEventItemAddedToProject {
-			fireIssueWorkflow(ctx, workflow, issue, 0)
+			fireIssueWorkflow(ctx, workflow, issue, 0, 0)
 		}
 	}
 }
 
-func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newColumnID int64) {
+func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID, newColumnID int64) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		log.Error("IssueChangeStatus: LoadRepo: %v", err)
 		return
@@ -158,7 +158,7 @@ func (*workflowNotifier) IssueChangeProjectColumn(ctx context.Context, doer *use
 	// Find workflows for the ItemColumnChanged event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == project_model.WorkflowEventItemColumnChanged {
-			fireIssueWorkflow(ctx, workflow, issue, newColumnID)
+			fireIssueWorkflow(ctx, workflow, issue, oldColumnID, newColumnID)
 		}
 	}
 }
@@ -192,7 +192,7 @@ func (*workflowNotifier) MergePullRequest(ctx context.Context, doer *user_model.
 	// Find workflows for the PullRequestMerged event
 	for _, workflow := range workflows {
 		if workflow.WorkflowEvent == project_model.WorkflowEventPullRequestMerged {
-			fireIssueWorkflow(ctx, workflow, issue, 0)
+			fireIssueWorkflow(ctx, workflow, issue, 0, 0)
 		}
 	}
 }
@@ -231,12 +231,12 @@ func (*workflowNotifier) PullRequestReview(ctx context.Context, pr *issues_model
 	for _, workflow := range workflows {
 		if (workflow.WorkflowEvent == project_model.WorkflowEventCodeChangesRequested && review.Type == issues_model.ReviewTypeReject) ||
 			(workflow.WorkflowEvent == project_model.WorkflowEventCodeReviewApproved && review.Type == issues_model.ReviewTypeApprove) {
-			fireIssueWorkflow(ctx, workflow, issue, 0)
+			fireIssueWorkflow(ctx, workflow, issue, 0, 0)
 		}
 	}
 }
 
-func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, columnID int64) {
+func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue, sourceColumnID, targetColumnID int64) {
 	if !workflow.Enabled {
 		return
 	}
@@ -247,7 +247,7 @@ func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, is
 		return
 	}
 
-	if !matchWorkflowsFilters(workflow, issue, columnID) {
+	if !matchWorkflowsFilters(workflow, issue, sourceColumnID, targetColumnID) {
 		return
 	}
 
@@ -255,7 +255,7 @@ func fireIssueWorkflow(ctx context.Context, workflow *project_model.Workflow, is
 }
 
 // matchWorkflowsFilters checks if the issue matches all filters of the workflow
-func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model.Issue, columnID int64) bool {
+func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model.Issue, sourceColumnID, targetColumnID int64) bool {
 	for _, filter := range workflow.WorkflowFilters {
 		switch filter.Type {
 		case project_model.WorkflowFilterTypeIssueType:
@@ -270,7 +270,7 @@ func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model
 			if filter.Value == "pull_request" && !issue.IsPull {
 				return false
 			}
-		case project_model.WorkflowFilterTypeColumn:
+		case project_model.WorkflowFilterTypeTargetColumn:
 			// If filter value is empty, match all columns
 			if filter.Value == "" {
 				continue
@@ -281,7 +281,21 @@ func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model
 				return false
 			}
 			// For column changed event, check against the new column ID
-			if columnID > 0 && columnID != filterColumnID {
+			if targetColumnID > 0 && targetColumnID != filterColumnID {
+				return false
+			}
+		case project_model.WorkflowFilterTypeSourceColumn:
+			// If filter value is empty, match all columns
+			if filter.Value == "" {
+				continue
+			}
+			filterColumnID, _ := strconv.ParseInt(filter.Value, 10, 64)
+			if filterColumnID == 0 {
+				log.Error("Invalid column ID: %s", filter.Value)
+				return false
+			}
+			// For column changed event, check against the new column ID
+			if sourceColumnID > 0 && sourceColumnID != filterColumnID {
 				return false
 			}
 		case project_model.WorkflowFilterTypeLabels:

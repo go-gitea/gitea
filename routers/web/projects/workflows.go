@@ -42,7 +42,18 @@ func getFilterSummary(ctx stdCtx.Context, filters []project_model.WorkflowFilter
 			case "pull_request":
 				summary.WriteString(" (Pull requests only)")
 			}
-		case project_model.WorkflowFilterTypeColumn:
+		case project_model.WorkflowFilterTypeSourceColumn:
+			columnID, _ := strconv.ParseInt(filter.Value, 10, 64)
+			if columnID <= 0 {
+				continue
+			}
+			col, err := project_model.GetColumn(ctx, columnID)
+			if err != nil {
+				log.Error("GetColumn: %v", err)
+				continue
+			}
+			summary.WriteString(" (Source Column: " + col.Title + ")")
+		case project_model.WorkflowFilterTypeTargetColumn:
 			columnID, _ := strconv.ParseInt(filter.Value, 10, 64)
 			if columnID <= 0 {
 				continue

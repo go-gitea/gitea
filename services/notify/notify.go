@@ -282,9 +282,9 @@ func IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issu
 	}
 }
 
-func IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newColumnID int64) {
+func IssueChangeProjectColumn(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldColumnID, newColumnID int64) {
 	for _, notifier := range notifiers {
-		notifier.IssueChangeProjectColumn(ctx, doer, issue, newColumnID)
+		notifier.IssueChangeProjectColumn(ctx, doer, issue, oldColumnID, newColumnID)
 	}
 }
 

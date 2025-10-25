@@ -41,11 +41,6 @@ func AddIssueToColumn(ctx context.Context, issueID int64, newColumn *Column) err
 	})
 }
 
-func MoveIssueToAnotherColumn(ctx context.Context, issueID int64, newColumn *Column) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=? WHERE issue_id=?", newColumn.ID, issueID)
-	return err
-}
-
 func (c *Column) moveIssuesToAnotherColumn(ctx context.Context, newColumn *Column) error {
 	if c.ProjectID != newColumn.ProjectID {
 		return errors.New("columns have to be in the same project")
