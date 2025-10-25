@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -66,9 +67,12 @@ func (source *Source) FromDB(bs []byte) error {
 	}
 	if source.BindPasswordEncrypt != "" {
 		source.BindPassword, err = secret.DecryptSecret(setting.SecretKey, source.BindPasswordEncrypt)
+		if err != nil {
+			log.Error("Unable to decrypt bind password for LDAP source, maybe SECRET_KEY is wrong: %v", err)
+		}
 		source.BindPasswordEncrypt = ""
 	}
-	return err
+	return nil
 }
 
 // ToDB exports a LDAPConfig to a serialized format.
