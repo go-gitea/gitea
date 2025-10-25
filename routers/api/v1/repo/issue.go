@@ -845,6 +845,11 @@ func EditIssue(ctx *context.APIContext) {
 
 	// Update or remove the deadline, only if set and allowed
 	if (form.Deadline != nil || form.RemoveDeadline != nil) && canWrite {
+		if ctx.Doer.IsRestricted && !setting.RestrictedUser.AllowEditDueDate {
+			ctx.APIError(http.StatusForbidden, "restricted users cannot modify due dates")
+			return
+		}
+
 		var deadlineUnix timeutil.TimeStamp
 
 		if form.RemoveDeadline == nil || !*form.RemoveDeadline {
