@@ -442,5 +442,5 @@ func TestProjectWorkflowPermissions(t *testing.T) {
 	session2 := loginUser(t, user2.Name)
 	req = NewRequest(t, "POST",
 		fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/delete?_csrf=%s", user.Name, repo.Name, project.ID, workflow.ID, GetUserCSRFToken(t, session2)))
-	session2.MakeRequest(t, req, http.StatusForbidden)
+	session2.MakeRequest(t, req, http.StatusNotFound) // we use 404 to avoid leaking existence
 }
