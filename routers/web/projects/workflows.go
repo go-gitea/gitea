@@ -290,16 +290,22 @@ func WorkflowsLabels(ctx *context.Context) {
 	}
 
 	type Label struct {
-		ID    int64  `json:"id"`
-		Name  string `json:"name"`
-		Color string `json:"color"`
+		ID             int64  `json:"id"`
+		Name           string `json:"name"`
+		Color          string `json:"color"`
+		Description    string `json:"description"`
+		Exclusive      bool   `json:"exclusive"`
+		ExclusiveOrder int    `json:"exclusiveOrder"`
 	}
 	outputLabels := make([]*Label, 0, len(labels))
 	for _, label := range labels {
 		outputLabels = append(outputLabels, &Label{
-			ID:    label.ID,
-			Name:  label.Name,
-			Color: label.Color,
+			ID:             label.ID,
+			Name:           label.Name,
+			Color:          label.Color,
+			Description:    label.Description,
+			Exclusive:      label.Exclusive,
+			ExclusiveOrder: label.ExclusiveOrder,
 		})
 	}
 
