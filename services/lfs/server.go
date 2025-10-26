@@ -20,7 +20,6 @@ import (
 	"strings"
 	"time"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
 	perm_model "code.gitea.io/gitea/models/perm"
@@ -549,33 +548,31 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 
 	if ctx.Data["IsActionsToken"] == true {
 		taskID := ctx.Data["ActionsTaskID"].(int64)
-		task, err := actions_model.GetTaskByID(ctx, taskID)
+		perm, err := access_model.GetActionsUserRepoPermission(ctx, repository, ctx.Doer, taskID)
 		if err != nil {
-			log.Error("Unable to GetTaskByID for task[%d] Error: %v", taskID, err)
+			log.Error("Unable to GetActionsUserRepoPermission for task[%d] Error: %v", taskID, err)
 			return false
 		}
-		if task.RepoID != repository.ID {
-			return false
-		}
-
-		if task.IsForkPullRequest {
-			return accessMode <= perm_model.AccessModeRead
-		}
-		return accessMode <= perm_model.AccessModeWrite
+		return perm.CanAccess(accessMode, unit.TypeCode)
 	}
 
-	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
+	// it works for both anonymous request and signed-in user, then perm.CanAccess will do the permission check
 	perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
 		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository, err)
 		return false
 	}
 
-	canRead := perm.CanAccess(accessMode, unit.TypeCode)
-	if canRead && (!requireSigned || ctx.IsSigned) {
+	canAccess := perm.CanAccess(accessMode, unit.TypeCode)
+	// if it doesn't require sign-in and anonymous user has access, return true
+	// if the user is already signed in (for example: by session auth method), and the doer can access, return true
+	if canAccess && (!requireSigned || ctx.IsSigned) {
 		return true
 	}
 
+	// now, either sign-in is required or the ctx.Doer cannot access, check the LFS token
+	// however, "ctx.Doer exists but cannot access then check LFS token" should not really happen:
+	// * why a request can be sent with both valid user session and valid LFS token then use LFS token to access?
 	user, err := parseToken(ctx, authorization, repository, accessMode)
 	if err != nil {
 		// Most of these are Warn level - the true internal server errors are logged in parseToken already

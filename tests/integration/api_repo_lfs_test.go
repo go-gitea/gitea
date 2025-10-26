@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPILFSNotStarted(t *testing.T) {
@@ -59,12 +60,12 @@ func TestAPILFSMediaType(t *testing.T) {
 	MakeRequest(t, req, http.StatusUnsupportedMediaType)
 }
 
-func createLFSTestRepository(t *testing.T, name string) *repo_model.Repository {
-	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+func createLFSTestRepository(t *testing.T, repoName string) *repo_model.Repository {
+	ctx := NewAPITestContext(t, "user2", repoName, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "lfs-"+name+"-repo")
-	assert.NoError(t, err)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", repoName)
+	require.NoError(t, err)
 
 	return repo
 }
@@ -74,7 +75,7 @@ func TestAPILFSBatch(t *testing.T) {
 
 	setting.LFS.StartServer = true
 
-	repo := createLFSTestRepository(t, "batch")
+	repo := createLFSTestRepository(t, "lfs-batch-repo")
 
 	content := []byte("dummy1")
 	oid := storeObjectInRepo(t, repo.ID, &content)
@@ -253,7 +254,7 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, exist)
 
-			repo2 := createLFSTestRepository(t, "batch2")
+			repo2 := createLFSTestRepository(t, "lfs-batch2-repo")
 			content := []byte("dummy0")
 			storeObjectInRepo(t, repo2.ID, &content)
 
@@ -329,7 +330,7 @@ func TestAPILFSUpload(t *testing.T) {
 
 	setting.LFS.StartServer = true
 
-	repo := createLFSTestRepository(t, "upload")
+	repo := createLFSTestRepository(t, "lfs-upload-repo")
 
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
@@ -433,7 +434,7 @@ func TestAPILFSVerify(t *testing.T) {
 
 	setting.LFS.StartServer = true
 
-	repo := createLFSTestRepository(t, "verify")
+	repo := createLFSTestRepository(t, "lfs-verify-repo")
 
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
