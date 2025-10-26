@@ -1041,24 +1041,24 @@ onUnmounted(() => {
   width: 100%;
   height: calc(100vh - 200px);
   min-height: 600px;
-  border: 1px solid #e1e4e8;
+  border: 1px solid var(--color-secondary);
   border-radius: 8px;
   overflow: hidden;
-  background: white;
+  background: var(--color-body);
 }
 
 .workflow-sidebar {
   width: 350px;
   flex-shrink: 0;
-  background: #f6f8fa;
-  border-right: 1px solid #e1e4e8;
+  background: var(--color-secondary-bg);
+  border-right: 1px solid var(--color-secondary);
   display: flex;
   flex-direction: column;
 }
 
 .workflow-main {
   flex: 1;
-  background: white;
+  background: var(--color-body);
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -1067,13 +1067,13 @@ onUnmounted(() => {
 /* Sidebar */
 .sidebar-header {
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid #e1e4e8;
-  background: #f6f8fa;
+  border-bottom: 1px solid var(--color-secondary);
+  background: var(--color-secondary-bg);
 }
 
 .sidebar-header h3 {
   margin: 0;
-  color: #24292e;
+  color: var(--color-text);
   font-size: 1.1rem;
   font-weight: 600;
 }
@@ -1100,12 +1100,12 @@ onUnmounted(() => {
 }
 
 .workflow-item:hover {
-  background: #f6f8fa;
+  background: var(--color-hover);
 }
 
 .workflow-item.active {
-  background: #f1f8ff;
-  border-left: 3px solid #0366d6;
+  background: var(--color-active);
+  border-left: 3px solid var(--color-primary);
 }
 
 .workflow-content {
@@ -1133,7 +1133,7 @@ onUnmounted(() => {
 
 .workflow-title {
   font-weight: 500;
-  color: #24292e;
+  color: var(--color-text);
   font-size: 0.9rem;
   line-height: 1.3;
   overflow: hidden;
@@ -1143,7 +1143,7 @@ onUnmounted(() => {
 
 .workflow-subtitle {
   font-size: 0.75rem;
-  color: #6c757d;
+  color: var(--color-text-light-2);
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1152,17 +1152,17 @@ onUnmounted(() => {
 }
 
 .status-indicator .status-active {
-  color: #28a745;
+  color: var(--color-green);
   font-size: 0.75rem;
 }
 
 .status-indicator .status-inactive {
-  color: #d1d5da;
+  color: var(--color-text-light-3);
   font-size: 0.75rem;
 }
 
 .status-indicator .status-disabled {
-  color: #dc3545;
+  color: var(--color-red);
   font-size: 0.75rem;
 }
 
@@ -1182,17 +1182,17 @@ onUnmounted(() => {
 
 .placeholder-icon {
   margin-bottom: 1.5rem;
-  color: #d1d5da;
+  color: var(--color-text-light-3);
 }
 
 .placeholder-content h3 {
-  color: #24292e;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
   font-weight: 600;
 }
 
 .placeholder-content p {
-  color: #586069;
+  color: var(--color-text-light-2);
   margin-bottom: 2rem;
   line-height: 1.5;
 }
@@ -1210,13 +1210,13 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: flex-start;
   padding: 1.5rem;
-  border-bottom: 1px solid #e1e4e8;
-  background: #fafbfc;
+  border-bottom: 1px solid var(--color-secondary);
+  background: var(--color-box-header);
 }
 
 .editor-title h2 {
   margin: 0 0 0.25rem 0;
-  color: #24292e;
+  color: var(--color-text);
   font-size: 1.25rem;
   font-weight: 600;
   display: flex;
@@ -1226,7 +1226,7 @@ onUnmounted(() => {
 
 .editor-title p {
   margin: 0;
-  color: #586069;
+  color: var(--color-text-light-2);
   font-size: 0.9rem;
 }
 
@@ -1250,20 +1250,20 @@ onUnmounted(() => {
 
 .editor-content .field label {
   font-weight: 600;
-  color: #24292e;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
   display: block;
 }
 
 .editor-content .ui.segment {
-  background: #fafbfc;
-  border: 1px solid #e1e4e8;
+  background: var(--color-box-header);
+  border: 1px solid var(--color-secondary);
   padding: 1rem;
   margin-bottom: 0.5rem;
 }
 
 .editor-content .description {
-  color: #586069;
+  color: var(--color-text-light-2);
   font-size: 0.9rem;
 }
 
@@ -1279,7 +1279,7 @@ onUnmounted(() => {
     width: 100%;
     max-height: 40vh;
     border-right: none;
-    border-bottom: 1px solid #e1e4e8;
+    border-bottom: 1px solid var(--color-secondary);
   }
 
   .editor-header {
@@ -1325,15 +1325,15 @@ onUnmounted(() => {
 }
 
 .workflow-status.status-enabled {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
+  background: var(--color-success-bg);
+  color: var(--color-success-text);
+  border: 1px solid var(--color-success-border);
 }
 
 .workflow-status.status-disabled {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
+  border: 1px solid var(--color-error-border);
 }
 
 /* Readonly form styles */
@@ -1342,11 +1342,11 @@ onUnmounted(() => {
 }
 
 .readonly-value {
-  background: #f6f8fa;
+  background: var(--color-secondary-bg);
   padding: 0.5rem;
-  border: 1px solid #e1e4e8;
+  border: 1px solid var(--color-secondary);
   border-radius: 4px;
-  color: #24292e;
+  color: var(--color-text);
   font-weight: 500;
 }
 
@@ -1357,7 +1357,7 @@ onUnmounted(() => {
 }
 
 .readonly-value div {
-  color: #586069;
+  color: var(--color-text-light-2);
   font-weight: normal;
 }
 
@@ -1372,14 +1372,14 @@ onUnmounted(() => {
 
 .form .field label {
   font-weight: 600;
-  color: #24292e;
+  color: var(--color-text);
   margin-bottom: 0.5rem;
   display: block;
 }
 
 .segment {
-  background: #fafbfc;
-  border: 1px solid #e1e4e8;
+  background: var(--color-box-header);
+  border: 1px solid var(--color-secondary);
   border-radius: 6px;
   padding: 1rem;
   margin-bottom: 0.5rem;
@@ -1392,21 +1392,21 @@ onUnmounted(() => {
   font-size: 1rem;
   font-weight: 400;
   line-height: 1.5;
-  color: #212529;
-  background-color: #fff;
+  color: var(--color-text);
+  background-color: var(--color-input-background);
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 16px 12px;
-  border: 1px solid #ced4da;
+  border: 1px solid var(--color-input-border);
   border-radius: 0.375rem;
   transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
 }
 
 .form-select:focus {
-  border-color: #86b7fe;
+  border-color: var(--color-primary);
   outline: 0;
-  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  box-shadow: 0 0 0 0.25rem var(--color-primary-alpha-30);
 }
 
 .form-select[multiple] {
@@ -1429,7 +1429,7 @@ onUnmounted(() => {
 /* Label selector styles */
 .label-dropdown.ui.dropdown .menu > .item.active,
 .label-dropdown.ui.dropdown .menu > .item.selected {
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-active);
   font-weight: normal;
 }
 
@@ -1453,25 +1453,26 @@ onUnmounted(() => {
 }
 
 .text-muted {
-  color: #6c757d;
+  color: var(--color-text-light-2);
 }
 
 /* Column select styling */
 .column-select {
   width: 100%;
   padding: 0.67857143em 1em;
-  border: 1px solid rgba(34, 36, 38, 0.15);
+  border: 1px solid var(--color-input-border);
   border-radius: 0.28571429rem;
   font-size: 1em;
   line-height: 1.21428571em;
   min-height: 2.71428571em;
-  background-color: #fff;
+  background-color: var(--color-input-background);
+  color: var(--color-input-text);
   transition: border-color 0.1s ease, box-shadow 0.1s ease;
 }
 
 .column-select:focus {
-  border-color: #85b7d9;
+  border-color: var(--color-primary);
   outline: none;
-  box-shadow: 0 0 0 0 rgba(34, 36, 38, 0.35) inset;
+  box-shadow: 0 0 0 0 var(--color-primary-alpha-30) inset;
 }
 </style>
