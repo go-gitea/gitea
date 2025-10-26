@@ -334,26 +334,6 @@ If the labels-list itself needs some layouts, use extra classes or "tw" helpers.
   border-top-left-radius: 0;
 }
 
-/* Exclusive label priority order - the numeric display (div.scope-right without ui.label class) */
-.ui.label.scope-parent > .scope-right:not(.ui) {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.08);
-  color: var(--color-text);
-  font-weight: 600;
-  min-width: 2em;
-  padding: 0.5833em 0.833em;
-  border-bottom-left-radius: 0;
-  border-top-left-radius: 0;
-  border-bottom-right-radius: var(--border-radius);
-  border-top-right-radius: var(--border-radius);
-}
-
-[data-theme="dark"] .ui.label.scope-parent > .scope-right:not(.ui) {
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
 .ui.label.archived-label {
   filter: grayscale(0.5);
   opacity: 0.5;
