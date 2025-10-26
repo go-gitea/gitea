@@ -118,33 +118,12 @@ const getLabelItem = (label: Label): string => {
 const toggleLabel = (labelId: string) => {
   if (props.readonly) return;
 
-  const clickedLabel = props.labels.find((l) => String(l.id) === labelId);
-  if (!clickedLabel) return;
-
   const currentValues = [...props.modelValue];
   const index = currentValues.indexOf(labelId);
 
   if (index > -1) {
-    // Remove the label if already selected
     currentValues.splice(index, 1);
   } else {
-    // Handle exclusive labels: remove other labels in same scope
-    const exclusiveScope = getExclusiveScope(clickedLabel);
-    if (exclusiveScope) {
-      // Remove all labels with the same exclusive scope
-      const labelsToRemove = props.labels
-        .filter((l) => {
-          const scope = getExclusiveScope(l);
-          return scope === exclusiveScope && String(l.id) !== labelId;
-        })
-        .map((l) => String(l.id));
-
-      labelsToRemove.forEach((id) => {
-        const idx = currentValues.indexOf(id);
-        if (idx > -1) currentValues.splice(idx, 1);
-      });
-    }
-
     if (props.multiple) {
       currentValues.push(labelId);
     } else {
