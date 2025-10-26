@@ -138,6 +138,74 @@ func getWhitelistEntities[T *user_model.User | *organization.Team](entities []T,
 }
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
+func ToBranchProtectionFromOrg(ctx context.Context, bp *git_model.ProtectedBranch, org *organization.Organization) *api.BranchProtection {
+	// org, err := organization.GetOrgByID(ctx, bp.OwnerID)
+	// if err != nil {
+	// 	log.Error("GetOrgByID: %v", err)
+	// }
+
+	readers, _, err := org.GetMembers(ctx, nil)
+	if err != nil {
+		log.Error("org.GetMembers: %v", err)
+	}
+	teamReaders, err := organization.FindOrgTeams(ctx, bp.OwnerID)
+	if err != nil {
+		log.Error("FindOrgTeams: %v", err)
+	}
+
+	pushWhitelistUsernames := getWhitelistEntities(readers, bp.WhitelistUserIDs)
+	forcePushAllowlistUsernames := getWhitelistEntities(readers, bp.ForcePushAllowlistUserIDs)
+	mergeWhitelistUsernames := getWhitelistEntities(readers, bp.MergeWhitelistUserIDs)
+	approvalsWhitelistUsernames := getWhitelistEntities(readers, bp.ApprovalsWhitelistUserIDs)
+
+	pushWhitelistTeams := getWhitelistEntities(teamReaders, bp.WhitelistTeamIDs)
+	forcePushAllowlistTeams := getWhitelistEntities(teamReaders, bp.ForcePushAllowlistTeamIDs)
+	mergeWhitelistTeams := getWhitelistEntities(teamReaders, bp.MergeWhitelistTeamIDs)
+	approvalsWhitelistTeams := getWhitelistEntities(teamReaders, bp.ApprovalsWhitelistTeamIDs)
+
+	branchName := ""
+	if !git_model.IsRuleNameSpecial(bp.RuleName) {
+		branchName = bp.RuleName
+	}
+
+	return &api.BranchProtection{
+		BranchName:                    branchName,
+		RuleName:                      bp.RuleName,
+		Priority:                      bp.Priority,
+		EnablePush:                    bp.CanPush,
+		EnablePushWhitelist:           bp.EnableWhitelist,
+		PushWhitelistUsernames:        pushWhitelistUsernames,
+		PushWhitelistTeams:            pushWhitelistTeams,
+		PushWhitelistDeployKeys:       bp.WhitelistDeployKeys,
+		EnableForcePush:               bp.CanForcePush,
+		EnableForcePushAllowlist:      bp.EnableForcePushAllowlist,
+		ForcePushAllowlistUsernames:   forcePushAllowlistUsernames,
+		ForcePushAllowlistTeams:       forcePushAllowlistTeams,
+		ForcePushAllowlistDeployKeys:  bp.ForcePushAllowlistDeployKeys,
+		EnableMergeWhitelist:          bp.EnableMergeWhitelist,
+		MergeWhitelistUsernames:       mergeWhitelistUsernames,
+		MergeWhitelistTeams:           mergeWhitelistTeams,
+		EnableStatusCheck:             bp.EnableStatusCheck,
+		StatusCheckContexts:           bp.StatusCheckContexts,
+		RequiredApprovals:             bp.RequiredApprovals,
+		EnableApprovalsWhitelist:      bp.EnableApprovalsWhitelist,
+		ApprovalsWhitelistUsernames:   approvalsWhitelistUsernames,
+		ApprovalsWhitelistTeams:       approvalsWhitelistTeams,
+		BlockOnRejectedReviews:        bp.BlockOnRejectedReviews,
+		BlockOnOfficialReviewRequests: bp.BlockOnOfficialReviewRequests,
+		BlockOnOutdatedBranch:         bp.BlockOnOutdatedBranch,
+		DismissStaleApprovals:         bp.DismissStaleApprovals,
+		IgnoreStaleApprovals:          bp.IgnoreStaleApprovals,
+		RequireSignedCommits:          bp.RequireSignedCommits,
+		ProtectedFilePatterns:         bp.ProtectedFilePatterns,
+		UnprotectedFilePatterns:       bp.UnprotectedFilePatterns,
+		BlockAdminMergeOverride:       bp.BlockAdminMergeOverride,
+		Created:                       bp.CreatedUnix.AsTime(),
+		Updated:                       bp.UpdatedUnix.AsTime(),
+	}
+}
+
+// ToBranchProtection convert a ProtectedBranch to api.BranchProtection
 func ToBranchProtection(ctx context.Context, bp *git_model.ProtectedBranch, repo *repo_model.Repository) *api.BranchProtection {
 	readers, err := access_model.GetRepoReaders(ctx, repo)
 	if err != nil {

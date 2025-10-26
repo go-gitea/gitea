@@ -7,6 +7,8 @@ import (
 	"context"
 	"sort"
 
+	repo_model "code.gitea.io/gitea/models/repo"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/optional"
@@ -41,6 +43,18 @@ func (rules ProtectedBranchRules) sort() {
 	})
 }
 
+// FindOrgProtectedBranchRules load all repository's protected rules
+func FindOrgProtectedBranchRules(ctx context.Context, ownerID int64) (ProtectedBranchRules, error) {
+	var rules ProtectedBranchRules
+	err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Asc("created_unix").Find(&rules)
+	if err != nil {
+		return nil, err
+	}
+
+	rules.sort() // to make non-glob rules have higher priority, and for same glob/non-glob rules, first created rules have higher priority
+	return rules, nil
+}
+
 // FindRepoProtectedBranchRules load all repository's protected rules
 func FindRepoProtectedBranchRules(ctx context.Context, repoID int64) (ProtectedBranchRules, error) {
 	var rules ProtectedBranchRules
@@ -48,6 +62,18 @@ func FindRepoProtectedBranchRules(ctx context.Context, repoID int64) (ProtectedB
 	if err != nil {
 		return nil, err
 	}
+
+	// if no repo-level rules matched, try to find owner-level rules
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.GetEngine(ctx).Where("owner_id = ?", repo.OwnerID).Asc("created_unix").Find(&rules)
+	if err != nil {
+		return nil, err
+	}
+
 	rules.sort() // to make non-glob rules have higher priority, and for same glob/non-glob rules, first created rules have higher priority
 	return rules, nil
 }

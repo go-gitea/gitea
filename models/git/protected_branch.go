@@ -30,7 +30,8 @@ var ErrBranchIsProtected = errors.New("branch is protected")
 // ProtectedBranch struct
 type ProtectedBranch struct {
 	ID                            int64                  `xorm:"pk autoincr"`
-	RepoID                        int64                  `xorm:"UNIQUE(s)"`
+	RepoID                        int64                  `xorm:"UNIQUE(s) DEFAULT 0"`
+	OwnerID                       int64                  `xorm:"UNIQUE(s) DEFAULT 0"`
 	Repo                          *repo_model.Repository `xorm:"-"`
 	RuleName                      string                 `xorm:"'branch_name' UNIQUE(s)"` // a branch name or a glob match to branch name
 	Priority                      int64                  `xorm:"NOT NULL DEFAULT 0"`
@@ -313,6 +314,18 @@ func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, pa
 }
 
 // GetProtectedBranchRuleByName getting protected branch rule by name
+func GetOrgProtectedBranchRuleByName(ctx context.Context, ownerID int64, ruleName string) (*ProtectedBranch, error) {
+	// branch_name is legacy name, it actually is rule name
+	rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"owner_id": ownerID, "branch_name": ruleName})
+	if err != nil {
+		return nil, err
+	} else if !exist {
+		return nil, nil
+	}
+	return rel, nil
+}
+
+// GetProtectedBranchRuleByName getting protected branch rule by name
 func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName string) (*ProtectedBranch, error) {
 	// branch_name is legacy name, it actually is rule name
 	rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "branch_name": ruleName})
@@ -441,6 +454,70 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	return nil
 }
 
+// UpdateOrgProtectBranch saves branch protection options for an organization.
+// If ID is 0, it creates a new record. Otherwise, updates existing record.
+// This function also performs check if whitelist user and team's IDs have been changed
+// to avoid unnecessary whitelist delete and regenerate.
+func UpdateOrgProtectBranch(ctx context.Context, org *organization.Organization, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
+	whitelist, err := updateOrgUserWhitelist(ctx, org, protectBranch.WhitelistUserIDs, opts.UserIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.WhitelistUserIDs = whitelist
+
+	whitelist, err = updateOrgUserWhitelist(ctx, org, protectBranch.ForcePushAllowlistUserIDs, opts.ForcePushUserIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.ForcePushAllowlistUserIDs = whitelist
+
+	whitelist, err = updateOrgUserWhitelist(ctx, org, protectBranch.MergeWhitelistUserIDs, opts.MergeUserIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.MergeWhitelistUserIDs = whitelist
+
+	whitelist, err = updateOrgApprovalWhitelist(ctx, org, protectBranch.ApprovalsWhitelistUserIDs, opts.ApprovalsUserIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.ApprovalsWhitelistUserIDs = whitelist
+
+	whitelist, err = updateOrgTeamWhitelist(ctx, org, protectBranch.WhitelistTeamIDs, opts.TeamIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.WhitelistTeamIDs = whitelist
+
+	whitelist, err = updateOrgTeamWhitelist(ctx, org, protectBranch.ForcePushAllowlistTeamIDs, opts.ForcePushTeamIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.ForcePushAllowlistTeamIDs = whitelist
+
+	whitelist, err = updateOrgTeamWhitelist(ctx, org, protectBranch.MergeWhitelistTeamIDs, opts.MergeTeamIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.MergeWhitelistTeamIDs = whitelist
+
+	whitelist, err = updateOrgTeamWhitelist(ctx, org, protectBranch.ApprovalsWhitelistTeamIDs, opts.ApprovalsTeamIDs)
+	if err != nil {
+		return err
+	}
+	protectBranch.ApprovalsWhitelistTeamIDs = whitelist
+
+	if protectBranch.ID == 0 {
+		_, err = db.GetEngine(ctx).Insert(protectBranch)
+		return err
+	}
+
+	if _, err = db.GetEngine(ctx).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
+		return fmt.Errorf("Update: %v", err)
+	}
+	return nil
+}
+
 func UpdateProtectBranchPriorities(ctx context.Context, repo *repo_model.Repository, ids []int64) error {
 	prio := int64(1)
 	return db.WithTx(ctx, func(ctx context.Context) error {
@@ -478,6 +555,27 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 	}
 
 	return whitelist, err
+}
+
+// updateOrgApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with
+// the users from newWhitelist which are members of the org.
+func updateOrgApprovalWhitelist(ctx context.Context, org *organization.Organization, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+	hasUsersChanged := !util.SliceSortedEqual(currentWhitelist, newWhitelist)
+	if !hasUsersChanged {
+		return currentWhitelist, nil
+	}
+
+	whitelist = make([]int64, 0, len(newWhitelist))
+	for _, userID := range newWhitelist {
+		isMember, err := organization.IsOrganizationMember(ctx, org.ID, userID)
+		if err != nil {
+			return nil, err
+		}
+		if isMember {
+			whitelist = append(whitelist, userID)
+		}
+	}
+	return whitelist, nil
 }
 
 // updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with
@@ -530,6 +628,49 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 	}
 
 	return whitelist, err
+}
+
+// updateOrgUserWhitelist checks whether the user whitelist changed and returns a whitelist with
+// the users from newWhitelist which are members of the org.
+func updateOrgUserWhitelist(ctx context.Context, org *organization.Organization, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+	hasUsersChanged := !util.SliceSortedEqual(currentWhitelist, newWhitelist)
+	if !hasUsersChanged {
+		return currentWhitelist, nil
+	}
+
+	whitelist = make([]int64, 0, len(newWhitelist))
+	for _, userID := range newWhitelist {
+		isMember, err := organization.IsOrganizationMember(ctx, org.ID, userID)
+		if err != nil {
+			return nil, err
+		}
+		if isMember {
+			whitelist = append(whitelist, userID)
+		}
+	}
+	return whitelist, nil
+}
+
+// updateOrgTeamWhitelist checks whether the team whitelist changed and returns a whitelist with
+// the teams from newWhitelist which belong to the org.
+func updateOrgTeamWhitelist(ctx context.Context, org *organization.Organization, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+	hasTeamsChanged := !util.SliceSortedEqual(currentWhitelist, newWhitelist)
+	if !hasTeamsChanged {
+		return currentWhitelist, nil
+	}
+
+	teams, err := organization.GetTeamsByIDs(ctx, newWhitelist)
+	if err != nil {
+		return nil, fmt.Errorf("GetTeamsByIDs [team_ids: %d]: %v", newWhitelist, err)
+	}
+
+	whitelist = make([]int64, 0, len(teams))
+	for _, team := range teams {
+		if team.OrgID == org.ID {
+			whitelist = append(whitelist, team.ID)
+		}
+	}
+	return whitelist, nil
 }
 
 // DeleteProtectedBranch removes ProtectedBranch relation between the user and repository.

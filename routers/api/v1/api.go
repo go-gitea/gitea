@@ -1182,6 +1182,14 @@ func Routes() *web.Router {
 			// (repo scope)
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
+			m.Group("/{org}", func() {
+				// FIXME: The swagger definition is wrong, it should be /orgs/{org}/branch_protections
+				m.Group("/branch_protections", func() {
+					m.Get("", repo.ListOrgBranchProtections)
+					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateOrgBranchProtection)
+				}, reqToken(), reqOrgOwnership())
+			}, orgAssignment(true), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
 			m.Group("/{username}/{reponame}", func() {
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
