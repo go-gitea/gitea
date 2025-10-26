@@ -180,8 +180,15 @@ func testPullRequestStatusCheckingMergeable(t *testing.T) {
 	testCreateFile(t, session, baseRepo.OwnerName, baseRepo.Name, "main", "important-secrets", "important_file", "Just a non-important file")
 
 	// create Pull to merge the important-secrets branch into main branch.
-	resp := testPullCreateDirectly(t, session, baseRepo.OwnerName, baseRepo.Name, "main",
-		baseRepo.OwnerName, baseRepo.Name, "important-secrets", "PR with no conflict")
+	resp := testPullCreateDirectly(t, session, createPullRequestOptions{
+		BaseRepoOwner: baseRepo.OwnerName,
+		BaseRepoName:  baseRepo.Name,
+		BaseBranch:    "main",
+		HeadRepoOwner: baseRepo.OwnerName,
+		HeadRepoName:  baseRepo.Name,
+		HeadBranch:    "important-secrets",
+		Title:         "PR with no conflict",
+	})
 	// check the redirected URL
 	url := test.RedirectURL(resp)
 	assert.Regexp(t, fmt.Sprintf("^/%s/pulls/[0-9]*$", baseRepo.FullName()), url)
@@ -234,8 +241,15 @@ func testPullRequestStatusCheckingConflicted(t *testing.T) {
 	testCreateFile(t, session, baseRepo.OwnerName, baseRepo.Name, "main", "main", "important_file", "Not the same content :P")
 
 	// create Pull to merge the important-secrets branch into main branch.
-	resp := testPullCreateDirectly(t, session, baseRepo.OwnerName, baseRepo.Name, "main",
-		baseRepo.OwnerName, baseRepo.Name, "important-secrets", "PR with conflict!")
+	resp := testPullCreateDirectly(t, session, createPullRequestOptions{
+		BaseRepoOwner: baseRepo.OwnerName,
+		BaseRepoName:  baseRepo.Name,
+		BaseBranch:    "main",
+		HeadRepoOwner: baseRepo.OwnerName,
+		HeadRepoName:  baseRepo.Name,
+		HeadBranch:    "important-secrets",
+		Title:         "PR with conflict!",
+	})
 	// check the redirected URL
 	url := test.RedirectURL(resp)
 	assert.Regexp(t, fmt.Sprintf("^/%s/pulls/[0-9]*$", baseRepo.FullName()), url)
@@ -289,8 +303,15 @@ func testPullRequestStatusCheckingCrossRepoMergeable(t *testing.T, giteaURL *url
 	testCreateFile(t, session, forkRepo.OwnerName, forkRepo.Name, "main", "important-secrets", "important_file", "Just a non-important file")
 
 	// create Pull to merge the important-secrets branch into main branch.
-	resp := testPullCreateDirectly(t, session, baseRepo.OwnerName, baseRepo.Name, "main",
-		forkRepo.OwnerName, forkRepo.Name, "important-secrets", "PR with no conflict")
+	resp := testPullCreateDirectly(t, session, createPullRequestOptions{
+		BaseRepoOwner: baseRepo.OwnerName,
+		BaseRepoName:  baseRepo.Name,
+		BaseBranch:    "main",
+		HeadRepoOwner: forkRepo.OwnerName,
+		HeadRepoName:  forkRepo.Name,
+		HeadBranch:    "important-secrets",
+		Title:         "PR with no conflict",
+	})
 	// check the redirected URL
 	url := test.RedirectURL(resp)
 	assert.Regexp(t, fmt.Sprintf("^/%s/pulls/[0-9]*$", baseRepo.FullName()), url)
@@ -347,8 +368,15 @@ func testPullRequestStatusCheckingCrossRepoConflicted(t *testing.T, giteaURL *ur
 	testCreateFile(t, session, baseRepo.OwnerName, baseRepo.Name, "main", "main", "important_file", "Not the same content :P")
 
 	// create Pull to merge the important-secrets branch into main branch.
-	resp := testPullCreateDirectly(t, session, baseRepo.OwnerName, baseRepo.Name, "main",
-		forkRepo.OwnerName, forkRepo.Name, "important-secrets", "PR with conflict!")
+	resp := testPullCreateDirectly(t, session, createPullRequestOptions{
+		BaseRepoOwner: baseRepo.OwnerName,
+		BaseRepoName:  baseRepo.Name,
+		BaseBranch:    "main",
+		HeadRepoOwner: forkRepo.OwnerName,
+		HeadRepoName:  forkRepo.Name,
+		HeadBranch:    "important-secrets",
+		Title:         "PR with conflict!",
+	})
 	// check the redirected URL
 	url := test.RedirectURL(resp)
 	assert.Regexp(t, fmt.Sprintf("^/%s/pulls/[0-9]*$", baseRepo.FullName()), url)
