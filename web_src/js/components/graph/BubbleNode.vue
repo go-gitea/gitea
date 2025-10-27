@@ -7,6 +7,33 @@
 
 import { computed, watch, reactive } from "vue";
 
+/* ──────────────────────────────────────────────────────────────────────────────
+   LABEL LAYOUT CONSTANTS (all values explained to avoid "magic numbers")
+   ─────────────────────────────────────────────────────────────────────────── */
+
+/* === FONT SIZING === */
+const FONT_SIZE_COUNT_MIN = 10;      // Minimum font size for contributor count
+const FONT_SIZE_COUNT_MAX = 34;      // Maximum font size for contributor count
+const FONT_SIZE_COUNT_SCALE = 0.95;  // Scale factor: count font size = radius * scale
+const FONT_SIZE_LABEL = 12;          // Fixed font size for "Contributor(s)" label
+const FONT_SIZE_SMALL = 11;          // Font size for "Last updated" lines
+
+/* === LABEL SPACING === */
+const LABEL_PADDING = 12;            // Breathing room between bubble edge and labels
+const LABEL_GAP_PRIMARY = 6;         // Gap between count and contributor label
+const LABEL_GAP_SECONDARY = 6;       // Gap between contributor label and updated block
+const LABEL_GAP_UPDATED_INNER = 6;   // Gap between two lines of updated text
+
+/* === TEXT WIDTH ESTIMATION (for fit calculations) === */
+const CHAR_WIDTH_RATIO_LABEL = 0.56; // Approximate width of label chars as ratio of font size
+const CHAR_WIDTH_RATIO_SMALL = 0.52; // Approximate width of small text chars as ratio of font size
+
+/* === BUTTON SIZING === */
+const BUTTON_WIDTH = 300;            // Width of "View article" button in screen pixels
+const BUTTON_HEIGHT = 92;            // Height of "View article" button in screen pixels
+const BUTTON_MARGIN = 32;            // Margin between bubble and button in screen pixels
+const BUTTON_MIN_RADIUS = 80;        // Minimum bubble radius (in screen pixels) to show button
+
 const props = defineProps<{
   id: string;
   x: number; y: number;          // world coordinates (graph space)
@@ -32,42 +59,50 @@ const fit = reactive({
   // vertical offset to keep the whole label block visually centered
   shiftPx: 0,
   // font sizes in px (on screen)
-  fsCount: 12, fsLabel: 12, fsSmall: 11,
+  fsCount: FONT_SIZE_LABEL,
+  fsLabel: FONT_SIZE_LABEL,
+  fsSmall: FONT_SIZE_SMALL,
   stackPx: 0,
 });
 
-/* Label text: singularize when needed so UI shows “Contributor” for 1 */
+/* Label text: singularize when needed so UI shows "Contributor" for 1 */
 const labelText = computed(()=> props.contributors === 1 ? "Contributor" : "Contributors");
 
 /* Recompute label visibility whenever r or k or updatedAt change. */
 function recomputeFit(){
   const k = props.k, r = props.r;
-  const Dpx = 2*r*k;                // bubble diameter on screen
-  const pad = 12*k;                 // breathing room
-  const availW = Dpx - 2*pad;
-  const availH = Dpx - 2*pad;
+  const Dpx = 2 * r * k;                    // bubble diameter on screen
+  const pad = LABEL_PADDING * k;            // breathing room (scaled to zoom)
+  const availW = Dpx - 2 * pad;
+  const availH = Dpx - 2 * pad;
 
-  // count font scales with radius but clamped; other lines fixed
-  const fsCount = Math.min(34, Math.max(10, r*0.95));
-  const fsLabel = 12, fsSmall = 11;
-  const gap1 = 6, gap2 = 6, updInnerGap = 6;
+  // Count font scales with radius but clamped to min/max
+  const fsCount = Math.min(FONT_SIZE_COUNT_MAX, Math.max(FONT_SIZE_COUNT_MIN, r * FONT_SIZE_COUNT_SCALE));
+  const fsLabel = FONT_SIZE_LABEL;
+  const fsSmall = FONT_SIZE_SMALL;
 
-  // count width not used for visibility calculations
-  const wLabel = labelText.value.length * fsLabel * 0.56;
+  // Estimate text widths using character width ratios
+  const wLabel = labelText.value.length * fsLabel * CHAR_WIDTH_RATIO_LABEL;
   const hasUpd = !!props.updatedAt;
   const updLine1 = "Last updated";
   const updLine2 = props.updatedAt ?? "";
-  const wUpd = Math.max(updLine1.length * fsSmall * 0.52, updLine2.length * fsSmall * 0.52);
+  const wUpd = Math.max(
+    updLine1.length * fsSmall * CHAR_WIDTH_RATIO_SMALL, 
+    updLine2.length * fsSmall * CHAR_WIDTH_RATIO_SMALL
+  );
 
-  const showLabel = (wLabel <= availW) && (fsCount/2 + gap1 + fsLabel <= availH/2);
-  const updatedBlockHeight = hasUpd ? (fsSmall * 2 + updInnerGap) : 0;
+  // Check if label fits horizontally and vertically
+  const showLabel = (wLabel <= availW) && (fsCount / 2 + LABEL_GAP_PRIMARY + fsLabel <= availH / 2);
+  const updatedBlockHeight = hasUpd ? (fsSmall * 2 + LABEL_GAP_UPDATED_INNER) : 0;
   const showUpdated = hasUpd && (wUpd <= availW) &&
-                      (fsCount/2 + gap1 + (showLabel ? (fsLabel + gap2) : 0) + updatedBlockHeight <= availH/2);
+    (fsCount / 2 + LABEL_GAP_PRIMARY + 
+     (showLabel ? (fsLabel + LABEL_GAP_SECONDARY) : 0) + updatedBlockHeight <= availH / 2);
 
+  // Calculate total stack height and vertical centering shift
   const stackPx = fsCount
-                + (showLabel ? gap1 + fsLabel : 0)
-                + (showUpdated ? ((showLabel ? gap2 : gap1) + (fsSmall*2 + updInnerGap)) : 0);
-  const shiftPx = (stackPx/2 - fsCount/2);
+    + (showLabel ? LABEL_GAP_PRIMARY + fsLabel : 0)
+    + (showUpdated ? ((showLabel ? LABEL_GAP_SECONDARY : LABEL_GAP_PRIMARY) + (fsSmall * 2 + LABEL_GAP_UPDATED_INNER)) : 0);
+  const shiftPx = (stackPx / 2 - fsCount / 2);
 
   fit.showLabel   = showLabel;
   fit.showUpdated = showUpdated;
@@ -88,15 +123,12 @@ const labelTransform = computed(() => `translate(0, ${-fit.shiftPx/props.k}) sca
 const showButton = computed(() => {
   if (!props.isActive) return false;
   const pixelRadius = props.r * props.k;
-  return pixelRadius >= 80;
+  return pixelRadius >= BUTTON_MIN_RADIUS;
 });
-
-const BUTTON_WIDTH = 300;
-const BUTTON_HEIGHT = 92;
 
 const buttonTransform = computed(() => {
   const buttonHeightWorld = BUTTON_HEIGHT / props.k;
-  const marginWorld = 32 / props.k;
+  const marginWorld = BUTTON_MARGIN / props.k;
   const offsetWorld = props.r + (buttonHeightWorld / 2) + marginWorld;
   return `translate(0, ${offsetWorld}) scale(${1/props.k})`;
 });
@@ -104,10 +136,12 @@ const buttonTransform = computed(() => {
 /* Pointer handlers relay events upward (so parent can focus / add / delete). */
 function onClick(ev:MouseEvent){ emit("click", props.id, ev); }
 function onDblClick(ev:MouseEvent){ ev.preventDefault(); emit("dblclick", props.id, ev); }
-function onView(ev:MouseEvent){
+function onView(ev:MouseEvent | KeyboardEvent){
   ev.preventDefault();
   ev.stopPropagation();
-  emit("view", props.id, ev);
+  // Convert KeyboardEvent to MouseEvent-like object for consistency
+  const mouseEv = ev as MouseEvent;
+  emit("view", props.id, mouseEv);
 }
 
 /* Keyboard navigation support */

@@ -44,40 +44,111 @@ const LS_SUBJECT_KEY = 'selectedArticleSubject';
 const LS_REPO_KEY = 'selectedArticleRepo';
 
 /* ──────────────────────────────────────────────────────────────────────────────
-   TUNABLES (art direction)
+   LAYOUT CONSTANTS (all values explained to avoid "magic numbers")
    ─────────────────────────────────────────────────────────────────────────── */
 
-const RANDOM_MIN = 10, RANDOM_MAX = 600;
+/* === DEMO DATA GENERATION === */
+const RANDOM_MIN = 10;          // Minimum random contributor count for demo forks
+const RANDOM_MAX = 600;         // Maximum random contributor count for demo forks
 
-/* Bubble radius: relative to dataset (normalized by max contributors). */
-const R_MIN = 8, R_MAX = 120;
-const MAX_DEPTH = 4;                         // avoid explosion during demos
+/* === BUBBLE SIZING === */
+const R_MIN = 8;                // Minimum bubble radius in pixels (smallest contributor count)
+const R_MAX = 120;              // Maximum bubble radius in pixels (largest contributor count)
+const MAX_DEPTH = 4;            // Maximum fork depth to prevent exponential explosion in demos
 
-/* Generation spacing (vertical lanes) */
-const LEVEL_GAP = 240;
+/* === VERTICAL LAYOUT === */
+const LEVEL_GAP = 240;          // Vertical spacing between generations (parent to child level)
+const STEM_LEN_PARENT = 12;     // Short vertical stem extending from parent bubble
+const STEM_LEN_CHILD  = 18;     // Short vertical stem extending to child bubble
 
-/* Short stems controlling “vertical length under bubble” perception */
-const STEM_LEN_PARENT = 12;
-const STEM_LEN_CHILD  = 18;
+/* === LAYOUT DEFAULTS (used in manual mode or as auto-tuning hints) === */
+const BRANCH_SPACING_DEFAULT = 28;   // Default vertical gap between branch joints on trunk
+const LANE_PAD_DEFAULT       = 12;   // Default padding between bubbles in same lane
+const H_OFFSET_DEFAULT       = 48;   // Default horizontal rib length (parent to child)
+const ELBOW_R_DEFAULT        = 28;   // Default elbow corner radius
 
-/* Defaults (used in manual mode or as hints for auto mode) */
-const BRANCH_SPACING_DEFAULT = 28;   // bigger joint gap
-const LANE_PAD_DEFAULT       = 12;   // smaller lane pad
-const H_OFFSET_DEFAULT       = 48;   // rib length
-const ELBOW_R_DEFAULT        = 28;   // elbow radius
+/* === COLLISION CLEARANCES === */
+const BUBBLE_PAD_DEFAULT = 8;   // Minimum clearance between bubbles
+const PATH_PAD_DEFAULT   = 8;   // Minimum clearance between bubbles and paths
 
-/* Clearances (collisions): bubble↔bubble vs bubble↔path */
-const BUBBLE_PAD_DEFAULT = 8;
-const PATH_PAD_DEFAULT   = 8;
+/* === ZOOM/PAN CONSTRAINTS === */
+const ZOOM_MIN = 0.35;          // Minimum zoom level (35% scale)
+const ZOOM_MAX = 3.5;           // Maximum zoom level (350% scale)
 
-/* Zoom/pan policy */
-const ZOOM_MIN = 0.35, ZOOM_MAX = 3.5;
+/* === VIEW RESET PARAMETERS === */
+const RESET_TOP_MARGIN = 40;    // Top margin when resetting view to center content
+const MAX_REF_DROP = 130;       // Maximum vertical drop for reference scenario to keep layout tight
 
-/* Reset baseline */
-const RESET_TOP_MARGIN = 40;
+/* === RESPONSIVE BREAKPOINTS & FACTORS === */
+const WIDTH_BREAKPOINT_MIN = 480;    // Minimum container width for responsive calculations
+const WIDTH_BREAKPOINT_MAX = 1200;   // Maximum container width for responsive calculations
+const HEIGHT_BREAKPOINT_MIN = 640;   // Minimum container height for radius scaling
+const HEIGHT_BREAKPOINT_MAX = 1080;  // Maximum container height for radius scaling
+const COMPLEXITY_THRESHOLD = 10;     // Number of forks to reach full complexity factor
+const FANOUT_THRESHOLD = 6;          // Number of children to reach full fanout factor
 
-/* Tight-drop clamp to match your mock’s vertical feel */
-const MAX_REF_DROP = 130;
+/* === RESPONSIVE H_OFFSET (horizontal rib length) === */
+const H_OFFSET_MIN = 36;        // Minimum horizontal offset for narrow/simple graphs
+const H_OFFSET_MAX = 84;        // Maximum horizontal offset for wide/complex graphs
+const H_OFFSET_WIDTH_WEIGHT = 0.35;   // Weight of container width in h_offset calculation
+const H_OFFSET_COMPLEXITY_WEIGHT = 0.65;  // Weight of complexity/fanout in h_offset calculation
+
+/* === RESPONSIVE ELBOW_R (corner radius) === */
+const ELBOW_MIN = 20;           // Minimum elbow radius
+const ELBOW_MAX = 36;           // Maximum elbow radius
+const ELBOW_RATIO = 0.55;       // Elbow radius as ratio of h_offset
+
+/* === RESPONSIVE BRANCH_SPACING (vertical joint gap) === */
+const BRANCH_SPACING_MIN = 24;  // Minimum vertical spacing between branch joints
+const BRANCH_SPACING_MAX = 36;  // Maximum vertical spacing between branch joints
+const BRANCH_SPACING_BASE_WEIGHT = 0.25;  // Base weight before width/complexity factors
+const BRANCH_SPACING_FACTOR_WEIGHT = 0.75;  // Weight of width/complexity factors
+
+/* === RESPONSIVE LANE_PAD (bubble clearance in lanes) === */
+const LANE_PAD_BASE = 8;        // Base lane padding
+const LANE_PAD_EXTRA = 12;      // Extra lane padding at maximum responsiveness
+const LANE_PAD_WIDTH_WEIGHT = 0.5;    // Weight of width factor in lane padding
+const LANE_PAD_COMPLEXITY_WEIGHT = 0.3;  // Weight of complexity factor in lane padding
+
+/* === RADIUS SCALING (for vertical fit without scrolling) === */
+const RADIUS_HEIGHT_MIN_FACTOR = 0.7;     // Minimum height-based radius multiplier
+const RADIUS_HEIGHT_MAX_FACTOR = 1.0;     // Maximum height-based radius multiplier
+// Calculate range from min to max for readability
+const RADIUS_HEIGHT_RANGE_FACTOR = RADIUS_HEIGHT_MAX_FACTOR - RADIUS_HEIGHT_MIN_FACTOR;
+const RADIUS_FORK_MAX_REDUCTION = 0.20;   // Maximum reduction from fork count (20%)
+const RADIUS_FORK_STEP = 0.02;            // Reduction per fork (2% per fork)
+const RADIUS_MIN_SCALE = 0.65;            // Minimum overall radius scale to avoid over-shrinking
+
+/* === VIEW FITTING (reset/focus zoom calculations) === */
+const FILL_FRACTION_MIN = 0.55;      // Minimum horizontal fill fraction for few forks
+const FILL_FRACTION_MAX = 0.90;      // Maximum horizontal fill fraction for many forks
+const VERTICAL_FILL_FRACTION = 0.86; // Vertical fill fraction of usable height
+const SINGLE_FORK_DIAMETER_MIN = 220;  // Minimum bubble diameter for single-fork view
+const SINGLE_FORK_DIAMETER_MAX = 480;  // Maximum bubble diameter for single-fork view
+const SINGLE_FORK_WIDTH_RATIO = 0.40;  // Desired diameter as ratio of container width
+const FOCUS_PADDING = 24;            // Padding when focusing on a single node
+
+/* === SVG LAYOUT === */
+const DEFAULT_SVG_HEIGHT = 1000;     // Initial SVG canvas height
+const SVG_BOTTOM_PADDING = 240;      // Extra padding below lowest bubble
+const CONTENT_BOUNDS_EXTRA = 16;     // Extra horizontal padding for elbow overhang
+const VIEW_TOP_OFFSET = 12;          // Top offset for view calculations
+const DEFAULT_CONTAINER_WIDTH = 1100;   // Default container width when not measured
+const DEFAULT_CONTAINER_HEIGHT = 800;   // Default container height when not measured
+const FALLBACK_WINDOW_HEIGHT = 900;     // Fallback height if window is unavailable
+
+/* === API PARAMETERS === */
+const API_CONTRIBUTOR_DAYS = 90;     // Number of days to look back for contributor counts
+const API_MAX_DEPTH = 10;            // Maximum fork depth to fetch from API
+const API_LIMIT = 50;                // Maximum number of forks to fetch per request
+
+/* === ANIMATION DURATIONS === */
+const VIEW_TRANSITION_DURATION = 420;  // Duration of zoom/pan animations in milliseconds
+const SCREEN_READER_ANNOUNCEMENT_DURATION = 1000;  // How long to show SR announcements
+
+/* === ID GENERATION === */
+const RANDOM_ID_LENGTH = 7;          // Number of characters for generated random IDs
+const RANDOM_ID_SLICE_START = 2;     // Starting position for ID slice (skip "0.")
 
 /* ──────────────────────────────────────────────────────────────────────────────
    STATE
@@ -114,7 +185,7 @@ const trunksList = ref<{ x:number; y1:number; y2:number; id:string }[]>([]);
 const jointDots = ref<{ x:number; y:number; id:string }[]>([]);
 
 /* SVG/zoom plumbing */
-const svgHeight = ref(1000);
+const svgHeight = ref(DEFAULT_SVG_HEIGHT);
 const svgRef = ref<SVGSVGElement | null>(null);
 /* IMPORTANT: This is the single world group that Vue renders into AND
    that d3-zoom transforms. This fixes the "graph doesn't move" bug. */
@@ -129,14 +200,14 @@ const currentK = ref(1);
 const srAnnouncement = ref("");
 function announceToScreenReader(message: string) {
   srAnnouncement.value = message;
-  setTimeout(() => { srAnnouncement.value = ""; }, 1000);
+  setTimeout(() => { srAnnouncement.value = ""; }, SCREEN_READER_ANNOUNCEMENT_DURATION);
 }
 
 /* Container width affects responsive dials; observe it. */
 const containerRef = ref<HTMLDivElement | null>(null);
 let ro: ResizeObserver | null = null;
-let containerWidth = 1100;
-let containerHeight = 800;
+let containerWidth = DEFAULT_CONTAINER_WIDTH;
+let containerHeight = DEFAULT_CONTAINER_HEIGHT;
 let pendingRaf: number | null = null;
 
 /* Props and API fetch */
@@ -273,10 +344,10 @@ async function fetchForkGraphAndSet(){
     }
     const urlObj = new URL(props.apiUrl, window.location.origin);
     if(!urlObj.searchParams.get('include_contributors')) urlObj.searchParams.set('include_contributors','true');
-    if(!urlObj.searchParams.get('contributor_days')) urlObj.searchParams.set('contributor_days','90');
-    if(!urlObj.searchParams.get('max_depth')) urlObj.searchParams.set('max_depth','10');
+    if(!urlObj.searchParams.get('contributor_days')) urlObj.searchParams.set('contributor_days', API_CONTRIBUTOR_DAYS.toString());
+    if(!urlObj.searchParams.get('max_depth')) urlObj.searchParams.set('max_depth', API_MAX_DEPTH.toString());
     if(!urlObj.searchParams.get('sort')) urlObj.searchParams.set('sort','updated');
-    if(!urlObj.searchParams.get('limit')) urlObj.searchParams.set('limit','50');
+    if(!urlObj.searchParams.get('limit')) urlObj.searchParams.set('limit', API_LIMIT.toString());
 
     const res = await fetch(urlObj.toString(), { credentials: 'same-origin' });
     if(!res.ok){ console.error('FishboneGraph: API error', res.status); return; }
@@ -367,31 +438,37 @@ function applyResponsiveDials(){
   const forks = forkCount(state.graph);
   const maxKids = parentMaxChildren(state.graph);
   const w = containerWidth;
-  const ch = containerHeight || ((typeof window !== 'undefined' && window.innerHeight) ? window.innerHeight : 900);
+  const ch = containerHeight || ((typeof window !== 'undefined' && window.innerHeight) ? window.innerHeight : FALLBACK_WINDOW_HEIGHT);
 
-  const widthFactor = Math.min(1, Math.max(0, (w - 480) / (1200 - 480))); // <480 ⇒ 0, >1200 ⇒ 1
-  const complexity  = Math.min(1, (forks   / 10));                         // 0..1 over ~10 edges
-  const fanout      = Math.min(1, (maxKids / 6));                          // 0..1 over ~6 kids
+  // Normalize width to 0..1 range based on breakpoints
+  const widthFactor = Math.min(1, Math.max(0, (w - WIDTH_BREAKPOINT_MIN) / (WIDTH_BREAKPOINT_MAX - WIDTH_BREAKPOINT_MIN)));
+  // Normalize complexity based on fork count (0..1 over COMPLEXITY_THRESHOLD forks)
+  const complexity  = Math.min(1, (forks / COMPLEXITY_THRESHOLD));
+  // Normalize fanout based on children count (0..1 over FANOUT_THRESHOLD children)
+  const fanout      = Math.min(1, (maxKids / FANOUT_THRESHOLD));
 
-  const H_MIN = 36, H_MAX = 84;
-  const mix   = 0.35*widthFactor + 0.65*Math.max(complexity, fanout);
-  state.hOffset = Math.round(H_MIN + (H_MAX - H_MIN) * mix);
+  // Calculate horizontal offset (rib length) using weighted combination
+  const mix = H_OFFSET_WIDTH_WEIGHT * widthFactor + H_OFFSET_COMPLEXITY_WEIGHT * Math.max(complexity, fanout);
+  state.hOffset = Math.round(H_OFFSET_MIN + (H_OFFSET_MAX - H_OFFSET_MIN) * mix);
 
-  state.elbowR = Math.min(36, Math.max(20, Math.round(0.55 * state.hOffset)));
+  // Calculate elbow radius as a ratio of h_offset, clamped to min/max
+  state.elbowR = Math.min(ELBOW_MAX, Math.max(ELBOW_MIN, Math.round(ELBOW_RATIO * state.hOffset)));
 
-  const J_MIN = 24, J_MAX = 36;
-  state.branchSpacing = Math.round(J_MIN + (J_MAX - J_MIN) * (0.25 + 0.75 * Math.max(widthFactor, complexity)));
+  // Calculate branch spacing (vertical joint gap)
+  const branchFactor = BRANCH_SPACING_BASE_WEIGHT + BRANCH_SPACING_FACTOR_WEIGHT * Math.max(widthFactor, complexity);
+  state.branchSpacing = Math.round(BRANCH_SPACING_MIN + (BRANCH_SPACING_MAX - BRANCH_SPACING_MIN) * branchFactor);
 
-  state.lanePad = Math.round(8 + 12 * Math.max(widthFactor * 0.5, complexity * 0.3));
+  // Calculate lane padding (bubble clearance)
+  state.lanePad = Math.round(LANE_PAD_BASE + LANE_PAD_EXTRA * Math.max(widthFactor * LANE_PAD_WIDTH_WEIGHT, complexity * LANE_PAD_COMPLEXITY_WEIGHT));
 
   // Compute a gentle attenuation for bubble sizes to improve vertical fit without scrolling
-  // Height factor: smaller screens → smaller bubbles (0.7..1.0)
-  const heightNorm = Math.min(1, Math.max(0, (ch - 640) / (1080 - 640)));
-  const heightFactor = 0.7 + 0.3 * heightNorm;
-  // Fork factor: more forks → smaller bubbles (down to ~0.8)
-  const forksFactor = 1 - Math.min(0.20, forks * 0.02);
+  // Height factor: smaller screens → smaller bubbles
+  const heightNorm = Math.min(1, Math.max(0, (ch - HEIGHT_BREAKPOINT_MIN) / (HEIGHT_BREAKPOINT_MAX - HEIGHT_BREAKPOINT_MIN)));
+  const heightFactor = RADIUS_HEIGHT_MIN_FACTOR + RADIUS_HEIGHT_RANGE_FACTOR * heightNorm;
+  // Fork factor: more forks → smaller bubbles
+  const forksFactor = 1 - Math.min(RADIUS_FORK_MAX_REDUCTION, forks * RADIUS_FORK_STEP);
   // Combine and clamp to avoid over-shrinking
-  state.radiusScale = Math.max(0.65, Math.min(1, heightFactor * forksFactor));
+  state.radiusScale = Math.max(RADIUS_MIN_SCALE, Math.min(1, heightFactor * forksFactor));
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────-
@@ -529,7 +606,7 @@ function layoutFishbone(g:Graph){
   jointDots.value = edges.map(e => ({ x:e.ex, y:e.ey, id:`${e.source.id}-${e.target.id}` }));
 
   const maxY = Math.max(...nodesList.value.map(n => (n.y ?? 0) + rFor(n.contributors)));
-  svgHeight.value = Math.max(containerHeight, maxY + 240);
+  svgHeight.value = Math.max(containerHeight, maxY + SVG_BOTTOM_PADDING);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────-
@@ -540,7 +617,8 @@ function contentBounds(){
   const maxX = Math.max(...nodesList.value.map(n => (n.x ?? 0) + rFor(n.contributors)));
   const minY = Math.min(...nodesList.value.map(n => (n.y ?? 0) - rFor(n.contributors)));
   const maxY = Math.max(...nodesList.value.map(n => (n.y ?? 0) + rFor(n.contributors)));
-  const extraX = state.hOffset + state.elbowR + STEM_LEN_CHILD + 16; // elbow+run overhang
+  // Account for elbow overhang beyond rightmost/leftmost bubbles
+  const extraX = state.hOffset + state.elbowR + STEM_LEN_CHILD + CONTENT_BOUNDS_EXTRA;
   return { minX: minX - extraX, maxX: maxX + extraX, minY, maxY };
 }
 
@@ -552,36 +630,39 @@ function resetView(animated=false){
     requestAnimationFrame(() => resetView(animated));
     return;
   }
-  const topOffset = 12;
-  const usableH = box.height - topOffset;
+  const usableH = box.height - VIEW_TOP_OFFSET;
 
   const forks = forkCount(state.graph);
   const b = contentBounds();
   const contentW = b.maxX - b.minX, contentH = b.maxY - b.minY;
 
-  const fillMin = 0.55, fillMax = 0.90;
-  const fillFrac = fillMin + (fillMax - fillMin) * Math.min(1, forks / 10);
+  // Calculate fill fraction based on number of forks (more forks = fill more of viewport)
+  const fillFrac = FILL_FRACTION_MIN + (FILL_FRACTION_MAX - FILL_FRACTION_MIN) * Math.min(1, forks / COMPLEXITY_THRESHOLD);
 
-  const scaleW = (box.width  * fillFrac) / Math.max(1, contentW);
-  const scaleH = (usableH    * 0.86     ) / Math.max(1, contentH);
+  // Calculate scale to fit content horizontally and vertically
+  const scaleW = (box.width * fillFrac) / Math.max(1, contentW);
+  const scaleH = (usableH * VERTICAL_FILL_FRACTION) / Math.max(1, contentH);
 
   let targetScale = Math.min(scaleW, scaleH);
+  // Special handling for single-fork graphs: make the bubble nicely sized
   if (forks <= 1) {
     const root = getRoot(state.graph);
     const r = rFor(root.contributors);
-    const desiredD = Math.max(220, Math.min( Math.floor(box.width * 0.40), 480 ));
-    const sBubble  = desiredD / (2*r);
+    const desiredD = Math.max(SINGLE_FORK_DIAMETER_MIN, Math.min(Math.floor(box.width * SINGLE_FORK_WIDTH_RATIO), SINGLE_FORK_DIAMETER_MAX));
+    const sBubble  = desiredD / (2 * r);
     targetScale = Math.min(ZOOM_MAX, Math.max(sBubble, targetScale));
   }
 
-  const cx = box.width/2;
-  const worldCenterX = (b.minX + b.maxX)/2;
+  // Center horizontally
+  const cx = box.width / 2;
+  const worldCenterX = (b.minX + b.maxX) / 2;
   const tx = cx - (worldCenterX * targetScale);
-  const targetTop = topOffset + RESET_TOP_MARGIN;
+  // Position vertically with top margin
+  const targetTop = VIEW_TOP_OFFSET + RESET_TOP_MARGIN;
   const ty = targetTop - (b.minY * targetScale);
 
   const t = zoomIdentity.translate(tx, ty).scale(targetScale);
-  (animated ? svgSel.transition().duration(420) : svgSel).call(zoomBehavior.transform as any, t);
+  (animated ? svgSel.transition().duration(VIEW_TRANSITION_DURATION) : svgSel).call(zoomBehavior.transform as any, t);
 
   currentK.value = targetScale;
 }
@@ -589,19 +670,23 @@ function resetView(animated=false){
 /* Click focus: center selected bubble and fit fully */
 function focusNode(n:Node){
   /* Note: also applied to worldSel via zoomBehavior, so it now works. */
-  const svg=svgRef.value!; const box=svg.getBoundingClientRect();
-  const topOffset = 12;
-  const usableH = box.height - topOffset;
+  const svg = svgRef.value!;
+  const box = svg.getBoundingClientRect();
+  const usableH = box.height - VIEW_TOP_OFFSET;
   const r = rFor(n.contributors);
-  const sx = (box.width  - 2*24)/(2*r);
-  const sy = (usableH    - 2*24)/(2*r);
+  
+  // Calculate scale to fit the bubble with padding
+  const sx = (box.width - 2 * FOCUS_PADDING) / (2 * r);
+  const sy = (usableH - 2 * FOCUS_PADDING) / (2 * r);
   const scale = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.min(sx, sy)));
 
-  const cx = box.width/2;
-  const cy = topOffset + usableH/2;
-  const tx=cx-(n.x!*scale), ty=cy-(n.y!*scale);
-  const t = zoomIdentity.translate(tx,ty).scale(scale);
-  svgSel.transition().duration(420).call(zoomBehavior.transform as any, t);
+  // Center the node in the viewport
+  const cx = box.width / 2;
+  const cy = VIEW_TOP_OFFSET + usableH / 2;
+  const tx = cx - (n.x! * scale);
+  const ty = cy - (n.y! * scale);
+  const t = zoomIdentity.translate(tx, ty).scale(scale);
+  svgSel.transition().duration(VIEW_TRANSITION_DURATION).call(zoomBehavior.transform as any, t);
   currentK.value = scale;
 }
 
@@ -609,16 +694,34 @@ function focusNode(n:Node){
    DATA MUTATION (demo add/remove)
    ─────────────────────────────────────────────────────────────────────────── */
 function addFork(parentId:NodeId){
-  const p=state.graph[parentId]; if(!p) return;
-  const depth = (function getDepth(id:NodeId){ let d=0, cur=state.graph[id]; while(cur.parentId){ d++; cur=state.graph[cur.parentId]; } return d; })(parentId);
-  if(depth>=MAX_DEPTH-1) return;
+  const p = state.graph[parentId];
+  if (!p) return;
+  
+  // Check depth to prevent explosion
+  const depth = (function getDepth(id:NodeId){
+    let d = 0, cur = state.graph[id];
+    while (cur.parentId) {
+      d++;
+      cur = state.graph[cur.parentId];
+    }
+    return d;
+  })(parentId);
+  if (depth >= MAX_DEPTH - 1) return;
 
-  const n=RANDOM_MIN+Math.floor(Math.random()*(RANDOM_MAX-RANDOM_MIN+1));
-  const id=Math.random().toString(36).slice(2,9);
-  state.graph[id]={id,contributors:n,parentId,children:[],updatedAt:new Date().toISOString().slice(0,10)};
+  // Generate random contributor count and ID for demo fork
+  const n = RANDOM_MIN + Math.floor(Math.random() * (RANDOM_MAX - RANDOM_MIN + 1));
+  const id = Math.random().toString(36).slice(RANDOM_ID_SLICE_START, RANDOM_ID_SLICE_START + RANDOM_ID_LENGTH);
+  state.graph[id] = {
+    id,
+    contributors: n,
+    parentId,
+    children: [],
+    updatedAt: new Date().toISOString().slice(0, 10)
+  };
   p.children.push(id);
 
-  layoutAndRender(); resetView(true);
+  layoutAndRender();
+  resetView(true);
 }
 
 function deleteNode(id:NodeId){
