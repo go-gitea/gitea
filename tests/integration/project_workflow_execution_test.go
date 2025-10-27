@@ -575,7 +575,7 @@ func TestProjectWorkflowExecutionCodeChangesRequested(t *testing.T) {
 	commitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	assert.NoError(t, err)
 
-	testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), user.Name, repo.Name, strconv.FormatInt(int64(pr.Issue.Index), 10), commitID, "reject", http.StatusOK)
+	testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), user.Name, repo.Name, strconv.FormatInt(pr.Issue.Index, 10), commitID, "reject", http.StatusOK)
 
 	// Verify workflow executed: PR should have "needs-changes" label
 	issue, err := issues_model.GetIssueByID(t.Context(), pr.Issue.ID)
@@ -649,7 +649,7 @@ func TestProjectWorkflowExecutionCodeReviewApproved(t *testing.T) {
 	commitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	assert.NoError(t, err)
 
-	testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), user.Name, repo.Name, fmt.Sprintf("%d", pr.Issue.Index), commitID, "approve", http.StatusOK)
+	testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), user.Name, repo.Name, strconv.FormatInt(pr.Issue.Index, 10), commitID, "approve", http.StatusOK)
 
 	// Verify workflow executed: PR should be in "Ready to Merge" column and have "approved" label
 	issue, err := issues_model.GetIssueByID(t.Context(), pr.Issue.ID)
@@ -733,7 +733,7 @@ func TestProjectWorkflowExecutionPullRequestMerged(t *testing.T) {
 		testAddIssueToProject(t, user2Session, "user2", "repo1", project.ID, pr.Issue.ID)
 
 		// Merge the PR (as user2, who has permission)
-		prURL := fmt.Sprintf("/user2/repo1/pulls/%s", prNum)
+		prURL := "/user2/repo1/pulls/" + prNum
 		req := NewRequest(t, "GET", prURL)
 		resp = user2Session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
