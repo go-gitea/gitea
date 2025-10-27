@@ -17,6 +17,7 @@ const FONT_SIZE_COUNT_MAX = 34;      // Maximum font size for contributor count
 const FONT_SIZE_COUNT_SCALE = 0.95;  // Scale factor: count font size = radius * scale
 const FONT_SIZE_LABEL = 12;          // Fixed font size for "Contributor(s)" label
 const FONT_SIZE_SMALL = 11;          // Font size for "Last updated" lines
+const FONT_SIZE_COMBINED = 22;       // Font size for combined count + label (1.375rem)
 
 /* === LABEL SPACING === */
 const LABEL_PADDING = 12;            // Breathing room between bubble edge and labels
@@ -53,17 +54,29 @@ const emit = defineEmits<{
 const fit = reactive({
   showLabel: false,
   showUpdated: false,
+  showCombined: false,  // True if enough space for count + label on same line
   // vertical offset to keep the whole label block visually centered
   shiftPx: 0,
   // font sizes in px (on screen)
   fsCount: FONT_SIZE_LABEL,
   fsLabel: FONT_SIZE_LABEL,
   fsSmall: FONT_SIZE_SMALL,
+  fsCombined: FONT_SIZE_COMBINED,
   stackPx: 0,
 });
 
 /* Label text: singularize when needed so UI shows "Contributor" for 1 */
 const labelText = computed(()=> props.contributors === 1 ? "Contributor" : "Contributors");
+
+/* Format date to yyyy-mm-dd */
+const formattedDate = computed(() => {
+  if (!props.updatedAt) return '';
+  const date = new Date(props.updatedAt);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+});
 
 /* Recompute label visibility whenever r or k or updatedAt change. */
 function recomputeFit(){
@@ -77,37 +90,52 @@ function recomputeFit(){
   const fsCount = Math.min(FONT_SIZE_COUNT_MAX, Math.max(FONT_SIZE_COUNT_MIN, r * FONT_SIZE_COUNT_SCALE));
   const fsLabel = FONT_SIZE_LABEL;
   const fsSmall = FONT_SIZE_SMALL;
+  const fsCombined = FONT_SIZE_COMBINED;
 
   // Estimate text widths using character width ratios
   const wLabel = labelText.value.length * fsLabel * CHAR_WIDTH_RATIO_LABEL;
+  
+  // For combined layout: estimate width of "123 Contributors" on one line
+  const countStr = String(props.contributors);
+  const wCombined = (countStr.length + 1 + labelText.value.length) * fsCombined * CHAR_WIDTH_RATIO_LABEL;
+  
   const hasUpd = !!props.updatedAt;
   const updLine1 = "Last updated";
-  const updLine2 = props.updatedAt ?? "";
+  const updLine2 = formattedDate.value;
   const wUpd = Math.max(
     updLine1.length * fsSmall * CHAR_WIDTH_RATIO_SMALL, 
     updLine2.length * fsSmall * CHAR_WIDTH_RATIO_SMALL
   );
 
-  // Check if label fits horizontally and vertically
-  const showLabel = (wLabel <= availW) && (fsCount / 2 + LABEL_GAP_PRIMARY + fsLabel <= availH / 2);
+  // Check if combined layout fits (count + label on same line with 1.375rem font)
+  const showCombined = (wCombined <= availW) && (fsCombined <= availH / 2);
+  
+  // Check if separate label fits (fallback to stacked layout)
+  const showLabel = !showCombined && (wLabel <= availW) && (fsCount / 2 + LABEL_GAP_PRIMARY + fsLabel <= availH / 2);
+  
+  // Calculate updated block space requirements
   const updatedBlockHeight = hasUpd ? (fsSmall * 2 + LABEL_GAP_UPDATED_INNER) : 0;
+  const primaryHeight = showCombined ? fsCombined : fsCount;
+  const labelHeight = showLabel ? (LABEL_GAP_PRIMARY + fsLabel) : 0;
+  
   const showUpdated = hasUpd && (wUpd <= availW) &&
-    (fsCount / 2 + LABEL_GAP_PRIMARY + 
-     (showLabel ? (fsLabel + LABEL_GAP_SECONDARY) : 0) + updatedBlockHeight <= availH / 2);
+    (primaryHeight / 2 + (showCombined || showLabel ? LABEL_GAP_SECONDARY : LABEL_GAP_PRIMARY) + updatedBlockHeight <= availH / 2);
 
   // Calculate total stack height and vertical centering shift
-  const stackPx = fsCount
-    + (showLabel ? LABEL_GAP_PRIMARY + fsLabel : 0)
-    + (showUpdated ? ((showLabel ? LABEL_GAP_SECONDARY : LABEL_GAP_PRIMARY) + (fsSmall * 2 + LABEL_GAP_UPDATED_INNER)) : 0);
-  const shiftPx = (stackPx / 2 - fsCount / 2);
+  const stackPx = primaryHeight
+    + labelHeight
+    + (showUpdated ? ((showCombined || showLabel ? LABEL_GAP_SECONDARY : LABEL_GAP_PRIMARY) + updatedBlockHeight) : 0);
+  const shiftPx = (stackPx / 2 - primaryHeight / 2);
 
-  fit.showLabel   = showLabel;
-  fit.showUpdated = showUpdated;
-  fit.shiftPx     = shiftPx;
-  fit.fsCount     = fsCount;
-  fit.fsLabel     = fsLabel;
-  fit.fsSmall     = fsSmall;
-  fit.stackPx     = stackPx;
+  fit.showCombined = showCombined;
+  fit.showLabel    = showLabel;
+  fit.showUpdated  = showUpdated;
+  fit.shiftPx      = shiftPx;
+  fit.fsCount      = fsCount;
+  fit.fsLabel      = fsLabel;
+  fit.fsSmall      = fsSmall;
+  fit.fsCombined   = fsCombined;
+  fit.stackPx      = stackPx;
 }
 
 /* Run once and whenever driving props change. */
@@ -167,22 +195,30 @@ function onKeyDown(ev:KeyboardEvent){
       :transform="`scale(${1/k})`"
       style="overflow: visible; pointer-events: none;">
       <div xmlns="http://www.w3.org/1999/xhtml" class="html-label-wrapper">
-        <!-- Count is ALWAYS visible and centered -->
-        <div class="count" :style="`font-size: ${fit.fsCount}px;`">
-          {{ contributors }}
+        <!-- Combined layout: count and label on same line with larger font -->
+        <div v-if="fit.showCombined" class="combined" :style="`font-size: ${fit.fsCombined}px;`">
+          {{ contributors }} {{ labelText }}
         </div>
         
-        <!-- "Contributors/Contributor": only if fits -->
-        <div v-if="fit.showLabel" class="label" 
-             :style="`font-size: ${fit.fsLabel}px; margin-top: ${LABEL_GAP_PRIMARY}px;`">
-          {{ labelText }}
-        </div>
+        <!-- Stacked layout: count and label on separate lines (fallback) -->
+        <template v-else>
+          <!-- Count is ALWAYS visible and centered -->
+          <div class="count" :style="`font-size: ${fit.fsCount}px;`">
+            {{ contributors }}
+          </div>
+          
+          <!-- "Contributors/Contributor": only if fits -->
+          <div v-if="fit.showLabel" class="label" 
+               :style="`font-size: ${fit.fsLabel}px; margin-top: ${LABEL_GAP_PRIMARY}px;`">
+            {{ labelText }}
+          </div>
+        </template>
         
         <!-- "Last updated …": only if fits -->
         <div v-if="fit.showUpdated" class="updated" 
-             :style="`font-size: ${fit.fsSmall}px; margin-top: ${fit.showLabel ? LABEL_GAP_SECONDARY : LABEL_GAP_PRIMARY}px;`">
+             :style="`font-size: ${fit.fsSmall}px; margin-top: ${fit.showCombined || fit.showLabel ? LABEL_GAP_SECONDARY : LABEL_GAP_PRIMARY}px;`">
           <div>Last updated</div>
-          <div :style="`margin-top: ${LABEL_GAP_UPDATED_INNER}px;`">{{ updatedAt }}</div>
+          <div :style="`margin-top: ${LABEL_GAP_UPDATED_INNER}px;`">{{ formattedDate }}</div>
         </div>
         
         <!-- View article button: only if active and bubble is large enough -->
@@ -222,6 +258,14 @@ function onKeyDown(ev:KeyboardEvent){
   pointer-events: none;
   height: 100%;
   width: 100%;
+}
+
+/* Combined layout: count and label on same line with larger font */
+.html-label-wrapper .combined {
+  color: #1f2937;
+  font-weight: 600;
+  line-height: 1;
+  pointer-events: none;
 }
 
 /* Count: always visible, bold and prominent */
