@@ -1,5 +1,6 @@
 {
   "type": "module",
+  "packageManager": "pnpm@10.19.0",
   "engines": {
     "node": ">= 22.6.0",
     "pnpm": ">= 10.0.0"
