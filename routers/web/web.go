@@ -307,13 +307,6 @@ func registerWebRoutes(m *web.Router) {
 
 	validation.AddBindingRules()
 
-	linkAccountEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignIn && !setting.Service.EnableOpenIDSignUp && !setting.OAuth2.Enabled {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-	}
-
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
 			ctx.HTTPError(http.StatusForbidden)
@@ -545,9 +538,9 @@ func registerWebRoutes(m *web.Router) {
 		}, openIDSignInEnabled)
 		m.Get("/sign_up", auth.SignUp)
 		m.Post("/sign_up", web.Bind(forms.RegisterForm{}), auth.SignUpPost)
-		m.Get("/link_account", linkAccountEnabled, auth.LinkAccount)
-		m.Post("/link_account_signin", linkAccountEnabled, web.Bind(forms.SignInForm{}), auth.LinkAccountPostSignIn)
-		m.Post("/link_account_signup", linkAccountEnabled, web.Bind(forms.RegisterForm{}), auth.LinkAccountPostRegister)
+		m.Get("/link_account", auth.LinkAccount)
+		m.Post("/link_account_signin", web.Bind(forms.SignInForm{}), auth.LinkAccountPostSignIn)
+		m.Post("/link_account_signup", web.Bind(forms.RegisterForm{}), auth.LinkAccountPostRegister)
 		m.Group("/two_factor", func() {
 			m.Get("", auth.TwoFactor)
 			m.Post("", web.Bind(forms.TwoFactorAuthForm{}), auth.TwoFactorPost)
@@ -622,7 +615,7 @@ func registerWebRoutes(m *web.Router) {
 				m.Post("/delete", security.DeleteOpenID)
 				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
-			m.Post("/account_link", linkAccountEnabled, security.DeleteAccountLink)
+			m.Post("/account_link", security.DeleteAccountLink)
 		})
 
 		m.Group("/applications", func() {
