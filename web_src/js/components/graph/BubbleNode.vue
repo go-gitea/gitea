@@ -47,7 +47,6 @@ const props = defineProps<{
 /* Emits so the parent can wire up interactions without D3 binding. */
 const emit = defineEmits<{
   (e:"click", id:string, ev:MouseEvent): void;
-  (e:"dblclick", id:string, ev:MouseEvent): void;
   (e:"view", id:string, ev:MouseEvent): void;
 }>();
 
@@ -133,9 +132,8 @@ const buttonTransform = computed(() => {
   return `translate(0, ${offsetWorld}) scale(${1/props.k})`;
 });
 
-/* Pointer handlers relay events upward (so parent can focus / add / delete). */
+/* Pointer handlers relay events upward (so parent can focus). */
 function onClick(ev:MouseEvent){ emit("click", props.id, ev); }
-function onDblClick(ev:MouseEvent){ ev.preventDefault(); emit("dblclick", props.id, ev); }
 function onView(ev:MouseEvent | KeyboardEvent){
   ev.preventDefault();
   ev.stopPropagation();
@@ -149,10 +147,6 @@ function onKeyDown(ev:KeyboardEvent){
   if (ev.key === 'Enter' || ev.key === ' ') {
     ev.preventDefault();
     emit("click", props.id, ev as any);
-  } else if (ev.key === 'Delete' && ev.altKey) {
-    ev.preventDefault();
-    const mouseEv = new MouseEvent('click', { altKey: true });
-    emit("click", props.id, mouseEv);
   }
 }
 </script>
@@ -162,11 +156,10 @@ function onKeyDown(ev:KeyboardEvent){
   <g class="node cursor-pointer select-none" 
      :transform="gTransform"
      role="button"
-     :aria-label="`Repository node with ${contributors} contributor${contributors === 1 ? '' : 's'}${updatedAt ? ', last updated ' + updatedAt : ''}. Press Enter to select, Alt+Delete to remove, or double-click to expand.`"
+     :aria-label="`Repository node with ${contributors} contributor${contributors === 1 ? '' : 's'}${updatedAt ? ', last updated ' + updatedAt : ''}. Press Enter to select.`"
      :aria-pressed="isActive ? 'true' : 'false'"
      tabindex="0"
      @click="onClick" 
-     @dblclick="onDblClick"
      @keydown="onKeyDown">
     <!-- Bubble circle with soft gradient & subtle stroke/shadow -->
     <circle class="node-circle" :r="r" fill="url(#bubbleGrad)"

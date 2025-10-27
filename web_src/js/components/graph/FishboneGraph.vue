@@ -1,11 +1,13 @@
 <script setup lang="ts">
 /* FishboneGraph.vue
-   QUICK FIX SUMMARY:
-   - We now transform the SAME <g> that Vue renders into (ref="worldRef").
-   - We set `touch-action: none` on the <svg> so pinch zoom works on touch.
-   - All interactions (pan/zoom/click/dblclick/alt+click/background reset)
-     are wired to this world group through d3-zoom on the <svg>.
-   Everything else remains as before (responsive dials, tiny-graph elegance). */
+   Interactive fork repository graph with fishbone layout.
+   
+   Key features:
+   - Transforms the <g> group (ref="worldRef") that Vue renders into
+   - Sets `touch-action: none` on the <svg> for pinch zoom on touch devices
+   - All interactions (pan/zoom/click/background reset) wired through d3-zoom
+   - Responsive auto-tuning based on container size and graph complexity
+   - Accessibility support with ARIA labels and keyboard navigation */
 
 import { onMounted, reactive, ref, onBeforeUnmount, nextTick, computed } from "vue";
 import { select } from "d3-selection";
@@ -47,14 +49,9 @@ const LS_REPO_KEY = 'selectedArticleRepo';
    LAYOUT CONSTANTS (all values explained to avoid "magic numbers")
    ─────────────────────────────────────────────────────────────────────────── */
 
-/* === DEMO DATA GENERATION === */
-const RANDOM_MIN = 10;          // Minimum random contributor count for demo forks
-const RANDOM_MAX = 600;         // Maximum random contributor count for demo forks
-
 /* === BUBBLE SIZING === */
 const R_MIN = 8;                // Minimum bubble radius in pixels (smallest contributor count)
 const R_MAX = 120;              // Maximum bubble radius in pixels (largest contributor count)
-const MAX_DEPTH = 4;            // Maximum fork depth to prevent exponential explosion in demos
 
 /* === VERTICAL LAYOUT === */
 const LEVEL_GAP = 240;          // Vertical spacing between generations (parent to child level)
@@ -146,10 +143,6 @@ const API_LIMIT = 50;                // Maximum number of forks to fetch per req
 const VIEW_TRANSITION_DURATION = 420;  // Duration of zoom/pan animations in milliseconds
 const SCREEN_READER_ANNOUNCEMENT_DURATION = 1000;  // How long to show SR announcements
 
-/* === ID GENERATION === */
-const RANDOM_ID_LENGTH = 7;          // Number of characters for generated random IDs
-const RANDOM_ID_SLICE_START = 2;     // Starting position for ID slice (skip "0.")
-
 /* ──────────────────────────────────────────────────────────────────────────────
    STATE
    ─────────────────────────────────────────────────────────────────────────── */
@@ -202,6 +195,11 @@ function announceToScreenReader(message: string) {
   srAnnouncement.value = message;
   setTimeout(() => { srAnnouncement.value = ""; }, SCREEN_READER_ANNOUNCEMENT_DURATION);
 }
+
+/* Component state management (loading, error, empty) */
+const isLoading = ref(false);
+const errorMessage = ref<string | null>(null);
+const hasData = computed(() => Object.keys(state.graph).length > 0);
 
 /* Container width affects responsive dials; observe it. */
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -365,9 +363,15 @@ function handleExternalSelection(event: Event) {
 }
 
 async function fetchForkGraphAndSet(){
+  // Set loading state at the start
+  isLoading.value = true;
+  errorMessage.value = null;
+
   try{
     if(!props.apiUrl){
       console.warn('FishboneGraph: apiUrl not provided');
+      errorMessage.value = 'No API URL provided';
+      isLoading.value = false;
       return;
     }
     const urlObj = new URL(props.apiUrl, window.location.origin);
@@ -391,15 +395,36 @@ async function fetchForkGraphAndSet(){
     }
 
     const res = await fetch(urlObj.toString(), { credentials: 'same-origin' });
-    if(!res.ok){ console.error('FishboneGraph: API error', res.status); return; }
+    if(!res.ok){
+      const errorText = `Failed to load fork graph (${res.status} ${res.statusText})`;
+      console.error('FishboneGraph: API error', res.status);
+      errorMessage.value = errorText;
+      isLoading.value = false;
+      announceToScreenReader(errorText);
+      return;
+    }
     const json = await res.json();
     const graph = buildGraphFromApi(json?.root);
     state.graph = graph;
-    layoutAndRender();
-    resetView();
-    restoreSelectionAfterGraphLoad();
+    
+    // Clear loading state before layout/render
+    isLoading.value = false;
+    
+    // Only layout and render if we have data
+    if(Object.keys(graph).length > 0) {
+      layoutAndRender();
+      resetView();
+      restoreSelectionAfterGraphLoad();
+      announceToScreenReader(`Loaded fork graph with ${Object.keys(graph).length} repositories`);
+    } else {
+      announceToScreenReader('No fork data available');
+    }
   }catch(err){
+    const errorText = err instanceof Error ? err.message : 'Failed to load fork graph';
     console.error('FishboneGraph: failed to fetch graph', err);
+    errorMessage.value = errorText;
+    isLoading.value = false;
+    announceToScreenReader(errorText);
   }
 }
 
@@ -732,49 +757,6 @@ function focusNode(n:Node){
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────-
-   DATA MUTATION (demo add/remove)
-   ─────────────────────────────────────────────────────────────────────────── */
-function addFork(parentId:NodeId){
-  const p = state.graph[parentId];
-  if (!p) return;
-  
-  // Check depth to prevent explosion
-  const depth = (function getDepth(id:NodeId){
-    let d = 0, cur = state.graph[id];
-    while (cur.parentId) {
-      d++;
-      cur = state.graph[cur.parentId];
-    }
-    return d;
-  })(parentId);
-  if (depth >= MAX_DEPTH - 1) return;
-
-  // Generate random contributor count and ID for demo fork
-  const n = RANDOM_MIN + Math.floor(Math.random() * (RANDOM_MAX - RANDOM_MIN + 1));
-  const id = Math.random().toString(36).slice(RANDOM_ID_SLICE_START, RANDOM_ID_SLICE_START + RANDOM_ID_LENGTH);
-  state.graph[id] = {
-    id,
-    contributors: n,
-    parentId,
-    children: [],
-    updatedAt: new Date().toISOString().slice(0, 10)
-  };
-  p.children.push(id);
-
-  layoutAndRender();
-  resetView(true);
-}
-
-function deleteNode(id:NodeId){
-  const node=state.graph[id]; if(!node||node.parentId===null) return;
-  const parent=state.graph[node.parentId];
-  for(const cid of node.children){ const c=state.graph[cid]; if(!c) continue; c.parentId=parent.id; parent.children.push(cid); }
-  parent.children=parent.children.filter(x=>x!==id);
-  delete state.graph[id];
-  layoutAndRender(); resetView(true);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────────-
    RENDER PIPELINE (layout→derive arrays→Vue renders)
    ─────────────────────────────────────────────────────────────────────────── */
 function layoutAndRender(){
@@ -883,13 +865,8 @@ function persistSelectionDetail(detail: RepoSelectionDetail | null) {
   }
 }
 
-/* Click handler: focus or delete, and persist selected article (owner/subject) */
-function onBubbleClick(n: Node, ev: MouseEvent){
-  if (ev && (ev as any).altKey) { 
-    deleteNode(n.id); 
-    announceToScreenReader(`Removed ${n.fullName || n.id}`);
-    return; 
-  }
+/* Click handler: focus and persist selected article (owner/subject) */
+function onBubbleClick(n: Node){
   focusNode(n);
   const detail = getSelectionDetailFromNode(n);
   if (!detail) return;
@@ -916,66 +893,118 @@ function onBubbleView(n: Node){
     <div class="f-fishbone-graph" ref="containerRef">
       <!-- Screen reader announcements -->
       <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ srAnnouncement }}</div>
-      <div class="mx-auto max-w-[1100px] relative">
+      <div class="mx-auto max-w-[1100px]">
       <!-- Controls removed; using defaults -->
 
-      <!-- SVG world: IMPORTANT → touch-action:none enables pinch zoom; d3 handles it -->
-      <svg ref="svgRef" 
-           class="tw-w-full" 
-           :style="{ height: svgHeight + 'px' }" 
-           style="touch-action: none;"
-           role="img"
-           aria-label="Fork repository graph showing contributors and relationships"
-           tabindex="0">
-        <defs>
-          <!-- Soft radial bubble gradient -->
-          <radialGradient id="bubbleGrad" cx="35%" cy="30%" r="65%">
-            <stop offset="0%"  stop-color="#FAFBFC"/>
-            <stop offset="60%" stop-color="#EEF2F7"/>
-            <stop offset="100%" stop-color="#E6EBF2"/>
-          </radialGradient>
-          <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
-            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#64748b" flood-opacity="0.18"/>
-          </filter>
-        </defs>
+      <!-- Graph container with relative positioning for overlays -->
+      <div class="graph-container">
+        <!-- SVG world: IMPORTANT → touch-action:none enables pinch zoom; d3 handles it -->
+        <!-- SVG is always rendered to keep refs valid -->
+        <svg ref="svgRef" 
+             class="tw-w-full" 
+             :class="{ 'graph-hidden': isLoading || errorMessage || !hasData }"
+             :style="{ height: svgHeight + 'px' }" 
+             style="touch-action: none;"
+             role="img"
+             aria-label="Fork repository graph showing contributors and relationships"
+             tabindex="0">
+          <defs>
+            <!-- Soft radial bubble gradient -->
+            <radialGradient id="bubbleGrad" cx="35%" cy="30%" r="65%">
+              <stop offset="0%"  stop-color="#FAFBFC"/>
+              <stop offset="60%" stop-color="#EEF2F7"/>
+              <stop offset="100%" stop-color="#E6EBF2"/>
+            </radialGradient>
+            <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#64748b" flood-opacity="0.18"/>
+            </filter>
+          </defs>
 
-        <!-- WORLD GROUP: Vue renders here, and d3-zoom transforms this exact <g> -->
-        <g ref="worldRef">
-          <!-- Trunks (vertical) -->
-          <line v-for="t in trunksList" :key="t.id"
-                class="trunk"
-                :x1="t.x" :x2="t.x"
-                :y1="t.y1" :y2="t.y2"
-                stroke="#D7DFE8" stroke-width="2" stroke-linecap="round" />
+          <!-- WORLD GROUP: Vue renders here, and d3-zoom transforms this exact <g> -->
+          <g ref="worldRef">
+            <!-- Trunks (vertical) -->
+            <line v-for="t in trunksList" :key="t.id"
+                  class="trunk"
+                  :x1="t.x" :x2="t.x"
+                  :y1="t.y1" :y2="t.y2"
+                  stroke="#D7DFE8" stroke-width="2" stroke-linecap="round" />
 
-          <!-- Branch elbows + runs (one path per edge) -->
-          <path v-for="e in edgesList" :key="`${e.source.id}-${e.target.id}`"
-                class="branch" fill="none" stroke="#D7DFE8" stroke-width="2" stroke-linecap="round" opacity="0.9"
-                :d="`M ${e.ex} ${e.ey} C ${e.ex} ${e.ey + 0.5522847498307936*state.elbowR}, ${e.ex + e.side*0.5522847498307936*state.elbowR} ${e.hy}, ${e.hx} ${e.hy} L ${e.cx} ${e.cy}`" />
+            <!-- Branch elbows + runs (one path per edge) -->
+            <path v-for="e in edgesList" :key="`${e.source.id}-${e.target.id}`"
+                  class="branch" fill="none" stroke="#D7DFE8" stroke-width="2" stroke-linecap="round" opacity="0.9"
+                  :d="`M ${e.ex} ${e.ey} C ${e.ex} ${e.ey + 0.5522847498307936*state.elbowR}, ${e.ex + e.side*0.5522847498307936*state.elbowR} ${e.hy}, ${e.hx} ${e.hy} L ${e.cx} ${e.cy}`" />
 
-          <!-- Child stems -->
-          <line v-for="e in edgesList" :key="`stem-${e.source.id}-${e.target.id}`"
-                class="child-stem"
-                :x1="e.sx1" :y1="e.sy1" :x2="e.sx2" :y2="e.sy2"
-                stroke="#D7DFE8" stroke-width="2" stroke-linecap="round" opacity="0.9" />
+            <!-- Child stems -->
+            <line v-for="e in edgesList" :key="`stem-${e.source.id}-${e.target.id}`"
+                  class="child-stem"
+                  :x1="e.sx1" :y1="e.sy1" :x2="e.sx2" :y2="e.sy2"
+                  stroke="#D7DFE8" stroke-width="2" stroke-linecap="round" opacity="0.9" />
 
-          <!-- Joint dots (hollow rings) on trunk side -->
-          <circle v-for="j in jointDots" :key="`joint-${j.id}`"
-                  class="joint-parent" :cx="j.x" :cy="j.y" r="6"
-                  fill="#ffffff" stroke="#C7D2DF" stroke-width="2" />
-          
+            <!-- Joint dots (hollow rings) on trunk side -->
+            <circle v-for="j in jointDots" :key="`joint-${j.id}`"
+                    class="joint-parent" :cx="j.x" :cy="j.y" r="6"
+                    fill="#ffffff" stroke="#C7D2DF" stroke-width="2" />
+            
           <!-- Bubbles (component handles labels independently) -->
           <BubbleNode v-for="n in nodesList" :key="n.id"
             :id="n.id" :x="(n as any).x" :y="(n as any).y" :r="(rFor(n.contributors))"
             :contributors="n.contributors" :updatedAt="n.updatedAt" :k="kComputed"
             :is-active="selectedNodeId === n.id"
-            @click="(_, ev) => onBubbleClick(n, ev)"
-            @view="() => onBubbleView(n)"
-            @dblclick="() => addFork(n.id)" />
-        </g>
-      </svg>
+            @click="() => onBubbleClick(n)"
+            @view="() => onBubbleView(n)" />
+          </g>
+        </svg>
 
-      <LegendFishbone />
+        <!-- State overlays positioned on top of SVG only -->
+        <!-- Loading State -->
+        <div v-if="isLoading" class="state-overlay loading-state">
+        <svg class="tw-w-full" viewBox="0 0 1100 400" preserveAspectRatio="xMidYMid meet"
+             role="img" aria-label="Loading fork graph">
+          <defs>
+            <radialGradient id="loadingBubbleGrad" cx="35%" cy="30%" r="65%">
+              <stop offset="0%"  stop-color="#FAFBFC"/>
+              <stop offset="60%" stop-color="#EEF2F7"/>
+              <stop offset="100%" stop-color="#E6EBF2"/>
+            </radialGradient>
+          </defs>
+          <!-- Centered at 50% of viewBox (550, 200) -->
+          <g transform="translate(550, 200)">
+            <circle r="80" fill="url(#loadingBubbleGrad)" 
+                    stroke="#DBE2EA" stroke-width="1.2" opacity="0.7" class="pulse-animation" />
+            <text text-anchor="middle" dominant-baseline="central" 
+                  fill="#64748b" font-size="16" font-weight="500">Loading...</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Error State -->
+      <div v-else-if="errorMessage" class="state-overlay error-state">
+        <div class="state-message">
+          <svg class="state-icon error-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <h3 class="state-title">Failed to Load Fork Graph</h3>
+          <p class="state-description">{{ errorMessage }}</p>
+          <button class="state-button" @click="fetchForkGraphAndSet">Try Again</button>
+        </div>
+      </div>
+
+      <!-- Empty State -->
+      <div v-else-if="!hasData" class="state-overlay empty-state">
+        <div class="state-message">
+          <svg class="state-icon empty-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          <h3 class="state-title">No Forks Found</h3>
+          <p class="state-description">This repository doesn't have any forks yet.</p>
+        </div>
+      </div>
+      </div>
+      <!-- End graph-container -->
+
+      <LegendFishbone v-if="hasData" />
     </div>
   </div>
 </template>
@@ -991,6 +1020,17 @@ function onBubbleView(n: Node){
   outline: none;
 }
 
+/* Graph container for relative positioning of overlays */
+.graph-container {
+  position: relative;
+}
+
+/* Hide graph content when showing states, but keep SVG rendered */
+.graph-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1001,5 +1041,109 @@ function onBubbleView(n: Node){
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+/* State overlays */
+.state-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 2rem;
+  pointer-events: none; /* Allow clicks to pass through to tabs */
+}
+
+/* Loading state is transparent and non-blocking */
+.loading-state {
+  background-color: transparent;
+}
+
+/* Error and empty states have opaque backgrounds and block interaction */
+.error-state,
+.empty-state {
+  background-color: rgba(255, 255, 255, 0.98);
+  pointer-events: auto; /* Re-enable interaction for buttons */
+}
+
+.state-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 400px;
+}
+
+.state-icon {
+  width: 64px;
+  height: 64px;
+  margin-bottom: 1.5rem;
+}
+
+.error-icon {
+  color: #ef4444;
+}
+
+.empty-icon {
+  color: #64748b;
+}
+
+.state-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.state-description {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.5;
+}
+
+.state-button {
+  padding: 0.625rem 1.25rem;
+  background-color: var(--color-primary, #2563eb);
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.state-button:hover {
+  background-color: var(--color-primary-dark, #1d4ed8);
+}
+
+.state-button:active {
+  transform: scale(0.98);
+}
+
+.state-button:focus {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+}
+
+/* Loading animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+.pulse-animation {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 </style>
