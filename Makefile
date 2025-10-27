@@ -376,11 +376,11 @@ lint-md: node_modules ## lint markdown files
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
-	@go run $(MISSPELL_PACKAGE) -dict misspellings.csv -error $(SPELLCHECK_FILES)
+	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error $(SPELLCHECK_FILES)
 
 .PHONY: lint-spell-fix
 lint-spell-fix: ## lint spelling and fix issues
-	@go run $(MISSPELL_PACKAGE) -dict misspellings.csv -w $(SPELLCHECK_FILES)
+	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w $(SPELLCHECK_FILES)
 
 .PHONY: lint-go
 lint-go: ## lint go files
