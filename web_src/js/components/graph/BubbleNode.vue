@@ -29,9 +29,7 @@ const CHAR_WIDTH_RATIO_LABEL = 0.56; // Approximate width of label chars as rati
 const CHAR_WIDTH_RATIO_SMALL = 0.52; // Approximate width of small text chars as ratio of font size
 
 /* === BUTTON SIZING === */
-const BUTTON_WIDTH = 300;            // Width of "View article" button in screen pixels
-const BUTTON_HEIGHT = 92;            // Height of "View article" button in screen pixels
-const BUTTON_MARGIN = 32;            // Margin between bubble and button in screen pixels
+const BUTTON_MARGIN_TOP = 24;        // Margin between copy and button in screen pixels (1.5rem = 24px)
 const BUTTON_MIN_RADIUS = 80;        // Minimum bubble radius (in screen pixels) to show button
 
 const props = defineProps<{
@@ -195,11 +193,7 @@ function onKeyDown(ev:KeyboardEvent){
         <!-- View article button: only if active and bubble is large enough -->
         <button v-if="showButton" 
                 class="view-button"
-                :style="`
-                  width: ${BUTTON_WIDTH}px; 
-                  height: ${BUTTON_HEIGHT}px;
-                  margin-top: ${BUTTON_MARGIN + r * k}px;
-                `"
+                :style="`margin-top: ${BUTTON_MARGIN_TOP}px;`"
                 @click="onView"
                 @keydown.enter.prevent="onView"
                 @keydown.space.prevent="onView"
@@ -260,17 +254,19 @@ function onKeyDown(ev:KeyboardEvent){
 .html-label-wrapper .view-button {
   background-color: var(--color-primary);
   color: #ffffff;
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 600;
+  padding: 0.38rem 0.5rem;
   border: none;
-  border-radius: 14px;
+  border-radius: 0.375rem;
   cursor: pointer;
   opacity: 0.95;
   transition: background-color 0.2s ease, opacity 0.2s ease;
   pointer-events: auto;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  white-space: nowrap;
 }
 
 .html-label-wrapper .view-button:hover {
