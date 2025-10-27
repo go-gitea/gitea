@@ -32,6 +32,7 @@ function initFooterLanguageMenu() {
 
 function initFooterThemeSelector() {
   const elDropdown = document.querySelector('#footer-theme-selector');
+  if (!elDropdown) return; // some pages don't have footer, for example: 500.tmpl
   const $dropdown = fomanticQuery(elDropdown);
   $dropdown.dropdown({
     direction: 'upward',
