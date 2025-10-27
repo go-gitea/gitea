@@ -109,15 +109,36 @@ function onView(ev:MouseEvent){
   ev.stopPropagation();
   emit("view", props.id, ev);
 }
+
+/* Keyboard navigation support */
+function onKeyDown(ev:KeyboardEvent){
+  if (ev.key === 'Enter' || ev.key === ' ') {
+    ev.preventDefault();
+    emit("click", props.id, ev as any);
+  } else if (ev.key === 'Delete' && ev.altKey) {
+    ev.preventDefault();
+    const mouseEv = new MouseEvent('click', { altKey: true });
+    emit("click", props.id, mouseEv);
+  }
+}
 </script>
 
 <template>
   <!-- One node group at (x,y); we let the parent group receive the world transform -->
-  <g class="node cursor-pointer select-none" :transform="gTransform"
-     @click="onClick" @dblclick="onDblClick">
+  <g class="node cursor-pointer select-none" 
+     :transform="gTransform"
+     role="button"
+     :aria-label="`Repository node with ${contributors} contributor${contributors === 1 ? '' : 's'}${updatedAt ? ', last updated ' + updatedAt : ''}. Press Enter to select, Alt+Delete to remove, or double-click to expand.`"
+     :aria-pressed="isActive ? 'true' : 'false'"
+     tabindex="0"
+     @click="onClick" 
+     @dblclick="onDblClick"
+     @keydown="onKeyDown">
     <!-- Bubble circle with soft gradient & subtle stroke/shadow -->
     <circle class="node-circle" :r="r" fill="url(#bubbleGrad)"
-            stroke="#DBE2EA" stroke-width="1.2" filter="url(#softShadow)"/>
+            :stroke="isActive ? '#2563eb' : '#DBE2EA'" 
+            :stroke-width="isActive ? '2.5' : '1.2'" 
+            filter="url(#softShadow)"/>
     <!-- Labels: inversely scaled so font sizes stay constant on screen -->
     <g class="label-zoomfix" text-anchor="middle" :transform="labelTransform">
       <!-- Count is ALWAYS visible and centered -->
@@ -137,7 +158,15 @@ function onView(ev:MouseEvent){
               :y="fit.fsCount/2 + (fit.showLabel ? (6 + fit.fsLabel + 6) : (6)) + fit.fsSmall + 6"
               :style="`font-size:${fit.fsSmall}px`">{{ updatedAt }}</text>
       </g>
-      <g v-if="showButton" class="view-button" :transform="buttonTransform" @click="onView">
+      <g v-if="showButton" 
+         class="view-button" 
+         :transform="buttonTransform" 
+         role="button"
+         aria-label="View article details"
+         tabindex="0"
+         @click="onView"
+         @keydown.enter.prevent="onView"
+         @keydown.space.prevent="onView">
         <rect :x="-(BUTTON_WIDTH/2)" :y="-(BUTTON_HEIGHT/2)" :width="BUTTON_WIDTH" :height="BUTTON_HEIGHT" rx="14" />
         <text dominant-baseline="middle" text-anchor="middle" y="1">{{ 'View article' }}</text>
       </g>
@@ -149,12 +178,33 @@ function onView(ev:MouseEvent){
 .node-circle {
   transition: stroke 0.2s ease, stroke-width 0.2s ease;
 }
+.node:focus {
+  outline: none;
+}
+.node:focus .node-circle {
+  stroke: #3b82f6;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+}
 .view-button {
   cursor: pointer;
+}
+.view-button:focus {
+  outline: none;
+}
+.view-button:focus rect {
+  stroke: #ffffff;
+  stroke-width: 3;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+}
+.view-button:hover rect,
+.view-button:focus rect {
+  fill: #1d4ed8;
 }
 .view-button rect {
   fill: #2563eb;
   opacity: 0.95;
+  transition: fill 0.2s ease;
 }
 .view-button text {
   fill: #ffffff;

@@ -117,13 +117,20 @@ const jointDots = ref<{ x:number; y:number; id:string }[]>([]);
 const svgHeight = ref(1000);
 const svgRef = ref<SVGSVGElement | null>(null);
 /* IMPORTANT: This is the single world group that Vue renders into AND
-   that d3-zoom transforms. This fixes the “graph doesn’t move” bug. */
+   that d3-zoom transforms. This fixes the "graph doesn't move" bug. */
 const worldRef = ref<SVGGElement | null>(null);
 
 let svgSel!: Selection<SVGSVGElement, unknown, null, undefined>;
 let worldSel!: Selection<SVGGElement, unknown, null, undefined>;
 let zoomBehavior!: ZoomBehavior<Element, unknown>;
 const currentK = ref(1);
+
+/* Accessibility: Screen reader announcements */
+const srAnnouncement = ref("");
+function announceToScreenReader(message: string) {
+  srAnnouncement.value = message;
+  setTimeout(() => { srAnnouncement.value = ""; }, 1000);
+}
 
 /* Container width affects responsive dials; observe it. */
 const containerRef = ref<HTMLDivElement | null>(null);
@@ -734,13 +741,18 @@ function persistSelectionDetail(detail: RepoSelectionDetail | null) {
 
 /* Click handler: focus or delete, and persist selected article (owner/subject) */
 function onBubbleClick(n: Node, ev: MouseEvent){
-  if (ev && (ev as any).altKey) { deleteNode(n.id); return; }
+  if (ev && (ev as any).altKey) { 
+    deleteNode(n.id); 
+    announceToScreenReader(`Removed ${n.fullName || n.id}`);
+    return; 
+  }
   focusNode(n);
   const detail = getSelectionDetailFromNode(n);
   if (!detail) return;
   const payload = {...detail};
   applySelection(n, payload);
   persistSelectionDetail(payload);
+  announceToScreenReader(`Selected ${n.fullName || n.id} with ${n.contributors} contributor${n.contributors === 1 ? '' : 's'}`);
   window.dispatchEvent(new CustomEvent('repo:bubble-selected', {detail: payload}));
   window.dispatchEvent(new CustomEvent('repo:selection-updated', {detail: payload}));
 }
@@ -758,11 +770,19 @@ function onBubbleView(n: Node){
 
 <template>
     <div class="f-fishbone-graph" ref="containerRef">
+      <!-- Screen reader announcements -->
+      <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ srAnnouncement }}</div>
       <div class="mx-auto max-w-[1100px] relative">
       <!-- Controls removed; using defaults -->
 
       <!-- SVG world: IMPORTANT → touch-action:none enables pinch zoom; d3 handles it -->
-      <svg ref="svgRef" class="tw-w-full" :style="{ height: svgHeight + 'px' }" style="touch-action: none;">
+      <svg ref="svgRef" 
+           class="tw-w-full" 
+           :style="{ height: svgHeight + 'px' }" 
+           style="touch-action: none;"
+           role="img"
+           aria-label="Fork repository graph showing contributors and relationships"
+           tabindex="0">
         <defs>
           <!-- Soft radial bubble gradient -->
           <radialGradient id="bubbleGrad" cx="35%" cy="30%" r="65%">
@@ -821,5 +841,16 @@ function onBubbleView(n: Node){
   width: 100%;
   height: calc(100vh - 25rem);
   overflow: auto;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 </style>
