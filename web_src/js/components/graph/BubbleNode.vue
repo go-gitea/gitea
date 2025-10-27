@@ -117,19 +117,11 @@ watch(() => [props.k, props.r, props.updatedAt, props.contributors], recomputeFi
 
 /* Convenience computed transform strings */
 const gTransform = computed(() => `translate(${props.x},${props.y})`);
-const labelTransform = computed(() => `translate(0, ${-fit.shiftPx/props.k}) scale(${1/props.k})`);
 
 const showButton = computed(() => {
   if (!props.isActive) return false;
   const pixelRadius = props.r * props.k;
   return pixelRadius >= BUTTON_MIN_RADIUS;
-});
-
-const buttonTransform = computed(() => {
-  const buttonHeightWorld = BUTTON_HEIGHT / props.k;
-  const marginWorld = BUTTON_MARGIN / props.k;
-  const offsetWorld = props.r + (buttonHeightWorld / 2) + marginWorld;
-  return `translate(0, ${offsetWorld}) scale(${1/props.k})`;
 });
 
 /* Pointer handlers relay events upward (so parent can focus). */
@@ -166,38 +158,56 @@ function onKeyDown(ev:KeyboardEvent){
             :stroke="isActive ? 'var(--color-primary)' : '#DBE2EA'" 
             :stroke-width="1" 
             filter="url(#softShadow)"/>
-    <!-- Labels: inversely scaled so font sizes stay constant on screen -->
-    <g class="label-zoomfix" text-anchor="middle" :transform="labelTransform">
-      <!-- Count is ALWAYS visible and centered -->
-      <text class="count" dominant-baseline="central"
-            :style="`font-size:${fit.fsCount}px`" fill="#1f2937" font-weight="600">
-        {{ contributors }}
-      </text>
-      <!-- “Contributors/Contributor”: bold; only if fits -->
-      <text v-if="fit.showLabel" class="lbl" :y="fit.fsCount/2 + 6" :style="`font-size:${fit.fsLabel}px`"
-            fill="#475569" font-weight="700" dominant-baseline="hanging">{{ labelText }}</text>
-      <!-- “Last updated …”: only if fits -->
-      <g v-if="fit.showUpdated" class="upd" fill="#94a3b8" text-anchor="middle">
-        <text dominant-baseline="hanging"
-              :y="fit.fsCount/2 + (fit.showLabel ? (6 + fit.fsLabel + 6) : (6))"
-              :style="`font-size:${fit.fsSmall}px`">Last updated</text>
-        <text dominant-baseline="hanging"
-              :y="fit.fsCount/2 + (fit.showLabel ? (6 + fit.fsLabel + 6) : (6)) + fit.fsSmall + 6"
-              :style="`font-size:${fit.fsSmall}px`">{{ updatedAt }}</text>
-      </g>
-      <g v-if="showButton" 
-         class="view-button" 
-         :transform="buttonTransform" 
-         role="button"
-         aria-label="View article details"
-         tabindex="0"
-         @click="onView"
-         @keydown.enter.prevent="onView"
-         @keydown.space.prevent="onView">
-        <rect :x="-(BUTTON_WIDTH/2)" :y="-(BUTTON_HEIGHT/2)" :width="BUTTON_WIDTH" :height="BUTTON_HEIGHT" rx="14" />
-        <text dominant-baseline="middle" text-anchor="middle" y="1">{{ 'View article' }}</text>
-      </g>
-    </g>
+    
+    <!-- HTML Labels: using foreignObject for efficient text rendering -->
+    <!-- Calculate the size needed for the foreignObject container -->
+    <foreignObject 
+      :x="-r" 
+      :y="-r" 
+      :width="r * 2" 
+      :height="r * 2"
+      :transform="`scale(${1/k})`"
+      style="overflow: visible; pointer-events: none;">
+      <div xmlns="http://www.w3.org/1999/xhtml" class="html-label-wrapper" 
+           :style="`
+             width: ${r * 2 * k}px; 
+             height: ${r * 2 * k}px;
+             transform: translateY(${-fit.shiftPx}px);
+           `">
+        <!-- Count is ALWAYS visible and centered -->
+        <div class="count" :style="`font-size: ${fit.fsCount}px;`">
+          {{ contributors }}
+        </div>
+        
+        <!-- "Contributors/Contributor": only if fits -->
+        <div v-if="fit.showLabel" class="label" 
+             :style="`font-size: ${fit.fsLabel}px; margin-top: ${LABEL_GAP_PRIMARY}px;`">
+          {{ labelText }}
+        </div>
+        
+        <!-- "Last updated …": only if fits -->
+        <div v-if="fit.showUpdated" class="updated" 
+             :style="`font-size: ${fit.fsSmall}px; margin-top: ${fit.showLabel ? LABEL_GAP_SECONDARY : LABEL_GAP_PRIMARY}px;`">
+          <div>Last updated</div>
+          <div :style="`margin-top: ${LABEL_GAP_UPDATED_INNER}px;`">{{ updatedAt }}</div>
+        </div>
+        
+        <!-- View article button: only if active and bubble is large enough -->
+        <button v-if="showButton" 
+                class="view-button"
+                :style="`
+                  width: ${BUTTON_WIDTH}px; 
+                  height: ${BUTTON_HEIGHT}px;
+                  margin-top: ${BUTTON_MARGIN + r * k}px;
+                `"
+                @click="onView"
+                @keydown.enter.prevent="onView"
+                @keydown.space.prevent="onView"
+                aria-label="View article details">
+          View article
+        </button>
+      </div>
+    </foreignObject>
   </g>
 </template>
 
@@ -212,29 +222,69 @@ function onKeyDown(ev:KeyboardEvent){
   stroke: var(--color-primary);
   stroke-width: 1;
 }
-.view-button {
-  cursor: pointer;
+
+/* HTML Label Wrapper - efficient text rendering */
+.html-label-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
 }
-.view-button:focus {
-  outline: none;
+
+/* Count: always visible, bold and prominent */
+.html-label-wrapper .count {
+  color: #1f2937;
+  font-weight: 600;
+  line-height: 1;
+  pointer-events: none;
 }
-.view-button:focus rect {
-  stroke: #ffffff;
-  stroke-width: 1;
+
+/* Label text: "Contributor(s)" */
+.html-label-wrapper .label {
+  color: #475569;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
 }
-.view-button:hover rect,
-.view-button:focus rect {
-  fill: var(--color-primary);
+
+/* Updated date information */
+.html-label-wrapper .updated {
+  color: #94a3b8;
+  line-height: 1;
+  pointer-events: none;
 }
-.view-button rect {
-  fill: var(--color-primary);
-  opacity: 0.95;
-  transition: fill 0.2s ease;
-}
-.view-button text {
-  fill: #ffffff;
+
+/* View article button - HTML button with proper styling */
+.html-label-wrapper .view-button {
+  background-color: var(--color-primary);
+  color: #ffffff;
   font-size: 20px;
   font-weight: 600;
-  pointer-events: none;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  opacity: 0.95;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.html-label-wrapper .view-button:hover {
+  background-color: var(--color-primary-dark, #1d4ed8);
+  opacity: 1;
+}
+
+.html-label-wrapper .view-button:focus {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  background-color: var(--color-primary);
+}
+
+.html-label-wrapper .view-button:active {
+  transform: scale(0.98);
 }
 </style>
