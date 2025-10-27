@@ -331,8 +331,8 @@ importers:
         specifier: 8.46.2
         version: 8.46.2(eslint@9.38.0(jiti@2.6.1))(typescript@5.9.3)
       updates:
-        specifier: 16.9.0
-        version: 16.9.0
+        specifier: 16.9.1
+        version: 16.9.1
       vite-string-plugin:
         specifier: 1.4.6
         version: 1.4.6
@@ -4140,8 +4140,8 @@ packages:
     peerDependencies:
       browserslist: '>= 4.21.0'
 
-  updates@16.9.0:
-    resolution: {integrity: sha512-/obmSXGtVnWrrSHp/OX08fVu205WyxrZTrMR+isWBxANXj3inQYrbdkNjNSMpjBpeVO6re5MGw/TYTE4RwaOzg==}
+  updates@16.9.1:
+    resolution: {integrity: sha512-Ct2VXiFLPG6ArPnL0Bd5KIOXjH/V26NYv84cgVZegkVBO96x58x8wG4KqxM2449YaHhgsWiM76jnTNz14pRalQ==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -8353,7 +8353,7 @@ snapshots:
       escalade: 3.2.0
       picocolors: 1.1.1
 
-  updates@16.9.0: {}
+  updates@16.9.1: {}
 
   uri-js@4.4.1:
     dependencies:

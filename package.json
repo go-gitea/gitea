@@ -3,7 +3,7 @@
   "packageManager": "pnpm@10.19.0",
   "engines": {
     "node": ">= 22.6.0",
-    "pnpm": ">= 10.19.0"
+    "pnpm": ">= 10.0.0"
   },
   "dependencies": {
     "@citation-js/core": "0.7.21",
@@ -109,7 +109,7 @@
     "stylelint-value-no-unknown-custom-properties": "6.0.1",
     "svgo": "4.0.0",
     "typescript-eslint": "8.46.2",
-    "updates": "16.9.0",
+    "updates": "16.9.1",
     "vite-string-plugin": "1.4.6",
     "vitest": "4.0.4",
     "vue-tsc": "3.1.2"
