@@ -4,7 +4,7 @@ import {pathEscapeSegments} from '../utils/url.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 
-export function createViewFileTreeStore(props: {repoLink: string, treePath: string, currentRefNameSubURL: string}) {
+export function createViewFileTreeStore(props: {repoLink: string, repoName: string, treePath: string, currentRefNameSubURL: string}) {
   const store = reactive({
     rootFiles: [],
     selectedItem: props.treePath,
@@ -32,13 +32,22 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
 
     async navigateTreeView(treePath: string) {
       const url = store.buildTreePathWebUrl(treePath);
+      const title = store.buildTitle(store.selectedItem, treePath);
       window.history.pushState({treePath, url}, null, url);
       store.selectedItem = treePath;
       await store.loadViewContent(url);
+      document.title = title;
     },
 
     buildTreePathWebUrl(treePath: string) {
       return `${props.repoLink}/src/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}`;
+    },
+
+    buildTitle(oldTreePath: string, treePath: string) {
+      // the title always starts with "<repoName>/<treePath>"
+      const oldPrefixLength = props.repoName.length + 1 + oldTreePath.length;
+      const titleSuffix = document.title.substring(oldPrefixLength);
+      return `${props.repoName}/${treePath}${titleSuffix}`;
     },
   });
   return store;
