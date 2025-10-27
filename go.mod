@@ -1,6 +1,6 @@
 module code.gitea.io/gitea
 
-go 1.24.0
+go 1.24.9
 
 // rfc5280 said: "The serial number is an integer assigned by the CA to each certificate."
 // But some CAs use negative serial number, just relax the check. related:
