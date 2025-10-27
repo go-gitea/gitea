@@ -210,8 +210,36 @@ let containerWidth = DEFAULT_CONTAINER_WIDTH;
 let containerHeight = DEFAULT_CONTAINER_HEIGHT;
 let pendingRaf: number | null = null;
 
-/* Props and API fetch */
-const props = defineProps<{ apiUrl?: string | null; owner?: string | null; repo?: string | null; subject?: string | null }>();
+/* ──────────────────────────────────────────────────────────────────────────────
+   PROPS & API CONFIGURATION
+   ─────────────────────────────────────────────────────────────────────────── */
+
+interface FishboneGraphProps {
+  // Core data source
+  apiUrl?: string | null;
+  owner?: string | null;
+  repo?: string | null;
+  subject?: string | null;
+  
+  // API query parameters (with sensible defaults from constants)
+  includeContributors?: boolean;
+  contributorDays?: number;
+  maxDepth?: number;
+  sortBy?: 'updated' | 'created' | 'pushed' | 'full_name';
+  limit?: number;
+}
+
+const props = withDefaults(defineProps<FishboneGraphProps>(), {
+  apiUrl: null,
+  owner: null,
+  repo: null,
+  subject: null,
+  includeContributors: true,
+  contributorDays: API_CONTRIBUTOR_DAYS,
+  maxDepth: API_MAX_DEPTH,
+  sortBy: 'updated',
+  limit: API_LIMIT,
+});
 
 const selectedNodeId = ref<NodeId | null>(null);
 let pendingExternalSelection: RepoSelectionDetail | null = null;
@@ -343,11 +371,24 @@ async function fetchForkGraphAndSet(){
       return;
     }
     const urlObj = new URL(props.apiUrl, window.location.origin);
-    if(!urlObj.searchParams.get('include_contributors')) urlObj.searchParams.set('include_contributors','true');
-    if(!urlObj.searchParams.get('contributor_days')) urlObj.searchParams.set('contributor_days', API_CONTRIBUTOR_DAYS.toString());
-    if(!urlObj.searchParams.get('max_depth')) urlObj.searchParams.set('max_depth', API_MAX_DEPTH.toString());
-    if(!urlObj.searchParams.get('sort')) urlObj.searchParams.set('sort','updated');
-    if(!urlObj.searchParams.get('limit')) urlObj.searchParams.set('limit', API_LIMIT.toString());
+    
+    // Set API query parameters from props (only if not already in URL)
+    // This allows the URL to override component props if needed
+    if(!urlObj.searchParams.get('include_contributors')) {
+      urlObj.searchParams.set('include_contributors', props.includeContributors.toString());
+    }
+    if(!urlObj.searchParams.get('contributor_days')) {
+      urlObj.searchParams.set('contributor_days', props.contributorDays.toString());
+    }
+    if(!urlObj.searchParams.get('max_depth')) {
+      urlObj.searchParams.set('max_depth', props.maxDepth.toString());
+    }
+    if(!urlObj.searchParams.get('sort')) {
+      urlObj.searchParams.set('sort', props.sortBy);
+    }
+    if(!urlObj.searchParams.get('limit')) {
+      urlObj.searchParams.set('limit', props.limit.toString());
+    }
 
     const res = await fetch(urlObj.toString(), { credentials: 'same-origin' });
     if(!res.ok){ console.error('FishboneGraph: API error', res.status); return; }
