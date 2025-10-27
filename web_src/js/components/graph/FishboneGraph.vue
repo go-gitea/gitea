@@ -10,9 +10,13 @@
    - Accessibility support with ARIA labels and keyboard navigation */
 
 import { onMounted, reactive, ref, onBeforeUnmount, nextTick, computed } from "vue";
+// @ts-ignore - d3-selection types may not be available in CI environment
 import { select } from "d3-selection";
+// @ts-ignore - d3-selection types may not be available in CI environment
 import type { Selection } from "d3-selection";
+// @ts-ignore - d3-zoom types may not be available in CI environment
 import { zoom, zoomIdentity } from "d3-zoom";
+// @ts-ignore - d3-zoom types may not be available in CI environment
 import type { ZoomBehavior, ZoomTransform } from "d3-zoom";
 
 import LegendFishbone from "./FishboneLegend.vue";
@@ -890,28 +894,30 @@ function onBubbleView(n: Node){
 </script>
 
 <template>
-    <div class="f-fishbone-graph" ref="containerRef">
-      <!-- Screen reader announcements -->
-      <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ srAnnouncement }}</div>
-      <div class="mx-auto max-w-[1100px]">
+  <div class="f-fishbone-graph" ref="containerRef">
+    <!-- Screen reader announcements -->
+    <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ srAnnouncement }}</div>
+    <div class="mx-auto max-w-[1100px]">
       <!-- Controls removed; using defaults -->
 
       <!-- Graph container with relative positioning for overlays -->
       <div class="graph-container">
         <!-- SVG world: IMPORTANT → touch-action:none enables pinch zoom; d3 handles it -->
         <!-- SVG is always rendered to keep refs valid -->
-        <svg ref="svgRef" 
-             class="tw-w-full" 
-             :class="{ 'graph-hidden': isLoading || errorMessage || !hasData }"
-             :style="{ height: svgHeight + 'px' }" 
-             style="touch-action: none;"
-             role="img"
-             aria-label="Fork repository graph showing contributors and relationships"
-             tabindex="0">
+        <svg
+          ref="svgRef" 
+          class="tw-w-full" 
+          :class="{ 'graph-hidden': isLoading || errorMessage || !hasData }"
+          :style="{ height: svgHeight + 'px' }" 
+          style="touch-action: none;"
+          role="img"
+          aria-label="Fork repository graph showing contributors and relationships"
+          tabindex="0"
+        >
           <defs>
             <!-- Soft radial bubble gradient -->
             <radialGradient id="bubbleGrad" cx="35%" cy="30%" r="65%">
-              <stop offset="0%"  stop-color="#FAFBFC"/>
+              <stop offset="0%" stop-color="#FAFBFC"/>
               <stop offset="60%" stop-color="#EEF2F7"/>
               <stop offset="100%" stop-color="#E6EBF2"/>
             </radialGradient>
@@ -923,88 +929,108 @@ function onBubbleView(n: Node){
           <!-- WORLD GROUP: Vue renders here, and d3-zoom transforms this exact <g> -->
           <g ref="worldRef">
             <!-- Trunks (vertical) -->
-            <line v-for="t in trunksList" :key="t.id"
-                  class="trunk"
-                  :x1="t.x" :x2="t.x"
-                  :y1="t.y1" :y2="t.y2"
-                  stroke="#D7DFE8" stroke-width="2" stroke-linecap="round" />
+            <line
+              v-for="t in trunksList" :key="t.id"
+              class="trunk"
+              :x1="t.x" :x2="t.x"
+              :y1="t.y1" :y2="t.y2"
+              stroke="#D7DFE8" stroke-width="2" stroke-linecap="round"
+            />
 
             <!-- Branch elbows + runs (one path per edge) -->
-            <path v-for="e in edgesList" :key="`${e.source.id}-${e.target.id}`"
-                  class="branch" fill="none" stroke="#D7DFE8" stroke-width="2" stroke-linecap="round" opacity="0.9"
-                  :d="`M ${e.ex} ${e.ey} C ${e.ex} ${e.ey + 0.5522847498307936*state.elbowR}, ${e.ex + e.side*0.5522847498307936*state.elbowR} ${e.hy}, ${e.hx} ${e.hy} L ${e.cx} ${e.cy}`" />
+            <path
+              v-for="e in edgesList" :key="`${e.source.id}-${e.target.id}`"
+              class="branch" fill="none" stroke="#D7DFE8" stroke-width="2" stroke-linecap="round" opacity="0.9"
+              :d="`M ${e.ex} ${e.ey} C ${e.ex} ${e.ey + 0.5522847498307936*state.elbowR}, ${e.ex + e.side*0.5522847498307936*state.elbowR} ${e.hy}, ${e.hx} ${e.hy} L ${e.cx} ${e.cy}`"
+            />
 
             <!-- Child stems -->
-            <line v-for="e in edgesList" :key="`stem-${e.source.id}-${e.target.id}`"
-                  class="child-stem"
-                  :x1="e.sx1" :y1="e.sy1" :x2="e.sx2" :y2="e.sy2"
-                  stroke="#D7DFE8" stroke-width="2" stroke-linecap="round" opacity="0.9" />
+            <line
+              v-for="e in edgesList" :key="`stem-${e.source.id}-${e.target.id}`"
+              class="child-stem"
+              :x1="e.sx1" :y1="e.sy1" :x2="e.sx2" :y2="e.sy2"
+              stroke="#D7DFE8" stroke-width="2" stroke-linecap="round" opacity="0.9"
+            />
 
             <!-- Joint dots (hollow rings) on trunk side -->
-            <circle v-for="j in jointDots" :key="`joint-${j.id}`"
-                    class="joint-parent" :cx="j.x" :cy="j.y" r="6"
-                    fill="#ffffff" stroke="#C7D2DF" stroke-width="2" />
+            <circle
+              v-for="j in jointDots" :key="`joint-${j.id}`"
+              class="joint-parent" :cx="j.x" :cy="j.y" r="6"
+              fill="#ffffff" stroke="#C7D2DF" stroke-width="2"
+            />
             
-          <!-- Bubbles (component handles labels independently) -->
-          <BubbleNode v-for="n in nodesList" :key="n.id"
-            :id="n.id" :x="(n as any).x" :y="(n as any).y" :r="(rFor(n.contributors))"
-            :contributors="n.contributors" :updatedAt="n.updatedAt" :k="kComputed"
-            :is-active="selectedNodeId === n.id"
-            @click="() => onBubbleClick(n)"
-            @view="() => onBubbleView(n)" />
+            <!-- Bubbles (component handles labels independently) -->
+            <BubbleNode
+              v-for="n in nodesList" :key="n.id"
+              :id="n.id" :x="(n as any).x" :y="(n as any).y" :r="(rFor(n.contributors))"
+              :contributors="n.contributors" :updated-at="n.updatedAt" :k="kComputed"
+              :is-active="selectedNodeId === n.id"
+              @click="() => onBubbleClick(n)"
+              @view="() => onBubbleView(n)"
+            />
           </g>
         </svg>
 
         <!-- State overlays positioned on top of SVG only -->
         <!-- Loading State -->
         <div v-if="isLoading" class="state-overlay loading-state">
-        <svg class="tw-w-full" viewBox="0 0 1100 400" preserveAspectRatio="xMidYMid meet"
-             role="img" aria-label="Loading fork graph">
-          <defs>
-            <radialGradient id="loadingBubbleGrad" cx="35%" cy="30%" r="65%">
-              <stop offset="0%"  stop-color="#FAFBFC"/>
-              <stop offset="60%" stop-color="#EEF2F7"/>
-              <stop offset="100%" stop-color="#E6EBF2"/>
-            </radialGradient>
-          </defs>
-          <!-- Centered at 50% of viewBox (550, 200) -->
-          <g transform="translate(550, 200)">
-            <circle r="80" fill="url(#loadingBubbleGrad)" 
-                    stroke="#DBE2EA" stroke-width="1.2" opacity="0.7" class="pulse-animation" />
-            <text text-anchor="middle" dominant-baseline="central" 
-                  fill="#64748b" font-size="16" font-weight="500">Loading...</text>
-          </g>
-        </svg>
-      </div>
-
-      <!-- Error State -->
-      <div v-else-if="errorMessage" class="state-overlay error-state">
-        <div class="state-message">
-          <svg class="state-icon error-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <svg
+            class="tw-w-full" viewBox="0 0 1100 400" preserveAspectRatio="xMidYMid meet"
+            role="img" aria-label="Loading fork graph"
+          >
+            <defs>
+              <radialGradient id="loadingBubbleGrad" cx="35%" cy="30%" r="65%">
+                <stop offset="0%" stop-color="#FAFBFC"/>
+                <stop offset="60%" stop-color="#EEF2F7"/>
+                <stop offset="100%" stop-color="#E6EBF2"/>
+              </radialGradient>
+            </defs>
+            <!-- Centered at 50% of viewBox (550, 200) -->
+            <g transform="translate(550, 200)">
+              <circle
+                r="80" fill="url(#loadingBubbleGrad)" 
+                stroke="#DBE2EA" stroke-width="1.2" opacity="0.7" class="pulse-animation"
+              />
+              <text
+                text-anchor="middle" dominant-baseline="central" 
+                fill="#64748b" font-size="16" font-weight="500"
+              >Loading...</text>
+            </g>
           </svg>
-          <h3 class="state-title">Failed to Load Fork Graph</h3>
-          <p class="state-description">{{ errorMessage }}</p>
-          <button class="state-button" @click="fetchForkGraphAndSet">Try Again</button>
         </div>
-      </div>
 
-      <!-- Empty State -->
-      <div v-else-if="!hasData" class="state-overlay empty-state">
-        <div class="state-message">
-          <svg class="state-icon empty-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <h3 class="state-title">No Forks Found</h3>
-          <p class="state-description">This repository doesn't have any forks yet.</p>
+        <!-- Error State -->
+        <div v-else-if="errorMessage" class="state-overlay error-state">
+          <div class="state-message">
+            <svg class="state-icon error-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h3 class="state-title">Failed to Load Fork Graph</h3>
+            <p class="state-description">{{ errorMessage }}</p>
+            <button class="state-button" @click="fetchForkGraphAndSet">Try Again</button>
+          </div>
         </div>
-      </div>
+
+        <!-- Empty State -->
+        <div v-else-if="!hasData" class="state-overlay empty-state">
+          <div class="state-message">
+            <svg class="state-icon empty-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path
+                stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <h3 class="state-title">No Forks Found</h3>
+            <p class="state-description">This repository doesn't have any forks yet.</p>
+          </div>
+        </div>
       </div>
       <!-- End graph-container -->
 
-      <LegendFishbone v-if="hasData" />
+      <LegendFishbone v-if="hasData"/>
     </div>
   </div>
 </template>

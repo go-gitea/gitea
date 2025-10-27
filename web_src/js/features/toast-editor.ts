@@ -1,18 +1,19 @@
+// @ts-expect-error - @toast-ui/editor has type definition issues with package.json exports
 import Editor from '@toast-ui/editor';
 import '@toast-ui/editor/dist/toastui-editor.css';
 
-export interface ToastEditorOptions {
+export type ToastEditorOptions = {
   height?: string;
   initialEditType?: 'markdown' | 'wysiwyg';
   previewStyle?: 'tab' | 'vertical';
   usageStatistics?: boolean;
   hideModeSwitch?: boolean;
   toolbarItems?: string[][];
-}
+};
 
 export async function createToastEditor(
-  textarea: HTMLTextAreaElement, 
-  options: ToastEditorOptions = {}
+  textarea: HTMLTextAreaElement,
+  options: ToastEditorOptions = {},
 ): Promise<Editor> {
   const {
     height = '500px',
@@ -22,14 +23,14 @@ export async function createToastEditor(
     hideModeSwitch = false,   // must be false to show the tabs
     toolbarItems = [
       ['heading', 'bold', 'italic'],
-      ['indent', 'outdent','code', 'link'],
+      ['indent', 'outdent', 'code', 'link'],
       ['ul', 'ol', 'task'],
-      ['image', 'table']
-    ]
+      ['image', 'table'],
+    ],
   } = options;
 
   // Use the existing container from the template
-  let container = document.getElementById('toast-editor-container');
+  let container = document.querySelector<HTMLElement>('#toast-editor-container');
   if (!container) {
     container = document.createElement('div');
     container.id = 'toast-editor-container';
@@ -55,8 +56,8 @@ export async function createToastEditor(
         const content = editor.getMarkdown();
         textarea.value = content;
         textarea.dispatchEvent(new Event('change'));
-      }
-    }
+      },
+    },
   });
 
   // Set initial content
@@ -67,10 +68,10 @@ export async function createToastEditor(
   // Rename mode switch labels
   const switchEl = container.querySelector('.toastui-editor-mode-switch');
   if (switchEl) {
-    switchEl.querySelectorAll('.tab-item').forEach((el) => {
+    for (const el of switchEl.querySelectorAll('.tab-item')) {
       if (el.textContent?.trim() === 'WYSIWYG') el.textContent = 'Visual editor';
       else if (el.textContent?.trim() === 'Markdown') el.textContent = 'Source editor';
-    });
+    }
   }
 
   // Hide the original textarea

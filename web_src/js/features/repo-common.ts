@@ -185,15 +185,24 @@ export function generateRepoNameFromSubject(subject: string): string {
   let name = subject.toLowerCase().replace(/\s+/g, '-');
 
   // Remove or replace special characters, keeping only alphanumeric, hyphens, dots, and underscores
+  // Backend pattern: ^[-.\w]+$ where \w = [a-zA-Z0-9_]
   name = name.replace(/[^a-z0-9\-._]/g, '');
 
-  // Collapse multiple consecutive hyphens
-  while (name.includes('--')) {
-    name = name.replace(/--/g, '-');
-  }
+  // Collapse multiple consecutive hyphens to single hyphen for better readability
+  name = name.replace(/-+/g, '-');
 
-  // Remove leading/trailing hyphens and dots
-  name = name.replace(/^[-.]*/g, '').replace(/[-.*]*$/g, '');
+  // Collapse multiple consecutive dots to single dot (backend rejects 2+ consecutive dots)
+  name = name.replace(/\.+/g, '.');
+
+  // Remove leading/trailing hyphens and dots to avoid reserved names
+  // Backend reserved names: ".", "..", "-"
+  name = name.replace(/^[-.]+/, '').replace(/[-.]+$/, '');
+
+  // Check if name would match reserved patterns and append suffix
+  // Backend reserved patterns: *.wiki, *.git, *.rss, *.atom
+  if (name.endsWith('.wiki') || name.endsWith('.git') || name.endsWith('.rss') || name.endsWith('.atom')) {
+    name += '-repo';
+  }
 
   // Ensure it's not empty and not too long
   if (!name) {
@@ -201,7 +210,8 @@ export function generateRepoNameFromSubject(subject: string): string {
   }
   if (name.length > 100) {
     name = name.substring(0, 100);
-    name = name.replace(/[-.]$/, '');
+    // After truncation, remove any trailing hyphens or dots
+    name = name.replace(/[-.]+$/, '');
   }
 
   return name;

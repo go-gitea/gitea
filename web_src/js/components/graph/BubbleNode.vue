@@ -65,8 +65,8 @@ const fit = reactive({
   stackPx: 0,
 });
 
-/* Label text: singularize when needed so UI shows "Contributor" for 1 */
-const labelText = computed(()=> props.contributors === 1 ? "Contributor" : "Contributors");
+/* Label text: simple helper function for pluralization (not computed to avoid unnecessary reactivity) */
+const getLabelText = (count: number) => count === 1 ? "Contributor" : "Contributors";
 
 /* Format date to yyyy-mm-dd */
 const formattedDate = computed(() => {
@@ -93,11 +93,12 @@ function recomputeFit(){
   const fsCombined = FONT_SIZE_COMBINED;
 
   // Estimate text widths using character width ratios
-  const wLabel = labelText.value.length * fsLabel * CHAR_WIDTH_RATIO_LABEL;
+  const labelTextStr = getLabelText(props.contributors);
+  const wLabel = labelTextStr.length * fsLabel * CHAR_WIDTH_RATIO_LABEL;
   
   // For combined layout: estimate width of "123 Contributors" on one line
   const countStr = String(props.contributors);
-  const wCombined = (countStr.length + 1 + labelText.value.length) * fsCombined * CHAR_WIDTH_RATIO_LABEL;
+  const wCombined = (countStr.length + 1 + labelTextStr.length) * fsCombined * CHAR_WIDTH_RATIO_LABEL;
   
   const hasUpd = !!props.updatedAt;
   const updLine1 = "Last updated";
@@ -171,19 +172,23 @@ function onKeyDown(ev:KeyboardEvent){
 
 <template>
   <!-- One node group at (x,y); we let the parent group receive the world transform -->
-  <g class="node cursor-pointer select-none" 
-     :transform="gTransform"
-     role="button"
-     :aria-label="`Repository node with ${contributors} contributor${contributors === 1 ? '' : 's'}${updatedAt ? ', last updated ' + updatedAt : ''}. Press Enter to select.`"
-     :aria-pressed="isActive ? 'true' : 'false'"
-     tabindex="0"
-     @click="onClick" 
-     @keydown="onKeyDown">
+  <g
+    class="node cursor-pointer select-none" 
+    :transform="gTransform"
+    role="button"
+    :aria-label="`Repository node with ${contributors} contributor${contributors === 1 ? '' : 's'}${updatedAt ? ', last updated ' + updatedAt : ''}. Press Enter to select.`"
+    :aria-pressed="isActive ? 'true' : 'false'"
+    tabindex="0"
+    @click="onClick" 
+    @keydown="onKeyDown"
+  >
     <!-- Bubble circle with soft gradient & subtle stroke/shadow -->
-    <circle class="node-circle" :r="r" fill="url(#bubbleGrad)"
-            :stroke="isActive ? 'var(--color-primary)' : '#DBE2EA'" 
-            :stroke-width="1" 
-            filter="url(#softShadow)"/>
+    <circle
+      class="node-circle" :r="r" fill="url(#bubbleGrad)"
+      :stroke="isActive ? 'var(--color-primary)' : '#DBE2EA'" 
+      :stroke-width="1" 
+      filter="url(#softShadow)"
+    />
     
     <!-- HTML Labels: using foreignObject for efficient text rendering -->
     <!-- Calculate the size needed for the foreignObject container -->
@@ -193,11 +198,12 @@ function onKeyDown(ev:KeyboardEvent){
       :width="r * 2" 
       :height="r * 2"
       :transform="`scale(${1/k})`"
-      style="overflow: visible; pointer-events: none;">
+      style="overflow: visible; pointer-events: none;"
+    >
       <div xmlns="http://www.w3.org/1999/xhtml" class="html-label-wrapper">
         <!-- Combined layout: count and label on same line with larger font -->
         <div v-if="fit.showCombined" class="combined" :style="`font-size: ${fit.fsCombined}px;`">
-          {{ contributors }} {{ labelText }}
+          {{ contributors }} {{ getLabelText(contributors) }}
         </div>
         
         <!-- Stacked layout: count and label on separate lines (fallback) -->
@@ -208,27 +214,33 @@ function onKeyDown(ev:KeyboardEvent){
           </div>
           
           <!-- "Contributors/Contributor": only if fits -->
-          <div v-if="fit.showLabel" class="label" 
-               :style="`font-size: ${fit.fsLabel}px; margin-top: ${LABEL_GAP_PRIMARY}px;`">
-            {{ labelText }}
+          <div
+            v-if="fit.showLabel" class="label" 
+            :style="`font-size: ${fit.fsLabel}px; margin-top: ${LABEL_GAP_PRIMARY}px;`"
+          >
+            {{ getLabelText(contributors) }}
           </div>
         </template>
         
         <!-- "Last updated …": only if fits -->
-        <div v-if="fit.showUpdated" class="updated" 
-             :style="`font-size: ${fit.fsSmall}px; margin-top: ${fit.showCombined || fit.showLabel ? LABEL_GAP_SECONDARY : LABEL_GAP_PRIMARY}px;`">
+        <div
+          v-if="fit.showUpdated" class="updated" 
+          :style="`font-size: ${fit.fsSmall}px; margin-top: ${fit.showCombined || fit.showLabel ? LABEL_GAP_SECONDARY : LABEL_GAP_PRIMARY}px;`"
+        >
           <div>Last updated</div>
           <div :style="`margin-top: ${LABEL_GAP_UPDATED_INNER}px;`">{{ formattedDate }}</div>
         </div>
         
         <!-- View article button: only if active and bubble is large enough -->
-        <button v-if="showButton" 
-                class="view-button"
-                :style="`margin-top: ${BUTTON_MARGIN_TOP}px;`"
-                @click="onView"
-                @keydown.enter.prevent="onView"
-                @keydown.space.prevent="onView"
-                aria-label="View article details">
+        <button
+          v-if="showButton" 
+          class="view-button"
+          :style="`margin-top: ${BUTTON_MARGIN_TOP}px;`"
+          @click="onView"
+          @keydown.enter.prevent="onView"
+          @keydown.space.prevent="onView"
+          aria-label="View article details"
+        >
           View article
         </button>
       </div>
@@ -243,9 +255,15 @@ function onKeyDown(ev:KeyboardEvent){
 .node:focus {
   outline: none;
 }
+
+.node-circle:hover,
 .node:focus .node-circle {
   stroke: var(--color-primary);
   stroke-width: 1;
+}
+
+.node-circle:hover {
+  cursor: pointer;
 }
 
 /* HTML Label Wrapper - efficient text rendering */

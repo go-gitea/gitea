@@ -1,11 +1,12 @@
 import {createApp} from 'vue';
+import FishboneGraph from '../components/graph/FishboneGraph.vue';
 
 export async function initRepoBubbleView() {
   const el = document.querySelector('#bubble-view-root');
   if (!el) return;
-  if ((el as HTMLElement).dataset.mounted === 'true') return;
+  if ((el as HTMLElement).getAttribute('data-mounted') === 'true') return;
 
-  const {default: FishboneGraph} = await import(/* webpackChunkName: "repo-bubble-view" */'../components/graph/FishboneGraph.vue');
+  // Component is now eagerly imported, eliminating the dynamic import delay
   const app = createApp(FishboneGraph, {
     apiUrl: (el as HTMLElement).getAttribute('data-api-url'),
     owner: (el as HTMLElement).getAttribute('data-owner'),
@@ -13,5 +14,5 @@ export async function initRepoBubbleView() {
     subject: (el as HTMLElement).getAttribute('data-subject'),
   });
   app.mount(el);
-  (el as HTMLElement).dataset.mounted = 'true';
+  (el as HTMLElement).setAttribute('data-mounted', 'true');
 }

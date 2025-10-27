@@ -12,16 +12,22 @@ export function initCompSearchRepoBox(el: HTMLElement) {
       onResponse(response: any) {
         const items = [];
         for (const item of response.data) {
-          const repoSubject = item.repository.subject || item.repository.full_name.split('/')[1];
+          // Show repository full_name as title for clear identification
+          // Show subject as description to provide context about the repository
+          const title = htmlEscape(item.repository.full_name);
+          const description = item.repository.subject ?
+            htmlEscape(item.repository.subject) :
+            '';
+
           items.push({
-            title: htmlEscape(repoSubject),
-            description: htmlEscape(item.repository.full_name),
+            title,
+            description,
           });
         }
         return {results: items};
       },
     },
-    searchFields: ['full_name'],
+    searchFields: ['full_name', 'subject'],
     showNoResults: false,
   });
 }

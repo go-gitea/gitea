@@ -175,7 +175,7 @@ export function initRepoEditor() {
       initialEditType: 'wysiwyg',
       previewStyle: 'vertical',
       usageStatistics: false,
-      hideModeSwitch: true
+      hideModeSwitch: true,
     });
 
     // Update the editor from query params, if available,
