@@ -167,11 +167,7 @@ function onKeyDown(ev:KeyboardEvent){
       :transform="`scale(${1/k})`"
       style="overflow: visible; pointer-events: none;">
       <div xmlns="http://www.w3.org/1999/xhtml" class="html-label-wrapper" 
-           :style="`
-             width: ${r * 2 * k}px; 
-             height: ${r * 2 * k}px;
-             transform: translateY(${-fit.shiftPx}px);
-           `">
+           :style="`transform: translateY(${-fit.shiftPx}px);`">
         <!-- Count is ALWAYS visible and centered -->
         <div class="count" :style="`font-size: ${fit.fsCount}px;`">
           {{ contributors }}
@@ -225,6 +221,8 @@ function onKeyDown(ev:KeyboardEvent){
   justify-content: center;
   text-align: center;
   pointer-events: none;
+  height: 100%;
+  width: 100%;
 }
 
 /* Count: always visible, bold and prominent */
