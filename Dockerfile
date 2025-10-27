@@ -27,11 +27,6 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
     && make
 
-# Begin env-to-ini build
-RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target="/root/.cache/go-build" \
-    go build contrib/environment-to-ini/environment-to-ini.go
-
 FROM docker.io/library/alpine:3.22 AS gitea
 
 EXPOSE 22 3000
@@ -63,7 +58,6 @@ RUN addgroup \
 
 COPY docker/root /
 COPY --chmod=755 --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
-COPY --chmod=755 --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
 
 ENV USER=git
 ENV GITEA_CUSTOM=/data/gitea

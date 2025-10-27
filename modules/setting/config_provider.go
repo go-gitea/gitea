@@ -41,6 +41,7 @@ type ConfigSection interface {
 	HasKey(key string) bool
 	NewKey(name, value string) (ConfigKey, error)
 	Key(key string) ConfigKey
+	DeleteKey(key string)
 	Keys() []ConfigKey
 	ChildSections() []ConfigSection
 }
@@ -51,6 +52,7 @@ type ConfigProvider interface {
 	Sections() []ConfigSection
 	NewSection(name string) (ConfigSection, error)
 	GetSection(name string) (ConfigSection, error)
+	DeleteSection(name string)
 	Save() error
 	SaveTo(filename string) error
 
@@ -168,6 +170,10 @@ func (s *iniConfigSection) Keys() (keys []ConfigKey) {
 	return keys
 }
 
+func (s *iniConfigSection) DeleteKey(key string) {
+	s.sec.DeleteKey(key)
+}
+
 func (s *iniConfigSection) ChildSections() (sections []ConfigSection) {
 	for _, s := range s.sec.ChildSections() {
 		sections = append(sections, &iniConfigSection{s})
@@ -202,11 +208,11 @@ func NewConfigProviderFromFile(file string) (ConfigProvider, error) {
 	loadedFromEmpty := true
 
 	if file != "" {
-		isFile, err := util.IsFile(file)
+		isExist, err := util.IsExist(file)
 		if err != nil {
-			return nil, fmt.Errorf("unable to check if %q is a file. Error: %v", file, err)
+			return nil, fmt.Errorf("unable to check if %q exists: %v", file, err)
 		}
-		if isFile {
+		if isExist {
 			if err = cfg.Append(file); err != nil {
 				return nil, fmt.Errorf("failed to load config file %q: %v", file, err)
 			}
@@ -247,6 +253,10 @@ func (p *iniConfigProvider) GetSection(name string) (ConfigSection, error) {
 		return nil, err
 	}
 	return &iniConfigSection{sec: sec}, nil
+}
+
+func (p *iniConfigProvider) DeleteSection(name string) {
+	p.ini.DeleteSection(name)
 }
 
 var errDisableSaving = errors.New("this config can't be saved, developers should prepare a new config to save")
