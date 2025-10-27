@@ -842,6 +842,11 @@ function onBubbleView(n: Node){
   height: calc(100vh - 25rem);
   overflow: auto;
 }
+
+.f-fishbone-graph svg:focus {
+  outline: none;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

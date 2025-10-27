@@ -136,8 +136,8 @@ function onKeyDown(ev:KeyboardEvent){
      @keydown="onKeyDown">
     <!-- Bubble circle with soft gradient & subtle stroke/shadow -->
     <circle class="node-circle" :r="r" fill="url(#bubbleGrad)"
-            :stroke="isActive ? '#2563eb' : '#DBE2EA'" 
-            :stroke-width="isActive ? '2.5' : '1.2'" 
+            :stroke="isActive ? 'var(--color-primary)' : '#DBE2EA'" 
+            :stroke-width="1" 
             filter="url(#softShadow)"/>
     <!-- Labels: inversely scaled so font sizes stay constant on screen -->
     <g class="label-zoomfix" text-anchor="middle" :transform="labelTransform">
@@ -182,9 +182,8 @@ function onKeyDown(ev:KeyboardEvent){
   outline: none;
 }
 .node:focus .node-circle {
-  stroke: #3b82f6;
-  stroke-width: 3;
-  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.6));
+  stroke: var(--color-primary);
+  stroke-width: 1;
 }
 .view-button {
   cursor: pointer;
@@ -194,15 +193,14 @@ function onKeyDown(ev:KeyboardEvent){
 }
 .view-button:focus rect {
   stroke: #ffffff;
-  stroke-width: 3;
-  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+  stroke-width: 1;
 }
 .view-button:hover rect,
 .view-button:focus rect {
-  fill: #1d4ed8;
+  fill: var(--color-primary);
 }
 .view-button rect {
-  fill: #2563eb;
+  fill: var(--color-primary);
   opacity: 0.95;
   transition: fill 0.2s ease;
 }
