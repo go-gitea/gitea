@@ -218,9 +218,20 @@ textarea:focus,
 
 .form .help {
   color: var(--color-secondary-dark-5);
+  margin-top: 0.25em;
   padding-bottom: 0.6em;
   display: inline-block;
   text-wrap: balance;
+}
+
+.form .help code {
+  color: var(--color-text-light-1);
+}
+
+.form .help pre.command-block {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0.25em 0 0.25em 1em;
 }
 
 .m-captcha-style {

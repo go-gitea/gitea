@@ -397,7 +397,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(322, "Extend comment tree_path length limit", v1_25.ExtendCommentTreePathLength),
 
 		// Gitea 1.25.0 ends at database version 323
-		newMigration(323, "Add table issue_dev_link", v1_26.CreateTableIssueDevLink),
+		newMigration(323, "Add support for actions concurrency", v1_26.AddActionsConcurrency),
+		newMigration(324, "Add table issue_dev_link", v1_26.CreateTableIssueDevLink),
 	}
 	return preparedMigrations
 }

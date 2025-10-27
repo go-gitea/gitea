@@ -357,12 +357,9 @@ func TestRender_emoji(t *testing.T) {
 		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="red question mark">❓</span></p>`)
 
 	// should match nothing
-	test(
-		"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-		`<p>2001:0db8:85a3:0000:0000:8a2e:0370:7334</p>`)
-	test(
-		":not exist:",
-		`<p>:not exist:</p>`)
+	test(":100:200", `<p>:100:200</p>`)
+	test("std::thread::something", `<p>std::thread::something</p>`)
+	test(":not exist:", `<p>:not exist:</p>`)
 }
 
 func TestRender_ShortLinks(t *testing.T) {

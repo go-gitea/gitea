@@ -67,13 +67,6 @@ func (key *PublicKey) OmitEmail() string {
 	return strings.Join(strings.Split(key.Content, " ")[:2], " ")
 }
 
-// AuthorizedString returns formatted public key string for authorized_keys file.
-//
-// TODO: Consider dropping this function
-func (key *PublicKey) AuthorizedString() string {
-	return AuthorizedStringForKey(key)
-}
-
 func addKey(ctx context.Context, key *PublicKey) (err error) {
 	if len(key.Fingerprint) == 0 {
 		key.Fingerprint, err = CalcFingerprint(key.Content)

@@ -4,19 +4,40 @@
 package v1_26
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func CreateTableIssueDevLink(x *xorm.Engine) error {
-	type IssueDevLink struct {
-		ID           int64 `xorm:"pk autoincr"`
-		IssueID      int64 `xorm:"INDEX"`
-		LinkType     int
-		LinkedRepoID int64              `xorm:"INDEX"` // it can link to self repo or other repo
-		LinkID       int64              // branch id in branch table or pull request id
-		CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+func AddActionsConcurrency(x *xorm.Engine) error {
+	type ActionRun struct {
+		RepoID            int64 `xorm:"index(repo_concurrency)"`
+		RawConcurrency    string
+		ConcurrencyGroup  string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"`
+		ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`
 	}
-	return x.Sync(new(IssueDevLink))
+
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(ActionRun)); err != nil {
+		return err
+	}
+
+	if err := x.Sync(new(ActionRun)); err != nil {
+		return err
+	}
+
+	type ActionRunJob struct {
+		RepoID                 int64 `xorm:"index(repo_concurrency)"`
+		RawConcurrency         string
+		IsConcurrencyEvaluated bool
+		ConcurrencyGroup       string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"`
+		ConcurrencyCancel      bool   `xorm:"NOT NULL DEFAULT FALSE"`
+	}
+
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(ActionRunJob)); err != nil {
+		return err
+	}
+
+	return nil
 }

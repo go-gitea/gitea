@@ -34,7 +34,7 @@ func isKeywordValid(keyword string) bool {
 // RenderUserSearch render user search page
 func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, tplName templates.TplName) {
 	// Sitemap index for sitemap paths
-	opts.Page = int(ctx.PathParamInt64("idx"))
+	opts.Page = ctx.PathParamInt("idx")
 	isSitemap := ctx.PathParam("idx") != ""
 	if opts.Page <= 1 {
 		opts.Page = ctx.FormInt("page")
@@ -153,7 +153,7 @@ func Users(ctx *context.Context) {
 
 	RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
-		Type:        user_model.UserTypeIndividual,
+		Types:       []user_model.UserType{user_model.UserTypeIndividual},
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		IsActive:    optional.Some(true),
 		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
