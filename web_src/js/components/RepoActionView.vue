@@ -565,7 +565,7 @@ export default defineComponent({
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <button class="btn gt-interact-bg tw-p-2">
+              <button class="ui button tw-px-3">
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
@@ -601,7 +601,8 @@ export default defineComponent({
             </div>
           </div>
         </div>
-        <div class="job-step-container" ref="stepsContainer" v-if="currentJob.steps.length">
+        <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
+        <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
@@ -666,6 +667,7 @@ export default defineComponent({
 
 .action-commit-summary {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 5px;
   margin-left: 28px;
