@@ -98,7 +98,27 @@ func (m *workflowNotifier) IssueChangeStatus(ctx context.Context, doer *user_mod
 }
 
 func (*workflowNotifier) IssueChangeProjects(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, newProject *project_model.Project) {
-	if newProject == nil {
+	if newProject == nil { // removed from project
+		if err := issue.LoadProject(ctx); err != nil {
+			log.Error("LoadProject: %v", err)
+			return
+		}
+		if issue.Project == nil {
+			return
+		}
+
+		workflows, err := project_model.FindWorkflowsByProjectID(ctx, issue.Project.ID)
+		if err != nil {
+			log.Error("IssueChangeStatus: FindWorkflowsByProjectID: %v", err)
+			return
+		}
+
+		// Find workflows for the ItemOpened event
+		for _, workflow := range workflows {
+			if workflow.WorkflowEvent == project_model.WorkflowEventItemRemovedFromProject {
+				fireIssueWorkflow(ctx, workflow, issue, 0, 0)
+			}
+		}
 		return
 	}
 
@@ -381,7 +401,6 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 						log.Error("ReopenIssue: %v", err)
 						continue
 					}
-					issue.IsClosed = false
 				}
 			} else if strings.EqualFold(action.Value, "close") {
 				if !issue.IsClosed {
@@ -389,7 +408,6 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 						log.Error("CloseIssue: %v", err)
 						continue
 					}
-					issue.IsClosed = true
 				}
 			}
 		default:
