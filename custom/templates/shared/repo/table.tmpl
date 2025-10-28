@@ -12,9 +12,9 @@
                         <span class="text tw-ml-1">Sort</span>
                         {{svg "octicon-triangle-down" 16 "tw-ml-1"}}
                         <div class="menu">
-                            <a class="item history-table-sort" data-sort="most_contrib" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "table" "sort" "most_contrib"}}">Most contributors</a>
-                            <a class="item history-table-sort" data-sort="least_contrib" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "table" "sort" "least_contrib"}}">Least contributors</a>
-                            <a class="item history-table-sort" data-sort="latest" href="{{QueryBuild (printf "%s/explore/articles/history/%s" AppSubUrl .Repository.Name) "view" "table" "sort" "latest"}}">Latest edited</a>
+                            <a class="item history-table-sort" data-sort="most_contrib" href="{{QueryBuild (printf "%s/explore/articles/history/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.Name) "view" "table" "sort" "most_contrib"}}">Most contributors</a>
+                            <a class="item history-table-sort" data-sort="least_contrib" href="{{QueryBuild (printf "%s/explore/articles/history/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.Name) "view" "table" "sort" "least_contrib"}}">Least contributors</a>
+                            <a class="item history-table-sort" data-sort="latest" href="{{QueryBuild (printf "%s/explore/articles/history/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.Name) "view" "table" "sort" "latest"}}">Latest edited</a>
                         </div>
                     </div>
                 </div>

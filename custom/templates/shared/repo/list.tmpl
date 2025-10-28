@@ -12,7 +12,7 @@
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
-						<a class="text primary name" href="/explore/articles/history/{{.Name}}">{{.GetSubject}}</a>
+						<a class="text primary name" href="/explore/articles/history/{{.Owner.Name}}/{{.Name}}">{{.GetSubject}}</a>
 						<span class="label-list">
 							{{if .IsArchived}}
 								<span class="ui basic label">{{ctx.Locale.Tr "repo.desc.archived"}}</span>

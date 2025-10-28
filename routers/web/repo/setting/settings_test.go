@@ -437,7 +437,7 @@ func TestRepositorySubjectLoadedByName(t *testing.T) {
 	err = repo_model.UpdateRepositoryColsWithAutoTime(t.Context(), repo, "subject_id")
 	assert.NoError(t, err)
 
-	// Load owner and subject (simulating what RepoAssignmentByName does)
+	// Load owner and subject (simulating what RepoAssignment does)
 	err = repo.LoadOwner(t.Context())
 	assert.NoError(t, err)
 
