@@ -1,7 +1,6 @@
 import {html, htmlRaw} from '../utils/html.ts';
 import {createCodeEditor} from './codeeditor.ts';
 import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
-import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
@@ -199,5 +198,4 @@ export function initRepoEditor() {
 export function renderPreviewPanelContent(previewPanel: Element, htmlContent: string) {
   // the content is from the server, so it is safe to use innerHTML
   previewPanel.innerHTML = html`<div class="render-content markup">${htmlRaw(htmlContent)}</div>`;
-  attachRefIssueContextPopup(previewPanel.querySelectorAll('p .ref-issue'));
 }

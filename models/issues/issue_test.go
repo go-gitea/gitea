@@ -197,6 +197,12 @@ func TestIssues(t *testing.T) {
 			},
 			[]int64{2},
 		},
+		{
+			issues_model.IssuesOptions{
+				SubscriberID: 11,
+			},
+			[]int64{11, 5, 9, 8, 3, 2, 1},
+		},
 	} {
 		issues, err := issues_model.Issues(t.Context(), &test.Opts)
 		assert.NoError(t, err)

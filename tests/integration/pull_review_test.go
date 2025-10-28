@@ -184,13 +184,29 @@ func TestPullView_CodeOwner(t *testing.T) {
 			session := loginUser(t, "user5")
 
 			// create a pull request on the forked repository, code reviewers should not be mentioned
-			testPullCreateDirectly(t, session, "user5", "test_codeowner", forkedRepo.DefaultBranch, "", "", "codeowner-basebranch-forked", "Test Pull Request on Forked Repository")
+			testPullCreateDirectly(t, session, createPullRequestOptions{
+				BaseRepoOwner: "user5",
+				BaseRepoName:  "test_codeowner",
+				BaseBranch:    forkedRepo.DefaultBranch,
+				HeadRepoOwner: "",
+				HeadRepoName:  "",
+				HeadBranch:    "codeowner-basebranch-forked",
+				Title:         "Test Pull Request on Forked Repository",
+			})
 
 			pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: forkedRepo.ID, HeadBranch: "codeowner-basebranch-forked"})
 			unittest.AssertNotExistsBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8})
 
 			// create a pull request to base repository, code reviewers should be mentioned
-			testPullCreateDirectly(t, session, repo.OwnerName, repo.Name, repo.DefaultBranch, forkedRepo.OwnerName, forkedRepo.Name, "codeowner-basebranch-forked", "Test Pull Request3")
+			testPullCreateDirectly(t, session, createPullRequestOptions{
+				BaseRepoOwner: repo.OwnerName,
+				BaseRepoName:  repo.Name,
+				BaseBranch:    repo.DefaultBranch,
+				HeadRepoOwner: forkedRepo.OwnerName,
+				HeadRepoName:  forkedRepo.Name,
+				HeadBranch:    "codeowner-basebranch-forked",
+				Title:         "Test Pull Request3",
+			})
 
 			pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, HeadRepoID: forkedRepo.ID, HeadBranch: "codeowner-basebranch-forked"})
 			unittest.AssertExistsAndLoadBean(t, &issues_model.Review{IssueID: pr.IssueID, Type: issues_model.ReviewTypeRequest, ReviewerID: 8})
@@ -212,7 +228,10 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "master", "This is a pull title")
 			elem := strings.Split(test.RedirectURL(resp), "/")
 			assert.Equal(t, "pulls", elem[3])
-			testPullMerge(t, user1Session, elem[1], elem[2], elem[4], repo_model.MergeStyleMerge, false)
+			testPullMerge(t, user1Session, elem[1], elem[2], elem[4], MergeOptions{
+				Style:        repo_model.MergeStyleMerge,
+				DeleteBranch: false,
+			})
 
 			// Grab the CSRF token.
 			req := NewRequest(t, "GET", path.Join(elem[1], elem[2], "pulls", elem[4]))

@@ -13,7 +13,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -382,6 +384,12 @@ func TestHasOrgVisibleTypePublic(t *testing.T) {
 	assert.True(t, test1) // owner of org
 	assert.True(t, test2) // user not a part of org
 	assert.True(t, test3) // logged out user
+
+	restrictedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29, IsRestricted: true})
+	require.True(t, restrictedUser.IsRestricted)
+	assert.True(t, organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), restrictedUser))
+	defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
+	assert.False(t, organization.HasOrgOrUserVisible(t.Context(), org.AsUser(), restrictedUser))
 }
 
 func TestHasOrgVisibleTypeLimited(t *testing.T) {

@@ -6,11 +6,9 @@ import {html, htmlRaw} from '../utils/html.ts';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
-// margin removal is for https://github.com/mermaid-js/mermaid/issues/4907
 const iframeCss = `:root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
-#mermaid {display: block; margin: 0 auto}
-blockquote, dd, dl, figure, h1, h2, h3, h4, h5, h6, hr, p, pre {margin: 0}`;
+#mermaid {display: block; margin: 0 auto}`;
 
 export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void> {
   // .markup code.language-mermaid
