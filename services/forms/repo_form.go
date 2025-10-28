@@ -148,8 +148,6 @@ type RepoSettingForm struct {
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
 
-	EnableActions bool
-
 	IsArchived bool
 
 	// Signing Settings

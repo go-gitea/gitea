@@ -10,7 +10,7 @@
 			<div class="inline field">
 				<label>{{ctx.Locale.Tr "actions.actions"}}</label>
 				<div class="ui checkbox{{if $isActionsGlobalDisabled}} disabled{{end}}"{{if $isActionsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-					<input class="enable-system" name="enable_actions" type="checkbox" {{if $isActionsGlobalDisabled}}disabled{{end}} {{if $isActionsEnabled}}checked{{end}}>
+					<input name="enable_actions" type="checkbox" {{if $isActionsGlobalDisabled}}disabled{{end}} {{if $isActionsEnabled}}checked{{end}}>
 					<label>{{ctx.Locale.Tr "repo.settings.actions_desc"}}</label>
 				</div>
 			</div>
@@ -23,7 +23,7 @@
 		</form>
 	</div>
 
-	{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
 	{{if .Repository.IsPrivate}}
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.general.collaborative_owners_management"}}
@@ -65,5 +65,5 @@
 		{{ctx.Locale.Tr "actions.general.collaborative_owners_management_help"}}
 	</div>
 	{{end}}
-	{{end}}
+{{end}}
 </div>
