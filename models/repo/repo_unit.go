@@ -283,7 +283,9 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(ActionsConfig)
 		case unit.TypeProjects:
 			r.Config = new(ProjectsConfig)
-		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypePackages:
+		case unit.TypeCode:
+			r.Config = new(CodeConfig)
+		case unit.TypeReleases, unit.TypeWiki, unit.TypePackages:
 			fallthrough
 		default:
 			r.Config = new(UnitConfig)
@@ -296,9 +298,24 @@ func (r *RepoUnit) Unit() unit.Unit {
 	return unit.Units[r.Type]
 }
 
+// CodeConfig describes code config
+type CodeConfig struct {
+	GoModuleSubDir string
+}
+
+// FromDB fills up a CodeConfig from serialized format.
+func (cfg *CodeConfig) FromDB(bs []byte) error {
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
+}
+
+// ToDB exports a CodeConfig to a serialized format.
+func (cfg *CodeConfig) ToDB() ([]byte, error) {
+	return json.Marshal(cfg)
+}
+
 // CodeConfig returns config for unit.TypeCode
-func (r *RepoUnit) CodeConfig() *UnitConfig {
-	return r.Config.(*UnitConfig)
+func (r *RepoUnit) CodeConfig() *CodeConfig {
+	return r.Config.(*CodeConfig)
 }
 
 // PullRequestsConfig returns config for unit.TypePullRequests

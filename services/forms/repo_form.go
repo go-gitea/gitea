@@ -150,6 +150,8 @@ type RepoSettingForm struct {
 
 	EnableActions bool
 
+	GoModuleSubDir string
+
 	IsArchived bool
 
 	// Signing Settings
