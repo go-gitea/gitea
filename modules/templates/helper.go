@@ -5,6 +5,7 @@
 package templates
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"net/url"
@@ -218,13 +219,14 @@ func evalTokens(tokens ...any) (any, error) {
 }
 
 func userThemeName(user *user_model.User) string {
+	defaultTheme := setting.Config().Theme.DefaultTheme.Value(context.Background())
 	if user == nil || user.Theme == "" {
-		return setting.UI.DefaultTheme
+		return defaultTheme
 	}
 	if webtheme.IsThemeAvailable(user.Theme) {
 		return user.Theme
 	}
-	return setting.UI.DefaultTheme
+	return defaultTheme
 }
 
 func isQueryParamEmpty(v any) bool {
