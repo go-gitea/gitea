@@ -161,8 +161,8 @@ type Workflow struct {
 	ProjectID       int64              `xorm:"INDEX"`
 	Project         *Project           `xorm:"-"`
 	WorkflowEvent   WorkflowEvent      `xorm:"INDEX"`
-	WorkflowFilters []WorkflowFilter   `xorm:"TEXT json"`
-	WorkflowActions []WorkflowAction   `xorm:"TEXT json"`
+	WorkflowFilters []WorkflowFilter   `xorm:"TEXT JSON"`
+	WorkflowActions []WorkflowAction   `xorm:"TEXT JSON"`
 	Enabled         bool               `xorm:"DEFAULT true"`
 	CreatedUnix     timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
