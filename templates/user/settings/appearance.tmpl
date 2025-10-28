@@ -16,11 +16,19 @@
 				</div>
 				<div class="field">
 					<label>{{ctx.Locale.Tr "settings.ui"}}</label>
-					<select name="theme" class="ui dropdown">
-						{{range $theme := .AllThemes}}
-						<option value="{{$theme.InternalName}}" {{Iif (eq $.SignedUser.Theme $theme.InternalName) "selected"}}>{{$theme.DisplayName}}</option>
-						{{end}}
-					</select>
+					<div class="ui selection dropdown">
+						<input type="hidden" name="theme" value="{{$.SignedUser.Theme}}">
+						<div class="text"></div> {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu flex-items-menu">
+							{{range $theme := .AllThemes}}
+								{{$extraIconName := $theme.GetExtraIconName}}
+								<div class="item" data-value="{{$theme.InternalName}}">
+									{{$theme.DisplayName}} {{svg $extraIconName}}
+									<div class="description">{{$theme.GetDescription}}</div>
+								</div>
+							{{end}}
+						</div>
+					</div>
 				</div>
 				<div class="field">
 					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_theme"}}</button>
