@@ -33,9 +33,10 @@ func WebThemeList(ctx *context.Context) {
 
 func WebThemeApply(ctx *context.Context) {
 	themeName := ctx.FormString("theme")
-	middleware.SetSiteCookie(ctx.Resp, "gitea_theme", themeName, 0)
 	if ctx.Doer != nil {
 		opts := &user_service.UpdateOptions{Theme: optional.Some(themeName)}
 		_ = user_service.UpdateUser(ctx, ctx.Doer, opts)
+	} else {
+		middleware.SetSiteCookie(ctx.Resp, "gitea_theme", themeName, 0)
 	}
 }
