@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/unit"
@@ -284,4 +285,272 @@ func TestGetPublicRepositoryByName_PrefersRootOverFork(t *testing.T) {
 	//
 	// This fix ensures that /explore/articles/history/{reponame} displays the root repository
 	// and the API fork graph endpoint builds the hierarchy from the correct root.
+}
+
+
+func TestGenerateRepoNameFromSubject(t *testing.T) {
+	tests := []struct {
+		name     string
+		subject  string
+		expected string
+	}{
+		// Normal cases - spaces to hyphens
+		{
+			name:     "Simple two words",
+			subject:  "My Project",
+			expected: "my-project",
+		},
+		{
+			name:     "Multiple words",
+			subject:  "Hello World Test",
+			expected: "hello-world-test",
+		},
+		{
+			name:     "Capitalized words",
+			subject:  "The Moon Project",
+			expected: "the-moon-project",
+		},
+
+		// Dot patterns - dots should be removed entirely
+		{
+			name:     "Single dot",
+			subject:  "My.Project",
+			expected: "myproject",
+		},
+		{
+			name:     "Multiple single dots",
+			subject:  "My.Cool.Project",
+			expected: "mycoolproject",
+		},
+		{
+			name:     "Consecutive dots",
+			subject:  "My..Project",
+			expected: "myproject",
+		},
+		{
+			name:     "Leading dots",
+			subject:  "...Project",
+			expected: "project",
+		},
+		{
+			name:     "Trailing dots",
+			subject:  "Project...",
+			expected: "project",
+		},
+		{
+			name:     "Dots and spaces",
+			subject:  "My. Project. Name",
+			expected: "my-project-name",
+		},
+
+		// Reserved patterns - should NOT generate .git, .wiki, .rss, .atom
+		{
+			name:     "Ends with .git",
+			subject:  "Project.git",
+			expected: "projectgit",
+		},
+		{
+			name:     "Ends with .wiki",
+			subject:  "My.wiki",
+			expected: "mywiki",
+		},
+		{
+			name:     "Ends with .rss",
+			subject:  "Feed.rss",
+			expected: "feedrss",
+		},
+		{
+			name:     "Ends with .atom",
+			subject:  "Feed.atom",
+			expected: "feedatom",
+		},
+		{
+			name:     "Contains .git in middle",
+			subject:  "My.git.Project",
+			expected: "mygitproject",
+		},
+
+		// Edge cases - empty and special characters
+		{
+			name:     "Empty string",
+			subject:  "",
+			expected: "",
+		},
+		{
+			name:     "Only special characters",
+			subject:  "!!!",
+			expected: "repository",
+		},
+		{
+			name:     "Only spaces",
+			subject:  "   ",
+			expected: "repository",
+		},
+		{
+			name:     "Only dots",
+			subject:  "...",
+			expected: "repository",
+		},
+		{
+			name:     "Only hyphens",
+			subject:  "---",
+			expected: "repository",
+		},
+		{
+			name:     "Only underscores",
+			subject:  "___",
+			expected: "repository",
+		},
+		{
+			name:     "Single hyphen",
+			subject:  "-",
+			expected: "repository",
+		},
+		{
+			name:     "Single underscore",
+			subject:  "_",
+			expected: "repository",
+		},
+
+		// Special characters removal
+		{
+			name:     "Special characters mixed",
+			subject:  "Hello@World#2024!",
+			expected: "helloworld2024",
+		},
+		{
+			name:     "Parentheses and brackets",
+			subject:  "Project (2024) [Final]",
+			expected: "project-2024-final",
+		},
+		{
+			name:     "Slashes",
+			subject:  "User/Project",
+			expected: "userproject",
+		},
+		{
+			name:     "Emoji",
+			subject:  "Project 🚀 Rocket",
+			expected: "project-rocket",
+		},
+
+		// Underscores - should be preserved
+		{
+			name:     "Underscores preserved",
+			subject:  "Test_Project",
+			expected: "test_project",
+		},
+		{
+			name:     "Mixed underscores and spaces",
+			subject:  "My_Cool Project",
+			expected: "my_cool-project",
+		},
+		{
+			name:     "Leading underscores",
+			subject:  "__project",
+			expected: "project",
+		},
+		{
+			name:     "Trailing underscores",
+			subject:  "project__",
+			expected: "project",
+		},
+
+		// Multiple spaces and hyphens
+		{
+			name:     "Multiple consecutive spaces",
+			subject:  "hello   world",
+			expected: "hello-world",
+		},
+		{
+			name:     "Leading and trailing spaces",
+			subject:  "  hello world  ",
+			expected: "hello-world",
+		},
+		{
+			name:     "Multiple hyphens collapse",
+			subject:  "hello---world",
+			expected: "hello-world",
+		},
+		{
+			name:     "Mixed separators",
+			subject:  "hello - world _ test",
+			expected: "hello-world-_-test",
+		},
+
+		// Length limits - 100 character maximum
+		{
+			name:     "Exactly 100 characters",
+			subject:  strings.Repeat("a", 100),
+			expected: strings.Repeat("a", 100),
+		},
+		{
+			name:     "Over 100 characters",
+			subject:  strings.Repeat("a", 150),
+			expected: strings.Repeat("a", 100),
+		},
+		{
+			name:     "Over 100 with trailing hyphen after truncation",
+			subject:  strings.Repeat("a", 99) + "-" + strings.Repeat("b", 50),
+			expected: strings.Repeat("a", 99),
+		},
+		{
+			name:     "Over 100 with trailing underscore after truncation",
+			subject:  strings.Repeat("a", 99) + "_" + strings.Repeat("b", 50),
+			expected: strings.Repeat("a", 99),
+		},
+
+		// Unicode and accents - non-ASCII characters are stripped
+		{
+			name:     "Unicode characters",
+			subject:  "Zürich Project",
+			expected: "zrich-project",
+		},
+		{
+			name:     "Accented characters",
+			subject:  "Café François",
+			expected: "caf-franois",
+		},
+		{
+			name:     "Mixed case with numbers",
+			subject:  "Test123Subject",
+			expected: "test123subject",
+		},
+
+		// Real-world examples
+		{
+			name:     "GitHub-style repo name",
+			subject:  "awesome-project",
+			expected: "awesome-project",
+		},
+		{
+			name:     "Sentence-like subject",
+			subject:  "The Quick Brown Fox Jumps",
+			expected: "the-quick-brown-fox-jumps",
+		},
+		{
+			name:     "Version number",
+			subject:  "Project v2.0.1",
+			expected: "project-v201",
+		},
+		{
+			name:     "Date in name",
+			subject:  "Report 2024-10-28",
+			expected: "report-2024-10-28",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := GenerateRepoNameFromSubject(tt.subject)
+			assert.Equal(t, tt.expected, result, "Generated name mismatch for subject: %q", tt.subject)
+
+			// CRITICAL: Verify that all non-empty generated names pass IsUsableRepoName validation
+			// This ensures we never generate names that would be rejected later
+			if result != "" {
+				err := IsUsableRepoName(result)
+				assert.NoError(t, err, "Generated name %q should pass IsUsableRepoName validation for subject %q", result, tt.subject)
+			}
+		})
+	}
 }

@@ -16,7 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"unicode"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
@@ -1162,18 +1161,20 @@ func GenerateRepoNameFromSubject(subject string) string {
 	name := strings.ToLower(subject)
 	name = strings.ReplaceAll(name, " ", "-")
 
-	// Remove or replace special characters, keeping only alphanumeric, hyphens, dots, and underscores
+	// Remove special characters, keeping only ASCII alphanumeric, hyphens, and underscores
+	// NOTE: Dots are removed to avoid reserved patterns (.git, .wiki, .rss, .atom)
+	// NOTE: Only ASCII letters/digits allowed to match Gitea's validRepoNamePattern: ^[-.\w]+$
 	var result strings.Builder
 	for _, r := range name {
-		if unicode.IsLetter(r) || unicode.IsDigit(r) || r == '-' || r == '.' || r == '_' {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
 			result.WriteRune(r)
 		}
 	}
 
 	name = result.String()
 
-	// Remove leading/trailing hyphens and dots
-	name = strings.Trim(name, "-.")
+	// Remove leading/trailing hyphens and underscores
+	name = strings.Trim(name, "-_")
 
 	// Collapse multiple consecutive hyphens
 	for strings.Contains(name, "--") {
@@ -1186,7 +1187,7 @@ func GenerateRepoNameFromSubject(subject string) string {
 	}
 	if len(name) > 100 {
 		name = name[:100]
-		name = strings.TrimRight(name, "-.")
+		name = strings.TrimRight(name, "-_")
 	}
 
 	return name
