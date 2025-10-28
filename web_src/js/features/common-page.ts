@@ -36,7 +36,7 @@ function initFooterThemeSelector() {
   const $dropdown = fomanticQuery(elDropdown);
   $dropdown.dropdown({
     direction: 'upward',
-    apiSettings: {url: '/-/web-theme/list', cache: false},
+    apiSettings: {url: `${appSubUrl}/-/web-theme/list`, cache: false},
   });
   addDelegatedEventListener(elDropdown, 'click', '.menu > .item', async (el) => {
     const themeName = el.getAttribute('data-value');

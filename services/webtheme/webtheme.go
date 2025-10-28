@@ -186,13 +186,16 @@ func GetThemeMetaInfo(internalName string) *ThemeMetaInfo {
 	return availableThemeMap[internalName]
 }
 
+// GuaranteeGetThemeMetaInfo guarantees to return a non-nil ThemeMetaInfo,
+// to simplify the caller's logic, especially for templates.
+// There are already enough warnings messages if the default theme is not available.
 func GuaranteeGetThemeMetaInfo(internalName string) *ThemeMetaInfo {
 	info := GetThemeMetaInfo(internalName)
 	if info == nil {
 		info = GetThemeMetaInfo(setting.UI.DefaultTheme)
 	}
 	if info == nil {
-		info = &ThemeMetaInfo{}
+		info = &ThemeMetaInfo{DisplayName: "unavailable", InternalName: "unavailable", FileName: "unavailable"}
 	}
 	return info
 }
