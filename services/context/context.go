@@ -103,7 +103,7 @@ func GetValidateContext(req *http.Request) (ctx *ValidateContext) {
 }
 
 func NewTemplateContextForWeb(ctx *Context) TemplateContext {
-	tmplCtx := NewTemplateContext(ctx)
+	tmplCtx := NewTemplateContext(ctx, ctx.Req)
 	tmplCtx["Locale"] = ctx.Base.Locale
 	tmplCtx["AvatarUtils"] = templates.NewAvatarUtils(ctx)
 	tmplCtx["RenderUtils"] = templates.NewRenderUtils(ctx)
