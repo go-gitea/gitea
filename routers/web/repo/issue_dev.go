@@ -12,7 +12,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/context"
@@ -39,7 +38,6 @@ func CreateBranchFromIssue(ctx *context.Context) {
 
 	form := web.GetForm(ctx).(*forms.NewBranchForm)
 	repo := ctx.Repo.Repository
-	gitRepo := ctx.Repo.GitRepo
 	// if create branch in a forked repository
 	if form.RepoID > 0 && form.RepoID != repo.ID {
 		var err error
@@ -48,12 +46,6 @@ func CreateBranchFromIssue(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByID", err)
 			return
 		}
-		gitRepo, err = gitrepo.OpenRepository(ctx, repo)
-		if err != nil {
-			ctx.ServerError("OpenRepository", err)
-			return
-		}
-		defer gitRepo.Close()
 	}
 
 	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
@@ -68,7 +60,7 @@ func CreateBranchFromIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := repo_service.CreateNewBranch(ctx, ctx.Doer, repo, gitRepo, form.SourceBranchName, form.NewBranchName); err != nil {
+	if err := repo_service.CreateNewBranch(ctx, ctx.Doer, repo, form.SourceBranchName, form.NewBranchName); err != nil {
 		switch {
 		case git_model.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err):
 			ctx.JSONError(ctx.Tr("repo.branch.branch_already_exists", form.NewBranchName))

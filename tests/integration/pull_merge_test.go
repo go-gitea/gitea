@@ -409,7 +409,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		assert.NoError(t, err)
 		defer gitRepo1.Close()
 
-		assert.NoError(t, repo_service.CreateNewBranchFromCommit(t.Context(), user1, repo1, gitRepo1, commitSha, "unrelated"))
+		assert.NoError(t, repo_service.CreateNewBranchFromCommit(t.Context(), user1, repo1, commitSha, "unrelated"))
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
 
