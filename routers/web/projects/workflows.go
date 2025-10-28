@@ -442,6 +442,15 @@ func WorkflowsPost(ctx *context.Context) {
 	filters := convertFormToFilters(form.Filters)
 	actions := convertFormToActions(form.Actions)
 
+	// Validate: at least one action must be configured
+	if len(actions) == 0 {
+		ctx.JSON(http.StatusBadRequest, map[string]any{
+			"error":   "NoActions",
+			"message": ctx.Tr("projects.workflows.error.at_least_one_action"),
+		})
+		return
+	}
+
 	eventID, _ := strconv.ParseInt(form.EventID, 10, 64)
 	if eventID == 0 {
 		// check if workflow event is valid

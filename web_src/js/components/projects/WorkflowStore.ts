@@ -176,6 +176,19 @@ export function createWorkflowStore(props: any) {
     async saveWorkflow() {
       if (!store.selectedWorkflow) return;
 
+      // Validate: at least one action must be configured
+      const hasAtLeastOneAction = !!(
+        store.workflowActions.column ||
+        store.workflowActions.add_labels.length > 0 ||
+        store.workflowActions.remove_labels.length > 0 ||
+        store.workflowActions.issue_state
+      );
+
+      if (!hasAtLeastOneAction) {
+        showErrorToast(props.locale.atLeastOneActionRequired || 'At least one action must be configured');
+        return;
+      }
+
       store.saving = true;
       try {
         // For new workflows, use the base event type
@@ -196,9 +209,20 @@ export function createWorkflowStore(props: any) {
         });
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Response error:', errorText);
-          showErrorToast(`${props.locale.failedToSaveWorkflow}: ${response.status} ${response.statusText}\n${errorText}`);
+          let errorMessage = `${props.locale.failedToSaveWorkflow}: ${response.status} ${response.statusText}`;
+          try {
+            const errorData = await response.json();
+            if (errorData.message) {
+              errorMessage = errorData.message;
+            } else if (errorData.error === 'NoActions') {
+              errorMessage = props.locale.atLeastOneActionRequired || 'At least one action must be configured';
+            }
+          } catch {
+            const errorText = await response.text();
+            console.error('Response error:', errorText);
+            errorMessage += `\n${errorText}`;
+          }
+          showErrorToast(errorMessage);
           return;
         }
 

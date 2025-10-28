@@ -44,6 +44,7 @@ export async function initProjectWorkflow() {
       saveWorkflowFailed: workflowDiv.getAttribute('data-locale-save-workflow-failed'),
       updateWorkflowFailed: workflowDiv.getAttribute('data-locale-update-workflow-failed'),
       deleteWorkflowFailed: workflowDiv.getAttribute('data-locale-delete-workflow-failed'),
+      atLeastOneActionRequired: workflowDiv.getAttribute('data-locale-at-least-one-action-required'),
     };
 
     const View = createApp(ProjectWorkflow, {

@@ -444,3 +444,114 @@ func TestProjectWorkflowPermissions(t *testing.T) {
 		fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/delete?_csrf=%s", user.Name, repo.Name, project.ID, workflow.ID, GetUserCSRFToken(t, session2)))
 	session2.MakeRequest(t, req, http.StatusNotFound) // we use 404 to avoid leaking existence
 }
+
+func TestProjectWorkflowValidation(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// Create a project
+	project := &project_model.Project{
+		Title:        "Test Project for Workflow Validation",
+		RepoID:       repo.ID,
+		Type:         project_model.TypeRepository,
+		TemplateType: project_model.TemplateTypeNone,
+	}
+	err := project_model.NewProject(t.Context(), project)
+	assert.NoError(t, err)
+
+	session := loginUser(t, user.Name)
+
+	// Test 1: Try to create a workflow without any actions (should fail)
+	t.Run("Create workflow without actions should fail", func(t *testing.T) {
+		workflowData := map[string]any{
+			"event_id": string(project_model.WorkflowEventItemOpened),
+			"filters": map[string]any{
+				string(project_model.WorkflowFilterTypeIssueType): "issue",
+			},
+			"actions": map[string]any{
+				// No actions provided - this should trigger validation error
+			},
+		}
+
+		body, err := json.Marshal(workflowData)
+		assert.NoError(t, err)
+
+		req := NewRequestWithBody(t, "POST",
+			fmt.Sprintf("/%s/%s/projects/%d/workflows/item_opened?_csrf=%s", user.Name, repo.Name, project.ID, GetUserCSRFToken(t, session)),
+			strings.NewReader(string(body)))
+		req.Header.Set("Content-Type", "application/json")
+		resp := session.MakeRequest(t, req, http.StatusBadRequest)
+
+		// Parse response
+		var result map[string]any
+		err = json.Unmarshal(resp.Body.Bytes(), &result)
+		assert.NoError(t, err)
+		assert.Equal(t, "NoActions", result["error"], "Error should be NoActions")
+		assert.NotEmpty(t, result["message"], "Error message should be provided")
+	})
+
+	// Test 2: Try to update a workflow to have no actions (should fail)
+	t.Run("Update workflow to remove all actions should fail", func(t *testing.T) {
+		// First create a valid workflow
+		column := &project_model.Column{
+			Title:     "Test Column",
+			ProjectID: project.ID,
+		}
+		err := project_model.NewColumn(t.Context(), column)
+		assert.NoError(t, err)
+
+		workflow := &project_model.Workflow{
+			ProjectID:     project.ID,
+			WorkflowEvent: project_model.WorkflowEventItemOpened,
+			WorkflowFilters: []project_model.WorkflowFilter{
+				{
+					Type:  project_model.WorkflowFilterTypeIssueType,
+					Value: "issue",
+				},
+			},
+			WorkflowActions: []project_model.WorkflowAction{
+				{
+					Type:  project_model.WorkflowActionTypeColumn,
+					Value: strconv.FormatInt(column.ID, 10),
+				},
+			},
+			Enabled: true,
+		}
+		err = project_model.CreateWorkflow(t.Context(), workflow)
+		assert.NoError(t, err)
+
+		// Try to update it to have no actions
+		updateData := map[string]any{
+			"event_id": strconv.FormatInt(workflow.ID, 10),
+			"filters": map[string]any{
+				string(project_model.WorkflowFilterTypeIssueType): "issue",
+			},
+			"actions": map[string]any{
+				// No actions - should fail
+			},
+		}
+
+		body, err := json.Marshal(updateData)
+		assert.NoError(t, err)
+
+		req := NewRequestWithBody(t, "POST",
+			fmt.Sprintf("/%s/%s/projects/%d/workflows/%d?_csrf=%s", user.Name, repo.Name, project.ID, workflow.ID, GetUserCSRFToken(t, session)),
+			strings.NewReader(string(body)))
+		req.Header.Set("Content-Type", "application/json")
+		resp := session.MakeRequest(t, req, http.StatusBadRequest)
+
+		// Parse response
+		var result map[string]any
+		err = json.Unmarshal(resp.Body.Bytes(), &result)
+		assert.NoError(t, err)
+		assert.Equal(t, "NoActions", result["error"], "Error should be NoActions")
+		assert.NotEmpty(t, result["message"], "Error message should be provided")
+
+		// Verify the workflow was not changed
+		unchangedWorkflow, err := project_model.GetWorkflowByID(t.Context(), workflow.ID)
+		assert.NoError(t, err)
+		assert.Len(t, unchangedWorkflow.WorkflowActions, 1, "Workflow should still have the original action")
+	})
+}

@@ -49,6 +49,7 @@ const props = defineProps<{
     saveWorkflowFailed: string;
     updateWorkflowFailed: string;
     deleteWorkflowFailed: string;
+    atLeastOneActionRequired: string;
   },
 }>();
 
