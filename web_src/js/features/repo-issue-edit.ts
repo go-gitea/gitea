@@ -3,7 +3,6 @@ import {getComboMarkdownEditor, initComboMarkdownEditor, ComboMarkdownEditor} fr
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {hideElem, querySingleVisibleElem, showElem, type DOMEvent} from '../utils/dom.ts';
-import {attachRefIssueContextPopup} from './contextpopup.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
@@ -62,8 +61,6 @@ async function tryOnEditContent(e: DOMEvent<MouseEvent>) {
       renderContent = newRenderContent;
 
       rawContent.textContent = comboMarkdownEditor.value();
-      const refIssues = renderContent.querySelectorAll<HTMLElement>('p .ref-issue');
-      attachRefIssueContextPopup(refIssues);
 
       if (!commentContent.querySelector('.dropzone-attachments')) {
         if (data.attachments !== '') {
