@@ -23,8 +23,10 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/webtheme"
 )
 
 type RenderUtils struct {
@@ -258,4 +260,19 @@ func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink strin
 	}
 	htmlCode += "</span>"
 	return template.HTML(htmlCode)
+}
+
+func (ut *RenderUtils) RenderThemeItem(info *webtheme.ThemeMetaInfo, iconSize int) template.HTML {
+	svgName := "octicon-paintbrush"
+	switch info.ColorScheme {
+	case "dark":
+		svgName = "octicon-moon"
+	case "light":
+		svgName = "octicon-sun"
+	case "auto":
+		svgName = "gitea-eclipse"
+	}
+	icon := svg.RenderHTML(svgName, iconSize)
+	extraIcon := svg.RenderHTML(info.GetExtraIconName(), iconSize)
+	return htmlutil.HTMLFormat(`<div class="theme-menu-item" data-tooltip-content="%s">%s %s %s</div>`, info.GetDescription(), icon, info.DisplayName, extraIcon)
 }
