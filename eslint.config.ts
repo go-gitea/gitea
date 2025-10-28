@@ -921,6 +921,7 @@ export default defineConfig([
       'vue/html-closing-bracket-spacing': [2, {startTag: 'never', endTag: 'never', selfClosingTag: 'never'}],
       'vue/max-attributes-per-line': [0],
       'vue/singleline-html-element-content-newline': [0],
+      'vue/require-typed-ref': [2],
     },
   },
   {
