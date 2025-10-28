@@ -177,11 +177,11 @@ export function createWorkflowStore(props: any) {
       if (!store.selectedWorkflow) return;
 
       // Validate: at least one action must be configured
-      const hasAtLeastOneAction = !!(
+      const hasAtLeastOneAction = Boolean(
         store.workflowActions.column ||
         store.workflowActions.add_labels.length > 0 ||
         store.workflowActions.remove_labels.length > 0 ||
-        store.workflowActions.issue_state
+        store.workflowActions.issue_state,
       );
 
       if (!hasAtLeastOneAction) {
