@@ -38,13 +38,13 @@ import (
 )
 
 // CreateNewBranch creates a new repository branch
-func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, oldBranchName, branchName string) (err error) {
+func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldBranchName, branchName string) (err error) {
 	branch, err := git_model.GetBranch(ctx, repo.ID, oldBranchName)
 	if err != nil {
 		return err
 	}
 
-	return CreateNewBranchFromCommit(ctx, doer, repo, gitRepo, branch.CommitID, branchName)
+	return CreateNewBranchFromCommit(ctx, doer, repo, branch.CommitID, branchName)
 }
 
 // Branch contains the branch information
@@ -374,7 +374,7 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
-func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, commitID, branchName string) (err error) {
+func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitID, branchName string) (err error) {
 	err = repo.MustNotBeArchived()
 	if err != nil {
 		return err
@@ -399,7 +399,7 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 }
 
 // RenameBranch rename a branch
-func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, gitRepo *git.Repository, from, to string) (string, error) {
+func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, from, to string) (string, error) {
 	err := repo.MustNotBeArchived()
 	if err != nil {
 		return "", err
@@ -413,8 +413,12 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return "target_exist", nil
 	}
 
-	if exist, _ := git_model.IsBranchExist(ctx, repo.ID, from); !exist {
-		return "from_not_exist", nil
+	fromBranch, err := git_model.GetBranch(ctx, repo.ID, from)
+	if err != nil {
+		if git_model.IsErrBranchNotExist(err) {
+			return "from_not_exist", nil
+		}
+		return "", err
 	}
 
 	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
@@ -472,14 +476,9 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	}); err != nil {
 		return "", err
 	}
-	refNameTo := git.RefNameFromBranch(to)
-	refID, err := gitRepo.GetRefCommitID(refNameTo.String())
-	if err != nil {
-		return "", err
-	}
 
 	notify_service.DeleteRef(ctx, doer, repo, git.RefNameFromBranch(from))
-	notify_service.CreateRef(ctx, doer, repo, refNameTo, refID)
+	notify_service.CreateRef(ctx, doer, repo, git.RefNameFromBranch(to), fromBranch.CommitID)
 
 	return "", nil
 }
