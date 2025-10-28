@@ -320,7 +320,7 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, branches, 9)
+	assert.Len(t, branches, 10)
 
 	branches, err = db.Find[git_model.Branch](t.Context(), git_model.FindBranchOptions{
 		RepoID:  1,
