@@ -36,7 +36,7 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx, false) // final test
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx, true)
 	if err != nil {
 		return "", err
 	}
@@ -67,7 +67,7 @@ func (repo *Repository) IsCommitExist(name string) bool {
 }
 
 func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx, true)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx, false) // final test (not related?)
 	if err != nil {
 		return nil, err
 	}
