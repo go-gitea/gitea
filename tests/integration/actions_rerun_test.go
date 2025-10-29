@@ -58,6 +58,11 @@ jobs:
 		runner.execTask(t, job1Task, &mockTaskOutcome{
 			result: runnerv1.Result_RESULT_SUCCESS,
 		})
+		// RERUN-FAILURE: the run is not done
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, run.Index), map[string]string{
+			"_csrf": GetUserCSRFToken(t, session),
+		})
+		session.MakeRequest(t, req, http.StatusBadRequest)
 		// fetch and exec job2
 		job2Task := runner.fetchTask(t)
 		runner.execTask(t, job2Task, &mockTaskOutcome{
@@ -65,7 +70,7 @@ jobs:
 		})
 
 		// RERUN-1: rerun the run
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, run.Index), map[string]string{
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, run.Index), map[string]string{
 			"_csrf": GetUserCSRFToken(t, session),
 		})
 		session.MakeRequest(t, req, http.StatusOK)
