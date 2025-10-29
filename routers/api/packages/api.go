@@ -336,6 +336,7 @@ func CommonRoutes() *web.Router {
 			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
+			r.Get("/{packagename}/list", generic.EnumeratePackageVersions)
 			r.Group("/{packagename}/{packageversion}", func() {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
 				r.Group("/{filename}", func() {

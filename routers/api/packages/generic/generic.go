@@ -12,6 +12,7 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -22,9 +23,68 @@ var (
 	filenameRegex    = regexp.MustCompile(`\A[-_+=:;.()\[\]{}~!@#$%^& \w]+\z`)
 )
 
+// GenericPackageFileInfo represents information about an existing package file
+// swagger:model
+type GenericPackageFileInfo struct {
+	// Name of package file
+	Name string `json:"name"`
+	// swagger:strfmt date-time
+	// Date when package file was created/uploaded
+	CreatedUnix timeutil.TimeStamp `json:"created"`
+}
+
+// GenericPackageInfo represents information about an existing package file
+// swagger:model
+type GenericPackageInfo struct {
+	/// Version linked to package information
+	Version string `json:"version"`
+	/// Download count for files within version
+	DownloadCount int64 `json:"downloads"`
+	/// Files uploaded for package version
+	Files []GenericPackageFileInfo `json:"files"`
+}
+
 func apiError(ctx *context.Context, status int, obj any) {
 	message := helper.ProcessErrorForUser(ctx, status, obj)
 	ctx.PlainText(status, message)
+}
+
+// EnumeratePackageVersions lists upload versions and their associated files
+func EnumeratePackageVersions(ctx *context.Context) {
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, ctx.PathParam("packagename"))
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, err)
+		return
+	}
+
+	var info []GenericPackageInfo
+	for _, pv := range pvs {
+		packageFiles, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
+		var files []GenericPackageFileInfo
+		for _, file := range packageFiles {
+			files = append(files, GenericPackageFileInfo{
+				Name:        file.Name,
+				CreatedUnix: file.CreatedUnix,
+			})
+		}
+
+		info = append(info, GenericPackageInfo{
+			Version:       pv.Version,
+			DownloadCount: pv.DownloadCount,
+			Files:         files,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, info)
 }
 
 // DownloadPackageFile serves the specific generic package.
