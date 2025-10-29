@@ -37,7 +37,7 @@ func TestScheduleUpdate(t *testing.T) {
 }
 
 func testScheduleUpdatePush(t *testing.T) {
-	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID string, expectedSpec string) {
+	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
 		newCron := "30 5 * * 1,3"
 		pushScheduleChange(t, u, repo, newCron)
 		branch, err := git_model.GetBranch(t.Context(), repo.ID, repo.DefaultBranch)
@@ -70,7 +70,7 @@ jobs:
 
 	for _, mergeStyle := range mergeStyles {
 		t.Run(string(mergeStyle), func(t *testing.T) {
-			doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID string, expectedSpec string) {
+			doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
 				// update workflow file
 				_, err := files_service.ChangeRepoFiles(t.Context(), repo, user, &files_service.ChangeRepoFilesOptions{
 					NewBranch: newBranchName,
@@ -101,7 +101,7 @@ jobs:
 	}
 
 	t.Run(string(repo_model.MergeStyleManuallyMerged), func(t *testing.T) {
-		doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID string, expectedSpec string) {
+		doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
 			// enable manual-merge
 			doAPIEditRepository(testContext, &api.EditRepoOption{
 				HasPullRequests:  util.ToPointer(true),
@@ -145,7 +145,7 @@ jobs:
 }
 
 func testScheduleUpdateMirrorSync(t *testing.T) {
-	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID string, expectedSpec string) {
+	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
 		// create mirror repo
 		opts := migration.MigrateOptions{
 			RepoName:    "actions-schedule-mirror",
@@ -200,7 +200,7 @@ func testScheduleUpdateMirrorSync(t *testing.T) {
 }
 
 func testScheduleUpdateArchiveAndUnarchive(t *testing.T) {
-	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID string, expectedSpec string) {
+	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			Archived: util.ToPointer(true),
 		})(t)
@@ -215,7 +215,7 @@ func testScheduleUpdateArchiveAndUnarchive(t *testing.T) {
 }
 
 func testScheduleUpdateDisableAndEnableActionsUnit(t *testing.T) {
-	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID string, expectedSpec string) {
+	doTestScheduleUpdate(t, func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string) {
 		doAPIEditRepository(testContext, &api.EditRepoOption{
 			HasActions: util.ToPointer(false),
 		})(t)
@@ -229,7 +229,7 @@ func testScheduleUpdateDisableAndEnableActionsUnit(t *testing.T) {
 	})
 }
 
-type scheduleUpdateTrigger func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID string, expectedSpec string)
+type scheduleUpdateTrigger func(t *testing.T, u *url.URL, testContext APITestContext, user *user_model.User, repo *repo_model.Repository) (commitID, expectedSpec string)
 
 func doTestScheduleUpdate(t *testing.T, updateTrigger scheduleUpdateTrigger) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
