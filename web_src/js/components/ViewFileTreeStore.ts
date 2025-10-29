@@ -30,7 +30,9 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
       const response = await GET(u.href);
       const elViewContent = document.querySelector('.repo-view-content');
       elViewContent.innerHTML = await response.text();
-      document.title = elViewContent.querySelector('.repo-view-content-data').getAttribute('data-document-title');
+      const t1 = elViewContent.querySelector('.repo-view-content-data').getAttribute('data-document-title');
+      const t2 = elViewContent.querySelector('.repo-view-content-data').getAttribute('data-document-title-common');
+      document.title = `${t1} - ${t2}`; // follow the format in head.tmpl: <head><title>...</title></head>
     },
 
     async navigateTreeView(treePath: string) {
