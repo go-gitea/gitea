@@ -9,11 +9,12 @@ import (
 	"net/url"
 	"testing"
 
-	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+
+	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 )
 
 func TestActionsRerun(t *testing.T) {
