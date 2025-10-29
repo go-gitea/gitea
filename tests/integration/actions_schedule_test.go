@@ -89,9 +89,7 @@ jobs:
 				assert.NoError(t, err)
 
 				// merge pull request
-				testPullMerge(t, testContext.Session, repo.OwnerName, repo.Name, strconv.FormatInt(apiPull.Index, 10), MergeOptions{
-					Style: mergeStyle,
-				})
+				testPullMerge(t, testContext.Session, repo.OwnerName, repo.Name, strconv.FormatInt(apiPull.Index, 10), mergeStyle, false)
 
 				pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
 				return pull.MergedCommitID, "@every 2m"
