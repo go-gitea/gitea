@@ -11,6 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add label 'state' to metric 'gitea_users' (#34326)
 * SECURITY
   * Upgrade security public key (#34956)
+  * Also include all security fixes in 1.24.x after 1.25.0-rc0
 * FEATURES
   * Stream repo zip/tar.gz/bundle achives by default (#35487)
   * Use configurable remote name for git commands (#35172)
