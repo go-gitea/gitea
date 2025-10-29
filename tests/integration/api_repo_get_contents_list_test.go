@@ -80,7 +80,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
-	err = repo_service.CreateNewBranch(t.Context(), user2, repo1, gitRepo, repo1.DefaultBranch, newBranch)
+	err = repo_service.CreateNewBranch(t.Context(), user2, repo1, repo1.DefaultBranch, newBranch)
 	assert.NoError(t, err)
 
 	commitID, _ := gitRepo.GetBranchCommitID(repo1.DefaultBranch)

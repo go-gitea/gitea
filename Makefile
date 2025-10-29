@@ -163,12 +163,12 @@ TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
 
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
-GO_DIRS := build cmd models modules routers services tests
+GO_DIRS := build cmd models modules routers services tests tools
 WEB_DIRS := web_src/js web_src/css
 
 ESLINT_FILES := web_src/js tools *.ts tests/e2e
 STYLELINT_FILES := web_src/css web_src/js/components/*.vue
-SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml)) $(filter-out tools/misspellings.csv, $(wildcard tools/*))
+SPELLCHECK_FILES := $(GO_DIRS) $(WEB_DIRS) templates options/locale/locale_en-US.ini .github $(filter-out CHANGELOG.md, $(wildcard *.go *.md *.yml *.yaml *.toml))
 EDITORCONFIG_FILES := templates .github/workflows options/locale/locale_en-US.ini
 
 GO_SOURCES := $(wildcard *.go)
@@ -376,11 +376,11 @@ lint-md: node_modules ## lint markdown files
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
-	@go run $(MISSPELL_PACKAGE) -dict tools/misspellings.csv -error $(SPELLCHECK_FILES)
+	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error $(SPELLCHECK_FILES)
 
 .PHONY: lint-spell-fix
 lint-spell-fix: ## lint spelling and fix issues
-	@go run $(MISSPELL_PACKAGE) -dict tools/misspellings.csv -w $(SPELLCHECK_FILES)
+	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w $(SPELLCHECK_FILES)
 
 .PHONY: lint-go
 lint-go: ## lint go files
