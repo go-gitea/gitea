@@ -65,7 +65,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Make restricted users can access public repositories (#35693)
   * The status icon of the Action step is consistent with GitHub (#35618) #35621
 * BUGFIXES
-  * Fix "ref-issue" handling in markup (#35739) #35771 
+  * Update tab title when navigating file tree (#35757) #35772
+  * Fix "ref-issue" handling in markup (#35739) #35771
   * Fix webhook to prevent tag events from bypassing branch filters targets (#35567) #35577
   * Fix markup init after issue comment editing (#35536) #35537
   * Fix creating pull request failure when the target branch name is the same as some tag (#35552) #35582
