@@ -10,10 +10,10 @@ const props = defineProps<{
   loadIssueInfoUrl: string,
 }>();
 
-const loading = shallowRef<boolean>(false);
+const loading = shallowRef(false);
 const issue = shallowRef<Issue>(null);
-const renderedLabels = shallowRef<string>('');
-const errorMessage = shallowRef<string>(null);
+const renderedLabels = shallowRef('');
+const errorMessage = shallowRef('');
 
 const createdAt = computed(() => {
   return new Date(issue.value.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
@@ -26,7 +26,7 @@ const body = computed(() => {
 
 onMounted(async () => {
   loading.value = true;
-  errorMessage.value = null;
+  errorMessage.value = '';
   try {
     const resp = await GET(props.loadIssueInfoUrl);
     if (!resp.ok) {
