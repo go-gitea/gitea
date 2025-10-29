@@ -26,7 +26,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
 
     async loadViewContent(url: string) {
       const u = new URL(url, window.origin);
-      u.searchParams.set('only_content', '1');
+      u.searchParams.set('only_content', 'true');
       const response = await GET(u.href);
       const elViewContent = document.querySelector('.repo-view-content');
       elViewContent.innerHTML = await response.text();
