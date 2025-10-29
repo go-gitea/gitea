@@ -26,6 +26,16 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=bind,source=".git/",target=".git/" \
     make
 
+COPY docker/root /tmp/local
+
+# Set permissions for builds that made under windows which strips the executable bit from file
+RUN chmod 755 /tmp/local/usr/bin/entrypoint \
+              /tmp/local/usr/local/bin/* \
+              /tmp/local/etc/s6/gitea/* \
+              /tmp/local/etc/s6/openssh/* \
+              /tmp/local/etc/s6/.s6-svscan/* \
+              /go/src/code.gitea.io/gitea/gitea
+
 FROM docker.io/library/alpine:3.22 AS gitea
 
 EXPOSE 22 3000
@@ -55,7 +65,7 @@ RUN addgroup \
     git && \
   echo "git:*" | chpasswd -e
 
-COPY docker/root /
+COPY --from=build-env /tmp/local /
 COPY --chmod=755 --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 
 ENV USER=git
