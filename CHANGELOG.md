@@ -4,13 +4,14 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.25.0-rc0](https://github.com/go-gitea/gitea/releases/tag/1.25.0-rc0) - 2025-09-24
+## [1.25.0](https://github.com/go-gitea/gitea/releases/tag/1.25.0) - 2025-10-30
 
 * BREAKING
   * Return 201 Created for CreateVariable API responses (#34517)
   * Add label 'state' to metric 'gitea_users' (#34326)
 * SECURITY
   * Upgrade security public key (#34956)
+  * Also include all security fixes in 1.24.x after 1.25.0-rc0
 * FEATURES
   * Stream repo zip/tar.gz/bundle achives by default (#35487)
   * Use configurable remote name for git commands (#35172)
@@ -60,7 +61,31 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Use lfs label for lfs file rather than a long description (#34363)
   * Add "View workflow file" to Actions list page (#34538)
   * Move organization's visibility change to danger zone. (#34814)
+  * Don't block site admin's operation if SECRET_KEY is lost (#35721)
+  * Make restricted users can access public repositories (#35693)
+  * The status icon of the Action step is consistent with GitHub (#35618) #35621
 * BUGFIXES
+  * Update tab title when navigating file tree (#35757) #35772
+  * Fix "ref-issue" handling in markup (#35739) #35771
+  * Fix webhook to prevent tag events from bypassing branch filters targets (#35567) #35577
+  * Fix markup init after issue comment editing (#35536) #35537
+  * Fix creating pull request failure when the target branch name is the same as some tag (#35552) #35582
+  * Fix auto-expand and auto-scroll for actions logs (#35570) (#35583) #35586
+  * Use inputs context when parsing workflows (#35590) #35595
+  * Fix diffpatch API endpoint (#35610) #35613
+  * Creating push comments before invoke pull request checking (#35647) #35668
+  * Fix missing Close when error occurs and abused connection pool (#35658) #35670
+  * Fix build (#35674)
+  * Use LFS object size instead of blob size when viewing a LFS file (#35679)
+  * Fix workflow run event status while rerunning a failed job (#35689)
+  * Avoid emoji mismatch and allow to only enable chosen emojis (#35692)
+  * Refactor legacy code, fix LFS auth bypass, fix symlink bypass (#35708)
+  * Fix various trivial problems (#35714)
+  * Fix attachment file size limit in server backend (#35519)
+  * Honor delete branch on merge repo setting when using merge API (#35488)
+  * Fix external render, make iframe render work (#35727, #35730)
+  * Upgrade go mail to 0.7.2 (#35748)
+  * Revert #18491, fix oauth2 client link account (#35745)
   * Fix different behavior in status check pattern matching with double stars (#35474)
   * Fix overflow in notifications list (#35446)
   * Fix package link setting can only list limited repositories (#35394)
@@ -172,6 +197,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Run `gopls modernize` on codebase (#34751)
   * Upgrade `gopls` to v0.19.0, add `make fix` (#34772)
 * BUILD
+  * bump archives&rar dep (#35637) #35638
   * Use github.com/mholt/archives replace github.com/mholt/archiver (#35390)
   * Update JS and PY dependencies (#35444)
   * Upgrade devcontainer go version to 1.24.6 (#35298)
