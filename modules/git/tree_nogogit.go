@@ -35,7 +35,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	if t.repo != nil {
-		batch, cancel, err := t.repo.CatFileBatch(t.repo.Ctx, true)
+		batch, cancel, err := t.repo.CatFileBatch(t.repo.Ctx, false) //test
 		if err != nil {
 			return nil, err
 		}
