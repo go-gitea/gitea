@@ -31,7 +31,6 @@ export async function initRepoViewFileTree() {
   const fileTree = sidebar.querySelector('#view-file-tree');
   createApp(ViewFileTree, {
     repoLink: fileTree.getAttribute('data-repo-link'),
-    repoName: fileTree.getAttribute('data-repo-name'),
     treePath: fileTree.getAttribute('data-tree-path'),
     currentRefNameSubURL: fileTree.getAttribute('data-current-ref-name-sub-url'),
   }).mount(fileTree);

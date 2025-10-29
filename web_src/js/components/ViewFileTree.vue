@@ -7,7 +7,6 @@ const elRoot = useTemplateRef('elRoot');
 
 const props = defineProps({
   repoLink: {type: String, required: true},
-  repoName: {type: String, required: true},
   treePath: {type: String, required: true},
   currentRefNameSubURL: {type: String, required: true},
 });
