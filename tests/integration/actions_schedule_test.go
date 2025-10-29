@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
@@ -124,7 +123,7 @@ jobs:
 
 			// merge and push
 			dstPath := t.TempDir()
-			u.Path = fmt.Sprintf("%s.git", repo.FullName())
+			u.Path = repo.FullName() + ".git"
 			u.User = url.UserPassword(repo.OwnerName, userPassword)
 			doGitClone(dstPath, u)(t)
 			doGitMerge(dstPath, "origin/"+newBranchName)(t)
@@ -284,7 +283,7 @@ jobs:
 `
 
 	dstPath := t.TempDir()
-	u.Path = fmt.Sprintf("%s.git", repo.FullName())
+	u.Path = repo.FullName() + ".git"
 	u.User = url.UserPassword(repo.OwnerName, userPassword)
 	doGitClone(dstPath, u)(t)
 	doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
