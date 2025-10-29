@@ -23,9 +23,9 @@ var (
 	filenameRegex    = regexp.MustCompile(`\A[-_+=:;.()\[\]{}~!@#$%^& \w]+\z`)
 )
 
-// GenericPackageFileInfo represents information about an existing package file
+// PackageFileInfo represents information about an existing package file
 // swagger:model
-type GenericPackageFileInfo struct {
+type PackageFileInfo struct {
 	// Name of package file
 	Name string `json:"name"`
 	// swagger:strfmt date-time
@@ -33,15 +33,15 @@ type GenericPackageFileInfo struct {
 	CreatedUnix timeutil.TimeStamp `json:"created"`
 }
 
-// GenericPackageInfo represents information about an existing package file
+// PackageInfo represents information about an existing package file
 // swagger:model
-type GenericPackageInfo struct {
+type PackageInfo struct {
 	/// Version linked to package information
 	Version string `json:"version"`
 	/// Download count for files within version
 	DownloadCount int64 `json:"downloads"`
 	/// Files uploaded for package version
-	Files []GenericPackageFileInfo `json:"files"`
+	Files []PackageFileInfo `json:"files"`
 }
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -61,7 +61,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 		return
 	}
 
-	var info []GenericPackageInfo
+	var info []PackageInfo
 	for _, pv := range pvs {
 		packageFiles, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
 		if err != nil {
@@ -69,15 +69,15 @@ func EnumeratePackageVersions(ctx *context.Context) {
 			return
 		}
 
-		var files []GenericPackageFileInfo
+		var files []PackageFileInfo
 		for _, file := range packageFiles {
-			files = append(files, GenericPackageFileInfo{
+			files = append(files, PackageFileInfo{
 				Name:        file.Name,
 				CreatedUnix: file.CreatedUnix,
 			})
 		}
 
-		info = append(info, GenericPackageInfo{
+		info = append(info, PackageInfo{
 			Version:       pv.Version,
 			DownloadCount: pv.DownloadCount,
 			Files:         files,
