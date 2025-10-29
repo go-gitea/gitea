@@ -47,7 +47,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -64,14 +64,10 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	for scan.Scan() {
 		// Get the next commit ID
-		commitID := scan.Bytes()
+		commitID := scan.Text()
 
 		// push the commit to the cat-file --batch process
-		_, err := batchStdinWriter.Write(commitID)
-		if err != nil {
-			return nil, err
-		}
-		_, err = batchStdinWriter.Write([]byte{'\n'})
+		batchReader, err := batch.QueryContent(commitID)
 		if err != nil {
 			return nil, err
 		}
@@ -93,14 +89,13 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 				if err != nil {
 					return nil, err
 				}
-				_, err = batchStdinWriter.Write([]byte(id + "\n"))
-				if err != nil {
+				if _, err = batch.QueryContent(id); err != nil {
 					return nil, err
 				}
 				continue
 			case "commit":
 				// Read in the commit to get its tree and in case this is one of the last used commits
-				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(string(commitID)), io.LimitReader(batchReader, size))
+				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(commitID), io.LimitReader(batchReader, size))
 				if err != nil {
 					return nil, err
 				}
@@ -108,7 +103,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					return nil, err
 				}
 
-				if _, err := batchStdinWriter.Write([]byte(curCommit.Tree.ID.String() + "\n")); err != nil {
+				if _, err := batch.QueryContent(curCommit.Tree.ID.String()); err != nil {
 					return nil, err
 				}
 				curPath = ""
@@ -140,11 +135,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					return nil, err
 				}
 				if len(trees) > 0 {
-					_, err := batchStdinWriter.Write(trees[len(trees)-1])
-					if err != nil {
-						return nil, err
-					}
-					_, err = batchStdinWriter.Write([]byte("\n"))
+					_, err := batch.QueryContent(string(trees[len(trees)-1]))
 					if err != nil {
 						return nil, err
 					}

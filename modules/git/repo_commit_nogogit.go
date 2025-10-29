@@ -6,7 +6,6 @@
 package git
 
 import (
-	"bufio"
 	"errors"
 	"io"
 	"strings"
@@ -37,12 +36,12 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return "", err
 	}
 	defer cancel()
-	_, err = wr.Write([]byte(name + "\n"))
+	rd, err := batch.QueryInfo(name)
 	if err != nil {
 		return "", err
 	}
@@ -68,18 +67,20 @@ func (repo *Repository) IsCommitExist(name string) bool {
 }
 
 func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	_, _ = wr.Write([]byte(id.String() + "\n"))
-
-	return repo.getCommitFromBatchReader(wr, rd, id)
+	rd, err := batch.QueryContent(id.String())
+	if err != nil {
+		return nil, err
+	}
+	return repo.getCommitFromBatchReader(batch, rd, id)
 }
 
-func (repo *Repository) getCommitFromBatchReader(wr WriteCloserError, rd *bufio.Reader, id ObjectID) (*Commit, error) {
+func (repo *Repository) getCommitFromBatchReader(batchContent CatFileBatchContent, rd BufferedReader, id ObjectID) (*Commit, error) {
 	_, typ, size, err := ReadBatchLine(rd)
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
@@ -106,12 +107,10 @@ func (repo *Repository) getCommitFromBatchReader(wr WriteCloserError, rd *bufio.
 		if err != nil {
 			return nil, err
 		}
-
-		if _, err := wr.Write([]byte(tag.Object.String() + "\n")); err != nil {
+		if _, err := batchContent.QueryContent(tag.Object.String()); err != nil {
 			return nil, err
 		}
-
-		commit, err := repo.getCommitFromBatchReader(wr, rd, tag.Object)
+		commit, err := repo.getCommitFromBatchReader(batchContent, rd, tag.Object)
 		if err != nil {
 			return nil, err
 		}
@@ -152,12 +151,12 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
-	_, err = wr.Write([]byte(commitID + "\n"))
+	rd, err := batch.QueryInfo(commitID)
 	if err != nil {
 		return nil, err
 	}
