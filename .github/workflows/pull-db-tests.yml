@@ -11,32 +11,23 @@ jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
 
-  test-pgsql:
+  test-mssql1:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     services:
-      pgsql:
-        image: postgres:14
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-latest
         env:
-          POSTGRES_DB: test
-          POSTGRES_PASSWORD: postgres
+          ACCEPT_EULA: Y
+          MSSQL_PID: Standard
+          SA_PASSWORD: MwantsaSecurePassword1
         ports:
-          - "5432:5432"
-      ldap:
-        image: gitea/test-openldap:latest
+          - "1433:1433"
+      devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
+        image: mcr.microsoft.com/azure-storage/azurite:latest
         ports:
-          - "389:389"
-          - "636:636"
-      minio:
-        # as github actions doesn't support "entrypoint", we need to use a non-official image
-        # that has a custom entrypoint set to "minio server /data"
-        image: bitnamilegacy/minio:2023.8.31
-        env:
-          MINIO_ROOT_USER: 123456
-          MINIO_ROOT_PASSWORD: 12345678
-        ports:
-          - "9000:9000"
+          - 10000:10000
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -44,22 +35,55 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - name: Add hosts to /etc/hosts
-        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
       - run: make deps-backend
       - run: make backend
         env:
           TAGS: bindata
       - name: run tests
-        run: make test-pgsql
+        run: make test-mssql
         timeout-minutes: 50
         env:
-          TAGS: bindata gogit
-          RACE_ENABLED: true
-          TEST_TAGS: gogit
-          TEST_LDAP: 1
+          TAGS: bindata
           USE_REPO_TEST_DIR: 1
 
-  test-mssql:
+  test-mssql2:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_PID: Standard
+          SA_PASSWORD: MwantsaSecurePassword1
+        ports:
+          - "1433:1433"
+      devstoreaccount1.azurite.local: # https://github.com/Azure/Azurite/issues/1583
+        image: mcr.microsoft.com/azure-storage/azurite:latest
+        ports:
+          - 10000:10000
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - name: Add hosts to /etc/hosts
+        run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
+      - run: make deps-backend
+      - run: make backend
+        env:
+          TAGS: bindata
+      - name: run tests
+        run: make test-mssql
+        timeout-minutes: 50
+        env:
+          TAGS: bindata
+          USE_REPO_TEST_DIR: 1
+
+  test-mssql3:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
