@@ -209,7 +209,7 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 	contextName := r.RefFullName.ShortName()
 	isRef := r.RefFullName.IsBranch() || r.RefFullName.IsTag()
 	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, isRef), func() (int64, error) {
-		return r.Commit.CommitsCount()
+		return r.GitRepo.CommitsCount(r.Commit.ID.String())
 	})
 }
 
@@ -256,7 +256,7 @@ func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (cfg *editorconfi
 			return nil, nil, err
 		}
 	}
-	treeEntry, err := commit.GetTreeEntryByPath(".editorconfig")
+	treeEntry, err := git.NewTree(r.GitRepo, commit.TreeID).GetTreeEntryByPath(".editorconfig")
 	if err != nil {
 		return nil, nil, err
 	}

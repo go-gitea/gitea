@@ -184,7 +184,7 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) error 
 		}
 		defer closer.Close()
 
-		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
+		c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo, gitRepo)
 		if err != nil {
 			log.Debug("ConvertFromGitCommit: %v", err) // no need to show 500 error to end user when the commit does not exist
 		} else {

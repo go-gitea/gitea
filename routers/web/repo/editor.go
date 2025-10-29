@@ -221,7 +221,8 @@ func redirectForCommitChoice[T any](ctx *context.Context, parsed *preparedEditor
 }
 
 func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.ReadCloser, fInfo *fileInfo) {
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	tree := git.NewTree(ctx.Repo.GitRepo, ctx.Repo.Commit.TreeID)
+	entry, err := tree.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "GetTreeEntryByPath", err)
 		return nil, nil, nil

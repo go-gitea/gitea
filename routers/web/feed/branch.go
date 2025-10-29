@@ -19,7 +19,7 @@ func ShowBranchFeed(ctx *context.Context, repo *repo.Repository, formatType stri
 	var commits []*git.Commit
 	var err error
 	if ctx.Repo.Commit != nil {
-		commits, err = ctx.Repo.Commit.CommitsByRange(0, 10, "", "", "")
+		commits, err = ctx.Repo.GitRepo.CommitsByRangeWithTime(ctx.Repo.Commit.ID, 0, 10, "", "", "")
 		if err != nil {
 			ctx.ServerError("ShowBranchFeed", err)
 			return

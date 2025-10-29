@@ -26,6 +26,8 @@ type Tree struct {
 
 	entriesRecursive       Entries
 	entriesRecursiveParsed bool
+
+	submoduleCache *ObjectCache[*SubModule]
 }
 
 // ListEntries returns all entries of current tree.

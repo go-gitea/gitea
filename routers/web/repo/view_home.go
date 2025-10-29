@@ -103,7 +103,7 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 		if entry.Name() != "" {
 			return
 		}
-		tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+		tree, err := git.NewTree(ctx.Repo.GitRepo, ctx.Repo.Commit.TreeID).SubTree(ctx.Repo.TreePath)
 		if err != nil {
 			HandleGitError(ctx, "Repo.Commit.SubTree", err)
 			return
@@ -269,8 +269,8 @@ func isViewHomeOnlyContent(ctx *context.Context) bool {
 	return ctx.FormBool("only_content")
 }
 
-func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.CommitSubmoduleFile) {
-	submoduleWebLink := commitSubmoduleFile.SubmoduleWebLinkTree(ctx)
+func handleRepoViewSubmodule(ctx *context.Context, submoduleFile *git.SubmoduleFile) {
+	submoduleWebLink := submoduleFile.SubmoduleWebLinkTree(ctx)
 	if submoduleWebLink == nil {
 		ctx.Data["NotFoundPrompt"] = ctx.Repo.TreePath
 		ctx.NotFound(nil)
@@ -293,12 +293,12 @@ func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.Comm
 func prepareToRenderDirOrFile(entry *git.TreeEntry) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
 		if entry.IsSubModule() {
-			commitSubmoduleFile, err := git.GetCommitInfoSubmoduleFile(ctx.Repo.RepoLink, ctx.Repo.TreePath, ctx.Repo.Commit, entry.ID)
+			submoduleFile, err := git.GetCommitInfoSubmoduleFile(ctx.Repo.GitRepo, ctx.Repo.RepoLink, ctx.Repo.TreePath, ctx.Repo.Commit.TreeID, entry.ID)
 			if err != nil {
 				HandleGitError(ctx, "prepareToRenderDirOrFile: GetCommitInfoSubmoduleFile", err)
 				return
 			}
-			handleRepoViewSubmodule(ctx, commitSubmoduleFile)
+			handleRepoViewSubmodule(ctx, submoduleFile)
 		} else if entry.IsDir() {
 			prepareToRenderDirectory(ctx)
 		} else {
@@ -354,7 +354,7 @@ func redirectFollowSymlink(ctx *context.Context, treePathEntry *git.TreeEntry) b
 		return false
 	}
 	if treePathEntry.IsLink() {
-		if res, err := git.EntryFollowLinks(ctx.Repo.Commit, ctx.Repo.TreePath, treePathEntry); err == nil {
+		if res, err := git.EntryFollowLinks(git.NewTree(ctx.Repo.GitRepo, ctx.Repo.Commit.TreeID), ctx.Repo.TreePath, treePathEntry); err == nil {
 			redirect := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(res.TargetFullPath) + "?" + ctx.Req.URL.RawQuery
 			ctx.Redirect(redirect)
 			return true
@@ -396,7 +396,7 @@ func Home(ctx *context.Context) {
 	prepareHomeTreeSideBarSwitch(ctx)
 
 	// get the current git entry which doer user is currently looking at.
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := git.NewTree(ctx.Repo.GitRepo, ctx.Repo.Commit.TreeID).GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return

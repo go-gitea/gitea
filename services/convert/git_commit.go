@@ -39,7 +39,7 @@ func ToCommitMeta(repo *repo_model.Repository, tag *git.Tag) *api.CommitMeta {
 }
 
 // ToPayloadCommit convert a git.Commit to api.PayloadCommit
-func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Commit) *api.PayloadCommit {
+func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
 	if author, err := user_model.GetUserByEmail(ctx, c.Author.Email); err == nil {
 		authorUsername = author.Name
@@ -69,7 +69,7 @@ func ToPayloadCommit(ctx context.Context, repo *repo_model.Repository, c *git.Co
 			UserName: committerUsername,
 		},
 		Timestamp:    c.Author.When,
-		Verification: ToVerification(ctx, c),
+		Verification: ToVerification(ctx, gitRepo, c),
 	}
 }
 
@@ -185,7 +185,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Retrieve verification for commit
 	if opts.Verification {
-		res.RepoCommit.Verification = ToVerification(ctx, commit)
+		res.RepoCommit.Verification = ToVerification(ctx, gitRepo, commit)
 	}
 
 	// Retrieve files affected by the commit

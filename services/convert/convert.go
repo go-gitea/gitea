@@ -61,7 +61,7 @@ func ToEmailSearch(email *user_model.SearchEmailResult) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName string, c *git.Commit, bp *git_model.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
+func ToBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, branchName string, c *git.Commit, bp *git_model.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
 		var hasPerm bool
 		var canPush bool
@@ -81,7 +81,7 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 
 		return &api.Branch{
 			Name:                branchName,
-			Commit:              ToPayloadCommit(ctx, repo, c),
+			Commit:              ToPayloadCommit(ctx, repo, gitRepo, c),
 			Protected:           false,
 			RequiredApprovals:   0,
 			EnableStatusCheck:   false,
@@ -93,7 +93,7 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 
 	branch := &api.Branch{
 		Name:                branchName,
-		Commit:              ToPayloadCommit(ctx, repo, c),
+		Commit:              ToPayloadCommit(ctx, repo, gitRepo, c),
 		Protected:           true,
 		RequiredApprovals:   bp.RequiredApprovals,
 		EnableStatusCheck:   bp.EnableStatusCheck,
@@ -390,11 +390,11 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 	}, nil
 }
 
-func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
+func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 
-	defaultBranch, _ := commit.GetBranchName()
+	defaultBranch, _ := gitRepo.GetClosestBranchName(commit)
 
 	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", repo.APIURL(), util.PathEscapeSegments(entry.Name()))
 	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), util.PathEscapeSegments(entry.Name()))
@@ -455,14 +455,14 @@ func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *rep
 		return nil, err
 	}
 
-	folder, entries, err := actions.ListWorkflows(defaultBranchCommit)
+	folder, entries, err := actions.ListWorkflows(git.NewTree(gitrepo, defaultBranchCommit.TreeID))
 	if err != nil {
 		return nil, err
 	}
 
 	workflows := make([]*api.ActionWorkflow, len(entries))
 	for i, entry := range entries {
-		workflows[i] = getActionWorkflowEntry(ctx, repo, defaultBranchCommit, folder, entry)
+		workflows[i] = getActionWorkflowEntry(ctx, repo, gitrepo, defaultBranchCommit, folder, entry)
 	}
 
 	return workflows, nil
@@ -530,8 +530,8 @@ func ToActionRunner(ctx context.Context, runner *actions_model.ActionRunner) *ap
 }
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
-func ToVerification(ctx context.Context, c *git.Commit) *api.PayloadCommitVerification {
-	verif := asymkey_service.ParseCommitWithSignature(ctx, c)
+func ToVerification(ctx context.Context, gitRepo *git.Repository, c *git.Commit) *api.PayloadCommitVerification {
+	verif := asymkey_service.ParseCommitWithSignature(ctx, gitRepo, c)
 	commitVerification := &api.PayloadCommitVerification{
 		Verified: verif.Verified,
 		Reason:   verif.Reason,
@@ -697,7 +697,7 @@ func ToTeams(ctx context.Context, teams []*organization.Team, loadOrgs bool) ([]
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag
-func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
+func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
 	return &api.AnnotatedTag{
 		Tag:          t.Name,
 		SHA:          t.ID.String(),
@@ -705,7 +705,7 @@ func ToAnnotatedTag(ctx context.Context, repo *repo_model.Repository, t *git.Tag
 		Message:      t.Message,
 		URL:          util.URLJoin(repo.APIURL(), "git/tags", t.ID.String()),
 		Tagger:       ToCommitUser(t.Tagger),
-		Verification: ToVerification(ctx, c),
+		Verification: ToVerification(ctx, gitRepo, c),
 	}
 }
 

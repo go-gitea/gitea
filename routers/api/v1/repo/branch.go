@@ -80,7 +80,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, branchName, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -271,7 +271,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, opt.BranchName, commit, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+	br, err := convert.ToBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, opt.BranchName, commit, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -366,7 +366,7 @@ func ListBranches(ctx *context.APIContext) {
 			}
 
 			branchProtection := rules.GetFirstMatched(branches[i].Name)
-			apiBranch, err := convert.ToBranch(ctx, ctx.Repo.Repository, branches[i].Name, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+			apiBranch, err := convert.ToBranch(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, branches[i].Name, c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return

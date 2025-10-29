@@ -174,7 +174,7 @@ func TestHook(ctx *context.APIContext) {
 		return
 	}
 
-	commit := convert.ToPayloadCommit(ctx, ctx.Repo.Repository, ctx.Repo.Commit)
+	commit := convert.ToPayloadCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.Commit)
 
 	commitID := ctx.Repo.Commit.ID.String()
 	if err := webhook_service.PrepareWebhook(ctx, hook, webhook_module.HookEventPush, &api.PushPayload{
