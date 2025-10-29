@@ -104,7 +104,6 @@ type RepoSettingForm struct {
 	PushMirrorPassword     string
 	PushMirrorSyncOnCommit bool
 	PushMirrorInterval     string
-	Private                bool
 	Template               bool
 	EnablePrune            bool
 
@@ -147,10 +146,6 @@ type RepoSettingForm struct {
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
-
-	EnableActions bool
-
-	IsArchived bool
 
 	// Signing Settings
 	TrustModel string
