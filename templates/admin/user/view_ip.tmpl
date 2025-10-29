@@ -1,0 +1,18 @@
+{{if .HasSignupIP}}
+<div class="flex-list">
+	<div class="flex-item">
+		<div class="flex-item-main">
+			<div class="flex-text-block">
+				<strong>{{ctx.Locale.Tr "admin.ips.ip"}}:</strong> <a href="{{AppSubUrl}}/-/admin/ips?q={{.SignupIP}}">{{.SignupIP}}</a>
+			</div>
+			{{if .HasSignupUserAgent}}
+			<div class="flex-text-block">
+				<strong>{{ctx.Locale.Tr "admin.ips.user_agent"}}:</strong> {{.SignupUserAgent}}
+			</div>
+			{{end}}
+		</div>
+	</div>
+</div>
+{{else}}
+<div>{{ctx.Locale.Tr "admin.ips.not_available"}}</div>
+{{end}}

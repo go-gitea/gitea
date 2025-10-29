@@ -1,0 +1,58 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin user")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "admin.ips.ip_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui secondary filter menu tw-items-center tw-mx-0">
+				<form class="ui form ignore-dirty tw-flex-1">
+					{{template "shared/search/combo" dict "Value" .Keyword}}
+				</form>
+				<!-- Sort -->
+				<div class="ui dropdown type jump item tw-mr-0">
+					<span class="text">
+						{{ctx.Locale.Tr "repo.issues.filter_sort"}}
+					</span>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="menu">
+						<a class="{{if or (eq .SortType "ip") (not .SortType)}}active {{end}}item" href="?sort=ip&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.ips.filter_sort.ip"}}</a>
+						<a class="{{if eq .SortType "reverseip"}}active {{end}}item" href="?sort=reverseip&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.ips.filter_sort.ip_reverse"}}</a>
+						<a class="{{if eq .SortType "username"}}active {{end}}item" href="?sort=username&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.ips.filter_sort.name"}}</a>
+						<a class="{{if eq .SortType "reverseusername"}}active {{end}}item" href="?sort=reverseusername&q={{$.Keyword}}">{{ctx.Locale.Tr "admin.ips.filter_sort.name_reverse"}}</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="ui attached table segment">
+			<table class="ui very basic striped table unstackable">
+				<thead>
+					<tr>
+						<th data-sortt-asc="username" data-sortt-desc="reverseusername">
+							{{ctx.Locale.Tr "admin.users.name"}}
+							{{SortArrow "username" "reverseusername" $.SortType false}}
+						</th>
+						<th>{{ctx.Locale.Tr "admin.users.full_name"}}</th>
+						<th data-sortt-asc="ip" data-sortt-desc="reverseip" data-sortt-default="true">
+							{{ctx.Locale.Tr "admin.ips.ip"}}
+							{{SortArrow "ip" "reverseip" $.SortType true}}
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .UserIPs}}
+						<tr>
+							<td><a href="{{AppSubUrl}}/-/admin/users/{{.UID}}">{{.Name}}</a></td>
+							<td>{{.FullName}}</td>
+							<td><a href="?q={{.IP}}&sort={{$.SortType}}">{{.IP}}</a></td>
+						</tr>
+					{{else}}
+						<tr><td class="tw-text-center" colspan="3">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+
+		{{template "base/paginate" .}}
+	</div>
+
+{{template "admin/layout_footer" .}}

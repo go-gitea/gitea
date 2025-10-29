@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // Setting is a key value store of user settings
@@ -210,4 +211,18 @@ func upsertUserSettingValue(ctx context.Context, userID int64, key, value string
 		_, err = e.Insert(&Setting{UserID: userID, SettingKey: key, SettingValue: value})
 		return err
 	})
+}
+
+// BuildSignupIPQuery builds a query to find users by their signup IP addresses
+func BuildSignupIPQuery(ctx context.Context, keyword string) *xorm.Session {
+	query := db.GetEngine(ctx).
+		Table("user_setting").
+		Join("INNER", "user", "user.id = user_setting.user_id").
+		Where("user_setting.setting_key = ?", SignupIP)
+
+	if len(keyword) > 0 {
+		query = query.And("(user.lower_name LIKE ? OR user.full_name LIKE ? OR user_setting.setting_value LIKE ?)",
+			"%"+strings.ToLower(keyword)+"%", "%"+keyword+"%", "%"+keyword+"%")
+	}
+	return query
 }
