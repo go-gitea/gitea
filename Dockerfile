@@ -19,13 +19,12 @@ RUN apk --no-cache add \
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 COPY --exclude=.git/ . .
 
-# Checkout version if set
+# Build gitea, .git mount is required for version data
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target="/root/.cache/go-build" \
     --mount=type=cache,target=/root/.local/share/pnpm/store \
     --mount=type=bind,source=".git/",target=".git/" \
-    if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
-    && make
+    make
 
 FROM docker.io/library/alpine:3.22 AS gitea
 
