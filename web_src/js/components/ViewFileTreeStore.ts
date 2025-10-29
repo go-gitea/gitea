@@ -31,6 +31,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
       const elViewContent = document.querySelector('.repo-view-content');
       elViewContent.innerHTML = await response.text();
       const elViewContentData = elViewContent.querySelector('.repo-view-content-data');
+      if (!elViewContentData) return; // if error occurs, there is no such element
       const t1 = elViewContentData.getAttribute('data-document-title');
       const t2 = elViewContentData.getAttribute('data-document-title-common');
       document.title = `${t1} - ${t2}`; // follow the format in head.tmpl: <head><title>...</title></head>
