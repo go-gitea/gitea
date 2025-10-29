@@ -14,20 +14,35 @@ import (
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
-
-	"github.com/djherbis/buffer"
-	"github.com/djherbis/nio/v3"
 )
 
-// WriteCloserError wraps an io.WriteCloser with an additional CloseWithError function
-type WriteCloserError interface {
+// writeCloserError wraps an io.WriteCloser with an additional CloseWithError function (for nio.Pipe)
+type writeCloserError interface {
 	io.WriteCloser
 	CloseWithError(err error) error
+}
+
+type catFileBatchCommunicator struct {
+	cancel context.CancelFunc
+	reader *bufio.Reader
+	writer writeCloserError
+}
+
+func (b *catFileBatchCommunicator) Close() {
+	if b.cancel != nil {
+		b.cancel()
+		b.reader = nil
+		b.writer = nil
+		b.cancel = nil
+	}
 }
 
 // ensureValidGitRepository runs git rev-parse in the repository path - thus ensuring that the repository is a valid repository.
 // Run before opening git cat-file.
 // This is needed otherwise the git cat-file will hang for invalid repositories.
+// FIXME: the comment is from https://github.com/go-gitea/gitea/pull/17991 but it doesn't seem to be true.
+// The real problem is that Golang's Cmd.Wait hangs because it waits for the pipes to be closed, but we can't close the pipes before Wait returns
+// Need to refactor to use StdinPipe and StdoutPipe
 func ensureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
 	err := gitcmd.NewCommand("rev-parse").
@@ -40,16 +55,19 @@ func ensureValidGitRepository(ctx context.Context, repoPath string) error {
 	return nil
 }
 
-// catFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+// newCatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
+func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command) *catFileBatchCommunicator {
+	// We often want to feed the commits in order into cat-file --batch, followed by their trees and subtrees as necessary.
+
+	// so let's create a batch stdin and stdout
 	batchStdinReader, batchStdinWriter := io.Pipe()
 	batchStdoutReader, batchStdoutWriter := io.Pipe()
 	ctx, ctxCancel := context.WithCancel(ctx)
 	closed := make(chan struct{})
 	cancel := func() {
 		ctxCancel()
-		_ = batchStdoutReader.Close()
 		_ = batchStdinWriter.Close()
+		_ = batchStdoutReader.Close()
 		<-closed
 	}
 
@@ -61,7 +79,7 @@ func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 
 	go func() {
 		stderr := strings.Builder{}
-		err := gitcmd.NewCommand("cat-file", "--batch-check").
+		err := cmdCatFile.
 			WithDir(repoPath).
 			WithStdin(batchStdinReader).
 			WithStdout(batchStdoutWriter).
@@ -78,62 +96,20 @@ func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 		close(closed)
 	}()
 
-	// For simplicities sake we'll use a buffered reader to read from the cat-file --batch-check
-	batchReader := bufio.NewReader(batchStdoutReader)
-
-	return batchStdinWriter, batchReader, cancel
-}
-
-// catFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufio.Reader, func()) {
-	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
-	// so let's create a batch stdin and stdout
-	batchStdinReader, batchStdinWriter := io.Pipe()
-	batchStdoutReader, batchStdoutWriter := nio.Pipe(buffer.New(32 * 1024))
-	ctx, ctxCancel := context.WithCancel(ctx)
-	closed := make(chan struct{})
-	cancel := func() {
-		ctxCancel()
-		_ = batchStdinWriter.Close()
-		_ = batchStdoutReader.Close()
-		<-closed
-	}
-
-	// Ensure cancel is called as soon as the provided context is cancelled
-	go func() {
-		<-ctx.Done()
-		cancel()
-	}()
-
-	go func() {
-		stderr := strings.Builder{}
-		err := gitcmd.NewCommand("cat-file", "--batch").
-			WithDir(repoPath).
-			WithStdin(batchStdinReader).
-			WithStdout(batchStdoutWriter).
-			WithStderr(&stderr).
-			WithUseContextTimeout(true).
-			Run(ctx)
-		if err != nil {
-			_ = batchStdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
-			_ = batchStdinReader.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = batchStdoutWriter.Close()
-			_ = batchStdinReader.Close()
-		}
-		close(closed)
-	}()
-
-	// For simplicities sake we'll us a buffered reader to read from the cat-file --batch
+	// use a buffered reader to read from the cat-file --batch (StringReader.ReadString)
 	batchReader := bufio.NewReaderSize(batchStdoutReader, 32*1024)
 
-	return batchStdinWriter, batchReader, cancel
+	return &catFileBatchCommunicator{
+		writer: batchStdinWriter,
+		reader: batchReader,
+		cancel: cancel,
+	}
 }
 
 // ReadBatchLine reads the header line from cat-file --batch
 // We expect: <oid> SP <type> SP <size> LF
 // then leaving the rest of the stream "<contents> LF" to be read
-func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err error) {
+func ReadBatchLine(rd BufferedReader) (sha []byte, typ string, size int64, err error) {
 	typ, err = rd.ReadString('\n')
 	if err != nil {
 		return sha, typ, size, err
@@ -165,7 +141,7 @@ func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err er
 }
 
 // ReadTagObjectID reads a tag object ID hash from a cat-file --batch stream, throwing away the rest of the stream.
-func ReadTagObjectID(rd *bufio.Reader, size int64) (string, error) {
+func ReadTagObjectID(rd BufferedReader, size int64) (string, error) {
 	var id string
 	var n int64
 headerLoop:
@@ -191,7 +167,7 @@ headerLoop:
 }
 
 // ReadTreeID reads a tree ID from a cat-file --batch stream, throwing away the rest of the stream.
-func ReadTreeID(rd *bufio.Reader, size int64) (string, error) {
+func ReadTreeID(rd BufferedReader, size int64) (string, error) {
 	var id string
 	var n int64
 headerLoop:
@@ -225,7 +201,7 @@ headerLoop:
 // constant hextable to help quickly convert between binary and hex representation
 const hextable = "0123456789abcdef"
 
-// BinToHexHeash converts a binary Hash into a hex encoded one. Input and output can be the
+// BinToHex converts a binary Hash into a hex encoded one. Input and output can be the
 // same byte slice to support in place conversion without allocations.
 // This is at least 100x quicker that hex.EncodeToString
 func BinToHex(objectFormat ObjectFormat, sha, out []byte) []byte {
@@ -246,7 +222,7 @@ func BinToHex(objectFormat ObjectFormat, sha, out []byte) []byte {
 // <mode-in-ascii-dropping-initial-zeros> SP <fname> NUL <binary HASH>
 //
 // We don't attempt to convert the raw HASH to save a lot of time
-func ParseCatFileTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
+func ParseCatFileTreeLine(objectFormat ObjectFormat, rd BufferedReader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
 	var readBytes []byte
 
 	// Read the Mode & fname
@@ -305,7 +281,7 @@ func ParseCatFileTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, 
 	return mode, fname, sha, n, err
 }
 
-func DiscardFull(rd *bufio.Reader, discard int64) error {
+func DiscardFull(rd BufferedReader, discard int64) error {
 	if discard > math.MaxInt32 {
 		n, err := rd.Discard(math.MaxInt32)
 		discard -= int64(n)

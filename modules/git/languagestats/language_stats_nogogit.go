@@ -22,18 +22,14 @@ import (
 func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	writeID := func(id string) error {
-		_, err := batchStdinWriter.Write([]byte(id + "\n"))
-		return err
-	}
-
-	if err := writeID(commitID); err != nil {
+	batchReader, err := batch.QueryContent(commitID)
+	if err != nil {
 		return nil, err
 	}
 	shaBytes, typ, size, err := git.ReadBatchLine(batchReader)
@@ -144,7 +140,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		// If content can not be read or file is too big just do detection by filename
 
 		if f.Size() <= bigFileSize {
-			if err := writeID(f.ID.String()); err != nil {
+			if _, err := batch.QueryContent(f.ID.String()); err != nil {
 				return nil, err
 			}
 			_, _, size, err := git.ReadBatchLine(batchReader)

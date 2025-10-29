@@ -143,8 +143,9 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo.Repository)
 	require.NoError(t, err)
-	defer gitRepo.Close()
-
+	t.Cleanup(func() {
+		gitRepo.Close()
+	})
 	if repo.RefFullName == "" {
 		repo.RefFullName = git_module.RefNameFromBranch(repo.Repository.DefaultBranch)
 	}

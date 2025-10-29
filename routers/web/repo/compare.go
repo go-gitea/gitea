@@ -150,9 +150,9 @@ func setCsvCompareContext(ctx *context.Context) {
 			if err != nil {
 				return nil, nil, err
 			}
-
+			var closer io.Closer = reader
 			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}))
-			return csvReader, reader, err
+			return csvReader, closer, err
 		}
 
 		baseReader, baseBlobCloser, err := csvReaderFromCommit(markup.NewRenderContext(ctx).WithRelativePath(diffFile.OldName), baseBlob)

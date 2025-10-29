@@ -35,23 +35,33 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	if t.repo != nil {
-		wr, rd, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
+		batch, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
 		if err != nil {
 			return nil, err
 		}
 		defer cancel()
 
-		_, _ = wr.Write([]byte(t.ID.String() + "\n"))
+		rd, err := batch.QueryContent(t.ID.String())
+		if err != nil {
+			return nil, err
+		}
 		_, typ, sz, err := ReadBatchLine(rd)
 		if err != nil {
 			return nil, err
 		}
+
 		if typ == "commit" {
 			treeID, err := ReadTreeID(rd, sz)
 			if err != nil && err != io.EOF {
 				return nil, err
 			}
-			_, _ = wr.Write([]byte(treeID + "\n"))
+			newRd, err := batch.QueryContent(treeID)
+			if err != nil {
+				return nil, err
+			}
+			if newRd != rd {
+				panic("abused batch reader")
+			}
 			_, typ, sz, err = ReadBatchLine(rd)
 			if err != nil {
 				return nil, err

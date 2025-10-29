@@ -23,13 +23,13 @@ func (repo *Repository) IsObjectExist(name string) bool {
 		return false
 	}
 
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
 	}
 	defer cancel()
-	_, err = wr.Write([]byte(name + "\n"))
+	rd, err := batch.QueryInfo(name)
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
@@ -44,13 +44,13 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 		return false
 	}
 
-	wr, rd, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
 	}
 	defer cancel()
-	_, err = wr.Write([]byte(name + "\n"))
+	rd, err := batch.QueryInfo(name)
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
