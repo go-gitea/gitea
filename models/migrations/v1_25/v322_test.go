@@ -18,7 +18,7 @@ func Test_ExtendCommentTreePathLength(t *testing.T) {
 
 	type Comment struct {
 		ID       int64  `xorm:"pk autoincr"`
-		TreePath string `xorm:"VARCHAR(500)"`
+		TreePath string `xorm:"VARCHAR(255)"`
 	}
 
 	x, deferable := base.PrepareTestEnv(t, 0, new(Comment))
