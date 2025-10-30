@@ -30,8 +30,8 @@ const isProduction = env.NODE_ENV !== 'development';
 // reduced - minimal sourcemaps, the default in production
 // false - all disabled
 let sourceMaps;
-if (typeof env.ENABLE_SOURCEMAP === 'string') {
-  sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP) ? env.ENABLE_SOURCEMAP : 'reduced';
+if ('ENABLE_SOURCEMAP' in env) {
+  sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP || '') ? env.ENABLE_SOURCEMAP : 'reduced';
 } else {
   sourceMaps = isProduction ? 'reduced' : 'true';
 }
