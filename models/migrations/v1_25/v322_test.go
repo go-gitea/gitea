@@ -28,5 +28,5 @@ func Test_ExtendCommentTreePathLength(t *testing.T) {
 	table := base.LoadTableSchemasMap(t, x)["comment"]
 	column := table.GetColumn("tree_path")
 	assert.Contains(t, []string{"NVARCHAR", "VARCHAR"}, column.SQLType.Name)
-	assert.EqualValues(t, int64(4000), column.Length)
+	assert.EqualValues(t, 4000, column.Length)
 }
