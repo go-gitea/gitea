@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_ExtendCommentTreePathLength(t *testing.T) {
@@ -25,6 +26,7 @@ func Test_ExtendCommentTreePathLength(t *testing.T) {
 	x, deferrable := base.PrepareTestEnv(t, 0, new(Comment))
 	defer deferrable()
 
+	require.NoError(t, ExtendCommentTreePathLength(x))
 	table := base.LoadTableSchemasMap(t, x)["comment"]
 	column := table.GetColumn("tree_path")
 	assert.Contains(t, []string{"NVARCHAR", "VARCHAR"}, column.SQLType.Name)

@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
@@ -46,7 +47,7 @@ func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
 	x, deferrable := base.PrepareTestEnv(t, 0, new(ReviewState), new(PackageProperty), new(Notice))
 	defer deferrable()
 
-	assert.NoError(t, UseLongTextInSomeColumnsAndFixBugs(x))
+	require.NoError(t, UseLongTextInSomeColumnsAndFixBugs(x))
 
 	tables := base.LoadTableSchemasMap(t, x)
 	table := tables["review_state"]
