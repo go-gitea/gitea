@@ -170,7 +170,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	}
 
 	if pr.Flow == issues_model.PullRequestFlowAGit {
-		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
 		if err != nil {
 			log.Error("GetRefCommitID[%s]: %v", pr.GetGitHeadRefName(), err)
 			return nil
@@ -210,7 +210,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 		)
 
 		if !exist {
-			headCommitID, err := headGitRepo.GetRefCommitID(apiPullRequest.Head.Ref)
+			headCommitID, err := headGitRepo.GetRefCommitIDNew(apiPullRequest.Head.Ref)
 			if err != nil && !git.IsErrNotExist(err) {
 				log.Error("GetCommit[%s]: %v", pr.HeadBranch, err)
 				return nil
@@ -450,7 +450,7 @@ func ToAPIPullRequests(ctx context.Context, baseRepo *repo_model.Repository, prs
 		if pr.Flow == issues_model.PullRequestFlowAGit {
 			apiPullRequest.Head.Name = ""
 		}
-		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
 		if err != nil {
 			log.Error("GetRefCommitID[%s]: %v", pr.GetGitHeadRefName(), err)
 		}

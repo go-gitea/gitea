@@ -188,7 +188,7 @@ func handlePullRequestAutoMerge(pullID int64, sha string) {
 	}
 	defer baseGitRepo.Close()
 
-	headCommitID, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	headCommitID, err := baseGitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
 	if err != nil {
 		log.Error("GetRefCommitID: %v", err)
 		return

@@ -197,7 +197,7 @@ func GetPullDiffStats(ctx *context.Context) {
 	}
 
 	// do not report 500 server error to end users if error occurs, otherwise a PR missing ref won't be able to view.
-	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitIDOld(pull.GetGitHeadRefName())
 	if err != nil {
 		log.Error("Failed to GetRefCommitID: %v, repo: %v", err, ctx.Repo.Repository.FullName())
 		return
@@ -219,7 +219,7 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 	if pull.MergeBase == "" {
 		var commitSHA, parentCommit string
 		// If there is a head or a patch file, and it is readable, grab info
-		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitIDOld(pull.GetGitHeadRefName())
 		if err != nil {
 			// Head File does not exist, try the patch
 			commitSHA, err = ctx.Repo.GitRepo.ReadPatchCommit(pull.Index)
@@ -364,7 +364,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		ctx.Data["BaseTarget"] = pull.BaseBranch
 		ctx.Data["HeadTarget"] = pull.HeadBranch
 
-		sha, err := baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitIDOld(pull.GetGitHeadRefName())
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitHeadRefName()), err)
 			return nil
@@ -422,7 +422,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 
 		if headBranchExist {
 			if pull.Flow != issues_model.PullRequestFlowGithub {
-				headBranchSha, err = baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+				headBranchSha, err = baseGitRepo.GetRefCommitIDOld(pull.GetGitHeadRefName())
 			} else {
 				headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
 			}
@@ -445,7 +445,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		ctx.Data["GetCommitMessages"] = ""
 	}
 
-	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+	sha, err := baseGitRepo.GetRefCommitIDOld(pull.GetGitHeadRefName())
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -702,7 +702,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		return
 	}
 
-	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+	headCommitID, err := gitRepo.GetRefCommitIDOld(pull.GetGitHeadRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
 		return

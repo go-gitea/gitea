@@ -232,7 +232,7 @@ func loadOneBranch(ctx context.Context, repo *repo_model.Repository, dbBranch *g
 				defer baseGitRepo.Close()
 				repoIDToGitRepo[pr.BaseRepoID] = baseGitRepo
 			}
-			pullCommit, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+			pullCommit, err := baseGitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
 			if err != nil && !git.IsErrNotExist(err) {
 				return nil, fmt.Errorf("GetBranchCommitID: %v", err)
 			}
@@ -807,7 +807,7 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 	defer gitHeadCloser.Close()
 
 	// Check if branch has no new commits
-	headCommitID, err := gitBaseRepo.GetRefCommitID(pr.GetGitHeadRefName())
+	headCommitID, err := gitBaseRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
 	if err != nil {
 		log.Error("GetRefCommitID: %v", err)
 		return errFailedToDelete(err)

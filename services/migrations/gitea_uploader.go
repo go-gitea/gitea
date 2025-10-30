@@ -879,7 +879,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			continue
 		}
 
-		headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		headCommitID, err := g.gitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
 		if err != nil {
 			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, all review comments will be ignored", pr.Index, pr.GetGitHeadRefName(), g.repoOwner, g.repoName, err)
 			continue

@@ -35,7 +35,26 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 }
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
-func (repo *Repository) GetRefCommitID(name string) (string, error) {
+func (repo *Repository) GetRefCommitIDOld(name string) (string, error) {
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx, false) // here is the real fatal point?
+	if err != nil {
+		return "", err
+	}
+	defer cancel()
+	rd, err := batch.QueryInfo(name)
+	if err != nil {
+		return "", err
+	}
+	shaBs, _, _, err := ReadBatchLine(rd)
+	if IsErrNotExist(err) {
+		return "", ErrNotExist{name, ""}
+	}
+
+	return string(shaBs), nil
+}
+
+// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
+func (repo *Repository) GetRefCommitIDNew(name string) (string, error) {
 	batch, cancel, err := repo.CatFileBatch(repo.Ctx, true) // here is the real fatal point?
 	if err != nil {
 		return "", err
