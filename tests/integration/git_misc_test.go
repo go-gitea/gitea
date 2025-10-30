@@ -226,7 +226,7 @@ func TestAgitReviewStaleness(t *testing.T) {
 		assert.NoError(t, err)
 		defer baseGitRepo.Close()
 
-		updatedCommitID, err := baseGitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
+		updatedCommitID, err := baseGitRepo.GetRefCommitIDOld(pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		t.Logf("Updated commit ID: %s", updatedCommitID)
 
