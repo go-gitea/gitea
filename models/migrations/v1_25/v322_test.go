@@ -35,5 +35,5 @@ func Test_ExtendCommentTreePathLength(t *testing.T) {
 	require.NotNil(t, column)
 
 	assert.Contains(t, []string{"NVARCHAR", "VARCHAR"}, column.SQLType.Name)
-	assert.EqualValues(t, 4000, column.Length)
+	assert.EqualValues(t, int64(4000), column.Length)
 }
