@@ -8,6 +8,7 @@ import (
 
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
