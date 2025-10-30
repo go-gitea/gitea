@@ -124,6 +124,6 @@ Ideally in the future we should use a better image for clockwise animation. */
 
 @keyframes circular-spin-keyframes {
   100% {
-    transform: rotate(-360deg);
+    transform: rotate(360deg);
   }
 }
