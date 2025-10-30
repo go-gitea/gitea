@@ -537,6 +537,7 @@ func RepoAssignment(ctx *Context) {
 	}
 
 	ctx.Data["Title"] = repo.Owner.Name + "/" + repo.Name
+	ctx.Data["PageTitleCommon"] = repo.Name + " - " + setting.AppName
 	ctx.Data["Repository"] = repo
 	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
 	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)

@@ -191,7 +191,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 				taskID := ctx.Data["ActionsTaskID"].(int64)
 				p, err := access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
 				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
+					ctx.ServerError("GetActionsUserRepoPermission", err)
 					return nil
 				}
 

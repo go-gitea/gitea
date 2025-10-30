@@ -234,12 +234,12 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	if shouldDetectSchedules {
-		if err := handleSchedules(ctx, schedules, commit, input, ref.String()); err != nil {
+		if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
 			return err
 		}
 	}
 
-	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref.String())
+	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
 }
 
 func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) bool {
@@ -291,7 +291,7 @@ func handleWorkflows(
 	detectedWorkflows []*actions_module.DetectedWorkflow,
 	commit *git.Commit,
 	input *notifyInput,
-	ref string,
+	ref git.RefName,
 ) error {
 	if len(detectedWorkflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RelativePath(), commit.ID)
@@ -327,7 +327,7 @@ func handleWorkflows(
 			WorkflowID:        dwf.EntryName,
 			TriggerUserID:     input.Doer.ID,
 			TriggerUser:       input.Doer,
-			Ref:               ref,
+			Ref:               ref.String(),
 			CommitSHA:         commit.ID.String(),
 			IsForkPullRequest: isForkPullRequest,
 			Event:             input.Event,
@@ -442,13 +442,9 @@ func handleSchedules(
 	detectedWorkflows []*actions_module.DetectedWorkflow,
 	commit *git.Commit,
 	input *notifyInput,
-	ref string,
+	ref git.RefName,
 ) error {
-	branch, err := commit.GetBranchName()
-	if err != nil {
-		return err
-	}
-	if branch != input.Repo.DefaultBranch {
+	if ref.BranchName() != input.Repo.DefaultBranch {
 		log.Trace("commit branch is not default branch in repo")
 		return nil
 	}
@@ -494,7 +490,7 @@ func handleSchedules(
 			WorkflowID:    dwf.EntryName,
 			TriggerUserID: user_model.ActionsUserID,
 			TriggerUser:   user_model.NewActionsUser(),
-			Ref:           ref,
+			Ref:           ref.String(),
 			CommitSHA:     commit.ID.String(),
 			Event:         input.Event,
 			EventPayload:  string(p),
@@ -538,5 +534,5 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	// so we use action user as the Doer of the notifyInput
 	notifyInput := newNotifyInputForSchedules(repo)
 
-	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
+	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, git.RefNameFromBranch(repo.DefaultBranch))
 }

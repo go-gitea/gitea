@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -146,7 +145,7 @@ func prepareToRenderDirectory(ctx *context.Context) {
 
 	if ctx.Repo.TreePath != "" {
 		ctx.Data["HideRepoInfo"] = true
-		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefFullName.ShortName())
+		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+ctx.Repo.TreePath, ctx.Repo.RefFullName.ShortName())
 	}
 
 	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, ctx.Repo.TreePath, entries, true)

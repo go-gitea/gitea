@@ -172,7 +172,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 
 	blob := entry.Blob()
 
-	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefFullName.ShortName())
+	ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+ctx.Repo.TreePath, ctx.Repo.RefFullName.ShortName())
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
 	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)

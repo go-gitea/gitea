@@ -133,7 +133,7 @@ func renderServiceUnavailable(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	tmplCtx := giteacontext.TemplateContext{}
+	tmplCtx := giteacontext.NewTemplateContext(req.Context(), req)
 	tmplCtx["Locale"] = middleware.Locale(w, req)
 	ctxData := middleware.GetContextData(req.Context())
 	err := templates.HTMLRenderer().HTML(w, http.StatusServiceUnavailable, tplStatus503, ctxData, tmplCtx)

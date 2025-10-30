@@ -13,6 +13,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -755,7 +756,12 @@ func EditPullRequest(ctx *context.APIContext) {
 
 	// change pull target branch
 	if !pr.HasMerged && len(form.Base) != 0 && form.Base != pr.BaseBranch {
-		if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, form.Base) {
+		branchExist, err := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, form.Base)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !branchExist {
 			ctx.APIError(http.StatusNotFound, fmt.Errorf("new base '%s' not exist", form.Base))
 			return
 		}

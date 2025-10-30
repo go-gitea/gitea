@@ -225,7 +225,7 @@ func CreateBranch(ctx *context.APIContext) {
 			return
 		}
 	} else if len(opt.OldBranchName) > 0 { //nolint:staticcheck // deprecated field
-		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, opt.OldBranchName) { //nolint:staticcheck // deprecated field
+		if exist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, opt.OldBranchName); exist { //nolint:staticcheck // deprecated field
 			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint:staticcheck // deprecated field
 			if err != nil {
 				ctx.APIErrorInternal(err)
@@ -243,7 +243,7 @@ func CreateBranch(ctx *context.APIContext) {
 		}
 	}
 
-	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, oldCommit.ID.String(), opt.BranchName)
+	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
 	if err != nil {
 		if git_model.IsErrBranchNotExist(err) {
 			ctx.APIError(http.StatusNotFound, "The old branch does not exist")
@@ -434,7 +434,7 @@ func RenameBranch(ctx *context.APIContext) {
 		return
 	}
 
-	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, oldName, opt.Name)
+	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, oldName, opt.Name)
 	if err != nil {
 		switch {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
@@ -1011,7 +1011,11 @@ func EditBranchProtection(ctx *context.APIContext) {
 	isPlainRule := !git_model.IsRuleNameSpecial(bpName)
 	var isBranchExist bool
 	if isPlainRule {
-		isBranchExist = gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, bpName)
+		isBranchExist, err = git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, bpName)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 	}
 
 	if isBranchExist {

@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -171,6 +172,13 @@ func (r *ActionRunner) LoadAttributes(ctx context.Context) error {
 func (r *ActionRunner) GenerateToken() (err error) {
 	r.Token, r.TokenSalt, r.TokenHash, _, err = generateSaltedToken()
 	return err
+}
+
+// CanMatchLabels checks whether the runner's labels can match a job's "runs-on"
+// See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
+func (r *ActionRunner) CanMatchLabels(jobRunsOn []string) bool {
+	runnerLabelSet := container.SetOf(r.AgentLabels...)
+	return runnerLabelSet.Contains(jobRunsOn...) // match all labels
 }
 
 func init() {

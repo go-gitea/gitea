@@ -22,6 +22,8 @@ func GetContextData(c context.Context) reqctx.ContextData {
 
 func CommonTemplateContextData() reqctx.ContextData {
 	return reqctx.ContextData{
+		"PageTitleCommon": setting.AppName,
+
 		"IsLandingPageOrganizations": setting.LandingPageURL == setting.LandingPageOrganizations,
 
 		"ShowRegistrationButton":        setting.Service.ShowRegistrationButton,

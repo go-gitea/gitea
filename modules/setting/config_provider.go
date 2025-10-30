@@ -41,6 +41,7 @@ type ConfigSection interface {
 	HasKey(key string) bool
 	NewKey(name, value string) (ConfigKey, error)
 	Key(key string) ConfigKey
+	DeleteKey(key string)
 	Keys() []ConfigKey
 	ChildSections() []ConfigSection
 }
@@ -51,6 +52,7 @@ type ConfigProvider interface {
 	Sections() []ConfigSection
 	NewSection(name string) (ConfigSection, error)
 	GetSection(name string) (ConfigSection, error)
+	DeleteSection(name string)
 	Save() error
 	SaveTo(filename string) error
 
@@ -168,6 +170,10 @@ func (s *iniConfigSection) Keys() (keys []ConfigKey) {
 	return keys
 }
 
+func (s *iniConfigSection) DeleteKey(key string) {
+	s.sec.DeleteKey(key)
+}
+
 func (s *iniConfigSection) ChildSections() (sections []ConfigSection) {
 	for _, s := range s.sec.ChildSections() {
 		sections = append(sections, &iniConfigSection{s})
@@ -247,6 +253,10 @@ func (p *iniConfigProvider) GetSection(name string) (ConfigSection, error) {
 		return nil, err
 	}
 	return &iniConfigSection{sec: sec}, nil
+}
+
+func (p *iniConfigProvider) DeleteSection(name string) {
+	p.ini.DeleteSection(name)
 }
 
 var errDisableSaving = errors.New("this config can't be saved, developers should prepare a new config to save")

@@ -16,6 +16,7 @@
 				</a>
 				<div class="flex-item-body">
 					<span><b>{{if not $.CurWorkflow}}{{$run.WorkflowID}} {{end}}#{{$run.Index}}</b>:</span>
+
 					{{- if $run.ScheduleID -}}
 						{{ctx.Locale.Tr "actions.runs.scheduled"}}
 					{{- else -}}
@@ -24,6 +25,13 @@
 						{{ctx.Locale.Tr "actions.runs.pushed_by"}}
 						<a href="{{$run.TriggerUser.HomeLink}}">{{$run.TriggerUser.GetDisplayName}}</a>
 					{{- end -}}
+
+					{{$errMsg := index $.RunErrors $run.ID}}
+					{{if $errMsg}}
+						<span class="flex-text-inline" data-tooltip-content="{{$errMsg}}">
+							{{svg "octicon-alert" 16 "text red"}}
+						</span>
+					{{end}}
 				</div>
 			</div>
 			<div class="flex-item-trailing">

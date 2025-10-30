@@ -209,3 +209,7 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
     },
   });
 }
+
+export function getAttachedTippyInstance(el: Element): Instance | null {
+  return el._tippy ?? null;
+}

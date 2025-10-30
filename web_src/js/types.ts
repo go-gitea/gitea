@@ -52,14 +52,20 @@ export type IssuePageInfo = {
 };
 
 export type Issue = {
-  id: number;
-  number: number;
-  title: string;
-  state: 'open' | 'closed';
+  id: number,
+  number: number,
+  title: string,
+  body: string,
+  state: 'open' | 'closed',
+  created_at: string,
   pull_request?: {
     draft: boolean;
     merged: boolean;
-  };
+  },
+  repository: {
+    full_name: string,
+  },
+  labels: Array<string>,
 };
 
 export type FomanticInitFunction = {
