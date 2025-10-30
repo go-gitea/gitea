@@ -412,6 +412,12 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
+	// rerun is not allowed if the run is not done
+	if !run.Status.IsDone() {
+		ctx.JSONError(ctx.Locale.Tr("actions.runs.not_done"))
+		return
+	}
+
 	// can not rerun job when workflow is disabled
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
@@ -420,55 +426,51 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	// check run (workflow-level) concurrency
+	// reset run's start and stop time
+	run.PreviousDuration = run.Duration()
+	run.Started = 0
+	run.Stopped = 0
+	run.Status = actions_model.StatusWaiting
+
+	vars, err := actions_model.GetVariablesOfRun(ctx, run)
+	if err != nil {
+		ctx.ServerError("GetVariablesOfRun", fmt.Errorf("get run %d variables: %w", run.ID, err))
+		return
+	}
+
+	if run.RawConcurrency != "" {
+		var rawConcurrency model.RawConcurrency
+		if err := yaml.Unmarshal([]byte(run.RawConcurrency), &rawConcurrency); err != nil {
+			ctx.ServerError("UnmarshalRawConcurrency", fmt.Errorf("unmarshal raw concurrency: %w", err))
+			return
+		}
+
+		err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars)
+		if err != nil {
+			ctx.ServerError("EvaluateRunConcurrencyFillModel", err)
+			return
+		}
+
+		run.Status, err = actions_service.PrepareToStartRunWithConcurrency(ctx, run)
+		if err != nil {
+			ctx.ServerError("PrepareToStartRunWithConcurrency", err)
+			return
+		}
+	}
+	if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status", "concurrency_group", "concurrency_cancel"); err != nil {
+		ctx.ServerError("UpdateRun", err)
+		return
+	}
+
+	if err := run.LoadAttributes(ctx); err != nil {
+		ctx.ServerError("run.LoadAttributes", err)
+		return
+	}
+	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 
 	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
 		return
-	}
-
-	// reset run's start and stop time when it is done
-	if run.Status.IsDone() {
-		run.PreviousDuration = run.Duration()
-		run.Started = 0
-		run.Stopped = 0
-		run.Status = actions_model.StatusWaiting
-
-		vars, err := actions_model.GetVariablesOfRun(ctx, run)
-		if err != nil {
-			ctx.ServerError("GetVariablesOfRun", fmt.Errorf("get run %d variables: %w", run.ID, err))
-			return
-		}
-
-		if run.RawConcurrency != "" {
-			var rawConcurrency model.RawConcurrency
-			if err := yaml.Unmarshal([]byte(run.RawConcurrency), &rawConcurrency); err != nil {
-				ctx.ServerError("UnmarshalRawConcurrency", fmt.Errorf("unmarshal raw concurrency: %w", err))
-				return
-			}
-
-			err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars)
-			if err != nil {
-				ctx.ServerError("EvaluateRunConcurrencyFillModel", err)
-				return
-			}
-
-			run.Status, err = actions_service.PrepareToStartRunWithConcurrency(ctx, run)
-			if err != nil {
-				ctx.ServerError("PrepareToStartRunWithConcurrency", err)
-				return
-			}
-		}
-		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "previous_duration", "status", "concurrency_group", "concurrency_cancel"); err != nil {
-			ctx.ServerError("UpdateRun", err)
-			return
-		}
-
-		if err := run.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("run.LoadAttributes", err)
-			return
-		}
-		notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 	}
 
 	isRunBlocked := run.Status == actions_model.StatusBlocked
@@ -501,7 +503,7 @@ func Rerun(ctx *context_module.Context) {
 
 func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shouldBlock bool) error {
 	status := job.Status
-	if !status.IsDone() || !job.Run.Status.IsDone() {
+	if !status.IsDone() {
 		return nil
 	}
 
