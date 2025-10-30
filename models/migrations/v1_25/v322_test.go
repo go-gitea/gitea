@@ -35,8 +35,8 @@ func Test_ExtendCommentTreePathLength(t *testing.T) {
 		case "comment":
 			column := table.GetColumn("tree_path")
 			assert.NotNil(t, column)
-			assert.Equal(t, "VARCHAR", column.SQLType.Name)
-			assert.Equal(t, 4000, column.Length)
+			assert.Contains(t, []string{"NVARCHAR", "VARCHAR"}, column.SQLType.Name)
+			assert.Equal(t, int64(4000), column.Length)
 		}
 	}
 }
