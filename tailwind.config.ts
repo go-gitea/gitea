@@ -2,6 +2,7 @@ import {readFileSync} from 'node:fs';
 import {env} from 'node:process';
 import {parse} from 'postcss';
 import plugin from 'tailwindcss/plugin.js';
+import {isTruthy} from './tools/utils.ts';
 import type {Config} from 'tailwindcss';
 
 const isProduction = env.NODE_ENV !== 'development';
@@ -37,7 +38,7 @@ export default {
     './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
     './web_src/js/**/*.{ts,js,vue}',
-  ].filter(Boolean),
+  ].filter(isTruthy),
   blocklist: [
     // classes that don't work without CSS variables from "@tailwind base" which we don't use
     'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
@@ -121,4 +122,4 @@ export default {
       });
     }),
   ],
-} satisfies Config;
+} satisfies Config as Config;

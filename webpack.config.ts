@@ -12,6 +12,7 @@ import {readFileSync, globSync} from 'node:fs';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
+import {isTruthy} from './tools/utils.ts';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
@@ -30,7 +31,7 @@ const isProduction = env.NODE_ENV !== 'development';
 // false - all disabled
 let sourceMaps;
 if ('ENABLE_SOURCEMAP' in env) {
-  sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP) ? env.ENABLE_SOURCEMAP : 'reduced';
+  sourceMaps = ['true', 'false'].includes(env.ENABLE_SOURCEMAP || '') ? env.ENABLE_SOURCEMAP : 'reduced';
 } else {
   sourceMaps = isProduction ? 'reduced' : 'true';
 }
@@ -95,7 +96,7 @@ export default {
     path: fileURLToPath(new URL('public/assets', import.meta.url)),
     filename: () => 'js/[name].js',
     chunkFilename: ({chunk}) => {
-      const language = (/monaco.*languages?_.+?_(.+?)_/.exec(String(chunk.id)) || [])[1];
+      const language = (/monaco.*languages?_.+?_(.+?)_/.exec(String(chunk?.id)) || [])[1];
       return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
     },
   },
@@ -270,7 +271,7 @@ export default {
     excludeAssets: [
       /^js\/monaco-language-.+\.js$/,
       !isProduction && /^licenses.txt$/,
-    ].filter(Boolean),
+    ].filter(isTruthy),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
     groupAssetsByInfo: false,
