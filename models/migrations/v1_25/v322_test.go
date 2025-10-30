@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_ExtendCommentTreePathLength(t *testing.T) {
@@ -22,21 +23,17 @@ func Test_ExtendCommentTreePathLength(t *testing.T) {
 		TreePath string `xorm:"VARCHAR(255)"`
 	}
 
-	x, deferable := base.PrepareTestEnv(t, 0, new(Comment))
-	defer deferable()
+	x, deferrable := base.PrepareTestEnv(t, 0, new(Comment))
+	defer deferrable()
 
-	assert.NoError(t, ExtendCommentTreePathLength(x))
+	require.NoError(t, ExtendCommentTreePathLength(x))
 
-	tables, err := x.DBMetas()
-	assert.NoError(t, err)
+	table, err := x.TableInfo("comment")
+	require.NoError(t, err)
 
-	for _, table := range tables {
-		switch table.Name {
-		case "comment":
-			column := table.GetColumn("tree_path")
-			assert.NotNil(t, column)
-			assert.Contains(t, []string{"NVARCHAR", "VARCHAR"}, column.SQLType.Name)
-			assert.Equal(t, int64(4000), column.Length)
-		}
-	}
+	column := table.GetColumn("tree_path")
+	require.NotNil(t, column)
+
+	assert.Contains(t, []string{"NVARCHAR", "VARCHAR"}, column.SQLType.Name)
+	assert.EqualValues(t, 4000, column.Length)
 }
