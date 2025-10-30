@@ -412,6 +412,12 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
+	// rerun is not allowed if the run is not done
+	if !run.Status.IsDone() {
+		ctx.JSONError(ctx.Locale.Tr("actions.runs.not_done"))
+		return
+	}
+
 	// can not rerun job when workflow is disabled
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
@@ -420,23 +426,21 @@ func Rerun(ctx *context_module.Context) {
 		return
 	}
 
-	// reset run's start and stop time when it is done
-	if run.Status.IsDone() {
-		run.PreviousDuration = run.Duration()
-		run.Started = 0
-		run.Stopped = 0
-		run.Status = actions_model.StatusWaiting
-		if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "status", "previous_duration"); err != nil {
-			ctx.ServerError("UpdateRun", err)
-			return
-		}
-
-		if err := run.LoadAttributes(ctx); err != nil {
-			ctx.ServerError("run.LoadAttributes", err)
-			return
-		}
-		notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
+	// reset run's start and stop time
+	run.PreviousDuration = run.Duration()
+	run.Started = 0
+	run.Stopped = 0
+	run.Status = actions_model.StatusWaiting
+	if err := actions_model.UpdateRun(ctx, run, "started", "stopped", "status", "previous_duration"); err != nil {
+		ctx.ServerError("UpdateRun", err)
+		return
 	}
+
+	if err := run.LoadAttributes(ctx); err != nil {
+		ctx.ServerError("run.LoadAttributes", err)
+		return
+	}
+	notify_service.WorkflowRunStatusUpdate(ctx, run.Repo, run.TriggerUser, run)
 
 	job, jobs := getRunJobs(ctx, runIndex, jobIndex)
 	if ctx.Written() {
@@ -472,7 +476,7 @@ func Rerun(ctx *context_module.Context) {
 
 func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shouldBlock bool) error {
 	status := job.Status
-	if !status.IsDone() || !job.Run.Status.IsDone() {
+	if !status.IsDone() {
 		return nil
 	}
 
