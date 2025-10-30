@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
@@ -49,21 +48,16 @@ func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
 
 	assert.NoError(t, UseLongTextInSomeColumnsAndFixBugs(x))
 
-	table, err := x.TableInfo(new(ReviewState))
-	require.NoError(t, err)
+	tables := base.LoadTableSchemasMap(t, x)
+	table := tables["review_state"]
 	column := table.GetColumn("updated_files")
-	require.NotNil(t, column)
 	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
 
-	table, err = x.TableInfo(new(PackageProperty))
-	require.NoError(t, err)
+	table = tables["package_property"]
 	column = table.GetColumn("value")
-	require.NotNil(t, column)
 	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
 
-	table, err = x.TableInfo(new(Notice))
-	require.NoError(t, err)
+	table = tables["notice"]
 	column = table.GetColumn("description")
-	require.NotNil(t, column)
 	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
 }
