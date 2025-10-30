@@ -9,7 +9,6 @@ package git
 import (
 	"context"
 	"path/filepath"
-	"sync"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -25,7 +24,6 @@ type Repository struct {
 
 	gpgSettings *GPGSettings
 
-	mu                 sync.Mutex
 	catFileBatchCloser CatFileBatchCloser
 	catFileBatchInUse  bool
 
@@ -65,9 +63,6 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 
 // CatFileBatch obtains a CatFileBatch for this repository
 func (repo *Repository) CatFileBatch(ctx context.Context, optAlwaysNewBatch ...bool) (_ CatFileBatch, closeFunc func(), err error) {
-	repo.mu.Lock()
-	defer repo.mu.Unlock()
-
 	if util.OptionalArg(optAlwaysNewBatch) {
 		b, err := NewBatch(ctx, repo.Path)
 		return b, b.Close, err
@@ -83,8 +78,6 @@ func (repo *Repository) CatFileBatch(ctx context.Context, optAlwaysNewBatch ...b
 	if !repo.catFileBatchInUse {
 		repo.catFileBatchInUse = true
 		return CatFileBatch(repo.catFileBatchCloser), func() {
-			repo.mu.Lock()
-			defer repo.mu.Unlock()
 			repo.catFileBatchInUse = false
 		}, nil
 	}
