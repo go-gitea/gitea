@@ -24,7 +24,7 @@ func TestRenderHelperCodePreview(t *testing.T) {
 		OwnerName: "user2",
 		RepoName:  "repo1",
 		CommitID:  "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		FilePath:  "/README.md",
+		FilePath:  "README.md",
 		LineStart: 1,
 		LineStop:  2,
 	})
