@@ -16,6 +16,7 @@
 	{{- else if .IsBlockedByApprovals}}red
 	{{- else if .IsBlockedByRejection}}red
 	{{- else if .IsBlockedByOfficialReviewRequests}}red
+	{{- else if .IsBlockedByCodeowners}}red
 	{{- else if .IsBlockedByOutdatedBranch}}red
 	{{- else if .IsBlockedByChangedProtectedFiles}}red
 	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
@@ -130,6 +131,11 @@
 						{{svg "octicon-x"}}
 					{{ctx.Locale.Tr "repo.pulls.blocked_by_official_review_requests"}}
 					</div>
+				{{else if .IsBlockedByCodeowners}}
+					<div class="item">
+						{{svg "octicon-x"}}
+					{{ctx.Locale.Tr "repo.pulls.blocked_by_codeowners"}}
+					</div>
 				{{else if .IsBlockedByOutdatedBranch}}
 					<div class="item">
 						{{svg "octicon-x"}}
@@ -166,7 +172,7 @@
 					</div>
 				{{end}}
 
-				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
+				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByCodeowners .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
 
 				{{/* admin can merge without checks, writer can merge when checks succeed */}}
 				{{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
@@ -335,6 +341,11 @@
 					<div class="item text red">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.blocked_by_official_review_requests"}}
+					</div>
+					{{else if .IsBlockedByCodeowners}}
+					<div class="item text red">
+						{{svg "octicon-x"}}
+						{{ctx.Locale.Tr "repo.pulls.blocked_by_codeowners"}}
 					</div>
 				{{else if .IsBlockedByOutdatedBranch}}
 					<div class="item text red">
