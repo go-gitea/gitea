@@ -88,7 +88,7 @@ func (repo *Repository) GetTree(idStr string) (*Tree, error) {
 		return nil, err
 	}
 	if len(idStr) != objectFormat.FullLength() {
-		res, err := repo.GetRefCommitIDOld(idStr)
+		res, err := repo.GetRefCommitIDNew(idStr)
 		if err != nil {
 			return nil, err
 		}

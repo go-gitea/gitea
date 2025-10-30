@@ -42,7 +42,7 @@ func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Rep
 		// TODO: if no branch exists, it reports: exit status 128, fatal: this operation must be run in a work tree.
 		return nil, 0, fmt.Errorf("git.GrepSearch: %w", err)
 	}
-	commitID, err := gitRepo.GetRefCommitIDOld(ref.String())
+	commitID, err := gitRepo.GetRefCommitIDNew(ref.String())
 	if err != nil {
 		return nil, 0, fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
 	}

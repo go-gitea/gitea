@@ -1567,7 +1567,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
-	headCommitID, err := baseGitRepo.GetRefCommitIDOld(pr.GetGitHeadRefName())
+	headCommitID, err := baseGitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

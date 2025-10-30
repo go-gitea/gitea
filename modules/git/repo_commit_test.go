@@ -124,7 +124,7 @@ func TestGetRefCommitID(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
-		commitID, err := bareRepo1.GetRefCommitIDOld(testCase.Ref)
+		commitID, err := bareRepo1.GetRefCommitIDNew(testCase.Ref)
 		if assert.NoError(t, err) {
 			assert.Equal(t, testCase.ExpectedCommitID, commitID)
 		}

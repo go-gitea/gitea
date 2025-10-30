@@ -111,7 +111,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		sha, err = headGitRepo.GetBranchCommitID(pr.HeadBranch)
 	} else {
-		sha, err = headGitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
+		sha, err = headGitRepo.GetRefCommitIDOld(pr.GetGitHeadRefName())
 	}
 	if err != nil {
 		return "", err

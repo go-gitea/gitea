@@ -493,7 +493,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 		// Create reference
 		if result.oldCommitID == gitShortEmptySha {
-			commitID, err := gitRepo.GetRefCommitIDOld(result.refName.String())
+			commitID, err := gitRepo.GetRefCommitIDNew(result.refName.String())
 			if err != nil {
 				log.Error("SyncMirrors [repo: %-v]: unable to GetRefCommitID [ref_name: %s]: %v", m.Repo, result.refName, err)
 				continue

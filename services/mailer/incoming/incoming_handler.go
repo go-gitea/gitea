@@ -127,7 +127,7 @@ func (h *ReplyHandler) Handle(ctx context.Context, content *MailContent, doer *u
 			_, err := pull_service.CreateCodeComment(
 				ctx,
 				doer,
-				nil,
+				nil, // FIXME: INCOMING-MAIL-GIT-REPO: it doesn't seem right to use nil for git repo
 				issue,
 				comment.Line,
 				content.Content,

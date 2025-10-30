@@ -259,7 +259,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 
 	// Only fetch diff if comment is review comment
 	if len(patch) == 0 && reviewID != 0 {
-		headCommitID, err := gitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
+		headCommitID, err := gitRepo.GetRefCommitIDOld(pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", pr.GetGitHeadRefName(), err)
 		}
@@ -325,7 +325,8 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 			return nil, nil, ErrSubmitReviewOnClosedPR
 		}
 
-		headCommitID, err := gitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
+		// FIXME: INCOMING-MAIL-GIT-REPO: the gitRepo can be nil when it is from incoming mail
+		headCommitID, err := gitRepo.GetRefCommitIDOld(pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, nil, err
 		}

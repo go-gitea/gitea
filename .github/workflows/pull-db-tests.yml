@@ -41,7 +41,7 @@ jobs:
         env:
           TAGS: bindata
       - name: run tests
-        run: make test-mssql
+        run: TEST_LOGGER=console,test,file make test-mssql
         timeout-minutes: 50
         env:
           TAGS: bindata
@@ -77,7 +77,7 @@ jobs:
         env:
           TAGS: bindata
       - name: run tests
-        run: make test-mssql
+        run: TEST_LOGGER=console,test,file make test-mssql
         timeout-minutes: 50
         env:
           TAGS: bindata
@@ -109,7 +109,7 @@ jobs:
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
       - run: make deps-backend
-      - run: make backend
+      - run: TEST_LOGGER=console,test,file make backend
         env:
           TAGS: bindata
       - name: run tests

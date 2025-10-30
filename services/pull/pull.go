@@ -805,7 +805,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	if pr.Flow == issues_model.PullRequestFlowGithub {
 		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
 	} else {
-		pr.HeadCommitID, err = gitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
+		pr.HeadCommitID, err = gitRepo.GetRefCommitIDOld(pr.GetGitHeadRefName())
 		if err != nil {
 			log.Error("Unable to get head commit: %s Error: %v", pr.GetGitHeadRefName(), err)
 			return ""
@@ -982,7 +982,7 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues issues_model.IssueList
 
 // getAllCommitStatus get pr's commit statuses.
 func getAllCommitStatus(ctx context.Context, gitRepo *git.Repository, pr *issues_model.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
-	sha, shaErr := gitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
+	sha, shaErr := gitRepo.GetRefCommitIDOld(pr.GetGitHeadRefName())
 	if shaErr != nil {
 		return nil, nil, shaErr
 	}
@@ -1032,7 +1032,7 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 			return false, err
 		}
 	} else {
-		pr.HeadCommitID, err = baseGitRepo.GetRefCommitIDNew(pr.GetGitHeadRefName())
+		pr.HeadCommitID, err = baseGitRepo.GetRefCommitIDOld(pr.GetGitHeadRefName())
 		if err != nil {
 			return false, err
 		}

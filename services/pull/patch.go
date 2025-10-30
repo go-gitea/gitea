@@ -94,13 +94,13 @@ func testPullRequestTmpRepoBranchMergeable(ctx context.Context, prCtx *prTmpRepo
 	pr.MergeBase, _, err = gitcmd.NewCommand("merge-base", "--", "base", "tracking").WithDir(prCtx.tmpBasePath).RunStdString(ctx)
 	if err != nil {
 		var err2 error
-		pr.MergeBase, err2 = gitRepo.GetRefCommitIDNew(git.BranchPrefix + "base")
+		pr.MergeBase, err2 = gitRepo.GetRefCommitIDOld(git.BranchPrefix + "base")
 		if err2 != nil {
 			return fmt.Errorf("GetMergeBase: %v and can't find commit ID for base: %w", err, err2)
 		}
 	}
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
-	if pr.HeadCommitID, err = gitRepo.GetRefCommitIDNew(git.BranchPrefix + "tracking"); err != nil {
+	if pr.HeadCommitID, err = gitRepo.GetRefCommitIDOld(git.BranchPrefix + "tracking"); err != nil {
 		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
 	}
 
