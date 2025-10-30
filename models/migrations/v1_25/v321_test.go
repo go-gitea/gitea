@@ -38,7 +38,7 @@ func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
 	type Notice struct {
 		ID          int64 `xorm:"pk autoincr"`
 		Type        int
-		Description string             `xorm:"LONGTEXT"`
+		Description string             `xorm:"TEXT"`
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	}
 
