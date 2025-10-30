@@ -28,7 +28,7 @@ func Test_ExtendCommentTreePathLength(t *testing.T) {
 
 	require.NoError(t, ExtendCommentTreePathLength(x))
 
-	table, err := x.TableInfo("comment")
+	table, err := x.TableInfo(new(Comment))
 	require.NoError(t, err)
 
 	column := table.GetColumn("tree_path")

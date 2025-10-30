@@ -49,19 +49,19 @@ func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
 
 	assert.NoError(t, UseLongTextInSomeColumnsAndFixBugs(x))
 
-	table, err := x.TableInfo("review_state")
+	table, err := x.TableInfo(new(ReviewState))
 	require.NoError(t, err)
 	column := table.GetColumn("updated_files")
 	require.NotNil(t, column)
 	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
 
-	table, err = x.TableInfo("package_property")
+	table, err = x.TableInfo(new(PackageProperty))
 	require.NoError(t, err)
 	column = table.GetColumn("value")
 	require.NotNil(t, column)
 	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
 
-	table, err = x.TableInfo("notice")
+	table, err = x.TableInfo(new(Notice))
 	require.NoError(t, err)
 	column = table.GetColumn("description")
 	require.NotNil(t, column)
