@@ -96,7 +96,7 @@ func TestReadWritePullHead(t *testing.T) {
 	defer repo.Close()
 
 	// Try to open non-existing Pull
-	_, err = repo.GetRefCommitIDNew(PullPrefix + "0/head")
+	_, err = repo.GetRefCommitIDOld(PullPrefix + "0/head")
 	assert.Error(t, err)
 
 	// Write a fake sha1 with only 40 zeros
@@ -111,7 +111,7 @@ func TestReadWritePullHead(t *testing.T) {
 	}
 
 	// Read the file created
-	headContents, err := repo.GetRefCommitIDNew(PullPrefix + "1/head")
+	headContents, err := repo.GetRefCommitIDOld(PullPrefix + "1/head")
 	if err != nil {
 		assert.NoError(t, err)
 		return

@@ -166,7 +166,7 @@ func notify(ctx context.Context, input *notifyInput) error {
 		ref = git.RefNameFromBranch(input.Repo.DefaultBranch)
 	}
 
-	commitID, err := gitRepo.GetRefCommitIDNew(ref.String())
+	commitID, err := gitRepo.GetRefCommitIDOld(ref.String())
 	if err != nil {
 		return fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
 	}
