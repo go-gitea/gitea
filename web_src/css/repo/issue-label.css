@@ -56,3 +56,10 @@
   top: 10px;
   right: 5px;
 }
+
+.label-blocking {
+  border: 1px solid var(--color-secondary) !important;
+  background: none transparent !important;
+  margin-left: 1px;
+  margin-right: 1px;
+}
