@@ -45,8 +45,6 @@ test('login', async ({page}, workerInfo) => {
 
 test('logged in user', async ({browser}, workerInfo) => {
   const context = await load_logged_in_context(browser, workerInfo, 'user2');
-  if (!context) return;
-
   const page = await context.newPage();
   await page.goto('/');
 
