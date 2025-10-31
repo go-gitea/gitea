@@ -74,18 +74,20 @@ func (dc dingtalkConvertor) Push(p *api.PushPayload) (DingtalkPayload, error) {
 
 	var text string
 	// for each commit, generate attachment text
+	var textSb77 strings.Builder
 	for i, commit := range p.Commits {
 		var authorName string
 		if commit.Author != nil {
 			authorName = " - " + commit.Author.Name
 		}
-		text += fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n")) + authorName
+		textSb77.WriteString(fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
+			strings.TrimRight(commit.Message, "\r\n")) + authorName)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\r\n"
+			textSb77.WriteString("\r\n")
 		}
 	}
+	text += textSb77.String()
 
 	return createDingtalkPayload(title, text, linkText, titleLink), nil
 }

@@ -62,18 +62,22 @@ func NewComplexity() {
 
 func setupComplexity(values []string) {
 	if len(values) != 1 || values[0] != "off" {
+		var validCharsSb65 strings.Builder
 		for _, val := range values {
 			if complexity, ok := charComplexities[val]; ok {
-				validChars += complexity.ValidChars
+				validCharsSb65.WriteString(complexity.ValidChars)
 				requiredList = append(requiredList, complexity)
 			}
 		}
+		validChars += validCharsSb65.String()
 		if len(requiredList) == 0 {
 			// No valid character classes found; use all classes as default
+			var validCharsSb73 strings.Builder
 			for _, complexity := range charComplexities {
-				validChars += complexity.ValidChars
+				validCharsSb73.WriteString(complexity.ValidChars)
 				requiredList = append(requiredList, complexity)
 			}
+			validChars += validCharsSb73.String()
 		}
 	}
 	if validChars == "" {

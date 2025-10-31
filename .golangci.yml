@@ -14,9 +14,9 @@ linters:
     - govet
     - ineffassign
     - mirror
+    - modernize
     - nakedret
     - nolintlint
-    - perfsprint
     - revive
     - staticcheck
     - testifylint
@@ -55,6 +55,7 @@ linters:
       disabled-checks:
         - ifElseChain
         - singleCaseSwitch # Every time this occurred in the code, there was no other way.
+        - deprecatedComment # conflicts with go-swagger comments
     revive:
       severity: error
       rules:

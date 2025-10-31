@@ -161,6 +161,7 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 
 	var text string
 	// for each commit, generate attachment text
+	var textSb164 strings.Builder
 	for i, commit := range p.Commits {
 		// limit the commit message display to just the summary, otherwise it would be hard to read
 		message := strings.TrimRight(strings.SplitN(commit.Message, "\n", 2)[0], "\r")
@@ -169,12 +170,13 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 		if utf8.RuneCountInString(message) > 50 {
 			message = fmt.Sprintf("%.47s...", message)
 		}
-		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL, message, commit.Author.Name)
+		textSb164.WriteString(fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL, message, commit.Author.Name))
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\n"
+			textSb164.WriteString("\n")
 		}
 	}
+	text += textSb164.String()
 
 	return d.createPayload(p.Sender, title, text, titleLink, greenColor), nil
 }

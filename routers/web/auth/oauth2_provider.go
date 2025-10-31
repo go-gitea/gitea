@@ -180,9 +180,11 @@ func AuthorizeOAuth(ctx *context.Context) {
 	errs = form.Validate(ctx.Req, errs)
 	if len(errs) > 0 {
 		errstring := ""
+		var errstringSb183 strings.Builder
 		for _, e := range errs {
-			errstring += e.Error() + "\n"
+			errstringSb183.WriteString(e.Error() + "\n")
 		}
+		errstring += errstringSb183.String()
 		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring))
 		return
 	}

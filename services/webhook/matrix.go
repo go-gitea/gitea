@@ -176,13 +176,15 @@ func (m matrixConvertor) Push(p *api.PushPayload) (MatrixPayload, error) {
 	text := fmt.Sprintf("[%s] %s pushed %s to %s:<br>", repoLink, p.Pusher.UserName, commitDesc, branchLink)
 
 	// for each commit, generate a new line text
+	var textSb179 strings.Builder
 	for i, commit := range p.Commits {
-		text += fmt.Sprintf("%s: %s - %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), commit.Message, commit.Author.Name)
+		textSb179.WriteString(fmt.Sprintf("%s: %s - %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), commit.Message, commit.Author.Name))
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "<br>"
+			textSb179.WriteString("<br>")
 		}
 	}
+	text += textSb179.String()
 
 	return m.newPayload(text, p.Commits...)
 }

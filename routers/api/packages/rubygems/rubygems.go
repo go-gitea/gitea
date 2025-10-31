@@ -434,13 +434,15 @@ func makePackageVersionDependency(ctx *context.Context, version *packages_model.
 
 func makePackageInfo(ctx *context.Context, versions []*packages_model.PackageVersion, c *cache.EphemeralCache) (string, error) {
 	ret := "---\n"
+	var retSb437 strings.Builder
 	for _, v := range versions {
 		dep, err := makePackageVersionDependency(ctx, v, c)
 		if err != nil {
 			return "", err
 		}
-		ret += dep + "\n"
+		retSb437.WriteString(dep + "\n")
 	}
+	ret += retSb437.String()
 	return ret, nil
 }
 

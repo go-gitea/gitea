@@ -250,14 +250,16 @@ func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink strin
 	isPullRequest := issue != nil && issue.IsPull
 	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))
 	htmlCode := `<span class="labels-list">`
+	var htmlCodeSb253 strings.Builder
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 		if label == nil {
 			continue
 		}
 		link := fmt.Sprintf("%s?labels=%d", baseLink, label.ID)
-		htmlCode += string(ut.RenderLabelWithLink(label, template.URL(link)))
+		htmlCodeSb253.WriteString(string(ut.RenderLabelWithLink(label, template.URL(link))))
 	}
+	htmlCode += htmlCodeSb253.String()
 	htmlCode += "</span>"
 	return template.HTML(htmlCode)
 }
