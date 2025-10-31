@@ -270,7 +270,7 @@ export default {
     excludeAssets: [
       /^js\/monaco-language-.+\.js$/,
       !isProduction && /^licenses.txt$/,
-    ].filter(Boolean as any),
+    ].filter(Boolean as unknown as <T>(x: T | boolean) => x is T),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
     groupAssetsByInfo: false,
