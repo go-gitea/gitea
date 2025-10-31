@@ -50,11 +50,15 @@ DEFAULT CONFIGURATION:
 
 func prepareSubcommandWithGlobalFlags(originCmd *cli.Command) {
 	originBefore := originCmd.Before
-	originCmd.Before = func(ctx context.Context, cmd *cli.Command) (context.Context, error) {
-		prepareWorkPathAndCustomConf(cmd)
+	originCmd.Before = func(ctxOrig context.Context, cmd *cli.Command) (ctx context.Context, err error) {
+		ctx = ctxOrig
 		if originBefore != nil {
-			return originBefore(ctx, cmd)
+			ctx, err = originBefore(ctx, cmd)
+			if err != nil {
+				return ctx, err
+			}
 		}
+		prepareWorkPathAndCustomConf(cmd)
 		return ctx, nil
 	}
 }
