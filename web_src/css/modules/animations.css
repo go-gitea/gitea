@@ -116,11 +116,11 @@ code.language-math.is-loading::after {
   animation-timing-function: ease-in-out;
 }
 
-.circular-spin {
-  animation: circular-spin-keyframes 1s linear infinite;
+.rotate-clockwise {
+  animation: rotate-clockwise-keyframes 1s linear infinite;
 }
 
-@keyframes circular-spin-keyframes {
+@keyframes rotate-clockwise-keyframes {
   100% {
     transform: rotate(360deg);
   }
