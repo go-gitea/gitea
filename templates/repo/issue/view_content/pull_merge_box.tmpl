@@ -102,7 +102,7 @@
 				{{template "repo/issue/view_content/update_branch_by_merge" $}}
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item">
-					{{svg "gitea-sync" 16 "circular-spin"}}
+					{{svg "octicon-sync" 16 "circular-spin"}}
 					{{ctx.Locale.Tr "repo.pulls.is_checking"}}
 				</div>
 			{{else if .Issue.PullRequest.IsAncestor}}

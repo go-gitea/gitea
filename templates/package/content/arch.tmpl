@@ -9,7 +9,7 @@ SigLevel = Optional TrustAll
 Server = <origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/arch/$repo/$arch"></origin-url></code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "gitea-sync"}} {{ctx.Locale.Tr "packages.arch.install"}}</label>
+				<label>{{svg "octicon-sync"}} {{ctx.Locale.Tr "packages.arch.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>pacman -Sy {{.PackageDescriptor.Package.LowerName}}</code></pre></div>
 			</div>
 			<div class="field">
