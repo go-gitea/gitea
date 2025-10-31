@@ -12,7 +12,6 @@ import {readFileSync, globSync} from 'node:fs';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
-import {isTruthy} from './tools/utils.ts';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
@@ -271,7 +270,7 @@ export default {
     excludeAssets: [
       /^js\/monaco-language-.+\.js$/,
       !isProduction && /^licenses.txt$/,
-    ].filter(isTruthy),
+    ].filter(Boolean as any),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
     groupAssetsByInfo: false,
