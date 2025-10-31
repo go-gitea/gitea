@@ -206,7 +206,7 @@ func TestCliCmdError(t *testing.T) {
 }
 
 func TestCliCmdBefore(t *testing.T) {
-	ctxNew := context.WithValue(context.Background(), "key", "value")
+	ctxNew := context.WithValue(context.Background(), any("key"), "value")
 	configValues := map[string]string{}
 	setting.CustomConf = "/tmp/any.ini"
 	var actionCtx context.Context
