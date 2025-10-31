@@ -13,6 +13,8 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
@@ -137,7 +139,14 @@ func TestPullCreate(t *testing.T) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo1.NumPulls)
+		assert.Equal(t, 3, repo1.NumOpenPulls)
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+
+		repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 4, repo1.NumPulls)
+		assert.Equal(t, 4, repo1.NumOpenPulls)
 
 		// check the redirected URL
 		url := test.RedirectURL(resp)

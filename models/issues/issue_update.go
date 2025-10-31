@@ -318,7 +318,6 @@ type NewIssueOptions struct {
 	Issue       *Issue
 	LabelIDs    []int64
 	Attachments []string // In UUID format.
-	IsPull      bool
 }
 
 // NewIssueWithIndex creates issue with given index
@@ -369,7 +368,7 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		}
 	}
 
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.IsPull, false); err != nil {
+	if err := repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, false); err != nil {
 		return err
 	}
 

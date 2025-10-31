@@ -229,6 +229,9 @@ func TestPullSquashWithHeadCommitID(t *testing.T) {
 			DeleteBranch: false,
 			HeadCommitID: headBranch.CommitID,
 		})
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 4, baseRepo.NumPulls)
+		assert.Equal(t, 3, baseRepo.NumOpenPulls)
 
 		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
 		assert.NoError(t, err)
