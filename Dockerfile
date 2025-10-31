@@ -1,7 +1,7 @@
 
 ###################################
 #Build stage
-FROM golang:1.24.6-alpine3.21 AS build-env
+FROM golang:1.24.8-alpine3.22 AS build-env
 
 #ARG GOPROXY
 #ENV GOPROXY ${GOPROXY:-direct}
@@ -53,7 +53,6 @@ RUN apk --no-cache add gnupg
 
 RUN apk update && \
     apk upgrade
-
 
 RUN addgroup \
     -S -g 1000 \
