@@ -47,8 +47,7 @@ function processAssetsSvgFiles(pattern: string, opts: Opts = {}) {
   return glob(pattern).map((path) => processAssetsSvgFile(path, opts));
 }
 
-function lowercaseKeys(obj: Record<string, any> | undefined) {
-  if (!obj) return obj;
+function lowercaseKeys(obj: Record<string, any>) {
   return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key.toLowerCase(), value]));
 }
 
@@ -82,9 +81,15 @@ async function processMaterialFileIcons() {
   //    * https://github.com/microsoft/vscode/tree/1.98.0/extensions
   delete iconRules.iconDefinitions;
 
-  iconRules.fileNames = lowercaseKeys(iconRules.fileNames);
-  iconRules.folderNames = lowercaseKeys(iconRules.fileNames);
-  iconRules.fileExtensions = lowercaseKeys(iconRules.fileNames);
+  if (iconRules.fileNames) {
+    iconRules.fileNames = lowercaseKeys(iconRules.fileNames);
+  }
+  if (iconRules.folderNames) {
+    iconRules.folderNames = lowercaseKeys(iconRules.folderNames);
+  }
+  if (iconRules.fileExtensions) {
+    iconRules.fileExtensions = lowercaseKeys(iconRules.fileExtensions);
+  }
 
   // Use VSCode's "Language ID" mapping from its extensions
   for (const [_, langIdExtMap] of Object.entries(vscodeExtensions)) {
