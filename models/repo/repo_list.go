@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -148,9 +149,51 @@ func (repos RepositoryList) LoadLanguageStats(ctx context.Context) error {
 	return nil
 }
 
+// LoadSubjects loads the subjects for all repositories in the list
+func (repos RepositoryList) LoadSubjects(ctx context.Context) error {
+	if len(repos) == 0 {
+		return nil
+	}
+
+	// Collect subject IDs that need to be loaded
+	subjectIDs := container.FilterSlice(repos, func(repo *Repository) (int64, bool) {
+		return repo.SubjectID, repo.SubjectID > 0 && repo.SubjectRelation == nil
+	})
+
+	if len(subjectIDs) == 0 {
+		return nil
+	}
+
+	// Load subjects
+	subjects := make(map[int64]*Subject, len(subjectIDs))
+	if err := db.GetEngine(ctx).
+		In("id", subjectIDs).
+		Find(&subjects); err != nil {
+		return fmt.Errorf("find subjects: %w", err)
+	}
+
+	// Assign subjects to repositories
+	for i := range repos {
+		if repos[i].SubjectID > 0 && repos[i].SubjectRelation == nil {
+			subject, exists := subjects[repos[i].SubjectID]
+			if !exists {
+				log.Warn("Repository %d (%s) references non-existent subject ID %d",
+					repos[i].ID, repos[i].FullName(), repos[i].SubjectID)
+			}
+			repos[i].SubjectRelation = subject
+		}
+	}
+
+	return nil
+}
+
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	if err := repos.LoadOwners(ctx); err != nil {
+		return err
+	}
+
+	if err := repos.LoadSubjects(ctx); err != nil {
 		return err
 	}
 

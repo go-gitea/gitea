@@ -655,8 +655,10 @@ func (repo *Repository) RepoPath() string {
 }
 
 // Link returns the repository relative url
+// Uses subject name if available, falls back to repository name
 func (repo *Repository) Link() string {
-	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+	subject := repo.GetSubject()
+	return setting.AppSubURL + "/article/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(subject)
 }
 
 // ComposeCompareURL returns the repository comparison URL

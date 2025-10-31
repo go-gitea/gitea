@@ -609,27 +609,41 @@ func RepoAssignment(ctx *Context) {
 	}
 
 	// Get repository.
+	// First try by repository name (for backward compatibility and direct repo access)
 	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
-			redirectRepoID, err := repo_model.LookupRedirect(ctx, ctx.Repo.Owner.ID, repoName)
-			if err == nil {
-				RedirectToRepo(ctx.Base, redirectRepoID)
-			} else if repo_model.IsErrRedirectNotExist(err) {
-				if ctx.FormString("go-get") == "1" {
-					EarlyResponseForGoGetMeta(ctx)
-					return
+			// Repository not found by name, try by subject name
+			repo, err = repo_model.GetRepositoryByOwnerAndSubject(ctx, userName, repoName)
+			if err != nil {
+				if repo_model.IsErrRepoNotExist(err) || repo_model.IsErrSubjectNotExist(err) {
+					// Still not found, try redirect
+					redirectRepoID, err := repo_model.LookupRedirect(ctx, ctx.Repo.Owner.ID, repoName)
+					if err == nil {
+						RedirectToRepo(ctx.Base, redirectRepoID)
+					} else if repo_model.IsErrRedirectNotExist(err) {
+						if ctx.FormString("go-get") == "1" {
+							EarlyResponseForGoGetMeta(ctx)
+							return
+						}
+						ctx.NotFound(nil)
+					} else {
+						ctx.ServerError("LookupRepoRedirect", err)
+					}
+				} else {
+					ctx.ServerError("GetRepositoryByOwnerAndSubject", err)
 				}
-				ctx.NotFound(nil)
-			} else {
-				ctx.ServerError("LookupRepoRedirect", err)
+				return
 			}
+			// Found by subject name, repo.Owner is already set by GetRepositoryByOwnerAndSubject
 		} else {
 			ctx.ServerError("GetRepositoryByName", err)
+			return
 		}
-		return
+	} else {
+		// Found by repository name
+		repo.Owner = ctx.Repo.Owner
 	}
-	repo.Owner = ctx.Repo.Owner
 
 	repoAssignment(ctx, repo)
 	if ctx.Written() {
