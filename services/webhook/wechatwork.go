@@ -77,7 +77,6 @@ func (wc wechatworkConvertor) Push(p *api.PushPayload) (WechatworkPayload, error
 
 	title := fmt.Sprintf("# %s:%s <font color=\"warning\">  %s  </font>", p.Repo.FullName, branchName, commitDesc)
 
-	var text string
 	// for each commit, generate attachment text
 	var textSb strings.Builder
 	for i, commit := range p.Commits {
@@ -95,8 +94,7 @@ func (wc wechatworkConvertor) Push(p *api.PushPayload) (WechatworkPayload, error
 			textSb.WriteString("\n")
 		}
 	}
-	text += textSb.String()
-	return newWechatworkMarkdownPayload(title + "\r\n\r\n" + text), nil
+	return newWechatworkMarkdownPayload(title + "\r\n\r\n" + textSb.String()), nil
 }
 
 // Issue implements PayloadConvertor Issue method

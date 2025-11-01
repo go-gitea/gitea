@@ -77,8 +77,8 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 		}
 		last = unescapeIdx[1]
 	}
-	key += keySb.String()
-	section += sectionSb.String()
+	key = keySb.String()
+	section = sectionSb.String()
 	remaining := encoded[last:]
 	if !inKey {
 		if splitter := strings.Index(remaining, "__"); splitter > -1 {

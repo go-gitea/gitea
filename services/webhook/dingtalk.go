@@ -72,7 +72,6 @@ func (dc dingtalkConvertor) Push(p *api.PushPayload) (DingtalkPayload, error) {
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
 
-	var text string
 	// for each commit, generate attachment text
 	var textSb strings.Builder
 	for i, commit := range p.Commits {
@@ -87,9 +86,8 @@ func (dc dingtalkConvertor) Push(p *api.PushPayload) (DingtalkPayload, error) {
 			textSb.WriteString("\r\n")
 		}
 	}
-	text += textSb.String()
 
-	return createDingtalkPayload(title, text, linkText, titleLink), nil
+	return createDingtalkPayload(title, textSb.String(), linkText, titleLink), nil
 }
 
 // Issue implements PayloadConvertor Issue method

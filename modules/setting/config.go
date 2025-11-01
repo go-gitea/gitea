@@ -24,13 +24,11 @@ type OpenWithEditorApp struct {
 type OpenWithEditorAppsType []OpenWithEditorApp
 
 func (t OpenWithEditorAppsType) ToTextareaString() string {
-	ret := ""
 	var retSb strings.Builder
 	for _, app := range t {
 		retSb.WriteString(app.DisplayName + " = " + app.OpenURL + "\n")
 	}
-	ret += retSb.String()
-	return ret
+	return retSb.String()
 }
 
 func DefaultOpenWithEditorApps() OpenWithEditorAppsType {

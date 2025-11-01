@@ -159,7 +159,6 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
 
-	var text string
 	// for each commit, generate attachment text
 	var textSb strings.Builder
 	for i, commit := range p.Commits {
@@ -176,9 +175,8 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 			textSb.WriteString("\n")
 		}
 	}
-	text += textSb.String()
 
-	return d.createPayload(p.Sender, title, text, titleLink, greenColor), nil
+	return d.createPayload(p.Sender, title, textSb.String(), titleLink, greenColor), nil
 }
 
 // Issue implements PayloadConvertor Issue method

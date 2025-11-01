@@ -249,8 +249,8 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
 	isPullRequest := issue != nil && issue.IsPull
 	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))
-	htmlCode := `<span class="labels-list">`
 	var htmlCodeSb strings.Builder
+	htmlCodeSb.WriteString(`<span class="labels-list">`)
 	for _, label := range labels {
 		// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 		if label == nil {
@@ -259,9 +259,8 @@ func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink strin
 		link := fmt.Sprintf("%s?labels=%d", baseLink, label.ID)
 		htmlCodeSb.WriteString(string(ut.RenderLabelWithLink(label, template.URL(link))))
 	}
-	htmlCode += htmlCodeSb.String()
-	htmlCode += "</span>"
-	return template.HTML(htmlCode)
+	htmlCodeSb.WriteString("</span>")
+	return template.HTML(htmlCodeSb.String())
 }
 
 func (ut *RenderUtils) RenderThemeItem(info *webtheme.ThemeMetaInfo, iconSize int) template.HTML {

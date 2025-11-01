@@ -26,8 +26,6 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 		return err
 	}
 
-	path := ""
-
 	tree := &notes.Tree
 	log.Trace("Found tree with ID %q while searching for git note corresponding to the commit %q", tree.ID, commitID)
 
@@ -53,7 +51,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 			return err
 		}
 	}
-	path += pathSb.String()
+	path := pathSb.String()
 
 	blob := entry.Blob()
 	dataRc, err := blob.DataAsync()

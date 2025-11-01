@@ -132,13 +132,12 @@ func KeysPost(ctx *context.Context) {
 			}
 			return
 		}
-		keyIDs := ""
 		var keyIDsSb strings.Builder
 		for _, key := range keys {
 			keyIDsSb.WriteString(key.KeyID)
 			keyIDsSb.WriteString(", ")
 		}
-		keyIDs += keyIDsSb.String()
+		keyIDs := keyIDsSb.String()
 		if len(keyIDs) > 0 {
 			keyIDs = keyIDs[:len(keyIDs)-2]
 		}

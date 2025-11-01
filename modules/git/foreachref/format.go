@@ -75,11 +75,9 @@ func (f Format) Parser(r io.Reader) *Parser {
 // hexEscaped produces hex-escpaed characters from a string. For example, "\n\0"
 // would turn into "%0a%00".
 func (f Format) hexEscaped(delim []byte) string {
-	escaped := ""
 	var escapedSb strings.Builder
 	for i := range delim {
 		escapedSb.WriteString("%" + hex.EncodeToString([]byte{delim[i]}))
 	}
-	escaped += escapedSb.String()
-	return escaped
+	return escapedSb.String()
 }

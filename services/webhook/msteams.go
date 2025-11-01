@@ -131,7 +131,6 @@ func (m msteamsConvertor) Push(p *api.PushPayload) (MSTeamsPayload, error) {
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
 
-	var text string
 	// for each commit, generate attachment text
 	var textSb strings.Builder
 	for i, commit := range p.Commits {
@@ -142,13 +141,12 @@ func (m msteamsConvertor) Push(p *api.PushPayload) (MSTeamsPayload, error) {
 			textSb.WriteString("\n\n")
 		}
 	}
-	text += textSb.String()
 
 	return createMSTeamsPayload(
 		p.Repo,
 		p.Sender,
 		title,
-		text,
+		textSb.String(),
 		titleLink,
 		greenColor,
 		&MSTeamsFact{"Commit count:", strconv.Itoa(p.TotalCommits)},
