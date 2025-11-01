@@ -21,17 +21,17 @@ func AddSubjectForeignKeyToRepository(x *xorm.Engine) error {
 		SubjectID int64  `xorm:"INDEX"`
 	}
 
-	// Step 1: Add SubjectID column to repository table
+	// Add SubjectID column to repository table
 	if err := x.Sync(new(Repository)); err != nil {
 		return err
 	}
 
-	// Step 2: Update repositories to reference the subject via foreign key
-	// This is done in a single SQL statement for efficiency
+	// Update repositories to reference the subject via foreign key
+	// Use LOWER() for case-insensitive matching to handle subjects that differ only in case
 	_, err := x.Exec(`
-		UPDATE repository 
+		UPDATE repository
 		SET subject_id = (
-			SELECT id FROM subject WHERE subject.name = repository.subject
+			SELECT id FROM subject WHERE LOWER(subject.name) = LOWER(repository.subject)
 		)
 		WHERE subject != '' AND subject IS NOT NULL
 	`)
@@ -39,7 +39,7 @@ func AddSubjectForeignKeyToRepository(x *xorm.Engine) error {
 		return err
 	}
 
-	// Step 3: For repositories with empty subjects, set subject_id to NULL
+	// For repositories with empty subjects, set subject_id to NULL
 	// (they will fall back to using the repository name)
 	_, err = x.Exec("UPDATE repository SET subject_id = NULL WHERE subject = '' OR subject IS NULL")
 	if err != nil {
@@ -48,4 +48,3 @@ func AddSubjectForeignKeyToRepository(x *xorm.Engine) error {
 
 	return nil
 }
-

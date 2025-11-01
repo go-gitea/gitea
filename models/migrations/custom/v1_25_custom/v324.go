@@ -25,6 +25,13 @@ func CreateSubjectsTable(x *xorm.Engine) error {
 	}
 
 	// Populate the subject table with distinct non-empty subject values from repository.subject
-	_, err := x.Exec("INSERT INTO subject (name) SELECT DISTINCT subject FROM repository WHERE subject != '' AND subject IS NOT NULL")
+	// Use a subquery with GROUP BY to get the first occurrence of each case-insensitive subject name
+	// This prevents duplicate subjects that differ only in case (e.g., "The Moon" vs "the moon")
+	_, err := x.Exec(`
+		INSERT INTO subject (name)
+		SELECT MIN(subject) FROM repository
+		WHERE subject != '' AND subject IS NOT NULL
+		GROUP BY LOWER(subject)
+	`)
 	return err
 }
