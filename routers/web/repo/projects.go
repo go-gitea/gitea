@@ -27,6 +27,7 @@ import (
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	issues_servie "code.gitea.io/gitea/services/issue"
 	project_service "code.gitea.io/gitea/services/projects"
 )
 
@@ -446,7 +447,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		if issue.Project != nil && issue.Project.ID == projectID {
 			continue
 		}
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
+		if err := issues_servie.AssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) {
 				continue
 			}
@@ -684,6 +685,7 @@ func MoveIssues(ctx *context.Context) {
 	form := &movedIssuesForm{}
 	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
 		ctx.ServerError("DecodeMovedIssuesForm", err)
+		return
 	}
 
 	issueIDs := make([]int64, 0, len(form.Issues))
