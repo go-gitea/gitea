@@ -823,7 +823,7 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 		// update commit status to success, then it should be merged automatically
 		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitIDOld(pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
 		assert.NoError(t, err)
@@ -905,7 +905,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 		// update commit status to success, then it should be merged automatically
 		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitIDOld(pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
 		assert.NoError(t, err)
@@ -1036,7 +1036,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		// update commit status to success, then it should be merged automatically
 		baseGitRepo, err := gitrepo.OpenRepository(t.Context(), baseRepo)
 		assert.NoError(t, err)
-		sha, err := baseGitRepo.GetRefCommitID(pr.GetGitHeadRefName())
+		sha, err := baseGitRepo.GetRefCommitIDOld(pr.GetGitHeadRefName())
 		assert.NoError(t, err)
 		masterCommitID, err := baseGitRepo.GetBranchCommitID("master")
 		assert.NoError(t, err)
