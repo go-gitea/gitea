@@ -25,11 +25,11 @@ type OpenWithEditorAppsType []OpenWithEditorApp
 
 func (t OpenWithEditorAppsType) ToTextareaString() string {
 	ret := ""
-	var retSb27 strings.Builder
+	var retSb strings.Builder
 	for _, app := range t {
-		retSb27.WriteString(app.DisplayName + " = " + app.OpenURL + "\n")
+		retSb.WriteString(app.DisplayName + " = " + app.OpenURL + "\n")
 	}
-	ret += retSb27.String()
+	ret += retSb.String()
 	return ret
 }
 

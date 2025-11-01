@@ -133,16 +133,16 @@ func (m msteamsConvertor) Push(p *api.PushPayload) (MSTeamsPayload, error) {
 
 	var text string
 	// for each commit, generate attachment text
-	var textSb136 strings.Builder
+	var textSb strings.Builder
 	for i, commit := range p.Commits {
-		textSb136.WriteString(fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL,
+		textSb.WriteString(fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL,
 			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name))
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			textSb136.WriteString("\n\n")
+			textSb.WriteString("\n\n")
 		}
 	}
-	text += textSb136.String()
+	text += textSb.String()
 
 	return createMSTeamsPayload(
 		p.Repo,

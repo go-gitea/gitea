@@ -33,16 +33,16 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 
 	var entry *TreeEntry
 	originalCommitID := commitID
-	var pathSb36 strings.Builder
+	var pathSb strings.Builder
 	for len(commitID) > 2 {
 		entry, err = tree.GetTreeEntryByPath(commitID)
 		if err == nil {
-			pathSb36.WriteString(commitID)
+			pathSb.WriteString(commitID)
 			break
 		}
 		if IsErrNotExist(err) {
 			tree, err = tree.SubTree(commitID[0:2])
-			pathSb36.WriteString(commitID[0:2] + "/")
+			pathSb.WriteString(commitID[0:2] + "/")
 			commitID = commitID[2:]
 		}
 		if err != nil {
@@ -53,7 +53,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 			return err
 		}
 	}
-	path += pathSb36.String()
+	path += pathSb.String()
 
 	blob := entry.Blob()
 	dataRc, err := blob.DataAsync()

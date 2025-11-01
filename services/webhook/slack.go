@@ -210,15 +210,15 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 
 	var attachmentText string
 	// for each commit, generate attachment text
-	var attachmentTextSb213 strings.Builder
+	var attachmentTextSb strings.Builder
 	for i, commit := range p.Commits {
-		attachmentTextSb213.WriteString(fmt.Sprintf("%s: %s - %s", SlackLinkFormatter(commit.URL, commit.ID[:7]), SlackShortTextFormatter(commit.Message), SlackTextFormatter(commit.Author.Name)))
+		attachmentTextSb.WriteString(fmt.Sprintf("%s: %s - %s", SlackLinkFormatter(commit.URL, commit.ID[:7]), SlackShortTextFormatter(commit.Message), SlackTextFormatter(commit.Author.Name)))
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			attachmentTextSb213.WriteString("\n")
+			attachmentTextSb.WriteString("\n")
 		}
 	}
-	attachmentText += attachmentTextSb213.String()
+	attachmentText += attachmentTextSb.String()
 
 	return s.createPayload(text, []SlackAttachment{{
 		Color:     s.Color,

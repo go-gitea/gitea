@@ -172,7 +172,7 @@ func (p *Permission) LogString() string {
 	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): ["
 	args := []any{p.AccessMode.ToString(), len(p.units), len(p.unitsMode)}
 
-	var formatSb174 strings.Builder
+	var formatSb strings.Builder
 	for i, u := range p.units {
 		config := ""
 		if u.Config != nil {
@@ -182,16 +182,16 @@ func (p *Permission) LogString() string {
 				config = err.Error()
 			}
 		}
-		formatSb174.WriteString("\n\tunits[%d]: ID=%d RepoID=%d Type=%s Config=%s")
+		formatSb.WriteString("\n\tunits[%d]: ID=%d RepoID=%d Type=%s Config=%s")
 		args = append(args, i, u.ID, u.RepoID, u.Type.LogString(), config)
 	}
-	format += formatSb174.String()
-	var formatSb186 strings.Builder
+	format += formatSb.String()
+	var formatSb strings.Builder
 	for key, value := range p.unitsMode {
-		formatSb186.WriteString("\n\tunitsMode[%-v]: %-v")
+		formatSb.WriteString("\n\tunitsMode[%-v]: %-v")
 		args = append(args, key.LogString(), value.LogString())
 	}
-	format += formatSb186.String()
+	format += formatSb.String()
 	format += "\n\tanonymousAccessMode: %-v"
 	args = append(args, p.anonymousAccessMode)
 	format += "\n\teveryoneAccessMode: %-v"

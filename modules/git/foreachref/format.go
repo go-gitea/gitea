@@ -76,10 +76,10 @@ func (f Format) Parser(r io.Reader) *Parser {
 // would turn into "%0a%00".
 func (f Format) hexEscaped(delim []byte) string {
 	escaped := ""
-	var escapedSb79 strings.Builder
+	var escapedSb strings.Builder
 	for i := range delim {
-		escapedSb79.WriteString("%" + hex.EncodeToString([]byte{delim[i]}))
+		escapedSb.WriteString("%" + hex.EncodeToString([]byte{delim[i]}))
 	}
-	escaped += escapedSb79.String()
+	escaped += escapedSb.String()
 	return escaped
 }

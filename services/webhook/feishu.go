@@ -78,20 +78,20 @@ func (fc feishuConvertor) Push(p *api.PushPayload) (FeishuPayload, error) {
 
 	text := fmt.Sprintf("[%s:%s] %s\r\n", p.Repo.FullName, branchName, commitDesc)
 	// for each commit, generate attachment text
-	var textSb81 strings.Builder
+	var textSb strings.Builder
 	for i, commit := range p.Commits {
 		var authorName string
 		if commit.Author != nil {
 			authorName = " - " + commit.Author.Name
 		}
-		textSb81.WriteString(fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
+		textSb.WriteString(fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
 			strings.TrimRight(commit.Message, "\r\n")) + authorName)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			textSb81.WriteString("\r\n")
+			textSb.WriteString("\r\n")
 		}
 	}
-	text += textSb81.String()
+	text += textSb.String()
 
 	return newFeishuTextPayload(text), nil
 }
