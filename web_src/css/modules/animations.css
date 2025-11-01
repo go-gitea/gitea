@@ -116,14 +116,12 @@ code.language-math.is-loading::after {
   animation-timing-function: ease-in-out;
 }
 
-/* FIXME: `octicon-sync` is counterclockwise, so this animation is also counterclockwise, it looks somewhat strange.
-Ideally in the future we should use a better image for clockwise animation. */
-.circular-spin {
-  animation: circular-spin-keyframes 1s linear infinite;
+.rotate-clockwise {
+  animation: rotate-clockwise-keyframes 1s linear infinite;
 }
 
-@keyframes circular-spin-keyframes {
+@keyframes rotate-clockwise-keyframes {
   100% {
-    transform: rotate(-360deg);
+    transform: rotate(360deg);
   }
 }
