@@ -109,9 +109,8 @@ func CreateSubject(ctx context.Context, name string) (*Subject, error) {
 
 		// Insert the new subject
 		if err := db.Insert(ctx, subject); err != nil {
-			// Check if it's a unique constraint violation
-			if strings.Contains(err.Error(), "UNIQUE") || strings.Contains(err.Error(), "unique") ||
-				strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "Duplicate") {
+			// Check if it's a unique constraint violation using database-specific error codes
+			if db.IsErrDuplicateKey(err) {
 				return ErrSubjectSlugAlreadyExists{Slug: slug, Name: name}
 			}
 			return err

@@ -4,9 +4,14 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/go-sql-driver/mysql"
+	"github.com/lib/pq"
+	mssql "github.com/microsoft/go-mssqldb"
 )
 
 // ErrCancelled represents an error due to context cancellation
@@ -71,4 +76,39 @@ func (err ErrNotExist) Error() string {
 // Unwrap unwraps this as a ErrNotExist err
 func (err ErrNotExist) Unwrap() error {
 	return util.ErrNotExist
+}
+
+// IsErrDuplicateKey checks if an error is a database unique constraint violation.
+// This function properly detects unique constraint violations across all supported
+// database systems (PostgreSQL, MySQL, SQLite, MSSQL) by checking database-specific
+// error codes rather than relying on brittle string matching.
+func IsErrDuplicateKey(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	// PostgreSQL: Check for error code 23505 (unique_violation)
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) {
+		return pqErr.Code == "23505"
+	}
+
+	// MySQL: Check for error number 1062 (ER_DUP_ENTRY)
+	var mysqlErr *mysql.MySQLError
+	if errors.As(err, &mysqlErr) {
+		return mysqlErr.Number == 1062
+	}
+
+	// SQLite: Check for SQLITE_CONSTRAINT error (handled in error_sqlite.go with build tags)
+	if isErrDuplicateKeySQLite(err) {
+		return true
+	}
+
+	// MSSQL: Check for error number 2627 (unique constraint violation) or 2601 (duplicate key)
+	var mssqlErr mssql.Error
+	if errors.As(err, &mssqlErr) {
+		return mssqlErr.Number == 2627 || mssqlErr.Number == 2601
+	}
+
+	return false
 }
