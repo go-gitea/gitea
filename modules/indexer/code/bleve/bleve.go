@@ -218,7 +218,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch 
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-		gitBatch, err := git.NewBatch(ctx, repo.RepoPath())
+		gitBatch, err := gitrepo.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}
