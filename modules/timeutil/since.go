@@ -95,14 +95,15 @@ func timeSincePro(then, now time.Time, lang translation.Locale) string {
 		return lang.TrString("tool.now")
 	}
 
-	var timeStr, diffStr string
+	var diffStr string
+	var timeStrSb strings.Builder
 	for {
 		if diff == 0 {
 			break
 		}
 
 		diff, diffStr = computeTimeDiffFloor(diff, lang)
-		timeStr += ", " + diffStr
+		timeStrSb.WriteString(", " + diffStr)
 	}
-	return strings.TrimPrefix(timeStr, ", ")
+	return strings.TrimPrefix(timeStrSb.String(), ", ")
 }

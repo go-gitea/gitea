@@ -66,6 +66,7 @@ func parseKeyString(content string) (string, error) {
 		lines := strings.Split(content, "\n")
 		continuationLine := false
 
+		var keyContentSb strings.Builder
 		for _, line := range lines {
 			// Skip lines that:
 			// 1) are a continuation of the previous line,
@@ -74,9 +75,10 @@ func parseKeyString(content string) (string, error) {
 			if continuationLine || strings.ContainsAny(line, ":-") {
 				continuationLine = strings.HasSuffix(line, "\\")
 			} else {
-				keyContent += line
+				keyContentSb.WriteString(line)
 			}
 		}
+		keyContent += keyContentSb.String()
 
 		t, err := extractTypeFromBase64Key(keyContent)
 		if err != nil {

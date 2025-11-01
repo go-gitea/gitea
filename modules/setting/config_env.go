@@ -48,18 +48,20 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 	inKey := false
 	last := 0
 	escapeStringIndices := escapeRegex.FindAllStringIndex(encoded, -1)
+	var keySb strings.Builder
+	var sectionSb strings.Builder
 	for _, unescapeIdx := range escapeStringIndices {
 		preceding := encoded[last:unescapeIdx[0]]
 		if !inKey {
 			if splitter := strings.Index(preceding, "__"); splitter > -1 {
-				section += preceding[:splitter]
+				sectionSb.WriteString(preceding[:splitter])
 				inKey = true
-				key += preceding[splitter+2:]
+				keySb.WriteString(preceding[splitter+2:])
 			} else {
-				section += preceding
+				sectionSb.WriteString(preceding)
 			}
 		} else {
-			key += preceding
+			keySb.WriteString(preceding)
 		}
 		toDecode := encoded[unescapeIdx[0]+3 : unescapeIdx[1]-1]
 		decodedBytes := make([]byte, len(toDecode)/2)
@@ -69,12 +71,14 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 			decodedBytes[i] = byte(byteInt)
 		}
 		if inKey {
-			key += string(decodedBytes)
+			keySb.Write(decodedBytes)
 		} else {
-			section += string(decodedBytes)
+			sectionSb.Write(decodedBytes)
 		}
 		last = unescapeIdx[1]
 	}
+	key = keySb.String()
+	section = sectionSb.String()
 	remaining := encoded[last:]
 	if !inKey {
 		if splitter := strings.Index(remaining, "__"); splitter > -1 {

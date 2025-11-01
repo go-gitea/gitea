@@ -76,22 +76,24 @@ func (fc feishuConvertor) Push(p *api.PushPayload) (FeishuPayload, error) {
 		commitDesc string
 	)
 
-	text := fmt.Sprintf("[%s:%s] %s\r\n", p.Repo.FullName, branchName, commitDesc)
+	var textSb strings.Builder
+	textSb.WriteString(fmt.Sprintf("[%s:%s] %s\r\n", p.Repo.FullName, branchName, commitDesc))
+
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		var authorName string
 		if commit.Author != nil {
 			authorName = " - " + commit.Author.Name
 		}
-		text += fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n")) + authorName
+		textSb.WriteString(fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
+			strings.TrimRight(commit.Message, "\r\n")) + authorName)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\r\n"
+			textSb.WriteString("\r\n")
 		}
 	}
 
-	return newFeishuTextPayload(text), nil
+	return newFeishuTextPayload(textSb.String()), nil
 }
 
 // Issue implements PayloadConvertor Issue method
