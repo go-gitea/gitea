@@ -276,6 +276,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			// The task repo can access the current repo only if the task repo is private and
 			// the owner of the task repo is a collaborative owner of the current repo.
 			// FIXME allow public repo read access if tokenless pull is enabled
+			// FIXME should owner's visibility also be considered here?
 			return perm, nil
 		}
 		accessMode = perm_model.AccessModeRead
