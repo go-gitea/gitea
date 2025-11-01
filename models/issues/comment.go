@@ -862,10 +862,6 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
 			return err
 		}
-	case CommentTypeReopen, CommentTypeClose:
-		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
-			return err
-		}
 	}
 	// update the issue's updated_unix column
 	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
