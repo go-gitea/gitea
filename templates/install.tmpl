@@ -258,24 +258,6 @@
 								</div>
 							</div>
 							<div class="inline field">
-								<div class="ui checkbox">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.default_keep_email_private_popup"}}">{{ctx.Locale.Tr "install.default_keep_email_private"}}</label>
-									<input name="default_keep_email_private" type="checkbox" {{if .default_keep_email_private}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.default_allow_create_organization_popup"}}">{{ctx.Locale.Tr "install.default_allow_create_organization"}}</label>
-									<input name="default_allow_create_organization" type="checkbox" {{if .default_allow_create_organization}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
-								<div class="ui checkbox">
-									<label data-tooltip-content="{{ctx.Locale.Tr "install.default_enable_timetracking_popup"}}">{{ctx.Locale.Tr "install.default_enable_timetracking"}}</label>
-									<input name="default_enable_timetracking" type="checkbox" {{if .default_enable_timetracking}}checked{{end}}>
-								</div>
-							</div>
-							<div class="inline field">
 								<label for="no_reply_address">{{ctx.Locale.Tr "install.no_reply_address"}}</label>
 								<input id="_no_reply_address" name="no_reply_address" value="{{.no_reply_address}}">
 								<span class="help">{{ctx.Locale.Tr "install.no_reply_address_helper"}}</span>

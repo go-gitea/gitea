@@ -8,9 +8,11 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -141,12 +143,19 @@ func TestAddOrgUser(t *testing.T) {
 		assert.Equal(t, expectedNumMembers, org.NumMembers)
 	}
 
-	setting.Service.DefaultOrgMemberVisible = false
+	system.SetSettings(t.Context(), map[string]string{
+		setting.Config().Service.DefaultOrgMemberVisible.DynKey(): "false",
+	})
+	config.GetDynGetter().InvalidateCache()
+
 	testSuccess(3, 5, false)
 	testSuccess(3, 5, false)
 	testSuccess(6, 2, false)
 
-	setting.Service.DefaultOrgMemberVisible = true
+	system.SetSettings(t.Context(), map[string]string{
+		setting.Config().Service.DefaultOrgMemberVisible.DynKey(): "true",
+	})
+	config.GetDynGetter().InvalidateCache()
 	testSuccess(6, 3, true)
 
 	unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
