@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/lfs"
 
 	"github.com/kballard/go-shellquote"
@@ -256,7 +257,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 	// LowerCase and trim the repoPath as that's how they are stored.
 	// This should be done after splitting the repoPath into username and reponame
 	// so that username and reponame are not affected.
-	repoPath = strings.ToLower(results.OwnerName + "/" + results.RepoName + ".git")
+	repoPath = strings.ToLower(results.OwnerName + "/" + results.RepoName + util.Iif(results.IsWiki, ".wiki", "") + ".git")
 
 	// LFS SSH protocol
 	if verb == git.CmdVerbLfsTransfer {
