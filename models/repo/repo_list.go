@@ -497,53 +497,92 @@ func SearchRepositoryCondition(opts SearchRepoOptions) builder.Cond {
 	}
 
 	if opts.Keyword != "" {
-		// separate keyword
-		subQueryCond := builder.NewCond()
-		for v := range strings.SplitSeq(opts.Keyword, ",") {
-			if opts.TopicOnly {
-				subQueryCond = subQueryCond.Or(builder.Eq{"topic.name": strings.ToLower(v)})
-			} else {
-				subQueryCond = subQueryCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
-			}
+		// Validate and sanitize keyword input to prevent DoS attacks
+		keyword := strings.TrimSpace(opts.Keyword)
+
+		// Limit total keyword length
+		if len(keyword) > maxSearchKeywordLength {
+			keyword = keyword[:maxSearchKeywordLength]
 		}
-		subQuery := builder.Select("repo_topic.repo_id").From("repo_topic").
-			Join("INNER", "topic", "topic.id = repo_topic.topic_id").
-			Where(subQueryCond).
-			GroupBy("repo_topic.repo_id")
 
-		keywordCond := builder.In("repository.id", subQuery)
-		if !opts.TopicOnly {
-			likes := builder.NewCond()
-			for v := range strings.SplitSeq(opts.Keyword, ",") {
-				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
-				// Also search in subject table using EXISTS clause to avoid ambiguity
-				subjectExistsQuery := builder.Select("1").
-					From("subject s").
-					Where(builder.Expr("s.id = repository.subject_id")).
-					And(builder.Like{"LOWER(s.name)", strings.ToLower(v)})
-				likes = likes.Or(builder.Exists(subjectExistsQuery))
+		// Split and limit number of keywords
+		keywords := strings.Split(keyword, ",")
+		if len(keywords) > maxSearchKeywords {
+			keywords = keywords[:maxSearchKeywords]
+		}
 
-				// If the string looks like "org/repo", match against that pattern too
-				if opts.TeamID == 0 && strings.Count(opts.Keyword, "/") == 1 {
-					pieces := strings.Split(opts.Keyword, "/")
-					ownerName := pieces[0]
-					repoName := pieces[1]
-					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"lower_name", strings.ToLower(repoName)}))
-					// Also check subject field for repo name part using EXISTS
-					subjectOrgExistsQuery := builder.Select("1").
+		// Validate and sanitize each keyword
+		validKeywords := make([]string, 0, len(keywords))
+		for _, kw := range keywords {
+			kw = strings.TrimSpace(kw)
+			if kw == "" {
+				continue
+			}
+			// Limit individual keyword length
+			if len(kw) > maxIndividualKeywordLength {
+				kw = kw[:maxIndividualKeywordLength]
+			}
+			validKeywords = append(validKeywords, kw)
+		}
+
+		// Only proceed if we have valid keywords after sanitization
+		if len(validKeywords) > 0 {
+			// separate keyword
+			subQueryCond := builder.NewCond()
+			for _, v := range validKeywords {
+				if opts.TopicOnly {
+					subQueryCond = subQueryCond.Or(builder.Eq{"topic.name": strings.ToLower(v)})
+				} else {
+					subQueryCond = subQueryCond.Or(builder.Like{"topic.name", strings.ToLower(v)})
+				}
+			}
+			subQuery := builder.Select("repo_topic.repo_id").From("repo_topic").
+				Join("INNER", "topic", "topic.id = repo_topic.topic_id").
+				Where(subQueryCond).
+				GroupBy("repo_topic.repo_id")
+
+			keywordCond := builder.In("repository.id", subQuery)
+			if !opts.TopicOnly {
+				likes := builder.NewCond()
+				for _, v := range validKeywords {
+					likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
+					// Also search in subject table using EXISTS clause to avoid ambiguity
+					subjectExistsQuery := builder.Select("1").
 						From("subject s").
 						Where(builder.Expr("s.id = repository.subject_id")).
-						And(builder.Like{"LOWER(s.name)", strings.ToLower(repoName)})
-					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Exists(subjectOrgExistsQuery)))
-				}
+						And(builder.Like{"LOWER(s.name)", strings.ToLower(v)})
+					likes = likes.Or(builder.Exists(subjectExistsQuery))
 
-				if opts.IncludeDescription {
-					likes = likes.Or(builder.Like{"LOWER(description)", strings.ToLower(v)})
+					// If the string looks like "org/repo", match against that pattern too
+					if opts.TeamID == 0 && strings.Count(keyword, "/") == 1 {
+						pieces := strings.Split(keyword, "/")
+						ownerName := strings.TrimSpace(pieces[0])
+						repoName := strings.TrimSpace(pieces[1])
+						if ownerName != "" {
+							// Support both "owner/repo" and "owner/" patterns
+							if repoName != "" {
+								likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"lower_name", strings.ToLower(repoName)}))
+								// Also check subject field for repo name part using EXISTS
+								subjectOrgExistsQuery := builder.Select("1").
+									From("subject s").
+									Where(builder.Expr("s.id = repository.subject_id")).
+									And(builder.Like{"LOWER(s.name)", strings.ToLower(repoName)})
+								likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Exists(subjectOrgExistsQuery)))
+							} else {
+								// Just "owner/" - match all repos from this owner
+								likes = likes.Or(builder.Like{"owner_name", strings.ToLower(ownerName)})
+							}
+						}
+					}
+
+					if opts.IncludeDescription {
+						likes = likes.Or(builder.Like{"LOWER(description)", strings.ToLower(v)})
+					}
 				}
+				keywordCond = keywordCond.Or(likes)
 			}
-			keywordCond = keywordCond.Or(likes)
+			cond = cond.And(keywordCond)
 		}
-		cond = cond.And(keywordCond)
 	}
 
 	if opts.Language != "" {
