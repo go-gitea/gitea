@@ -14,33 +14,32 @@
 [English](./README.md) | [繁體中文](./README.zh-tw.md)
 
 ## 專案目標
+
 本專案的核心目標，是讓自建 Git 服務的過程，變得最簡單、最高效、最省心。
 
 Gitea 基於 Go 語言開發，凡 Go 語言支持的平台與架構，它皆能適配，涵蓋 Linux、macOS、Windows 系統，以及 x86、amd64、ARM、PowerPC 架構。專案自 2016 年 11 月從[Gogs](https://gogs.io)[分叉](https://blog.gitea.com/welcome-to-gitea/)而來，如今已是煥然一新。
 
-- 線上體驗：造訪[demo.gitea.com](https://demo.gitea.com)
-- 免費服務（儲存庫數量有限）：造訪[gitea.com](https://gitea.com/user/login)
-- 快速部署專屬實例：前往[cloud.gitea.com](https://cloud.gitea.com)開啟免費試用
+線上體驗：造訪[demo.gitea.com](https://demo.gitea.com)。
 
+免費服務（儲存庫數量有限）：造訪[gitea.com](https://gitea.com/user/login)。
+
+快速部署專屬實例：前往[cloud.gitea.com](https://cloud.gitea.com)開啟免費試用。
 
 ## 官方文件
+
 你可在[官方文件網站](https://docs.gitea.com/)取得完整文件，內容涵蓋安裝部署、管理維護、使用指南、開發貢獻等，助你快速上手並充分探索所有功能。
 
 若有建議或想參與文檔編寫，可造訪[文檔倉庫](https://gitea.com/gitea/docs)。
 
-
 ## 建構方法
+
 進入原始碼根目錄，執行以下命令建構：
 
-```
-TAGS="bindata" make build
-```
+    TAGS="bindata" make build
 
 若需支持 SQLite 資料庫，執行：
 
-  ```
-TAGS="bindata sqlite sqlite_unlock_notify" make build
-```
+    TAGS="bindata sqlite sqlite_unlock_notify" make build
 
 `build`目標分為兩個子目標：
 
@@ -49,29 +48,31 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build
 
 構建需聯網以下載 Go 和 npm 依賴套件。若使用包含預構建前端檔案的官方原始碼壓縮包，無需觸發`frontend`目標，無 Node.js 環境也可完成構建。
 
-更多細節：[https://docs.gitea.com/installation/install-from-source](https://docs.gitea.com/installation/install-from-source)
-
+更多細節：https://docs.gitea.com/installation/install-from-source
 
 ## 使用方法
+
 構建完成後，原始碼根目錄預設會產生 `gitea` 可執行檔案，執行命令：
 
-```
-./gitea web
-```
+    ./gitea web
 
 > [!NOTE]
 > 若需調用 API，我們已提供實驗性支援，文件詳見[此處](https://docs.gitea.com/api)。
 
 
 ## 貢獻指南
+
 標準流程：Fork → Patch → Push → Pull Request
 
 > [!NOTE]
+>
 > 1. 提交 Pull Request 前，務必閱讀[《貢獻者指南》](CONTRIBUTING.md)！
 > 2. 若發現項目漏洞，請通過郵件**security@gitea.io**私信反饋，感謝你的嚴謹！
 
-
 ## 多語言翻譯
+
+[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com)
+
 翻譯工作透過 [Crowdin](https://translate.gitea.com) 進行。若需新增翻譯語言，可聯絡 Crowdin 專案管理員新增；也可提交 issue 申請，或在 Discord 的 #translation 頻道諮詢。
 
 若需翻譯上下文或發現翻譯問題，可在對應文本下留言或透過 Discord 溝通。文件設有翻譯相關專區（目前內容待補充），將根據問題逐步完善。
@@ -81,17 +82,15 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build
 
 ## 官方及第三方專案
 
-- 官方工具：[go-sdk](https://gitea.com/gitea/go-sdk)、命令列工具[tea](https://gitea.com/gitea/tea)、Gitea Action 專用[執行器](https://gitea.com/gitea/act_runner)
-- 第三方專案清單：[gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea)，含 SDK、外掛程式、主題等資源
+我們提供官方 [go-sdk](https://gitea.com/gitea/go-sdk)、命令列工具 [tea](https://gitea.com/gitea/tea) 及 Gitea Action 專用[執行器](https://gitea.com/gitea/act_runner)。
 
+我們在 [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 維護 Gitea 相關專案清單，你可在此發現更多第三方專案，包括 SDK、外掛程式、主題等。
 
 ## 交流頻道
 
 [![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
 
-
-若文件未涵蓋你的問題，可透過[Discord 伺服器](https://discord.gg/Gitea)聯絡我們，或在[論壇](https://forum.gitea.com/)發布貼文。
-
+若[文件](https://docs.gitea.com/)未涵蓋你的問題，可透過[Discord 伺服器](https://discord.gg/Gitea)聯絡我們，或在[論壇](https://forum.gitea.com/)發布貼文。
 
 ## 專案成員
 - [維護者](https://github.com/orgs/go-gitea/people)

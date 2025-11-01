@@ -14,33 +14,32 @@
 [English](./README.md) | [繁體中文](./README.zh-tw.md)
 
 ## 项目目标
+
 本项目的核心目标，是让自建Git服务的过程，变得最简单、最高效、最省心。
 
 Gitea基于Go语言开发，凡Go语言支持的平台与架构，它皆能适配，涵盖Linux、macOS、Windows系统，以及x86、amd64、ARM、PowerPC架构。项目自2016年11月从[Gogs](https://gogs.io) [分叉](https://blog.gitea.com/welcome-to-gitea/)而来，如今已是焕然一新。
 
-- 在线体验：访问[demo.gitea.com](https://demo.gitea.com)
-- 免费服务（仓库数量有限）：访问[gitea.com](https://gitea.com/user/login)
-- 快速部署专属实例：前往[cloud.gitea.com](https://cloud.gitea.com)开启免费试用
+在线体验：访问[demo.gitea.com](https://demo.gitea.com)。
 
+免费服务（仓库数量有限）：访问[gitea.com](https://gitea.com/user/login)。
+
+快速部署专属实例：前往[cloud.gitea.com](https://cloud.gitea.com)开启免费试用。
 
 ## 官方文档
+
 你可在[官方文档网站](https://docs.gitea.com/)获取完整文档，内容涵盖安装部署、管理维护、使用指南、开发贡献等，助你快速上手并充分探索所有功能。
 
 若有建议或想参与文档编写，可访问[文档仓库](https://gitea.com/gitea/docs)。
 
-
 ## 构建方法
+
 进入源码根目录，执行以下命令构建：
 
-```
-TAGS="bindata" make build
-```
+    TAGS="bindata" make build
 
 若需支持SQLite数据库，执行：
 
-  ```
-  TAGS="bindata sqlite sqlite_unlock_notify" make build
-  ```
+    TAGS="bindata sqlite sqlite_unlock_notify" make build
 
 `build`目标分为两个子目标：
 
@@ -49,29 +48,31 @@ TAGS="bindata" make build
 
 构建需联网以下载Go和npm依赖包。若使用包含预构建前端文件的官方源码压缩包，无需触发`frontend`目标，无Node.js环境也可完成构建。
 
-更多细节：[https://docs.gitea.com/installation/install-from-source](https://docs.gitea.com/installation/install-from-source)
-
+更多细节：https://docs.gitea.com/installation/install-from-source
 
 ## 使用方法
+
 构建完成后，源码根目录默认生成`gitea`可执行文件，运行命令：
 
-```
-./gitea web
-```
+    ./gitea web
 
 > [!NOTE]
 > 若需调用API，我们已提供实验性支持，文档详见[此处](https://docs.gitea.com/api)。
 
 
 ## 贡献指南
+
 标准流程：Fork → Patch → Push → Pull Request
 
 > [!NOTE]
+>
 > 1. 提交Pull Request前，务必阅读[《贡献者指南》](CONTRIBUTING.md)！
 > 2. 若发现项目漏洞，请通过邮件**security@gitea.io**私信反馈，感谢你的严谨！
 
-
 ## 多语言翻译
+
+[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com)
+
 翻译工作通过[Crowdin](https://translate.gitea.com)进行。若需新增翻译语言，可联系Crowdin项目管理员添加；也可提交issue申请，或在Discord的#translation频道咨询。
 
 若需翻译上下文或发现翻译问题，可在对应文本下留言或通过Discord沟通。文档设有翻译相关专区（目前内容待补充），将根据问题逐步完善。
@@ -81,17 +82,15 @@ TAGS="bindata" make build
 
 ## 官方及第三方项目
 
-- 官方工具：[go-sdk](https://gitea.com/gitea/go-sdk)、命令行工具[tea](https://gitea.com/gitea/tea)、Gitea Action专用[运行器](https://gitea.com/gitea/act_runner)
-- 第三方项目清单：[gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea)，含SDK、插件、主题等资源
+我们提供官方[go-sdk](https://gitea.com/gitea/go-sdk)、命令行工具[tea](https://gitea.com/gitea/tea)及Gitea Action专用[运行器](https://gitea.com/gitea/act_runner)。
 
+我们在[gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea)维护Gitea相关项目清单，你可在此发现更多第三方项目，包括SDK、插件、主题等。
 
 ## 交流渠道
 
 [![](https://img.shields.io/discord/322538954119184384.svg?logo=discord&logoColor=white&label=Discord&color=5865F2)](https://discord.gg/Gitea "Join the Discord chat at https://discord.gg/Gitea")
 
-
-若文档未覆盖你的问题，可通过[Discord服务器](https://discord.gg/Gitea)联系我们，或在[论坛](https://forum.gitea.com/)发布帖子。
-
+若[文档](https://docs.gitea.com/)未覆盖你的问题，可通过[Discord服务器](https://discord.gg/Gitea)联系我们，或在[论坛](https://forum.gitea.com/)发布帖子。
 
 ## 项目成员
 - [维护者](https://github.com/orgs/go-gitea/people)
