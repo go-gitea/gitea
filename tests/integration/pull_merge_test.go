@@ -421,7 +421,6 @@ func TestCantMergeUnrelated(t *testing.T) {
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
 		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
 		assert.NoError(t, err)
-		defer gitRepo.Close()
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
@@ -432,6 +431,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "UNRELATED", false)
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, pull_service.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
+		gitRepo.Close()
 	})
 }
 
