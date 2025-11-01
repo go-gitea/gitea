@@ -50,6 +50,21 @@ func TestGetPublicRepositoryBySubject_NotFound(t *testing.T) {
 	assert.True(t, repo_model.IsErrSubjectNotExist(err))
 }
 
+func TestGetPublicRepositoryBySubject_NoPublicRepo(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	// Create a subject without any public repository
+	subject, err := repo_model.GetOrCreateSubject(ctx, "Subject Without Public Repo")
+	assert.NoError(t, err)
+	assert.NotNil(t, subject)
+
+	// Try to get a public repository for this subject
+	_, err = repo_model.GetPublicRepositoryBySubject(ctx, "Subject Without Public Repo")
+	assert.Error(t, err)
+	assert.True(t, repo_model.IsErrRepoWithSubjectNotExist(err))
+}
+
 func TestGetPublicRepositoryBySubject_PrefersRootRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := t.Context()

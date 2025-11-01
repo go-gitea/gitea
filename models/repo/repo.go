@@ -852,6 +852,27 @@ func (err ErrRepoNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+// ErrRepoWithSubjectNotExist represents a "RepoWithSubjectNotExist" kind of error.
+// This error is returned when no repository is found for a given subject.
+type ErrRepoWithSubjectNotExist struct {
+	Subject string
+}
+
+// IsErrRepoWithSubjectNotExist checks if an error is a ErrRepoWithSubjectNotExist.
+func IsErrRepoWithSubjectNotExist(err error) bool {
+	_, ok := err.(ErrRepoWithSubjectNotExist)
+	return ok
+}
+
+func (err ErrRepoWithSubjectNotExist) Error() string {
+	return fmt.Sprintf("repository with subject does not exist [subject: %s]", err.Subject)
+}
+
+// Unwrap unwraps this error as a ErrNotExist error
+func (err ErrRepoWithSubjectNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // GetRepositoryByOwnerAndName returns the repository by given owner name and repo name
 func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string) (*Repository, error) {
 	var repo Repository
@@ -926,7 +947,7 @@ func GetPublicRepositoryBySubject(ctx context.Context, subjectName string) (*Rep
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRepoNotExist{0, 0, "", subjectName}
+		return nil, ErrRepoWithSubjectNotExist{Subject: subjectName}
 	}
 
 	// Load the subject relation
