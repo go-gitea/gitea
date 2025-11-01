@@ -436,6 +436,7 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Project"] = project
 	ctx.Data["IssuesMap"] = issuesMap
 	ctx.Data["Columns"] = columns
+	ctx.Data["Title"] = fmt.Sprintf("%s - %s", project.Title, ctx.ContextUser.DisplayName())
 
 	if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 		ctx.ServerError("RenderUserOrgHeader", err)
