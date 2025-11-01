@@ -581,6 +581,32 @@ func packagistHookParams(ctx *context.Context) webhookParams {
 	}
 }
 
+// BarkHooksNewPost response for creating Bark webhook
+func BarkHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, barkHookParams(ctx))
+}
+
+// BarkHooksEditPost response for editing Bark webhook
+func BarkHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, barkHookParams(ctx))
+}
+
+func barkHookParams(ctx *context.Context) webhookParams {
+	form := web.GetForm(ctx).(*forms.NewBarkHookForm)
+
+	return webhookParams{
+		Type:        webhook_module.BARK,
+		URL:         form.PayloadURL,
+		ContentType: webhook.ContentTypeJSON,
+		HTTPMethod:  http.MethodPost,
+		WebhookForm: form.WebhookForm,
+		Meta: &webhook_service.BarkMeta{
+			Sound: form.Sound,
+			Group: form.Group,
+		},
+	}
+}
+
 func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 	orCtx, err := getOwnerRepoCtx(ctx)
 	if err != nil {
@@ -619,6 +645,8 @@ func checkWebhook(ctx *context.Context) (*ownerRepoCtx, *webhook.Webhook) {
 		ctx.Data["MatrixHook"] = webhook_service.GetMatrixHook(w)
 	case webhook_module.PACKAGIST:
 		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
+	case webhook_module.BARK:
+		ctx.Data["BarkHook"] = webhook_service.GetBarkHook(w)
 	}
 
 	ctx.Data["History"], err = w.History(ctx, 1)
