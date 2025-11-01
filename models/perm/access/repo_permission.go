@@ -169,10 +169,9 @@ func (p *Permission) ReadableUnitTypes() []unit.Type {
 }
 
 func (p *Permission) LogString() string {
-	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): ["
-	args := []any{p.AccessMode.ToString(), len(p.units), len(p.unitsMode)}
-
 	var formatSb strings.Builder
+	formatSb.WriteString("<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [")
+	args := []any{p.AccessMode.ToString(), len(p.units), len(p.unitsMode)}
 	for i, u := range p.units {
 		config := ""
 		if u.Config != nil {
@@ -185,19 +184,16 @@ func (p *Permission) LogString() string {
 		formatSb.WriteString("\n\tunits[%d]: ID=%d RepoID=%d Type=%s Config=%s")
 		args = append(args, i, u.ID, u.RepoID, u.Type.LogString(), config)
 	}
-	format += formatSb.String()
-	var formatSb strings.Builder
 	for key, value := range p.unitsMode {
 		formatSb.WriteString("\n\tunitsMode[%-v]: %-v")
 		args = append(args, key.LogString(), value.LogString())
 	}
-	format += formatSb.String()
-	format += "\n\tanonymousAccessMode: %-v"
+	formatSb.WriteString("\n\tanonymousAccessMode: %-v")
 	args = append(args, p.anonymousAccessMode)
-	format += "\n\teveryoneAccessMode: %-v"
+	formatSb.WriteString("\n\teveryoneAccessMode: %-v")
 	args = append(args, p.everyoneAccessMode)
-	format += "\n\t]>"
-	return fmt.Sprintf(format, args...)
+	formatSb.WriteString("\n\t]>")
+	return fmt.Sprintf(formatSb.String(), args...)
 }
 
 func applyPublicAccessPermission(unitType unit.Type, accessMode perm_model.AccessMode, modeMap *map[unit.Type]perm_model.AccessMode) {
