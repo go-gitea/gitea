@@ -172,6 +172,7 @@ func (p *Permission) LogString() string {
 	var formatSb strings.Builder
 	formatSb.WriteString("<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [")
 	args := []any{p.AccessMode.ToString(), len(p.units), len(p.unitsMode)}
+
 	for i, u := range p.units {
 		config := ""
 		if u.Config != nil {
