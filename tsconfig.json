@@ -40,6 +40,7 @@
     "strictBindCallApply": true,
     "strictBuiltinIteratorReturn": true,
     "strictFunctionTypes": true,
+    "strictNullChecks": false,
     "stripInternal": true,
     "verbatimModuleSyntax": true,
     "types": [

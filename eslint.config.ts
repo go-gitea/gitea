@@ -905,6 +905,7 @@ export default defineConfig([
     files: ['tests/e2e/**'],
     rules: {
       ...playwright.configs['flat/recommended'].rules,
+      'playwright/no-conditional-in-test': [0],
     },
   },
   {

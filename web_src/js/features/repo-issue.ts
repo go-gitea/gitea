@@ -261,7 +261,7 @@ export function initRepoPullRequestReview() {
     if (commentDiv) {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]')?.getAttribute('id');
-      if (groupID && groupID.startsWith('code-comments-')) {
+      if (groupID?.startsWith('code-comments-')) {
         const id = groupID.slice(14);
         const ancestorDiffBox = commentDiv.closest<HTMLElement>('.diff-file-box');
 
