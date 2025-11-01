@@ -104,7 +104,7 @@ func TestSubjectFieldSearchIntegration(t *testing.T) {
 		for _, repo := range repos {
 			assert.NotEmpty(t, repo.Name, "Repository should have a name")
 			// Subject can be accessed via GetSubject() method
-			_ = repo.GetSubject() // This should not panic
+			_ = repo.GetSubject(context.Background()) // This should not panic
 		}
 	}
 }

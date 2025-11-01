@@ -36,17 +36,17 @@
             <div class="tw-flex tw-items-center tw-gap-4" id="article-tabs">
                 <div class="ui top attached tabular menu tw-my-10 tw-gap-1">
                     <a class="{{if .IsArticleModeRead}}active {{end}}item"
-                        href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject) "view" "article" "mode" "read"}}"
+                        href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name (.Repository.GetSubject ctx)) "view" "article" "mode" "read"}}"
                         data-article-tab="read">
                         {{svg "octicon-book" 16}} Read
                     </a>
                     <a class="{{if .IsArticleModeEdit}}active {{end}}item"
-                        href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject) "view" "article" "mode" "edit"}}"
+                        href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name (.Repository.GetSubject ctx)) "view" "article" "mode" "edit"}}"
                         data-article-tab="edit">
                         {{svg "octicon-pencil" 16}} Edit
                     </a>
                     <a class="{{if .IsArticleModeHistory}}active {{end}}item"
-                        href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name .Repository.GetSubject) "view" "article" "mode" "history"}}"
+                        href="{{QueryBuild (printf "%s/article/%s/%s" AppSubUrl .Repository.Owner.Name (.Repository.GetSubject ctx)) "view" "article" "mode" "history"}}"
                         data-article-tab="history">
                         {{svg "octicon-history" 16}} History
                     </a>

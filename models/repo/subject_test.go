@@ -104,7 +104,7 @@ func TestRepositoryLoadSubject(t *testing.T) {
 	assert.Equal(t, subject.Name, repo.SubjectRelation.Name)
 
 	// Test GetSubject method
-	assert.Equal(t, subject.Name, repo.GetSubject())
+	assert.Equal(t, subject.Name, repo.GetSubject(t.Context()))
 }
 
 func TestRepositoryGetSubjectFallback(t *testing.T) {
@@ -120,7 +120,7 @@ func TestRepositoryGetSubjectFallback(t *testing.T) {
 	repo.SubjectRelation = nil
 
 	// Should fall back to repository name
-	assert.Equal(t, repo.Name, repo.GetSubject())
+	assert.Equal(t, repo.Name, repo.GetSubject(t.Context()))
 }
 
 func TestDeleteSubject(t *testing.T) {

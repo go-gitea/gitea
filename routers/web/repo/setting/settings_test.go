@@ -410,8 +410,8 @@ func TestRepositorySubjectLoaded(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify that GetSubject() returns the subject name, not the repo name
-	assert.Equal(t, "Test Subject for Settings", repo.GetSubject())
-	assert.NotEqual(t, repo.Name, repo.GetSubject())
+	assert.Equal(t, "Test Subject for Settings", repo.GetSubject(t.Context()))
+	assert.NotEqual(t, repo.Name, repo.GetSubject(t.Context()))
 
 	// Verify that SubjectRelation is properly loaded
 	assert.NotNil(t, repo.SubjectRelation)
@@ -445,8 +445,8 @@ func TestRepositorySubjectLoadedByName(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify that GetSubject() returns the subject name, not the repo name
-	assert.Equal(t, "Test Subject for History View", repo.GetSubject())
-	assert.NotEqual(t, repo.Name, repo.GetSubject())
+	assert.Equal(t, "Test Subject for History View", repo.GetSubject(t.Context()))
+	assert.NotEqual(t, repo.Name, repo.GetSubject(t.Context()))
 
 	// Verify that SubjectRelation is properly loaded
 	assert.NotNil(t, repo.SubjectRelation)

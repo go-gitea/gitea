@@ -358,9 +358,9 @@ func (repo *Repository) LoadSubject(ctx context.Context) error {
 }
 
 // GetSubject returns the subject for the repository.
-// If a subject is assigned (SubjectID > 0), callers should call LoadSubject(ctx) first.
-// Priority: SubjectRelation.Name > Name (fallback when SubjectID == 0)
-func (repo *Repository) GetSubject() string {
+// Automatically loads the subject relation if needed.
+// Priority: SubjectRelation.Name > Name (fallback when SubjectID == 0 or loading fails)
+func (repo *Repository) GetSubject(ctx context.Context) string {
 	// If subject relation is loaded, return its name
 	if repo.SubjectRelation != nil {
 		return repo.SubjectRelation.Name
@@ -371,11 +371,15 @@ func (repo *Repository) GetSubject() string {
 		return repo.Name
 	}
 
-	// SubjectID > 0 but SubjectRelation is nil - this is a programming error
-	// The caller should have called LoadSubject(ctx) before calling GetSubject()
-	log.Error("Repository %d (%s) has SubjectID %d but SubjectRelation is not loaded. Call LoadSubject(ctx) before GetSubject().",
-		repo.ID, repo.FullName(), repo.SubjectID)
+	// SubjectID > 0 but SubjectRelation is nil - automatically load it
+	if err := repo.LoadSubject(ctx); err == nil && repo.SubjectRelation != nil {
+		return repo.SubjectRelation.Name
+	} else if err != nil {
+		// Log an error if loading fails, but still fall back to the repo name
+		log.Error("Failed to load subject for repository %d (%s): %v", repo.ID, repo.FullName(), err)
+	}
 
+	// Fallback to repository name
 	return repo.Name
 }
 
@@ -657,7 +661,7 @@ func (repo *Repository) RepoPath() string {
 // Link returns the repository relative url
 // Uses subject name if available, falls back to repository name
 func (repo *Repository) Link() string {
-	subject := repo.GetSubject()
+	subject := repo.GetSubject(context.Background())
 	return setting.AppSubURL + "/article/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(subject)
 }
 

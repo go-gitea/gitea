@@ -13,9 +13,9 @@
                         {{svg "octicon-triangle-down" 16 "tw-ml-1"}}
                         <div class="menu">
                         cona
-                            <a class="item history-table-sort" data-sort="most_contrib" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl (PathEscapeSegments .Repository.GetSubject)) "view" "table" "sort" "most_contrib"}}">Most contributors</a>
-                            <a class="item history-table-sort" data-sort="least_contrib" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl (PathEscapeSegments .Repository.GetSubject)) "view" "table" "sort" "least_contrib"}}">Least contributors</a>
-                            <a class="item history-table-sort" data-sort="latest" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl (PathEscapeSegments .Repository.GetSubject)) "view" "table" "sort" "latest"}}">Latest edited</a>
+                            <a class="item history-table-sort" data-sort="most_contrib" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl (PathEscapeSegments (.Repository.GetSubject ctx))) "view" "table" "sort" "most_contrib"}}">Most contributors</a>
+                            <a class="item history-table-sort" data-sort="least_contrib" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl (PathEscapeSegments (.Repository.GetSubject ctx))) "view" "table" "sort" "least_contrib"}}">Least contributors</a>
+                            <a class="item history-table-sort" data-sort="latest" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl (PathEscapeSegments (.Repository.GetSubject ctx))) "view" "table" "sort" "latest"}}">Latest edited</a>
                         </div>
                     </div>
                 </div>
@@ -43,7 +43,7 @@
                         {{if .HistoryForkEntries}}
                         {{range $idx, $entry := .HistoryForkEntries}}
                         {{$repo := $entry.Repo}}
-                        <tr class="article-row" data-row="{{$idx}}" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject}}" data-repo="{{$repo.Name}}">
+                        <tr class="article-row" data-row="{{$idx}}" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject ctx}}" data-repo="{{$repo.Name}}">
                             <td>
                                 <div class="ui checkbox">
                                     <input type="checkbox" class="row-check">
@@ -55,7 +55,7 @@
                             <td>
                                 <div class="tw-flex tw-flex-col tw-gap-1">
                                     <span class="tw-font-semibold">{{$repo.OwnerName}}</span>
-                                    <span class="tw-text-xs tw-text-gray-500">{{$repo.GetSubject}}</span>
+                                    <span class="tw-text-xs tw-text-gray-500">{{$repo.GetSubject ctx}}</span>
                                 </div>
                             </td>
                             <td class="collapsing tw-text-right">
@@ -78,7 +78,7 @@
                                             {{end}}
                                         </div>
                                     </div>
-                                    <button type="button" class="ui button go-to-article" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject}}" data-repo="{{$repo.Name}}">
+                                    <button type="button" class="ui button go-to-article" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject ctx}}" data-repo="{{$repo.Name}}">
                                         View article
                                     </button>
                                 </div>

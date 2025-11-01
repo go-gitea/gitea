@@ -4,7 +4,7 @@
         class="history-bubble-root"
         data-owner="{{.Repository.Owner.Name}}"
         data-repo="{{.Repository.Name}}"
-        data-subject="{{.Repository.GetSubject}}"
+        data-subject="{{.Repository.GetSubject ctx}}"
         data-api-url="{{AppSubUrl}}/api/v1/repos/{{.Repository.Owner.Name}}/{{.Repository.Name}}/forks/graph">
     </div>
 </div>

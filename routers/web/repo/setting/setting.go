@@ -206,7 +206,7 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.LowerName = strings.ToLower(newRepoName)
 
 	// Subject cannot be edited after repository creation
-	if form.Subject != repo.GetSubject() {
+	if form.Subject != repo.GetSubject(ctx) {
 		ctx.Data["Err_Subject"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.subject_cannot_be_modified"), tplSettingsOptions, &form)
 		return
