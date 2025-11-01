@@ -66,6 +66,7 @@ func (err ErrRepoIsArchived) Error() string {
 type globalVarsStruct struct {
 	validRepoNamePattern     *regexp.Regexp
 	invalidRepoNamePattern   *regexp.Regexp
+	multiHyphenRegex         *regexp.Regexp
 	reservedRepoNames        []string
 	reservedRepoNamePatterns []string
 }
@@ -74,6 +75,7 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 	return &globalVarsStruct{
 		validRepoNamePattern:     regexp.MustCompile(`^[-.\w]+$`),
 		invalidRepoNamePattern:   regexp.MustCompile(`[.]{2,}`),
+		multiHyphenRegex:         regexp.MustCompile(`-{2,}`),
 		reservedRepoNames:        []string{".", "..", "-"},
 		reservedRepoNamePatterns: []string{"*.wiki", "*.git", "*.rss", "*.atom"},
 	}
@@ -1204,9 +1206,7 @@ func GenerateRepoNameFromSubject(subject string) string {
 	name = strings.Trim(name, "-_")
 
 	// Collapse multiple consecutive hyphens
-	for strings.Contains(name, "--") {
-		name = strings.ReplaceAll(name, "--", "-")
-	}
+	name = globalVars().multiHyphenRegex.ReplaceAllString(name, "-")
 
 	// Ensure it's not empty and not too long
 	if name == "" {
