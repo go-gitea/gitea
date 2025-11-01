@@ -220,7 +220,7 @@ func (err ErrInvalidMergeStyle) Unwrap() error {
 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
-func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repo: %v", err)
 		return fmt.Errorf("unable to load base repo: %w", err)
@@ -668,7 +668,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		return err
 	}
 
-	notify_service.MergePullRequest(baseGitRepo.Ctx, doer, pr)
+	notify_service.MergePullRequest(ctx, doer, pr)
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
 
 	return handleCloseCrossReferences(ctx, pr, doer)
