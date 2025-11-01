@@ -24,25 +24,7 @@ func CreateSubjectsTable(x *xorm.Engine) error {
 		return err
 	}
 
-	// Extract all distinct non-empty subject values from repository.subject
-	type SubjectRow struct {
-		Subject string
-	}
-
-	var subjects []SubjectRow
-	if err := x.SQL("SELECT DISTINCT subject FROM repository WHERE subject != '' AND subject IS NOT NULL ORDER BY subject").Find(&subjects); err != nil {
-		return err
-	}
-
-	// Insert each unique subject value as a new row in the subject table
-	for _, subjectRow := range subjects {
-		subject := Subject{
-			Name: subjectRow.Subject,
-		}
-		if _, err := x.Insert(&subject); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	// Populate the subject table with distinct non-empty subject values from repository.subject
+	_, err := x.Exec("INSERT INTO subject (name) SELECT DISTINCT subject FROM repository WHERE subject != '' AND subject IS NOT NULL")
+	return err
 }
