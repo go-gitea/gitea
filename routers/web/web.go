@@ -508,6 +508,7 @@ func registerWebRoutes(m *web.Router) {
 				return
 			}
 		}, explore.Code)
+		m.Get("/packages", packagesEnabled, explore.Packages)
 		m.Get("/topics/search", explore.TopicSearch)
 	}, optExploreSignIn)
 
