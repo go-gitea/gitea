@@ -56,7 +56,7 @@ const props = defineProps<{
 const store = createWorkflowStore(props);
 
 // Track edit state directly on workflow objects
-const previousSelection = ref(null);
+const previousSelection = ref<{selectedItem: string | null, selectedWorkflow: any} | null>(null);
 
 // Helper to check if current workflow is in edit mode
 const isInEditMode = computed(() => {
