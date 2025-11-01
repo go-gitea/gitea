@@ -59,7 +59,6 @@ Gitea 基於 Go 語言開發，凡 Go 語言支持的平台與架構，它皆能
 > [!NOTE]
 > 若需調用 API，我們已提供實驗性支援，文件詳見[此處](https://docs.gitea.com/api)。
 
-
 ## 貢獻指南
 
 標準流程：Fork → Patch → Push → Pull Request
@@ -79,7 +78,6 @@ Gitea 基於 Go 語言開發，凡 Go 語言支持的平台與架構，它皆能
 
 更多資訊：[翻譯貢獻文件](https://docs.gitea.com/contributing/localization)
 
-
 ## 官方及第三方專案
 
 我們提供官方 [go-sdk](https://gitea.com/gitea/go-sdk)、命令列工具 [tea](https://gitea.com/gitea/tea) 及 Gitea Action 專用[執行器](https://gitea.com/gitea/act_runner)。
@@ -93,17 +91,19 @@ Gitea 基於 Go 語言開發，凡 Go 語言支持的平台與架構，它皆能
 若[文件](https://docs.gitea.com/)未涵蓋你的問題，可透過[Discord 伺服器](https://discord.gg/Gitea)聯絡我們，或在[論壇](https://forum.gitea.com/)發布貼文。
 
 ## 專案成員
+
 - [維護者](https://github.com/orgs/go-gitea/people)
 - [貢獻者](https://github.com/go-gitea/gitea/graphs/contributors)
 - [譯者](options/locale/TRANSLATORS)
 
-
 ## 支持者
+
 感謝所有支持者的鼎力相助！🙏 [[成為支持者](https://opencollective.com/gitea#backer)]
 
 <a href="https://opencollective.com/gitea#backers" target="_blank"><img src="https://opencollective.com/gitea/backers.svg?width=890"></a>
 
 ## 贊助商
+
 成為贊助商支持專案，你的 logo 將在此展示並連結至官網。[[成為贊助商](https://opencollective.com/gitea#sponsor)]
 
 <a href="https://opencollective.com/gitea/sponsor/0/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/0/avatar.svg"></a>
@@ -118,21 +118,26 @@ Gitea 基於 Go 語言開發，凡 Go 語言支持的平台與架構，它皆能
 <a href="https://opencollective.com/gitea/sponsor/9/website" target="_blank"><img src="https://opencollective.com/gitea/sponsor/9/avatar.svg"></a>
 
 ## 常見問題
-### Q：Gitea 如何發音？
-A：發音為[/ɡɪ'ti:/](https://youtu.be/EM71-2uDAoY)，類似「gi-tea」，「g」需發重音。
 
-### Q：為何專案代碼未託管在 Gitea 自身實例上？
-A：我們正推進此事，進展可查看[該 issue](https://github.com/go-gitea/gitea/issues/1029)。
+**Gitea 如何發音？**
 
-### Q：哪裡可找到安全補丁？
-A：在[發布日誌](https://github.com/go-gitea/gitea/releases)或[更新日誌](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md)中，搜尋關鍵詞`SECURITY`即可找到。
+發音為[/ɡɪ'ti:/](https://youtu.be/EM71-2uDAoY)，類似「gi-tea」，「g」需發重音。
 
+**為何專案代碼未託管在 Gitea 自身實例上？**
+
+我們正[推進此事](https://github.com/go-gitea/gitea/issues/1029)。
+
+**哪裡可找到安全補丁？**
+
+在[發布日誌](https://github.com/go-gitea/gitea/releases)或[更新日誌](https://github.com/go-gitea/gitea/blob/main/CHANGELOG.md)中，搜尋關鍵詞`SECURITY`即可找到。
 
 ## 授權條款
-本項目採用 MIT 授權條款，完整授權文本詳見 [LICENSE 檔案](https://github.com/go-gitea/gitea/blob/main/LICENSE)。
 
+本項目採用 MIT 授權條款。
+完整授權文本詳見 [LICENSE 檔案](https://github.com/go-gitea/gitea/blob/main/LICENSE)。
 
 ## 更多資訊
+
 <details>
 <summary>尋找介面概述？查看這裡！</summary>
 
