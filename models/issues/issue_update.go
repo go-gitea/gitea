@@ -148,11 +148,12 @@ func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User
 	colName := util.Iif(issue.IsPull, "num_closed_pulls", "num_closed_issues")
 	dbSession := db.GetEngine(ctx)
 	// update repository's issue closed number
-	if cmtType == CommentTypeClose || cmtType == CommentTypeMergePull {
+	switch cmtType {
+	case CommentTypeClose, CommentTypeMergePull:
 		dbSession.Incr(colName)
-	} else if cmtType == CommentTypeReopen {
+	case CommentTypeReopen:
 		dbSession.Decr(colName)
-	} else {
+	default:
 		return nil, fmt.Errorf("invalid comment type: %d", cmtType)
 	}
 	if _, err := dbSession.ID(issue.RepoID).
