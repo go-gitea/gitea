@@ -581,7 +581,7 @@ generate-ini-mssql:
 
 .PHONY: test-mssql
 test-mssql: integrations.mssql.test generate-ini-mssql
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./integrations.mssql.test
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./integrations.mssql.test -test.v
 
 .PHONY: test-mssql\#%
 test-mssql\#%: integrations.mssql.test generate-ini-mssql
