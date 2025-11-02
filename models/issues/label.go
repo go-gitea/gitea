@@ -495,19 +495,23 @@ func CountLabelsByOrgID(ctx context.Context, orgID int64) (int64, error) {
 }
 
 func updateLabelCols(ctx context.Context, l *Label, cols ...string) error {
-	_, err := db.GetEngine(ctx).ID(l.ID).
-		SetExpr("num_issues",
+	sess := db.GetEngine(ctx).ID(l.ID)
+	if slices.Contains(cols, "num_issues") {
+		sess.SetExpr("num_issues",
 			builder.Select("count(*)").From("issue_label").
 				Where(builder.Eq{"label_id": l.ID}),
-		).
-		SetExpr("num_closed_issues",
+		)
+	}
+	if slices.Contains(cols, "num_closed_issues") {
+		sess.SetExpr("num_closed_issues",
 			builder.Select("count(*)").From("issue_label").
 				InnerJoin("issue", "issue_label.issue_id = issue.id").
 				Where(builder.Eq{
 					"issue_label.label_id": l.ID,
 					"issue.is_closed":      true,
 				}),
-		).
-		Cols(cols...).Update(l)
+		)
+	}
+	_, err := sess.Cols(cols...).Update(l)
 	return err
 }
