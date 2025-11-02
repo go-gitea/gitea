@@ -145,8 +145,17 @@ func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User
 		}
 	}
 
+	colName := util.Iif(issue.IsPull, "num_closed_pulls", "num_closed_issues")
+	dbSession := db.GetEngine(ctx)
 	// update repository's issue closed number
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
+	if cmtType == CommentTypeClose {
+		dbSession.Incr(colName)
+	} else {
+		dbSession.Decr(colName)
+	}
+	if _, err := dbSession.ID(issue.RepoID).
+		NoAutoCondition().NoAutoTime().
+		Update(new(repo_model.Repository)); err != nil {
 		return nil, err
 	}
 
@@ -368,7 +377,11 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		}
 	}
 
-	if err := repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, false); err != nil {
+	// Update repository issue count
+	colName := util.Iif(opts.Issue.IsPull, "num_pulls", "num_issues")
+	if _, err := db.GetEngine(ctx).Incr(colName).ID(opts.Repo.ID).
+		NoAutoCondition().NoAutoTime().
+		Update(new(repo_model.Repository)); err != nil {
 		return err
 	}
 
