@@ -45,5 +45,5 @@ func SetMustChangePassword(ctx context.Context, all, mustChangePassword bool, in
 		cond = cond.And(builder.NotIn("lower_name", exclude))
 	}
 
-	return db.GetEngine(ctx).Where(cond).MustCols("must_change_password").Update(&User{MustChangePassword: mustChangePassword})
+	return db.GetEngine(ctx).Where(cond).Cols("must_change_password").Update(&User{MustChangePassword: mustChangePassword})
 }
