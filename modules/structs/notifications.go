@@ -38,7 +38,7 @@ type NotificationSubject struct {
 	// LatestCommentHTMLURL is the web URL for the latest comment
 	LatestCommentHTMLURL string `json:"latest_comment_html_url"`
 	// Type indicates the type of the notification subject
-	Type NotifySubjectType `json:"type" binding:"In(Issue,Pull,Commit,Repository)"`
+	Type NotifySubjectType `json:"type" binding:"In(Issue,Pull,Commit,Repository,Release)"`
 	// State indicates the current state of the notification subject
 	State StateType `json:"state"`
 }
@@ -61,4 +61,6 @@ const (
 	NotifySubjectCommit NotifySubjectType = "Commit"
 	// NotifySubjectRepository an repository is subject of an notification
 	NotifySubjectRepository NotifySubjectType = "Repository"
+	// NotifySubjectRelease an release is subject of an notification
+	NotifySubjectRelease NotifySubjectType = "Release"
 )

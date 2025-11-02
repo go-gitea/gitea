@@ -10,6 +10,7 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -69,9 +70,10 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 		}
 	case activities_model.NotificationSourceCommit:
 		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
+		title, _ := git.SplitCommitTitleBody(n.Commit.CommitMessage, 255)
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectCommit,
-			Title:   n.CommitID,
+			Title:   title,
 			URL:     url,
 			HTMLURL: url,
 		}
@@ -82,6 +84,13 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 			// FIXME: this is a relative URL, rather useless and inconsistent, but keeping for backwards compat
 			URL:     n.Repository.Link(),
 			HTMLURL: n.Repository.HTMLURL(),
+		}
+	case activities_model.NotificationSourceRelease:
+		result.Subject = &api.NotificationSubject{
+			Type:    api.NotifySubjectRelease,
+			Title:   n.Release.Title,
+			URL:     n.Release.Link(),
+			HTMLURL: n.Release.HTMLURL(),
 		}
 	}
 

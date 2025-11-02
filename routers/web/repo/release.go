@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/renderhelper"
@@ -295,6 +296,14 @@ func SingleRelease(ctx *context.Context) {
 	release := releases[0].Release
 	if release.IsTag && release.Title == "" {
 		release.Title = release.TagName
+	}
+
+	if ctx.IsSigned && !release.IsTag {
+		err = activities_model.SetReleaseReadBy(ctx, release.ID, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("SetReleaseReadBy", err)
+			return
+		}
 	}
 
 	ctx.Data["PageIsSingleTag"] = release.IsTag

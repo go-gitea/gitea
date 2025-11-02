@@ -187,7 +187,7 @@
 			{{end}}
 			{{if .HasPullRequest}}
 				<div class="ui segment flex-text-block tw-gap-4">
-					{{template "shared/issueicon" .}}
+					{{.IconHTML ctx}}
 					<div class="issue-title tw-break-anywhere">
 						{{ctx.RenderUtils.RenderIssueTitle .PullRequest.Issue.Title $.Repository}}
 						<span class="index">#{{.PullRequest.Issue.Index}}</span>

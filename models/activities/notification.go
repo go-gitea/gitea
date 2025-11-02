@@ -6,15 +6,18 @@ package activities
 import (
 	"context"
 	"fmt"
+	"html/template"
 	"net/url"
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -46,6 +49,8 @@ const (
 	NotificationSourceCommit
 	// NotificationSourceRepository is a notification for a repository
 	NotificationSourceRepository
+	// NotificationSourceRelease is a notification for a release
+	NotificationSourceRelease
 )
 
 // Notification represents a notification
@@ -60,6 +65,7 @@ type Notification struct {
 	IssueID   int64 `xorm:"NOT NULL"`
 	CommitID  string
 	CommentID int64
+	ReleaseID int64
 
 	UpdatedBy int64 `xorm:"NOT NULL"`
 
@@ -67,6 +73,8 @@ type Notification struct {
 	Repository *repo_model.Repository `xorm:"-"`
 	Comment    *issues_model.Comment  `xorm:"-"`
 	User       *user_model.User       `xorm:"-"`
+	Release    *repo_model.Release    `xorm:"-"`
+	Commit     *git.Commit            `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOT NULL"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
@@ -104,6 +112,10 @@ func (n *Notification) TableIndices() []*schemas.Index {
 	commitIDIndex.AddColumn("commit_id")
 	indices = append(indices, commitIDIndex)
 
+	releaseIDIndex := schemas.NewIndex("idx_notification_release_id", schemas.IndexType)
+	releaseIDIndex.AddColumn("release_id")
+	indices = append(indices, releaseIDIndex)
+
 	updatedByIndex := schemas.NewIndex("idx_notification_updated_by", schemas.IndexType)
 	updatedByIndex.AddColumn("updated_by")
 	indices = append(indices, updatedByIndex)
@@ -116,36 +128,55 @@ func init() {
 }
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
-func CreateRepoTransferNotification(ctx context.Context, doer, newOwner *user_model.User, repo *repo_model.Repository) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
-		var notify []*Notification
+func CreateRepoTransferNotification(ctx context.Context, doerID, repoID, receiverID int64) error {
+	notify := &Notification{
+		UserID:    receiverID,
+		RepoID:    repoID,
+		Status:    NotificationStatusUnread,
+		UpdatedBy: doerID,
+		Source:    NotificationSourceRepository,
+	}
+	return db.Insert(ctx, notify)
+}
 
-		if newOwner.IsOrganization() {
-			users, err := organization.GetUsersWhoCanCreateOrgRepo(ctx, newOwner.ID)
-			if err != nil || len(users) == 0 {
-				return err
-			}
-			for i := range users {
-				notify = append(notify, &Notification{
-					UserID:    i,
-					RepoID:    repo.ID,
-					Status:    NotificationStatusUnread,
-					UpdatedBy: doer.ID,
-					Source:    NotificationSourceRepository,
-				})
-			}
-		} else {
-			notify = []*Notification{{
-				UserID:    newOwner.ID,
-				RepoID:    repo.ID,
-				Status:    NotificationStatusUnread,
-				UpdatedBy: doer.ID,
-				Source:    NotificationSourceRepository,
-			}}
-		}
+func CreateCommitNotifications(ctx context.Context, doerID, repoID int64, commitID string, receiverID int64) error {
+	notification := &Notification{
+		Source:    NotificationSourceCommit,
+		UserID:    receiverID,
+		RepoID:    repoID,
+		CommitID:  commitID,
+		Status:    NotificationStatusUnread,
+		UpdatedBy: doerID,
+	}
 
-		return db.Insert(ctx, notify)
-	})
+	return db.Insert(ctx, notification)
+}
+
+func CreateOrUpdateReleaseNotifications(ctx context.Context, doerID, repoID, releaseID, receiverID int64) error {
+	notification := new(Notification)
+	if _, err := db.GetEngine(ctx).
+		Where("user_id = ?", receiverID).
+		And("repo_id = ?", repoID).
+		And("release_id = ?", releaseID).
+		Get(notification); err != nil {
+		return err
+	}
+	if notification.ID > 0 {
+		notification.Status = NotificationStatusUnread
+		notification.UpdatedBy = doerID
+		_, err := db.GetEngine(ctx).ID(notification.ID).Cols("status", "updated_by").Update(notification)
+		return err
+	}
+
+	notification = &Notification{
+		Source:    NotificationSourceRelease,
+		RepoID:    repoID,
+		UserID:    receiverID,
+		Status:    NotificationStatusUnread,
+		ReleaseID: releaseID,
+		UpdatedBy: doerID,
+	}
+	return db.Insert(ctx, notification)
 }
 
 func createIssueNotification(ctx context.Context, userID int64, issue *issues_model.Issue, commentID, updatedByID int64) error {
@@ -213,6 +244,12 @@ func (n *Notification) LoadAttributes(ctx context.Context) (err error) {
 	if err = n.loadComment(ctx); err != nil {
 		return err
 	}
+	if err = n.loadCommit(ctx); err != nil {
+		return err
+	}
+	if err = n.loadRelease(ctx); err != nil {
+		return err
+	}
 	return err
 }
 
@@ -253,6 +290,41 @@ func (n *Notification) loadComment(ctx context.Context) (err error) {
 	return nil
 }
 
+func (n *Notification) loadCommit(ctx context.Context) (err error) {
+	if n.Source != NotificationSourceCommit || n.CommitID == "" || n.Commit != nil {
+		return nil
+	}
+
+	if n.Repository == nil {
+		_ = n.loadRepo(ctx)
+		if n.Repository == nil {
+			return fmt.Errorf("repository not found for notification %d", n.ID)
+		}
+	}
+
+	repo, err := gitrepo.OpenRepository(ctx, n.Repository)
+	if err != nil {
+		return fmt.Errorf("OpenRepository [%d]: %w", n.Repository.ID, err)
+	}
+	defer repo.Close()
+
+	n.Commit, err = repo.GetCommit(n.CommitID)
+	if err != nil {
+		return fmt.Errorf("Notification[%d]: Failed to get repo for commit %s: %v", n.ID, n.CommitID, err)
+	}
+	return nil
+}
+
+func (n *Notification) loadRelease(ctx context.Context) (err error) {
+	if n.Release == nil && n.ReleaseID != 0 {
+		n.Release, err = repo_model.GetReleaseByID(ctx, n.ReleaseID)
+		if err != nil {
+			return fmt.Errorf("GetReleaseByID [%d]: %w", n.ReleaseID, err)
+		}
+	}
+	return nil
+}
+
 func (n *Notification) loadUser(ctx context.Context) (err error) {
 	if n.User == nil {
 		n.User, err = user_model.GetUserByID(ctx, n.UserID)
@@ -285,6 +357,8 @@ func (n *Notification) HTMLURL(ctx context.Context) string {
 		return n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID)
 	case NotificationSourceRepository:
 		return n.Repository.HTMLURL(ctx)
+	case NotificationSourceRelease:
+		return n.Release.HTMLURL()
 	}
 	return ""
 }
@@ -301,8 +375,26 @@ func (n *Notification) Link(ctx context.Context) string {
 		return n.Repository.Link() + "/commit/" + url.PathEscape(n.CommitID)
 	case NotificationSourceRepository:
 		return n.Repository.Link()
+	case NotificationSourceRelease:
+		return n.Release.Link()
 	}
 	return ""
+}
+
+func (n *Notification) IconHTML(ctx context.Context) template.HTML {
+	switch n.Source {
+	case NotificationSourceIssue, NotificationSourcePullRequest:
+		// n.Issue should be loaded before calling this method
+		return n.Issue.IconHTML(ctx)
+	case NotificationSourceCommit:
+		return svg.RenderHTML("octicon-commit", 16, "text grey")
+	case NotificationSourceRepository:
+		return svg.RenderHTML("octicon-repo", 16, "text grey")
+	case NotificationSourceRelease:
+		return svg.RenderHTML("octicon-tag", 16, "text grey")
+	default:
+		return ""
+	}
 }
 
 // APIURL formats a URL-string to the notification
@@ -373,6 +465,28 @@ func SetRepoReadBy(ctx context.Context, userID, repoID int64) error {
 	return err
 }
 
+// SetReleaseReadBy sets issue to be read by given user.
+func SetReleaseReadBy(ctx context.Context, releaseID, userID int64) error {
+	_, err := db.GetEngine(ctx).Where(builder.Eq{
+		"user_id":    userID,
+		"status":     NotificationStatusUnread,
+		"source":     NotificationSourceRelease,
+		"release_id": releaseID,
+	}).Cols("status").Update(&Notification{Status: NotificationStatusRead})
+	return err
+}
+
+// SetCommitReadBy sets issue to be read by given user.
+func SetCommitReadBy(ctx context.Context, repoID, userID int64, commitID string) error {
+	_, err := db.GetEngine(ctx).Where(builder.Eq{
+		"user_id":   userID,
+		"status":    NotificationStatusUnread,
+		"source":    NotificationSourceCommit,
+		"commit_id": commitID,
+	}).Cols("status").Update(&Notification{Status: NotificationStatusRead})
+	return err
+}
+
 // SetNotificationStatus change the notification status
 func SetNotificationStatus(ctx context.Context, notificationID int64, user *user_model.User, status NotificationStatus) (*Notification, error) {
 	notification, err := GetNotificationByID(ctx, notificationID)
@@ -385,8 +499,7 @@ func SetNotificationStatus(ctx context.Context, notificationID int64, user *user
 	}
 
 	notification.Status = status
-
-	_, err = db.GetEngine(ctx).ID(notificationID).Update(notification)
+	_, err = db.GetEngine(ctx).ID(notificationID).Cols("status").Update(notification)
 	return notification, err
 }
 
