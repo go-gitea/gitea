@@ -305,7 +305,7 @@ func TestPullCreateParallel(t *testing.T) {
 		assert.Equal(t, 3, repo1.NumOpenPulls)
 
 		var wg sync.WaitGroup
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			wg.Go(func() {
 				branchName := fmt.Sprintf("new-branch-%d", i)
 				testEditFileToNewBranch(t, sessionFork, "user1", "repo1", "master", branchName, "README.md", fmt.Sprintf("Hello, World (Edited) %d\n", i))
