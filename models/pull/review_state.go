@@ -49,6 +49,19 @@ func init() {
 	db.RegisterModel(new(ReviewState))
 }
 
+func (rs *ReviewState) GetViewedFileCount() int {
+	if len(rs.UpdatedFiles) == 0 {
+		return 0
+	}
+	var viewedFiles int
+	for _, state := range rs.UpdatedFiles {
+		if state == Viewed {
+			viewedFiles++
+		}
+	}
+	return viewedFiles
+}
+
 // GetReviewState returns the ReviewState with all given values prefilled, whether or not it exists in the database.
 // If the review didn't exist before in the database, it won't afterwards either.
 // The returned boolean shows whether the review exists in the database
