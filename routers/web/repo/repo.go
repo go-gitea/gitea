@@ -183,9 +183,6 @@ func Create(ctx *context.Context) {
 
 func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form any) {
 	switch {
-	case repo_model.IsErrRepoNameGloballyTaken(err):
-		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_globally_taken"), tpl, form)
 	case repo_model.IsErrRepoSubjectGloballyTaken(err):
 		ctx.Data["Err_Subject"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.subject_globally_taken"), tpl, form)

@@ -181,37 +181,34 @@ export function generateRepoNameFromSubject(subject: string): string {
     return '';
   }
 
-  // Convert to lowercase and replace spaces with hyphens
-  let name = subject.toLowerCase().replace(/\s+/g, '-');
+  // Normalize Unicode characters (remove accents)
+  // This matches the backend's Unicode normalization in GenerateSlugFromName
+  let normalized = subject.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 
-  // Remove or replace special characters, keeping only alphanumeric, hyphens, dots, and underscores
-  // Backend pattern: ^[-.\w]+$ where \w = [a-zA-Z0-9_]
-  name = name.replace(/[^a-z0-9\-._]/g, '');
+  // Convert to lowercase
+  let name = normalized.toLowerCase();
 
-  // Collapse multiple consecutive hyphens to single hyphen for better readability
+  // Replace spaces and underscores with hyphens (unified with GenerateSlugFromName)
+  name = name.replace(/\s+/g, '-');
+  name = name.replace(/_/g, '-');
+
+  // Remove all characters except alphanumeric and hyphens
+  name = name.replace(/[^a-z0-9-]/g, '');
+
+  // Collapse multiple consecutive hyphens
   name = name.replace(/-+/g, '-');
 
-  // Collapse multiple consecutive dots to single dot (backend rejects 2+ consecutive dots)
-  name = name.replace(/\.+/g, '.');
-
-  // Remove leading/trailing hyphens and dots to avoid reserved names
-  // Backend reserved names: ".", "..", "-"
-  name = name.replace(/^[-.]+/, '').replace(/[-.]+$/, '');
-
-  // Check if name would match reserved patterns and append suffix
-  // Backend reserved patterns: *.wiki, *.git, *.rss, *.atom
-  if (name.endsWith('.wiki') || name.endsWith('.git') || name.endsWith('.rss') || name.endsWith('.atom')) {
-    name += '-repo';
-  }
+  // Trim leading/trailing hyphens
+  name = name.replace(/^-+/, '').replace(/-+$/, '');
 
   // Ensure it's not empty and not too long
   if (!name) {
-    name = 'repository';
+    name = 'subject';
   }
   if (name.length > 100) {
     name = name.substring(0, 100);
-    // After truncation, remove any trailing hyphens or dots
-    name = name.replace(/[-.]+$/, '');
+    // After truncation, remove any trailing hyphens
+    name = name.replace(/-+$/, '');
   }
 
   return name;

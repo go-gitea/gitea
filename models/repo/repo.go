@@ -1047,20 +1047,10 @@ func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName st
 	})
 }
 
-// IsRepositoryNameGloballyUnique checks if a repository name is unique across all users
-func IsRepositoryNameGloballyUnique(ctx context.Context, name string) (bool, error) {
-	name = strings.ToLower(name)
-	count, err := db.GetEngine(ctx).Where("lower_name = ?", name).Count(&Repository{})
-	if err != nil {
-		return false, err
-	}
-	return count == 0, nil
-}
-
 // IsRepositorySubjectGloballyUnique checks if a repository subject is unique across all users (case-insensitive)
 func IsRepositorySubjectGloballyUnique(ctx context.Context, subject string) (bool, error) {
 	if subject == "" {
-		return true, nil // Empty subjects are allowed
+		return false, nil // Empty subjects are not allowed
 	}
 
 	subject = strings.ToLower(strings.TrimSpace(subject))
@@ -1180,42 +1170,14 @@ func UpdateRepositoryOwnerName(ctx context.Context, oldUserName, newUserName str
 }
 
 // GenerateRepoNameFromSubject generates a URL-safe repository name from a subject
-// It converts spaces to hyphens, removes special characters, and ensures the result is valid
+// It uses the same slug generation logic as GenerateSlugFromName to ensure consistency
+// between repository names and subject slugs.
 func GenerateRepoNameFromSubject(subject string) string {
 	if subject == "" {
 		return ""
 	}
 
-	// Convert to lowercase and replace spaces with hyphens
-	name := strings.ToLower(subject)
-	name = strings.ReplaceAll(name, " ", "-")
-
-	// Remove special characters, keeping only ASCII alphanumeric, hyphens, and underscores
-	// NOTE: Dots are removed to avoid reserved patterns (.git, .wiki, .rss, .atom)
-	// NOTE: Only ASCII letters/digits allowed to match Gitea's validRepoNamePattern: ^[-.\w]+$
-	var result strings.Builder
-	for _, r := range name {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_' {
-			result.WriteRune(r)
-		}
-	}
-
-	name = result.String()
-
-	// Remove leading/trailing hyphens and underscores
-	name = strings.Trim(name, "-_")
-
-	// Collapse multiple consecutive hyphens
-	name = globalVars().multiHyphenRegex.ReplaceAllString(name, "-")
-
-	// Ensure it's not empty and not too long
-	if name == "" {
-		name = "repository"
-	}
-	if len(name) > 100 {
-		name = name[:100]
-		name = strings.TrimRight(name, "-_")
-	}
-
-	return name
+	// Use the same slug generation as subjects for consistency
+	// This ensures that repo names and subject slugs are always identical
+	return GenerateSlugFromName(subject)
 }

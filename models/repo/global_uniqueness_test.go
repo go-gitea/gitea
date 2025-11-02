@@ -15,34 +15,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIsRepositoryNameGloballyUnique(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	ctx := context.Background()
-
-	// Test with a name that doesn't exist
-	unique, err := repo_model.IsRepositoryNameGloballyUnique(ctx, "unique-test-repo")
-	assert.NoError(t, err)
-	assert.True(t, unique)
-
-	// Test with a name that exists (repo1 exists in test data)
-	unique, err = repo_model.IsRepositoryNameGloballyUnique(ctx, "repo1")
-	assert.NoError(t, err)
-	assert.False(t, unique)
-
-	// Test case insensitive matching
-	unique, err = repo_model.IsRepositoryNameGloballyUnique(ctx, "REPO1")
-	assert.NoError(t, err)
-	assert.False(t, unique)
-}
-
 func TestIsRepositorySubjectGloballyUnique(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ctx := context.Background()
 
-	// Test with empty subject (should be allowed)
+	// Test with empty subject (should not be allowed)
 	unique, err := repo_model.IsRepositorySubjectGloballyUnique(ctx, "")
 	assert.NoError(t, err)
-	assert.True(t, unique)
+	assert.False(t, unique)
 
 	// Test with a subject that doesn't exist
 	unique, err = repo_model.IsRepositorySubjectGloballyUnique(ctx, "Unique Test Subject")
@@ -94,14 +74,21 @@ func TestCheckCreateRepositoryGlobalUnique(t *testing.T) {
 	ctx := context.Background()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	// Test with unique name and subject
 	err := repo_model.CheckCreateRepositoryGlobalUnique(ctx, user, user, "unique-global-repo", "Unique Global Subject", false)
 	assert.NoError(t, err)
 
-	// Test with existing repository name (repo1 exists)
-	err = repo_model.CheckCreateRepositoryGlobalUnique(ctx, user, user, "repo1", "Some Subject", false)
-	assert.True(t, repo_model.IsErrRepoNameGloballyTaken(err))
+	// Test with existing repository name owned by same user (should fail - owner-scoped uniqueness)
+	// user2 owns repo1, so user2 cannot create another repo1
+	err = repo_model.CheckCreateRepositoryGlobalUnique(ctx, user2, user2, "repo1", "Some Subject", false)
+	assert.True(t, repo_model.IsErrRepoAlreadyExist(err), "Should fail when same owner tries to create repo with duplicate name")
+
+	// Test with existing repository name owned by different user (should succeed - no global uniqueness)
+	// user2 already has repo1, but user (user1) should be able to create their own repo1
+	err = repo_model.CheckCreateRepositoryGlobalUnique(ctx, user, user, "repo1", "Different Subject", false)
+	assert.NoError(t, err, "Different owners should be able to have repositories with the same name")
 
 	// Create a test subject and repository to test subject uniqueness
 	globalSubject, err := repo_model.GetOrCreateSubject(ctx, "Global Test Subject")
@@ -120,24 +107,17 @@ func TestCheckCreateRepositoryGlobalUnique(t *testing.T) {
 	_, err = db.GetEngine(ctx).Insert(testRepo)
 	assert.NoError(t, err)
 
-	// Test with existing subject
+	// Test with existing subject (should fail - subjects are globally unique)
 	err = repo_model.CheckCreateRepositoryGlobalUnique(ctx, user, user, "another-unique-repo", "Global Test Subject", false)
-	assert.True(t, repo_model.IsErrRepoSubjectGloballyTaken(err))
+	assert.True(t, repo_model.IsErrRepoSubjectGloballyTaken(err), "Should fail when subject is already taken globally")
 
-	// Test with empty subject (should be allowed)
+	// Test with empty subject (should fail - empty subjects are not allowed)
 	err = repo_model.CheckCreateRepositoryGlobalUnique(ctx, user, user, "repo-without-subject", "", false)
-	assert.NoError(t, err)
+	assert.True(t, repo_model.IsErrRepoSubjectGloballyTaken(err), "Should fail when subject is empty")
 
 	// Clean up
 	_, err = db.GetEngine(ctx).Delete(testRepo)
 	assert.NoError(t, err)
-}
-
-func TestErrRepoNameGloballyTaken(t *testing.T) {
-	err := repo_model.ErrRepoNameGloballyTaken{Name: "test-repo"}
-	assert.True(t, repo_model.IsErrRepoNameGloballyTaken(err))
-	assert.Contains(t, err.Error(), "test-repo")
-	assert.Contains(t, err.Error(), "globally")
 }
 
 func TestErrRepoSubjectGloballyTaken(t *testing.T) {

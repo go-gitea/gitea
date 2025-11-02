@@ -106,24 +106,6 @@ func (err ErrRepoFilesAlreadyExist) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
-// ErrRepoNameGloballyTaken represents a "repository name globally taken" error
-type ErrRepoNameGloballyTaken struct {
-	Name string
-}
-
-func IsErrRepoNameGloballyTaken(err error) bool {
-	_, ok := err.(ErrRepoNameGloballyTaken)
-	return ok
-}
-
-func (err ErrRepoNameGloballyTaken) Error() string {
-	return fmt.Sprintf("repository name is already taken globally [name: %s]", err.Name)
-}
-
-func (err ErrRepoNameGloballyTaken) Unwrap() error {
-	return util.ErrAlreadyExist
-}
-
 // ErrRepoSubjectGloballyTaken represents a "repository subject globally taken" error
 type ErrRepoSubjectGloballyTaken struct {
 	Subject string
@@ -171,31 +153,24 @@ func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, na
 	return nil
 }
 
-// CheckCreateRepositoryGlobalUnique checks if repository name and subject are globally unique
+// CheckCreateRepositoryGlobalUnique checks repository creation permissions and subject global uniqueness
+// Note: Repository names are validated for owner-scoped uniqueness only (via CheckCreateRepository),
+// not global uniqueness. This aligns with standard Git forge behavior where multiple owners can have
+// repositories with the same name (e.g., user1/myrepo and user2/myrepo can coexist).
+// Subjects, however, must be globally unique across the entire system.
 func CheckCreateRepositoryGlobalUnique(ctx context.Context, doer, owner *user_model.User, name, subject string, overwriteOrAdopt bool) error {
-	// First run the existing validation
+	// First run the existing validation (owner-scoped repository name uniqueness)
 	if err := CheckCreateRepository(ctx, doer, owner, name, overwriteOrAdopt); err != nil {
 		return err
 	}
 
-	// Check global uniqueness for repository name
-	isNameUnique, err := IsRepositoryNameGloballyUnique(ctx, name)
+	// Check global uniqueness for repository subject
+	isSubjectUnique, err := IsRepositorySubjectGloballyUnique(ctx, subject)
 	if err != nil {
-		return fmt.Errorf("failed to check global name uniqueness: %w", err)
+		return fmt.Errorf("failed to check global subject uniqueness: %w", err)
 	}
-	if !isNameUnique {
-		return ErrRepoNameGloballyTaken{Name: name}
-	}
-
-	// Check global uniqueness for repository subject (if provided)
-	if subject != "" {
-		isSubjectUnique, err := IsRepositorySubjectGloballyUnique(ctx, subject)
-		if err != nil {
-			return fmt.Errorf("failed to check global subject uniqueness: %w", err)
-		}
-		if !isSubjectUnique {
-			return ErrRepoSubjectGloballyTaken{Subject: subject}
-		}
+	if !isSubjectUnique {
+		return ErrRepoSubjectGloballyTaken{Subject: subject}
 	}
 
 	return nil

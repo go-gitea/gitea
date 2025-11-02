@@ -371,6 +371,7 @@ func TestGenerateRepoNameFromSubject(t *testing.T) {
 		},
 
 		// Edge cases - empty and special characters
+		// NOTE: After unification with GenerateSlugFromName, empty fallback is "subject"
 		{
 			name:     "Empty string",
 			subject:  "",
@@ -379,37 +380,37 @@ func TestGenerateRepoNameFromSubject(t *testing.T) {
 		{
 			name:     "Only special characters",
 			subject:  "!!!",
-			expected: "repository",
+			expected: "subject",
 		},
 		{
 			name:     "Only spaces",
 			subject:  "   ",
-			expected: "repository",
+			expected: "subject",
 		},
 		{
 			name:     "Only dots",
 			subject:  "...",
-			expected: "repository",
+			expected: "subject",
 		},
 		{
 			name:     "Only hyphens",
 			subject:  "---",
-			expected: "repository",
+			expected: "subject",
 		},
 		{
 			name:     "Only underscores",
 			subject:  "___",
-			expected: "repository",
+			expected: "subject",
 		},
 		{
 			name:     "Single hyphen",
 			subject:  "-",
-			expected: "repository",
+			expected: "subject",
 		},
 		{
 			name:     "Single underscore",
 			subject:  "_",
-			expected: "repository",
+			expected: "subject",
 		},
 
 		// Special characters removal
@@ -434,16 +435,16 @@ func TestGenerateRepoNameFromSubject(t *testing.T) {
 			expected: "project-rocket",
 		},
 
-		// Underscores - should be preserved
+		// Underscores - converted to hyphens (unified with GenerateSlugFromName)
 		{
-			name:     "Underscores preserved",
+			name:     "Underscores converted to hyphens",
 			subject:  "Test_Project",
-			expected: "test_project",
+			expected: "test-project",
 		},
 		{
 			name:     "Mixed underscores and spaces",
 			subject:  "My_Cool Project",
-			expected: "my_cool-project",
+			expected: "my-cool-project",
 		},
 		{
 			name:     "Leading underscores",
@@ -475,7 +476,7 @@ func TestGenerateRepoNameFromSubject(t *testing.T) {
 		{
 			name:     "Mixed separators",
 			subject:  "hello - world _ test",
-			expected: "hello-world-_-test",
+			expected: "hello-world-test",
 		},
 
 		// Length limits - 100 character maximum
@@ -500,16 +501,16 @@ func TestGenerateRepoNameFromSubject(t *testing.T) {
 			expected: strings.Repeat("a", 99),
 		},
 
-		// Unicode and accents - non-ASCII characters are stripped
+		// Unicode and accents - normalized (unified with GenerateSlugFromName)
 		{
 			name:     "Unicode characters",
 			subject:  "Zürich Project",
-			expected: "zrich-project",
+			expected: "zurich-project",
 		},
 		{
 			name:     "Accented characters",
 			subject:  "Café François",
-			expected: "caf-franois",
+			expected: "cafe-francois",
 		},
 		{
 			name:     "Mixed case with numbers",
@@ -551,6 +552,53 @@ func TestGenerateRepoNameFromSubject(t *testing.T) {
 				err := IsUsableRepoName(result)
 				assert.NoError(t, err, "Generated name %q should pass IsUsableRepoName validation for subject %q", result, tt.subject)
 			}
+
+			// CRITICAL: Verify that GenerateRepoNameFromSubject produces identical output to GenerateSlugFromName
+			// This ensures consistency between repository names and subject slugs
+			if tt.subject != "" {
+				slugResult := GenerateSlugFromName(tt.subject)
+				assert.Equal(t, slugResult, result, "GenerateRepoNameFromSubject should produce identical output to GenerateSlugFromName for subject: %q", tt.subject)
+			}
 		})
 	}
+}
+
+// TestGenerateRepoNameFromSubject_MatchesSlugGeneration verifies that
+// GenerateRepoNameFromSubject produces identical output to GenerateSlugFromName
+// for a comprehensive set of test cases
+func TestGenerateRepoNameFromSubject_MatchesSlugGeneration(t *testing.T) {
+	testCases := []string{
+		"The Moon",
+		"the moon!",
+		"El Camiño?",
+		"Café Français",
+		"Hello@World#2024!",
+		"hello_world_test",
+		"hello   world",
+		"  hello world  ",
+		"Zürich",
+		"Test123Subject",
+		"hello---world",
+		"My.Project",
+		"Project.git",
+		"!!!???",
+		strings.Repeat("a", 150),
+	}
+
+	for _, subject := range testCases {
+		t.Run(subject, func(t *testing.T) {
+			repoName := GenerateRepoNameFromSubject(subject)
+			slug := GenerateSlugFromName(subject)
+			assert.Equal(t, slug, repoName,
+				"GenerateRepoNameFromSubject and GenerateSlugFromName must produce identical output for subject: %q", subject)
+		})
+	}
+
+	// Special case: empty string
+	// GenerateRepoNameFromSubject returns "" for empty input (used in forms)
+	// while GenerateSlugFromName returns "subject" (used for database storage)
+	t.Run("Empty string special case", func(t *testing.T) {
+		assert.Equal(t, "", GenerateRepoNameFromSubject(""))
+		assert.Equal(t, "subject", GenerateSlugFromName(""))
+	})
 }

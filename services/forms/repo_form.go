@@ -23,7 +23,7 @@ import (
 type CreateRepoForm struct {
 	UID           int64  `binding:"Required"`
 	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Subject       string `binding:"MaxSize(255)"`
+	Subject       string `binding:"Required;MaxSize(255)"`
 	Private       bool
 	Description   string `binding:"MaxSize(2048)"`
 	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
@@ -47,44 +47,25 @@ type CreateRepoForm struct {
 	ObjectFormatName string
 }
 
-// ValidateGlobalUniqueness validates global uniqueness for repository name and subject
+// ValidateGlobalUniqueness validates global uniqueness for repository subject
+// Note: Repository names are only validated for owner-scoped uniqueness (not global)
 func (f *CreateRepoForm) ValidateGlobalUniqueness(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 
-	// Check global name uniqueness
-	if f.RepoName != "" {
-		isNameUnique, err := repo_model.IsRepositoryNameGloballyUnique(ctx, f.RepoName)
-		if err != nil {
-			errs = append(errs, binding.Error{
-				FieldNames:     []string{"RepoName"},
-				Classification: "GlobalUniquenessError",
-				Message:        "Failed to validate repository name uniqueness",
-			})
-		} else if !isNameUnique {
-			errs = append(errs, binding.Error{
-				FieldNames:     []string{"RepoName"},
-				Classification: "GlobalUniquenessError",
-				Message:        ctx.Locale.TrString("repo.form.name_globally_taken"),
-			})
-		}
-	}
-
 	// Check global subject uniqueness
-	if f.Subject != "" {
-		isSubjectUnique, err := repo_model.IsRepositorySubjectGloballyUnique(ctx, f.Subject)
-		if err != nil {
-			errs = append(errs, binding.Error{
-				FieldNames:     []string{"Subject"},
-				Classification: "GlobalUniquenessError",
-				Message:        "Failed to validate repository subject uniqueness",
-			})
-		} else if !isSubjectUnique {
-			errs = append(errs, binding.Error{
-				FieldNames:     []string{"Subject"},
-				Classification: "GlobalUniquenessError",
-				Message:        ctx.Locale.TrString("repo.form.subject_globally_taken"),
-			})
-		}
+	isSubjectUnique, err := repo_model.IsRepositorySubjectGloballyUnique(ctx, f.Subject)
+	if err != nil {
+		errs = append(errs, binding.Error{
+			FieldNames:     []string{"Subject"},
+			Classification: "GlobalUniquenessError",
+			Message:        "Failed to validate repository subject uniqueness",
+		})
+	} else if !isSubjectUnique {
+		errs = append(errs, binding.Error{
+			FieldNames:     []string{"Subject"},
+			Classification: "GlobalUniquenessError",
+			Message:        ctx.Locale.TrString("repo.form.subject_globally_taken"),
+		})
 	}
 
 	return errs
