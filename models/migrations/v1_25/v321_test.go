@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
@@ -38,33 +39,26 @@ func Test_UseLongTextInSomeColumnsAndFixBugs(t *testing.T) {
 	type Notice struct {
 		ID          int64 `xorm:"pk autoincr"`
 		Type        int
-		Description string             `xorm:"LONGTEXT"`
+		Description string             `xorm:"TEXT"`
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	}
 
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(ReviewState), new(PackageProperty), new(Notice))
-	defer deferable()
+	x, deferrable := base.PrepareTestEnv(t, 0, new(ReviewState), new(PackageProperty), new(Notice))
+	defer deferrable()
 
-	assert.NoError(t, UseLongTextInSomeColumnsAndFixBugs(x))
+	require.NoError(t, UseLongTextInSomeColumnsAndFixBugs(x))
 
-	tables, err := x.DBMetas()
-	assert.NoError(t, err)
+	tables := base.LoadTableSchemasMap(t, x)
+	table := tables["review_state"]
+	column := table.GetColumn("updated_files")
+	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
 
-	for _, table := range tables {
-		switch table.Name {
-		case "review_state":
-			column := table.GetColumn("updated_files")
-			assert.NotNil(t, column)
-			assert.Equal(t, "LONGTEXT", column.SQLType.Name)
-		case "package_property":
-			column := table.GetColumn("value")
-			assert.NotNil(t, column)
-			assert.Equal(t, "LONGTEXT", column.SQLType.Name)
-		case "notice":
-			column := table.GetColumn("description")
-			assert.NotNil(t, column)
-			assert.Equal(t, "LONGTEXT", column.SQLType.Name)
-		}
-	}
+	table = tables["package_property"]
+	column = table.GetColumn("value")
+	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
+
+	table = tables["notice"]
+	column = table.GetColumn("description")
+	assert.Equal(t, "LONGTEXT", column.SQLType.Name)
 }

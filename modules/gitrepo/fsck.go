@@ -7,10 +7,10 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // Fsck verifies the connectivity and validity of the objects in the database
-func Fsck(ctx context.Context, repo Repository, timeout time.Duration, args git.TrustedCmdArgs) error {
-	return git.NewCommand("fsck").AddArguments(args...).Run(ctx, &git.RunOpts{Timeout: timeout, Dir: repoPath(repo)})
+func Fsck(ctx context.Context, repo Repository, timeout time.Duration, args gitcmd.TrustedCmdArgs) error {
+	return RunCmd(ctx, repo, gitcmd.NewCommand("fsck").AddArguments(args...).WithTimeout(timeout))
 }

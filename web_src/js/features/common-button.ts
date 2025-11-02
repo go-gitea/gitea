@@ -112,7 +112,7 @@ function onHidePanelClick(el: HTMLElement, e: MouseEvent) {
 export type ElementWithAssignableProperties = {
   getAttribute: (name: string) => string | null;
   setAttribute: (name: string, value: string) => void;
-} & Record<string, any>
+} & Record<string, any>;
 
 export function assignElementProperty(el: ElementWithAssignableProperties, kebabName: string, val: string) {
   const camelizedName = camelize(kebabName);

@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -180,7 +181,7 @@ func UpdateAssignees(ctx context.Context, issue *issues_model.Issue, oneAssignee
 }
 
 // DeleteIssue deletes an issue
-func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue) error {
+func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) error {
 	// load issue before deleting it
 	if err := issue.LoadAttributes(ctx); err != nil {
 		return err
@@ -199,8 +200,11 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, gitRepo *git.Reposi
 	}
 
 	// delete pull request related git data
-	if issue.IsPull && gitRepo != nil {
-		if err := gitRepo.RemoveReference(issue.PullRequest.GetGitHeadRefName()); err != nil {
+	if issue.IsPull {
+		if err := issue.PullRequest.LoadBaseRepo(ctx); err != nil {
+			return err
+		}
+		if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
 			return err
 		}
 	}

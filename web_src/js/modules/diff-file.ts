@@ -15,7 +15,7 @@ export type DiffTreeEntry = {
   Children: DiffTreeEntry[],
   FileIcon: string,
   ParentEntry?: DiffTreeEntry,
-}
+};
 
 type DiffFileTreeData = {
   TreeRoot: DiffTreeEntry,
@@ -28,7 +28,7 @@ type DiffFileTree = {
   fullNameMap?: Record<string, DiffTreeEntry>
   fileTreeIsVisible: boolean;
   selectedItem: string;
-}
+};
 
 let diffTreeStoreReactive: Reactive<DiffFileTree>;
 export function diffTreeStore() {

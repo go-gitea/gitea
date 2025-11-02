@@ -4,7 +4,7 @@ export type MentionValue = {
   name: string,
   fullname: string,
   avatar: string,
-}
+};
 
 export type Config = {
   appUrl: string,
@@ -20,7 +20,7 @@ export type Config = {
   mentionValues?: MentionValue[],
   mermaidMaxSourceCharacters: number,
   i18n: Record<string, string>,
-}
+};
 
 export type IntervalId = ReturnType<typeof setInterval>;
 
@@ -35,36 +35,44 @@ export type RequestOpts = {
 export type RepoOwnerPathInfo = {
   ownerName: string,
   repoName: string,
-}
+};
 
 export type IssuePathInfo = {
   ownerName: string,
   repoName: string,
   pathType: string,
   indexString?: string,
-}
+};
 
 export type IssuePageInfo = {
   repoLink: string,
   repoId: number,
   issueNumber: number,
   issueDependencySearchType: string,
-}
+};
 
 export type Issue = {
-  id: number;
-  number: number;
-  title: string;
-  state: 'open' | 'closed';
+  id: number,
+  number: number,
+  title: string,
+  body: string,
+  state: 'open' | 'closed',
+  created_at: string,
   pull_request?: {
     draft: boolean;
     merged: boolean;
-  };
+  },
+  repository: {
+    full_name: string,
+  },
+  labels: Array<string>,
 };
 
 export type FomanticInitFunction = {
   settings?: Record<string, any>,
   (...args: any[]): any,
-}
+};
 
 export type GitRefType = 'branch' | 'tag';
+
+export type Promisable<T> = T | Promise<T>; // stricter than type-fest which uses PromiseLike

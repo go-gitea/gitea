@@ -60,6 +60,7 @@ type ChangeRepoFilesOptions struct {
 	Committer    *IdentityOptions
 	Dates        *CommitDateOptions
 	Signoff      bool
+	ForcePush    bool
 }
 
 type RepoFileOptions struct {
@@ -176,8 +177,11 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 			return nil, err
 		}
 		if exist {
-			return nil, git_model.ErrBranchAlreadyExists{
-				BranchName: opts.NewBranch,
+			if !opts.ForcePush {
+				// branch exists but force option not set
+				return nil, git_model.ErrBranchAlreadyExists{
+					BranchName: opts.NewBranch,
+				}
 			}
 		}
 	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, treePaths); err != nil {
@@ -303,8 +307,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	}
 
 	// Then push this tree to NewBranch
-	if err := t.Push(ctx, doer, commitHash, opts.NewBranch); err != nil {
-		log.Error("%T %v", err, err)
+	if err := t.Push(ctx, doer, commitHash, opts.NewBranch, opts.ForcePush); err != nil {
 		return nil, err
 	}
 

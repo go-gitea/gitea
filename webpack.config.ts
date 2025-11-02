@@ -12,8 +12,6 @@ import {readFileSync, globSync} from 'node:fs';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
-import tailwindcssNesting from 'tailwindcss/nesting/index.js';
-import postcssNesting from 'postcss-nesting';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
@@ -76,6 +74,10 @@ export default {
     swagger: [
       fileURLToPath(new URL('web_src/js/standalone/swagger.ts', import.meta.url)),
       fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
+    ],
+    'external-render-iframe': [
+      fileURLToPath(new URL('web_src/js/standalone/external-render-iframe.ts', import.meta.url)),
+      fileURLToPath(new URL('web_src/css/standalone/external-render-iframe.css', import.meta.url)),
     ],
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.ts', import.meta.url)),
@@ -172,7 +174,6 @@ export default {
             options: {
               postcssOptions: {
                 plugins: [
-                  tailwindcssNesting(postcssNesting({edition: '2024-02'})),
                   tailwindcss(tailwindConfig),
                 ],
               },

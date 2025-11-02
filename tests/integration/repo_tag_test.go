@@ -15,7 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/release"
 	"code.gitea.io/gitea/tests"
@@ -55,10 +55,10 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 			doGitClone(dstPath, u)(t)
 
-			_, _, err := git.NewCommand("tag", "v-2").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+			_, _, err := gitcmd.NewCommand("tag", "v-2").WithDir(dstPath).RunStdString(t.Context())
 			assert.NoError(t, err)
 
-			_, _, err = git.NewCommand("push", "--tags").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+			_, _, err = gitcmd.NewCommand("push", "--tags").WithDir(dstPath).RunStdString(t.Context())
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "Tag v-2 is protected")
 		})
@@ -75,20 +75,22 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 			doGitClone(dstPath, u)(t)
 
-			_, _, err := git.NewCommand("tag", "v-1.1", "-m", "force update", "--force").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+			_, _, err := gitcmd.NewCommand("tag", "v-1.1", "-m", "force update", "--force").
+				WithDir(dstPath).
+				RunStdString(t.Context())
 			require.NoError(t, err)
 
-			_, _, err = git.NewCommand("push", "--tags").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+			_, _, err = gitcmd.NewCommand("push", "--tags").WithDir(dstPath).RunStdString(t.Context())
 			require.NoError(t, err)
 
-			_, _, err = git.NewCommand("tag", "v-1.1", "-m", "force update v2", "--force").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+			_, _, err = gitcmd.NewCommand("tag", "v-1.1", "-m", "force update v2", "--force").WithDir(dstPath).RunStdString(t.Context())
 			require.NoError(t, err)
 
-			_, _, err = git.NewCommand("push", "--tags").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+			_, _, err = gitcmd.NewCommand("push", "--tags").WithDir(dstPath).RunStdString(t.Context())
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "the tag already exists in the remote")
 
-			_, _, err = git.NewCommand("push", "--tags", "--force").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+			_, _, err = gitcmd.NewCommand("push", "--tags", "--force").WithDir(dstPath).RunStdString(t.Context())
 			require.NoError(t, err)
 			req := NewRequestf(t, "GET", "/%s/releases/tag/v-1.1", repo.FullName())
 			resp := MakeRequest(t, req, http.StatusOK)
@@ -137,15 +139,15 @@ func TestRepushTag(t *testing.T) {
 		doGitClone(dstPath, u)(t)
 
 		// create and push a tag
-		_, _, err := git.NewCommand("tag", "v2.0").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+		_, _, err := gitcmd.NewCommand("tag", "v2.0").WithDir(dstPath).RunStdString(t.Context())
 		assert.NoError(t, err)
-		_, _, err = git.NewCommand("push", "origin", "--tags", "v2.0").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+		_, _, err = gitcmd.NewCommand("push", "origin", "--tags", "v2.0").WithDir(dstPath).RunStdString(t.Context())
 		assert.NoError(t, err)
 		// create a release for the tag
 		createdRelease := createNewReleaseUsingAPI(t, token, owner, repo, "v2.0", "", "Release of v2.0", "desc")
 		assert.False(t, createdRelease.IsDraft)
 		// delete the tag
-		_, _, err = git.NewCommand("push", "origin", "--delete", "v2.0").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+		_, _, err = gitcmd.NewCommand("push", "origin", "--delete", "v2.0").WithDir(dstPath).RunStdString(t.Context())
 		assert.NoError(t, err)
 		// query the release by API and it should be a draft
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0"))
@@ -154,7 +156,7 @@ func TestRepushTag(t *testing.T) {
 		DecodeJSON(t, resp, &respRelease)
 		assert.True(t, respRelease.IsDraft)
 		// re-push the tag
-		_, _, err = git.NewCommand("push", "origin", "--tags", "v2.0").RunStdString(t.Context(), &git.RunOpts{Dir: dstPath})
+		_, _, err = gitcmd.NewCommand("push", "origin", "--tags", "v2.0").WithDir(dstPath).RunStdString(t.Context())
 		assert.NoError(t, err)
 		// query the release by API and it should not be a draft
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0"))

@@ -365,11 +365,11 @@ func GenerateEmbedBindata(fsRootPath, outputFile string) error {
 	if err = embedFiles(meta.Root, fsRootPath, ""); err != nil {
 		return err
 	}
-	jsonBuf, err := json.Marshal(meta) // can't use json.NewEncoder here because it writes extra EOL
+	jsonBuf, err := json.Marshal(meta)
 	if err != nil {
 		return err
 	}
 	_, _ = output.Write([]byte{'\n'})
-	_, err = output.Write(jsonBuf)
+	_, err = output.Write(bytes.TrimSpace(jsonBuf))
 	return err
 }

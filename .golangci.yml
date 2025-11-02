@@ -153,6 +153,7 @@ linters:
         text: '(?i)exitAfterDefer:'
     paths:
       - node_modules
+      - .venv
       - public
       - web_src
       - third_party$
@@ -172,6 +173,7 @@ formatters:
     generated: lax
     paths:
       - node_modules
+      - .venv
       - public
       - web_src
       - third_party$

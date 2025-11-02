@@ -408,7 +408,7 @@ func AddBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 
 			official, err := isOfficialReviewer(sess, review.IssueID, reviewer)
 			if err != nil {
-				// Branch might not be proteced or other error, ignore it.
+				// Branch might not be protected or other error, ignore it.
 				continue
 			}
 			review.Official = official

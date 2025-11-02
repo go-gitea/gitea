@@ -210,7 +210,7 @@ func ToCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Rep
 
 	// Get diff stats for commit
 	if opts.Stat {
-		diffShortStat, err := gitdiff.GetDiffShortStat(gitRepo, "", commit.ID.String())
+		diffShortStat, err := gitdiff.GetDiffShortStat(ctx, repo, gitRepo, "", commit.ID.String())
 		if err != nil {
 			return nil, err
 		}

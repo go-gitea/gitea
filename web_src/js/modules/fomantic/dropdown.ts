@@ -348,7 +348,7 @@ export function hideScopedEmptyDividers(container: Element) {
   }
 }
 
-function onResponseKeepSelectedItem(dropdown: typeof $|HTMLElement, selectedValue: string) {
+function onResponseKeepSelectedItem(dropdown: typeof $ | HTMLElement, selectedValue: string) {
   // There is a bug in fomantic dropdown when using "apiSettings" to fetch data
   // * when there is a selected item, the dropdown insists on hiding the selected one from the list:
   // * in the "filter" function: ('[data-value="'+value+'"]').addClass(className.filtered)

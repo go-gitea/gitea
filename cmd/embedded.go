@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/assetfs"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/public"
@@ -19,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/gobwas/glob"
 	"github.com/urfave/cli/v3"
 )
 

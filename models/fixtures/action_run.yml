@@ -139,3 +139,23 @@
   updated: 1683636626
   need_approval: 0
   approved_by: 0
+-
+  id: 804
+  title: "use a private action"
+  repo_id: 60
+  owner_id: 40
+  workflow_id: "run.yaml"
+  index: 189
+  trigger_user_id: 40
+  ref: "refs/heads/master"
+  commit_sha: "6e64b26de7ba966d01d90ecfaf5c7f14ef203e86"
+  event: "push"
+  trigger_event: "push"
+  is_fork_pull_request: 0
+  status: 1
+  started: 1683636528
+  stopped: 1683636626
+  created: 1683636108
+  updated: 1683636626
+  need_approval: 0
+  approved_by: 0

@@ -91,6 +91,7 @@ func runGenerateSecretKey(_ context.Context, c *cli.Command) error {
 		return err
 	}
 
+	// codeql[disable-next-line=go/clear-text-logging]
 	fmt.Printf("%s", secretKey)
 
 	if isatty.IsTerminal(os.Stdout.Fd()) {

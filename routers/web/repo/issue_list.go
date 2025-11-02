@@ -398,7 +398,7 @@ func BatchDeleteIssues(ctx *context.Context) {
 		return
 	}
 	for _, issue := range issues {
-		if err := issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+		if err := issue_service.DeleteIssue(ctx, ctx.Doer, issue); err != nil {
 			ctx.ServerError("DeleteIssue", err)
 			return
 		}

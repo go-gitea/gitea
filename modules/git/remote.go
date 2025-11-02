@@ -9,19 +9,20 @@ import (
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
 )
 
 // GetRemoteAddress returns remote url of git repository in the repoPath with special remote name
 func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (string, error) {
-	var cmd *Command
+	var cmd *gitcmd.Command
 	if DefaultFeatures().CheckVersionAtLeast("2.7") {
-		cmd = NewCommand("remote", "get-url").AddDynamicArguments(remoteName)
+		cmd = gitcmd.NewCommand("remote", "get-url").AddDynamicArguments(remoteName)
 	} else {
-		cmd = NewCommand("config", "--get").AddDynamicArguments("remote." + remoteName + ".url")
+		cmd = gitcmd.NewCommand("config", "--get").AddDynamicArguments("remote." + remoteName + ".url")
 	}
 
-	result, _, err := cmd.RunStdString(ctx, &RunOpts{Dir: repoPath})
+	result, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
 	if err != nil {
 		return "", err
 	}

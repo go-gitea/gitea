@@ -1,5 +1,5 @@
 import {debounce} from 'throttle-debounce';
-import type {Promisable} from 'type-fest';
+import type {Promisable} from '../types.ts';
 import type $ from 'jquery';
 import {isInFrontendUnitTest} from './testhelper.ts';
 
@@ -7,7 +7,7 @@ type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Ar
 type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
 type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
-export type DOMEvent<E extends Event, T extends Element = HTMLElement> = E & { target: Partial<T>; };
+export type DOMEvent<E extends Event, T extends Element = HTMLElement> = E & {target: Partial<T>;};
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]): ArrayLikeIterable<Element> {
   if (typeof el === 'string' || el instanceof String) {
@@ -286,28 +286,6 @@ export function isElemVisible(el: HTMLElement): boolean {
   return !el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none';
 }
 
-/** replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this */
-export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: string) {
-  const before = textarea.value.slice(0, textarea.selectionStart ?? undefined);
-  const after = textarea.value.slice(textarea.selectionEnd ?? undefined);
-  let success = false;
-
-  textarea.contentEditable = 'true';
-  try {
-    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
-  } catch {} // ignore the error if execCommand is not supported or failed
-  textarea.contentEditable = 'false';
-
-  if (success && !textarea.value.slice(0, textarea.selectionStart ?? undefined).endsWith(text)) {
-    success = false;
-  }
-
-  if (!success) {
-    textarea.value = `${before}${text}${after}`;
-    textarea.dispatchEvent(new CustomEvent('change', {bubbles: true, cancelable: true}));
-  }
-}
-
 export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
   htmlString = htmlString.trim();
   // There is no way to create some elements without a proper parent, jQuery's approach: https://github.com/jquery/jquery/blob/main/src/manipulation/wrapMap.js
@@ -322,7 +300,7 @@ export function createElementFromHTML<T extends HTMLElement>(htmlString: string)
   return div.firstChild as T;
 }
 
-export function createElementFromAttrs(tagName: string, attrs: Record<string, any>, ...children: (Node|string)[]): HTMLElement {
+export function createElementFromAttrs(tagName: string, attrs: Record<string, any>, ...children: (Node | string)[]): HTMLElement {
   const el = document.createElement(tagName);
   for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;

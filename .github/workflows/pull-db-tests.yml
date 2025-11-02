@@ -38,8 +38,8 @@ jobs:
         ports:
           - "9000:9000"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
@@ -66,19 +66,19 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
       - run: make deps-backend
-      - run: make backend
+      - run: GOEXPERIMENT='' make backend
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
       - name: run migration tests
         run: make test-sqlite-migration
       - name: run tests
-        run: make test-sqlite
+        run: GOEXPERIMENT='' make test-sqlite
         timeout-minutes: 50
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
@@ -124,8 +124,8 @@ jobs:
         ports:
           - 10000:10000
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
@@ -142,7 +142,7 @@ jobs:
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}
       - name: unit-tests-gogit
-        run: make unit-test-coverage test-check
+        run: GOEXPERIMENT='' make unit-test-coverage test-check
         env:
           TAGS: bindata gogit
           RACE_ENABLED: true
@@ -177,8 +177,8 @@ jobs:
           - "587:587"
           - "993:993"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true
@@ -217,8 +217,8 @@ jobs:
         ports:
           - 10000:10000
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
           check-latest: true

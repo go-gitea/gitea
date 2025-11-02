@@ -319,7 +319,7 @@ const (
 )
 
 // Name represents the service type's name
-// WARNNING: the name have to be equal to that on goth's library
+// WARNING: the name has to be equal to that on goth's library
 func (gt GitServiceType) Name() string {
 	return strings.ToLower(gt.Title())
 }

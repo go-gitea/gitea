@@ -62,6 +62,9 @@ sub = Changed Sub String
 	found := lang1.HasKey("no-such")
 	assert.False(t, found)
 	assert.NoError(t, ls.Close())
+
+	res := lang1.TrHTML("<no-such>")
+	assert.Equal(t, "&lt;no-such&gt;", string(res))
 }
 
 func TestLocaleStoreMoreSource(t *testing.T) {

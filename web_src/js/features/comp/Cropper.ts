@@ -4,7 +4,7 @@ type CropperOpts = {
   container: HTMLElement,
   imageSource: HTMLImageElement,
   fileInput: HTMLInputElement,
-}
+};
 
 async function initCompCropper({container, fileInput, imageSource}: CropperOpts) {
   const {default: Cropper} = await import(/* webpackChunkName: "cropperjs" */'cropperjs');

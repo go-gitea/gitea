@@ -117,7 +117,7 @@
 								<div class="commit-divergence" data-tooltip-content="{{$tooltipDivergence}}">
 									<div class="bar-group">
 										<div class="count count-behind">{{.CommitsBehind}}</div>
-										{{/* old code bears 0/0.0 = NaN output, so it might output invalid "width: NaNpx", it just works and doesn't caues any problem. */}}
+										{{/* old code bears 0/0.0 = NaN output, so it might output invalid "width: NaNpx", it just works and doesn't cause any problem. */}}
 										<div class="bar bar-behind" style="width: {{Eval 100 "*" .CommitsBehind "/" "(" .CommitsBehind "+" .CommitsAhead "+" 0.0 ")"}}%"></div>
 									</div>
 									<div class="bar-group">

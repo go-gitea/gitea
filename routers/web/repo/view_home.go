@@ -6,9 +6,7 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -76,16 +74,24 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 	}
 	for _, app := range apps {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
-		var iconHTML template.HTML
-		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
-			iconHTML = svg.RenderHTML("gitea-"+schema, 16)
-		} else {
-			iconHTML = svg.RenderHTML("gitea-git", 16) // TODO: it could support user's customized icon in the future
+
+		var iconName string
+		switch schema {
+		case "vscode":
+			iconName = "octicon-vscode"
+		case "vscodium":
+			iconName = "gitea-vscodium"
+		case "jetbrains":
+			iconName = "gitea-jetbrains"
+		default:
+			// TODO: it could support user's customized icon in the future
+			iconName = "gitea-git"
 		}
+
 		tmplApps = append(tmplApps, map[string]any{
 			"DisplayName": app.DisplayName,
 			"OpenURL":     app.OpenURL,
-			"IconHTML":    iconHTML,
+			"IconHTML":    svg.RenderHTML(iconName, 16),
 		})
 	}
 	ctx.Data["OpenWithEditorApps"] = tmplApps
@@ -139,7 +145,7 @@ func prepareToRenderDirectory(ctx *context.Context) {
 
 	if ctx.Repo.TreePath != "" {
 		ctx.Data["HideRepoInfo"] = true
-		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefFullName.ShortName())
+		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+ctx.Repo.TreePath, ctx.Repo.RefFullName.ShortName())
 	}
 
 	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, ctx.Repo.TreePath, entries, true)
@@ -279,7 +285,7 @@ func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.Comm
 		ctx.Data["NotFoundPrompt"] = redirectLink
 		ctx.NotFound(nil)
 	} else {
-		ctx.Redirect(submoduleWebLink.CommitWebLink)
+		ctx.RedirectToCurrentSite(redirectLink)
 	}
 }
 

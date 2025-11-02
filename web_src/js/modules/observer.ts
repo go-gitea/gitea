@@ -1,5 +1,5 @@
 import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
-import type {Promisable} from 'type-fest';
+import type {Promisable} from '../types.ts';
 import type {InitPerformanceTracer} from './init.ts';
 
 let globalSelectorObserverInited = false;

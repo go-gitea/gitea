@@ -108,54 +108,9 @@ func IsErrWontSign(err error) bool {
 	return ok
 }
 
-// SigningKey returns the KeyID and git Signature for the repo
-func SigningKey(ctx context.Context, repoPath string) (*git.SigningKey, *git.Signature) {
-	if setting.Repository.Signing.SigningKey == "none" {
-		return nil, nil
-	}
-
-	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
-		// Can ignore the error here as it means that commit.gpgsign is not set
-		value, _, _ := git.NewCommand("config", "--get", "commit.gpgsign").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		sign, valid := git.ParseBool(strings.TrimSpace(value))
-		if !sign || !valid {
-			return nil, nil
-		}
-
-		format, _, _ := git.NewCommand("config", "--default", git.SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		signingKey, _, _ := git.NewCommand("config", "--get", "user.signingkey").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		signingName, _, _ := git.NewCommand("config", "--get", "user.name").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-		signingEmail, _, _ := git.NewCommand("config", "--get", "user.email").RunStdString(ctx, &git.RunOpts{Dir: repoPath})
-
-		if strings.TrimSpace(signingKey) == "" {
-			return nil, nil
-		}
-
-		return &git.SigningKey{
-				KeyID:  strings.TrimSpace(signingKey),
-				Format: strings.TrimSpace(format),
-			}, &git.Signature{
-				Name:  strings.TrimSpace(signingName),
-				Email: strings.TrimSpace(signingEmail),
-			}
-	}
-
-	if setting.Repository.Signing.SigningKey == "" {
-		return nil, nil
-	}
-
-	return &git.SigningKey{
-			KeyID:  setting.Repository.Signing.SigningKey,
-			Format: setting.Repository.Signing.SigningFormat,
-		}, &git.Signature{
-			Name:  setting.Repository.Signing.SigningName,
-			Email: setting.Repository.Signing.SigningEmail,
-		}
-}
-
 // PublicSigningKey gets the public signing key within a provided repository directory
 func PublicSigningKey(ctx context.Context, repoPath string) (content, format string, err error) {
-	signingKey, _ := SigningKey(ctx, repoPath)
+	signingKey, _ := git.GetSigningKey(ctx, repoPath)
 	if signingKey == nil {
 		return "", "", nil
 	}
@@ -180,7 +135,7 @@ func PublicSigningKey(ctx context.Context, repoPath string) (content, format str
 // SignInitialCommit determines if we should sign the initial commit to this repository
 func SignInitialCommit(ctx context.Context, repoPath string, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.InitialCommit)
-	signingKey, sig := SigningKey(ctx, repoPath)
+	signingKey, sig := git.GetSigningKey(ctx, repoPath)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -215,9 +170,8 @@ Loop:
 
 // SignWikiCommit determines if we should sign the commits to this repository wiki
 func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
-	repoWikiPath := repo.WikiPath()
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
-	signingKey, sig := SigningKey(ctx, repoWikiPath)
+	signingKey, sig := gitrepo.GetSigningKey(ctx, repo.WikiStorageRepo())
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -270,7 +224,7 @@ Loop:
 // SignCRUDAction determines if we should sign a CRUD commit to this repository
 func SignCRUDAction(ctx context.Context, repoPath string, u *user_model.User, tmpBasePath, parentCommit string) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.CRUDActions)
-	signingKey, sig := SigningKey(ctx, repoPath)
+	signingKey, sig := git.GetSigningKey(ctx, repoPath)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -334,7 +288,7 @@ func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.
 	}
 	repo := pr.BaseRepo
 
-	signingKey, signer := SigningKey(ctx, repo.RepoPath())
+	signingKey, signer := gitrepo.GetSigningKey(ctx, repo)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}

@@ -417,10 +417,6 @@ func (pr *PullRequest) GetGitHeadRefName() string {
 	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
 }
 
-func (pr *PullRequest) GetGitHeadBranchRefName() string {
-	return fmt.Sprintf("%s%s", git.BranchPrefix, pr.HeadBranch)
-}
-
 // GetReviewCommentsCount returns the number of review comments made on the diff of a PR review (not including comments on commits or issues in a PR)
 func (pr *PullRequest) GetReviewCommentsCount(ctx context.Context) int {
 	opts := FindCommentsOptions{
@@ -646,9 +642,8 @@ func (pr *PullRequest) UpdateCols(ctx context.Context, cols ...string) error {
 }
 
 // UpdateColsIfNotMerged updates specific fields of a pull request if it has not been merged
-func (pr *PullRequest) UpdateColsIfNotMerged(ctx context.Context, cols ...string) error {
-	_, err := db.GetEngine(ctx).Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
-	return err
+func (pr *PullRequest) UpdateColsIfNotMerged(ctx context.Context, cols ...string) (int64, error) {
+	return db.GetEngine(ctx).Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
 }
 
 // IsWorkInProgress determine if the Pull Request is a Work In Progress by its title
