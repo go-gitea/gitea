@@ -170,6 +170,9 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 
 type ActionsConfig struct {
 	DisabledWorkflows []string
+	// CollaborativeOwnerIDs is a list of owner IDs used to share actions from private repos.
+	// Only workflows from the private repos whose owners are in CollaborativeOwnerIDs can access the current repo's actions.
+	CollaborativeOwnerIDs []int64
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
@@ -190,6 +193,20 @@ func (cfg *ActionsConfig) DisableWorkflow(file string) {
 	}
 
 	cfg.DisabledWorkflows = append(cfg.DisabledWorkflows, file)
+}
+
+func (cfg *ActionsConfig) AddCollaborativeOwner(ownerID int64) {
+	if !slices.Contains(cfg.CollaborativeOwnerIDs, ownerID) {
+		cfg.CollaborativeOwnerIDs = append(cfg.CollaborativeOwnerIDs, ownerID)
+	}
+}
+
+func (cfg *ActionsConfig) RemoveCollaborativeOwner(ownerID int64) {
+	cfg.CollaborativeOwnerIDs = util.SliceRemoveAll(cfg.CollaborativeOwnerIDs, ownerID)
+}
+
+func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
+	return slices.Contains(cfg.CollaborativeOwnerIDs, ownerID)
 }
 
 // FromDB fills up a ActionsConfig from serialized format.

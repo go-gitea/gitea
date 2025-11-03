@@ -9,10 +9,8 @@ import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
-import {parseDom} from '../utils.ts';
+import {parseDom, sleep} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
-
-const {i18n} = window.config;
 
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -86,7 +84,7 @@ function initRepoDiffConversationForm() {
       }
     } catch (error) {
       console.error('Error:', error);
-      showErrorToast(i18n.network_error);
+      showErrorToast(`Submit form failed: ${error}`);
     } finally {
       form?.classList.remove('is-loading');
     }
@@ -218,19 +216,44 @@ function initRepoDiffShowMore() {
   });
 }
 
-async function loadUntilFound() {
-  const hashTargetSelector = window.location.hash;
-  if (!hashTargetSelector.startsWith('#diff-') && !hashTargetSelector.startsWith('#issuecomment-')) {
-    return;
-  }
+async function onLocationHashChange() {
+  // try to scroll to the target element by the current hash
+  const currentHash = window.location.hash;
+  if (!currentHash.startsWith('#diff-') && !currentHash.startsWith('#issuecomment-')) return;
 
-  while (true) {
+  // avoid reentrance when we are changing the hash to scroll and trigger ":target" selection
+  const attrAutoScrollRunning = 'data-auto-scroll-running';
+  if (document.body.hasAttribute(attrAutoScrollRunning)) return;
+
+  const targetElementId = currentHash.substring(1);
+  while (currentHash === window.location.hash) {
     // use getElementById to avoid querySelector throws an error when the hash is invalid
     // eslint-disable-next-line unicorn/prefer-query-selector
-    const targetElement = document.getElementById(hashTargetSelector.substring(1));
+    const targetElement = document.getElementById(targetElementId);
     if (targetElement) {
+      // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
       targetElement.scrollIntoView();
+      document.body.setAttribute(attrAutoScrollRunning, 'true');
+      window.location.hash = '';
+      window.location.hash = currentHash;
+      setTimeout(() => document.body.removeAttribute(attrAutoScrollRunning), 0);
       return;
+    }
+
+    // If looking for a hidden comment, try to expand the section that contains it
+    const issueCommentPrefix = '#issuecomment-';
+    if (currentHash.startsWith(issueCommentPrefix)) {
+      const commentId = currentHash.substring(issueCommentPrefix.length);
+      const expandButton = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${commentId},"]`);
+      if (expandButton) {
+        // avoid infinite loop, do not re-click the button if already clicked
+        const attrAutoLoadClicked = 'data-auto-load-clicked';
+        if (expandButton.hasAttribute(attrAutoLoadClicked)) return;
+        expandButton.setAttribute(attrAutoLoadClicked, 'true');
+        expandButton.click();
+        await sleep(500); // Wait for HTMX to load the content. FIXME: need to drop htmx in the future
+        continue; // Try again to find the element
+      }
     }
 
     // the button will be refreshed after each "load more", so query it every time
@@ -246,8 +269,8 @@ async function loadUntilFound() {
 }
 
 function initRepoDiffHashChangeListener() {
-  window.addEventListener('hashchange', loadUntilFound);
-  loadUntilFound();
+  window.addEventListener('hashchange', onLocationHashChange);
+  onLocationHashChange();
 }
 
 export function initRepoDiffView() {

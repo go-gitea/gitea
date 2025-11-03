@@ -565,7 +565,7 @@ export default defineComponent({
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <button class="btn gt-interact-bg tw-p-2">
+              <button class="ui button tw-px-3">
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
@@ -608,7 +608,7 @@ export default defineComponent({
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
-              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 circular-spin"/>
+              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="gitea-running" class="tw-mr-2 rotate-clockwise"/>
               <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"/>
               <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
 
@@ -667,6 +667,7 @@ export default defineComponent({
 
 .action-commit-summary {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 5px;
   margin-left: 28px;

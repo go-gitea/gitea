@@ -177,3 +177,23 @@
   log_length: 0
   log_size: 0
   log_expired: 0
+-
+  id: 55
+  job_id: 205
+  attempt: 1
+  runner_id: 1
+  status: 6 # 6 is the status code for "running"
+  started: 1683636528
+  stopped: 1683636626
+  repo_id: 6
+  owner_id: 10
+  commit_sha: 6e64b26de7ba966d01d90ecfaf5c7f14ef203e86
+  is_fork_pull_request: 0
+  token_hash: b8d3962425466b6709b9ac51446f93260c54afe8e7b6d3686e34f991fb8a8953822b0deed86fe41a103f34bc48dbc478422b
+  token_salt: ERxJGHvg3I
+  token_last_eight: 182199eb
+  log_filename: collaborative-owner-test/1a/49.log
+  log_in_storage: 1
+  log_length: 707
+  log_size: 90179
+  log_expired: 0

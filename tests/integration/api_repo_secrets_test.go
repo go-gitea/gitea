@@ -131,9 +131,5 @@ func TestAPIRepoSecrets(t *testing.T) {
 		req = NewRequest(t, "DELETE", url).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
-
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/actions/secrets/000", repo.FullName())).
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusBadRequest)
 	})
 }

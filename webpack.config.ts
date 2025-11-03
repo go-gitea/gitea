@@ -75,6 +75,10 @@ export default {
       fileURLToPath(new URL('web_src/js/standalone/swagger.ts', import.meta.url)),
       fileURLToPath(new URL('web_src/css/standalone/swagger.css', import.meta.url)),
     ],
+    'external-render-iframe': [
+      fileURLToPath(new URL('web_src/js/standalone/external-render-iframe.ts', import.meta.url)),
+      fileURLToPath(new URL('web_src/css/standalone/external-render-iframe.css', import.meta.url)),
+    ],
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.ts', import.meta.url)),
     ],
