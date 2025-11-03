@@ -107,7 +107,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 		isExternal := false
 		if marker == "!" {
 			path = "pulls"
-			prefix = "/someUser/someRepo/pulls/"
+			prefix = "/article/someUser/someRepo/pulls/"
 		} else {
 			path = "issues"
 			prefix = "https://someurl.com/someUser/someRepo/"
@@ -116,7 +116,7 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 
 		links := make([]any, len(indices))
 		for i, index := range indices {
-			links[i] = numericIssueLink(util.URLJoin("/test-owner/test-repo", path), "ref-issue", index, marker)
+			links[i] = numericIssueLink(util.URLJoin("/article/test-owner/test-repo", path), "ref-issue", index, marker)
 		}
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNil, NewTestRenderContext(TestAppURL, localMetas))

@@ -35,7 +35,7 @@ func TestRender_Commits(t *testing.T) {
 	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
 	repo := markup.TestAppURL + testRepoOwnerName + "/" + testRepoName + "/"
 	commit := util.URLJoin(repo, "commit", sha)
-	commitPath := "/user13/repo11/commit/" + sha
+	commitPath := "/article/user13/repo11/commit/" + sha
 	tree := util.URLJoin(repo, "tree", sha, "src")
 
 	file := util.URLJoin(repo, "commit", sha, "example.txt")
@@ -81,10 +81,10 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test(
 		"test-owner/test-repo#12345",
-		`<p><a href="/test-owner/test-repo/issues/12345" class="ref-issue" rel="nofollow">test-owner/test-repo#12345</a></p>`)
+		`<p><a href="/article/test-owner/test-repo/issues/12345" class="ref-issue" rel="nofollow">test-owner/test-repo#12345</a></p>`)
 	test(
 		"go-gitea/gitea#12345",
-		`<p><a href="/go-gitea/gitea/issues/12345" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+		`<p><a href="/article/go-gitea/gitea/issues/12345" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
 	test(
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
@@ -508,7 +508,7 @@ func TestPostProcess(t *testing.T) {
 	// But cross-referenced issue index should work.
 	test(
 		"go-gitea/gitea#12345",
-		`<a href="/go-gitea/gitea/issues/12345" class="ref-issue">go-gitea/gitea#12345</a>`)
+		`<a href="/article/go-gitea/gitea/issues/12345" class="ref-issue">go-gitea/gitea#12345</a>`)
 
 	// Test that other post-processing still works.
 	test(
