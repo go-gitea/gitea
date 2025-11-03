@@ -148,11 +148,13 @@ func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User
 	// update repository's issue closed number
 	switch cmtType {
 	case CommentTypeClose, CommentTypeMergePull:
-		if err := DecrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
+		// only increase closed count
+		if err := IncrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
 			return nil, err
 		}
 	case CommentTypeReopen:
-		if err := IncrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull); err != nil {
+		// only decrease closed count
+		if err := DecrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false, true); err != nil {
 			return nil, err
 		}
 	default:
@@ -377,8 +379,8 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 		}
 	}
 
-	// Update repository issue count
-	if err := IncrRepoIssueNumbers(ctx, opts.Repo.ID, opts.Issue.IsPull); err != nil {
+	// Update repository issue total count
+	if err := IncrRepoIssueNumbers(ctx, opts.Repo.ID, opts.Issue.IsPull, true); err != nil {
 		return err
 	}
 
@@ -448,20 +450,35 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, la
 	})
 }
 
-func IncrRepoIssueNumbers(ctx context.Context, repoID int64, isPull bool) error {
-	colName := util.Iif(isPull, "num_pulls", "num_issues")
-	_, err := db.GetEngine(ctx).Incr(colName).ID(repoID).
+// IncrRepoIssueNumbers increments repository issue numbers.
+func IncrRepoIssueNumbers(ctx context.Context, repoID int64, isPull bool, totalOrClosed bool) error {
+	dbSession := db.GetEngine(ctx)
+	var colName string
+	if totalOrClosed {
+		colName = util.Iif(isPull, "num_pulls", "num_issues")
+	} else {
+		colName = util.Iif(isPull, "num_closed_pulls", "num_closed_issues")
+	}
+	_, err := dbSession.Incr(colName).ID(repoID).
 		NoAutoCondition().NoAutoTime().
 		Update(new(repo_model.Repository))
 	return err
 }
 
-func DecrRepoIssueNumbers(ctx context.Context, repoID int64, isPull, includeTotal bool) error {
-	closedColName := util.Iif(isPull, "num_closed_pulls", "num_closed_issues")
-	dbSession := db.GetEngine(ctx).Decr(closedColName)
+// DecrRepoIssueNumbers decrements repository issue numbers.
+func DecrRepoIssueNumbers(ctx context.Context, repoID int64, isPull, includeTotal, includeClosed bool) error {
+	if !includeTotal && !includeClosed {
+		return fmt.Errorf("no numbers to decrease for repo id %d", repoID)
+	}
+
+	dbSession := db.GetEngine(ctx)
 	if includeTotal {
 		colName := util.Iif(isPull, "num_pulls", "num_issues")
 		dbSession = dbSession.Decr(colName)
+	}
+	if includeClosed {
+		closedColName := util.Iif(isPull, "num_closed_pulls", "num_closed_issues")
+		dbSession = dbSession.Decr(closedColName)
 	}
 	_, err := dbSession.ID(repoID).
 		NoAutoCondition().NoAutoTime().

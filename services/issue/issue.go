@@ -270,7 +270,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 			return nil, err
 		}
 
-		if err := issues_model.DecrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
+		if err := issues_model.DecrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true, issue.IsClosed); err != nil {
 			return nil, err
 		}
 
