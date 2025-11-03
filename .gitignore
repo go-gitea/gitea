@@ -124,3 +124,6 @@ prime/
 /AGENT.md
 /CLAUDE.md
 /llms.txt
+
+# a makefile for personal convenience make targets
+Makefile.local
