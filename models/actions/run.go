@@ -315,7 +315,9 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 	}
 
 	for runID, job := range runsToUpdate {
-		UpdateRunStatus(ctx, job.RepoID, runID)
+		if err := UpdateRunStatus(ctx, job.RepoID, runID); err != nil {
+			return cancelledJobs, err
+		}
 	}
 
 	// Return nil to indicate successful cancellation of all running and waiting jobs.
