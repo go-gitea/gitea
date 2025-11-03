@@ -782,11 +782,15 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
 	var reviewState *pull_model.ReviewState
+	var numViewedFiles int
 	if ctx.IsSigned && isShowAllCommits {
 		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions)
 		if err != nil {
 			ctx.ServerError("SyncUserSpecificDiff", err)
 			return
+		}
+		if reviewState != nil {
+			numViewedFiles = reviewState.GetViewedFileCount()
 		}
 	}
 
@@ -796,10 +800,11 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		return
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat
+	ctx.Data["NumViewedFiles"] = numViewedFiles
 
 	ctx.PageData["prReview"] = map[string]any{
 		"numberOfFiles":       diffShortStat.NumFiles,
-		"numberOfViewedFiles": diff.NumViewedFiles,
+		"numberOfViewedFiles": numViewedFiles,
 	}
 
 	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
