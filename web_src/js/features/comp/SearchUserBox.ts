@@ -12,6 +12,10 @@ export function initCompSearchUserBox() {
   const allowEmailDescription = searchUserBox.getAttribute('data-allow-email-description') ?? undefined;
   fomanticQuery(searchUserBox).search({
     minCharacters: 2,
+    // Add caching to prevent redundant API calls for the same query
+    cache: true,
+    // Add throttle (debouncing) to reduce API calls during rapid typing
+    throttle: 300,
     apiSettings: {
       url: `${appSubUrl}/user/search_candidates?q={query}`,
       onResponse(response: any) {

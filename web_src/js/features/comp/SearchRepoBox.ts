@@ -7,6 +7,10 @@ export function initCompSearchRepoBox(el: HTMLElement) {
   const uid = el.getAttribute('data-uid');
   fomanticQuery(el).search({
     minCharacters: 2,
+    // Add caching to prevent redundant API calls for the same query
+    cache: true,
+    // Add throttle (debouncing) to reduce API calls during rapid typing
+    throttle: 300,
     apiSettings: {
       url: `${appSubUrl}/repo/search?q={query}&uid=${uid}`,
       onResponse(response: any) {
