@@ -37,7 +37,7 @@ export default {
     './{build,models,modules,routers,services}/**/*.go',
     './templates/**/*.tmpl',
     './web_src/js/**/*.{ts,js,vue}',
-  ].filter(Boolean),
+  ].filter(Boolean as unknown as <T>(x: T | boolean) => x is T),
   blocklist: [
     // classes that don't work without CSS variables from "@tailwind base" which we don't use
     'transform', 'shadow', 'ring', 'blur', 'grayscale', 'invert', '!invert', 'filter', '!filter',
