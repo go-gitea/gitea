@@ -53,13 +53,13 @@ func (rs *ReviewState) GetViewedFileCount() int {
 	if len(rs.UpdatedFiles) == 0 {
 		return 0
 	}
-	var viewedFiles int
+	var numViewedFiles int
 	for _, state := range rs.UpdatedFiles {
 		if state == Viewed {
-			viewedFiles++
+			numViewedFiles++
 		}
 	}
-	return viewedFiles
+	return numViewedFiles
 }
 
 // GetReviewState returns the ReviewState with all given values prefilled, whether or not it exists in the database.
