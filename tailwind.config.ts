@@ -121,4 +121,4 @@ export default {
       });
     }),
   ],
-} satisfies Config as Config;
+} satisfies Config;
