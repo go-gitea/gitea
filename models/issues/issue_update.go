@@ -145,21 +145,18 @@ func updateIssueNumbers(ctx context.Context, issue *Issue, doer *user_model.User
 		}
 	}
 
-	colName := util.Iif(issue.IsPull, "num_closed_pulls", "num_closed_issues")
-	dbSession := db.GetEngine(ctx)
 	// update repository's issue closed number
 	switch cmtType {
 	case CommentTypeClose, CommentTypeMergePull:
-		dbSession.Incr(colName)
+		if err := DecrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
+			return nil, err
+		}
 	case CommentTypeReopen:
-		dbSession.Decr(colName)
+		if err := IncrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull); err != nil {
+			return nil, err
+		}
 	default:
 		return nil, fmt.Errorf("invalid comment type: %d", cmtType)
-	}
-	if _, err := dbSession.ID(issue.RepoID).
-		NoAutoCondition().NoAutoTime().
-		Update(new(repo_model.Repository)); err != nil {
-		return nil, err
 	}
 
 	return CreateComment(ctx, &CreateCommentOptions{
@@ -381,10 +378,7 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 	}
 
 	// Update repository issue count
-	colName := util.Iif(opts.Issue.IsPull, "num_pulls", "num_issues")
-	if _, err := db.GetEngine(ctx).Incr(colName).ID(opts.Repo.ID).
-		NoAutoCondition().NoAutoTime().
-		Update(new(repo_model.Repository)); err != nil {
+	if err := IncrRepoIssueNumbers(ctx, opts.Repo.ID, opts.Issue.IsPull); err != nil {
 		return err
 	}
 
@@ -452,6 +446,27 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, la
 		}
 		return nil
 	})
+}
+
+func IncrRepoIssueNumbers(ctx context.Context, repoID int64, isPull bool) error {
+	colName := util.Iif(isPull, "num_pulls", "num_issues")
+	_, err := db.GetEngine(ctx).Incr(colName).ID(repoID).
+		NoAutoCondition().NoAutoTime().
+		Update(new(repo_model.Repository))
+	return err
+}
+
+func DecrRepoIssueNumbers(ctx context.Context, repoID int64, isPull, includeTotal bool) error {
+	closedColName := util.Iif(isPull, "num_closed_pulls", "num_closed_issues")
+	dbSession := db.GetEngine(ctx).Decr(closedColName)
+	if includeTotal {
+		colName := util.Iif(isPull, "num_pulls", "num_issues")
+		dbSession = dbSession.Decr(colName)
+	}
+	_, err := dbSession.ID(repoID).
+		NoAutoCondition().NoAutoTime().
+		Update(new(repo_model.Repository))
+	return err
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.

@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -271,16 +270,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 			return nil, err
 		}
 
-		colName := util.Iif(issue.IsPull, "num_pulls", "num_issues")
-		closedColName := util.Iif(issue.IsPull, "num_closed_pulls", "num_closed_issues")
-		dbSession := db.GetEngine(ctx)
-		if issue.IsClosed {
-			dbSession.Decr(closedColName)
-		}
-		// update repository's issue both total number and closed number
-		if _, err := dbSession.ID(issue.RepoID).Decr(colName).
-			NoAutoCondition().NoAutoTime().
-			Update(new(repo_model.Repository)); err != nil {
+		if err := issues_model.DecrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
 			return nil, err
 		}
 
