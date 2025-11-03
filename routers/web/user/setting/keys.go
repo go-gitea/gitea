@@ -7,7 +7,6 @@ package setting
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -132,12 +131,11 @@ func KeysPost(ctx *context.Context) {
 			}
 			return
 		}
-		var keyIDsSb strings.Builder
+		keyIDs := ""
 		for _, key := range keys {
-			keyIDsSb.WriteString(key.KeyID)
-			keyIDsSb.WriteString(", ")
+			keyIDs += key.KeyID
+			keyIDs += ", "
 		}
-		keyIDs := keyIDsSb.String()
 		if len(keyIDs) > 0 {
 			keyIDs = keyIDs[:len(keyIDs)-2]
 		}

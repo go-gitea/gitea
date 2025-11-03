@@ -1141,15 +1141,13 @@ func readFileName(rd *strings.Reader) (string, bool) {
 		_, _ = fmt.Fscanf(rd, "%s ", &name)
 		char, _ := rd.ReadByte()
 		_ = rd.UnreadByte()
-		var nameSb strings.Builder
 		for !(char == 0 || char == '"' || char == 'b') {
 			var suffix string
 			_, _ = fmt.Fscanf(rd, "%s ", &suffix)
-			nameSb.WriteString(" " + suffix)
+			name += " " + suffix
 			char, _ = rd.ReadByte()
 			_ = rd.UnreadByte()
 		}
-		name += nameSb.String()
 	}
 	if len(name) < 2 {
 		log.Error("Unable to determine name from reader: reader=%+v", rd)

@@ -77,8 +77,8 @@ func (wc wechatworkConvertor) Push(p *api.PushPayload) (WechatworkPayload, error
 
 	title := fmt.Sprintf("# %s:%s <font color=\"warning\">  %s  </font>", p.Repo.FullName, branchName, commitDesc)
 
+	var text string
 	// for each commit, generate attachment text
-	var textSb strings.Builder
 	for i, commit := range p.Commits {
 		var authorName string
 		if commit.Author != nil {
@@ -86,15 +86,15 @@ func (wc wechatworkConvertor) Push(p *api.PushPayload) (WechatworkPayload, error
 		}
 
 		message := strings.ReplaceAll(commit.Message, "\n\n", "\r\n")
-		textSb.WriteString(fmt.Sprintf(" > [%s](%s) \r\n ><font color=\"info\">%s</font> \n ><font color=\"warning\">%s</font>", commit.ID[:7], commit.URL,
-			message, authorName))
+		text += fmt.Sprintf(" > [%s](%s) \r\n ><font color=\"info\">%s</font> \n ><font color=\"warning\">%s</font>", commit.ID[:7], commit.URL,
+			message, authorName)
 
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			textSb.WriteString("\n")
+			text += "\n"
 		}
 	}
-	return newWechatworkMarkdownPayload(title + "\r\n\r\n" + textSb.String()), nil
+	return newWechatworkMarkdownPayload(title + "\r\n\r\n" + text), nil
 }
 
 // Issue implements PayloadConvertor Issue method

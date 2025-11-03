@@ -94,14 +94,14 @@ func (t telegramConvertor) Push(p *api.PushPayload) (TelegramPayload, error) {
 	}
 	title := fmt.Sprintf(`[%s:%s] %s`, htmlLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName), htmlLinkFormatter(titleLink, branchName), html.EscapeString(commitDesc))
 
-	var htmlCommitsSb strings.Builder
+	var htmlCommits string
 	for _, commit := range p.Commits {
-		htmlCommitsSb.WriteString(fmt.Sprintf("\n[%s] %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), html.EscapeString(strings.TrimRight(commit.Message, "\r\n"))))
+		htmlCommits += fmt.Sprintf("\n[%s] %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), html.EscapeString(strings.TrimRight(commit.Message, "\r\n")))
 		if commit.Author != nil {
-			htmlCommitsSb.WriteString(" - " + html.EscapeString(commit.Author.Name))
+			htmlCommits += " - " + html.EscapeString(commit.Author.Name)
 		}
 	}
-	return createTelegramPayloadHTML(title + htmlCommitsSb.String()), nil
+	return createTelegramPayloadHTML(title + htmlCommits), nil
 }
 
 // Issue implements PayloadConvertor Issue method

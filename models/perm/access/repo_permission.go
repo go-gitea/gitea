@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -169,8 +168,7 @@ func (p *Permission) ReadableUnitTypes() []unit.Type {
 }
 
 func (p *Permission) LogString() string {
-	var formatSb strings.Builder
-	formatSb.WriteString("<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [")
+	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): ["
 	args := []any{p.AccessMode.ToString(), len(p.units), len(p.unitsMode)}
 
 	for i, u := range p.units {
@@ -182,19 +180,19 @@ func (p *Permission) LogString() string {
 				config = err.Error()
 			}
 		}
-		formatSb.WriteString("\n\tunits[%d]: ID=%d RepoID=%d Type=%s Config=%s")
+		format += "\n\tunits[%d]: ID=%d RepoID=%d Type=%s Config=%s"
 		args = append(args, i, u.ID, u.RepoID, u.Type.LogString(), config)
 	}
 	for key, value := range p.unitsMode {
-		formatSb.WriteString("\n\tunitsMode[%-v]: %-v")
+		format += "\n\tunitsMode[%-v]: %-v"
 		args = append(args, key.LogString(), value.LogString())
 	}
-	formatSb.WriteString("\n\tanonymousAccessMode: %-v")
+	format += "\n\tanonymousAccessMode: %-v"
 	args = append(args, p.anonymousAccessMode)
-	formatSb.WriteString("\n\teveryoneAccessMode: %-v")
+	format += "\n\teveryoneAccessMode: %-v"
 	args = append(args, p.everyoneAccessMode)
-	formatSb.WriteString("\n\t]>")
-	return fmt.Sprintf(formatSb.String(), args...)
+	format += "\n\t]>"
+	return fmt.Sprintf(format, args...)
 }
 
 func applyPublicAccessPermission(unitType unit.Type, accessMode perm_model.AccessMode, modeMap *map[unit.Type]perm_model.AccessMode) {

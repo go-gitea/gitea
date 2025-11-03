@@ -173,20 +173,18 @@ func (m matrixConvertor) Push(p *api.PushPayload) (MatrixPayload, error) {
 
 	repoLink := htmlLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	branchLink := MatrixLinkToRef(p.Repo.HTMLURL, p.Ref)
-
-	var textSb strings.Builder
-	textSb.WriteString(fmt.Sprintf("[%s] %s pushed %s to %s:<br>", repoLink, p.Pusher.UserName, commitDesc, branchLink))
+	text := fmt.Sprintf("[%s] %s pushed %s to %s:<br>", repoLink, p.Pusher.UserName, commitDesc, branchLink)
 
 	// for each commit, generate a new line text
 	for i, commit := range p.Commits {
-		textSb.WriteString(fmt.Sprintf("%s: %s - %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), commit.Message, commit.Author.Name))
+		text += fmt.Sprintf("%s: %s - %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), commit.Message, commit.Author.Name)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			textSb.WriteString("<br>")
+			text += "<br>"
 		}
 	}
 
-	return m.newPayload(textSb.String(), p.Commits...)
+	return m.newPayload(text, p.Commits...)
 }
 
 // PullRequest implements payloadConvertor PullRequest method

@@ -61,23 +61,21 @@ func NewComplexity() {
 }
 
 func setupComplexity(values []string) {
-	var validCharsSb strings.Builder
 	if len(values) != 1 || values[0] != "off" {
 		for _, val := range values {
 			if complexity, ok := charComplexities[val]; ok {
-				validCharsSb.WriteString(complexity.ValidChars)
+				validChars += complexity.ValidChars
 				requiredList = append(requiredList, complexity)
 			}
 		}
 		if len(requiredList) == 0 {
 			// No valid character classes found; use all classes as default
 			for _, complexity := range charComplexities {
-				validCharsSb.WriteString(complexity.ValidChars)
+				validChars += complexity.ValidChars
 				requiredList = append(requiredList, complexity)
 			}
 		}
 	}
-	validChars = validCharsSb.String()
 	if validChars == "" {
 		// No complexities to check; provide a sensible default for password generation
 		validChars = charComplexities["lower"].ValidChars + charComplexities["upper"].ValidChars + charComplexities["digit"].ValidChars

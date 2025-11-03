@@ -26,21 +26,22 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 		return err
 	}
 
+	path := ""
+
 	tree := &notes.Tree
 	log.Trace("Found tree with ID %q while searching for git note corresponding to the commit %q", tree.ID, commitID)
 
 	var entry *TreeEntry
 	originalCommitID := commitID
-	var pathSb strings.Builder
 	for len(commitID) > 2 {
 		entry, err = tree.GetTreeEntryByPath(commitID)
 		if err == nil {
-			pathSb.WriteString(commitID)
+			path += commitID
 			break
 		}
 		if IsErrNotExist(err) {
 			tree, err = tree.SubTree(commitID[0:2])
-			pathSb.WriteString(commitID[0:2] + "/")
+			path += commitID[0:2] + "/"
 			commitID = commitID[2:]
 		}
 		if err != nil {
@@ -51,7 +52,6 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 			return err
 		}
 	}
-	path := pathSb.String()
 
 	blob := entry.Blob()
 	dataRc, err := blob.DataAsync()
