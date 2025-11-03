@@ -451,7 +451,7 @@ func NewIssue(ctx context.Context, repo *repo_model.Repository, issue *Issue, la
 }
 
 // IncrRepoIssueNumbers increments repository issue numbers.
-func IncrRepoIssueNumbers(ctx context.Context, repoID int64, isPull bool, totalOrClosed bool) error {
+func IncrRepoIssueNumbers(ctx context.Context, repoID int64, isPull, totalOrClosed bool) error {
 	dbSession := db.GetEngine(ctx)
 	var colName string
 	if totalOrClosed {
