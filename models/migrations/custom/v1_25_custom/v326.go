@@ -5,57 +5,10 @@ package v1_25_custom //nolint
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
-	"unicode"
 
-	"golang.org/x/text/runes"
-	"golang.org/x/text/transform"
-	"golang.org/x/text/unicode/norm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"xorm.io/xorm"
 )
-
-// generateSlugFromName creates a URL-safe slug from a subject display name
-// This is a copy of the function from models/repo/subject.go for use in migration
-func generateSlugFromName(name string) string {
-	// Normalize Unicode (NFD = decompose accents)
-	t := transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)
-	normalized, _, _ := transform.String(t, name)
-
-	// Convert to lowercase
-	slug := strings.ToLower(normalized)
-
-	// Replace underscores with hyphens
-	slug = strings.ReplaceAll(slug, "_", "-")
-
-	// Replace spaces with hyphens
-	slug = strings.ReplaceAll(slug, " ", "-")
-
-	// Remove all characters except alphanumeric and hyphens
-	reg := regexp.MustCompile(`[^a-z0-9-]+`)
-	slug = reg.ReplaceAllString(slug, "")
-
-	// Replace multiple consecutive hyphens with a single hyphen
-	reg = regexp.MustCompile(`-+`)
-	slug = reg.ReplaceAllString(slug, "-")
-
-	// Trim hyphens from start and end
-	slug = strings.Trim(slug, "-")
-
-	// If slug is empty after processing, use a default
-	if slug == "" {
-		slug = "subject"
-	}
-
-	// Limit length to 100 characters
-	if len(slug) > 100 {
-		slug = slug[:100]
-		// Trim any trailing hyphen that might have been created by truncation
-		slug = strings.TrimRight(slug, "-")
-	}
-
-	return slug
-}
 
 func AddSubjectSlugColumn(x *xorm.Engine) error {
 	// Define a temporary struct for the subject table
@@ -82,7 +35,7 @@ func AddSubjectSlugColumn(x *xorm.Engine) error {
 	// Pre-migration validation - check for potential slug collisions
 	slugPreview := make(map[string][]string) // slug -> list of names
 	for _, subject := range subjects {
-		slug := generateSlugFromName(subject.Name)
+		slug := repo_model.GenerateSlugFromName(subject.Name)
 		slugPreview[slug] = append(slugPreview[slug], subject.Name)
 	}
 
@@ -107,7 +60,7 @@ func AddSubjectSlugColumn(x *xorm.Engine) error {
 	collisionCount := 0
 
 	for i := range subjects {
-		baseSlug := generateSlugFromName(subjects[i].Name)
+		baseSlug := repo_model.GenerateSlugFromName(subjects[i].Name)
 		slug := baseSlug
 
 		// Handle slug collisions by appending a number
