@@ -265,6 +265,13 @@ func CancelPreviousJobs(ctx context.Context, repoID int64, ref, workflowID strin
 
 func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, error) {
 	cancelledJobs := make([]*ActionRunJob, 0, len(jobs))
+
+	// List of runIDs that have no cancelled jobs
+	runsToUpdate := map[int64]*ActionRunJob{}
+	for _, job := range jobs {
+		runsToUpdate[job.RunID] = job
+	}
+
 	// Iterate over each job and attempt to cancel it.
 	for _, job := range jobs {
 		// Skip jobs that are already in a terminal state (completed, cancelled, etc.).
@@ -304,6 +311,11 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 			return cancelledJobs, fmt.Errorf("get job: %w", err)
 		}
 		cancelledJobs = append(cancelledJobs, updatedJob)
+		delete(runsToUpdate, job.RunID)
+	}
+
+	for runID, job := range runsToUpdate {
+		UpdateRunStatus(ctx, job.RepoID, runID)
 	}
 
 	// Return nil to indicate successful cancellation of all running and waiting jobs.
