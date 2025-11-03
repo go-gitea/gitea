@@ -1183,7 +1183,6 @@ func Routes() *web.Router {
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
 			m.Group("/{org}", func() {
-				// FIXME: The swagger definition is wrong, it should be /orgs/{org}/branch_protections
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListOrgBranchProtections)
 					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateOrgBranchProtection)

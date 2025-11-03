@@ -460,15 +460,15 @@ func RenameBranch(ctx *context.APIContext) {
 
 // GetOrgBranchProtection gets a branch protection
 func GetOrgBranchProtection(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/branch_protections/{name} repository repoGetBranchProtection
+	// swagger:operation GET /repos/{org}/branch_protections/{name} repository repoGetOrgBranchProtection
 	// ---
 	// summary: Get a specific branch protection for the repository
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: owner
+	// - name: org
 	//   in: path
-	//   description: owner of the repo
+	//   description: organization
 	//   type: string
 	//   required: true
 	// - name: name
@@ -543,15 +543,15 @@ func GetBranchProtection(ctx *context.APIContext) {
 
 // ListOrgBranchProtections list branch protections for an organization
 func ListOrgBranchProtections(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/branch_protections repository repoListBranchProtection
+	// swagger:operation GET /repos/{org}/branch_protections repository repoListOrgBranchProtection
 	// ---
 	// summary: List branch protections for a repository
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: owner
+	// - name: org
 	//   in: path
-	//   description: owner of the repo
+	//   description: organization
 	//   type: string
 	//   required: true
 	// responses:
@@ -616,7 +616,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 
 // CreateBranchProtection creates a branch protection for a repo
 func CreateOrgBranchProtection(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/branch_protections repository repoCreateBranchProtection
+	// swagger:operation POST /repos/{org}/branch_protections repository repoCreateOrgBranchProtection
 	// ---
 	// summary: Create a branch protections for a repository
 	// consumes:
@@ -624,9 +624,9 @@ func CreateOrgBranchProtection(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: owner
+	// - name: organization
 	//   in: path
-	//   description: owner of the repo
+	//   description: organization
 	//   type: string
 	//   required: true
 	// - name: body
@@ -993,7 +993,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 
 // EditBranchProtection edits a branch protection for a repo
 func EditOrgBranchProtection(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/branch_protections/{name} repository repoEditBranchProtection
+	// swagger:operation PATCH /repos/{org}/branch_protections/{name} repository repoEditOrgBranchProtection
 	// ---
 	// summary: Edit a branch protections for a repository. Only fields that are set will be changed
 	// consumes:
@@ -1001,9 +1001,9 @@ func EditOrgBranchProtection(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: owner
+	// - name: org
 	//   in: path
-	//   description: owner of the repo
+	//   description: organization
 	//   type: string
 	//   required: true
 	// - name: name
@@ -1608,15 +1608,15 @@ func EditBranchProtection(ctx *context.APIContext) {
 
 // DeleteOrgBranchProtection deletes a branch protection for a repo
 func DeleteOrgBranchProtection(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/branch_protections/{name} repository repoDeleteBranchProtection
+	// swagger:operation DELETE /repos/{org}/branch_protections/{name} repository repoDeleteOrgBranchProtection
 	// ---
 	// summary: Delete a specific branch protection for the repository
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: owner
+	// - name: org
 	//   in: path
-	//   description: owner of the repo
+	//   description: organizatio
 	//   type: string
 	//   required: true
 	// - name: name
