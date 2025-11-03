@@ -715,21 +715,21 @@ func searchRepositoryByCondition(ctx context.Context, opts SearchRepoOptions, co
 
 	sess := db.GetEngine(ctx).Table("repository")
 
+	// Perform count query before adding JOINs (JOINs not needed for counting)
+	var count int64
+	if opts.PageSize > 0 {
+		var err error
+		count, err = sess.Where(cond).Count(new(Repository))
+		if err != nil {
+			return nil, 0, fmt.Errorf("Count: %w", err)
+		}
+	}
+
 	// Add LEFT JOIN with subject table when ordering by subject or using relevance scoring
 	needsJoin := strings.Contains(string(orderBy), "subject.name")
 	if needsJoin {
 		sess = sess.Join("LEFT", "subject", "repository.subject_id = subject.id").
 			Cols("repository.*") // Select only repository columns to avoid ambiguity
-	}
-
-	var count int64
-	if opts.PageSize > 0 {
-		var err error
-		// Don't use JOIN for count query - it's not needed and causes ambiguity
-		count, err = db.GetEngine(ctx).Where(cond).Count(new(Repository))
-		if err != nil {
-			return nil, 0, fmt.Errorf("Count: %w", err)
-		}
 	}
 
 	sess = sess.Where(cond).OrderBy(orderBy.String(), args...)
