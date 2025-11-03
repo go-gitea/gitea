@@ -135,7 +135,7 @@ export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHa
 
   // parse the indention
   let lineContent = line;
-  const indention = (/^\s*/.exec(lineContent) || [""])[0];
+  const indention = (/^\s*/.exec(lineContent) || [''])[0];
   lineContent = lineContent.slice(indention.length);
   if (linesBuf.inlinePos <= indention.length) return unhandled; // if cursor is at the indention, do nothing, let the browser handle it
 
