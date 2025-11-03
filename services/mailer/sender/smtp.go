@@ -128,7 +128,7 @@ func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
 			return fmt.Errorf("failed to issue MAIL command: %w", err)
 		}
 	} else {
-		if err = client.Mail(from); err != nil {
+		if err = client.Mail(fmt.Sprintf("<%s>", from)); err != nil {
 			return fmt.Errorf("failed to issue MAIL command: %w", err)
 		}
 	}
