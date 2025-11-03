@@ -110,6 +110,8 @@
   num_closed_milestones: 0
   num_projects: 0
   num_closed_projects: 1
+  num_action_runs: 4
+  num_closed_action_runs: 3
   is_private: false
   is_empty: false
   is_archived: false
