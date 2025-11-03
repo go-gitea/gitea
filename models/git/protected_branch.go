@@ -30,10 +30,10 @@ var ErrBranchIsProtected = errors.New("branch is protected")
 // ProtectedBranch struct
 type ProtectedBranch struct {
 	ID                            int64                  `xorm:"pk autoincr"`
-	RepoID                        int64                  `xorm:"UNIQUE(s) DEFAULT 0"`
-	OwnerID                       int64                  `xorm:"UNIQUE(s) DEFAULT 0"`
+	RepoID                        int64                  `xorm:"INDEX DEFAULT 0"`
+	OwnerID                       int64                  `xorm:"INDEX DEFAULT 0"`
 	Repo                          *repo_model.Repository `xorm:"-"`
-	RuleName                      string                 `xorm:"'branch_name' UNIQUE(s)"` // a branch name or a glob match to branch name
+	RuleName                      string                 `xorm:"'branch_name'"` // a branch name or a glob match to branch name
 	Priority                      int64                  `xorm:"NOT NULL DEFAULT 0"`
 	globRule                      glob.Glob              `xorm:"-"`
 	isPlainName                   bool                   `xorm:"-"`
@@ -327,25 +327,51 @@ func GetOrgProtectedBranchRuleByName(ctx context.Context, ownerID int64, ruleNam
 
 // GetProtectedBranchRuleByName getting protected branch rule by name
 func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName string) (*ProtectedBranch, error) {
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		return nil, fmt.Errorf("GetRepositoryByID: %w", err)
+	}
+	if err := repo.LoadOwner(ctx); err != nil {
+		return nil, fmt.Errorf("LoadOwner: %w", err)
+	}
+	if repo.Owner.IsOrganization() {
+		if rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"owner_id": repo.OwnerID, "branch_name": ruleName}); err != nil {
+			return nil, err
+		} else if exist {
+			return rel, nil
+		}
+	}
 	// branch_name is legacy name, it actually is rule name
 	rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "branch_name": ruleName})
 	if err != nil {
 		return nil, err
-	} else if !exist {
-		return nil, nil
 	}
-	return rel, nil
+	return util.Iif(exist, rel, nil), nil
 }
 
 // GetProtectedBranchRuleByID getting protected branch rule by rule ID
 func GetProtectedBranchRuleByID(ctx context.Context, repoID, ruleID int64) (*ProtectedBranch, error) {
+	repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+	if err != nil {
+		return nil, fmt.Errorf("GetRepositoryByID: %w", err)
+	}
+	if err := repo.LoadOwner(ctx); err != nil {
+		return nil, fmt.Errorf("LoadOwner: %w", err)
+	}
+	if repo.Owner.IsOrganization() {
+		if rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"owner_id": repo.OwnerID, "id": ruleID}); err != nil {
+			return nil, err
+		} else if exist {
+			return rel, nil
+		}
+	}
+
 	rel, exist, err := db.Get[ProtectedBranch](ctx, builder.Eq{"repo_id": repoID, "id": ruleID})
 	if err != nil {
 		return nil, err
-	} else if !exist {
-		return nil, nil
 	}
-	return rel, nil
+
+	return util.Iif(exist, rel, nil), nil
 }
 
 // WhitelistOptions represent all sorts of whitelists used for protected branches
@@ -671,6 +697,22 @@ func updateOrgTeamWhitelist(ctx context.Context, org *organization.Organization,
 		}
 	}
 	return whitelist, nil
+}
+
+// DeleteProtectedBranch removes ProtectedBranch relation between the user and repository.
+func DeleteOrgProtectedBranch(ctx context.Context, org *organization.Organization, id int64) (err error) {
+	protectedBranch := &ProtectedBranch{
+		OwnerID: org.ID,
+		ID:      id,
+	}
+
+	if affected, err := db.GetEngine(ctx).Delete(protectedBranch); err != nil {
+		return err
+	} else if affected != 1 {
+		return fmt.Errorf("delete protected branch ID(%v) failed", id)
+	}
+
+	return nil
 }
 
 // DeleteProtectedBranch removes ProtectedBranch relation between the user and repository.

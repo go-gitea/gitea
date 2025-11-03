@@ -1187,6 +1187,11 @@ func Routes() *web.Router {
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListOrgBranchProtections)
 					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateOrgBranchProtection)
+					m.Group("/{name}", func() {
+						m.Get("", repo.GetOrgBranchProtection)
+						m.Patch("", bind(api.EditBranchProtectionOption{}), repo.EditOrgBranchProtection)
+						m.Delete("", repo.DeleteOrgBranchProtection)
+					})
 				}, reqToken(), reqOrgOwnership())
 			}, orgAssignment(true), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 

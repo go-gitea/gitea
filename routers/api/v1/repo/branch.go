@@ -458,6 +458,45 @@ func RenameBranch(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// GetOrgBranchProtection gets a branch protection
+func GetOrgBranchProtection(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/branch_protections/{name} repository repoGetBranchProtection
+	// ---
+	// summary: Get a specific branch protection for the repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: name of protected branch
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/BranchProtection"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	org := ctx.Org.Organization
+	bpName := ctx.PathParam("name")
+	bp, err := git_model.GetOrgProtectedBranchRuleByName(ctx, org.ID, bpName)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if bp == nil {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToBranchProtectionFromOrg(ctx, bp, org))
+}
+
 // GetBranchProtection gets a branch protection
 func GetBranchProtection(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/branch_protections/{name} repository repoGetBranchProtection
@@ -953,6 +992,292 @@ func CreateBranchProtection(ctx *context.APIContext) {
 }
 
 // EditBranchProtection edits a branch protection for a repo
+func EditOrgBranchProtection(ctx *context.APIContext) {
+	// swagger:operation PATCH /repos/{owner}/branch_protections/{name} repository repoEditBranchProtection
+	// ---
+	// summary: Edit a branch protections for a repository. Only fields that are set will be changed
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: name of protected branch
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/EditBranchProtectionOption"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/BranchProtection"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
+	org := ctx.Org.Organization
+	bpName := ctx.PathParam("name")
+	protectBranch, err := git_model.GetOrgProtectedBranchRuleByName(ctx, org.ID, bpName)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if protectBranch == nil {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	if form.EnablePush != nil {
+		if !*form.EnablePush {
+			protectBranch.CanPush = false
+			protectBranch.EnableWhitelist = false
+			protectBranch.WhitelistDeployKeys = false
+		} else {
+			protectBranch.CanPush = true
+			if form.EnablePushWhitelist != nil {
+				if !*form.EnablePushWhitelist {
+					protectBranch.EnableWhitelist = false
+					protectBranch.WhitelistDeployKeys = false
+				} else {
+					protectBranch.EnableWhitelist = true
+					if form.PushWhitelistDeployKeys != nil {
+						protectBranch.WhitelistDeployKeys = *form.PushWhitelistDeployKeys
+					}
+				}
+			}
+		}
+	}
+
+	if form.EnableForcePush != nil {
+		if !*form.EnableForcePush {
+			protectBranch.CanForcePush = false
+			protectBranch.EnableForcePushAllowlist = false
+			protectBranch.ForcePushAllowlistDeployKeys = false
+		} else {
+			protectBranch.CanForcePush = true
+			if form.EnableForcePushAllowlist != nil {
+				if !*form.EnableForcePushAllowlist {
+					protectBranch.EnableForcePushAllowlist = false
+					protectBranch.ForcePushAllowlistDeployKeys = false
+				} else {
+					protectBranch.EnableForcePushAllowlist = true
+					if form.ForcePushAllowlistDeployKeys != nil {
+						protectBranch.ForcePushAllowlistDeployKeys = *form.ForcePushAllowlistDeployKeys
+					}
+				}
+			}
+		}
+	}
+
+	if form.Priority != nil {
+		protectBranch.Priority = *form.Priority
+	}
+
+	if form.EnableMergeWhitelist != nil {
+		protectBranch.EnableMergeWhitelist = *form.EnableMergeWhitelist
+	}
+
+	if form.EnableStatusCheck != nil {
+		protectBranch.EnableStatusCheck = *form.EnableStatusCheck
+	}
+
+	if form.StatusCheckContexts != nil {
+		protectBranch.StatusCheckContexts = form.StatusCheckContexts
+	}
+
+	if form.RequiredApprovals != nil && *form.RequiredApprovals >= 0 {
+		protectBranch.RequiredApprovals = *form.RequiredApprovals
+	}
+
+	if form.EnableApprovalsWhitelist != nil {
+		protectBranch.EnableApprovalsWhitelist = *form.EnableApprovalsWhitelist
+	}
+
+	if form.BlockOnRejectedReviews != nil {
+		protectBranch.BlockOnRejectedReviews = *form.BlockOnRejectedReviews
+	}
+
+	if form.BlockOnOfficialReviewRequests != nil {
+		protectBranch.BlockOnOfficialReviewRequests = *form.BlockOnOfficialReviewRequests
+	}
+
+	if form.DismissStaleApprovals != nil {
+		protectBranch.DismissStaleApprovals = *form.DismissStaleApprovals
+	}
+
+	if form.IgnoreStaleApprovals != nil {
+		protectBranch.IgnoreStaleApprovals = *form.IgnoreStaleApprovals
+	}
+
+	if form.RequireSignedCommits != nil {
+		protectBranch.RequireSignedCommits = *form.RequireSignedCommits
+	}
+
+	if form.ProtectedFilePatterns != nil {
+		protectBranch.ProtectedFilePatterns = *form.ProtectedFilePatterns
+	}
+
+	if form.UnprotectedFilePatterns != nil {
+		protectBranch.UnprotectedFilePatterns = *form.UnprotectedFilePatterns
+	}
+
+	if form.BlockOnOutdatedBranch != nil {
+		protectBranch.BlockOnOutdatedBranch = *form.BlockOnOutdatedBranch
+	}
+
+	if form.BlockAdminMergeOverride != nil {
+		protectBranch.BlockAdminMergeOverride = *form.BlockAdminMergeOverride
+	}
+
+	var whitelistUsers, forcePushAllowlistUsers, mergeWhitelistUsers, approvalsWhitelistUsers []int64
+	if form.PushWhitelistUsernames != nil {
+		whitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.PushWhitelistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		whitelistUsers = protectBranch.WhitelistUserIDs
+	}
+	if form.ForcePushAllowlistDeployKeys != nil {
+		forcePushAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.ForcePushAllowlistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		forcePushAllowlistUsers = protectBranch.ForcePushAllowlistUserIDs
+	}
+	if form.MergeWhitelistUsernames != nil {
+		mergeWhitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.MergeWhitelistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		mergeWhitelistUsers = protectBranch.MergeWhitelistUserIDs
+	}
+	if form.ApprovalsWhitelistUsernames != nil {
+		approvalsWhitelistUsers, err = user_model.GetUserIDsByNames(ctx, form.ApprovalsWhitelistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		approvalsWhitelistUsers = protectBranch.ApprovalsWhitelistUserIDs
+	}
+
+	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
+
+	if form.PushWhitelistTeams != nil {
+		whitelistTeams, err = organization.GetTeamIDsByNames(ctx, org.ID, form.PushWhitelistTeams, false)
+		if err != nil {
+			if organization.IsErrTeamNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		whitelistTeams = protectBranch.WhitelistTeamIDs
+	}
+	if form.ForcePushAllowlistTeams != nil {
+		forcePushAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, org.ID, form.ForcePushAllowlistTeams, false)
+		if err != nil {
+			if organization.IsErrTeamNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		forcePushAllowlistTeams = protectBranch.ForcePushAllowlistTeamIDs
+	}
+	if form.MergeWhitelistTeams != nil {
+		mergeWhitelistTeams, err = organization.GetTeamIDsByNames(ctx, org.ID, form.MergeWhitelistTeams, false)
+		if err != nil {
+			if organization.IsErrTeamNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		mergeWhitelistTeams = protectBranch.MergeWhitelistTeamIDs
+	}
+	if form.ApprovalsWhitelistTeams != nil {
+		approvalsWhitelistTeams, err = organization.GetTeamIDsByNames(ctx, org.ID, form.ApprovalsWhitelistTeams, false)
+		if err != nil {
+			if organization.IsErrTeamNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
+			return
+		}
+	} else {
+		approvalsWhitelistTeams = protectBranch.ApprovalsWhitelistTeamIDs
+	}
+
+	err = git_model.UpdateOrgProtectBranch(ctx, org, protectBranch, git_model.WhitelistOptions{
+		UserIDs:          whitelistUsers,
+		TeamIDs:          whitelistTeams,
+		ForcePushUserIDs: forcePushAllowlistUsers,
+		ForcePushTeamIDs: forcePushAllowlistTeams,
+		MergeUserIDs:     mergeWhitelistUsers,
+		MergeTeamIDs:     mergeWhitelistTeams,
+		ApprovalsUserIDs: approvalsWhitelistUsers,
+		ApprovalsTeamIDs: approvalsWhitelistTeams,
+	})
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	// Reload from db to ensure get all whitelists
+	bp, err := git_model.GetOrgProtectedBranchRuleByName(ctx, org.ID, bpName)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if bp == nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToBranchProtectionFromOrg(ctx, bp, org))
+}
+
+// EditBranchProtection edits a branch protection for a repo
 func EditBranchProtection(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/branch_protections/{name} repository repoEditBranchProtection
 	// ---
@@ -1279,6 +1604,50 @@ func EditBranchProtection(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToBranchProtection(ctx, bp, repo))
+}
+
+// DeleteOrgBranchProtection deletes a branch protection for a repo
+func DeleteOrgBranchProtection(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/branch_protections/{name} repository repoDeleteBranchProtection
+	// ---
+	// summary: Delete a specific branch protection for the repository
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: name
+	//   in: path
+	//   description: name of protected branch
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	org := ctx.Org.Organization
+	bpName := ctx.PathParam("name")
+	bp, err := git_model.GetOrgProtectedBranchRuleByName(ctx, org.ID, bpName)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if bp == nil {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	if err := git_model.DeleteOrgProtectedBranch(ctx, org, bp.ID); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 // DeleteBranchProtection deletes a branch protection for a repo
