@@ -569,8 +569,9 @@ func (repo *Repository) MustOwner(ctx context.Context) *user_model.User {
 func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]string {
 	if len(repo.commonRenderingMetas) == 0 {
 		metas := map[string]string{
-			"user": repo.OwnerName,
-			"repo": repo.Name,
+			"user":     repo.OwnerName,
+			"repo":     repo.GetSubject(ctx), // Use subject name for URL generation
+			"reponame": repo.Name,            // Actual repository name for cross-reference matching
 		}
 
 		unitExternalTracker, err := repo.GetUnit(ctx, unit.TypeExternalTracker)

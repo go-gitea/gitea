@@ -47,7 +47,8 @@ func testInitializeLabels(t *testing.T) {
 		Name:   "enhancement",
 		Color:  "#84b6eb",
 	})
-	assert.Equal(t, "/user2/repo2/labels", test.RedirectURL(ctx.Resp))
+	// Repository 2 doesn't have a subject_id, so it falls back to repo name
+	assert.Equal(t, "/article/user2/repo2/labels", test.RedirectURL(ctx.Resp))
 }
 
 func testRetrieveLabels(t *testing.T) {
@@ -90,7 +91,8 @@ func testNewLabel(t *testing.T) {
 		Name:  "newlabel",
 		Color: "#abcdef",
 	})
-	assert.Equal(t, "/user2/repo1/labels", test.RedirectURL(respWriter))
+	// Repository 1 has subject_id 1, which is "example-subject"
+	assert.Equal(t, "/article/user2/example-subject/labels", test.RedirectURL(respWriter))
 }
 
 func testNewLabelInvalidColor(t *testing.T) {
@@ -126,7 +128,8 @@ func testUpdateLabel(t *testing.T) {
 		Name:  "newnameforlabel",
 		Color: "#abcdef",
 	})
-	assert.Equal(t, "/user2/repo1/labels", test.RedirectURL(respWriter))
+	// Repository 1 has subject_id 1, which is "example-subject"
+	assert.Equal(t, "/article/user2/example-subject/labels", test.RedirectURL(respWriter))
 }
 
 func testUpdateLabelInvalidColor(t *testing.T) {

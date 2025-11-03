@@ -136,6 +136,7 @@ func renderServiceUnavailable(w http.ResponseWriter, req *http.Request) {
 	tmplCtx := giteacontext.TemplateContext{}
 	tmplCtx["Locale"] = middleware.Locale(w, req)
 	ctxData := middleware.GetContextData(req.Context())
+	ctxData["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
 	err := templates.HTMLRenderer().HTML(w, http.StatusServiceUnavailable, tplStatus503, ctxData, tmplCtx)
 	if err != nil {
 		log.Error("Error occurs again when rendering service unavailable page: %v", err)

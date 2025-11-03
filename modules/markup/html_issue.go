@@ -160,9 +160,14 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
 			// Gitea will redirect on click as appropriate.
 			issueOwner := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["user"], ref.Owner)
-			issueRepo := util.Iif(ref.Owner == "", ctx.RenderOptions.Metas["repo"], ref.Name)
+			issueRepo := ref.Name
+			// If the cross-reference is to the same repository (same owner and repo name),
+			// use the subject name from metas instead of the literal repo name
+			if ref.Owner == "" || (ref.Owner == ctx.RenderOptions.Metas["user"] && ref.Name == ctx.RenderOptions.Metas["reponame"]) {
+				issueRepo = ctx.RenderOptions.Metas["repo"]
+			}
 			issuePath := util.Iif(ref.IsPull, "pulls", "issues")
-			linkHref := "/:root/" + util.URLJoin(issueOwner, issueRepo, issuePath, ref.Issue)
+			linkHref := "/:root/" + util.URLJoin("article", issueOwner, issueRepo, issuePath, ref.Issue)
 
 			// at the moment, only render the issue index in a full line (or simple line) as icon+title
 			// otherwise it would be too noisy for "take #1 as an example" in a sentence
