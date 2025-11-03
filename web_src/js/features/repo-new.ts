@@ -108,21 +108,16 @@ export function initRepoNew() {
 
   // Handle manual repo name changes
   inputRepoName.addEventListener('input', () => {
-    userHasEditedRepoName = true;
+    userHasEditedRepoName = !!inputRepoName.value.trim();
+    if (!userHasEditedRepoName) {
+      updateRepoNameFromSubject();
+    }
     updateUiRepoName();
   });
 
   inputRepoName.addEventListener('change', () => {
     inputRepoName.value = sanitizeRepoName(inputRepoName.value);
     updateUiRepoName();
-  });
-
-  // Reset auto-generation if repo name is cleared
-  inputRepoName.addEventListener('blur', () => {
-    if (!inputRepoName.value.trim()) {
-      userHasEditedRepoName = false;
-      updateRepoNameFromSubject();
-    }
   });
 
   updateUiRepoName();
