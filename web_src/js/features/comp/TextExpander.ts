@@ -18,7 +18,7 @@ async function fetchIssueSuggestions(key: string, text: string): Promise<TextExp
   }
   if (!issuePathInfo.ownerName) return {matched: false};
 
-  const matches = await matchIssue(issuePathInfo.ownerName, issuePathInfo.repoName, issuePathInfo.indexString, text);
+  const matches = await matchIssue(issuePathInfo.ownerName, issuePathInfo.repoName, issuePathInfo.indexString!, text);
   if (!matches.length) return {matched: false};
 
   const ul = createElementFromAttrs('ul', {class: 'suggestions'});
@@ -37,7 +37,7 @@ async function fetchIssueSuggestions(key: string, text: string): Promise<TextExp
 export function initTextExpander(expander: TextExpanderElement) {
   if (!expander) return;
 
-  const textarea = expander.querySelector<HTMLTextAreaElement>('textarea');
+  const textarea = expander.querySelector<HTMLTextAreaElement>('textarea')!;
 
   // help to fix the text-expander "multiword+promise" bug: do not show the popup when there is no "#" before current line
   const shouldShowIssueSuggestions = () => {
@@ -64,6 +64,7 @@ export function initTextExpander(expander: TextExpanderElement) {
   }, 300); // to match onInputDebounce delay
 
   expander.addEventListener('text-expander-change', (e: TextExpanderChangeEvent) => {
+    if (!e.detail) return;
     const {key, text, provide} = e.detail;
     if (key === ':') {
       const matches = matchEmoji(text);

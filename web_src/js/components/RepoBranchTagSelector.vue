@@ -23,7 +23,7 @@ export default defineComponent({
     elRoot: HTMLElement,
   },
   data() {
-    const shouldShowTabBranches = this.elRoot.getAttribute('data-show-tab-branches') === 'true';
+    const shouldShowTabBranches = this.elRoot!.getAttribute('data-show-tab-branches') === 'true';
     return {
       csrfToken: window.config.csrfToken,
       allItems: [] as ListItem[],
@@ -33,33 +33,33 @@ export default defineComponent({
       activeItemIndex: 0,
       tabLoadingStates: {} as TabLoadingStates,
 
-      textReleaseCompare: this.elRoot.getAttribute('data-text-release-compare'),
-      textBranches: this.elRoot.getAttribute('data-text-branches'),
-      textTags: this.elRoot.getAttribute('data-text-tags'),
-      textFilterBranch: this.elRoot.getAttribute('data-text-filter-branch'),
-      textFilterTag: this.elRoot.getAttribute('data-text-filter-tag'),
-      textDefaultBranchLabel: this.elRoot.getAttribute('data-text-default-branch-label'),
-      textCreateTag: this.elRoot.getAttribute('data-text-create-tag'),
-      textCreateBranch: this.elRoot.getAttribute('data-text-create-branch'),
-      textCreateRefFrom: this.elRoot.getAttribute('data-text-create-ref-from'),
-      textNoResults: this.elRoot.getAttribute('data-text-no-results'),
-      textViewAllBranches: this.elRoot.getAttribute('data-text-view-all-branches'),
-      textViewAllTags: this.elRoot.getAttribute('data-text-view-all-tags'),
+      textReleaseCompare: this.elRoot!.getAttribute('data-text-release-compare')!,
+      textBranches: this.elRoot!.getAttribute('data-text-branches')!,
+      textTags: this.elRoot!.getAttribute('data-text-tags')!,
+      textFilterBranch: this.elRoot!.getAttribute('data-text-filter-branch')!,
+      textFilterTag: this.elRoot!.getAttribute('data-text-filter-tag')!,
+      textDefaultBranchLabel: this.elRoot!.getAttribute('data-text-default-branch-label')!,
+      textCreateTag: this.elRoot!.getAttribute('data-text-create-tag')!,
+      textCreateBranch: this.elRoot!.getAttribute('data-text-create-branch')!,
+      textCreateRefFrom: this.elRoot!.getAttribute('data-text-create-ref-from')!,
+      textNoResults: this.elRoot!.getAttribute('data-text-no-results')!,
+      textViewAllBranches: this.elRoot!.getAttribute('data-text-view-all-branches')!,
+      textViewAllTags: this.elRoot!.getAttribute('data-text-view-all-tags')!,
 
-      currentRepoDefaultBranch: this.elRoot.getAttribute('data-current-repo-default-branch'),
-      currentRepoLink: this.elRoot.getAttribute('data-current-repo-link'),
-      currentTreePath: this.elRoot.getAttribute('data-current-tree-path'),
-      currentRefType: this.elRoot.getAttribute('data-current-ref-type') as GitRefType,
-      currentRefShortName: this.elRoot.getAttribute('data-current-ref-short-name'),
+      currentRepoDefaultBranch: this.elRoot!.getAttribute('data-current-repo-default-branch')!,
+      currentRepoLink: this.elRoot!.getAttribute('data-current-repo-link')!,
+      currentTreePath: this.elRoot!.getAttribute('data-current-tree-path')!,
+      currentRefType: this.elRoot!.getAttribute('data-current-ref-type')! as GitRefType,
+      currentRefShortName: this.elRoot!.getAttribute('data-current-ref-short-name')!,
 
-      refLinkTemplate: this.elRoot.getAttribute('data-ref-link-template'),
-      refFormActionTemplate: this.elRoot.getAttribute('data-ref-form-action-template'),
-      dropdownFixedText: this.elRoot.getAttribute('data-dropdown-fixed-text'),
+      refLinkTemplate: this.elRoot!.getAttribute('data-ref-link-template')!,
+      refFormActionTemplate: this.elRoot!.getAttribute('data-ref-form-action-template')!,
+      dropdownFixedText: this.elRoot!.getAttribute('data-dropdown-fixed-text')!,
       showTabBranches: shouldShowTabBranches,
-      showTabTags: this.elRoot.getAttribute('data-show-tab-tags') === 'true',
-      allowCreateNewRef: this.elRoot.getAttribute('data-allow-create-new-ref') === 'true',
-      showViewAllRefsEntry: this.elRoot.getAttribute('data-show-view-all-refs-entry') === 'true',
-      enableFeed: this.elRoot.getAttribute('data-enable-feed') === 'true',
+      showTabTags: this.elRoot!.getAttribute('data-show-tab-tags') === 'true',
+      allowCreateNewRef: this.elRoot!.getAttribute('data-allow-create-new-ref') === 'true',
+      showViewAllRefsEntry: this.elRoot!.getAttribute('data-show-view-all-refs-entry') === 'true',
+      enableFeed: this.elRoot!.getAttribute('data-enable-feed') === 'true',
     };
   },
   computed: {
@@ -92,7 +92,7 @@ export default defineComponent({
       }).length;
     },
     createNewRefFormActionUrl() {
-      return `${this.currentRepoLink}/branches/_new/${this.currentRefType}/${pathEscapeSegments(this.currentRefShortName)}`;
+      return `${this.currentRepoLink}/branches/_new/${this.currentRefType}/${pathEscapeSegments(this.currentRefShortName!)}`;
     },
   },
   watch: {

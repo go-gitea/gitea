@@ -103,17 +103,17 @@ function filterRepoFiles(filter: string) {
 }
 
 async function loadRepoFiles() {
-  const response = await GET(repoFindFileInput.getAttribute('data-url-data-link'));
+  const response = await GET(repoFindFileInput.getAttribute('data-url-data-link')!);
   files = await response.json();
   filterRepoFiles(repoFindFileInput.value);
 }
 
 export function initFindFileInRepo() {
-  repoFindFileInput = document.querySelector('#repo-file-find-input');
+  repoFindFileInput = document.querySelector('#repo-file-find-input')!;
   if (!repoFindFileInput) return;
 
-  repoFindFileTableBody = document.querySelector('#repo-find-file-table tbody');
-  repoFindFileNoResult = document.querySelector('#repo-find-file-no-result');
+  repoFindFileTableBody = document.querySelector('#repo-find-file-table tbody')!;
+  repoFindFileNoResult = document.querySelector('#repo-find-file-no-result')!;
   repoFindFileInput.addEventListener('input', () => filterRepoFiles(repoFindFileInput.value));
 
   loadRepoFiles();

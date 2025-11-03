@@ -8,10 +8,10 @@ function initBranchSelector() {
   if (!elSelectBranch) return;
 
   const urlUpdateIssueRef = elSelectBranch.getAttribute('data-url-update-issueref');
-  const elBranchMenu = elSelectBranch.querySelector('.reference-list-menu');
+  const elBranchMenu = elSelectBranch.querySelector('.reference-list-menu')!;
   queryElems(elBranchMenu, '.item:not(.no-select)', (el) => el.addEventListener('click', async function (e) {
     e.preventDefault();
-    const selectedValue = this.getAttribute('data-id'); // eg: "refs/heads/my-branch"
+    const selectedValue = this.getAttribute('data-id')!; // eg: "refs/heads/my-branch"
     const selectedText = this.getAttribute('data-name'); // eg: "my-branch"
     if (urlUpdateIssueRef) {
       // for existing issue, send request to update issue ref, and reload page
@@ -23,9 +23,9 @@ function initBranchSelector() {
       }
     } else {
       // for new issue, only update UI&form, do not send request/reload
-      const selectedHiddenSelector = this.getAttribute('data-id-selector');
-      document.querySelector<HTMLInputElement>(selectedHiddenSelector).value = selectedValue;
-      elSelectBranch.querySelector('.text-branch-name').textContent = selectedText;
+      const selectedHiddenSelector = this.getAttribute('data-id-selector')!;
+      document.querySelector<HTMLInputElement>(selectedHiddenSelector)!.value = selectedValue;
+      elSelectBranch.querySelector('.text-branch-name')!.textContent = selectedText;
     }
   }));
 }
@@ -33,7 +33,7 @@ function initBranchSelector() {
 function initRepoIssueDue() {
   const form = document.querySelector<HTMLFormElement>('.issue-due-form');
   if (!form) return;
-  const deadline = form.querySelector<HTMLInputElement>('input[name=deadline]');
+  const deadline = form.querySelector<HTMLInputElement>('input[name=deadline]')!;
   document.querySelector('.issue-due-edit')?.addEventListener('click', () => {
     toggleElem(form);
   });
