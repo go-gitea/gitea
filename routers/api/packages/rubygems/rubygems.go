@@ -433,16 +433,15 @@ func makePackageVersionDependency(ctx *context.Context, version *packages_model.
 }
 
 func makePackageInfo(ctx *context.Context, versions []*packages_model.PackageVersion, c *cache.EphemeralCache) (string, error) {
-	var ret strings.Builder
-	ret.WriteString("---\n")
+	ret := "---\n"
 	for _, v := range versions {
 		dep, err := makePackageVersionDependency(ctx, v, c)
 		if err != nil {
 			return "", err
 		}
-		ret.WriteString(dep + "\n")
+		ret += dep + "\n"
 	}
-	return ret.String(), nil
+	return ret, nil
 }
 
 func makeGemFullFileName(gemName, version, platform string) string {

@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/log"
@@ -24,11 +23,11 @@ type OpenWithEditorApp struct {
 type OpenWithEditorAppsType []OpenWithEditorApp
 
 func (t OpenWithEditorAppsType) ToTextareaString() string {
-	var ret strings.Builder
+	ret := ""
 	for _, app := range t {
-		ret.WriteString(app.DisplayName + " = " + app.OpenURL + "\n")
+		ret += app.DisplayName + " = " + app.OpenURL + "\n"
 	}
-	return ret.String()
+	return ret
 }
 
 func DefaultOpenWithEditorApps() OpenWithEditorAppsType {

@@ -208,13 +208,13 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 	branchLink := SlackLinkToRef(p.Repo.HTMLURL, p.Ref)
 	text := fmt.Sprintf("[%s:%s] %s pushed by %s", repoLink, branchLink, commitString, p.Pusher.UserName)
 
-	var attachmentText strings.Builder
+	var attachmentText string
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
-		attachmentText.WriteString(fmt.Sprintf("%s: %s - %s", SlackLinkFormatter(commit.URL, commit.ID[:7]), SlackShortTextFormatter(commit.Message), SlackTextFormatter(commit.Author.Name)))
+		attachmentText += fmt.Sprintf("%s: %s - %s", SlackLinkFormatter(commit.URL, commit.ID[:7]), SlackShortTextFormatter(commit.Message), SlackTextFormatter(commit.Author.Name))
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			attachmentText.WriteString("\n")
+			attachmentText += "\n"
 		}
 	}
 
@@ -222,7 +222,7 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 		Color:     s.Color,
 		Title:     p.Repo.HTMLURL,
 		TitleLink: p.Repo.HTMLURL,
-		Text:      attachmentText.String(),
+		Text:      attachmentText,
 	}}), nil
 }
 

@@ -72,22 +72,22 @@ func (dc dingtalkConvertor) Push(p *api.PushPayload) (DingtalkPayload, error) {
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
 
-	var text strings.Builder
+	var text string
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		var authorName string
 		if commit.Author != nil {
 			authorName = " - " + commit.Author.Name
 		}
-		text.WriteString(fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n")) + authorName)
+		text += fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
+			strings.TrimRight(commit.Message, "\r\n")) + authorName
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text.WriteString("\r\n")
+			text += "\r\n"
 		}
 	}
 
-	return createDingtalkPayload(title, text.String(), linkText, titleLink), nil
+	return createDingtalkPayload(title, text, linkText, titleLink), nil
 }
 
 // Issue implements PayloadConvertor Issue method
