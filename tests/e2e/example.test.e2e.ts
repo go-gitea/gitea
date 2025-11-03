@@ -46,6 +46,7 @@ test('login', async ({page}, workerInfo) => {
 test('logged in user', async ({browser}, workerInfo) => {
   const context = await load_logged_in_context(browser, workerInfo, 'user2');
   const page = await context.newPage();
+
   await page.goto('/');
 
   // Make sure we routed to the home page. Else login failed.
