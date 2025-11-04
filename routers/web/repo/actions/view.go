@@ -503,7 +503,7 @@ func Rerun(ctx *context_module.Context) {
 
 func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shouldBlock bool) error {
 	status := job.Status
-	if !status.IsDone() || !job.Run.Status.IsDone() {
+	if !status.IsDone() {
 		return nil
 	}
 
