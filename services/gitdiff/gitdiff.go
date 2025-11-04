@@ -520,10 +520,9 @@ func getCommitFileLineCountAndLimitedContent(commit *git.Commit, filePath string
 
 // Diff represents a difference between two git trees.
 type Diff struct {
-	Start, End     string
-	Files          []*DiffFile
-	IsIncomplete   bool
-	NumViewedFiles int // user-specific
+	Start, End   string
+	Files        []*DiffFile
+	IsIncomplete bool
 }
 
 // LoadComments loads comments into each line
@@ -1412,7 +1411,6 @@ outer:
 		// Check whether the file has already been viewed
 		if fileViewedState == pull_model.Viewed {
 			diffFile.IsViewed = true
-			diff.NumViewedFiles++
 		}
 	}
 
