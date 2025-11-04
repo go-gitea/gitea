@@ -229,6 +229,8 @@ func ForkRepoTo(ctx *context.Context, owner *user_model.User, forkOpts repo_serv
 			ctx.JSONError(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern))
 		case errors.Is(err, user_model.ErrBlockedUser):
 			ctx.JSONError(ctx.Tr("repo.fork.blocked_user"))
+		case repo_model.IsErrForkTreeTooLarge(err):
+			ctx.JSONError(ctx.Tr("repo.fork.tree_size_limit_reached"))
 		default:
 			ctx.ServerError("ForkPost", err)
 		}

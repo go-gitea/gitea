@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -369,5 +370,135 @@ func createTestTree(nodeCount int) *ForkNode {
 	}
 
 	return root
+}
+
+// TestCountForkTreeNodes tests the CountForkTreeNodes function
+func TestCountForkTreeNodes(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := context.Background()
+
+	// Test with repo 1 (should have some forks in test data)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	count1, err := repo_model.CountForkTreeNodes(ctx, repo1.ID)
+	assert.NoError(t, err)
+	assert.Greater(t, count1, 0, "Repo 1 should have at least itself in the tree")
+	t.Logf("Repo 1 fork tree has %d nodes", count1)
+
+	// Test with a repository that has no forks
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	count2, err := repo_model.CountForkTreeNodes(ctx, repo2.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, count2, "Repo with no forks should have count of 1 (itself)")
+}
+
+// TestCountForkTreeNodesPerformance tests the performance of CountForkTreeNodes
+func TestCountForkTreeNodesPerformance(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := context.Background()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// Measure execution time
+	start := time.Now()
+	count, err := repo_model.CountForkTreeNodes(ctx, repo.ID)
+	elapsed := time.Since(start)
+
+	assert.NoError(t, err)
+	assert.Greater(t, count, 0)
+
+	t.Logf("CountForkTreeNodes executed in %v for %d nodes", elapsed, count)
+
+	// Verify execution time is reasonable (< 100ms for test data)
+	assert.Less(t, elapsed, 100*time.Millisecond, "CountForkTreeNodes should execute quickly")
+}
+
+// TestFindForkTreeRoot tests the findForkTreeRoot function
+func TestFindForkTreeRoot(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := context.Background()
+
+	// Test with a root repository (not a fork)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	if !repo1.IsFork {
+		rootID, err := repo_model.FindForkTreeRoot(ctx, repo1.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, repo1.ID, rootID, "Root repository should return itself")
+	}
+
+	// Test with a forked repository
+	// Find a fork in the test data
+	var fork *repo_model.Repository
+	forks, err := repo_model.GetRepositoriesByForkID(ctx, 1)
+	assert.NoError(t, err)
+	if len(forks) > 0 {
+		fork = forks[0]
+		rootID, err := repo_model.FindForkTreeRoot(ctx, fork.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(1), rootID, "Fork should return root repository ID")
+	}
+}
+
+// TestCheckForkTreeSizeLimit tests the checkForkTreeSizeLimit function
+func TestCheckForkTreeSizeLimit(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := context.Background()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// Save original setting
+	originalLimit := setting.Repository.MaxForkTreeNodes
+	defer func() {
+		setting.Repository.MaxForkTreeNodes = originalLimit
+	}()
+
+	// Test with limit disabled (-1)
+	setting.Repository.MaxForkTreeNodes = -1
+	err := checkForkTreeSizeLimit(ctx, repo)
+	assert.NoError(t, err, "Should allow fork when limit is disabled")
+
+	// Test with limit = 0 (prevent all forking)
+	setting.Repository.MaxForkTreeNodes = 0
+	err = checkForkTreeSizeLimit(ctx, repo)
+	assert.Error(t, err, "Should prevent fork when limit is 0")
+	assert.True(t, repo_model.IsErrForkTreeTooLarge(err), "Error should be ErrForkTreeTooLarge")
+
+	// Test with limit higher than current count
+	count, err := repo_model.CountForkTreeNodes(ctx, repo.ID)
+	assert.NoError(t, err)
+	setting.Repository.MaxForkTreeNodes = count + 10
+	err = checkForkTreeSizeLimit(ctx, repo)
+	assert.NoError(t, err, "Should allow fork when under limit")
+
+	// Test with limit equal to current count (should block)
+	setting.Repository.MaxForkTreeNodes = count
+	err = checkForkTreeSizeLimit(ctx, repo)
+	assert.Error(t, err, "Should prevent fork when at limit")
+	assert.True(t, repo_model.IsErrForkTreeTooLarge(err), "Error should be ErrForkTreeTooLarge")
+
+	// Test with limit lower than current count (should block)
+	if count > 1 {
+		setting.Repository.MaxForkTreeNodes = count - 1
+		err = checkForkTreeSizeLimit(ctx, repo)
+		assert.Error(t, err, "Should prevent fork when over limit")
+		assert.True(t, repo_model.IsErrForkTreeTooLarge(err), "Error should be ErrForkTreeTooLarge")
+	}
+}
+
+// BenchmarkCountForkTreeNodes benchmarks the CountForkTreeNodes function
+func BenchmarkCountForkTreeNodes(b *testing.B) {
+	assert.NoError(b, unittest.PrepareTestDatabase())
+
+	ctx := context.Background()
+	repo := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: 1})
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := repo_model.CountForkTreeNodes(ctx, repo.ID)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }
 

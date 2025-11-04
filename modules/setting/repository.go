@@ -53,6 +53,7 @@ var (
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
 		AllowForkIntoSameOwner                  bool
+		MaxForkTreeNodes                        int
 
 		// StreamArchives makes Gitea stream git archive files to the client directly instead of creating an archive first.
 		// Ideally all users should use this streaming method. However, at the moment we don't know whether there are
@@ -173,6 +174,7 @@ var (
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
 		AllowForkWithoutMaximumLimit:            true,
+		MaxForkTreeNodes:                        300,
 		StreamArchives:                          true,
 
 		// Repository editor settings
