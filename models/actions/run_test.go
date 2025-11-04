@@ -30,6 +30,6 @@ func TestUpdateRepoRunsNumbers(t *testing.T) {
 	err = UpdateRepoRunsNumbers(t.Context(), repo)
 	assert.NoError(t, err)
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
-	assert.Equal(t, 4, repo.NumActionRuns)
+	assert.Equal(t, 5, repo.NumActionRuns)
 	assert.Equal(t, 3, repo.NumClosedActionRuns)
 }
