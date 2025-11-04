@@ -337,7 +337,7 @@ func RenameBranchPost(ctx *context.Context) {
 		return
 	}
 
-	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, ctx.Repo.GitRepo, form.From, form.To)
+	msg, err := repository.RenameBranch(ctx, ctx.Repo.Repository, ctx.Doer, form.From, form.To)
 	if err != nil {
 		switch {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):

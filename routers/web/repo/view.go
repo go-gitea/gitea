@@ -151,17 +151,28 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 }
 
 func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
+	renderer, err := markup.FindRendererByContext(renderCtx)
+	if err != nil {
+		return nil, "", err
+	}
+
 	markupRd, markupWr := io.Pipe()
 	defer markupWr.Close()
+
 	done := make(chan struct{})
 	go func() {
 		sb := &strings.Builder{}
-		// We allow NBSP here this is rendered
-		escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP)
+		if markup.RendererNeedPostProcess(renderer) {
+			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP) // We allow NBSP here this is rendered
+		} else {
+			escaped = &charset.EscapeStatus{}
+			_, _ = io.Copy(sb, markupRd)
+		}
 		output = template.HTML(sb.String())
 		close(done)
 	}()
-	err = markup.Render(renderCtx, input, markupWr)
+
+	err = markup.RenderWithRenderer(renderCtx, renderer, input, markupWr)
 	_ = markupWr.CloseWithError(err)
 	<-done
 	return escaped, output, err

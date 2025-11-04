@@ -114,9 +114,19 @@ ENABLED = true
 [markup.html]
 ENABLED = true
 FILE_EXTENSIONS = .html
-RENDER_COMMAND = `go run build/test-echo.go`
-IS_INPUT_FILE = false
-RENDER_CONTENT_MODE=sanitized
+RENDER_COMMAND = go run tools/test-echo.go
+;RENDER_COMMAND = cat
+;IS_INPUT_FILE = true
+RENDER_CONTENT_MODE = sanitized
+
+[markup.no-sanitizer]
+ENABLED = true
+FILE_EXTENSIONS = .no-sanitizer
+RENDER_COMMAND = echo '<script>window.alert("hi")</script>'
+; This test case is reused, at first it is used to test "no-sanitizer" (sandbox doesn't take effect here)
+; Then it will be updated and used to test "iframe + sandbox-disabled"
+RENDER_CONTENT_MODE = no-sanitizer
+RENDER_CONTENT_SANDBOX = disabled
 
 [actions]
 ENABLED = true

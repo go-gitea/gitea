@@ -532,6 +532,10 @@ td .commit-summary {
   color: var(--color-text-light);
 }
 
+.repository.view.issue .comment-list .timeline-item .comment-text-line .ui.label {
+  line-height: 1.5; /* label has background, so it can't use parent's line-height */
+}
+
 .repository.view.issue .comment-list .timeline-item .comment-text-line a {
   color: inherit;
 }
@@ -654,8 +658,8 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .code-comment .comment-header {
   background: transparent;
-  border-bottom: 0 !important;
-  padding: 0 !important;
+  border-bottom: 0;
+  padding: 0;
 }
 
 .repository.view.issue .comment-list .code-comment .comment-content {
@@ -1309,6 +1313,10 @@ td .commit-summary {
   align-items: center;
   flex-wrap: wrap;
   gap: 0.25em;
+}
+
+.comment-header.avatar-content-left-arrow::after {
+  border-right-color: var(--color-box-header);
 }
 
 .comment-header.arrow-top::before,

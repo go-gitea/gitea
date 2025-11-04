@@ -5,7 +5,6 @@ package git
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -25,7 +24,7 @@ import (
 	"xorm.io/builder"
 )
 
-var ErrBranchIsProtected = errors.New("branch is protected")
+var ErrBranchIsProtected = util.ErrorWrap(util.ErrPermissionDenied, "branch is protected")
 
 // ProtectedBranch struct
 type ProtectedBranch struct {

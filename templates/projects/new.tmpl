@@ -18,7 +18,7 @@
 		</div>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
-			{{/* TODO: repo-level project and org-level project have different behaviros to render */}}
+			{{/* TODO: repo-level project and org-level project have different behaviors to render */}}
 			{{/* the "Repository" is nil when the project is org-level */}}
 			{{template "shared/combomarkdowneditor" (dict
 				"MarkdownPreviewInRepo" $.Repository
