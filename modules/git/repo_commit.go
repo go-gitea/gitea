@@ -251,16 +251,8 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	}()
 	go func() {
 		stderr := strings.Builder{}
-		var gitCmd *gitcmd.Command
-
-		if !opts.FollowRename {
-			gitCmd = gitcmd.NewCommand("rev-list")
-		} else {
-			gitCmd = gitcmd.NewCommand("--no-pager", "log").
-				AddOptionFormat("--pretty=tformat:%%H").
-				AddOptionFormat("--follow")
-		}
-		gitCmd.AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
+		gitCmd := gitcmd.NewCommand("rev-list").
+			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
 			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
 
 		gitCmd.AddDynamicArguments(opts.Revision)

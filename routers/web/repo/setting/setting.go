@@ -207,11 +207,6 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
 
-	// Visibility of forked repository is forced sync with base repository.
-	if repo.IsFork {
-		form.Private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
-	}
-
 	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 		ctx.ServerError("UpdateRepository", err)
 		return
@@ -611,12 +606,6 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		units = append(units, newRepoUnit(repo, unit_model.TypePackages, nil))
 	} else if !unit_model.TypePackages.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
-	}
-
-	if form.EnableActions && !unit_model.TypeActions.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypeActions, nil))
-	} else if !unit_model.TypeActions.UnitGlobalDisabled() {
-		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
 	}
 
 	if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {

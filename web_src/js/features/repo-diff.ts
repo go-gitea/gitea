@@ -12,8 +12,6 @@ import {invertFileFolding} from './file-fold.ts';
 import {parseDom, sleep} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
-const {i18n} = window.config;
-
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
   queryElems(el, '.file-view-toggle', (btn) => btn.addEventListener('click', () => {
@@ -86,7 +84,7 @@ function initRepoDiffConversationForm() {
       }
     } catch (error) {
       console.error('Error:', error);
-      showErrorToast(i18n.network_error);
+      showErrorToast(`Submit form failed: ${error}`);
     } finally {
       form?.classList.remove('is-loading');
     }

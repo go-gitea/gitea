@@ -755,7 +755,12 @@ func EditPullRequest(ctx *context.APIContext) {
 
 	// change pull target branch
 	if !pr.HasMerged && len(form.Base) != 0 && form.Base != pr.BaseBranch {
-		if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, form.Base) {
+		branchExist, err := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, form.Base)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !branchExist {
 			ctx.APIError(http.StatusNotFound, fmt.Errorf("new base '%s' not exist", form.Base))
 			return
 		}
@@ -1010,7 +1015,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.APIError(http.StatusMethodNotAllowed, fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 		} else if pull_service.IsErrMergeConflicts(err) {

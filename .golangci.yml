@@ -14,6 +14,7 @@ linters:
     - govet
     - ineffassign
     - mirror
+    - modernize
     - nakedret
     - nolintlint
     - perfsprint
@@ -55,6 +56,7 @@ linters:
       disabled-checks:
         - ifElseChain
         - singleCaseSwitch # Every time this occurred in the code, there was no other way.
+        - deprecatedComment # conflicts with go-swagger comments
     revive:
       severity: error
       rules:
@@ -107,6 +109,11 @@ linters:
         - require-error
     usetesting:
       os-temp-dir: true
+    modernize:
+      disable:
+        - stringsbuilder
+    perfsprint:
+      concat-loop: false
   exclusions:
     generated: lax
     presets:

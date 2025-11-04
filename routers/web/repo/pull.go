@@ -358,7 +358,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		defer baseGitRepo.Close()
 	}
 
-	if !gitrepo.IsBranchExist(ctx, pull.BaseRepo, pull.BaseBranch) {
+	if exist, _ := git_model.IsBranchExist(ctx, pull.BaseRepo.ID, pull.BaseBranch); !exist {
 		ctx.Data["BaseBranchNotExist"] = true
 		ctx.Data["IsPullRequestBroken"] = true
 		ctx.Data["BaseTarget"] = pull.BaseBranch
@@ -415,7 +415,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		defer closer.Close()
 
 		if pull.Flow == issues_model.PullRequestFlowGithub {
-			headBranchExist = gitrepo.IsBranchExist(ctx, pull.HeadRepo, pull.HeadBranch)
+			headBranchExist, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
 		} else {
 			headBranchExist = gitrepo.IsReferenceExist(ctx, pull.BaseRepo, pull.GetGitHeadRefName())
 		}
@@ -782,11 +782,15 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
 	var reviewState *pull_model.ReviewState
+	var numViewedFiles int
 	if ctx.IsSigned && isShowAllCommits {
 		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions)
 		if err != nil {
 			ctx.ServerError("SyncUserSpecificDiff", err)
 			return
+		}
+		if reviewState != nil {
+			numViewedFiles = reviewState.GetViewedFileCount()
 		}
 	}
 
@@ -796,10 +800,11 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		return
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat
+	ctx.Data["NumViewedFiles"] = numViewedFiles
 
 	ctx.PageData["prReview"] = map[string]any{
 		"numberOfFiles":       diffShortStat.NumFiles,
-		"numberOfViewedFiles": diff.NumViewedFiles,
+		"numberOfViewedFiles": numViewedFiles,
 	}
 
 	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
@@ -1152,7 +1157,7 @@ func MergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if pull_service.IsErrMergeConflicts(err) {
