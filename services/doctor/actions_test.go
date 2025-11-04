@@ -19,6 +19,6 @@ func Test_fixUnfinishedRunStatus(t *testing.T) {
 	fixUnfinishedRunStatus(t.Context(), log.GetLogger(log.DEFAULT), true)
 
 	// check if the run is cancelled by id
-	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 805})
+	run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: 796})
 	assert.Equal(t, actions_model.StatusCancelled, run.Status)
 }
