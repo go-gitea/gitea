@@ -1,3 +1,9 @@
+# Forkana
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/okTurtles/forkana)
+
+-----------
+
 # Gitea
 
 [![](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml/badge.svg?branch=main)](https://github.com/go-gitea/gitea/actions/workflows/release-nightly.yml?query=branch%3Amain "Release Nightly")
