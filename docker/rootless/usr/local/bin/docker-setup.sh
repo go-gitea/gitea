@@ -49,3 +49,6 @@ fi
 
 # Replace app.ini settings with env variables in the form GITEA__SECTION_NAME__KEY_NAME
 environment-to-ini --config ${GITEA_APP_INI}
+
+# Create public folder so the user knows where things such as robots.txt should go
+mkdir -p ${GITEA_CUSTOM}/public
