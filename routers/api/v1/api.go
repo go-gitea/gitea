@@ -1182,18 +1182,6 @@ func Routes() *web.Router {
 			// (repo scope)
 			m.Post("/migrate", reqToken(), bind(api.MigrateRepoOptions{}), repo.Migrate)
 
-			m.Group("/{org}", func() {
-				m.Group("/branch_protections", func() {
-					m.Get("", repo.ListOrgBranchProtections)
-					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateOrgBranchProtection)
-					m.Group("/{name}", func() {
-						m.Get("", repo.GetOrgBranchProtection)
-						m.Patch("", bind(api.EditBranchProtectionOption{}), repo.EditOrgBranchProtection)
-						m.Delete("", repo.DeleteOrgBranchProtection)
-					})
-				}, reqToken(), reqOrgOwnership())
-			}, orgAssignment(true), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
-
 			m.Group("/{username}/{reponame}", func() {
 				m.Get("/compare/*", reqRepoReader(unit.TypeCode), repo.CompareDiff)
 
@@ -1644,6 +1632,15 @@ func Routes() *web.Router {
 		m.Post("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization))
 		m.Group("/orgs/{org}", func() {
+			m.Group("/branch_protections", func() {
+				m.Get("", repo.ListOrgBranchProtections)
+				m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateOrgBranchProtection)
+				m.Group("/{name}", func() {
+					m.Get("", repo.GetOrgBranchProtection)
+					m.Patch("", bind(api.EditBranchProtectionOption{}), repo.EditOrgBranchProtection)
+					m.Delete("", repo.DeleteOrgBranchProtection)
+				})
+			}, reqToken(), reqOrgOwnership())
 			m.Combo("").Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)

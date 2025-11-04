@@ -1616,7 +1616,7 @@ func DeleteOrgBranchProtection(ctx *context.APIContext) {
 	// parameters:
 	// - name: org
 	//   in: path
-	//   description: organizatio
+	//   description: organization
 	//   type: string
 	//   required: true
 	// - name: name
