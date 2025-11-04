@@ -246,7 +246,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Docs/fix typo and grammar in CONTRIBUTING.md (#35024)
   * Improve english grammar and readability in locale_en-US.ini (#35017)
 
-## [1.24.7](https://github.com/go-gitea/gitea/releases/tag/1.24.7) - 2025-10-24
+## [1.24.7](https://github.com/go-gitea/gitea/releases/tag/v1.24.7) - 2025-10-24
 
 * SECURITY
   * Refactor legacy code (#35708) (#35713)
@@ -258,7 +258,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Mock external service in hcaptcha TestCaptcha (#35604) (#35663)
   * Fix build (#35669)
 
-## [1.24.6](https://github.com/go-gitea/gitea/releases/tag/1.24.6) - 2025-09-10
+## [1.24.6](https://github.com/go-gitea/gitea/releases/tag/v1.24.6) - 2025-09-10
 
 * SECURITY
   * Upgrade xz to v0.5.15 (#35385)
@@ -853,7 +853,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * BUGFIXES
   * Fix a bug caused by status webhook template #33512
 
-## [1.23.2](https://github.com/go-gitea/gitea/releases/tag/1.23.2) - 2025-02-04
+## [1.23.2](https://github.com/go-gitea/gitea/releases/tag/v1.23.2) - 2025-02-04
 
 * BREAKING
   * Add tests for webhook and fix some webhook bugs (#33396) (#33442)
@@ -3383,7 +3383,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Improve decryption failure message (#24573) (#24575)
   * Makefile: Use portable !, not GNUish -not, with find(1). (#24565) (#24572)
 
-## [1.19.3](https://github.com/go-gitea/gitea/releases/tag/1.19.3) - 2023-05-03
+## [1.19.3](https://github.com/go-gitea/gitea/releases/tag/v1.19.3) - 2023-05-03
 
 * SECURITY
   * Use golang 1.20.4 to fix CVE-2023-24539, CVE-2023-24540, and CVE-2023-29400
@@ -3396,7 +3396,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Fix incorrect CurrentUser check for docker rootless (#24435)
   * Getting the tag list does not require being signed in (#24413) (#24416)
 
-## [1.19.2](https://github.com/go-gitea/gitea/releases/tag/1.19.2) - 2023-04-26
+## [1.19.2](https://github.com/go-gitea/gitea/releases/tag/v1.19.2) - 2023-04-26
 
 * SECURITY
   * Require repo scope for PATs for private repos and basic authentication (#24362) (#24364)
@@ -3895,7 +3895,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Display attachments of review comment when comment content is blank (#23035) (#23046)
   * Return empty url for submodule tree entries (#23043) (#23048)
 
-## [1.18.4](https://github.com/go-gitea/gitea/releases/tag/1.18.4) - 2023-02-20
+## [1.18.4](https://github.com/go-gitea/gitea/releases/tag/v1.18.4) - 2023-02-20
 
 * SECURITY
   * Provide the ability to set password hash algorithm parameters (#22942) (#22943)
@@ -4322,7 +4322,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Fix the mode of custom dir to 0700 in docker-rootless (#20861) (#20867)
   * Fix UI mis-align for PR commit history (#20845) (#20859)
 
-## [1.17.1](https://github.com/go-gitea/gitea/releases/tag/1.17.1) - 2022-08-17
+## [1.17.1](https://github.com/go-gitea/gitea/releases/tag/v1.17.1) - 2022-08-17
 
 * SECURITY
   * Correctly escape within tribute.js (#20831) (#20832)
