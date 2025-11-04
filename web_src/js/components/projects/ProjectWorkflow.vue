@@ -336,35 +336,6 @@ const workflowList = computed(() => {
   }));
 });
 
-const createNewWorkflow = (eventType: any, capabilities: any, displayName: any) => {
-  // Store current selection before creating new workflow
-  if (!isInEditMode.value) {
-    previousSelection.value = {
-      selectedItem: store.selectedItem,
-      selectedWorkflow: store.selectedWorkflow ? {...store.selectedWorkflow} : null,
-    };
-  }
-
-  const tempId = `new-${eventType}-${Date.now()}`;
-  const newWorkflow = {
-    id: 0,
-    event_id: tempId,
-    display_name: displayName,
-    capabilities,
-    filters: [] as any[],
-    actions: [] as any[],
-    summary: '',
-    workflow_event: eventType,
-    enabled: true, // Ensure new workflows are enabled by default
-  };
-
-  store.selectedWorkflow = newWorkflow;
-  // For unconfigured events, use the base event type as selected item for UI consistency
-  store.selectedItem = eventType;
-  store.resetWorkflowData();
-  // Unconfigured workflows are always in edit mode by default
-};
-
 // Add debounce mechanism
 let selectTimeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -391,13 +362,8 @@ const selectWorkflowItem = async (item: any) => {
       w.id === 0 && w.workflow_event === item.workflow_event,
     );
 
-    if (existingWorkflow) {
-      // We already have an unconfigured workflow for this event type, select it
-      await selectWorkflowEvent(existingWorkflow);
-    } else {
-      // This is truly a new unconfigured event, create new workflow
-      createNewWorkflow(item.workflow_event, item.capabilities, item.display_name);
-    }
+    const workflowToSelect = existingWorkflow || item;
+    await selectWorkflowEvent(workflowToSelect);
 
     // Update URL for workflow
     const newUrl = `${props.projectLink}/workflows/${item.workflow_event}`;
@@ -573,8 +539,9 @@ onMounted(async () => {
         !item.isConfigured && (item.workflow_event === props.eventID || item.event_id === props.eventID),
       );
       if (matchingUnconfigured) {
-        // Create new workflow for this base event type
-        createNewWorkflow(matchingUnconfigured.workflow_event, matchingUnconfigured.capabilities, matchingUnconfigured.display_name);
+        // Select the placeholder workflow for this base event type
+        store.selectedItem = null;
+        await selectWorkflowEvent(matchingUnconfigured);
       } else {
         // Fallback: select first available item
         if (items.length > 0) {
@@ -623,7 +590,7 @@ const popstateHandler = (e: any) => {
         !item.isConfigured && (item.workflow_event === e.state.eventId || item.event_id === e.state.eventId),
       );
       if (matchingUnconfigured) {
-        createNewWorkflow(matchingUnconfigured.workflow_event, matchingUnconfigured.capabilities, matchingUnconfigured.display_name);
+        void selectWorkflowEvent(matchingUnconfigured);
       }
     }
   }
