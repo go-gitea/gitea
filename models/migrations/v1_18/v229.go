@@ -21,6 +21,7 @@ func UpdateOpenMilestoneCounts(x *xorm.Engine) error {
 
 	for _, id := range openMilestoneIDs {
 		_, err := x.ID(id).
+			Cols("num_issues", "num_closed_issues").
 			SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
 				builder.Eq{"milestone_id": id},
 			)).
