@@ -227,7 +227,7 @@ const cloneWorkflow = (sourceWorkflow: any) => {
   if (!sourceWorkflow) return;
 
   // Generate a unique temporary ID for the cloned workflow
-  const tempId = `clone-${sourceWorkflow.workflow_event}-${Date.now()}`;
+  const tempId = `${sourceWorkflow.workflow_event}`;
 
   // Extract base name without any parenthetical descriptions
   const baseName = (sourceWorkflow.display_name || sourceWorkflow.workflow_event || sourceWorkflow.event_id)
