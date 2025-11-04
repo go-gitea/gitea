@@ -7,7 +7,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.25.1](https://github.com/go-gitea/gitea/releases/tag/v1.25.1) - 2025-11-03
 
 * BUGFIXES
+  * Make ACME email optional (#35849) #35857
   * Add a doctor command to fix inconsistent run status (#35840) (#35845)
+  * Remove wrong code (#35846)
   * Fix viewed files number is not right if not all files loaded (#35821) (#35844)
   * Fix incorrect pull request counter (#35819) (#35841)
   * Upgrade go mail to 0.7.2 and fix the bug (#35833) (#35837)
@@ -19,6 +21,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix actions schedule update issue (#35767) (#35774)
   * Fix circular spin animation direction (#35785) (#35823)
   * Fix file extension on gogs.png (#35793) (#35799)
+  * Add pnpm to Snapcraft (#35778)
 
 ## [1.25.0](https://github.com/go-gitea/gitea/releases/tag/v1.25.0) - 2025-10-30
 
