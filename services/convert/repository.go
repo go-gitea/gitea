@@ -181,12 +181,19 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		language = repo.PrimaryLanguage.Language
 	}
 
-	repoLicenses, err := repo_model.GetRepoLicenses(ctx, repo)
-	if err != nil {
-		return nil
+	// Use preloaded licenses if available (from batch loading), otherwise load individually
+	var repoLicenses repo_model.RepoLicenseList
+	if repo.Licenses != nil {
+		repoLicenses = repo.Licenses
+	} else {
+		var err error
+		repoLicenses, err = repo_model.GetRepoLicenses(ctx, repo)
+		if err != nil {
+			return nil
+		}
 	}
 
-	// Load subject relation if available
+	// Load subject relation if available (will use preloaded data if batch loaded)
 	_ = repo.LoadSubject(ctx) // Ignore error, will fall back to legacy field or name
 
 	repoAPIURL := repo.APIURL()

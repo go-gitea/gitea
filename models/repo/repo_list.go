@@ -187,6 +187,30 @@ func (repos RepositoryList) LoadSubjects(ctx context.Context) error {
 	return nil
 }
 
+// LoadLicenses loads the licenses for all repositories in the list
+func (repos RepositoryList) LoadLicenses(ctx context.Context) (map[int64]RepoLicenseList, error) {
+	if len(repos) == 0 {
+		return nil, nil
+	}
+
+	// Load all licenses for these repositories
+	licenses := make([]*RepoLicense, 0)
+	if err := db.GetEngine(ctx).
+		In("repo_id", repos.IDs()).
+		Asc("license").
+		Find(&licenses); err != nil {
+		return nil, fmt.Errorf("find licenses: %w", err)
+	}
+
+	// Group licenses by repository ID
+	licensesMap := make(map[int64]RepoLicenseList, len(repos))
+	for _, license := range licenses {
+		licensesMap[license.RepoID] = append(licensesMap[license.RepoID], license)
+	}
+
+	return licensesMap, nil
+}
+
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes(ctx context.Context) error {
 	if err := repos.LoadOwners(ctx); err != nil {

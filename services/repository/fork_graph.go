@@ -75,6 +75,9 @@ type ForkNode struct {
 	Contributors *ContributorStats `json:"contributors,omitempty"`
 	Level        int               `json:"level"`
 	Children     []*ForkNode       `json:"children"`
+
+	// Internal field for batch processing (not exported to JSON)
+	repo *repo_model.Repository `json:"-"`
 }
 
 // ContributorStats represents contributor statistics
@@ -139,11 +142,23 @@ func BuildForkGraph(ctx context.Context, repo *repo_model.Repository, params For
 	nodeCount := 0
 	maxDepthReached := false
 
-	// Build the tree from the root repository
+	// Build the tree structure
 	rootNode, err := buildNode(timeoutCtx, rootRepo, 0, params, doer, visited, &nodeCount, &maxDepthReached)
 	if err != nil {
 		return nil, err
 	}
+
+	// Collect all repositories from the tree for batch loading
+	allRepos := collectRepositories(rootNode)
+
+	// Batch load attributes to avoid N+1 queries
+	if err := batchLoadRepositoryAttributes(ctx, allRepos); err != nil {
+		log.Warn("Failed to batch load repository attributes: %v", err)
+		// Continue anyway - individual loads will happen in convert.ToRepo
+	}
+
+	// Convert all nodes to API format (using preloaded data)
+	convertNodesToAPI(ctx, rootNode)
 
 	// Count total and visible forks (use root repository's fork count)
 	totalForks := rootRepo.NumForks
@@ -230,13 +245,8 @@ func buildNode(ctx context.Context, repo *repo_model.Repository, level int, para
 		ID:       fmt.Sprintf("repo_%d", repo.ID),
 		Level:    level,
 		Children: children,
+		repo:     repo, // Store for batch processing
 	}
-
-	// Convert repository to API format
-	// Use a simplified permission since repos are already filtered by AccessibleRepositoryCondition
-	// This avoids redundant database queries for permission checking
-	permission := createReadPermission(ctx, repo)
-	node.Repository = convert.ToRepo(ctx, repo, permission)
 
 	// Add contributor stats if requested
 	if params.IncludeContributors {
@@ -257,11 +267,8 @@ func createLeafNode(ctx context.Context, repo *repo_model.Repository, level int,
 		ID:       fmt.Sprintf("repo_%d", repo.ID),
 		Level:    level,
 		Children: []*ForkNode{},
+		repo:     repo, // Store for batch processing
 	}
-
-	// Use simplified permission (repos already filtered by AccessibleRepositoryCondition)
-	permission := createReadPermission(ctx, repo)
-	node.Repository = convert.ToRepo(ctx, repo, permission)
 
 	if params.IncludeContributors {
 		stats, err := getContributorStats(repo, params.ContributorDays)
@@ -411,4 +418,97 @@ func countVisibleForks(node *ForkNode) int {
 	}
 
 	return count
+}
+
+// collectRepositories traverses the tree and collects all repository objects
+// Uses a map to ensure no duplicates are collected
+func collectRepositories(node *ForkNode) []*repo_model.Repository {
+	if node == nil {
+		return nil
+	}
+
+	seen := make(map[int64]bool)
+	repos := make([]*repo_model.Repository, 0)
+
+	var collect func(*ForkNode)
+	collect = func(n *ForkNode) {
+		if n == nil || n.repo == nil {
+			return
+		}
+		// Only add if not already seen
+		if !seen[n.repo.ID] {
+			seen[n.repo.ID] = true
+			repos = append(repos, n.repo)
+		}
+		// Recursively collect from children
+		for _, child := range n.Children {
+			collect(child)
+		}
+	}
+
+	collect(node)
+	return repos
+}
+
+// batchLoadRepositoryAttributes loads all necessary attributes for repositories in a single batch
+// This eliminates N+1 queries by using batch loading methods
+func batchLoadRepositoryAttributes(ctx context.Context, repos []*repo_model.Repository) error {
+	if len(repos) == 0 {
+		return nil
+	}
+
+	repoList := repo_model.RepositoryList(repos)
+
+	// Batch load owners (biggest performance impact)
+	if err := repoList.LoadOwners(ctx); err != nil {
+		return fmt.Errorf("failed to batch load owners: %w", err)
+	}
+
+	// Batch load subjects
+	if err := repoList.LoadSubjects(ctx); err != nil {
+		log.Warn("Failed to batch load subjects: %v", err)
+		// Continue - individual loads will happen in convert.ToRepo
+	}
+
+	// Batch load units (needed for permissions)
+	if err := repoList.LoadUnits(ctx); err != nil {
+		log.Warn("Failed to batch load units: %v", err)
+		// Continue - individual loads will happen in convert.ToRepo
+	}
+
+	// Batch load licenses
+	licensesMap, err := repoList.LoadLicenses(ctx)
+	if err != nil {
+		log.Warn("Failed to batch load licenses: %v", err)
+		// Continue - individual loads will happen in convert.ToRepo
+	} else {
+		// Store preloaded licenses in repository objects
+		for _, repo := range repos {
+			if licenses, ok := licensesMap[repo.ID]; ok {
+				repo.Licenses = licenses
+			}
+		}
+	}
+
+	return nil
+}
+
+// convertNodesToAPI recursively converts all nodes to API format using preloaded data
+func convertNodesToAPI(ctx context.Context, node *ForkNode) {
+	if node == nil {
+		return
+	}
+
+	// Convert this node's repository to API format
+	if node.repo != nil {
+		permission := createReadPermission(ctx, node.repo)
+		node.Repository = convert.ToRepo(ctx, node.repo, permission)
+		// Clear the internal repo reference to free memory
+		node.repo = nil
+	}
+
+	// Recursively convert children
+	for _, child := range node.Children {
+		convertNodesToAPI(ctx, child)
+	}
 }

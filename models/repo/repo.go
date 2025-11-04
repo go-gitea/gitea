@@ -197,8 +197,9 @@ type Repository struct {
 
 	commonRenderingMetas map[string]string `xorm:"-"`
 
-	Units           []*RepoUnit   `xorm:"-"`
-	PrimaryLanguage *LanguageStat `xorm:"-"`
+	Units           []*RepoUnit     `xorm:"-"`
+	PrimaryLanguage *LanguageStat   `xorm:"-"`
+	Licenses        RepoLicenseList `xorm:"-"` // Preloaded licenses for batch operations
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
