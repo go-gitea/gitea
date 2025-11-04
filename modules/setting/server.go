@@ -235,9 +235,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL", "v1.19.0")
 				AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 			}
-			if AcmeEmail == "" {
-				log.Fatal("ACME Email is not set (ACME_EMAIL).")
-			}
 		} else {
 			CertFile = sec.Key("CERT_FILE").String()
 			KeyFile = sec.Key("KEY_FILE").String()
