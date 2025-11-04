@@ -7,6 +7,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 ## [1.25.1](https://github.com/go-gitea/gitea/releases/tag/v1.25.1) - 2025-11-03
 
 * BUGFIXES
+  * Fix viewed files number is not right if not all files loaded (#35821) (#35844)
+  * Fix incorrect pull request counter (#35819) (#35841)
   * Upgrade go mail to 0.7.2 and fix the bug (#35833) (#35837)
   * Revert gomail to v0.7.0 to fix sending mail failed (#35816) (#35824)
   * Fix clone mixed bug (#35810) (#35822)
