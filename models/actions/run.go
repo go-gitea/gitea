@@ -184,6 +184,7 @@ func (run *ActionRun) IsSchedule() bool {
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
 	_, err := db.GetEngine(ctx).ID(repo.ID).
 		NoAutoTime().
+		Cols("num_action_runs", "num_closed_action_runs").
 		SetExpr("num_action_runs",
 			builder.Select("count(*)").From("action_run").
 				Where(builder.Eq{"repo_id": repo.ID}),
