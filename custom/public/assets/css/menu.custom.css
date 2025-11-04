@@ -1,0 +1,24 @@
+.ui.secondary.pointing.menu .active.item {
+  border-color: var(--color-primary);
+}
+
+.ui.floating.dropdown > .menu {
+  border-radius: var(--border-radius-dropdown) !important;
+}
+
+.ui.dropdown .menu > .item:first-of-type {
+  border-top-left-radius: var(--border-radius-dropdown) !important;
+  border-top-right-radius: var(--border-radius-dropdown) !important;
+}
+.ui.dropdown .menu > .item:last-of-type {
+  border-bottom-left-radius: var(--border-radius-dropdown) !important;
+  border-bottom-right-radius: var(--border-radius-dropdown) !important;
+}
+
+.ui.tabular.menu .active.item, .ui.tabular.menu .active.item:hover {
+  border-radius: var(--border-radius-medium) var(--border-radius-medium) 0 0 !important;
+}
+
+.ui.menu .item > .svg {
+  margin-right: 0.5rem;
+}

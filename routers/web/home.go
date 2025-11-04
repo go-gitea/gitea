@@ -100,7 +100,7 @@ func HomeSitemap(ctx *context.Context) {
 	count := int(cnt)
 	idx := 1
 	for i := 0; i < count; i += setting.UI.SitemapPagingNum {
-		m.Add(sitemap.URL{URL: setting.AppURL + "explore/repos/sitemap-" + strconv.Itoa(idx) + ".xml"})
+		m.Add(sitemap.URL{URL: setting.AppURL + "explore/articles/sitemap-" + strconv.Itoa(idx) + ".xml"})
 		idx++
 	}
 

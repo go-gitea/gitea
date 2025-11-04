@@ -79,14 +79,14 @@ func userProfile(ctx *context.Context) {
 }
 
 func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.Repository, profileReadme *git.Blob) {
-	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
-	// if there is not a profile readme, the overview tab should be treated as the repositories tab
+	// if there is a profile readme, default to "overview" page, otherwise, default to "articles" page
+	// if there is not a profile readme, the overview tab should be treated as the articles tab
 	tab := ctx.FormString("tab")
 	if tab == "" || tab == "overview" {
 		if profileReadme != nil {
 			tab = "overview"
 		} else {
-			tab = "repositories"
+			tab = "articles"
 		}
 	}
 	ctx.Data["TabName"] = tab
@@ -279,7 +279,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		}
 		ctx.Data["Cards"] = orgs
 		total = int(count)
-	default: // default to "repositories"
+	default: // default to "articles"
 		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,

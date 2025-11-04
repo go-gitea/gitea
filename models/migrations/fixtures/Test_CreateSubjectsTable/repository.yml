@@ -1,0 +1,7 @@
+# type Repository struct {
+#   ID      int64  `xorm:"pk autoincr"`
+#   Subject string `xorm:"VARCHAR(255)"`
+# }
+# This fixture file is intentionally empty for the base test case
+# Individual test cases will insert their own data
+

@@ -1,0 +1,23 @@
+.ui.segment {
+  padding: 0;
+}
+
+.ui[class*="very basic"].table:not(.striped) > thead > tr:first-child > th {
+  padding-top: 6px;
+}
+
+.ui.table > thead {
+  background: var(--color-muted);
+}
+
+.ui.table > thead > tr > th {
+  color: var(--color-muted-text);
+  font-weight: 600;
+}
+
+.ui.table thead th, .ui.table tbody td,
+.ui[class*="very basic"].table:not(.striped) > tbody > tr > td:first-child,
+.ui[class*="very basic"].table:not(.striped) > thead > tr > td:last-child {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}

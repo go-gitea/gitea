@@ -60,6 +60,11 @@
 					<label for="repo_name">{{ctx.Locale.Tr "repo.repo_name"}}</label>
 					<input id="repo_name" name="repo_name" value="{{.repo_name}}" required maxlength="100">
 				</div>
+				<div class="inline field {{if .Err_Subject}}error{{end}}">
+					<label for="subject">{{ctx.Locale.Tr "repo.subject"}}</label>
+					<input id="subject" name="subject" value="{{.subject}}" maxlength="255">
+					<span class="help">{{ctx.Locale.Tr "repo.subject_helper"}}</span>
+				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.visibility"}}</label>
 					<div class="ui checkbox">

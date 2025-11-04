@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -55,6 +56,46 @@ type ForkRepoOptions struct {
 	SingleBranch string
 }
 
+// checkForkTreeSizeLimit checks if the fork tree has reached the maximum size limit.
+// Returns nil if the fork is allowed, or ErrForkTreeTooLarge if the limit is exceeded.
+//
+// The limit is controlled by setting.Repository.MaxForkTreeNodes:
+// - If < 0: limit is disabled, always allow forking
+// - If = 0: prevent all forking
+// - If > 0: limit to this many total nodes in the fork tree
+//
+// If an error occurs while counting nodes (e.g., database error), the error is logged
+// but the fork is allowed to proceed. This ensures that temporary database issues
+// don't permanently block fork creation.
+func checkForkTreeSizeLimit(ctx context.Context, baseRepo *repo_model.Repository) error {
+	limit := setting.Repository.MaxForkTreeNodes
+
+	// Limit disabled
+	if limit < 0 {
+		return nil
+	}
+
+	// Prevent all forking
+	if limit == 0 {
+		return repo_model.ErrForkTreeTooLarge{Limit: 0}
+	}
+
+	// Count nodes in the fork tree
+	count, err := repo_model.CountForkTreeNodes(ctx, baseRepo.ID)
+	if err != nil {
+		// Log the error but don't block fork creation on count errors
+		log.Error("Failed to count fork tree nodes for repo %d: %v", baseRepo.ID, err)
+		return nil
+	}
+
+	// Check if adding one more node would exceed the limit
+	if count >= limit {
+		return repo_model.ErrForkTreeTooLarge{Limit: limit}
+	}
+
+	return nil
+}
+
 // ForkRepository forks a repository
 func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts ForkRepoOptions) (*repo_model.Repository, error) {
 	if err := opts.BaseRepo.LoadOwner(ctx); err != nil {
@@ -70,6 +111,11 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: owner.MaxRepoCreation,
 		}
+	}
+
+	// Check if fork tree has reached maximum size limit
+	if err := checkForkTreeSizeLimit(ctx, opts.BaseRepo); err != nil {
+		return nil, err
 	}
 
 	forkedRepo, err := repo_model.GetUserFork(ctx, opts.BaseRepo.ID, owner.ID)
@@ -88,6 +134,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	if opts.SingleBranch != "" {
 		defaultBranch = opts.SingleBranch
 	}
+
 	repo := &repo_model.Repository{
 		OwnerID:          owner.ID,
 		Owner:            owner,
@@ -100,6 +147,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		IsEmpty:          opts.BaseRepo.IsEmpty,
 		IsFork:           true,
 		ForkID:           opts.BaseRepo.ID,
+		SubjectID:        opts.BaseRepo.SubjectID,
 		ObjectFormatName: opts.BaseRepo.ObjectFormatName,
 		Status:           repo_model.RepositoryBeingMigrated,
 	}

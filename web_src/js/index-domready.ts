@@ -36,6 +36,7 @@ import {initOrgTeam} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
+import {initArticleEditor} from './features/article-editor.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
 import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
@@ -66,6 +67,8 @@ import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton}
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
+import {initRepoBubbleView} from './features/repo-bubble-view.ts';
+import {initRepoHistory} from './features/repo-history.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -127,6 +130,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoEllipsisButton,
   initRepoDiffCommitBranchesAndTags,
   initRepoEditor,
+  initArticleEditor,
   initRepoGraphGit,
   initRepoIssueContentHistory,
   initRepoIssueList,
@@ -140,6 +144,8 @@ const initPerformanceTracer = callInitFunctions([
   initRepoRelease,
   initRepoReleaseNew,
   initRepoTopicBar,
+  initRepoBubbleView,
+  initRepoHistory,
   initRepoViewFileTree,
   initRepoWikiForm,
   initRepository,

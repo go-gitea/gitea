@@ -106,6 +106,24 @@ func (err ErrRepoFilesAlreadyExist) Unwrap() error {
 	return util.ErrAlreadyExist
 }
 
+// ErrRepoSubjectGloballyTaken represents a "repository subject globally taken" error
+type ErrRepoSubjectGloballyTaken struct {
+	Subject string
+}
+
+func IsErrRepoSubjectGloballyTaken(err error) bool {
+	_, ok := err.(ErrRepoSubjectGloballyTaken)
+	return ok
+}
+
+func (err ErrRepoSubjectGloballyTaken) Error() string {
+	return fmt.Sprintf("repository subject is already taken globally [subject: %s]", err.Subject)
+}
+
+func (err ErrRepoSubjectGloballyTaken) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // CheckCreateRepository check if doer could create a repository in new owner
 func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, name string, overwriteOrAdopt bool) error {
 	if !doer.CanCreateRepoIn(owner) {
@@ -132,6 +150,29 @@ func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, na
 	if !overwriteOrAdopt && isExist {
 		return ErrRepoFilesAlreadyExist{owner.Name, name}
 	}
+	return nil
+}
+
+// CheckCreateRepositoryGlobalUnique checks repository creation permissions and subject global uniqueness
+// Note: Repository names are validated for owner-scoped uniqueness only (via CheckCreateRepository),
+// not global uniqueness. This aligns with standard Git forge behavior where multiple owners can have
+// repositories with the same name (e.g., user1/myrepo and user2/myrepo can coexist).
+// Subjects, however, must be globally unique across the entire system.
+func CheckCreateRepositoryGlobalUnique(ctx context.Context, doer, owner *user_model.User, name, subject string, overwriteOrAdopt bool) error {
+	// First run the existing validation (owner-scoped repository name uniqueness)
+	if err := CheckCreateRepository(ctx, doer, owner, name, overwriteOrAdopt); err != nil {
+		return err
+	}
+
+	// Check global uniqueness for repository subject
+	isSubjectUnique, err := IsRepositorySubjectGloballyUnique(ctx, subject)
+	if err != nil {
+		return fmt.Errorf("failed to check global subject uniqueness: %w", err)
+	}
+	if !isSubjectUnique {
+		return ErrRepoSubjectGloballyTaken{Subject: subject}
+	}
+
 	return nil
 }
 

@@ -160,7 +160,7 @@ func CreateFork(ctx *context.APIContext) {
 	if err != nil {
 		if errors.Is(err, util.ErrAlreadyExist) || repo_model.IsErrReachLimitOfRepo(err) {
 			ctx.APIError(http.StatusConflict, err)
-		} else if errors.Is(err, user_model.ErrBlockedUser) {
+		} else if errors.Is(err, user_model.ErrBlockedUser) || repo_model.IsErrForkTreeTooLarge(err) {
 			ctx.APIError(http.StatusForbidden, err)
 		} else {
 			ctx.APIErrorInternal(err)

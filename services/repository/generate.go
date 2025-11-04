@@ -296,6 +296,7 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 // GenerateRepoOptions contains the template units to generate
 type GenerateRepoOptions struct {
 	Name            string
+	Subject         string
 	DefaultBranch   string
 	Description     string
 	Private         bool

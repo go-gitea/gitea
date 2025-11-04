@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -184,6 +183,9 @@ func Create(ctx *context.Context) {
 
 func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl templates.TplName, form any) {
 	switch {
+	case repo_model.IsErrRepoSubjectGloballyTaken(err):
+		ctx.Data["Err_Subject"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.subject_globally_taken"), tpl, form)
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
@@ -238,11 +240,27 @@ func CreatePost(ctx *context.Context) {
 		return
 	}
 
+	// Auto-generate repository name from subject if subject is provided
+	// and repository name is empty or matches the generated name
+	if form.Subject != "" {
+		generatedName := repo_model.GenerateRepoNameFromSubject(form.Subject)
+		if form.RepoName == "" || form.RepoName == generatedName {
+			form.RepoName = generatedName
+		}
+	}
+
+	// Check global uniqueness for repository name and subject
+	if err := repo_model.CheckCreateRepositoryGlobalUnique(ctx, ctx.Doer, ctxUser, form.RepoName, form.Subject, false); err != nil {
+		handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
+		return
+	}
+
 	var repo *repo_model.Repository
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := repo_service.GenerateRepoOptions{
 			Name:            form.RepoName,
+			Subject:         form.Subject,
 			Description:     form.Description,
 			Private:         form.Private || setting.Repository.ForcePrivate,
 			GitContent:      form.GitContent,
@@ -278,6 +296,7 @@ func CreatePost(ctx *context.Context) {
 	} else {
 		repo, err = repo_service.CreateRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{
 			Name:             form.RepoName,
+			Subject:          form.Subject,
 			Description:      form.Description,
 			Gitignores:       form.Gitignores,
 			IssueLabels:      form.IssueLabels,
@@ -376,53 +395,19 @@ func Download(ctx *context.Context) {
 		}
 		return
 	}
-
-	archiver, err := aReq.Await(ctx)
-	if err != nil {
-		ctx.ServerError("archiver.Await", err)
-		return
-	}
-
-	download(ctx, aReq.GetArchiveName(), archiver)
-}
-
-func download(ctx *context.Context, archiveName string, archiver *repo_model.RepoArchiver) {
-	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
-
-	// Add nix format link header so tarballs lock correctly:
-	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
-	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.tar.gz?rev=%s>; rel="immutable"`,
-		ctx.Repo.Repository.APIURL(),
-		archiver.CommitID, archiver.CommitID))
-
-	rPath := archiver.RelativePath()
-	if setting.RepoArchive.Storage.ServeDirect() {
-		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.RepoArchives.URL(rPath, downloadName, ctx.Req.Method, nil)
-		if u != nil && err == nil {
-			ctx.Redirect(u.String())
-			return
-		}
-	}
-
-	// If we have matched and access to release or issue
-	fr, err := storage.RepoArchives.Open(rPath)
-	if err != nil {
-		ctx.ServerError("Open", err)
-		return
-	}
-	defer fr.Close()
-
-	ctx.ServeContent(fr, &context.ServeHeaderOptions{
-		Filename:     downloadName,
-		LastModified: archiver.CreatedUnix.AsLocalTime(),
-	})
+	archiver_service.ServeRepoArchive(ctx.Base, ctx.Repo.Repository, ctx.Repo.GitRepo, aReq)
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
+	if setting.Repository.StreamArchives {
+		ctx.JSON(http.StatusOK, map[string]any{
+			"complete": true,
+		})
+		return
+	}
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, "invalid archive request")
@@ -568,6 +553,7 @@ func SearchRepo(ctx *context.Context) {
 		results[i] = &repo_service.WebSearchRepository{
 			Repository: &api.Repository{
 				ID:       repo.ID,
+				Subject:  repo.GetSubject(ctx),
 				FullName: repo.FullName(),
 				Fork:     repo.IsFork,
 				Private:  repo.IsPrivate,

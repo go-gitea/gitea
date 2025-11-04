@@ -348,10 +348,8 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 
 	for _, u := range repo.Units {
 		for _, team := range teams {
-			unitAccessMode := minAccessMode
-			if teamMode, exist := team.UnitAccessModeEx(ctx, u.Type); exist {
-				unitAccessMode = max(perm.unitsMode[u.Type], unitAccessMode, teamMode)
-			}
+			teamMode, _ := team.UnitAccessModeEx(ctx, u.Type)
+			unitAccessMode := max(perm.unitsMode[u.Type], minAccessMode, teamMode)
 			perm.unitsMode[u.Type] = unitAccessMode
 		}
 	}

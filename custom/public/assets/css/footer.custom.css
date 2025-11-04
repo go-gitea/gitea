@@ -1,0 +1,13 @@
+/* Footer overrides */
+.page-footer {
+  /* example: tweak background or padding */
+  /* background: var(--color-secondary); */
+  /* padding: 12px 16px; */
+}
+.page-footer .left-links a,
+.page-footer .right-links a {
+  /* example: adjust link appearance */
+  /* color: var(--color-text); */
+  /* text-decoration: underline; */
+}
+

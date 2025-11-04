@@ -1,0 +1,12 @@
+.ui.message {
+  border-radius: 0 !important;
+  margin-top: -1px !important;
+}
+
+.ui.warning.message {
+  color: var(--color-caret);
+}
+
+.ui.warning.message svg, .ui.warning.message a {
+  color: var(--color-warning-text);
+}

@@ -7,7 +7,6 @@ package activities
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"path"
 	"slices"
 	"strconv"
@@ -286,13 +285,26 @@ func (a *Action) ShortRepoPath(ctx context.Context) string {
 
 // GetRepoLink returns relative link to action repository.
 func (a *Action) GetRepoLink(ctx context.Context) string {
-	// path.Join will skip empty strings
-	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName(ctx)), url.PathEscape(a.GetRepoName(ctx)))
+	if err := a.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo(%d): %v", a.RepoID, err)
+		return ""
+	}
+	if a.Repo == nil {
+		return ""
+	}
+	return a.Repo.Link()
 }
 
 // GetRepoAbsoluteLink returns the absolute link to action repository.
 func (a *Action) GetRepoAbsoluteLink(ctx context.Context) string {
-	return setting.AppURL + url.PathEscape(a.GetRepoUserName(ctx)) + "/" + url.PathEscape(a.GetRepoName(ctx))
+	if err := a.LoadRepo(ctx); err != nil {
+		log.Error("LoadRepo(%d): %v", a.RepoID, err)
+		return ""
+	}
+	if a.Repo == nil {
+		return ""
+	}
+	return a.Repo.HTMLURL(ctx)
 }
 
 func (a *Action) loadComment(ctx context.Context) (err error) {

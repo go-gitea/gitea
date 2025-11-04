@@ -1,0 +1,21 @@
+/* Forkana light theme variables overriding theme-gitea-light */
+gitea-theme-meta-info {
+  --theme-display-name: "Forkana Light";
+}
+
+:root {
+  --color-primary: #4E40FA;
+  --color-primary-contrast: #ffffff;
+  --color-primary-hover: #3C2EED;
+  --color-primary-active: #3328D8;
+  --color-secondary-nav-bg: #fff;
+
+  --color-hover: #E9E7FF66;
+  --color-muted: #F6F8FA;
+  --color-muted-text: #59636E;
+
+  --color-warning-border: #d4a72c66;
+  --color-warning-text: #9A6700;
+  --color-warning-bg: #FFF8C5;
+}
+

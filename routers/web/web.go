@@ -493,12 +493,17 @@ func registerWebRoutes(m *web.Router) {
 
 	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
 
+	m.Get("/subject/{subjectname}", optSignIn, context.RepoAssignmentBySubject, context.RepoRefByDefaultBranch(), repo.SetEditorconfigIfExists, explore.RepoHistory)
+
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
-			ctx.Redirect(setting.AppSubURL + "/explore/repos")
+			ctx.Redirect(setting.AppSubURL + "/explore/subjects")
 		})
-		m.Get("/repos", explore.Repos)
-		m.Get("/repos/sitemap-{idx}.xml", sitemapEnabled, explore.Repos)
+		m.Get("/articles", explore.Repos)
+		m.Get("/subjects", explore.Subjects)
+		m.Get("/articles/history/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRefByDefaultBranch(), repo.SetEditorconfigIfExists, explore.RepoHistory)
+		m.Get("/articles/sitemap-{idx}.xml", sitemapEnabled, explore.Repos)
+		m.Get("/subjects/sitemap-{idx}.xml", sitemapEnabled, explore.Subjects)
 		m.Get("/users", explore.Users)
 		m.Get("/users/sitemap-{idx}.xml", sitemapEnabled, explore.Users)
 		m.Get("/organizations", explore.Organizations)
@@ -1030,7 +1035,7 @@ func registerWebRoutes(m *web.Router) {
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
-		m.Get("/repositories", org.Repositories)
+		m.Get("/articles", org.Repositories)
 
 		m.Group("/projects", func() {
 			m.Group("", func() {
@@ -1171,6 +1176,9 @@ func registerWebRoutes(m *web.Router) {
 		ctxDataSet("PageIsRepoSettings", true, "LFSStartServer", setting.LFS.StartServer),
 	)
 	// end "/{username}/{reponame}/settings"
+
+	m.Get("/article/repo/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, explore.RepoArticle)
+	m.Get("/article/{username}/{subjectname}", optSignIn, context.RepoAssignmentByOwnerAndSubject, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, explore.RepoArticle)
 
 	// user/org home, including rss feeds like "/{username}/{reponame}.rss"
 	m.Get("/{username}/{reponame}", optSignIn, context.RepoAssignment, context.RepoRefByType(git.RefTypeBranch), repo.SetEditorconfigIfExists, repo.Home)

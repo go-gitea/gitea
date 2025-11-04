@@ -88,3 +88,76 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, exist)
 }
+
+func TestForkRepositoryTreeSizeLimit(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+
+	// Save original setting
+	originalLimit := setting.Repository.MaxForkTreeNodes
+	defer func() {
+		setting.Repository.MaxForkTreeNodes = originalLimit
+	}()
+
+	// Test with limit disabled (-1) - should succeed
+	setting.Repository.MaxForkTreeNodes = -1
+	fork1, err := ForkRepository(t.Context(), user2, user2, ForkRepoOptions{
+		BaseRepo: repo10,
+		Name:     "test-unlimited",
+	})
+	if fork1 != nil {
+		defer func() {
+			_ = DeleteRepositoryDirectly(t.Context(), fork1.ID)
+		}()
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, fork1)
+
+	// Clean up
+	if fork1 != nil {
+		err = DeleteRepositoryDirectly(t.Context(), fork1.ID)
+		assert.NoError(t, err)
+	}
+
+	// Test with limit = 0 - should fail
+	setting.Repository.MaxForkTreeNodes = 0
+	fork2, err := ForkRepository(t.Context(), user2, user2, ForkRepoOptions{
+		BaseRepo: repo10,
+		Name:     "test-zero-limit",
+	})
+	assert.Nil(t, fork2)
+	assert.Error(t, err)
+	assert.True(t, repo_model.IsErrForkTreeTooLarge(err))
+
+	// Test with limit = 1 (only root allowed) - should fail
+	setting.Repository.MaxForkTreeNodes = 1
+	fork3, err := ForkRepository(t.Context(), user2, user2, ForkRepoOptions{
+		BaseRepo: repo10,
+		Name:     "test-one-limit",
+	})
+	assert.Nil(t, fork3)
+	assert.Error(t, err)
+	assert.True(t, repo_model.IsErrForkTreeTooLarge(err))
+
+	// Test with high limit - should succeed
+	setting.Repository.MaxForkTreeNodes = 1000
+	fork4, err := ForkRepository(t.Context(), user2, user2, ForkRepoOptions{
+		BaseRepo: repo10,
+		Name:     "test-high-limit",
+	})
+	if fork4 != nil {
+		defer func() {
+			_ = DeleteRepositoryDirectly(t.Context(), fork4.ID)
+		}()
+	}
+	assert.NoError(t, err)
+	assert.NotNil(t, fork4)
+
+	// Clean up
+	if fork4 != nil {
+		err = DeleteRepositoryDirectly(t.Context(), fork4.ID)
+		assert.NoError(t, err)
+	}
+}

@@ -306,18 +306,19 @@ func TestGenerateAdditionalHeadersForIssue(t *testing.T) {
 
 	headers := generateAdditionalHeadersForIssue(comment, "dummy-reason", recipient)
 
+	// Repository 1 has subject_id 1, which is "example-subject"
 	expected := map[string]string{
 		"List-ID":                   "user2/repo1 <repo1.user2.localhost>",
-		"List-Archive":              "<https://try.gitea.io/user2/repo1>",
+		"List-Archive":              "<https://try.gitea.io/article/user2/example-subject>",
 		"X-Gitea-Reason":            "dummy-reason",
 		"X-Gitea-Sender":            "user2",
 		"X-Gitea-Recipient":         "test",
 		"X-Gitea-Recipient-Address": "test@gitea.com",
 		"X-Gitea-Repository":        "repo1",
 		"X-Gitea-Repository-Path":   "user2/repo1",
-		"X-Gitea-Repository-Link":   "https://try.gitea.io/user2/repo1",
+		"X-Gitea-Repository-Link":   "https://try.gitea.io/article/user2/example-subject",
 		"X-Gitea-Issue-ID":          "1",
-		"X-Gitea-Issue-Link":        "https://try.gitea.io/user2/repo1/issues/1",
+		"X-Gitea-Issue-Link":        "https://try.gitea.io/article/user2/example-subject/issues/1",
 	}
 
 	for key, value := range expected {
@@ -506,12 +507,13 @@ func TestEmbedBase64Images(t *testing.T) {
 	imgExternalURL := "https://via.placeholder.com/10"
 	imgExternalImg := fmt.Sprintf(`<img src="%s"/>`, imgExternalURL)
 
-	att1URL := setting.AppURL + repo.Owner.Name + "/" + repo.Name + "/attachments/" + att1.UUID
+	// Repository 1 has subject_id 1, which is "example-subject"
+	att1URL := setting.AppURL + "article/" + repo.Owner.Name + "/example-subject/attachments/" + att1.UUID
 	att1Img := fmt.Sprintf(`<img src="%s"/>`, att1URL)
 	att1Base64 := "data:image/png;base64,iVBORw0KGgo="
 	att1ImgBase64 := fmt.Sprintf(`<img src="%s"/>`, att1Base64)
 
-	att2URL := setting.AppURL + repo.Owner.Name + "/" + repo.Name + "/attachments/" + att2.UUID
+	att2URL := setting.AppURL + "article/" + repo.Owner.Name + "/example-subject/attachments/" + att2.UUID
 	att2Img := fmt.Sprintf(`<img src="%s"/>`, att2URL)
 	att2File, err := storage.Attachments.Open(att2.RelativePath())
 	require.NoError(t, err)

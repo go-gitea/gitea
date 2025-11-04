@@ -10,6 +10,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
@@ -22,6 +23,7 @@ import (
 type CreateRepoForm struct {
 	UID           int64  `binding:"Required"`
 	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Subject       string `binding:"Required;MaxSize(255)"`
 	Private       bool
 	Description   string `binding:"MaxSize(2048)"`
 	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
@@ -45,10 +47,39 @@ type CreateRepoForm struct {
 	ObjectFormatName string
 }
 
+// ValidateGlobalUniqueness validates global uniqueness for repository subject
+// Note: Repository names are only validated for owner-scoped uniqueness (not global)
+func (f *CreateRepoForm) ValidateGlobalUniqueness(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+
+	// Check global subject uniqueness
+	isSubjectUnique, err := repo_model.IsRepositorySubjectGloballyUnique(ctx, f.Subject)
+	if err != nil {
+		errs = append(errs, binding.Error{
+			FieldNames:     []string{"Subject"},
+			Classification: "GlobalUniquenessError",
+			Message:        "Failed to validate repository subject uniqueness",
+		})
+	} else if !isSubjectUnique {
+		errs = append(errs, binding.Error{
+			FieldNames:     []string{"Subject"},
+			Classification: "GlobalUniquenessError",
+			Message:        ctx.Locale.TrString("repo.form.subject_globally_taken"),
+		})
+	}
+
+	return errs
+}
+
 // Validate validates the fields
 func (f *CreateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
-	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+	errs = middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+
+	// Add global uniqueness validation
+	errs = f.ValidateGlobalUniqueness(req, errs)
+
+	return errs
 }
 
 // MigrateRepoForm form for migrating repository
@@ -64,6 +95,7 @@ type MigrateRepoForm struct {
 	UID int64 `json:"uid" binding:"Required"`
 	// required: true
 	RepoName       string `json:"repo_name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Subject        string `json:"subject" binding:"MaxSize(255)"`
 	Mirror         bool   `json:"mirror"`
 	LFS            bool   `json:"lfs"`
 	LFSEndpoint    string `json:"lfs_endpoint"`
@@ -90,6 +122,7 @@ func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) bindi
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
 	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Subject                string `binding:"MaxSize(255)"`
 	Description            string `binding:"MaxSize(2048)"`
 	Website                string `binding:"ValidUrl;MaxSize(1024)"`
 	Interval               string

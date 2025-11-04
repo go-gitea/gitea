@@ -31,12 +31,15 @@ func TestAction_GetRepoPath(t *testing.T) {
 func TestAction_GetRepoLink(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	err := repo.LoadSubject(t.Context())
+	assert.NoError(t, err)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	comment := unittest.AssertExistsAndLoadBean(t, &issue_model.Comment{ID: 2})
 	action := &activities_model.Action{RepoID: repo.ID, CommentID: comment.ID}
 	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/suburl/")()
 	defer test.MockVariableValue(&setting.AppSubURL, "/suburl")()
-	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
+	// Repository 1 has subject_id 1, which is "example-subject"
+	expected := path.Join(setting.AppSubURL, "article", owner.Name, "example-subject")
 	assert.Equal(t, expected, action.GetRepoLink(t.Context()))
 	assert.Equal(t, repo.HTMLURL(), action.GetRepoAbsoluteLink(t.Context()))
 	assert.Equal(t, comment.HTMLURL(t.Context()), action.GetCommentHTMLURL(t.Context()))

@@ -1,0 +1,200 @@
+{{/* Template for rendering fork hierarchy nodes recursively */}}
+{{define "fork_hierarchy_node"}}
+    {{$node := .Node}}
+    {{$currentRepo := .CurrentRepo}}
+    {{$ctx := .ctx}}
+
+    {{if and $node $node.Repository}}
+
+    <div class="item fork-level-{{$node.Level}}">
+        <div class="ui grid">
+            <div class="two wide column">
+                {{if $node.Repository.Owner}}
+                    {{ctx.AvatarUtils.Avatar $node.Repository.Owner 32}}
+                {{else}}
+                    {{svg "octicon-person" 32}}
+                {{end}}
+            </div>
+            <div class="fourteen wide column">
+                <div class="content">
+                    <div class="header">
+                        {{/* Indentation indicators for hierarchy levels */}}
+                        {{if gt $node.Level 0}}
+                            {{if eq $node.Level 1}}<span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span>{{end}}
+                            {{if eq $node.Level 2}}<span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span><span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span>{{end}}
+                            {{if gt $node.Level 2}}<span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span><span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span><span class="ui basic mini label">{{svg "octicon-git-branch" 12}}</span>{{end}}
+                        {{end}}
+
+                        <a class="ui large text" href="/subject/{{$node.Repository.GetSubject ctx}}">
+                            <strong>{{if $node.Repository.Owner}}{{$node.Repository.Owner.Name}}{{else}}unknown{{end}}/{{$node.Repository.Name}}</strong>
+                        </a>
+
+                        <span class="ui small labels">
+                            {{if eq $node.Level 0}}
+                                <span class="ui blue label">
+                                    {{svg "octicon-repo" 12 "tw-mr-1"}}
+                                    {{ctx.Locale.Tr "repo.root"}}
+                                </span>
+                            {{else}}
+                                <span class="ui basic label">
+                                    {{svg "octicon-repo-forked" 12 "tw-mr-1"}}
+                                    {{ctx.Locale.Tr "repo.fork"}}
+                                </span>
+                            {{end}}
+
+                            {{if eq $node.Repository.FullName $currentRepo.FullName}}
+                                <span class="ui green label">
+                                    {{svg "octicon-eye" 12 "tw-mr-1"}}
+                                    {{ctx.Locale.Tr "repo.current"}}
+                                </span>
+                            {{end}}
+
+                            {{if $node.Repository.IsPrivate}}
+                                <span class="ui basic label">
+                                    {{svg "octicon-lock" 12 "tw-mr-1"}}
+                                    {{ctx.Locale.Tr "repo.desc.private"}}
+                                </span>
+                            {{end}}
+
+                            {{if $node.Repository.IsArchived}}
+                                <span class="ui basic label">
+                                    {{svg "octicon-archive" 12 "tw-mr-1"}}
+                                    {{ctx.Locale.Tr "repo.desc.archived"}}
+                                </span>
+                            {{end}}
+                        </span>
+                    </div>
+
+                    {{if $node.Repository.Description}}
+                        <div class="description tw-mt-2">
+                            {{$node.Repository.Description}}
+                        </div>
+                    {{end}}
+
+                    <div class="extra tw-mt-3">
+                        <div class="ui horizontal list">
+                            <div class="item">
+                                <i class="clock icon"></i>
+                                {{if $node.Repository.UpdatedUnix}}
+                                    {{ctx.Locale.Tr "repo.last_updated"}} {{DateUtils.TimeSince $node.Repository.UpdatedUnix}}
+                                {{else}}
+                                    {{ctx.Locale.Tr "repo.never_updated"}}
+                                {{end}}
+                            </div>
+                            <div class="item">
+                                <a href="{{$node.Repository.Link}}/stars" class="ui basic mini label">
+                                    {{svg "octicon-star" 12 "tw-mr-1"}}
+                                    {{CountFmt $node.Repository.NumStars}}
+                                </a>
+                            </div>
+                            <div class="item">
+                                <a href="{{$node.Repository.Link}}/forks" class="ui basic mini label">
+                                    {{svg "octicon-repo-forked" 12 "tw-mr-1"}}
+                                    {{CountFmt $node.Repository.NumForks}}
+                                </a>
+                            </div>
+                            <div class="item">
+                                <a href="{{$node.Repository.Link}}/issues" class="ui basic mini label">
+                                    {{svg "octicon-issue-opened" 12 "tw-mr-1"}}
+                                    {{CountFmt $node.Repository.NumIssues}}
+                                </a>
+                            </div>
+                            {{if $node.Repository.PrimaryLanguage}}
+                                <div class="item">
+                                    <span class="ui basic mini label">
+                                        <i class="circle icon" style="color: {{$node.Repository.PrimaryLanguage.Color}}"></i>
+                                        {{$node.Repository.PrimaryLanguage.Language}}
+                                    </span>
+                                </div>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{/* Recursively render children */}}
+    {{range $node.Children}}
+        {{template "fork_hierarchy_node" (dict "Node" . "CurrentRepo" $currentRepo "ctx" $ctx)}}
+    {{end}}
+    {{end}}
+{{end}}
+
+{{template "base/head" .}}
+<style>
+/* Temporary Fork hierarchy level styling until we agree on design */
+.fork-level-0 { margin-left: 0px !important; }
+.fork-level-1 { margin-left: 20px !important; }
+.fork-level-2 { margin-left: 40px !important; }
+.fork-level-3 { margin-left: 60px !important; }
+.fork-level-4 { margin-left: 80px !important; }
+.fork-level-5 { margin-left: 100px !important; }
+/* Articles table spacing */
+#articles-table col.checkbox { width: 10px; }
+#articles-table col.actions { width: 80px; }
+#bubble-view-root {
+    height: calc(100vh - 25rem);
+    overflow: auto;
+    margin-bottom: calc(0px - var(--page-space-bottom));
+    margin-top: -1rem;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    width: calc(100% + 2rem);
+}
+</style>
+<div role="main" aria-label="{{.Title}}" class="page-content repository file list">
+    {{/* Login banner for non-authenticated users */}}
+    {{if and .IsArticleModeEdit (not .IsSigned)}}
+    <div class="ui warning message tw-mt-0">
+        <div class="tw-flex tw-items-center tw-gap-2">
+            {{svg "octicon-alert" 16}}
+            <span class="tw-color-text">You are not logged in. You have to <a href="{{AppSubUrl}}/user/login?redirect_to={{QueryEscape .Link}}">Sign in</a> / <a href="{{AppSubUrl}}/user/sign_up?redirect_to={{QueryEscape .Link}}">Sign up</a> in order to do edits.</span>
+        </div>
+    </div>
+    {{end}}
+    {{template "repo/header" .}}
+
+
+    <div class="ui container">
+        {{if .IsRepoEmpty}}
+            {{template "repo/empty" .}}
+        {{else}}
+            {{ $subjectPath := printf "%s/subject/%s" AppSubUrl (PathEscapeSegments (.Repository.GetSubject ctx)) }}
+            <div id="repo-history-app"
+                class="history-view-app"
+                data-initial-view="{{.HistoryView}}"
+                data-initial-mode="{{if .ArticleMode}}{{.ArticleMode}}{{else}}read{{end}}"
+                data-initial-owner="{{.Repository.Owner.Name}}"
+                data-initial-repo="{{.Repository.Name}}"
+                data-initial-subject="{{.Repository.GetSubject ctx}}"
+                data-subject-url="{{$subjectPath}}"
+                data-bubble-url="{{QueryBuild $subjectPath "view" "bubble"}}"
+                data-table-url="{{QueryBuild $subjectPath "view" "table"}}"
+                data-article-base="{{printf "%s/article" AppSubUrl}}"
+                data-article-repo-base="{{printf "%s/article/repo" AppSubUrl}}"
+                data-current-uri="{{.Link}}">
+                {{template "shared/repo/bubble" .}}
+                {{template "shared/repo/table" .}}
+                {{if .IsArticleView}}
+                    {{template "shared/repo/article" .}}
+                {{else}}
+                    <div class="history-view-section history-view-section--article" data-view="article" hidden>
+                        <div class="history-view-placeholder ui segment loading placeholder">
+                            <div class="header">
+                                <div class="line"></div>
+                                <div class="line"></div>
+                            </div>
+                            <div class="paragraph">
+                                <div class="line"></div>
+                                <div class="line"></div>
+                                <div class="line"></div>
+                            </div>
+                        </div>
+                    </div>
+                {{end}}
+            </div>
+        {{end}}
+    </div>
+</div>
+{{template "base/footer" .}}

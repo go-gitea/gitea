@@ -7,20 +7,31 @@ export function initCompSearchRepoBox(el: HTMLElement) {
   const uid = el.getAttribute('data-uid');
   fomanticQuery(el).search({
     minCharacters: 2,
+    // Add caching to prevent redundant API calls for the same query
+    cache: true,
+    // Add throttle (debouncing) to reduce API calls during rapid typing
+    throttle: 300,
     apiSettings: {
       url: `${appSubUrl}/repo/search?q={query}&uid=${uid}`,
       onResponse(response: any) {
         const items = [];
         for (const item of response.data) {
+          // Show repository full_name as title for clear identification
+          // Show subject as description to provide context about the repository
+          const title = htmlEscape(item.repository.full_name);
+          const description = item.repository.subject ?
+            htmlEscape(item.repository.subject) :
+            '';
+
           items.push({
-            title: htmlEscape(item.repository.full_name.split('/')[1]),
-            description: htmlEscape(item.repository.full_name),
+            title,
+            description,
           });
         }
         return {results: items};
       },
     },
-    searchFields: ['full_name'],
+    searchFields: ['full_name', 'subject'],
     showNoResults: false,
   });
 }

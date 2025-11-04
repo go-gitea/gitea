@@ -12,8 +12,6 @@ import {readFileSync, globSync} from 'node:fs';
 import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
-import tailwindcssNesting from 'tailwindcss/nesting/index.js';
-import postcssNesting from 'postcss-nesting';
 
 const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
@@ -172,7 +170,6 @@ export default {
             options: {
               postcssOptions: {
                 plugins: [
-                  tailwindcssNesting(postcssNesting({edition: '2024-02'})),
                   tailwindcss(tailwindConfig),
                 ],
               },

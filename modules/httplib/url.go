@@ -166,7 +166,14 @@ func ParseGiteaSiteURL(ctx context.Context, s string) *GiteaSiteURL {
 		return nil
 	}
 	ret := &GiteaSiteURL{RoutePath: routePath}
-	fields := strings.SplitN(strings.TrimPrefix(ret.RoutePath, "/"), "/", 3)
+	pathWithoutPrefix := strings.TrimPrefix(ret.RoutePath, "/")
+
+	// Handle /article/ prefix for subject-based URLs
+	if strings.HasPrefix(pathWithoutPrefix, "article/") {
+		pathWithoutPrefix = strings.TrimPrefix(pathWithoutPrefix, "article/")
+	}
+
+	fields := strings.SplitN(pathWithoutPrefix, "/", 3)
 
 	// TODO: now it only does a quick check for some known reserved paths, should do more strict checks in the future
 	if fields[0] == "attachments" {

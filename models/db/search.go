@@ -12,6 +12,10 @@ func (s SearchOrderBy) String() string {
 
 // Strings for sorting result
 const (
+	SearchOrderBySubjectAlphabetically SearchOrderBy = "COALESCE(subject.name, repository.name) ASC"
+	SearchOrderBySubjectReverse        SearchOrderBy = "COALESCE(subject.name, repository.name) DESC"
+	SearchOrderByScore                 SearchOrderBy = "relevance_score ASC, COALESCE(subject.name, repository.name) ASC"
+	SearchOrderByScoreReverse          SearchOrderBy = "relevance_score DESC, COALESCE(subject.name, repository.name) ASC"
 	SearchOrderByAlphabetically        SearchOrderBy = "name ASC"
 	SearchOrderByAlphabeticallyReverse SearchOrderBy = "name DESC"
 	SearchOrderByLeastUpdated          SearchOrderBy = "updated_unix ASC"

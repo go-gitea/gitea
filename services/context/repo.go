@@ -37,6 +37,129 @@ import (
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
+// ForkNode represents a node in the fork hierarchy tree
+type ForkNode struct {
+	Repository *repo_model.Repository
+	Children   []*ForkNode
+	Level      int
+}
+
+// findRootRepository traverses the fork chain to find the ultimate parent repository
+func findRootRepository(ctx context.Context, repo *repo_model.Repository) (*repo_model.Repository, error) {
+	current := repo
+	for current.IsFork {
+		parent, err := repo_model.GetRepositoryByID(ctx, current.ForkID)
+		if err != nil {
+			return nil, err
+		}
+		if err := parent.LoadOwner(ctx); err != nil {
+			return nil, err
+		}
+		current = parent
+	}
+	return current, nil
+}
+
+// buildForkHierarchy builds a complete fork hierarchy tree starting from the root repository
+func buildForkHierarchy(ctx context.Context, rootRepo *repo_model.Repository, doer *user_model.User) (*ForkNode, error) {
+	rootNode := &ForkNode{
+		Repository: rootRepo,
+		Children:   []*ForkNode{},
+		Level:      0,
+	}
+
+	// Build the hierarchy recursively
+	if err := buildForkHierarchyRecursive(ctx, rootNode, doer); err != nil {
+		return nil, err
+	}
+
+	return rootNode, nil
+}
+
+// buildForkHierarchyRecursive recursively builds the fork hierarchy tree
+func buildForkHierarchyRecursive(ctx context.Context, node *ForkNode, doer *user_model.User) error {
+	// Get all direct forks of this repository
+	forks, err := repo_model.GetRepositoriesByForkID(ctx, node.Repository.ID)
+	if err != nil {
+		return err
+	}
+
+	// Filter forks based on access permissions
+	for _, fork := range forks {
+		// Check if user can access this fork
+		if fork.IsPrivate && doer != nil {
+			perm, err := access_model.GetUserRepoPermission(ctx, fork, doer)
+			if err != nil || !perm.HasAnyUnitAccessOrPublicAccess() {
+				continue
+			}
+		} else if fork.IsPrivate && doer == nil {
+			continue
+		}
+
+		// Load owner information
+		if err := fork.LoadOwner(ctx); err != nil {
+			continue
+		}
+
+		// Create child node
+		childNode := &ForkNode{
+			Repository: fork,
+			Children:   []*ForkNode{},
+			Level:      node.Level + 1,
+		}
+
+		// Recursively build children
+		if err := buildForkHierarchyRecursive(ctx, childNode, doer); err != nil {
+			continue // Skip this fork if we can't build its hierarchy
+		}
+
+		node.Children = append(node.Children, childNode)
+	}
+
+	return nil
+}
+
+// countForksInHierarchy counts the total number of repositories in the fork hierarchy
+func countForksInHierarchy(node *ForkNode) int {
+	if node == nil {
+		return 0
+	}
+
+	count := 1 // Count this node
+	for _, child := range node.Children {
+		count += countForksInHierarchy(child)
+	}
+
+	return count
+}
+
+// flattenForkHierarchy converts the fork hierarchy tree into a flat list (breadth-first order)
+func flattenForkHierarchy(root *ForkNode, limit int) []*repo_model.Repository {
+	if root == nil {
+		return []*repo_model.Repository{}
+	}
+
+	result := []*repo_model.Repository{}
+	queue := []*ForkNode{root}
+
+	for len(queue) > 0 && len(result) < limit {
+		node := queue[0]
+		queue = queue[1:]
+
+		result = append(result, node.Repository)
+
+		// Add children to queue
+		for _, child := range node.Children {
+			if len(result) >= limit {
+				break
+			}
+			queue = append(queue, child)
+		}
+	}
+
+	return result
+}
+
 // PullRequest contains information to make a pull request
 type PullRequest struct {
 	BaseRepo *repo_model.Repository
@@ -378,6 +501,12 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
+	// Load subject relation for display in forms and templates
+	if err = repo.LoadSubject(ctx); err != nil {
+		ctx.ServerError("LoadSubject", err)
+		return
+	}
+
 	if ctx.DoerNeedTwoFactorAuth() {
 		ctx.Repo.Permission = access_model.PermissionNoAccess()
 	} else {
@@ -480,27 +609,41 @@ func RepoAssignment(ctx *Context) {
 	}
 
 	// Get repository.
+	// First try by repository name (for backward compatibility and direct repo access)
 	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Repo.Owner.ID, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
-			redirectRepoID, err := repo_model.LookupRedirect(ctx, ctx.Repo.Owner.ID, repoName)
-			if err == nil {
-				RedirectToRepo(ctx.Base, redirectRepoID)
-			} else if repo_model.IsErrRedirectNotExist(err) {
-				if ctx.FormString("go-get") == "1" {
-					EarlyResponseForGoGetMeta(ctx)
-					return
+			// Repository not found by name, try by subject name
+			repo, err = repo_model.GetRepositoryByOwnerAndSubject(ctx, userName, repoName)
+			if err != nil {
+				if repo_model.IsErrRepoNotExist(err) || repo_model.IsErrSubjectNotExist(err) {
+					// Still not found, try redirect
+					redirectRepoID, err := repo_model.LookupRedirect(ctx, ctx.Repo.Owner.ID, repoName)
+					if err == nil {
+						RedirectToRepo(ctx.Base, redirectRepoID)
+					} else if repo_model.IsErrRedirectNotExist(err) {
+						if ctx.FormString("go-get") == "1" {
+							EarlyResponseForGoGetMeta(ctx)
+							return
+						}
+						ctx.NotFound(nil)
+					} else {
+						ctx.ServerError("LookupRepoRedirect", err)
+					}
+				} else {
+					ctx.ServerError("GetRepositoryByOwnerAndSubject", err)
 				}
-				ctx.NotFound(nil)
-			} else {
-				ctx.ServerError("LookupRepoRedirect", err)
+				return
 			}
+			// Found by subject name, repo.Owner is already set by GetRepositoryByOwnerAndSubject
 		} else {
 			ctx.ServerError("GetRepositoryByName", err)
+			return
 		}
-		return
+	} else {
+		// Found by repository name
+		repo.Owner = ctx.Repo.Owner
 	}
-	repo.Owner = ctx.Repo.Owner
 
 	repoAssignment(ctx, repo)
 	if ctx.Written() {
@@ -1004,4 +1147,298 @@ func canWriteAsMaintainer(ctx *Context) bool {
 		return issues_model.CanMaintainerWriteToBranch(ctx, ctx.Repo.Permission, branchName, ctx.Doer)
 	})
 	return len(branchName) > 0
+}
+
+// RepoAssignmentBySubject assigns repository context by subject name only
+// This is used for routes like /subject/{subjectname} that display the root repository for a subject
+func RepoAssignmentBySubject(ctx *Context) {
+	subjectName := ctx.PathParam("subjectname")
+	if subjectName == "" {
+		ctx.NotFound(errors.New("subject name is required"))
+		return
+	}
+
+	// Find repository by subject name (prioritizes root repositories)
+	repo, err := repo_model.GetPublicRepositoryBySubject(ctx, subjectName)
+	if err != nil {
+		if repo_model.IsErrRepoWithSubjectNotExist(err) || repo_model.IsErrSubjectNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("GetPublicRepositoryBySubject", err)
+		}
+		return
+	}
+
+	// Load repository owner
+	if err = repo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("LoadOwner", err)
+		return
+	}
+
+	// Subject is already loaded by GetPublicRepositoryBySubject
+	// Set up repository context similar to standard RepoAssignment
+	ctx.Repo = &Repository{
+		Repository: repo,
+	}
+
+	// Initialize Git repository
+	ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+	if err != nil {
+		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
+			ctx.Repo.Repository.MarkAsBrokenEmpty()
+			ctx.NotFound(errors.New("repository not found or corrupted"))
+		} else {
+			ctx.ServerError("gitrepo.RepositoryFromRequestContextOrOpen", err)
+		}
+		return
+	}
+
+	// Verify repository has a valid default branch
+	if repo.DefaultBranch == "" {
+		log.Warn("Repository %-v has no default branch set", repo)
+		ctx.NotFound(errors.New("repository has no default branch"))
+		return
+	}
+
+	// Check repository access permissions
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return
+	}
+
+	if !perm.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {
+		if ctx.FormString("go-get") == "1" {
+			EarlyResponseForGoGetMeta(ctx)
+			return
+		}
+		ctx.NotFound(nil)
+		return
+	}
+
+	ctx.Repo.Permission = perm
+	ctx.Data["Permission"] = &ctx.Repo.Permission
+
+	// Set up basic repository data for templates
+	ctx.Data["Title"] = repo.Owner.Name + "/" + repo.Name
+	ctx.Data["Repository"] = repo
+	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
+	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
+	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
+	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
+	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
+	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
+	ctx.Data["CanWriteActions"] = ctx.Repo.CanWrite(unit_model.TypeActions)
+
+	// Set up repository link data
+	ctx.Repo.RepoLink = repo.Link()
+	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
+	ctx.Data["FeedURL"] = ctx.Repo.RepoLink
+
+	// Set up release count data
+	ctx.Data["NumTags"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		IncludeTags: true,
+		HasSha1:     optional.Some(true),
+		RepoID:      ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("GetReleaseCountByRepoID", err)
+		return
+	}
+	ctx.Data["NumReleases"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
+		RepoID:        ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("GetReleaseCountByRepoID", err)
+		return
+	}
+
+	// Set up contributor count data
+	ctx.Data["ContributorCount"] = int64(0)
+	if !repo.IsEmpty && ctx.Repo.GitRepo != nil {
+		contributorCount, err := ctx.Repo.GitRepo.GetContributorCount(repo.DefaultBranch)
+		if err != nil {
+			log.Warn("Failed to get contributor count for repository %s: %v", repo.FullName(), err)
+		} else {
+			ctx.Data["ContributorCount"] = contributorCount
+		}
+	}
+}
+
+// RepoAssignmentByOwnerAndSubject assigns repository context by owner name and subject name
+// This is used for routes like /article/{username}/{subjectname} that display a specific user's repository
+func RepoAssignmentByOwnerAndSubject(ctx *Context) {
+	userName := ctx.PathParam("username")
+	subjectName := ctx.PathParam("subjectname")
+
+	if userName == "" || subjectName == "" {
+		ctx.NotFound(errors.New("username and subject name are required"))
+		return
+	}
+
+	// Find repository by owner and subject name
+	repo, err := repo_model.GetRepositoryByOwnerAndSubject(ctx, userName, subjectName)
+	if err != nil {
+		if repo_model.IsErrRepoNotExist(err) || repo_model.IsErrSubjectNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.ServerError("GetRepositoryByOwnerAndSubject", err)
+		}
+		return
+	}
+
+	// Load repository owner
+	if err = repo.LoadOwner(ctx); err != nil {
+		ctx.ServerError("LoadOwner", err)
+		return
+	}
+
+	// Set up repository owner context
+	ctx.Repo.Owner = repo.Owner
+	ctx.ContextUser = ctx.Repo.Owner
+	ctx.Data["ContextUser"] = ctx.ContextUser
+
+	// Subject is already loaded by GetRepositoryByOwnerAndSubject
+	// Use the standard repoAssignment helper to set up the repository context
+	repoAssignment(ctx, repo)
+	if ctx.Written() {
+		return
+	}
+
+	// Set up repository link data
+	ctx.Repo.RepoLink = repo.Link()
+	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
+	ctx.Data["FeedURL"] = ctx.Repo.RepoLink
+
+	// Initialize Git repository (required for RepoRefByType middleware)
+	if ctx.Repo.GitRepo != nil {
+		setting.PanicInDevOrTesting("RepoAssignmentByOwnerAndSubject: GitRepo should be nil")
+		_ = ctx.Repo.GitRepo.Close()
+		ctx.Repo.GitRepo = nil
+	}
+
+	ctx.Repo.GitRepo, err = gitrepo.RepositoryFromRequestContextOrOpen(ctx, repo)
+	if err != nil {
+		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
+			ctx.Repo.Repository.MarkAsBrokenEmpty()
+			ctx.NotFound(errors.New("repository not found or corrupted"))
+		} else {
+			ctx.ServerError("gitrepo.RepositoryFromRequestContextOrOpen", err)
+		}
+		return
+	}
+
+	// Set up branch count for repository statistics (only for non-empty repos)
+	if !ctx.Repo.Repository.IsEmpty {
+		branchOpts := git_model.FindBranchOptions{
+			RepoID:          ctx.Repo.Repository.ID,
+			IsDeletedBranch: optional.Some(false),
+			ListOptions:     db.ListOptionsAll,
+		}
+		branchesTotal, err := db.Count[git_model.Branch](ctx, branchOpts)
+		if err != nil {
+			ctx.ServerError("CountBranches", err)
+			return
+		}
+
+		// non-empty repo should have at least 1 branch, so this repository's branches haven't been synced yet
+		if branchesTotal == 0 { // fallback to do a sync immediately
+			branchesTotal, err = repo_module.SyncRepoBranches(ctx, ctx.Repo.Repository.ID, 0)
+			if err != nil {
+				ctx.ServerError("SyncRepoBranches", err)
+				return
+			}
+		}
+
+		ctx.Data["BranchesCount"] = branchesTotal
+	}
+
+	// Set up tag and release counts for repository statistics
+	ctx.Data["NumTags"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       optional.Some(true), // only draft releases which are created with existing tags
+		RepoID:        ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("GetReleaseCountByRepoID", err)
+		return
+	}
+	ctx.Data["NumReleases"], err = db.Count[repo_model.Release](ctx, repo_model.FindReleasesOptions{
+		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
+		IncludeDrafts: ctx.Repo.CanWrite(unit_model.TypeReleases),
+		RepoID:        ctx.Repo.Repository.ID,
+	})
+	if err != nil {
+		ctx.ServerError("GetReleaseCountByRepoID", err)
+		return
+	}
+
+	// Set up additional repository data for templates (similar to RepoAssignment)
+	ctx.Data["Title"] = repo.Owner.Name + "/" + repo.Name
+	ctx.Data["Repository"] = repo
+	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
+	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
+	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
+	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
+	ctx.Data["CanWriteActions"] = ctx.Repo.CanWrite(unit_model.TypeActions)
+
+	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx, ctx.Doer, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("CanUserForkRepo", err)
+		return
+	}
+	ctx.Data["CanSignedUserFork"] = canSignedUserFork
+
+	userAndOrgForks, err := repo_model.GetForksByUserAndOrgs(ctx, ctx.Doer, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetForksByUserAndOrgs", err)
+		return
+	}
+	ctx.Data["UserAndOrgForks"] = userAndOrgForks
+
+	// canSignedUserFork is true if the current user doesn't have a fork of this repo yet or
+	// if he owns an org that doesn't have a fork of this repo yet
+	// If multiple forks are available or if the user can fork to another account, but there is already a fork: open selection dialog
+	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
+
+	ctx.Data["RepoCloneLink"] = repo.CloneLink(ctx, ctx.Doer)
+
+	cloneButtonShowHTTPS := !setting.Repository.DisableHTTPGit
+	cloneButtonShowSSH := !setting.SSH.Disabled && (ctx.IsSigned || setting.SSH.ExposeAnonymous)
+	if !cloneButtonShowHTTPS && !cloneButtonShowSSH {
+		// We have to show at least one link, so we just show the HTTPS
+		cloneButtonShowHTTPS = true
+	}
+	ctx.Data["CloneButtonShowHTTPS"] = cloneButtonShowHTTPS
+	ctx.Data["CloneButtonShowSSH"] = cloneButtonShowSSH
+	ctx.Data["CloneButtonOriginLink"] = ctx.Data["RepoCloneLink"] // it may be rewritten to the WikiCloneLink by the router middleware
+
+	ctx.Data["RepoSearchEnabled"] = setting.Indexer.RepoIndexerEnabled
+	if setting.Indexer.RepoIndexerEnabled {
+		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable(ctx)
+	}
+
+	if ctx.IsSigned {
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx, ctx.Doer.ID, repo.ID)
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
+	}
+
+	// Handle fork base repository
+	if repo.IsFork {
+		RetrieveBaseRepo(ctx, repo)
+		if ctx.Written() {
+			return
+		}
+	}
+
+	if repo.IsGenerated() {
+		RetrieveTemplateRepo(ctx, repo)
+		if ctx.Written() {
+			return
+		}
+	}
 }

@@ -26,9 +26,10 @@ func TestRepoWiki(t *testing.T) {
 @user2
 `)
 		assert.NoError(t, err)
+		// Repository 1 has subject_id 1, which is "example-subject"
 		assert.Equal(t,
-			`<p><a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow"><code>65f1bf27bc</code></a>
-<a href="/user2/repo1/issues/1" class="ref-issue" rel="nofollow">#1</a>
+			`<p><a href="/article/user2/example-subject/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow"><code>65f1bf27bc</code></a>
+<a href="/article/user2/example-subject/issues/1" class="ref-issue" rel="nofollow">#1</a>
 <a href="/user2" rel="nofollow">@user2</a></p>
 `, rendered)
 	})
@@ -42,11 +43,12 @@ func TestRepoWiki(t *testing.T) {
 ![./image](./image)
 `)
 		assert.NoError(t, err)
+		// Repository 1 has subject_id 1, which is "example-subject"
 		assert.Equal(t,
-			`<p><a href="/user2/repo1/wiki/test" rel="nofollow">/test</a>
-<a href="/user2/repo1/wiki/test" rel="nofollow">./test</a>
-<a href="/user2/repo1/wiki/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="/image"/></a>
-<a href="/user2/repo1/wiki/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="./image"/></a></p>
+			`<p><a href="/article/user2/example-subject/wiki/test" rel="nofollow">/test</a>
+<a href="/article/user2/example-subject/wiki/test" rel="nofollow">./test</a>
+<a href="/article/user2/example-subject/wiki/image" target="_blank" rel="nofollow noopener"><img src="/article/user2/example-subject/wiki/raw/image" alt="/image"/></a>
+<a href="/article/user2/example-subject/wiki/image" target="_blank" rel="nofollow noopener"><img src="/article/user2/example-subject/wiki/raw/image" alt="./image"/></a></p>
 `, rendered)
 	})
 
@@ -57,8 +59,9 @@ func TestRepoWiki(t *testing.T) {
 <video src="LINK">
 `)
 		assert.NoError(t, err)
-		assert.Equal(t, `<a href="/user2/repo1/wiki/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/LINK"/></a>
-<video src="/user2/repo1/wiki/raw/LINK">
+		// Repository 1 has subject_id 1, which is "example-subject"
+		assert.Equal(t, `<a href="/article/user2/example-subject/wiki/LINK" target="_blank" rel="nofollow noopener"><img src="/article/user2/example-subject/wiki/raw/LINK"/></a>
+<video src="/article/user2/example-subject/wiki/raw/LINK">
 </video>`, rendered)
 	})
 }

@@ -66,6 +66,7 @@ func (err ErrRepoIsArchived) Error() string {
 type globalVarsStruct struct {
 	validRepoNamePattern     *regexp.Regexp
 	invalidRepoNamePattern   *regexp.Regexp
+	multiHyphenRegex         *regexp.Regexp
 	reservedRepoNames        []string
 	reservedRepoNamePatterns []string
 }
@@ -74,6 +75,7 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 	return &globalVarsStruct{
 		validRepoNamePattern:     regexp.MustCompile(`^[-.\w]+$`),
 		invalidRepoNamePattern:   regexp.MustCompile(`[.]{2,}`),
+		multiHyphenRegex:         regexp.MustCompile(`-{2,}`),
 		reservedRepoNames:        []string{".", "..", "-"},
 		reservedRepoNamePatterns: []string{"*.wiki", "*.git", "*.rss", "*.atom"},
 	}
@@ -158,6 +160,8 @@ type Repository struct {
 	Owner               *user_model.User   `xorm:"-"`
 	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name                string             `xorm:"INDEX NOT NULL"`
+	SubjectID           int64              `xorm:"INDEX"`
+	SubjectRelation     *Subject           `xorm:"-"`
 	Description         string             `xorm:"TEXT"`
 	Website             string             `xorm:"VARCHAR(2048)"`
 	OriginalServiceType api.GitServiceType `xorm:"index"`
@@ -193,8 +197,9 @@ type Repository struct {
 
 	commonRenderingMetas map[string]string `xorm:"-"`
 
-	Units           []*RepoUnit   `xorm:"-"`
-	PrimaryLanguage *LanguageStat `xorm:"-"`
+	Units           []*RepoUnit     `xorm:"-"`
+	PrimaryLanguage *LanguageStat   `xorm:"-"`
+	Licenses        RepoLicenseList `xorm:"-"` // Preloaded licenses for batch operations
 
 	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	ForkID                          int64              `xorm:"INDEX"`
@@ -336,6 +341,49 @@ func (repo *Repository) AfterLoad() {
 	if repo.DefaultWikiBranch == "" {
 		repo.DefaultWikiBranch = setting.Repository.DefaultBranch
 	}
+}
+
+// LoadSubject loads the subject relation for the repository
+func (repo *Repository) LoadSubject(ctx context.Context) error {
+	if repo.SubjectID == 0 {
+		return nil
+	}
+	if repo.SubjectRelation != nil {
+		return nil
+	}
+
+	subject, err := GetSubjectByID(ctx, repo.SubjectID)
+	if err != nil {
+		return err
+	}
+	repo.SubjectRelation = subject
+	return nil
+}
+
+// GetSubject returns the subject for the repository.
+// Automatically loads the subject relation if needed.
+// Priority: SubjectRelation.Name > Name (fallback when SubjectID == 0 or loading fails)
+func (repo *Repository) GetSubject(ctx context.Context) string {
+	// If subject relation is loaded, return its name
+	if repo.SubjectRelation != nil {
+		return repo.SubjectRelation.Name
+	}
+
+	// If no subject is assigned (SubjectID == 0), fallback to repository name
+	if repo.SubjectID == 0 {
+		return repo.Name
+	}
+
+	// SubjectID > 0 but SubjectRelation is nil - automatically load it
+	if err := repo.LoadSubject(ctx); err == nil && repo.SubjectRelation != nil {
+		return repo.SubjectRelation.Name
+	} else if err != nil {
+		// Log an error if loading fails, but still fall back to the repo name
+		log.Error("Failed to load subject for repository %d (%s): %v", repo.ID, repo.FullName(), err)
+	}
+
+	// Fallback to repository name
+	return repo.Name
 }
 
 // LoadAttributes loads attributes of the repository.
@@ -521,8 +569,9 @@ func (repo *Repository) MustOwner(ctx context.Context) *user_model.User {
 func (repo *Repository) composeCommonMetas(ctx context.Context) map[string]string {
 	if len(repo.commonRenderingMetas) == 0 {
 		metas := map[string]string{
-			"user": repo.OwnerName,
-			"repo": repo.Name,
+			"user":     repo.OwnerName,
+			"repo":     repo.GetSubject(ctx), // Use subject name for URL generation
+			"reponame": repo.Name,            // Actual repository name for cross-reference matching
 		}
 
 		unitExternalTracker, err := repo.GetUnit(ctx, unit.TypeExternalTracker)
@@ -614,8 +663,10 @@ func (repo *Repository) RepoPath() string {
 }
 
 // Link returns the repository relative url
+// Uses subject name if available, falls back to repository name
 func (repo *Repository) Link() string {
-	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+	subject := repo.GetSubject(context.Background())
+	return setting.AppSubURL + "/article/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(subject)
 }
 
 // ComposeCompareURL returns the repository comparison URL
@@ -805,6 +856,27 @@ func (err ErrRepoNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+// ErrRepoWithSubjectNotExist represents a "RepoWithSubjectNotExist" kind of error.
+// This error is returned when no repository is found for a given subject.
+type ErrRepoWithSubjectNotExist struct {
+	Subject string
+}
+
+// IsErrRepoWithSubjectNotExist checks if an error is a ErrRepoWithSubjectNotExist.
+func IsErrRepoWithSubjectNotExist(err error) bool {
+	_, ok := err.(ErrRepoWithSubjectNotExist)
+	return ok
+}
+
+func (err ErrRepoWithSubjectNotExist) Error() string {
+	return fmt.Sprintf("repository with subject does not exist [subject: %s]", err.Subject)
+}
+
+// Unwrap unwraps this error as a ErrNotExist error
+func (err ErrRepoWithSubjectNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // GetRepositoryByOwnerAndName returns the repository by given owner name and repo name
 func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string) (*Repository, error) {
 	var repo Repository
@@ -835,6 +907,87 @@ func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repo
 		return nil, ErrRepoNotExist{0, ownerID, "", name}
 	}
 	return &repo, err
+}
+
+// GetPublicRepositoryByName returns the first public repository with the given name.
+// This function searches across all owners and prioritizes root repositories (non-forks)
+// over forks to ensure the original repository is returned when multiple repos share the same name.
+func GetPublicRepositoryByName(ctx context.Context, name string) (*Repository, error) {
+	var repo Repository
+	has, err := db.GetEngine(ctx).
+		Where("`lower_name`=?", strings.ToLower(name)).
+		And("`is_private`=?", false).
+		OrderBy("`is_fork` ASC, `updated_unix` DESC"). // Prefer root repos (is_fork=false), then most recently updated
+		NoAutoCondition().
+		Get(&repo)
+
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrRepoNotExist{0, 0, "", name}
+	}
+	return &repo, nil
+}
+
+// GetPublicRepositoryBySubject returns the first public repository with the given subject name.
+// This function searches across all owners and prioritizes root repositories (non-forks)
+// over forks to ensure the original repository is returned when multiple repos share the same subject.
+func GetPublicRepositoryBySubject(ctx context.Context, subjectName string) (*Repository, error) {
+	// First, get the subject by name
+	subject, err := GetSubjectByName(ctx, subjectName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the first public repository with this subject_id, preferring root repos
+	var repo Repository
+	has, err := db.GetEngine(ctx).
+		Where("`subject_id`=?", subject.ID).
+		And("`is_private`=?", false).
+		OrderBy("`is_fork` ASC, `updated_unix` DESC"). // Prefer root repos (is_fork=false), then most recently updated
+		NoAutoCondition().
+		Get(&repo)
+
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrRepoWithSubjectNotExist{Subject: subjectName}
+	}
+
+	// Load the subject relation
+	repo.SubjectRelation = subject
+
+	return &repo, nil
+}
+
+// GetRepositoryByOwnerAndSubject returns a repository by owner name and subject name.
+// This function returns the specific user's repository (whether it's a root or fork).
+func GetRepositoryByOwnerAndSubject(ctx context.Context, ownerName, subjectName string) (*Repository, error) {
+	// First, get the subject by name
+	subject, err := GetSubjectByName(ctx, subjectName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Find the repository with this owner and subject_id
+	var repo Repository
+	has, err := db.GetEngine(ctx).Table("repository").Select("repository.*").
+		Join("INNER", "`user`", "`user`.id = repository.owner_id").
+		Where("repository.subject_id = ?", subject.ID).
+		And("`user`.lower_name = ?", strings.ToLower(ownerName)).
+		NoAutoCondition().
+		Get(&repo)
+
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrRepoNotExist{0, 0, ownerName, subjectName}
+	}
+
+	// Load the subject relation
+	repo.SubjectRelation = subject
+
+	return &repo, nil
 }
 
 // GetRepositoryByURL returns the repository by given url
@@ -894,6 +1047,21 @@ func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName st
 		OwnerID:   u.ID,
 		LowerName: strings.ToLower(repoName),
 	})
+}
+
+// IsRepositorySubjectGloballyUnique checks if a repository subject is unique across all users (case-insensitive)
+func IsRepositorySubjectGloballyUnique(ctx context.Context, subject string) (bool, error) {
+	if subject == "" {
+		return false, nil // Empty subjects are not allowed
+	}
+
+	subject = strings.ToLower(strings.TrimSpace(subject))
+	// Check if subject exists in the subject table
+	count, err := db.GetEngine(ctx).Where("LOWER(name) = ?", subject).Count(&Subject{})
+	if err != nil {
+		return false, err
+	}
+	return count == 0, nil
 }
 
 // GetTemplateRepo populates repo.TemplateRepo for a generated repository and
@@ -1001,4 +1169,17 @@ func UpdateRepositoryOwnerName(ctx context.Context, oldUserName, newUserName str
 		return fmt.Errorf("change repo owner name: %w", err)
 	}
 	return nil
+}
+
+// GenerateRepoNameFromSubject generates a URL-safe repository name from a subject
+// It uses the same slug generation logic as GenerateSlugFromName to ensure consistency
+// between repository names and subject slugs.
+func GenerateRepoNameFromSubject(subject string) string {
+	if subject == "" {
+		return ""
+	}
+
+	// Use the same slug generation as subjects for consistency
+	// This ensures that repo names and subject slugs are always identical
+	return GenerateSlugFromName(subject)
 }

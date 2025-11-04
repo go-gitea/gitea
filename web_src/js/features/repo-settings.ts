@@ -51,6 +51,10 @@ function initRepoSettingsSearchTeamBox() {
 
   fomanticQuery(searchTeamBox).search({
     minCharacters: 2,
+    // Add caching to prevent redundant API calls for the same query
+    cache: true,
+    // Add throttle (debouncing) to reduce API calls during rapid typing
+    throttle: 300,
     searchFields: ['name', 'description'],
     showNoResults: false,
     rawResponse: true,

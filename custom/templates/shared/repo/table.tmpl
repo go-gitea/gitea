@@ -1,0 +1,99 @@
+{{define "shared/repo/table"}}
+<div class="history-view-section history-view-section--table" data-view="table" {{if not .IsTableView}}hidden{{end}}>
+    <div class="ui stackable grid tw-mt-20">
+        <div class="sixteen wide column">
+            <div class="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-px-0 tw-border-0">
+                <h2 class="tw-text-xl tw-font-semibold tw-m-0">Articles</h2>
+                <div class="tw-flex tw-items-center tw-gap-2">
+                    <div class="ui floating dropdown button tw-border-0 tw-bg-transparent tw-shadow-none tw-hover:bg-transparent tw-active:bg-transparent tw-pr-0">
+                        <div style="transform: rotate(90deg);">
+                            {{svg "octicon-arrow-switch" 16}}
+                        </div>
+                        <span class="text tw-ml-1">Sort</span>
+                        {{svg "octicon-triangle-down" 16 "tw-ml-1"}}
+                        <div class="menu">
+                        cona
+                            <a class="item history-table-sort" data-sort="most_contrib" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl (PathEscapeSegments (.Repository.GetSubject ctx))) "view" "table" "sort" "most_contrib"}}">Most contributors</a>
+                            <a class="item history-table-sort" data-sort="least_contrib" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl (PathEscapeSegments (.Repository.GetSubject ctx))) "view" "table" "sort" "least_contrib"}}">Least contributors</a>
+                            <a class="item history-table-sort" data-sort="latest" href="{{QueryBuild (printf "%s/subject/%s" AppSubUrl (PathEscapeSegments (.Repository.GetSubject ctx))) "view" "table" "sort" "latest"}}">Latest edited</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ui segment tw-px-0">
+                <table class="ui unstackable very basic fixed single line selectable table tw-mb-0" id="articles-table">
+                    <colgroup>
+                        <col class="checkbox">
+                        <col>
+                        <col>
+                        <col>
+                        <col class="actions">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th class="five wide">Contributors</th>
+                            <th class="three wide">Last edited</th>
+                            <th class="four wide">Owner</th>
+                            <th class="collapsing"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{if .HistoryForkEntries}}
+                        {{range $idx, $entry := .HistoryForkEntries}}
+                        {{$repo := $entry.Repo}}
+                        <tr class="article-row" data-row="{{$idx}}" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject ctx}}" data-repo="{{$repo.Name}}">
+                            <td>
+                                <div class="ui checkbox">
+                                    <input type="checkbox" class="row-check">
+                                    <label></label>
+                                </div>
+                            </td>
+                            <td class="tw-font-semibold">{{if gt $entry.ContributorCount 0}}{{CountFmt $entry.ContributorCount}}{{else}}-{{end}}</td>
+                            <td>{{if $entry.Updated}}{{DateUtils.AbsoluteShort $entry.Updated}}{{else}}-{{end}}</td>
+                            <td>
+                                <div class="tw-flex tw-flex-col tw-gap-1">
+                                    <span class="tw-font-semibold">{{$repo.OwnerName}}</span>
+                                    <span class="tw-text-xs tw-text-gray-500">{{$repo.GetSubject ctx}}</span>
+                                </div>
+                            </td>
+                            <td class="collapsing tw-text-right">
+                                <button type="button" class="ui icon button row-toggle tw-border-0 tw-bg-transparent" data-target="desc-{{$idx}}" aria-label="Toggle description">
+                                    <span class="icon-down">{{svg "octicon-chevron-down"}}</span>
+                                    <span class="icon-up tw-hidden">{{svg "octicon-chevron-up"}}</span>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr id="desc-{{$idx}}" class="tw-hidden">
+                            <td colspan="5">
+                                <div class="tw-pl-8 tw-pr-4 tw-py-4 tw-flex tw-items-start tw-justify-between tw-gap-4">
+                                    <div class="tw-flex tw-flex-col tw-gap-2">
+                                        <div class="tw-text-sm tw-font-semibold">{{$repo.OwnerName}}/{{$repo.Name}}</div>
+                                        <div class="tw-text-gray-600 tw-text-sm tw-leading-6">
+                                            {{if $entry.Description}}
+                                                {{$entry.Description}}
+                                            {{else}}
+                                                {{ctx.Locale.Tr "repo_no_desc"}}
+                                            {{end}}
+                                        </div>
+                                    </div>
+                                    <button type="button" class="ui button go-to-article" data-owner="{{$repo.OwnerName}}" data-subject="{{$repo.GetSubject ctx}}" data-repo="{{$repo.Name}}">
+                                        View article
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {{end}}
+                        {{else}}
+                        <tr>
+                            <td colspan="5" class="tw-text-center tw-text-sm tw-text-gray-500">No forks available.</td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}

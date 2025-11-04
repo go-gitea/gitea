@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 
+	"code.gitea.io/gitea/models/migrations/custom/v1_25_custom"
 	"code.gitea.io/gitea/models/migrations/v1_10"
 	"code.gitea.io/gitea/models/migrations/v1_11"
 	"code.gitea.io/gitea/models/migrations/v1_12"
@@ -394,6 +395,12 @@ func prepareMigrationTasks() []*migration {
 		// Gitea 1.24.0 ends at database version 321
 		newMigration(321, "Use LONGTEXT for some columns and fix review_state.updated_files column", v1_25.UseLongTextInSomeColumnsAndFixBugs),
 		newMigration(322, "Extend comment tree_path length limit", v1_25.ExtendCommentTreePathLength),
+
+		// Forkana migrations 1.25.0:
+		newMigration(323, "Forkana: add subject to repository table", v1_25_custom.AddSubjectToRepository),
+		newMigration(324, "Forkana: create subjects table and populate with existing data", v1_25_custom.CreateSubjectsTable),
+		newMigration(325, "Forkana: add subject_id foreign key to repository table", v1_25_custom.AddSubjectForeignKeyToRepository),
+		newMigration(326, "Forkana: add slug column to subjects table", v1_25_custom.AddSubjectSlugColumn),
 	}
 	return preparedMigrations
 }

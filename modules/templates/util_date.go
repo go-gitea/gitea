@@ -39,6 +39,11 @@ func (du *DateUtils) TimeSince(time any) template.HTML {
 	return TimeSince(time)
 }
 
+// CurrentYear returns the current year
+func (du *DateUtils) CurrentYear() int {
+	return time.Now().Year()
+}
+
 // ParseLegacy parses the datetime in legacy format, eg: "2016-01-02" in server's timezone.
 // It shouldn't be used in new code. New code should use Time or TimeStamp as much as possible.
 func (du *DateUtils) ParseLegacy(datetime string) time.Time {

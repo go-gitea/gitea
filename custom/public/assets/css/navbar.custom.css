@@ -1,0 +1,11 @@
+/* overrides for the top navbar */
+/* keep selectors specific enough to win without !important where possible */
+
+#navbar {
+  background: var(--color-body);
+  padding: 9px 10px;
+}
+
+.ui.menu .item.svg-no-margin > svg{
+  margin: 0;
+}

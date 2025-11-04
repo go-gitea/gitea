@@ -175,3 +175,41 @@ export function sanitizeRepoName(name: string): string {
   if (['.', '..', '-'].includes(name)) name = '';
   return name;
 }
+
+export function generateRepoNameFromSubject(subject: string): string {
+  if (!subject || !subject.trim()) {
+    return '';
+  }
+
+  // Normalize Unicode characters (remove accents)
+  // This matches the backend's Unicode normalization in GenerateSlugFromName
+  let normalized = subject.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // Convert to lowercase
+  let name = normalized.toLowerCase();
+
+  // Replace spaces and underscores with hyphens (unified with GenerateSlugFromName)
+  name = name.replace(/\s+/g, '-');
+  name = name.replace(/_/g, '-');
+
+  // Remove all characters except alphanumeric and hyphens
+  name = name.replace(/[^a-z0-9-]/g, '');
+
+  // Collapse multiple consecutive hyphens
+  name = name.replace(/-+/g, '-');
+
+  // Trim leading/trailing hyphens
+  name = name.replace(/^-+/, '').replace(/-+$/, '');
+
+  // Ensure it's not empty and not too long
+  if (!name) {
+    name = 'subject';
+  }
+  if (name.length > 100) {
+    name = name.substring(0, 100);
+    // After truncation, remove any trailing hyphens
+    name = name.replace(/-+$/, '');
+  }
+
+  return name;
+}
