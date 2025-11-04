@@ -128,5 +128,5 @@ prime/
 # Ignore worktrees when working on multiple branches
 .worktrees/
 
-# a makefile for personal convenience make targets
+# A Makefile for custom make targets
 Makefile.local
