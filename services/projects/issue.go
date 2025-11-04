@@ -223,6 +223,10 @@ func MoveIssueToAnotherColumn(ctx context.Context, doer *user_model.User, issue 
 	if err != nil {
 		return err
 	}
+	if oldColumnID == newColumn.ID {
+		return nil
+	}
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if _, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id=? WHERE issue_id=?", newColumn.ID, issue.ID); err != nil {
 			return err
