@@ -14,18 +14,10 @@ import (
 
 // Tree represents a flat directory listing.
 type Tree struct {
-	ID         ObjectID
-	ResolvedID ObjectID
-	repo       *Repository
-
-	// parent tree
-	ptree *Tree
+	TreeCommon
 
 	entries       Entries
 	entriesParsed bool
-
-	entriesRecursive       Entries
-	entriesRecursiveParsed bool
 }
 
 // ListEntries returns all entries of current tree.
@@ -94,10 +86,6 @@ func (t *Tree) ListEntries() (Entries, error) {
 // listEntriesRecursive returns all entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
 func (t *Tree) listEntriesRecursive(extraArgs gitcmd.TrustedCmdArgs) (Entries, error) {
-	if t.entriesRecursiveParsed {
-		return t.entriesRecursive, nil
-	}
-
 	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-t", "-r").
 		AddArguments(extraArgs...).
 		AddDynamicArguments(t.ID.String()).
@@ -107,13 +95,9 @@ func (t *Tree) listEntriesRecursive(extraArgs gitcmd.TrustedCmdArgs) (Entries, e
 		return nil, runErr
 	}
 
-	var err error
-	t.entriesRecursive, err = parseTreeEntries(stdout, t)
-	if err == nil {
-		t.entriesRecursiveParsed = true
-	}
-
-	return t.entriesRecursive, err
+	// FIXME: the "name" field is abused, here it is a full path
+	// FIXME: this ptree is not right, fortunately it isn't really used
+	return parseTreeEntries(stdout, t)
 }
 
 // ListEntriesRecursiveFast returns all entries of current tree recursively including all subtrees, no size
