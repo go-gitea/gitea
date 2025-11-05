@@ -113,7 +113,15 @@ func TestPullMerge(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
+
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 4, repo.NumOpenPulls)
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.Equal(t, "pulls", elem[3])
@@ -121,6 +129,10 @@ func TestPullMerge(t *testing.T) {
 			Style:        repo_model.MergeStyleMerge,
 			DeleteBranch: false,
 		})
+
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
 
 		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
 		assert.NoError(t, err)
@@ -138,7 +150,15 @@ func TestPullRebase(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
+
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 4, repo.NumOpenPulls)
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.Equal(t, "pulls", elem[3])
@@ -146,6 +166,10 @@ func TestPullRebase(t *testing.T) {
 			Style:        repo_model.MergeStyleRebase,
 			DeleteBranch: false,
 		})
+
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
 
 		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
 		assert.NoError(t, err)
@@ -163,7 +187,15 @@ func TestPullRebaseMerge(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
+
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 4, repo.NumOpenPulls)
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.Equal(t, "pulls", elem[3])
@@ -171,6 +203,10 @@ func TestPullRebaseMerge(t *testing.T) {
 			Style:        repo_model.MergeStyleRebaseMerge,
 			DeleteBranch: false,
 		})
+
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
 
 		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
 		assert.NoError(t, err)
@@ -215,6 +251,10 @@ func TestPullSquashWithHeadCommitID(t *testing.T) {
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited!)\n")
 
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
+
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
@@ -224,11 +264,19 @@ func TestPullSquashWithHeadCommitID(t *testing.T) {
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.Equal(t, "pulls", elem[3])
+
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 4, repo.NumOpenPulls)
+
 		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
 			Style:        repo_model.MergeStyleSquash,
 			DeleteBranch: false,
 			HeadCommitID: headBranch.CommitID,
 		})
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
 
 		hookTasks, err = webhook.HookTasks(t.Context(), 1, 1)
 		assert.NoError(t, err)
@@ -242,14 +290,27 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited - TestPullCleanUpAfterMerge)\n")
 
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
+
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "feature/test", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.Equal(t, "pulls", elem[3])
+
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 4, repo.NumOpenPulls)
+
 		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
 			Style:        repo_model.MergeStyleMerge,
 			DeleteBranch: false,
 		})
+
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
 
 		// Check PR branch deletion
 		resp = testPullCleanUp(t, session, elem[1], elem[2], elem[4])
@@ -325,17 +386,13 @@ func TestCantMergeConflict(t *testing.T) {
 			BaseBranch: "base",
 		})
 
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
-		assert.NoError(t, err)
-
-		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT", false)
+		err := pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleMerge, "", "CONFLICT", false)
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, pull_service.IsErrMergeConflicts(err), "Merge error is not a conflict error")
 
-		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleRebase, "", "CONFLICT", false)
+		err = pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleRebase, "", "CONFLICT", false)
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, pull_service.IsErrRebaseConflicts(err), "Merge error is not a conflict error")
-		gitRepo.Close()
 	})
 }
 
@@ -423,8 +480,6 @@ func TestCantMergeUnrelated(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusCreated)
 
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
-		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
-		assert.NoError(t, err)
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
@@ -432,10 +487,9 @@ func TestCantMergeUnrelated(t *testing.T) {
 			BaseBranch: "base",
 		})
 
-		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "UNRELATED", false)
+		err = pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleMerge, "", "UNRELATED", false)
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, pull_service.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
-		gitRepo.Close()
 	})
 }
 
@@ -469,14 +523,8 @@ func TestFastForwardOnlyMerge(t *testing.T) {
 			BaseBranch: "master",
 		})
 
-		gitRepo, err := git.OpenRepository(t.Context(), repo_model.RepoPath(user1.Name, repo1.Name))
+		err := pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false)
 		assert.NoError(t, err)
-
-		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleFastForwardOnly, "", "FAST-FORWARD-ONLY", false)
-
-		assert.NoError(t, err)
-
-		gitRepo.Close()
 	})
 }
 
@@ -511,15 +559,9 @@ func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 			BaseBranch: "master",
 		})
 
-		gitRepo, err := git.OpenRepository(t.Context(), repo_model.RepoPath(user1.Name, repo1.Name))
-		assert.NoError(t, err)
-
-		err = pull_service.Merge(t.Context(), pr, user1, gitRepo, repo_model.MergeStyleFastForwardOnly, "", "DIVERGING", false)
-
+		err := pull_service.Merge(t.Context(), pr, user1, repo_model.MergeStyleFastForwardOnly, "", "DIVERGING", false)
 		assert.Error(t, err, "Merge should return an error due to being for a diverging branch")
 		assert.True(t, pull_service.IsErrMergeDivergingFastForwardOnly(err), "Merge error is not a diverging fast-forward-only error")
-
-		gitRepo.Close()
 	})
 }
 

@@ -1,40 +1,39 @@
+# syntax=docker/dockerfile:1
 # Build stage
 FROM docker.io/library/golang:1.25-alpine3.22 AS build-env
 
-ARG GOPROXY
-ENV GOPROXY=${GOPROXY:-direct}
+ARG GOPROXY=direct
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS="bindata timetzdata $TAGS"
 ARG CGO_EXTRA_CFLAGS
 
-#Build deps
+# Build deps
 RUN apk --no-cache add \
     build-base \
     git \
     nodejs \
-    npm \
-    && npm install -g pnpm@10 \
-    && rm -rf /var/cache/apk/*
+    pnpm
 
-# Setup repo
-COPY . ${GOPATH}/src/code.gitea.io/gitea
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
+# See the comments in Dockerfile
+COPY --exclude=.git/ . .
 
-# Checkout version if set
-RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
- && make clean-all build
+# Build gitea, .git mount is required for version data
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target="/root/.cache/go-build" \
+    --mount=type=cache,target=/root/.local/share/pnpm/store \
+    --mount=type=bind,source=".git/",target=".git/" \
+    make
 
-# Copy local files
 COPY docker/rootless /tmp/local
 
-# Set permissions
+# Set permissions for builds that made under windows which strips the executable bit from file
 RUN chmod 755 /tmp/local/usr/local/bin/* \
               /go/src/code.gitea.io/gitea/gitea
 
-FROM docker.io/library/alpine:3.22
-LABEL maintainer="maintainers@gitea.io"
+FROM docker.io/library/alpine:3.22 AS gitea-rootless
 
 EXPOSE 2222 3000
 
@@ -46,8 +45,7 @@ RUN apk --no-cache add \
     git \
     curl \
     gnupg \
-    openssh-keygen \
-    && rm -rf /var/cache/apk/*
+    openssh-keygen
 
 RUN addgroup \
     -S -g 1000 \
