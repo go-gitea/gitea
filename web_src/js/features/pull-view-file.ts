@@ -20,14 +20,6 @@ function refreshViewedFilesSummary() {
     .replace('%[2]d', prReview.numberOfFiles);
 }
 
-// Explicitly recounts how many files the user has currently reviewed by counting the number of checked "viewed" checkboxes
-// Additionally, the viewed files summary will be updated if it exists
-export function countAndUpdateViewedFiles() {
-  // The number of files is constant, but the number of viewed files can change because files can be loaded dynamically
-  prReview.numberOfViewedFiles = document.querySelectorAll(`${viewedCheckboxSelector} > input[type=checkbox][checked]`).length;
-  refreshViewedFilesSummary();
-}
-
 // Initializes a listener for all children of the given html element
 // (for example 'document' in the most basic case)
 // to watch for changes of viewed-file checkboxes
