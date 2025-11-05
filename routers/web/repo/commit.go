@@ -415,6 +415,8 @@ func Diff(ctx *context.Context) {
 			ctx.ServerError("PostProcessCommitMessage", err)
 			return
 		}
+	} else if !git.IsErrNotExist(err) {
+		log.Error("GetNote: %v", err)
 	}
 
 	pr, _ := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, commitID)
