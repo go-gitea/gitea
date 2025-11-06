@@ -68,7 +68,7 @@ func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 // GetFilesByVersionID gets all files of a version
 func GetFilesByVersionID(ctx context.Context, versionID int64) ([]*PackageFile, error) {
 	pfs := make([]*PackageFile, 0, 10)
-	return pfs, db.GetEngine(ctx).OrderBy("id").Where("version_id = ?", versionID).Find(&pfs)
+	return pfs, db.GetEngine(ctx).OrderBy("id ASC").Where("version_id = ?", versionID).Find(&pfs)
 }
 
 // GetFileForVersionByID gets a file of a version by id
