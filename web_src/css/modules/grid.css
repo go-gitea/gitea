@@ -136,7 +136,7 @@
 }
 
 .ui.grid .column {
-  container: column / inline-size;
+  container: container-grid-column / inline-size;
 }
 
 .ui.grid > .column:only-child,
