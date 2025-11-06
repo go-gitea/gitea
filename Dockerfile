@@ -3,6 +3,7 @@
 FROM docker.io/library/golang:1.25-alpine3.22 AS build-env
 
 ARG GOPROXY=direct
+ARG GOTOOLCHAIN=auto
 
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
