@@ -18,9 +18,8 @@
 
 /* Fallback height adjustment above for browsers that don't support container queries */
 @supports not (container-type: inline-size) {
-  /* before the Vue component is mounted, show a loading indicator with dummy size */
-  /* the ratio is guesswork, see https://github.com/razorness/vue3-calendar-heatmap/issues/26 */
-
+  /* Before the Vue component is mounted, show a loading indicator with dummy size */
+  /* The ratio is guesswork for legacy browsers, new browsers use the "@container" approach above  */
   #user-heatmap.is-loading {
     aspect-ratio: 5.4823972051; /* the size is about 816 x 148.84 */
   }
