@@ -5,7 +5,6 @@ package integration
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -35,7 +35,7 @@ func TestPackageGeneric(t *testing.T) {
 
 	timestamp := timeutil.TimeStampNow().AsTime().Unix()
 	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)
-	listUrl := fmt.Sprintf("/api/packages/%s/generic/%s/list", user.Name, packageName)
+	listURL := fmt.Sprintf("/api/packages/%s/generic/%s/list", user.Name, packageName)
 
 	t.Run("Upload", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -106,27 +106,27 @@ func TestPackageGeneric(t *testing.T) {
 	t.Run("List", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", listUrl)
+		req := NewRequest(t, "GET", listURL)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var expected []generic.PackageInfo
 		err := json.Unmarshal(resp.Body.Bytes(), &expected)
 		assert.NoError(t, err)
 
-		assert.Equal(t, len(expected), 1)
-		assert.Equal(t, len(expected[0].Files), 2)
+		assert.Len(t, expected, 1)
+		assert.Len(t, expected[0].Files, 2)
 
 		resPkg := expected[0]
-		assert.Equal(t, resPkg.Version, packageVersion)
-		assert.Equal(t, resPkg.DownloadCount, int64(0))
+		assert.Equal(t, packageVersion, resPkg.Version)
+		assert.Equal(t, int64(0), resPkg.DownloadCount)
 
 		resFile1 := expected[0].Files[0]
-		assert.Equal(t, resFile1.Name, filename)
-		assert.GreaterOrEqual(t, resFile1.CreatedUnix, timestamp)
+		assert.Equal(t, filename, resFile1.Name)
+		assert.LessOrEqual(t, timestamp, resFile1.CreatedUnix)
 
 		resFile2 := expected[0].Files[1]
-		assert.Equal(t, resFile2.Name, "dummy.bin")
-		assert.GreaterOrEqual(t, resFile2.CreatedUnix, timestamp)
+		assert.Equal(t, "dummy.bin", resFile2.Name)
+		assert.LessOrEqual(t, timestamp, resFile2.CreatedUnix)
 	})
 
 	t.Run("Download", func(t *testing.T) {
