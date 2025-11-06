@@ -135,6 +135,10 @@
   }
 }
 
+.ui.grid .column {
+  container: column / inline-size;
+}
+
 .ui.grid > .column:only-child,
 .ui.grid > .row > .column:only-child {
   width: 100%;
