@@ -601,9 +601,6 @@ td .commit-summary {
     width: 100%;
     margin: 0;
   }
-  .repository.view.issue .comment-list .comment .content .form .button:not(:last-child) {
-    margin-bottom: 1rem;
-  }
 }
 
 .repository.view.issue .comment-list .comment .merge-section {
