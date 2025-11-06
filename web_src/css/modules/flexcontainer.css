@@ -19,7 +19,6 @@
 .flex-container-main {
   flex: 1;
   min-width: 0; /* make the "text truncate" work, otherwise the flex axis is not limited and the text just overflows */
-  container-type: inline-size;
 }
 
 @media (max-width: 767.98px) {

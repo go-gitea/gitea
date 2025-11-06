@@ -5,7 +5,7 @@
 			<div class="ui four wide column">
 				{{template "shared/user/profile_big_avatar" .}}
 			</div>
-			<div class="ui twelve wide column tw-mb-4">
+			<div class="ui twelve wide column tw-mb-4 activity-heatmap-container">
 				{{template "user/overview/header" .}}
 				{{if eq .TabName "activity"}}
 					{{if .ContextUser.KeepActivityPrivate}}

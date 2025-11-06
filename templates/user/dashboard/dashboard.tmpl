@@ -2,7 +2,7 @@
 <div role="main" aria-label="{{.Title}}" class="page-content dashboard feeds">
 	{{template "user/dashboard/navbar" .}}
 	<div class="ui container flex-container">
-		<div class="flex-container-main">
+		<div class="flex-container-main activity-heatmap-container">
 			{{template "base/alert" .}}
 			{{template "user/heatmap" .}}
 			{{if .Page.Paginater.TotalPages}}

@@ -135,10 +135,6 @@
   }
 }
 
-.ui.grid .column {
-  container-type: inline-size;
-}
-
 .ui.grid > .column:only-child,
 .ui.grid > .row > .column:only-child {
   width: 100%;
