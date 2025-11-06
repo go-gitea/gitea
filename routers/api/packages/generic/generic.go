@@ -49,8 +49,8 @@ func apiError(ctx *context.Context, status int, obj any) {
 	ctx.PlainText(status, message)
 }
 
-// EnumeratePackageVersions lists upload versions and their associated files
-func EnumeratePackageVersions(ctx *context.Context) {
+// ListPackageVersions lists upload versions and their associated files
+func ListPackageVersions(ctx *context.Context) {
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, ctx.PathParam("packagename"))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)

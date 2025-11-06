@@ -249,6 +249,15 @@ func TestPackageAccess(t *testing.T) {
 		MakeRequest(t, req, expectedStatus)
 	}
 
+	listPackage := func(doer, owner *user_model.User, expectedStatus int) {
+		url := fmt.Sprintf("/api/packages/%s/generic/test-package/list", owner.Name)
+		req := NewRequest(t, "GET", url)
+		if doer != nil {
+			req.AddBasicAuth(doer.Name)
+		}
+		MakeRequest(t, req, expectedStatus)
+	}
+
 	type Target struct {
 		Owner          *user_model.User
 		ExpectedStatus int
@@ -339,7 +348,7 @@ func TestPackageAccess(t *testing.T) {
 		}
 	})
 
-	t.Run("Download", func(t *testing.T) {
+	t.Run("List/Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		cases := []struct {
@@ -416,6 +425,7 @@ func TestPackageAccess(t *testing.T) {
 		for _, c := range cases {
 			for _, target := range c.Targets {
 				downloadPackage(c.Doer, target.Owner, target.ExpectedStatus)
+				listPackage(c.Doer, target.Owner, target.ExpectedStatus)
 			}
 		}
 	})
