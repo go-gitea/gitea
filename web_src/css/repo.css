@@ -660,6 +660,7 @@ td .commit-summary {
   border-bottom: 0;
   padding: 0;
   min-height: auto;
+  margin-bottom: 4px;
 }
 
 .repository.view.issue .comment-list .code-comment .comment-content {
