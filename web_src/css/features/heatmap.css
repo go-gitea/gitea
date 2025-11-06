@@ -4,11 +4,23 @@
   position: relative;
 }
 
-@container (width > 0) {
-  #user-heatmap {
-    /* Set element to fixed height so that it does not resize after load. The calculation is complex
-       because the element does not scale with a fixed aspect ratio. */
-    height: calc((100cqw / 5) - (100cqw / 25) + 20px);
+@supports (container-type: inline-size) {
+  @container (width > 0) {
+    #user-heatmap {
+      /* Set element to fixed height so that it does not resize after load. The calculation is complex
+         because the element does not scale with a fixed aspect ratio. */
+      height: calc((100cqw / 5) - (100cqw / 25) + 20px);
+    }
+  }
+}
+
+/* Fallback for browsers that don't support container queries */
+@supports not (container-type: inline-size) {
+  #user-heatmap.is-loading {
+    aspect-ratio: 5.415;
+  }
+  .user.profile #user-heatmap.is-loading {
+    aspect-ratio: 5.645;
   }
 }
 
