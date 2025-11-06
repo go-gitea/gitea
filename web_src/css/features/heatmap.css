@@ -4,11 +4,10 @@
   position: relative;
 }
 
-.activity-heatmap-container {
-  container: activity-heatmap-container / inline-size;
-}
-
 @supports (container-type: inline-size) {
+  .activity-heatmap-container {
+    container: activity-heatmap-container / inline-size;
+  }
   @container activity-heatmap-container (width > 0) {
     #user-heatmap {
       /* Set element to fixed height so that it does not resize after load. The calculation is complex
