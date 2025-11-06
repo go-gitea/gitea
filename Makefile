@@ -386,7 +386,7 @@ lint-go-windows:
 .PHONY: lint-go-gitea-vet
 lint-go-gitea-vet: ## lint go files with gitea-vet
 	@echo "Running gitea-vet..."
-	@$(GO) vet -vettool=$(shell go tool -n gitea-vet) ./...
+	@$(GO) vet -vettool="$(shell go tool -n gitea-vet)" ./...
 
 .PHONY: lint-go-gopls
 lint-go-gopls: ## lint go files with gopls
