@@ -15,11 +15,11 @@ Still needs to figure out:
 */}}
 {{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
 <input id="ref_selector" name="ref" type="hidden" value="{{.Reference}}">
-<div class="ui dropdown select-branch branch-selector-dropdown ellipsis-text-items {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}}"
+<div class="ui dropdown select-branch branch-selector-dropdown ellipsis-text-items {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}} tw-w-full"
 	data-no-results="{{ctx.Locale.Tr "no_results_found"}}"
 	{{if and .Issue (or .IsIssueWriter .HasIssuesOrPullsWritePermission)}}data-url-update-issueref="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref"{{end}}
 >
-	<div class="ui button branch-dropdown-button">
+	<div class="ui button branch-dropdown-button tw-w-full">
 		<span class="text-branch-name gt-ellipsis">{{if .Reference}}{{$.RefEndName}}{{else}}{{ctx.Locale.Tr "repo.issues.no_ref"}}{{end}}</span>
 		{{if .HasIssuesOrPullsWritePermission}}{{svg "octicon-triangle-down" 14 "dropdown icon"}}{{end}}
 	</div>
