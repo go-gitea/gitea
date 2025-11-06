@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -285,8 +286,24 @@ func (m *MinioStorage) URL(path, name, method string, serveDirectReqParams url.V
 	if err != nil {
 		return nil, err
 	}
-	// TODO it may be good to embed images with 'inline' like ServeData does, but we don't want to have to read the file, do we?
-	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
+	// Detect content type by extension name
+	contentDisposition := "attachment; filename=\"" + quoteEscaper.Replace(name) + "\""
+	inlineExtMime := map[string]string{
+		"png":  "image/png",
+		"jpg":  "image/jpeg",
+		"jpeg": "image/jpeg",
+		"pdf":  "application/pdf",
+		"gif":  "image/gif",
+		"webp": "iamge/webp",
+	}
+	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(name), "."))
+	mime, ok := inlineExtMime[ext]
+	if ok {
+		reqParams.Set("response-content-type", mime)
+		contentDisposition = "inline"
+	}
+
+	reqParams.Set("response-content-disposition", contentDisposition)
 	expires := 5 * time.Minute
 	if method == http.MethodHead {
 		u, err := m.client.PresignedHeadObject(m.ctx, m.bucket, m.buildMinioPath(path), expires, reqParams)
