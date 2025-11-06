@@ -16,7 +16,7 @@ var (
 	initFunc      = func() {
 		switch setting.GlobalLock.ServiceType {
 		case "redis":
-			defaultLocker = NewRedisLocker(setting.GlobalLock.ServiceConnStr)
+			defaultLocker = NewRedisLocker(setting.GlobalLock.ServiceConnStr.String())
 		case "memory":
 			fallthrough
 		default:

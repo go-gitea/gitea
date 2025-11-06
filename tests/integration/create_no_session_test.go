@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/tests"
 
@@ -73,7 +74,7 @@ func TestSessionFileCreation(t *testing.T) {
 	newConfigBytes, err := json.Marshal(config)
 	assert.NoError(t, err)
 
-	setting.SessionConfig.ProviderConfig = string(newConfigBytes)
+	setting.SessionConfig.ProviderConfig = util.SensitiveURLString(newConfigBytes)
 
 	testWebRoutes = routers.NormalRoutes()
 

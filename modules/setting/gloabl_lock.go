@@ -6,12 +6,13 @@ package setting
 import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/nosql"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // GlobalLock represents configuration of global lock
 var GlobalLock = struct {
 	ServiceType    string
-	ServiceConnStr string
+	ServiceConnStr util.SensitiveURLString
 }{
 	ServiceType: "memory",
 }
@@ -30,7 +31,7 @@ func loadGlobalLockFrom(rootCfg ConfigProvider) {
 		if u == nil {
 			log.Fatal("SERVICE_CONN_STR %s is not a valid redis connection string", connStr)
 		}
-		GlobalLock.ServiceConnStr = connStr
+		GlobalLock.ServiceConnStr = util.SensitiveURLString(connStr)
 	default:
 		log.Fatal("Unknown sync lock service type: %s", GlobalLock.ServiceType)
 	}
