@@ -51,7 +51,6 @@
   width: 34px;
   height: 34px;
   font-size: 16px;
-  aspect-ratio: 1;
   border-radius: var(--border-radius);
   display: flex;
   align-items: center;
