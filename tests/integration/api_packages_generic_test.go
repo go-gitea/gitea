@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"testing"
 
 	"code.gitea.io/gitea/models/packages"
@@ -120,12 +121,17 @@ func TestPackageGeneric(t *testing.T) {
 		assert.Equal(t, packageVersion, resPkg.Version)
 		assert.Equal(t, int64(0), resPkg.DownloadCount)
 
-		resFile1 := expected[0].Files[0]
-		assert.Equal(t, filename, resFile1.Name)
+		// json results are ordered differently in different db engines for some reason
+		sort.Slice(resPkg.Files, func(i, j int) bool {
+			return resPkg.Files[i].Name < resPkg.Files[j].Name
+		})
+
+		resFile1 := resPkg.Files[0]
+		assert.Equal(t, "dummy.bin", resFile1.Name)
 		assert.LessOrEqual(t, timestamp, resFile1.CreatedUnix)
 
-		resFile2 := expected[0].Files[1]
-		assert.Equal(t, "dummy.bin", resFile2.Name)
+		resFile2 := resPkg.Files[1]
+		assert.Equal(t, filename, resFile2.Name)
 		assert.LessOrEqual(t, timestamp, resFile2.CreatedUnix)
 	})
 
