@@ -41,7 +41,6 @@ GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
 GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.20.0
-GOPLS_MODERNIZE_PACKAGE ?= golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -276,19 +275,6 @@ fmt-check: fmt
 	  exit 1; \
 	fi
 
-.PHONY: fix
-fix: ## apply automated fixes to Go code
-	$(GO) run $(GOPLS_MODERNIZE_PACKAGE) -fix ./...
-
-.PHONY: fix-check
-fix-check: fix
-	@diff=$$(git diff --color=always $(GO_SOURCES)); \
-	if [ -n "$$diff" ]; then \
-	  echo "Please run 'make fix' and commit the result:"; \
-	  printf "%s" "$${diff}"; \
-	  exit 1; \
-	fi
-
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
 	@mkdir -p $(MAKE_EVIDENCE_DIR)
@@ -328,7 +314,7 @@ checks: checks-frontend checks-backend ## run various consistency checks
 checks-frontend: lockfile-check svg-check ## check frontend files
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check fmt-check fix-check swagger-validate security-check ## check backend files
+checks-backend: tidy-check swagger-check fmt-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
 lint: lint-frontend lint-backend lint-spell ## lint everything
@@ -852,7 +838,6 @@ deps-tools: ## install tool dependencies
 	$(GO) install $(GOVULNCHECK_PACKAGE) & \
 	$(GO) install $(ACTIONLINT_PACKAGE) & \
 	$(GO) install $(GOPLS_PACKAGE) & \
-	$(GO) install $(GOPLS_MODERNIZE_PACKAGE) & \
 	wait
 
 node_modules: pnpm-lock.yaml

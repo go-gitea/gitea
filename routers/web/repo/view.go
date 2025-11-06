@@ -307,7 +307,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		ctx.ServerError("ListEntries", err)
 		return nil
 	}
-	allEntries.CustomSort(base.NaturalSortLess)
+	allEntries.CustomSort(base.NaturalSortCompare)
 
 	commitInfoCtx := gocontext.Context(ctx)
 	if timeout > 0 {
