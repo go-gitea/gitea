@@ -14,7 +14,7 @@
   }
 }
 
-/* Fallback for browsers that don't support container queries */
+/* Fallback height adjustment above for browsers that don't support container queries */
 @supports not (container-type: inline-size) {
   #user-heatmap.is-loading {
     aspect-ratio: 5.415;
