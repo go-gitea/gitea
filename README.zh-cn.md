@@ -37,16 +37,16 @@ Gitea基于Go语言开发，凡Go语言支持的平台与架构，它皆能适�
 
     TAGS="bindata" make build
 
-若需支持SQLite数据库，执行：
+若需支持 SQLite 数据库，执行：
 
     TAGS="bindata sqlite sqlite_unlock_notify" make build
 
-`build`目标分为两个子目标：
+`build` 目标分为两个子目标：
 
-- `make backend`：需依赖[Go Stable](https://go.dev/dl/)，具体版本见[go.mod](/go.mod)
-- `make frontend`：需依赖[Node.js LTS](https://nodejs.org/en/download/)（及以上版本）和[pnpm](https://pnpm.io/installation)
+- `make backend`：需依赖 [Go Stable](https://go.dev/dl/)，具体版本见 [go.mod](/go.mod)
+- `make frontend`：需依赖 [Node.js LTS](https://nodejs.org/en/download/)（及以上版本）和 [pnpm](https://pnpm.io/installation)
 
-构建需联网以下载Go和npm依赖包。若使用包含预构建前端文件的官方源码压缩包，无需触发`frontend`目标，无Node.js环境也可完成构建。
+构建需联网以下载 Go 和 npm 依赖包。若使用包含预构建前端文件的官方源码压缩包，无需触发 `frontend` 目标，无 Node.js 环境也可完成构建。
 
 更多细节：https://docs.gitea.com/installation/install-from-source
 
@@ -80,7 +80,7 @@ Gitea基于Go语言开发，凡Go语言支持的平台与架构，它皆能适�
 
 ## 官方及第三方项目
 
-我们提供官方[go-sdk](https://gitea.com/gitea/go-sdk)、命令行工具[tea](https://gitea.com/gitea/tea)及Gitea Action专用[运行器](https://gitea.com/gitea/act_runner)。
+我们提供官方 [go-sdk](https://gitea.com/gitea/go-sdk)、命令行工具 [tea](https://gitea.com/gitea/tea) 及 Gitea Action 专用 [runner](https://gitea.com/gitea/act_runner)。
 
 我们在[gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea)维护Gitea相关项目清单，你可在此发现更多第三方项目，包括SDK、插件、主题等。
 

@@ -11,7 +11,7 @@
 [![使用 Gitpod 貢獻](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
 [![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
 
-[English](./README.md) | [繁體中文](./README.zh-tw.md)
+[English](./README.md) | [简体中文](./README.zh-cn.md)
 
 ## 專案目標
 
@@ -41,12 +41,12 @@ Gitea 基於 Go 語言開發，凡 Go 語言支持的平台與架構，它皆能
 
     TAGS="bindata sqlite sqlite_unlock_notify" make build
 
-`build`目標分為兩個子目標：
+`build` 目標分為兩個子目標：
 
-- `make backend`：需依賴[Go Stable](https://go.dev/dl/)，具體版本見[go.mod](/go.mod)
-- `make frontend`：需依賴[Node.js LTS](https://nodejs.org/en/download/)（及以上版本）和[pnpm](https://pnpm.io/installation)
+- `make backend`：需依賴 [Go Stable](https://go.dev/dl/)，具體版本見 [go.mod](/go.mod)
+- `make frontend`：需依賴 [Node.js LTS](https://nodejs.org/en/download/)（及以上版本）和 [pnpm](https://pnpm.io/installation)
 
-構建需聯網以下載 Go 和 npm 依賴套件。若使用包含預構建前端檔案的官方原始碼壓縮包，無需觸發`frontend`目標，無 Node.js 環境也可完成構建。
+構建需聯網以下載 Go 和 npm 依賴套件。若使用包含預構建前端檔案的官方原始碼壓縮包，無需觸發 `frontend` 目標，無 Node.js 環境也可完成構建。
 
 更多細節：https://docs.gitea.com/installation/install-from-source
 
@@ -80,7 +80,7 @@ Gitea 基於 Go 語言開發，凡 Go 語言支持的平台與架構，它皆能
 
 ## 官方及第三方專案
 
-我們提供官方 [go-sdk](https://gitea.com/gitea/go-sdk)、命令列工具 [tea](https://gitea.com/gitea/tea) 及 Gitea Action 專用[執行器](https://gitea.com/gitea/act_runner)。
+我們提供官方 [go-sdk](https://gitea.com/gitea/go-sdk)、命令列工具 [tea](https://gitea.com/gitea/tea) 及 Gitea Action 專用 [runner](https://gitea.com/gitea/act_runner)。
 
 我們在 [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea) 維護 Gitea 相關專案清單，你可在此發現更多第三方專案，包括 SDK、外掛程式、主題等。
 
@@ -160,6 +160,7 @@ Gitea 基於 Go 語言開發，凡 Go 語言支持的平台與架構，它皆能
 ### 探索
 
 ![Repos](https://dl.gitea.com/screenshots/explore_repos.png)
+
 ![使用者](https://dl.gitea.com/screenshots/explore_users.png)
 ![組織](https://dl.gitea.com/screenshots/explore_orgs.png)
 
