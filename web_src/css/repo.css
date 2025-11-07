@@ -528,9 +528,10 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .timeline-item .comment-text-line {
-  line-height: 32px;
-  vertical-align: middle;
   color: var(--color-text-light);
+  overflow-wrap: break-word;
+  max-width: 100%;
+  padding: .5rem 1rem .5rem 0;
 }
 
 .repository.view.issue .comment-list .timeline-item .comment-text-line .ui.label {
