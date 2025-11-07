@@ -9,7 +9,6 @@ godebug x509negativeserial=1
 
 require (
 	code.gitea.io/actions-proto-go v0.4.1
-	code.gitea.io/gitea-vet v0.2.3
 	code.gitea.io/sdk/gitea v0.22.0
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	connectrpc.com/connect v1.18.1
@@ -135,6 +134,7 @@ require (
 
 require (
 	cloud.google.com/go/compute/metadata v0.8.0 // indirect
+	code.gitea.io/gitea-vet v0.2.3 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
 	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 // indirect
@@ -307,3 +307,5 @@ exclude github.com/gofrs/uuid v4.0.0+incompatible
 exclude github.com/goccy/go-json v0.4.11
 
 exclude github.com/satori/go.uuid v1.2.0
+
+tool code.gitea.io/gitea-vet
