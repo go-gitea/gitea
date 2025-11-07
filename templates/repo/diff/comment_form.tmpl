@@ -1,8 +1,9 @@
 {{if and $.root.SignedUserID (not $.Repository.IsArchived)}}
-	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
+	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{if $.root.PageIsCommitDiff}}{{$.root.RepoLink}}/commit/{{$.root.AfterCommitID}}/code-comment/new{{else}}{{$.root.Issue.Link}}/files/reviews/comments{{end}}" method="post">
 	{{$.root.CsrfTokenHtml}}
 		<input type="hidden" name="origin" value="{{if $.root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}">
+		{{if $.root.PageIsCommitDiff}}<input type="hidden" name="commit_sha" value="{{$.root.AfterCommitID}}">{{end}}
 		<input type="hidden" name="side" value="{{if $.Side}}{{$.Side}}{{end}}">
 		<input type="hidden" name="line" value="{{if $.Line}}{{$.Line}}{{end}}">
 		<input type="hidden" name="path" value="{{if $.File}}{{$.File}}{{end}}">
@@ -28,7 +29,9 @@
 
 		<div class="field footer">
 			<div class="flex-text-block tw-justify-end">
-				{{if $.reply}}
+				{{if $.root.PageIsCommitDiff}}
+					<button type="submit" class="ui submit primary tiny button btn-add-single">{{ctx.Locale.Tr "repo.diff.comment.add_single_comment"}}</button>
+				{{else if $.reply}}
 					<button class="ui submit primary tiny button btn-reply" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>
 					<input type="hidden" name="reply" value="{{$.reply}}">
 					<input type="hidden" name="single_review" value="true">
