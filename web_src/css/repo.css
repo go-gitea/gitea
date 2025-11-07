@@ -387,6 +387,7 @@ td .commit-summary {
 
 .repository.view.issue .pull-desc code {
   color: var(--color-primary);
+  background: transparent;
 }
 
 .repository.view.issue .pull-desc a[data-clipboard-text] {
