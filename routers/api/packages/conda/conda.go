@@ -140,6 +140,11 @@ func EnumeratePackages(ctx *context.Context) {
 
 		versionMetadata := pd.Metadata.(*conda_module.VersionMetadata)
 
+		deps := fileMetadata.Dependencies
+		if deps == nil {
+			deps = []string{}
+		}
+
 		pi := &PackageInfo{
 			Name:          pd.PackageProperties.GetByName(conda_module.PropertyName),
 			Version:       pd.Version.Version,
@@ -148,7 +153,7 @@ func EnumeratePackages(ctx *context.Context) {
 			Timestamp:     fileMetadata.Timestamp,
 			Build:         fileMetadata.Build,
 			BuildNumber:   fileMetadata.BuildNumber,
-			Dependencies:  fileMetadata.Dependencies,
+			Dependencies:  deps,
 			License:       versionMetadata.License,
 			LicenseFamily: versionMetadata.LicenseFamily,
 			HashMD5:       pfd.Blob.HashMD5,
