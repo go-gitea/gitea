@@ -287,15 +287,15 @@ func (m *MinioStorage) URL(storePath, name, method string, serveDirectReqParams 
 	}
 
 	// Here we might not know the real filename, and it's quite inefficient to detect the mine type by pre-fetching the object head.
-	// So we just do a quick detection by extension name, at least if works for the "View Raw File" for a LFS file on the Web UI.
-	// Detect content type by extension name
+	// So we just do a quick detection by extension name, at least if works for the "View Raw File" for an LFS file on the Web UI.
+	// Detect content type by extension name, only support the well-known safe types for inline rendering.
 	ext := path.Ext(name)
 	inlineExtMimeTypes := map[string]string{
 		".png":  "image/png",
 		".jpg":  "image/jpeg",
 		".jpeg": "image/jpeg",
 		".gif":  "image/gif",
-		".webp": "iamge/webp",
+		".webp": "image/webp",
 		".avif": "image/avif",
 		// don't support SVG because of security concerns: it can contain JS code, and maybe it needs proper Content-Security-Policy
 		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context, it seems fine to render it inline
