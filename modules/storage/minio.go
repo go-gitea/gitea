@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"net/url"
 	"os"
@@ -288,18 +289,10 @@ func (m *MinioStorage) URL(path, name, method string, serveDirectReqParams url.V
 	}
 	// Detect content type by extension name
 	contentDisposition := "attachment; filename=\"" + quoteEscaper.Replace(name) + "\""
-	inlineExtMime := map[string]string{
-		"png":  "image/png",
-		"jpg":  "image/jpeg",
-		"jpeg": "image/jpeg",
-		"pdf":  "application/pdf",
-		"gif":  "image/gif",
-		"webp": "iamge/webp",
-	}
-	ext := strings.ToLower(strings.TrimPrefix(filepath.Ext(name), "."))
-	mime, ok := inlineExtMime[ext]
-	if ok {
-		reqParams.Set("response-content-type", mime)
+	ext := filepath.Ext(name)
+	mimetype := mime.TypeByExtension(ext)
+	reqParams.Set("response-content-type", mimetype)
+	if mimetype == "application/pdf" || strings.HasPrefix(mimetype, "image/") {
 		contentDisposition = "inline"
 	}
 
