@@ -198,6 +198,10 @@ TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
+# Include local Makefile
+# Makefile.local is listed in .gitignore
+sinclude Makefile.local
+
 .PHONY: all
 all: build
 
