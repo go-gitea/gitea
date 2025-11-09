@@ -27,9 +27,9 @@
 			{{if and .PageIsPullFiles $.SignedUserID (not .DiffNotAvailable)}}
 				<div class="not-mobile tw-flex tw-items-center tw-flex-col tw-whitespace-nowrap tw-mr-1">
 					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{ctx.Locale.Tr "repo.pulls.viewed_files_label"}}">
-						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .DiffShortStat.NumFiles}}
+						{{ctx.Locale.Tr "repo.pulls.viewed_files_label" .NumViewedFiles .DiffShortStat.NumFiles}}
 					</label>
-					<progress id="viewed-files-summary" value="{{.Diff.NumViewedFiles}}" max="{{.DiffShortStat.NumFiles}}"></progress>
+					<progress id="viewed-files-summary" value="{{.NumViewedFiles}}" max="{{.DiffShortStat.NumFiles}}"></progress>
 				</div>
 			{{end}}
 			{{template "repo/diff/whitespace_dropdown" .}}
