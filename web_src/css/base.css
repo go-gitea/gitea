@@ -626,7 +626,6 @@ img.ui.avatar,
   font-family: var(--fonts-monospace);
   font-size: 13px;
   font-weight: var(--font-weight-normal);
-  padding: 3px 5px;
   flex-shrink: 0;
 }
 

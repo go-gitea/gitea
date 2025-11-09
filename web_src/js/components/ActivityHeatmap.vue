@@ -53,9 +53,6 @@ function handleDayClick(e: Event & {date: Date}) {
 }
 </script>
 <template>
-  <div class="total-contributions">
-    {{ locale.textTotalContributions }}
-  </div>
   <calendar-heatmap
     :locale="locale.heatMapLocale"
     :no-data-text="locale.noDataText"
@@ -65,5 +62,7 @@ function handleDayClick(e: Event & {date: Date}) {
     :range-color="colorRange"
     @day-click="handleDayClick($event)"
     :tippy-props="{theme: 'tooltip'}"
-  />
+  >
+    <template #vch__legend-left>{{ locale.textTotalContributions }}</template>
+  </calendar-heatmap>
 </template>

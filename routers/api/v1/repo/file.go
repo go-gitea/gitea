@@ -370,11 +370,11 @@ func ReqChangeRepoFileOptionsAndCheck(ctx *context.APIContext) {
 		},
 		Signoff: commonOpts.Signoff,
 	}
-	if commonOpts.Dates.Author.IsZero() {
-		commonOpts.Dates.Author = time.Now()
+	if changeFileOpts.Dates.Author.IsZero() {
+		changeFileOpts.Dates.Author = time.Now()
 	}
-	if commonOpts.Dates.Committer.IsZero() {
-		commonOpts.Dates.Committer = time.Now()
+	if changeFileOpts.Dates.Committer.IsZero() {
+		changeFileOpts.Dates.Committer = time.Now()
 	}
 	ctx.Data["__APIChangeRepoFilesOptions"] = changeFileOpts
 }
