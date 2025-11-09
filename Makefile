@@ -198,6 +198,10 @@ TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
+# Include local Makefile
+# Makefile.local is listed in .gitignore
+sinclude Makefile.local
+
 .PHONY: all
 all: build
 
@@ -386,8 +390,7 @@ lint-go-windows:
 .PHONY: lint-go-gitea-vet
 lint-go-gitea-vet: ## lint go files with gitea-vet
 	@echo "Running gitea-vet..."
-	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
-	@$(GO) vet -vettool=gitea-vet ./...
+	@$(GO) vet -vettool="$(shell GOOS= GOARCH= go tool -n gitea-vet)" ./...
 
 .PHONY: lint-go-gopls
 lint-go-gopls: ## lint go files with gopls
