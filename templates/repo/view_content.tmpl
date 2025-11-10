@@ -42,26 +42,6 @@
 		<a href="{{.Repository.Link}}/find/{{.RefTypeNameSubURL}}" class="ui compact basic button">{{ctx.Locale.Tr "repo.find_file.go_to_file"}}</a>
 	{{end}}
 
-	{{if and .RefFullName.IsBranch (not .IsViewFile)}}
-		<button class="ui dropdown basic compact jump button repo-add-file" {{if not .Repository.CanEnableEditor}}disabled{{end}}>
-			{{ctx.Locale.Tr "repo.editor.add_file"}}
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-			<div class="menu">
-				<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-					{{ctx.Locale.Tr "repo.editor.new_file"}}
-				</a>
-				{{if .RepositoryUploadEnabled}}
-				<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-					{{ctx.Locale.Tr "repo.editor.upload_file"}}
-				</a>
-				{{end}}
-				<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-					{{ctx.Locale.Tr "repo.editor.patch"}}
-				</a>
-			</div>
-		</button>
-	{{end}}
-
 	{{if and $isTreePathRoot .Repository.IsTemplate}}
 		<a role="button" class="ui primary compact button" href="{{AppSubUrl}}/repo/create?template_id={{.Repository.ID}}">
 			{{ctx.Locale.Tr "repo.use_template"}}
@@ -86,6 +66,25 @@
 	</div>
 
 	<div class="repo-button-row-right">
+		{{if and .RefFullName.IsBranch (not .IsViewFile)}}
+			<button class="ui dropdown basic compact jump button repo-add-file" {{if not .Repository.CanEnableEditor}}disabled{{end}}>
+				{{ctx.Locale.Tr "repo.editor.add_file"}}
+				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<div class="menu">
+					<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+						{{svg "octicon-file-added" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.editor.new_file"}}
+					</a>
+					{{if .RepositoryUploadEnabled}}
+					<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+						{{svg "octicon-upload" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.editor.upload_file"}}
+					</a>
+					{{end}}
+					<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+						{{svg "octicon-diff" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.editor.patch"}}
+					</a>
+				</div>
+			</button>
+		{{end}}
 		<!-- Only show clone panel in repository home page -->
 		{{if $isTreePathRoot}}
 			{{template "repo/clone_panel" .}}
