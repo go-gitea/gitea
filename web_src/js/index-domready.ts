@@ -29,6 +29,7 @@ import {initRepoCodeView} from './features/repo-code.ts';
 import {initSshKeyFormParser} from './features/sshkey-helper.ts';
 import {initUserSettings} from './features/user-settings.ts';
 import {initRepoActivityTopAuthorsChart, initRepoArchiveLinks} from './features/repo-common.ts';
+import {initRepoTreeSearch} from './features/repo-tree-search.ts';
 import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
 import {initRepoDiffView} from './features/repo-diff.ts';
 import {initOrgTeam} from './features/org-team.ts';
@@ -65,6 +66,12 @@ import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton}
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
+
+// Dummy function for initRepoDirectoryActions - prevents error if called
+const initRepoDirectoryActions = () => {
+  // This function is intentionally empty
+  // It prevents "undefined function" errors during initialization
+};
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -118,6 +125,7 @@ const initPerformanceTracer = callInitFunctions([
 
   initRepoActivityTopAuthorsChart,
   initRepoArchiveLinks,
+  initRepoTreeSearch,
   initRepoBranchButton,
   initRepoCodeView,
   initBranchSelectorTabs,
@@ -145,6 +153,8 @@ const initPerformanceTracer = callInitFunctions([
   initRepoContributors,
   initRepoCodeFrequency,
   initRepoRecentCommits,
+  initRepoTreeSearch,
+  initRepoDirectoryActions,
 
   initCommitStatuses,
   initCaptcha,
