@@ -7,9 +7,14 @@
 	<b>{{ctx.Locale.Tr "files"}}</b>
 </div>
 
+<div class="ui small input tw-w-full tw-px-2 tw-pb-2">
+	<input id="file-tree-search" type="text" placeholder="{{ctx.Locale.Tr "repo.find_file.go_to_file"}}" autocomplete="off">
+</div>
+
 {{/* TODO: Dynamically move components such as refSelector and createPR here */}}
 <div id="view-file-tree" class="tw-overflow-auto tw-h-full is-loading"
 	data-repo-link="{{.RepoLink}}"
 	data-tree-path="{{$.TreePath}}"
 	data-current-ref-name-sub-url="{{.RefTypeNameSubURL}}"
+	data-tree-list-url="{{.RepoLink}}/tree-list/{{.RefTypeNameSubURL}}"
 ></div>
