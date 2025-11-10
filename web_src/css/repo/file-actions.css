@@ -1,0 +1,19 @@
+/* Repository file actions dropdown and centered content */
+.repo-file-actions-dropdown .menu {
+  min-width: 200px;
+}
+
+.repo-file-actions-dropdown .menu .item {
+  cursor: pointer;
+}
+
+.repo-file-actions-dropdown .menu .divider {
+  margin: 0.5rem 0;
+}
+
+/* Center content option */
+.repo-content-centered {
+  max-width: 980px;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
