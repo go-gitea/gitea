@@ -84,6 +84,30 @@
 					</a>
 				</div>
 			</button>
+			<button class="ui dropdown basic compact jump button icon repo-file-actions-dropdown" data-tooltip-content="{{ctx.Locale.Tr "more_operations"}}">
+				{{svg "octicon-kebab-horizontal"}}
+				<div class="menu">
+					<a class="item" data-clipboard-text="{{.TreePath}}">
+						{{svg "octicon-copy" 16 "tw-mr-2"}}{{ctx.Locale.Tr "copy_path"}}
+					</a>
+					<a class="item" data-clipboard-text="{{AppUrl}}{{StringUtils.TrimPrefix .Repository.Link "/"}}/src/commit/{{.CommitID}}/{{PathEscapeSegments .TreePath}}">
+						{{svg "octicon-link" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_copy_permalink"}}
+					</a>
+					{{if and (.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) (not .Repository.IsArchived)}}
+						<div class="divider"></div>
+						<a class="item" href="{{.RepoLink}}/_delete/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+							{{svg "octicon-trash" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.editor.delete_this_directory"}}
+						</a>
+					{{end}}
+					<div class="divider"></div>
+					<div class="item">
+						<div class="ui checkbox" id="center-content-toggle">
+							<input type="checkbox" id="center-content-checkbox">
+							<label for="center-content-checkbox">{{ctx.Locale.Tr "repo.center_content"}}</label>
+						</div>
+					</div>
+				</div>
+			</button>
 		{{end}}
 		<!-- Only show clone panel in repository home page -->
 		{{if $isTreePathRoot}}
