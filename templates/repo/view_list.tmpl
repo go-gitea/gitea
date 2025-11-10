@@ -1,61 +1,132 @@
+{{/* Search box for file filtering */}}
+{{if not .HasParentPath}}
+<div class="ui fluid icon input" style="margin-bottom: 15px;">
+  <input 
+    id="repo-files-search" 
+    type="text" 
+    placeholder="🔍 Search files and folders..." 
+    autocomplete="off" 
+    aria-label="Search repository files"
+    style="padding: 10px 15px; font-size: 14px;"
+  >
+  <i class="search icon"></i>
+</div>
+{{end}}
+
 {{/* use grid layout, still use the old ID because there are many other CSS styles depending on this ID */}}
 <div id="repo-files-table" {{if .HasFilesWithoutLatestCommit}}hx-indicator="#repo-files-table .repo-file-cell.message" hx-trigger="load" hx-swap="morph" hx-post="{{.LastCommitLoaderURL}}"{{end}}>
-	<div class="repo-file-line repo-file-last-commit">
-		{{template "repo/latest_commit" .}}
-		<div>{{if and .LatestCommit .LatestCommit.Committer}}{{DateUtils.TimeSince .LatestCommit.Committer.When}}{{end}}</div>
-	</div>
-	{{$.FileIconPoolHTML}}
-	{{if .HasParentPath}}
-	<a class="repo-file-line parent-link silenced" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">
-		{{index $.FileIcons ".."}} ..
-	</a>
-	{{end}}
-	{{range $item := .Files}}
-		<div class="repo-file-item">
-			{{$entry := $item.Entry}}
-			{{$commit := $item.Commit}}
-			{{$submoduleFile := $item.SubmoduleFile}}
-			<div class="repo-file-cell name muted-links {{if not $commit}}notready{{end}}">
-				{{index $.FileIcons $entry.Name}}
-				{{if $entry.IsSubModule}}
-					{{$submoduleLink := $submoduleFile.SubmoduleWebLinkTree ctx}}
-					{{if $submoduleLink}}
-						<a class="entry-name" href="{{$submoduleLink.RepoWebLink}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
-						@ <a class="text primary" href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
-					{{else}}
-						<span class="entry-name" title="{{$entry.Name}}">{{$entry.Name}}</span>
-						@ {{ShortSha $submoduleFile.RefID}}
-					{{end}}
-				{{else}}
-					{{if $entry.IsDir}}
-						{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
-						<a class="entry-name" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
-							{{$subJumpablePathFields := StringUtils.Split $subJumpablePathName "/"}}
-							{{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}
-							{{if eq $subJumpablePathFieldLast 0}}
-								{{$subJumpablePathName}}
-							{{else}}
-								{{$subJumpablePathPrefixes := slice $subJumpablePathFields 0 $subJumpablePathFieldLast}}
-								<span class="text light-2">{{StringUtils.Join $subJumpablePathPrefixes "/"}}</span>/{{index $subJumpablePathFields $subJumpablePathFieldLast}}
-							{{end}}
-						</a>
-					{{else}}
-						<a class="entry-name" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
-						{{if $entry.IsLink}}
-							<a class="entry-symbol-link flex-text-inline" data-tooltip-content title="{{ctx.Locale.Tr "repo.find_file.follow_symlink"}}" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}?follow_symlink=1">{{svg "octicon-link" 12}}</a>
-						{{end}}
-					{{end}}
-				{{end}}
-			</div>
-			<div class="repo-file-cell message loading-icon-2px">
-				{{if $commit}}
-					{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
-					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.Message $commitLink $.Repository}}
-				{{else}}
-					… {{/* will be loaded again by LastCommitLoaderURL */}}
-				{{end}}
-			</div>
-			<div class="repo-file-cell age">{{if $commit}}{{DateUtils.TimeSince $commit.Committer.When}}{{end}}</div>
-		</div>
-	{{end}}
+        {{/* Header row with Add File button and three-dot menu */}}
+        <div class="repo-file-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 10px 0;">
+                <div class="repo-file-actions" style="display: flex; gap: 10px;">
+                        {{/* Add File Dropdown Button */}}
+                        <div class="ui dropdown" id="add-file-dropdown">
+                                <button class="ui basic button">
+                                        Add file
+                                        <i class="dropdown icon"></i>
+                                </button>
+                                <div class="menu">
+                                        <a class="item" href="{{.RepoLink}}/_new/{{.BranchNameSubURL}}{{if .TreePath}}/{{PathEscapeSegments .TreePath}}{{end}}">
+                                                <i class="file icon"></i>
+                                                Create new file
+                                        </a>
+                                        <a class="item" href="{{.RepoLink}}/_upload/{{.BranchNameSubURL}}{{if .TreePath}}/{{PathEscapeSegments .TreePath}}{{end}}">
+                                                <i class="upload icon"></i>
+                                                Upload files
+                                        </a>
+                                </div>
+                        </div>
+                </div>
+
+                {{/* Three-dot context menu */}}
+                <div class="ui dropdown" id="directory-options-dropdown">
+                        <button class="ui basic icon button">
+                                <i class="ellipsis horizontal icon"></i>
+                        </button>
+                        <div class="menu">
+                                <a class="item" id="copy-path-button" data-path="{{.TreePath}}">
+                                        <i class="copy icon"></i>
+                                        Copy path
+                                </a>
+                                <a class="item" id="copy-permalink-button" data-permalink="{{.RepoLink}}/src/{{.BranchNameSubURL}}{{if .TreePath}}/{{PathEscapeSegments .TreePath}}{{end}}">
+                                        <i class="linkify icon"></i>
+                                        Copy permalink
+                                </a>
+                                {{if .CanWriteCode}}
+                                <div class="divider"></div>
+                                <a class="item" id="delete-directory-button" data-path="{{.TreePath}}">
+                                        <i class="trash icon"></i>
+                                        Delete directory
+                                </a>
+                                {{end}}
+                                <div class="divider"></div>
+                                <div class="header">
+                                        <i class="eye icon"></i>
+                                        View options
+                                </div>
+                                <a class="item" id="center-content-toggle">
+                                        <i class="align center icon"></i>
+                                        Center content
+                                </a>
+                        </div>
+                </div>
+        </div>
+
+        <div class="repo-file-line repo-file-last-commit">
+                {{template "repo/latest_commit" .}}
+                <div>{{if and .LatestCommit .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When}}{{end}}</div>
+        </div>
+        {{$.FileIconPoolHTML}}
+        {{if .HasParentPath}}
+        <a class="repo-file-line parent-link silenced" href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">
+                {{index $.FileIcons ".."}} ..
+        </a>
+        {{end}}
+        {{range $item := .Files}}
+                <div class="repo-file-item">
+                        {{$entry := $item.Entry}}
+                        {{$commit := $item.Commit}}
+                        {{$submoduleFile := $item.SubmoduleFile}}
+                        <div class="repo-file-cell name muted-links {{if not $commit}}notready{{end}}">
+                                {{index $.FileIcons $entry.Name}}
+                                {{if $entry.IsSubModule}}
+                                        {{$submoduleLink := $submoduleFile.SubmoduleWebLinkTree ctx}}
+                                        {{if $submoduleLink}}
+                                                <a class="entry-name" href="{{$submoduleLink.RepoWebLink}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+                                                @ <a class="text primary" href="{{$submoduleLink.CommitWebLink}}">{{ShortSha $submoduleFile.RefID}}</a>
+                                        {{else}}
+                                                <span class="entry-name" title="{{$entry.Name}}">{{$entry.Name}}</span>
+                                                @ {{ShortSha $submoduleFile.RefID}}
+                                        {{end}}
+                                {{else}}
+                                        {{if $entry.IsDir}}
+                                                {{$subJumpablePathName := $entry.GetSubJumpablePathName}}
+                                                <a class="entry-name" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
+                                                        {{$subJumpablePathFields := Split $subJumpablePathName "/"}}
+                                                        {{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}
+                                                        {{if eq $subJumpablePathFieldLast 0}}
+                                                                {{$subJumpablePathName}}
+                                                        {{else}}
+                                                                {{$subJumpablePathPrefixes := slice $subJumpablePathFields 0 $subJumpablePathFieldLast}}
+                                                                <span class="text light-2">{{Join $subJumpablePathPrefixes "/"}}</span>/{{index $subJumpablePathFields $subJumpablePathFieldLast}}
+                                                        {{end}}
+                                                </a>
+                                        {{else}}
+                                                <a class="entry-name" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+                                                {{if $entry.IsLink}}
+                                                        <a class="entry-symbol-link flex-text-inline" data-tooltip-content title="{{ctx.Locale.Tr "repo.find_file.follow_symlink"}}" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}?follow_symlink=1">{{svg "octicon-link" 12}}</a>
+                                                {{end}}
+                                        {{end}}
+                                {{end}}
+                        </div>
+                        <div class="repo-file-cell message loading-icon-2px">
+                                {{if $commit}}
+                                        {{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
+                                        {{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.Message $commitLink $.Repository}}
+                                {{else}}
+                                        … {{/* will be loaded again by LastCommitLoaderURL */}}
+                                {{end}}
+                        </div>
+                        <div class="repo-file-cell age">{{if $commit}}{{TimeSince $commit.Committer.When}}{{end}}</div>
+                </div>
+        {{end}}
 </div>
