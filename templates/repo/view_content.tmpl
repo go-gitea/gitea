@@ -84,7 +84,7 @@
 					</a>
 				</div>
 			</button>
-			<button class="ui dropdown basic compact jump button icon repo-file-actions-dropdown" data-tooltip-content="{{ctx.Locale.Tr "more_operations"}}">
+			<button class="ui dropdown basic compact jump button icon repo-file-actions-dropdown" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
 				{{svg "octicon-kebab-horizontal"}}
 				<div class="menu">
 					<a class="item" data-clipboard-text="{{.TreePath}}">
@@ -93,19 +93,12 @@
 					<a class="item" data-clipboard-text="{{AppUrl}}{{StringUtils.TrimPrefix .Repository.Link "/"}}/src/commit/{{.CommitID}}/{{PathEscapeSegments .TreePath}}">
 						{{svg "octicon-link" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_copy_permalink"}}
 					</a>
-					{{if and (.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) (not .Repository.IsArchived)}}
+					{{if and (.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) (not .Repository.IsArchived) (not $isTreePathRoot)}}
 						<div class="divider"></div>
-						<a class="item" href="{{.RepoLink}}/_delete/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+						<a class="item danger" href="{{.RepoLink}}/_delete/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
 							{{svg "octicon-trash" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.editor.delete_this_directory"}}
 						</a>
 					{{end}}
-					<div class="divider"></div>
-					<div class="item">
-						<div class="ui checkbox" id="center-content-toggle">
-							<input type="checkbox" id="center-content-checkbox">
-							<label for="center-content-checkbox">{{ctx.Locale.Tr "repo.center_content"}}</label>
-						</div>
-					</div>
 				</div>
 			</button>
 		{{end}}

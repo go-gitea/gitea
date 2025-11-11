@@ -36,6 +36,12 @@ const handleSearchInput = (e: Event) => {
 };
 
 const handleKeyDown = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && searchQuery.value) {
+    e.preventDefault();
+    clearSearch();
+    return;
+  }
+
   if (!searchQuery.value || filteredFiles.value.length === 0) return;
 
   if (e.key === 'ArrowDown') {
@@ -52,10 +58,12 @@ const handleKeyDown = (e: KeyboardEvent) => {
     if (selectedFile) {
       handleSearchResultClick(selectedFile.matchResult.join(''));
     }
-  } else if (e.key === 'Escape') {
-    searchQuery.value = '';
-    if (searchInputElement) searchInputElement.value = '';
   }
+};
+
+const clearSearch = () => {
+  searchQuery.value = '';
+  if (searchInputElement) searchInputElement.value = '';
 };
 
 const scrollSelectedIntoView = () => {
@@ -79,8 +87,7 @@ const handleClickOutside = (e: MouseEvent) => {
   // Check if click is outside search input and results
   if (searchInputElement && !searchInputElement.contains(target) && 
       resultsEl && !resultsEl.contains(target)) {
-    searchQuery.value = '';
-    if (searchInputElement) searchInputElement.value = '';
+    clearSearch();
   }
 };
 
@@ -133,8 +140,7 @@ onUnmounted(() => {
 });
 
 function handleSearchResultClick(filePath: string) {
-  searchQuery.value = '';
-  if (searchInputElement) searchInputElement.value = '';
+  clearSearch();
   window.location.href = `${treeLink.value}/${pathEscapeSegments(filePath)}`;
 }
 </script>
@@ -151,7 +157,8 @@ function handleSearchResultClick(filePath: string) {
           @mouseenter="selectedIndex = idx"
           :title="result.matchResult.join('')"
         >
-          <span v-html="svg('octicon-file', 16)"></span>
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <span v-html="svg('octicon-file', 16)"/>
           <span class="file-tree-search-result-path">
             <span 
               v-for="(part, index) in result.matchResult" 
@@ -161,8 +168,12 @@ function handleSearchResultClick(filePath: string) {
           </span>
         </div>
       </div>
-      <div v-if="searchQuery && filteredFiles.length === 0" class="file-tree-search-no-results">
-        No matching file found
+      <div v-if="searchQuery && filteredFiles.length === 0" ref="searchResults" class="file-tree-search-results file-tree-search-no-results">
+        <div class="file-tree-no-results-content">
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <span v-html="svg('octicon-search', 24)"/>
+          <span>No matching files found</span>
+        </div>
       </div>
     </Teleport>
     <div class="view-file-tree-items">
@@ -209,7 +220,7 @@ function handleSearchResultClick(filePath: string) {
   border-bottom: 1px solid var(--color-secondary);
 }
 
-.file-tree-search-result-item svg {
+.file-tree-search-result-item > span:first-child {
   flex-shrink: 0;
   margin-top: 0.125rem;
 }
@@ -236,9 +247,20 @@ function handleSearchResultClick(filePath: string) {
 }
 
 .file-tree-search-no-results {
-  padding: 1rem;
-  text-align: center;
+  padding: 0;
+}
+
+.file-tree-no-results-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem;
   color: var(--color-text-light-2);
   font-size: 14px;
+}
+
+.file-tree-no-results-content > span:first-child {
+  opacity: 0.5;
 }
 </style>
