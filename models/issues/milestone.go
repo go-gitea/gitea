@@ -181,6 +181,7 @@ func updateMilestone(ctx context.Context, m *Milestone) error {
 func UpdateMilestoneCounters(ctx context.Context, id int64) error {
 	e := db.GetEngine(ctx)
 	_, err := e.ID(id).
+		Cols("num_issues", "num_closed_issues").
 		SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
 			builder.Eq{"milestone_id": id},
 		)).

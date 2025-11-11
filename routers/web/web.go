@@ -490,6 +490,9 @@ func registerWebRoutes(m *web.Router) {
 
 	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
 
+	m.Get("/-/web-theme/list", misc.WebThemeList)
+	m.Post("/-/web-theme/apply", optSignInIgnoreCsrf, misc.WebThemeApply)
+
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
