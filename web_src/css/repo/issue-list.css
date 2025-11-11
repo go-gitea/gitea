@@ -84,3 +84,29 @@
   margin-right: 8px;
   text-align: left;
 }
+
+/* used by the misc-actions popup */
+.misc-actions-panel-field,
+.misc-actions-list {
+  margin: 10px;
+}
+
+.misc-actions-tab .item {
+  padding: 5px 10px;
+  background: none;
+  color: var(--color-text-light-2);
+}
+
+.misc-actions-tab .item.active {
+  color: var(--color-text-dark);
+  border-bottom: 3px solid currentcolor;
+}
+
+.misc-actions-tab + .divider {
+  margin: -1px 0 0;
+}
+
+.misc-actions-panel-list .item {
+  margin: 5px 0;
+}
+

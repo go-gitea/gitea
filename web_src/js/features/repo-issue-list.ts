@@ -8,6 +8,7 @@ import {DELETE, POST} from '../modules/fetch.ts';
 import {parseDom} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import type {SortableEvent} from 'sortablejs';
+import {createTippy} from '../modules/tippy.ts';
 
 function initRepoIssueListCheckboxes() {
   const issueSelectAll = document.querySelector<HTMLInputElement>('.issue-checkbox-all');
@@ -223,11 +224,28 @@ async function initIssuePinSort() {
   });
 }
 
+function initMiscActionsButton(btn: HTMLButtonElement) {
+  const elPanel = btn.nextElementSibling;
+  createTippy(btn, {
+    content: elPanel,
+    trigger: 'click',
+    placement: 'bottom-end',
+    interactive: true,
+    hideOnClick: true,
+    arrow: false,
+  });
+}
+
+async function initRepoIssueMiscActions() {
+  queryElems(document, '.js-btn-misc-actions', initMiscActionsButton);
+}
+
 export function initRepoIssueList() {
   if (document.querySelector('.page-content.repository.issue-list, .page-content.repository.milestone-issue-list')) {
     initRepoIssueListCheckboxes();
     queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
     initIssuePinSort();
+    initRepoIssueMiscActions();
   } else if (document.querySelector('.page-content.dashboard.issues')) {
     // user or org home: issue list, pull request list
     queryElems(document, '.ui.dropdown.user-remote-search', (el) => initDropdownUserRemoteSearch(el));
