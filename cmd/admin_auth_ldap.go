@@ -94,10 +94,10 @@ func commonLdapCLIFlags() []cli.Flag {
 			Name:  "public-ssh-key-attribute",
 			Usage: "The attribute of the user’s LDAP record containing the user’s public ssh key.",
 		},
-                &cli.BoolFlag{
-                        Name:  "ssh-keys-are-verified",
-                        Usage: "Set to true to automatically flag SSH keys in LDAP as verified.",
-                },
+		&cli.BoolFlag{
+			Name:  "ssh-keys-are-verified",
+			Usage: "Set to true to automatically flag SSH keys in LDAP as verified.",
+		},
 		&cli.BoolFlag{
 			Name:  "skip-local-2fa",
 			Usage: "Set to true to skip local 2fa for users authenticated by this source",

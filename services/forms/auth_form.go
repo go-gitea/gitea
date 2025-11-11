@@ -34,7 +34,7 @@ type AuthenticationForm struct {
 	AttributeMail         string
 	AttributeSSHPublicKey string
 	AttributeAvatar       string
-        SSHKeysAreVerified    bool
+	SSHKeysAreVerified    bool
 	AttributesInBind      bool
 	UsePagedSearch        bool
 	SearchPageSize        int

@@ -115,7 +115,7 @@ func AddPublicKey(ctx context.Context, ownerID int64, name, content string, auth
 			Mode:          perm.AccessModeWrite,
 			Type:          KeyTypeUser,
 			LoginSourceID: authSourceID,
-                        Verified:      verified,
+			Verified:      verified,
 		}
 		if err = addKey(ctx, key); err != nil {
 			return nil, fmt.Errorf("addKey: %w", err)
