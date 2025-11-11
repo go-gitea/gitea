@@ -16,9 +16,13 @@
   margin: 0.5rem 0;
 }
 
-/* Center content option */
-.repo-content-centered {
-  max-width: 980px;
-  margin-left: auto !important;
-  margin-right: auto !important;
+.ui.dropdown.repo-file-actions-dropdown > .menu > .item.danger,
+.ui.dropdown.repo-file-actions-dropdown > .menu > .item.danger svg {
+  color: var(--color-red) !important;
+}
+
+.ui.dropdown.repo-file-actions-dropdown > .menu > .item.danger:hover,
+.ui.dropdown.repo-file-actions-dropdown > .menu > .item.danger:hover svg {
+  color: var(--color-red) !important;
+  background: var(--color-red-badge-hover-bg) !important;
 }
