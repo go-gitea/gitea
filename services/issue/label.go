@@ -69,3 +69,29 @@ func ReplaceLabels(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	notify_service.IssueChangeLabels(ctx, doer, issue, labels, old)
 	return nil
 }
+
+func AddRemoveLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, toAddLabels, toRemoveLabels []*issues_model.Label) error {
+	if len(toAddLabels) == 0 && len(toRemoveLabels) == 0 {
+		return nil
+	}
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if len(toAddLabels) > 0 {
+			if err := issues_model.NewIssueLabels(ctx, issue, toAddLabels, doer); err != nil {
+				return err
+			}
+		}
+
+		for _, label := range toRemoveLabels {
+			if err := issues_model.DeleteIssueLabel(ctx, issue, label, doer); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	notify_service.IssueChangeLabels(ctx, doer, issue, toAddLabels, toRemoveLabels)
+	return nil
+}
