@@ -63,6 +63,8 @@
   bottom: 0;
   height: 100%;
   overflow-y: hidden;
+  overflow-x: visible;
+  z-index: 10;
 }
 
 .repo-view-content {

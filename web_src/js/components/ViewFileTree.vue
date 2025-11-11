@@ -1,12 +1,14 @@
 <script lang="ts" setup>
 import ViewFileTreeItem from './ViewFileTreeItem.vue';
-import {onMounted, onUnmounted, useTemplateRef, ref, computed} from 'vue';
+import {onMounted, onUnmounted, useTemplateRef, ref, computed, watch, nextTick} from 'vue';
 import {createViewFileTreeStore} from './ViewFileTreeStore.ts';
 import {GET} from '../modules/fetch.ts';
 import {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
+import {svg} from '../svg.ts';
 
 const elRoot = useTemplateRef('elRoot');
+const searchResults = useTemplateRef('searchResults');
 const searchQuery = ref('');
 const allFiles = ref<string[]>([]);
 const selectedIndex = ref(0);
@@ -39,9 +41,11 @@ const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'ArrowDown') {
     e.preventDefault();
     selectedIndex.value = Math.min(selectedIndex.value + 1, filteredFiles.value.length - 1);
+    scrollSelectedIntoView();
   } else if (e.key === 'ArrowUp') {
     e.preventDefault();
     selectedIndex.value = Math.max(selectedIndex.value - 1, 0);
+    scrollSelectedIntoView();
   } else if (e.key === 'Enter') {
     e.preventDefault();
     const selectedFile = filteredFiles.value[selectedIndex.value];
@@ -49,6 +53,32 @@ const handleKeyDown = (e: KeyboardEvent) => {
       handleSearchResultClick(selectedFile.matchResult.join(''));
     }
   } else if (e.key === 'Escape') {
+    searchQuery.value = '';
+    if (searchInputElement) searchInputElement.value = '';
+  }
+};
+
+const scrollSelectedIntoView = () => {
+  nextTick(() => {
+    const resultsEl = searchResults.value;
+    if (!resultsEl) return;
+    
+    const selectedEl = resultsEl.querySelector('.file-tree-search-result-item.selected');
+    if (selectedEl) {
+      selectedEl.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+    }
+  });
+};
+
+const handleClickOutside = (e: MouseEvent) => {
+  if (!searchQuery.value) return;
+  
+  const target = e.target as HTMLElement;
+  const resultsEl = searchResults.value;
+  
+  // Check if click is outside search input and results
+  if (searchInputElement && !searchInputElement.contains(target) && 
+      resultsEl && !resultsEl.contains(target)) {
     searchQuery.value = '';
     if (searchInputElement) searchInputElement.value = '';
   }
@@ -72,10 +102,26 @@ onMounted(async () => {
     searchInputElement.addEventListener('keydown', handleKeyDown);
   }
   
+  // Add click outside listener
+  document.addEventListener('click', handleClickOutside);
+  
   window.addEventListener('popstate', (e) => {
     store.selectedItem = e.state?.treePath || '';
     if (e.state?.url) store.loadViewContent(e.state.url);
   });
+});
+
+// Position search results below the input
+watch(searchQuery, async () => {
+  if (searchQuery.value && searchInputElement) {
+    await nextTick();
+    const resultsEl = searchResults.value;
+    if (resultsEl) {
+      const rect = searchInputElement.getBoundingClientRect();
+      resultsEl.style.top = `${rect.bottom + 4}px`;
+      resultsEl.style.left = `${rect.left}px`;
+    }
+  }
 });
 
 onUnmounted(() => {
@@ -83,6 +129,7 @@ onUnmounted(() => {
     searchInputElement.removeEventListener('input', handleSearchInput);
     searchInputElement.removeEventListener('keydown', handleKeyDown);
   }
+  document.removeEventListener('click', handleClickOutside);
 });
 
 function handleSearchResultClick(filePath: string) {
@@ -93,35 +140,42 @@ function handleSearchResultClick(filePath: string) {
 </script>
 
 <template>
-  <div ref="elRoot">
-    <div v-if="searchQuery && filteredFiles.length > 0" class="file-tree-search-results">
-      <div 
-        v-for="(result, idx) in filteredFiles" 
-        :key="result.matchResult.join('')"
-        :class="['file-tree-search-result-item', {'selected': idx === selectedIndex}]"
-        @click="handleSearchResultClick(result.matchResult.join(''))"
-        @mouseenter="selectedIndex = idx"
-      >
-        <svg class="svg octicon-file" width="16" height="16" aria-hidden="true"><use href="#octicon-file"/></svg>
-        <span class="file-tree-search-result-path">
-          <span 
-            v-for="(part, index) in result.matchResult" 
-            :key="index"
-            :class="{'search-match': index % 2 === 1}"
-          >{{ part }}</span>
-        </span>
+  <div ref="elRoot" class="file-tree-root">
+    <Teleport to="body">
+      <div v-if="searchQuery && filteredFiles.length > 0" ref="searchResults" class="file-tree-search-results">
+        <div 
+          v-for="(result, idx) in filteredFiles" 
+          :key="result.matchResult.join('')"
+          :class="['file-tree-search-result-item', {'selected': idx === selectedIndex}]"
+          @click="handleSearchResultClick(result.matchResult.join(''))"
+          @mouseenter="selectedIndex = idx"
+          :title="result.matchResult.join('')"
+        >
+          <span v-html="svg('octicon-file', 16)"></span>
+          <span class="file-tree-search-result-path">
+            <span 
+              v-for="(part, index) in result.matchResult" 
+              :key="index"
+              :class="{'search-match': index % 2 === 1}"
+            >{{ part }}</span>
+          </span>
+        </div>
       </div>
-    </div>
-    <div v-else-if="searchQuery && filteredFiles.length === 0" class="file-tree-search-no-results">
-      No matching file found
-    </div>
-    <div v-else class="view-file-tree-items">
+      <div v-if="searchQuery && filteredFiles.length === 0" class="file-tree-search-no-results">
+        No matching file found
+      </div>
+    </Teleport>
+    <div class="view-file-tree-items">
       <ViewFileTreeItem v-for="item in store.rootFiles" :key="item.name" :item="item" :store="store"/>
     </div>
   </div>
 </template>
 
 <style scoped>
+.file-tree-root {
+  position: relative;
+}
+
 .view-file-tree-items {
   display: flex;
   flex-direction: column;
@@ -130,25 +184,34 @@ function handleSearchResultClick(filePath: string) {
 }
 
 .file-tree-search-results {
+  position: fixed;
   display: flex;
   flex-direction: column;
-  margin: 0 0.5rem 0.5rem;
   max-height: 400px;
   overflow-y: auto;
   background: var(--color-box-body);
   border: 1px solid var(--color-secondary);
   border-radius: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  min-width: 300px;
+  width: max-content;
+  max-width: 600px;
+  z-index: 99999;
 }
 
 .file-tree-search-result-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   cursor: pointer;
   transition: background-color 0.1s;
   border-bottom: 1px solid var(--color-secondary);
+}
+
+.file-tree-search-result-item svg {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
 }
 
 .file-tree-search-result-item:last-child {
@@ -162,10 +225,9 @@ function handleSearchResultClick(filePath: string) {
 
 .file-tree-search-result-path {
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-size: 14px;
+  word-break: break-all;
+  overflow-wrap: break-word;
 }
 
 .search-match {

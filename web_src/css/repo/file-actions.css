@@ -1,5 +1,10 @@
 /* Repository file actions dropdown and centered content */
-.repo-file-actions-dropdown .menu {
+.ui.dropdown.repo-add-file > .menu {
+  margin-top: 4px !important;
+}
+
+.ui.dropdown.repo-file-actions-dropdown > .menu {
+  margin-top: 4px !important;
   min-width: 200px;
 }
 
