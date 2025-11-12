@@ -1,15 +1,25 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository file editor edit">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui container fluid padded">
 		{{template "base/alert" .}}
-		<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}"
+		<div class="repo-view-container">
+			<div class="tw-flex tw-flex-col repo-view-file-tree-container not-mobile {{if not .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" {{if .IsSigned}}data-user-is-signed-in{{end}}>
+				{{template "repo/view_file_tree" .}}
+			</div>
+			<div class="repo-view-content">
+				<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}"
 					data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
 					data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
 		>
 			{{.CsrfTokenHtml}}
 			{{template "repo/editor/common_top" .}}
-			<div class="repo-editor-header">
+			<div class="repo-editor-header tw-flex tw-items-center tw-gap-2">
+				<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}"
+					data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show"
+					data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
+					{{svg "octicon-sidebar-collapse"}}
+				</button>
 				<div class="breadcrumb">
 					{{ctx.Locale.Tr "repo.editor.patching"}}
 					<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
@@ -33,7 +43,9 @@
 				</div>
 			</div>
 			{{template "repo/editor/commit_form" .}}
-		</form>
+				</form>
+			</div>
+		</div>
 	</div>
 </div>
 {{template "base/footer" .}}
