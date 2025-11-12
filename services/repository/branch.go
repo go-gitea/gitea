@@ -823,7 +823,8 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 
 	err = DeleteBranch(ctx, doer, pr.HeadRepo, gitHeadRepo, pr.HeadBranch, pr)
 	if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
-		return errFailedToDelete(err)
+		log.Debug("DeleteBranch: %v", err)
+		return nil // no need to show error to end users if no permission or branch not exist
 	}
 	return err
 }
