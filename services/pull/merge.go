@@ -403,6 +403,7 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		pr.BaseRepo,
 		pr.BaseRepo.Name,
 		pr.ID,
+		pr.Index,
 	)
 
 	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPushTrigger+"="+string(pushTrigger))
