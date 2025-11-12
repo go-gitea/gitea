@@ -133,7 +133,7 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 		return nil
 	}
 	defer reader.Close()
-	content, err := util.ReadWithLimit(reader, 100*1024*1024) // can a wiki page be larger than 100MB?
+	content, err := util.ReadWithLimit(reader, 5*1024*1024) // 5MB should be enough for a wiki page
 	if err != nil {
 		ctx.ServerError("ReadAll", err)
 		return nil
