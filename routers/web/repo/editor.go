@@ -280,6 +280,8 @@ func EditFile(ctx *context.Context) {
 		return
 	}
 
+	prepareHomeTreeSideBarSwitch(ctx)
+
 	// on the "New File" page, we should add an empty path field to make end users could input a new name
 	prepareTreePathFieldsAndPaths(ctx, util.Iif(isNewFile, ctx.Repo.TreePath+"/", ctx.Repo.TreePath))
 
@@ -465,6 +467,7 @@ func DeleteFilePost(ctx *context.Context) {
 
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
+	prepareHomeTreeSideBarSwitch(ctx)
 	prepareTreePathFieldsAndPaths(ctx, ctx.Repo.TreePath)
 	opts := prepareEditorCommitFormOptions(ctx, "_upload")
 	if ctx.Written() {
