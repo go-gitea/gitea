@@ -1,6 +1,6 @@
 module code.gitea.io/gitea
 
-go 1.24.8
+go 1.24.10
 
 require (
 	gitea.com/jolheiser/gitea-vet v0.1.0
