@@ -56,7 +56,7 @@
 						<span class="flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-verified"}} <strong>{{ctx.Locale.Tr "settings.gpg_key_verified"}}</strong></span>
 					{{end}}
 					{{if .Emails}}
-						<span class="flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{ctx.Locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
+						<span class="flex-text-block" data-tooltip-content="{{ctx.Locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{ctx.Locale.Tr "settings.gpg_email_addresses"}} {{range .Emails}}<strong>{{.Email}} </strong> {{if not .IsActivated}}<span class="ui label">{{ctx.Locale.Tr "settings.gpg_email_unverified"}}</span>{{end}}{{end}}</span>
 					{{end}}
 					<div class="flex-item-body">
 						<b>{{ctx.Locale.Tr "settings.key_id"}}:</b> {{.PaddedKeyID}}
