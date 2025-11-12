@@ -1245,7 +1245,7 @@ func deleteBranchAfterMergeAndFlashMessage(ctx *context.Context, prID int64) {
 	err := repo_service.DeleteBranchAfterMerge(ctx, ctx.Doer, prID, &fullBranchName)
 	if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
 		// no need to show error to end users if no permission or branch not exist
-		log.Debug("DeleteBranch: %v", err)
+		log.Debug("DeleteBranchAfterMerge (ignore unnecessary error): %v", err)
 		return
 	} else if errTr := util.ErrorAsTranslatable(err); errTr != nil {
 		ctx.Flash.Error(errTr.Translate(ctx.Locale))
