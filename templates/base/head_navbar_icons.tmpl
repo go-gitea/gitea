@@ -13,12 +13,12 @@
 	{{end}}
 	{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
 	<a class="item {{$itemExtraClass}}" href="{{AppSubUrl}}/issues" data-tooltip-content="{{ctx.Locale.Tr "issues"}}">
-	  {{svg "octicon-issue-opened"}}
+		{{svg "octicon-issue-opened"}}
   </a>
 	{{end}}
 	{{if not ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled}}
 	<a class="item {{$itemExtraClass}}" href="{{AppSubUrl}}/pulls" data-tooltip-content="{{ctx.Locale.Tr "pull_requests"}}">
-	  {{svg "octicon-git-pull-request"}}
+		{{svg "octicon-git-pull-request"}}
   </a>
 	{{end}}
 	<a class="item {{$itemExtraClass}}" href="{{AppSubUrl}}/notifications" data-tooltip-content="{{ctx.Locale.Tr "notifications"}}">
