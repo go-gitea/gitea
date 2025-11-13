@@ -14,13 +14,14 @@
 		>
 			{{.CsrfTokenHtml}}
 			{{template "repo/editor/common_top" .}}
-			<div class="repo-editor-header tw-flex tw-items-center tw-gap-2">
-				<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}"
-					data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show"
-					data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
-					{{svg "octicon-sidebar-collapse"}}
-				</button>
-				<div class="breadcrumb">
+			<div class="repo-editor-header tw-flex tw-items-center tw-justify-between tw-gap-2">
+				<div class="tw-flex tw-items-center tw-gap-2">
+					<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}"
+						data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show"
+						data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
+						{{svg "octicon-sidebar-collapse"}}
+					</button>
+					<div class="breadcrumb">
 					{{ctx.Locale.Tr "repo.editor.patching"}}
 					<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
 					<div class="breadcrumb-divider">:</div>
@@ -28,6 +29,13 @@
 					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
 					<input type="hidden" name="tree_path" value="__dummy_for_EditRepoFileForm.TreePath(Required)__">
 					<input id="file-name" type="hidden" value="diff.patch">
+					</div>
+				</div>
+				<div class="tw-flex tw-gap-2">
+					<a class="ui red button" href="{{$.BranchLink}}">{{ctx.Locale.Tr "repo.editor.cancel"}}</a>
+					<button type="button" class="ui primary button disabled" id="commit-changes-button">
+						{{ctx.Locale.Tr "repo.editor.commit_changes"}}
+					</button>
 				</div>
 			</div>
 			<div class="field">
@@ -42,9 +50,21 @@
 					<div class="editor-loading is-loading"></div>
 				</div>
 			</div>
-			{{template "repo/editor/commit_form" .}}
+			{{/* Commit form fields - inside form but hidden, will be shown in modal */}}
+			<div id="commit-form-fields" style="display: none;">
+				{{template "repo/editor/commit_form" .}}
+			</div>
+			{{/* Hidden dummy button for repo-editor.ts compatibility */}}
+			<button id="commit-button" type="button" style="display: none;"></button>
 				</form>
 			</div>
+		</div>
+	</div>
+
+	{{/* Commit Changes Modal - fields will be moved here visually */}}
+	<div class="ui modal" id="commit-changes-modal">
+		<i class="close icon"></i>
+		<div class="content" id="commit-modal-content">
 		</div>
 	</div>
 </div>

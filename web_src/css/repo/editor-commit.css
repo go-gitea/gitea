@@ -1,0 +1,129 @@
+/* Editor commit modal styling */
+#commit-changes-modal .content {
+  padding: 1.5rem;
+}
+
+.commit-form-in-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10001;
+  max-width: 680px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--color-box-body);
+  border-radius: 6px;
+  padding: 1.5rem;
+  padding-top: 3rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Close button inside the commit form */
+.commit-modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  opacity: 0.6;
+  z-index: 10;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.commit-modal-close:hover {
+  opacity: 1;
+  background: var(--color-hover);
+}
+
+#commit-changes-modal .commit-form-wrapper {
+  padding-left: 48px;
+  position: relative;
+}
+
+#commit-changes-modal .commit-form-wrapper .commit-avatar {
+  float: left;
+  margin-left: -48px;
+}
+
+#commit-changes-modal .commit-form-wrapper .commit-form {
+  position: relative;
+  padding: 15px;
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  background-color: var(--color-box-body);
+}
+
+#commit-changes-modal .commit-form h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+#commit-changes-modal .commit-form .field {
+  margin-bottom: 1rem;
+}
+
+#commit-changes-modal .commit-form input[name="commit_summary"] {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+#commit-changes-modal .commit-form textarea[name="commit_message"] {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+
+#commit-changes-modal .quick-pull-choice .field {
+  margin-bottom: 0.75rem;
+}
+
+#commit-changes-modal .commit-form-wrapper .commit-form .quick-pull-choice .new-branch-name-input {
+  position: relative;
+  margin-left: 25px;
+}
+
+#commit-changes-modal .commit-form-wrapper .commit-form .quick-pull-choice .new-branch-name-input input {
+  width: 240px !important;
+  padding-left: 26px !important;
+}
+
+#commit-changes-modal .commit-form-wrapper .commit-form .quick-pull-choice .octicon-git-branch {
+  position: absolute;
+  top: 9px;
+  left: 8px;
+}
+
+/* Arrow pointing to avatar */
+#commit-changes-modal .avatar-content-left-arrow::before,
+#commit-changes-modal .avatar-content-left-arrow::after {
+  right: 100%;
+  top: 20px;
+  border: solid transparent;
+  content: " ";
+  height: 0;
+  width: 0;
+  position: absolute;
+  pointer-events: none;
+}
+
+#commit-changes-modal .avatar-content-left-arrow::before {
+  border-right-color: var(--color-secondary);
+  border-width: 9px;
+  margin-top: -9px;
+}
+
+#commit-changes-modal .avatar-content-left-arrow::after {
+  border-right-color: var(--color-box-body);
+  border-width: 8px;
+  margin-top: -8px;
+}

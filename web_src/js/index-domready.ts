@@ -34,6 +34,7 @@ import {initOrgTeam} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
+import {initRepoEditorCommit} from './features/repo-editor-commit.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
 import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
@@ -123,6 +124,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoEllipsisButton,
   initRepoDiffCommitBranchesAndTags,
   initRepoEditor,
+  initRepoEditorCommit,
   initRepoGraphGit,
   initRepoIssueContentHistory,
   initRepoIssueList,
