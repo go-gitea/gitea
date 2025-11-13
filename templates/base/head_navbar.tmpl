@@ -15,12 +15,6 @@
 		{{if and .IsSigned .MustChangePassword}}
 			{{/* No links */}}
 		{{else if .IsSigned}}
-			{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
-				<a class="item{{if .PageIsIssues}} active{{end}}" href="{{AppSubUrl}}/issues">{{ctx.Locale.Tr "issues"}}</a>
-			{{end}}
-			{{if not ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled}}
-				<a class="item{{if .PageIsPulls}} active{{end}}" href="{{AppSubUrl}}/pulls">{{ctx.Locale.Tr "pull_requests"}}</a>
-			{{end}}
 			{{if not (and ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled)}}
 				{{if .ShowMilestonesDashboardPage}}
 					<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones">{{ctx.Locale.Tr "milestones"}}</a>
@@ -62,7 +56,6 @@
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		{{else if .IsSigned}}
-			{{template "base/head_navbar_icons" dict "ItemExtraClass" "not-mobile" "PageGlobalData" .PageGlobalData}}
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "create_new"}}">
 				<span class="text">
 					{{svg "octicon-plus"}}
@@ -85,6 +78,7 @@
 					{{end}}
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
+			{{template "base/head_navbar_icons" dict "ItemExtraClass" "not-mobile" "PageGlobalData" .PageGlobalData}}
 
 			<div class="ui dropdown jump item" data-tooltip-content="{{ctx.Locale.Tr "user_profile_and_more"}}">
 				<span class="text">
