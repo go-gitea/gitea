@@ -18,5 +18,10 @@
 			{{svg "octicon-code"}} {{ctx.Locale.Tr "explore.code"}}
 		</a>
 		{{end}}
+		{{if and .PackagesEnabled (not .PackagesPageIsDisabled)}}
+		<a class="{{if .PageIsExplorePackages}}active {{end}}item" href="{{AppSubUrl}}/explore/packages">
+			{{svg "octicon-package"}} {{ctx.Locale.Tr "packages.title"}}
+		</a>
+		{{end}}
 	</div>
 </overflow-menu>
