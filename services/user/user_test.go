@@ -13,9 +13,11 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/timeutil"
 	org_service "code.gitea.io/gitea/services/org"
 
@@ -170,7 +172,10 @@ func TestCreateUser_Issue5882(t *testing.T) {
 		{&user_model.User{Name: "GiteaBot2", Email: "GiteaBot2@gitea.io", Passwd: passwd, MustChangePassword: false}, true},
 	}
 
-	setting.Service.DefaultAllowCreateOrganization = true
+	system.SetSettings(t.Context(), map[string]string{
+		setting.Config().Service.DefaultAllowCreateOrganization.DynKey(): "true",
+	})
+	config.GetDynGetter().InvalidateCache()
 
 	for _, v := range tt {
 		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation

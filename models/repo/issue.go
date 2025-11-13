@@ -11,29 +11,22 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// ___________.__             ___________                     __
-// \__    ___/|__| _____   ___\__    ___/___________    ____ |  | __ ___________
-// |    |   |  |/     \_/ __ \|    |  \_  __ \__  \ _/ ___\|  |/ // __ \_  __ \
-// |    |   |  |  Y Y  \  ___/|    |   |  | \// __ \\  \___|    <\  ___/|  | \/
-// |____|   |__|__|_|  /\___  >____|   |__|  (____  /\___  >__|_ \\___  >__|
-// \/     \/                    \/     \/     \/    \/
-
 // CanEnableTimetracker returns true when the server admin enabled time tracking
 // This overrules IsTimetrackerEnabled
-func (repo *Repository) CanEnableTimetracker() bool {
-	return setting.Service.EnableTimetracking
+func (repo *Repository) CanEnableTimetracker(ctx context.Context) bool {
+	return setting.Config().Service.EnableTimeTracking.Value(ctx)
 }
 
 // IsTimetrackerEnabled returns whether or not the timetracker is enabled. It returns the default value from config if an error occurs.
 func (repo *Repository) IsTimetrackerEnabled(ctx context.Context) bool {
-	if !setting.Service.EnableTimetracking {
+	if !setting.Config().Service.EnableTimeTracking.Value(ctx) {
 		return false
 	}
 
 	var u *RepoUnit
 	var err error
 	if u, err = repo.GetUnit(ctx, unit.TypeIssues); err != nil {
-		return setting.Service.DefaultEnableTimetracking
+		return setting.Config().Service.DefaultEnableTimeTracking.Value(ctx)
 	}
 	return u.IssuesConfig().EnableTimetracker
 }
@@ -43,7 +36,7 @@ func (repo *Repository) AllowOnlyContributorsToTrackTime(ctx context.Context) bo
 	var u *RepoUnit
 	var err error
 	if u, err = repo.GetUnit(ctx, unit.TypeIssues); err != nil {
-		return setting.Service.DefaultAllowOnlyContributorsToTrackTime
+		return setting.Config().Service.DefaultAllowOnlyContributorsToTrackTime.Value(ctx)
 	}
 	return u.IssuesConfig().AllowOnlyContributorsToTrackTime
 }
@@ -54,7 +47,7 @@ func (repo *Repository) IsDependenciesEnabled(ctx context.Context) bool {
 	var err error
 	if u, err = repo.GetUnit(ctx, unit.TypeIssues); err != nil {
 		log.Trace("IsDependenciesEnabled: %v", err)
-		return setting.Service.DefaultEnableDependencies
+		return setting.Config().Service.DefaultEnableDependencies.Value(ctx)
 	}
 	return u.IssuesConfig().EnableDependencies
 }

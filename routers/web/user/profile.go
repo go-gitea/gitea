@@ -162,7 +162,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		total = int(numFollowing)
 	case "activity":
 		// prepare heatmap data
-		if setting.Service.EnableUserHeatmap {
+		if setting.Config().Service.EnableUserHeatmap.Value(ctx) {
 			data, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserHeatmapDataByUser", err)
