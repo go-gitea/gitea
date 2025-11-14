@@ -217,22 +217,29 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 }
 
 // FileCommitsCount return the number of files at a revision
-func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
+func (repo *Repository) FileCommitsCount(revision, file string, followRenameOptional ...bool) (int64, error) {
+	followRename := false
+	if len(followRenameOptional) > 0 {
+		followRename = followRenameOptional[0]
+	}
+
 	return CommitsCount(repo.Ctx,
 		CommitsCountOptions{
-			RepoPath: repo.Path,
-			Revision: []string{revision},
-			RelPath:  []string{file},
+			RepoPath:     repo.Path,
+			Revision:     []string{revision},
+			RelPath:      []string{file},
+			FollowRename: followRename,
 		})
 }
 
 type CommitsByFileAndRangeOptions struct {
-	Revision string
-	File     string
-	Not      string
-	Page     int
-	Since    string
-	Until    string
+	Revision     string
+	File         string
+	Not          string
+	Page         int
+	Since        string
+	Until        string
+	FollowRename bool
 }
 
 // CommitsByFileAndRange return the commits according revision file and the page
@@ -244,9 +251,18 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	}()
 	go func() {
 		stderr := strings.Builder{}
-		gitCmd := gitcmd.NewCommand("rev-list").
-			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
+		var gitCmd *gitcmd.Command
+
+		if !opts.FollowRename {
+			gitCmd = gitcmd.NewCommand("rev-list")
+		} else {
+			gitCmd = gitcmd.NewCommand("--no-pager", "log").
+				AddOptionFormat("--pretty=tformat:%%H").
+				AddOptionFormat("--follow")
+		}
+		gitCmd = gitCmd.AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
 			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
+
 		gitCmd.AddDynamicArguments(opts.Revision)
 
 		if opts.Not != "" {
