@@ -710,6 +710,14 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 		return info, nil
 	}
 
+	// we need fetch the necessary commits from the head repo first if it's not the same repository
+	if baseRepo.ID != headRepo.ID {
+		// git default will gc the commit in 2 weeks, so it's safe to do the compare
+		if err := gitrepo.FetchRemoteCommit(ctx, baseRepo, headRepo, headGitBranch.CommitID); err != nil {
+			return nil, err
+		}
+	}
+
 	// if the fork repo has new commits, this call will fail because they are not in the base repo
 	// exit status 128 - fatal: Invalid symmetric difference expression aaaaaaaaaaaa...bbbbbbbbbbbb
 	// so at the moment, we first check the update time, then check whether the fork branch has base's head
