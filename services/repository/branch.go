@@ -483,7 +483,106 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	return "", nil
 }
 
+// UpdateBranch moves a branch reference to the provided commit.
+func UpdateBranch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, branchName, newCommitID, expectedOldCommitID string, force bool) error {
+	if err := repo.MustNotBeArchived(); err != nil {
+		return err
+	}
+
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+	if err != nil {
+		return err
+	}
+	if !perm.CanWrite(unit.TypeCode) {
+		return repo_model.ErrUserDoesNotHaveAccessToRepo{
+			UserID:   doer.ID,
+			RepoName: repo.LowerName,
+		}
+	}
+
+	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
+	if err != nil {
+		return fmt.Errorf("OpenRepository: %w", err)
+	}
+	defer gitRepo.Close()
+
+	branchCommit, err := gitRepo.GetBranchCommit(branchName)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			return git_model.ErrBranchNotExist{RepoID: repo.ID, BranchName: branchName}
+		}
+		return err
+	}
+	currentCommitID := branchCommit.ID.String()
+
+	if expectedOldCommitID != "" {
+		expectedID, err := gitRepo.ConvertToGitID(expectedOldCommitID)
+		if err != nil {
+			return fmt.Errorf("ConvertToGitID(old): %w", err)
+		}
+		if expectedID.String() != currentCommitID {
+			return ErrBranchCommitDoesNotMatch{Expected: currentCommitID, Given: expectedID.String()}
+		}
+	}
+
+	newID, err := gitRepo.ConvertToGitID(newCommitID)
+	if err != nil {
+		return fmt.Errorf("ConvertToGitID(new): %w", err)
+	}
+	newCommit, err := gitRepo.GetCommit(newID.String())
+	if err != nil {
+		return err
+	}
+
+	if newCommit.ID.String() == currentCommitID {
+		return nil
+	}
+
+	isForcePush, err := newCommit.IsForcePush(currentCommitID)
+	if err != nil {
+		return err
+	}
+	if isForcePush && !force {
+		return &git.ErrPushOutOfDate{Err: errors.New("non fast-forward update requires force"), StdErr: "non-fast-forward", StdOut: ""}
+	}
+
+	pushOpts := git.PushOptions{
+		Remote: repo.RepoPath(),
+		Branch: fmt.Sprintf("%s:%s%s", newCommit.ID.String(), git.BranchPrefix, branchName),
+		Env:    repo_module.PushingEnvironment(doer, repo),
+	}
+
+	if expectedOldCommitID != "" {
+		pushOpts.ForceWithLease = fmt.Sprintf("%s:%s", git.BranchPrefix+branchName, currentCommitID)
+	}
+	if isForcePush || force {
+		pushOpts.Force = true
+	}
+
+	if err := git.Push(ctx, repo.RepoPath(), pushOpts); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default")
+
+// ErrBranchCommitDoesNotMatch indicates the provided old commit id does not match the branch tip.
+type ErrBranchCommitDoesNotMatch struct {
+	Expected string
+	Given    string
+}
+
+// IsErrBranchCommitDoesNotMatch checks if the error is ErrBranchCommitDoesNotMatch.
+func IsErrBranchCommitDoesNotMatch(err error) bool {
+	_, ok := err.(ErrBranchCommitDoesNotMatch)
+	return ok
+}
+
+func (e ErrBranchCommitDoesNotMatch) Error() string {
+	return fmt.Sprintf("branch commit does not match [expected: %s, given: %s]", e.Expected, e.Given)
+}
 
 func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
 	if branchName == repo.DefaultBranch {
