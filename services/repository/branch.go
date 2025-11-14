@@ -558,12 +558,7 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	if isForcePush || force {
 		pushOpts.Force = true
 	}
-
-	if err := git.Push(ctx, repo.RepoPath(), pushOpts); err != nil {
-		return err
-	}
-
-	return nil
+	return gitrepo.Push(ctx, repo, pushOpts)
 }
 
 var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default")
