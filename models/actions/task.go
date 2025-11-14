@@ -260,8 +260,11 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	for page := 0; job == nil; page++ {
 		var jobs []*ActionRunJob
 		// Load only 10 job in a batch without all fields for memory / db load reduction
-		if err := e.Where("task_id=? AND status=? AND updated>=?", 0, StatusWaiting, lastUpdated).Cols("id", "runs_on").And(jobCond).Asc("updated", "id").Limit(limit).Find(&jobs); err != nil {
+		if err := e.Where("task_id=? AND status=? AND updated>?", 0, StatusWaiting, lastUpdated).Cols("id", "runs_on").And(jobCond).Asc("updated", "id").Limit(limit).Find(&jobs); err != nil {
 			return nil, false, err
+		}
+		if len(jobs) == 0 {
+			break
 		}
 
 		// TODO: a more efficient way to filter labels
