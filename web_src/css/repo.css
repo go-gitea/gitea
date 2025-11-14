@@ -531,6 +531,9 @@ td .commit-summary {
   line-height: 32px;
   vertical-align: middle;
   color: var(--color-text-light);
+  overflow-wrap: break-word;
+  max-width: 100%;
+  padding-right: 1rem;
 }
 
 .repository.view.issue .comment-list .timeline-item .comment-text-line .ui.label {
@@ -601,9 +604,6 @@ td .commit-summary {
     width: 100%;
     margin: 0;
   }
-  .repository.view.issue .comment-list .comment .content .form .button:not(:last-child) {
-    margin-bottom: 1rem;
-  }
 }
 
 .repository.view.issue .comment-list .comment .merge-section {
@@ -654,13 +654,16 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .code-comment {
   border: 1px solid transparent;
-  margin: 0;
+  margin: 0 -4px;
+  padding: 8px;
 }
 
 .repository.view.issue .comment-list .code-comment .comment-header {
   background: transparent;
   border-bottom: 0;
   padding: 0;
+  min-height: auto;
+  margin-bottom: 4px;
 }
 
 .repository.view.issue .comment-list .code-comment .comment-content {
@@ -1286,9 +1289,9 @@ td .commit-summary {
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
 }
 
-.comment:target .header::before {
+.comment:target .comment-header::before {
   border-right-color: var(--color-primary) !important;
-  filter: drop-shadow(-3px 0 0 var(--color-primary-alpha-30)) !important;
+  filter: drop-shadow(-4px 0 0 var(--color-primary-alpha-30)) !important;
 }
 
 .code-comment:target,
@@ -1339,7 +1342,7 @@ td .commit-summary {
 .comment-header-right {
   display: flex;
   align-items: center;
-  gap: 0.5em;
+  gap: 6px;
 }
 
 .comment-header-right {
