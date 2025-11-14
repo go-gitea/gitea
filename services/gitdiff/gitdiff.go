@@ -82,13 +82,33 @@ type DiffLine struct {
 
 // DiffLineSectionInfo represents diff line section meta data
 type DiffLineSectionInfo struct {
-	Path          string
-	LastLeftIdx   int
-	LastRightIdx  int
-	LeftIdx       int
-	RightIdx      int
+	Path string
+
+	// These line "idx" are 1-based line numbers
+	// Left/Right refer to the left/right side of the diff:
+	//
+	// LastLeftIdx | LastRightIdx
+	// [up/down expander] @@ hunk info @@
+	// LeftIdx     | RightIdx
+
+	LastLeftIdx  int
+	LastRightIdx int
+	LeftIdx      int
+	RightIdx     int
+
+	// Hunk sizes of the hidden lines
 	LeftHunkSize  int
 	RightHunkSize int
+
+	// For example:
+	// 17 | 31
+	// [up/down] @@ -40,23 +54,9 @@ ....
+	// 40 | 54
+	//
+	// In this case:
+	// LastLeftIdx = 17, LastRightIdx = 31
+	// LeftHunkSize = 23, RightHunkSize = 9
+	// LeftIdx = 40, RightIdx = 54
 
 	HiddenCommentIDs []int64 // IDs of hidden comments in this section
 }
@@ -158,13 +178,13 @@ func (d *DiffLine) getBlobExcerptQuery() string {
 	return query
 }
 
-func (d *DiffLine) getExpandDirection() string {
+func (d *DiffLine) GetExpandDirection() string {
 	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
 		return ""
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
 		return "up"
-	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
+	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx-1 > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
 		return "updown"
 	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
 		return "down"
@@ -202,12 +222,12 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 		content += htmlutil.HTMLFormat(`<span class="code-comment-more" data-tooltip-content="%s">%d</span>`, tooltip, len(d.SectionInfo.HiddenCommentIDs))
 	}
 
-	expandDirection := d.getExpandDirection()
-	if expandDirection == "up" || expandDirection == "updown" {
-		content += makeButton("up", "octicon-fold-up")
-	}
+	expandDirection := d.GetExpandDirection()
 	if expandDirection == "updown" || expandDirection == "down" {
 		content += makeButton("down", "octicon-fold-down")
+	}
+	if expandDirection == "up" || expandDirection == "updown" {
+		content += makeButton("up", "octicon-fold-up")
 	}
 	if expandDirection == "single" {
 		content += makeButton("single", "octicon-fold")
