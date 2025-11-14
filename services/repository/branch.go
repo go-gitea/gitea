@@ -32,6 +32,7 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	actions_service "code.gitea.io/gitea/services/actions"
 	notify_service "code.gitea.io/gitea/services/notify"
+	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 
 	"xorm.io/builder"
@@ -546,10 +547,58 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		return &git.ErrPushOutOfDate{Err: errors.New("non fast-forward update requires force"), StdErr: "non-fast-forward", StdOut: ""}
 	}
 
+	pushEnv := repo_module.PushingEnvironment(doer, repo)
+
+	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branchName)
+	if err != nil {
+		return fmt.Errorf("GetFirstMatchProtectedBranchRule: %w", err)
+	}
+	if protectedBranch != nil {
+		protectedBranch.Repo = repo
+		globsProtected := protectedBranch.GetProtectedFilePatterns()
+		if len(globsProtected) > 0 {
+			changedProtectedFiles, protectErr := pull_service.CheckFileProtection(gitRepo, branchName, currentCommitID, newCommit.ID.String(), globsProtected, 1, pushEnv)
+			if protectErr != nil {
+				if !pull_service.IsErrFilePathProtected(protectErr) {
+					return fmt.Errorf("CheckFileProtection: %w", protectErr)
+				}
+				protectedPath := ""
+				if len(changedProtectedFiles) > 0 {
+					protectedPath = changedProtectedFiles[0]
+				} else if pathErr, ok := protectErr.(pull_service.ErrFilePathProtected); ok {
+					protectedPath = pathErr.Path
+				}
+				if protectedPath == "" {
+					protectedPath = branchName
+				}
+				return &git.ErrPushRejected{Message: fmt.Sprintf("branch %s is protected from changing file %s", branchName, protectedPath)}
+			}
+		}
+
+		if isForcePush {
+			if !protectedBranch.CanUserForcePush(ctx, doer) {
+				return &git.ErrPushRejected{Message: "Not allowed to force-push to protected branch " + branchName}
+			}
+		} else if !protectedBranch.CanUserPush(ctx, doer) {
+			globsUnprotected := protectedBranch.GetUnprotectedFilePatterns()
+			if len(globsUnprotected) > 0 {
+				unprotectedOnly, unprotectedErr := pull_service.CheckUnprotectedFiles(gitRepo, branchName, currentCommitID, newCommit.ID.String(), globsUnprotected, pushEnv)
+				if unprotectedErr != nil {
+					return fmt.Errorf("CheckUnprotectedFiles: %w", unprotectedErr)
+				}
+				if !unprotectedOnly {
+					return &git.ErrPushRejected{Message: "Not allowed to push to protected branch " + branchName}
+				}
+			} else {
+				return &git.ErrPushRejected{Message: "Not allowed to push to protected branch " + branchName}
+			}
+		}
+	}
+
 	pushOpts := git.PushOptions{
 		Remote: repo.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", newCommit.ID.String(), git.BranchPrefix, branchName),
-		Env:    repo_module.PushingEnvironment(doer, repo),
+		Env:    pushEnv,
 	}
 
 	if expectedOldCommitID != "" {
