@@ -209,6 +209,8 @@
 						<dd>{{.Mailer.SendmailArgs}}</dd>
 						<dt>{{ctx.Locale.Tr "admin.config.mailer_sendmail_timeout"}}</dt>
 						<dd>{{.Mailer.SendmailTimeout}} {{ctx.Locale.Tr "tool.raw_seconds"}}</dd>
+						<dt>{{ctx.Locale.Tr "admin.config.mailer_sendmail_convert_CRLF"}}</dt>
+						<dd>{{svg (Iif .Mailer.SendmailConvertCRLF "octicon-check" "octicon-x")}}</dd>
 					{{else if eq .Mailer.Protocol "dummy"}}
 						<dt>{{ctx.Locale.Tr "admin.config.mailer_use_dummy"}}</dt>
 						<dd>{{svg "octicon-check"}}</dd>
@@ -217,13 +219,37 @@
 						<dd>{{.Mailer.Protocol}}</dd>
 						<dt>{{ctx.Locale.Tr "admin.config.mailer_enable_helo"}}</dt>
 						<dd>{{svg (Iif .Mailer.EnableHelo "octicon-check" "octicon-x")}}</dd>
+						{{if and .Mailer.EnableHelo .Mailer.HeloHostname}}
+							<dt>{{ctx.Locale.Tr "admin.config.mailer_helo_hostname"}}</dt>
+							<dd>{{.Mailer.HeloHostname}}</dd>
+						{{end}}
 						<dt>{{ctx.Locale.Tr "admin.config.mailer_smtp_addr"}}</dt>
 						<dd>{{.Mailer.SMTPAddr}}</dd>
 						<dt>{{ctx.Locale.Tr "admin.config.mailer_smtp_port"}}</dt>
 						<dd>{{.Mailer.SMTPPort}}</dd>
+						<dt>{{ctx.Locale.Tr "admin.config.mailer_smtp_user"}}</dt>
+						<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd>
+						<dt>{{ctx.Locale.Tr "admin.config.use_client_cert"}}</dt>
+						<dd>{{svg (Iif .Mailer.UseClientCert "octicon-check" "octicon-x")}}</dd>
+						<dt>{{ctx.Locale.Tr "admin.config.force_trust_server_cert"}}</dt>
+						<dd>{{svg (Iif .Mailer.ForceTrustServerCert "octicon-check" "octicon-x")}}</dd>
 					{{end}}
-					<dt>{{ctx.Locale.Tr "admin.config.mailer_user"}}</dt>
-					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd>
+					{{if .Mailer.From}}
+						<dt>{{ctx.Locale.Tr "admin.config.mailer_from_addr"}}</dt>
+						<dd>{{.Mailer.From}}</dd>
+					{{end}}
+					{{if .Mailer.EnvelopeFrom}}
+						<dt>{{ctx.Locale.Tr "admin.config.mailer_envelope_from_addr"}}</dt>
+						<dd>{{.Mailer.EnvelopeFrom}}</dd>
+					{{end}}
+					{{if .Mailer.FromDisplayNameFormat}}
+						<dt>{{ctx.Locale.Tr "admin.config.mailer_from_display_name_format"}}</dt>
+						<dd>{{.Mailer.FromDisplayNameFormat}}</dd>
+					{{end}}
+					{{if .Mailer.SubjectPrefix}}
+						<dt>{{ctx.Locale.Tr "admin.config.mailer_subject_prefix"}}</dt>
+						<dd>{{.Mailer.SubjectPrefix}}</dd>
+					{{end}}
 					<div class="divider"></div>
 					<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.send_test_mail"}}</dt>
 					<dd class="tw-py-0">
