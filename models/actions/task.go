@@ -257,19 +257,16 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	// e.g. we would start again from zero if no job matches our known labels
 	// For stable paging
 	var lastUpdated timeutil.TimeStamp
+	// TODO: a more efficient way to filter labels
+	log.Trace("runner labels: %v", runner.AgentLabels)
+	backoffGen := rand.New(rand.NewSource(time.Now().UnixNano() ^ runner.ID))
 	for page := 0; job == nil; page++ {
 		var jobs []*ActionRunJob
 		// Load only 10 job in a batch without all fields for memory / db load reduction
 		if err := e.Where("task_id=? AND status=? AND updated>?", 0, StatusWaiting, lastUpdated).Cols("id", "runs_on").And(jobCond).Asc("updated", "id").Limit(limit).Find(&jobs); err != nil {
 			return nil, false, err
 		}
-		if len(jobs) == 0 {
-			break
-		}
 
-		// TODO: a more efficient way to filter labels
-		log.Trace("runner labels: %v", runner.AgentLabels)
-		backoffGen := rand.New(rand.NewSource(time.Now().UnixNano() ^ runner.ID))
 		for _, v := range jobs {
 			if runner.CanMatchLabels(v.RunsOn) {
 				// Reserve our job before preparing task, otherwise continue searching
@@ -286,6 +283,9 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 				}
 			}
 			lastUpdated = v.Updated
+		}
+		if len(jobs) < limit {
+			break
 		}
 		// Randomly distribute retries over time to reduce contention
 		jitter := time.Duration(backoffGen.Int63n(int64(util.Iif(page < 4, page+1, 5))*20)) * time.Millisecond // random jitter
