@@ -263,7 +263,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	for page := 0; job == nil; page++ {
 		var jobs []*ActionRunJob
 		// Load only 10 job in a batch without all fields for memory / db load reduction
-		if err := e.Where("task_id=? AND status=? AND updated>?", 0, StatusWaiting, lastUpdated).Cols("id", "runs_on").And(jobCond).Asc("updated", "id").Limit(limit).Find(&jobs); err != nil {
+		if err := e.Where("task_id=? AND status=? AND updated>?", 0, StatusWaiting, lastUpdated).Cols("id", "runs_on", "updated").And(jobCond).Asc("updated", "id").Limit(limit).Find(&jobs); err != nil {
 			return nil, false, err
 		}
 
@@ -271,7 +271,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 			if runner.CanMatchLabels(v.RunsOn) {
 				// Reserve our job before preparing task, otherwise continue searching
 				v.TaskID = task.ID
-				if n, err := UpdateRunJob(ctx, v, builder.Eq{"task_id": 0}); err != nil {
+				if n, err := UpdateRunJob(ctx, v, builder.Eq{"task_id": 0}, "task_id"); err != nil {
 					return nil, false, err
 				} else if n == 1 {
 					var exist bool
@@ -324,6 +324,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	task.LogFilename = logFileName(job.Run.Repo.FullName(), task.ID)
 
 	if err := UpdateTask(ctx, task, "job_id", "attempt", "started", "status", "repo_id", "owner_id", "commit_sha", "is_fork_pull_request", "log_filename"); err != nil {
+		return nil, false, err
+	}
+
+	if _, err := UpdateRunJob(ctx, job, builder.Eq{"id": job.ID}, "attempt", "started", "status"); err != nil {
 		return nil, false, err
 	}
 
