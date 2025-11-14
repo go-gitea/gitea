@@ -233,10 +233,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if err := task.GenerateToken(); err != nil {
 		return nil, false, err
 	}
-
-	if _, err := e.Insert(task); err != nil {
-		return nil, false, err
-	}
+	// Insert the task on demand if task.ID == 0, if at least one job matches avoid unnecessary id increment
 
 	jobCond := builder.NewCond()
 	if runner.RepoID != 0 {
@@ -269,6 +266,12 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 		for _, v := range jobs {
 			if runner.CanMatchLabels(v.RunsOn) {
+				// Insert on demand, auto removed by aborted transaction if no job matches
+				if task.ID == 0 {
+					if _, err := e.Insert(task); err != nil {
+						return nil, false, err
+					}
+				}
 				// Reserve our job before preparing task, otherwise continue searching
 				v.TaskID = task.ID
 				if n, err := UpdateRunJob(ctx, v, builder.Eq{"task_id": 0}, "task_id"); err != nil {
