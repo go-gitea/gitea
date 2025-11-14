@@ -6750,53 +6750,6 @@
           }
         }
       },
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Delete a specific branch from a repository",
-        "operationId": "repoDeleteBranch",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "branch to delete",
-            "name": "branch",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "403": {
-            "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "423": {
-            "$ref": "#/responses/repoArchivedError"
-          }
-        }
-      },
       "put": {
         "consumes": [
           "application/json"
@@ -6854,6 +6807,53 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a specific branch from a repository",
+        "operationId": "repoDeleteBranch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "branch to delete",
+            "name": "branch",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "423": {
+            "$ref": "#/responses/repoArchivedError"
           }
         }
       },
@@ -28758,6 +28758,31 @@
             "format": "int64"
           },
           "x-go-name": "IDs"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateBranchRepoOption": {
+      "description": "UpdateBranchRepoOption options when updating a branch reference in a repository",
+      "type": "object",
+      "required": [
+        "new_commit_id"
+      ],
+      "properties": {
+        "force": {
+          "description": "Force update even if the change is not a fast-forward",
+          "type": "boolean",
+          "x-go-name": "Force"
+        },
+        "new_commit_id": {
+          "description": "New commit SHA (or any ref) the branch should point to",
+          "type": "string",
+          "x-go-name": "NewCommitID"
+        },
+        "old_commit_id": {
+          "description": "Expected old commit SHA of the branch; if provided it must match the current tip",
+          "type": "string",
+          "x-go-name": "OldCommitID"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
