@@ -266,7 +266,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 
 		// TODO: a more efficient way to filter labels
 		log.Trace("runner labels: %v", runner.AgentLabels)
-		backoffGen := rand.New(rand.NewSource(time.Now().UnixNano() ^ int64(runner.ID)))
+		backoffGen := rand.New(rand.NewSource(time.Now().UnixNano() ^ runner.ID))
 		for _, v := range jobs {
 			if runner.CanMatchLabels(v.RunsOn) {
 				// Reserve our job before preparing task, otherwise continue searching
