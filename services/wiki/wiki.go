@@ -223,6 +223,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 			repo,
 			repo.Name+".wiki",
 			0,
+			0,
 		),
 	}); err != nil {
 		log.Error("Push failed: %v", err)
@@ -340,6 +341,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 			doer,
 			repo,
 			repo.Name+".wiki",
+			0,
 			0,
 		),
 	}); err != nil {
