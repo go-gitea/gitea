@@ -12,4 +12,3 @@ import (
 func TestMain(m *testing.M) {
 	base.MainTest(m)
 }
-

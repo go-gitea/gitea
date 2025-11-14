@@ -10,4 +10,3 @@ package db
 func isErrDuplicateKeySQLite(err error) bool {
 	return false
 }
-
