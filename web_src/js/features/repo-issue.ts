@@ -303,7 +303,7 @@ export function initRepoPullRequestReview() {
   });
 
   // The following part is only for diff views
-  if (!document.querySelector('.repository.pull.diff')) return;
+  if (!document.querySelector('.repository.pull.diff, .repository.diff')) return;
 
   const elReviewBtn = document.querySelector('.js-btn-review');
   const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
