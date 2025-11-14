@@ -45,8 +45,8 @@ const styleElement = useTemplateRef('styleElement');
 const altStyleElement = useTemplateRef('altStyleElement');
 
 onMounted(() => {
-  const refStyle = window.getComputedStyle(styleElement.value);
-  const refAltStyle = window.getComputedStyle(altStyleElement.value);
+  const refStyle = window.getComputedStyle(styleElement.value!);
+  const refAltStyle = window.getComputedStyle(altStyleElement.value!);
 
   colors.value = {
     barColor: refStyle.backgroundColor,

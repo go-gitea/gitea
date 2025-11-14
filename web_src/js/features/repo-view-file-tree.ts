@@ -7,8 +7,8 @@ import {registerGlobalEventFunc} from '../modules/observer.ts';
 const {appSubUrl} = window.config;
 
 async function toggleSidebar(btn: HTMLElement) {
-  const elToggleShow = document.querySelector('.repo-view-file-tree-toggle-show');
-  const elFileTreeContainer = document.querySelector('.repo-view-file-tree-container');
+  const elToggleShow = document.querySelector('.repo-view-file-tree-toggle-show')!;
+  const elFileTreeContainer = document.querySelector('.repo-view-file-tree-container')!;
   const shouldShow = btn.getAttribute('data-toggle-action') === 'show';
   toggleElem(elFileTreeContainer, shouldShow);
   toggleElem(elToggleShow, !shouldShow);
@@ -28,7 +28,7 @@ export async function initRepoViewFileTree() {
 
   registerGlobalEventFunc('click', 'onRepoViewFileTreeToggle', toggleSidebar);
 
-  const fileTree = sidebar.querySelector('#view-file-tree');
+  const fileTree = sidebar.querySelector('#view-file-tree')!;
   createApp(ViewFileTree, {
     repoLink: fileTree.getAttribute('data-repo-link'),
     treePath: fileTree.getAttribute('data-tree-path'),

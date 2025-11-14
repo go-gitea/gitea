@@ -12,14 +12,14 @@ const store = diffTreeStore();
 onMounted(() => {
   // Default to true if unset
   store.fileTreeIsVisible = localStorage.getItem(LOCAL_STORAGE_KEY) !== 'false';
-  document.querySelector('.diff-toggle-file-tree-button').addEventListener('click', toggleVisibility);
+  document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
 
   hashChangeListener();
   window.addEventListener('hashchange', hashChangeListener);
 });
 
 onUnmounted(() => {
-  document.querySelector('.diff-toggle-file-tree-button').removeEventListener('click', toggleVisibility);
+  document.querySelector('.diff-toggle-file-tree-button')!.removeEventListener('click', toggleVisibility);
   window.removeEventListener('hashchange', hashChangeListener);
 });
 
@@ -33,7 +33,7 @@ function expandSelectedFile() {
   if (store.selectedItem) {
     const box = document.querySelector(store.selectedItem);
     const folded = box?.getAttribute('data-folded') === 'true';
-    if (folded) setFileFolding(box, box.querySelector('.fold-file'), false);
+    if (folded) setFileFolding(box, box.querySelector('.fold-file')!, false);
   }
 }
 
@@ -48,10 +48,10 @@ function updateVisibility(visible: boolean) {
 }
 
 function updateState(visible: boolean) {
-  const btn = document.querySelector('.diff-toggle-file-tree-button');
+  const btn = document.querySelector('.diff-toggle-file-tree-button')!;
   const [toShow, toHide] = btn.querySelectorAll('.icon');
-  const tree = document.querySelector('#diff-file-tree');
-  const newTooltip = btn.getAttribute(visible ? 'data-hide-text' : 'data-show-text');
+  const tree = document.querySelector('#diff-file-tree')!;
+  const newTooltip = btn.getAttribute(visible ? 'data-hide-text' : 'data-show-text')!;
   btn.setAttribute('data-tooltip-content', newTooltip);
   toggleElem(tree, visible);
   toggleElem(toShow, !visible);

@@ -14,10 +14,10 @@ export function initRepoSettingsBranchesDrag() {
     onEnd: () => {
       (async () => {
         const itemElems = queryElemChildren(protectedBranchesList, '.item[data-id]');
-        const itemIds = Array.from(itemElems, (el) => parseInt(el.getAttribute('data-id')));
+        const itemIds = Array.from(itemElems, (el) => parseInt(el.getAttribute('data-id')!));
 
         try {
-          await POST(protectedBranchesList.getAttribute('data-update-priority-url'), {
+          await POST(protectedBranchesList.getAttribute('data-update-priority-url')!, {
             data: {
               ids: itemIds,
             },

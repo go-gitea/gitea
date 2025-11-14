@@ -8,7 +8,7 @@ export function initUserCheckAppUrl() {
 export function initUserAuthOauth2() {
   const outer = document.querySelector('#oauth2-login-navigator');
   if (!outer) return;
-  const inner = document.querySelector('#oauth2-login-navigator-inner');
+  const inner = document.querySelector('#oauth2-login-navigator-inner')!;
 
   checkAppUrl();
 

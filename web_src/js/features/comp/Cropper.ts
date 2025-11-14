@@ -1,4 +1,4 @@
-import {showElem, type DOMEvent} from '../../utils/dom.ts';
+import {showElem} from '../../utils/dom.ts';
 
 type CropperOpts = {
   container: HTMLElement,
@@ -17,6 +17,7 @@ async function initCompCropper({container, fileInput, imageSource}: CropperOpts)
     crop() {
       const canvas = cropper.getCroppedCanvas();
       canvas.toBlob((blob) => {
+        if (!blob) return;
         const croppedFileName = currentFileName.replace(/\.[^.]{3,4}$/, '.png');
         const croppedFile = new File([blob], croppedFileName, {type: 'image/png', lastModified: currentFileLastModified});
         const dataTransfer = new DataTransfer();
@@ -26,9 +27,9 @@ async function initCompCropper({container, fileInput, imageSource}: CropperOpts)
     },
   });
 
-  fileInput.addEventListener('input', (e: DOMEvent<Event, HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files?.length > 0) {
+  fileInput.addEventListener('input', (e) => {
+    const files = (e.target as HTMLInputElement).files;
+    if (files?.length) {
       currentFileName = files[0].name;
       currentFileLastModified = files[0].lastModified;
       const fileURL = URL.createObjectURL(files[0]);
@@ -42,6 +43,6 @@ async function initCompCropper({container, fileInput, imageSource}: CropperOpts)
 export async function initAvatarUploaderWithCropper(fileInput: HTMLInputElement) {
   const panel = fileInput.nextElementSibling as HTMLElement;
   if (!panel?.matches('.cropper-panel')) throw new Error('Missing cropper panel for avatar uploader');
-  const imageSource = panel.querySelector<HTMLImageElement>('.cropper-source');
+  const imageSource = panel.querySelector<HTMLImageElement>('.cropper-source')!;
   await initCompCropper({container: panel, fileInput, imageSource});
 }
