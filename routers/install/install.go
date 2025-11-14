@@ -136,7 +136,7 @@ func Install(ctx *context.Context) {
 
 	// Server and other services settings
 	form.OfflineMode = setting.OfflineMode
-	form.DisableGravatar = setting.DisableGravatar             // when installing, there is no database connection so that given a default value
+	form.EnableGravatar = setting.EnableGravatar               // when installing, there is no database connection so that given a default value
 	form.EnableFederatedAvatar = setting.EnableFederatedAvatar // when installing, there is no database connection so that given a default value
 
 	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
@@ -427,7 +427,8 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(strconv.FormatBool(form.OfflineMode))
 	if err := system_model.SetSettings(ctx, map[string]string{
-		setting.Config().Picture.DisableGravatar.DynKey():       strconv.FormatBool(form.DisableGravatar),
+		// Form is submitted on install and should use the SelectFrom key for backwards compatibility; getting the value will properly invert the boolean
+		setting.Config().Picture.EnableGravatar.SelectFromKey(): strconv.FormatBool(!form.EnableGravatar),
 		setting.Config().Picture.EnableFederatedAvatar.DynKey(): strconv.FormatBool(form.EnableFederatedAvatar),
 	}); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
