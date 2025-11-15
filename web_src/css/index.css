@@ -65,6 +65,7 @@
 @import "./repo/file-view.css";
 @import "./repo/file-actions.css";
 @import "./repo/editor-commit.css";
+@import "./repo/delete-file.css";
 @import "./repo/wiki.css";
 @import "./repo/header.css";
 @import "./repo/home.css";
