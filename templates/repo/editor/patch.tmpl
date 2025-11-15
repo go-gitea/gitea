@@ -22,11 +22,8 @@
 						{{svg "octicon-sidebar-collapse"}}
 					</button>
 					<div class="breadcrumb">
-					{{ctx.Locale.Tr "repo.editor.patching"}}
-					<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
-					<div class="breadcrumb-divider">:</div>
+					<span>{{ctx.Locale.Tr "repo.editor.patching"}}</span>
 					<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
-					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
 					<input type="hidden" name="tree_path" value="__dummy_for_EditRepoFileForm.TreePath(Required)__">
 					<input id="file-name" type="hidden" value="diff.patch">
 					</div>

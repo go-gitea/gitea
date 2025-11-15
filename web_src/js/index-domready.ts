@@ -35,6 +35,7 @@ import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/use
 import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
 import {initRepoEditorCommit} from './features/repo-editor-commit.ts';
+import {initRepoDeleteFile} from './features/repo-delete-file.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
 import {initInstall} from './features/install.ts';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.ts';
@@ -125,6 +126,7 @@ const initPerformanceTracer = callInitFunctions([
   initRepoDiffCommitBranchesAndTags,
   initRepoEditor,
   initRepoEditorCommit,
+  initRepoDeleteFile,
   initRepoGraphGit,
   initRepoIssueContentHistory,
   initRepoIssueList,
