@@ -11,6 +11,5 @@
 			<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 		{{end}}
 	{{end}}
-	<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{or .ReturnURI (print $.BranchLink "/" (PathEscapeSegments .TreePath))}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
 	<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}">
 </div>
