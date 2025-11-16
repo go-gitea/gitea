@@ -78,7 +78,7 @@
 					<div class="ui circular label project-column-issue-count">
 						{{.NumIssues}}
 					</div>
-					<div class="project-column-title-text flex-text-inline gt-ellipsis">
+					<div class="project-column-title-text flex-text-inline gt-ellipsis" {{if .Default}}data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.default_column_hint"}}"{{end}}>
 						{{if .Default}}{{svg "octicon-star"}} {{end}}{{.Title}}
 					</div>
 					{{if $canWriteProject}}
