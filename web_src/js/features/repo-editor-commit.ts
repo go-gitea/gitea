@@ -1,4 +1,4 @@
-import $ from 'jquery';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 export function initRepoEditorCommit() {
   const commitButton = document.querySelector('#commit-changes-button');
@@ -71,12 +71,12 @@ export function initRepoEditorCommit() {
         // Position it inside the modal using CSS
         commitFormFields.classList.add('commit-form-in-modal');
       }
-      $(commitModal).modal('show');
+      fomanticQuery(commitModal).modal('show');
     }
   });
 
   // When modal closes, hide the form fields again
-  $(commitModal).modal({
+  fomanticQuery(commitModal).modal({
     onHidden: () => {
       if (commitFormFields) {
         commitFormFields.style.display = 'none';
@@ -89,14 +89,14 @@ export function initRepoEditorCommit() {
   const closeButton = document.querySelector('#commit-modal-close-btn');
   if (closeButton) {
     closeButton.addEventListener('click', () => {
-      $(commitModal).modal('hide');
+      fomanticQuery(commitModal).modal('hide');
     });
   }
 
   // Handle form submission - close modal after submit
   if (elForm) {
     elForm.addEventListener('submit', () => {
-      $(commitModal).modal('hide');
+      fomanticQuery(commitModal).modal('hide');
     });
   }
 }

@@ -1,4 +1,4 @@
-import $ from 'jquery';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 export function initRepoDeleteFile() {
   const deleteButton = document.querySelector('#delete-file-button');
@@ -11,12 +11,12 @@ export function initRepoDeleteFile() {
 
   deleteButton.addEventListener('click', (e) => {
     e.preventDefault();
-    $(deleteModal).modal('show');
+    fomanticQuery(deleteModal).modal('show');
   });
 
   // Handle form submission
   deleteForm.addEventListener('submit', () => {
-    $(deleteModal).modal('hide');
+    fomanticQuery(deleteModal).modal('hide');
   });
 
   // Handle commit choice radio buttons
