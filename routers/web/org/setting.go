@@ -213,7 +213,7 @@ func SettingsRenamePost(ctx *context.Context) {
 		return
 	}
 
-	if err := user_service.RenameUser(ctx, ctx.Org.Organization.AsUser(), newOrgName); err != nil {
+	if err := user_service.RenameUser(ctx, ctx.Org.Organization.AsUser(), newOrgName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) {
 			ctx.JSONError(ctx.Tr("org.form.name_been_taken", newOrgName))
 		} else if db.IsErrNameReserved(err) {
