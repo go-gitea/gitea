@@ -155,13 +155,13 @@ func TestSearchUsers(t *testing.T) {
 	}
 
 	testUserSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}},
-		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37, 38, 39, 40})
+		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37, 38, 39, 40, 43, 44})
 
 	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(false)},
 		[]int64{9})
 
 	testUserSuccess(user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37, 38, 39, 40})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32, 34, 37, 38, 39, 40, 43, 44})
 
 	testUserSuccess(user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: optional.Some(true)},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
@@ -171,7 +171,7 @@ func TestSearchUsers(t *testing.T) {
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
 
 	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsAdmin: optional.Some(true)},
-		[]int64{1})
+		[]int64{1, 43})
 
 	testUserSuccess(user_model.SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsRestricted: optional.Some(true)},
 		[]int64{29})

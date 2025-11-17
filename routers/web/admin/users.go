@@ -345,7 +345,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.UserName != "" {
-		if err := user_service.RenameUser(ctx, u, form.UserName); err != nil {
+		if err := user_service.RenameUser(ctx, u, form.UserName, ctx.Doer); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
 				ctx.Data["Err_UserName"] = true
