@@ -659,8 +659,7 @@ td .commit-summary {
   background: transparent;
   border-bottom: 0;
   padding: 0;
-  min-height: auto;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .repository.view.issue .comment-list .code-comment .comment-content {
@@ -1308,7 +1307,6 @@ td .commit-summary {
   padding: 0.5em 1rem;
   position: relative;
   color: var(--color-text);
-  min-height: 41px;
   display: flex;
   justify-content: space-between;
   align-items: center;
