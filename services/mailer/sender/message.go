@@ -40,6 +40,11 @@ func (m *Message) ToMessage() *gomail.Msg {
 	if m.ReplyTo != "" {
 		msg.SetGenHeader("Reply-To", m.ReplyTo)
 	}
+	if setting.MailService.OverrideEnvelopeFrom {
+		if err := msg.EnvelopeFrom(setting.MailService.EnvelopeFrom); err != nil {
+			log.Error("Failed to set Envelope-From header: %v", err)
+		}
+	}
 	for header := range m.Headers {
 		msg.SetGenHeader(gomail.Header(header), m.Headers[header]...)
 	}

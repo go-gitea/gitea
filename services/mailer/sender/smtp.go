@@ -4,18 +4,33 @@
 package sender
 
 import (
+	"context"
 	"crypto/tls"
-	"errors"
 	"fmt"
 	"io"
-	"net"
 	"os"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
+	gomail "github.com/wneessen/go-mail"
 	"github.com/wneessen/go-mail/smtp"
+)
+
+type gomailClient interface {
+	Close() error
+	DialAndSend(...*gomail.Msg) error
+	DialToSMTPClientWithContext(context.Context) (*smtp.Client, error)
+	CloseWithSMTPClient(*smtp.Client) error
+	SetSMTPAuth(gomail.SMTPAuthType)
+	SetSMTPAuthCustom(smtp.Auth)
+}
+
+var (
+	newGomailClient     = func(host string, opts ...gomail.Option) (gomailClient, error) { return gomail.NewClient(host, opts...) }
+	probeSMTPServerFunc = probeSMTPServer
 )
 
 // SMTPSender Sender SMTP mail sender
@@ -24,134 +39,187 @@ type SMTPSender struct{}
 var _ Sender = &SMTPSender{}
 
 // Send send email
-func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
+func (s *SMTPSender) Send(_ string, _ []string, msg io.WriterTo) error {
 	opts := setting.MailService
 
-	var network string
-	var address string
-	if opts.Protocol == "smtp+unix" {
-		network = "unix"
-		address = opts.SMTPAddr
-	} else {
-		network = "tcp"
-		address = net.JoinHostPort(opts.SMTPAddr, opts.SMTPPort)
+	mailMsg, ok := msg.(*gomail.Msg)
+	if !ok {
+		return fmt.Errorf("unexpected message type %T", msg)
 	}
 
-	conn, err := net.Dial(network, address)
-	if err != nil {
-		return fmt.Errorf("failed to establish network connection to SMTP server: %w", err)
-	}
-	defer conn.Close()
-
-	var tlsconfig *tls.Config
-	if opts.Protocol == "smtps" || opts.Protocol == "smtp+starttls" {
-		tlsconfig = &tls.Config{
-			InsecureSkipVerify: opts.ForceTrustServerCert,
-			ServerName:         opts.SMTPAddr,
-		}
-
-		if opts.UseClientCert {
-			cert, err := tls.LoadX509KeyPair(opts.ClientCertFile, opts.ClientKeyFile)
-			if err != nil {
-				return fmt.Errorf("could not load SMTP client certificate: %w", err)
-			}
-			tlsconfig.Certificates = []tls.Certificate{cert}
-		}
+	host := opts.SMTPAddr
+	protocol := opts.Protocol
+	if protocol == "" {
+		protocol = "smtp"
 	}
 
-	if opts.Protocol == "smtps" {
-		conn = tls.Client(conn, tlsconfig)
-	}
-
-	host := "localhost"
-	if opts.Protocol == "smtp+unix" {
-		host = opts.SMTPAddr
-	}
-	client, err := smtp.NewClient(conn, host)
-	if err != nil {
-		return fmt.Errorf("could not initiate SMTP session: %w", err)
-	}
-
+	var clientOpts []gomail.Option
 	if opts.EnableHelo {
-		hostname := opts.HeloHostname
-		if len(hostname) == 0 {
-			hostname, err = os.Hostname()
+		helo := opts.HeloHostname
+		if helo == "" {
+			var err error
+			helo, err = os.Hostname()
 			if err != nil {
 				return fmt.Errorf("could not retrieve system hostname: %w", err)
 			}
 		}
-
-		if err = client.Hello(hostname); err != nil {
-			return fmt.Errorf("failed to issue HELO command: %w", err)
-		}
+		clientOpts = append(clientOpts, gomail.WithHELO(helo))
 	}
 
-	if opts.Protocol == "smtp+starttls" {
-		hasStartTLS, _ := client.Extension("STARTTLS")
-		if hasStartTLS {
-			if err = client.StartTLS(tlsconfig); err != nil {
-				return fmt.Errorf("failed to start TLS connection: %w", err)
-			}
-		} else {
+	authHost := opts.SMTPAddr
+
+	switch protocol {
+	case "smtp+unix":
+		host = "unix://" + opts.SMTPAddr
+		clientOpts = append(clientOpts, gomail.WithTLSPolicy(gomail.NoTLS))
+	case "smtps":
+		port, err := parseSMTPPort(opts.SMTPPort)
+		if err != nil {
+			return err
+		}
+		tlsConfig, err := buildTLSConfig(opts)
+		if err != nil {
+			return err
+		}
+		clientOpts = append(clientOpts,
+			gomail.WithPort(port),
+			gomail.WithTLSConfig(tlsConfig),
+			gomail.WithSSL(),
+		)
+	case "smtp+starttls":
+		port, err := parseSMTPPort(opts.SMTPPort)
+		if err != nil {
+			return err
+		}
+		tlsConfig, err := buildTLSConfig(opts)
+		if err != nil {
+			return err
+		}
+		clientOpts = append(clientOpts,
+			gomail.WithPort(port),
+			gomail.WithTLSConfig(tlsConfig),
+			gomail.WithTLSPolicy(gomail.TLSOpportunistic),
+		)
+	default:
+		port, err := parseSMTPPort(opts.SMTPPort)
+		if err != nil {
+			return err
+		}
+		clientOpts = append(clientOpts,
+			gomail.WithPort(port),
+			gomail.WithTLSPolicy(gomail.NoTLS),
+		)
+	}
+
+	if opts.User != "" {
+		clientOpts = append(clientOpts,
+			gomail.WithUsername(opts.User),
+			gomail.WithPassword(opts.Passwd),
+		)
+	}
+
+	client, err := newGomailClient(host, clientOpts...)
+	if err != nil {
+		return fmt.Errorf("could not create go-mail client: %w", err)
+	}
+	defer func() {
+		if closeErr := client.Close(); closeErr != nil {
+			log.Error("Closing SMTP client failed: %v", closeErr)
+		}
+	}()
+
+	if opts.User != "" {
+		hasAuth, authOptions, hasStartTLS, probeErr := probeSMTPServerFunc(client)
+		if probeErr != nil {
+			return fmt.Errorf("failed to probe SMTP capabilities: %w", probeErr)
+		}
+		if protocol == "smtp+starttls" && !hasStartTLS {
 			log.Warn("StartTLS requested, but SMTP server does not support it; falling back to regular SMTP")
 		}
-	}
-
-	canAuth, options := client.Extension("AUTH")
-	if len(opts.User) > 0 {
-		if !canAuth {
-			return errors.New("SMTP server does not support AUTH, but credentials provided")
+		if !hasAuth {
+			return fmt.Errorf("SMTP server does not support AUTH, but credentials provided")
 		}
 
-		var auth smtp.Auth
-
-		if strings.Contains(options, "CRAM-MD5") {
-			auth = smtp.CRAMMD5Auth(opts.User, opts.Passwd)
-		} else if strings.Contains(options, "PLAIN") {
-			auth = smtp.PlainAuth("", opts.User, opts.Passwd, host, false)
-		} else if strings.Contains(options, "LOGIN") {
-			// Patch for AUTH LOGIN
-			auth = LoginAuth(opts.User, opts.Passwd)
-		} else if strings.Contains(options, "NTLM") {
-			auth = NtlmAuth(opts.User, opts.Passwd)
+		authOptions = strings.ToUpper(authOptions)
+		var selectedAuth smtp.Auth
+		switch {
+		case strings.Contains(authOptions, "CRAM-MD5"):
+			selectedAuth = smtp.CRAMMD5Auth(opts.User, opts.Passwd)
+		case strings.Contains(authOptions, "PLAIN"):
+			selectedAuth = smtp.PlainAuth("", opts.User, opts.Passwd, authHost, false)
+		case strings.Contains(authOptions, "LOGIN"):
+			selectedAuth = LoginAuth(opts.User, opts.Passwd)
+		case strings.Contains(authOptions, "NTLM"):
+			selectedAuth = NtlmAuth(opts.User, opts.Passwd)
 		}
 
-		if auth != nil {
-			if err = client.Auth(auth); err != nil {
-				return fmt.Errorf("failed to authenticate SMTP: %w", err)
-			}
+		if selectedAuth != nil {
+			clientOpts = append(clientOpts, gomail.WithSMTPAuthCustom(selectedAuth))
+		} else if supportsAutoDiscover(authOptions) {
+			clientOpts = append(clientOpts, gomail.WithSMTPAuth(gomail.SMTPAuthAutoDiscover))
 		}
 	}
 
-	if opts.OverrideEnvelopeFrom {
-		if err = client.Mail(opts.EnvelopeFrom); err != nil {
-			return fmt.Errorf("failed to issue MAIL command: %w", err)
-		}
-	} else {
-		if err = client.Mail(fmt.Sprintf("<%s>", from)); err != nil {
-			return fmt.Errorf("failed to issue MAIL command: %w", err)
-		}
-	}
-
-	for _, rec := range to {
-		if err = client.Rcpt(rec); err != nil {
-			return fmt.Errorf("failed to issue RCPT command: %w", err)
-		}
-	}
-
-	w, err := client.Data()
-	if err != nil {
-		return fmt.Errorf("failed to issue DATA command: %w", err)
-	} else if _, err = msg.WriteTo(w); err != nil {
-		return fmt.Errorf("SMTP write failed: %w", err)
-	} else if err = w.Close(); err != nil {
-		return fmt.Errorf("SMTP close failed: %w", err)
-	}
-
-	err = client.Quit()
-	if err != nil {
-		log.Error("Quit client failed: %v", err)
+	if err := client.DialAndSend(mailMsg); err != nil {
+		return fmt.Errorf("failed to send message via SMTP: %w", err)
 	}
 
 	return nil
+}
+
+func parseSMTPPort(port string) (int, error) {
+	if port == "" {
+		return 0, fmt.Errorf("SMTP port is not configured")
+	}
+	portNum, err := strconv.Atoi(port)
+	if err != nil {
+		return 0, fmt.Errorf("invalid SMTP port %q: %w", port, err)
+	}
+	return portNum, nil
+}
+
+func buildTLSConfig(opts *setting.Mailer) (*tls.Config, error) {
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: opts.ForceTrustServerCert,
+		ServerName:         opts.SMTPAddr,
+	}
+	if opts.UseClientCert {
+		cert, err := tls.LoadX509KeyPair(opts.ClientCertFile, opts.ClientKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("could not load SMTP client certificate: %w", err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+	}
+	return tlsConfig, nil
+}
+
+func probeSMTPServer(client gomailClient) (bool, string, bool, error) {
+	smtpClient, err := client.DialToSMTPClientWithContext(context.Background())
+	if err != nil {
+		return false, "", false, err
+	}
+	defer func() {
+		if closeErr := client.CloseWithSMTPClient(smtpClient); closeErr != nil {
+			log.Debug("Closing SMTP probe client failed: %v", closeErr)
+		}
+	}()
+
+	hasStartTLS, _ := smtpClient.Extension("STARTTLS")
+	hasAuth, authOptions := smtpClient.Extension("AUTH")
+	return hasAuth, authOptions, hasStartTLS, nil
+}
+
+func supportsAutoDiscover(options string) bool {
+	for _, mech := range []string{
+		"SCRAM-SHA-256-PLUS",
+		"SCRAM-SHA-256",
+		"SCRAM-SHA-1-PLUS",
+		"SCRAM-SHA-1",
+		"XOAUTH2",
+	} {
+		if strings.Contains(options, mech) {
+			return true
+		}
+	}
+	return false
 }

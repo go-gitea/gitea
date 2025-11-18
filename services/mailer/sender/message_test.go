@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	gomail "github.com/wneessen/go-mail"
 )
 
 func TestGenerateMessageID(t *testing.T) {
@@ -97,6 +98,25 @@ func TestToMessage(t *testing.T) {
 		"X-Auto-Response-Suppress": "All",
 		"Auto-Submitted":           "auto-generated",
 	}, header)
+}
+
+func TestToMessageEnvelopeFromOverride(t *testing.T) {
+	oldConf := setting.MailService
+	defer func() {
+		setting.MailService = oldConf
+	}()
+
+	setting.MailService = &setting.Mailer{
+		From:                 "test@gitea.com",
+		OverrideEnvelopeFrom: true,
+		EnvelopeFrom:         "bounce@gitea.com",
+	}
+
+	msg := (&Message{FromAddress: "test@gitea.com", To: "user@example.com"}).ToMessage()
+
+	envelope := msg.GetAddrHeaderString(gomail.HeaderEnvelopeFrom)
+	assert.Len(t, envelope, 1)
+	assert.Equal(t, "<bounce@gitea.com>", envelope[0])
 }
 
 func extractMailHeaderAndContent(t *testing.T, mail string) (map[string]string, string) {
