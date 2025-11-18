@@ -1350,6 +1350,10 @@ td .commit-summary {
   justify-content: end;
 }
 
+.comment-header-right .action {
+  padding: 4px;
+}
+
 .comment-body {
   background: var(--color-box-body);
   border: none !important;
