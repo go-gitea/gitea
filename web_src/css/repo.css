@@ -652,7 +652,6 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .code-comment {
   border: 1px solid transparent;
-  margin: 0 -4px;
   padding: 8px;
 }
 
