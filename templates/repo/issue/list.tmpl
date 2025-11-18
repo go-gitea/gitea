@@ -31,11 +31,9 @@
 					<a class="ui small primary small button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "action.compare_commits_general"}}</a>
 				{{end}}
 			{{end}}
-
 		</div>
 
 		{{template "repo/issue/filters" .}}
-
 
 		<div id="issue-actions" class="issue-list-toolbar tw-hidden">
 			<div class="issue-list-toolbar-left">
@@ -52,30 +50,7 @@
 			</div>
 			<div class="issue-list-toolbar-right">
 				{{template "repo/issue/filter_actions" .}}
-
-                <!-- Export dropdown button (Tippy.js) placed to the right of filter_actions -->
-                <div class="issue-export-container" style="display:inline-block; margin-left:8px;">
-                    <button id="issue-export-btn" class="ui small button" type="button" aria-haspopup="true" aria-expanded="false" title="More actions">
-                        &hellip;
-                    </button>
-
-                    <!-- Hidden popover content for tippy.js -->
-                    <div id="issue-export-popover" style="display:none;">
-                        <div class="dropdown-popover">
-                            <a href="#" class="dropdown-item" id="export-csv">Export CSV</a>
-                            <a href="#" class="dropdown-item" id="export-json">Export JSON</a>
-                            <a href="#" class="dropdown-item" id="export-selected">Export selected</a>
-                        </div>
-                    </div>
-
-                    <style>
-                        .issue-export-container .dropdown-popover { padding:8px; min-width:160px; background:var(--dropdown-bg,#fff); border-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.12); }
-                        .issue-export-container .dropdown-item { display:block; padding:6px 8px; color:var(--link-color,#0366d6); text-decoration:none; }
-                        .issue-export-container .dropdown-item:hover { background:var(--hover-bg,#f6f8fa); }
-                    </style>
-                </div>
 			</div>
-
 		</div>
 		{{template "shared/issuelist" dict "." . "listType" "repo"}}
 	</div>
