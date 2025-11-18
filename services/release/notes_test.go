@@ -39,12 +39,13 @@ func TestGenerateReleaseNotes(t *testing.T) {
 
 	assert.Equal(t, "v1.1", result.PreviousTag)
 	assert.Contains(t, result.Content, "## What's Changed")
-	assert.Contains(t, result.Content, pr.Issue.Title)
-	assert.Contains(t, result.Content, fmt.Sprintf("/pulls/%d", pr.Index))
+	prURL := pr.Issue.HTMLURL(t.Context())
+	assert.Contains(t, result.Content, fmt.Sprintf("%s in [#%d](%s)", pr.Issue.Title, pr.Index, prURL))
 	assert.Contains(t, result.Content, "## Contributors")
 	assert.Contains(t, result.Content, "@user5")
 	assert.Contains(t, result.Content, "## New Contributors")
-	assert.Contains(t, result.Content, repo.HTMLURL(t.Context())+"/compare/v1.1...v1.2.0")
+	compareURL := repo.HTMLURL(t.Context()) + "/compare/v1.1...v1.2.0"
+	assert.Contains(t, result.Content, fmt.Sprintf("[v1.1...v1.2.0](%s)", compareURL))
 }
 
 func TestGenerateReleaseNotes_NoReleaseFallsBackToTags(t *testing.T) {

@@ -268,7 +268,8 @@ func buildReleaseNotesContent(ctx context.Context, repo *repo_model.Repository, 
 	builder.WriteString("## What's Changed\n")
 
 	for _, pr := range prs {
-		builder.WriteString(fmt.Sprintf("* %s in %s\n", pr.Issue.Title, pr.Issue.HTMLURL(ctx)))
+		prURL := pr.Issue.HTMLURL(ctx)
+		builder.WriteString(fmt.Sprintf("* %s in [#%d](%s)\n", pr.Issue.Title, pr.Issue.Index, prURL))
 	}
 
 	builder.WriteString("\n")
@@ -284,13 +285,15 @@ func buildReleaseNotesContent(ctx context.Context, repo *repo_model.Repository, 
 	if len(newContributors) > 0 {
 		builder.WriteString("## New Contributors\n")
 		for _, contributor := range newContributors {
-			builder.WriteString(fmt.Sprintf("* @%s made their first contribution in %s\n", contributor.Issue.Poster.Name, contributor.Issue.HTMLURL(ctx)))
+			prURL := contributor.Issue.HTMLURL(ctx)
+			builder.WriteString(fmt.Sprintf("* @%s made their first contribution in [#%d](%s)\n", contributor.Issue.Poster.Name, contributor.Issue.Index, prURL))
 		}
 		builder.WriteString("\n")
 	}
 
 	builder.WriteString("**Full Changelog**: ")
-	builder.WriteString(fmt.Sprintf("%s/compare/%s...%s", repo.HTMLURL(ctx), util.PathEscapeSegments(baseRef), util.PathEscapeSegments(tagName)))
+	compareURL := fmt.Sprintf("%s/compare/%s...%s", repo.HTMLURL(ctx), util.PathEscapeSegments(baseRef), util.PathEscapeSegments(tagName))
+	builder.WriteString(fmt.Sprintf("[%s...%s](%s)", baseRef, tagName, compareURL))
 	return builder.String()
 }
 
