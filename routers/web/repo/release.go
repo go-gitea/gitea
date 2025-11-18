@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -388,6 +389,45 @@ func NewRelease(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplReleaseNew)
+}
+
+// GenerateReleaseNotes builds release notes content for the given tag and base.
+func GenerateReleaseNotes(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.GenerateReleaseNotesForm)
+
+	if ctx.HasError() {
+		ctx.JSONError(ctx.GetErrMsg())
+		return
+	}
+
+	result, err := release_service.GenerateReleaseNotes(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, release_service.GenerateReleaseNotesOptions{
+		TagName:     form.TagName,
+		Target:      form.Target,
+		PreviousTag: form.PreviousTag,
+	})
+	if err != nil {
+		var tagErr release_service.ErrReleaseNotesTagNotFound
+		var targetErr release_service.ErrReleaseNotesTargetNotFound
+		switch {
+		case release_service.IsErrReleaseNotesNoBaseTag(err):
+			ctx.JSONError(ctx.Tr("repo.release.generate_notes_no_base_tag"))
+		case errors.As(err, &tagErr):
+			ctx.JSONError(ctx.Tr("repo.release.generate_notes_tag_not_found", tagErr.TagName))
+		case errors.As(err, &targetErr):
+			ctx.JSONError(ctx.Tr("repo.release.generate_notes_target_not_found", targetErr.Ref))
+		default:
+			log.Error("GenerateReleaseNotes: %v", err)
+			ctx.JSON(http.StatusInternalServerError, map[string]any{
+				"errorMessage": ctx.Tr("error.occurred"),
+			})
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]any{
+		"content":      result.Content,
+		"previous_tag": result.PreviousTag,
+	})
 }
 
 // NewReleasePost response for creating a release
