@@ -595,7 +595,6 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .conversation-holder .comment .comment-container {
   border: none;
-  gap: 6px;
 }
 
 @media (max-width: 767.98px) {
@@ -663,6 +662,7 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .code-comment .comment-content {
+  margin-top: 6px;
   margin-left: 24px;
 }
 
