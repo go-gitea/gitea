@@ -1,3 +1,6 @@
+import {POST} from '../modules/fetch.ts';
+import {showErrorToast} from '../modules/toast.ts';
+import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {hideElem, showElem, type DOMEvent} from '../utils/dom.ts';
 
 export function initRepoRelease() {
@@ -15,6 +18,7 @@ export function initRepoReleaseNew() {
   if (!document.querySelector('.repository.new.release')) return;
 
   initTagNameEditor();
+  initGenerateReleaseNotes();
 }
 
 function initTagNameEditor() {
@@ -45,4 +49,78 @@ function initTagNameEditor() {
   tagNameInput.addEventListener('input', (e) => {
     hideTargetInput(e.target as HTMLInputElement);
   });
+}
+
+function initGenerateReleaseNotes() {
+  const button = document.querySelector<HTMLButtonElement>('#generate-release-notes');
+  if (!button) return;
+
+  const tagNameInput = document.querySelector<HTMLInputElement>('#tag-name');
+  const targetInput = document.querySelector<HTMLInputElement>("input[name='tag_target']");
+  const previousTagSelect = document.querySelector<HTMLSelectElement>('#release-previous-tag');
+  const missingTagMessage = button.getAttribute('data-missing-tag-message') || 'Tag name is required';
+  const generateUrl = button.getAttribute('data-generate-url');
+
+  button.addEventListener('click', async () => {
+    const tagName = tagNameInput?.value.trim();
+    if (!tagName) {
+      showErrorToast(missingTagMessage);
+      tagNameInput?.focus();
+      return;
+    }
+    if (!generateUrl) {
+      showErrorToast('Missing release notes endpoint');
+      return;
+    }
+
+    const form = new URLSearchParams();
+    form.set('tag_name', tagName);
+    form.set('tag_target', targetInput?.value || '');
+    form.set('previous_tag', previousTagSelect?.value || '');
+
+    button.classList.add('loading', 'disabled');
+    try {
+      const resp = await POST(generateUrl, {
+        data: form,
+      });
+      let data: any = {};
+      try {
+        data = await resp.json();
+      } catch {
+        data = {};
+      }
+      if (!resp.ok) {
+        throw new Error(data.errorMessage || data.error || resp.statusText);
+      }
+
+      if (previousTagSelect && 'previous_tag' in data) {
+        previousTagSelect.value = data.previous_tag || '';
+        previousTagSelect.dispatchEvent(new Event('change', {bubbles: true}));
+      }
+      if (data && 'content' in data) {
+        applyGeneratedReleaseNotes(data.content || '');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      showErrorToast(message);
+    } finally {
+      button.classList.remove('loading', 'disabled');
+    }
+  });
+}
+
+function applyGeneratedReleaseNotes(content: string) {
+  const editorContainer = document.querySelector<HTMLElement>('.combo-markdown-editor');
+  const textarea = editorContainer?.querySelector<HTMLTextAreaElement>('textarea[name="content"]') ??
+    document.querySelector<HTMLTextAreaElement>('textarea[name="content"]');
+
+  const comboEditor = getComboMarkdownEditor(editorContainer);
+  if (comboEditor?.easyMDE) {
+    comboEditor.easyMDE.value(content);
+  }
+
+  if (textarea) {
+    textarea.value = content;
+    textarea.dispatchEvent(new Event('input', {bubbles: true}));
+  }
 }

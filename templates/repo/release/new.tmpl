@@ -17,6 +17,8 @@
 			<div class="ui seven wide target">
 				<div class="inline field {{if .Err_TagName}}error{{end}}">
 					{{if .PageIsEditRelease}}
+						<input id="tag-name" type="hidden" name="tag_name" value="{{.tag_name}}">
+						<input type="hidden" name="tag_target" value="{{.tag_target}}">
 						<b>{{.tag_name}}</b><span class="at">@</span><strong>{{.tag_target}}</strong>
 					{{else}}
 						<input id="tag-name" name="tag_name" value="{{.tag_name}}" aria-label="{{ctx.Locale.Tr "repo.release.tag_name"}}" placeholder="{{ctx.Locale.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
@@ -48,6 +50,26 @@
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<input name="title" aria-label="{{ctx.Locale.Tr "repo.release.title"}}" placeholder="{{ctx.Locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
 				</div>
+				<div class="field">
+					<div class="tw-flex tw-flex-wrap tw-items-center tw-gap-3">
+						<label for="release-previous-tag" class="tw-mb-0 tw-text-sm tw-font-semibold tw-whitespace-nowrap">{{ctx.Locale.Tr "repo.release.previous_tag"}}</label>
+						<select id="release-previous-tag" name="previous_tag" class="ui selection dropdown tw-w-[16rem] tw-h-[38px] tw-min-h-[38px] max-lg:tw-w-full">
+							<option value="">{{ctx.Locale.Tr "repo.release.previous_tag_auto"}}</option>
+							{{range .Tags}}
+								<option value="{{.}}">{{.}}</option>
+							{{end}}
+						</select>
+						<button type="button"
+							class="ui button tw-inline-flex tw-items-center tw-justify-center tw-h-[38px] tw-min-h-[38px]"
+							id="generate-release-notes"
+							data-generate-url="{{.RepoLink}}/releases/generate-notes"
+							data-missing-tag-message="{{ctx.Locale.Tr "repo.release.generate_notes_missing_tag"}}"
+							data-tooltip-content="{{ctx.Locale.Tr "repo.release.generate_notes_desc"}}">
+							{{ctx.Locale.Tr "repo.release.generate_notes"}}
+						</button>
+					</div>
+				</div>
+				<span class="help tw-mt-2 tw-mb-4 tw-block">{{ctx.Locale.Tr "repo.release.generate_notes_desc"}}</span>
 				<div class="field">
 					{{template "shared/combomarkdowneditor" (dict
 						"MarkdownPreviewInRepo" $.Repository
