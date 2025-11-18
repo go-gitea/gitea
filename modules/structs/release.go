@@ -13,7 +13,7 @@ type Release struct {
 	ID int64 `json:"id"`
 	// The name of the git tag associated with the release
 	TagName string `json:"tag_name"`
-	// The target commitish for the release
+	// The target committish for the release
 	Target string `json:"target_commitish"`
 	// The display title of the release
 	Title string `json:"name"`
@@ -49,7 +49,7 @@ type CreateReleaseOption struct {
 	TagName string `json:"tag_name" binding:"Required"`
 	// The message for the git tag
 	TagMessage string `json:"tag_message"`
-	// The target commitish for the release
+	// The target committish for the release
 	Target string `json:"target_commitish"`
 	// The display title of the release
 	Title string `json:"name"`
@@ -65,7 +65,7 @@ type CreateReleaseOption struct {
 type EditReleaseOption struct {
 	// The new name of the git tag
 	TagName string `json:"tag_name"`
-	// The new target commitish for the release
+	// The new target committish for the release
 	Target string `json:"target_commitish"`
 	// The new display title of the release
 	Title string `json:"name"`
