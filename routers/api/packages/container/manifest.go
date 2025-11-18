@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -260,6 +259,13 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 		return nil, err
 	}
 
+	// "docker buildx imagetools create" multi-arch operations:
+	// {"type":"oci","is_tagged":false,"platform":"unknown/unknown"}
+	// {"type":"oci","is_tagged":false,"platform":"linux/amd64","layer_creation":["ADD file:9233f6f2237d79659a9521f7e390df217cec49f1a8aa3a12147bbca1956acdb9 in /","CMD [\"/bin/sh\"]"]}
+	// {"type":"oci","is_tagged":false,"platform":"unknown/unknown"}
+	// {"type":"oci","is_tagged":false,"platform":"linux/arm64","layer_creation":["ADD file:df53811312284306901fdaaff0a357a4bf40d631e662fe9ce6d342442e494b6c in /","CMD [\"/bin/sh\"]"]}
+	// {"type":"oci","is_tagged":true,"manifests":[{"platform":"linux/amd64","digest":"sha256:72bb73e706c0dec424d00a1febb21deaf1175a70ead009ad8b159729cfcf5769","size":2819478},{"platform":"linux/arm64","digest":"sha256:9e1426dd084a3221663b85ca1ee99d140c50b153917a5c5604c1f9b78229fd24","size":2716499},{"platform":"unknown/unknown","digest":"sha256:b93f03d0ae11b988243e1b2cd8d29accf5b9670547b7bd8c7d96abecc7283e6e","size":1798},{"platform":"unknown/unknown","digest":"sha256:f034b182ba66366c63a5d195c6dfcd3333c027409c0ac98e55ade36aaa3b2963","size":1798}]}
+
 	_pv := &packages_model.PackageVersion{
 		PackageID:    p.ID,
 		CreatorID:    mci.Creator.ID,
@@ -273,25 +279,16 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 			log.Error("Error inserting package: %v", err)
 			return nil, err
 		}
-
-		if container_module.IsMediaTypeImageIndex(mci.MediaType) {
-			if pv.CreatedUnix.AsTime().Before(time.Now().Add(-24 * time.Hour)) {
-				if err = packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-					return nil, err
-				}
-				// keep download count on overwriting
-				_pv.DownloadCount = pv.DownloadCount
-				if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
-					if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
-						log.Error("Error inserting package: %v", err)
-						return nil, err
-					}
-				}
-			} else {
-				err = packages_model.UpdateVersion(ctx, &packages_model.PackageVersion{ID: pv.ID, MetadataJSON: _pv.MetadataJSON})
-				if err != nil {
-					return nil, err
-				}
+		if err = packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
+			return nil, err
+		}
+		// keep download count on overwriting
+		_pv.DownloadCount = pv.DownloadCount
+		pv, err = packages_model.GetOrInsertVersion(ctx, _pv)
+		if err != nil {
+			if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
+				log.Error("Error inserting package: %v", err)
+				return nil, err
 			}
 		}
 	}
