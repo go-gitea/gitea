@@ -74,7 +74,7 @@
 						<span class="btn-octicon disabled" data-tooltip-content="{{.EditFileTooltip}}">{{svg "octicon-pencil"}}</span>
 					{{end}}
 					{{if .CanDeleteFile}}
-						<a type="button" class="btn-octicon btn-octicon-danger" data-tooltip-content="{{.DeleteFileTooltip}}" id="delete-file-button">{{svg "octicon-trash"}}</a>
+						<a class="btn-octicon btn-octicon-danger" data-tooltip-content="{{.DeleteFileTooltip}}" href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}">{{svg "octicon-trash"}}</a>
 					{{else}}
 						<span class="btn-octicon disabled" data-tooltip-content="{{.DeleteFileTooltip}}">{{svg "octicon-trash"}}</span>
 					{{end}}
@@ -148,75 +148,4 @@
 			<a class="item copy-line-permalink" role="menuitem" data-url="{{.Repository.Link}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}{{if $.HasSourceRenderedToggle}}?display=source{{end}}">{{ctx.Locale.Tr "repo.file_copy_permalink"}}</a>
 		</div>
 	</div>
-
-	{{/* Delete File Modal */}}
-	{{if .CanDeleteFile}}
-	<div class="ui modal" id="delete-file-modal">
-		<i class="close icon"></i>
-		<div class="content">
-			<form id="delete-file-form" class="ui form form-fetch-action" method="post" action="{{.RepoLink}}/_delete/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-				{{.CsrfTokenHtml}}
-				<input type="hidden" name="last_commit" value="{{.CommitID}}">
-				<input type="hidden" name="tree_path" value="{{.TreePath}}">
-				<div class="commit-form-wrapper">
-					{{ctx.AvatarUtils.Avatar .SignedUser 40 "commit-avatar"}}
-					<div class="commit-form avatar-content-left-arrow">
-						<h3>
-							<span>{{svg "octicon-unlock" 24}}</span>
-							{{ctx.Locale.Tr "repo.editor.commit_changes"}}
-						</h3>
-						<div class="field">
-							<input name="commit_summary" maxlength="100" placeholder="Delete {{.TreePath}}" value="Delete {{.TreePath}}" autofocus>
-						</div>
-						<div class="field">
-							<textarea name="commit_message" placeholder="{{ctx.Locale.Tr "repo.editor.commit_message_desc"}}" rows="5"></textarea>
-						</div>
-						<div class="inline field">
-							<div class="ui checkbox">
-								<input name="signoff" type="checkbox">
-								<label>{{ctx.Locale.Tr "repo.editor.signoff_desc"}}</label>
-							</div>
-						</div>
-						<div class="quick-pull-choice">
-							<div class="field">
-								<div class="ui radio checkbox">
-									<input type="radio" name="commit_choice" value="direct" checked>
-									<label>
-										{{svg "octicon-git-commit"}}
-										{{ctx.Locale.Tr "repo.editor.commit_directly_to_this_branch" .BranchName}}
-									</label>
-								</div>
-							</div>
-							{{if not .Repository.IsEmpty}}
-								<div class="field">
-									<div class="ui radio checkbox">
-										<input type="radio" name="commit_choice" value="commit-to-new-branch">
-										<label>
-											{{svg "octicon-git-pull-request"}}
-											{{ctx.Locale.Tr "repo.editor.create_new_branch_np"}}
-										</label>
-									</div>
-								</div>
-								<div class="quick-pull-branch-name tw-hidden">
-									<div class="new-branch-name-input field">
-										{{svg "octicon-git-branch"}}
-										<input type="text" name="new_branch_name" maxlength="100" value="{{.new_branch_name}}" class="input-contrast tw-mr-1" placeholder="{{ctx.Locale.Tr "repo.editor.new_branch_name_desc"}}" title="{{ctx.Locale.Tr "repo.editor.new_branch_name"}}">
-										<span class="text-muted"></span>
-									</div>
-								</div>
-							{{end}}
-						</div>
-					</div>
-				</div>
-				<div class="tw-text-right tw-mt-4">
-					<button type="button" class="ui button" onclick="$('#delete-file-modal').modal('hide')">{{ctx.Locale.Tr "cancel"}}</button>
-					<button type="submit" class="ui red button">
-						{{svg "octicon-trash" 16}}
-						{{ctx.Locale.Tr "repo.editor.delete_this_file"}}
-					</button>
-				</div>
-			</form>
-		</div>
-	</div>
-	{{end}}
 </div>

@@ -84,7 +84,6 @@ const handleClickOutside = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
   const resultsEl = searchResults.value;
   
-  // Check if click is outside search input and results
   if (searchInputElement && !searchInputElement.contains(target) && 
       resultsEl && !resultsEl.contains(target)) {
     clearSearch();
@@ -102,14 +101,12 @@ onMounted(async () => {
     allFiles.value = await response.json();
   }
   
-  // Setup search input listener
   searchInputElement = document.querySelector('#file-tree-search');
   if (searchInputElement) {
     searchInputElement.addEventListener('input', handleSearchInput);
     searchInputElement.addEventListener('keydown', handleKeyDown);
   }
   
-  // Add click outside listener
   document.addEventListener('click', handleClickOutside);
   
   window.addEventListener('popstate', (e) => {

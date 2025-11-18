@@ -14,21 +14,13 @@
 		>
 			{{.CsrfTokenHtml}}
 			{{template "repo/editor/common_top" .}}
-			<div class="repo-editor-header tw-flex tw-items-center tw-justify-between tw-gap-2">
-				<div class="tw-flex tw-items-center tw-gap-2">
-					<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}"
-						data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show"
-						data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
-						{{svg "octicon-sidebar-collapse"}}
-					</button>
-					{{template "repo/editor/common_breadcrumb" .}}
-				</div>
-				<div class="tw-flex tw-gap-2">
-					<a class="ui red button" href="{{if .ReturnURI}}{{.ReturnURI}}{{else}}{{$.BranchLink}}/{{PathEscapeSegments .TreePath}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel"}}</a>
-					<button type="button" class="ui primary button disabled" id="commit-changes-button">
-						{{ctx.Locale.Tr "repo.editor.commit_changes"}}
-					</button>
-				</div>
+			<div class="repo-editor-header tw-flex tw-items-center tw-gap-2">
+				<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}"
+					data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show"
+					data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
+					{{svg "octicon-sidebar-collapse"}}
+				</button>
+				{{template "repo/editor/common_breadcrumb" .}}
 			</div>
 			{{if not .NotEditableReason}}
 				<div class="field">
@@ -64,21 +56,9 @@
 					</div>
 				</div>
 			{{end}}
-			{{/* Commit form fields - inside form but hidden, will be shown in modal */}}
-			<div id="commit-form-fields" style="display: none;">
-				{{template "repo/editor/commit_form" .}}
-			</div>
-			{{/* Hidden dummy button for repo-editor.ts compatibility */}}
-			<button id="commit-button" type="button" style="display: none;"></button>
+			{{template "repo/editor/commit_form" .}}
 				</form>
 			</div>
-		</div>
-	</div>
-
-	{{/* Commit Changes Modal - fields will be moved here visually */}}
-	<div class="ui modal" id="commit-changes-modal">
-		<i class="close icon"></i>
-		<div class="content" id="commit-modal-content">
 		</div>
 	</div>
 </div>

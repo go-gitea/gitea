@@ -307,11 +307,5 @@ func prepareFileViewEditorButtons(ctx *context.Context) bool {
 	ctx.Data["EditFileTooltip"] = util.Iif(isLFSLocked, ctx.Tr("repo.editor.this_file_locked"), ctx.Tr("repo.editor.edit_this_file"))
 	ctx.Data["CanDeleteFile"] = !isLFSLocked
 	ctx.Data["DeleteFileTooltip"] = util.Iif(isLFSLocked, ctx.Tr("repo.editor.this_file_locked"), ctx.Tr("repo.editor.delete_this_file"))
-
-	// Generate unique branch name for delete modal
-	if ctx.Doer != nil {
-		ctx.Data["new_branch_name"] = getUniquePatchBranchName(ctx, ctx.Doer.LowerName, ctx.Repo.Repository)
-	}
-
 	return true
 }

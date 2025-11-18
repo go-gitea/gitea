@@ -1,7 +1,4 @@
 <div class="commit-form-wrapper">
-	<button type="button" class="commit-modal-close" id="commit-modal-close-btn" aria-label="Close">
-		{{svg "octicon-x" 20}}
-	</button>
 	{{ctx.AvatarUtils.Avatar .SignedUser 40 "commit-avatar"}}
 	<div class="commit-form avatar-content-left-arrow">
 		<h3>
@@ -83,9 +80,8 @@
 		{{end}}
 	</div>
 	<input type="hidden" name="last_commit" value="{{.last_commit}}">
-	<div class="tw-text-right tw-mt-4">
-		<button id="commit-button" type="submit" class="ui primary button">
-			{{if eq .commit_choice "commit-to-new-branch"}}{{ctx.Locale.Tr "repo.editor.propose_file_change"}}{{else}}{{ctx.Locale.Tr "repo.editor.commit_changes"}}{{end}}
-		</button>
-	</div>
+	<button id="commit-button" type="submit" class="ui primary button">
+		{{if eq .commit_choice "commit-to-new-branch"}}{{ctx.Locale.Tr "repo.editor.propose_file_change"}}{{else}}{{ctx.Locale.Tr "repo.editor.commit_changes"}}{{end}}
+	</button>
+	<a class="ui button red" href="{{if .ReturnURI}}{{.ReturnURI}}{{else}}{{$.BranchLink}}/{{PathEscapeSegments .TreePath}}{{end}}">{{ctx.Locale.Tr "repo.editor.cancel"}}</a>
 </div>
