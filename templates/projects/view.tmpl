@@ -78,7 +78,9 @@
 					<div class="ui circular label project-column-issue-count">
 						{{.NumIssues}}
 					</div>
-					<div class="project-column-title-text gt-ellipsis">{{.Title}}</div>
+					<div class="project-column-title-text flex-text-inline gt-ellipsis" {{if .Default}}data-tooltip-content="{{ctx.Locale.Tr "repo.projects.column.default_column_hint"}}"{{end}}>
+						{{if .Default}}{{svg "octicon-star"}} {{end}}{{.Title}}
+					</div>
 					{{if $canWriteProject}}
 						<div class="ui dropdown tw-p-1">
 							{{svg "octicon-kebab-horizontal"}}
@@ -98,7 +100,7 @@
 										data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.set_default"}}"
 										data-modal-confirm-content="{{ctx.Locale.Tr "repo.projects.column.set_default_desc"}}"
 									>
-										{{svg "octicon-pin"}} {{ctx.Locale.Tr "repo.projects.column.set_default"}}
+										{{svg "octicon-star"}} {{ctx.Locale.Tr "repo.projects.column.set_default"}}
 									</a>
 									<a class="item button link-action" data-url="{{$.Link}}/{{.ID}}" data-link-action-method="DELETE"
 										data-modal-confirm-header="{{ctx.Locale.Tr "repo.projects.column.delete"}}"
