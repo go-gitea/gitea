@@ -83,12 +83,7 @@ function initGenerateReleaseNotes() {
       const resp = await POST(generateUrl, {
         data: form,
       });
-      let data: any = {};
-      try {
-        data = await resp.json();
-      } catch {
-        data = {};
-      }
+      const data = await resp.json();
       if (!resp.ok) {
         throw new Error(data.errorMessage || data.error || resp.statusText);
       }
@@ -115,8 +110,9 @@ function applyGeneratedReleaseNotes(content: string) {
     document.querySelector<HTMLTextAreaElement>('textarea[name="content"]');
 
   const comboEditor = getComboMarkdownEditor(editorContainer);
-  if (comboEditor?.easyMDE) {
-    comboEditor.easyMDE.value(content);
+  if (comboEditor) {
+    comboEditor.value(content);
+    return;
   }
 
   if (textarea) {

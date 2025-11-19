@@ -378,9 +378,10 @@ export class ComboMarkdownEditor {
 
     if (this.easyMDE) {
       this.easyMDE.value(v);
-    } else {
-      this.textarea.value = v;
     }
+    // Always update the underlying textarea so consumers remain in sync.
+    this.textarea.value = v;
+    this.textarea.dispatchEvent(new Event('input', {bubbles: true}));
     this.textareaAutosize?.resizeToFit();
   }
 
