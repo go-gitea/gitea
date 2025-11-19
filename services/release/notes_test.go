@@ -29,7 +29,6 @@ func TestGenerateReleaseNotes(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 	require.NoError(t, err)
-	t.Cleanup(func() { gitRepo.Close() })
 
 	mergedCommit := "90c1019714259b24fb81711d4416ac0f18667dfa"
 	pr := createMergedPullRequest(t, repo, mergedCommit, 5)
@@ -57,30 +56,14 @@ func TestGenerateReleaseNotes_NoReleaseFallsBackToTags(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
 	require.NoError(t, err)
-	t.Cleanup(func() { gitRepo.Close() })
 
 	mergedCommit := "90c1019714259b24fb81711d4416ac0f18667dfa"
 	createMergedPullRequest(t, repo, mergedCommit, 5)
-
-	var releases []repo_model.Release
-	err = db.GetEngine(t.Context()).
-		Where("repo_id=?", repo.ID).
-		Asc("id").
-		Find(&releases)
-	require.NoError(t, err)
 
 	_, err = db.GetEngine(t.Context()).
 		Where("repo_id=?", repo.ID).
 		Delete(new(repo_model.Release))
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		if len(releases) == 0 {
-			return
-		}
-		ctx := context.Background()
-		_, err := db.GetEngine(ctx).Insert(&releases)
-		require.NoError(t, err)
-	})
 
 	result, err := GenerateReleaseNotes(t.Context(), repo, gitRepo, GenerateReleaseNotesOptions{
 		TagName: "v1.2.0",
@@ -200,10 +183,6 @@ func insertTestRelease(ctx context.Context, t *testing.T, repo *repo_model.Repos
 
 	_, err := db.GetEngine(ctx).Insert(release)
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		_, err := db.GetEngine(context.Background()).ID(release.ID).Delete(new(repo_model.Release))
-		require.NoError(t, err)
-	})
 
 	return release
 }
