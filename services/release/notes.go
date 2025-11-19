@@ -140,10 +140,7 @@ type baseSelection struct {
 func resolveBaseTag(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, headCommit *git.Commit, tagName, requestedBase string) (*baseSelection, error) {
 	requestedBase = strings.TrimSpace(requestedBase)
 	if requestedBase != "" {
-		if gitRepo.IsTagExist(requestedBase) {
-			return buildBaseSelectionForTag(gitRepo, requestedBase)
-		}
-		return nil, newErrReleaseNotesTagNotFound(requestedBase)
+		return buildBaseSelectionForTag(gitRepo, requestedBase)
 	}
 
 	candidate, err := autoPreviousReleaseTag(ctx, repo, tagName)
