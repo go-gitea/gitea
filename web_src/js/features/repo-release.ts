@@ -62,21 +62,18 @@ function initGenerateReleaseNotes() {
   const generateUrl = button.getAttribute('data-generate-url');
 
   button.addEventListener('click', async () => {
-    const tagName = tagNameInput?.value.trim();
+    const tagName = tagNameInput.value.trim();
+
     if (!tagName) {
       showErrorToast(missingTagMessage);
       tagNameInput?.focus();
       return;
     }
-    if (!generateUrl) {
-      showErrorToast('Missing release notes endpoint');
-      return;
-    }
 
     const form = new URLSearchParams();
     form.set('tag_name', tagName);
-    form.set('tag_target', targetInput?.value || '');
-    form.set('previous_tag', previousTagSelect?.value || '');
+    form.set('tag_target', targetInput.value || '');
+    form.set('previous_tag', previousTagSelect.value || '');
 
     button.classList.add('loading', 'disabled');
     try {
@@ -85,16 +82,13 @@ function initGenerateReleaseNotes() {
       });
       const data = await resp.json();
       if (!resp.ok) {
-        throw new Error(data.errorMessage || data.error || resp.statusText);
+        throw new Error(data.errorMessage || resp.statusText);
       }
 
-      if (previousTagSelect && 'previous_tag' in data) {
-        previousTagSelect.value = data.previous_tag || '';
-        previousTagSelect.dispatchEvent(new Event('change', {bubbles: true}));
-      }
-      if (data && 'content' in data) {
-        applyGeneratedReleaseNotes(data.content || '');
-      }
+      previousTagSelect.value = data.previous_tag;
+      previousTagSelect.dispatchEvent(new Event('change', {bubbles: true}));
+
+      applyGeneratedReleaseNotes(data.content);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       showErrorToast(message);

@@ -6,7 +6,6 @@ package repo
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"html/template"
 	"net/url"
@@ -325,10 +324,6 @@ func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, erro
 
 // GetPreviousPublishedRelease returns the most recent published release created before the provided release.
 func GetPreviousPublishedRelease(ctx context.Context, repoID int64, current *Release) (*Release, error) {
-	if current == nil {
-		return nil, errors.New("current release must not be nil")
-	}
-
 	cond := builder.NewCond().
 		And(builder.Eq{"repo_id": repoID}).
 		And(builder.Eq{"is_draft": false}).
