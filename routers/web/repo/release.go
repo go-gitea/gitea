@@ -406,16 +406,9 @@ func GenerateReleaseNotes(ctx *context.Context) {
 		PreviousTag: form.PreviousTag,
 	})
 	if err != nil {
-		var tagErr release_service.ErrReleaseNotesTagNotFound
-		var targetErr release_service.ErrReleaseNotesTargetNotFound
-		switch {
-		case release_service.IsErrReleaseNotesNoBaseTag(err):
-			ctx.JSONError(ctx.Tr("repo.release.generate_notes_no_base_tag"))
-		case errors.As(err, &tagErr):
-			ctx.JSONError(ctx.Tr("repo.release.generate_notes_tag_not_found", tagErr.TagName))
-		case errors.As(err, &targetErr):
-			ctx.JSONError(ctx.Tr("repo.release.generate_notes_target_not_found", targetErr.Ref))
-		default:
+		if errTr := util.ErrorAsTranslatable(err); errTr != nil {
+			ctx.JSONError(errTr.Translate(ctx.Locale))
+		} else {
 			log.Error("GenerateReleaseNotes: %v", err)
 			ctx.JSON(http.StatusInternalServerError, map[string]any{
 				"errorMessage": ctx.Tr("error.occurred"),
