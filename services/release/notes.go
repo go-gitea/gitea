@@ -44,12 +44,6 @@ func (err ErrReleaseNotesTagNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// IsErrReleaseNotesTagNotFound reports whether the error is ErrReleaseNotesTagNotFound.
-func IsErrReleaseNotesTagNotFound(err error) bool {
-	_, ok := err.(ErrReleaseNotesTagNotFound)
-	return ok
-}
-
 // ErrReleaseNotesNoBaseTag indicates there is no tag to diff against.
 type ErrReleaseNotesNoBaseTag struct{}
 
