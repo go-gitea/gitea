@@ -1345,8 +1345,8 @@ td .commit-summary {
   justify-content: end;
 }
 
-.comment-header-right .action {
-  padding: 4px;
+.comment-header-right > .item.action {
+  padding: 4px; /* add some padding to make click area larger for the "item action ... ui dropdown" items */
 }
 
 .comment-body {
