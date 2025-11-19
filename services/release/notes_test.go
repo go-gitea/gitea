@@ -4,7 +4,6 @@
 package release
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -70,14 +69,6 @@ func TestGenerateReleaseNotes_NoReleaseFallsBackToTags(t *testing.T) {
 		Where("repo_id=?", repo.ID).
 		Delete(new(repo_model.Release))
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		if len(releases) == 0 {
-			return
-		}
-		ctx := context.Background()
-		_, err := db.GetEngine(ctx).Insert(&releases)
-		require.NoError(t, err)
-	})
 
 	result, err := GenerateReleaseNotes(t.Context(), repo, gitRepo, GenerateReleaseNotesOptions{
 		TagName: "v1.2.0",

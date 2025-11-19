@@ -4,12 +4,12 @@
 package release
 
 import (
+	"cmp"
 	"context"
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -44,6 +44,10 @@ func (err ErrReleaseNotesTagNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
+func newErrReleaseNotesTagNotFound(tagName string) error {
+	return util.ErrorWrapTranslatable(ErrReleaseNotesTagNotFound{TagName: tagName}, "repo.release.generate_notes_tag_not_found", tagName)
+}
+
 // ErrReleaseNotesNoBaseTag indicates there is no tag to diff against.
 type ErrReleaseNotesNoBaseTag struct{}
 
@@ -53,12 +57,6 @@ func (err ErrReleaseNotesNoBaseTag) Error() string {
 
 func (err ErrReleaseNotesNoBaseTag) Unwrap() error {
 	return util.ErrNotExist
-}
-
-// IsErrReleaseNotesNoBaseTag reports whether the error is ErrReleaseNotesNoBaseTag.
-func IsErrReleaseNotesNoBaseTag(err error) bool {
-	_, ok := err.(ErrReleaseNotesNoBaseTag)
-	return ok
 }
 
 // ErrReleaseNotesTargetNotFound indicates the release target ref cannot be resolved.
@@ -72,6 +70,10 @@ func (err ErrReleaseNotesTargetNotFound) Error() string {
 
 func (err ErrReleaseNotesTargetNotFound) Unwrap() error {
 	return util.ErrNotExist
+}
+
+func newErrReleaseNotesTargetNotFound(ref string) error {
+	return util.ErrorWrapTranslatable(ErrReleaseNotesTargetNotFound{Ref: ref}, "repo.release.generate_notes_target_not_found", ref)
 }
 
 // GenerateReleaseNotes builds the markdown snippet for release notes.
@@ -124,7 +126,7 @@ func resolveHeadCommit(repo *repo_model.Repository, gitRepo *git.Repository, tag
 
 	commit, err := gitRepo.GetCommit(ref)
 	if err != nil {
-		return nil, ErrReleaseNotesTargetNotFound{Ref: ref}
+		return nil, newErrReleaseNotesTargetNotFound(ref)
 	}
 	return commit, nil
 }
@@ -141,7 +143,7 @@ func resolveBaseTag(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 		if gitRepo.IsTagExist(requestedBase) {
 			baseCommit, err := gitRepo.GetCommit(requestedBase)
 			if err != nil {
-				return nil, ErrReleaseNotesTagNotFound{TagName: requestedBase}
+				return nil, newErrReleaseNotesTagNotFound(requestedBase)
 			}
 			return &baseSelection{
 				CompareBase: requestedBase,
@@ -149,7 +151,7 @@ func resolveBaseTag(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 				Commit:      baseCommit,
 			}, nil
 		}
-		return nil, ErrReleaseNotesTagNotFound{TagName: requestedBase}
+		return nil, newErrReleaseNotesTagNotFound(requestedBase)
 	}
 
 	rel, err := repo_model.GetLatestReleaseByRepoID(ctx, repo.ID)
@@ -160,7 +162,7 @@ func resolveBaseTag(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 			if gitRepo.IsTagExist(candidate) {
 				baseCommit, err := gitRepo.GetCommit(candidate)
 				if err != nil {
-					return nil, ErrReleaseNotesTagNotFound{TagName: candidate}
+					return nil, newErrReleaseNotesTagNotFound(candidate)
 				}
 				return &baseSelection{
 					CompareBase: candidate,
@@ -168,7 +170,7 @@ func resolveBaseTag(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 					Commit:      baseCommit,
 				}, nil
 			}
-			return nil, ErrReleaseNotesTagNotFound{TagName: candidate}
+			return nil, newErrReleaseNotesTagNotFound(candidate)
 		}
 	case repo_model.IsErrReleaseNotExist(err):
 		// fall back to tags below
@@ -187,7 +189,7 @@ func resolveBaseTag(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 		}
 		baseCommit, err := gitRepo.GetCommit(tag.Name)
 		if err != nil {
-			return nil, ErrReleaseNotesTagNotFound{TagName: tag.Name}
+			return nil, newErrReleaseNotesTagNotFound(tag.Name)
 		}
 		return &baseSelection{
 			CompareBase: tag.Name,
@@ -220,7 +222,6 @@ func findInitialCommit(commit *git.Commit) (*git.Commit, error) {
 }
 
 func collectPullRequestsFromCommits(ctx context.Context, repoID int64, commits []*git.Commit) ([]*issues_model.PullRequest, error) {
-	seen := container.Set[int64]{}
 	prs := make([]*issues_model.PullRequest, 0, len(commits))
 
 	for _, commit := range commits {
@@ -232,10 +233,6 @@ func collectPullRequestsFromCommits(ctx context.Context, repoID int64, commits [
 			return nil, fmt.Errorf("GetPullRequestByMergedCommit: %w", err)
 		}
 
-		if !pr.HasMerged || seen.Contains(pr.ID) {
-			continue
-		}
-
 		if err = pr.LoadIssue(ctx); err != nil {
 			return nil, fmt.Errorf("LoadIssue: %w", err)
 		}
@@ -243,15 +240,14 @@ func collectPullRequestsFromCommits(ctx context.Context, repoID int64, commits [
 			return nil, fmt.Errorf("LoadIssueAttributes: %w", err)
 		}
 
-		seen.Add(pr.ID)
 		prs = append(prs, pr)
 	}
 
-	sort.Slice(prs, func(i, j int) bool {
-		if prs[i].MergedUnix != prs[j].MergedUnix {
-			return prs[i].MergedUnix > prs[j].MergedUnix
+	slices.SortFunc(prs, func(a, b *issues_model.PullRequest) int {
+		if cmpRes := cmp.Compare(b.MergedUnix, a.MergedUnix); cmpRes != 0 {
+			return cmpRes
 		}
-		return prs[i].Issue.Index > prs[j].Issue.Index
+		return cmp.Compare(b.Issue.Index, a.Issue.Index)
 	})
 
 	return prs, nil
@@ -329,17 +325,9 @@ func collectContributors(ctx context.Context, repoID int64, prs []*issues_model.
 }
 
 func isFirstContribution(ctx context.Context, repoID, posterID int64, pr *issues_model.PullRequest) (bool, error) {
-	count, err := db.GetEngine(ctx).
-		Table("issue").
-		Join("INNER", "pull_request", "pull_request.issue_id = issue.id").
-		Where("issue.repo_id = ?", repoID).
-		And("pull_request.has_merged = ?", true).
-		And("issue.poster_id = ?", posterID).
-		And("pull_request.id != ?", pr.ID).
-		And("pull_request.merged_unix < ?", pr.MergedUnix).
-		Count()
+	hasMergedBefore, err := issues_model.HasMergedPullRequestInRepoBefore(ctx, repoID, posterID, int64(pr.MergedUnix), pr.ID)
 	if err != nil {
-		return false, fmt.Errorf("count merged PRs for contributor: %w", err)
+		return false, fmt.Errorf("check merged PRs for contributor: %w", err)
 	}
-	return count == 0, nil
+	return !hasMergedBefore, nil
 }
