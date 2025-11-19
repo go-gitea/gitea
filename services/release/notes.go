@@ -301,6 +301,11 @@ func collectContributors(ctx context.Context, repoID int64, prs []*issues_model.
 		poster := pr.Issue.Poster
 		posterID := poster.ID
 
+		if posterID == 0 {
+			// Migrated PRs may not have a linked local user (PosterID == 0). Skip them for now.
+			continue
+		}
+
 		if !seenContributors.Contains(posterID) {
 			contributors = append(contributors, poster)
 			seenContributors.Add(posterID)
