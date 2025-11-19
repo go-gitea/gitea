@@ -304,20 +304,11 @@ func collectContributors(ctx context.Context, repoID int64, prs []*issues_model.
 	seenNew := container.Set[int64]{}
 
 	for _, pr := range prs {
-		if pr.Issue == nil || pr.Issue.Poster == nil {
-			continue
-		}
-
-		posterID := pr.Issue.PosterID
-		if posterID == 0 {
-			posterID = pr.Issue.Poster.ID
-		}
-		if posterID == 0 {
-			continue
-		}
+		poster := pr.Issue.Poster
+		posterID := poster.ID
 
 		if !seenContributors.Contains(posterID) {
-			contributors = append(contributors, pr.Issue.Poster)
+			contributors = append(contributors, poster)
 			seenContributors.Add(posterID)
 		}
 
