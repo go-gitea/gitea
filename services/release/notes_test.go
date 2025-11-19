@@ -133,7 +133,7 @@ func TestFindPreviousTagName(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "v2.0.0", prev)
 
-	_, ok = findPreviousTagName([]*git.Tag{{Name: ""}}, "v1.0.0")
+	_, ok = findPreviousTagName([]*git.Tag{}, "v1.0.0")
 	assert.False(t, ok)
 }
 
