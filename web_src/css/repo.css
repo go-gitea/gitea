@@ -528,6 +528,8 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .timeline-item .comment-text-line {
+  /* TODO: this "line-height" is not ideal (actually it is abused), many layouts depend on this magic value,
+      for example: alignment of the header arrow and the avatar, view PR commit list left icon layout, dismiss review with reason, etc */
   line-height: 32px;
   vertical-align: middle;
   color: var(--color-text-light);
