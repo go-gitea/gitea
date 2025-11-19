@@ -551,11 +551,13 @@ func NewReleasePost(ctx *context.Context) {
 
 // EditRelease render release edit page
 func EditRelease(ctx *context.Context) {
+	newReleaseCommon(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
-	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
-	upload.AddUploadContext(ctx, "release")
 
 	tagName := ctx.PathParam("*")
 	rel, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tagName)
@@ -596,8 +598,13 @@ func EditRelease(ctx *context.Context) {
 // EditReleasePost response for edit release
 func EditReleasePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditReleaseForm)
+
+	newReleaseCommon(ctx)
+	if ctx.Written() {
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
-	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
 
 	tagName := ctx.PathParam("*")
