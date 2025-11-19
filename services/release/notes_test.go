@@ -4,14 +4,18 @@
 package release
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -69,6 +73,14 @@ func TestGenerateReleaseNotes_NoReleaseFallsBackToTags(t *testing.T) {
 		Where("repo_id=?", repo.ID).
 		Delete(new(repo_model.Release))
 	require.NoError(t, err)
+	t.Cleanup(func() {
+		if len(releases) == 0 {
+			return
+		}
+		ctx := context.Background()
+		_, err := db.GetEngine(ctx).Insert(&releases)
+		require.NoError(t, err)
+	})
 
 	result, err := GenerateReleaseNotes(t.Context(), repo, gitRepo, GenerateReleaseNotesOptions{
 		TagName: "v1.2.0",
@@ -77,6 +89,52 @@ func TestGenerateReleaseNotes_NoReleaseFallsBackToTags(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "v1.1", result.PreviousTag)
 	assert.Contains(t, result.Content, "@user5")
+}
+
+func TestAutoPreviousReleaseTag_UsesPrevPublishedRelease(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	prev := insertTestRelease(ctx, t, repo, "auto-prev", timeutil.TimeStamp(100), releaseInsertOptions{})
+	insertTestRelease(ctx, t, repo, "auto-draft", timeutil.TimeStamp(150), releaseInsertOptions{IsDraft: true})
+	insertTestRelease(ctx, t, repo, "auto-pre", timeutil.TimeStamp(175), releaseInsertOptions{IsPrerelease: true})
+	current := insertTestRelease(ctx, t, repo, "auto-current", timeutil.TimeStamp(200), releaseInsertOptions{})
+
+	candidate, err := autoPreviousReleaseTag(ctx, repo, current.TagName)
+	require.NoError(t, err)
+	assert.Equal(t, prev.TagName, candidate)
+}
+
+func TestAutoPreviousReleaseTag_LatestReleaseFallback(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx := t.Context()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	latest := insertTestRelease(ctx, t, repo, "auto-latest", timeutil.TimeStampNow(), releaseInsertOptions{})
+
+	candidate, err := autoPreviousReleaseTag(ctx, repo, "missing-tag")
+	require.NoError(t, err)
+	assert.Equal(t, latest.TagName, candidate)
+}
+
+func TestFindPreviousTagName(t *testing.T) {
+	tags := []*git.Tag{
+		{Name: "v2.0.0"},
+		{Name: "v1.1.0"},
+		{Name: "v1.0.0"},
+	}
+
+	prev, ok := findPreviousTagName(tags, "v1.1.0")
+	require.True(t, ok)
+	assert.Equal(t, "v1.0.0", prev)
+
+	prev, ok = findPreviousTagName(tags, "v9.9.9")
+	require.True(t, ok)
+	assert.Equal(t, "v2.0.0", prev)
+
+	_, ok = findPreviousTagName([]*git.Tag{{Name: ""}}, "v1.0.0")
+	assert.False(t, ok)
 }
 
 func createMergedPullRequest(t *testing.T, repo *repo_model.Repository, mergeCommit string, posterID int64) *issues_model.PullRequest {
@@ -114,4 +172,38 @@ func createMergedPullRequest(t *testing.T, repo *repo_model.Repository, mergeCom
 	require.NoError(t, pr.LoadIssue(t.Context()))
 	require.NoError(t, pr.Issue.LoadAttributes(t.Context()))
 	return pr
+}
+
+type releaseInsertOptions struct {
+	IsDraft      bool
+	IsPrerelease bool
+	IsTag        bool
+}
+
+func insertTestRelease(ctx context.Context, t *testing.T, repo *repo_model.Repository, tag string, created timeutil.TimeStamp, opts releaseInsertOptions) *repo_model.Release {
+	t.Helper()
+	lower := strings.ToLower(tag)
+
+	release := &repo_model.Release{
+		RepoID:       repo.ID,
+		PublisherID:  repo.OwnerID,
+		TagName:      tag,
+		LowerTagName: lower,
+		Target:       repo.DefaultBranch,
+		Title:        tag,
+		Sha1:         fmt.Sprintf("%040d", int64(created)+time.Now().UnixNano()),
+		IsDraft:      opts.IsDraft,
+		IsPrerelease: opts.IsPrerelease,
+		IsTag:        opts.IsTag,
+		CreatedUnix:  created,
+	}
+
+	_, err := db.GetEngine(ctx).Insert(release)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_, err := db.GetEngine(context.Background()).ID(release.ID).Delete(new(repo_model.Release))
+		require.NoError(t, err)
+	})
+
+	return release
 }

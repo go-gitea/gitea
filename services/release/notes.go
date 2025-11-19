@@ -141,41 +141,17 @@ func resolveBaseTag(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 	requestedBase = strings.TrimSpace(requestedBase)
 	if requestedBase != "" {
 		if gitRepo.IsTagExist(requestedBase) {
-			baseCommit, err := gitRepo.GetCommit(requestedBase)
-			if err != nil {
-				return nil, newErrReleaseNotesTagNotFound(requestedBase)
-			}
-			return &baseSelection{
-				CompareBase: requestedBase,
-				PreviousTag: requestedBase,
-				Commit:      baseCommit,
-			}, nil
+			return buildBaseSelectionForTag(gitRepo, requestedBase)
 		}
 		return nil, newErrReleaseNotesTagNotFound(requestedBase)
 	}
 
-	rel, err := repo_model.GetLatestReleaseByRepoID(ctx, repo.ID)
-	switch {
-	case err == nil:
-		candidate := strings.TrimSpace(rel.TagName)
-		if !strings.EqualFold(candidate, tagName) {
-			if gitRepo.IsTagExist(candidate) {
-				baseCommit, err := gitRepo.GetCommit(candidate)
-				if err != nil {
-					return nil, newErrReleaseNotesTagNotFound(candidate)
-				}
-				return &baseSelection{
-					CompareBase: candidate,
-					PreviousTag: candidate,
-					Commit:      baseCommit,
-				}, nil
-			}
-			return nil, newErrReleaseNotesTagNotFound(candidate)
-		}
-	case repo_model.IsErrReleaseNotExist(err):
-		// fall back to tags below
-	default:
-		return nil, fmt.Errorf("GetLatestReleaseByRepoID: %w", err)
+	candidate, err := autoPreviousReleaseTag(ctx, repo, tagName)
+	if err != nil {
+		return nil, err
+	}
+	if candidate != "" {
+		return buildBaseSelectionForTag(gitRepo, candidate)
 	}
 
 	tagInfos, _, err := gitRepo.GetTagInfos(0, 0)
@@ -183,19 +159,8 @@ func resolveBaseTag(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 		return nil, fmt.Errorf("GetTagInfos: %w", err)
 	}
 
-	for _, tag := range tagInfos {
-		if strings.EqualFold(tag.Name, tagName) {
-			continue
-		}
-		baseCommit, err := gitRepo.GetCommit(tag.Name)
-		if err != nil {
-			return nil, newErrReleaseNotesTagNotFound(tag.Name)
-		}
-		return &baseSelection{
-			CompareBase: tag.Name,
-			PreviousTag: tag.Name,
-			Commit:      baseCommit,
-		}, nil
+	if previousTag, ok := findPreviousTagName(tagInfos, tagName); ok {
+		return buildBaseSelectionForTag(gitRepo, previousTag)
 	}
 
 	initialCommit, err := findInitialCommit(headCommit)
@@ -207,6 +172,97 @@ func resolveBaseTag(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 		PreviousTag: "",
 		Commit:      initialCommit,
 	}, nil
+}
+
+func buildBaseSelectionForTag(gitRepo *git.Repository, tagName string) (*baseSelection, error) {
+	tagName = strings.TrimSpace(tagName)
+	if tagName == "" {
+		return nil, ErrReleaseNotesNoBaseTag{}
+	}
+
+	baseCommit, err := gitRepo.GetCommit(tagName)
+	if err != nil {
+		return nil, newErrReleaseNotesTagNotFound(tagName)
+	}
+	return &baseSelection{
+		CompareBase: tagName,
+		PreviousTag: tagName,
+		Commit:      baseCommit,
+	}, nil
+}
+
+func autoPreviousReleaseTag(ctx context.Context, repo *repo_model.Repository, tagName string) (string, error) {
+	tagName = strings.TrimSpace(tagName)
+	if tagName == "" {
+		return "", nil
+	}
+
+	currentRelease, err := repo_model.GetRelease(ctx, repo.ID, tagName)
+	switch {
+	case err == nil:
+		return findPreviousPublishedReleaseTag(ctx, repo, currentRelease)
+	case repo_model.IsErrReleaseNotExist(err):
+		// this tag has no stored release, fall back to latest release below
+	default:
+		return "", fmt.Errorf("GetRelease: %w", err)
+	}
+
+	rel, err := repo_model.GetLatestReleaseByRepoID(ctx, repo.ID)
+	switch {
+	case err == nil:
+		candidate := strings.TrimSpace(rel.TagName)
+		if candidate == "" || strings.EqualFold(candidate, tagName) {
+			return "", nil
+		}
+		return candidate, nil
+	case repo_model.IsErrReleaseNotExist(err):
+		return "", nil
+	default:
+		return "", fmt.Errorf("GetLatestReleaseByRepoID: %w", err)
+	}
+}
+
+func findPreviousPublishedReleaseTag(ctx context.Context, repo *repo_model.Repository, current *repo_model.Release) (string, error) {
+	target := strings.TrimSpace(current.TagName)
+	prev, err := repo_model.GetPreviousPublishedRelease(ctx, repo.ID, current)
+	switch {
+	case err == nil:
+	case repo_model.IsErrReleaseNotExist(err):
+		return "", nil
+	default:
+		return "", fmt.Errorf("GetPreviousPublishedRelease: %w", err)
+	}
+
+	candidate := strings.TrimSpace(prev.TagName)
+	if candidate == "" || strings.EqualFold(candidate, target) {
+		return "", nil
+	}
+	return candidate, nil
+}
+
+func findPreviousTagName(tags []*git.Tag, target string) (string, bool) {
+	target = strings.TrimSpace(target)
+	foundTarget := false
+	for _, tag := range tags {
+		name := strings.TrimSpace(tag.Name)
+		if name == "" {
+			continue
+		}
+		if strings.EqualFold(name, target) {
+			foundTarget = true
+			continue
+		}
+		if foundTarget {
+			return name, true
+		}
+	}
+	if !foundTarget && len(tags) > 0 {
+		name := strings.TrimSpace(tags[0].Name)
+		if name != "" {
+			return name, true
+		}
+	}
+	return "", false
 }
 
 func findInitialCommit(commit *git.Commit) (*git.Commit, error) {
