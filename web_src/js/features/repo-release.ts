@@ -106,17 +106,7 @@ function initGenerateReleaseNotes() {
 
 function applyGeneratedReleaseNotes(content: string) {
   const editorContainer = document.querySelector<HTMLElement>('.combo-markdown-editor');
-  const textarea = editorContainer?.querySelector<HTMLTextAreaElement>('textarea[name="content"]') ??
-    document.querySelector<HTMLTextAreaElement>('textarea[name="content"]');
 
   const comboEditor = getComboMarkdownEditor(editorContainer);
-  if (comboEditor) {
-    comboEditor.value(content);
-    return;
-  }
-
-  if (textarea) {
-    textarea.value = content;
-    textarea.dispatchEvent(new Event('input', {bubbles: true}));
-  }
+  comboEditor.value(content);
 }
