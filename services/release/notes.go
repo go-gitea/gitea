@@ -175,11 +175,6 @@ func resolveBaseTag(ctx context.Context, repo *repo_model.Repository, gitRepo *g
 }
 
 func buildBaseSelectionForTag(gitRepo *git.Repository, tagName string) (*baseSelection, error) {
-	tagName = strings.TrimSpace(tagName)
-	if tagName == "" {
-		return nil, ErrReleaseNotesNoBaseTag{}
-	}
-
 	baseCommit, err := gitRepo.GetCommit(tagName)
 	if err != nil {
 		return nil, newErrReleaseNotesTagNotFound(tagName)
@@ -192,11 +187,6 @@ func buildBaseSelectionForTag(gitRepo *git.Repository, tagName string) (*baseSel
 }
 
 func autoPreviousReleaseTag(ctx context.Context, repo *repo_model.Repository, tagName string) (string, error) {
-	tagName = strings.TrimSpace(tagName)
-	if tagName == "" {
-		return "", nil
-	}
-
 	currentRelease, err := repo_model.GetRelease(ctx, repo.ID, tagName)
 	switch {
 	case err == nil:
@@ -210,11 +200,10 @@ func autoPreviousReleaseTag(ctx context.Context, repo *repo_model.Repository, ta
 	rel, err := repo_model.GetLatestReleaseByRepoID(ctx, repo.ID)
 	switch {
 	case err == nil:
-		candidate := strings.TrimSpace(rel.TagName)
-		if candidate == "" || strings.EqualFold(candidate, tagName) {
+		if strings.EqualFold(rel.TagName, tagName) {
 			return "", nil
 		}
-		return candidate, nil
+		return rel.TagName, nil
 	case repo_model.IsErrReleaseNotExist(err):
 		return "", nil
 	default:
@@ -223,7 +212,6 @@ func autoPreviousReleaseTag(ctx context.Context, repo *repo_model.Repository, ta
 }
 
 func findPreviousPublishedReleaseTag(ctx context.Context, repo *repo_model.Repository, current *repo_model.Release) (string, error) {
-	target := strings.TrimSpace(current.TagName)
 	prev, err := repo_model.GetPreviousPublishedRelease(ctx, repo.ID, current)
 	switch {
 	case err == nil:
@@ -233,21 +221,13 @@ func findPreviousPublishedReleaseTag(ctx context.Context, repo *repo_model.Repos
 		return "", fmt.Errorf("GetPreviousPublishedRelease: %w", err)
 	}
 
-	candidate := strings.TrimSpace(prev.TagName)
-	if candidate == "" || strings.EqualFold(candidate, target) {
-		return "", nil
-	}
-	return candidate, nil
+	return prev.TagName, nil
 }
 
 func findPreviousTagName(tags []*git.Tag, target string) (string, bool) {
-	target = strings.TrimSpace(target)
 	foundTarget := false
 	for _, tag := range tags {
 		name := strings.TrimSpace(tag.Name)
-		if name == "" {
-			continue
-		}
 		if strings.EqualFold(name, target) {
 			foundTarget = true
 			continue
@@ -256,11 +236,8 @@ func findPreviousTagName(tags []*git.Tag, target string) (string, bool) {
 			return name, true
 		}
 	}
-	if !foundTarget && len(tags) > 0 {
-		name := strings.TrimSpace(tags[0].Name)
-		if name != "" {
-			return name, true
-		}
+	if len(tags) > 0 {
+		return strings.TrimSpace(tags[0].Name), true
 	}
 	return "", false
 }
