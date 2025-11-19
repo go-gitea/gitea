@@ -1314,6 +1314,10 @@ td .commit-summary {
   gap: 0.25em;
 }
 
+.comment-header.avatar-content-left-arrow {
+  min-height: 41px; /* for a comment header with left arrow, the arrow is absolutely positioned, but the header content varies (for example: no "roles", etc), so it needs a min-height */
+}
+
 .comment-header.avatar-content-left-arrow::after {
   border-right-color: var(--color-box-header);
 }
