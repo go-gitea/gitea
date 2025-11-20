@@ -860,13 +860,18 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 				continue
 			}
 
+			// This format follows GitHub's squash commit message style,
+			// even if there are other "* " in the commit message body, they are written as-is.
+			// Maybe, ideally, we should indent those lines too.
 			_, _ = fmt.Fprintf(&stringBuilder, "* %s\n\n", msg)
 			if maxMsgSize > 0 && stringBuilder.Len() >= maxMsgSize {
 				tmp := stringBuilder.String()
 				wasValidUtf8 := utf8.ValidString(tmp)
 				tmp = tmp[:maxMsgSize] + "..."
 				if wasValidUtf8 {
-					tmp = strings.ToValidUTF8(tmp, "?")
+					// If the message was valid UTF-8 before truncation, ensure it remains valid after truncation
+					// For non-utf8 messages, we can't do much about it, end users should use utf-8 as much as possible
+					tmp = strings.ToValidUTF8(tmp, "")
 				}
 				stringBuilder.Reset()
 				stringBuilder.WriteString(tmp)
