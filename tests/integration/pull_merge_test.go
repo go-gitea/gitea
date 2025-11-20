@@ -42,6 +42,7 @@ import (
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type MergeOptions struct {
@@ -1197,7 +1198,7 @@ func TestPullSquashMessage(t *testing.T) {
 			Readme:        "Default",
 			DefaultBranch: "main",
 		})
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		type commitInfo struct {
 			userName      string
@@ -1309,9 +1310,9 @@ Co-authored-by: user4 <user4@example.com>
 					Title:         "Pull for " + branchName,
 				})
 				elems := strings.Split(test.RedirectURL(resp), "/")
-				pullIndex, err := strconv.Atoi(elems[4])
+				pullIndex, err := strconv.ParseInt(elems[4], 10, 64)
 				assert.NoError(t, err)
-				pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: int64(pullIndex)})
+				pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: pullIndex})
 				squashMergeCommitMessage := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
 				assert.Equal(t, tc.expectedMessage, squashMergeCommitMessage)
 			})

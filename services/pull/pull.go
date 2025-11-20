@@ -838,19 +838,20 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	stringBuilder := strings.Builder{}
 
 	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
-		//use PR's title and description as squash commit message
+		// use PR's title and description as squash commit message
 		message := strings.TrimSpace(pr.Issue.Content)
 		stringBuilder.WriteString(message)
 		if stringBuilder.Len() > 0 {
 			stringBuilder.WriteRune('\n')
 			if !commitMessageTrailersPattern.MatchString(message) {
+				// TODO: this trailer check doesn't work with the separator line added below for the co-authors
 				stringBuilder.WriteRune('\n')
 			}
 		}
 	} else {
 		// use PR's commit messages as squash commit message
 		// commits list is in reverse chronological order
-		maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
+		maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
 		for i := len(commits) - 1; i >= 0; i-- {
 			commit := commits[i]
 			msg := strings.TrimSpace(commit.CommitMessage)
@@ -859,8 +860,8 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 			}
 
 			_, _ = fmt.Fprintf(&stringBuilder, "* %s\n\n", msg)
-			if maxSize > 0 && stringBuilder.Len() >= maxSize {
-				tmp := strings.ToValidUTF8(stringBuilder.String()[:maxSize]+"...", "?")
+			if maxMsgSize > 0 && stringBuilder.Len() >= maxMsgSize {
+				tmp := strings.ToValidUTF8(stringBuilder.String()[:maxMsgSize]+"...", "?")
 				stringBuilder.Reset()
 				stringBuilder.WriteString(tmp)
 				break
@@ -908,6 +909,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 
 	if stringBuilder.Len() > 0 && len(authors) > 0 {
+		// TODO: this separator line doesn't work with the trailer check (commitMessageTrailersPattern) above
 		stringBuilder.WriteString("---------\n\n")
 	}
 
