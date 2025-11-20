@@ -81,11 +81,11 @@ function initGenerateReleaseNotes() {
         data: form,
       });
 
+      const data = await resp.json();
+
       if (!resp.ok) {
         throw new Error(data.errorMessage || resp.statusText);
       }
-
-      const data = await resp.json();
       previousTagSelect.value = data.previous_tag;
       previousTagSelect.dispatchEvent(new Event('change', {bubbles: true}));
 
