@@ -909,7 +909,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		}
 	}
 
-	if populateWithCommits && stringBuilder.Len() > 0 && len(authors) > 0 {
+	if stringBuilder.Len() > 0 && len(authors) > 0 {
 		stringBuilder.WriteString("---------\n\n")
 	}
 
