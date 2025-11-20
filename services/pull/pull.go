@@ -837,7 +837,8 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	authors := make([]string, 0, len(commits))
 	stringBuilder := strings.Builder{}
 
-	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
+	populateWithCommits := setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages
+	if !populateWithCommits {
 		message := strings.TrimSpace(pr.Issue.Content)
 		stringBuilder.WriteString(message)
 		if stringBuilder.Len() > 0 {
@@ -849,30 +850,22 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 
 	// commits list is in reverse chronological order
-	first := true
 	for i := len(commits) - 1; i >= 0; i-- {
 		commit := commits[i]
 
-		if setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
+		if populateWithCommits {
 			maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
 			if maxSize < 0 || stringBuilder.Len() < maxSize {
-				var toWrite []byte
-				if first {
-					first = false
-					toWrite = []byte(strings.TrimPrefix(commit.CommitMessage, pr.Issue.Title))
-				} else {
-					toWrite = []byte(commit.CommitMessage)
+				if strings.TrimSpace(commit.CommitMessage) == "" {
+					continue
 				}
+
+				toWrite := fmt.Appendf(nil, "* %s\n", commit.CommitMessage)
 
 				if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
 					toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
 				}
 				if _, err := stringBuilder.Write(toWrite); err != nil {
-					log.Error("Unable to write commit message Error: %v", err)
-					return ""
-				}
-
-				if _, err := stringBuilder.WriteRune('\n'); err != nil {
 					log.Error("Unable to write commit message Error: %v", err)
 					return ""
 				}
@@ -914,6 +907,10 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 			}
 			skip += limit
 		}
+	}
+
+	if populateWithCommits && stringBuilder.Len() > 0 && len(authors) > 0 {
+		stringBuilder.WriteString("---------\n\n")
 	}
 
 	for _, author := range authors {

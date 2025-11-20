@@ -19,6 +19,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -1178,5 +1179,183 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 		}).AddTokenAuth(token)
 
 		session.MakeRequest(t, mergeReq, http.StatusMethodNotAllowed)
+	})
+}
+
+func TestPullSquashMessage(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user2Session := loginUser(t, user2.Name)
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		user4Session := loginUser(t, user4.Name)
+
+		sessions := map[string]*TestSession{
+			user2.Name: user2Session,
+			user4.Name: user4Session,
+		}
+
+		// Enable POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES
+		resetFunc1 := test.MockVariableValue(&setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages, true)
+		defer resetFunc1()
+		// Set DEFAULT_MERGE_MESSAGE_SIZE
+		resetFunc2 := test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 512)
+		defer resetFunc2()
+
+		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
+			Name:          "squash-message-test",
+			Description:   "Test squash message",
+			AutoInit:      true,
+			Readme:        "Default",
+			DefaultBranch: "main",
+		})
+		assert.NoError(t, err)
+		doAPIAddCollaborator(NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository), user4.Name, perm.AccessModeWrite)(t)
+
+		type commitInfo struct {
+			userName      string
+			commitSummary string
+			commitMessage string
+		}
+
+		testCases := []struct {
+			name            string
+			commitInfos     []*commitInfo
+			expectedMessage string
+		}{
+			{
+				name: "Only summaries",
+				commitInfos: []*commitInfo{
+					{
+						userName:      user2.Name,
+						commitSummary: "Implement the login endpoint",
+					},
+					{
+						userName:      user2.Name,
+						commitSummary: "Validate request body",
+					},
+				},
+				expectedMessage: `* Implement the login endpoint
+
+* Validate request body
+
+`,
+			},
+			{
+				name: "Summaries and messages",
+				commitInfos: []*commitInfo{
+					{
+						userName:      user2.Name,
+						commitSummary: "Refactor user service",
+						commitMessage: `Implement the login endpoint.
+Validate request body.`,
+					},
+					{
+						userName:      user2.Name,
+						commitSummary: "Add email notification service",
+						commitMessage: `Implements a new email notification module.
+
+- Supports templating
+- Supports HTML and plain text modes
+- Includes retry logic`,
+					},
+				},
+				expectedMessage: `* Refactor user service
+
+Implement the login endpoint.
+Validate request body.
+
+* Add email notification service
+
+Implements a new email notification module.
+
+- Supports templating
+- Supports HTML and plain text modes
+- Includes retry logic
+
+`,
+			},
+			{
+				name: "Long Message",
+				commitInfos: []*commitInfo{
+					{
+						userName:      user2.Name,
+						commitSummary: "Add advanced validation logic for user onboarding",
+						commitMessage: `This commit introduces a comprehensive validation layer for the user onboarding flow.  
+The primary goal is to ensure that all input data is strictly validated before being processed by downstream services.  
+This improves system reliability and significantly reduces runtime exceptions in the registration pipeline.
+
+The validation logic includes:
+
+1. Email format checking using RFC 5322-compliant patterns.
+2. Username length and character limitation enforcement.
+3. Password strength enforcement, including:
+   - Minimum length checks  
+   - Mixed character type detection  
+   - Optional entropy-based scoring
+4. Optional phone number validation using region-specific rules.
+`,
+					},
+				},
+				expectedMessage: `* Add advanced validation logic for user onboarding
+
+This commit introduces a comprehensive validation layer for the user onboarding flow.  
+The primary goal is to ensure that all input data is strictly validated before being processed by downstream services.  
+This improves system reliability and significantly reduces runtime exceptions in the registration pipeline.
+
+The validation logic includes:
+
+1. Email format checking using RFC 5322-compliant patterns.
+2. Username length and character limitation enfor...`,
+			},
+			{
+				name: "Test Co-authored-by",
+				commitInfos: []*commitInfo{
+					{
+						userName:      user2.Name,
+						commitSummary: "Implement the login endpoint",
+					},
+					{
+						userName:      user4.Name,
+						commitSummary: "Validate request body",
+					},
+				},
+				expectedMessage: `* Implement the login endpoint
+
+* Validate request body
+
+---------
+
+Co-authored-by: user4 <user4@example.com>
+`,
+			},
+		}
+
+		for tcNum, tc := range testCases {
+			branchName := "test-branch-" + strconv.Itoa(tcNum)
+			fileName := fmt.Sprintf("test-file-%d.txt", tcNum)
+			t.Run(tc.name, func(t *testing.T) {
+				for infoIdx, info := range tc.commitInfos {
+					content := "content-" + strconv.Itoa(infoIdx)
+					if infoIdx == 0 {
+						testCreateFileWithCommitMessage(t, sessions[info.userName], repo.OwnerName, repo.Name, repo.DefaultBranch, branchName, fileName, content, info.commitSummary, info.commitMessage)
+					} else {
+						testEditFileWithCommitMessage(t, sessions[info.userName], repo.OwnerName, repo.Name, branchName, fileName, content, info.commitSummary, info.commitMessage)
+					}
+				}
+				resp := testPullCreateDirectly(t, user2Session, createPullRequestOptions{
+					BaseRepoOwner: user2.Name,
+					BaseRepoName:  repo.Name,
+					BaseBranch:    repo.DefaultBranch,
+					HeadBranch:    branchName,
+					Title:         "Pull for " + branchName,
+				})
+				elems := strings.Split(test.RedirectURL(resp), "/")
+				pullIndex, err := strconv.Atoi(elems[4])
+				assert.NoError(t, err)
+				pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: int64(pullIndex)})
+				squashMergeCommitMessage := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
+				assert.Equal(t, tc.expectedMessage, squashMergeCommitMessage)
+			})
+		}
 	})
 }
