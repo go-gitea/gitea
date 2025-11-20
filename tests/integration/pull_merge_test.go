@@ -1188,7 +1188,7 @@ func TestPullSquashMessage(t *testing.T) {
 		user2Session := loginUser(t, user2.Name)
 
 		defer test.MockVariableValue(&setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages, true)()
-		defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 512)()
+		defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 80)()
 
 		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
 			Name:          "squash-message-test",
@@ -1201,7 +1201,6 @@ func TestPullSquashMessage(t *testing.T) {
 
 		type commitInfo struct {
 			userName      string
-			commitSummary string
 			commitMessage string
 		}
 
@@ -1211,105 +1210,76 @@ func TestPullSquashMessage(t *testing.T) {
 			expectedMessage string
 		}{
 			{
-				name: "Only summaries",
+				name: "Single-line messages",
 				commitInfos: []*commitInfo{
 					{
 						userName:      user2.Name,
-						commitSummary: "Implement the login endpoint",
+						commitMessage: "commit msg 1",
 					},
 					{
 						userName:      user2.Name,
-						commitSummary: "Validate request body",
+						commitMessage: "commit msg 2",
 					},
 				},
-				expectedMessage: `* Implement the login endpoint
+				expectedMessage: `* commit msg 1
 
-* Validate request body
+* commit msg 2
 
 `,
 			},
 			{
-				name: "Summaries and messages",
+				name: "Multiple-line messages",
 				commitInfos: []*commitInfo{
 					{
-						userName:      user2.Name,
-						commitSummary: "Refactor user service",
-						commitMessage: `Implement the login endpoint.
-Validate request body.`,
+						userName: user2.Name,
+						commitMessage: `commit msg 1
+
+Commit description.`,
 					},
 					{
-						userName:      user2.Name,
-						commitSummary: "Add email notification service",
-						commitMessage: `Implements a new email notification module.
+						userName: user2.Name,
+						commitMessage: `commit msg 2
 
-- Supports templating
-- Supports HTML and plain text modes
-- Includes retry logic`,
+- Detail 1
+- Detail 2`,
 					},
 				},
-				expectedMessage: `* Refactor user service
+				expectedMessage: `* commit msg 1
 
-Implement the login endpoint.
-Validate request body.
+Commit description.
 
-* Add email notification service
+* commit msg 2
 
-Implements a new email notification module.
-
-- Supports templating
-- Supports HTML and plain text modes
-- Includes retry logic
+- Detail 1
+- Detail 2
 
 `,
 			},
 			{
-				name: "Long Message",
+				name: "Too long message",
 				commitInfos: []*commitInfo{
 					{
 						userName:      user2.Name,
-						commitSummary: "Add advanced validation logic for user onboarding",
-						commitMessage: `This commit introduces a comprehensive validation layer for the user onboarding flow.
-The primary goal is to ensure that all input data is strictly validated before being processed by downstream services.
-This improves system reliability and significantly reduces runtime exceptions in the registration pipeline.
-
-The validation logic includes:
-
-1. Email format checking using RFC 5322-compliant patterns.
-2. Username length and character limitation enforcement.
-3. Password strength enforcement, including:
-   - Minimum length checks
-   - Mixed character type detection
-   - Optional entropy-based scoring
-4. Optional phone number validation using region-specific rules.
-`,
+						commitMessage: `loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong message`,
 					},
 				},
-				expectedMessage: `* Add advanced validation logic for user onboarding
-
-This commit introduces a comprehensive validation layer for the user onboarding flow.
-The primary goal is to ensure that all input data is strictly validated before being processed by downstream services.
-This improves system reliability and significantly reduces runtime exceptions in the registration pipeline.
-
-The validation logic includes:
-
-1. Email format checking using RFC 5322-compliant patterns.
-2. Username length and character limitation enforceme...`,
+				expectedMessage: `* looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo...`,
 			},
 			{
 				name: "Test Co-authored-by",
 				commitInfos: []*commitInfo{
 					{
 						userName:      user2.Name,
-						commitSummary: "Implement the login endpoint",
+						commitMessage: "commit msg 1",
 					},
 					{
 						userName:      "user4",
-						commitSummary: "Validate request body",
+						commitMessage: "commit msg 2",
 					},
 				},
-				expectedMessage: `* Implement the login endpoint
+				expectedMessage: `* commit msg 1
 
-* Validate request body
+* commit msg 2
 
 ---------
 
@@ -1323,7 +1293,7 @@ Co-authored-by: user4 <user4@example.com>
 				branchName := "test-branch-" + strconv.Itoa(tcNum)
 				for infoIdx, info := range tc.commitInfos {
 					createFileOpts := createFileInBranchOptions{
-						CommitMessage:  info.commitSummary + "\n\n" + info.commitMessage,
+						CommitMessage:  info.commitMessage,
 						CommitterName:  info.userName,
 						CommitterEmail: util.Iif(info.userName != "", info.userName+"@example.com", ""),
 						OldBranch:      util.Iif(infoIdx == 0, "main", branchName),
