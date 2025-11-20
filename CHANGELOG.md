@@ -6,6 +6,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 ## [1.25.2](https://github.com/go-gitea/gitea/releases/tag/1.25.2) - 2025-11-19
 
+* SECURITY
+  * Upgrade golang.org/x/crypto to 0.45.0 (#35985) (#35988)
 * ENHANCEMENTS
   * Display source code downloads last for release attachments (#35897) (#35903)
   * Change project default column icon to 'star' (#35967) (#35979)
