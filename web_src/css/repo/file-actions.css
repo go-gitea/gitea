@@ -1,24 +1,19 @@
 /* Repository file actions dropdown */
 .ui.dropdown.repo-add-file > .menu,
 .ui.dropdown.repo-file-actions-dropdown > .menu {
-  margin-top: 4px !important;
+  margin-top: 4px;
 }
 
 .ui.dropdown.repo-file-actions-dropdown > .menu {
   min-width: 200px;
 }
 
-.ui.dropdown.repo-file-actions-dropdown > .menu > .divider {
-  margin: 0.5rem 0;
-}
-
 .ui.dropdown.repo-file-actions-dropdown > .menu > .item.danger,
 .ui.dropdown.repo-file-actions-dropdown > .menu > .item.danger svg {
-  color: var(--color-red) !important;
+  color: var(--color-red);
 }
 
-.ui.dropdown.repo-file-actions-dropdown > .menu > .item.danger:hover,
-.ui.dropdown.repo-file-actions-dropdown > .menu > .item.danger:hover svg {
-  color: var(--color-red) !important;
-  background: var(--color-red-badge-hover-bg) !important;
+.ui.dropdown.repo-file-actions-dropdown > .menu > .item.danger:hover {
+  color: var(--color-red);
+  background: var(--color-red-badge-hover-bg);
 }

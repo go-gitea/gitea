@@ -1,8 +1,11 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package files
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,7 +27,7 @@ type DeleteRepoFileOptions struct {
 // DeleteRepoFile deletes a file or directory in the given repository
 func DeleteRepoFile(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *DeleteRepoFileOptions) (*structs.FilesResponse, error) {
 	if opts.TreePath == "" {
-		return nil, fmt.Errorf("path cannot be empty")
+		return nil, errors.New("path cannot be empty")
 	}
 
 	// If no branch name is set, assume the default branch

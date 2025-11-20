@@ -12,11 +12,14 @@ const searchResults = useTemplateRef('searchResults');
 const searchQuery = ref('');
 const allFiles = ref<string[]>([]);
 const selectedIndex = ref(0);
+const isLoadingFileList = ref(false);
+const hasLoadedFileList = ref(false);
 
 const props = defineProps({
   repoLink: {type: String, required: true},
   treePath: {type: String, required: true},
   currentRefNameSubURL: {type: String, required: true},
+  noResultsText: {type: String, required: true},
 });
 
 const store = createViewFileTreeStore(props);
@@ -26,7 +29,7 @@ const filteredFiles = computed(() => {
   return filterRepoFilesWeighted(allFiles.value, searchQuery.value);
 });
 
-const treeLink = computed(() => `${props.repoLink}/src/${props.currentRefNameSubURL}`);
+const treeLink = computed(() => `${props.repoLink}/src/${pathEscapeSegments(props.currentRefNameSubURL)}`);
 
 let searchInputElement: HTMLInputElement | null = null;
 
@@ -90,19 +93,33 @@ const handleClickOutside = (e: MouseEvent) => {
   }
 };
 
+const loadFileListForSearch = async () => {
+  if (hasLoadedFileList.value || isLoadingFileList.value) return;
+  
+  isLoadingFileList.value = true;
+  try {
+    const treeListUrl = elRoot.value.closest('#view-file-tree')?.getAttribute('data-tree-list-url');
+    if (treeListUrl) {
+      const response = await GET(treeListUrl);
+      allFiles.value = await response.json();
+      hasLoadedFileList.value = true;
+    }
+  } finally {
+    isLoadingFileList.value = false;
+  }
+};
+
+const handleSearchFocus = () => {
+  loadFileListForSearch();
+};
+
 onMounted(async () => {
   store.rootFiles = await store.loadChildren('', props.treePath);
   elRoot.value.closest('.is-loading')?.classList?.remove('is-loading');
   
-  // Load all files for search
-  const treeListUrl = elRoot.value.closest('#view-file-tree')?.getAttribute('data-tree-list-url');
-  if (treeListUrl) {
-    const response = await GET(treeListUrl);
-    allFiles.value = await response.json();
-  }
-  
   searchInputElement = document.querySelector('#file-tree-search');
   if (searchInputElement) {
+    searchInputElement.addEventListener('focus', handleSearchFocus);
     searchInputElement.addEventListener('input', handleSearchInput);
     searchInputElement.addEventListener('keydown', handleKeyDown);
     document.addEventListener('click', handleClickOutside);
@@ -129,6 +146,7 @@ watch(searchQuery, async () => {
 
 onUnmounted(() => {
   if (searchInputElement) {
+    searchInputElement.removeEventListener('focus', handleSearchFocus);
     searchInputElement.removeEventListener('input', handleSearchInput);
     searchInputElement.removeEventListener('keydown', handleKeyDown);
     document.removeEventListener('click', handleClickOutside);
@@ -168,7 +186,7 @@ function handleSearchResultClick(filePath: string) {
         <div class="file-tree-no-results-content">
           <!-- eslint-disable-next-line vue/no-v-html -->
           <span v-html="svg('octicon-search', 24)"/>
-          <span>No matching files found</span>
+          <span>{{ props.noResultsText }}</span>
         </div>
       </div>
     </Teleport>
