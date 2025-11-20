@@ -83,21 +83,6 @@ func testCreateFile(t *testing.T, session *TestSession, user, repo, baseBranchNa
 	})
 }
 
-func testCreateFileWithCommitMessage(t *testing.T, session *TestSession, user, repo, baseBranchName, newBranchName, filePath, content, commitSummary, commitMessage string) {
-	commitChoice := "direct"
-	if newBranchName != "" && newBranchName != baseBranchName {
-		commitChoice = "commit-to-new-branch"
-	}
-	testEditorActionEdit(t, session, user, repo, "_new", baseBranchName, "", map[string]string{
-		"tree_path":       filePath,
-		"content":         content,
-		"commit_choice":   commitChoice,
-		"new_branch_name": newBranchName,
-		"commit_summary":  commitSummary,
-		"commit_message":  commitMessage,
-	})
-}
-
 func testEditorProtectedBranch(t *testing.T) {
 	session := loginUser(t, "user2")
 	// Change the "master" branch to "protected"
@@ -151,15 +136,6 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 	testEditorActionEdit(t, session, user, repo, "_edit", branch, filePath, map[string]string{
 		"content":       newContent,
 		"commit_choice": "direct",
-	})
-}
-
-func testEditFileWithCommitMessage(t *testing.T, session *TestSession, user, repo, branch, filePath, newContent, commitSummary, commitMessage string) {
-	testEditorActionEdit(t, session, user, repo, "_edit", branch, filePath, map[string]string{
-		"content":        newContent,
-		"commit_choice":  "direct",
-		"commit_summary": commitSummary,
-		"commit_message": commitMessage,
 	})
 }
 

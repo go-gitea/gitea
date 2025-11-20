@@ -19,7 +19,6 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/perm"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -34,6 +33,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/automergequeue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -1186,20 +1186,9 @@ func TestPullSquashMessage(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
-		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-		user4Session := loginUser(t, user4.Name)
 
-		sessions := map[string]*TestSession{
-			user2.Name: user2Session,
-			user4.Name: user4Session,
-		}
-
-		// Enable POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES
-		resetFunc1 := test.MockVariableValue(&setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages, true)
-		defer resetFunc1()
-		// Set DEFAULT_MERGE_MESSAGE_SIZE
-		resetFunc2 := test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 512)
-		defer resetFunc2()
+		defer test.MockVariableValue(&setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages, true)()
+		defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 512)()
 
 		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
 			Name:          "squash-message-test",
@@ -1209,7 +1198,6 @@ func TestPullSquashMessage(t *testing.T) {
 			DefaultBranch: "main",
 		})
 		assert.NoError(t, err)
-		doAPIAddCollaborator(NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository), user4.Name, perm.AccessModeWrite)(t)
 
 		type commitInfo struct {
 			userName      string
@@ -1280,8 +1268,8 @@ Implements a new email notification module.
 					{
 						userName:      user2.Name,
 						commitSummary: "Add advanced validation logic for user onboarding",
-						commitMessage: `This commit introduces a comprehensive validation layer for the user onboarding flow.  
-The primary goal is to ensure that all input data is strictly validated before being processed by downstream services.  
+						commitMessage: `This commit introduces a comprehensive validation layer for the user onboarding flow.
+The primary goal is to ensure that all input data is strictly validated before being processed by downstream services.
 This improves system reliability and significantly reduces runtime exceptions in the registration pipeline.
 
 The validation logic includes:
@@ -1289,8 +1277,8 @@ The validation logic includes:
 1. Email format checking using RFC 5322-compliant patterns.
 2. Username length and character limitation enforcement.
 3. Password strength enforcement, including:
-   - Minimum length checks  
-   - Mixed character type detection  
+   - Minimum length checks
+   - Mixed character type detection
    - Optional entropy-based scoring
 4. Optional phone number validation using region-specific rules.
 `,
@@ -1298,14 +1286,14 @@ The validation logic includes:
 				},
 				expectedMessage: `* Add advanced validation logic for user onboarding
 
-This commit introduces a comprehensive validation layer for the user onboarding flow.  
-The primary goal is to ensure that all input data is strictly validated before being processed by downstream services.  
+This commit introduces a comprehensive validation layer for the user onboarding flow.
+The primary goal is to ensure that all input data is strictly validated before being processed by downstream services.
 This improves system reliability and significantly reduces runtime exceptions in the registration pipeline.
 
 The validation logic includes:
 
 1. Email format checking using RFC 5322-compliant patterns.
-2. Username length and character limitation enfor...`,
+2. Username length and character limitation enforceme...`,
 			},
 			{
 				name: "Test Co-authored-by",
@@ -1315,7 +1303,7 @@ The validation logic includes:
 						commitSummary: "Implement the login endpoint",
 					},
 					{
-						userName:      user4.Name,
+						userName:      "user4",
 						commitSummary: "Validate request body",
 					},
 				},
@@ -1331,16 +1319,17 @@ Co-authored-by: user4 <user4@example.com>
 		}
 
 		for tcNum, tc := range testCases {
-			branchName := "test-branch-" + strconv.Itoa(tcNum)
-			fileName := fmt.Sprintf("test-file-%d.txt", tcNum)
 			t.Run(tc.name, func(t *testing.T) {
+				branchName := "test-branch-" + strconv.Itoa(tcNum)
 				for infoIdx, info := range tc.commitInfos {
-					content := "content-" + strconv.Itoa(infoIdx)
-					if infoIdx == 0 {
-						testCreateFileWithCommitMessage(t, sessions[info.userName], repo.OwnerName, repo.Name, repo.DefaultBranch, branchName, fileName, content, info.commitSummary, info.commitMessage)
-					} else {
-						testEditFileWithCommitMessage(t, sessions[info.userName], repo.OwnerName, repo.Name, branchName, fileName, content, info.commitSummary, info.commitMessage)
+					createFileOpts := createFileInBranchOptions{
+						CommitMessage:  info.commitSummary + "\n\n" + info.commitMessage,
+						CommitterName:  info.userName,
+						CommitterEmail: util.Iif(info.userName != "", info.userName+"@example.com", ""),
+						OldBranch:      util.Iif(infoIdx == 0, "main", branchName),
+						NewBranch:      branchName,
 					}
+					testCreateFileInBranch(t, user2, repo, createFileOpts, map[string]string{"dummy-file-" + strconv.Itoa(infoIdx): "dummy content"})
 				}
 				resp := testPullCreateDirectly(t, user2Session, createPullRequestOptions{
 					BaseRepoOwner: user2.Name,
