@@ -837,8 +837,8 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	authors := make([]string, 0, len(commits))
 	stringBuilder := strings.Builder{}
 
-	populateWithCommits := setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages
-	if !populateWithCommits {
+	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
+		//use PR's title and description as squash commit message
 		message := strings.TrimSpace(pr.Issue.Content)
 		stringBuilder.WriteString(message)
 		if stringBuilder.Len() > 0 {
@@ -847,35 +847,33 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 				stringBuilder.WriteRune('\n')
 			}
 		}
-	}
+	} else {
+		// use PR's commit messages as squash commit message
+		// commits list is in reverse chronological order
+		maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
+		for i := len(commits) - 1; i >= 0; i-- {
+			commit := commits[i]
+			msg := strings.TrimSpace(commit.CommitMessage)
+			if msg == "" {
+				continue
+			}
 
-	// commits list is in reverse chronological order
-	for i := len(commits) - 1; i >= 0; i-- {
-		commit := commits[i]
-
-		if populateWithCommits {
-			maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
-			if maxSize < 0 || stringBuilder.Len() < maxSize {
-				if strings.TrimSpace(commit.CommitMessage) == "" {
-					continue
-				}
-
-				toWrite := fmt.Appendf(nil, "* %s\n", commit.CommitMessage)
-
-				if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
-					toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
-				}
-				if _, err := stringBuilder.Write(toWrite); err != nil {
-					log.Error("Unable to write commit message Error: %v", err)
-					return ""
-				}
+			_, _ = fmt.Fprintf(&stringBuilder, "* %s\n\n", msg)
+			if maxSize > 0 && stringBuilder.Len() >= maxSize {
+				tmp := strings.ToValidUTF8(stringBuilder.String()[:maxSize]+"...", "?")
+				stringBuilder.Reset()
+				stringBuilder.WriteString(tmp)
+				break
 			}
 		}
+	}
 
+	// collect co-authors
+	for _, commit := range commits {
 		authorString := commit.Author.String()
 		if uniqueAuthors.Add(authorString) && authorString != posterSig {
 			// Compare use account as well to avoid adding the same author multiple times
-			// times when email addresses are private or multiple emails are used.
+			// when email addresses are private or multiple emails are used.
 			commitUser, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
 			if commitUser == nil || commitUser.ID != pr.Issue.Poster.ID {
 				authors = append(authors, authorString)
@@ -883,12 +881,12 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		}
 	}
 
-	// Consider collecting the remaining authors
+	// collect the remaining authors
 	if limit >= 0 && setting.Repository.PullRequest.DefaultMergeMessageAllAuthors {
 		skip := limit
 		limit = 30
 		for {
-			commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
+			commits, err = gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 				return ""
@@ -914,18 +912,9 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	}
 
 	for _, author := range authors {
-		if _, err := stringBuilder.WriteString("Co-authored-by: "); err != nil {
-			log.Error("Unable to write to string builder Error: %v", err)
-			return ""
-		}
-		if _, err := stringBuilder.WriteString(author); err != nil {
-			log.Error("Unable to write to string builder Error: %v", err)
-			return ""
-		}
-		if _, err := stringBuilder.WriteRune('\n'); err != nil {
-			log.Error("Unable to write to string builder Error: %v", err)
-			return ""
-		}
+		stringBuilder.WriteString("Co-authored-by: ")
+		stringBuilder.WriteString(author)
+		stringBuilder.WriteRune('\n')
 	}
 
 	return stringBuilder.String()
