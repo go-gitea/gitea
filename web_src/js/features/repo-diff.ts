@@ -12,6 +12,130 @@ import {invertFileFolding} from './file-fold.ts';
 import {parseDom, sleep} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
+const diffLineNumberCellSelector = '#diff-file-boxes .code-diff td.lines-num[data-line-num]';
+const diffAnchorSuffixRegex = /([LR])(\d+)$/;
+const diffHashRangeRegex = /^(diff-[0-9a-f]+)([LR]\d+)(?:-([LR]\d+))?$/i;
+
+type DiffAnchorSide = 'L' | 'R';
+type DiffAnchorInfo = {anchor: string, fragment: string, side: DiffAnchorSide, line: number};
+type DiffSelectionState = DiffAnchorInfo & {container: HTMLElement};
+
+let diffSelectionStart: DiffSelectionState | null = null;
+
+function changeHash(hash: string) {
+  if (window.history.pushState) {
+    window.history.pushState(null, null, hash);
+  } else {
+    window.location.hash = hash;
+  }
+}
+
+function parseDiffAnchor(anchor: string | null): DiffAnchorInfo | null {
+  if (!anchor || !anchor.startsWith('diff-')) return null;
+  const suffixMatch = diffAnchorSuffixRegex.exec(anchor);
+  if (!suffixMatch) return null;
+  const line = Number.parseInt(suffixMatch[2]);
+  if (Number.isNaN(line)) return null;
+  const fragment = anchor.slice(0, -suffixMatch[0].length);
+  const side = suffixMatch[1] as DiffAnchorSide;
+  return {anchor, fragment, side, line};
+}
+
+function applyDiffLineSelection(container: HTMLElement, fragment: string, side: DiffAnchorSide, startLine: number, endLine: number, options?: {updateHash?: boolean}): boolean {
+  const minLine = Math.min(startLine, endLine);
+  const maxLine = Math.max(startLine, endLine);
+  const selector = `.code-diff td.lines-num span[id^="${CSS.escape(fragment)}"]`;
+  const spans = Array.from(container.querySelectorAll<HTMLSpanElement>(selector));
+  const matches = spans.filter((span) => {
+    const info = parseDiffAnchor(span.id);
+    if (!info || info.side !== side) return false;
+    return info.line >= minLine && info.line <= maxLine;
+  });
+  if (!matches.length) return false;
+
+  for (const tr of document.querySelectorAll('.code-diff tr.active')) {
+    tr.classList.remove('active');
+  }
+  for (const span of matches) {
+    span.closest('tr')?.classList.add('active');
+  }
+
+  if (options?.updateHash !== false) {
+    const startAnchor = `${fragment}${side}${minLine}`;
+    const endAnchor = `${fragment}${side}${maxLine}`;
+    const hashValue = minLine === maxLine ? startAnchor : `${startAnchor}-${endAnchor}`;
+    changeHash(`#${hashValue}`);
+  }
+  return true;
+}
+
+type DiffHashRange = {fragment: string, side: DiffAnchorSide, startLine: number, endLine: number};
+
+function parseDiffHashRange(hashValue: string): DiffHashRange | null {
+  if (!hashValue.startsWith('diff-')) return null;
+  const match = diffHashRangeRegex.exec(hashValue);
+  if (!match) return null;
+  const startInfo = parseDiffAnchor(`${match[1]}${match[2]}`);
+  if (!startInfo) return null;
+  let endLine = startInfo.line;
+  if (match[3]) {
+    const endInfo = parseDiffAnchor(`${match[1]}${match[3]}`);
+    if (!endInfo || endInfo.side !== startInfo.side) {
+      return {fragment: startInfo.fragment, side: startInfo.side, startLine: startInfo.line, endLine: startInfo.line};
+    }
+    endLine = endInfo.line;
+  }
+  return {
+    fragment: startInfo.fragment,
+    side: startInfo.side,
+    startLine: startInfo.line,
+    endLine,
+  };
+}
+
+function highlightDiffSelectionFromHash() {
+  const {hash} = window.location;
+  if (!hash || !hash.startsWith('#diff-')) return;
+  const range = parseDiffHashRange(hash.substring(1));
+  if (!range) return;
+  const targetId = `${range.fragment}${range.side}${range.startLine}`;
+  const target = document.querySelector<HTMLElement>(`#${CSS.escape(targetId)}`);
+  if (!target) return;
+  const container = target.closest<HTMLElement>('.diff-file-box');
+  if (!container) return;
+  applyDiffLineSelection(container, range.fragment, range.side, range.startLine, range.endLine, {updateHash: false});
+  diffSelectionStart = null;
+}
+
+function handleDiffLineNumberClick(cell: HTMLElement, e: MouseEvent) {
+  const span = cell.querySelector<HTMLSpanElement>('span[id^="diff-"]');
+  const info = parseDiffAnchor(span?.id ?? null);
+  if (!info) return;
+  const container = cell.closest<HTMLElement>('.diff-file-box');
+  if (!container) return;
+
+  let rangeStart: DiffAnchorInfo = info;
+  if (e.shiftKey && diffSelectionStart &&
+    diffSelectionStart.container === container &&
+    diffSelectionStart.fragment === info.fragment &&
+    diffSelectionStart.side === info.side) {
+    rangeStart = diffSelectionStart;
+  }
+
+  if (applyDiffLineSelection(container, rangeStart.fragment, rangeStart.side, rangeStart.line, info.line)) {
+    diffSelectionStart = {...info, container};
+    window.getSelection().removeAllRanges();
+  }
+}
+
+function initDiffLineSelection() {
+  addDelegatedEventListener<HTMLElement, MouseEvent>(document, 'click', diffLineNumberCellSelector, (cell, e) => {
+    handleDiffLineNumberClick(cell, e);
+  });
+  window.addEventListener('hashchange', highlightDiffSelectionFromHash);
+  highlightDiffSelectionFromHash();
+}
+
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
   queryElems(el, '.file-view-toggle', (btn) => btn.addEventListener('click', () => {
@@ -283,6 +407,7 @@ export function initRepoDiffView() {
   initDiffHeaderPopup();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
+  initDiffLineSelection();
   initRepoDiffHashChangeListener();
 
   registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);

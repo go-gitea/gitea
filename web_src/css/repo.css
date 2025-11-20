@@ -985,6 +985,14 @@ td .commit-summary {
   text-align: right;
 }
 
+.repository .diff-file-box .code-diff .lines-num[data-line-num] {
+  cursor: pointer;
+}
+
+.repository .diff-file-box .code-diff .lines-num[data-line-num]:hover {
+  color: var(--color-text-dark);
+}
+
 .repository .diff-file-box .code-diff tbody tr .lines-type-marker {
   width: 10px;
   min-width: 10px;
@@ -994,6 +1002,26 @@ td .commit-summary {
   content: attr(data-type-marker);
   text-align: right;
   display: inline-block;
+}
+
+.repository .diff-file-box .code-diff tr.active .lines-num,
+.repository .diff-file-box .code-diff tr.active .lines-escape,
+.repository .diff-file-box .code-diff tr.active .lines-type-marker,
+.repository .diff-file-box .code-diff tr.active .lines-code {
+  background: var(--color-highlight-bg);
+}
+
+.repository .diff-file-box .code-diff tr.active .lines-num {
+  position: relative;
+}
+
+.repository .diff-file-box .code-diff tr.active .lines-num::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--color-highlight-fg);
 }
 
 .repository .diff-file-box .code-diff-split .tag-code .lines-code code.code-inner {
