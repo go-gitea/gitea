@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -861,7 +862,12 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 			_, _ = fmt.Fprintf(&stringBuilder, "* %s\n\n", msg)
 			if maxMsgSize > 0 && stringBuilder.Len() >= maxMsgSize {
-				tmp := strings.ToValidUTF8(stringBuilder.String()[:maxMsgSize]+"...", "?")
+				tmp := stringBuilder.String()
+				wasValidUtf8 := utf8.ValidString(tmp)
+				tmp = tmp[:maxMsgSize] + "..."
+				if wasValidUtf8 {
+					tmp = strings.ToValidUTF8(tmp, "?")
+				}
 				stringBuilder.Reset()
 				stringBuilder.WriteString(tmp)
 				break
