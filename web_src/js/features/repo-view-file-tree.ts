@@ -2,6 +2,7 @@ import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
+import RepoFileSearch from '../components/RepoFileSearch.vue';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
@@ -28,11 +29,25 @@ export async function initRepoViewFileTree() {
 
   registerGlobalEventFunc('click', 'onRepoViewFileTreeToggle', toggleSidebar);
 
+  // Mount file search component
+  const fileSearchContainer = sidebar.querySelector('#file-tree-search-container');
+  if (fileSearchContainer) {
+    createApp(RepoFileSearch, {
+      repoLink: fileSearchContainer.getAttribute('data-repo-link'),
+      currentRefNameSubURL: fileSearchContainer.getAttribute('data-current-ref-name-sub-url'),
+      treeListUrl: fileSearchContainer.getAttribute('data-tree-list-url'),
+      noResultsText: fileSearchContainer.getAttribute('data-no-results-text'),
+      placeholder: fileSearchContainer.getAttribute('data-placeholder'),
+    }).mount(fileSearchContainer);
+  }
+
+  // Mount file tree component
   const fileTree = sidebar.querySelector('#view-file-tree');
-  createApp(ViewFileTree, {
-    repoLink: fileTree.getAttribute('data-repo-link'),
-    treePath: fileTree.getAttribute('data-tree-path'),
-    currentRefNameSubURL: fileTree.getAttribute('data-current-ref-name-sub-url'),
-    noResultsText: fileTree.getAttribute('data-no-results-text'),
-  }).mount(fileTree);
+  if (fileTree) {
+    createApp(ViewFileTree, {
+      repoLink: fileTree.getAttribute('data-repo-link'),
+      treePath: fileTree.getAttribute('data-tree-path'),
+      currentRefNameSubURL: fileTree.getAttribute('data-current-ref-name-sub-url'),
+    }).mount(fileTree);
+  }
 }
