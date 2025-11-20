@@ -105,9 +105,8 @@ onMounted(async () => {
   if (searchInputElement) {
     searchInputElement.addEventListener('input', handleSearchInput);
     searchInputElement.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('click', handleClickOutside);
   }
-  
-  document.addEventListener('click', handleClickOutside);
   
   window.addEventListener('popstate', (e) => {
     store.selectedItem = e.state?.treePath || '';
@@ -132,8 +131,8 @@ onUnmounted(() => {
   if (searchInputElement) {
     searchInputElement.removeEventListener('input', handleSearchInput);
     searchInputElement.removeEventListener('keydown', handleKeyDown);
+    document.removeEventListener('click', handleClickOutside);
   }
-  document.removeEventListener('click', handleClickOutside);
 });
 
 function handleSearchResultClick(filePath: string) {

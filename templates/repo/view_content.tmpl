@@ -96,10 +96,7 @@
 			<button class="ui dropdown basic compact jump button icon repo-file-actions-dropdown" data-tooltip-content="{{ctx.Locale.Tr "repo.more_operations"}}">
 				{{svg "octicon-kebab-horizontal"}}
 				<div class="menu">
-					<a class="item" data-clipboard-text="{{.TreePath}}">
-						{{svg "octicon-copy" 16 "tw-mr-2"}}{{ctx.Locale.Tr "copy_path"}}
-					</a>
-					<a class="item" data-clipboard-text="{{AppUrl}}{{StringUtils.TrimPrefix .Repository.Link "/"}}/src/commit/{{.CommitID}}/{{PathEscapeSegments .TreePath}}">
+					<a class="item" data-clipboard-text="{{.Repository.Link}}/src/commit/{{.CommitID}}/{{PathEscapeSegments .TreePath}}" data-clipboard-text-type="url">
 						{{svg "octicon-link" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_copy_permalink"}}
 					</a>
 					{{if and (.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) (not .Repository.IsArchived) (not $isTreePathRoot)}}

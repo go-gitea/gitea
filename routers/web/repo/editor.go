@@ -394,6 +394,10 @@ func DeleteFilePost(ctx *context.Context) {
 	}
 
 	treePath := ctx.Repo.TreePath
+	if treePath == "" {
+		ctx.JSONError(ctx.Tr("repo.editor.cannot_delete_root"))
+		return
+	}
 
 	// Check if the path is a directory
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
@@ -402,50 +406,18 @@ func DeleteFilePost(ctx *context.Context) {
 		return
 	}
 
-	var filesToDelete []*files_service.ChangeRepoFile
 	var commitMessage string
-
 	if entry.IsDir() {
-		// Get all files in the directory recursively
-		tree, err := ctx.Repo.Commit.SubTree(treePath)
-		if err != nil {
-			ctx.ServerError("SubTree", err)
-			return
-		}
-
-		entries, err := tree.ListEntriesRecursiveFast()
-		if err != nil {
-			ctx.ServerError("ListEntriesRecursiveFast", err)
-			return
-		}
-
-		// Create delete operations for all files in the directory
-		for _, e := range entries {
-			if !e.IsDir() && !e.IsSubModule() {
-				filesToDelete = append(filesToDelete, &files_service.ChangeRepoFile{
-					Operation: "delete",
-					TreePath:  treePath + "/" + e.Name(),
-				})
-			}
-		}
-
 		commitMessage = parsed.GetCommitMessage(ctx.Locale.TrString("repo.editor.delete_directory", treePath))
 	} else {
-		// Single file deletion
-		filesToDelete = []*files_service.ChangeRepoFile{
-			{
-				Operation: "delete",
-				TreePath:  treePath,
-			},
-		}
 		commitMessage = parsed.GetCommitMessage(ctx.Locale.TrString("repo.editor.delete", treePath))
 	}
 
-	_, err = files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
+	_, err = files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.DeleteRepoFileOptions{
 		LastCommitID: parsed.form.LastCommit,
 		OldBranch:    parsed.OldBranchName,
 		NewBranch:    parsed.NewBranchName,
-		Files:        filesToDelete,
+		TreePath:     treePath,
 		Message:      commitMessage,
 		Signoff:      parsed.form.Signoff,
 		Author:       parsed.GitCommitter,

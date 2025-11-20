@@ -1,18 +1,14 @@
-/* Repository file actions dropdown and centered content */
-.ui.dropdown.repo-add-file > .menu {
+/* Repository file actions dropdown */
+.ui.dropdown.repo-add-file > .menu,
+.ui.dropdown.repo-file-actions-dropdown > .menu {
   margin-top: 4px !important;
 }
 
 .ui.dropdown.repo-file-actions-dropdown > .menu {
-  margin-top: 4px !important;
   min-width: 200px;
 }
 
-.repo-file-actions-dropdown .menu .item {
-  cursor: pointer;
-}
-
-.repo-file-actions-dropdown .menu .divider {
+.ui.dropdown.repo-file-actions-dropdown > .menu > .divider {
   margin: 0.5rem 0;
 }
 
