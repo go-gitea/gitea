@@ -48,7 +48,7 @@ func handleLockListOut(ctx *context.Context, repo *repo_model.Repository, lock *
 func GetListLockHandler(ctx *context.Context) {
 	rv := getRequestContext(ctx)
 
-	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rv.User, rv.Repo)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rv.User, rv.Repo, rv.GroupID)
 	if err != nil {
 		log.Debug("Could not find repository: %s/%s - %s", rv.User, rv.Repo, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
@@ -135,9 +135,10 @@ func GetListLockHandler(ctx *context.Context) {
 func PostLockHandler(ctx *context.Context) {
 	userName := ctx.PathParam("username")
 	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
+	groupID := ctx.PathParamInt64("group_id")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName, groupID)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
@@ -200,9 +201,10 @@ func PostLockHandler(ctx *context.Context) {
 func VerifyLockHandler(ctx *context.Context) {
 	userName := ctx.PathParam("username")
 	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
+	groupID := ctx.PathParamInt64("group_id")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName, groupID)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
@@ -268,9 +270,10 @@ func VerifyLockHandler(ctx *context.Context) {
 func UnLockHandler(ctx *context.Context) {
 	userName := ctx.PathParam("username")
 	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
+	groupID := ctx.PathParamInt64("group_id")
 	authorization := ctx.Req.Header.Get("Authorization")
 
-	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, userName, repoName, groupID)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", userName, repoName, err)
 		ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)

@@ -46,8 +46,8 @@ export function stripTags(text: string): string {
 export function parseIssueHref(href: string): IssuePathInfo {
   // FIXME: it should use pathname and trim the appSubUrl ahead
   const path = (href || '').replace(/[#?].*$/, '');
-  const [_, ownerName, repoName, pathType, indexString] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
-  return {ownerName, repoName, pathType, indexString};
+  const [_, ownerName, group, repoName, pathType, indexString] = /([^/]+)\/(?:group\/([^/]+)\/)?([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
+  return {ownerName, repoName, pathType, group, indexString};
 }
 
 export function parseRepoOwnerPathInfo(pathname: string): RepoOwnerPathInfo {

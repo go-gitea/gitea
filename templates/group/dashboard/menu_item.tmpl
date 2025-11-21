@@ -1,0 +1,19 @@
+<a
+	class="item {{if .Group}}{{if eq $.Group.ID .Item.ID}}active selected{{
+		end
+	}}{{end }}"
+	style="--depth: {{.Depth}};"
+	href="{{
+		$.Org.OrganisationLink
+	}}/{{if $.PageIsIssues}}issues{{else if $.PageIsPulls}}pulls{{else if $.PageIsMilestonesDashboard}}milestones{{else}}dashboard{{
+		end
+	}}/group/{{.Item.ID}}"
+>
+	<span style="padding-left: calc(0.75rem * var(--depth))">
+		{{.Item.Title}}
+	</span>
+</a>
+{{$d := .Depth}}
+{{$one := 1}}
+{{$d1 := Eval $d "+" $one}}
+{{template "group/dashboard/submenu" dict "." . "Items" (.Item.Children .SignedUser) "Depth" $d1}}

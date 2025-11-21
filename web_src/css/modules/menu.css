@@ -1,4 +1,4 @@
-.ui.menu {
+.ui.menu, .ui.popup {
   display: flex;
   flex-shrink: 0;
   margin: 1rem 0;

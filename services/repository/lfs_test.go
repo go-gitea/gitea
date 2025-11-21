@@ -26,7 +26,7 @@ func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 	err := storage.Init()
 	assert.NoError(t, err)
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1", 0)
 	assert.NoError(t, err)
 
 	// add lfs object

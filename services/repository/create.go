@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -52,6 +53,7 @@ type CreateRepoOptions struct {
 	TrustModel       repo_model.TrustModelType
 	MirrorInterval   string
 	ObjectFormatName string
+	GroupID          int64
 }
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir string, opts CreateRepoOptions) error {
@@ -229,6 +231,24 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	if opts.ObjectFormatName == "" {
 		opts.ObjectFormatName = git.Sha1ObjectFormat.Name()
 	}
+	if opts.GroupID < 0 {
+		opts.GroupID = 0
+	}
+
+	// ensure that the parent group is owned by same user
+	if opts.GroupID > 0 {
+		newGroup, err := group_model.GetGroupByID(ctx, opts.GroupID)
+		if err != nil {
+			if group_model.IsErrGroupNotExist(err) {
+				opts.GroupID = 0
+			} else {
+				return nil, err
+			}
+		}
+		if newGroup.OwnerID != owner.ID {
+			return nil, fmt.Errorf("group[%d] is not owned by user[%d]", newGroup.ID, owner.ID)
+		}
+	}
 
 	repo := &repo_model.Repository{
 		OwnerID:                         owner.ID,
@@ -250,6 +270,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		DefaultBranch:                   opts.DefaultBranch,
 		DefaultWikiBranch:               setting.Repository.DefaultBranch,
 		ObjectFormatName:                opts.ObjectFormatName,
+		GroupID:                         opts.GroupID,
 	}
 
 	// 1 - create the repository database operations first
@@ -341,7 +362,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name)
+	has, err := repo_model.IsRepositoryModelExist(ctx, u, repo.Name, repo.GroupID)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
