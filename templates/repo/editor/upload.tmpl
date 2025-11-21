@@ -9,20 +9,18 @@
 			</div>
 			<div class="repo-view-content">
 				<form class="ui comment form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}">
-			{{.CsrfTokenHtml}}
-			{{template "repo/editor/common_top" .}}
-			<div class="repo-editor-header tw-flex tw-items-center tw-gap-2">
-				<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}"
-					data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show"
-					data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
-					{{svg "octicon-sidebar-collapse"}}
-				</button>
-				{{template "repo/editor/common_breadcrumb" .}}
-			</div>
-			<div class="field">
-				{{template "repo/upload" .}}
-			</div>
-			{{template "repo/editor/commit_form" .}}
+					{{.CsrfTokenHtml}}
+					{{template "repo/editor/common_top" .}}
+					<div class="repo-editor-header tw-flex tw-items-center tw-gap-2">
+						<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
+							{{svg "octicon-sidebar-collapse"}}
+						</button>
+						{{template "repo/editor/common_breadcrumb" .}}
+					</div>
+					<div class="field">
+						{{template "repo/upload" .}}
+					</div>
+					{{template "repo/editor/commit_form" .}}
 				</form>
 			</div>
 		</div>

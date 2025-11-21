@@ -29,7 +29,6 @@ export async function initRepoViewFileTree() {
 
   registerGlobalEventFunc('click', 'onRepoViewFileTreeToggle', toggleSidebar);
 
-  // Mount file search component
   const fileSearchContainer = sidebar.querySelector('#file-tree-search-container');
   if (fileSearchContainer) {
     createApp(RepoFileSearch, {
@@ -41,7 +40,6 @@ export async function initRepoViewFileTree() {
     }).mount(fileSearchContainer);
   }
 
-  // Mount file tree component
   const fileTree = sidebar.querySelector('#view-file-tree');
   if (fileTree) {
     createApp(ViewFileTree, {

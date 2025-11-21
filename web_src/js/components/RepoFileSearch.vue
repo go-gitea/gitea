@@ -1,9 +1,10 @@
 <script lang="ts" setup>
-import {ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted} from 'vue';
-import {GET} from '../modules/fetch.ts';
-import {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
-import {pathEscapeSegments} from '../utils/url.ts';
-import {svg} from '../svg.ts';
+import { ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted } from 'vue';
+import { onInputDebounce } from '../utils/dom.ts';
+import { GET } from '../modules/fetch.ts';
+import { filterRepoFilesWeighted } from '../features/repo-findfile.ts';
+import { pathEscapeSegments } from '../utils/url.ts';
+import { svg } from '../svg.ts';
 
 const searchInput = useTemplateRef('searchInput');
 const searchResults = useTemplateRef('searchResults');
@@ -14,11 +15,11 @@ const isLoadingFileList = ref(false);
 const hasLoadedFileList = ref(false);
 
 const props = defineProps({
-  repoLink: {type: String, required: true},
-  currentRefNameSubURL: {type: String, required: true},
-  treeListUrl: {type: String, required: true},
-  noResultsText: {type: String, required: true},
-  placeholder: {type: String, required: true},
+  repoLink: { type: String, required: true },
+  currentRefNameSubURL: { type: String, required: true },
+  treeListUrl: { type: String, required: true },
+  noResultsText: { type: String, required: true },
+  placeholder: { type: String, required: true },
 });
 
 const filteredFiles = computed(() => {
@@ -28,10 +29,12 @@ const filteredFiles = computed(() => {
 
 const treeLink = computed(() => `${props.repoLink}/src/${pathEscapeSegments(props.currentRefNameSubURL)}`);
 
-const handleSearchInput = (e: Event) => {
-  searchQuery.value = (e.target as HTMLInputElement).value;
-  selectedIndex.value = 0;
-};
+const handleSearchInput = onInputDebounce(() => {
+  if (searchInput.value) {
+    searchQuery.value = searchInput.value.value;
+    selectedIndex.value = 0;
+  }
+});
 
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === 'Escape' && searchQuery.value) {
@@ -68,30 +71,30 @@ const scrollSelectedIntoView = () => {
   nextTick(() => {
     const resultsEl = searchResults.value;
     if (!resultsEl) return;
-    
+
     const selectedEl = resultsEl.querySelector('.file-tree-search-result-item.selected');
     if (selectedEl) {
-      selectedEl.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+      selectedEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
     }
   });
 };
 
 const handleClickOutside = (e: MouseEvent) => {
   if (!searchQuery.value) return;
-  
+
   const target = e.target as HTMLElement;
   const resultsEl = searchResults.value;
   const inputEl = searchInput.value;
-  
-  if (inputEl && !inputEl.contains(target) && 
-      resultsEl && !resultsEl.contains(target)) {
+
+  if (inputEl && !inputEl.contains(target) &&
+    resultsEl && !resultsEl.contains(target)) {
     clearSearch();
   }
 };
 
 const loadFileListForSearch = async () => {
   if (hasLoadedFileList.value || isLoadingFileList.value) return;
-  
+
   isLoadingFileList.value = true;
   try {
     const response = await GET(props.treeListUrl);
@@ -111,64 +114,70 @@ function handleSearchResultClick(filePath: string) {
   window.location.href = `${treeLink.value}/${pathEscapeSegments(filePath)}`;
 }
 
+const updatePosition = () => {
+  if (searchInput.value && searchResults.value) {
+    const rect = searchInput.value.getBoundingClientRect();
+    searchResults.value.style.top = `${rect.bottom + 4}px`;
+    searchResults.value.style.left = `${rect.left}px`;
+    searchResults.value.style.visibility = 'visible';
+  }
+};
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  window.addEventListener('scroll', updatePosition, { passive: true });
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+  window.removeEventListener('scroll', updatePosition);
 });
 
 // Position search results below the input
-watch(searchQuery, async () => {
-  if (searchQuery.value && searchInput.value) {
+watch([searchQuery, filteredFiles], async () => {
+  if (searchQuery.value) {
     await nextTick();
-    const resultsEl = searchResults.value;
-    if (resultsEl) {
-      const rect = searchInput.value.getBoundingClientRect();
-      resultsEl.style.top = `${rect.bottom + 4}px`;
-      resultsEl.style.left = `${rect.left}px`;
-    }
+    updatePosition();
   }
 });
 </script>
 
 <template>
   <div class="repo-file-search">
-    <div class="ui small input tw-w-full tw-px-2 tw-pb-2">
-      <input 
-        ref="searchInput"
-        type="text" 
-        :placeholder="placeholder" 
-        autocomplete="off"
-        @input="handleSearchInput"
-        @keydown="handleKeyDown"
-        @focus="handleSearchFocus"
+    <div class="ui small input tw-w-full tw-px-2 tw-pb-2 tw-items-center">
+      <input
+        ref="searchInput" type="text" :placeholder="placeholder" autocomplete="off" role="combobox"
+        aria-autocomplete="list" :aria-expanded="searchQuery ? 'true' : 'false'" aria-controls="file-search-results"
+        @input="handleSearchInput" @keydown="handleKeyDown" @focus="handleSearchFocus"
       >
     </div>
-    
+
     <Teleport to="body">
-      <div v-if="searchQuery && filteredFiles.length > 0" ref="searchResults" class="file-tree-search-results">
-        <div 
-          v-for="(result, idx) in filteredFiles" 
-          :key="result.matchResult.join('')"
-          :class="['file-tree-search-result-item', {'selected': idx === selectedIndex}]"
-          @click="handleSearchResultClick(result.matchResult.join(''))"
-          @mouseenter="selectedIndex = idx"
-          :title="result.matchResult.join('')"
+      <div
+        v-if="searchQuery && filteredFiles.length > 0" id="file-search-results" ref="searchResults"
+        class="file-tree-search-results" role="listbox" style="visibility: hidden"
+      >
+        <div
+          v-for="(result, idx) in filteredFiles" :key="result.matchResult.join('')"
+          :class="['file-tree-search-result-item', { 'selected': idx === selectedIndex }]" role="option"
+          :aria-selected="idx === selectedIndex" @click="handleSearchResultClick(result.matchResult.join(''))"
+          @mouseenter="selectedIndex = idx" :title="result.matchResult.join('')"
         >
           <!-- eslint-disable-next-line vue/no-v-html -->
           <span v-html="svg('octicon-file', 16)"/>
           <span class="file-tree-search-result-path">
-            <span 
-              v-for="(part, index) in result.matchResult" 
-              :key="index"
-              :class="{'search-match': index % 2 === 1}"
-            >{{ part }}</span>
+            <span
+              v-for="(part, index) in result.matchResult" :key="index"
+              :class="{ 'search-match': index % 2 === 1 }"
+            >{{
+              part }}</span>
           </span>
         </div>
       </div>
-      <div v-if="searchQuery && filteredFiles.length === 0" ref="searchResults" class="file-tree-search-results file-tree-search-no-results">
+      <div
+        v-if="searchQuery && filteredFiles.length === 0" ref="searchResults"
+        class="file-tree-search-results file-tree-search-no-results" style="visibility: hidden"
+      >
         <div class="file-tree-no-results-content">
           <!-- eslint-disable-next-line vue/no-v-html -->
           <span v-html="svg('octicon-search', 24)"/>
@@ -193,11 +202,9 @@ watch(searchQuery, async () => {
   background: var(--color-box-body);
   border: 1px solid var(--color-secondary);
   border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   min-width: 300px;
   width: max-content;
   max-width: 600px;
-  z-index: 99999;
 }
 
 .file-tree-search-result-item {
@@ -210,7 +217,7 @@ watch(searchQuery, async () => {
   border-bottom: 1px solid var(--color-secondary);
 }
 
-.file-tree-search-result-item > span:first-child {
+.file-tree-search-result-item>span:first-child {
   flex-shrink: 0;
   margin-top: 0.125rem;
 }
@@ -236,10 +243,6 @@ watch(searchQuery, async () => {
   font-weight: var(--font-weight-semibold);
 }
 
-.file-tree-search-no-results {
-  padding: 0;
-}
-
 .file-tree-no-results-content {
   display: flex;
   flex-direction: column;
@@ -248,9 +251,5 @@ watch(searchQuery, async () => {
   padding: 1.5rem;
   color: var(--color-text-light-2);
   font-size: 14px;
-}
-
-.file-tree-no-results-content > span:first-child {
-  opacity: 0.5;
 }
 </style>

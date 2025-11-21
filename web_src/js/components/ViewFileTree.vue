@@ -12,11 +12,9 @@ const props = defineProps({
 });
 
 const store = createViewFileTreeStore(props);
-
 onMounted(async () => {
   store.rootFiles = await store.loadChildren('', props.treePath);
   elRoot.value.closest('.is-loading')?.classList?.remove('is-loading');
-  
   window.addEventListener('popstate', (e) => {
     store.selectedItem = e.state?.treePath || '';
     if (e.state?.url) store.loadViewContent(e.state.url);
@@ -25,18 +23,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div ref="elRoot" class="file-tree-root">
-    <div class="view-file-tree-items">
-      <ViewFileTreeItem v-for="item in store.rootFiles" :key="item.name" :item="item" :store="store"/>
-    </div>
+  <div class="view-file-tree-items" ref="elRoot">
+    <ViewFileTreeItem v-for="item in store.rootFiles" :key="item.name" :item="item" :store="store"/>
   </div>
 </template>
 
 <style scoped>
-.file-tree-root {
-  position: relative;
-}
-
 .view-file-tree-items {
   display: flex;
   flex-direction: column;

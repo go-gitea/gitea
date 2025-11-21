@@ -12,9 +12,7 @@
 					{{.CsrfTokenHtml}}
 					{{template "repo/editor/common_top" .}}
 					<div class="repo-editor-header tw-flex tw-items-center tw-gap-2">
-						<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}"
-							data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show"
-							data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
+						<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
 							{{svg "octicon-sidebar-collapse"}}
 						</button>
 						<div class="breadcrumb">
@@ -30,9 +28,7 @@
 							<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
 						</div>
 						<div class="ui active tab segment tw-rounded tw-p-0" data-tab="write">
-							<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
-								data-context="{{.RepoLink}}"
-								data-line-wrap-extensions="{{.LineWrapExtensions}}">{{.FileContent}}</textarea>
+							<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch" data-context="{{.RepoLink}}" data-line-wrap-extensions="{{.LineWrapExtensions}}">{{.FileContent}}</textarea>
 							<div class="editor-loading is-loading"></div>
 						</div>
 					</div>
