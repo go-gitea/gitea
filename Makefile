@@ -180,6 +180,7 @@ endif
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
+SWAGGER_SPEC_GROUP_INPUT := templates/swagger/v1_groups.json
 SWAGGER_EXCLUDE := code.gitea.io/sdk
 
 TEST_MYSQL_HOST ?= mysql:3306
@@ -292,6 +293,8 @@ generate-swagger: $(SWAGGER_SPEC) ## generate the swagger spec from code comment
 
 $(SWAGGER_SPEC): $(GO_SOURCES) $(SWAGGER_SPEC_INPUT)
 	$(GO) run $(SWAGGER_PACKAGE) generate spec --exclude "$(SWAGGER_EXCLUDE)" --input "$(SWAGGER_SPEC_INPUT)" --output './$(SWAGGER_SPEC)'
+	$(GO) generate -v ./build_tools/...
+	$(GO) run $(SWAGGER_PACKAGE) mixin -o './$(SWAGGER_SPEC)' $(SWAGGER_SPEC) $(SWAGGER_SPEC_GROUP_INPUT)
 
 .PHONY: swagger-check
 swagger-check: generate-swagger
