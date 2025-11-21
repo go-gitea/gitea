@@ -10,7 +10,7 @@ import (
 )
 
 func addOwnerRepoGitHTTPRouters(m *web.Router) {
-	m.Group("/{username}/{reponame}", func() {
+	fn := func() {
 		m.Methods("POST,OPTIONS", "/git-upload-pack", repo.ServiceUploadPack)
 		m.Methods("POST,OPTIONS", "/git-receive-pack", repo.ServiceReceivePack)
 		m.Methods("GET,OPTIONS", "/info/refs", repo.GetInfoRefs)
@@ -22,5 +22,7 @@ func addOwnerRepoGitHTTPRouters(m *web.Router) {
 		m.Methods("GET,OPTIONS", "/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38,62}}", repo.GetLooseObject)
 		m.Methods("GET,OPTIONS", "/objects/pack/pack-{file:[0-9a-f]{40,64}}.pack", repo.GetPackFile)
 		m.Methods("GET,OPTIONS", "/objects/pack/pack-{file:[0-9a-f]{40,64}}.idx", repo.GetIdxFile)
-	}, optSignInIgnoreCsrf, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context.UserAssignmentWeb())
+	}
+	m.Group("/{username}/{reponame}", fn, optSignInIgnoreCsrf, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context.UserAssignmentWeb())
+	m.Group("/{username}/group/{group_id}/{reponame}", fn, optSignInIgnoreCsrf, repo.HTTPGitEnabledHandler, repo.CorsHandler(), context.UserAssignmentWeb())
 }

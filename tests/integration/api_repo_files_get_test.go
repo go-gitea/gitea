@@ -95,13 +95,13 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 	t.Run("PermissionCheck", func(t *testing.T) {
 		filesOptions := &api.GetFilesOptions{Files: []string{"README.md"}}
 		// Test accessing private ref with user token that does not have access - should fail
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/file-contents", user2.Name, repo16.Name), &filesOptions).AddTokenAuth(token4)
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/file-contents", user2.Name, repo16.GroupID, repo16.Name), &filesOptions).AddTokenAuth(token4)
 		MakeRequest(t, req, http.StatusNotFound)
 		// Test access private ref of owner of token
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/file-contents", user2.Name, repo16.Name), &filesOptions).AddTokenAuth(token2)
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/file-contents", user2.Name, repo16.GroupID, repo16.Name), &filesOptions).AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusOK)
 		// Test access of org org3 private repo file by owner user2
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/file-contents", org3.Name, repo3.Name), &filesOptions).AddTokenAuth(token2)
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/file-contents", org3.Name, repo3.GroupID, repo3.Name), &filesOptions).AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusOK)
 	})
 

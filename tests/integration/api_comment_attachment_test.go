@@ -36,17 +36,17 @@ func TestAPIGetCommentAttachment(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 		token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.Name, comment.ID, attachment.ID).
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.GroupID, repo.Name, comment.ID, attachment.ID).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.Name, comment.ID, attachment.ID).
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.GroupID, repo.Name, comment.ID, attachment.ID).
 		AddTokenAuth(token)
 	session.MakeRequest(t, req, http.StatusOK)
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.Name, comment.ID, attachment.ID).
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.GroupID, repo.Name, comment.ID, attachment.ID).
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -71,7 +71,7 @@ func TestAPIListCommentAttachments(t *testing.T) {
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadIssue)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d/assets", repoOwner.Name, repo.Name, comment.ID).
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/issues/comments/%d/assets", repoOwner.Name, repo.GroupID, repo.Name, comment.ID).
 		AddTokenAuth(token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -105,7 +105,7 @@ func TestAPICreateCommentAttachment(t *testing.T) {
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/assets", repoOwner.Name, repo.Name, comment.ID), body).
+	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/comments/%d/assets", repoOwner.Name, repo.GroupID, repo.Name, comment.ID), body).
 		AddTokenAuth(token).
 		SetHeader("Content-Type", writer.FormDataContentType())
 	resp := session.MakeRequest(t, req, http.StatusCreated)
@@ -137,7 +137,7 @@ func TestAPICreateCommentAttachmentWithUnallowedFile(t *testing.T) {
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/assets", repoOwner.Name, repo.Name, comment.ID), body).
+	req := NewRequestWithBody(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/comments/%d/assets", repoOwner.Name, repo.GroupID, repo.Name, comment.ID), body).
 		AddTokenAuth(token).
 		SetHeader("Content-Type", writer.FormDataContentType())
 
@@ -202,7 +202,7 @@ func TestAPIDeleteCommentAttachment(t *testing.T) {
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
 
-	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.Name, comment.ID, attachment.ID)).
+	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/comments/%d/assets/%d", repoOwner.Name, repo.GroupID, repo.Name, comment.ID, attachment.ID)).
 		AddTokenAuth(token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 

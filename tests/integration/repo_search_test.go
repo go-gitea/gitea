@@ -28,7 +28,7 @@ func resultFilenames(doc *HTMLDoc) []string {
 func TestSearchRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1", 0)
 	assert.NoError(t, err)
 
 	code_indexer.UpdateRepoIndexer(repo)
@@ -38,7 +38,7 @@ func TestSearchRepo(t *testing.T) {
 	setting.Indexer.IncludePatterns = setting.IndexerGlobFromString("**.txt")
 	setting.Indexer.ExcludePatterns = setting.IndexerGlobFromString("**/y/**")
 
-	repo, err = repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "glob")
+	repo, err = repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "glob", 0)
 	assert.NoError(t, err)
 
 	code_indexer.UpdateRepoIndexer(repo)
