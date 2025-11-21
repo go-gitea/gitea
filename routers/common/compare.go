@@ -19,4 +19,5 @@ type CompareInfo struct {
 	BaseBranch       string
 	HeadBranch       string
 	DirectComparison bool
+	RawDiffType      git.RawDiffType
 }
