@@ -119,7 +119,7 @@ func webAuth(authMethod auth_service.Method) func(*context.Context) {
 		ar, err := common.AuthShared(ctx.Base, ctx.Session, authMethod)
 		if err != nil {
 			log.Error("Failed to verify user: %v", err)
-			ctx.HTTPError(http.StatusUnauthorized, "invalid username or password")
+			ctx.HTTPError(http.StatusUnauthorized, "Failed to authenticate user")
 			return
 		}
 		ctx.Doer = ar.Doer

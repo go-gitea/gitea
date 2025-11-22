@@ -20,9 +20,13 @@ func TestAPIAuth(t *testing.T) {
 
 	req = NewRequestf(t, "GET", "/api/v1/user").AddBasicAuth("user2", "wrong-password")
 	resp := MakeRequest(t, req, http.StatusUnauthorized)
-	assert.Contains(t, resp.Body.String(), `{"message":"invalid username or password"`)
+	assert.Contains(t, resp.Body.String(), `{"message":"invalid username, password or token"`)
 
 	req = NewRequestf(t, "GET", "/api/v1/user").AddBasicAuth("user-not-exist")
 	resp = MakeRequest(t, req, http.StatusUnauthorized)
-	assert.Contains(t, resp.Body.String(), `{"message":"invalid username or password"`)
+	assert.Contains(t, resp.Body.String(), `{"message":"invalid username, password or token"`)
+
+	req = NewRequestf(t, "GET", "/api/v1/users/user2/repos").AddTokenAuth("Bearer wrong_token")
+	resp = MakeRequest(t, req, http.StatusUnauthorized)
+	assert.Contains(t, resp.Body.String(), `{"message":"invalid username, password or token"`)
 }
