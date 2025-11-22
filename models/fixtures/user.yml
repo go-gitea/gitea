@@ -1556,3 +1556,79 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+
+-
+  id: 43
+  lower_name: nonlocaluser1
+  name: nonlocaluser1
+  full_name: User One
+  email: nonlocaluser1@example.com
+  keep_email_private: false
+  email_notifications_preference: enabled
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
+  must_change_password: false
+  login_source: 1
+  login_name: nonlocaluser1
+  type: 0
+  salt: ZogKvWdyEx
+  max_repo_creation: -1
+  is_active: true
+  is_admin: true
+  is_restricted: false
+  allow_git_hook: false
+  allow_import_local: false
+  allow_create_organization: true
+  prohibit_login: false
+  avatar: ""
+  avatar_email: nonlocaluser1@example.com
+  use_custom_avatar: true
+  num_followers: 0
+  num_following: 0
+  num_stars: 0
+  num_repos: 0
+  num_teams: 0
+  num_members: 0
+  visibility: 0
+  repo_admin_change_team_access: false
+  theme: ""
+  keep_activity_private: false
+
+-
+  id: 44
+  lower_name: nonlocaluser2
+  name: nonlocaluser2
+  full_name: User Two
+  email: nonlocaluser2@example.com
+  keep_email_private: false
+  email_notifications_preference: enabled
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
+  must_change_password: false
+  login_source: 1
+  login_name: nonlocaluser2
+  type: 0
+  salt: ZogKvWdyEx
+  max_repo_creation: -1
+  is_active: true
+  is_admin: false
+  is_restricted: false
+  allow_git_hook: false
+  allow_import_local: false
+  allow_create_organization: true
+  prohibit_login: false
+  avatar: ""
+  avatar_email: nonlocaluser2@example.com
+  use_custom_avatar: true
+  num_followers: 0
+  num_following: 0
+  num_stars: 0
+  num_repos: 0
+  num_teams: 0
+  num_members: 0
+  visibility: 0
+  repo_admin_change_team_access: false
+  theme: ""
+  keep_activity_private: false
+
+

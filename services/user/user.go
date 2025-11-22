@@ -31,13 +31,13 @@ import (
 )
 
 // RenameUser renames a user
-func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doer *user_model.User) error {
 	if newUserName == u.Name {
 		return nil
 	}
 
-	// Non-local users are not allowed to change their username.
-	if !u.IsOrganization() && !u.IsLocal() {
+	// Non-local users are not allowed to change their own username, but admins are
+	if !u.IsOrganization() && !u.IsLocal() && !doer.IsAdmin {
 		return user_model.ErrUserIsNotLocal{
 			UID:  u.ID,
 			Name: u.Name,

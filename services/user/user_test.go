@@ -100,24 +100,34 @@ func TestCreateUser(t *testing.T) {
 func TestRenameUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 21})
+	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1, IsAdmin: true})
+	nonLocalAdminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 43, IsAdmin: true}) //, LoginType: auth.OAuth2}) ???
+	nonLocalAdminUser.LoginType = auth.OAuth2
+	nonLocalUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 44, IsAdmin: false}) // , LoginType: auth.OAuth2}) ???
+	nonLocalUser.LoginType = auth.OAuth2
 
-	t.Run("Non-Local", func(t *testing.T) {
-		u := &user_model.User{
-			Type:      user_model.UserTypeIndividual,
-			LoginType: auth.OAuth2,
-		}
-		assert.ErrorIs(t, RenameUser(t.Context(), u, "user_rename"), user_model.ErrUserIsNotLocal{})
+	t.Run("Non-Local, Self, Non-admin", func(t *testing.T) {
+		assert.ErrorIs(t, RenameUser(t.Context(), nonLocalUser, "nonlocal_user_rename", nonLocalUser), user_model.ErrUserIsNotLocal{UID: nonLocalUser.ID, Name: nonLocalUser.Name})
+	})
+	t.Run("Non-Local, Self, Admin", func(t *testing.T) {
+		assert.NoError(t, RenameUser(t.Context(), nonLocalAdminUser, "nonlocal_user_user_rename", nonLocalAdminUser))
+	})
+	t.Run("Non-Local, Other, Non-admin", func(t *testing.T) {
+		assert.ErrorIs(t, RenameUser(t.Context(), nonLocalUser, "user_rename", user), user_model.ErrUserIsNotLocal{UID: nonLocalUser.ID, Name: nonLocalUser.Name})
+	})
+	t.Run("Non-Local, Other, Admin", func(t *testing.T) {
+		assert.NoError(t, RenameUser(t.Context(), nonLocalAdminUser, "nonlocal_user_rename_2", adminUser))
 	})
 
 	t.Run("Same username", func(t *testing.T) {
-		assert.NoError(t, RenameUser(t.Context(), user, user.Name))
+		assert.NoError(t, RenameUser(t.Context(), user, user.Name, user))
 	})
 
 	t.Run("Non usable username", func(t *testing.T) {
 		usernames := []string{"--diff", ".well-known", "gitea-actions", "aaa.atom", "aa.png"}
 		for _, username := range usernames {
 			assert.Error(t, user_model.IsUsableUsername(username), "non-usable username: %s", username)
-			assert.Error(t, RenameUser(t.Context(), user, username), "non-usable username: %s", username)
+			assert.Error(t, RenameUser(t.Context(), user, username, user), "non-usable username: %s", username)
 		}
 	})
 
@@ -126,7 +136,7 @@ func TestRenameUser(t *testing.T) {
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: user.Name})
 
-		assert.NoError(t, RenameUser(t.Context(), user, caps))
+		assert.NoError(t, RenameUser(t.Context(), user, caps, user))
 
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: caps})
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID, OwnerName: caps})
@@ -135,17 +145,17 @@ func TestRenameUser(t *testing.T) {
 	t.Run("Already exists", func(t *testing.T) {
 		existUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-		assert.ErrorIs(t, RenameUser(t.Context(), user, existUser.Name), user_model.ErrUserAlreadyExist{Name: existUser.Name})
-		assert.ErrorIs(t, RenameUser(t.Context(), user, existUser.LowerName), user_model.ErrUserAlreadyExist{Name: existUser.LowerName})
+		assert.ErrorIs(t, RenameUser(t.Context(), user, existUser.Name, user), user_model.ErrUserAlreadyExist{Name: existUser.Name})
+		assert.ErrorIs(t, RenameUser(t.Context(), user, existUser.LowerName, user), user_model.ErrUserAlreadyExist{Name: existUser.LowerName})
 		newUsername := fmt.Sprintf("uSEr%d", existUser.ID)
-		assert.ErrorIs(t, RenameUser(t.Context(), user, newUsername), user_model.ErrUserAlreadyExist{Name: newUsername})
+		assert.ErrorIs(t, RenameUser(t.Context(), user, newUsername, user), user_model.ErrUserAlreadyExist{Name: newUsername})
 	})
 
 	t.Run("Normal", func(t *testing.T) {
 		oldUsername := user.Name
 		newUsername := "User_Rename"
 
-		assert.NoError(t, RenameUser(t.Context(), user, newUsername))
+		assert.NoError(t, RenameUser(t.Context(), user, newUsername, user))
 		unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: user.ID, Name: newUsername, LowerName: strings.ToLower(newUsername)})
 
 		redirectUID, err := user_model.LookupUserRedirect(t.Context(), oldUsername)
