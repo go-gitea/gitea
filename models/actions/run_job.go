@@ -138,6 +138,30 @@ func GetRunJobsByRunID(ctx context.Context, runID int64) (ActionJobList, error) 
 	return jobs, nil
 }
 
+func UpdateRunStatus(ctx context.Context, repoID, runID int64) error {
+	// Other goroutines may aggregate the status of the run and update it too.
+	// So we need load the run and its jobs before updating the run.
+	run, err := GetRunByRepoAndID(ctx, repoID, runID)
+	if err != nil {
+		return err
+	}
+	jobs, err := GetRunJobsByRunID(ctx, runID)
+	if err != nil {
+		return err
+	}
+	run.Status = AggregateJobStatus(jobs)
+	if run.Started.IsZero() && run.Status.IsRunning() {
+		run.Started = timeutil.TimeStampNow()
+	}
+	if run.Stopped.IsZero() && run.Status.IsDone() {
+		run.Stopped = timeutil.TimeStampNow()
+	}
+	if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
+		return fmt.Errorf("update run %d: %w", run.ID, err)
+	}
+	return nil
+}
+
 func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, cols ...string) (int64, error) {
 	e := db.GetEngine(ctx)
 
@@ -173,27 +197,8 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		}
 	}
 
-	{
-		// Other goroutines may aggregate the status of the run and update it too.
-		// So we need load the run and its jobs before updating the run.
-		run, err := GetRunByRepoAndID(ctx, job.RepoID, job.RunID)
-		if err != nil {
-			return 0, err
-		}
-		jobs, err := GetRunJobsByRunID(ctx, job.RunID)
-		if err != nil {
-			return 0, err
-		}
-		run.Status = AggregateJobStatus(jobs)
-		if run.Started.IsZero() && run.Status.IsRunning() {
-			run.Started = timeutil.TimeStampNow()
-		}
-		if run.Stopped.IsZero() && run.Status.IsDone() {
-			run.Stopped = timeutil.TimeStampNow()
-		}
-		if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
-			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
-		}
+	if err := UpdateRunStatus(ctx, job.RepoID, job.RunID); err != nil {
+		return 0, err
 	}
 
 	return affected, nil
