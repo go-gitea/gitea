@@ -13,8 +13,11 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/routers/api/packages/generic"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -30,7 +33,9 @@ func TestPackageGeneric(t *testing.T) {
 	filename := "fi-le_na.me"
 	content := []byte{1, 2, 3}
 
+	timestamp := timeutil.TimeStampNow().AsTime().Unix()
 	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)
+	listURL := fmt.Sprintf("/api/packages/%s/generic/%s/list", user.Name, packageName)
 
 	t.Run("Upload", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
@@ -96,6 +101,32 @@ func TestPackageGeneric(t *testing.T) {
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 		})
+	})
+
+	t.Run("List", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", listURL)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var expected []generic.PackageInfo
+		err := json.Unmarshal(resp.Body.Bytes(), &expected)
+		assert.NoError(t, err)
+
+		assert.Len(t, expected, 1)
+		assert.Len(t, expected[0].Files, 2)
+
+		resPkg := expected[0]
+		assert.Equal(t, packageVersion, resPkg.Version)
+		assert.Equal(t, int64(0), resPkg.DownloadCount)
+
+		resFile1 := resPkg.Files[0]
+		assert.Equal(t, filename, resFile1.Name)
+		assert.LessOrEqual(t, timestamp, resFile1.CreatedUnix)
+
+		resFile2 := resPkg.Files[1]
+		assert.Equal(t, "dummy.bin", resFile2.Name)
+		assert.LessOrEqual(t, timestamp, resFile2.CreatedUnix)
 	})
 
 	t.Run("Download", func(t *testing.T) {
