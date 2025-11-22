@@ -682,6 +682,9 @@ func getGroupSegment(gid int64) string {
 }
 
 func groupSegmentWithTrailingSlash(gid int64) string {
+	if gid < 1 {
+		return ""
+	}
 	return getGroupSegment(gid) + "/"
 }
 
