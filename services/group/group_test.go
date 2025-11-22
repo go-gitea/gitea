@@ -6,7 +6,6 @@ package group
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -29,7 +28,7 @@ func TestNewGroup(t *testing.T) {
 		Name:    groupName,
 		OwnerID: 3,
 	}
-	assert.NoError(t, NewGroup(db.DefaultContext, group))
+	assert.NoError(t, NewGroup(t.Context(), group))
 	unittest.AssertExistsAndLoadBean(t, &group_model.Group{Name: groupName})
 }
 
@@ -68,7 +67,7 @@ func TestMoveRepo(t *testing.T) {
 	})
 	origCount := unittest.GetCount(t, new(repo_model.Repository), cond)
 
-	assert.NoError(t, MoveGroupItem(db.DefaultContext, MoveGroupOptions{
+	assert.NoError(t, MoveGroupItem(t.Context(), MoveGroupOptions{
 		NewParent: 123,
 		ItemID:    32,
 		IsGroup:   false,
