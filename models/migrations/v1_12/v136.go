@@ -84,7 +84,7 @@ func AddCommitDivergenceToPulls(x *xorm.Engine) error {
 				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
 				continue
 			}
-			repoStore := repo_model.StorageRepo(repo_model.RelativePath(baseRepo.OwnerName, baseRepo.Name))
+			repoStore := repo_model.StorageRepo(repo_model.RelativePath(baseRepo.OwnerName, baseRepo.Name, 0))
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 			divergence, err := gitrepo.GetDivergingCommits(graceful.GetManager().HammerContext(), repoStore, pr.BaseBranch, gitRefName)
 			if err != nil {
