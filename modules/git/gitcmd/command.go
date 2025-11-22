@@ -456,6 +456,17 @@ func IsErrorExitCode(err error, code int) bool {
 	return false
 }
 
+func ExitCode(err error) (int, bool) {
+	if err == nil {
+		return 0, true
+	}
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		return exitError.ExitCode(), true
+	}
+	return 0, false
+}
+
 // RunStdString runs the command and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
 func (c *Command) RunStdString(ctx context.Context) (stdout, stderr string, runErr RunStdError) {
 	stdoutBytes, stderrBytes, runErr := c.WithParentCallerInfo().runStdBytes(ctx)
