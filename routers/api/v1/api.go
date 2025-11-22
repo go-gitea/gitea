@@ -1802,7 +1802,6 @@ func Routes() *web.Router {
 					m.Post("/group/{group_id}/{reponame}", admin.AdoptGroupRepository)
 					m.Delete("/group/{group_id}/{reponame}", admin.DeleteUnadoptedRepositoryInGroup)
 				})
-
 			})
 			m.Group("/hooks", func() {
 				m.Combo("").Get(admin.ListHooks).
