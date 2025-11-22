@@ -29,7 +29,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "status1", "README.md", "status1")
+		testEditFileToNewBranch(t, session, 0, "user1", "repo1", "master", "status1", "README.md", "status1")
 
 		url := path.Join("user1", "repo1", "compare", "master...status1")
 		req := NewRequestWithValues(t, "POST", url,
@@ -72,7 +72,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			commitstatus.CommitStatusWarning: "gitea-exclamation",
 		}
 
-		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeWriteRepository)
+		testCtx := NewAPITestContext(t, "user1", "repo1", 0, auth_model.AccessTokenScopeWriteRepository)
 
 		// Update commit status, and check if icon is updated as well
 		for _, status := range statusList {
@@ -128,8 +128,8 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "status1", "README.md", "status1")
-		testEditFile(t, session, "user1", "repo1", "status1", "README.md", "# repo1\n\nDescription for repo1")
+		testEditFileToNewBranch(t, session, 0, "user1", "repo1", "master", "status1", "README.md", "status1")
+		testEditFile(t, session, 0, "user1", "repo1", "status1", "README.md", "# repo1\n\nDescription for repo1")
 
 		url := path.Join("user1", "repo1", "compare", "master...status1")
 		req := NewRequestWithValues(t, "POST", url,
@@ -211,7 +211,7 @@ func TestPullStatusDelayCheck(t *testing.T) {
 
 		// when base branch changes, PR status should be updated, but it is inactive for long time, so no real check
 		issue3, checkedPrID = run(t, func(t *testing.T) {
-			testEditFile(t, session, "user2", "repo1", "master", "README.md", "new content 1")
+			testEditFile(t, session, 0, "user2", "repo1", "master", "README.md", "new content 1")
 		})
 		assert.Equal(t, issues.PullRequestStatusChecking, issue3.PullRequest.Status)
 		assert.Zero(t, checkedPrID)
@@ -227,7 +227,7 @@ func TestPullStatusDelayCheck(t *testing.T) {
 
 		// when base branch changes, still so no real check
 		issue3, checkedPrID = run(t, func(t *testing.T) {
-			testEditFile(t, session, "user2", "repo1", "master", "README.md", "new content 2")
+			testEditFile(t, session, 0, "user2", "repo1", "master", "README.md", "new content 2")
 		})
 		assert.Equal(t, issues.PullRequestStatusChecking, issue3.PullRequest.Status)
 		assert.Zero(t, checkedPrID)
@@ -235,7 +235,7 @@ func TestPullStatusDelayCheck(t *testing.T) {
 		// then allow to check PRs without delay, when base branch changes, the PRs will be checked
 		setting.Repository.PullRequest.DelayCheckForInactiveDays = -1
 		issue3, checkedPrID = run(t, func(t *testing.T) {
-			testEditFile(t, session, "user2", "repo1", "master", "README.md", "new content 3")
+			testEditFile(t, session, 0, "user2", "repo1", "master", "README.md", "new content 3")
 		})
 		assert.Equal(t, issues.PullRequestStatusChecking, issue3.PullRequest.Status)
 		assert.Equal(t, issue3.PullRequest.ID, checkedPrID)

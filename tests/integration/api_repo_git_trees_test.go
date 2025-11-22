@@ -76,7 +76,7 @@ func TestAPIReposGitTrees(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "org3/repo3" with no user token
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/trees/%s", org3.Name, repo3TreeSHA, repo3.GroupID, repo3.Name)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/trees/%s", org3.Name, repo3.GroupID, repo3.Name, repo3TreeSHA)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Login as User4.

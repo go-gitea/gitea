@@ -224,11 +224,11 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 
 		t.Run("Submit approve/reject review on merged PR", func(t *testing.T) {
 			// Create a merged PR (made by user1) in the upstream repo1.
-			testEditFile(t, user1Session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+			testEditFile(t, user1Session, 0, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "master", "This is a pull title")
 			elem := strings.Split(test.RedirectURL(resp), "/")
 			assert.Equal(t, "pulls", elem[3])
-			testPullMerge(t, user1Session, elem[1], elem[2], elem[4], MergeOptions{
+			testPullMerge(t, user1Session, elem[1], elem[2], 0, elem[4], MergeOptions{
 				Style:        repo_model.MergeStyleMerge,
 				DeleteBranch: false,
 			})
@@ -247,7 +247,7 @@ func TestPullView_GivenApproveOrRejectReviewOnClosedPR(t *testing.T) {
 
 		t.Run("Submit approve/reject review on closed PR", func(t *testing.T) {
 			// Created a closed PR (made by user1) in the upstream repo1.
-			testEditFileToNewBranch(t, user1Session, "user1", "repo1", "master", "a-test-branch", "README.md", "Hello, World (Edited...again)\n")
+			testEditFileToNewBranch(t, user1Session, 0, "user1", "repo1", "master", "a-test-branch", "README.md", "Hello, World (Edited...again)\n")
 			resp := testPullCreate(t, user1Session, "user1", "repo1", false, "master", "a-test-branch", "This is a pull title")
 			elem := strings.Split(test.RedirectURL(resp), "/")
 			assert.Equal(t, "pulls", elem[3])

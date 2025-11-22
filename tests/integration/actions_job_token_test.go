@@ -78,7 +78,7 @@ func testActionsJobTokenAccess(u *url.URL, isFork bool) func(t *testing.T) {
 
 func TestActionsJobTokenAccessLFS(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", 0, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
 		t.Run("Create Repository", doAPICreateRepository(httpContext, false, func(t *testing.T, repository structs.Repository) {
 			task := &actions_model.ActionTask{}
 			require.NoError(t, task.GenerateToken())

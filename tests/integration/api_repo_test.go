@@ -407,7 +407,7 @@ func TestAPIRepoMigrateConflict(t *testing.T) {
 
 func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 	username := "user2"
-	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	baseAPITestContext := NewAPITestContext(t, username, "repo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	u.Path = baseAPITestContext.GitPath()
 
@@ -495,7 +495,7 @@ func TestAPIRepoCreateConflict(t *testing.T) {
 
 func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 	username := "user2"
-	baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	baseAPITestContext := NewAPITestContext(t, username, "repo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	u.Path = baseAPITestContext.GitPath()
 

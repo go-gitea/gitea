@@ -35,7 +35,7 @@ func TestApproveAllRunsOnPullRequestPage(t *testing.T) {
 
 		apiBaseRepo := createActionsTestRepo(t, user2Token, "approve-all-runs", false)
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(user2APICtx)(t)
 
 		runner := newMockRunner()
@@ -52,7 +52,7 @@ jobs:
       - run: echo unit-test
 `
 		opts1 := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wf1TreePath, opts1)
+		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, wf1TreePath, opts1)
 		wf2TreePath := ".gitea/workflows/pull_2.yml"
 		wf2FileContent := `name: Pull 2
 on: pull_request
@@ -63,7 +63,7 @@ jobs:
       - run: echo integration-test
 `
 		opts2 := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create %s"+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wf2TreePath, opts2)
+		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, wf2TreePath, opts2)
 
 		// user4 forks the repo
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
@@ -74,7 +74,7 @@ jobs:
 		var apiForkRepo api.Repository
 		DecodeJSON(t, resp, &apiForkRepo)
 		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
-		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, forkRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(user4APICtx)(t)
 
 		// user4 creates a pull request from branch "bugfix/user4"

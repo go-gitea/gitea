@@ -1401,7 +1401,7 @@ jobs:
       - run: echo 'Hello World'
 `
 		opts1 := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, baseRepo.GroupID, opts1)
+		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, wfTreePath, opts1)
 
 		// user4 forks the repo
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/forks", baseRepo.OwnerName, baseRepo.GroupID, baseRepo.Name),

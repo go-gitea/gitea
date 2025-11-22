@@ -218,7 +218,7 @@ func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "merged-pr", http.StatusSeeOther)
 	prID = testCreatePullToDefaultBranch(t, baseSession, baseRepo, headRepo, "merged-pr", "merged pr")
 	testAPINewFile(t, headSession, headRepo.OwnerName, headRepo.Name, "merged-pr", fmt.Sprintf("new-commit-%s.txt", headRepo.Name), "new-commit")
-	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, MergeOptions{
+	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, prID, MergeOptions{
 		Style:        repo_model.MergeStyleRebaseMerge,
 		DeleteBranch: false,
 	})
@@ -227,7 +227,7 @@ func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "merged-pr-deleted", http.StatusSeeOther)
 	prID = testCreatePullToDefaultBranch(t, baseSession, baseRepo, headRepo, "merged-pr-deleted", "merged pr with deleted branch")
 	testAPINewFile(t, headSession, headRepo.OwnerName, headRepo.Name, "merged-pr-deleted", fmt.Sprintf("new-commit-%s-2.txt", headRepo.Name), "new-commit")
-	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, MergeOptions{
+	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, prID, MergeOptions{
 		Style:        repo_model.MergeStyleRebaseMerge,
 		DeleteBranch: true,
 	})

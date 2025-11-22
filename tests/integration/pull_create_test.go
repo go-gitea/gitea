@@ -142,7 +142,7 @@ func TestPullCreate(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
-		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, session, 0, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		assert.Equal(t, 3, repo1.NumPulls)
 		assert.Equal(t, 3, repo1.NumOpenPulls)
@@ -185,7 +185,7 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
-		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, session, 0, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "<i>XSS PR</i>")
 
 		// check the redirected URL
@@ -250,7 +250,7 @@ func TestPullBranchDelete(t *testing.T) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testCreateBranch(t, session, "user1", "repo1", "branch/master", "master1", http.StatusSeeOther)
-		testEditFile(t, session, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, session, 0, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master1", "This is a pull title")
 
 		// check the redirected URL
@@ -288,7 +288,7 @@ func TestPullCreatePrFromBaseToFork(t *testing.T) {
 
 		// Edit base repository
 		sessionBase := loginUser(t, "user2")
-		testEditFile(t, sessionBase, "user2", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, sessionBase, 0, "user2", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 
 		// Create a PR
 		resp := testPullCreateDirectly(t, sessionFork, createPullRequestOptions{
@@ -408,7 +408,7 @@ func TestPullCreateParallel(t *testing.T) {
 		for i := range 5 {
 			wg.Go(func() {
 				branchName := fmt.Sprintf("new-branch-%d", i)
-				testEditFileToNewBranch(t, sessionFork, "user1", "repo1", "master", branchName, "README.md", fmt.Sprintf("Hello, World (Edited) %d\n", i))
+				testEditFileToNewBranch(t, sessionFork, 0, "user1", "repo1", "master", branchName, "README.md", fmt.Sprintf("Hello, World (Edited) %d\n", i))
 
 				// Create a PR
 				resp := testPullCreateDirectly(t, sessionFork, createPullRequestOptions{
@@ -494,7 +494,7 @@ func TestCreatePullWhenBlocked(t *testing.T) {
 		MakeRequest(t, req, http.StatusNoContent)
 
 		// 2. User1 adds changes to fork
-		testEditFile(t, sessionFork, ForkOwner, "forkrepo1", "master", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, sessionFork, 0, ForkOwner, "forkrepo1", "master", "README.md", "Hello, World (Edited)\n")
 
 		// 3. User1 attempts to create a pull request
 		testPullCreateFailure(t, sessionFork, RepoOwner, "repo1", "master", ForkOwner, "forkrepo1", "master", "This is a pull title")

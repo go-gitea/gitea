@@ -67,7 +67,7 @@ func TestAPIReposGitBlobs(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "org3/repo3" with no user token
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/blobs/%s", org3.Name, repo3ReadmeSHA, repo3.GroupID, repo3.Name)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/blobs/%s", org3.Name, repo3.GroupID, repo3.Name, repo3ReadmeSHA)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Login as User4.

@@ -61,7 +61,7 @@ func TestPullCompare(t *testing.T) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testCreateBranch(t, session, "user1", "repo1", "branch/master", "master1", http.StatusSeeOther)
-		testEditFile(t, session, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
+		testEditFile(t, session, 0, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
 		testPullCreate(t, session, "user1", "repo1", false, "master", "master1", "This is a pull title")
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
@@ -101,7 +101,7 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 		assert.True(t, forkedRepo.IsPrivate)
 
 		// user4 creates a new branch and a PR
-		testEditFileToNewBranch(t, user4Session, "user4", forkedRepoName, "master", "user4/update-readme", "README.md", "Hello, World\n(Edited by user4)\n")
+		testEditFileToNewBranch(t, user4Session, 0, "user4", forkedRepoName, "master", "user4/update-readme", "README.md", "Hello, World\n(Edited by user4)\n")
 		resp := testPullCreateDirectly(t, user4Session, createPullRequestOptions{
 			BaseRepoOwner: repo3.OwnerName,
 			BaseRepoName:  repo3.Name,

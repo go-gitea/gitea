@@ -46,7 +46,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 	t.Run("Git", func(t *testing.T) {
 		onGiteaRun(t, func(t *testing.T, u *url.URL) {
-			httpContext := NewAPITestContext(t, owner.Name, repo.Name)
+			httpContext := NewAPITestContext(t, owner.Name, repo.Name, repo.GroupID)
 
 			dstPath := t.TempDir()
 
@@ -66,7 +66,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 	t.Run("GitTagForce", func(t *testing.T) {
 		onGiteaRun(t, func(t *testing.T, u *url.URL) {
-			httpContext := NewAPITestContext(t, owner.Name, repo.Name)
+			httpContext := NewAPITestContext(t, owner.Name, repo.Name, repo.GroupID)
 
 			dstPath := t.TempDir()
 
@@ -129,7 +129,7 @@ func TestRepushTag(t *testing.T) {
 		session := loginUser(t, owner.LowerName)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-		httpContext := NewAPITestContext(t, owner.Name, repo.Name)
+		httpContext := NewAPITestContext(t, owner.Name, repo.Name, repo.GroupID)
 
 		dstPath := t.TempDir()
 

@@ -25,7 +25,7 @@ func TestAPIGetRawFileOrLFS(t *testing.T) {
 	// Test with LFS
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		createLFSTestRepository(t, "repo-lfs-test")
-		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", 0, auth_model.AccessTokenScopeWriteRepository)
 		t.Run("repo-lfs-test", func(t *testing.T) {
 			u.Path = httpContext.GitPath()
 			dstPath := t.TempDir()

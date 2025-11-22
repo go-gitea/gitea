@@ -41,7 +41,7 @@ func TestAPIViewPulls(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	ctx := NewAPITestContext(t, "user2", repo.Name, auth_model.AccessTokenScopeReadRepository)
+	ctx := NewAPITestContext(t, "user2", repo.Name, repo.GroupID, auth_model.AccessTokenScopeReadRepository)
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/pulls?state=all", owner.Name, repo.GroupID, repo.Name).
 		AddTokenAuth(ctx.Token)
@@ -150,7 +150,7 @@ func TestAPIViewPullsByBaseHead(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	ctx := NewAPITestContext(t, "user2", repo.Name, auth_model.AccessTokenScopeReadRepository)
+	ctx := NewAPITestContext(t, "user2", repo.Name, repo.GroupID, auth_model.AccessTokenScopeReadRepository)
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/pulls/master/branch2", owner.Name, repo.GroupID, repo.Name).
 		AddTokenAuth(ctx.Token)
@@ -194,7 +194,7 @@ func TestAPIMergePull(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-		apiCtx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		apiCtx := NewAPITestContext(t, repo.OwnerName, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 
 		checkBranchExists := func(t *testing.T, branchName string, status int) {
 			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", owner.Name, repo.Name, branchName)).AddTokenAuth(apiCtx.Token)
@@ -300,7 +300,7 @@ func TestAPICreatePullBasePermission(t *testing.T) {
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// add user4 to be a collaborator to base repo
-	ctx := NewAPITestContext(t, repo10.OwnerName, repo10.Name, auth_model.AccessTokenScopeWriteRepository)
+	ctx := NewAPITestContext(t, repo10.OwnerName, repo10.Name, repo10.GroupID, auth_model.AccessTokenScopeWriteRepository)
 	t.Run("AddUser4AsCollaborator", doAPIAddCollaborator(ctx, user4.Name, perm.AccessModeRead))
 
 	// create again
@@ -328,7 +328,7 @@ func TestAPICreatePullHeadPermission(t *testing.T) {
 	MakeRequest(t, req, http.StatusForbidden)
 
 	// add user4 to be a collaborator to head repo with read permission
-	ctx := NewAPITestContext(t, repo11.OwnerName, repo11.Name, auth_model.AccessTokenScopeWriteRepository)
+	ctx := NewAPITestContext(t, repo11.OwnerName, repo11.Name, repo11.GroupID, auth_model.AccessTokenScopeWriteRepository)
 	t.Run("AddUser4AsCollaboratorWithRead", doAPIAddCollaborator(ctx, user4.Name, perm.AccessModeRead))
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%d/%s/pulls", owner10.Name, repo10.GroupID, repo10.Name), &opts).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
@@ -493,7 +493,7 @@ func TestAPICommitPullRequest(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	ctx := NewAPITestContext(t, "user2", repo.Name, auth_model.AccessTokenScopeReadRepository)
+	ctx := NewAPITestContext(t, "user2", repo.Name, repo.GroupID, auth_model.AccessTokenScopeReadRepository)
 
 	mergedCommitSHA := "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3"
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/commits/%s/pull", owner.Name, repo.GroupID, repo.Name, mergedCommitSHA).AddTokenAuth(ctx.Token)
@@ -509,7 +509,7 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-		ctx := NewAPITestContext(t, "user1", baseRepo.Name, auth_model.AccessTokenScopeAll)
+		ctx := NewAPITestContext(t, "user1", baseRepo.Name, baseRepo.GroupID, auth_model.AccessTokenScopeAll)
 
 		doAPIForkRepository(ctx, "user2")(t)
 
@@ -566,7 +566,7 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		assert.NoError(t, err)
 		pr := convert.ToAPIPullRequest(t.Context(), pullRequest, user1)
 
-		ctx = NewAPITestContext(t, "user2", baseRepo.Name, auth_model.AccessTokenScopeAll)
+		ctx = NewAPITestContext(t, "user2", baseRepo.Name, baseRepo.GroupID, auth_model.AccessTokenScopeAll)
 		doAPIGetPullFiles(ctx, pr, func(t *testing.T, files []*api.ChangedFile) {
 			if assert.Len(t, files, 1) {
 				assert.Equal(t, "file_1.txt", files[0].Filename)
@@ -579,7 +579,7 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		})(t)
 
 		// delete the head repository of the pull request
-		forkCtx := NewAPITestContext(t, "user1", forkedRepo.Name, auth_model.AccessTokenScopeAll)
+		forkCtx := NewAPITestContext(t, "user1", forkedRepo.Name, forkedRepo.GroupID, auth_model.AccessTokenScopeAll)
 		doAPIDeleteRepository(forkCtx)(t)
 
 		doAPIGetPullFiles(ctx, pr, func(t *testing.T, files []*api.ChangedFile) {

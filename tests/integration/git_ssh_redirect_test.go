@@ -20,7 +20,7 @@ func TestGitSSHRedirect(t *testing.T) {
 }
 
 func testGitSSHRedirect(t *testing.T, u *url.URL) {
-	apiTestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteOrganization)
+	apiTestContext := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteOrganization)
 	session := loginUser(t, "user2")
 
 	withKeyFile(t, "my-testing-key", func(keyFile string) {
@@ -56,7 +56,7 @@ func testGitSSHRedirect(t *testing.T, u *url.URL) {
 			Name:     "repo1",
 			AutoInit: true,
 		})(t)
-		testEditFile(t, session, "olduser2", "repo1", "master", "README.md", "This is olduser2's repo1\n")
+		testEditFile(t, session, 0, "olduser2", "repo1", "master", "README.md", "This is olduser2's repo1\n")
 
 		dstDir := t.TempDir()
 		t.Run("Clone", doGitClone(dstDir, cloneURL))
@@ -64,9 +64,9 @@ func testGitSSHRedirect(t *testing.T, u *url.URL) {
 		assert.NoError(t, err)
 		assert.Equal(t, "This is olduser2's repo1\n", string(readMEContent))
 
-		apiTestContext2 := NewAPITestContext(t, "user2", "oldrepo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteOrganization)
+		apiTestContext2 := NewAPITestContext(t, "user2", "oldrepo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteOrganization)
 		doAPICreateRepository(apiTestContext2, false)(t)
-		testEditFile(t, session, "user2", "oldrepo1", "master", "README.md", "This is user2's oldrepo1\n")
+		testEditFile(t, session, 0, "user2", "oldrepo1", "master", "README.md", "This is user2's oldrepo1\n")
 
 		dstDir = t.TempDir()
 		cloneURL = createSSHUrl("user2/oldrepo1.git", u)
