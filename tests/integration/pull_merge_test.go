@@ -1130,15 +1130,13 @@ func TestPullSquashMergeEmpty(t *testing.T) {
 		doGitCheckoutBranch(dstPath, "-b", "pr-squash-empty", "remotes/origin/pr-squash-empty")(t)
 		doGitCheckoutBranch(dstPath, "master")(t)
 		_, _, err := gitcmd.NewCommand("cherry-pick").AddArguments("pr-squash-empty").
-			WithDir(dstPath).
-			RunStdString(t.Context())
+			RunStdString(t.Context(), &gitcmd.RunOpts{
+				Dir: dstPath,
+			})
 		assert.NoError(t, err)
 
 		doGitPushTestRepository(dstPath)(t)
 
-		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
-			Style:        repo_model.MergeStyleSquash,
-			DeleteBranch: false,
-		})
+		testPullMerge(t, session, elem[1], elem[2], elem[4], repo_model.MergeStyleSquash, false)
 	})
 }
