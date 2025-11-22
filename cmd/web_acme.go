@@ -64,9 +64,7 @@ func runACME(listenAddr string, m http.Handler) error {
 			log.Warn("Failed to parse CA Root certificate, using default CA trust: %v", err)
 		}
 	}
-	// FIXME: this path is not right, it uses "AppWorkPath" incorrectly, and writes the data into "AppWorkPath/https"
-	// Ideally it should migrate to AppDataPath write to "AppDataPath/https"
-	// And one more thing, no idea why we should set the global default variables here
+	// No idea why we should set the global default variables here
 	// But it seems that the current ACME code needs these global variables to make renew work.
 	// Otherwise, "renew" will use incorrect storage path
 	oldDefaultACME := certmagic.DefaultACME
