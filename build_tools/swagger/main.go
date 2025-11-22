@@ -3,14 +3,15 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
-var rxPath = regexp.MustCompile("(?m)^(/repos/\\{owner})/(\\{repo})")
+var rxPath = regexp.MustCompile(`(?m)^(/repos/\{owner})/(\{repo})`)
 
 func generatePaths(root string) map[string]any {
 	pathData := make(map[string]any)
@@ -64,7 +65,7 @@ func writeMapToFile(filename string, data map[string]any) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	err = os.WriteFile(filename, bytes, 0666)
+	err = os.WriteFile(filename, bytes, 0o666)
 	if err != nil {
 		log.Fatal(err)
 	}
