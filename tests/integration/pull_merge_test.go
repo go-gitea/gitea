@@ -1180,3 +1180,35 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 		session.MakeRequest(t, mergeReq, http.StatusMethodNotAllowed)
 	})
 }
+
+func TestPullSquashMergeEmpty(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user1")
+		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "pr-squash-empty", "README.md", "Hello, World (Edited)\n")
+		resp := testPullCreate(t, session, "user2", "repo1", false, "master", "pr-squash-empty", "This is a pull title")
+
+		elem := strings.Split(test.RedirectURL(resp), "/")
+		assert.Equal(t, "pulls", elem[3])
+
+		httpContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
+		dstPath := t.TempDir()
+
+		u.Path = httpContext.GitPath()
+		u.User = url.UserPassword("user2", userPassword)
+
+		t.Run("Clone", doGitClone(dstPath, u))
+		doGitCheckoutBranch(dstPath, "-b", "pr-squash-empty", "remotes/origin/pr-squash-empty")(t)
+		doGitCheckoutBranch(dstPath, "master")(t)
+		_, _, err := gitcmd.NewCommand("cherry-pick").AddArguments("pr-squash-empty").
+			WithDir(dstPath).
+			RunStdString(t.Context())
+		assert.NoError(t, err)
+
+		doGitPushTestRepository(dstPath)(t)
+
+		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
+			Style:        repo_model.MergeStyleSquash,
+			DeleteBranch: false,
+		})
+	})
+}

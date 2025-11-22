@@ -935,7 +935,6 @@ export default defineConfig([
   },
   {
     files: ['**/*.test.ts', 'web_src/js/test/setup.ts'],
-    // @ts-expect-error - https://github.com/vitest-dev/eslint-plugin-vitest/issues/737
     plugins: {vitest},
     languageOptions: {globals: globals.vitest},
     rules: {

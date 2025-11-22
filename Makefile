@@ -364,6 +364,10 @@ lint-swagger: node_modules ## lint swagger files
 lint-md: node_modules ## lint markdown files
 	$(NODE_VARS) pnpm exec markdownlint *.md
 
+.PHONY: lint-md-fix
+lint-md-fix: node_modules ## lint markdown files and fix issues
+	$(NODE_VARS) pnpm exec markdownlint --fix *.md
+
 .PHONY: lint-spell
 lint-spell: ## lint spelling
 	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error $(SPELLCHECK_FILES)
