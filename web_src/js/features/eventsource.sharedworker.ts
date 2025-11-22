@@ -1,6 +1,6 @@
 class Source {
   url: string;
-  eventSource: EventSource;
+  eventSource: EventSource | null;
   listening: Record<string, boolean>;
   clients: Array<MessagePort>;
 
@@ -47,12 +47,14 @@ class Source {
   listen(eventType: string) {
     if (this.listening[eventType]) return;
     this.listening[eventType] = true;
-    this.eventSource.addEventListener(eventType, (event) => {
-      this.notifyClients({
-        type: eventType,
-        data: event.data,
+    if (this.eventSource) {
+      this.eventSource.addEventListener(eventType, (event) => {
+        this.notifyClients({
+          type: eventType,
+          data: event.data,
+        });
       });
-    });
+    }
   }
 
   notifyClients(event: {type: string, data: any}) {
@@ -64,7 +66,7 @@ class Source {
   status(port: MessagePort) {
     port.postMessage({
       type: 'status',
-      message: `url: ${this.url} readyState: ${this.eventSource.readyState}`,
+      message: `url: ${this.url} readyState: ${this.eventSource?.readyState}`,
     });
   }
 }
@@ -87,7 +89,7 @@ self.addEventListener('connect', (e: MessageEvent) => {
         const url = event.data.url;
         if (sourcesByUrl.get(url)) {
           // we have a Source registered to this url
-          const source = sourcesByUrl.get(url);
+          const source = sourcesByUrl.get(url)!;
           source.register(port);
           sourcesByPort.set(port, source);
           return;
@@ -111,7 +113,7 @@ self.addEventListener('connect', (e: MessageEvent) => {
         sourcesByUrl.set(url, source);
         sourcesByPort.set(port, source);
       } else if (event.data.type === 'listen') {
-        const source = sourcesByPort.get(port);
+        const source = sourcesByPort.get(port)!;
         source.listen(event.data.eventType);
       } else if (event.data.type === 'close') {
         const source = sourcesByPort.get(port);

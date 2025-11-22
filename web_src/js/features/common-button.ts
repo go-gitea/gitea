@@ -27,7 +27,7 @@ export function initGlobalDeleteButton(): void {
       const dataObj = btn.dataset;
 
       const modalId = btn.getAttribute('data-modal-id');
-      const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`);
+      const modal = document.querySelector(`.delete.modal${modalId ? `#${modalId}` : ''}`)!;
 
       // set the modal "display name" by `data-name`
       const modalNameEl = modal.querySelector('.name');
@@ -37,7 +37,7 @@ export function initGlobalDeleteButton(): void {
       for (const [key, value] of Object.entries(dataObj)) {
         if (key.startsWith('data')) {
           const textEl = modal.querySelector(`.${key}`);
-          if (textEl) textEl.textContent = value;
+          if (textEl) textEl.textContent = value ?? null;
         }
       }
 
@@ -46,7 +46,7 @@ export function initGlobalDeleteButton(): void {
         onApprove: () => {
           // if `data-type="form"` exists, then submit the form by the selector provided by `data-form="..."`
           if (btn.getAttribute('data-type') === 'form') {
-            const formSelector = btn.getAttribute('data-form');
+            const formSelector = btn.getAttribute('data-form')!;
             const form = document.querySelector<HTMLFormElement>(formSelector);
             if (!form) throw new Error(`no form named ${formSelector} found`);
             modal.classList.add('is-loading'); // the form is not in the modal, so also add loading indicator to the modal
@@ -59,14 +59,14 @@ export function initGlobalDeleteButton(): void {
           const postData = new FormData();
           for (const [key, value] of Object.entries(dataObj)) {
             if (key.startsWith('data')) { // for data-data-xxx (HTML) -> dataXxx (form)
-              postData.append(key.slice(4), value);
+              postData.append(key.slice(4), String(value));
             }
             if (key === 'id') { // for data-id="..."
-              postData.append('id', value);
+              postData.append('id', String(value));
             }
           }
           (async () => {
-            const response = await POST(btn.getAttribute('data-url'), {data: postData});
+            const response = await POST(btn.getAttribute('data-url')!, {data: postData});
             if (response.ok) {
               const data = await response.json();
               window.location.href = data.redirect;
@@ -84,7 +84,7 @@ function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
   // a '.show-panel' element can show a panel, by `data-panel="selector"`
   // if it has "toggle" class, it toggles the panel
   e.preventDefault();
-  const sel = el.getAttribute('data-panel');
+  const sel = el.getAttribute('data-panel')!;
   const elems = el.classList.contains('toggle') ? toggleElem(sel) : showElem(sel);
   for (const elem of elems) {
     if (isElemVisible(elem as HTMLElement)) {
@@ -103,7 +103,7 @@ function onHidePanelClick(el: HTMLElement, e: MouseEvent) {
   }
   sel = el.getAttribute('data-panel-closest');
   if (sel) {
-    hideElem((el.parentNode as HTMLElement).closest(sel));
+    hideElem((el.parentNode as HTMLElement).closest(sel)!);
     return;
   }
   throw new Error('no panel to hide'); // should never happen, otherwise there is a bug in code
@@ -141,7 +141,7 @@ function onShowModalClick(el: HTMLElement, e: MouseEvent) {
   // * Then, try to query 'target' as HTML tag
   // If there is a ".{prop-name}" part like "data-modal-form.action", the "form" element's "action" property will be set, the "prop-name" will be camel-cased to "propName".
   e.preventDefault();
-  const modalSelector = el.getAttribute('data-modal');
+  const modalSelector = el.getAttribute('data-modal')!;
   const elModal = document.querySelector(modalSelector);
   if (!elModal) throw new Error('no modal for this action');
 

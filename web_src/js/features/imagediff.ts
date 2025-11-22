@@ -78,7 +78,7 @@ class ImageDiff {
     fomanticQuery(containerEl).find('.ui.menu.tabular .item').tab();
 
     // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
-    this.diffContainerWidth = Math.max(containerEl.closest('.diff-file-box').clientWidth - 300, 100);
+    this.diffContainerWidth = Math.max(containerEl.closest('.diff-file-box')!.clientWidth - 300, 100);
 
     const imageInfos = [{
       path: containerEl.getAttribute('data-path-after'),
@@ -94,20 +94,20 @@ class ImageDiff {
 
     await Promise.all(imageInfos.map(async (info) => {
       const [success] = await Promise.all(Array.from(info.images, (img) => {
-        return loadElem(img, info.path);
+        return loadElem(img, info.path!);
       }));
       // only the first images is associated with boundsInfo
       if (!success && info.boundsInfo) info.boundsInfo.textContent = '(image error)';
       if (info.mime === 'image/svg+xml') {
-        const resp = await GET(info.path);
+        const resp = await GET(info.path!);
         const text = await resp.text();
-        const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
+        const bounds = getDefaultSvgBoundsIfUndefined(text, info.path!);
         if (bounds) {
           for (const el of info.images) {
             el.setAttribute('width', String(bounds.width));
             el.setAttribute('height', String(bounds.height));
           }
-          hideElem(info.boundsInfo);
+          hideElem(info.boundsInfo!);
         }
       }
     }));
@@ -213,7 +213,7 @@ class ImageDiff {
       swipe.style.height = `${sizes.maxSize.height * factor + 30}px`;
     }
 
-    this.containerEl.querySelector('.swipe-bar').addEventListener('mousedown', (e) => {
+    this.containerEl.querySelector('.swipe-bar')!.addEventListener('mousedown', (e) => {
       e.preventDefault();
       this.initSwipeEventListeners(e.currentTarget as HTMLElement);
     });
@@ -227,7 +227,7 @@ class ImageDiff {
       const rect = swipeFrame.getBoundingClientRect();
       const value = Math.max(0, Math.min(e.clientX - rect.left, width));
       swipeBar.style.left = `${value}px`;
-      this.containerEl.querySelector<HTMLElement>('.swipe-container').style.width = `${swipeFrame.clientWidth - value}px`;
+      this.containerEl.querySelector<HTMLElement>('.swipe-container')!.style.width = `${swipeFrame.clientWidth - value}px`;
     };
     const removeEventListeners = () => {
       document.removeEventListener('mousemove', onSwipeMouseMove);
@@ -266,7 +266,7 @@ class ImageDiff {
       overlayFrame.style.height = `${sizes.maxSize.height * factor + 2}px`;
     }
 
-    const rangeInput = this.containerEl.querySelector<HTMLInputElement>('input[type="range"]');
+    const rangeInput = this.containerEl.querySelector<HTMLInputElement>('input[type="range"]')!;
 
     function updateOpacity() {
       if (sizes.imageAfter) {

@@ -5,7 +5,7 @@ import {onMounted, shallowRef} from 'vue';
 import type {Value as HeatmapValue, Locale as HeatmapLocale} from '@silverwind/vue3-calendar-heatmap';
 
 defineProps<{
-  values?: HeatmapValue[];
+  values: HeatmapValue[];
   locale: {
     textTotalContributions: string;
     heatMapLocale: Partial<HeatmapLocale>;
@@ -28,7 +28,7 @@ const endDate = shallowRef(new Date());
 
 onMounted(() => {
   // work around issue with first legend color being rendered twice and legend cut off
-  const legend = document.querySelector<HTMLElement>('.vch__external-legend-wrapper');
+  const legend = document.querySelector<HTMLElement>('.vch__external-legend-wrapper')!;
   legend.setAttribute('viewBox', '12 0 80 10');
   legend.style.marginRight = '-12px';
 });
