@@ -279,6 +279,16 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 				issue.MilestoneID, err)
 		}
 
+		if issue.IsPull {
+			if err := issue.LoadPullRequest(ctx); err != nil {
+				return nil, err
+			}
+			if _, err := db.GetEngine(ctx).Where("link_type = ? AND link_id = ?", issues_model.IssueDevLinkTypePullRequest, issue.PullRequest.ID).
+				Delete(new(issues_model.IssueDevLink)); err != nil {
+				return nil, err
+			}
+		}
+
 		if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID, issue.Index); err != nil {
 			return nil, err
 		}
@@ -313,6 +323,7 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 			&issues_model.IssueDependency{DependencyID: issue.ID},
 			&issues_model.Comment{DependentIssueID: issue.ID},
 			&issues_model.IssuePin{IssueID: issue.ID},
+			&issues_model.IssueDevLink{IssueID: issue.ID},
 		); err != nil {
 			return nil, err
 		}
