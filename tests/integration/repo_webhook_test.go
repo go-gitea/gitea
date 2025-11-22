@@ -683,7 +683,7 @@ func Test_WebhookPullRequest(t *testing.T) {
 		}, http.StatusOK)
 		defer provider.Close()
 
-		testCtx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeAll)
+		testCtx := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeAll)
 		// add user4 as collabrator so that it can be a reviewer
 		doAPIAddCollaborator(testCtx, "user4", perm.AccessModeWrite)(t)
 
@@ -932,7 +932,7 @@ func Test_WebhookStatus(t *testing.T) {
 		assert.NoError(t, err)
 
 		// 2. trigger the webhook
-		testCtx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeAll)
+		testCtx := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeAll)
 
 		// update a status for a commit via API
 		doAPICreateCommitStatusTest(testCtx, commitID, commitstatus.CommitStatusSuccess, "testci")(t)
@@ -1025,7 +1025,7 @@ jobs:
       - run: echo 'cmd 2'
 `
 		opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, token, "user2", "repo1", wfTreePath, repo1.GroupID, opts)
+		createWorkflowFile(t, token, "user2", "repo1", repo1.GroupID, wfTreePath, opts)
 
 		commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 		assert.NoError(t, err)
@@ -1187,7 +1187,7 @@ func testWorkflowRunEvents(t *testing.T, webhookData *workflowRunWebhook) {
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-	testAPICreateWebhookForRepo(t, session, "user2", "repo1", webhookData.URL, "workflow_run")
+	testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", webhookData.URL, "workflow_run")
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
@@ -1266,7 +1266,7 @@ jobs:
     steps:
       - run: exit 0`
 	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
+	createWorkflowFile(t, token, "user2", "repo1", 0, wfTreePath, opts)
 
 	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)
@@ -1312,7 +1312,7 @@ func testWorkflowRunEventsOnRerun(t *testing.T, webhookData *workflowRunWebhook)
 		runners[i].registerAsRepoRunner(t, "user2", "repo1", fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
 	}
 
-	testAPICreateWebhookForRepo(t, session, "user2", "repo1", webhookData.URL, "workflow_run")
+	testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", webhookData.URL, "workflow_run")
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
@@ -1391,7 +1391,7 @@ jobs:
     steps:
       - run: exit 0`
 	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
+	createWorkflowFile(t, token, "user2", "repo1", 0, wfTreePath, opts)
 
 	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)
@@ -1483,7 +1483,7 @@ func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *wo
 			fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
 	}
 
-	testAPICreateWebhookForRepo(t, session, "user2", repoName, webhookData.URL, "workflow_run")
+	testAPICreateWebhookForRepo(t, session, 0, "user2", repoName, webhookData.URL, "workflow_run")
 
 	ctx := t.Context()
 	gitRepo, err := gitrepo.OpenRepository(ctx, testRepo)
@@ -1563,7 +1563,7 @@ jobs:
       - run: exit 0`
 
 	opts := getWorkflowCreateFileOptions(user2, testRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", repoName, wfTreePath, opts)
+	createWorkflowFile(t, token, "user2", repoName, 0, wfTreePath, opts)
 
 	commitID, err := gitRepo.GetBranchCommitID(testRepo.DefaultBranch)
 	assert.NoError(t, err)
@@ -1724,7 +1724,7 @@ jobs:
     steps:
       - run: echo 'test the webhook'
 `)
-	createWorkflowFile(t, token, "user2", "repo1", ".gitea/workflows/dispatch.yml", repo1.GroupID, opts)
+	createWorkflowFile(t, token, "user2", "repo1", 0, ".gitea/workflows/dispatch.yml", opts)
 
 	// 2.2 trigger the webhooks
 
@@ -1746,7 +1746,7 @@ jobs:
       - run: echo 'cmd 2'
 `
 	opts = getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, repo1.GroupID, opts)
+	createWorkflowFile(t, token, "user2", "repo1", repo1.GroupID, wfTreePath, opts)
 
 	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)
@@ -1826,7 +1826,7 @@ jobs:
       - run: echo 'test the webhook'
 `
 	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, repo1.GroupID, opts)
+	createWorkflowFile(t, token, "user2", "repo1", repo1.GroupID, wfTreePath, opts)
 
 	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)
