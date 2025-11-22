@@ -271,8 +271,8 @@ type RequestWrapper struct {
 	*http.Request
 }
 
-func (req *RequestWrapper) AddBasicAuth(username string) *RequestWrapper {
-	req.Request.SetBasicAuth(username, userPassword)
+func (req *RequestWrapper) AddBasicAuth(username string, password ...string) *RequestWrapper {
+	req.Request.SetBasicAuth(username, util.OptionalArg(password, userPassword))
 	return req
 }
 
