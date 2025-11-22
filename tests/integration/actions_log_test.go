@@ -167,7 +167,7 @@ jobs:
 
 				// create the workflow file
 				opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+tc.treePath, tc.fileContent)
-				createWorkflowFile(t, token, user2.Name, repo.Name, tc.treePath, repo.GroupID, opts)
+				createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, tc.treePath, opts)
 
 				// fetch and execute tasks
 				for _, outcome := range tc.outcome {
@@ -199,7 +199,11 @@ jobs:
 					}
 
 					// download task logs from API and check content
-					req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%d/%s/actions/jobs/%d/logs", user2.Name, repo.GroupID, repo.Name, job.ID)).
+					var groupSegment string
+					if repo.GroupID > 0 {
+						groupSegment = fmt.Sprintf("%d/", repo.GroupID)
+					}
+					req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s%s/actions/jobs/%d/logs", user2.Name, groupSegment, repo.Name, job.ID)).
 						AddTokenAuth(token)
 					resp = MakeRequest(t, req, http.StatusOK)
 					logTextLines = strings.Split(strings.TrimSpace(resp.Body.String()), "\n")
