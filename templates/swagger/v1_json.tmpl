@@ -682,7 +682,7 @@
           "admin"
         ],
         "summary": "Adopt unadopted files as a repository",
-        "operationId": "adminAdoptRepositoryMixin0",
+        "operationId": "adminAdoptRepositoryInGroup",
         "parameters": [
           {
             "type": "string",
@@ -727,7 +727,7 @@
           "admin"
         ],
         "summary": "Delete unadopted files",
-        "operationId": "adminDeleteUnadoptedRepositoryMixin0",
+        "operationId": "adminDeleteUnadoptedRepositoryInGroup",
         "parameters": [
           {
             "type": "string",
@@ -748,79 +748,6 @@
             "format": "int64",
             "description": "group ID of the repo",
             "name": "group_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          }
-        }
-      }
-    },
-    "/admin/unadopted/{owner}/{group_id}/{repo}": {
-      "post": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Adopt unadopted files as a repository",
-        "operationId": "adminAdoptRepository",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      },
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Delete unadopted files",
-        "operationId": "adminDeleteUnadoptedRepository",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
             "in": "path",
             "required": true
           }
