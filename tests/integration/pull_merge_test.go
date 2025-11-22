@@ -1190,13 +1190,13 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 func TestPullSquashMergeEmpty(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
-		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "pr-squash-empty", "README.md", "Hello, World (Edited)\n")
+		testEditFileToNewBranch(t, session, 0, "user2", "repo1", "master", "pr-squash-empty", "README.md", "Hello, World (Edited)\n")
 		resp := testPullCreate(t, session, "user2", "repo1", false, "master", "pr-squash-empty", "This is a pull title")
 
 		elem := strings.Split(test.RedirectURL(resp), "/")
 		assert.Equal(t, "pulls", elem[3])
 
-		httpContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository)
 		dstPath := t.TempDir()
 
 		u.Path = httpContext.GitPath()
@@ -1212,7 +1212,7 @@ func TestPullSquashMergeEmpty(t *testing.T) {
 
 		doGitPushTestRepository(dstPath)(t)
 
-		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
+		testPullMerge(t, session, elem[1], elem[2], 0, elem[4], MergeOptions{
 			Style:        repo_model.MergeStyleSquash,
 			DeleteBranch: false,
 		})

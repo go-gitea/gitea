@@ -47,10 +47,10 @@ func TestTransferOwnership(t *testing.T) {
 	assert.EqualValues(t, 1, transferredRepo.OwnerID) // repo_transfer.yml id=1
 	unittest.AssertNotExistsBean(t, &repo_model.RepoTransfer{ID: 1})
 
-	exist, err := util.IsExist(repo_model.RepoPath("org3", "repo3"))
+	exist, err := util.IsExist(repo_model.RepoPath("org3", "repo3", 0))
 	assert.NoError(t, err)
 	assert.False(t, exist)
-	exist, err = util.IsExist(repo_model.RepoPath("user1", "repo3"))
+	exist, err = util.IsExist(repo_model.RepoPath("user1", "repo3", 0))
 	assert.NoError(t, err)
 	assert.True(t, exist)
 	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
