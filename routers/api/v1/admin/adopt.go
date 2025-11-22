@@ -125,7 +125,7 @@ func AdoptRepository(ctx *context.APIContext) {
 }
 
 func AdoptGroupRepository(ctx *context.APIContext) {
-	// swagger:operation POST /admin/unadopted/{owner}/{group_id}/{repo} admin adminAdoptRepository
+	// swagger:operation POST /admin/unadopted/{owner}/group/{group_id}/{repo} admin adminAdoptRepositoryInGroup
 	// ---
 	// summary: Adopt unadopted files as a repository
 	// produces:
@@ -140,6 +140,12 @@ func AdoptGroupRepository(ctx *context.APIContext) {
 	//   in: path
 	//   description: name of the repo
 	//   type: string
+	//   required: true
+	// - name: group_id
+	//   in: path
+	//   description: group ID of the repo
+	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
@@ -217,7 +223,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 }
 
 func DeleteUnadoptedRepositoryInGroup(ctx *context.APIContext) {
-	// swagger:operation DELETE /admin/unadopted/{owner}/{group_id}/{repo} admin adminDeleteUnadoptedRepository
+	// swagger:operation DELETE /admin/unadopted/{owner}/group/{group_id}/{repo} admin adminDeleteUnadoptedRepositoryInGroup
 	// ---
 	// summary: Delete unadopted files
 	// produces:
@@ -232,6 +238,12 @@ func DeleteUnadoptedRepositoryInGroup(ctx *context.APIContext) {
 	//   in: path
 	//   description: name of the repo
 	//   type: string
+	//   required: true
+	// - name: group_id
+	//   in: path
+	//   description: group ID of the repo
+	//   type: integer
+	//   format: int64
 	//   required: true
 	// responses:
 	//   "204":
