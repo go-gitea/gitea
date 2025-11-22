@@ -27,7 +27,7 @@ func testOrgCounts(t *testing.T) {
 	orgOwner := "user2"
 	orgName := "testOrg"
 	orgCollaborator := "user4"
-	ctx := NewAPITestContext(t, orgOwner, "repo1", auth_model.AccessTokenScopeWriteOrganization)
+	ctx := NewAPITestContext(t, orgOwner, "repo1", 0, auth_model.AccessTokenScopeWriteOrganization)
 
 	var ownerCountRepos map[string]int
 	var collabCountRepos map[string]int

@@ -19,7 +19,7 @@ func TestRepoWatch(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.AutoWatchOnChanges, true)()
 		session := loginUser(t, "user2")
 		unittest.AssertNotExistsBean(t, &repo_model.Watch{UserID: 2, RepoID: 3})
-		testEditFile(t, session, "org3", "repo3", "master", "README.md", "Hello, World (Edited for watch)\n")
+		testEditFile(t, session, 0, "org3", "repo3", "master", "README.md", "Hello, World (Edited for watch)\n")
 		unittest.AssertExistsAndLoadBean(t, &repo_model.Watch{UserID: 2, RepoID: 3, Mode: repo_model.WatchModeAuto})
 	})
 }
