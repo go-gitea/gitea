@@ -45,14 +45,14 @@ func (g *groupItemGroup) Parent() Item {
 	if g.Group.ParentGroupID == 0 {
 		return nil
 	}
-	group, _ := group_model.GetGroupByID(db.DefaultContext, g.Group.ParentGroupID)
+	group, _ := group_model.GetGroupByID(context.TODO(), g.Group.ParentGroupID)
 	return &groupItemGroup{group}
 }
 
 func (g *groupItemGroup) Children(doer *user_model.User) []Item {
 	var items []Item
 	repos := make([]*repo_model.Repository, 0)
-	sess := db.GetEngine(db.DefaultContext)
+	sess := db.GetEngine(context.TODO())
 	err := sess.Table("repository").
 		Where("group_id = ?", g.Group.ID).
 		And(builder.In("id", repo_model.AccessibleRepoIDsQuery(doer))).
@@ -61,7 +61,7 @@ func (g *groupItemGroup) Children(doer *user_model.User) []Item {
 		log.Error("%w", err)
 		return make([]Item, 0)
 	}
-	err = g.Group.LoadAccessibleSubgroups(db.DefaultContext, false, doer)
+	err = g.Group.LoadAccessibleSubgroups(context.TODO(), false, doer)
 	if err != nil {
 		return make([]Item, 0)
 	}
