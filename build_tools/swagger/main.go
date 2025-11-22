@@ -1,3 +1,5 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
 //go:generate go run main.go ../../
 
 package main
@@ -61,7 +63,7 @@ func generatePaths(root string) map[string]any {
 }
 
 func writeMapToFile(filename string, data map[string]any) {
-	bytes, err := json.MarshalIndent(data, "", "\t")
+	bytes, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		log.Fatal(err)
 	}

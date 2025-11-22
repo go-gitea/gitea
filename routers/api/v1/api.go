@@ -143,14 +143,13 @@ func repoAssignment() func(ctx *context.APIContext) {
 		userName := ctx.PathParam("username")
 		repoName := ctx.PathParam("reponame")
 		var gid int64
-		group := ctx.PathParam("group_id")
-		if group != "" {
-			gid, _ = strconv.ParseInt(group, 10, 64)
+		groupParam := ctx.PathParam("group_id")
+		if groupParam != "" {
+			gid, _ = strconv.ParseInt(groupParam, 10, 64)
 			if gid == 0 {
 				ctx.Redirect(strings.Replace(ctx.Req.URL.RequestURI(), "/0/", "/", 1), 307)
 				return
 			}
-			group += "/"
 		}
 		var (
 			owner *user_model.User
