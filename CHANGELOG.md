@@ -4,7 +4,7 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.25.2](https://github.com/go-gitea/gitea/releases/tag/1.25.2) - 2025-11-19
+## [1.25.2](https://github.com/go-gitea/gitea/releases/tag/1.25.2) - 2025-11-23
 
 * SECURITY
   * Upgrade golang.org/x/crypto to 0.45.0 (#35985) (#35988)
