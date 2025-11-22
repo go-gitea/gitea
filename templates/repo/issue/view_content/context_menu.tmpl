@@ -4,7 +4,9 @@
 	</a>
 	<div class="menu">
 		{{$referenceUrl := ""}}
-		{{if .issue}}
+		{{if ctx.RootData.PageIsCommitDiff}}
+			{{$referenceUrl = printf "%s/commit/%s#%s" ctx.RootData.RepoLink ctx.RootData.AfterCommitID .item.HashTag}}
+		{{else if .issue}}
 			{{$referenceUrl = printf "%s#%s" ctx.RootData.Issue.Link .item.HashTag}}
 		{{else}}
 			{{$referenceUrl = printf "%s/files#%s" ctx.RootData.Issue.Link .item.HashTag}}
@@ -22,7 +24,13 @@
 					<div class="divider"></div>
 					<div class="item context js-aria-clickable edit-content">{{ctx.Locale.Tr "repo.issues.context.edit"}}</div>
 					{{if .delete}}
-						<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{ctx.RootData.RepoLink}}/comments/{{.item.ID}}/delete" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
+						{{$deleteURL := ""}}
+						{{if ctx.RootData.PageIsCommitDiff}}
+							{{$deleteURL = printf "%s/commit-comments/%d/delete" ctx.RootData.RepoLink .item.ID}}
+						{{else}}
+							{{$deleteURL = printf "%s/comments/%d/delete" ctx.RootData.RepoLink .item.ID}}
+						{{end}}
+						<div class="item context js-aria-clickable delete-comment" data-comment-id={{.item.HashTag}} data-url="{{$deleteURL}}" data-locale="{{ctx.Locale.Tr "repo.issues.delete_comment_confirm"}}">{{ctx.Locale.Tr "repo.issues.context.delete"}}</div>
 					{{end}}
 				{{end}}
 			{{end}}

@@ -1622,6 +1622,18 @@ func registerWebRoutes(m *web.Router) {
 			m.Get("/graph", repo.Graph)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:([a-f0-9]{7,64})$}/load-branches-and-tags", repo.LoadBranchesAndTags)
+			m.Group("/commit/{sha:([a-f0-9]{7,64})$}", func() {
+				m.Combo("/code-comment/new").Get(repo.RenderNewCommitCodeCommentForm).
+					Post(web.Bind(forms.CodeCommentForm{}), repo.CreateCommitComment)
+				m.Get("/comments", repo.LoadCommitComments)
+			}, reqSignIn, context.RepoMustNotBeArchived())
+
+			// Commit comment editing, deletion, and reactions
+			m.Group("/commit-comments/{id}", func() {
+				m.Post("", repo.UpdateCommitCommentContent)
+				m.Post("/delete", repo.DeleteCommitComment)
+				m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommitCommentReaction)
+			}, reqSignIn, context.RepoMustNotBeArchived())
 
 			// FIXME: this route `/cherry-pick/{sha}` doesn't seem useful or right, the new code always uses `/_cherrypick/` which could handle branch name correctly
 			m.Get("/cherry-pick/{sha:([a-f0-9]{7,64})$}", repo.SetEditorconfigIfExists, context.RepoRefByDefaultBranch(), repo.CherryPick)
