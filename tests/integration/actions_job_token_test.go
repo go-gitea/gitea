@@ -417,7 +417,7 @@ jobs:
       - run: echo "test perms"
 `
 		opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, token, user2.Name, repo1.Name, wfTreePath, opts)
+		createWorkflowFile(t, token, user2.Name, repo1.Name, repo1.GroupID, wfTreePath, opts)
 
 		task1 := runner1.fetchTask(t)
 		task1Token := task1.Secrets["GITEA_TOKEN"]

@@ -80,7 +80,7 @@ func Test_WikiClone(t *testing.T) {
 		reponame := "repo1"
 		wikiPath := username + "/" + reponame + ".wiki.git"
 		keyname := "my-testing-key"
-		baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		baseAPITestContext := NewAPITestContext(t, username, "repo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 		u.Path = wikiPath
 
