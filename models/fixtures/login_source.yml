@@ -1,1 +1,5 @@
-[] # empty
+-
+  id: 1
+  type: 6
+  is_active: true
+  cfg: "{\"Source\":{\"A\":\"string\",\"B\":1}}"

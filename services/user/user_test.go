@@ -100,13 +100,23 @@ func TestCreateUser(t *testing.T) {
 func TestRenameUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 21})
+	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1, IsAdmin: true})
+	nonLocalAdminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 43, IsAdmin: true}) //, LoginType: auth.OAuth2}) ???
+	nonLocalAdminUser.LoginType = auth.OAuth2
+	nonLocalUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 44, IsAdmin: false}) // , LoginType: auth.OAuth2}) ???
+	nonLocalUser.LoginType = auth.OAuth2
 
-	t.Run("Non-Local", func(t *testing.T) {
-		u := &user_model.User{
-			Type:      user_model.UserTypeIndividual,
-			LoginType: auth.OAuth2,
-		}
-		assert.ErrorIs(t, RenameUser(t.Context(), u, "user_rename", u), user_model.ErrUserIsNotLocal{})
+	t.Run("Non-Local, Self, Non-admin", func(t *testing.T) {
+		assert.ErrorIs(t, RenameUser(t.Context(), nonLocalUser, "nonlocal_user_rename", nonLocalUser), user_model.ErrUserIsNotLocal{UID: nonLocalUser.ID, Name: nonLocalUser.Name})
+	})
+	t.Run("Non-Local, Self, Admin", func(t *testing.T) {
+		assert.NoError(t, RenameUser(t.Context(), nonLocalAdminUser, "nonlocal_user_user_rename", nonLocalAdminUser))
+	})
+	t.Run("Non-Local, Other, Non-admin", func(t *testing.T) {
+		assert.ErrorIs(t, RenameUser(t.Context(), nonLocalUser, "user_rename", user), user_model.ErrUserIsNotLocal{UID: nonLocalUser.ID, Name: nonLocalUser.Name})
+	})
+	t.Run("Non-Local, Other, Admin", func(t *testing.T) {
+		assert.NoError(t, RenameUser(t.Context(), nonLocalAdminUser, "nonlocal_user_rename_2", adminUser))
 	})
 
 	t.Run("Same username", func(t *testing.T) {
