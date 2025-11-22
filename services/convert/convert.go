@@ -542,8 +542,9 @@ func ToVerification(ctx context.Context, c *git.Commit) *api.PayloadCommitVerifi
 	}
 	if verif.SigningUser != nil {
 		commitVerification.Signer = &api.PayloadUser{
-			Name:  verif.SigningUser.Name,
-			Email: verif.SigningUser.Email,
+			UserName: verif.SigningUser.Name,
+			Name:     verif.SigningUser.DisplayName(),
+			Email:    verif.SigningEmail, // Use the email from the signature, not from the user profile
 		}
 	}
 	return commitVerification
