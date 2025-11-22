@@ -280,6 +280,8 @@ func EditFile(ctx *context.Context) {
 		return
 	}
 
+	prepareHomeTreeSideBarSwitch(ctx)
+
 	// on the "New File" page, we should add an empty path field to make end users could input a new name
 	prepareTreePathFieldsAndPaths(ctx, util.Iif(isNewFile, ctx.Repo.TreePath+"/", ctx.Repo.TreePath))
 
@@ -384,7 +386,7 @@ func DeleteFile(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplDeleteFile)
 }
 
-// DeleteFilePost response for deleting file
+// DeleteFilePost response for deleting file or directory
 func DeleteFilePost(ctx *context.Context) {
 	parsed := prepareEditorCommitSubmittedForm[*forms.DeleteRepoFileForm](ctx)
 	if ctx.Written() {
@@ -392,33 +394,52 @@ func DeleteFilePost(ctx *context.Context) {
 	}
 
 	treePath := ctx.Repo.TreePath
-	_, err := files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
+	if treePath == "" {
+		ctx.JSONError(ctx.Tr("repo.editor.cannot_delete_root"))
+		return
+	}
+
+	// Check if the path is a directory
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(treePath)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetTreeEntryByPath", git.IsErrNotExist, err)
+		return
+	}
+
+	var commitMessage string
+	if entry.IsDir() {
+		commitMessage = parsed.GetCommitMessage(ctx.Locale.TrString("repo.editor.delete_directory", treePath))
+	} else {
+		commitMessage = parsed.GetCommitMessage(ctx.Locale.TrString("repo.editor.delete", treePath))
+	}
+
+	_, err = files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.DeleteRepoFileOptions{
 		LastCommitID: parsed.form.LastCommit,
 		OldBranch:    parsed.OldBranchName,
 		NewBranch:    parsed.NewBranchName,
-		Files: []*files_service.ChangeRepoFile{
-			{
-				Operation: "delete",
-				TreePath:  treePath,
-			},
-		},
-		Message:   parsed.GetCommitMessage(ctx.Locale.TrString("repo.editor.delete", treePath)),
-		Signoff:   parsed.form.Signoff,
-		Author:    parsed.GitCommitter,
-		Committer: parsed.GitCommitter,
+		TreePath:     treePath,
+		Message:      commitMessage,
+		Signoff:      parsed.form.Signoff,
+		Author:       parsed.GitCommitter,
+		Committer:    parsed.GitCommitter,
 	})
 	if err != nil {
 		editorHandleFileOperationError(ctx, parsed.NewBranchName, err)
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", treePath))
+	if entry.IsDir() {
+		ctx.Flash.Success(ctx.Tr("repo.editor.directory_delete_success", treePath))
+	} else {
+		ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", treePath))
+	}
 	redirectTreePath := getClosestParentWithFiles(ctx.Repo.GitRepo, parsed.NewBranchName, treePath)
 	redirectForCommitChoice(ctx, parsed, redirectTreePath)
 }
 
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
+	prepareHomeTreeSideBarSwitch(ctx)
 	prepareTreePathFieldsAndPaths(ctx, ctx.Repo.TreePath)
 	opts := prepareEditorCommitFormOptions(ctx, "_upload")
 	if ctx.Written() {
