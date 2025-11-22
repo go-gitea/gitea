@@ -266,7 +266,6 @@ func GetPullRequestByBaseHead(ctx *context.APIContext) {
 			} else {
 				owner, name = split[0], split[1]
 			}
-
 		} else {
 			owner = split[0]
 			gid = ctx.Repo.Repository.GroupID
