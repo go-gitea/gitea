@@ -8,10 +8,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 
 * SECURITY
   * Upgrade golang.org/x/crypto to 0.45.0 (#35985) (#35988)
+  * Fix various permission & login related bugs (#36002) (#36004)
 * ENHANCEMENTS
   * Display source code downloads last for release attachments (#35897) (#35903)
   * Change project default column icon to 'star' (#35967) (#35979)
 * BUGFIXES
+  * Allow empty commit when merging pull request with squash style (#35989) (#36003)
   * Fix container push tag overwriting (#35936) (#35954)
   * Fix corrupted external render content (#35946) and upgrade golang.org/x packages (#35950)
   * Limit reading bytes instead of ReadAll (#35928) (#35934)
