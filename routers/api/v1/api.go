@@ -774,7 +774,7 @@ func apiAuth(authMethod auth.Method) func(*context.APIContext) {
 	return func(ctx *context.APIContext) {
 		ar, err := common.AuthShared(ctx.Base, nil, authMethod)
 		if err != nil {
-			ctx.APIError(http.StatusUnauthorized, err)
+			ctx.APIError(http.StatusUnauthorized, "invalid username or password")
 			return
 		}
 		ctx.Doer = ar.Doer
