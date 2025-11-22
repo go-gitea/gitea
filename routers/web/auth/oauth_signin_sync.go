@@ -86,7 +86,7 @@ func oauth2UpdateSSHPubIfNeed(ctx *context.Context, authSource *auth.Source, got
 	if err != nil {
 		return err
 	}
-	if !asymkey_model.SynchronizePublicKeys(ctx, user, authSource, sshKeys) {
+	if !asymkey_model.SynchronizePublicKeys(ctx, user, authSource, sshKeys, false) {
 		return nil
 	}
 	return asymkey_service.RewriteAllPublicKeys(ctx)
