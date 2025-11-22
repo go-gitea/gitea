@@ -123,12 +123,13 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 
 	// 1. check base repository's AllowRebaseUpdate configuration
 	// it is a config in base repo but controls the head (fork) repo's "Update" behavior
-	prBaseUnit, err := pull.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
-	if repo_model.IsErrUnitTypeNotExist(err) {
-		return false, false, nil // the PR unit is disabled in base repo
-	} else if err != nil {
-		return false, false, fmt.Errorf("get base repo unit: %v", err)
-	} else {
+	{
+		prBaseUnit, err := pull.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			return false, false, nil // the PR unit is disabled in base repo
+		} else if err != nil {
+			return false, false, fmt.Errorf("get base repo unit: %v", err)
+		}
 		rebaseAllowed = prBaseUnit.PullRequestsConfig().AllowRebaseUpdate
 	}
 
