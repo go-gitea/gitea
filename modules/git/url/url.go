@@ -140,9 +140,10 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 				if len(fields) >= 4 {
 					ret.RemainingPath = "/" + fields[3]
 				}
+			} else {
+				ret.RepoName = strings.TrimSuffix(fields[1], ".git")
 			}
 		}
-		return
 	}
 
 	switch parsed.URL.Scheme {
