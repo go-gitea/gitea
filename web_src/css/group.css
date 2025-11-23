@@ -60,7 +60,6 @@
 }
 .expandable-menu-item label > .collapse-icon {
   position: relative;
-  top: 2px;
   display: none;
 }
 
@@ -87,4 +86,8 @@ li.expandable-menu-item.item:only-child, li.expandable-menu-item.item:last-child
 }
 ul.expandable-menu ul li.expandable-menu-item {
   margin-top: 1rem;
+}
+ul.expandable-ul {
+  padding: 0;
+  margin: 0;
 }

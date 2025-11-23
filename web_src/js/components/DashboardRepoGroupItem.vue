@@ -67,7 +67,7 @@ const active = computed(() => isGroup.value && expandedGroups.value.includes(id.
 <template>
   <li class="tw-flex tw-flex-col tw-px-0 tw-pr-0 expandable-menu-item tw-mt-0" :data-sort-id="idKey" :data-is-group="isGroup" :data-id="id">
     <label
-      class="tw-flex tw-items-center tw-py-2"
+      class="tw-flex tw-content-center tw-py-2 tw-space-x-1.5"
       :style="indentCss"
       :class="{
         'has-children': !!item.repos?.length || !!item.subgroups?.length || isGroup,
@@ -77,7 +77,7 @@ const active = computed(() => isGroup.value && expandedGroups.value.includes(id.
       <svg-icon :name="icon(item)" :size="16" class-name="repo-list-icon"/>
       <svg-icon v-if="isGroup" name="octicon-chevron-right" :size="16" class="collapse-icon"/>
       <a :href="item.link" class="repo-list-link muted tw-flex-shrink">
-        <div class="text truncate">{{ item.full_name || item.name }}</div>
+        <div class="text truncate tw-flex-shrink">{{ item.full_name || item.name }}</div>
         <div v-if="item.archived">
           <svg-icon name="octicon-archive" :size="16"/>
         </div>
@@ -100,7 +100,6 @@ const active = computed(() => isGroup.value && expandedGroups.value.includes(id.
   /* for text truncation */
   display: flex;
   align-items: center;
-  flex: 1;
   gap: 0.5rem;
 }
 </style>
