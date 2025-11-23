@@ -345,7 +345,7 @@ export default defineComponent({
         return;
       }
 
-      if (searchedURL.startsWith(this.searchURL)) {
+      if (searchedURL.startsWith(searchedURL)) {
         this.repos = json.data.repos.map((webSearchRepo: any) => {
           return {
             ...webSearchRepo.repository,
@@ -354,8 +354,12 @@ export default defineComponent({
             locale_latest_commit_status_state: webSearchRepo.locale_latest_commit_status,
           };
         });
+        let realRepos: any[] = this.repos;
+        if(window.location.pathname !== "/") {
+          realRepos = this.repos.filter((a: any) => !a.group_id)
+        }
         this.groups.set(0, {
-          repos: this.repos.filter((a: any) => !a.group_id),
+          repos: realRepos,
           subgroups: json.data.subgroups.map((g: any) => {
             return g.group.id;
           }),
