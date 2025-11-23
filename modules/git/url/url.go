@@ -132,13 +132,14 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 			if len(fields) >= 3 {
 				ret.GroupID, pathErr = strconv.ParseInt(fields[1], 10, 64)
 				if pathErr != nil {
-					return pathErr
+					ret.RepoName = strings.TrimSuffix(fields[1], ".git")
+					ret.RemainingPath = "/" + fields[2]
+					return nil
 				}
 				ret.RepoName = strings.TrimSuffix(fields[2], ".git")
-				ret.RemainingPath = "/" + fields[3]
-			} else {
-				ret.RepoName = strings.TrimSuffix(fields[1], ".git")
-				ret.RemainingPath = "/" + fields[2]
+				if len(fields) >= 4 {
+					ret.RemainingPath = "/" + fields[3]
+				}
 			}
 		}
 		return nil
