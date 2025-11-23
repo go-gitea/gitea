@@ -7,6 +7,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -16,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -137,6 +140,15 @@ func MoveGroupItem(ctx context.Context, opts MoveGroupOptions, doer *user_model.
 			opts.NewPos = int(repoCount)
 		}
 		if repo.GroupID != opts.NewParent || repo.GroupSortOrder != opts.NewPos {
+			ndir := filepath.Dir(filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo_model.RelativePath(repo.OwnerName, repo.Name, opts.NewParent))))
+			_, err = os.Stat(ndir)
+			if err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					_ = os.MkdirAll(ndir, 0o755)
+				} else {
+					return err
+				}
+			}
 			if err = gitrepo.RenameRepository(ctx, repo, repo_model.StorageRepo(repo_model.RelativePath(repo.OwnerName, repo.Name, opts.NewParent))); err != nil {
 				return err
 			}
