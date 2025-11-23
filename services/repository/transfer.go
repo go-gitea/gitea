@@ -296,7 +296,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("Failed to create dir %s: %w", dir, err)
 	}
 
-	if err := util.Rename(repo_model.RepoPath(oldOwner.Name, repo.Name, repo.GroupID), repo_model.RepoPath(newOwner.Name, repo.Name, repo.GroupID)); err != nil {
+	if err := util.Rename(repo_model.RepoPath(oldOwner.Name, repo.Name, repo.GroupID), repo_model.RepoPath(newOwner.Name, repo.Name, 0)); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	repoRenamed = true
@@ -307,7 +307,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		log.Error("Unable to check if %s exists. Error: %v", wikiStorageRepo.RelativePath(), err)
 		return err
 	} else if isExist {
-		if err := gitrepo.RenameRepository(ctx, wikiStorageRepo, repo_model.StorageRepo(repo_model.RelativeWikiPath(newOwner.Name, repo.Name, repo.GroupID))); err != nil {
+		if err := gitrepo.RenameRepository(ctx, wikiStorageRepo, repo_model.StorageRepo(repo_model.RelativeWikiPath(newOwner.Name, repo.Name, 0))); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 		wikiRenamed = true
