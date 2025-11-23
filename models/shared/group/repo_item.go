@@ -3,7 +3,6 @@ package group
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
 	group_model "code.gitea.io/gitea/models/group"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -25,7 +24,7 @@ func (repo *groupItemRepo) Parent() Item {
 	if repo.Repo.GroupID == 0 {
 		return nil
 	}
-	group, _ := group_model.GetGroupByID(db.DefaultContext, repo.Repo.GroupID)
+	group, _ := group_model.GetGroupByID(context.TODO(), repo.Repo.GroupID)
 	return &groupItemGroup{group}
 }
 
