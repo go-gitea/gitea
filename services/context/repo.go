@@ -5,7 +5,6 @@
 package context
 
 import (
-	group_model "code.gitea.io/gitea/models/group"
 	"context"
 	"errors"
 	"fmt"
@@ -16,6 +15,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	group_model "code.gitea.io/gitea/models/group"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
