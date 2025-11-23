@@ -79,7 +79,7 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	v.emojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
 
 	// example: https://domain/org/repo/pulls/27#hash
-	v.issueFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/([\w_.-]+/)?[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
+	v.issueFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/(?:[\w_.-]+/)?[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 
 	// example: https://domain/org/repo/pulls/27/files#hash
 	v.filesChangedFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/([\w_.-]+/)?[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
