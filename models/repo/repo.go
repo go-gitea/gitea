@@ -156,7 +156,7 @@ type Repository struct {
 	OwnerID             int64 `xorm:"UNIQUE(s) index"`
 	OwnerName           string
 	Owner               *user_model.User   `xorm:"-"`
-	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	LowerName           string             `xorm:"UNIQUE(s) UNIQUE(g) INDEX NOT NULL"`
 	Name                string             `xorm:"INDEX NOT NULL"`
 	Description         string             `xorm:"TEXT"`
 	Website             string             `xorm:"VARCHAR(2048)"`
@@ -220,7 +220,7 @@ type Repository struct {
 	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
 	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
 
-	GroupID        int64 `xorm:"UNIQUE(s) INDEX DEFAULT NULL"`
+	GroupID        int64 `xorm:"UNIQUE(g) INDEX DEFAULT 0"`
 	GroupSortOrder int   `xorm:"INDEX"`
 }
 
@@ -830,6 +830,11 @@ func (err ErrRepoNotExist) Unwrap() error {
 // GetRepositoryByOwnerAndName returns the repository by given owner name and repo name
 func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string, groupID int64) (*Repository, error) {
 	var repo Repository
+	var gid any = groupID
+	if groupID == 0 {
+		gid = nil
+	}
+	_ = gid
 	has, err := db.GetEngine(ctx).Table("repository").Select("repository.*").
 		Join("INNER", "`user`", "`user`.id = repository.owner_id").
 		Where("repository.lower_name = ?", strings.ToLower(repoName)).
