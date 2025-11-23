@@ -12,6 +12,7 @@ import (
 	"html"
 	"html/template"
 	"io"
+	"maps"
 	"net/url"
 	"path"
 	"sort"
@@ -1444,9 +1445,7 @@ outer:
 			return nil, err
 		}
 		// Additionally, update the changed files state locally to reflect the changes immediately
-		for filename, state := range filesChangedSinceLastDiff {
-			review.UpdatedFiles[filename] = state
-		}
+		maps.Copy(review.UpdatedFiles, filesChangedSinceLastDiff)
 	}
 
 	return review, nil
