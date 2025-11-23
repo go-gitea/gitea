@@ -67,6 +67,7 @@ func writeMapToFile(filename string, data map[string]any) {
 	if err != nil {
 		log.Fatal(err)
 	}
+	bytes = append(bytes, '\n')
 	err = os.WriteFile(filename, bytes, 0o666)
 	if err != nil {
 		log.Fatal(err)
