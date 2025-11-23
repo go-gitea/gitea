@@ -20,6 +20,7 @@ import (
 	org_service "code.gitea.io/gitea/services/org"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -100,23 +101,21 @@ func TestCreateUser(t *testing.T) {
 func TestRenameUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 21})
-	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1, IsAdmin: true})
-	nonLocalAdminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 43, IsAdmin: true}) //, LoginType: auth.OAuth2}) ???
-	nonLocalAdminUser.LoginType = auth.OAuth2
-	nonLocalUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 44, IsAdmin: false}) // , LoginType: auth.OAuth2}) ???
-	nonLocalUser.LoginType = auth.OAuth2
 
-	t.Run("Non-Local, Self, Non-admin", func(t *testing.T) {
-		assert.ErrorIs(t, RenameUser(t.Context(), nonLocalUser, "nonlocal_user_rename", nonLocalUser), user_model.ErrUserIsNotLocal{UID: nonLocalUser.ID, Name: nonLocalUser.Name})
-	})
-	t.Run("Non-Local, Self, Admin", func(t *testing.T) {
-		assert.NoError(t, RenameUser(t.Context(), nonLocalAdminUser, "nonlocal_user_user_rename", nonLocalAdminUser))
-	})
-	t.Run("Non-Local, Other, Non-admin", func(t *testing.T) {
-		assert.ErrorIs(t, RenameUser(t.Context(), nonLocalUser, "user_rename", user), user_model.ErrUserIsNotLocal{UID: nonLocalUser.ID, Name: nonLocalUser.Name})
-	})
-	t.Run("Non-Local, Other, Admin", func(t *testing.T) {
-		assert.NoError(t, RenameUser(t.Context(), nonLocalAdminUser, "nonlocal_user_rename_2", adminUser))
+	t.Run("External user", func(t *testing.T) {
+		adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1, IsAdmin: true})
+		externalUser := &user_model.User{
+			Name:      "external_user",
+			Email:     "external_user@gitea.io",
+			LoginType: auth.LDAP,
+		}
+		require.NoError(t, user_model.CreateUser(t.Context(), externalUser, &user_model.Meta{}))
+
+		err := RenameUser(t.Context(), externalUser, externalUser.Name+"_changed", externalUser)
+		assert.True(t, user_model.IsErrUserIsNotLocal(err), "external user is not allowed to rename themselves")
+
+		err = RenameUser(t.Context(), externalUser, externalUser.Name+"_changed", adminUser)
+		assert.NoError(t, err, "admin can rename external user")
 	})
 
 	t.Run("Same username", func(t *testing.T) {

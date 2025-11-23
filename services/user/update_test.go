@@ -19,12 +19,6 @@ func TestUpdateUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	nonLocalAdmin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 43})
-
-	// Need to make the nonlocal admin not an admin for the following checks to make sense
-	assert.NoError(t, UpdateUser(t.Context(), nonLocalAdmin, &UpdateOptions{
-		IsAdmin: UpdateOptionFieldFromValue(false),
-	}))
 
 	assert.Error(t, UpdateUser(t.Context(), admin, &UpdateOptions{
 		IsAdmin: UpdateOptionFieldFromValue(false),

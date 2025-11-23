@@ -37,11 +37,9 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 	}
 
 	// Non-local users are not allowed to change their own username, but admins are
-	if !u.IsOrganization() && !u.IsLocal() && !doer.IsAdmin {
-		return user_model.ErrUserIsNotLocal{
-			UID:  u.ID,
-			Name: u.Name,
-		}
+	isExternalUser := !u.IsOrganization() && !u.IsLocal()
+	if isExternalUser && !doer.IsAdmin {
+		return user_model.ErrUserIsNotLocal{UID: u.ID, Name: u.Name}
 	}
 
 	if err := user_model.IsUsableUsername(newUserName); err != nil {
