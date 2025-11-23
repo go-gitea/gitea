@@ -35,7 +35,7 @@ var (
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\"|\')([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$)|\"|\'|,)`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
 	// e.g. org/repo#12345
-	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/(?:\d+/)?[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	crossReferenceIssueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+/(?:group/\d+/)?[0-9a-zA-Z-_\.]+[#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 	// crossReferenceCommitPattern matches a string that references a commit in a different repository
 	// e.g. go-gitea/gitea@d8a994ef, go-gitea/gitea@d8a994ef243349f321568f9e36d5c3f444b99cae (7-40 characters)
 	crossReferenceCommitPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([0-9a-zA-Z-_\.]+)/([0-9a-zA-Z-_\.]+)@([0-9a-f]{7,64})(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
@@ -181,7 +181,7 @@ func getGiteaHostName() string {
 			giteaIssuePullPattern = regexp.MustCompile(
 				`(\s|^|\(|\[)` +
 					regexp.QuoteMeta(strings.TrimSpace(setting.AppURL)) +
-					`([0-9a-zA-Z-_\.]+/[0-9a-zA-Z-_\.]+)/` +
+					`([0-9a-zA-Z-_\.]+/(?:group/\d+/)?[0-9a-zA-Z-_\.]+)/` +
 					`((?:issues)|(?:pulls))/([0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 		} else {
 			giteaHost = ""
@@ -551,11 +551,11 @@ func getCrossReference(content []byte, start, end int, fromLink, prOnly bool) *r
 	parts := strings.Split(strings.ToLower(repo), "/")
 	var owner, rawGroup, name string
 	var gid int64
-	if len(parts) > 3 {
+	if len(parts) > 4 {
 		return nil
 	}
-	if len(parts) == 3 {
-		owner, rawGroup, name = parts[0], parts[1], parts[2]
+	if len(parts) == 4 {
+		owner, rawGroup, name = parts[0], parts[2], parts[3]
 	} else {
 		owner, name = parts[0], parts[1]
 	}

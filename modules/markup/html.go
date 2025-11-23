@@ -82,10 +82,10 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	v.issueFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/(?:[\w_.-]+/)?[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 
 	// example: https://domain/org/repo/pulls/27/files#hash
-	v.filesChangedFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/([\w_.-]+/)?[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
+	v.filesChangedFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/(?:[\w_.-]+/)?[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
 
 	// codePreviewPattern matches "http://domain/.../{owner}/{repo}/src/commit/{commit}/{filepath}#L10-L20"
-	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/([^\s/]+/)?([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
+	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/((?:[^\s/]+/)?)([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
 
 	// cleans: "<foo/bar", "<any words/", ("<html", "<head", "<script", "<style", "<?", "<%")
 	v.tagCleaner = regexp.MustCompile(`(?i)<(/?\w+/\w+|/[\w ]+/|/?(html|head|script|style|%|\?)\b)`)
