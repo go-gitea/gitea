@@ -316,26 +316,38 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	if !isSideBar {
-		sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar")
+		sidebarContent, sidebarEntry, sidebarFilename, _ := wikiContentsByName(ctx, commit, "_Sidebar")
 		if ctx.Written() {
 			return nil, nil
 		}
-		ctx.Data["WikiSidebarEscapeStatus"], ctx.Data["WikiSidebarHTML"], err = renderFn(sidebarContent)
-		if err != nil {
-			ctx.ServerError("Render", err)
-			return nil, nil
+		if sidebarEntry != nil && sidebarContent != nil {
+			// Use the git filename returned by wikiContentsByName, which correctly handles .org files
+			if sidebarFilename == "" {
+				sidebarFilename = sidebarEntry.Name()
+			}
+			ctx.Data["WikiSidebarEscapeStatus"], ctx.Data["WikiSidebarHTML"], err = renderFn(sidebarContent, sidebarFilename)
+			if err != nil {
+				ctx.ServerError("Render", err)
+				return nil, nil
+			}
 		}
 	}
 
 	if !isFooter {
-		footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer")
+		footerContent, footerEntry, footerFilename, _ := wikiContentsByName(ctx, commit, "_Footer")
 		if ctx.Written() {
 			return nil, nil
 		}
-		ctx.Data["WikiFooterEscapeStatus"], ctx.Data["WikiFooterHTML"], err = renderFn(footerContent)
-		if err != nil {
-			ctx.ServerError("Render", err)
-			return nil, nil
+		if footerEntry != nil && footerContent != nil {
+			// Use git filename here too to handle .org files correctly
+			if footerFilename == "" {
+				footerFilename = footerEntry.Name()
+			}
+			ctx.Data["WikiFooterEscapeStatus"], ctx.Data["WikiFooterHTML"], err = renderFn(footerContent, footerFilename)
+			if err != nil {
+				ctx.ServerError("Render", err)
+				return nil, nil
+			}
 		}
 	}
 
