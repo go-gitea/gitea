@@ -23,7 +23,7 @@ func goGet(ctx *context.Context) {
 		return
 	}
 
-	parts := strings.SplitN(ctx.Req.URL.EscapedPath(), "/", 5)
+	parts := strings.SplitN(ctx.Req.URL.EscapedPath(), "/", 6)
 
 	if len(parts) < 3 {
 		return
@@ -31,7 +31,8 @@ func goGet(ctx *context.Context) {
 	var group string
 	ownerName := parts[1]
 	repoName := parts[2]
-	if len(parts) > 3 {
+	if len(parts) > 4 {
+		repoName = parts[4]
 		group = parts[3]
 	}
 
@@ -62,9 +63,9 @@ func goGet(ctx *context.Context) {
 	}
 	prefix := setting.AppURL + url.PathEscape(ownerName)
 	if group != "" {
-		prefix = path.Join(prefix, group)
+		prefix = prefix + "/" + group
 	}
-	prefix = path.Join(prefix, url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
+	prefix = prefix + "/" + path.Join(url.PathEscape(repoName), "src", "branch", util.PathEscapeSegments(branchName))
 
 	appURL, _ := url.Parse(setting.AppURL)
 
