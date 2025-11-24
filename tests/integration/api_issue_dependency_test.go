@@ -50,9 +50,10 @@ func TestAPICreateIssueDependencyCrossRepoPermission(t *testing.T) {
 
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/dependencies", "user2", "repo1", targetIssue.Index)
 	dependencyMeta := &api.IssueMeta{
-		Owner: "org3",
-		Name:  "repo3",
-		Index: dependencyIssue.Index,
+		Owner:   "org3",
+		Name:    "repo3",
+		GroupID: 129,
+		Index:   dependencyIssue.Index,
 	}
 
 	user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
@@ -111,9 +112,10 @@ func TestAPIDeleteIssueDependencyCrossRepoPermission(t *testing.T) {
 
 	url := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/dependencies", "user2", "repo1", targetIssue.Index)
 	dependencyMeta := &api.IssueMeta{
-		Owner: "org3",
-		Name:  "repo3",
-		Index: dependencyIssue.Index,
+		Owner:   "org3",
+		Name:    "repo3",
+		GroupID: 129,
+		Index:   dependencyIssue.Index,
 	}
 
 	user40 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 40})
