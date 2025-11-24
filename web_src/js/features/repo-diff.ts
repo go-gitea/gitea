@@ -19,6 +19,7 @@ const diffHashRangeRegex = /^(diff-[0-9a-f]+)([LR]\d+)(?:-([LR]\d+))?$/i;
 type DiffAnchorSide = 'L' | 'R';
 type DiffAnchorInfo = {anchor: string, fragment: string, side: DiffAnchorSide, line: number};
 type DiffSelectionState = DiffAnchorInfo & {container: HTMLElement};
+type DiffSelectionRange = {fragment: string, startSide: DiffAnchorSide, startLine: number, endSide: DiffAnchorSide, endLine: number};
 
 let diffSelectionStart: DiffSelectionState | null = null;
 
@@ -41,15 +42,27 @@ function parseDiffAnchor(anchor: string | null): DiffAnchorInfo | null {
   return {anchor, fragment, side, line};
 }
 
-function applyDiffLineSelection(container: HTMLElement, fragment: string, side: DiffAnchorSide, startLine: number, endLine: number, options?: {updateHash?: boolean}): boolean {
-  const minLine = Math.min(startLine, endLine);
-  const maxLine = Math.max(startLine, endLine);
-  const selector = `.code-diff td.lines-num span[id^="${CSS.escape(fragment)}"]`;
+function applyDiffLineSelection(container: HTMLElement, range: DiffSelectionRange, options?: {updateHash?: boolean}): boolean {
+  const selector = `.code-diff td.lines-num span[id^="${CSS.escape(range.fragment)}"]`;
   const spans = Array.from(container.querySelectorAll<HTMLSpanElement>(selector));
   const matches = spans.filter((span) => {
     const info = parseDiffAnchor(span.id);
-    if (!info || info.side !== side) return false;
-    return info.line >= minLine && info.line <= maxLine;
+    if (!info) return false;
+    // For same side selection
+    if (range.startSide === range.endSide) {
+      if (info.side !== range.startSide) return false;
+      const minLine = Math.min(range.startLine, range.endLine);
+      const maxLine = Math.max(range.startLine, range.endLine);
+      return info.line >= minLine && info.line <= maxLine;
+    }
+    // For cross-side selection (L to R or R to L)
+    if (info.side === range.startSide) {
+      return info.line === range.startLine;
+    }
+    if (info.side === range.endSide) {
+      return info.line === range.endLine;
+    }
+    return false;
   });
   if (!matches.length) return false;
 
@@ -61,50 +74,86 @@ function applyDiffLineSelection(container: HTMLElement, fragment: string, side: 
   }
 
   if (options?.updateHash !== false) {
-    const startAnchor = `${fragment}${side}${minLine}`;
-    const endAnchor = `${fragment}${side}${maxLine}`;
-    const hashValue = minLine === maxLine ? startAnchor : `${startAnchor}-${endAnchor}`;
+    const startAnchor = `${range.fragment}${range.startSide}${range.startLine}`;
+    const hashValue = (range.startSide === range.endSide && range.startLine === range.endLine) ?
+      startAnchor :
+      `${startAnchor}-${range.endSide}${range.endLine}`;
     changeHash(`#${hashValue}`);
   }
   return true;
 }
 
-type DiffHashRange = {fragment: string, side: DiffAnchorSide, startLine: number, endLine: number};
-
-function parseDiffHashRange(hashValue: string): DiffHashRange | null {
+function parseDiffHashRange(hashValue: string): DiffSelectionRange | null {
   if (!hashValue.startsWith('diff-')) return null;
   const match = diffHashRangeRegex.exec(hashValue);
   if (!match) return null;
   const startInfo = parseDiffAnchor(`${match[1]}${match[2]}`);
   if (!startInfo) return null;
+  let endSide = startInfo.side;
   let endLine = startInfo.line;
   if (match[3]) {
     const endInfo = parseDiffAnchor(`${match[1]}${match[3]}`);
-    if (!endInfo || endInfo.side !== startInfo.side) {
-      return {fragment: startInfo.fragment, side: startInfo.side, startLine: startInfo.line, endLine: startInfo.line};
+    if (!endInfo) {
+      return {fragment: startInfo.fragment, startSide: startInfo.side, startLine: startInfo.line, endSide: startInfo.side, endLine: startInfo.line};
     }
+    endSide = endInfo.side;
     endLine = endInfo.line;
   }
   return {
     fragment: startInfo.fragment,
-    side: startInfo.side,
+    startSide: startInfo.side,
     startLine: startInfo.line,
+    endSide,
     endLine,
   };
 }
 
-function highlightDiffSelectionFromHash() {
+async function highlightDiffSelectionFromHash(): Promise<boolean> {
   const {hash} = window.location;
-  if (!hash || !hash.startsWith('#diff-')) return;
+  if (!hash || !hash.startsWith('#diff-')) return false;
   const range = parseDiffHashRange(hash.substring(1));
-  if (!range) return;
-  const targetId = `${range.fragment}${range.side}${range.startLine}`;
-  const target = document.querySelector<HTMLElement>(`#${CSS.escape(targetId)}`);
-  if (!target) return;
-  const container = target.closest<HTMLElement>('.diff-file-box');
-  if (!container) return;
-  applyDiffLineSelection(container, range.fragment, range.side, range.startLine, range.endLine, {updateHash: false});
-  diffSelectionStart = null;
+  if (!range) return false;
+  const targetId = `${range.fragment}${range.startSide}${range.startLine}`;
+
+  // Wait for the target element to be available (in case it needs to be loaded)
+  const targetSpan = document.querySelector<HTMLElement>(`#${CSS.escape(targetId)}`);
+  if (!targetSpan) {
+    // Target not found - it might need to be loaded via "show more files"
+    // Return false to let onLocationHashChange handle the loading
+    return false;
+  }
+
+  const container = targetSpan.closest<HTMLElement>('.diff-file-box');
+  if (!container) return false;
+
+  // Check if the file is collapsed and expand it if needed
+  const fileContent = container.querySelector<HTMLElement>('.file-content');
+  if (fileContent?.classList.contains('folded')) {
+    const foldBtn = container.querySelector<HTMLElement>('.fold-file');
+    if (foldBtn) {
+      invertFileFolding(fileContent, foldBtn);
+      // Wait a bit for the expansion animation
+      await sleep(100);
+    }
+  }
+
+  if (!applyDiffLineSelection(container, range, {updateHash: false})) return false;
+  diffSelectionStart = {
+    anchor: targetId,
+    fragment: range.fragment,
+    side: range.startSide,
+    line: range.startLine,
+    container,
+  };
+
+  // Scroll to the first selected line (scroll to the tr element, not the span)
+  // The span is an inline element inside td, we need to scroll to the tr for better visibility
+  await sleep(10);
+  const targetTr = targetSpan.closest('tr');
+  if (targetTr) {
+    targetTr.scrollIntoView({behavior: 'smooth', block: 'center'});
+  }
+  return true;
 }
 
 function handleDiffLineNumberClick(cell: HTMLElement, e: MouseEvent) {
@@ -117,12 +166,19 @@ function handleDiffLineNumberClick(cell: HTMLElement, e: MouseEvent) {
   let rangeStart: DiffAnchorInfo = info;
   if (e.shiftKey && diffSelectionStart &&
     diffSelectionStart.container === container &&
-    diffSelectionStart.fragment === info.fragment &&
-    diffSelectionStart.side === info.side) {
+    diffSelectionStart.fragment === info.fragment) {
     rangeStart = diffSelectionStart;
   }
 
-  if (applyDiffLineSelection(container, rangeStart.fragment, rangeStart.side, rangeStart.line, info.line)) {
+  const range: DiffSelectionRange = {
+    fragment: info.fragment,
+    startSide: rangeStart.side,
+    startLine: rangeStart.line,
+    endSide: info.side,
+    endLine: info.line,
+  };
+
+  if (applyDiffLineSelection(container, range)) {
     diffSelectionStart = {...info, container};
     window.getSelection().removeAllRanges();
   }
@@ -132,7 +188,9 @@ function initDiffLineSelection() {
   addDelegatedEventListener<HTMLElement, MouseEvent>(document, 'click', diffLineNumberCellSelector, (cell, e) => {
     handleDiffLineNumberClick(cell, e);
   });
-  window.addEventListener('hashchange', highlightDiffSelectionFromHash);
+  window.addEventListener('hashchange', () => {
+    highlightDiffSelectionFromHash();
+  });
   highlightDiffSelectionFromHash();
 }
 
@@ -272,12 +330,14 @@ function initDiffHeaderPopup() {
 }
 
 // Will be called when the show more (files) button has been pressed
-function onShowMoreFiles() {
+async function onShowMoreFiles() {
   // TODO: replace these calls with the "observer.ts" methods
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   initImageDiff();
   initDiffHeaderPopup();
+  // Re-apply hash selection in case the target was just loaded
+  await highlightDiffSelectionFromHash();
 }
 
 async function loadMoreFiles(btn: Element): Promise<boolean> {
@@ -348,19 +408,45 @@ async function onLocationHashChange() {
   const attrAutoScrollRunning = 'data-auto-scroll-running';
   if (document.body.hasAttribute(attrAutoScrollRunning)) return;
 
-  const targetElementId = currentHash.substring(1);
-  while (currentHash === window.location.hash) {
-    // use getElementById to avoid querySelector throws an error when the hash is invalid
-    // eslint-disable-next-line unicorn/prefer-query-selector
-    const targetElement = document.getElementById(targetElementId);
-    if (targetElement) {
-      // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
-      targetElement.scrollIntoView();
-      document.body.setAttribute(attrAutoScrollRunning, 'true');
-      window.location.hash = '';
-      window.location.hash = currentHash;
-      setTimeout(() => document.body.removeAttribute(attrAutoScrollRunning), 0);
+  // Check if this is a diff line selection hash (e.g., #diff-xxxL10 or #diff-xxxL10-R20)
+  const hashValue = currentHash.substring(1);
+  const range = parseDiffHashRange(hashValue);
+  if (range) {
+    // This is a line selection hash, try to highlight it first
+    const success = await highlightDiffSelectionFromHash();
+    if (success) {
+      // Successfully highlighted and scrolled, we're done
       return;
+    }
+    // If not successful, fall through to load more files
+  }
+
+  const targetElementId = hashValue;
+  while (currentHash === window.location.hash) {
+    // For line selections, check the range-based target
+    let targetElement;
+    if (range) {
+      const targetId = `${range.fragment}${range.startSide}${range.startLine}`;
+      // eslint-disable-next-line unicorn/prefer-query-selector
+      targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        // Try again to highlight and scroll now that the element is loaded
+        await highlightDiffSelectionFromHash();
+        return;
+      }
+    } else {
+      // use getElementById to avoid querySelector throws an error when the hash is invalid
+      // eslint-disable-next-line unicorn/prefer-query-selector
+      targetElement = document.getElementById(targetElementId);
+      if (targetElement) {
+        // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
+        targetElement.scrollIntoView();
+        document.body.setAttribute(attrAutoScrollRunning, 'true');
+        window.location.hash = '';
+        window.location.hash = currentHash;
+        setTimeout(() => document.body.removeAttribute(attrAutoScrollRunning), 0);
+        return;
+      }
     }
 
     // If looking for a hidden comment, try to expand the section that contains it
