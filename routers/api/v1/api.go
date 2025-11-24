@@ -1764,6 +1764,10 @@ func Routes() *web.Router {
 			})
 			m.Group("/repos", func() {
 				m.Get("", reqToken(), org.GetTeamRepos)
+				m.Combo("/{org}/group/{group_id}/{reponame}").
+					Put(reqToken(), org.AddTeamRepository).
+					Delete(reqToken(), org.RemoveTeamRepository).
+					Get(reqToken(), org.GetTeamRepo)
 				m.Combo("/{org}/{reponame}").
 					Put(reqToken(), org.AddTeamRepository).
 					Delete(reqToken(), org.RemoveTeamRepository).
