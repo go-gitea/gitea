@@ -216,7 +216,9 @@ function handleDiffLineNumberClick(cell: HTMLElement, e: MouseEvent) {
   };
 
   if (applyDiffLineSelection(container, range)) {
-    diffSelectionStart = {...info, container};
+    if (!e.shiftKey || !diffSelectionStart || diffSelectionStart.container !== container || diffSelectionStart.fragment !== info.fragment) {
+      diffSelectionStart = {...info, container};
+    }
     window.getSelection().removeAllRanges();
   }
 }
