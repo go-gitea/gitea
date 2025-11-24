@@ -35,7 +35,7 @@ func testPrivateActivityDoSomethingForActionEntries(t *testing.T) {
 
 	session := loginUser(t, privateActivityTestUser)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues?state=all", owner.Name, repoBefore.GroupID, repoBefore.Name)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s%s/issues?state=all", owner.Name, maybeGroupSegment(repoBefore.GroupID), repoBefore.Name)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateIssueOption{
 		Body:  "test",
 		Title: "test",

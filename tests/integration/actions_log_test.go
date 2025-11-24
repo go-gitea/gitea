@@ -199,11 +199,8 @@ jobs:
 					}
 
 					// download task logs from API and check content
-					var groupSegment string
-					if repo.GroupID > 0 {
-						groupSegment = fmt.Sprintf("%d/", repo.GroupID)
-					}
-					req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s%s/actions/jobs/%d/logs", user2.Name, groupSegment, repo.Name, job.ID)).
+
+					req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s%s/actions/jobs/%d/logs", user2.Name, maybeGroupSegment(repo.GroupID), repo.Name, job.ID)).
 						AddTokenAuth(token)
 					resp = MakeRequest(t, req, http.StatusOK)
 					logTextLines = strings.Split(strings.TrimSpace(resp.Body.String()), "\n")

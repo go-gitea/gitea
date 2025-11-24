@@ -156,11 +156,8 @@ jobs:
 				}
 
 				// check result
-				var groupSegment string
-				if apiRepo.GroupID > 0 {
-					groupSegment = fmt.Sprintf("%d/", apiRepo.GroupID)
-				}
-				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s%s/actions/tasks", user2.Name, groupSegment, apiRepo.Name)).
+
+				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s%s/actions/tasks", user2.Name, maybeGroupSegment(apiRepo.GroupID), apiRepo.Name)).
 					AddTokenAuth(token)
 				resp := MakeRequest(t, req, http.StatusOK)
 				actionTaskRespAfter := DecodeJSON(t, resp, &api.ActionTaskResponse{})
@@ -738,11 +735,7 @@ func getWorkflowCreateFileOptions(u *user_model.User, branch, msg, content strin
 }
 
 func createWorkflowFile(t *testing.T, authToken, ownerName, repoName string, groupID int64, treePath string, opts *api.CreateFileOptions) *api.FileResponse {
-	var groupSegment string
-	if groupID > 0 {
-		groupSegment = fmt.Sprintf("%d/", groupID)
-	}
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/contents/%s", ownerName, groupSegment, repoName, treePath), opts).
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/contents/%s", ownerName, maybeGroupSegment(groupID), repoName, treePath), opts).
 		AddTokenAuth(authToken)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	fileResponse := DecodeJSON(t, resp, &api.FileResponse{})

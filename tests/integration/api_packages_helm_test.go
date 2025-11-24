@@ -159,7 +159,7 @@ dependencies:
 		assert.Len(t, cv.Maintainers, 1)
 		assert.Equal(t, packageAuthor, cv.Maintainers[0].Name)
 		assert.Len(t, cv.Dependencies, 1)
-		assert.ElementsMatch(t, []string{fmt.Sprintf("%s%s/%s", setting.AppURL, url[1:], filename)}, cv.URLs)
+		assert.ElementsMatch(t, []string{fmt.Sprintf("%s/%s%s", setting.AppURL, url[1:], filename)}, cv.URLs)
 
 		assert.Equal(t, url, result.ServerInfo.ContextPath)
 	})
