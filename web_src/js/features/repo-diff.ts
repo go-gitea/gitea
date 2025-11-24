@@ -8,7 +8,7 @@ import {showErrorToast} from '../modules/toast.ts';
 import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {invertFileFolding} from './file-fold.ts';
+import {invertFileFolding, setFileFolding} from './file-fold.ts';
 import {parseDom, sleep} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
 
@@ -127,11 +127,11 @@ async function highlightDiffSelectionFromHash(): Promise<boolean> {
   if (!container) return false;
 
   // Check if the file is collapsed and expand it if needed
-  const fileContent = container.querySelector<HTMLElement>('.file-content');
-  if (fileContent?.classList.contains('folded')) {
+  if (container.getAttribute('data-folded') === 'true') {
     const foldBtn = container.querySelector<HTMLElement>('.fold-file');
     if (foldBtn) {
-      invertFileFolding(fileContent, foldBtn);
+      // Expand the file using the setFileFolding utility
+      setFileFolding(container, foldBtn, false);
       // Wait a bit for the expansion animation
       await sleep(100);
     }
