@@ -57,10 +57,10 @@ function applyDiffLineSelection(container: HTMLElement, range: DiffSelectionRang
     }
     // For cross-side selection (L to R or R to L)
     if (info.side === range.startSide) {
-      return info.line === range.startLine;
+      return info.line >= range.startLine;
     }
     if (info.side === range.endSide) {
-      return info.line === range.endLine;
+      return info.line <= range.endLine;
     }
     return false;
   });
@@ -157,9 +157,25 @@ async function highlightDiffSelectionFromHash(): Promise<boolean> {
 }
 
 function handleDiffLineNumberClick(cell: HTMLElement, e: MouseEvent) {
-  const span = cell.querySelector<HTMLSpanElement>('span[id^="diff-"]');
-  const info = parseDiffAnchor(span?.id ?? null);
-  if (!info) return;
+  let span = cell.querySelector<HTMLSpanElement>('span[id^="diff-"]');
+  let info = parseDiffAnchor(span?.id ?? null);
+
+  // If clicked cell has no line number (e.g., clicking on the empty side of a deletion/addition),
+  // try to find the line number from the sibling cell on the same row
+  if (!info) {
+    const row = cell.closest('tr');
+    if (!row) return;
+    // Find the other line number cell in the same row
+    const siblingCell = cell.classList.contains('lines-num-old') ?
+      row.querySelector<HTMLElement>('td.lines-num-new') :
+      row.querySelector<HTMLElement>('td.lines-num-old');
+    if (siblingCell) {
+      span = siblingCell.querySelector<HTMLSpanElement>('span[id^="diff-"]');
+      info = parseDiffAnchor(span?.id ?? null);
+    }
+    if (!info) return;
+  }
+
   const container = cell.closest<HTMLElement>('.diff-file-box');
   if (!container) return;
 
