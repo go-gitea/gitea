@@ -76,7 +76,7 @@ func unescapeSegment(s string) (string, error) {
 }
 
 func escapeSegToWeb(s string, hadDashMarker bool) string {
-	if hadDashMarker || strings.Contains(s, "-") || strings.HasSuffix(s, ".md") {
+	if hadDashMarker || strings.Contains(s, "-") || strings.HasSuffix(s, ".md") || strings.HasSuffix(s, ".org") {
 		s = addDashMarker(s)
 	} else {
 		s = strings.ReplaceAll(s, " ", "-")
