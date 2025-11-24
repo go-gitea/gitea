@@ -534,7 +534,9 @@ func Wiki(ctx *context.Context) {
 	}
 
 	wikiPath := entry.Name()
-	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
+	detectedMarkupType := markup.DetectMarkupTypeByFileName(wikiPath)
+	if detectedMarkupType == "" {
+		// Only show warning if no renderer was found for this file type
 		ext := strings.ToUpper(filepath.Ext(wikiPath))
 		ctx.Data["FormatWarning"] = ext + " rendering is not supported at the moment. Rendered as Markdown."
 	}
