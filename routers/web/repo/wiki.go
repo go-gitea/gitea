@@ -252,7 +252,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 
 	rctx := renderhelper.NewRenderContextRepoWiki(ctx, ctx.Repo.Repository)
 
-	renderFn := func(data []byte) (escaped *charset.EscapeStatus, output template.HTML, err error) {
+	renderFn := func(data []byte, filename string) (escaped *charset.EscapeStatus, output template.HTML, err error) {
 		buf := &strings.Builder{}
 		markupRd, markupWr := io.Pipe()
 		defer markupWr.Close()
@@ -265,13 +265,21 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			close(done)
 		}()
 
-		err = markdown.Render(rctx, bytes.NewReader(data), markupWr)
+		// Detect markup type from filename and use the appropriate renderer
+		// (.md -> markdown, .org -> orgmode)
+		markupType := markup.DetectMarkupTypeByFileName(filename)
+		if markupType == "" {
+			// Default to markdown if detection fails
+			markupType = markdown.MarkupName
+		}
+		fileRctx := rctx.WithMarkupType(markupType).WithRelativePath(filename)
+		err = markup.Render(fileRctx, bytes.NewReader(data), markupWr)
 		_ = markupWr.CloseWithError(err)
 		<-done
 		return escaped, output, err
 	}
 
-	ctx.Data["EscapeStatus"], ctx.Data["WikiContentHTML"], err = renderFn(data)
+	ctx.Data["EscapeStatus"], ctx.Data["WikiContentHTML"], err = renderFn(data, pageFilename)
 	if err != nil {
 		ctx.ServerError("Render", err)
 		return nil, nil
