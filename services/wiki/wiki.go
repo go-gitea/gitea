@@ -55,11 +55,12 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 // prepareGitPath try to find a suitable file path with file name by the given raw wiki name.
 // return: existence, prepared file path with name, error
 func prepareGitPath(gitRepo *git.Repository, defaultWikiBranch string, wikiPath WebPath) (bool, string, error) {
-	unescaped := string(wikiPath) + ".md"
+	unescapedMd := string(wikiPath) + ".md"
+	unescapedOrg := string(wikiPath) + ".org"
 	gitPath := WebPathToGitPath(wikiPath)
 
-	// Look for both files
-	filesInIndex, err := gitRepo.LsTree(defaultWikiBranch, unescaped, gitPath)
+	// Look for .md, .org, and escaped file
+	filesInIndex, err := gitRepo.LsTree(defaultWikiBranch, unescapedMd, unescapedOrg, gitPath)
 	if err != nil {
 		if strings.Contains(err.Error(), "Not a valid object name") {
 			return false, gitPath, nil // branch doesn't exist
@@ -71,9 +72,11 @@ func prepareGitPath(gitRepo *git.Repository, defaultWikiBranch string, wikiPath 
 	foundEscaped := false
 	for _, filename := range filesInIndex {
 		switch filename {
-		case unescaped:
-			// if we find the unescaped file return it
-			return true, unescaped, nil
+		// if we find unescaped file (.md or .org) return it
+		case unescapedMd:
+			return true, unescapedMd, nil
+		case unescapedOrg:
+			return true, unescapedOrg, nil
 		case gitPath:
 			foundEscaped = true
 		}
