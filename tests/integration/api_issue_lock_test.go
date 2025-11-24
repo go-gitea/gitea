@@ -27,7 +27,7 @@ func TestAPILockIssue(t *testing.T) {
 		assert.False(t, issueBefore.IsLocked)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
 		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/lock", owner.Name, repo.GroupID, repo.Name, issueBefore.Index)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s%s/issues/%d/lock", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name, issueBefore.Index)
 
 		session := loginUser(t, owner.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
@@ -50,7 +50,7 @@ func TestAPILockIssue(t *testing.T) {
 		issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
 		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/lock", owner.Name, repo.GroupID, repo.Name, issueBefore.Index)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s%s/issues/%d/lock", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name, issueBefore.Index)
 
 		session := loginUser(t, owner.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
