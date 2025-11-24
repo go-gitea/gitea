@@ -139,6 +139,9 @@ func WebPathToUserTitle(s WebPath) (dir, display string) {
 	if before, ok := strings.CutSuffix(display, ".md"); ok {
 		display = before
 		display, _ = url.PathUnescape(display)
+	} else if strings.HasSuffix(display, ".org") {
+		display = strings.TrimSuffix(display, ".org")
+		display, _ = url.PathUnescape(display)
 	}
 	display, _ = unescapeSegment(display)
 	return dir, display
