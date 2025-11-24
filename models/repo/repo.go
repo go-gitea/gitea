@@ -153,7 +153,7 @@ const (
 // Repository represents a git repository.
 type Repository struct {
 	ID                  int64 `xorm:"pk autoincr"`
-	OwnerID             int64 `xorm:"UNIQUE(s) index"`
+	OwnerID             int64 `xorm:"UNIQUE(s) UNIQUE(g) index"`
 	OwnerName           string
 	Owner               *user_model.User   `xorm:"-"`
 	LowerName           string             `xorm:"UNIQUE(s) UNIQUE(g) INDEX NOT NULL"`
