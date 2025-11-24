@@ -114,10 +114,10 @@ func WebPathToGitPath(s WebPath) string {
 
 func GitPathToWebPath(s string) (wp WebPath, err error) {
 	// Trim .md or .org suffix if present
-	if strings.HasSuffix(s, ".md") {
-		s = strings.TrimSuffix(s, ".md")
-	} else if strings.HasSuffix(s, ".org") {
-		s = strings.TrimSuffix(s, ".org")
+	if before, ok := strings.CutSuffix(s, ".md"); ok {
+		s = before
+	} else if before, ok := strings.CutSuffix(s, ".org"); ok {
+		s = before
 	} else {
 		// If it doesn't end with .md or .org, it's not a valid wiki file
 		return "", repo_model.ErrWikiInvalidFileName{FileName: s}
@@ -139,8 +139,8 @@ func WebPathToUserTitle(s WebPath) (dir, display string) {
 	if before, ok := strings.CutSuffix(display, ".md"); ok {
 		display = before
 		display, _ = url.PathUnescape(display)
-	} else if strings.HasSuffix(display, ".org") {
-		display = strings.TrimSuffix(display, ".org")
+	} else if before, ok := strings.CutSuffix(display, ".org"); ok {
+		display = before
 		display, _ = url.PathUnescape(display)
 	}
 	display, _ = unescapeSegment(display)

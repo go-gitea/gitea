@@ -154,8 +154,8 @@ func wikiEntryByName(ctx *context.Context, commit *git.Commit, wikiName wiki_ser
 	}
 	if entry == nil {
 		// If .md file not found, try .org file
-		if strings.HasSuffix(gitFilename, ".md") {
-			orgFilename := strings.TrimSuffix(gitFilename, ".md") + ".org"
+		if base, ok := strings.CutSuffix(gitFilename, ".md"); ok {
+			orgFilename := base + ".org"
 			entry, err = findEntryForFile(commit, orgFilename)
 			if err != nil && !git.IsErrNotExist(err) {
 				ctx.ServerError("findEntryForFile", err)
@@ -168,10 +168,10 @@ func wikiEntryByName(ctx *context.Context, commit *git.Commit, wikiName wiki_ser
 		// If still not found, check if the file without extension exists (for raw files)
 		if entry == nil {
 			baseFilename := gitFilename
-			if strings.HasSuffix(baseFilename, ".md") {
-				baseFilename = strings.TrimSuffix(baseFilename, ".md")
-			} else if strings.HasSuffix(baseFilename, ".org") {
-				baseFilename = strings.TrimSuffix(baseFilename, ".org")
+			if base, ok := strings.CutSuffix(baseFilename, ".md"); ok {
+				baseFilename = base
+			} else if base, ok := strings.CutSuffix(baseFilename, ".org"); ok {
+				baseFilename = base
 			}
 			entry, err = findEntryForFile(commit, baseFilename)
 			if err != nil && !git.IsErrNotExist(err) {
@@ -678,10 +678,12 @@ func WikiRaw(ctx *context.Context) {
 				ctx.ServerError("findFile", err)
 				return
 			}
-			entry, err = findEntryForFile(commit, providedGitPath)
-			if err != nil && !git.IsErrNotExist(err) {
-				ctx.ServerError("findFile", err)
-				return
+			if entry == nil {
+				entry, err = findEntryForFile(commit, providedGitPath)
+				if err != nil && !git.IsErrNotExist(err) {
+					ctx.ServerError("findFile", err)
+					return
+				}
 			}
 		}
 	}
