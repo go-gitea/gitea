@@ -43,34 +43,40 @@ function parseDiffAnchor(anchor: string | null): DiffAnchorInfo | null {
 }
 
 function applyDiffLineSelection(container: HTMLElement, range: DiffSelectionRange, options?: {updateHash?: boolean}): boolean {
-  const selector = `.code-diff td.lines-num span[id^="${CSS.escape(range.fragment)}"]`;
-  const spans = Array.from(container.querySelectorAll<HTMLSpanElement>(selector));
-  const matches = spans.filter((span) => {
-    const info = parseDiffAnchor(span.id);
-    if (!info) return false;
-    // For same side selection
-    if (range.startSide === range.endSide) {
-      if (info.side !== range.startSide) return false;
-      const minLine = Math.min(range.startLine, range.endLine);
-      const maxLine = Math.max(range.startLine, range.endLine);
-      return info.line >= minLine && info.line <= maxLine;
-    }
-    // For cross-side selection (L to R or R to L)
-    if (info.side === range.startSide) {
-      return info.line >= range.startLine;
-    }
-    if (info.side === range.endSide) {
-      return info.line <= range.endLine;
-    }
-    return false;
-  });
-  if (!matches.length) return false;
+  // Find the start and end anchor elements
+  const startId = `${range.fragment}${range.startSide}${range.startLine}`;
+  const endId = `${range.fragment}${range.endSide}${range.endLine}`;
+  const startSpan = container.querySelector<HTMLElement>(`#${CSS.escape(startId)}`);
+  const endSpan = container.querySelector<HTMLElement>(`#${CSS.escape(endId)}`);
 
+  if (!startSpan || !endSpan) return false;
+
+  const startTr = startSpan.closest('tr');
+  const endTr = endSpan.closest('tr');
+  if (!startTr || !endTr) return false;
+
+  // Clear previous selection
   for (const tr of document.querySelectorAll('.code-diff tr.active')) {
     tr.classList.remove('active');
   }
-  for (const span of matches) {
-    span.closest('tr')?.classList.add('active');
+
+  // Get all rows in the diff section
+  const allRows = Array.from(container.querySelectorAll<HTMLElement>('.code-diff tbody tr'));
+  const startIndex = allRows.indexOf(startTr);
+  const endIndex = allRows.indexOf(endTr);
+
+  if (startIndex === -1 || endIndex === -1) return false;
+
+  // Select all rows between start and end (inclusive)
+  const minIndex = Math.min(startIndex, endIndex);
+  const maxIndex = Math.max(startIndex, endIndex);
+
+  for (let i = minIndex; i <= maxIndex; i++) {
+    const row = allRows[i];
+    // Only select rows that are actual diff lines (not comment rows, etc.)
+    if (row.querySelector('td.lines-num')) {
+      row.classList.add('active');
+    }
   }
 
   if (options?.updateHash !== false) {
