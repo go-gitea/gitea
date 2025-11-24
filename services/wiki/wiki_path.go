@@ -94,8 +94,10 @@ func WebPathSegments(s WebPath) []string {
 }
 
 func WebPathToGitPath(s WebPath) string {
-	if strings.HasSuffix(string(s), ".md") {
-		ret, _ := url.PathUnescape(string(s))
+	str := string(s)
+	// Accept only .md or .org directly
+	if strings.HasSuffix(str, ".md") || strings.HasSuffix(str, ".org") {
+		ret, _ := url.PathUnescape(str)
 		return util.PathJoinRelX(ret)
 	}
 
@@ -111,10 +113,15 @@ func WebPathToGitPath(s WebPath) string {
 }
 
 func GitPathToWebPath(s string) (wp WebPath, err error) {
-	if !strings.HasSuffix(s, ".md") {
+	// Trim .md or .org suffix if present
+	if strings.HasSuffix(s, ".md") {
+		s = strings.TrimSuffix(s, ".md")
+	} else if strings.HasSuffix(s, ".org") {
+		s = strings.TrimSuffix(s, ".org")
+	} else {
+		// If it doesn't end with .md or .org, it's not a valid wiki file
 		return "", repo_model.ErrWikiInvalidFileName{FileName: s}
 	}
-	s = strings.TrimSuffix(s, ".md")
 	a := strings.Split(s, "/")
 	for i := range a {
 		shouldAddDashMarker := hasDashMarker(a[i])
