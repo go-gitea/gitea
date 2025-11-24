@@ -9,6 +9,7 @@ func AddGroupColumnsToRepositoryTable(x *xorm.Engine) error {
 	type Repository struct {
 		LowerName      string `xorm:"UNIQUE(s) UNIQUE(g) INDEX NOT NULL"`
 		GroupID        int64  `xorm:"UNIQUE(g) INDEX DEFAULT 0"`
+		OwnerID        int64  `xorm:"UNIQUE(s) UNIQUE(g) index"`
 		GroupSortOrder int
 	}
 	_, err := x.SyncWithOptions(xorm.SyncOptions{
