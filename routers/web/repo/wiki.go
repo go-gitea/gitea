@@ -669,8 +669,15 @@ func WikiRaw(ctx *context.Context) {
 		}
 
 		if entry == nil {
-			// Try to find a wiki page with that name
-			providedGitPath = strings.TrimSuffix(providedGitPath, ".md")
+			// Try to find a wiki page with that name (check both .md and .org)
+			providedGitPath := strings.TrimSuffix(providedGitPath, ".md")
+			// Try .org version
+			orgPath := providedGitPath + ".org"
+			entry, err = findEntryForFile(commit, orgPath)
+			if err != nil && !git.IsErrNotExist(err) {
+				ctx.ServerError("findFile", err)
+				return
+			}
 			entry, err = findEntryForFile(commit, providedGitPath)
 			if err != nil && !git.IsErrNotExist(err) {
 				ctx.ServerError("findFile", err)
