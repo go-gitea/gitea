@@ -45,7 +45,7 @@ func TestAPIGitTags(t *testing.T) {
 	aTag, _ := gitRepo.GetTag(aTagName)
 
 	// SHOULD work for annotated tags
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/tags/%s", user.Name, repo.GroupID, repo.Name, aTag.ID.String()).
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/git/tags/%s", user.Name, maybeGroupSegment(repo.GroupID), repo.Name, aTag.ID.String()).
 		AddTokenAuth(token)
 	res := MakeRequest(t, req, http.StatusOK)
 
@@ -61,7 +61,7 @@ func TestAPIGitTags(t *testing.T) {
 	assert.Equal(t, util.URLJoin(repo.APIURL(), "git/tags", aTag.ID.String()), tag.URL)
 
 	// Should NOT work for lightweight tags
-	badReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/tags/%s", user.Name, repo.GroupID, repo.Name, commit.ID.String()).
+	badReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/git/tags/%s", user.Name, maybeGroupSegment(repo.GroupID), repo.Name, commit.ID.String()).
 		AddTokenAuth(token)
 	MakeRequest(t, badReq, http.StatusBadRequest)
 }
@@ -74,14 +74,14 @@ func TestAPIDeleteTagByName(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	req := NewRequest(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%d/%s/tags/delete-tag", owner.Name, repo.GroupID, repo.Name)).
+	req := NewRequest(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s%s/tags/delete-tag", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name)).
 		AddTokenAuth(token)
 	_ = MakeRequest(t, req, http.StatusNoContent)
 
 	// Make sure that actual releases can't be deleted outright
 	createNewReleaseUsingAPI(t, token, owner, repo, "release-tag", "", "Release Tag", "test")
 
-	req = NewRequest(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%d/%s/tags/release-tag", owner.Name, repo.GroupID, repo.Name)).
+	req = NewRequest(t, http.MethodDelete, fmt.Sprintf("/api/v1/repos/%s/%s%s/tags/release-tag", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name)).
 		AddTokenAuth(token)
 	_ = MakeRequest(t, req, http.StatusConflict)
 }

@@ -75,12 +75,8 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo string, groupI
 		Redirect string
 	}{}
 	DecodeJSON(t, resp, &respJSON)
-	var groupSegment string
-	if groupID > 0 {
-		groupSegment = fmt.Sprintf("%d/", groupID)
-	}
 
-	assert.Equal(t, fmt.Sprintf("/%s/%s%s/pulls/%s", user, groupSegment, repo, pullnum), respJSON.Redirect)
+	assert.Equal(t, fmt.Sprintf("/%s/%s%s/pulls/%s", user, maybeWebGroupSegment(groupID), repo, pullnum), respJSON.Redirect)
 
 	pullnumInt, err := strconv.ParseInt(pullnum, 10, 64)
 	assert.NoError(t, err)

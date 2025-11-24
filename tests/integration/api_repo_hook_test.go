@@ -27,7 +27,7 @@ func TestAPICreateHook(t *testing.T) {
 	// user1 is an admin user
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/%s", owner.Name, repo.GroupID, repo.Name, "hooks"), api.CreateHookOption{
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/%s", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name, "hooks"), api.CreateHookOption{
 		Type: "gitea",
 		Config: api.CreateHookOptionConfig{
 			"content_type": "json",

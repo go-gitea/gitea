@@ -1404,7 +1404,7 @@ jobs:
 		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, wfTreePath, opts1)
 
 		// user4 forks the repo
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%d/%s/forks", baseRepo.OwnerName, baseRepo.GroupID, baseRepo.Name),
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/forks", baseRepo.OwnerName, maybeGroupSegment(baseRepo.GroupID), baseRepo.Name),
 			&api.CreateForkOption{
 				Name: util.ToPointer("close-pull-request-with-path-fork"),
 			}).AddTokenAuth(user4Token)

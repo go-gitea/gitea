@@ -36,7 +36,7 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	testSubscription := func(issue *issues_model.Issue, isWatching bool) {
 		issueRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/subscriptions/check", issueRepo.OwnerName, issueRepo.GroupID, issueRepo.Name, issue.Index)).
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s%s/issues/%d/subscriptions/check", issueRepo.OwnerName, maybeGroupSegment(issueRepo.GroupID), issueRepo.Name, issue.Index)).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 		wi := new(api.WatchInfo)
@@ -56,7 +56,7 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	testSubscription(issue5, false)
 
 	issue1Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue1.RepoID})
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/subscriptions/%s", issue1Repo.OwnerName, issue1Repo.GroupID, issue1Repo.Name, issue1.Index, owner.Name)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s%s/issues/%d/subscriptions/%s", issue1Repo.OwnerName, maybeGroupSegment(issue1Repo.GroupID), issue1Repo.Name, issue1.Index, owner.Name)
 	req := NewRequest(t, "DELETE", urlStr).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
@@ -68,7 +68,7 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	testSubscription(issue1, false)
 
 	issue5Repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue5.RepoID})
-	urlStr = fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/subscriptions/%s", issue5Repo.OwnerName, issue5Repo.GroupID, issue5Repo.Name, issue5.Index, owner.Name)
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s%s/issues/%d/subscriptions/%s", issue5Repo.OwnerName, maybeGroupSegment(issue5Repo.GroupID), issue5Repo.Name, issue5.Index, owner.Name)
 	req = NewRequest(t, "PUT", urlStr).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)

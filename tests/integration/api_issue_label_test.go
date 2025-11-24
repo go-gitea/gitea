@@ -26,7 +26,7 @@ func TestAPIModifyLabels(t *testing.T) {
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteIssue)
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%d/%s/labels", owner.Name, repo.GroupID, repo.Name)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s%s/labels", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name)
 
 	// CreateLabel
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateLabelOption{
@@ -62,7 +62,7 @@ func TestAPIModifyLabels(t *testing.T) {
 	assert.Len(t, apiLabels, 2)
 
 	// GetLabel
-	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%d/%s/labels/%d", owner.Name, repo.GroupID, repo.Name, dbLabel.ID)
+	singleURLStr := fmt.Sprintf("/api/v1/repos/%s/%s%s/labels/%d", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name, dbLabel.ID)
 	req = NewRequest(t, "GET", singleURLStr).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
@@ -127,7 +127,7 @@ func TestAPIAddIssueLabelsWithLabelNames(t *testing.T) {
 	token := getTokenForLoggedInUser(t, user1Session, auth_model.AccessTokenScopeWriteIssue)
 
 	// add the org label and the repo label to the issue
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%d/%s/issues/%d/labels", owner.Name, repo.GroupID, repo.Name, issue.Index)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s%s/issues/%d/labels", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name, issue.Index)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.IssueLabelsOption{
 		Labels: []any{repoLabel.Name, orgLabel.Name},
 	}).AddTokenAuth(token)

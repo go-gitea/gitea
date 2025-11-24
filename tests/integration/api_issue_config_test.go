@@ -150,7 +150,7 @@ func TestAPIRepoValidateIssueConfig(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 49})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%d/%s/issue_config/validate", owner.Name, repo.GroupID, repo.Name)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s%s/issue_config/validate", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name)
 
 	t.Run("Valid", func(t *testing.T) {
 		req := NewRequest(t, "GET", urlStr)

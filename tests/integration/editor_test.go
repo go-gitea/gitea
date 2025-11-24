@@ -123,11 +123,8 @@ func testEditorActionPostRequestError(t *testing.T, session *TestSession, reques
 func testEditorActionEdit(t *testing.T, session *TestSession, groupID int64, user, repo, editorAction, branch, filePath string, params map[string]string) *httptest.ResponseRecorder {
 	params["tree_path"] = util.IfZero(params["tree_path"], filePath)
 	newBranchName := util.Iif(params["commit_choice"] == "direct", branch, params["new_branch_name"])
-	var groupSegment string
-	if groupID > 0 {
-		groupSegment = fmt.Sprintf("%d/", groupID)
-	}
-	resp := testEditorActionPostRequest(t, session, fmt.Sprintf("/%s/%s%s/%s/%s/%s", user, groupSegment, repo, editorAction, branch, filePath), params)
+
+	resp := testEditorActionPostRequest(t, session, fmt.Sprintf("/%s/%s/%s%s/%s/%s", user, maybeWebGroupSegment(groupID), repo, editorAction, branch, filePath), params)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.NotEmpty(t, test.RedirectURL(resp))
 	req := NewRequest(t, "GET", path.Join(user, repo, "raw/branch", newBranchName, params["tree_path"]))

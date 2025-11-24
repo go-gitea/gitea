@@ -57,26 +57,26 @@ func TestAPIReposGitTrees(t *testing.T) {
 		"master",     // Branch
 		repo1TreeSHA, // Tag
 	} {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/trees/%s", user2.Name, repo16.GroupID, repo16.Name, ref)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/git/trees/%s", user2.Name, maybeGroupSegment(repo16.GroupID), repo16.Name, ref)
 		MakeRequest(t, req, http.StatusNotFound)
 	}
 
 	// Test using access token for a private repo that the user of the token owns
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/trees/%s", user2.Name, repo16.GroupID, repo16.Name, repo16TreeSHA).
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/git/trees/%s", user2.Name, maybeGroupSegment(repo16.GroupID), repo16.Name, repo16TreeSHA).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test using bad sha
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/trees/%s", user2.Name, repo1.GroupID, repo1.Name, badSHA)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/git/trees/%s", user2.Name, maybeGroupSegment(repo1.GroupID), repo1.Name, badSHA)
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	// Test using org repo "org3/repo3" where user2 is a collaborator
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/trees/%s", org3.Name, repo3.GroupID, repo3.Name, repo3TreeSHA).
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/git/trees/%s", org3.Name, maybeGroupSegment(repo3.GroupID), repo3.Name, repo3TreeSHA).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test using org repo "org3/repo3" with no user token
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/trees/%s", org3.Name, repo3.GroupID, repo3.Name, repo3TreeSHA)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/git/trees/%s", org3.Name, maybeGroupSegment(repo3.GroupID), repo3.Name, repo3TreeSHA)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Login as User4.
@@ -84,6 +84,6 @@ func TestAPIReposGitTrees(t *testing.T) {
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 
 	// Test using org repo "org3/repo3" where user4 is a NOT collaborator
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%d/%s/git/trees/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", org3.Name, repo3.GroupID, repo3.Name, token4)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/git/trees/d56a3073c1dbb7b15963110a049d50cdb5db99fc?access=%s", org3.Name, maybeGroupSegment(repo3.GroupID), repo3.Name, token4)
 	MakeRequest(t, req, http.StatusNotFound)
 }
