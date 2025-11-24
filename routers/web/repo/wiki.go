@@ -153,14 +153,36 @@ func wikiEntryByName(ctx *context.Context, commit *git.Commit, wikiName wiki_ser
 		return nil, "", false, false
 	}
 	if entry == nil {
-		// check if the file without ".md" suffix exists
-		gitFilename := strings.TrimSuffix(gitFilename, ".md")
-		entry, err = findEntryForFile(commit, gitFilename)
-		if err != nil && !git.IsErrNotExist(err) {
-			ctx.ServerError("findEntryForFile", err)
-			return nil, "", false, false
+		// If .md file not found, try .org file
+		if strings.HasSuffix(gitFilename, ".md") {
+			orgFilename := strings.TrimSuffix(gitFilename, ".md") + ".org"
+			entry, err = findEntryForFile(commit, orgFilename)
+			if err != nil && !git.IsErrNotExist(err) {
+				ctx.ServerError("findEntryForFile", err)
+				return nil, "", false, false
+			}
+			if entry != nil {
+				gitFilename = orgFilename
+			}
 		}
-		isRaw = true
+		// If still not found, check if the file without extension exists (for raw files)
+		if entry == nil {
+			baseFilename := gitFilename
+			if strings.HasSuffix(baseFilename, ".md") {
+				baseFilename = strings.TrimSuffix(baseFilename, ".md")
+			} else if strings.HasSuffix(baseFilename, ".org") {
+				baseFilename = strings.TrimSuffix(baseFilename, ".org")
+			}
+			entry, err = findEntryForFile(commit, baseFilename)
+			if err != nil && !git.IsErrNotExist(err) {
+				ctx.ServerError("findEntryForFile", err)
+				return nil, "", false, false
+			}
+			if entry != nil {
+				gitFilename = baseFilename
+				isRaw = true
+			}
+		}
 	}
 	if entry == nil {
 		return nil, "", true, false
