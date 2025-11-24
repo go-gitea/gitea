@@ -124,7 +124,7 @@ func testEditorActionEdit(t *testing.T, session *TestSession, groupID int64, use
 	params["tree_path"] = util.IfZero(params["tree_path"], filePath)
 	newBranchName := util.Iif(params["commit_choice"] == "direct", branch, params["new_branch_name"])
 
-	resp := testEditorActionPostRequest(t, session, fmt.Sprintf("/%s/%s/%s%s/%s/%s", user, maybeWebGroupSegment(groupID), repo, editorAction, branch, filePath), params)
+	resp := testEditorActionPostRequest(t, session, fmt.Sprintf("/%s/%s/%s%s/%s/%s", user, maybeGroupSegment(groupID), repo, editorAction, branch, filePath), params)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.NotEmpty(t, test.RedirectURL(resp))
 	req := NewRequest(t, "GET", path.Join(user, repo, "raw/branch", newBranchName, params["tree_path"]))
