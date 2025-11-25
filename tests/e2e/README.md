@@ -17,7 +17,7 @@ make clean frontend
 
 ## Install playwright system dependencies
 ```
-npx playwright install-deps
+pnpm exec playwright install-deps
 ```
 
 ## Run sqlite e2e tests
