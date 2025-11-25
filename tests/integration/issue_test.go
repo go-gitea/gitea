@@ -486,9 +486,9 @@ func TestIssueRedirect(t *testing.T) {
 	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker_numeric/issues/1", test.RedirectURL(resp))
 
 	// Test external tracker with alphanumeric style (for a pull request)
-	req = NewRequest(t, "GET", "/org26/repo_external_tracker_alpha/issues/1")
+	req = NewRequest(t, "GET", "/org26/group/41/repo_external_tracker_alpha/issues/1")
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	assert.Equal(t, "/org26/group/41/repo_external_tracker_alpha/pulls/1", test.RedirectURL(resp))
+	assert.Equal(t, "/org26/repo_external_tracker_alpha/pulls/1", test.RedirectURL(resp))
 
 	// test to check that the PR redirection works if the issue unit is disabled
 	// repo1 is a normal repository with issue unit enabled, visit issue 2(which is a pull request)

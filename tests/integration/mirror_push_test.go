@@ -44,7 +44,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	session := loginUser(t, user.Name)
 
-	pushMirrorURL := fmt.Sprintf("%s/%s%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
+	pushMirrorURL := fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(user.Name), url.PathEscape(mirrorRepo.Name))
 	testCreatePushMirror(t, session, user.Name, srcRepo.Name, pushMirrorURL, user.LowerName, userPassword, "0")
 
 	mirrors, _, err := repo_model.GetPushMirrorsByRepoID(t.Context(), srcRepo.ID, db.ListOptions{})
