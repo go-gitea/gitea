@@ -121,7 +121,7 @@ func HookProcReceive(ctx context.Context, ownerName, repoName string, groupID in
 
 // SetDefaultBranch will set the default branch to the provided branch for the provided repository
 func SetDefaultBranch(ctx context.Context, ownerName, repoName string, groupID int64, branch string) ResponseExtra {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/set-default-branch/%s/%s/%s%s",
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/hook/set-default-branch/%s/%s%s/%s",
 		url.PathEscape(ownerName),
 		genGroupSegment(groupID),
 		url.PathEscape(repoName),
