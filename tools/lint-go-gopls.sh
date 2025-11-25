@@ -12,7 +12,12 @@ IGNORE_PATTERNS=(
 # because the tool does not set non-zero exit code when errors are found.
 # ref: https://github.com/golang/go/issues/67078
 ERROR_LINES=$("$GO" run "$GOPLS_PACKAGE" check -severity=warning "$@" 2>/dev/null | grep -E "^$PWD" | grep -vFf <(printf '%s\n' "${IGNORE_PATTERNS[@]}"));
-NUM_ERRORS=$(echo -n "$ERROR_LINES" | wc -l)
+
+if [ -z "$ERROR_LINES" ]; then
+  NUM_ERRORS="0"
+else
+  NUM_ERRORS=$(echo "$ERROR_LINES" | wc -l)
+fi
 
 if [ "$NUM_ERRORS" -eq "0" ]; then
   exit 0;
