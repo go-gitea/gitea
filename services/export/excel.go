@@ -24,7 +24,7 @@ func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *exceliz
 		log.Error("cannot get first cell: %v", err)
 		return f
 	}
-	sw.SetRow(cell, []interface{}{
+	err := sw.SetRow(cell, []interface{}{
 		excelize.Cell{Value: "ID"},
 		excelize.Cell{Value: "Title"},
 		excelize.Cell{Value: "Status"},
@@ -32,6 +32,10 @@ func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *exceliz
 		excelize.Cell{Value: "Label(s)"},
 		excelize.Cell{Value: "Created At"},
 	})
+	if err != nil {
+		log.Error("cannot SetRow for header: %v", err)
+		return f
+	}
 
 	// built-in format ID 22 ("m/d/yy h:mm")
 	datetimeStyleID, err := f.NewStyle(&excelize.Style{NumFmt: 22})
@@ -70,7 +74,7 @@ func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *exceliz
 		}
 
 		cell, _ := excelize.CoordinatesToCellName(1, i+1)
-		sw.SetRow(cell, []interface{}{
+		err := sw.SetRow(cell, []interface{}{
 			excelize.Cell{Value: issue.Index},
 			excelize.Cell{Value: issue.Title},
 			excelize.Cell{Value: issue.State()},
@@ -78,6 +82,10 @@ func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *exceliz
 			excelize.Cell{Value: labels},
 			excelize.Cell{StyleID: datetimeStyleID, Value: issue.CreatedUnix.AsTime()},
 		})
+		if err != nil {
+			log.Error("cannot SetRow: %v", err)
+			return f
+		}
 
 	}
 
