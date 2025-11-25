@@ -408,9 +408,9 @@ func ExportIssues(ctx *context.Context) {
 
 	f := export.IssuesToExcel(ctx, issues)
 
-    ctx.Resp.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    ctx.Resp.Header().Set("Content-Disposition", `attachment; filename="issues.xlsx"`)
-    _ = f.Write(ctx.Resp)
+	ctx.Resp.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	ctx.Resp.Header().Set("Content-Disposition", `attachment; filename="issues.xlsx"`)
+	_ = f.Write(ctx.Resp)
 }
 
 func BatchDeleteIssues(ctx *context.Context) {
