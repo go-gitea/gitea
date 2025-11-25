@@ -19,7 +19,7 @@ make clean build
 ### Run all jobs
 
 ```
-act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" --var ACT_EXEC=true -i catthehacker/ubuntu:runner-latest
 ```
 
 Warning: This file defines many jobs, so it will be resource-intensive and therefor not recommended.
@@ -27,13 +27,13 @@ Warning: This file defines many jobs, so it will be resource-intensive and there
 ### Run single job
 
 ```SHELL
-act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -j <job_name>
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" --var ACT_EXEC=true -i catthehacker/ubuntu:runner-latest -j <job_name>
 ```
 
 You can list all job names via:
 
 ```SHELL
-act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest -l
+act_runner exec -W ./.github/workflows/pull-db-tests.yml --event=pull_request --default-actions-url="https://github.com" --var ACT_EXEC=true -i catthehacker/ubuntu:runner-latest -l
 ```
 
 ## Run sqlite integration tests
