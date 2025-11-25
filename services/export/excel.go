@@ -24,7 +24,7 @@ func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *exceliz
 		log.Error("cannot get first cell: %v", err)
 		return f
 	}
-	err = sw.SetRow(cell, []interface{}{
+	err = sw.SetRow(cell, []any{
 		excelize.Cell{Value: "ID"},
 		excelize.Cell{Value: "Title"},
 		excelize.Cell{Value: "Status"},
@@ -74,7 +74,7 @@ func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *exceliz
 		}
 
 		cell, _ := excelize.CoordinatesToCellName(1, i+1)
-		err = sw.SetRow(cell, []interface{}{
+		err = sw.SetRow(cell, []any{
 			excelize.Cell{Value: issue.Index},
 			excelize.Cell{Value: issue.Title},
 			excelize.Cell{Value: issue.State()},
@@ -86,7 +86,6 @@ func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *exceliz
 			log.Error("cannot SetRow: %v", err)
 			return f
 		}
-
 	}
 
 	sw.Flush()
