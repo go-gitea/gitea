@@ -82,9 +82,11 @@ type processManifestTxRet struct {
 }
 
 func handleCreateManifestResult(ctx context.Context, err error, mci *manifestCreationInfo, contentStore *packages_module.ContentStore, txRet *processManifestTxRet) (string, error) {
-	if err != nil && txRet.created && txRet.pb != nil {
-		if err := contentStore.Delete(packages_module.BlobHash256Key(txRet.pb.HashSHA256)); err != nil {
-			log.Error("Error deleting package blob from content store: %v", err)
+	if err != nil {
+		if txRet.created && txRet.pb != nil {
+			if err := contentStore.Delete(packages_module.BlobHash256Key(txRet.pb.HashSHA256)); err != nil {
+				log.Error("Error deleting package blob from content store: %v", err)
+			}
 		}
 		return "", err
 	}
@@ -198,14 +200,14 @@ func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *p
 				if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 					return errManifestBlobUnknown
 				}
-				return err
+				return fmt.Errorf("GetContainerBlob: %w", err)
 			}
 
 			size, err := packages_model.CalculateFileSize(ctx, &packages_model.PackageFileSearchOptions{
 				VersionID: pfd.File.VersionID,
 			})
 			if err != nil {
-				return err
+				return fmt.Errorf("CalculateFileSize: %w", err)
 			}
 
 			metadata.Manifests = append(metadata.Manifests, &container_module.Manifest{
@@ -217,7 +219,7 @@ func processOciImageIndex(ctx context.Context, mci *manifestCreationInfo, buf *p
 
 		pv, err := createPackageAndVersion(ctx, mci, metadata)
 		if err != nil {
-			return err
+			return fmt.Errorf("createPackageAndVersion: %w", err)
 		}
 
 		txRet.pv = pv
@@ -240,7 +242,7 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
 		if !errors.Is(err, packages_model.ErrDuplicatePackage) {
 			log.Error("Error inserting package: %v", err)
-			return nil, err
+			return nil, fmt.Errorf("TryInsertPackage: %w", err)
 		}
 		created = false
 	}
@@ -248,7 +250,7 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	if created {
 		if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(mci.Owner.LowerName+"/"+mci.Image)); err != nil {
 			log.Error("Error setting package property: %v", err)
-			return nil, err
+			return nil, fmt.Errorf("InsertProperty(PropertyRepository): %w", err)
 		}
 	}
 
@@ -256,7 +258,7 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("json.Marshal(metadata): %w", err)
 	}
 
 	// "docker buildx imagetools create" multi-arch operations:
@@ -276,43 +278,43 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 	pv, err := packages_model.GetOrInsertVersion(ctx, _pv)
 	if err != nil {
 		if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
-			log.Error("Error inserting package: %v", err)
-			return nil, err
+			log.Error("Error GetOrInsertVersion (first try) package: %v", err)
+			return nil, fmt.Errorf("GetOrInsertVersion: first try: %w", err)
 		}
 		if err = packages_service.DeletePackageVersionAndReferences(ctx, pv); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("DeletePackageVersionAndReferences: %w", err)
 		}
 		// keep download count on overwriting
 		_pv.DownloadCount = pv.DownloadCount
 		pv, err = packages_model.GetOrInsertVersion(ctx, _pv)
 		if err != nil {
 			if !errors.Is(err, packages_model.ErrDuplicatePackageVersion) {
-				log.Error("Error inserting package: %v", err)
-				return nil, err
+				log.Error("Error GetOrInsertVersion (second try) package: %v", err)
+				return nil, fmt.Errorf("GetOrInsertVersion: second try: %w", err)
 			}
 		}
 	}
 
 	if err := packages_service.CheckCountQuotaExceeded(ctx, mci.Creator, mci.Owner); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("CheckCountQuotaExceeded: %w", err)
 	}
 
 	if mci.IsTagged {
 		if err = packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged, ""); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("InsertOrUpdateProperty(ManifestTagged): %w", err)
 		}
 	} else {
 		if err = packages_model.DeletePropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestTagged); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("DeletePropertiesByName(ManifestTagged): %w", err)
 		}
 	}
 
 	if err = packages_model.DeletePropertiesByName(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("DeletePropertiesByName(ManifestReference): %w", err)
 	}
 	for _, manifest := range metadata.Manifests {
 		if _, err = packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, container_module.PropertyManifestReference, manifest.Digest); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("InsertProperty(ManifestReference): %w", err)
 		}
 	}
 
