@@ -1016,12 +1016,18 @@ td .commit-summary {
 }
 
 .repository .diff-file-box .code-diff tr.active .lines-num::after {
+  display: none;
+}
+
+.repository .diff-file-box .code-diff tr.active .lines-num:first-of-type::after {
   content: "";
   position: absolute;
   left: 0;
+  top: 0;
+  bottom: 0;
   width: 2px;
-  height: 100%;
   background: var(--color-highlight-fg);
+  display: block;
 }
 
 .repository .diff-file-box .code-diff-split .tag-code .lines-code code.code-inner {
