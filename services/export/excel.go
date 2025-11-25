@@ -4,10 +4,9 @@
 package export
 
 import (
-	"fmt"
-
 	"github.com/xuri/excelize/v2"
 
+	"code.gitea.io/gitea/modules/log"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/services/context"
 )
@@ -16,13 +15,13 @@ func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *exceliz
 	f := excelize.NewFile()
 	sw, err := f.NewStreamWriter("Sheet1")
 	if err != nil {
-		fmt.Println(err)
+		log.Error("cannot open stream writer for Sheet1: %v", err)
 		return f
 	}
 	// print headers
 	cell, err := excelize.CoordinatesToCellName(1, 1)
 	if err != nil {
-		fmt.Println(err)
+		log.Error("cannot get first cell: %v", err)
 		return f
 	}
 	sw.SetRow(cell, []interface{}{
@@ -37,12 +36,11 @@ func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *exceliz
 	// built-in format ID 22 ("m/d/yy h:mm")
 	datetimeStyleID, err := f.NewStyle(&excelize.Style{NumFmt: 22})
 	if err != nil {
-		fmt.Println(err)
+		log.Error("cannot set new style NumFmt: %v", err)
 		return f
 	}
 
 	for i, issue := range issues {
-
 		assignees := ""
 		if err := issue.LoadAssignees(ctx); err == nil {
 			if len(issue.Assignees) > 0 {
