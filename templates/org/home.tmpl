@@ -61,8 +61,7 @@
 				{{if .NumMembers}}
 				<h4 class="ui top attached header flex-left-right">
 					<strong >{{ctx.Locale.Tr "org.members"}}</strong>
-					<a class="tw-text-text-light flex-text-inline"
-						 href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
+					<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
 				</h4>
 				{{/* gap 8px below is specifically chosen to make sure a full line of avatars can exactly fit the segment width */}}
 					<div class="ui attached segment flex-text-block tw-flex-wrap tw-gap-[8px]">
@@ -76,8 +75,7 @@
 				{{if .IsOrganizationMember}}
 				<div class="ui top attached header flex-left-right">
 					<strong>{{ctx.Locale.Tr "org.teams"}}</strong>
-					<a class="tw-text-text-light flex-text-inline"
-						 href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
+					<a class="tw-text-text-light flex-text-inline" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 				</div>
 				<div class="ui attached segment">
 						<div class="flex-relaxed-list">
