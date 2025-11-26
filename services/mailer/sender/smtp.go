@@ -154,9 +154,9 @@ func (s *SMTPSender) Send(_ string, _ []string, msg io.WriterTo) error {
 		}
 
 		if selectedAuth != nil {
-			clientOpts = append(clientOpts, gomail.WithSMTPAuthCustom(selectedAuth))
+			client.SetSMTPAuthCustom(selectedAuth)
 		} else if supportsAutoDiscover(authOptions) {
-			clientOpts = append(clientOpts, gomail.WithSMTPAuth(gomail.SMTPAuthAutoDiscover))
+			client.SetSMTPAuth(gomail.SMTPAuthAutoDiscover)
 		}
 	}
 
