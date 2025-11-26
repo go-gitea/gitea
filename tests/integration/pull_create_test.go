@@ -480,7 +480,7 @@ func TestCreatePullWhenBlocked(t *testing.T) {
 		// Setup
 		// User1 forks repo1 from User2
 		sessionFork := loginUser(t, ForkOwner)
-		testRepoFork(t, sessionFork, RepoOwner, "repo1", ForkOwner, "forkrepo1", "")
+		testRepoFork(t, sessionFork, 0, RepoOwner, "repo1", ForkOwner, "forkrepo1", "")
 
 		// 1. User2 blocks user1
 		// sessionBase := loginUser(t, "user2")

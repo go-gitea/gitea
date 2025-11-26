@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testRepoFork(t *testing.T, session *TestSession, groupID int64, repoName, forkOwnerName, forkRepoName, forkBranch, ownerName string) *httptest.ResponseRecorder {
+func testRepoFork(t *testing.T, session *TestSession, groupID int64, ownerName, repoName, forkOwnerName, forkRepoName, forkBranch string) *httptest.ResponseRecorder {
 	forkOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: forkOwnerName})
 
 	// Step0: check the existence of the to-fork repo
