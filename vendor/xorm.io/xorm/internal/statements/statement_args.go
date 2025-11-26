@@ -77,30 +77,9 @@ func convertArg(arg interface{}, convertFunc func(string) string) string {
 
 const insertSelectPlaceHolder = true
 
+// WriteArg writes an arg
 func (statement *Statement) WriteArg(w *builder.BytesWriter, arg interface{}) error {
 	switch argv := arg.(type) {
-	case bool:
-		if statement.dialect.URI().DBType == schemas.MSSQL {
-			if argv {
-				if _, err := w.WriteString("1"); err != nil {
-					return err
-				}
-			} else {
-				if _, err := w.WriteString("0"); err != nil {
-					return err
-				}
-			}
-		} else {
-			if argv {
-				if _, err := w.WriteString("true"); err != nil {
-					return err
-				}
-			} else {
-				if _, err := w.WriteString("false"); err != nil {
-					return err
-				}
-			}
-		}
 	case *builder.Builder:
 		if _, err := w.WriteString("("); err != nil {
 			return err
@@ -116,7 +95,15 @@ func (statement *Statement) WriteArg(w *builder.BytesWriter, arg interface{}) er
 			if err := w.WriteByte('?'); err != nil {
 				return err
 			}
-			w.Append(arg)
+			if v, ok := arg.(bool); ok && statement.dialect.URI().DBType == schemas.MSSQL {
+				if v {
+					w.Append(1)
+				} else {
+					w.Append(0)
+				}
+			} else {
+				w.Append(arg)
+			}
 		} else {
 			var convertFunc = convertStringSingleQuote
 			if statement.dialect.URI().DBType == schemas.MYSQL {
@@ -130,6 +117,7 @@ func (statement *Statement) WriteArg(w *builder.BytesWriter, arg interface{}) er
 	return nil
 }
 
+// WriteArgs writes args
 func (statement *Statement) WriteArgs(w *builder.BytesWriter, args []interface{}) error {
 	for i, arg := range args {
 		if err := statement.WriteArg(w, arg); err != nil {

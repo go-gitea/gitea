@@ -285,7 +285,7 @@ func (c *Conn) begin(ctx context.Context, tdsIsolation isoLevel) (tx driver.Tx, 
 	}
 	tx, err = c.processBeginResponse(ctx)
 	if err != nil {
-		return nil, c.checkBadConn(err)
+		return nil, err
 	}
 	return
 }

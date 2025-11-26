@@ -8,6 +8,7 @@ import (
 	"fmt"
 )
 
+// Driver represents a database driver
 type Driver interface {
 	Parse(string, string) (*URI, error)
 }
@@ -16,6 +17,7 @@ var (
 	drivers = map[string]Driver{}
 )
 
+// RegisterDriver register a driver
 func RegisterDriver(driverName string, driver Driver) {
 	if driver == nil {
 		panic("core: Register driver is nil")
@@ -26,10 +28,12 @@ func RegisterDriver(driverName string, driver Driver) {
 	drivers[driverName] = driver
 }
 
+// QueryDriver query a driver with name
 func QueryDriver(driverName string) Driver {
 	return drivers[driverName]
 }
 
+// RegisteredDriverSize returned all drivers's length
 func RegisteredDriverSize() int {
 	return len(drivers)
 }
@@ -38,7 +42,7 @@ func RegisteredDriverSize() int {
 func OpenDialect(driverName, connstr string) (Dialect, error) {
 	driver := QueryDriver(driverName)
 	if driver == nil {
-		return nil, fmt.Errorf("Unsupported driver name: %v", driverName)
+		return nil, fmt.Errorf("unsupported driver name: %v", driverName)
 	}
 
 	uri, err := driver.Parse(driverName, connstr)
@@ -48,7 +52,7 @@ func OpenDialect(driverName, connstr string) (Dialect, error) {
 
 	dialect := QueryDialect(uri.DBType)
 	if dialect == nil {
-		return nil, fmt.Errorf("Unsupported dialect type: %v", uri.DBType)
+		return nil, fmt.Errorf("unsupported dialect type: %v", uri.DBType)
 	}
 
 	dialect.Init(uri)

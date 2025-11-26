@@ -152,7 +152,9 @@ func (ci *copyin) resploop() {
 		case 'C':
 			// complete
 		case 'N':
-			// NoticeResponse
+			if n := ci.cn.noticeHandler; n != nil {
+				n(parseError(&r))
+			}
 		case 'Z':
 			ci.cn.processReadyForQuery(&r)
 			ci.done <- true
@@ -229,7 +231,7 @@ func (ci *copyin) Exec(v []driver.Value) (r driver.Result, err error) {
 	}
 
 	if len(v) == 0 {
-		return nil, ci.Close()
+		return driver.RowsAffected(0), ci.Close()
 	}
 
 	numValues := len(v)

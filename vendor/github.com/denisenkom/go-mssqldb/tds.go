@@ -838,6 +838,12 @@ func connect(ctx context.Context, c *Connector, log optionalLogger, p connectPar
 		defer cancel()
 	}
 	// if instance is specified use instance resolution service
+	if p.instance != "" && p.port != 0 {
+		// both instance name and port specified
+		// when port is specified instance name is not used
+		// you should not provide instance name when you provide port
+		log.Println("WARN: You specified both instance name and port in the connection string, port will be used and instance name will be ignored");
+	}
 	if p.instance != "" && p.port == 0 {
 		p.instance = strings.ToUpper(p.instance)
 		d := c.getDialer(&p)

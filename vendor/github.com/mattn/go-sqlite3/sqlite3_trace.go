@@ -1,4 +1,4 @@
-// Copyright (C) 2016 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
+// Copyright (C) 2019 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
 //
 // Use of this source code is governed by an MIT-style
 // license that can be found in the LICENSE file.
@@ -89,6 +89,7 @@ func fillExpandedSQL(info *TraceInfo, db *C.sqlite3, pStmt unsafe.Pointer) {
 	}
 
 	expSQLiteCStr := C.sqlite3_expanded_sql((*C.sqlite3_stmt)(pStmt))
+	defer C.sqlite3_free(unsafe.Pointer(expSQLiteCStr))
 	if expSQLiteCStr == nil {
 		fillDBError(&info.DBError, db)
 		return
@@ -214,7 +215,6 @@ func addTraceMapping(connHandle uintptr, traceConf TraceConfig) {
 			traceConf, connHandle, oldEntryCopy.config))
 	}
 	traceMap[connHandle] = traceMapEntry{config: traceConf}
-	fmt.Printf("Added trace config %v: handle 0x%x.\n", traceConf, connHandle)
 }
 
 func lookupTraceMapping(connHandle uintptr) (TraceConfig, bool) {
@@ -233,7 +233,6 @@ func popTraceMapping(connHandle uintptr) (TraceConfig, bool) {
 	entryCopy, found := traceMap[connHandle]
 	if found {
 		delete(traceMap, connHandle)
-		fmt.Printf("Pop handle 0x%x: deleted trace config %v.\n", connHandle, entryCopy.config)
 	}
 	return entryCopy.config, found
 }

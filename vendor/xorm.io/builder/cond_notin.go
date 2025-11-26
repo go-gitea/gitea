@@ -20,7 +20,7 @@ func NotIn(col string, values ...interface{}) Cond {
 }
 
 func (condNotIn condNotIn) handleBlank(w Writer) error {
-	_, err := fmt.Fprint(w, "0=0")
+	_, err := fmt.Fprintf(w, "%s NOT IN ()", condNotIn.col)
 	return err
 }
 

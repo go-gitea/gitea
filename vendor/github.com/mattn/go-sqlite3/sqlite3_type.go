@@ -1,3 +1,8 @@
+// Copyright (C) 2019 Yasuhiro Matsumoto <mattn.jp@gmail.com>.
+//
+// Use of this source code is governed by an MIT-style
+// license that can be found in the LICENSE file.
+
 package sqlite3
 
 /*
@@ -26,12 +31,12 @@ func (rc *SQLiteRows) ColumnTypeLength(index int) (length int64, ok bool) {
 func (rc *SQLiteRows) ColumnTypePrecisionScale(index int) (precision, scale int64, ok bool) {
 	return 0, 0, false
 }
-*/
 
 // ColumnTypeNullable implement RowsColumnTypeNullable.
 func (rc *SQLiteRows) ColumnTypeNullable(i int) (nullable, ok bool) {
-	return true, true
+	return false, false
 }
+*/
 
 // ColumnTypeScanType implement RowsColumnTypeScanType.
 func (rc *SQLiteRows) ColumnTypeScanType(i int) reflect.Type {

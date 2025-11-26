@@ -20,6 +20,21 @@ var (
 	uintType   = reflect.TypeOf(uint64(0))
 )
 
+// ErrIDConditionWithNoTable represents an error there is no reference table with an ID condition
+type ErrIDConditionWithNoTable struct {
+	ID schemas.PK
+}
+
+func (err ErrIDConditionWithNoTable) Error() string {
+	return fmt.Sprintf("ID condition %#v need reference table", err.ID)
+}
+
+// IsIDConditionWithNoTableErr return true if the err is ErrIDConditionWithNoTable
+func IsIDConditionWithNoTableErr(err error) bool {
+	_, ok := err.(ErrIDConditionWithNoTable)
+	return ok
+}
+
 // ID generate "where id = ? " statement or for composite key "where key1 = ? and key2 = ?"
 func (statement *Statement) ID(id interface{}) *Statement {
 	switch t := id.(type) {
@@ -58,13 +73,17 @@ func (statement *Statement) ID(id interface{}) *Statement {
 	return statement
 }
 
+// ProcessIDParam handles the process of id condition
 func (statement *Statement) ProcessIDParam() error {
-	if statement.idParam == nil || statement.RefTable == nil {
+	if statement.idParam == nil {
 		return nil
 	}
 
+	if statement.RefTable == nil {
+		return ErrIDConditionWithNoTable{statement.idParam}
+	}
+
 	if len(statement.RefTable.PrimaryKeys) != len(statement.idParam) {
-		fmt.Println("=====", statement.RefTable.PrimaryKeys, statement.idParam)
 		return fmt.Errorf("ID condition is error, expect %d primarykeys, there are %d",
 			len(statement.RefTable.PrimaryKeys),
 			len(statement.idParam),

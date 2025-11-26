@@ -44,6 +44,7 @@ type Dialect interface {
 	URI() *URI
 	SQLType(*schemas.Column) string
 	FormatBytes(b []byte) string
+	Version(ctx context.Context, queryer core.Queryer) (*schemas.Version, error)
 
 	IsReserved(string) bool
 	Quoter() schemas.Quoter
@@ -79,77 +80,34 @@ type Base struct {
 	quoter  schemas.Quoter
 }
 
-func (b *Base) Quoter() schemas.Quoter {
-	return b.quoter
+// Quoter returns the current database Quoter
+func (db *Base) Quoter() schemas.Quoter {
+	return db.quoter
 }
 
-func (b *Base) Init(dialect Dialect, uri *URI) error {
-	b.dialect, b.uri = dialect, uri
+// Init initialize the dialect
+func (db *Base) Init(dialect Dialect, uri *URI) error {
+	db.dialect, db.uri = dialect, uri
 	return nil
 }
 
-func (b *Base) URI() *URI {
-	return b.uri
+// URI returns the uri of database
+func (db *Base) URI() *URI {
+	return db.uri
 }
 
-func (b *Base) DBType() schemas.DBType {
-	return b.uri.DBType
-}
-
-// String generate column description string according dialect
-func (b *Base) String(col *schemas.Column) string {
-	sql := b.dialect.Quoter().Quote(col.Name) + " "
-
-	sql += b.dialect.SQLType(col) + " "
-
-	if col.IsPrimaryKey {
-		sql += "PRIMARY KEY "
-		if col.IsAutoIncrement {
-			sql += b.dialect.AutoIncrStr() + " "
-		}
-	}
-
-	if col.Default != "" {
-		sql += "DEFAULT " + col.Default + " "
-	}
-
-	if col.Nullable {
-		sql += "NULL "
-	} else {
-		sql += "NOT NULL "
-	}
-
-	return sql
-}
-
-// StringNoPk generate column description string according dialect without primary keys
-func (b *Base) StringNoPk(col *schemas.Column) string {
-	sql := b.dialect.Quoter().Quote(col.Name) + " "
-
-	sql += b.dialect.SQLType(col) + " "
-
-	if col.Default != "" {
-		sql += "DEFAULT " + col.Default + " "
-	}
-
-	if col.Nullable {
-		sql += "NULL "
-	} else {
-		sql += "NOT NULL "
-	}
-
-	return sql
-}
-
-func (b *Base) FormatBytes(bs []byte) string {
+// FormatBytes formats bytes
+func (db *Base) FormatBytes(bs []byte) string {
 	return fmt.Sprintf("0x%x", bs)
 }
 
+// DropTableSQL returns drop table SQL
 func (db *Base) DropTableSQL(tableName string) (string, bool) {
 	quote := db.dialect.Quoter().Quote
 	return fmt.Sprintf("DROP TABLE IF EXISTS %s", quote(tableName)), true
 }
 
+// HasRecords returns true if the SQL has records returned
 func (db *Base) HasRecords(queryer core.Queryer, ctx context.Context, query string, args ...interface{}) (bool, error) {
 	rows, err := queryer.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -163,6 +121,7 @@ func (db *Base) HasRecords(queryer core.Queryer, ctx context.Context, query stri
 	return false, nil
 }
 
+// IsColumnExist returns true if the column of the table exist
 func (db *Base) IsColumnExist(queryer core.Queryer, ctx context.Context, tableName, colName string) (bool, error) {
 	quote := db.dialect.Quoter().Quote
 	query := fmt.Sprintf(
@@ -177,11 +136,13 @@ func (db *Base) IsColumnExist(queryer core.Queryer, ctx context.Context, tableNa
 	return db.HasRecords(queryer, ctx, query, db.uri.DBName, tableName, colName)
 }
 
+// AddColumnSQL returns a SQL to add a column
 func (db *Base) AddColumnSQL(tableName string, col *schemas.Column) string {
-	return fmt.Sprintf("ALTER TABLE %v ADD %v", db.dialect.Quoter().Quote(tableName),
-		db.String(col))
+	s, _ := ColumnString(db.dialect, col, true)
+	return fmt.Sprintf("ALTER TABLE %v ADD %v", db.dialect.Quoter().Quote(tableName), s)
 }
 
+// CreateIndexSQL returns a SQL to create index
 func (db *Base) CreateIndexSQL(tableName string, index *schemas.Index) string {
 	quoter := db.dialect.Quoter()
 	var unique string
@@ -195,6 +156,7 @@ func (db *Base) CreateIndexSQL(tableName string, index *schemas.Index) string {
 		quoter.Join(index.Cols, ","))
 }
 
+// DropIndexSQL returns a SQL to drop index
 func (db *Base) DropIndexSQL(tableName string, index *schemas.Index) string {
 	quote := db.dialect.Quoter().Quote
 	var name string
@@ -206,15 +168,19 @@ func (db *Base) DropIndexSQL(tableName string, index *schemas.Index) string {
 	return fmt.Sprintf("DROP INDEX %v ON %s", quote(name), quote(tableName))
 }
 
+// ModifyColumnSQL returns a SQL to modify SQL
 func (db *Base) ModifyColumnSQL(tableName string, col *schemas.Column) string {
-	return fmt.Sprintf("alter table %s MODIFY COLUMN %s", tableName, db.StringNoPk(col))
+	s, _ := ColumnString(db.dialect, col, false)
+	return fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN %s", tableName, s)
 }
 
-func (b *Base) ForUpdateSQL(query string) string {
+// ForUpdateSQL returns for updateSQL
+func (db *Base) ForUpdateSQL(query string) string {
 	return query + " FOR UPDATE"
 }
 
-func (b *Base) SetParams(params map[string]string) {
+// SetParams set params
+func (db *Base) SetParams(params map[string]string) {
 }
 
 var (
@@ -250,8 +216,9 @@ func regDrvsNDialects() bool {
 		"postgres": {"postgres", func() Driver { return &pqDriver{} }, func() Dialect { return &postgres{} }},
 		"pgx":      {"postgres", func() Driver { return &pqDriverPgx{} }, func() Dialect { return &postgres{} }},
 		"sqlite3":  {"sqlite3", func() Driver { return &sqlite3Driver{} }, func() Dialect { return &sqlite3{} }},
+		"sqlite":   {"sqlite3", func() Driver { return &sqlite3Driver{} }, func() Dialect { return &sqlite3{} }},
 		"oci8":     {"oracle", func() Driver { return &oci8Driver{} }, func() Dialect { return &oracle{} }},
-		"goracle":  {"oracle", func() Driver { return &goracleDriver{} }, func() Dialect { return &oracle{} }},
+		"godror":   {"oracle", func() Driver { return &godrorDriver{} }, func() Dialect { return &oracle{} }},
 	}
 
 	for driverName, v := range providedDrvsNDialects {
@@ -265,4 +232,64 @@ func regDrvsNDialects() bool {
 
 func init() {
 	regDrvsNDialects()
+}
+
+// ColumnString generate column description string according dialect
+func ColumnString(dialect Dialect, col *schemas.Column, includePrimaryKey bool) (string, error) {
+	bd := strings.Builder{}
+
+	if err := dialect.Quoter().QuoteTo(&bd, col.Name); err != nil {
+		return "", err
+	}
+
+	if err := bd.WriteByte(' '); err != nil {
+		return "", err
+	}
+
+	if _, err := bd.WriteString(dialect.SQLType(col)); err != nil {
+		return "", err
+	}
+
+	if err := bd.WriteByte(' '); err != nil {
+		return "", err
+	}
+
+	if includePrimaryKey && col.IsPrimaryKey {
+		if _, err := bd.WriteString("PRIMARY KEY "); err != nil {
+			return "", err
+		}
+
+		if col.IsAutoIncrement {
+			if _, err := bd.WriteString(dialect.AutoIncrStr()); err != nil {
+				return "", err
+			}
+			if err := bd.WriteByte(' '); err != nil {
+				return "", err
+			}
+		}
+	}
+
+	if col.Default != "" {
+		if _, err := bd.WriteString("DEFAULT "); err != nil {
+			return "", err
+		}
+		if _, err := bd.WriteString(col.Default); err != nil {
+			return "", err
+		}
+		if err := bd.WriteByte(' '); err != nil {
+			return "", err
+		}
+	}
+
+	if col.Nullable {
+		if _, err := bd.WriteString("NULL "); err != nil {
+			return "", err
+		}
+	} else {
+		if _, err := bd.WriteString("NOT NULL "); err != nil {
+			return "", err
+		}
+	}
+
+	return bd.String(), nil
 }

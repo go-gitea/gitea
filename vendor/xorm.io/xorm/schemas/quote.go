@@ -16,10 +16,10 @@ type Quoter struct {
 }
 
 var (
-	// AlwaysFalseReverse always think it's not a reverse word
+	// AlwaysNoReserve always think it's not a reverse word
 	AlwaysNoReserve = func(string) bool { return false }
 
-	// AlwaysReverse always reverse the word
+	// AlwaysReserve always reverse the word
 	AlwaysReserve = func(string) bool { return true }
 
 	// CommanQuoteMark represnets the common quote mark
@@ -29,10 +29,12 @@ var (
 	CommonQuoter = Quoter{CommanQuoteMark, CommanQuoteMark, AlwaysReserve}
 )
 
+// IsEmpty return true if no prefix and suffix
 func (q Quoter) IsEmpty() bool {
 	return q.Prefix == 0 && q.Suffix == 0
 }
 
+// Quote quote a string
 func (q Quoter) Quote(s string) string {
 	var buf strings.Builder
 	q.QuoteTo(&buf, s)
@@ -59,12 +61,14 @@ func (q Quoter) Trim(s string) string {
 	return buf.String()
 }
 
+// Join joins a slice with quoters
 func (q Quoter) Join(a []string, sep string) string {
 	var b strings.Builder
 	q.JoinWrite(&b, a, sep)
 	return b.String()
 }
 
+// JoinWrite writes quoted content to a builder
 func (q Quoter) JoinWrite(b *strings.Builder, a []string, sep string) error {
 	if len(a) == 0 {
 		return nil
@@ -82,9 +86,7 @@ func (q Quoter) JoinWrite(b *strings.Builder, a []string, sep string) error {
 				return err
 			}
 		}
-		if s != "*" {
-			q.QuoteTo(b, strings.TrimSpace(s))
-		}
+		q.QuoteTo(b, strings.TrimSpace(s))
 	}
 	return nil
 }
@@ -143,7 +145,7 @@ func (q Quoter) quoteWordTo(buf *strings.Builder, word string) error {
 	}
 
 	isReserved := q.IsReserved(realWord)
-	if isReserved {
+	if isReserved && realWord != "*" {
 		if err := buf.WriteByte(q.Prefix); err != nil {
 			return err
 		}
@@ -151,7 +153,7 @@ func (q Quoter) quoteWordTo(buf *strings.Builder, word string) error {
 	if _, err := buf.WriteString(realWord); err != nil {
 		return err
 	}
-	if isReserved {
+	if isReserved && realWord != "*" {
 		return buf.WriteByte(q.Suffix)
 	}
 

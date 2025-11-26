@@ -25,11 +25,10 @@ func strconvErr(err error) error {
 func cloneBytes(b []byte) []byte {
 	if b == nil {
 		return nil
-	} else {
-		c := make([]byte, len(b))
-		copy(c, b)
-		return c
 	}
+	c := make([]byte, len(b))
+	copy(c, b)
+	return c
 }
 
 func asString(src interface{}) string {
@@ -176,7 +175,10 @@ func convertAssign(dest, src interface{}) error {
 		return nil
 	}
 
-	dpv := reflect.ValueOf(dest)
+	return convertAssignV(reflect.ValueOf(dest), src)
+}
+
+func convertAssignV(dpv reflect.Value, src interface{}) error {
 	if dpv.Kind() != reflect.Ptr {
 		return errors.New("destination not a pointer")
 	}
@@ -184,9 +186,7 @@ func convertAssign(dest, src interface{}) error {
 		return errNilPtr
 	}
 
-	if !sv.IsValid() {
-		sv = reflect.ValueOf(src)
-	}
+	var sv = reflect.ValueOf(src)
 
 	dv := reflect.Indirect(dpv)
 	if sv.IsValid() && sv.Type().AssignableTo(dv.Type()) {
@@ -245,7 +245,7 @@ func convertAssign(dest, src interface{}) error {
 		return nil
 	}
 
-	return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T", src, dest)
+	return fmt.Errorf("unsupported Scan, storing driver.Value type %T into type %T", src, dpv.Interface())
 }
 
 func asKind(vv reflect.Value, tp reflect.Type) (interface{}, error) {
@@ -283,56 +283,6 @@ func asKind(vv reflect.Value, tp reflect.Type) (interface{}, error) {
 
 	}
 	return nil, fmt.Errorf("unsupported primary key type: %v, %v", tp, vv)
-}
-
-func convertFloat(v interface{}) (float64, error) {
-	switch v.(type) {
-	case float32:
-		return float64(v.(float32)), nil
-	case float64:
-		return v.(float64), nil
-	case string:
-		i, err := strconv.ParseFloat(v.(string), 64)
-		if err != nil {
-			return 0, err
-		}
-		return i, nil
-	case []byte:
-		i, err := strconv.ParseFloat(string(v.([]byte)), 64)
-		if err != nil {
-			return 0, err
-		}
-		return i, nil
-	}
-	return 0, fmt.Errorf("unsupported type: %v", v)
-}
-
-func convertInt(v interface{}) (int64, error) {
-	switch v.(type) {
-	case int:
-		return int64(v.(int)), nil
-	case int8:
-		return int64(v.(int8)), nil
-	case int16:
-		return int64(v.(int16)), nil
-	case int32:
-		return int64(v.(int32)), nil
-	case int64:
-		return v.(int64), nil
-	case []byte:
-		i, err := strconv.ParseInt(string(v.([]byte)), 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		return i, nil
-	case string:
-		i, err := strconv.ParseInt(v.(string), 10, 64)
-		if err != nil {
-			return 0, err
-		}
-		return i, nil
-	}
-	return 0, fmt.Errorf("unsupported type: %v", v)
 }
 
 func asBool(bs []byte) (bool, error) {
@@ -425,49 +375,4 @@ func str2PK(s string, tp reflect.Type) (interface{}, error) {
 		return nil, err
 	}
 	return v.Interface(), nil
-}
-
-func int64ToIntValue(id int64, tp reflect.Type) reflect.Value {
-	var v interface{}
-	kind := tp.Kind()
-
-	if kind == reflect.Ptr {
-		kind = tp.Elem().Kind()
-	}
-
-	switch kind {
-	case reflect.Int16:
-		temp := int16(id)
-		v = &temp
-	case reflect.Int32:
-		temp := int32(id)
-		v = &temp
-	case reflect.Int:
-		temp := int(id)
-		v = &temp
-	case reflect.Int64:
-		temp := id
-		v = &temp
-	case reflect.Uint16:
-		temp := uint16(id)
-		v = &temp
-	case reflect.Uint32:
-		temp := uint32(id)
-		v = &temp
-	case reflect.Uint64:
-		temp := uint64(id)
-		v = &temp
-	case reflect.Uint:
-		temp := uint(id)
-		v = &temp
-	}
-
-	if tp.Kind() == reflect.Ptr {
-		return reflect.ValueOf(v).Convert(tp)
-	}
-	return reflect.ValueOf(v).Elem().Convert(tp)
-}
-
-func int64ToInt(id int64, tp reflect.Type) interface{} {
-	return int64ToIntValue(id, tp).Interface()
 }

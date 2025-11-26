@@ -12,6 +12,7 @@ import (
 	"xorm.io/xorm/schemas"
 )
 
+// ConvertIDSQL converts SQL with id
 func (statement *Statement) ConvertIDSQL(sqlStr string) string {
 	if statement.RefTable != nil {
 		cols := statement.RefTable.PKColumns()
@@ -37,6 +38,7 @@ func (statement *Statement) ConvertIDSQL(sqlStr string) string {
 	return ""
 }
 
+// ConvertUpdateSQL converts update SQL
 func (statement *Statement) ConvertUpdateSQL(sqlStr string) (string, string) {
 	if statement.RefTable == nil || len(statement.RefTable.PrimaryKeys) != 1 {
 		return "", ""

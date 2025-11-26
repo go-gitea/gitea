@@ -499,7 +499,11 @@ var (
 		"ZONE":                      true,
 	}
 
-	oracleQuoter = schemas.Quoter{'[', ']', schemas.AlwaysReserve}
+	oracleQuoter = schemas.Quoter{
+		Prefix:     '"',
+		Suffix:     '"',
+		IsReserved: schemas.AlwaysReserve,
+	}
 )
 
 type oracle struct {
@@ -509,6 +513,26 @@ type oracle struct {
 func (db *oracle) Init(uri *URI) error {
 	db.quoter = oracleQuoter
 	return db.Base.Init(db, uri)
+}
+
+func (db *oracle) Version(ctx context.Context, queryer core.Queryer) (*schemas.Version, error) {
+	rows, err := queryer.QueryContext(ctx, "select * from v$version where banner like 'Oracle%'")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var version string
+	if !rows.Next() {
+		return nil, errors.New("unknow version")
+	}
+
+	if err := rows.Scan(&version); err != nil {
+		return nil, err
+	}
+	return &schemas.Version{
+		Number: version,
+	}, nil
 }
 
 func (db *oracle) SQLType(c *schemas.Column) string {
@@ -572,7 +596,8 @@ func (db *oracle) CreateTableSQL(table *schemas.Table, tableName string) ([]stri
 		/*if col.IsPrimaryKey && len(pkList) == 1 {
 			sql += col.String(b.dialect)
 		} else {*/
-		sql += db.StringNoPk(col)
+		s, _ := ColumnString(db, col, false)
+		sql += s
 		// }
 		sql = strings.TrimSpace(sql)
 		sql += ", "
@@ -797,10 +822,10 @@ func (db *oracle) Filters() []Filter {
 	}
 }
 
-type goracleDriver struct {
+type godrorDriver struct {
 }
 
-func (cfg *goracleDriver) Parse(driverName, dataSourceName string) (*URI, error) {
+func (cfg *godrorDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 	db := &URI{DBType: schemas.ORACLE}
 	dsnPattern := regexp.MustCompile(
 		`^(?:(?P<user>.*?)(?::(?P<passwd>.*))?@)?` + // [user[:password]@]
