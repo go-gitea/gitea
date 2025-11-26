@@ -390,7 +390,7 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 func (repo *Repository) APIURL() string {
 	var groupSegment string
 	if repo.GroupID > 0 {
-		groupSegment = fmt.Sprintf("group/%d", repo.GroupID)
+		groupSegment = fmt.Sprintf("group/%d/", repo.GroupID)
 	}
 	return setting.AppURL + "api/v1/repos/" + url.PathEscape(repo.OwnerName) + "/" + groupSegment + url.PathEscape(repo.Name)
 }
