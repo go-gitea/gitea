@@ -361,7 +361,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		if err != nil {
 			return fmt.Errorf("GetProtectedTags: %w", err)
 		}
-		isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, protectedTags, rel.TagName, rel.PublisherID)
+		isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, protectedTags, rel.TagName, doer.ID)
 		if err != nil {
 			return err
 		}
