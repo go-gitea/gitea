@@ -1,25 +1,25 @@
 {{$item := (call (index $.root "AsGroupItem") .item)}}
 {{$parent := $item.Parent}}
 <li class="expandable-menu-item item tw-px-0" {{if $item.IsGroup}} data-is-group="true"{{end}}
-	data-sort-id="{{if $item.IsGroup}}group{{else}}repo{{end}}-{{$item.ID}}-{{$item.Sort}}"
+		data-sort-id="{{if $item.IsGroup}}group{{else}}repo{{end}}-{{$item.ID}}-{{$item.Sort}}"
 		data-id="{{$item.ID}}">
 	<label class="tw-gap-2{{if $item.HasChildren $.root.Doer}} has-children{{end}}">
 		{{$active := (and $item.IsGroup (call $.root.GroupIsCurrent $item.ID))}}
 		{{$childContains := (call $.root.GroupHasChild $item)}}
-		<input type="checkbox"
-					 class="toggle tw-h-0 tw-w-0 tw-overflow-hidden tw-opacity-0 tw-absolute"{{if or $active $childContains}} checked{{end}}>
+		<input type="checkbox" class="toggle tw-h-0 tw-w-0 tw-overflow-hidden tw-opacity-0 tw-absolute"{{if or $active $childContains}} checked{{end}}>
 		{{svg "octicon-chevron-right" 16 "collapse-icon"}}
 		<a href="{{$item.Link}}" class="{{if $active}}active tw-font-bold{{end}}">
 			{{$item.Title}}
 		</a>
 	</label>
-		<div class="menu-expandable-content">
-			<div class="menu-expandable-content-inner">
-				<ul class="tw-list-none tw-ps-5"{{if .root.IsOrganizationMember}} data-url="{{ctx.RootData.Org.HomeLink}}/groups"{{end}}>
-					{{- range $i, $childItem := $item.Children $.root.Doer -}}
-						{{- template "group/sidebar/sidebar_item" dict "item" $childItem "root" $.root -}}
-					{{- end -}}
-				</ul>
-			</div>
+	<div class="menu-expandable-content">
+		<div class="menu-expandable-content-inner">
+			<ul class="tw-list-none tw-ps-5"{{if .root.IsOrganizationMember}}
+					data-url="{{ctx.RootData.Org.HomeLink}}/groups"{{end}}>
+				{{- range $i, $childItem := $item.Children $.root.Doer -}}
+				{{- template "group/sidebar/sidebar_item" dict "item" $childItem "root" $.root -}}
+				{{- end -}}
+			</ul>
 		</div>
+	</div>
 </li>

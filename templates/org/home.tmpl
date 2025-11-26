@@ -6,8 +6,7 @@
 		<div class="ui mobile reversed stackable grid">
 			<div class="ui {{if .ShowMemberAndTeamTab}}eleven wide{{end}} column">
 				{{if .ProfileReadmeContent}}
-				<div id="readme_profile" class="render-content markup"
-						 data-profile-view-as-member="{{.IsViewingOrgAsMember}}">{{.ProfileReadmeContent}}</div>
+				<div id="readme_profile" class="render-content markup" data-profile-view-as-member="{{.IsViewingOrgAsMember}}">{{.ProfileReadmeContent}}</div>
 				{{end}}
 				{{template "shared/repo/search" .}}
 				{{template "shared/repo/list" .}}
@@ -18,11 +17,9 @@
 			<div class="ui five wide column">
 				{{if .CanCreateOrgRepo}}
 				<div class="tw-flex tw-flex-wrap tw-justify-center tw-gap-x-1 tw-gap-y-2 tw-mb-4">
-					<a class="ui primary button tw-grow"
-						 href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
+					<a class="ui primary button tw-grow" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{ctx.Locale.Tr "new_repo"}}</a>
 					{{if not .DisableNewPullMirrors}}
-					<a class="ui primary button tw-grow"
-						 href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
+					<a class="ui primary button tw-grow" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{ctx.Locale.Tr "new_migrate"}}</a>
 					{{end}}
 				</div>
 				<div class="divider"></div>
@@ -56,15 +53,13 @@
 				{{if .NumMembers}}
 				<h4 class="ui top attached header tw-flex">
 					<strong class="tw-flex-1">{{ctx.Locale.Tr "org.members"}}</strong>
-					<a class="text grey tw-flex tw-items-center"
-						 href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
+					<a class="text grey tw-flex tw-items-center" href="{{.OrgLink}}/members"><span>{{.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
 				</h4>
 				<div class="ui attached segment members">
 					{{$isMember := .IsOrganizationMember}}
 					{{range .Members}}
 					{{if or $isMember (call $.IsPublicMember .ID)}}
-					<a href="{{.HomeLink}}"
-						 title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
+					<a href="{{.HomeLink}}" title="{{.Name}}{{if .FullName}} ({{.FullName}}){{end}}">{{ctx.AvatarUtils.Avatar . 48}}</a>
 					{{end}}
 					{{end}}
 				</div>
@@ -72,19 +67,16 @@
 				{{if .IsOrganizationMember}}
 				<div class="ui top attached header tw-flex">
 					<strong class="tw-flex-1">{{ctx.Locale.Tr "org.teams"}}</strong>
-					<a class="text grey tw-flex tw-items-center"
-						 href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
+					<a class="text grey tw-flex tw-items-center" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 				</div>
 				<div class="ui attached table segment teams">
 					{{range .Teams}}
 					<div class="item">
 						<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong class="team-name">{{.Name}}</strong></a>
 						<p class="text grey">
-							<a class="muted"
-								 href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{ctx.Locale.Tr "org.lower_members"}}
+							<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{ctx.Locale.Tr "org.lower_members"}}
 							</a> ·
-							<a class="muted"
-								 href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{ctx.Locale.Tr "org.lower_repositories"}}
+							<a class="muted" href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{ctx.Locale.Tr "org.lower_repositories"}}
 							</a>
 						</p>
 					</div>
@@ -96,7 +88,7 @@
 				</div>
 				{{end}}
 				{{end}}
-			{{end}}
+				{{end}}
 			</div>
 		</div>
 	</div>
