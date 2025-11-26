@@ -23,7 +23,7 @@ var (
 	}
 
 	GravatarSource        string
-	DisableGravatar       bool // Depreciated: migrated to database
+	EnableGravatar        bool // Depreciated: migrated to database
 	EnableFederatedAvatar bool // Depreciated: migrated to database
 
 	RepoAvatar = struct {
@@ -65,9 +65,9 @@ func loadAvatarsFrom(rootCfg ConfigProvider) error {
 		GravatarSource = source
 	}
 
-	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool(GetDefaultDisableGravatar())
+	EnableGravatar = !sec.Key("DISABLE_GRAVATAR").MustBool(GetDefaultDisableGravatar())
 	deprecatedSettingDB(rootCfg, "", "DISABLE_GRAVATAR")
-	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(GetDefaultEnableFederatedAvatar(DisableGravatar))
+	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(GetDefaultEnableFederatedAvatar(EnableGravatar))
 	deprecatedSettingDB(rootCfg, "", "ENABLE_FEDERATED_AVATAR")
 
 	return nil
@@ -77,14 +77,12 @@ func GetDefaultDisableGravatar() bool {
 	return OfflineMode
 }
 
-func GetDefaultEnableFederatedAvatar(disableGravatar bool) bool {
+func GetDefaultEnableFederatedAvatar(enableGravatar bool) bool {
 	v := !InstallLock
-	if OfflineMode {
+	if OfflineMode || !enableGravatar {
 		v = false
 	}
-	if disableGravatar {
-		v = false
-	}
+
 	return v
 }
 
