@@ -80,3 +80,64 @@ func DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx context.Context, issueIDs,
 	_, err := db.GetEngine(ctx).In("project_id", projectIDs).In("issue_id", issueIDs).Delete(&ProjectIssue{})
 	return err
 }
+
+// AddIssueToColumn adds an issue to a project column
+func AddIssueToColumn(ctx context.Context, issueID int64, column *Column) error {
+	// Check if the issue is already in this project
+	existingPI := &ProjectIssue{}
+	has, err := db.GetEngine(ctx).Where("project_id=? AND issue_id=?", column.ProjectID, issueID).Get(existingPI)
+	if err != nil {
+		return err
+	}
+
+	// If already exists, just update the column
+	if has {
+		if existingPI.ProjectColumnID == column.ID {
+			// Already in this column, nothing to do
+			return nil
+		}
+		// Move to new column - need to update sorting
+		res := struct {
+			MaxSorting int64
+			IssueCount int64
+		}{}
+		if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").
+			Table("project_issue").
+			Where("project_id=?", column.ProjectID).
+			And("project_board_id=?", column.ID).
+			Get(&res); err != nil {
+			return err
+		}
+
+		nextSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
+		existingPI.ProjectColumnID = column.ID
+		existingPI.Sorting = nextSorting
+		_, err = db.GetEngine(ctx).ID(existingPI.ID).Cols("project_board_id", "sorting").Update(existingPI)
+		return err
+	}
+
+	// Calculate next sorting value
+	res := struct {
+		MaxSorting int64
+		IssueCount int64
+	}{}
+	if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").
+		Table("project_issue").
+		Where("project_id=?", column.ProjectID).
+		And("project_board_id=?", column.ID).
+		Get(&res); err != nil {
+		return err
+	}
+
+	nextSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
+
+	// Create new ProjectIssue
+	pi := &ProjectIssue{
+		IssueID:         issueID,
+		ProjectID:       column.ProjectID,
+		ProjectColumnID: column.ID,
+		Sorting:         nextSorting,
+	}
+
+	return db.Insert(ctx, pi)
+}
