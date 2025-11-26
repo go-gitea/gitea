@@ -59,9 +59,9 @@ func TestLimitedOrg(t *testing.T) {
 	// not logged in user
 	req := NewRequest(t, "GET", "/limited_org")
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/limited_org/231/public_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/group/231/public_repo_on_limited_org")
 	MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequest(t, "GET", "/limited_org/221/private_repo_on_limited_org")
+	req = NewRequest(t, "GET", "/limited_org/group/221/private_repo_on_limited_org")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// login non-org member user
