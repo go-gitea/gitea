@@ -1251,8 +1251,8 @@ func registerWebRoutes(m *web.Router) {
 		m.Get("", repo.Issues)
 		m.Get("/{index}", repo.ViewIssue)
 	}
-	m.Group("/{username}/group/{group_id}/{reponame}/{type:issues}", issueViewFn, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypeExternalTracker))
-	m.Group("/{username}/{reponame}/{type:issues}", issueViewFn, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypeExternalTracker))
+	m.Group("/{username}/group/{group_id}/{reponame}/{type:issues}", issueViewFn, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests, unit.TypeExternalTracker))
+	m.Group("/{username}/{reponame}/{type:issues}", issueViewFn, optSignIn, context.RepoAssignment, context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests, unit.TypeExternalTracker))
 	// end "/{username}/{group_id}/{reponame}": issue/pull list, issue/pull view, external tracker
 
 	editIssueFn := func() { // edit issues, pulls, labels, milestones, etc
