@@ -28,33 +28,25 @@ func TestOrgRepos(t *testing.T) {
 
 	var (
 		users = []string{"user1", "user2"}
-		cases = map[string]map[string][]string{
-			"129": map[string][]string{
-				"alphabetically":        {"repo21", "repo3"},
-				"reversealphabetically": {"repo3", "repo21"},
-			},
-			"139": map[string][]string{
-				"alphabetically":        {"repo5"},
-				"reversealphabetically": {"repo5"},
-			},
+		cases = map[string][]string{
+			"alphabetically":        {"repo21", "repo3", "repo5"},
+			"reversealphabetically": {"repo5", "repo3", "repo21"},
 		}
 	)
 
 	for _, user := range users {
 		t.Run(user, func(t *testing.T) {
 			session := loginUser(t, user)
-			for group, groupCases := range cases {
-				for sortBy, repos := range groupCases {
-					req := NewRequest(t, "GET", "/org3/groups/"+group+"?sort="+sortBy)
-					resp := session.MakeRequest(t, req, http.StatusOK)
+			for sortBy, repos := range cases {
+				req := NewRequest(t, "GET", "/org3?sort="+sortBy)
+				resp := session.MakeRequest(t, req, http.StatusOK)
 
-					htmlDoc := NewHTMLParser(t, resp.Body)
+				htmlDoc := NewHTMLParser(t, resp.Body)
 
-					sel := htmlDoc.doc.Find("a.name")
-					assert.Len(t, repos, len(sel.Nodes))
-					for i := range repos {
-						assert.Equal(t, repos[i], strings.TrimSpace(sel.Eq(i).Text()))
-					}
+				sel := htmlDoc.doc.Find("a.name")
+				assert.Len(t, repos, len(sel.Nodes))
+				for i := range repos {
+					assert.Equal(t, repos[i], strings.TrimSpace(sel.Eq(i).Text()))
 				}
 			}
 		})
