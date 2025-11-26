@@ -103,13 +103,14 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 		// user4 creates a new branch and a PR
 		testEditFileToNewBranch(t, user4Session, 0, "user4", forkedRepoName, "master", "user4/update-readme", "README.md", "Hello, World\n(Edited by user4)\n")
 		resp := testPullCreateDirectly(t, user4Session, createPullRequestOptions{
-			BaseRepoOwner: repo3.OwnerName,
-			BaseRepoName:  repo3.Name,
-			BaseBranch:    "master",
-			HeadRepoOwner: "user4",
-			HeadRepoName:  forkedRepoName,
-			HeadBranch:    "user4/update-readme",
-			Title:         "PR for user4 forked repo3",
+			BaseRepoOwner:   repo3.OwnerName,
+			BaseRepoName:    repo3.Name,
+			BaseRepoGroupID: repo3.GroupID,
+			BaseBranch:      "master",
+			HeadRepoOwner:   "user4",
+			HeadRepoName:    forkedRepoName,
+			HeadBranch:      "user4/update-readme",
+			Title:           "PR for user4 forked repo3",
 		})
 		prURL := test.RedirectURL(resp)
 
