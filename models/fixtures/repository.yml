@@ -1054,7 +1054,7 @@
   template_id: 0
   size: 0
   close_issues_via_commit_in_any_branch: false
-  group_id: 144
+  group_id: 129
   group_sort_order: 1
 - id: 33
   owner_id: 2
