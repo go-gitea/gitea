@@ -10,6 +10,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/convert"
@@ -101,6 +102,9 @@ func WebPathToGitPath(s WebPath) string {
 		return util.PathJoinRelX(ret)
 	}
 
+	// Get default wiki format from global setting
+	defaultWikiFormat := setting.Repository.DefaultWikiFormat
+
 	a := strings.Split(string(s), "/")
 	for i := range a {
 		shouldAddDashMarker := hasDashMarker(a[i])
@@ -109,7 +113,14 @@ func WebPathToGitPath(s WebPath) string {
 		a[i] = strings.ReplaceAll(a[i], "%20", " ") // space is safe to be kept in git path
 		a[i] = strings.ReplaceAll(a[i], "+", " ")
 	}
-	return strings.Join(a, "/") + ".md"
+	basePath := strings.Join(a, "/")
+
+	// Determine extension based on format setting
+	if defaultWikiFormat == "org" {
+		return basePath + ".org"
+	}
+	// For "both" or "markdown", default to .md
+	return basePath + ".md"
 }
 
 func GitPathToWebPath(s string) (wp WebPath, err error) {

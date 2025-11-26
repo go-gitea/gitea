@@ -286,6 +286,7 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")
 	Repository.MaxCreationLimit = sec.Key("MAX_CREATION_LIMIT").MustInt(-1)
 	Repository.DefaultBranch = sec.Key("DEFAULT_BRANCH").MustString(Repository.DefaultBranch)
+	Repository.DefaultWikiFormat = sec.Key("WIKI_FORMAT").MustString(Repository.DefaultWikiFormat)
 	RepoRootPath = sec.Key("ROOT").MustString(filepath.Join(AppDataPath, "gitea-repositories"))
 	if !filepath.IsAbs(RepoRootPath) {
 		RepoRootPath = filepath.Join(AppWorkPath, RepoRootPath)
