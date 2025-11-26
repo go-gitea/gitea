@@ -101,7 +101,7 @@ func UpdateReviewState(ctx context.Context, userID, pullID int64, commitSHA stri
 		return nil, err
 	}
 	log.Trace("Updating already existing review with ID %d (user %d, repo %d, commit %s) with the updated files %v.", review.ID, userID, pullID, commitSHA, review.UpdatedFiles)
-	_, err = engine.ID(review.ID).Update(&ReviewState{UpdatedFiles: review.UpdatedFiles})
+	_, err = engine.ID(review.ID).Cols("updated_files").Update(review)
 	return review, err
 }
 
