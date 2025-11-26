@@ -388,7 +388,11 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 
 // APIURL returns the repository API URL
 func (repo *Repository) APIURL() string {
-	return setting.AppURL + "api/v1/repos/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+	var groupSegment string
+	if repo.GroupID > 0 {
+		groupSegment = fmt.Sprintf("group/%d", repo.GroupID)
+	}
+	return setting.AppURL + "api/v1/repos/" + url.PathEscape(repo.OwnerName) + "/" + groupSegment + url.PathEscape(repo.Name)
 }
 
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
