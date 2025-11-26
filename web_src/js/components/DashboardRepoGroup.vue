@@ -103,7 +103,6 @@ const options: SortableOptions = {
     get() {
       return combined.value.map((a) => getId(a)).filter((a, i, arr) => arr.indexOf(a) === i);
     },
-    // eslint-disable-next-line @typescript-eslint/no-misused-promises
     async set(sortable) {
       const arr = sortable.toArray();
       const groups = Array.from(new Set(arr.filter((a) => a.startsWith('group')).map((a) => parseInt(a.split('-')[1]))));
@@ -180,7 +179,7 @@ const options: SortableOptions = {
     :class="{ 'expandable-menu': curGroup === 0, 'repo-owner-name-list': curGroup === 0, 'expandable-ul': true }"
     v-model:list="combined"
     :data-is-group="true"
-    :item-key="(it) => getId(it)"
+    :item-key="(it: any) => getId(it)"
     :key="dynKey"
   >
     <template #item="{ element, index }">
