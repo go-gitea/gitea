@@ -391,7 +391,7 @@ func (repo *Repository) APIURL(ctxOpt ...context.Context) string {
 	ctx := util.OptionalArg(ctxOpt, context.TODO())
 	var groupSegment string
 	if repo.GroupID > 0 {
-		groupSegment = fmt.Sprintf("group/%d", repo.GroupID)
+		groupSegment = fmt.Sprintf("group/%d/", repo.GroupID)
 	}
 	return httplib.MakeAbsoluteURL(ctx, setting.AppSubURL+"/api/v1/repos/"+url.PathEscape(repo.OwnerName)+"/"+groupSegment+url.PathEscape(repo.Name))
 }
