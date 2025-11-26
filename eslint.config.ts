@@ -229,6 +229,7 @@ export default defineConfig([
       '@typescript-eslint/no-unsafe-return': [0],
       '@typescript-eslint/no-unsafe-unary-minus': [2],
       '@typescript-eslint/no-unused-expressions': [0],
+      '@typescript-eslint/no-unused-private-class-members': [2],
       '@typescript-eslint/no-unused-vars': [2, {vars: 'all', args: 'all', caughtErrors: 'all', ignoreRestSiblings: false, argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_'}],
       '@typescript-eslint/no-use-before-define': [2, {functions: false, classes: true, variables: true, allowNamedExports: true, typedefs: false, enums: false, ignoreTypeReferences: true}],
       '@typescript-eslint/no-useless-constructor': [0],
@@ -585,7 +586,7 @@ export default defineConfig([
       'no-unsafe-negation': [2],
       'no-unused-expressions': [2],
       'no-unused-labels': [2],
-      'no-unused-private-class-members': [2],
+      'no-unused-private-class-members': [0], // handled by @typescript-eslint/no-unused-private-class-members
       'no-unused-vars': [0], // handled by @typescript-eslint/no-unused-vars
       'no-use-before-define': [0], // handled by @typescript-eslint/no-use-before-define
       'no-useless-assignment': [2],
