@@ -5,6 +5,7 @@ package common
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -107,7 +108,11 @@ func ForwardedHeadersHandler(limit int, trustedProxies []string) func(h http.Han
 	return proxy.ForwardedHeaders(opt)
 }
 
-func Sessioner() (func(next http.Handler) http.Handler, error) {
+func MustInitSessioner() func(next http.Handler) http.Handler {
+	// TODO: CHI-SESSION-GOB-REGISTER: chi-session has a design problem: it calls gob.Register for "Set"
+	// But if the server restarts, then the first "Get" will fail to decode the previously stored session data because the structs are not registered yet.
+	// So each package should make sure their structs are registered correctly during startup for session storage.
+
 	middleware, err := session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
 		ProviderConfig: setting.SessionConfig.ProviderConfig,
@@ -120,8 +125,7 @@ func Sessioner() (func(next http.Handler) http.Handler, error) {
 		Domain:         setting.SessionConfig.Domain,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create session middleware: %w", err)
+		log.Fatalf("common.Sessioner failed: %v", err)
 	}
-
-	return middleware, nil
+	return middleware
 }

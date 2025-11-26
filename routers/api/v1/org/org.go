@@ -340,7 +340,7 @@ func Rename(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.RenameOrgOption)
 	orgUser := ctx.Org.Organization.AsUser()
-	if err := user_service.RenameUser(ctx, orgUser, form.NewName); err != nil {
+	if err := user_service.RenameUser(ctx, orgUser, form.NewName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
