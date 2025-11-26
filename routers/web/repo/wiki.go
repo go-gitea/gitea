@@ -133,7 +133,7 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 		return nil
 	}
 	defer reader.Close()
-	content, err := io.ReadAll(reader)
+	content, err := util.ReadWithLimit(reader, 5*1024*1024) // 5MB should be enough for a wiki page
 	if err != nil {
 		ctx.ServerError("ReadAll", err)
 		return nil
@@ -567,7 +567,7 @@ func WikiPages(ctx *context.Context) {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
-	allEntries.CustomSort(base.NaturalSortLess)
+	allEntries.CustomSort(base.NaturalSortCompare)
 
 	entries, _, err := allEntries.GetCommitsInfo(ctx, ctx.Repo.RepoLink, commit, treePath)
 	if err != nil {
