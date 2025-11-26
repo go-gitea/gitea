@@ -255,7 +255,7 @@ func TestRecentlyPushedNewBranches(t *testing.T) {
 		prepareRecentlyPushedBranchSpecialTest(t, user12Session, repo10, repo10)
 
 		// create a fork repo in public org
-		testRepoFork(t, user12Session, repo10.OwnerName, repo10.Name, "org25", "org25_fork_repo10", repo10.DefaultBranch)
+		testRepoFork(t, user12Session, 0, repo10.Name, "org25", "org25_fork_repo10", repo10.DefaultBranch, repo10.OwnerName)
 		orgPublicForkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 25, Name: "org25_fork_repo10"})
 		prepareRepoPR(t, user12Session, user12Session, repo10, orgPublicForkRepo)
 		prepareRecentlyPushedBranchTest(t, user12Session, repo10, orgPublicForkRepo)

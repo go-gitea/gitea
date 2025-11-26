@@ -101,7 +101,7 @@ func TestPullComment(t *testing.T) {
 		session := loginUser(t, "user1")
 		testCreateBranch(t, session, "user2", "repo1", "branch/master", "test-branch/rebase", http.StatusSeeOther)
 		testCreateBranch(t, session, "user2", "repo1", "branch/master", "test-branch/retarget", http.StatusSeeOther)
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testRepoFork(t, session, 0, "user2", "repo1", "user1", "repo1", "")
 
 		t.Run("RebaseComment", func(t *testing.T) { testPullCommentRebase(t, u, session) })
 		t.Run("RetargetComment", func(t *testing.T) { testPullCommentRetarget(t, u, session) })

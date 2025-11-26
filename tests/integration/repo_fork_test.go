@@ -21,15 +21,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkOwnerName, forkRepoName, forkBranch string) *httptest.ResponseRecorder {
+func testRepoFork(t *testing.T, session *TestSession, groupID int64, repoName, forkOwnerName, forkRepoName, forkBranch, ownerName string) *httptest.ResponseRecorder {
 	forkOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: forkOwnerName})
 
 	// Step0: check the existence of the to-fork repo
-	req := NewRequestf(t, "GET", "/%s/%s", forkOwnerName, forkRepoName)
+	req := NewRequestf(t, "GET", "/%s/%s%s", forkOwnerName, maybeGroupSegment(groupID), forkRepoName)
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Step1: go to the main page of repo
-	req = NewRequestf(t, "GET", "/%s/%s", ownerName, repoName)
+	req = NewRequestf(t, "GET", "/%s/%s%s", ownerName, maybeGroupSegment(groupID), repoName)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Step2: click the fork button
@@ -64,13 +64,13 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 func TestRepoFork(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
-	testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+	testRepoFork(t, session, 0, "user2", "repo1", "user1", "repo1", "")
 }
 
 func TestRepoForkToOrg(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
-	testRepoFork(t, session, "user2", "repo1", "org3", "repo1", "")
+	testRepoFork(t, session, 0, "user2", "repo1", "org3", "repo1", "")
 
 	// Check that no more forking is allowed as user2 owns repository
 	//  and org3 organization that owner user2 is also now has forked this repository
@@ -94,7 +94,7 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 	ownerTeam1, err := org_model.OrgFromUser(limitedOrg).GetOwnerTeam(t.Context())
 	assert.NoError(t, err)
 	assert.NoError(t, org_service.AddTeamMember(t.Context(), ownerTeam1, user1))
-	testRepoFork(t, user1Sess, "user2", "repo1", limitedOrg.Name, "repo1", "")
+	testRepoFork(t, user1Sess, 0, "user2", "repo1", limitedOrg.Name, "repo1", "")
 
 	// fork to a private org
 	user4Sess := loginUser(t, "user4")
@@ -104,7 +104,7 @@ func TestForkListLimitedAndPrivateRepos(t *testing.T) {
 	ownerTeam2, err := org_model.OrgFromUser(privateOrg).GetOwnerTeam(t.Context())
 	assert.NoError(t, err)
 	assert.NoError(t, org_service.AddTeamMember(t.Context(), ownerTeam2, user4))
-	testRepoFork(t, user4Sess, "user2", "repo1", privateOrg.Name, "repo1", "")
+	testRepoFork(t, user4Sess, 0, "user2", "repo1", privateOrg.Name, "repo1", "")
 
 	t.Run("Anonymous", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

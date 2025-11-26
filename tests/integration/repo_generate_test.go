@@ -62,7 +62,7 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateID, templateOw
 	body := fmt.Sprintf(`# %s Readme
 Owner: %s
 Link: /%s/%s
-Clone URL: %s/%s%s.git`,
+Clone URL: %s/%s.git`,
 		generateRepoName,
 		strings.ToUpper(generateOwnerName),
 		generateOwnerName,

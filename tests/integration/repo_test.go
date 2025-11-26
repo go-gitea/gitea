@@ -62,7 +62,7 @@ func testViewRepoPublic(t *testing.T) {
 	assert.True(t, repoTopics.HasClass("repo-topic"))
 	assert.True(t, repoSummary.HasClass("repository-menu"))
 
-	req = NewRequest(t, "GET", "/org3/repo3")
+	req = NewRequest(t, "GET", "/org3/group/129/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	session = loginUser(t, "user1")
@@ -72,7 +72,7 @@ func testViewRepoPublic(t *testing.T) {
 func testViewRepoWithCache(t *testing.T) {
 	defer tests.PrintCurrentTest(t)()
 	testView := func(t *testing.T) {
-		req := NewRequest(t, "GET", "/org3/repo3")
+		req := NewRequest(t, "GET", "/org3/group/129/repo3")
 		session := loginUser(t, "user2")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -142,11 +142,11 @@ func testViewRepoWithCache(t *testing.T) {
 func testViewRepoPrivate(t *testing.T) {
 	defer tests.PrintCurrentTest(t)()
 
-	req := NewRequest(t, "GET", "/org3/repo3")
+	req := NewRequest(t, "GET", "/org3/group/129/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	t.Run("OrgMemberAccess", func(t *testing.T) {
-		req = NewRequest(t, "GET", "/org3/repo3")
+		req = NewRequest(t, "GET", "/org3/group/129/repo3")
 		session := loginUser(t, "user4")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), `<div id="repo-files-table"`)
@@ -156,25 +156,25 @@ func testViewRepoPrivate(t *testing.T) {
 		session := loginUser(t, "user1")
 
 		// set unit code to "anonymous read"
-		req = NewRequestWithValues(t, "POST", "/org3/repo3/settings/public_access", map[string]string{
+		req = NewRequestWithValues(t, "POST", "/org3/group/129/repo3/settings/public_access", map[string]string{
 			"_csrf": GetUserCSRFToken(t, session),
 			"repo-unit-access-" + strconv.Itoa(int(unit.TypeCode)): "anonymous-read",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// try to "anonymous read" (ok)
-		req = NewRequest(t, "GET", "/org3/repo3")
+		req = NewRequest(t, "GET", "/org3/group/129/repo3")
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), `<span class="ui basic orange label">Public Access</span>`)
 
 		// remove "anonymous read"
-		req = NewRequestWithValues(t, "POST", "/org3/repo3/settings/public_access", map[string]string{
+		req = NewRequestWithValues(t, "POST", "/org3/group/129/repo3/settings/public_access", map[string]string{
 			"_csrf": GetUserCSRFToken(t, session),
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// try to "anonymous read" (not found)
-		req = NewRequest(t, "GET", "/org3/repo3")
+		req = NewRequest(t, "GET", "/org3/group/129/repo3")
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 }

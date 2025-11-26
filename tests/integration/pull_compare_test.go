@@ -59,7 +59,7 @@ func TestPullCompare(t *testing.T) {
 		defer tests.PrepareTestEnv(t)()
 
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testRepoFork(t, session, 0, "user2", "repo1", "user1", "repo1", "")
 		testCreateBranch(t, session, "user1", "repo1", "branch/master", "master1", http.StatusSeeOther)
 		testEditFile(t, session, 0, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
 		testPullCreate(t, session, "user1", "repo1", false, "master", "master1", "This is a pull title")
@@ -96,7 +96,7 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 		// user4 forks repo3
 		user4Session := loginUser(t, "user4")
 		forkedRepoName := "user4-forked-repo3"
-		testRepoFork(t, user4Session, repo3.OwnerName, repo3.Name, "user4", forkedRepoName, "")
+		testRepoFork(t, user4Session, repo3.OwnerName, repo3.Name, 0, "user4", forkedRepoName, "")
 		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user4", Name: forkedRepoName})
 		assert.True(t, forkedRepo.IsPrivate)
 

@@ -222,7 +222,7 @@ func Test_WebhookFork(t *testing.T) {
 		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "fork")
 
 		// 2. trigger the webhook
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1-fork", "master")
+		testRepoFork(t, session, 0, "user2", "repo1", "user1", "repo1-fork", "master")
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "fork", triggeredEvent)

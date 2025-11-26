@@ -141,7 +141,7 @@ func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, ba
 func TestPullCreate(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testRepoFork(t, session, 0, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, 0, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		assert.Equal(t, 3, repo1.NumPulls)
@@ -184,7 +184,7 @@ func TestPullCreate(t *testing.T) {
 func TestPullCreate_TitleEscape(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testRepoFork(t, session, 0, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, 0, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "<i>XSS PR</i>")
 
@@ -248,7 +248,7 @@ func TestPullBranchDelete(t *testing.T) {
 		defer tests.PrepareTestEnv(t)()
 
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testRepoFork(t, session, 0, "user2", "repo1", "user1", "repo1", "")
 		testCreateBranch(t, session, "user1", "repo1", "branch/master", "master1", http.StatusSeeOther)
 		testEditFile(t, session, 0, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master1", "This is a pull title")
@@ -284,7 +284,7 @@ Check if pull request can be created from base to the fork repository.
 func TestPullCreatePrFromBaseToFork(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		sessionFork := loginUser(t, "user1")
-		testRepoFork(t, sessionFork, "user2", "repo1", "user1", "repo1", "")
+		testRepoFork(t, sessionFork, 0, "user2", "repo1", "user1", "repo1", "")
 
 		// Edit base repository
 		sessionBase := loginUser(t, "user2")
@@ -398,7 +398,7 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 func TestPullCreateParallel(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		sessionFork := loginUser(t, "user1")
-		testRepoFork(t, sessionFork, "user2", "repo1", "user1", "repo1", "")
+		testRepoFork(t, sessionFork, 0, "user2", "repo1", "user1", "repo1", "")
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		assert.Equal(t, 3, repo1.NumPulls)
