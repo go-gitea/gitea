@@ -198,7 +198,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 	req = NewRequest(t, "GET", "/"+orgName)
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
+	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s%s", orgName, maybeGroupSegment(int64(repoGroup)), repoName))
 	restrictedSession.MakeRequest(t, req, http.StatusOK)
 }
 
