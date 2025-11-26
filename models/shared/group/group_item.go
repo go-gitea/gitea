@@ -102,9 +102,13 @@ func (g *groupItemGroup) Sort() int {
 
 func GetTopLevelGroupItemList(ctx context.Context, orgID int64, doer *user_model.User) []Item {
 	var rootItems []Item
+	var doerID int64
+	if doer != nil {
+		doerID = doer.ID
+	}
 	groups, err := group_model.FindGroupsByCond(ctx, &group_model.FindGroupsOptions{
 		ParentGroupID: 0,
-		ActorID:       doer.ID,
+		ActorID:       doerID,
 		OwnerID:       orgID,
 	}, group_model.
 		AccessibleGroupCondition(doer, unit.TypeInvalid, perm.AccessModeRead))
