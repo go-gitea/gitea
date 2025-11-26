@@ -6,6 +6,9 @@ package main
 
 import (
 	"bytes"
+	encjson "encoding/json" //nolint:depguard // this package wraps it
+	"errors"
+	"fmt"
 	"iter"
 	"log"
 	"os"
@@ -25,11 +28,11 @@ type OrderedMap struct {
 	indices map[string]int
 }
 
-func (o OrderedMap) Get(key string) (bool, any) {
+func (o OrderedMap) Get(key string) (any, bool) {
 	if _, ok := o.indices[key]; ok {
-		return true, o.Pairs[o.indices[key]].Value
+		return o.Pairs[o.indices[key]].Value, true
 	}
-	return false, nil
+	return nil, false
 }
 
 func (o *OrderedMap) Set(key string, value any) {
@@ -46,6 +49,135 @@ func (o OrderedMap) Iter() iter.Seq2[string, any] {
 		for _, it := range o.Pairs {
 			yield(it.Key, it.Value)
 		}
+	}
+}
+
+func (o *OrderedMap) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+	if bytes.Equal(trimmed, []byte("null")) {
+		o.Pairs = nil
+		o.indices = nil
+		return nil
+	}
+
+	dec := encjson.NewDecoder(bytes.NewReader(data))
+	dec.UseNumber()
+
+	tok, err := dec.Token()
+	if err != nil {
+		return err
+	}
+	delim, ok := tok.(encjson.Delim)
+	if !ok || delim != '{' {
+		return errors.New("OrderedMap: expected '{' at start of object")
+	}
+
+	// Reset storage
+	if o.indices == nil {
+		o.indices = make(map[string]int)
+	} else {
+		for k := range o.indices {
+			delete(o.indices, k)
+		}
+	}
+	o.Pairs = o.Pairs[:0]
+
+	for dec.More() {
+		tk, err := dec.Token()
+		if err != nil {
+			return err
+		}
+		key, ok := tk.(string)
+		if !ok {
+			return fmt.Errorf(
+				"OrderedMap: expected string key, got %T (%v)",
+				tk,
+				tk,
+			)
+		}
+
+		var raw encjson.RawMessage
+		if err := dec.Decode(&raw); err != nil {
+			return fmt.Errorf("OrderedMap: decode value for %q: %w", key, err)
+		}
+
+		val, err := decodeJSONValue(raw)
+		if err != nil {
+			return fmt.Errorf("OrderedMap: unmarshal value for %q: %w", key, err)
+		}
+
+		if idx, exists := o.indices[key]; exists {
+			o.Pairs[idx].Value = val
+		} else {
+			o.indices[key] = len(o.Pairs)
+			o.Pairs = append(o.Pairs, Pair{Key: key, Value: val})
+		}
+	}
+
+	end, err := dec.Token()
+	if err != nil {
+		return err
+	}
+	if d, ok := end.(encjson.Delim); !ok || d != '}' {
+		return errors.New("OrderedMap: expected '}' at end of object")
+	}
+
+	return nil
+}
+
+func decodeJSONValue(raw encjson.RawMessage) (any, error) {
+	t := bytes.TrimSpace(raw)
+	if bytes.Equal(t, []byte("null")) {
+		return nil, nil
+	}
+
+	d := encjson.NewDecoder(bytes.NewReader(raw))
+	d.UseNumber()
+
+	tok, err := d.Token()
+	if err != nil {
+		return nil, err
+	}
+
+	switch tt := tok.(type) {
+	case encjson.Delim:
+		switch tt {
+		case '{':
+			var inner OrderedMap
+			if err := inner.UnmarshalJSON(raw); err != nil {
+				return nil, err
+			}
+			return inner, nil
+		case '[':
+			var arr []any
+			for d.More() {
+				var elemRaw encjson.RawMessage
+				if err := d.Decode(&elemRaw); err != nil {
+					return nil, err
+				}
+				v, err := decodeJSONValue(elemRaw)
+				if err != nil {
+					return nil, err
+				}
+				arr = append(arr, v)
+			}
+			if end, err := d.Token(); err != nil {
+				return nil, err
+			} else if end != encjson.Delim(']') {
+				return nil, errors.New("expected ']'")
+			}
+			return arr, nil
+		default:
+			return nil, fmt.Errorf("unexpected delimiter %q", tt)
+		}
+	default:
+		var v any
+		d = encjson.NewDecoder(bytes.NewReader(raw))
+		d.UseNumber()
+		if err := d.Decode(&v); err != nil {
+			return nil, err
+		}
+		return v, nil
 	}
 }
 
@@ -74,32 +206,6 @@ func (o OrderedMap) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func innerConvert(it any) any {
-	switch v := it.(type) {
-	case map[string]any:
-		return mapToOrderedMap(v)
-	case []any:
-		for i := range v {
-			v[i] = innerConvert(v[i])
-		}
-		return v
-	default:
-		return v
-	}
-}
-
-func mapToOrderedMap(m map[string]any) OrderedMap {
-	var om OrderedMap
-	om.indices = make(map[string]int)
-	i := 0
-	for k, v := range m {
-		om.Pairs = append(om.Pairs, Pair{k, innerConvert(v)})
-		om.indices[k] = i
-		i++
-	}
-	return om
-}
-
 var rxPath = regexp.MustCompile(`(?m)^(/repos/\{owner})/(\{repo})`)
 
 func generatePaths(root string) *OrderedMap {
@@ -117,12 +223,18 @@ func generatePaths(root string) *OrderedMap {
 	if err != nil {
 		log.Fatal(err)
 	}
-	raw := make(map[string]any)
+	raw := OrderedMap{
+		indices: make(map[string]int),
+	}
 	err = json.Unmarshal(swaggerBytes, &raw)
 	if err != nil {
 		log.Fatal(err)
 	}
-	paths := mapToOrderedMap(raw["paths"].(map[string]any))
+	rpaths, has := raw.Get("paths")
+	if !has {
+		log.Fatal("paths not found")
+	}
+	paths := rpaths.(OrderedMap)
 	for k, v := range paths.Iter() {
 		if !rxPath.MatchString(k) {
 			// skip if this endpoint does not start with `/repos/{owner}/{repo}`
@@ -135,7 +247,7 @@ func generatePaths(root string) *OrderedMap {
 		for method, methodSpec := range methodMap.Iter() {
 			specMap := methodSpec.(OrderedMap)
 			var params []OrderedMap
-			has, aparams := specMap.Get("parameters")
+			aparams, has := specMap.Get("parameters")
 			if !has {
 				continue
 			}
