@@ -67,14 +67,15 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSel
 }
 
 type createPullRequestOptions struct {
-	BaseRepoOwner string
-	BaseRepoName  string
-	BaseBranch    string
-	HeadRepoOwner string
-	HeadRepoName  string
-	HeadBranch    string
-	Title         string
-	ReviewerIDs   string // comma-separated list of user IDs
+	BaseRepoOwner   string
+	BaseRepoName    string
+	BaseRepoGroupID int64
+	BaseBranch      string
+	HeadRepoOwner   string
+	HeadRepoName    string
+	HeadBranch      string
+	Title           string
+	ReviewerIDs     string // comma-separated list of user IDs
 }
 
 func (opts createPullRequestOptions) IsValid() bool {
@@ -95,7 +96,7 @@ func testPullCreateDirectly(t *testing.T, session *TestSession, opts createPullR
 			headCompare = fmt.Sprintf("%s:%s", opts.HeadRepoOwner, opts.HeadBranch)
 		}
 	}
-	req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/compare/%s...%s", opts.BaseRepoOwner, opts.BaseRepoName, opts.BaseBranch, headCompare))
+	req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s%s/compare/%s...%s", opts.BaseRepoOwner, maybeGroupSegment(opts.BaseRepoGroupID), opts.BaseRepoName, opts.BaseBranch, headCompare))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Submit the form for creating the pull

@@ -127,7 +127,7 @@ func testEditorActionEdit(t *testing.T, session *TestSession, groupID int64, use
 	resp := testEditorActionPostRequest(t, session, fmt.Sprintf("/%s/%s%s/%s/%s/%s", user, maybeGroupSegment(groupID), repo, editorAction, branch, filePath), params)
 	assert.Equal(t, http.StatusOK, resp.Code)
 	assert.NotEmpty(t, test.RedirectURL(resp))
-	req := NewRequest(t, "GET", path.Join(user, repo, "raw/branch", newBranchName, params["tree_path"]))
+	req := NewRequest(t, "GET", path.Join(user, maybeGroupSegment(groupID), repo, "raw/branch", newBranchName, params["tree_path"]))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	assert.Equal(t, params["content"], resp.Body.String())
 	return resp
