@@ -48,6 +48,7 @@ var (
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
+		DefaultWikiFormat                       string
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
 		DisableDownloadSourceArchives           bool
@@ -172,6 +173,7 @@ var (
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
+		DefaultWikiFormat:                       "markdown",
 		AllowForkWithoutMaximumLimit:            true,
 		StreamArchives:                          true,
 
