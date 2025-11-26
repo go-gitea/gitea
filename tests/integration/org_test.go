@@ -149,6 +149,8 @@ func TestOrgRestrictedUser(t *testing.T) {
 	// public_repo_on_private_org is a public repo on privated_org
 	repoName := "public_repo_on_private_org"
 
+	repoGroup := 340
+
 	// user29 is a restricted user who is not a member of the organization
 	restrictedUser := "user29"
 
@@ -159,7 +161,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 	req := NewRequest(t, "GET", "/"+orgName)
 	restrictedSession.MakeRequest(t, req, http.StatusNotFound)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
+	req = NewRequest(t, "GET", fmt.Sprintf("/%s/group/%d/%s", orgName, repoGroup, repoName))
 	restrictedSession.MakeRequest(t, req, http.StatusNotFound)
 
 	// Therefore create a read-only team
