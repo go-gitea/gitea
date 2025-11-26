@@ -95,6 +95,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 
 	meta, err := git_model.GetLFSMetaObjectByOid(ctx, repoID, pointer.Oid)
 	if err != nil { // fallback to a plain file
+		fi.lfsMeta = &pointer
 		log.Warn("Unable to access LFS pointer %s in repo %d: %v", pointer.Oid, repoID, err)
 		return buf, dataRc, fi, nil
 	}
@@ -151,17 +152,28 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 }
 
 func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
+	renderer, err := markup.FindRendererByContext(renderCtx)
+	if err != nil {
+		return nil, "", err
+	}
+
 	markupRd, markupWr := io.Pipe()
 	defer markupWr.Close()
+
 	done := make(chan struct{})
 	go func() {
 		sb := &strings.Builder{}
-		// We allow NBSP here this is rendered
-		escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP)
+		if markup.RendererNeedPostProcess(renderer) {
+			escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP) // We allow NBSP here this is rendered
+		} else {
+			escaped = &charset.EscapeStatus{}
+			_, _ = io.Copy(sb, markupRd)
+		}
 		output = template.HTML(sb.String())
 		close(done)
 	}()
-	err = markup.Render(renderCtx, input, markupWr)
+
+	err = markup.RenderWithRenderer(renderCtx, renderer, input, markupWr)
 	_ = markupWr.CloseWithError(err)
 	<-done
 	return escaped, output, err
@@ -296,7 +308,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		ctx.ServerError("ListEntries", err)
 		return nil
 	}
-	allEntries.CustomSort(base.NaturalSortLess)
+	allEntries.CustomSort(base.NaturalSortCompare)
 
 	commitInfoCtx := gocontext.Context(ctx)
 	if timeout > 0 {

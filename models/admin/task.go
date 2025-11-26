@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -123,17 +124,17 @@ func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 		// decrypt credentials
 		if opts.CloneAddrEncrypted != "" {
 			if opts.CloneAddr, err = secret.DecryptSecret(setting.SecretKey, opts.CloneAddrEncrypted); err != nil {
-				return nil, err
+				log.Error("Unable to decrypt CloneAddr, maybe SECRET_KEY is wrong: %v", err)
 			}
 		}
 		if opts.AuthPasswordEncrypted != "" {
 			if opts.AuthPassword, err = secret.DecryptSecret(setting.SecretKey, opts.AuthPasswordEncrypted); err != nil {
-				return nil, err
+				log.Error("Unable to decrypt AuthPassword, maybe SECRET_KEY is wrong: %v", err)
 			}
 		}
 		if opts.AuthTokenEncrypted != "" {
 			if opts.AuthToken, err = secret.DecryptSecret(setting.SecretKey, opts.AuthTokenEncrypted); err != nil {
-				return nil, err
+				log.Error("Unable to decrypt AuthToken, maybe SECRET_KEY is wrong: %v", err)
 			}
 		}
 

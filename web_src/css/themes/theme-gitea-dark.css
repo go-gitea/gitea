@@ -3,6 +3,7 @@
 
 gitea-theme-meta-info {
   --theme-display-name: "Dark";
+  --theme-color-scheme: "dark";
 }
 
 :root {

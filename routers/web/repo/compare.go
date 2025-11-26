@@ -9,7 +9,6 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"html"
 	"io"
 	"net/http"
 	"net/url"
@@ -306,7 +305,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 
 	// Check if base branch is valid.
 	baseIsCommit := ctx.Repo.GitRepo.IsCommitExist(ci.BaseBranch)
-	baseIsBranch := gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, ci.BaseBranch)
+	baseIsBranch, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, ci.BaseBranch)
 	baseIsTag := gitrepo.IsTagExist(ctx, ctx.Repo.Repository, ci.BaseBranch)
 
 	if !baseIsCommit && !baseIsBranch && !baseIsTag {
@@ -508,7 +507,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 
 	// Check if head branch is valid.
 	headIsCommit := ci.HeadGitRepo.IsCommitExist(ci.HeadBranch)
-	headIsBranch := gitrepo.IsBranchExist(ctx, ci.HeadRepo, ci.HeadBranch)
+	headIsBranch, _ := git_model.IsBranchExist(ctx, ci.HeadRepo.ID, ci.HeadBranch)
 	headIsTag := gitrepo.IsTagExist(ctx, ci.HeadRepo, ci.HeadBranch)
 	if !headIsCommit && !headIsBranch && !headIsTag {
 		// Check if headBranch is short sha commit hash
@@ -957,30 +956,26 @@ func ExcerptBlob(ctx *context.Context) {
 		ctx.HTTPError(http.StatusInternalServerError, "getExcerptLines")
 		return
 	}
-	if idxRight > lastRight {
-		lineText := " "
-		if rightHunkSize > 0 || leftHunkSize > 0 {
-			lineText = fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", idxLeft, leftHunkSize, idxRight, rightHunkSize)
-		}
-		lineText = html.EscapeString(lineText)
-		lineSection := &gitdiff.DiffLine{
-			Type:    gitdiff.DiffLineSection,
-			Content: lineText,
-			SectionInfo: &gitdiff.DiffLineSectionInfo{
-				Path:          filePath,
-				LastLeftIdx:   lastLeft,
-				LastRightIdx:  lastRight,
-				LeftIdx:       idxLeft,
-				RightIdx:      idxRight,
-				LeftHunkSize:  leftHunkSize,
-				RightHunkSize: rightHunkSize,
-			},
-		}
+
+	newLineSection := &gitdiff.DiffLine{
+		Type: gitdiff.DiffLineSection,
+		SectionInfo: &gitdiff.DiffLineSectionInfo{
+			Path:          filePath,
+			LastLeftIdx:   lastLeft,
+			LastRightIdx:  lastRight,
+			LeftIdx:       idxLeft,
+			RightIdx:      idxRight,
+			LeftHunkSize:  leftHunkSize,
+			RightHunkSize: rightHunkSize,
+		},
+	}
+	if newLineSection.GetExpandDirection() != "" {
+		newLineSection.Content = fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", idxLeft, leftHunkSize, idxRight, rightHunkSize)
 		switch direction {
 		case "up":
-			section.Lines = append([]*gitdiff.DiffLine{lineSection}, section.Lines...)
+			section.Lines = append([]*gitdiff.DiffLine{newLineSection}, section.Lines...)
 		case "down":
-			section.Lines = append(section.Lines, lineSection)
+			section.Lines = append(section.Lines, newLineSection)
 		}
 	}
 

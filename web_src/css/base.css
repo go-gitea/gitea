@@ -626,7 +626,6 @@ img.ui.avatar,
   font-family: var(--fonts-monospace);
   font-size: 13px;
   font-weight: var(--font-weight-normal);
-  padding: 3px 5px;
   flex-shrink: 0;
 }
 
@@ -1104,6 +1103,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.list.flex-items-block > .item,
+.ui.vertical.menu.flex-items-block > .item,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {

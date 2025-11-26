@@ -75,7 +75,7 @@ func ProfilePost(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}
-		if err := user_service.RenameUser(ctx, ctx.Doer, form.Name); err != nil {
+		if err := user_service.RenameUser(ctx, ctx.Doer, form.Name, ctx.Doer); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
 				ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
@@ -369,7 +369,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if !webtheme.IsThemeAvailable(form.Theme) {
+	if webtheme.GetThemeMetaInfo(form.Theme) == nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return

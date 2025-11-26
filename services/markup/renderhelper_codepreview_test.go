@@ -24,15 +24,15 @@ func TestRenderHelperCodePreview(t *testing.T) {
 		OwnerName: "user2",
 		RepoName:  "repo1",
 		CommitID:  "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		FilePath:  "/README.md",
+		FilePath:  "README.md",
 		LineStart: 1,
 		LineStop:  2,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, `<div class="code-preview-container file-content">
 	<div class="code-preview-header">
-		<a href="http://full" class="muted" rel="nofollow">/README.md</a>
-		repo.code_preview_line_from_to:1,2,<a href="/user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow">65f1bf27bc</a>
+		<a href="http://full" class="tw-font-semibold" rel="nofollow">repo1/README.md</a>
+		repo.code_preview_line_from_to:1,2,<a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" class="muted tw-font-mono tw-text-text" rel="nofollow">65f1bf27bc</a>
 	</div>
 	<table class="file-view">
 		<tbody><tr>
@@ -52,14 +52,14 @@ func TestRenderHelperCodePreview(t *testing.T) {
 		OwnerName: "user2",
 		RepoName:  "repo1",
 		CommitID:  "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		FilePath:  "/README.md",
+		FilePath:  "README.md",
 		LineStart: 1,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, `<div class="code-preview-container file-content">
 	<div class="code-preview-header">
-		<a href="http://full" class="muted" rel="nofollow">/README.md</a>
-		repo.code_preview_line_in:1,<a href="/user2/repo1/src/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" rel="nofollow">65f1bf27bc</a>
+		<a href="http://full" class="tw-font-semibold" rel="nofollow">repo1/README.md</a>
+		repo.code_preview_line_in:1,<a href="/user2/repo1/commit/65f1bf27bc3bf70f64657658635e66094edbcb4d" class="muted tw-font-mono tw-text-text" rel="nofollow">65f1bf27bc</a>
 	</div>
 	<table class="file-view">
 		<tbody><tr>
@@ -76,7 +76,7 @@ func TestRenderHelperCodePreview(t *testing.T) {
 		OwnerName: "user15",
 		RepoName:  "big_test_private_1",
 		CommitID:  "65f1bf27bc3bf70f64657658635e66094edbcb4d",
-		FilePath:  "/README.md",
+		FilePath:  "README.md",
 		LineStart: 1,
 		LineStop:  10,
 	})

@@ -425,7 +425,7 @@ func SearchUsers(ctx *context.APIContext) {
 
 	users, maxResults, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
-		Type:        user_model.UserTypeIndividual,
+		Types:       []user_model.UserType{user_model.UserTypeIndividual},
 		LoginName:   ctx.FormTrim("login_name"),
 		SourceID:    ctx.FormInt64("source_id"),
 		OrderBy:     db.SearchOrderByAlphabetically,
@@ -480,7 +480,7 @@ func RenameUser(ctx *context.APIContext) {
 	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
 
 	// Check if username has been changed
-	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
+	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {

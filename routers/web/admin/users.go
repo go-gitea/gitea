@@ -67,7 +67,7 @@ func Users(ctx *context.Context) {
 
 	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor: ctx.Doer,
-		Type:  user_model.UserTypeIndividual,
+		Types: []user_model.UserType{user_model.UserTypeIndividual},
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
@@ -345,7 +345,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.UserName != "" {
-		if err := user_service.RenameUser(ctx, u, form.UserName); err != nil {
+		if err := user_service.RenameUser(ctx, u, form.UserName, ctx.Doer); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
 				ctx.Data["Err_UserName"] = true
