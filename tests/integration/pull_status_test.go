@@ -28,7 +28,7 @@ import (
 func TestPullCreate_CommitStatus(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testRepoFork(t, session, 0, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, 0, "user1", "repo1", "master", "status1", "README.md", "status1")
 
 		req := NewRequestWithValues(t, "POST", "/user1/repo1/compare/master...status1",
@@ -116,7 +116,7 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 	// so we need to have this meta commit also in develop branch.
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testRepoFork(t, session, 0, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, 0, "user1", "repo1", "master", "status1", "README.md", "status1")
 		testEditFile(t, session, 0, "user1", "repo1", "status1", "README.md", "# repo1\n\nDescription for repo1")
 
@@ -140,7 +140,7 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
+		testRepoFork(t, session, 0, "user2", "repo1", "user1", "repo1", "")
 		testCreateBranch(t, session, "user1", "repo1", "branch/master", "status1", http.StatusSeeOther)
 		req := NewRequestWithValues(t, "POST", "/user1/repo1/compare/master...status1",
 			map[string]string{
