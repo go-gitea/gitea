@@ -291,7 +291,7 @@ export default defineComponent({
       } else if (repo.template) {
         return `octicon-repo-template`;
       } else if (repo.private) {
-        return 'octicon-lock';
+        return 'octicon-repo-locked';
       } else if (repo.internal) {
         return 'octicon-repo';
       }
@@ -391,7 +391,7 @@ export default defineComponent({
                 <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
                   <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
-                    <svg-icon name="octicon-lock" :size="16" class="tw-mr-1"/>
+                    <svg-icon name="octicon-repo-locked" :size="16" class="tw-mr-1"/>
                     {{ textShowPrivate }}
                   </label>
                 </div>

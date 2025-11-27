@@ -5,6 +5,8 @@
 	{{svg "octicon-mirror" 24}}
 {{else if $.IsFork}}
 	{{svg "octicon-repo-forked" 24}}
+{{else if $.IsPrivate}}
+	{{svg "octicon-repo-locked" 24}}
 {{else}}
 	{{svg "octicon-repo" 24}}
 {{end}}

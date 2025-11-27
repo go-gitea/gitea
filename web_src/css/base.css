@@ -584,10 +584,6 @@ img.ui.avatar,
   color: var(--color-grey-light) !important;
 }
 
-.text.gold {
-  color: var(--color-gold) !important;
-}
-
 .text.small {
   font-size: 0.75em;
 }

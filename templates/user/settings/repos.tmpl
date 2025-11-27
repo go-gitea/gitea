@@ -13,7 +13,7 @@
 								<div class="content">
 									{{if $repo}}
 										{{if $repo.IsPrivate}}
-											<span class="text gold icon">{{svg "octicon-lock"}}</span>
+											<span class="icon">{{svg "octicon-repo-locked"}}</span>
 										{{else if $repo.IsFork}}
 											<span class="icon">{{svg "octicon-repo-forked"}}</span>
 										{{else if $repo.IsMirror}}
@@ -86,7 +86,7 @@
 							<div class="item">
 								<div class="content flex-text-block">
 									{{if .IsPrivate}}
-										{{svg "octicon-lock" 16 "text gold"}}
+										{{svg "octicon-lock"}}
 									{{else if .IsFork}}
 										{{svg "octicon-repo-forked"}}
 									{{else if .IsMirror}}
