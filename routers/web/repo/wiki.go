@@ -146,7 +146,8 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 // The last return value indicates whether the file should be returned as a raw file
 func wikiEntryByName(ctx *context.Context, commit *git.Commit, wikiName wiki_service.WebPath) (*git.TreeEntry, string, bool, bool) {
 	isRaw := false
-	gitFilename := wiki_service.WebPathToGitPath(wikiName)
+	repoDefaultWikiFormat := ctx.Repo.Repository.DefaultWikiFormat
+	gitFilename := wiki_service.WebPathToGitPath(wikiName, repoDefaultWikiFormat)
 	entry, err := findEntryForFile(commit, gitFilename)
 	if err != nil && !git.IsErrNotExist(err) {
 		ctx.ServerError("findEntryForFile", err)
@@ -719,7 +720,8 @@ func WikiRaw(ctx *context.Context) {
 	}
 
 	providedWebPath := wiki_service.WebPathFromRequest(ctx.PathParamRaw("*"))
-	providedGitPath := wiki_service.WebPathToGitPath(providedWebPath)
+	repoDefaultWikiFormat := ctx.Repo.Repository.DefaultWikiFormat
+	providedGitPath := wiki_service.WebPathToGitPath(providedWebPath, repoDefaultWikiFormat)
 	var entry *git.TreeEntry
 	if commit != nil {
 		// Try to find a file with that name

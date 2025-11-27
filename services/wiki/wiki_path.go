@@ -94,7 +94,7 @@ func WebPathSegments(s WebPath) []string {
 	return a
 }
 
-func WebPathToGitPath(s WebPath) string {
+func WebPathToGitPath(s WebPath, repoDefaultWikiFormat string) string {
 	str := string(s)
 	// Accept only .md or .org directly
 	if strings.HasSuffix(str, ".md") || strings.HasSuffix(str, ".org") {
@@ -102,8 +102,11 @@ func WebPathToGitPath(s WebPath) string {
 		return util.PathJoinRelX(ret)
 	}
 
-	// Get default wiki format from global setting
-	defaultWikiFormat := setting.Repository.DefaultWikiFormat
+	// Prioritize repository's DefaultWikiFormat, fallback to global setting if empty
+	defaultWikiFormat := repoDefaultWikiFormat
+	if defaultWikiFormat == "" {
+		defaultWikiFormat = setting.Repository.DefaultWikiFormat
+	}
 
 	a := strings.Split(string(s), "/")
 	for i := range a {

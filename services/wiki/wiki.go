@@ -58,7 +58,7 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 func prepareGitPath(gitRepo *git.Repository, defaultWikiBranch string, wikiPath WebPath, defaultWikiFormat string) (bool, string, error) {
 	unescapedMd := string(wikiPath) + ".md"
 	unescapedOrg := string(wikiPath) + ".org"
-	gitPath := WebPathToGitPath(wikiPath)
+	gitPath := WebPathToGitPath(wikiPath, defaultWikiFormat)
 
 	// Build list of files to look for based on defaultWikiFormat
 	var filesToCheck []string

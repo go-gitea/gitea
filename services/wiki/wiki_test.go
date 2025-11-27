@@ -81,7 +81,7 @@ func TestWebPathToGitPath(t *testing.T) {
 		{"2000-01-02-meeting.md", "2000-01-02+meeting"},
 		{"2000-01-02 meeting.-.md", "2000-01-02%20meeting.-"},
 	} {
-		assert.Equal(t, test.Expected, WebPathToGitPath(test.WikiName))
+		assert.Equal(t, test.Expected, WebPathToGitPath(test.WikiName, "markdown"))
 	}
 }
 
@@ -129,11 +129,11 @@ func TestUserWebGitPathConsistency(t *testing.T) {
 			continue
 		}
 		webPath := UserTitleToWebPath("", userTitle)
-		gitPath := WebPathToGitPath(webPath)
+		gitPath := WebPathToGitPath(webPath, "markdown")
 
 		webPath1, _ := GitPathToWebPath(gitPath)
 		_, userTitle1 := WebPathToUserTitle(webPath1)
-		gitPath1 := WebPathToGitPath(webPath1)
+		gitPath1 := WebPathToGitPath(webPath1, "markdown")
 
 		assert.Equal(t, userTitle, userTitle1, "UserTitle for userTitle: %q", userTitle)
 		assert.Equal(t, webPath, webPath1, "WebPath for userTitle: %q", userTitle)
@@ -173,7 +173,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			defer gitRepo.Close()
 			masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
 			assert.NoError(t, err)
-			gitPath := WebPathToGitPath(webPath)
+			gitPath := WebPathToGitPath(webPath, repo.DefaultWikiFormat)
 			entry, err := masterTree.GetTreeEntryByPath(gitPath)
 			assert.NoError(t, err)
 			assert.Equal(t, gitPath, entry.Name(), "%s not added correctly", userTitle)
@@ -218,7 +218,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		assert.NoError(t, err)
 		masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
 		assert.NoError(t, err)
-		gitPath := WebPathToGitPath(webPath)
+		gitPath := WebPathToGitPath(webPath, repo.DefaultWikiFormat)
 		entry, err := masterTree.GetTreeEntryByPath(gitPath)
 		assert.NoError(t, err)
 		assert.Equal(t, gitPath, entry.Name(), "%s not edited correctly", newWikiName)
@@ -244,7 +244,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	defer gitRepo.Close()
 	masterTree, err := gitRepo.GetTree(repo.DefaultWikiBranch)
 	assert.NoError(t, err)
-	gitPath := WebPathToGitPath("Home")
+	gitPath := WebPathToGitPath("Home", repo.DefaultWikiFormat)
 	_, err = masterTree.GetTreeEntryByPath(gitPath)
 	assert.Error(t, err)
 }
