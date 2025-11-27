@@ -524,9 +524,6 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeCode)
 	}
 
-	if form.EnableWiki && form.DefaultWikiFormat {
-	}
-
 	if form.EnableWiki && form.EnableExternalWiki && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 		if !validation.IsValidExternalURL(form.ExternalWikiURL) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
@@ -554,6 +551,18 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		if err := wiki_service.ChangeDefaultWikiBranch(ctx, repo, form.DefaultWikiBranch); err != nil {
 			log.Error("ChangeDefaultWikiBranch failed, err: %v", err)
 			ctx.Flash.Warning(ctx.Tr("repo.settings.failed_to_change_default_wiki_branch"))
+		}
+	}
+
+	// Update DefaultWikiFormat if wiki is enabled
+	if form.EnableWiki && !form.EnableExternalWiki {
+		defaultWikiFormat := form.DefaultWikiFormat
+		if defaultWikiFormat == "" {
+			defaultWikiFormat = setting.Repository.DefaultWikiFormat
+		}
+		if repo.DefaultWikiFormat != defaultWikiFormat {
+			repo.DefaultWikiFormat = defaultWikiFormat
+			repoChanged = true
 		}
 	}
 

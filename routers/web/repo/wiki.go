@@ -215,12 +215,31 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.ServerError("ListEntries", err)
 		return nil, nil
 	}
+
+	// Get default wiki format from repository, using global setting as fallback
+	defaultWikiFormat := ctx.Repo.Repository.DefaultWikiFormat
+	if defaultWikiFormat == "" {
+		defaultWikiFormat = setting.Repository.DefaultWikiFormat
+	}
+
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
 		if !entry.IsRegular() {
 			continue
 		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
+		entryName := entry.Name()
+
+		// Filter by DefaultWikiFormat
+		hasMdSuffix := strings.HasSuffix(entryName, ".md")
+		hasOrgSuffix := strings.HasSuffix(entryName, ".org")
+		if defaultWikiFormat == "markdown" && hasOrgSuffix {
+			continue
+		}
+		if defaultWikiFormat == "org" && hasMdSuffix {
+			continue
+		}
+
+		wikiName, err := wiki_service.GitPathToWebPath(entryName)
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
@@ -234,7 +253,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		pages = append(pages, PageMeta{
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Name(),
+			GitEntryName: entryName,
 		})
 	}
 	ctx.Data["Pages"] = pages
