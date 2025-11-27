@@ -18,7 +18,7 @@ var SessionConfig = struct {
 	OriginalProvider string
 	Provider         string
 	// Provider configuration, it's corresponding to provider.
-	ProviderConfig string
+	ProviderConfig util.SensitiveURLString
 	// Cookie name to save session ID. Default is "MacaronSession".
 	CookieName string
 	// Cookie path to store. Default is "/".
@@ -44,10 +44,10 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("session")
 	SessionConfig.Provider = sec.Key("PROVIDER").In("memory",
 		[]string{"memory", "file", "redis", "mysql", "postgres", "couchbase", "memcache", "db"})
-	SessionConfig.ProviderConfig = strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(filepath.Join(AppDataPath, "sessions")), "\" ")
-	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig) {
-		SessionConfig.ProviderConfig = filepath.Join(AppWorkPath, SessionConfig.ProviderConfig)
-		checkOverlappedPath("[session].PROVIDER_CONFIG", SessionConfig.ProviderConfig)
+	SessionConfig.ProviderConfig = util.SensitiveURLString(strings.Trim(sec.Key("PROVIDER_CONFIG").MustString(filepath.Join(AppDataPath, "sessions")), "\" "))
+	if SessionConfig.Provider == "file" && !filepath.IsAbs(SessionConfig.ProviderConfig.String()) {
+		SessionConfig.ProviderConfig = util.SensitiveURLString(filepath.Join(AppWorkPath, SessionConfig.ProviderConfig.String()))
+		checkOverlappedPath("[session].PROVIDER_CONFIG", SessionConfig.ProviderConfig.String())
 	}
 	SessionConfig.CookieName = sec.Key("COOKIE_NAME").MustString("i_like_gitea")
 	// HINT: INSTALL-PAGE-COOKIE-INIT: the cookie system is not properly initialized on the Install page, so there is no CookiePath
@@ -69,7 +69,7 @@ func loadSessionFrom(rootCfg ConfigProvider) {
 	if err != nil {
 		log.Fatal("Can't shadow session config: %v", err)
 	}
-	SessionConfig.ProviderConfig = string(shadowConfig)
+	SessionConfig.ProviderConfig = util.SensitiveURLString(shadowConfig)
 	SessionConfig.OriginalProvider = SessionConfig.Provider
 	SessionConfig.Provider = "VirtualSession"
 }
