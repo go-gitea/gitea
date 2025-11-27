@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
+	version "github.com/hashicorp/go-version"
 )
 
 // GenerateReleaseNotesOptions describes how to build release notes content.
@@ -223,6 +224,8 @@ func findPreviousPublishedReleaseTag(ctx context.Context, repo *repo_model.Repos
 
 func findPreviousTagName(tags []*git.Tag, target string) (string, bool) {
 	foundTarget := false
+	targetVersion := parseSemanticVersion(target)
+
 	for _, tag := range tags {
 		name := strings.TrimSpace(tag.Name)
 		if strings.EqualFold(name, target) {
@@ -230,6 +233,11 @@ func findPreviousTagName(tags []*git.Tag, target string) (string, bool) {
 			continue
 		}
 		if foundTarget {
+			if targetVersion != nil {
+				if candidateVersion := parseSemanticVersion(name); candidateVersion != nil && candidateVersion.GreaterThan(targetVersion) {
+					continue
+				}
+			}
 			return name, true
 		}
 	}
@@ -237,6 +245,17 @@ func findPreviousTagName(tags []*git.Tag, target string) (string, bool) {
 		return strings.TrimSpace(tags[0].Name), true
 	}
 	return "", false
+}
+
+func parseSemanticVersion(tag string) *version.Version {
+	tag = strings.TrimSpace(tag)
+	tag = strings.TrimPrefix(tag, "v")
+	tag = strings.TrimPrefix(tag, "V")
+	v, err := version.NewVersion(tag)
+	if err != nil {
+		return nil
+	}
+	return v
 }
 
 func findInitialCommit(commit *git.Commit) (*git.Commit, error) {

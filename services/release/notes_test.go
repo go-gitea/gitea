@@ -118,6 +118,34 @@ func TestFindPreviousTagName(t *testing.T) {
 
 	_, ok = findPreviousTagName([]*git.Tag{}, "v1.0.0")
 	assert.False(t, ok)
+
+	t.Run("skips newer maintenance tags on older release line for latest release", func(t *testing.T) {
+		tags := []*git.Tag{
+			{Name: "v1.1.4"},
+			{Name: "v1.2.0"},
+			{Name: "v1.1.3"},
+			{Name: "v1.1.1"},
+			{Name: "v1.1.0"},
+		}
+
+		prev, ok := findPreviousTagName(tags, "v1.2.0")
+		require.True(t, ok)
+		assert.Equal(t, "v1.1.3", prev)
+	})
+
+	t.Run("maintenance release picks previous tag in same line", func(t *testing.T) {
+		tags := []*git.Tag{
+			{Name: "v1.1.4"},
+			{Name: "v1.2.0"},
+			{Name: "v1.1.3"},
+			{Name: "v1.1.1"},
+			{Name: "v1.1.0"},
+		}
+
+		prev, ok := findPreviousTagName(tags, "v1.1.4")
+		require.True(t, ok)
+		assert.Equal(t, "v1.1.3", prev)
+	})
 }
 
 func createMergedPullRequest(t *testing.T, repo *repo_model.Repository, mergeCommit string, posterID int64) *issues_model.PullRequest {
