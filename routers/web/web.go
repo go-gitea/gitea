@@ -267,11 +267,7 @@ func Routes() *web.Router {
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	if sessionMid, err := common.Sessioner(); err == nil && sessionMid != nil {
-		mid = append(mid, sessionMid, context.Contexter())
-	} else {
-		log.Fatal("common.Sessioner failed: %v", err)
-	}
+	mid = append(mid, common.MustInitSessioner(), context.Contexter())
 
 	// Get user from session if logged in.
 	mid = append(mid, webAuth(buildAuthGroup()))
