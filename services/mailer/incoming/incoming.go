@@ -221,7 +221,7 @@ loop:
 			err := func() error {
 				r := msg.GetBody(section)
 				if r == nil {
-					return fmt.Errorf("could not get body from message: %w", err)
+					return fmt.Errorf("could not get body from message")
 				}
 
 				env, err := enmime.ReadEnvelope(r)
