@@ -63,7 +63,7 @@
 					data-tooltip-content="{{if .CanCopyContent}}{{ctx.Locale.Tr "copy_content"}}{{else}}{{ctx.Locale.Tr "copy_type_unsupported"}}{{end}}"
 				>{{svg "octicon-copy"}}</a>
 				{{if .EnableFeed}}
-				<a class="btn-octicon" href="{{$.RepoLink}}/rss/{{$.RefTypeNameSubURL}}/{{PathEscapeSegments .TreePath}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
+				<a class="btn-octicon" href="{{$.RepoLink}}/rss/branch/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">
 					{{svg "octicon-rss"}}
 				</a>
 				{{end}}
