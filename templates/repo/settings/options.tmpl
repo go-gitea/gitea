@@ -337,6 +337,34 @@
 							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
 							<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
 						</div>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_format"}}</label>
+							{{$defaultWikiFormat := .Repository.DefaultWikiFormat}}
+							<div class="ui dropdown selection">
+								<select name="default_wiki_format">
+									<option value="markdown" {{if or (not $defaultWikiFormat) (eq $defaultWikiFormat "markdown")}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.default_wiki_format.markdown"}}</option>
+									<option value="org" {{if eq $defaultWikiFormat "org"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.default_wiki_format.org"}}</option>
+									<option value="both" {{if eq $defaultWikiFormat "both"}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.default_wiki_format.both"}}</option>
+								</select>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="default text">
+									{{if (eq $defaultWikiFormat "markdown")}}
+										{{ctx.Locale.Tr "repo.settings.default_wiki_format.markdown"}}
+									{{else if (eq $defaultWikiFormat "org")}}
+										{{ctx.Locale.Tr "repo.settings.default_wiki_format.org"}}
+									{{else if (eq $defaultWikiFormat "both")}}
+										{{ctx.Locale.Tr "repo.settings.default_wiki_format.both"}}
+									{{else}}
+										{{ctx.Locale.Tr "repo.settings.default_wiki_format.markdown"}}
+									{{end}}
+								</div>
+								<div class="menu">
+									<div class="item" data-value="markdown">{{ctx.Locale.Tr "repo.settings.default_wiki_format.markdown"}}</div>
+									<div class="item" data-value="org">{{ctx.Locale.Tr "repo.settings.default_wiki_format.org"}}</div>
+									<div class="item" data-value="both">{{ctx.Locale.Tr "repo.settings.default_wiki_format.both"}}</div>
+								</div>
+							</div>
+						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox{{if $isExternalWikiGlobalDisabled}} disabled{{end}}"{{if $isExternalWikiGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
