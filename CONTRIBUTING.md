@@ -166,19 +166,19 @@ Here's how to run the test suite:
 
 - code lint
 
-|                       |                                                                   |
-| :-------------------- | :---------------------------------------------------------------- |
+|                       |                                                                              |
+| :-------------------- | :--------------------------------------------------------------------------- |
 |``make lint``          | lint everything (not needed if you only change the front- **or** backend)    |
-|``make lint-frontend`` | lint frontend files  |
-|``make lint-backend``  | lint backend files   |
+|``make lint-frontend`` | lint frontend files                                                          |
+|``make lint-backend``  | lint backend files                                                           |
 
 - run tests (we suggest running them on Linux)
 
-|  Command                               | Action                                           |              |
-| :------------------------------------- | :----------------------------------------------- | ------------ |
-|``make test[\#SpecificTestName]``       |  run unit test(s)  | |
-|``make test-sqlite[\#SpecificTestName]``|  run [integration](tests/integration) test(s) for SQLite |[More details](tests/integration/README.md)  |
-|``make test-e2e-sqlite[\#SpecificTestName]``|  run [end-to-end](tests/e2e) test(s) for SQLite |[More details](tests/e2e/README.md)  |
+|  Command                                    | Action                                                   |                                             |
+| :------------------------------------------ | :------------------------------------------------------- | ------------------------------------------- |
+|``make test[\#SpecificTestName]``            |  run unit test(s)                                        |                                             |
+|``make test-sqlite[\#SpecificTestName]``     |  run [integration](tests/integration) test(s) for SQLite | [More details](tests/integration/README.md) |
+|``make test-e2e-sqlite[\#SpecificTestName]`` |  run [end-to-end](tests/e2e) test(s) for SQLite          | [More details](tests/e2e/README.md)         |
 
 ## Translation
 
