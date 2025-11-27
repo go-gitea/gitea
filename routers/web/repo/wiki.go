@@ -153,26 +153,50 @@ func wikiEntryByName(ctx *context.Context, commit *git.Commit, wikiName wiki_ser
 		return nil, "", false, false
 	}
 	if entry == nil {
-		// If .md file not found, try .org file
-		if base, ok := strings.CutSuffix(gitFilename, ".md"); ok {
-			orgFilename := base + ".org"
-			entry, err = findEntryForFile(commit, orgFilename)
-			if err != nil && !git.IsErrNotExist(err) {
-				ctx.ServerError("findEntryForFile", err)
-				return nil, "", false, false
-			}
-			if entry != nil {
-				gitFilename = orgFilename
+		// Get default wiki format from repository, using global setting as fallback
+		defaultWikiFormat := ctx.Repo.Repository.DefaultWikiFormat
+		if defaultWikiFormat == "" {
+			defaultWikiFormat = setting.Repository.DefaultWikiFormat
+		}
+
+		// Check if gitFilename already has .md or .org extension and extract base filename
+		baseFilename, hasMdSuffix := strings.CutSuffix(gitFilename, ".md")
+		var hasOrgSuffix bool
+		if !hasMdSuffix {
+			baseFilename, hasOrgSuffix = strings.CutSuffix(gitFilename, ".org")
+			if !hasOrgSuffix {
+				baseFilename = gitFilename
 			}
 		}
-		// If still not found, check if the file without extension exists (for raw files)
-		if entry == nil {
-			baseFilename := gitFilename
-			if base, ok := strings.CutSuffix(baseFilename, ".md"); ok {
-				baseFilename = base
-			} else if base, ok := strings.CutSuffix(baseFilename, ".org"); ok {
-				baseFilename = base
+
+		// Try alternative formats based on DefaultWikiFormat setting
+		if defaultWikiFormat == "markdown" || defaultWikiFormat == "both" {
+			if !hasMdSuffix && !hasOrgSuffix {
+				entry, err = findEntryForFile(commit, baseFilename+".md")
+				if err != nil && !git.IsErrNotExist(err) {
+					ctx.ServerError("findEntryForFile", err)
+					return nil, "", false, false
+				}
+				if entry != nil {
+					gitFilename = baseFilename + ".md"
+				}
 			}
+		}
+
+		if entry == nil && (defaultWikiFormat == "org" || defaultWikiFormat == "both") {
+			if !hasMdSuffix && !hasOrgSuffix {
+				entry, err = findEntryForFile(commit, baseFilename+".org")
+				if err != nil && !git.IsErrNotExist(err) {
+					ctx.ServerError("findEntryForFile", err)
+					return nil, "", false, false
+				}
+				if entry != nil {
+					gitFilename = baseFilename + ".org"
+				}
+			}
+		}
+
+		if entry == nil {
 			entry, err = findEntryForFile(commit, baseFilename)
 			if err != nil && !git.IsErrNotExist(err) {
 				ctx.ServerError("findEntryForFile", err)
@@ -638,12 +662,30 @@ func WikiPages(ctx *context.Context) {
 		return
 	}
 
+	// Get default wiki format from repository, using global setting as fallback
+	defaultWikiFormat := ctx.Repo.Repository.DefaultWikiFormat
+	if defaultWikiFormat == "" {
+		defaultWikiFormat = setting.Repository.DefaultWikiFormat
+	}
+
 	pages := make([]PageMeta, 0, len(entries))
 	for _, entry := range entries {
 		if !entry.Entry.IsRegular() {
 			continue
 		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Entry.Name())
+		entryName := entry.Entry.Name()
+
+		// Filter by DefaultWikiFormat
+		hasMdSuffix := strings.HasSuffix(entryName, ".md")
+		hasOrgSuffix := strings.HasSuffix(entryName, ".org")
+		if defaultWikiFormat == "markdown" && hasOrgSuffix {
+			continue
+		}
+		if defaultWikiFormat == "org" && hasMdSuffix {
+			continue
+		}
+
+		wikiName, err := wiki_service.GitPathToWebPath(entryName)
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
@@ -655,7 +697,7 @@ func WikiPages(ctx *context.Context) {
 		pages = append(pages, PageMeta{
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Entry.Name(),
+			GitEntryName: entryName,
 			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Author.When.Unix()),
 		})
 	}
@@ -688,17 +730,36 @@ func WikiRaw(ctx *context.Context) {
 		}
 
 		if entry == nil {
-			// Try to find a wiki page with that name (check both .md and .org)
-			providedGitPath := strings.TrimSuffix(providedGitPath, ".md")
-			// Try .org version
-			orgPath := providedGitPath + ".org"
-			entry, err = findEntryForFile(commit, orgPath)
-			if err != nil && !git.IsErrNotExist(err) {
-				ctx.ServerError("findFile", err)
-				return
+			// Get default wiki format from repository, using global setting as fallback
+			defaultWikiFormat := ctx.Repo.Repository.DefaultWikiFormat
+			if defaultWikiFormat == "" {
+				defaultWikiFormat = setting.Repository.DefaultWikiFormat
 			}
+
+			// Try to find a wiki page with that name based on DefaultWikiFormat
+			basePath, _ := strings.CutSuffix(providedGitPath, ".md")
+			if basePath == providedGitPath {
+				basePath, _ = strings.CutSuffix(providedGitPath, ".org")
+			}
+
+			if defaultWikiFormat == "markdown" || defaultWikiFormat == "both" {
+				entry, err = findEntryForFile(commit, basePath+".md")
+				if err != nil && !git.IsErrNotExist(err) {
+					ctx.ServerError("findFile", err)
+					return
+				}
+			}
+
+			if entry == nil && (defaultWikiFormat == "org" || defaultWikiFormat == "both") {
+				entry, err = findEntryForFile(commit, basePath+".org")
+				if err != nil && !git.IsErrNotExist(err) {
+					ctx.ServerError("findFile", err)
+					return
+				}
+			}
+
 			if entry == nil {
-				entry, err = findEntryForFile(commit, providedGitPath)
+				entry, err = findEntryForFile(commit, basePath)
 				if err != nil && !git.IsErrNotExist(err) {
 					ctx.ServerError("findFile", err)
 					return
