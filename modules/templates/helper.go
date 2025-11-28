@@ -139,6 +139,9 @@ func NewFuncMap() template.FuncMap {
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
 		},
+		"ReverseProxyLogoutRedirect": func() string {
+			return setting.ReverseProxyLogoutRedirect
+		},
 
 		// -----------------------------------------------------------------
 		// render

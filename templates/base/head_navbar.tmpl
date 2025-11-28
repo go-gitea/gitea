@@ -55,7 +55,9 @@
 					</div>
 
 					<div class="divider"></div>
-					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
+					<a class="item {{if not ReverseProxyLogoutRedirect}}link-action{{end}}"
+					{{if ReverseProxyLogoutRedirect}}href="{{ReverseProxyLogoutRedirect}}"
+					{{else}}href data-url="{{AppSubUrl}}/user/logout"{{end}}>
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>
@@ -128,7 +130,9 @@
 					</a>
 					{{end}}
 					<div class="divider"></div>
-					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
+					<a class="item {{if not ReverseProxyLogoutRedirect}}link-action{{end}}"
+					{{if ReverseProxyLogoutRedirect}}href="{{ReverseProxyLogoutRedirect}}"
+					{{else}}href data-url="{{AppSubUrl}}/user/logout"{{end}}>
 						{{svg "octicon-sign-out"}}
 						{{ctx.Locale.Tr "sign_out"}}
 					</a>

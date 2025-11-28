@@ -416,6 +416,10 @@ func SignOut(ctx *context.Context) {
 		})
 	}
 	HandleSignOut(ctx)
+	if ctx.Req.Method == http.MethodGet {
+		ctx.Redirect(setting.AppSubURL + "/")
+		return
+	}
 	ctx.JSONRedirect(setting.AppSubURL + "/")
 }
 
