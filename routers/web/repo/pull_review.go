@@ -331,7 +331,7 @@ func UpdateViewedFiles(ctx *context.Context) {
 		updatedFiles[file] = state
 	}
 
-	if err := pull_model.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
+	if _, err := pull_model.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
 		ctx.ServerError("UpdateReview", err)
 	}
 }
