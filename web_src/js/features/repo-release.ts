@@ -2,6 +2,7 @@ import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {hideElem, showElem, type DOMEvent} from '../utils/dom.ts';
+import {fomanticQuery} from "../modules/fomantic/base.ts";
 
 export function initRepoRelease() {
   document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
@@ -15,7 +16,7 @@ export function initRepoRelease() {
 }
 
 export function initRepoReleaseNew() {
-  if (!document.querySelector('.repository.new.release')) return;
+  if (!document.querySelector('.repository.new.release')) return; // FIXME: edit release page also uses this class
 
   initTagNameEditor();
   initGenerateReleaseNotes();
@@ -57,7 +58,7 @@ function initGenerateReleaseNotes() {
 
   const tagNameInput = document.querySelector<HTMLInputElement>('#tag-name');
   const targetInput = document.querySelector<HTMLInputElement>("input[name='tag_target']");
-  const previousTagSelect = document.querySelector<HTMLSelectElement>('#release-previous-tag');
+  const previousTagSelect = document.querySelector<HTMLSelectElement>('[name=previous_tag]');
   const missingTagMessage = button.getAttribute('data-missing-tag-message');
   const generateUrl = button.getAttribute('data-generate-url');
 
@@ -66,33 +67,26 @@ function initGenerateReleaseNotes() {
 
     if (!tagName) {
       showErrorToast(missingTagMessage);
-      tagNameInput?.focus();
+      tagNameInput.focus();
       return;
     }
 
     const form = new URLSearchParams();
     form.set('tag_name', tagName);
-    form.set('tag_target', targetInput.value || '');
-    form.set('previous_tag', previousTagSelect.value || '');
+    form.set('tag_target', targetInput.value);
+    form.set('previous_tag', previousTagSelect.value);
 
     button.classList.add('loading', 'disabled');
     try {
-      const resp = await POST(generateUrl, {
-        data: form,
-      });
-
+      const resp = await POST(generateUrl, {data: form,});
       const data = await resp.json();
-
       if (!resp.ok) {
-        throw new Error(data.errorMessage || resp.statusText);
+        showErrorToast(data.errorMessage || resp.statusText);
+        return;
       }
-      previousTagSelect.value = data.previous_tag;
-      previousTagSelect.dispatchEvent(new Event('change', {bubbles: true}));
 
+      fomanticQuery(previousTagSelect).dropdown('set selected', data.previous_tag);
       applyGeneratedReleaseNotes(data.content);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      showErrorToast(message);
     } finally {
       button.classList.remove('loading', 'disabled');
     }
