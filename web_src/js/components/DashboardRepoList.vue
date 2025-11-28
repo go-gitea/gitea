@@ -3,6 +3,7 @@ import {nextTick, defineComponent} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {getRepoIcon} from '../utils/mappings.ts';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
@@ -283,19 +284,8 @@ export default defineComponent({
       }
     },
 
-    repoIcon(repo: any) {
-      if (repo.fork) {
-        return 'octicon-repo-forked';
-      } else if (repo.mirror) {
-        return 'octicon-mirror';
-      } else if (repo.template) {
-        return `octicon-repo-template`;
-      } else if (repo.private) {
-        return 'octicon-repo-locked';
-      } else if (repo.internal) {
-        return 'octicon-repo';
-      }
-      return 'octicon-repo';
+    repoIcon(repo: Record<string, any>) {
+      return getRepoIcon(repo);
     },
 
     statusIcon(status: CommitStatus) {

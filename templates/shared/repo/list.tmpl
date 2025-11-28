@@ -2,11 +2,7 @@
 	{{range .Repos}}
 		<div class="flex-item">
 			<div class="flex-item-leading">
-				{{if $.ShowRepoOwnerAvatar}}
-					{{ctx.AvatarUtils.Avatar .Owner 24}}
-				{{else}}
-					{{template "repo/icon" .}}
-				{{end}}
+				{{template "repo/icon" (dict "Repo" . "Size" 24 "EnableRepoAvatar" "true")}}
 			</div>
 			<div class="flex-item-main">
 				<div class="flex-item-header">
