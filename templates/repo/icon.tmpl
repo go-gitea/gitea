@@ -1,13 +1,17 @@
 {{/* Template Attributes:
 * Repo: The repo
-* EnableRepoAvatar: Enable repo avatars when non-nil
+* ShowRepoAvatar: Enable repo avatar when `true`
+* ShowRepoOwnerAvatar: Enable owner avatars when `true`
 * Size: Icon size in pixels, default is 16
 *
 * Note: Keep the icon logic in sync with web_src/js/utils/mappings.ts
 */}}
 {{$size := or .Size 16}}
 {{$avatarLink := (.Repo.RelAvatarLink ctx)}}
-{{if and $avatarLink .EnableRepoAvatar}}
+
+{{if .ShowRepoOwnerAvatar}}
+	{{ctx.AvatarUtils.Avatar .Repo.Owner 24}}
+{{else if and $avatarLink .ShowRepoAvatar}}
 	<img class="ui avatar tw-align-middle" src="{{$avatarLink}}" width="{{$size}}" height="{{$size}}" alt aria-hidden="true">
 {{else if .Repo.IsMirror}}
 	{{svg "octicon-mirror" $size}}
