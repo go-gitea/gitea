@@ -484,34 +484,10 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	return "", nil
 }
 
-// UpdateBranch moves a branch reference to the provided commit.
-func UpdateBranch(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, branchName, newCommitID, expectedOldCommitID string, force bool) error {
-	if err := repo.MustNotBeArchived(); err != nil {
-		return err
-	}
-
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
-	if err != nil {
-		return err
-	}
-	if !perm.CanWrite(unit.TypeCode) {
-		return repo_model.ErrUserDoesNotHaveAccessToRepo{
-			UserID:   doer.ID,
-			RepoName: repo.LowerName,
-		}
-	}
-
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
-	if err != nil {
-		return fmt.Errorf("OpenRepository: %w", err)
-	}
-	defer gitRepo.Close()
-
+// UpdateBranch moves a branch reference to the provided commit. permission check should be done before calling this function.
+func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, branchName, newCommitID, expectedOldCommitID string, force bool) error {
 	branchCommit, err := gitRepo.GetBranchCommit(branchName)
 	if err != nil {
-		if git.IsErrNotExist(err) {
-			return git_model.ErrBranchNotExist{RepoID: repo.ID, BranchName: branchName}
-		}
 		return err
 	}
 	currentCommitID := branchCommit.ID.String()

@@ -436,15 +436,11 @@ func UpdateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.Repo.GitRepo == nil {
-		ctx.APIErrorInternal(nil)
-		return
-	}
-
-	if err := repo_service.UpdateBranch(ctx, repo, ctx.Doer, branchName, opt.NewCommitID, opt.OldCommitID, opt.Force); err != nil {
+	// permission check has been done in api.go
+	if err := repo_service.UpdateBranch(ctx, repo, ctx.Repo.GitRepo, ctx.Doer, branchName, opt.NewCommitID, opt.OldCommitID, opt.Force); err != nil {
 		switch {
-		case git_model.IsErrBranchNotExist(err):
-			ctx.APIError(http.StatusNotFound, "Branch doesn't exist.")
+		case git.IsErrNotExist(err):
+			ctx.APIError(http.StatusUnprocessableEntity, err)
 		case repo_service.IsErrBranchCommitDoesNotMatch(err):
 			ctx.APIError(http.StatusConflict, err)
 		case git.IsErrPushOutOfDate(err):
@@ -452,10 +448,6 @@ func UpdateBranch(ctx *context.APIContext) {
 		case git.IsErrPushRejected(err):
 			rej := err.(*git.ErrPushRejected)
 			ctx.APIError(http.StatusForbidden, rej.Message)
-		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
-			ctx.APIError(http.StatusForbidden, err)
-		case git.IsErrNotExist(err):
-			ctx.APIError(http.StatusUnprocessableEntity, err)
 		default:
 			ctx.APIErrorInternal(err)
 		}
