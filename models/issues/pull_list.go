@@ -14,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -328,7 +329,7 @@ func HasMergedPullRequestInRepo(ctx context.Context, repoID, posterID int64) (bo
 }
 
 // HasMergedPullRequestInRepoBefore returns whether the user has a merged PR before a timestamp (0 = no limit)
-func HasMergedPullRequestInRepoBefore(ctx context.Context, repoID, posterID, beforeUnix, excludePullID int64) (bool, error) {
+func HasMergedPullRequestInRepoBefore(ctx context.Context, repoID, posterID int64, beforeUnix timeutil.TimeStamp, excludePullID int64) (bool, error) {
 	sess := db.GetEngine(ctx).
 		Join("INNER", "pull_request", "pull_request.issue_id = issue.id").
 		Where("repo_id=?", repoID).

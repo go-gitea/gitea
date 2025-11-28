@@ -58,7 +58,7 @@ function initGenerateReleaseNotes() {
   const tagNameInput = document.querySelector<HTMLInputElement>('#tag-name');
   const targetInput = document.querySelector<HTMLInputElement>("input[name='tag_target']");
   const previousTagSelect = document.querySelector<HTMLSelectElement>('#release-previous-tag');
-  const missingTagMessage = button.getAttribute('data-missing-tag-message') || 'Tag name is required';
+  const missingTagMessage = button.getAttribute('data-missing-tag-message');
   const generateUrl = button.getAttribute('data-generate-url');
 
   button.addEventListener('click', async () => {

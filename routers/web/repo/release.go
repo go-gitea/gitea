@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -409,10 +408,7 @@ func GenerateReleaseNotes(ctx *context.Context) {
 		if errTr := util.ErrorAsTranslatable(err); errTr != nil {
 			ctx.JSONError(errTr.Translate(ctx.Locale))
 		} else {
-			log.Error("GenerateReleaseNotes: %v", err)
-			ctx.JSON(http.StatusInternalServerError, map[string]any{
-				"errorMessage": ctx.Tr("error.occurred"),
-			})
+			ctx.ServerError("GenerateReleaseNotes", err)
 		}
 		return
 	}

@@ -33,49 +33,12 @@ type GenerateReleaseNotesResult struct {
 	PreviousTag string
 }
 
-// ErrReleaseNotesTagNotFound indicates a requested tag does not exist in git.
-type ErrReleaseNotesTagNotFound struct {
-	TagName string
-}
-
-func (err ErrReleaseNotesTagNotFound) Error() string {
-	return fmt.Sprintf("tag %q not found", err.TagName)
-}
-
-func (err ErrReleaseNotesTagNotFound) Unwrap() error {
-	return util.ErrNotExist
-}
-
 func newErrReleaseNotesTagNotFound(tagName string) error {
-	return util.ErrorWrapTranslatable(ErrReleaseNotesTagNotFound{TagName: tagName}, "repo.release.generate_notes_tag_not_found", tagName)
-}
-
-// ErrReleaseNotesNoBaseTag indicates there is no tag to diff against.
-type ErrReleaseNotesNoBaseTag struct{}
-
-func (err ErrReleaseNotesNoBaseTag) Error() string {
-	return "no previous tag found for release notes"
-}
-
-func (err ErrReleaseNotesNoBaseTag) Unwrap() error {
-	return util.ErrNotExist
-}
-
-// ErrReleaseNotesTargetNotFound indicates the release target ref cannot be resolved.
-type ErrReleaseNotesTargetNotFound struct {
-	Ref string
-}
-
-func (err ErrReleaseNotesTargetNotFound) Error() string {
-	return fmt.Sprintf("release target %q not found", err.Ref)
-}
-
-func (err ErrReleaseNotesTargetNotFound) Unwrap() error {
-	return util.ErrNotExist
+	return util.ErrorWrapTranslatable(util.NewNotExistErrorf("tag %q not found", tagName), "repo.release.generate_notes_tag_not_found", tagName)
 }
 
 func newErrReleaseNotesTargetNotFound(ref string) error {
-	return util.ErrorWrapTranslatable(ErrReleaseNotesTargetNotFound{Ref: ref}, "repo.release.generate_notes_target_not_found", ref)
+	return util.ErrorWrapTranslatable(util.NewNotExistErrorf("release target %q not found", ref), "repo.release.generate_notes_target_not_found", ref)
 }
 
 // GenerateReleaseNotes builds the markdown snippet for release notes.
@@ -375,7 +338,7 @@ func collectContributors(ctx context.Context, repoID int64, prs []*issues_model.
 }
 
 func isFirstContribution(ctx context.Context, repoID, posterID int64, pr *issues_model.PullRequest) (bool, error) {
-	hasMergedBefore, err := issues_model.HasMergedPullRequestInRepoBefore(ctx, repoID, posterID, int64(pr.MergedUnix), pr.ID)
+	hasMergedBefore, err := issues_model.HasMergedPullRequestInRepoBefore(ctx, repoID, posterID, pr.MergedUnix, pr.ID)
 	if err != nil {
 		return false, fmt.Errorf("check merged PRs for contributor: %w", err)
 	}
