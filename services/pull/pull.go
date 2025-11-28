@@ -427,9 +427,15 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 				for _, pr := range headBranchPRs {
 					objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 					if opts.NewCommitID != "" && opts.NewCommitID != objectFormat.EmptyObjectID().String() {
-						changed, err := checkIfPRContentChanged(ctx, pr, opts.OldCommitID, opts.NewCommitID)
+						changed, newMergeBase, err := checkIfPRContentChanged(ctx, pr, opts.OldCommitID, opts.NewCommitID)
 						if err != nil {
 							log.Error("checkIfPRContentChanged: %v", err)
+						}
+						if newMergeBase != "" && pr.MergeBase != newMergeBase {
+							pr.MergeBase = newMergeBase
+							if _, err := pr.UpdateColsIfNotMerged(ctx, "merge_base"); err != nil {
+								log.Error("Update merge base for %-v: %v", pr, err)
+							}
 						}
 						if changed {
 							// Mark old reviews as stale if diff to mergebase has changed
@@ -496,30 +502,30 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
-func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
+func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, mergeBase string, err error) {
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr) // FIXME: why it still needs to create a temp repo, since the alongside calls like GetDiverging doesn't do so anymore
 	if err != nil {
 		log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
-		return false, err
+		return false, "", err
 	}
 	defer cancel()
 
 	tmpRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
-		return false, fmt.Errorf("OpenRepository: %w", err)
+		return false, "", fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer tmpRepo.Close()
 
 	// Find the merge-base
-	_, base, err := tmpRepo.GetMergeBase("", "base", "tracking")
+	mergeBase, _, err = tmpRepo.GetMergeBase("", "base", "tracking")
 	if err != nil {
-		return false, fmt.Errorf("GetMergeBase: %w", err)
+		return false, "", fmt.Errorf("GetMergeBase: %w", err)
 	}
 
-	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
+	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, mergeBase)
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		return false, fmt.Errorf("unable to open pipe for to run diff: %w", err)
+		return false, mergeBase, fmt.Errorf("unable to open pipe for to run diff: %w", err)
 	}
 
 	stderr := new(bytes.Buffer)
@@ -535,19 +541,19 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		}).
 		Run(ctx); err != nil {
 		if err == util.ErrNotEmpty {
-			return true, nil
+			return true, mergeBase, nil
 		}
 		err = gitcmd.ConcatenateError(err, stderr.String())
 
 		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
-			newCommitID, oldCommitID, base,
+			newCommitID, oldCommitID, mergeBase,
 			pr.ID, pr.BaseRepo.FullName(), pr.BaseBranch, pr.HeadRepo.FullName(), pr.HeadBranch,
 			err)
 
-		return false, fmt.Errorf("Unable to run git diff --name-only -z %s %s %s: %w", newCommitID, oldCommitID, base, err)
+		return false, mergeBase, fmt.Errorf("Unable to run git diff --name-only -z %s %s %s: %w", newCommitID, oldCommitID, mergeBase, err)
 	}
 
-	return false, nil
+	return false, mergeBase, nil
 }
 
 // PushToBaseRepo pushes commits from branches of head repository to
