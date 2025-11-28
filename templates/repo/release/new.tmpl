@@ -15,12 +15,14 @@
 		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="ui seven wide target">
-				<div class="inline field {{if .Err_TagName}}error{{end}}">
-					{{if .PageIsEditRelease}}
-						<input id="tag-name" type="hidden" name="tag_name" value="{{.tag_name}}">
-						<input type="hidden" name="tag_target" value="{{.tag_target}}">
+				{{if .PageIsEditRelease}}
+					<input id="tag-name" type="hidden" name="tag_name" value="{{.tag_name}}">
+					<input type="hidden" name="tag_target" value="{{.tag_target}}">
+					<div class="inline field">
 						<b>{{.tag_name}}</b><span class="at">@</span><strong>{{.tag_target}}</strong>
-					{{else}}
+					</div>
+				{{else}}
+					<div class="inline field {{if .Err_TagName}}error{{end}}">
 						<input id="tag-name" name="tag_name" value="{{.tag_name}}" aria-label="{{ctx.Locale.Tr "repo.release.tag_name"}}" placeholder="{{ctx.Locale.Tr "repo.release.tag_name"}}" autofocus required maxlength="255">
 						<input id="tag-name-editor" type="hidden" data-existing-tags="{{JsonUtils.EncodeToString .Tags}}" data-tag-helper="{{ctx.Locale.Tr "repo.release.tag_helper"}}" data-tag-helper-new="{{ctx.Locale.Tr "repo.release.tag_helper_new"}}" data-tag-helper-existing="{{ctx.Locale.Tr "repo.release.tag_helper_existing"}}">
 						<div id="tag-target-selector" class="tw-inline-block">
@@ -43,15 +45,15 @@
 						<div>
 							<span id="tag-helper" class="help tw-mt-2 tw-pb-0">{{ctx.Locale.Tr "repo.release.tag_helper"}}</span>
 						</div>
-					{{end}}
-				</div>
+					</div>
+				{{end}}
 			</div>
 			<div class="eleven wide tw-pt-0">
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<input name="title" aria-label="{{ctx.Locale.Tr "repo.release.title"}}" placeholder="{{ctx.Locale.Tr "repo.release.title"}}" value="{{.title}}" autofocus maxlength="255">
 				</div>
 				<div class="field flex-text-block">
-					<label class="flex-text-inline tw-font-semibold">{{ctx.Locale.Tr "repo.release.previous_tag"}}</label>
+					<label class="flex-text-inline"><b>{{ctx.Locale.Tr "repo.release.previous_tag"}}</b></label>
 					<select name="previous_tag" class="ui selection dropdown tw-w-[16rem] max-lg:tw-w-full">
 						<option value="">{{ctx.Locale.Tr "repo.release.previous_tag_auto"}}</option>
 						{{range .Tags}}
