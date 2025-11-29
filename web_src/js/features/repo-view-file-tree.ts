@@ -2,7 +2,6 @@ import {createApp} from 'vue';
 import {toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import ViewFileTree from '../components/ViewFileTree.vue';
-import RepoFileSearch from '../components/RepoFileSearch.vue';
 import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
@@ -23,18 +22,6 @@ async function toggleSidebar(btn: HTMLElement) {
 }
 
 export async function initRepoViewFileTree() {
-  // FIXME: "repo-file-search-container" doesn't belong to file tree
-  const fileSearchContainer = document.querySelector('.repo-file-search-container');
-  if (fileSearchContainer) {
-    createApp(RepoFileSearch, {
-      repoLink: fileSearchContainer.getAttribute('data-repo-link'),
-      currentRefNameSubURL: fileSearchContainer.getAttribute('data-current-ref-name-sub-url'),
-      treeListUrl: fileSearchContainer.getAttribute('data-tree-list-url'),
-      noResultsText: fileSearchContainer.getAttribute('data-no-results-text'),
-      placeholder: fileSearchContainer.getAttribute('data-placeholder'),
-    }).mount(fileSearchContainer);
-  }
-
   const sidebar = document.querySelector<HTMLElement>('.repo-view-file-tree-container');
   const repoViewContent = document.querySelector('.repo-view-content');
   if (!sidebar || !repoViewContent) return;
