@@ -21,11 +21,6 @@ var (
 	InternalToken                      string // internal access token
 	LogInRememberDays                  int
 	CookieRememberName                 string
-	ReverseProxyAuthUser               string
-	ReverseProxyAuthEmail              string
-	ReverseProxyAuthFullName           string
-	ReverseProxyLimit                  int
-	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
 	ImportLocalPaths                   bool
 	DisableGitHooks                    = true
@@ -115,16 +110,6 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	}
 
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
-
-	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
-	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
-	ReverseProxyAuthFullName = sec.Key("REVERSE_PROXY_AUTHENTICATION_FULL_NAME").MustString("X-WEBAUTH-FULLNAME")
-
-	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
-	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
-	if len(ReverseProxyTrustedProxies) == 0 {
-		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
-	}
 
 	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(8)
 	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)

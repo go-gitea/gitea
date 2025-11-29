@@ -28,8 +28,8 @@ func ProtocolMiddlewares() (handlers []any) {
 	handlers = append(handlers, ChiRoutePathHandler())   // make sure chi has correct paths
 	handlers = append(handlers, RequestContextHandler()) //	prepare the context and panic recovery
 
-	if setting.ReverseProxyLimit > 0 && len(setting.ReverseProxyTrustedProxies) > 0 {
-		handlers = append(handlers, ForwardedHeadersHandler(setting.ReverseProxyLimit, setting.ReverseProxyTrustedProxies))
+	if setting.ReverseProxy.Limit > 0 && len(setting.ReverseProxy.TrustedProxies) > 0 {
+		handlers = append(handlers, ForwardedHeadersHandler(setting.ReverseProxy.Limit, setting.ReverseProxy.TrustedProxies))
 	}
 
 	if setting.IsRouteLogEnabled() {
