@@ -339,7 +339,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		req := NewRequest(t, "GET", path.Join(owner, repo))
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		AssertHTMLElement(t, htmlDoc, ".repo-button-row-right button:contains('Add File')", 1)
+		AssertHTMLElement(t, htmlDoc, ".repo-add-file", 1)
 
 		// attempt to edit a file, see the guideline page
 		req = NewRequest(t, "GET", path.Join(owner, repo, operation, branch, filePath))

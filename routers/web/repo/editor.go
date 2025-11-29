@@ -395,7 +395,7 @@ func DeleteFilePost(ctx *context.Context) {
 
 	treePath := ctx.Repo.TreePath
 	if treePath == "" {
-		ctx.JSONError(ctx.Tr("repo.editor.cannot_delete_root"))
+		ctx.JSONError("cannot delete root directory") // it should not happen unless someone is trying to be malicious
 		return
 	}
 

@@ -78,7 +78,7 @@
 					{{$addFilePath = ""}}
 				{{end}}
 			{{end}}
-			<button class="ui dropdown basic compact jump button" {{if not .Repository.CanEnableEditor}}disabled{{end}}>
+			<button class="ui dropdown basic compact jump button repo-add-file" {{if not .Repository.CanEnableEditor}}disabled{{end}}>
 				{{ctx.Locale.Tr "repo.editor.add_file"}}
 				{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 				<div class="menu">
