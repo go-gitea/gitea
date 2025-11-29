@@ -241,10 +241,10 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 				if err = t.RemoveRecursivelyFromIndex(ctx, file.TreePath); err != nil {
 					return nil, err
 				}
-				continue
-			}
-			if err = t.RemoveFilesFromIndex(ctx, file.TreePath); err != nil {
-				return nil, err
+			} else {
+				if err = t.RemoveFilesFromIndex(ctx, file.TreePath); err != nil {
+					return nil, err
+				}
 			}
 		default:
 			return nil, fmt.Errorf("invalid file operation: %s %s, supported operations are create, update, delete", file.Operation, file.Options.treePath)

@@ -106,7 +106,7 @@
 					</a>
 					{{if and (.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) (not .Repository.IsArchived) (not $isTreePathRoot)}}
 						<div class="divider"></div>
-						<a class="item tw-text-red" href="{{.RepoLink}}/_delete/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+						<a class="item tw-text-danger" href="{{.RepoLink}}/_delete/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
 							{{svg "octicon-trash" 16}}{{ctx.Locale.Tr "repo.editor.delete_this_directory"}}
 						</a>
 					{{end}}

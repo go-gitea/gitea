@@ -114,7 +114,8 @@ const updatePosition = () => {
     style.left = `${docElem.scrollLeft + rectInput.x}px`;
   } else {
     // no enough space, align right from the viewport right edge minus page margin
-    style.left = `calc(${docElem.scrollLeft + docElem.getBoundingClientRect().width - rectPopup.width}px - var(--page-margin-x))`;
+    const leftPos = docElem.scrollLeft + docElem.getBoundingClientRect().width - rectPopup.width;
+    style.left = `calc(${leftPos}px - var(--page-margin-x))`;
   }
 };
 
