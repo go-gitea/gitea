@@ -127,7 +127,7 @@ func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
 	if opts.OverrideEnvelopeFrom && opts.EnvelopeFrom != "" {
 		fromAddr = opts.EnvelopeFrom
 	}
-	smtpFrom, err := sanitizeSMTPAddress(fromAddr)
+	smtpFrom, err := sanitizeEmailAddress(fromAddr)
 	if err != nil {
 		return fmt.Errorf("invalid envelope from address: %w", err)
 	}
@@ -136,7 +136,7 @@ func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
 	}
 
 	for _, rec := range to {
-		smtpTo, err := sanitizeSMTPAddress(rec)
+		smtpTo, err := sanitizeEmailAddress(rec)
 		if err != nil {
 			return fmt.Errorf("invalid recipient address %q: %w", rec, err)
 		}
@@ -162,7 +162,7 @@ func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
 	return nil
 }
 
-func sanitizeSMTPAddress(raw string) (string, error) {
+func sanitizeEmailAddress(raw string) (string, error) {
 	addr, err := mail.ParseAddress(strings.TrimSpace(strings.Trim(raw, "<>")))
 	if err != nil {
 		return "", err
