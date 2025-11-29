@@ -1,5 +1,6 @@
 import {createApp} from 'vue';
 import RepoFileSearch from '../components/RepoFileSearch.vue';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const threshold = 50;
 
@@ -67,14 +68,14 @@ export function filterRepoFilesWeighted(files: Array<string>, filter: string) {
   return filterResult;
 }
 
-export function initFindFileInRepo() {
-  const fileSearchContainer = document.querySelector('.repo-file-search-container');
-  if (!fileSearchContainer) return;
-  createApp(RepoFileSearch, {
-    repoLink: fileSearchContainer.getAttribute('data-repo-link'),
-    currentRefNameSubURL: fileSearchContainer.getAttribute('data-current-ref-name-sub-url'),
-    treeListUrl: fileSearchContainer.getAttribute('data-tree-list-url'),
-    noResultsText: fileSearchContainer.getAttribute('data-no-results-text'),
-    placeholder: fileSearchContainer.getAttribute('data-placeholder'),
-  }).mount(fileSearchContainer);
+export function initRepoFileSearch() {
+  registerGlobalInitFunc('initRepoFileSearch', (el) => {
+    createApp(RepoFileSearch, {
+      repoLink: el.getAttribute('data-repo-link'),
+      currentRefNameSubURL: el.getAttribute('data-current-ref-name-sub-url'),
+      treeListUrl: el.getAttribute('data-tree-list-url'),
+      noResultsText: el.getAttribute('data-no-results-text'),
+      placeholder: el.getAttribute('data-placeholder'),
+    }).mount(el);
+  });
 }
