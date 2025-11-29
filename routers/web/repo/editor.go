@@ -41,7 +41,12 @@ const (
 	editorCommitChoiceNewBranch string = "commit-to-new-branch"
 )
 
-func prepareEditorCommitFormOptions(ctx *context.Context, editorAction string) *context.CommitFormOptions {
+func prepareEditorPage(ctx *context.Context, editorAction string) *context.CommitFormOptions {
+	prepareHomeTreeSideBarSwitch(ctx)
+	return prepareEditorPageFormOptions(ctx, editorAction)
+}
+
+func prepareEditorPageFormOptions(ctx *context.Context, editorAction string) *context.CommitFormOptions {
 	cleanedTreePath := files_service.CleanGitTreePath(ctx.Repo.TreePath)
 	if cleanedTreePath != ctx.Repo.TreePath {
 		redirectTo := fmt.Sprintf("%s/%s/%s/%s", ctx.Repo.RepoLink, editorAction, util.PathEscapeSegments(ctx.Repo.BranchName), util.PathEscapeSegments(cleanedTreePath))
@@ -280,12 +285,10 @@ func EditFile(ctx *context.Context) {
 		return
 	}
 
-	prepareHomeTreeSideBarSwitch(ctx)
-
 	// on the "New File" page, we should add an empty path field to make end users could input a new name
 	prepareTreePathFieldsAndPaths(ctx, util.Iif(isNewFile, ctx.Repo.TreePath+"/", ctx.Repo.TreePath))
 
-	prepareEditorCommitFormOptions(ctx, editorAction)
+	prepareEditorPage(ctx, editorAction)
 	if ctx.Written() {
 		return
 	}
@@ -378,11 +381,12 @@ func EditFilePost(ctx *context.Context) {
 
 // DeleteFile render delete file page
 func DeleteFile(ctx *context.Context) {
-	prepareEditorCommitFormOptions(ctx, "_delete")
+	prepareEditorPage(ctx, "_delete")
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["PageIsDelete"] = true
+	prepareTreePathFieldsAndPaths(ctx, ctx.Repo.TreePath)
 	ctx.HTML(http.StatusOK, tplDeleteFile)
 }
 
@@ -445,9 +449,8 @@ func DeleteFilePost(ctx *context.Context) {
 
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
-	prepareHomeTreeSideBarSwitch(ctx)
 	prepareTreePathFieldsAndPaths(ctx, ctx.Repo.TreePath)
-	opts := prepareEditorCommitFormOptions(ctx, "_upload")
+	opts := prepareEditorPage(ctx, "_upload")
 	if ctx.Written() {
 		return
 	}

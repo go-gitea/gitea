@@ -4,9 +4,7 @@
 	<div class="ui container fluid padded">
 		{{template "base/alert" .}}
 		<div class="repo-view-container">
-			<div class="repo-view-file-tree-container {{if not .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}">
-				{{template "repo/view_file_tree" .}}
-			</div>
+			{{template "repo/view_file_tree" .}}
 			<div class="repo-view-content">
 				<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}"
 					data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
@@ -15,9 +13,7 @@
 					{{.CsrfTokenHtml}}
 					{{template "repo/editor/common_top" .}}
 					<div class="repo-editor-header">
-						<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
-							{{svg "octicon-sidebar-collapse"}}
-						</button>
+						{{template "repo/view_file_tree_toggle_button" .}}
 						{{template "repo/editor/common_breadcrumb" .}}
 					</div>
 					{{if not .NotEditableReason}}
