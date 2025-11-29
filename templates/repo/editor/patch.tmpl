@@ -1,41 +1,39 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository file editor edit">
 	{{template "repo/header" .}}
-	<div class="ui container fluid padded">
+	<div class="ui container">
 		{{template "base/alert" .}}
-		<div class="repo-view-container">
-			<div class="repo-view-file-tree-container {{if not .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}">
-				{{template "repo/view_file_tree" .}}
+		<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}"
+					data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
+					data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
+		>
+			{{.CsrfTokenHtml}}
+			{{template "repo/editor/common_top" .}}
+			<div class="repo-editor-header">
+				<div class="breadcrumb">
+					{{ctx.Locale.Tr "repo.editor.patching"}}
+					<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
+					<div class="breadcrumb-divider">:</div>
+					<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
+					<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
+					<input type="hidden" name="tree_path" value="__dummy_for_EditRepoFileForm.TreePath(Required)__">
+					<input id="file-name" type="hidden" value="diff.patch">
+				</div>
 			</div>
-			<div class="repo-view-content">
-				<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}" data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}" data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}">
-					{{.CsrfTokenHtml}}
-					{{template "repo/editor/common_top" .}}
-					<div class="repo-editor-header">
-						<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
-							{{svg "octicon-sidebar-collapse"}}
-						</button>
-						<div class="breadcrumb">
-							{{ctx.Locale.Tr "repo.editor.patching"}}
-							<a class="section" href="{{$.BranchLink}}">{{.BranchName}}</a>
-							<span>{{ctx.Locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}">{{ctx.Locale.Tr "repo.editor.cancel_lower"}}</a></span>
-							<input type="hidden" name="tree_path" value="__dummy_for_EditRepoFileForm.TreePath(Required)__">
-							<input id="file-name" type="hidden" value="diff.patch">
-						</div>
-					</div>
-					<div class="field">
-						<div class="ui compact small menu small-menu-items repo-editor-menu">
-							<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
-						</div>
-						<div class="ui active tab segment tw-rounded tw-p-0" data-tab="write">
-							<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch" data-context="{{.RepoLink}}" data-line-wrap-extensions="{{.LineWrapExtensions}}">{{.FileContent}}</textarea>
-							<div class="editor-loading is-loading"></div>
-						</div>
-					</div>
-					{{template "repo/editor/commit_form" .}}
-				</form>
+			<div class="field">
+				<div class="ui compact small menu small-menu-items repo-editor-menu">
+					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
+				</div>
+				<div class="ui active tab segment tw-rounded tw-p-0" data-tab="write">
+					<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
+						data-context="{{.RepoLink}}"
+						data-line-wrap-extensions="{{.LineWrapExtensions}}">
+{{.FileContent}}</textarea>
+					<div class="editor-loading is-loading"></div>
+				</div>
 			</div>
-		</div>
+			{{template "repo/editor/commit_form" .}}
+		</form>
 	</div>
 </div>
 {{template "base/footer" .}}
