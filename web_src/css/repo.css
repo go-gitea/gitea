@@ -150,58 +150,58 @@ td .commit-summary {
   }
 }
 
-.repository.file.list .non-diff-file-content .header .icon {
+.non-diff-file-content .header .icon {
   font-size: 1em;
 }
 
-.repository.file.list .non-diff-file-content .header .small.icon {
+.non-diff-file-content .header .small.icon {
   font-size: 0.75em;
 }
 
-.repository.file.list .non-diff-file-content .header .tiny.icon {
+.non-diff-file-content .header .tiny.icon {
   font-size: 0.5em;
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon {
+.non-diff-file-content .header .file-actions .btn-octicon {
   line-height: var(--line-height-default);
   padding: 8px;
   vertical-align: middle;
   color: var(--color-text);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon:hover {
+.non-diff-file-content .header .file-actions .btn-octicon:hover {
   color: var(--color-primary);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon-danger:hover {
+.non-diff-file-content .header .file-actions .btn-octicon-danger:hover {
   color: var(--color-red);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon.disabled {
+.non-diff-file-content .header .file-actions .btn-octicon.disabled {
   color: inherit;
   opacity: var(--opacity-disabled);
   cursor: default;
 }
 
-.repository.file.list .non-diff-file-content .plain-text {
+.non-diff-file-content .plain-text {
   padding: 1em 2em;
 }
 
-.repository.file.list .non-diff-file-content .plain-text pre {
+.non-diff-file-content .plain-text pre {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
-.repository.file.list .non-diff-file-content .csv {
+.non-diff-file-content .csv {
   overflow-x: auto;
   padding: 0 !important;
 }
 
-.repository.file.list .non-diff-file-content pre {
+.non-diff-file-content pre {
   overflow: auto;
 }
 
-.repository.file.list .non-diff-file-content .asciicast {
+.non-diff-file-content .asciicast {
   padding: 0 !important;
 }
 
@@ -219,10 +219,6 @@ td .commit-summary {
   width: auto !important;
   padding: 7px 8px !important;
   margin-right: 5px !important;
-}
-
-.repository.file.editor .tabular.menu .svg {
-  margin-right: 5px;
 }
 
 .repository.file.editor .commit-form-wrapper {
