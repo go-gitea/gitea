@@ -11,7 +11,7 @@ function isUserSignedIn() {
 }
 
 async function toggleSidebar(btn: HTMLElement) {
-  const elToggleShow = document.querySelector('.repo-view-file-tree-toggle-show');
+  const elToggleShow = document.querySelector('.repo-view-file-tree-toggle[data-toggle-action="show"]');
   const elFileTreeContainer = document.querySelector('.repo-view-file-tree-container');
   const shouldShow = btn.getAttribute('data-toggle-action') === 'show';
   toggleElem(elFileTreeContainer, shouldShow);
