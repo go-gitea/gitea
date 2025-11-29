@@ -206,7 +206,12 @@ td .commit-summary {
 }
 
 .repo-editor-header {
+  display: flex;
+  margin: 1rem 0;
+  padding: 3px 0;
   width: 100%;
+  gap: 0.5em;
+  align-items: center;
 }
 
 .repo-editor-header input {

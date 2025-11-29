@@ -11,7 +11,7 @@
 				<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}" data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}" data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}">
 					{{.CsrfTokenHtml}}
 					{{template "repo/editor/common_top" .}}
-					<div class="repo-editor-header tw-flex tw-items-center tw-gap-2">
+					<div class="repo-editor-header">
 						<button type="button" class="repo-view-file-tree-toggle-show ui compact basic button icon not-mobile {{if .UserSettingCodeViewShowFileTree}}tw-hidden{{end}}" data-global-click="onRepoViewFileTreeToggle" data-toggle-action="show" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.show_file_tree"}}">
 							{{svg "octicon-sidebar-collapse"}}
 						</button>
