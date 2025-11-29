@@ -3,7 +3,6 @@ import comments from '@eslint-community/eslint-plugin-eslint-comments';
 import github from 'eslint-plugin-github';
 import globals from 'globals';
 import importPlugin from 'eslint-plugin-import-x';
-import noUseExtendNative from 'eslint-plugin-no-use-extend-native';
 import playwright from 'eslint-plugin-playwright';
 import regexp from 'eslint-plugin-regexp';
 import sonarjs from 'eslint-plugin-sonarjs';
@@ -58,7 +57,6 @@ export default defineConfig([
       'array-func': arrayFunc,
       // @ts-expect-error -- https://github.com/un-ts/eslint-plugin-import-x/issues/203
       'import-x': importPlugin,
-      'no-use-extend-native': noUseExtendNative,
       regexp,
       sonarjs,
       unicorn,
@@ -155,7 +153,7 @@ export default defineConfig([
       '@typescript-eslint/ban-tslint-comment': [0],
       '@typescript-eslint/class-literal-property-style': [0],
       '@typescript-eslint/class-methods-use-this': [0],
-      '@typescript-eslint/consistent-generic-constructors': [0],
+      '@typescript-eslint/consistent-generic-constructors': [2, 'constructor'],
       '@typescript-eslint/consistent-indexed-object-style': [0],
       '@typescript-eslint/consistent-return': [0],
       '@typescript-eslint/consistent-type-assertions': [2, {assertionStyle: 'as', objectLiteralTypeAssertions: 'allow'}],
@@ -207,7 +205,7 @@ export default defineConfig([
       '@typescript-eslint/no-non-null-asserted-optional-chain': [2],
       '@typescript-eslint/no-non-null-assertion': [0],
       '@typescript-eslint/no-redeclare': [0],
-      '@typescript-eslint/no-redundant-type-constituents': [2],
+      '@typescript-eslint/no-redundant-type-constituents': [0], // rule does not properly work without strickNullChecks
       '@typescript-eslint/no-require-imports': [2],
       '@typescript-eslint/no-restricted-imports': [0],
       '@typescript-eslint/no-restricted-types': [0],
@@ -231,6 +229,7 @@ export default defineConfig([
       '@typescript-eslint/no-unsafe-return': [0],
       '@typescript-eslint/no-unsafe-unary-minus': [2],
       '@typescript-eslint/no-unused-expressions': [0],
+      '@typescript-eslint/no-unused-private-class-members': [2],
       '@typescript-eslint/no-unused-vars': [2, {vars: 'all', args: 'all', caughtErrors: 'all', ignoreRestSiblings: false, argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_'}],
       '@typescript-eslint/no-use-before-define': [2, {functions: false, classes: true, variables: true, allowNamedExports: true, typedefs: false, enums: false, ignoreTypeReferences: true}],
       '@typescript-eslint/no-useless-constructor': [0],
@@ -587,10 +586,9 @@ export default defineConfig([
       'no-unsafe-negation': [2],
       'no-unused-expressions': [2],
       'no-unused-labels': [2],
-      'no-unused-private-class-members': [2],
+      'no-unused-private-class-members': [0], // handled by @typescript-eslint/no-unused-private-class-members
       'no-unused-vars': [0], // handled by @typescript-eslint/no-unused-vars
       'no-use-before-define': [0], // handled by @typescript-eslint/no-use-before-define
-      'no-use-extend-native/no-use-extend-native': [2],
       'no-useless-assignment': [2],
       'no-useless-backreference': [2],
       'no-useless-call': [2],

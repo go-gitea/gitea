@@ -69,8 +69,8 @@ class Source {
   }
 }
 
-const sourcesByUrl: Map<string, Source | null> = new Map();
-const sourcesByPort: Map<MessagePort, Source | null> = new Map();
+const sourcesByUrl = new Map<string, Source | null>();
+const sourcesByPort = new Map<MessagePort, Source | null>();
 
 // @ts-expect-error: typescript bug?
 self.addEventListener('connect', (e: MessageEvent) => {
