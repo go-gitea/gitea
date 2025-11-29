@@ -1415,6 +1415,14 @@ td .commit-summary {
   min-height: 30px;
 }
 
+.repo-button-row .repo-file-search-container .ui.input {
+  height: 30px;
+}
+
+.repo-button-row .ui.dropdown > .menu {
+  margin-top: 4px;
+}
+
 tbody.commit-list {
   vertical-align: baseline;
 }

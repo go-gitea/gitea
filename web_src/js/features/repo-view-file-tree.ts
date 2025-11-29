@@ -23,13 +23,8 @@ async function toggleSidebar(btn: HTMLElement) {
 }
 
 export async function initRepoViewFileTree() {
-  const sidebar = document.querySelector<HTMLElement>('.repo-view-file-tree-container');
-  const repoViewContent = document.querySelector('.repo-view-content');
-  if (!sidebar || !repoViewContent) return;
-
-  registerGlobalEventFunc('click', 'onRepoViewFileTreeToggle', toggleSidebar);
-
-  const fileSearchContainer = sidebar.querySelector('#file-tree-search-container');
+  // FIXME: "repo-file-search-container" doesn't belong to file tree
+  const fileSearchContainer = document.querySelector('.repo-file-search-container');
   if (fileSearchContainer) {
     createApp(RepoFileSearch, {
       repoLink: fileSearchContainer.getAttribute('data-repo-link'),
@@ -39,6 +34,12 @@ export async function initRepoViewFileTree() {
       placeholder: fileSearchContainer.getAttribute('data-placeholder'),
     }).mount(fileSearchContainer);
   }
+
+  const sidebar = document.querySelector<HTMLElement>('.repo-view-file-tree-container');
+  const repoViewContent = document.querySelector('.repo-view-content');
+  if (!sidebar || !repoViewContent) return;
+
+  registerGlobalEventFunc('click', 'onRepoViewFileTreeToggle', toggleSidebar);
 
   const fileTree = sidebar.querySelector('#view-file-tree');
   if (fileTree) {

@@ -7,14 +7,6 @@
 	<b>{{ctx.Locale.Tr "files"}}</b>
 </div>
 
-<div id="file-tree-search-container"
-	data-repo-link="{{.RepoLink}}"
-	data-current-ref-name-sub-url="{{.RefTypeNameSubURL}}"
-	data-tree-list-url="{{.RepoLink}}/tree-list/{{.RefTypeNameSubURL}}"
-	data-no-results-text="{{ctx.Locale.Tr "repo.find_file.no_matching"}}"
-	data-placeholder="{{ctx.Locale.Tr "repo.find_file.go_to_file"}}"
-></div>
-
 {{/* TODO: Dynamically move components such as refSelector and createPR here */}}
 <div id="view-file-tree" class="tw-overflow-y-auto tw-overflow-x-visible tw-h-full is-loading"
 	data-repo-link="{{.RepoLink}}"

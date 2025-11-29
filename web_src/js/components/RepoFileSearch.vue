@@ -143,8 +143,8 @@ watch([searchQuery, filteredFiles], async () => {
 </script>
 
 <template>
-  <div class="repo-file-search">
-    <div class="ui small input tw-w-full tw-px-2 tw-pb-2 tw-items-center">
+  <div>
+    <div class="ui small input">
       <input
         ref="searchInput" type="text" :placeholder="placeholder" autocomplete="off" role="combobox"
         aria-autocomplete="list" :aria-expanded="searchQuery ? 'true' : 'false'" aria-controls="file-search-results"
@@ -189,10 +189,6 @@ watch([searchQuery, filteredFiles], async () => {
 </template>
 
 <style scoped>
-.repo-file-search {
-  position: relative;
-}
-
 .file-tree-search-results {
   position: fixed;
   display: flex;
