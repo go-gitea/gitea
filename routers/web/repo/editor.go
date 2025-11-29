@@ -413,15 +413,21 @@ func DeleteFilePost(ctx *context.Context) {
 		commitMessage = parsed.GetCommitMessage(ctx.Locale.TrString("repo.editor.delete", treePath))
 	}
 
-	_, err = files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.DeleteRepoFileOptions{
+	_, err = files_service.ChangeRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.ChangeRepoFilesOptions{
 		LastCommitID: parsed.form.LastCommit,
 		OldBranch:    parsed.OldBranchName,
 		NewBranch:    parsed.NewBranchName,
-		TreePath:     treePath,
-		Message:      commitMessage,
-		Signoff:      parsed.form.Signoff,
-		Author:       parsed.GitCommitter,
-		Committer:    parsed.GitCommitter,
+		Files: []*files_service.ChangeRepoFile{
+			{
+				Operation:         "delete",
+				TreePath:          treePath,
+				DeleteRecursively: true,
+			},
+		},
+		Message:   commitMessage,
+		Signoff:   parsed.form.Signoff,
+		Author:    parsed.GitCommitter,
+		Committer: parsed.GitCommitter,
 	})
 	if err != nil {
 		editorHandleFileOperationError(ctx, parsed.NewBranchName, err)

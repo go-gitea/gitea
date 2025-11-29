@@ -135,6 +135,20 @@ func (t *TemporaryUploadRepository) LsFiles(ctx context.Context, filenames ...st
 	return fileList, nil
 }
 
+func (t *TemporaryUploadRepository) RemoveRecursivelyFromIndex(ctx context.Context, path string) error {
+	stdOut := new(bytes.Buffer)
+	stdErr := new(bytes.Buffer)
+	if err := gitcmd.NewCommand("rm", "--cached", "-r").
+		AddDynamicArguments(path).
+		WithDir(t.basePath).
+		WithStdout(stdOut).
+		WithStderr(stdErr).
+		Run(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
 // RemoveFilesFromIndex removes the given files from the index
 func (t *TemporaryUploadRepository) RemoveFilesFromIndex(ctx context.Context, filenames ...string) error {
 	objFmt, err := t.gitRepo.GetObjectFormat()
