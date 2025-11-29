@@ -29,11 +29,9 @@ export async function initRepoViewFileTree() {
   registerGlobalEventFunc('click', 'onRepoViewFileTreeToggle', toggleSidebar);
 
   const fileTree = sidebar.querySelector('#view-file-tree');
-  if (fileTree) {
-    createApp(ViewFileTree, {
-      repoLink: fileTree.getAttribute('data-repo-link'),
-      treePath: fileTree.getAttribute('data-tree-path'),
-      currentRefNameSubURL: fileTree.getAttribute('data-current-ref-name-sub-url'),
-    }).mount(fileTree);
-  }
+  createApp(ViewFileTree, {
+    repoLink: fileTree.getAttribute('data-repo-link'),
+    treePath: fileTree.getAttribute('data-tree-path'),
+    currentRefNameSubURL: fileTree.getAttribute('data-current-ref-name-sub-url'),
+  }).mount(fileTree);
 }
