@@ -4,7 +4,7 @@ import {generateElemId} from '../utils/dom.ts';
 import { GET } from '../modules/fetch.ts';
 import { filterRepoFilesWeighted } from '../features/repo-findfile.ts';
 import { pathEscapeSegments } from '../utils/url.ts';
-import { svg } from '../svg.ts';
+import { SvgIcon } from '../svg.ts';
 import {throttle} from 'throttle-debounce';
 
 const props = defineProps({
@@ -162,13 +162,9 @@ watch([searchQuery, filteredFiles], async () => {
               role="option" :aria-selected="idx === selectedIndex" @click="handleSearchResultClick(result.matchResult.join(''))"
               @mouseenter="selectedIndex = idx" :title="result.matchResult.join('')"
             >
-              <!-- eslint-disable-next-line vue/no-v-html -->
-              <span class="file-icon" v-html="svg('octicon-file', 16)"/>
+              <SvgIcon name="octicon-file" class="file-icon"/>
               <span class="full-path">
-                <span
-                  v-for="(part, index) in result.matchResult" :key="index"
-                  :class="{ 'search-match': index % 2 === 1 }"
-                >{{ part }}</span>
+                <span v-for="(part, index) in result.matchResult" :key="index">{{ part }}</span>
               </span>
             </div>
           </div>
@@ -227,7 +223,7 @@ watch([searchQuery, filteredFiles], async () => {
   overflow-wrap: anywhere;
 }
 
-.file-search-results .item .search-match {
+.file-search-results .item .full-path :nth-child(even) {
   color: var(--color-red);
   font-weight: var(--font-weight-semibold);
 }
