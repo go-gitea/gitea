@@ -47,7 +47,7 @@
 					{{end}}
 				{{end}}
 			</div>
-			<div class="repo-file-cell message loading-icon-2px">
+			<div class="repo-file-cell message commit-summary loading-icon-2px">
 				{{if $commit}}
 					{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
 					{{ctx.RenderUtils.RenderCommitMessageLinkSubject $commit.Message $commitLink $.Repository}}

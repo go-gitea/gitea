@@ -5,6 +5,7 @@ package integration
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -72,7 +73,7 @@ func deleteFileInBranch(user *user_model.User, repo *repo_model.Repository, tree
 func createOrReplaceFileInBranch(user *user_model.User, repo *repo_model.Repository, treePath, branchName, content string) error {
 	_, err := deleteFileInBranch(user, repo, treePath, branchName)
 
-	if err != nil && !files_service.IsErrRepoFileDoesNotExist(err) {
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return err
 	}
 

@@ -610,10 +610,6 @@ func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
 		ctx.APIError(http.StatusUnprocessableEntity, err)
 		return
 	}
-	if git.IsErrBranchNotExist(err) || files_service.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
-		ctx.APIError(http.StatusNotFound, err)
-		return
-	}
 	if errors.Is(err, util.ErrNotExist) {
 		ctx.APIError(http.StatusNotFound, err)
 		return
