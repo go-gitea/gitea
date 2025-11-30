@@ -90,29 +90,36 @@ type GroupAssignmentOptions struct {
 	RequireGroupAdmin bool
 }
 
+func groupAssignment(ctx *Context) {
+	if ctx.RepoGroup.Group == nil {
+		GetGroupByParams(ctx)
+	}
+	if ctx.Written() {
+		return
+	}
+	canAccess, err := ctx.RepoGroup.Group.CanAccess(ctx, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("error checking group access", err)
+		return
+	}
+	if !canAccess {
+		ctx.NotFound(nil)
+		return
+	}
+}
+
 func GroupAssignment(args GroupAssignmentOptions) func(ctx *Context) {
 	return func(ctx *Context) {
 		var err error
 
-		if ctx.RepoGroup.Group == nil {
-			GetGroupByParams(ctx)
-			if ctx.Written() {
-				return
-			}
+		groupAssignment(ctx)
+		if ctx.Written() {
+			return
 		}
 
 		group := ctx.RepoGroup.Group
 		if ctx.RepoGroup.Group.Visibility != structs.VisibleTypePublic && !ctx.IsSigned {
 			ctx.NotFound(err)
-			return
-		}
-		canAccess, err := ctx.RepoGroup.Group.CanAccess(ctx, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("error checking group access", err)
-			return
-		}
-		if !canAccess {
-			ctx.NotFound(nil)
 			return
 		}
 

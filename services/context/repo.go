@@ -530,6 +530,12 @@ func RepoAssignment(ctx *Context) {
 	if repo.GroupID != gid {
 		ctx.NotFound(nil)
 	}
+	if gid > 0 {
+		groupAssignment(ctx)
+	}
+	if ctx.Written() {
+		return
+	}
 	repo.Owner = ctx.Repo.Owner
 
 	repoAssignment(ctx, repo)
