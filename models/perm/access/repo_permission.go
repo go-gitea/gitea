@@ -483,7 +483,7 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 			return perm, nil
 		}
 	}
-	groupTeams, err := group_model.FindGroupTeams(ctx, repo.GroupID)
+	groupTeams, err := group_model.FindUserGroupTeams(ctx, repo.GroupID, user.ID)
 	for _, team := range groupTeams {
 		if team.AccessMode >= perm_model.AccessModeAdmin {
 			perm.AccessMode = perm_model.AccessModeOwner
@@ -494,6 +494,11 @@ func GetIndividualUserRepoPermission(ctx context.Context, repo *repo_model.Repos
 
 	for _, u := range repo.Units {
 		for _, team := range teams {
+			teamMode, _ := team.UnitAccessModeEx(ctx, u.Type)
+			unitAccessMode := max(perm.unitsMode[u.Type], minAccessMode, teamMode)
+			perm.unitsMode[u.Type] = unitAccessMode
+		}
+		for _, team := range groupTeams {
 			teamMode, _ := team.UnitAccessModeEx(ctx, u.Type)
 			unitAccessMode := max(perm.unitsMode[u.Type], minAccessMode, teamMode)
 			perm.unitsMode[u.Type] = unitAccessMode
