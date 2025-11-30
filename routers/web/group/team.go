@@ -4,6 +4,7 @@
 package group
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -147,7 +148,7 @@ func EditTeamPost(ctx *context.Context) {
 		ctx.ServerError("UpdateGroupTeam", err)
 		return
 	}
-	ctx.Redirect(ctx.Org.OrgLink + "/teams/")
+	ctx.Redirect(ctx.Org.OrgLink + fmt.Sprintf("/groups/%d/teams", gt.GroupID))
 }
 
 func TeamAddPost(ctx *context.Context) {
@@ -171,22 +172,11 @@ func TeamAddPost(ctx *context.Context) {
 	if has {
 		ctx.Flash.Error(ctx.Tr("org.group.add_duplicate_team"))
 	} else {
-		parentGroup, err := group_model.FindGroupTeamByTeamID(ctx, group.ID, t.ID)
-		if err != nil {
-			ctx.ServerError("FindGroupTeamByTeamID", err)
-			return
-		}
-		mode := t.AccessMode
-		canCreateIn := t.CanCreateOrgRepo
-		if parentGroup != nil {
-			mode = max(t.AccessMode, parentGroup.AccessMode)
-			canCreateIn = parentGroup.CanCreateIn || t.CanCreateOrgRepo
-		}
 		if err = group.LoadParentGroup(ctx); err != nil {
 			ctx.ServerError("LoadParentGroup", err)
 			return
 		}
-		err = group_model.AddTeamGroup(ctx, ctx.RepoGroup.Group.OwnerID, t.ID, ctx.RepoGroup.Group.ID, mode, canCreateIn)
+		err = group_service.AddTeamToGroup(ctx, group, tname)
 		if err != nil {
 			ctx.ServerError("AddTeamGroup", err)
 			return
