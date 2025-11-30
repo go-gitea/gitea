@@ -106,6 +106,16 @@ func GroupAssignment(args GroupAssignmentOptions) func(ctx *Context) {
 			ctx.NotFound(err)
 			return
 		}
+		canAccess, err := ctx.RepoGroup.Group.CanAccess(ctx, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("error checking group access", err)
+			return
+		}
+		if !canAccess {
+			ctx.NotFound(nil)
+			return
+		}
+
 		if ctx.RepoGroup.Group.Visibility == structs.VisibleTypePrivate {
 			args.RequireMember = true
 		} else if ctx.IsSigned && ctx.Doer.IsRestricted {
