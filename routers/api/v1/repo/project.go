@@ -762,8 +762,8 @@ func AddIssueToProjectColumn(ctx *context.APIContext) {
 		return
 	}
 
-	// Add issue to column
-	if err := project_model.AddIssueToColumn(ctx, form.IssueID, column); err != nil {
+	// Add or update issue in column
+	if err := project_model.AddOrUpdateIssueToColumn(ctx, form.IssueID, column); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}

@@ -81,8 +81,8 @@ func DeleteAllProjectIssueByIssueIDsAndProjectIDs(ctx context.Context, issueIDs,
 	return err
 }
 
-// AddIssueToColumn adds an issue to a project column
-func AddIssueToColumn(ctx context.Context, issueID int64, column *Column) error {
+// AddOrUpdateIssueToColumn adds an issue to a project column or moves an existing one
+func AddOrUpdateIssueToColumn(ctx context.Context, issueID int64, column *Column) error {
 	// Check if the issue is already in this project
 	existingPI := &ProjectIssue{}
 	has, err := db.GetEngine(ctx).Where("project_id=? AND issue_id=?", column.ProjectID, issueID).Get(existingPI)
