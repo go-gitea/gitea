@@ -33,6 +33,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/automergequeue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -41,6 +42,7 @@ import (
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type MergeOptions struct {
@@ -1210,5 +1212,142 @@ func TestPullSquashMergeEmpty(t *testing.T) {
 			Style:        repo_model.MergeStyleSquash,
 			DeleteBranch: false,
 		})
+	})
+}
+
+func TestPullSquashMessage(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user2Session := loginUser(t, user2.Name)
+
+		defer test.MockVariableValue(&setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages, true)()
+		defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 80)()
+
+		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
+			Name:          "squash-message-test",
+			Description:   "Test squash message",
+			AutoInit:      true,
+			Readme:        "Default",
+			DefaultBranch: "main",
+		})
+		require.NoError(t, err)
+
+		type commitInfo struct {
+			userName      string
+			commitMessage string
+		}
+
+		testCases := []struct {
+			name            string
+			commitInfos     []*commitInfo
+			expectedMessage string
+		}{
+			{
+				name: "Single-line messages",
+				commitInfos: []*commitInfo{
+					{
+						userName:      user2.Name,
+						commitMessage: "commit msg 1",
+					},
+					{
+						userName:      user2.Name,
+						commitMessage: "commit msg 2",
+					},
+				},
+				expectedMessage: `* commit msg 1
+
+* commit msg 2
+
+`,
+			},
+			{
+				name: "Multiple-line messages",
+				commitInfos: []*commitInfo{
+					{
+						userName: user2.Name,
+						commitMessage: `commit msg 1
+
+Commit description.`,
+					},
+					{
+						userName: user2.Name,
+						commitMessage: `commit msg 2
+
+- Detail 1
+- Detail 2`,
+					},
+				},
+				expectedMessage: `* commit msg 1
+
+Commit description.
+
+* commit msg 2
+
+- Detail 1
+- Detail 2
+
+`,
+			},
+			{
+				name: "Too long message",
+				commitInfos: []*commitInfo{
+					{
+						userName:      user2.Name,
+						commitMessage: `loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong message`,
+					},
+				},
+				expectedMessage: `* looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo...`,
+			},
+			{
+				name: "Test Co-authored-by",
+				commitInfos: []*commitInfo{
+					{
+						userName:      user2.Name,
+						commitMessage: "commit msg 1",
+					},
+					{
+						userName:      "user4",
+						commitMessage: "commit msg 2",
+					},
+				},
+				expectedMessage: `* commit msg 1
+
+* commit msg 2
+
+---------
+
+Co-authored-by: user4 <user4@example.com>
+`,
+			},
+		}
+
+		for tcNum, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				branchName := "test-branch-" + strconv.Itoa(tcNum)
+				for infoIdx, info := range tc.commitInfos {
+					createFileOpts := createFileInBranchOptions{
+						CommitMessage:  info.commitMessage,
+						CommitterName:  info.userName,
+						CommitterEmail: util.Iif(info.userName != "", info.userName+"@example.com", ""),
+						OldBranch:      util.Iif(infoIdx == 0, "main", branchName),
+						NewBranch:      branchName,
+					}
+					testCreateFileInBranch(t, user2, repo, createFileOpts, map[string]string{"dummy-file-" + strconv.Itoa(infoIdx): "dummy content"})
+				}
+				resp := testPullCreateDirectly(t, user2Session, createPullRequestOptions{
+					BaseRepoOwner: user2.Name,
+					BaseRepoName:  repo.Name,
+					BaseBranch:    repo.DefaultBranch,
+					HeadBranch:    branchName,
+					Title:         "Pull for " + branchName,
+				})
+				elems := strings.Split(test.RedirectURL(resp), "/")
+				pullIndex, err := strconv.ParseInt(elems[4], 10, 64)
+				assert.NoError(t, err)
+				pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: pullIndex})
+				squashMergeCommitMessage := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
+				assert.Equal(t, tc.expectedMessage, squashMergeCommitMessage)
+			})
+		}
 	})
 }

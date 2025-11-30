@@ -20,6 +20,9 @@ import (
 
 type createFileInBranchOptions struct {
 	OldBranch, NewBranch string
+	CommitMessage        string
+	CommitterName        string
+	CommitterEmail       string
 }
 
 func testCreateFileInBranch(t *testing.T, user *user_model.User, repo *repo_model.Repository, createOpts createFileInBranchOptions, files map[string]string) *api.FilesResponse {
@@ -30,7 +33,17 @@ func testCreateFileInBranch(t *testing.T, user *user_model.User, repo *repo_mode
 
 func createFileInBranch(user *user_model.User, repo *repo_model.Repository, createOpts createFileInBranchOptions, files map[string]string) (*api.FilesResponse, error) {
 	ctx := context.TODO()
-	opts := &files_service.ChangeRepoFilesOptions{OldBranch: createOpts.OldBranch, NewBranch: createOpts.NewBranch}
+	opts := &files_service.ChangeRepoFilesOptions{
+		OldBranch: createOpts.OldBranch,
+		NewBranch: createOpts.NewBranch,
+		Message:   createOpts.CommitMessage,
+	}
+	if createOpts.CommitterName != "" || createOpts.CommitterEmail != "" {
+		opts.Committer = &files_service.IdentityOptions{
+			GitUserName:  createOpts.CommitterName,
+			GitUserEmail: createOpts.CommitterEmail,
+		}
+	}
 	for path, content := range files {
 		opts.Files = append(opts.Files, &files_service.ChangeRepoFile{
 			Operation:     "create",
