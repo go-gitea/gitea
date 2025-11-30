@@ -59,7 +59,7 @@ func HasTeamGroup(ctx context.Context, orgID, teamID, groupID int64) bool {
 
 // AddTeamGroup adds a group to a team
 func AddTeamGroup(ctx context.Context, orgID, teamID, groupID int64, access perm.AccessMode, canCreateIn bool) error {
-	if access <= perm.AccessModeWrite {
+	if access < perm.AccessModeWrite {
 		canCreateIn = false
 	}
 	_, err := db.GetEngine(ctx).Insert(&RepoGroupTeam{
@@ -110,6 +110,15 @@ func FindGroupTeams(ctx context.Context, groupID int64) (gteams []*RepoGroupTeam
 	return gteams, db.GetEngine(ctx).
 		Where("group_id=?", groupID).
 		Table("repo_group_team").
+		Find(&gteams)
+}
+
+func FindUserGroupTeams(ctx context.Context, groupID int64, userID int64) (gteams []*RepoGroupTeam, err error) {
+	return gteams, db.GetEngine(ctx).
+		Where("group_id=?", groupID).
+		And("team_user.uid = ?", userID).
+		Table("repo_group_team").
+		Join("INNER", "team_user", "team_user.team_id = repo_group_team.team_id").
 		Find(&gteams)
 }
 
