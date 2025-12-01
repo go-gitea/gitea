@@ -26,7 +26,7 @@ type RepoGroupTeam struct {
 
 func (g *RepoGroupTeam) LoadGroupUnits(ctx context.Context) error {
 	var err error
-	g.Units, err = GetUnitsByGroupID(ctx, g.GroupID)
+	g.Units, err = GetUnitsByGroupID(ctx, g.GroupID, g.TeamID)
 	return err
 }
 
