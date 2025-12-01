@@ -7,7 +7,7 @@
 					<div class="ui small label">{{.RepoCount}}</div>
 				{{end}}
 			</a>
-			{{if .IsGroupMember}}
+			{{if or .IsGroupOwner .IsGroupAdmin}}
 				<a class="{{if $.PageIsGroupTeams}}active {{end}}item" href="{{$.OrgGroupLink}}/teams">
 					{{svg "octicon-people"}} {{ctx.Locale.Tr "org.teams"}}
 					{{if .NumTeams}}
