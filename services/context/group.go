@@ -185,7 +185,7 @@ func GroupAssignment(args GroupAssignmentOptions) func(ctx *Context) {
 			if ctx.RepoGroup.IsOwner {
 				shouldSeeAllTeams = true
 			} else {
-				teams, err := shared_group.GetGroupTeams(ctx, group.ID)
+				teams, err := organization.GetUserGroupTeams(ctx, group.ID, ctx.Doer.ID)
 				if err != nil {
 					ctx.ServerError("GetUserTeams", err)
 					return
