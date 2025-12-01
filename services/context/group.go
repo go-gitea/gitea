@@ -97,12 +97,153 @@ func groupAssignment(ctx *Context) {
 	if ctx.Written() {
 		return
 	}
-	canAccess, err := ctx.RepoGroup.Group.CanAccess(ctx, ctx.Doer)
+	group := ctx.RepoGroup.Group
+	canAccess, err := group.CanAccess(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("error checking group access", err)
 		return
 	}
-	if !canAccess {
+	if group.Owner == nil {
+		err = group.LoadOwner(ctx)
+		if err != nil {
+			ctx.ServerError("LoadOwner", err)
+			return
+		}
+	}
+	ownerAsOrg := (*organization.Organization)(group.Owner)
+	var (
+		orgWideAdmin, orgWideOwner, isOwnedBy bool
+	)
+
+	if ctx.IsSigned {
+		if orgWideAdmin, err = ownerAsOrg.IsOrgAdmin(ctx, ctx.Doer.ID); err != nil {
+			ctx.ServerError("IsOrgAdmin", err)
+			return
+		}
+		if orgWideOwner, err = ownerAsOrg.IsOwnedBy(ctx, ctx.Doer.ID); err != nil {
+			ctx.ServerError("IsOwnedBy", err)
+		}
+	}
+	if orgWideOwner {
+		ctx.RepoGroup.IsOwner = true
+	}
+	if orgWideAdmin {
+		ctx.RepoGroup.IsGroupAdmin = true
+	}
+
+	if ctx.IsSigned && ctx.Doer.IsAdmin {
+		ctx.RepoGroup.IsOwner = true
+		ctx.RepoGroup.IsMember = true
+		ctx.RepoGroup.IsGroupAdmin = true
+		ctx.RepoGroup.CanCreateRepoOrGroup = true
+	} else if ctx.IsSigned {
+		isOwnedBy, err = group.IsOwnedBy(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("IsOwnedBy", err)
+			return
+		}
+		ctx.RepoGroup.IsOwner = ctx.RepoGroup.IsOwner || isOwnedBy
+
+		if ctx.RepoGroup.IsOwner {
+			ctx.RepoGroup.IsMember = true
+			ctx.RepoGroup.IsGroupAdmin = true
+			ctx.RepoGroup.CanCreateRepoOrGroup = true
+		} else {
+			ctx.RepoGroup.IsMember, err = shared_group.IsGroupMember(ctx, group.ID, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("IsOrgMember", err)
+				return
+			}
+			ctx.RepoGroup.CanCreateRepoOrGroup, err = group.CanCreateIn(ctx, ctx.Doer.ID)
+			if err != nil {
+				ctx.ServerError("CanCreateIn", err)
+				return
+			}
+		}
+	} else {
+		ctx.Data["SignedUser"] = &user_model.User{}
+	}
+	ctx.RepoGroup.GroupLink = group.GroupLink()
+	ctx.RepoGroup.OrgGroupLink = group.OrgGroupLink()
+
+	if ctx.RepoGroup.IsMember {
+		shouldSeeAllTeams := false
+		if ctx.RepoGroup.IsOwner {
+			shouldSeeAllTeams = true
+		} else {
+			teams, err := organization.GetUserGroupTeams(ctx, group.ID, ctx.Doer.ID)
+			if err != nil {
+				ctx.ServerError("GetUserTeams", err)
+				return
+			}
+			for _, team := range teams {
+				if team.IncludesAllRepositories && team.AccessMode >= perm.AccessModeAdmin {
+					shouldSeeAllTeams = true
+					break
+				}
+			}
+		}
+		if shouldSeeAllTeams {
+			ctx.RepoGroup.Teams, err = shared_group.GetGroupTeams(ctx, group.ID)
+			if err != nil {
+				ctx.ServerError("LoadTeams", err)
+				return
+			}
+		} else {
+			ctx.RepoGroup.Teams, err = organization.GetUserGroupTeams(ctx, group.ID, ctx.Doer.ID)
+			if err != nil {
+				ctx.ServerError("GetUserTeams", err)
+				return
+			}
+		}
+		ctx.Data["NumTeams"] = len(ctx.RepoGroup.Teams)
+	}
+
+	teamName := ctx.PathParam("team")
+	if len(teamName) > 0 {
+		teamExists := false
+		for _, team := range ctx.RepoGroup.Teams {
+			if strings.EqualFold(team.LowerName, strings.ToLower(teamName)) {
+				teamExists = true
+				var groupTeam *group_model.RepoGroupTeam
+				groupTeam, err = group_model.FindGroupTeamByTeamID(ctx, group.ID, team.ID)
+				if err != nil {
+					ctx.ServerError("FindGroupTeamByTeamID", err)
+					return
+				}
+				ctx.RepoGroup.GroupTeam = groupTeam
+				ctx.RepoGroup.Team = team
+				ctx.RepoGroup.IsMember = true
+				ctx.Data["Team"] = ctx.RepoGroup.Team
+				break
+			}
+		}
+
+		if !teamExists {
+			ctx.NotFound(err)
+			return
+		}
+
+		ctx.Data["IsTeamMember"] = ctx.RepoGroup.IsMember
+
+		ctx.RepoGroup.IsGroupAdmin = ctx.RepoGroup.Team.IsOwnerTeam() || ctx.RepoGroup.Team.AccessMode >= perm.AccessModeAdmin
+	} else {
+		for _, team := range ctx.RepoGroup.Teams {
+			if team.AccessMode >= perm.AccessModeAdmin {
+				ctx.RepoGroup.IsGroupAdmin = true
+				break
+			}
+		}
+	}
+	if ctx.IsSigned {
+		isAdmin, err := group.IsAdminOf(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("IsAdminOf", err)
+			return
+		}
+		ctx.RepoGroup.IsGroupAdmin = ctx.RepoGroup.IsGroupAdmin || isAdmin
+	}
+	if !canAccess && !(ctx.RepoGroup.IsGroupAdmin || ctx.RepoGroup.IsMember || ctx.RepoGroup.IsOwner) {
 		ctx.NotFound(nil)
 		return
 	}
@@ -128,42 +269,13 @@ func GroupAssignment(args GroupAssignmentOptions) func(ctx *Context) {
 		} else if ctx.IsSigned && ctx.Doer.IsRestricted {
 			args.RequireMember = true
 		}
-		if ctx.IsSigned && ctx.Doer.IsAdmin {
-			ctx.RepoGroup.IsOwner = true
-			ctx.RepoGroup.IsMember = true
-			ctx.RepoGroup.IsGroupAdmin = true
-			ctx.RepoGroup.CanCreateRepoOrGroup = true
-		} else if ctx.IsSigned {
-			ctx.RepoGroup.IsOwner, err = group.IsOwnedBy(ctx, ctx.Doer.ID)
-			if err != nil {
-				ctx.ServerError("IsOwnedBy", err)
-				return
-			}
 
-			if ctx.RepoGroup.IsOwner {
-				ctx.RepoGroup.IsMember = true
-				ctx.RepoGroup.IsGroupAdmin = true
-				ctx.RepoGroup.CanCreateRepoOrGroup = true
-			} else {
-				ctx.RepoGroup.IsMember, err = shared_group.IsGroupMember(ctx, group.ID, ctx.Doer)
-				if err != nil {
-					ctx.ServerError("IsOrgMember", err)
-					return
-				}
-				ctx.RepoGroup.CanCreateRepoOrGroup, err = group.CanCreateIn(ctx, ctx.Doer.ID)
-				if err != nil {
-					ctx.ServerError("CanCreateIn", err)
-					return
-				}
-			}
-		} else {
-			ctx.Data["SignedUser"] = &user_model.User{}
-		}
 		if (args.RequireMember && !ctx.RepoGroup.IsMember) ||
 			(args.RequireOwner && !ctx.RepoGroup.IsOwner) {
 			ctx.NotFound(err)
 			return
 		}
+
 		ctx.Data["EnableFeed"] = setting.Other.EnableFeed
 		ctx.Data["FeedURL"] = ctx.RepoGroup.Group.GroupLink()
 		ctx.Data["IsGroupOwner"] = ctx.RepoGroup.IsOwner
@@ -176,91 +288,6 @@ func GroupAssignment(args GroupAssignmentOptions) func(ctx *Context) {
 		}
 		ctx.Data["CanReadProjects"] = ctx.RepoGroup.CanReadUnit(ctx, unit.TypeProjects)
 		ctx.Data["CanCreateOrgRepo"] = ctx.RepoGroup.CanCreateRepoOrGroup
-
-		ctx.RepoGroup.GroupLink = group.GroupLink()
-		ctx.RepoGroup.OrgGroupLink = group.OrgGroupLink()
-
-		if ctx.RepoGroup.IsMember {
-			shouldSeeAllTeams := false
-			if ctx.RepoGroup.IsOwner {
-				shouldSeeAllTeams = true
-			} else {
-				teams, err := organization.GetUserGroupTeams(ctx, group.ID, ctx.Doer.ID)
-				if err != nil {
-					ctx.ServerError("GetUserTeams", err)
-					return
-				}
-				for _, team := range teams {
-					if team.IncludesAllRepositories && team.AccessMode >= perm.AccessModeAdmin {
-						shouldSeeAllTeams = true
-						break
-					}
-				}
-			}
-			if shouldSeeAllTeams {
-				ctx.RepoGroup.Teams, err = shared_group.GetGroupTeams(ctx, group.ID)
-				if err != nil {
-					ctx.ServerError("LoadTeams", err)
-					return
-				}
-			} else {
-				ctx.RepoGroup.Teams, err = organization.GetUserGroupTeams(ctx, group.ID, ctx.Doer.ID)
-				if err != nil {
-					ctx.ServerError("GetUserTeams", err)
-					return
-				}
-			}
-			ctx.Data["NumTeams"] = len(ctx.RepoGroup.Teams)
-		}
-
-		teamName := ctx.PathParam("team")
-		if len(teamName) > 0 {
-			teamExists := false
-			for _, team := range ctx.RepoGroup.Teams {
-				if strings.EqualFold(team.LowerName, strings.ToLower(teamName)) {
-					teamExists = true
-					var groupTeam *group_model.RepoGroupTeam
-					groupTeam, err = group_model.FindGroupTeamByTeamID(ctx, group.ID, team.ID)
-					if err != nil {
-						ctx.ServerError("FindGroupTeamByTeamID", err)
-						return
-					}
-					ctx.RepoGroup.GroupTeam = groupTeam
-					ctx.RepoGroup.Team = team
-					ctx.RepoGroup.IsMember = true
-					ctx.Data["Team"] = ctx.RepoGroup.Team
-					break
-				}
-			}
-
-			if !teamExists {
-				ctx.NotFound(err)
-				return
-			}
-
-			ctx.Data["IsTeamMember"] = ctx.RepoGroup.IsMember
-			if args.RequireMember && !ctx.RepoGroup.IsMember {
-				ctx.NotFound(err)
-				return
-			}
-
-			ctx.RepoGroup.IsGroupAdmin = ctx.RepoGroup.Team.IsOwnerTeam() || ctx.RepoGroup.Team.AccessMode >= perm.AccessModeAdmin
-		} else {
-			for _, team := range ctx.RepoGroup.Teams {
-				if team.AccessMode >= perm.AccessModeAdmin {
-					ctx.RepoGroup.IsGroupAdmin = true
-					break
-				}
-			}
-		}
-		if ctx.IsSigned {
-			isAdmin, err := group.IsAdminOf(ctx, ctx.Doer.ID)
-			if err != nil {
-				ctx.ServerError("IsAdminOf", err)
-				return
-			}
-			ctx.RepoGroup.IsGroupAdmin = ctx.RepoGroup.IsGroupAdmin || isAdmin
-		}
 
 		ctx.Data["IsGroupAdmin"] = ctx.RepoGroup.IsGroupAdmin
 		if args.RequireGroupAdmin && !ctx.RepoGroup.IsGroupAdmin {

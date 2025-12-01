@@ -48,7 +48,7 @@ func RequireUnitWriter(unitTypes ...unit.Type) func(ctx *Context) {
 func RequireUnitReader(unitTypes ...unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		for _, unitType := range unitTypes {
-			if ctx.Repo.CanRead(unitType) || ctx.RepoGroup.CanReadUnit(ctx, unitType) {
+			if ctx.Repo.CanRead(unitType) || (ctx.RepoGroup.Group != nil && ctx.RepoGroup.CanReadUnit(ctx, unitType)) {
 				return
 			}
 			if unitType == unit.TypeCode && canWriteAsMaintainer(ctx) {
