@@ -45,6 +45,7 @@
 								{{end}}
 
 								{{if and (or $.IsGroupAdmin $.IsGroupOwner) (not .IsOwnerTeam)}}
+								<a class="ui tiny button" href="{{$.OrgGroupLink}}/teams/{{.LowerName | PathEscape}}/edit">{{ctx.Locale.Tr "org.teams.settings"}}</a>
 								<form>
 									<button class="ui red tiny button delete-button" data-modal-id="remove-team"
 													data-url="{{$.OrgGroupLink}}/teams/{{.LowerName | PathEscape}}/remove"
