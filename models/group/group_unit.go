@@ -24,8 +24,8 @@ func (g *RepoGroupUnit) Unit() unit.Unit {
 	return unit.Units[g.Type]
 }
 
-func GetUnitsByGroupID(ctx context.Context, groupID int64) (units []*RepoGroupUnit, err error) {
-	return units, db.GetEngine(ctx).Where("group_id = ?", groupID).Find(&units)
+func GetUnitsByGroupID(ctx context.Context, groupID, teamID int64) (units []*RepoGroupUnit, err error) {
+	return units, db.GetEngine(ctx).Where("group_id = ?", groupID).And("team_id = ?", teamID).Find(&units)
 }
 
 func GetGroupUnit(ctx context.Context, groupID, teamID int64, unitType unit.Type) (unit *RepoGroupUnit, err error) {
