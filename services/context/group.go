@@ -111,9 +111,7 @@ func groupAssignment(ctx *Context) {
 		}
 	}
 	ownerAsOrg := (*organization.Organization)(group.Owner)
-	var (
-		orgWideAdmin, orgWideOwner, isOwnedBy bool
-	)
+	var orgWideAdmin, orgWideOwner, isOwnedBy bool
 
 	if ctx.IsSigned {
 		if orgWideAdmin, err = ownerAsOrg.IsOrgAdmin(ctx, ctx.Doer.ID); err != nil {
