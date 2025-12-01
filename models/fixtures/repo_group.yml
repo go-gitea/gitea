@@ -1513,7 +1513,7 @@
     \#\# License
     Apache 2.0
 
-  visibility: 2
+  visibility: 0
   avatar: ""
   parent_group_id: 44
   sort_order: 2
@@ -3993,7 +3993,7 @@
     \#\# License
     ISC
 
-  visibility: 1
+  visibility: 0
   avatar: ""
   parent_group_id: 123
   sort_order: 1
@@ -4303,7 +4303,7 @@
     \#\# License
     MIT
 
-  visibility: 1
+  visibility: 0
   avatar: ""
   parent_group_id: 127
   sort_order: 3
@@ -10255,7 +10255,7 @@
     \#\# License
     MIT
 
-  visibility: 2
+  visibility: 0
   avatar: ""
   parent_group_id: 0
   sort_order: 43
@@ -10348,7 +10348,7 @@
     \#\# License
     Apache 2.0
 
-  visibility: 2
+  visibility: 0
   avatar: ""
   parent_group_id: 331
   sort_order: 2
@@ -10534,7 +10534,7 @@
     \#\# License
     ISC
 
-  visibility: 2
+  visibility: 0
   avatar: ""
   parent_group_id: 334
   sort_order: 4
