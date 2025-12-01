@@ -113,7 +113,7 @@ func FindGroupTeams(ctx context.Context, groupID int64) (gteams []*RepoGroupTeam
 		Find(&gteams)
 }
 
-func FindUserGroupTeams(ctx context.Context, groupID int64, userID int64) (gteams []*RepoGroupTeam, err error) {
+func FindUserGroupTeams(ctx context.Context, groupID, userID int64) (gteams []*RepoGroupTeam, err error) {
 	return gteams, db.GetEngine(ctx).
 		Where("group_id=?", groupID).
 		And("team_user.uid = ?", userID).
