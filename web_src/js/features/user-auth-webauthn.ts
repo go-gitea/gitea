@@ -12,8 +12,8 @@ export async function initUserAuthWebAuthn() {
   }
 
   // webauthn is only supported on secure contexts
-  if (!window.isSecureContext && elSignInPasskeyBtn) {
-    hideElem(elSignInPasskeyBtn);
+  if (!window.isSecureContext) {
+    if(elSignInPasskeyBtn) hideElem(elSignInPasskeyBtn);
     return;
   }
 
