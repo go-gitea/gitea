@@ -161,7 +161,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 			UpdatedUnix: 946684815,
 		},
 		&issues_model.Review{
-			ID:          23,
+			ID:          22,
 			Reviewer:    user5,
 			Type:        issues_model.ReviewTypeRequest,
 			UpdatedUnix: 946684817,
