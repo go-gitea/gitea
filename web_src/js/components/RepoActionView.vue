@@ -468,7 +468,7 @@ export default defineComponent({
       }
       const logLine = this.elStepsContainer().querySelector(selectedLogStep);
       if (!logLine) return;
-      logLine.querySelector<HTMLAnchorElement>('.line-num')!.click();
+      logLine.querySelector<HTMLAnchorElement>('.line-num')?.click();
     },
   },
 });

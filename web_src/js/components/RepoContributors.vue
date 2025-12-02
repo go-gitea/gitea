@@ -238,8 +238,8 @@ export default defineComponent({
     },
 
     updateOtherCharts({chart}: {chart: Chart}, reset: boolean = false) {
-      const minVal = Number(chart.options.scales!.x!.min);
-      const maxVal = Number(chart.options.scales!.x!.max);
+      const minVal = Number(chart.options.scales?.x?.min);
+      const maxVal = Number(chart.options.scales?.x?.max);
       if (reset) {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;
@@ -302,8 +302,8 @@ export default defineComponent({
         },
         scales: {
           x: {
-            min: this.xAxisMin!,
-            max: this.xAxisMax!,
+            min: this.xAxisMin ?? undefined,
+            max: this.xAxisMax ?? undefined,
             type: 'time',
             grid: {
               display: false,
@@ -334,27 +334,27 @@ export default defineComponent({
     <div class="ui header tw-flex tw-items-center tw-justify-between">
       <div>
         <relative-time
-          v-if="xAxisMin! > 0"
+          v-if="xAxisMin && xAxisMin > 0"
           format="datetime"
           year="numeric"
           month="short"
           day="numeric"
           weekday=""
-          :datetime="new Date(xAxisMin!)"
+          :datetime="new Date(xAxisMin)"
         >
-          {{ new Date(xAxisMin!) }}
+          {{ new Date(xAxisMin) }}
         </relative-time>
         {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "-" }}
         <relative-time
-          v-if="xAxisMax! > 0"
+          v-if="xAxisMax && xAxisMax > 0"
           format="datetime"
           year="numeric"
           month="short"
           day="numeric"
           weekday=""
-          :datetime="new Date(xAxisMax!)"
+          :datetime="new Date(xAxisMax)"
         >
-          {{ new Date(xAxisMax!) }}
+          {{ new Date(xAxisMax) }}
         </relative-time>
       </div>
       <div>
