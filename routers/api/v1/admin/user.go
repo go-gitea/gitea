@@ -219,6 +219,9 @@ func EditUser(ctx *context.APIContext) {
 		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
+				if !user_model.IsEmailDomainAllowed(*form.Email) {
+					err = fmt.Errorf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", *form.Email)
+				}
 				ctx.APIError(http.StatusBadRequest, err)
 			case user_model.IsErrEmailAlreadyUsed(err):
 				ctx.APIError(http.StatusBadRequest, err)
@@ -226,10 +229,6 @@ func EditUser(ctx *context.APIContext) {
 				ctx.APIErrorInternal(err)
 			}
 			return
-		}
-
-		if !user_model.IsEmailDomainAllowed(*form.Email) {
-			ctx.Resp.Header().Add("X-Gitea-Warning", fmt.Sprintf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", *form.Email))
 		}
 	}
 
