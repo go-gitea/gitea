@@ -18,13 +18,13 @@ func TestBuildCanSeeUserCondition(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	getIDs := func(cond builder.Cond) (ids []int64) {
-		db.GetEngine(db.DefaultContext).Select("id").Table(`user`).
+		db.GetEngine(t.Context()).Select("id").Table(`user`).
 			Where(builder.Eq{"is_active": true}.And(cond)).Asc("id").Find(&ids)
 		return ids
 	}
 
 	getUser := func(t *testing.T, id int64) *user.User {
-		user, err := user.GetUserByID(db.DefaultContext, id)
+		user, err := user.GetUserByID(t.Context(), id)
 		assert.NoError(t, err)
 		if !assert.NotNil(t, user) {
 			t.FailNow()
