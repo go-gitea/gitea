@@ -11,12 +11,14 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	group_service "code.gitea.io/gitea/services/group"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -199,6 +201,12 @@ func TestOrgRestrictedUser(t *testing.T) {
 	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/teams/%d/members/%s", apiTeam.ID, restrictedUser)).
 		AddTokenAuth(token)
 	_ = adminSession.MakeRequest(t, req, http.StatusNoContent)
+
+	// we also need to give this new team access to the repo's group
+	g := unittest.AssertExistsAndLoadBean[*group_model.Group](t, &group_model.Group{
+		ID: int64(repoGroup),
+	})
+	assert.NoError(t, group_service.AddTeamToGroup(t.Context(), g, apiTeam.Name))
 
 	// Now we need to check if the restrictedUser can access the repo
 	req = NewRequest(t, "GET", "/"+orgName)
