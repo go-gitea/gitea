@@ -46,6 +46,6 @@ test('diff-tree', () => {
     },
   }, '', '');
   diffTreeStoreSetViewed(store, 'dir1/test.txt', true);
-  expect(store.fullNameMap!['dir1/test.txt'].IsViewed).toBe(true);
-  expect(store.fullNameMap!['dir1'].IsViewed).toBe(true);
+  expect(store.fullNameMap['dir1/test.txt'].IsViewed).toBe(true);
+  expect(store.fullNameMap['dir1'].IsViewed).toBe(true);
 });

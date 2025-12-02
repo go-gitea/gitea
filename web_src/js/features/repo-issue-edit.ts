@@ -37,8 +37,8 @@ async function tryOnEditContent(e: Event) {
     try {
       const params = new URLSearchParams({
         content: comboMarkdownEditor.value(),
-        context: editContentZone.getAttribute('data-context') || 'null',
-        content_version: editContentZone.getAttribute('data-content-version') || 'null',
+        context: String(editContentZone.getAttribute('data-context')),
+        content_version: String(editContentZone.getAttribute('data-content-version')),
       });
       for (const file of comboMarkdownEditor.dropzoneGetFiles() ?? []) {
         params.append('files[]', file);
