@@ -439,12 +439,10 @@ func UpdateBranch(ctx *context.APIContext) {
 	// permission check has been done in api.go
 	if err := repo_service.UpdateBranch(ctx, repo, ctx.Repo.GitRepo, ctx.Doer, branchName, opt.NewCommitID, opt.OldCommitID, opt.Force); err != nil {
 		switch {
-		case git.IsErrNotExist(err):
+		case git_model.IsErrBranchNotExist(err):
+			ctx.APIErrorNotFound(err)
+		case errors.Is(err, util.ErrInvalidArgument):
 			ctx.APIError(http.StatusUnprocessableEntity, err)
-		case repo_service.IsErrBranchCommitDoesNotMatch(err):
-			ctx.APIError(http.StatusConflict, err)
-		case git.IsErrPushOutOfDate(err):
-			ctx.APIError(http.StatusConflict, "The update is not a fast-forward.")
 		case git.IsErrPushRejected(err):
 			rej := err.(*git.ErrPushRejected)
 			ctx.APIError(http.StatusForbidden, rej.Message)

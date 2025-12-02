@@ -486,19 +486,23 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 
 // UpdateBranch moves a branch reference to the provided commit. permission check should be done before calling this function.
 func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, branchName, newCommitID, expectedOldCommitID string, force bool) error {
-	branchCommit, err := gitRepo.GetBranchCommit(branchName)
+	branch, err := git_model.GetBranch(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
 	}
-	currentCommitID := branchCommit.ID.String()
+	if branch.IsDeleted {
+		return git_model.ErrBranchNotExist{
+			BranchName: branchName,
+		}
+	}
 
 	if expectedOldCommitID != "" {
 		expectedID, err := gitRepo.ConvertToGitID(expectedOldCommitID)
 		if err != nil {
 			return fmt.Errorf("ConvertToGitID(old): %w", err)
 		}
-		if expectedID.String() != currentCommitID {
-			return ErrBranchCommitDoesNotMatch{Expected: currentCommitID, Given: expectedID.String()}
+		if expectedID.String() != branch.CommitID {
+			return util.NewInvalidArgumentErrorf("branch commit does not match [expected: %s, given: %s]", expectedID.String(), branch.CommitID)
 		}
 	}
 
@@ -511,16 +515,16 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		return err
 	}
 
-	if newCommit.ID.String() == currentCommitID {
+	if newCommit.ID.String() == branch.CommitID {
 		return nil
 	}
 
-	isForcePush, err := newCommit.IsForcePush(currentCommitID)
+	isForcePush, err := newCommit.IsForcePush(branch.CommitID)
 	if err != nil {
 		return err
 	}
 	if isForcePush && !force {
-		return &git.ErrPushOutOfDate{Err: errors.New("non fast-forward update requires force"), StdErr: "non-fast-forward", StdOut: ""}
+		return util.NewInvalidArgumentErrorf("Force push %s need a confirm force parameter", branchName)
 	}
 
 	pushEnv := repo_module.PushingEnvironment(doer, repo)
@@ -533,7 +537,7 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		protectedBranch.Repo = repo
 		globsProtected := protectedBranch.GetProtectedFilePatterns()
 		if len(globsProtected) > 0 {
-			changedProtectedFiles, protectErr := pull_service.CheckFileProtection(gitRepo, branchName, currentCommitID, newCommit.ID.String(), globsProtected, 1, pushEnv)
+			changedProtectedFiles, protectErr := pull_service.CheckFileProtection(gitRepo, branchName, branch.CommitID, newCommit.ID.String(), globsProtected, 1, pushEnv)
 			if protectErr != nil {
 				if !pull_service.IsErrFilePathProtected(protectErr) {
 					return fmt.Errorf("CheckFileProtection: %w", protectErr)
@@ -558,7 +562,7 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		} else if !protectedBranch.CanUserPush(ctx, doer) {
 			globsUnprotected := protectedBranch.GetUnprotectedFilePatterns()
 			if len(globsUnprotected) > 0 {
-				unprotectedOnly, unprotectedErr := pull_service.CheckUnprotectedFiles(gitRepo, branchName, currentCommitID, newCommit.ID.String(), globsUnprotected, pushEnv)
+				unprotectedOnly, unprotectedErr := pull_service.CheckUnprotectedFiles(gitRepo, branchName, branch.CommitID, newCommit.ID.String(), globsUnprotected, pushEnv)
 				if unprotectedErr != nil {
 					return fmt.Errorf("CheckUnprotectedFiles: %w", unprotectedErr)
 				}
@@ -578,7 +582,7 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 
 	if expectedOldCommitID != "" {
-		pushOpts.ForceWithLease = fmt.Sprintf("%s:%s", git.BranchPrefix+branchName, currentCommitID)
+		pushOpts.ForceWithLease = fmt.Sprintf("%s:%s", git.BranchPrefix+branchName, branch.CommitID)
 	}
 	if isForcePush || force {
 		pushOpts.Force = true
