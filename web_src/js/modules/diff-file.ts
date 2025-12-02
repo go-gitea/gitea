@@ -39,7 +39,7 @@ export function diffTreeStore() {
 }
 
 export function diffTreeStoreSetViewed(store: Reactive<DiffFileTree>, fullName: string, viewed: boolean) {
-  const entry = store.fullNameMap![fullName];
+  const entry = store.fullNameMap[fullName];
   if (!entry) return;
   entry.IsViewed = viewed;
   for (let parent = entry.ParentEntry; parent; parent = parent.ParentEntry) {
