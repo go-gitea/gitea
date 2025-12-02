@@ -23,7 +23,7 @@ export function extname(path: string): string {
 }
 
 /** test whether a variable is an object */
-export function isObject(obj: any): boolean {
+export function isObject<T = Record<string, any>>(obj: any): obj is T {
   return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
