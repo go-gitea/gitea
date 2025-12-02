@@ -6,8 +6,12 @@ import {registerGlobalEventFunc} from '../modules/observer.ts';
 
 const {appSubUrl} = window.config;
 
+function isUserSignedIn() {
+  return Boolean(document.querySelector('#navbar .user-menu'));
+}
+
 async function toggleSidebar(btn: HTMLElement) {
-  const elToggleShow = document.querySelector('.repo-view-file-tree-toggle-show');
+  const elToggleShow = document.querySelector('.repo-view-file-tree-toggle[data-toggle-action="show"]');
   const elFileTreeContainer = document.querySelector('.repo-view-file-tree-container');
   const shouldShow = btn.getAttribute('data-toggle-action') === 'show';
   toggleElem(elFileTreeContainer, shouldShow);
@@ -15,7 +19,7 @@ async function toggleSidebar(btn: HTMLElement) {
 
   // FIXME: need to remove "full height" style from parent element
 
-  if (!elFileTreeContainer.hasAttribute('data-user-is-signed-in')) return;
+  if (!isUserSignedIn()) return;
   await POST(`${appSubUrl}/user/settings/update_preferences`, {
     data: {codeViewShowFileTree: shouldShow},
   });

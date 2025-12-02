@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"path"
 	"strconv"
-	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -42,8 +41,8 @@ type blameRow struct {
 
 // RefBlame render blame page
 func RefBlame(ctx *context.Context) {
-	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["IsBlame"] = true
+	prepareRepoViewContent(ctx, ctx.Repo.RefTypeNameSubURL())
 
 	// Get current entry user currently looking at.
 	if ctx.Repo.TreePath == "" {
@@ -55,17 +54,6 @@ func RefBlame(ctx *context.Context) {
 		HandleGitError(ctx, "Repo.Commit.GetTreeEntryByPath", err)
 		return
 	}
-
-	treeNames := strings.Split(ctx.Repo.TreePath, "/")
-	var paths []string
-	for i := range treeNames {
-		paths = append(paths, strings.Join(treeNames[:i+1], "/"))
-	}
-
-	ctx.Data["Paths"] = paths
-	ctx.Data["TreeNames"] = treeNames
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
-	ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/raw/" + ctx.Repo.RefTypeNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	blob := entry.Blob()
 	fileSize := blob.Size()

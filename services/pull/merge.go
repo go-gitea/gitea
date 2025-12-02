@@ -547,11 +547,15 @@ var escapedSymbols = regexp.MustCompile(`([*[?! \\])`)
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
 func IsUserAllowedToMerge(ctx context.Context, pr *issues_model.PullRequest, p access_model.Permission, user *user_model.User) (bool, error) {
+	return isUserAllowedToMergeInRepoBranch(ctx, pr.BaseRepoID, pr.BaseBranch, p, user)
+}
+
+func isUserAllowedToMergeInRepoBranch(ctx context.Context, repoID int64, branch string, p access_model.Permission, user *user_model.User) (bool, error) {
 	if user == nil {
 		return false, nil
 	}
 
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repoID, branch)
 	if err != nil {
 		return false, err
 	}

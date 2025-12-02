@@ -135,7 +135,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if hasDefaultBranch {
 		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
 			log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
-			return fmt.Errorf("fnable to read HEAD tree to index in: %s %w", basePath, err)
+			return fmt.Errorf("unable to read HEAD tree to index in: %s %w", basePath, err)
 		}
 	}
 
