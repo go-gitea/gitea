@@ -252,9 +252,9 @@
 				{{end}}
 				{{if .CacheConn}}
 					<dt>{{ctx.Locale.Tr "admin.config.cache_conn"}}</dt>
-					<dd><code>{{.CacheConn}}</code></dd>
+					<dd>{{.CacheConn}}</dd>
 					<dt>{{ctx.Locale.Tr "admin.config.cache_item_ttl"}}</dt>
-					<dd><code>{{.CacheItemTTL}}</code></dd>
+					<dd>{{.CacheItemTTL}}</dd>
 				{{end}}
 				<div class="divider"></div>
 				<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.cache_test"}}</dt>
@@ -275,7 +275,7 @@
 				<dt>{{ctx.Locale.Tr "admin.config.session_provider"}}</dt>
 				<dd>{{.SessionConfig.Provider}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.provider_config"}}</dt>
-				<dd><code>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig}}{{else}}-{{end}}</code></dd>
+				<dd>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig}}{{else}}-{{end}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.cookie_name"}}</dt>
 				<dd>{{.SessionConfig.CookieName}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.gc_interval_time"}}</dt>
@@ -301,7 +301,7 @@
 				<dt>{{ctx.Locale.Tr "admin.config.git_max_diff_files"}}</dt>
 				<dd>{{.Git.MaxGitDiffFiles}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.git_gc_args"}}</dt>
-				<dd><code>{{.Git.GCArgs}}</code></dd>
+				<dd>{{.Git.GCArgs}}</dd>
 
 				<div class="divider"></div>
 
@@ -330,7 +330,7 @@
 
 				{{if .Loggers.access.IsEnabled}}
 					<dt>{{ctx.Locale.Tr "admin.config.access_log_template"}}</dt>
-					<dd><code>{{$.AccessLogTemplate}}</code></dd>
+					<dd>{{$.AccessLogTemplate}}</dd>
 				{{end}}
 
 				{{range $loggerName, $loggerDetail := .Loggers}}

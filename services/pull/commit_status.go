@@ -96,8 +96,12 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullR
 	}
 	defer closer.Close()
 
-	if pr.Flow == issues_model.PullRequestFlowGithub && !gitrepo.IsBranchExist(ctx, pr.HeadRepo, pr.HeadBranch) {
-		return "", errors.New("Head branch does not exist, can not merge")
+	if pr.Flow == issues_model.PullRequestFlowGithub {
+		if exist, err := git_model.IsBranchExist(ctx, pr.HeadRepo.ID, pr.HeadBranch); err != nil {
+			return "", errors.Wrap(err, "IsBranchExist")
+		} else if !exist {
+			return "", errors.New("Head branch does not exist, can not merge")
+		}
 	}
 	if pr.Flow == issues_model.PullRequestFlowAGit && !gitrepo.IsReferenceExist(ctx, pr.HeadRepo, pr.GetGitHeadRefName()) {
 		return "", errors.New("Head branch does not exist, can not merge")

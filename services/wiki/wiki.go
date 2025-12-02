@@ -120,7 +120,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		cloneOpts.Branch = repo.DefaultWikiBranch
 	}
 
-	if err := git.Clone(ctx, repo.WikiPath(), basePath, cloneOpts); err != nil {
+	if err := gitrepo.CloneRepoToLocal(ctx, repo.WikiStorageRepo(), basePath, cloneOpts); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
 		return fmt.Errorf("failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
@@ -135,7 +135,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if hasDefaultBranch {
 		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
 			log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
-			return fmt.Errorf("fnable to read HEAD tree to index in: %s %w", basePath, err)
+			return fmt.Errorf("unable to read HEAD tree to index in: %s %w", basePath, err)
 		}
 	}
 
@@ -223,6 +223,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 			repo,
 			repo.Name+".wiki",
 			0,
+			0,
 		),
 	}); err != nil {
 		log.Error("Push failed: %v", err)
@@ -269,7 +270,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	}
 	defer cleanup()
 
-	if err := git.Clone(ctx, repo.WikiPath(), basePath, git.CloneRepoOptions{
+	if err := gitrepo.CloneRepoToLocal(ctx, repo.WikiStorageRepo(), basePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 		Branch: repo.DefaultWikiBranch,
@@ -340,6 +341,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 			doer,
 			repo,
 			repo.Name+".wiki",
+			0,
 			0,
 		),
 	}); err != nil {

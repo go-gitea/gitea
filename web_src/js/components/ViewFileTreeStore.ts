@@ -25,9 +25,16 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
     },
 
     async loadViewContent(url: string) {
-      url = url.includes('?') ? url.replace('?', '?only_content=true') : `${url}?only_content=true`;
-      const response = await GET(url);
-      document.querySelector('.repo-view-content').innerHTML = await response.text();
+      const u = new URL(url, window.origin);
+      u.searchParams.set('only_content', 'true');
+      const response = await GET(u.href);
+      const elViewContent = document.querySelector('.repo-view-content');
+      elViewContent.innerHTML = await response.text();
+      const elViewContentData = elViewContent.querySelector('.repo-view-content-data');
+      if (!elViewContentData) return; // if error occurs, there is no such element
+      const t1 = elViewContentData.getAttribute('data-document-title');
+      const t2 = elViewContentData.getAttribute('data-document-title-common');
+      document.title = `${t1} - ${t2}`; // follow the format in head.tmpl: <head><title>...</title></head>
     },
 
     async navigateTreeView(treePath: string) {

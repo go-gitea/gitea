@@ -13,7 +13,6 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -21,7 +20,6 @@ import (
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	lru "github.com/hashicorp/golang-lru/v2"
-	"github.com/nektos/act/pkg/jobparser"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
 )
@@ -246,7 +244,7 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	var job *ActionRunJob
 	log.Trace("runner labels: %v", runner.AgentLabels)
 	for _, v := range jobs {
-		if isSubset(runner.AgentLabels, v.RunsOn) {
+		if runner.CanMatchLabels(v.RunsOn) {
 			job = v
 			break
 		}
@@ -278,13 +276,10 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		return nil, false, err
 	}
 
-	parsedWorkflows, err := jobparser.Parse(job.WorkflowPayload)
+	workflowJob, err := job.ParseJob()
 	if err != nil {
-		return nil, false, fmt.Errorf("parse workflow of job %d: %w", job.ID, err)
-	} else if len(parsedWorkflows) != 1 {
-		return nil, false, fmt.Errorf("workflow of job %d: not single workflow", job.ID)
+		return nil, false, fmt.Errorf("load job %d: %w", job.ID, err)
 	}
-	_, workflowJob := parsedWorkflows[0].Job()
 
 	if _, err := e.Insert(task); err != nil {
 		return nil, false, err
@@ -477,20 +472,6 @@ func FindOldTasksToExpire(ctx context.Context, olderThan timeutil.TimeStamp, lim
 	return tasks, e.Where("stopped > 0 AND stopped < ? AND log_expired = ?", olderThan, false).
 		Limit(limit).
 		Find(&tasks)
-}
-
-func isSubset(set, subset []string) bool {
-	m := make(container.Set[string], len(set))
-	for _, v := range set {
-		m.Add(v)
-	}
-
-	for _, v := range subset {
-		if !m.Contains(v) {
-			return false
-		}
-	}
-	return true
 }
 
 func convertTimestamp(timestamp *timestamppb.Timestamp) timeutil.TimeStamp {

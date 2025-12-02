@@ -8,12 +8,12 @@ import (
 	"html"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/healthcheck"
+	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -24,15 +24,16 @@ func Routes() *web.Router {
 	base.Methods("GET, HEAD", "/assets/*", public.FileHandlerFunc())
 
 	r := web.NewRouter()
-	if sessionMid, err := common.Sessioner(); err == nil && sessionMid != nil {
-		r.Use(sessionMid, Contexter())
-	} else {
-		log.Fatal("common.Sessioner failed: %v", err)
-	}
+	r.Use(common.MustInitSessioner(), installContexter())
+
 	r.Get("/", Install) // it must be on the root, because the "install.js" use the window.location to replace the "localhost" AppURL
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
 	r.Get("/post-install", InstallDone)
+
+	r.Get("/-/web-theme/list", misc.WebThemeList)
+	r.Post("/-/web-theme/apply", misc.WebThemeApply)
 	r.Get("/api/healthz", healthcheck.Check)
+
 	r.NotFound(installNotFound)
 
 	base.Mount("", r)
