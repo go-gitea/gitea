@@ -66,10 +66,9 @@ func (g *RepoGroup) UnitPermission(ctx context.Context, doer *user_model.User, u
 	return perm.AccessModeNone
 }
 
-func GetGroupByParams(ctx *Context) {
+func GetGroupByParams(ctx *Context) (err error) {
 	groupID := ctx.PathParamInt64("group_id")
 
-	var err error
 	ctx.RepoGroup.Group, err = group_model.GetGroupByID(ctx, groupID)
 	if err != nil {
 		if group_model.IsErrGroupNotExist(err) {
@@ -77,11 +76,12 @@ func GetGroupByParams(ctx *Context) {
 		} else {
 			ctx.ServerError("GetUserByName", err)
 		}
-		return
+		return err
 	}
 	if err = ctx.RepoGroup.Group.LoadAttributes(ctx); err != nil {
 		ctx.ServerError("LoadAttributes", err)
 	}
+	return err
 }
 
 type GroupAssignmentOptions struct {
@@ -90,24 +90,25 @@ type GroupAssignmentOptions struct {
 	RequireGroupAdmin bool
 }
 
-func groupAssignment(ctx *Context) {
+func groupAssignment(ctx *Context) (bool, error) {
+	var err error
 	if ctx.RepoGroup.Group == nil {
-		GetGroupByParams(ctx)
+		err = GetGroupByParams(ctx)
 	}
 	if ctx.Written() {
-		return
+		return false, err
 	}
 	group := ctx.RepoGroup.Group
 	canAccess, err := group.CanAccess(ctx, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("error checking group access", err)
-		return
+		return false, err
 	}
 	if group.Owner == nil {
 		err = group.LoadOwner(ctx)
 		if err != nil {
 			ctx.ServerError("LoadOwner", err)
-			return
+			return false, err
 		}
 	}
 	ownerAsOrg := (*organization.Organization)(group.Owner)
@@ -116,7 +117,7 @@ func groupAssignment(ctx *Context) {
 	if ctx.IsSigned {
 		if orgWideAdmin, err = ownerAsOrg.IsOrgAdmin(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("IsOrgAdmin", err)
-			return
+			return false, err
 		}
 		if orgWideOwner, err = ownerAsOrg.IsOwnedBy(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("IsOwnedBy", err)
@@ -138,7 +139,7 @@ func groupAssignment(ctx *Context) {
 		isOwnedBy, err = group.IsOwnedBy(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
-			return
+			return false, err
 		}
 		ctx.RepoGroup.IsOwner = ctx.RepoGroup.IsOwner || isOwnedBy
 
@@ -150,12 +151,12 @@ func groupAssignment(ctx *Context) {
 			ctx.RepoGroup.IsMember, err = shared_group.IsGroupMember(ctx, group.ID, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("IsOrgMember", err)
-				return
+				return false, err
 			}
 			ctx.RepoGroup.CanCreateRepoOrGroup, err = group.CanCreateIn(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateIn", err)
-				return
+				return false, err
 			}
 		}
 	} else {
@@ -172,7 +173,7 @@ func groupAssignment(ctx *Context) {
 			teams, err := organization.GetUserGroupTeams(ctx, group.ID, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
-				return
+				return false, err
 			}
 			for _, team := range teams {
 				if team.IncludesAllRepositories && team.AccessMode >= perm.AccessModeAdmin {
@@ -185,13 +186,13 @@ func groupAssignment(ctx *Context) {
 			ctx.RepoGroup.Teams, err = shared_group.GetGroupTeams(ctx, group.ID)
 			if err != nil {
 				ctx.ServerError("LoadTeams", err)
-				return
+				return false, err
 			}
 		} else {
 			ctx.RepoGroup.Teams, err = organization.GetUserGroupTeams(ctx, group.ID, ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
-				return
+				return false, err
 			}
 		}
 		ctx.Data["NumTeams"] = len(ctx.RepoGroup.Teams)
@@ -207,7 +208,7 @@ func groupAssignment(ctx *Context) {
 				groupTeam, err = group_model.FindGroupTeamByTeamID(ctx, group.ID, team.ID)
 				if err != nil {
 					ctx.ServerError("FindGroupTeamByTeamID", err)
-					return
+					return false, err
 				}
 				ctx.RepoGroup.GroupTeam = groupTeam
 				ctx.RepoGroup.Team = team
@@ -219,7 +220,7 @@ func groupAssignment(ctx *Context) {
 
 		if !teamExists {
 			ctx.NotFound(err)
-			return
+			return false, err
 		}
 
 		ctx.Data["IsTeamMember"] = ctx.RepoGroup.IsMember
@@ -237,22 +238,20 @@ func groupAssignment(ctx *Context) {
 		isAdmin, err := group.IsAdminOf(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("IsAdminOf", err)
-			return
+			return false, err
 		}
 		ctx.RepoGroup.IsGroupAdmin = ctx.RepoGroup.IsGroupAdmin || isAdmin
 	}
-	if !canAccess && !(ctx.RepoGroup.IsGroupAdmin || ctx.RepoGroup.IsMember || ctx.RepoGroup.IsOwner) {
-		ctx.NotFound(nil)
-		return
-	}
+	return canAccess && (ctx.RepoGroup.IsGroupAdmin || ctx.RepoGroup.IsMember || ctx.RepoGroup.IsOwner), nil
 }
 
 func GroupAssignment(args GroupAssignmentOptions) func(ctx *Context) {
 	return func(ctx *Context) {
 		var err error
 
-		groupAssignment(ctx)
-		if ctx.Written() {
+		ca, err := groupAssignment(ctx)
+
+		if ctx.Written() || err != nil {
 			return
 		}
 
@@ -264,8 +263,9 @@ func GroupAssignment(args GroupAssignmentOptions) func(ctx *Context) {
 
 		if ctx.RepoGroup.Group.Visibility == structs.VisibleTypePrivate {
 			args.RequireMember = true
-		} else if ctx.IsSigned && ctx.Doer.IsRestricted {
-			args.RequireMember = true
+		} else if ctx.IsSigned && !ca {
+			ctx.NotFound(err)
+			return
 		}
 
 		if (args.RequireMember && !ctx.RepoGroup.IsMember) ||

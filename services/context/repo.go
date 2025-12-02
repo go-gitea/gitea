@@ -384,7 +384,7 @@ func RedirectToRepo(ctx *Base, redirectRepoID int64) {
 	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusMovedPermanently)
 }
 
-func repoAssignment(ctx *Context, repo *repo_model.Repository) {
+func repoAssignment(ctx *Context, repo *repo_model.Repository, canAccessInGroup bool) {
 	var err error
 	if err = repo.LoadOwner(ctx); err != nil {
 		ctx.ServerError("LoadOwner", err)
@@ -401,7 +401,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		}
 	}
 
-	if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) {
+	if !ctx.Repo.Permission.HasAnyUnitAccessOrPublicAccess() && !canWriteAsMaintainer(ctx) && !canAccessInGroup {
 		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
@@ -530,15 +530,22 @@ func RepoAssignment(ctx *Context) {
 	if repo.GroupID != gid {
 		ctx.NotFound(nil)
 	}
+	var canAccessInGroup bool
 	if gid > 0 {
-		groupAssignment(ctx)
+		canAccessInGroup, err = groupAssignment(ctx)
+		if err != nil {
+			if !ctx.Written() {
+				ctx.ServerError("groupAssignment", err)
+			}
+			return
+		}
 	}
 	if ctx.Written() {
 		return
 	}
 	repo.Owner = ctx.Repo.Owner
 
-	repoAssignment(ctx, repo)
+	repoAssignment(ctx, repo, canAccessInGroup)
 	if ctx.Written() {
 		return
 	}
