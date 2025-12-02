@@ -30,8 +30,9 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
     });
   } catch (error) {
     console.error(error);
-    // @ts-expect-error: TODO
-    from.insertBefore(item, from.children[oldIndex]);
+    if (oldIndex) {
+      from.insertBefore(item, from.children[oldIndex]);
+    }
   }
 }
 
