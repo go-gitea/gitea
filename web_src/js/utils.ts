@@ -96,11 +96,11 @@ export function blobToDataURI(blob: Blob): Promise<string> {
         if (e.target) {
           resolve(e.target.result as string);
         } else {
-          reject(new Error('FileReader failed'));
+          reject(new Error('blobToDataURI: FileReader failed'));
         }
       });
       reader.addEventListener('error', () => {
-        reject(new Error('FileReader failed'));
+        reject(new Error('blobToDataURI: FileReader error'));
       });
       reader.readAsDataURL(blob);
     } catch (err) {

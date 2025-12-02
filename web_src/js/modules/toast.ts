@@ -77,9 +77,12 @@ function showToast(message: string, level: Intent, {gravity, position, duration,
   });
 
   toast.showToast();
-  toast.toastElement?.querySelector('.toast-close')!.addEventListener('click', () => toast.hideToast());
-  toast.toastElement?.setAttribute('data-toast-unique-key', duplicateKey);
-  (toast.toastElement as ToastifyElement)._giteaToastifyInstance = toast;
+  if (toast.toastElement) {
+    const el = toast.toastElement as ToastifyElement;
+    el.querySelector('.toast-close')!.addEventListener('click', () => toast.hideToast());
+    el.setAttribute('data-toast-unique-key', duplicateKey);
+    el._giteaToastifyInstance = toast;
+  }
   return toast;
 }
 
