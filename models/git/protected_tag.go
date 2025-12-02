@@ -11,9 +11,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"github.com/gobwas/glob"
 )
 
 // ProtectedTag struct
@@ -101,6 +100,19 @@ func GetProtectedTags(ctx context.Context, repoID int64) ([]*ProtectedTag, error
 func GetProtectedTagByID(ctx context.Context, id int64) (*ProtectedTag, error) {
 	tag := new(ProtectedTag)
 	has, err := db.GetEngine(ctx).ID(id).Get(tag)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, nil
+	}
+	return tag, nil
+}
+
+// GetProtectedTagByNamePattern gets protected tag by name_pattern
+func GetProtectedTagByNamePattern(ctx context.Context, repoID int64, pattern string) (*ProtectedTag, error) {
+	tag := &ProtectedTag{NamePattern: pattern, RepoID: repoID}
+	has, err := db.GetEngine(ctx).Get(tag)
 	if err != nil {
 		return nil, err
 	}

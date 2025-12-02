@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -20,9 +19,11 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPILFSNotStarted(t *testing.T) {
@@ -59,12 +60,12 @@ func TestAPILFSMediaType(t *testing.T) {
 	MakeRequest(t, req, http.StatusUnsupportedMediaType)
 }
 
-func createLFSTestRepository(t *testing.T, name string) *repo_model.Repository {
-	ctx := NewAPITestContext(t, "user2", "lfs-"+name+"-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+func createLFSTestRepository(t *testing.T, repoName string) *repo_model.Repository {
+	ctx := NewAPITestContext(t, "user2", repoName, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "lfs-"+name+"-repo")
-	assert.NoError(t, err)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", repoName)
+	require.NoError(t, err)
 
 	return repo
 }
@@ -74,17 +75,17 @@ func TestAPILFSBatch(t *testing.T) {
 
 	setting.LFS.StartServer = true
 
-	repo := createLFSTestRepository(t, "batch")
+	repo := createLFSTestRepository(t, "lfs-batch-repo")
 
 	content := []byte("dummy1")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
 	newRequest := func(t testing.TB, br *lfs.BatchRequest) *RequestWrapper {
 		return NewRequestWithJSON(t, "POST", "/user2/lfs-batch-repo.git/info/lfs/objects/batch", br).
-			SetHeader("Accept", lfs.MediaType).
+			SetHeader("Accept", lfs.AcceptHeader).
 			SetHeader("Content-Type", lfs.MediaType)
 	}
 	decodeResponse := func(t *testing.T, b *bytes.Buffer) *lfs.BatchResponse {
@@ -226,9 +227,7 @@ func TestAPILFSBatch(t *testing.T) {
 
 		t.Run("FileTooBig", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-
-			oldMaxFileSize := setting.LFS.MaxFileSize
-			setting.LFS.MaxFileSize = 2
+			defer test.MockVariableValue(&setting.LFS.MaxFileSize, 2)()
 
 			req := newRequest(t, &lfs.BatchRequest{
 				Operation: "upload",
@@ -243,8 +242,6 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.NotNil(t, br.Objects[0].Error)
 			assert.Equal(t, http.StatusUnprocessableEntity, br.Objects[0].Error.Code)
 			assert.Equal(t, "Size must be less than or equal to 2", br.Objects[0].Error.Message)
-
-			setting.LFS.MaxFileSize = oldMaxFileSize
 		})
 
 		t.Run("AddMeta", func(t *testing.T) {
@@ -257,11 +254,11 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, exist)
 
-			repo2 := createLFSTestRepository(t, "batch2")
+			repo2 := createLFSTestRepository(t, "lfs-batch2-repo")
 			content := []byte("dummy0")
 			storeObjectInRepo(t, repo2.ID, &content)
 
-			meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
+			meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
 			assert.Nil(t, meta)
 			assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
 
@@ -276,7 +273,7 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.Nil(t, br.Objects[0].Error)
 			assert.Empty(t, br.Objects[0].Actions)
 
-			meta, err = git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
+			meta, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
 
@@ -333,11 +330,11 @@ func TestAPILFSUpload(t *testing.T) {
 
 	setting.LFS.StartServer = true
 
-	repo := createLFSTestRepository(t, "upload")
+	repo := createLFSTestRepository(t, "lfs-upload-repo")
 
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
@@ -365,7 +362,7 @@ func TestAPILFSUpload(t *testing.T) {
 		err = contentStore.Put(p, bytes.NewReader([]byte("dummy5")))
 		assert.NoError(t, err)
 
-		meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
 		assert.Nil(t, meta)
 		assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
 
@@ -378,7 +375,7 @@ func TestAPILFSUpload(t *testing.T) {
 			req := newRequest(t, p, "dummy5")
 
 			session.MakeRequest(t, req, http.StatusOK)
-			meta, err = git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
+			meta, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
 		})
@@ -426,7 +423,7 @@ func TestAPILFSUpload(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, exist)
 
-		meta, err := git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, p.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, p.Oid)
 		assert.NoError(t, err)
 		assert.NotNil(t, meta)
 	})
@@ -437,17 +434,17 @@ func TestAPILFSVerify(t *testing.T) {
 
 	setting.LFS.StartServer = true
 
-	repo := createLFSTestRepository(t, "verify")
+	repo := createLFSTestRepository(t, "lfs-verify-repo")
 
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
 	newRequest := func(t testing.TB, p *lfs.Pointer) *RequestWrapper {
 		return NewRequestWithJSON(t, "POST", "/user2/lfs-verify-repo.git/info/lfs/verify", p).
-			SetHeader("Accept", lfs.MediaType).
+			SetHeader("Accept", lfs.AcceptHeader).
 			SetHeader("Content-Type", lfs.MediaType)
 	}
 

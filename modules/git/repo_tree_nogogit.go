@@ -10,7 +10,10 @@ import (
 )
 
 func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
-	wr, rd, cancel := repo.CatFileBatch(repo.Ctx)
+	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
 	defer cancel()
 
 	_, _ = wr.Write([]byte(id.String() + "\n"))
@@ -32,7 +35,11 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		commit, err := tag.Commit(repo)
+
+		if _, err := wr.Write([]byte(tag.Object.String() + "\n")); err != nil {
+			return nil, err
+		}
+		commit, err := repo.getCommitFromBatchReader(wr, rd, tag.Object)
 		if err != nil {
 			return nil, err
 		}

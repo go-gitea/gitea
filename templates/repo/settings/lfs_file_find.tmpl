@@ -15,7 +15,7 @@
 							<td class="message">
 								<span class="truncate">
 									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{.Summary}}">
-										{{.Summary | RenderEmoji $.Context}}
+										{{.Summary | ctx.RenderUtils.RenderEmoji}}
 									</a>
 								</span>
 							</td>
@@ -32,7 +32,7 @@
 								{{ctx.Locale.Tr "repo.diff.commit"}}
 								<a class="ui primary sha label" href="{{$.RepoLink}}/commit/{{.SHA}}">{{ShortSha .SHA}}</a>
 							</td>
-							<td>{{TimeSince .When ctx.Locale}}</td>
+							<td>{{DateUtils.TimeSince .When}}</td>
 						</tr>
 					{{else}}
 						<tr>

@@ -24,11 +24,6 @@ func LockIssue(ctx *context.Context) {
 		return
 	}
 
-	if !form.HasValidReason() {
-		ctx.JSONError(ctx.Tr("repo.issues.lock.unknown_reason"))
-		return
-	}
-
 	if err := issues_model.LockIssue(ctx, &issues_model.IssueLockOptions{
 		Doer:   ctx.Doer,
 		Issue:  issue,

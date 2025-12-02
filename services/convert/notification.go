@@ -40,7 +40,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL(ctx)
-			result.Subject.HTMLURL = n.Issue.HTMLURL()
+			result.Subject.HTMLURL = n.Issue.HTMLURL(ctx)
 			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment(ctx)
 			if err == nil && comment != nil {
@@ -53,7 +53,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL(ctx)
-			result.Subject.HTMLURL = n.Issue.HTMLURL()
+			result.Subject.HTMLURL = n.Issue.HTMLURL(ctx)
 			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment(ctx)
 			if err == nil && comment != nil {
@@ -61,8 +61,9 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 				result.Subject.LatestCommentHTMLURL = comment.HTMLURL(ctx)
 			}
 
-			pr, _ := n.Issue.GetPullRequest(ctx)
-			if pr != nil && pr.HasMerged {
+			if err := n.Issue.LoadPullRequest(ctx); err == nil &&
+				n.Issue.PullRequest != nil &&
+				n.Issue.PullRequest.HasMerged {
 				result.Subject.State = "merged"
 			}
 		}

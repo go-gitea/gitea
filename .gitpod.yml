@@ -42,8 +42,8 @@ vscode:
     - DavidAnson.vscode-markdownlint
     - Vue.volar
     - ms-azuretools.vscode-docker
-    - zixuanchen.vitest-explorer
-    - qwtel.sqlite-viewer
+    - vitest.explorer
+    - cweijan.vscode-database-client2
     - GitHub.vscode-pull-request-github
 
 ports:

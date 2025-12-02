@@ -13,7 +13,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-func convertPGPSignature(c *object.Commit) *CommitGPGSignature {
+func convertPGPSignature(c *object.Commit) *CommitSignature {
 	if c.PGPSignature == "" {
 		return nil
 	}
@@ -47,11 +47,17 @@ func convertPGPSignature(c *object.Commit) *CommitGPGSignature {
 		return nil
 	}
 
+	if c.Encoding != "" && c.Encoding != "UTF-8" {
+		if _, err = fmt.Fprintf(&w, "\nencoding %s\n", c.Encoding); err != nil {
+			return nil
+		}
+	}
+
 	if _, err = fmt.Fprintf(&w, "\n\n%s", c.Message); err != nil {
 		return nil
 	}
 
-	return &CommitGPGSignature{
+	return &CommitSignature{
 		Signature: c.PGPSignature,
 		Payload:   w.String(),
 	}

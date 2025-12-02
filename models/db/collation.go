@@ -68,7 +68,8 @@ func CheckCollations(x *xorm.Engine) (*CheckCollationsResult, error) {
 
 	var candidateCollations []string
 	if x.Dialect().URI().DBType == schemas.MYSQL {
-		if _, err = x.SQL("SELECT @@collation_database").Get(&res.DatabaseCollation); err != nil {
+		_, err = x.SQL("SELECT DEFAULT_COLLATION_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?", setting.Database.Name).Get(&res.DatabaseCollation)
+		if err != nil {
 			return nil, err
 		}
 		res.IsCollationCaseSensitive = func(s string) bool {
@@ -139,7 +140,7 @@ func CheckCollations(x *xorm.Engine) (*CheckCollationsResult, error) {
 }
 
 func CheckCollationsDefaultEngine() (*CheckCollationsResult, error) {
-	return CheckCollations(x)
+	return CheckCollations(xormEngine)
 }
 
 func alterDatabaseCollation(x *xorm.Engine, collation string) error {

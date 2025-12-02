@@ -16,14 +16,9 @@ import (
 type TaskList []*ActionTask
 
 func (tasks TaskList) GetJobIDs() []int64 {
-	ids := make(container.Set[int64], len(tasks))
-	for _, t := range tasks {
-		if t.JobID == 0 {
-			continue
-		}
-		ids.Add(t.JobID)
-	}
-	return ids.Values()
+	return container.FilterSlice(tasks, func(t *ActionTask) (int64, bool) {
+		return t.JobID, t.JobID != 0
+	})
 }
 
 func (tasks TaskList) LoadJobs(ctx context.Context) error {
@@ -53,19 +48,22 @@ func (tasks TaskList) LoadAttributes(ctx context.Context) error {
 type FindTaskOptions struct {
 	db.ListOptions
 	RepoID        int64
+	JobID         int64
 	OwnerID       int64
 	CommitSHA     string
 	Status        Status
 	UpdatedBefore timeutil.TimeStamp
 	StartedBefore timeutil.TimeStamp
 	RunnerID      int64
-	IDOrderDesc   bool
 }
 
 func (opts FindTaskOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.JobID > 0 {
+		cond = cond.And(builder.Eq{"job_id": opts.JobID})
 	}
 	if opts.OwnerID > 0 {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
@@ -89,8 +87,5 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 }
 
 func (opts FindTaskOptions) ToOrders() string {
-	if opts.IDOrderDesc {
-		return "`id` DESC"
-	}
-	return ""
+	return "`id` DESC"
 }

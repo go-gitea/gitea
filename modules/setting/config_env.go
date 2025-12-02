@@ -65,7 +65,7 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 		decodedBytes := make([]byte, len(toDecode)/2)
 		for i := 0; i < len(toDecode)/2; i++ {
 			// Can ignore error here as we know these should be hexadecimal from the regexp
-			byteInt, _ := strconv.ParseInt(toDecode[2*i:2*i+2], 16, 0)
+			byteInt, _ := strconv.ParseInt(toDecode[2*i:2*i+2], 16, 8)
 			decodedBytes[i] = byte(byteInt)
 		}
 		if inKey {
@@ -165,4 +165,26 @@ func EnvironmentToConfig(cfg ConfigProvider, envs []string) (changed bool) {
 		key.SetValue(keyValue)
 	}
 	return changed
+}
+
+// InitGiteaEnvVars initializes the environment variables for gitea
+func InitGiteaEnvVars() {
+	// Ideally Gitea should only accept the environment variables which it clearly knows instead of unsetting the ones it doesn't want,
+	// but the ideal behavior would be a breaking change, and it seems not bringing enough benefits to end users,
+	// so at the moment we could still keep "unsetting the unnecessary environments"
+
+	// HOME is managed by Gitea, Gitea's git should use "HOME/.gitconfig".
+	// But git would try "XDG_CONFIG_HOME/git/config" first if "HOME/.gitconfig" does not exist,
+	// then our git.InitFull would still write to "XDG_CONFIG_HOME/git/config" if XDG_CONFIG_HOME is set.
+	_ = os.Unsetenv("XDG_CONFIG_HOME")
+}
+
+func InitGiteaEnvVarsForTesting() {
+	InitGiteaEnvVars()
+	_ = os.Unsetenv("GIT_AUTHOR_NAME")
+	_ = os.Unsetenv("GIT_AUTHOR_EMAIL")
+	_ = os.Unsetenv("GIT_AUTHOR_DATE")
+	_ = os.Unsetenv("GIT_COMMITTER_NAME")
+	_ = os.Unsetenv("GIT_COMMITTER_EMAIL")
+	_ = os.Unsetenv("GIT_COMMITTER_DATE")
 }

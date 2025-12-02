@@ -1,4 +1,4 @@
-<div class="ldap dldap field {{if not (or (eq .type 2) (eq .type 5))}}gt-hidden{{end}}">
+<div class="ldap dldap field {{if not (or (eq .type 2) (eq .type 5))}}tw-hidden{{end}}">
 	<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
 		<label>{{ctx.Locale.Tr "admin.auths.security_protocol"}}</label>
 		<div class="ui selection security-protocol dropdown">
@@ -20,17 +20,17 @@
 		<label for="port">{{ctx.Locale.Tr "admin.auths.port"}}</label>
 		<input id="port" name="port" value="{{.port}}"  placeholder="636">
 	</div>
-	<div class="has-tls inline field {{if not .HasTLS}}gt-hidden{{end}}">
+	<div class="has-tls inline field {{if not .HasTLS}}tw-hidden{{end}}">
 		<div class="ui checkbox">
 			<label><strong>{{ctx.Locale.Tr "admin.auths.skip_tls_verify"}}</strong></label>
 			<input name="skip_verify" type="checkbox" {{if .skip_verify}}checked{{end}}>
 		</div>
 	</div>
-	<div class="ldap field {{if not (eq .type 2)}}gt-hidden{{end}}">
+	<div class="ldap field {{if not (eq .type 2)}}tw-hidden{{end}}">
 		<label for="bind_dn">{{ctx.Locale.Tr "admin.auths.bind_dn"}}</label>
 		<input id="bind_dn" name="bind_dn" value="{{.bind_dn}}" placeholder="cn=Search,dc=mydomain,dc=com">
 	</div>
-	<div class="ldap field {{if not (eq .type 2)}}gt-hidden{{end}}">
+	<div class="ldap field {{if not (eq .type 2)}}tw-hidden{{end}}">
 		<label for="bind_password">{{ctx.Locale.Tr "admin.auths.bind_password"}}</label>
 		<input id="bind_password" name="bind_password" type="password" autocomplete="off" value="{{.bind_password}}">
 	</div>
@@ -38,7 +38,7 @@
 		<label for="user_base">{{ctx.Locale.Tr "admin.auths.user_base"}}</label>
 		<input id="user_base" name="user_base" value="{{.user_base}}" placeholder="ou=Users,dc=mydomain,dc=com">
 	</div>
-	<div class="dldap required field {{if not (eq .type 5)}}gt-hidden{{end}}">
+	<div class="dldap required field {{if not (eq .type 5)}}tw-hidden{{end}}">
 		<label for="user_dn">{{ctx.Locale.Tr "admin.auths.user_dn"}}</label>
 		<input id="user_dn" name="user_dn" value="{{.user_dn}}" placeholder="uid=%s,ou=Users,dc=mydomain,dc=com">
 	</div>
@@ -115,13 +115,13 @@
 	</div>
 	<!-- ldap group end -->
 
-	<div class="ldap inline field {{if not (eq .type 2)}}gt-hidden{{end}}">
+	<div class="ldap inline field {{if not (eq .type 2)}}tw-hidden{{end}}">
 		<div class="ui checkbox">
 			<label for="use_paged_search"><strong>{{ctx.Locale.Tr "admin.auths.use_paged_search"}}</strong></label>
 			<input id="use_paged_search" name="use_paged_search" class="use-paged-search" type="checkbox" {{if .use_paged_search}}checked{{end}}>
 		</div>
 	</div>
-	<div class="ldap field search-page-size required {{if or (not (eq .type 2)) (not .use_paged_search)}}gt-hidden{{end}}">
+	<div class="ldap field search-page-size required {{if or (not (eq .type 2)) (not .use_paged_search)}}tw-hidden{{end}}">
 		<label for="search_page_size">{{ctx.Locale.Tr "admin.auths.search_page_size"}}</label>
 		<input id="search_page_size" name="search_page_size" value="{{.search_page_size}}">
 	</div>

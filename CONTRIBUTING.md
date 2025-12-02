@@ -77,7 +77,7 @@ If your issue has not been reported yet, [open an issue](https://github.com/go-g
 and answer the questions so we can understand and reproduce the problematic behavior. \
 Please write clear and concise instructions so that we can reproduce the behavior — even if it seems obvious. \
 The more detailed and specific you are, the faster we can fix the issue. \
-It is really helpful if you can reproduce your problem on a site running on the latest commits, i.e. <https://try.gitea.io>, as perhaps your problem has already been fixed on a current version. \
+It is really helpful if you can reproduce your problem on a site running on the latest commits, i.e. <https://demo.gitea.com>, as perhaps your problem has already been fixed on a current version. \
 Please follow the guidelines described in [How to Report Bugs Effectively](http://www.chiark.greenend.org.uk/~sgtatham/bugs.html) for your report.
 
 Please be kind, remember that Gitea comes at no cost to you, and you're getting free help.
@@ -166,23 +166,23 @@ Here's how to run the test suite:
 
 - code lint
 
-|                       |                                                                   |
-| :-------------------- | :---------------------------------------------------------------- |
+|                       |                                                                              |
+| :-------------------- | :--------------------------------------------------------------------------- |
 |``make lint``          | lint everything (not needed if you only change the front- **or** backend)    |
-|``make lint-frontend`` | lint frontend files  |
-|``make lint-backend``  | lint backend files   |
+|``make lint-frontend`` | lint frontend files                                                          |
+|``make lint-backend``  | lint backend files                                                           |
 
 - run tests (we suggest running them on Linux)
 
-|  Command                               | Action                                           |              |
-| :------------------------------------- | :----------------------------------------------- | ------------ |
-|``make test[\#SpecificTestName]``       |  run unit test(s)  | |
-|``make test-sqlite[\#SpecificTestName]``|  run [integration](tests/integration) test(s) for SQLite |[More details](tests/integration/README.md)  |
-|``make test-e2e-sqlite[\#SpecificTestName]``|  run [end-to-end](tests/e2e) test(s) for SQLite |[More details](tests/e2e/README.md)  |
+|  Command                                    | Action                                                   |                                             |
+| :------------------------------------------ | :------------------------------------------------------- | ------------------------------------------- |
+|``make test[\#SpecificTestName]``            |  run unit test(s)                                        |                                             |
+|``make test-sqlite[\#SpecificTestName]``     |  run [integration](tests/integration) test(s) for SQLite | [More details](tests/integration/README.md) |
+|``make test-e2e-sqlite[\#SpecificTestName]`` |  run [end-to-end](tests/e2e) test(s) for SQLite          | [More details](tests/e2e/README.md)         |
 
 ## Translation
 
-All translation work happens on [Crowdin](https://crowdin.com/project/gitea).
+All translation work happens on [Crowdin](https://translate.gitea.com).
 The only translation that is maintained in this repository is [the English translation](https://github.com/go-gitea/gitea/blob/main/options/locale/locale_en-US.ini).
 It is synced regularly with Crowdin. \
 Other locales on main branch **should not** be updated manually as they will be overwritten with each sync. \
@@ -358,11 +358,12 @@ $REWRITTEN_PR_SUMMARY
 
 ## Documentation
 
-If you add a new feature or change an existing aspect of Gitea, the documentation for that feature must be created or updated in the same PR.
+If you add a new feature or change an existing aspect of Gitea, the documentation for that feature must be created or updated in another PR at [https://gitea.com/gitea/docs](https://gitea.com/gitea/docs).
+**The docs directory on main repository will be removed at some time. We will have a yaml file to store configuration file's meta data. After that completed, configuration documentation should be in the main repository.**
 
 ## API v1
 
-The API is documented by [swagger](http://try.gitea.io/api/swagger) and is based on [the GitHub API](https://docs.github.com/en/rest).
+The API is documented by [swagger](https://gitea.com/api/swagger) and is based on [the GitHub API](https://docs.github.com/en/rest).
 
 ### GitHub API compatibility
 
@@ -590,7 +591,7 @@ be reviewed by two maintainers and must pass the automatic tests.
 ## Releasing Gitea
 
 - Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
-- Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
+- Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody is against it in about several hours.
 - If this is a big version first you have to create PR for changelog on branch `main` with PRs with label `changelog` and after it has been merged do following steps:
   - Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
   - When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`

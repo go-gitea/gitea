@@ -22,7 +22,7 @@ func TestOption(t *testing.T) {
 	assert.Equal(t, int(0), none.Value())
 	assert.Equal(t, int(1), none.ValueOrDefault(1))
 
-	some := optional.Some[int](1)
+	some := optional.Some(1)
 	assert.True(t, some.Has())
 	assert.Equal(t, int(1), some.Value())
 	assert.Equal(t, int(1), some.ValueOrDefault(2))
@@ -56,4 +56,23 @@ func TestOption(t *testing.T) {
 	opt3 := optional.FromNonDefault(1)
 	assert.True(t, opt3.Has())
 	assert.Equal(t, int(1), opt3.Value())
+
+	opt4 := optional.FromMapLookup(map[string]int{"a": 1}, "a")
+	assert.True(t, opt4.Has())
+	assert.Equal(t, 1, opt4.Value())
+	opt4 = optional.FromMapLookup(map[string]int{"a": 1}, "b")
+	assert.False(t, opt4.Has())
+}
+
+func Test_ParseBool(t *testing.T) {
+	assert.Equal(t, optional.None[bool](), optional.ParseBool(""))
+	assert.Equal(t, optional.None[bool](), optional.ParseBool("x"))
+
+	assert.Equal(t, optional.Some(false), optional.ParseBool("0"))
+	assert.Equal(t, optional.Some(false), optional.ParseBool("f"))
+	assert.Equal(t, optional.Some(false), optional.ParseBool("False"))
+
+	assert.Equal(t, optional.Some(true), optional.ParseBool("1"))
+	assert.Equal(t, optional.Some(true), optional.ParseBool("t"))
+	assert.Equal(t, optional.Some(true), optional.ParseBool("True"))
 }

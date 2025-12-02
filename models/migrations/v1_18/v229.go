@@ -1,7 +1,7 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_18 //nolint
+package v1_18
 
 import (
 	"fmt"
@@ -21,6 +21,7 @@ func UpdateOpenMilestoneCounts(x *xorm.Engine) error {
 
 	for _, id := range openMilestoneIDs {
 		_, err := x.ID(id).
+			Cols("num_issues", "num_closed_issues").
 			SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
 				builder.Eq{"milestone_id": id},
 			)).

@@ -1,3 +1,5 @@
 -
   id: 1
+  user_id: 1
+  pull_id: 1
   commit_sha: 19fe5caf872476db265596eaac1dc35ad1c6422d

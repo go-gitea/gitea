@@ -118,7 +118,6 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 		var refIssue *issues_model.Issue
 		var err error
 		for _, ref := range references.FindAllIssueReferences(c.Message) {
-
 			// issue is from another repo
 			if len(ref.Owner) > 0 && len(ref.Name) > 0 {
 				refRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Name)
@@ -189,15 +188,19 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 					continue
 				}
 			}
-			close := ref.Action == references.XRefActionCloses
-			if close && len(ref.TimeLog) > 0 {
-				if err := issueAddTime(ctx, refIssue, doer, c.Timestamp, ref.TimeLog); err != nil {
+
+			refIssue.Repo = refRepo
+			if ref.Action == references.XRefActionCloses && !refIssue.IsClosed {
+				if len(ref.TimeLog) > 0 {
+					if err := issueAddTime(ctx, refIssue, doer, c.Timestamp, ref.TimeLog); err != nil {
+						return err
+					}
+				}
+				if err := CloseIssue(ctx, refIssue, doer, c.Sha1); err != nil {
 					return err
 				}
-			}
-			if close != refIssue.IsClosed {
-				refIssue.Repo = refRepo
-				if err := ChangeStatus(ctx, refIssue, doer, c.Sha1, close); err != nil {
+			} else if ref.Action == references.XRefActionReopens && refIssue.IsClosed {
+				if err := ReopenIssue(ctx, refIssue, doer, c.Sha1); err != nil {
 					return err
 				}
 			}

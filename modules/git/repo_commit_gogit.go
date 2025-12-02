@@ -9,14 +9,23 @@ package git
 import (
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
+
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/hash"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// GetRefCommitID returns the last commit ID string of given reference (branch or tag).
+// GetRefCommitID returns the last commit ID string of given reference.
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	ref, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
+	if plumbing.IsHash(name) {
+		return name, nil
+	}
+	refName := plumbing.ReferenceName(name)
+	if err := refName.Validate(); err != nil {
+		return "", err
+	}
+	ref, err := repo.gogitRepo.Reference(refName, true)
 	if err != nil {
 		if err == plumbing.ErrReferenceNotFound {
 			return "", ErrNotExist{
@@ -27,16 +36,6 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	}
 
 	return ref.Hash().String(), nil
-}
-
-// SetReference sets the commit ID string of given reference (e.g. branch or tag).
-func (repo *Repository) SetReference(name, commitID string) error {
-	return repo.gogitRepo.Storer.SetReference(plumbing.NewReferenceFromStrings(name, commitID))
-}
-
-// RemoveReference removes the given reference (e.g. branch or tag).
-func (repo *Repository) RemoveReference(name string) error {
-	return repo.gogitRepo.Storer.RemoveReference(plumbing.ReferenceName(name))
 }
 
 // ConvertToHash returns a Hash object from a potential ID string
@@ -52,7 +51,10 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	actualCommitID, _, err := NewCommand(repo.Ctx, "rev-parse", "--verify").AddDynamicArguments(commitID).RunStdString(&RunOpts{Dir: repo.Path})
+	actualCommitID, _, err := gitcmd.NewCommand("rev-parse", "--verify").
+		AddDynamicArguments(commitID).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	actualCommitID = strings.TrimSpace(actualCommitID)
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||
@@ -105,7 +107,7 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 	}
 
 	commit.Tree.ID = ParseGogitHash(tree.Hash)
-	commit.Tree.gogitTree = tree
+	commit.Tree.resolvedGogitTreeObject = tree
 
 	return commit, nil
 }

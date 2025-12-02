@@ -7,11 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 type syncType int
@@ -100,12 +100,12 @@ func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeam
 			}
 
 			if action == syncAdd && !isMember {
-				if err := models.AddTeamMember(ctx, team, user); err != nil {
+				if err := org_service.AddTeamMember(ctx, team, user); err != nil {
 					log.Error("group sync: Could not add user to team: %v", err)
 					return err
 				}
 			} else if action == syncRemove && isMember {
-				if err := models.RemoveTeamMember(ctx, team, user); err != nil {
+				if err := org_service.RemoveTeamMember(ctx, team, user); err != nil {
 					log.Error("group sync: Could not remove user from team: %v", err)
 					return err
 				}

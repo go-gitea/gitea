@@ -154,7 +154,7 @@ func TestCutDiffAroundLine(t *testing.T) {
 }
 
 func BenchmarkCutDiffAroundLine(b *testing.B) {
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		CutDiffAroundLine(strings.NewReader(exampleDiff), 3, true, 3)
 	}
 }
@@ -177,8 +177,8 @@ func ExampleCutDiffAroundLine() {
 
 func TestParseDiffHunkString(t *testing.T) {
 	leftLine, leftHunk, rightLine, rightHunk := ParseDiffHunkString("@@ -19,3 +19,5 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER")
-	assert.EqualValues(t, 19, leftLine)
-	assert.EqualValues(t, 3, leftHunk)
-	assert.EqualValues(t, 19, rightLine)
-	assert.EqualValues(t, 5, rightHunk)
+	assert.Equal(t, 19, leftLine)
+	assert.Equal(t, 3, leftHunk)
+	assert.Equal(t, 19, rightLine)
+	assert.Equal(t, 5, rightHunk)
 }

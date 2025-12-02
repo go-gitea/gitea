@@ -9,10 +9,13 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHashedBuffer(t *testing.T) {
+	setting.AppDataPath = t.TempDir()
 	cases := []struct {
 		MaxMemorySize int
 		Data          string

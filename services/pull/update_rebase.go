@@ -12,13 +12,14 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // updateHeadByRebaseOnToBase handles updating a PR's head branch by rebasing it on the PR current base branch
-func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, message string) error {
+func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) error {
 	// "Clone" base repo and add the cache headers for the head repo and branch
 	mergeCtx, cancel, err := createTemporaryRepoForMerge(ctx, pr, doer, "")
 	if err != nil {
@@ -27,7 +28,8 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	defer cancel()
 
 	// Determine the old merge-base before the rebase - we use this for LFS push later on
-	oldMergeBase, _, _ := git.NewCommand(ctx, "merge-base").AddDashesAndList(baseBranch, trackingBranch).RunStdString(&git.RunOpts{Dir: mergeCtx.tmpBasePath})
+	oldMergeBase, _, _ := gitcmd.NewCommand("merge-base").AddDashesAndList(baseBranch, trackingBranch).
+		WithDir(mergeCtx.tmpBasePath).RunStdString(ctx)
 	oldMergeBase = strings.TrimSpace(oldMergeBase)
 
 	// Rebase the tracking branch on to the base as the staging branch
@@ -62,7 +64,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		headUser = pr.HeadRepo.Owner
 	}
 
-	pushCmd := git.NewCommand(ctx, "push", "-f", "head_repo").
+	pushCmd := gitcmd.NewCommand("push", "-f", "head_repo").
 		AddDynamicArguments(stagingBranch + ":" + git.BranchPrefix + pr.HeadBranch)
 
 	// Push back to the head repository.
@@ -71,18 +73,19 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	mergeCtx.outbuf.Reset()
 	mergeCtx.errbuf.Reset()
 
-	if err := pushCmd.Run(&git.RunOpts{
-		Env: repo_module.FullPushingEnvironment(
+	if err := pushCmd.
+		WithEnv(repo_module.FullPushingEnvironment(
 			headUser,
 			doer,
 			pr.HeadRepo,
 			pr.HeadRepo.Name,
 			pr.ID,
-		),
-		Dir:    mergeCtx.tmpBasePath,
-		Stdout: mergeCtx.outbuf,
-		Stderr: mergeCtx.errbuf,
-	}); err != nil {
+			pr.Index,
+		)).
+		WithDir(mergeCtx.tmpBasePath).
+		WithStdout(mergeCtx.outbuf).
+		WithStderr(mergeCtx.errbuf).
+		Run(ctx); err != nil {
 		if strings.Contains(mergeCtx.errbuf.String(), "non-fast-forward") {
 			return &git.ErrPushOutOfDate{
 				StdOut: mergeCtx.outbuf.String(),

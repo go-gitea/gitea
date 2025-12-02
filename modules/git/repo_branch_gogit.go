@@ -14,8 +14,26 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
-// IsObjectExist returns true if given reference exists in the repository.
+// IsObjectExist returns true if the given object exists in the repository.
+// FIXME: Inconsistent behavior with nogogit edition
+// Unlike the implementation of IsObjectExist in nogogit edition, it does not support short hashes here.
+// For example, IsObjectExist("153f451") will return false, but it will return true in nogogit edition.
+// To fix this, the solution could be adding support for short hashes in gogit edition if it's really needed.
 func (repo *Repository) IsObjectExist(name string) bool {
+	if name == "" {
+		return false
+	}
+
+	_, err := repo.gogitRepo.Object(plumbing.AnyObject, plumbing.NewHash(name))
+	return err == nil
+}
+
+// IsReferenceExist returns true if given reference exists in the repository.
+// FIXME: Inconsistent behavior with nogogit edition
+// Unlike the implementation of IsObjectExist in nogogit edition, it does not support blob hashes here.
+// For example, IsObjectExist([existing_blob_hash]) will return false, but it will return true in nogogit edition.
+// To fix this, the solution could be refusing to support blob hashes in nogogit edition since a blob hash is not a reference.
+func (repo *Repository) IsReferenceExist(name string) bool {
 	if name == "" {
 		return false
 	}
@@ -23,19 +41,6 @@ func (repo *Repository) IsObjectExist(name string) bool {
 	_, err := repo.gogitRepo.ResolveRevision(plumbing.Revision(name))
 
 	return err == nil
-}
-
-// IsReferenceExist returns true if given reference exists in the repository.
-func (repo *Repository) IsReferenceExist(name string) bool {
-	if name == "" {
-		return false
-	}
-
-	reference, err := repo.gogitRepo.Reference(plumbing.ReferenceName(name), true)
-	if err != nil {
-		return false
-	}
-	return reference.Type() != plumbing.InvalidReference
 }
 
 // IsBranchExist returns true if given branch exists in current repository.
@@ -52,7 +57,7 @@ func (repo *Repository) IsBranchExist(name string) bool {
 
 // GetBranches returns branches from the repository, skipping "skip" initial branches and
 // returning at most "limit" branches, or all branches if "limit" is 0.
-// Branches are returned with sort of `-commiterdate` as the nogogit
+// Branches are returned with sort of `-committerdate` as the nogogit
 // implementation. This requires full fetch, sort and then the
 // skip/limit applies later as gogit returns in undefined order.
 func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {

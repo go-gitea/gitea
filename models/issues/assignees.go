@@ -27,23 +27,27 @@ func init() {
 
 // LoadAssignees load assignees of this issue.
 func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
+	if issue.isAssigneeLoaded || len(issue.Assignees) > 0 {
+		return nil
+	}
+
 	// Reset maybe preexisting assignees
 	issue.Assignees = []*user_model.User{}
 	issue.Assignee = nil
 
-	err = db.GetEngine(ctx).Table("`user`").
+	if err = db.GetEngine(ctx).Table("`user`").
 		Join("INNER", "issue_assignees", "assignee_id = `user`.id").
 		Where("issue_assignees.issue_id = ?", issue.ID).
-		Find(&issue.Assignees)
-	if err != nil {
+		Find(&issue.Assignees); err != nil {
 		return err
 	}
 
+	issue.isAssigneeLoaded = true
 	// Check if we have at least one assignee and if yes put it in as `Assignee`
 	if len(issue.Assignees) > 0 {
 		issue.Assignee = issue.Assignees[0]
 	}
-	return err
+	return nil
 }
 
 // GetAssigneeIDsByIssue returns the IDs of users assigned to an issue
@@ -87,18 +91,10 @@ func GetAssignedIssues(ctx context.Context, opts *AssignedIssuesOptions) ([]*Iss
 
 // ToggleIssueAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
 func ToggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *Comment, err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return false, nil, err
-	}
-	defer committer.Close()
-
-	removed, comment, err = toggleIssueAssignee(ctx, issue, doer, assigneeID, false)
-	if err != nil {
-		return false, nil, err
-	}
-
-	if err := committer.Commit(); err != nil {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		removed, comment, err = toggleIssueAssignee(ctx, issue, doer, assigneeID, false)
+		return err
+	}); err != nil {
 		return false, nil, err
 	}
 

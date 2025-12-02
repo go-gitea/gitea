@@ -4,13 +4,13 @@
 package setting
 
 import (
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplSettingsOAuthApplicationEdit base.TplName = "user/settings/applications_oauth2_edit"
+	tplSettingsOAuthApplicationEdit templates.TplName = "user/settings/applications_oauth2_edit"
 )
 
 func newOAuth2CommonHandlers(userID int64) *OAuth2CommonHandlers {

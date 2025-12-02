@@ -1,6 +1,6 @@
 <overflow-menu class="ui secondary pointing tabular borderless menu">
 	<div class="overflow-menu-items">
-		{{if and .HasProfileReadme .ContextUser.IsIndividual}}
+		{{if and .HasUserProfileReadme .ContextUser.IsIndividual}}
 		<a class="{{if eq .TabName "overview"}}active {{end}}item" href="{{.ContextUser.HomeLink}}?tab=overview">
 			{{svg "octicon-info"}} {{ctx.Locale.Tr "user.overview"}}
 		</a>

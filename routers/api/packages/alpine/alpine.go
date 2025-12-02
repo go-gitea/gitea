@@ -25,9 +25,8 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.PlainText(status, message)
 }
 
 func GetRepositoryKey(ctx *context.Context) {
@@ -68,13 +67,14 @@ func GetRepositoryFile(ctx *context.Context) {
 		return
 	}
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageVersion(
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
 			Filename:     alpine_service.IndexArchiveFilename,
-			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")),
+			CompositeKey: fmt.Sprintf("%s|%s|%s", ctx.PathParam("branch"), ctx.PathParam("repository"), ctx.PathParam("architecture")),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -89,19 +89,19 @@ func GetRepositoryFile(ctx *context.Context) {
 }
 
 func UploadPackageFile(ctx *context.Context) {
-	branch := strings.TrimSpace(ctx.Params("branch"))
-	repository := strings.TrimSpace(ctx.Params("repository"))
+	branch := strings.TrimSpace(ctx.PathParam("branch"))
+	repository := strings.TrimSpace(ctx.PathParam("repository"))
 	if branch == "" || repository == "" {
 		apiError(ctx, http.StatusBadRequest, "invalid branch or repository")
 		return
 	}
 
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
@@ -114,7 +114,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 	pck, err := alpine_module.ParsePackage(buf)
 	if err != nil {
-		if errors.Is(err, util.ErrInvalidArgument) || err == io.EOF {
+		if errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, io.EOF) {
 			apiError(ctx, http.StatusBadRequest, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -182,14 +182,14 @@ func UploadPackageFile(ctx *context.Context) {
 }
 
 func DownloadPackageFile(ctx *context.Context) {
-	branch := ctx.Params("branch")
-	repository := ctx.Params("repository")
-	architecture := ctx.Params("architecture")
+	branch := ctx.PathParam("branch")
+	repository := ctx.PathParam("repository")
+	architecture := ctx.PathParam("architecture")
 
 	opts := &packages_model.PackageFileSearchOptions{
 		OwnerID:      ctx.Package.Owner.ID,
 		PackageType:  packages_model.TypeAlpine,
-		Query:        ctx.Params("filename"),
+		Query:        ctx.PathParam("filename"),
 		CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
 	}
 	pfs, _, err := packages_model.SearchFiles(ctx, opts)
@@ -216,7 +216,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		}
 	}
 
-	s, u, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
+	s, u, pf, err := packages_service.OpenFileForDownload(ctx, pfs[0], ctx.Req.Method)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -230,12 +230,12 @@ func DownloadPackageFile(ctx *context.Context) {
 }
 
 func DeletePackageFile(ctx *context.Context) {
-	branch, repository, architecture := ctx.Params("branch"), ctx.Params("repository"), ctx.Params("architecture")
+	branch, repository, architecture := ctx.PathParam("branch"), ctx.PathParam("repository"), ctx.PathParam("architecture")
 
 	pfs, _, err := packages_model.SearchFiles(ctx, &packages_model.PackageFileSearchOptions{
 		OwnerID:      ctx.Package.Owner.ID,
 		PackageType:  packages_model.TypeAlpine,
-		Query:        ctx.Params("filename"),
+		Query:        ctx.PathParam("filename"),
 		CompositeKey: fmt.Sprintf("%s|%s|%s", branch, repository, architecture),
 	})
 	if err != nil {

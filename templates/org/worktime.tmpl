@@ -1,0 +1,40 @@
+{{template "base/head" .}}
+<div class="page-content organization times">
+	{{template "org/header" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			<div class="three wide column">
+				<form class="ui form" method="get">
+					<input type="hidden" name="by" value="{{$.WorktimeBy}}">
+					<div class="field">
+						<label>{{ctx.Locale.Tr "org.worktime.date_range_start"}}</label>
+						<input type="date" name="from" value="{{.RangeFrom}}">
+					</div>
+					<div class="field">
+						<label>{{ctx.Locale.Tr "org.worktime.date_range_end"}}</label>
+						<input type="date" name="to" value="{{.RangeTo}}">
+					</div>
+					<button class="ui primary button">{{ctx.Locale.Tr "org.worktime.query"}}</button>
+				</form>
+			</div>
+			<div class="thirteen wide column">
+				<div class="ui column">
+					<div class="ui compact small menu">
+						{{$queryParams := QueryBuild "from" .RangeFrom "to" .RangeTo}}
+						<a class="{{Iif .WorktimeByRepos "active"}} item" href="{{$.Org.OrganisationLink}}/worktime?by=repos&{{$queryParams}}">{{svg "octicon-repo"}} {{ctx.Locale.Tr "org.worktime.by_repositories"}}</a>
+						<a class="{{Iif .WorktimeByMilestones "active"}} item" href="{{$.Org.OrganisationLink}}/worktime?by=milestones&{{$queryParams}}">{{svg "octicon-milestone"}} {{ctx.Locale.Tr "org.worktime.by_milestones"}}</a>
+						<a class="{{Iif .WorktimeByMembers "active"}} item" href="{{$.Org.OrganisationLink}}/worktime?by=members&{{$queryParams}}">{{svg "octicon-people"}} {{ctx.Locale.Tr "org.worktime.by_members"}}</a>
+					</div>
+				</div>
+				{{if .WorktimeByRepos}}
+					{{template "org/worktime/table_repos" dict "Org" .Org "WorktimeSumResult" .WorktimeSumResult}}
+				{{else if .WorktimeByMilestones}}
+					{{template "org/worktime/table_milestones" dict "Org" .Org "WorktimeSumResult" .WorktimeSumResult}}
+				{{else if .WorktimeByMembers}}
+					{{template "org/worktime/table_members" dict "Org" .Org "WorktimeSumResult" .WorktimeSumResult}}
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

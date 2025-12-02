@@ -3,14 +3,11 @@
 
 package json
 
-// Allow "encoding/json" import.
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json" //nolint:depguard
+	"encoding/json" //nolint:depguard // this package wraps it
 	"io"
-
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Encoder represents an encoder for json
@@ -32,71 +29,7 @@ type Interface interface {
 	Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error
 }
 
-var (
-	// DefaultJSONHandler default json handler
-	DefaultJSONHandler Interface = JSONiter{jsoniter.ConfigCompatibleWithStandardLibrary}
-
-	_ Interface = StdJSON{}
-	_ Interface = JSONiter{}
-)
-
-// StdJSON implements Interface via encoding/json
-type StdJSON struct{}
-
-// Marshal implements Interface
-func (StdJSON) Marshal(v any) ([]byte, error) {
-	return json.Marshal(v)
-}
-
-// Unmarshal implements Interface
-func (StdJSON) Unmarshal(data []byte, v any) error {
-	return json.Unmarshal(data, v)
-}
-
-// NewEncoder implements Interface
-func (StdJSON) NewEncoder(writer io.Writer) Encoder {
-	return json.NewEncoder(writer)
-}
-
-// NewDecoder implements Interface
-func (StdJSON) NewDecoder(reader io.Reader) Decoder {
-	return json.NewDecoder(reader)
-}
-
-// Indent implements Interface
-func (StdJSON) Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
-	return json.Indent(dst, src, prefix, indent)
-}
-
-// JSONiter implements Interface via jsoniter
-type JSONiter struct {
-	jsoniter.API
-}
-
-// Marshal implements Interface
-func (j JSONiter) Marshal(v any) ([]byte, error) {
-	return j.API.Marshal(v)
-}
-
-// Unmarshal implements Interface
-func (j JSONiter) Unmarshal(data []byte, v any) error {
-	return j.API.Unmarshal(data, v)
-}
-
-// NewEncoder implements Interface
-func (j JSONiter) NewEncoder(writer io.Writer) Encoder {
-	return j.API.NewEncoder(writer)
-}
-
-// NewDecoder implements Interface
-func (j JSONiter) NewDecoder(reader io.Reader) Decoder {
-	return j.API.NewDecoder(reader)
-}
-
-// Indent implements Interface, since jsoniter don't support Indent, just use encoding/json's
-func (j JSONiter) Indent(dst *bytes.Buffer, src []byte, prefix, indent string) error {
-	return json.Indent(dst, src, prefix, indent)
-}
+var DefaultJSONHandler = getDefaultJSONHandler()
 
 // Marshal converts object as bytes
 func Marshal(v any) ([]byte, error) {
@@ -145,6 +78,12 @@ func Valid(data []byte) bool {
 // UnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
 // possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
 func UnmarshalHandleDoubleEncode(bs []byte, v any) error {
+	if len(bs) == 0 {
+		// json.Unmarshal will report errors if input is empty (nil or zero-length)
+		// It seems that XORM ignores the nil but still passes zero-length string into this function
+		// To be consistent, we should treat all empty inputs as success
+		return nil
+	}
 	err := json.Unmarshal(bs, v)
 	if err != nil {
 		ok := true

@@ -5,7 +5,6 @@ package goproxy
 
 import (
 	"archive/zip"
-	"fmt"
 	"io"
 	"path"
 	"strings"
@@ -88,7 +87,7 @@ func ParsePackage(r io.ReaderAt, size int64) (*Package, error) {
 		return nil, ErrInvalidStructure
 	}
 
-	p.GoMod = fmt.Sprintf("module %s", p.Name)
+	p.GoMod = "module " + p.Name
 
 	return p, nil
 }

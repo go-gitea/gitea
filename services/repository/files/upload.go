@@ -8,14 +8,11 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
+	"sync"
 
-	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/lfs"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // UploadRepoFileOptions contains the uploaded repository file options
@@ -27,25 +24,52 @@ type UploadRepoFileOptions struct {
 	Message      string
 	Files        []string // In UUID format.
 	Signoff      bool
+	Author       *IdentityOptions
+	Committer    *IdentityOptions
 }
 
-type uploadInfo struct {
-	upload        *repo_model.Upload
-	lfsMetaObject *git_model.LFSMetaObject
+type lazyLocalFileReader struct {
+	*os.File
+	localFilename string
+	counter       int
+	mu            sync.Mutex
 }
 
-func cleanUpAfterFailure(ctx context.Context, infos *[]uploadInfo, t *TemporaryUploadRepository, original error) error {
-	for _, info := range *infos {
-		if info.lfsMetaObject == nil {
-			continue
-		}
-		if !info.lfsMetaObject.Existing {
-			if _, err := git_model.RemoveLFSMetaObjectByOid(ctx, t.repo.ID, info.lfsMetaObject.Oid); err != nil {
-				original = fmt.Errorf("%w, %v", original, err) // We wrap the original error - as this is the underlying error that required the fallback
+var _ LazyReadSeeker = (*lazyLocalFileReader)(nil)
+
+func (l *lazyLocalFileReader) Close() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if l.counter > 0 {
+		l.counter--
+		if l.counter == 0 {
+			if err := l.File.Close(); err != nil {
+				return fmt.Errorf("close file %s: %w", l.localFilename, err)
 			}
+			l.File = nil
 		}
+		return nil
 	}
-	return original
+	return fmt.Errorf("file %s already closed", l.localFilename)
+}
+
+func (l *lazyLocalFileReader) OpenLazyReader() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if l.File != nil {
+		l.counter++
+		return nil
+	}
+
+	file, err := os.Open(l.localFilename)
+	if err != nil {
+		return err
+	}
+	l.File = file
+	l.counter = 1
+	return nil
 }
 
 // UploadRepoFiles uploads files to the given repository
@@ -59,167 +83,29 @@ func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 		return fmt.Errorf("GetUploadsByUUIDs [uuids: %v]: %w", opts.Files, err)
 	}
 
-	names := make([]string, len(uploads))
-	infos := make([]uploadInfo, len(uploads))
-	for i, upload := range uploads {
-		// Check file is not lfs locked, will return nil if lock setting not enabled
-		filepath := path.Join(opts.TreePath, upload.Name)
-		lfsLock, err := git_model.GetTreePathLock(ctx, repo.ID, filepath)
-		if err != nil {
-			return err
-		}
-		if lfsLock != nil && lfsLock.OwnerID != doer.ID {
-			u, err := user_model.GetUserByID(ctx, lfsLock.OwnerID)
-			if err != nil {
-				return err
-			}
-			return git_model.ErrLFSFileLocked{RepoID: repo.ID, Path: filepath, UserName: u.Name}
-		}
-
-		names[i] = upload.Name
-		infos[i] = uploadInfo{upload: upload}
+	changeOpts := &ChangeRepoFilesOptions{
+		LastCommitID: opts.LastCommitID,
+		OldBranch:    opts.OldBranch,
+		NewBranch:    opts.NewBranch,
+		Message:      opts.Message,
+		Signoff:      opts.Signoff,
+		Author:       opts.Author,
+		Committer:    opts.Committer,
 	}
-
-	t, err := NewTemporaryUploadRepository(ctx, repo)
-	if err != nil {
-		return err
-	}
-	defer t.Close()
-
-	hasOldBranch := true
-	if err = t.Clone(opts.OldBranch, true); err != nil {
-		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
-			return err
-		}
-		if err = t.Init(repo.ObjectFormatName); err != nil {
-			return err
-		}
-		hasOldBranch = false
-		opts.LastCommitID = ""
-	}
-	if hasOldBranch {
-		if err = t.SetDefaultIndex(); err != nil {
-			return err
-		}
-	}
-
-	var filename2attribute2info map[string]map[string]string
-	if setting.LFS.StartServer {
-		filename2attribute2info, err = t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
-			Attributes: []string{"filter"},
-			Filenames:  names,
-			CachedOnly: true,
+	for _, upload := range uploads {
+		changeOpts.Files = append(changeOpts.Files, &ChangeRepoFile{
+			Operation:     "upload",
+			TreePath:      path.Join(opts.TreePath, upload.Name),
+			ContentReader: &lazyLocalFileReader{localFilename: upload.LocalPath()},
 		})
-		if err != nil {
-			return err
-		}
 	}
 
-	// Copy uploaded files into repository.
-	for i := range infos {
-		if err := copyUploadedLFSFileIntoRepository(&infos[i], filename2attribute2info, t, opts.TreePath); err != nil {
-			return err
-		}
-	}
-
-	// Now write the tree
-	treeHash, err := t.WriteTree()
+	_, err = ChangeRepoFiles(ctx, repo, doer, changeOpts)
 	if err != nil {
 		return err
 	}
-
-	// make author and committer the doer
-	author := doer
-	committer := doer
-
-	// Now commit the tree
-	commitHash, err := t.CommitTree(opts.LastCommitID, author, committer, treeHash, opts.Message, opts.Signoff)
-	if err != nil {
-		return err
-	}
-
-	// Now deal with LFS objects
-	for i := range infos {
-		if infos[i].lfsMetaObject == nil {
-			continue
-		}
-		infos[i].lfsMetaObject, err = git_model.NewLFSMetaObject(ctx, infos[i].lfsMetaObject.RepositoryID, infos[i].lfsMetaObject.Pointer)
-		if err != nil {
-			// OK Now we need to cleanup
-			return cleanUpAfterFailure(ctx, &infos, t, err)
-		}
-		// Don't move the files yet - we need to ensure that
-		// everything can be inserted first
-	}
-
-	// OK now we can insert the data into the store - there's no way to clean up the store
-	// once it's in there, it's in there.
-	contentStore := lfs.NewContentStore()
-	for _, info := range infos {
-		if err := uploadToLFSContentStore(info, contentStore); err != nil {
-			return cleanUpAfterFailure(ctx, &infos, t, err)
-		}
-	}
-
-	// Then push this tree to NewBranch
-	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
-		return err
-	}
-
-	return repo_model.DeleteUploads(ctx, uploads...)
-}
-
-func copyUploadedLFSFileIntoRepository(info *uploadInfo, filename2attribute2info map[string]map[string]string, t *TemporaryUploadRepository, treePath string) error {
-	file, err := os.Open(info.upload.LocalPath())
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	var objectHash string
-	if setting.LFS.StartServer && filename2attribute2info[info.upload.Name] != nil && filename2attribute2info[info.upload.Name]["filter"] == "lfs" {
-		// Handle LFS
-		// FIXME: Inefficient! this should probably happen in models.Upload
-		pointer, err := lfs.GeneratePointer(file)
-		if err != nil {
-			return err
-		}
-
-		info.lfsMetaObject = &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: t.repo.ID}
-
-		if objectHash, err = t.HashObject(strings.NewReader(pointer.StringContent())); err != nil {
-			return err
-		}
-	} else if objectHash, err = t.HashObject(file); err != nil {
-		return err
-	}
-
-	// Add the object to the index
-	return t.AddObjectToIndex("100644", objectHash, path.Join(treePath, info.upload.Name))
-}
-
-func uploadToLFSContentStore(info uploadInfo, contentStore *lfs.ContentStore) error {
-	if info.lfsMetaObject == nil {
-		return nil
-	}
-	exist, err := contentStore.Exists(info.lfsMetaObject.Pointer)
-	if err != nil {
-		return err
-	}
-	if !exist {
-		file, err := os.Open(info.upload.LocalPath())
-		if err != nil {
-			return err
-		}
-
-		defer file.Close()
-		// FIXME: Put regenerates the hash and copies the file over.
-		// I guess this strictly ensures the soundness of the store but this is inefficient.
-		if err := contentStore.Put(info.lfsMetaObject.Pointer, file); err != nil {
-			// OK Now we need to cleanup
-			// Can't clean up the store, once uploaded there they're there.
-			return err
-		}
+	if err := repo_model.DeleteUploads(ctx, uploads...); err != nil {
+		log.Error("DeleteUploads: %v", err)
 	}
 	return nil
 }

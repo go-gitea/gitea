@@ -17,6 +17,10 @@ import (
 // OpenIDProvider is a GothProvider for OpenID
 type OpenIDProvider struct{}
 
+func (o *OpenIDProvider) SupportSSHPublicKey() bool {
+	return true
+}
+
 // Name provides the technical name for this provider
 func (o *OpenIDProvider) Name() string {
 	return "openidConnect"
@@ -29,7 +33,7 @@ func (o *OpenIDProvider) DisplayName() string {
 
 // IconHTML returns icon HTML for this provider
 func (o *OpenIDProvider) IconHTML(size int) template.HTML {
-	return svg.RenderHTML("gitea-openid", size, "gt-mr-3")
+	return svg.RenderHTML("gitea-openid", size, "tw-mr-2")
 }
 
 // CreateGothProvider creates a GothProvider from this Provider

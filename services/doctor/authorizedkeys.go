@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,8 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
-
-const tplCommentPrefix = `# gitea public key`
 
 func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) error {
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
@@ -46,12 +45,16 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, tplCommentPrefix) {
+		if strings.HasPrefix(line, asymkey_model.AuthorizedStringCommentPrefix) {
 			continue
 		}
 		linesInAuthorizedKeys.Add(line)
 	}
-	f.Close()
+	if err = scanner.Err(); err != nil {
+		return fmt.Errorf("scan: %w", err)
+	}
+	// although there is a "defer close" above, here close explicitly before the generating, because it needs to open the file for writing again
+	_ = f.Close()
 
 	// now we regenerate and check if there are any lines missing
 	regenerated := &bytes.Buffer{}
@@ -62,7 +65,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 	scanner = bufio.NewScanner(regenerated)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, tplCommentPrefix) {
+		if strings.HasPrefix(line, asymkey_model.AuthorizedStringCommentPrefix) {
 			continue
 		}
 		if linesInAuthorizedKeys.Contains(line) {
@@ -74,7 +77,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 				fPath,
 				"gitea admin regenerate keys",
 				"gitea doctor --run authorized-keys --fix")
-			return fmt.Errorf(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized-keys --fix"`)
+			return errors.New(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized-keys --fix"`)
 		}
 		logger.Warn("authorized_keys is out of date. Attempting rewrite...")
 		err = asymkey_service.RewriteAllPublicKeys(ctx)

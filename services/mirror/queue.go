@@ -28,12 +28,19 @@ type SyncRequest struct {
 	ReferenceID int64 // RepoID for pull mirror, MirrorID for push mirror
 }
 
+func queueHandler(items ...*SyncRequest) []*SyncRequest {
+	for _, req := range items {
+		doMirrorSync(graceful.GetManager().ShutdownContext(), req)
+	}
+	return nil
+}
+
 // StartSyncMirrors starts a go routine to sync the mirrors
-func StartSyncMirrors(queueHandle func(data ...*SyncRequest) []*SyncRequest) {
+func StartSyncMirrors() {
 	if !setting.Mirror.Enabled {
 		return
 	}
-	mirrorQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "mirror", queueHandle)
+	mirrorQueue = queue.CreateUniqueQueue(graceful.GetManager().ShutdownContext(), "mirror", queueHandler)
 	if mirrorQueue == nil {
 		log.Fatal("Unable to create mirror queue")
 	}

@@ -25,7 +25,7 @@ import (
 
 // ServNoCommand returns information about the provided keyid
 func ServNoCommand(ctx *context.PrivateContext) {
-	keyID := ctx.ParamsInt64(":keyid")
+	keyID := ctx.PathParamInt64("keyid")
 	if keyID <= 0 {
 		ctx.JSON(http.StatusBadRequest, private.Response{
 			UserMsg: fmt.Sprintf("Bad key id: %d", keyID),
@@ -77,10 +77,11 @@ func ServNoCommand(ctx *context.PrivateContext) {
 
 // ServCommand returns information about the provided keyid
 func ServCommand(ctx *context.PrivateContext) {
-	keyID := ctx.ParamsInt64(":keyid")
-	ownerName := ctx.Params(":owner")
-	repoName := ctx.Params(":repo")
+	keyID := ctx.PathParamInt64("keyid")
+	ownerName := ctx.PathParam("owner")
+	repoName := ctx.PathParam("repo")
 	mode := perm.AccessMode(ctx.FormInt("mode"))
+	verb := ctx.FormString("verb")
 
 	// Set the basic parts of the results to return
 	results := private.ServCommandResults{
@@ -107,6 +108,18 @@ func ServCommand(ctx *context.PrivateContext) {
 		results.RepoName = repoName[:len(repoName)-5]
 	}
 
+	// Check if there is a user redirect for the requested owner
+	redirectedUserID, err := user_model.LookupUserRedirect(ctx, results.OwnerName)
+	if err == nil {
+		owner, err := user_model.GetUserByID(ctx, redirectedUserID)
+		if err == nil {
+			log.Info("User %s has been redirected to %s", results.OwnerName, owner.Name)
+			results.OwnerName = owner.Name
+		} else {
+			log.Warn("User %s has a redirect to user with ID %d, but no user with this ID could be found. Trying without redirect...", results.OwnerName, redirectedUserID)
+		}
+	}
+
 	owner, err := user_model.GetUserByName(ctx, results.OwnerName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
@@ -130,22 +143,34 @@ func ServCommand(ctx *context.PrivateContext) {
 		return
 	}
 
+	redirectedRepoID, err := repo_model.LookupRedirect(ctx, owner.ID, results.RepoName)
+	if err == nil {
+		redirectedRepo, err := repo_model.GetRepositoryByID(ctx, redirectedRepoID)
+		if err == nil {
+			log.Info("Repository %s/%s has been redirected to %s/%s", results.OwnerName, results.RepoName, redirectedRepo.OwnerName, redirectedRepo.Name)
+			results.RepoName = redirectedRepo.Name
+			results.OwnerName = redirectedRepo.OwnerName
+			owner.ID = redirectedRepo.OwnerID
+		} else {
+			log.Warn("Repo %s/%s has a redirect to repo with ID %d, but no repo with this ID could be found. Trying without redirect...", results.OwnerName, results.RepoName, redirectedRepoID)
+		}
+	}
+
 	// Now get the Repository and set the results section
 	repoExist := true
 	repo, err := repo_model.GetRepositoryByName(ctx, owner.ID, results.RepoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			repoExist = false
-			for _, verb := range ctx.FormStrings("verb") {
-				if verb == "git-upload-pack" {
-					// User is fetching/cloning a non-existent repository
-					log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
-					ctx.JSON(http.StatusNotFound, private.Response{
-						UserMsg: fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
-					})
-					return
-				}
+			if mode == perm.AccessModeRead {
+				// User is fetching/cloning a non-existent repository
+				log.Warn("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
+				ctx.JSON(http.StatusNotFound, private.Response{
+					UserMsg: fmt.Sprintf("Cannot find repository: %s/%s", results.OwnerName, results.RepoName),
+				})
+				return
 			}
+			// else fallthrough (push-to-create may kick in below)
 		} else {
 			log.Error("Unable to get repository: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -287,7 +312,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			repo.IsPrivate ||
 			owner.Visibility.IsPrivate() ||
 			(user != nil && user.IsRestricted) || // user will be nil if the key is a deploykey
-			setting.Service.RequireSignInView) {
+			setting.Service.RequireSignInViewStrict) {
 		if key.Type == asymkey_model.KeyTypeDeploy {
 			if deployKey.Mode < mode {
 				ctx.JSON(http.StatusUnauthorized, private.Response{
@@ -296,8 +321,11 @@ func ServCommand(ctx *context.PrivateContext) {
 				return
 			}
 		} else {
-			// Because of the special ref "refs/for" we will need to delay write permission check
-			if git.DefaultFeatures.SupportProcReceive && unitType == unit.TypeCode {
+			// Because of the special ref "refs/for" (AGit) we will need to delay write permission check,
+			// AGit flow needs to write its own ref when the doer has "reader" permission (allowing to create PR).
+			// The real permission check is done in HookPreReceive (routers/private/hook_pre_receive.go).
+			// Here it should relax the permission check for "git push (git-receive-pack)", but not for others like LFS operations.
+			if git.DefaultFeatures().SupportProcReceive && unitType == unit.TypeCode && verb == git.CmdVerbReceivePack {
 				mode = perm.AccessModeRead
 			}
 

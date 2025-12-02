@@ -21,15 +21,9 @@
   background-color: transparent !important;
 }
 
-/* these seem unthemeable */
-.monaco-scrollable-element > .scrollbar > .slider {
-  background: var(--color-primary) !important;
-}
-.monaco-scrollable-element > .scrollbar > .slider:hover {
-  background: var(--color-primary-dark-1) !important;
-}
-.monaco-scrollable-element > .scrollbar > .slider:active {
-  background: var(--color-primary-dark-2) !important;
+.monaco-editor,
+.monaco-editor .overflow-guard {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
 }
 
 /* fomantic styles destroy this element only visible on IOS, restore it */

@@ -9,8 +9,6 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,20 +24,20 @@ func TestDbfsBasic(t *testing.T) {
 	defer changeDefaultFileBlockSize(4)()
 
 	// test basic write/read
-	f, err := OpenFile(db.DefaultContext, "test.txt", os.O_RDWR|os.O_CREATE)
+	f, err := OpenFile(t.Context(), "test.txt", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
 
 	n, err := f.Write([]byte("0123456789")) // blocks: 0123 4567 89
 	assert.NoError(t, err)
-	assert.EqualValues(t, 10, n)
+	assert.Equal(t, 10, n)
 
 	_, err = f.Seek(0, io.SeekStart)
 	assert.NoError(t, err)
 
 	buf, err := io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 10, n)
-	assert.EqualValues(t, "0123456789", string(buf))
+	assert.Equal(t, 10, n)
+	assert.Equal(t, "0123456789", string(buf))
 
 	// write some new data
 	_, err = f.Seek(1, io.SeekStart)
@@ -50,14 +48,14 @@ func TestDbfsBasic(t *testing.T) {
 	// read from offset
 	buf, err = io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "9", string(buf))
+	assert.Equal(t, "9", string(buf))
 
 	// read all
 	_, err = f.Seek(0, io.SeekStart)
 	assert.NoError(t, err)
 	buf, err = io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "0bcdefghi9", string(buf))
+	assert.Equal(t, "0bcdefghi9", string(buf))
 
 	// write to new size
 	_, err = f.Seek(-1, io.SeekEnd)
@@ -68,7 +66,7 @@ func TestDbfsBasic(t *testing.T) {
 	assert.NoError(t, err)
 	buf, err = io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "0bcdefghiJKLMNOP", string(buf))
+	assert.Equal(t, "0bcdefghiJKLMNOP", string(buf))
 
 	// write beyond EOF and fill with zero
 	_, err = f.Seek(5, io.SeekCurrent)
@@ -79,7 +77,7 @@ func TestDbfsBasic(t *testing.T) {
 	assert.NoError(t, err)
 	buf, err = io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "0bcdefghiJKLMNOP\x00\x00\x00\x00\x00xyzu", string(buf))
+	assert.Equal(t, "0bcdefghiJKLMNOP\x00\x00\x00\x00\x00xyzu", string(buf))
 
 	// write to the block with zeros
 	_, err = f.Seek(-6, io.SeekCurrent)
@@ -90,34 +88,34 @@ func TestDbfsBasic(t *testing.T) {
 	assert.NoError(t, err)
 	buf, err = io.ReadAll(f)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "0bcdefghiJKLMNOP\x00\x00\x00ABCDzu", string(buf))
+	assert.Equal(t, "0bcdefghiJKLMNOP\x00\x00\x00ABCDzu", string(buf))
 
 	assert.NoError(t, f.Close())
 
 	// test rename
-	err = Rename(db.DefaultContext, "test.txt", "test2.txt")
+	err = Rename(t.Context(), "test.txt", "test2.txt")
 	assert.NoError(t, err)
 
-	_, err = OpenFile(db.DefaultContext, "test.txt", os.O_RDONLY)
+	_, err = OpenFile(t.Context(), "test.txt", os.O_RDONLY)
 	assert.Error(t, err)
 
-	f, err = OpenFile(db.DefaultContext, "test2.txt", os.O_RDONLY)
+	f, err = OpenFile(t.Context(), "test2.txt", os.O_RDONLY)
 	assert.NoError(t, err)
 	assert.NoError(t, f.Close())
 
 	// test remove
-	err = Remove(db.DefaultContext, "test2.txt")
+	err = Remove(t.Context(), "test2.txt")
 	assert.NoError(t, err)
 
-	_, err = OpenFile(db.DefaultContext, "test2.txt", os.O_RDONLY)
+	_, err = OpenFile(t.Context(), "test2.txt", os.O_RDONLY)
 	assert.Error(t, err)
 
 	// test stat
-	f, err = OpenFile(db.DefaultContext, "test/test.txt", os.O_RDWR|os.O_CREATE)
+	f, err = OpenFile(t.Context(), "test/test.txt", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
 	stat, err := f.Stat()
 	assert.NoError(t, err)
-	assert.EqualValues(t, "test.txt", stat.Name())
+	assert.Equal(t, "test.txt", stat.Name())
 	assert.EqualValues(t, 0, stat.Size())
 	_, err = f.Write([]byte("0123456789"))
 	assert.NoError(t, err)
@@ -129,11 +127,11 @@ func TestDbfsBasic(t *testing.T) {
 func TestDbfsReadWrite(t *testing.T) {
 	defer changeDefaultFileBlockSize(4)()
 
-	f1, err := OpenFile(db.DefaultContext, "test.log", os.O_RDWR|os.O_CREATE)
+	f1, err := OpenFile(t.Context(), "test.log", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
 	defer f1.Close()
 
-	f2, err := OpenFile(db.DefaultContext, "test.log", os.O_RDONLY)
+	f2, err := OpenFile(t.Context(), "test.log", os.O_RDONLY)
 	assert.NoError(t, err)
 	defer f2.Close()
 
@@ -144,7 +142,7 @@ func TestDbfsReadWrite(t *testing.T) {
 
 	line, err := f2r.ReadString('\n')
 	assert.NoError(t, err)
-	assert.EqualValues(t, "line 1\n", line)
+	assert.Equal(t, "line 1\n", line)
 	_, err = f2r.ReadString('\n')
 	assert.ErrorIs(t, err, io.EOF)
 
@@ -153,7 +151,7 @@ func TestDbfsReadWrite(t *testing.T) {
 
 	line, err = f2r.ReadString('\n')
 	assert.NoError(t, err)
-	assert.EqualValues(t, "line 2\n", line)
+	assert.Equal(t, "line 2\n", line)
 	_, err = f2r.ReadString('\n')
 	assert.ErrorIs(t, err, io.EOF)
 }
@@ -161,7 +159,7 @@ func TestDbfsReadWrite(t *testing.T) {
 func TestDbfsSeekWrite(t *testing.T) {
 	defer changeDefaultFileBlockSize(4)()
 
-	f, err := OpenFile(db.DefaultContext, "test2.log", os.O_RDWR|os.O_CREATE)
+	f, err := OpenFile(t.Context(), "test2.log", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
 	defer f.Close()
 
@@ -180,11 +178,11 @@ func TestDbfsSeekWrite(t *testing.T) {
 	_, err = f.Write([]byte("333"))
 	assert.NoError(t, err)
 
-	fr, err := OpenFile(db.DefaultContext, "test2.log", os.O_RDONLY)
+	fr, err := OpenFile(t.Context(), "test2.log", os.O_RDONLY)
 	assert.NoError(t, err)
 	defer f.Close()
 
 	buf, err := io.ReadAll(fr)
 	assert.NoError(t, err)
-	assert.EqualValues(t, "111333", string(buf))
+	assert.Equal(t, "111333", string(buf))
 }

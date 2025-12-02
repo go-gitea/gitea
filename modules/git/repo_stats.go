@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // CodeActivityStats represents git statistics data
@@ -40,7 +41,10 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	since := fromTime.Format(time.RFC3339)
 
-	stdout, _, runErr := NewCommand(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").AddOptionFormat("--since='%s'", since).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, runErr := gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
+		AddOptionFormat("--since=%s", since).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -60,7 +64,8 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		_ = stdoutWriter.Close()
 	}()
 
-	gitCmd := NewCommand(repo.Ctx, "log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").AddOptionFormat("--since='%s'", since)
+	gitCmd := gitcmd.NewCommand("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").
+		AddOptionFormat("--since=%s", since)
 	if len(branch) == 0 {
 		gitCmd.AddArguments("--branches=*")
 	} else {
@@ -68,12 +73,11 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 
 	stderr := new(strings.Builder)
-	err = gitCmd.Run(&RunOpts{
-		Env:    []string{},
-		Dir:    repo.Path,
-		Stdout: stdoutWriter,
-		Stderr: stderr,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+	err = gitCmd.
+		WithDir(repo.Path).
+		WithStdout(stdoutWriter).
+		WithStderr(stderr).
+		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			scanner := bufio.NewScanner(stdoutReader)
 			scanner.Split(bufio.ScanLines)
@@ -124,6 +128,10 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 					}
 				}
 			}
+			if err = scanner.Err(); err != nil {
+				_ = stdoutReader.Close()
+				return fmt.Errorf("GetCodeActivityStats scan: %w", err)
+			}
 			a := make([]*CodeActivityAuthor, 0, len(authors))
 			for _, v := range authors {
 				a = append(a, v)
@@ -137,8 +145,8 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			stats.Authors = a
 			_ = stdoutReader.Close()
 			return nil
-		},
-	})
+		}).
+		Run(repo.Ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}

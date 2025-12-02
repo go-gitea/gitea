@@ -1,0 +1,39 @@
+/* only used by "repo/empty.tmpl" */
+.clone-buttons-combo {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+}
+
+.clone-buttons-combo > .ui.button:not(:last-child) {
+  border-right: none;
+}
+
+.ui.action.input.clone-buttons-combo input {
+  border-radius: 0; /* override fomantic border-radius for ".ui.input > input" */
+}
+
+/* used by the clone-panel popup */
+.clone-panel-field,
+.clone-panel-list {
+  margin: 10px;
+}
+
+.clone-panel-tab .item {
+  padding: 5px 10px;
+  background: none;
+  color: var(--color-text-light-2);
+}
+
+.clone-panel-tab .item.active {
+  color: var(--color-text-dark);
+  border-bottom: 3px solid currentcolor;
+}
+
+.clone-panel-tab + .divider {
+  margin: -1px 0 0;
+}
+
+.clone-panel-list .item {
+  margin: 5px 0;
+}

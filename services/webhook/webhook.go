@@ -8,13 +8,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -23,20 +23,14 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-
-	"github.com/gobwas/glob"
 )
 
-var webhookRequesters = map[webhook_module.HookType]func(context.Context, *webhook_model.Webhook, *webhook_model.HookTask) (req *http.Request, body []byte, err error){
-	webhook_module.SLACK:      newSlackRequest,
-	webhook_module.DISCORD:    newDiscordRequest,
-	webhook_module.DINGTALK:   newDingtalkRequest,
-	webhook_module.TELEGRAM:   newTelegramRequest,
-	webhook_module.MSTEAMS:    newMSTeamsRequest,
-	webhook_module.FEISHU:     newFeishuRequest,
-	webhook_module.MATRIX:     newMatrixRequest,
-	webhook_module.WECHATWORK: newWechatworkRequest,
-	webhook_module.PACKAGIST:  newPackagistRequest,
+type Requester func(context.Context, *webhook_model.Webhook, *webhook_model.HookTask) (req *http.Request, body []byte, err error)
+
+var webhookRequesters = map[webhook_module.HookType]Requester{}
+
+func RegisterWebhookRequester(hookType webhook_module.HookType, requester Requester) {
+	webhookRequesters[hookType] = requester
 }
 
 // IsValidHookTaskType returns true if a webhook registered
@@ -51,21 +45,25 @@ func IsValidHookTaskType(name string) bool {
 // hookQueue is a global queue of web hooks
 var hookQueue *queue.WorkerPoolQueue[int64]
 
-// getPayloadBranch returns branch for hook event, if applicable.
-func getPayloadBranch(p api.Payloader) string {
+// getPayloadRef returns the full ref name for hook event, if applicable.
+func getPayloadRef(p api.Payloader) git.RefName {
 	switch pp := p.(type) {
 	case *api.CreatePayload:
-		if pp.RefType == "branch" {
-			return pp.Ref
+		switch pp.RefType {
+		case "branch":
+			return git.RefNameFromBranch(pp.Ref)
+		case "tag":
+			return git.RefNameFromTag(pp.Ref)
 		}
 	case *api.DeletePayload:
-		if pp.RefType == "branch" {
-			return pp.Ref
+		switch pp.RefType {
+		case "branch":
+			return git.RefNameFromBranch(pp.Ref)
+		case "tag":
+			return git.RefNameFromTag(pp.Ref)
 		}
 	case *api.PushPayload:
-		if strings.HasPrefix(pp.Ref, git.BranchPrefix) {
-			return pp.Ref[len(git.BranchPrefix):]
-		}
+		return git.RefName(pp.Ref)
 	}
 	return ""
 }
@@ -113,19 +111,22 @@ func enqueueHookTask(taskID int64) error {
 	return nil
 }
 
-func checkBranch(w *webhook_model.Webhook, branch string) bool {
-	if w.BranchFilter == "" || w.BranchFilter == "*" {
+func checkBranchFilter(branchFilter string, ref git.RefName) bool {
+	if branchFilter == "" || branchFilter == "*" || branchFilter == "**" {
 		return true
 	}
 
-	g, err := glob.Compile(w.BranchFilter)
+	g, err := glob.Compile(branchFilter)
 	if err != nil {
 		// should not really happen as BranchFilter is validated
-		log.Error("CheckBranch failed: %s", err)
+		log.Debug("checkBranchFilter failed to compile filer %q, err: %s", branchFilter, err)
 		return false
 	}
 
-	return g.Match(branch)
+	if ref.IsBranch() && g.Match(ref.BranchName()) {
+		return true
+	}
+	return g.Match(ref.String())
 }
 
 // PrepareWebhook creates a hook task and enqueues it for processing.
@@ -137,14 +138,8 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		return nil
 	}
 
-	for _, e := range w.EventCheckers() {
-		if event == e.Type {
-			if !e.Has() {
-				return nil
-			}
-
-			break
-		}
+	if !w.HasEvent(event) {
+		return nil
 	}
 
 	// Avoid sending "0 new commits" to non-integration relevant webhooks (e.g. slack, discord, etc.).
@@ -155,11 +150,10 @@ func PrepareWebhook(ctx context.Context, w *webhook_model.Webhook, event webhook
 		return nil
 	}
 
-	// If payload has no associated branch (e.g. it's a new tag, issue, etc.),
-	// branch filter has no effect.
-	if branch := getPayloadBranch(p); branch != "" {
-		if !checkBranch(w, branch) {
-			log.Info("Branch %q doesn't match branch filter %q, skipping", branch, w.BranchFilter)
+	// If payload has no associated branch (e.g. it's a new tag, issue, etc.), branch filter has no effect.
+	if ref := getPayloadRef(p); ref != "" {
+		// Check the payload's git ref against the webhook's branch filter.
+		if !checkBranchFilter(w.BranchFilter, ref) {
 			return nil
 		}
 	}

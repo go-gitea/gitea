@@ -5,11 +5,14 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"path"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -188,7 +191,10 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bo
 	if remove {
 		for i, a := range attachments {
 			if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
-				return i, err
+				if !errors.Is(err, os.ErrNotExist) {
+					return i, err
+				}
+				log.Warn("Attachment file not found when deleting: %s", a.RelativePath())
 			}
 		}
 	}
@@ -218,7 +224,7 @@ func DeleteAttachmentsByComment(ctx context.Context, commentID int64, remove boo
 // UpdateAttachmentByUUID Updates attachment via uuid
 func UpdateAttachmentByUUID(ctx context.Context, attach *Attachment, cols ...string) error {
 	if attach.UUID == "" {
-		return fmt.Errorf("attachment uuid should be not blank")
+		return errors.New("attachment uuid should be not blank")
 	}
 	_, err := db.GetEngine(ctx).Where("uuid=?", attach.UUID).Cols(cols...).Update(attach)
 	return err

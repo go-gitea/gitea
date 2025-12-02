@@ -14,9 +14,9 @@ import (
 
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
+	"code.gitea.io/gitea/modules/zstd"
 
 	"github.com/blakesmith/ar"
-	"github.com/klauspost/compress/zstd"
 	"github.com/ulikunitz/xz"
 )
 
@@ -46,7 +46,7 @@ var (
 	// https://www.debian.org/doc/debian-policy/ch-controlfields.html#source
 	namePattern = regexp.MustCompile(`\A[a-z0-9][a-z0-9+-.]+\z`)
 	// https://www.debian.org/doc/debian-policy/ch-controlfields.html#version
-	versionPattern = regexp.MustCompile(`\A(?:[0-9]:)?[a-zA-Z0-9.+~]+(?:-[a-zA-Z0-9.+-~]+)?\z`)
+	versionPattern = regexp.MustCompile(`\A(?:(0|[1-9][0-9]*):)?[a-zA-Z0-9.+~]+(?:-[a-zA-Z0-9.+-~]+)?\z`)
 )
 
 type Package struct {

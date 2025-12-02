@@ -41,24 +41,19 @@ The ideal checkboxes should be:
 <label><input type="checkbox"> ... </label>
 ```
 
-However, related CSS styles aren't supported (not implemented) yet, so at the moment,
-almost all the checkboxes are still using Fomantic UI checkbox.
-
-## Fomantic UI Checkbox
+However, the templates still have the Fomantic-style HTML layout:
 
 ```html
 <div class="ui checkbox">
-  <input type="checkbox"> <!-- class "hidden" will be added by $.checkbox() -->
+  <input type="checkbox">
   <label>...</label>
 </div>
 ```
 
-Then the JS `$.checkbox()` should be called to make it work with keyboard and label-clicking,
-then it works like the ideal checkboxes.
-
-There is still a problem: Fomantic UI checkbox is not friendly to screen readers,
-so we add IDs to all the Fomantic UI checkboxes automatically by JS.
-If the `label` part is empty, then the checkbox needs to get the `aria-label` attribute manually.
+We call `initAriaCheckboxPatch` to link the `input` and `label` which makes clicking the
+label etc. work. There is still a problem: These checkboxes are not friendly to screen readers,
+so we add IDs to all the Fomantic UI checkboxes automatically by JS. If the `label` part is empty,
+then the checkbox needs to get the `aria-label` attribute manually.
 
 # Fomantic Dropdown
 

@@ -7,12 +7,20 @@ import (
 	"context"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestReadingBlameOutputSha256(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	setting.AppDataPath = t.TempDir()
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
+
+	if isGogit {
+		t.Skip("Skipping test since gogit does not support sha256")
+		return
+	}
 
 	t.Run("Without .git-blame-ignore-revs", func(t *testing.T) {
 		repo, err := OpenRepository(ctx, "./tests/repos/repo5_pulls_sha256")

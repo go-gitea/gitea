@@ -6,65 +6,82 @@ package issue
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func getMergeBase(repo *git.Repository, pr *issues_model.PullRequest, baseBranch, headBranch string) (string, error) {
+func getMergeBase(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pr *issues_model.PullRequest, baseBranch, headBranch string) (string, error) {
 	// Add a temporary remote
 	tmpRemote := fmt.Sprintf("mergebase-%d-%d", pr.ID, time.Now().UnixNano())
-	if err := repo.AddRemote(tmpRemote, repo.Path, false); err != nil {
-		return "", fmt.Errorf("AddRemote: %w", err)
+	if err := gitrepo.GitRemoteAdd(ctx, repo, tmpRemote, gitRepo.Path); err != nil {
+		return "", fmt.Errorf("GitRemoteAdd: %w", err)
 	}
 	defer func() {
-		if err := repo.RemoveRemote(tmpRemote); err != nil {
-			log.Error("getMergeBase: RemoveRemote: %v", err)
+		if err := gitrepo.GitRemoteRemove(graceful.GetManager().ShutdownContext(), repo, tmpRemote); err != nil {
+			log.Error("getMergeBase: GitRemoteRemove: %v", err)
 		}
 	}()
 
-	mergeBase, _, err := repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
+	mergeBase, _, err := gitRepo.GetMergeBase(tmpRemote, baseBranch, headBranch)
 	return mergeBase, err
 }
 
-func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, pr *issues_model.PullRequest) error {
-	files := []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
+type ReviewRequestNotifier struct {
+	Comment    *issues_model.Comment
+	IsAdd      bool
+	Reviewer   *user_model.User
+	ReviewTeam *org_model.Team
+}
 
+var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
+
+func IsCodeOwnerFile(f string) bool {
+	return slices.Contains(codeOwnerFiles, f)
+}
+
+func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
+	if err := pr.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+	issue := pr.Issue
 	if pr.IsWorkInProgress(ctx) {
-		return nil
+		return nil, nil
 	}
-
 	if err := pr.LoadHeadRepo(ctx); err != nil {
-		return err
+		return nil, err
 	}
-
-	if pr.HeadRepo.IsFork {
-		return nil
-	}
-
 	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return err
+		return nil, err
+	}
+	pr.Issue.Repo = pr.BaseRepo
+
+	if pr.BaseRepo.IsFork {
+		return nil, nil
 	}
 
 	repo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer repo.Close()
 
 	commit, err := repo.GetBranchCommit(pr.BaseRepo.DefaultBranch)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var data string
-	for _, file := range files {
+	for _, file := range codeOwnerFiles {
 		if blob, err := commit.GetBlobByPath(file); err == nil {
 			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 			if err == nil {
@@ -72,20 +89,26 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 			}
 		}
 	}
+	if data == "" {
+		return nil, nil
+	}
 
 	rules, _ := issues_model.GetCodeOwnersFromContent(ctx, data)
+	if len(rules) == 0 {
+		return nil, nil
+	}
 
 	// get the mergebase
-	mergeBase, err := getMergeBase(repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName())
+	mergeBase, err := getMergeBase(ctx, pr.BaseRepo, repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.HeadCommitID)
+	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitHeadRefName())
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	uniqUsers := make(map[int64]*user_model.User)
@@ -103,20 +126,60 @@ func PullRequestCodeOwnersReview(ctx context.Context, pull *issues_model.Issue, 
 		}
 	}
 
-	for _, u := range uniqUsers {
-		if u.ID != pull.Poster.ID {
-			if _, err := issues_model.AddReviewRequest(ctx, pull, u, pull.Poster); err != nil {
-				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
-				return err
+	notifiers := make([]*ReviewRequestNotifier, 0, len(uniqUsers)+len(uniqTeams))
+
+	if err := issue.LoadPoster(ctx); err != nil {
+		return nil, err
+	}
+
+	// load all reviews from database
+	latestReivews, _, err := issues_model.GetReviewsByIssueID(ctx, pr.IssueID)
+	if err != nil {
+		return nil, err
+	}
+
+	contain := func(list issues_model.ReviewList, u *user_model.User) bool {
+		for _, review := range list {
+			if review.ReviewerTeamID == 0 && review.ReviewerID == u.ID {
+				return true
 			}
 		}
+		return false
 	}
-	for _, t := range uniqTeams {
-		if _, err := issues_model.AddTeamReviewRequest(ctx, pull, t, pull.Poster); err != nil {
-			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
-			return err
+
+	for _, u := range uniqUsers {
+		if u.ID != issue.Poster.ID && !contain(latestReivews, u) {
+			comment, err := issues_model.AddReviewRequest(ctx, issue, u, issue.Poster)
+			if err != nil {
+				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
+				return nil, err
+			}
+			if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
+				continue
+			}
+			notifiers = append(notifiers, &ReviewRequestNotifier{
+				Comment:  comment,
+				IsAdd:    true,
+				Reviewer: u,
+			})
 		}
 	}
 
-	return nil
+	for _, t := range uniqTeams {
+		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster)
+		if err != nil {
+			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
+			return nil, err
+		}
+		if comment == nil { // comment maybe nil if review type is ReviewTypeRequest
+			continue
+		}
+		notifiers = append(notifiers, &ReviewRequestNotifier{
+			Comment:    comment,
+			IsAdd:      true,
+			ReviewTeam: t,
+		})
+	}
+
+	return notifiers, nil
 }

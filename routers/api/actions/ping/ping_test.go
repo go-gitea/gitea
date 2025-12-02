@@ -4,14 +4,13 @@
 package ping
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	pingv1 "code.gitea.io/actions-proto-go/ping/v1"
 	"code.gitea.io/actions-proto-go/ping/v1/pingv1connect"
-	"github.com/bufbuild/connect-go"
+	"connectrpc.com/connect"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -51,7 +50,7 @@ func MainServiceTest(t *testing.T, h http.Handler) {
 	clients := []pingv1connect.PingServiceClient{connectClient, grpcClient, grpcWebClient}
 	t.Run("ping request", func(t *testing.T) {
 		for _, client := range clients {
-			result, err := client.Ping(context.Background(), connect.NewRequest(&pingv1.PingRequest{
+			result, err := client.Ping(t.Context(), connect.NewRequest(&pingv1.PingRequest{
 				Data: "foobar",
 			}))
 			require.NoError(t, err)

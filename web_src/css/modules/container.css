@@ -1,0 +1,16 @@
+/* based on Fomantic UI container module, with just the parts extracted that we use. If you find any
+   unused rules here after refactoring, please remove them. */
+
+.ui.container {
+  width: 1280px;
+  max-width: calc(100% - calc(2 * var(--page-margin-x)));
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ui.fluid.container {
+  width: 100%;
+}
+.ui.container.medium-width {
+  width: 800px;
+}

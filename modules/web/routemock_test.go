@@ -16,7 +16,7 @@ import (
 func TestRouteMock(t *testing.T) {
 	setting.IsInTesting = true
 
-	r := NewRoute()
+	r := NewRouter()
 	middleware1 := func(resp http.ResponseWriter, req *http.Request) {
 		resp.Header().Set("X-Test-Middleware1", "m1")
 	}
@@ -26,17 +26,17 @@ func TestRouteMock(t *testing.T) {
 	handler := func(resp http.ResponseWriter, req *http.Request) {
 		resp.Header().Set("X-Test-Handler", "h")
 	}
-	r.Get("/foo", middleware1, RouteMockPoint("mock-point"), middleware2, handler)
+	r.Get("/foo", middleware1, RouterMockPoint("mock-point"), middleware2, handler)
 
 	// normal request
 	recorder := httptest.NewRecorder()
-	req, err := http.NewRequest("GET", "http://localhost:8000/foo", nil)
+	req, err := http.NewRequest(http.MethodGet, "http://localhost:8000/foo", nil)
 	assert.NoError(t, err)
 	r.ServeHTTP(recorder, req)
 	assert.Len(t, recorder.Header(), 3)
-	assert.EqualValues(t, "m1", recorder.Header().Get("X-Test-Middleware1"))
-	assert.EqualValues(t, "m2", recorder.Header().Get("X-Test-Middleware2"))
-	assert.EqualValues(t, "h", recorder.Header().Get("X-Test-Handler"))
+	assert.Equal(t, "m1", recorder.Header().Get("X-Test-Middleware1"))
+	assert.Equal(t, "m2", recorder.Header().Get("X-Test-Middleware2"))
+	assert.Equal(t, "h", recorder.Header().Get("X-Test-Handler"))
 	RouteMockReset()
 
 	// mock at "mock-point"
@@ -45,12 +45,12 @@ func TestRouteMock(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 	})
 	recorder = httptest.NewRecorder()
-	req, err = http.NewRequest("GET", "http://localhost:8000/foo", nil)
+	req, err = http.NewRequest(http.MethodGet, "http://localhost:8000/foo", nil)
 	assert.NoError(t, err)
 	r.ServeHTTP(recorder, req)
 	assert.Len(t, recorder.Header(), 2)
-	assert.EqualValues(t, "m1", recorder.Header().Get("X-Test-Middleware1"))
-	assert.EqualValues(t, "a", recorder.Header().Get("X-Test-MockPoint"))
+	assert.Equal(t, "m1", recorder.Header().Get("X-Test-Middleware1"))
+	assert.Equal(t, "a", recorder.Header().Get("X-Test-MockPoint"))
 	RouteMockReset()
 
 	// mock at MockAfterMiddlewares
@@ -59,12 +59,12 @@ func TestRouteMock(t *testing.T) {
 		resp.WriteHeader(http.StatusOK)
 	})
 	recorder = httptest.NewRecorder()
-	req, err = http.NewRequest("GET", "http://localhost:8000/foo", nil)
+	req, err = http.NewRequest(http.MethodGet, "http://localhost:8000/foo", nil)
 	assert.NoError(t, err)
 	r.ServeHTTP(recorder, req)
 	assert.Len(t, recorder.Header(), 3)
-	assert.EqualValues(t, "m1", recorder.Header().Get("X-Test-Middleware1"))
-	assert.EqualValues(t, "m2", recorder.Header().Get("X-Test-Middleware2"))
-	assert.EqualValues(t, "b", recorder.Header().Get("X-Test-MockPoint"))
+	assert.Equal(t, "m1", recorder.Header().Get("X-Test-Middleware1"))
+	assert.Equal(t, "m2", recorder.Header().Get("X-Test-Middleware2"))
+	assert.Equal(t, "b", recorder.Header().Get("X-Test-MockPoint"))
 	RouteMockReset()
 }

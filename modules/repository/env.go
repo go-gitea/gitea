@@ -4,8 +4,8 @@
 package repository
 
 import (
-	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -25,9 +25,18 @@ const (
 	EnvKeyID        = "GITEA_KEY_ID" // public key ID
 	EnvDeployKeyID  = "GITEA_DEPLOY_KEY_ID"
 	EnvPRID         = "GITEA_PR_ID"
+	EnvPRIndex      = "GITEA_PR_INDEX" // not used by Gitea at the moment, it is for custom git hooks
+	EnvPushTrigger  = "GITEA_PUSH_TRIGGER"
 	EnvIsInternal   = "GITEA_INTERNAL_PUSH"
 	EnvAppURL       = "GITEA_ROOT_URL"
 	EnvActionPerm   = "GITEA_ACTION_PERM"
+)
+
+type PushTrigger string
+
+const (
+	PushTriggerPRMergeToBase    PushTrigger = "pr-merge-to-base"
+	PushTriggerPRUpdateWithBase PushTrigger = "pr-update-with-base"
 )
 
 // InternalPushingEnvironment returns an os environment to switch off hooks on push
@@ -42,11 +51,11 @@ func InternalPushingEnvironment(doer *user_model.User, repo *repo_model.Reposito
 
 // PushingEnvironment returns an os environment to allow hooks to work on push
 func PushingEnvironment(doer *user_model.User, repo *repo_model.Repository) []string {
-	return FullPushingEnvironment(doer, doer, repo, repo.Name, 0)
+	return FullPushingEnvironment(doer, doer, repo, repo.Name, 0, 0)
 }
 
 // FullPushingEnvironment returns an os environment to allow hooks to work on push
-func FullPushingEnvironment(author, committer *user_model.User, repo *repo_model.Repository, repoName string, prID int64) []string {
+func FullPushingEnvironment(author, committer *user_model.User, repo *repo_model.Repository, repoName string, prID, prIndex int64) []string {
 	isWiki := "false"
 	if strings.HasSuffix(repoName, ".wiki") {
 		isWiki = "true"
@@ -64,9 +73,10 @@ func FullPushingEnvironment(author, committer *user_model.User, repo *repo_model
 		EnvRepoUsername+"="+repo.OwnerName,
 		EnvRepoIsWiki+"="+isWiki,
 		EnvPusherName+"="+committer.Name,
-		EnvPusherID+"="+fmt.Sprintf("%d", committer.ID),
-		EnvRepoID+"="+fmt.Sprintf("%d", repo.ID),
-		EnvPRID+"="+fmt.Sprintf("%d", prID),
+		EnvPusherID+"="+strconv.FormatInt(committer.ID, 10),
+		EnvRepoID+"="+strconv.FormatInt(repo.ID, 10),
+		EnvPRID+"="+strconv.FormatInt(prID, 10),
+		EnvPRIndex+"="+strconv.FormatInt(prIndex, 10),
 		EnvAppURL+"="+setting.AppURL,
 		"SSH_ORIGINAL_COMMAND=gitea-internal",
 	)

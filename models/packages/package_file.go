@@ -115,6 +115,11 @@ func DeleteFileByID(ctx context.Context, fileID int64) error {
 	return err
 }
 
+func UpdateFile(ctx context.Context, pf *PackageFile, cols []string) error {
+	_, err := db.GetEngine(ctx).ID(pf.ID).Cols(cols...).Update(pf)
+	return err
+}
+
 // PackageFileSearchOptions are options for SearchXXX methods
 type PackageFileSearchOptions struct {
 	OwnerID       int64
@@ -219,6 +224,11 @@ func SearchFiles(ctx context.Context, opts *PackageFileSearchOptions) ([]*Packag
 	pfs := make([]*PackageFile, 0, 10)
 	count, err := sess.FindAndCount(&pfs)
 	return pfs, count, err
+}
+
+// HasFiles tests if there are files of packages matching the search options
+func HasFiles(ctx context.Context, opts *PackageFileSearchOptions) (bool, error) {
+	return db.Exist[PackageFile](ctx, opts.toConds())
 }
 
 // CalculateFileSize sums up all blob sizes matching the search options.

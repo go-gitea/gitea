@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"sync"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mcaptcha"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/turnstile"
 
 	"gitea.com/go-chi/captcha"
@@ -30,7 +30,7 @@ func GetImageCaptcha() *captcha.Captcha {
 		cpt = captcha.NewCaptcha(captcha.Options{
 			SubURL: setting.AppSubURL,
 		})
-		cpt.Store = cache.GetCache()
+		cpt.Store = cache.GetCache().ChiCache()
 	})
 	return cpt
 }
@@ -60,7 +60,7 @@ const (
 
 // VerifyCaptcha verifies Captcha data
 // No-op if captchas are not enabled
-func VerifyCaptcha(ctx *Context, tpl base.TplName, form any) {
+func VerifyCaptcha(ctx *Context, tpl templates.TplName, form any) {
 	if !setting.Service.EnableCaptcha {
 		return
 	}
@@ -79,11 +79,11 @@ func VerifyCaptcha(ctx *Context, tpl base.TplName, form any) {
 	case setting.CfTurnstile:
 		valid, err = turnstile.Verify(ctx, ctx.Req.Form.Get(cfTurnstileResponseField))
 	default:
-		ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
+		ctx.ServerError("Unknown Captcha Type", fmt.Errorf("unknown Captcha Type: %s", setting.Service.CaptchaType))
 		return
 	}
 	if err != nil {
-		log.Debug("%v", err)
+		log.Debug("Captcha Verify failed: %v", err)
 	}
 
 	if !valid {

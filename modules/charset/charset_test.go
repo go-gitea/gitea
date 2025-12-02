@@ -40,14 +40,12 @@ func TestMaybeRemoveBOM(t *testing.T) {
 
 func TestToUTF8(t *testing.T) {
 	resetDefaultCharsetsOrder()
-	var res string
-	var err error
 
 	// Note: golang compiler seems so behave differently depending on the current
 	// locale, so some conversions might behave differently. For that reason, we don't
 	// depend on particular conversions but in expected behaviors.
 
-	res, err = ToUTF8([]byte{0x41, 0x42, 0x43}, ConvertOpts{})
+	res, err := ToUTF8([]byte{0x41, 0x42, 0x43}, ConvertOpts{})
 	assert.NoError(t, err)
 	assert.Equal(t, "ABC", res)
 
@@ -244,7 +242,7 @@ func stringMustEndWith(t *testing.T, expected, value string) {
 func TestToUTF8WithFallbackReader(t *testing.T) {
 	resetDefaultCharsetsOrder()
 
-	for testLen := 0; testLen < 2048; testLen++ {
+	for testLen := range 2048 {
 		pattern := "    test { () }\n"
 		input := ""
 		for len(input) < testLen {
@@ -254,7 +252,7 @@ func TestToUTF8WithFallbackReader(t *testing.T) {
 		input += "// Выключаем"
 		rd := ToUTF8WithFallbackReader(bytes.NewReader([]byte(input)), ConvertOpts{})
 		r, _ := io.ReadAll(rd)
-		assert.EqualValuesf(t, input, string(r), "testing string len=%d", testLen)
+		assert.Equalf(t, input, string(r), "testing string len=%d", testLen)
 	}
 
 	truncatedOneByteExtension := failFastBytes

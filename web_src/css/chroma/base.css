@@ -1,7 +1,3 @@
-.chroma {
-  background-color: var(--color-code-bg);
-}
-
 /* LineTableTD */
 .chroma .lntd {
   vertical-align: top;

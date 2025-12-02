@@ -1,0 +1,65 @@
+.color-picker-combo {
+  display: flex;
+  position: relative; /* to position the preview square */
+}
+
+.color-picker-combo input {
+  padding-left: 32px !important;
+}
+
+.color-picker-combo .preview-square {
+  position: absolute;
+  aspect-ratio: 1;
+  height: 16px;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: repeating-linear-gradient(45deg, #aaa 25%, transparent 25%, transparent 75%, #aaa 75%, #aaa), repeating-linear-gradient(45deg, #aaa 25%, #fff 25%, #fff 75%, #aaa 75%, #aaa);
+  background-position: 0 0, 4px 4px;
+  background-size: 8px 8px;
+}
+
+.color-picker-combo .preview-square::after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background-color: currentcolor;
+}
+
+.color-picker-combo .precolors {
+  display: flex;
+  margin-left: 1em;
+  align-items: center;
+  gap: 0.125em;
+}
+
+.color-picker-combo .precolors .generate-random-color {
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+}
+
+.color-picker-combo .precolors .color {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+}
+
+hex-color-picker {
+  width: 180px;
+  height: 120px;
+}
+
+hex-color-picker::part(hue-pointer),
+hex-color-picker::part(saturation-pointer) {
+  width: 22px;
+  height: 22px;
+}
+
+hex-color-picker::part(hue) {
+  flex-basis: 16px;
+}

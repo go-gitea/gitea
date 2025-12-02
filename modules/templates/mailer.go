@@ -9,12 +9,19 @@ import (
 	"html/template"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	texttmpl "text/template"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
+
+type MailTemplates struct {
+	TemplateNames    []string
+	BodyTemplates    *template.Template
+	SubjectTemplates *texttmpl.Template
+}
 
 var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
 
@@ -22,9 +29,9 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}\s*$`)
 func mailSubjectTextFuncMap() texttmpl.FuncMap {
 	return texttmpl.FuncMap{
 		"dict": dict,
-		"Eval": Eval,
+		"Eval": evalTokens,
 
-		"EllipsisString": base.EllipsisString,
+		"EllipsisString": util.EllipsisDisplayString,
 		"AppName": func() string {
 			return setting.AppName
 		},
@@ -52,16 +59,17 @@ func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, 
 	return nil
 }
 
-// Mailer provides the templates required for sending notification mails.
-func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
-	subjectTemplates := texttmpl.New("")
-	bodyTemplates := template.New("")
-
-	subjectTemplates.Funcs(mailSubjectTextFuncMap())
-	bodyTemplates.Funcs(NewFuncMap())
-
+// LoadMailTemplates provides the templates required for sending notification mails.
+func LoadMailTemplates(ctx context.Context, loadedTemplates *atomic.Pointer[MailTemplates]) {
 	assetFS := AssetFS()
 	refreshTemplates := func(firstRun bool) {
+		var templateNames []string
+		subjectTemplates := texttmpl.New("")
+		bodyTemplates := template.New("")
+
+		subjectTemplates.Funcs(mailSubjectTextFuncMap())
+		bodyTemplates.Funcs(NewFuncMap())
+
 		if !firstRun {
 			log.Trace("Reloading mail templates")
 		}
@@ -81,14 +89,20 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 			if firstRun {
 				log.Trace("Adding mail template %s: %s by %s", tmplName, assetPath, layerName)
 			}
+			templateNames = append(templateNames, tmplName)
 			if err = buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, tmplName, content); err != nil {
 				if firstRun {
 					log.Fatal("Failed to parse mail template, err: %v", err)
-				} else {
-					log.Error("Failed to parse mail template, err: %v", err)
 				}
+				log.Error("Failed to parse mail template, err: %v", err)
 			}
 		}
+		loaded := &MailTemplates{
+			TemplateNames:    templateNames,
+			BodyTemplates:    bodyTemplates,
+			SubjectTemplates: subjectTemplates,
+		}
+		loadedTemplates.Store(loaded)
 	}
 
 	refreshTemplates(true)
@@ -100,6 +114,4 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 			refreshTemplates(false)
 		})
 	}
-
-	return subjectTemplates, bodyTemplates
 }

@@ -22,8 +22,8 @@ type VirtualSessionProvider struct {
 	provider session.Provider
 }
 
-// Init initializes the cookie session provider with given root path.
-func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
+// Init initializes the cookie session provider with the given config.
+func (o *VirtualSessionProvider) Init(gcLifetime int64, config string) error {
 	var opts session.Options
 	if err := json.Unmarshal([]byte(config), &opts); err != nil {
 		return err
@@ -52,15 +52,17 @@ func (o *VirtualSessionProvider) Init(gclifetime int64, config string) error {
 	default:
 		return fmt.Errorf("VirtualSessionProvider: Unknown Provider: %s", opts.Provider)
 	}
-	return o.provider.Init(gclifetime, opts.ProviderConfig)
+	return o.provider.Init(gcLifetime, opts.ProviderConfig)
 }
 
 // Read returns raw session store by session ID.
 func (o *VirtualSessionProvider) Read(sid string) (session.RawStore, error) {
 	o.lock.RLock()
 	defer o.lock.RUnlock()
-	if o.provider.Exist(sid) {
+	if exist, err := o.provider.Exist(sid); err == nil && exist {
 		return o.provider.Read(sid)
+	} else if err != nil {
+		return nil, fmt.Errorf("check if '%s' exist failed: %w", sid, err)
 	}
 	kv := make(map[any]any)
 	kv["_old_uid"] = "0"
@@ -68,8 +70,8 @@ func (o *VirtualSessionProvider) Read(sid string) (session.RawStore, error) {
 }
 
 // Exist returns true if session with given ID exists.
-func (o *VirtualSessionProvider) Exist(sid string) bool {
-	return true
+func (o *VirtualSessionProvider) Exist(sid string) (bool, error) {
+	return true, nil
 }
 
 // Destroy deletes a session by session ID.
@@ -87,7 +89,7 @@ func (o *VirtualSessionProvider) Regenerate(oldsid, sid string) (session.RawStor
 }
 
 // Count counts and returns number of sessions.
-func (o *VirtualSessionProvider) Count() int {
+func (o *VirtualSessionProvider) Count() (int, error) {
 	o.lock.RLock()
 	defer o.lock.RUnlock()
 	return o.provider.Count()
@@ -162,9 +164,13 @@ func (s *VirtualStore) Release() error {
 		// Now ensure that we don't exist!
 		realProvider := s.p.provider
 
-		if !s.released && realProvider.Exist(s.sid) {
-			// This is an error!
-			return fmt.Errorf("new sid '%s' already exists", s.sid)
+		if !s.released {
+			if exist, err := realProvider.Exist(s.sid); err == nil && exist {
+				// This is an error!
+				return fmt.Errorf("new sid '%s' already exists", s.sid)
+			} else if err != nil {
+				return fmt.Errorf("check if '%s' exist failed: %w", s.sid, err)
+			}
 		}
 		realStore, err := realProvider.Read(s.sid)
 		if err != nil {

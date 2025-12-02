@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
-	"gopkg.in/ini.v1" //nolint:depguard
+	"gopkg.in/ini.v1" //nolint:depguard // wrapper for this package
 )
 
 type ConfigKey interface {
@@ -26,6 +26,7 @@ type ConfigKey interface {
 	In(defaultVal string, candidates []string) string
 	String() string
 	Strings(delim string) []string
+	Bool() (bool, error)
 
 	MustString(defaultVal string) string
 	MustBool(defaultVal ...bool) bool
@@ -40,6 +41,7 @@ type ConfigSection interface {
 	HasKey(key string) bool
 	NewKey(name, value string) (ConfigKey, error)
 	Key(key string) ConfigKey
+	DeleteKey(key string)
 	Keys() []ConfigKey
 	ChildSections() []ConfigSection
 }
@@ -50,6 +52,7 @@ type ConfigProvider interface {
 	Sections() []ConfigSection
 	NewSection(name string) (ConfigSection, error)
 	GetSection(name string) (ConfigSection, error)
+	DeleteSection(name string)
 	Save() error
 	SaveTo(filename string) error
 
@@ -167,6 +170,10 @@ func (s *iniConfigSection) Keys() (keys []ConfigKey) {
 	return keys
 }
 
+func (s *iniConfigSection) DeleteKey(key string) {
+	s.sec.DeleteKey(key)
+}
+
 func (s *iniConfigSection) ChildSections() (sections []ConfigSection) {
 	for _, s := range s.sec.ChildSections() {
 		sections = append(sections, &iniConfigSection{s})
@@ -201,11 +208,11 @@ func NewConfigProviderFromFile(file string) (ConfigProvider, error) {
 	loadedFromEmpty := true
 
 	if file != "" {
-		isFile, err := util.IsFile(file)
+		isExist, err := util.IsExist(file)
 		if err != nil {
-			return nil, fmt.Errorf("unable to check if %q is a file. Error: %v", file, err)
+			return nil, fmt.Errorf("unable to check if %q exists: %v", file, err)
 		}
-		if isFile {
+		if isExist {
 			if err = cfg.Append(file); err != nil {
 				return nil, fmt.Errorf("failed to load config file %q: %v", file, err)
 			}
@@ -248,6 +255,10 @@ func (p *iniConfigProvider) GetSection(name string) (ConfigSection, error) {
 	return &iniConfigSection{sec: sec}, nil
 }
 
+func (p *iniConfigProvider) DeleteSection(name string) {
+	p.ini.DeleteSection(name)
+}
+
 var errDisableSaving = errors.New("this config can't be saved, developers should prepare a new config to save")
 
 // Save saves the content into file
@@ -257,7 +268,7 @@ func (p *iniConfigProvider) Save() error {
 	}
 	filename := p.file
 	if filename == "" {
-		return fmt.Errorf("config file path must not be empty")
+		return errors.New("config file path must not be empty")
 	}
 	if p.loadedFromEmpty {
 		if err := os.MkdirAll(filepath.Dir(filename), os.ModePerm); err != nil {
@@ -315,21 +326,25 @@ func mustMapSetting(rootCfg ConfigProvider, sectionName string, setting any) {
 	}
 }
 
-// DeprecatedWarnings contains the warning message for various deprecations, including: setting option, file/folder, etc
-var DeprecatedWarnings []string
+// StartupProblems contains the messages for various startup problems, including: setting option, file/folder, etc
+var StartupProblems []string
+
+func LogStartupProblem(skip int, level log.Level, format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	log.Log(skip+1, level, "%s", msg)
+	StartupProblems = append(StartupProblems, msg)
+}
 
 func deprecatedSetting(rootCfg ConfigProvider, oldSection, oldKey, newSection, newKey, version string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		msg := fmt.Sprintf("Deprecated config option `[%s]` `%s` present. Use `[%s]` `%s` instead. This fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
-		log.Error("%v", msg)
-		DeprecatedWarnings = append(DeprecatedWarnings, msg)
+		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents, please use `[%s].%s` instead because this fallback will be/has been removed in %s", oldSection, oldKey, newSection, newKey, version)
 	}
 }
 
 // deprecatedSettingDB add a hint that the configuration has been moved to database but still kept in app.ini
 func deprecatedSettingDB(rootCfg ConfigProvider, oldSection, oldKey string) {
 	if rootCfg.Section(oldSection).HasKey(oldKey) {
-		log.Error("Deprecated `[%s]` `%s` present which has been copied to database table sys_setting", oldSection, oldKey)
+		LogStartupProblem(1, log.ERROR, "Deprecation: config option `[%s].%s` presents but it won't take effect because it has been moved to admin panel -> config setting", oldSection, oldKey)
 	}
 }
 

@@ -3,7 +3,11 @@
 
 package analyze
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestIsVendor(t *testing.T) {
 	tests := []struct {
@@ -33,9 +37,8 @@ func TestIsVendor(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
-			if got := IsVendor(tt.path); got != tt.want {
-				t.Errorf("IsVendor() = %v, want %v", got, tt.want)
-			}
+			got := IsVendor(tt.path)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }

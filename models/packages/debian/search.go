@@ -75,26 +75,27 @@ func ExistPackages(ctx context.Context, opts *PackageSearchOptions) (bool, error
 }
 
 // SearchPackages gets the packages matching the search options
-func SearchPackages(ctx context.Context, opts *PackageSearchOptions, iter func(*packages.PackageFileDescriptor)) error {
-	return db.GetEngine(ctx).
+func SearchPackages(ctx context.Context, opts *PackageSearchOptions) ([]*packages.PackageFileDescriptor, error) {
+	var pkgFiles []*packages.PackageFile
+	err := db.GetEngine(ctx).
 		Table("package_file").
 		Select("package_file.*").
 		Join("INNER", "package_version", "package_version.id = package_file.version_id").
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(opts.toCond()).
-		Asc("package.lower_name", "package_version.created_unix").
-		Iterate(new(packages.PackageFile), func(_ int, bean any) error {
-			pf := bean.(*packages.PackageFile)
-
-			pfd, err := packages.GetPackageFileDescriptor(ctx, pf)
-			if err != nil {
-				return err
-			}
-
-			iter(pfd)
-
-			return nil
-		})
+		Asc("package.lower_name", "package_version.created_unix").Find(&pkgFiles)
+	if err != nil {
+		return nil, err
+	}
+	pfds := make([]*packages.PackageFileDescriptor, 0, len(pkgFiles))
+	for _, pf := range pkgFiles {
+		pfd, err := packages.GetPackageFileDescriptor(ctx, pf)
+		if err != nil {
+			return nil, err
+		}
+		pfds = append(pfds, pfd)
+	}
+	return pfds, nil
 }
 
 // GetDistributions gets all available distributions

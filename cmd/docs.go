@@ -4,11 +4,13 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/urfave/cli/v2"
+	cli_docs "github.com/urfave/cli-docs/v3"
+	"github.com/urfave/cli/v3"
 )
 
 // CmdDocs represents the available docs sub-command.
@@ -30,16 +32,16 @@ var CmdDocs = &cli.Command{
 	},
 }
 
-func runDocs(ctx *cli.Context) error {
-	docs, err := ctx.App.ToMarkdown()
-	if ctx.Bool("man") {
-		docs, err = ctx.App.ToMan()
+func runDocs(_ context.Context, cmd *cli.Command) error {
+	docs, err := cli_docs.ToMarkdown(cmd.Root())
+	if cmd.Bool("man") {
+		docs, err = cli_docs.ToMan(cmd.Root())
 	}
 	if err != nil {
 		return err
 	}
 
-	if !ctx.Bool("man") {
+	if !cmd.Bool("man") {
 		// Clean up markdown. The following bug was fixed in v2, but is present in v1.
 		// It affects markdown output (even though the issue is referring to man pages)
 		// https://github.com/urfave/cli/issues/1040
@@ -51,8 +53,8 @@ func runDocs(ctx *cli.Context) error {
 	}
 
 	out := os.Stdout
-	if ctx.String("output") != "" {
-		fi, err := os.Create(ctx.String("output"))
+	if cmd.String("output") != "" {
+		fi, err := os.Create(cmd.String("output"))
 		if err != nil {
 			return err
 		}

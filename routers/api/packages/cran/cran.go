@@ -22,24 +22,23 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.PlainText(status, message)
 }
 
 func EnumerateSourcePackages(ctx *context.Context) {
-	enumeratePackages(ctx, ctx.Params("format"), &cran_model.SearchOptions{
+	enumeratePackages(ctx, ctx.PathParam("format"), &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeSource,
 	})
 }
 
 func EnumerateBinaryPackages(ctx *context.Context) {
-	enumeratePackages(ctx, ctx.Params("format"), &cran_model.SearchOptions{
+	enumeratePackages(ctx, ctx.PathParam("format"), &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeBinary,
-		Platform: ctx.Params("platform"),
-		RVersion: ctx.Params("rversion"),
+		Platform: ctx.PathParam("platform"),
+		RVersion: ctx.PathParam("rversion"),
 	})
 }
 
@@ -151,12 +150,12 @@ func UploadBinaryPackageFile(ctx *context.Context) {
 }
 
 func uploadPackageFile(ctx *context.Context, compositeKey string, properties map[string]string) {
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
@@ -225,7 +224,7 @@ func DownloadSourcePackageFile(ctx *context.Context) {
 	downloadPackageFile(ctx, &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeSource,
-		Filename: ctx.Params("filename"),
+		Filename: ctx.PathParam("filename"),
 	})
 }
 
@@ -233,9 +232,9 @@ func DownloadBinaryPackageFile(ctx *context.Context) {
 	downloadPackageFile(ctx, &cran_model.SearchOptions{
 		OwnerID:  ctx.Package.Owner.ID,
 		FileType: cran_module.TypeBinary,
-		Platform: ctx.Params("platform"),
-		RVersion: ctx.Params("rversion"),
-		Filename: ctx.Params("filename"),
+		Platform: ctx.PathParam("platform"),
+		RVersion: ctx.PathParam("rversion"),
+		Filename: ctx.PathParam("filename"),
 	})
 }
 
@@ -250,7 +249,7 @@ func downloadPackageFile(ctx *context.Context, opts *cran_model.SearchOptions) {
 		return
 	}
 
-	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf, ctx.Req.Method)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)

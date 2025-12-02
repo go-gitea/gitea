@@ -9,7 +9,7 @@ import (
 	"path"
 	"strings"
 
-	gitea_html "code.gitea.io/gitea/modules/html"
+	gitea_html "code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 )
@@ -41,8 +41,26 @@ func Init() error {
 	return nil
 }
 
+func MockIcon(icon string) func() {
+	if svgIcons == nil {
+		svgIcons = make(map[string]string)
+	}
+	orig, exist := svgIcons[icon]
+	svgIcons[icon] = fmt.Sprintf(`<svg class="svg %s" width="%d" height="%d"></svg>`, icon, defaultSize, defaultSize)
+	return func() {
+		if exist {
+			svgIcons[icon] = orig
+		} else {
+			delete(svgIcons, icon)
+		}
+	}
+}
+
 // RenderHTML renders icons - arguments icon name (string), size (int), class (string)
 func RenderHTML(icon string, others ...any) template.HTML {
+	if icon == "" {
+		return ""
+	}
 	size, class := gitea_html.ParseSizeAndClass(defaultSize, "", others...)
 	if svgStr, ok := svgIcons[icon]; ok {
 		// the code is somewhat hacky, but it just works, because the SVG contents are all normalized
@@ -55,5 +73,6 @@ func RenderHTML(icon string, others ...any) template.HTML {
 		}
 		return template.HTML(svgStr)
 	}
-	return ""
+	// during test (or something wrong happens), there is no SVG loaded, so use a dummy span to tell that the icon is missing
+	return template.HTML(fmt.Sprintf("<span>%s(%d/%s)</span>", template.HTMLEscapeString(icon), size, template.HTMLEscapeString(class)))
 }

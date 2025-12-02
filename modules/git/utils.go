@@ -4,76 +4,40 @@
 package git
 
 import (
-	"fmt"
-	"io"
-	"os"
+	"crypto/sha1"
+	"encoding/hex"
 	"strconv"
 	"strings"
 	"sync"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ObjectCache provides thread-safe cache operations.
-type ObjectCache struct {
+type ObjectCache[T any] struct {
 	lock  sync.RWMutex
-	cache map[string]any
+	cache map[string]T
 }
 
-func newObjectCache() *ObjectCache {
-	return &ObjectCache{
-		cache: make(map[string]any, 10),
-	}
+func newObjectCache[T any]() *ObjectCache[T] {
+	return &ObjectCache[T]{cache: make(map[string]T, 10)}
 }
 
-// Set add obj to cache
-func (oc *ObjectCache) Set(id string, obj any) {
+// Set adds obj to cache
+func (oc *ObjectCache[T]) Set(id string, obj T) {
 	oc.lock.Lock()
 	defer oc.lock.Unlock()
 
 	oc.cache[id] = obj
 }
 
-// Get get cached obj by id
-func (oc *ObjectCache) Get(id string) (any, bool) {
+// Get gets cached obj by id
+func (oc *ObjectCache[T]) Get(id string) (T, bool) {
 	oc.lock.RLock()
 	defer oc.lock.RUnlock()
 
 	obj, has := oc.cache[id]
 	return obj, has
-}
-
-// isDir returns true if given path is a directory,
-// or returns false when it's a file or does not exist.
-func isDir(dir string) bool {
-	f, e := os.Stat(dir)
-	if e != nil {
-		return false
-	}
-	return f.IsDir()
-}
-
-// isFile returns true if given path is a file,
-// or returns false when it's a directory or does not exist.
-func isFile(filePath string) bool {
-	f, e := os.Stat(filePath)
-	if e != nil {
-		return false
-	}
-	return !f.IsDir()
-}
-
-// isExist checks whether a file or directory exists.
-// It returns false when the file or directory does not exist.
-func isExist(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil || os.IsExist(err)
-}
-
-// ConcatenateError concatenats an error with stderr string
-func ConcatenateError(err error, stderr string) error {
-	if len(stderr) == 0 {
-		return err
-	}
-	return fmt.Errorf("%w - %s", err, stderr)
 }
 
 // ParseBool returns the boolean value represented by the string as per git's git_config_bool
@@ -103,28 +67,21 @@ func ParseBool(value string) (result, valid bool) {
 	return intValue != 0, true
 }
 
-// LimitedReaderCloser is a limited reader closer
-type LimitedReaderCloser struct {
-	R io.Reader
-	C io.Closer
-	N int64
+func HashFilePathForWebUI(s string) string {
+	h := sha1.New()
+	_, _ = h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
-// Read implements io.Reader
-func (l *LimitedReaderCloser) Read(p []byte) (n int, err error) {
-	if l.N <= 0 {
-		_ = l.C.Close()
-		return 0, io.EOF
+func SplitCommitTitleBody(commitMessage string, titleRuneLimit int) (title, body string) {
+	title, body, _ = strings.Cut(commitMessage, "\n")
+	title, title2 := util.EllipsisTruncateRunes(title, titleRuneLimit)
+	if title2 != "" {
+		if body == "" {
+			body = title2
+		} else {
+			body = title2 + "\n" + body
+		}
 	}
-	if int64(len(p)) > l.N {
-		p = p[0:l.N]
-	}
-	n, err = l.R.Read(p)
-	l.N -= int64(n)
-	return n, err
-}
-
-// Close implements io.Closer
-func (l *LimitedReaderCloser) Close() error {
-	return l.C.Close()
+	return title, body
 }

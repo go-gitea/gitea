@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -29,6 +28,7 @@ func TestUserOrgs(t *testing.T) {
 
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
 
 	assert.Equal(t, []*api.Organization{
 		{
@@ -37,7 +37,7 @@ func TestUserOrgs(t *testing.T) {
 			UserName:    org17.Name,
 			FullName:    org17.FullName,
 			Email:       org17.Email,
-			AvatarURL:   org17.AvatarLink(db.DefaultContext),
+			AvatarURL:   org17.AvatarLink(t.Context()),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -49,11 +49,23 @@ func TestUserOrgs(t *testing.T) {
 			UserName:    org3.Name,
 			FullName:    org3.FullName,
 			Email:       org3.Email,
-			AvatarURL:   org3.AvatarLink(db.DefaultContext),
+			AvatarURL:   org3.AvatarLink(t.Context()),
 			Description: "",
 			Website:     "",
 			Location:    "",
 			Visibility:  "public",
+		},
+		{
+			ID:          35,
+			Name:        org35.Name,
+			UserName:    org35.Name,
+			FullName:    org35.FullName,
+			Email:       org35.Email,
+			AvatarURL:   org35.AvatarLink(t.Context()),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "private",
 		},
 	}, orgs)
 
@@ -63,7 +75,7 @@ func TestUserOrgs(t *testing.T) {
 
 	// unrelated user should not get private org membership of privateMemberUsername
 	orgs = getUserOrgs(t, unrelatedUsername, privateMemberUsername)
-	assert.Len(t, orgs, 0)
+	assert.Empty(t, orgs)
 
 	// not authenticated call should not be allowed
 	testUserOrgsUnauthenticated(t, privateMemberUsername)
@@ -102,6 +114,7 @@ func TestMyOrgs(t *testing.T) {
 	DecodeJSON(t, resp, &orgs)
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org3"})
 	org17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "org17"})
+	org35 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "private_org35"})
 
 	assert.Equal(t, []*api.Organization{
 		{
@@ -110,7 +123,7 @@ func TestMyOrgs(t *testing.T) {
 			UserName:    org17.Name,
 			FullName:    org17.FullName,
 			Email:       org17.Email,
-			AvatarURL:   org17.AvatarLink(db.DefaultContext),
+			AvatarURL:   org17.AvatarLink(t.Context()),
 			Description: "",
 			Website:     "",
 			Location:    "",
@@ -122,11 +135,23 @@ func TestMyOrgs(t *testing.T) {
 			UserName:    org3.Name,
 			FullName:    org3.FullName,
 			Email:       org3.Email,
-			AvatarURL:   org3.AvatarLink(db.DefaultContext),
+			AvatarURL:   org3.AvatarLink(t.Context()),
 			Description: "",
 			Website:     "",
 			Location:    "",
 			Visibility:  "public",
+		},
+		{
+			ID:          35,
+			Name:        org35.Name,
+			UserName:    org35.Name,
+			FullName:    org35.FullName,
+			Email:       org35.Email,
+			AvatarURL:   org35.AvatarLink(t.Context()),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "private",
 		},
 	}, orgs)
 }

@@ -11,8 +11,8 @@ import (
 	"code.gitea.io/gitea/routers/api/actions/runner"
 )
 
-func Routes(prefix string) *web.Route {
-	m := web.NewRoute()
+func Routes(prefix string) *web.Router {
+	m := web.NewRouter()
 
 	path, handler := ping.NewPingServiceHandler()
 	m.Post(path+"*", http.StripPrefix(prefix, handler).ServeHTTP)

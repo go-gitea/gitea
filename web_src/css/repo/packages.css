@@ -1,0 +1,25 @@
+.packages-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.packages-content-left {
+  margin: 0 !important;
+  width: calc(100% - 250px - 16px);
+}
+
+.packages-content-right {
+  margin: 0 !important;
+  width: 250px;
+}
+
+@media (max-width: 767.98px) {
+  .packages-content {
+    flex-direction: column;
+  }
+  .packages-content-left,
+  .packages-content-right {
+    width: 100%;
+  }
+}

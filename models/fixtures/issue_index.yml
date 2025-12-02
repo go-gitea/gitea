@@ -1,27 +1,35 @@
 -
   group_id: 1
   max_index: 5
+
 -
   group_id: 2
   max_index: 2
+
 -
   group_id: 3
   max_index: 2
+
 -
   group_id: 10
   max_index: 1
+
 -
   group_id: 32
   max_index: 2
+
 -
   group_id: 48
   max_index: 1
+
 -
   group_id: 42
   max_index: 1
+
 -
   group_id: 50
   max_index: 1
+
 -
   group_id: 51
   max_index: 1

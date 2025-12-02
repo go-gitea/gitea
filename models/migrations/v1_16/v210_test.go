@@ -1,7 +1,7 @@
 // Copyright 2021 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_16 //nolint
+package v1_16
 
 import (
 	"testing"
@@ -71,5 +71,5 @@ func Test_RemigrateU2FCredentials(t *testing.T) {
 		return
 	}
 
-	assert.EqualValues(t, expected, got)
+	assert.Equal(t, expected, got)
 }
