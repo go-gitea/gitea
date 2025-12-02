@@ -6,8 +6,8 @@ package export
 import (
 	"github.com/xuri/excelize/v2"
 
-	"code.gitea.io/gitea/modules/log"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/services/context"
 )
 
