@@ -4,11 +4,11 @@
 package export
 
 import (
-	"github.com/xuri/excelize/v2"
-
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/services/context"
+
+	"github.com/xuri/excelize/v2"
 )
 
 func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *excelize.File {
