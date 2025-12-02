@@ -205,7 +205,7 @@ export default defineConfig([
       '@typescript-eslint/no-non-null-asserted-optional-chain': [2],
       '@typescript-eslint/no-non-null-assertion': [0],
       '@typescript-eslint/no-redeclare': [0],
-      '@typescript-eslint/no-redundant-type-constituents': [0], // rule does not properly work without strickNullChecks
+      '@typescript-eslint/no-redundant-type-constituents': [2],
       '@typescript-eslint/no-require-imports': [2],
       '@typescript-eslint/no-restricted-imports': [0],
       '@typescript-eslint/no-restricted-types': [0],
