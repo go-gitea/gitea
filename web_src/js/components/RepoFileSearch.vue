@@ -32,10 +32,8 @@ const filteredFiles = computed(() => {
 });
 
 const applySearchQuery = throttle(300, () => {
-  if (refElemInput.value) {
-    searchQuery.value = refElemInput.value.value;
-    selectedIndex.value = 0;
-  }
+  searchQuery.value = refElemInput.value?.value ?? '';
+  selectedIndex.value = 0;
 });
 
 const handleSearchInput = () => {
@@ -54,10 +52,8 @@ const handleKeyDown = (e: KeyboardEvent) => {
   const handleSelectedItem = (idx: number) => {
     e.preventDefault();
     selectedIndex.value = idx;
-    if (refElemPopup.value) {
-      const el = refElemPopup.value.querySelector(`.file-search-results > :nth-child(${idx+1} of .item)`);
-      el?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
-    }
+    const el = refElemPopup.value?.querySelector(`.file-search-results > :nth-child(${idx+1} of .item)`);
+    el?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
   };
 
   if (e.key === 'ArrowDown') {
@@ -126,10 +122,9 @@ const updatePosition = () => {
 };
 
 onMounted(() => {
-  if (!refElemPopup.value || !refElemInput.value) return;
   const searchPopupId = generateElemId('file-search-popup-');
-  refElemPopup.value.setAttribute('id', searchPopupId);
-  refElemInput.value.setAttribute('aria-controls', searchPopupId);
+  refElemPopup.value?.setAttribute('id', searchPopupId);
+  refElemInput.value?.setAttribute('aria-controls', searchPopupId);
   document.addEventListener('click', handleClickOutside);
   window.addEventListener('resize', updatePosition);
 });
