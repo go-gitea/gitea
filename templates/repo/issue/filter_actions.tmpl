@@ -123,20 +123,6 @@
 				{{end}}
 			</div>
 		</div>
-
-		<div class="ui dropdown jump item">
-			<span class="text">
-				…
-			</span>
-			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-
-			<div class="menu">
-				<div class="item issue-action" data-action="clear" data-url="{{$.RepoLink}}/issues/export?{{$.Page.GetParams}}">
-					{{svg "gitea-double-chevron-left" 18 "tw-mr-2"}} {{ctx.Locale.Tr "action.export_to_excel"}}
-				</div>
-			</div>
-		</div>
-
 	{{end}}
 </div>
 
