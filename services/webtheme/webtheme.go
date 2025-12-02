@@ -39,12 +39,18 @@ func (info *ThemeMetaInfo) GetDescription() string {
 	if info.ColorblindType == "red-green" {
 		return "Red-green colorblind friendly"
 	}
+	if info.ColorblindType == "blue-yellow" {
+		return "Blue-yellow colorblind friendly"
+	}
 	return ""
 }
 
 func (info *ThemeMetaInfo) GetExtraIconName() string {
 	if info.ColorblindType == "red-green" {
 		return "gitea-colorblind-redgreen"
+	}
+	if info.ColorblindType == "blue-yellow" {
+		return "gitea-colorblind-blueyellow"
 	}
 	return ""
 }

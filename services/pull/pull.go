@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -427,9 +428,15 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 				for _, pr := range headBranchPRs {
 					objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 					if opts.NewCommitID != "" && opts.NewCommitID != objectFormat.EmptyObjectID().String() {
-						changed, err := checkIfPRContentChanged(ctx, pr, opts.OldCommitID, opts.NewCommitID)
+						changed, newMergeBase, err := checkIfPRContentChanged(ctx, pr, opts.OldCommitID, opts.NewCommitID)
 						if err != nil {
 							log.Error("checkIfPRContentChanged: %v", err)
+						}
+						if newMergeBase != "" && pr.MergeBase != newMergeBase {
+							pr.MergeBase = newMergeBase
+							if _, err := pr.UpdateColsIfNotMerged(ctx, "merge_base"); err != nil {
+								log.Error("Update merge base for %-v: %v", pr, err)
+							}
 						}
 						if changed {
 							// Mark old reviews as stale if diff to mergebase has changed
@@ -496,30 +503,30 @@ func AddTestPullRequestTask(opts TestPullRequestOptions) {
 
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
-func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
+func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, mergeBase string, err error) {
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr) // FIXME: why it still needs to create a temp repo, since the alongside calls like GetDiverging doesn't do so anymore
 	if err != nil {
 		log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
-		return false, err
+		return false, "", err
 	}
 	defer cancel()
 
 	tmpRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
-		return false, fmt.Errorf("OpenRepository: %w", err)
+		return false, "", fmt.Errorf("OpenRepository: %w", err)
 	}
 	defer tmpRepo.Close()
 
 	// Find the merge-base
-	_, base, err := tmpRepo.GetMergeBase("", "base", "tracking")
+	mergeBase, _, err = tmpRepo.GetMergeBase("", "base", "tracking")
 	if err != nil {
-		return false, fmt.Errorf("GetMergeBase: %w", err)
+		return false, "", fmt.Errorf("GetMergeBase: %w", err)
 	}
 
-	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, base)
+	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, mergeBase)
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		return false, fmt.Errorf("unable to open pipe for to run diff: %w", err)
+		return false, mergeBase, fmt.Errorf("unable to open pipe for to run diff: %w", err)
 	}
 
 	stderr := new(bytes.Buffer)
@@ -535,19 +542,19 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 		}).
 		Run(ctx); err != nil {
 		if err == util.ErrNotEmpty {
-			return true, nil
+			return true, mergeBase, nil
 		}
 		err = gitcmd.ConcatenateError(err, stderr.String())
 
 		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
-			newCommitID, oldCommitID, base,
+			newCommitID, oldCommitID, mergeBase,
 			pr.ID, pr.BaseRepo.FullName(), pr.BaseBranch, pr.HeadRepo.FullName(), pr.HeadBranch,
 			err)
 
-		return false, fmt.Errorf("Unable to run git diff --name-only -z %s %s %s: %w", newCommitID, oldCommitID, base, err)
+		return false, mergeBase, fmt.Errorf("Unable to run git diff --name-only -z %s %s %s: %w", newCommitID, oldCommitID, mergeBase, err)
 	}
 
-	return false, nil
+	return false, mergeBase, nil
 }
 
 // PushToBaseRepo pushes commits from branches of head repository to
@@ -839,51 +846,53 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 	stringBuilder := strings.Builder{}
 
 	if !setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
+		// use PR's title and description as squash commit message
 		message := strings.TrimSpace(pr.Issue.Content)
 		stringBuilder.WriteString(message)
 		if stringBuilder.Len() > 0 {
 			stringBuilder.WriteRune('\n')
 			if !commitMessageTrailersPattern.MatchString(message) {
+				// TODO: this trailer check doesn't work with the separator line added below for the co-authors
 				stringBuilder.WriteRune('\n')
+			}
+		}
+	} else {
+		// use PR's commit messages as squash commit message
+		// commits list is in reverse chronological order
+		maxMsgSize := setting.Repository.PullRequest.DefaultMergeMessageSize
+		for i := len(commits) - 1; i >= 0; i-- {
+			commit := commits[i]
+			msg := strings.TrimSpace(commit.CommitMessage)
+			if msg == "" {
+				continue
+			}
+
+			// This format follows GitHub's squash commit message style,
+			// even if there are other "* " in the commit message body, they are written as-is.
+			// Maybe, ideally, we should indent those lines too.
+			_, _ = fmt.Fprintf(&stringBuilder, "* %s\n\n", msg)
+			if maxMsgSize > 0 && stringBuilder.Len() >= maxMsgSize {
+				tmp := stringBuilder.String()
+				wasValidUtf8 := utf8.ValidString(tmp)
+				tmp = tmp[:maxMsgSize] + "..."
+				if wasValidUtf8 {
+					// If the message was valid UTF-8 before truncation, ensure it remains valid after truncation
+					// For non-utf8 messages, we can't do much about it, end users should use utf-8 as much as possible
+					tmp = strings.ToValidUTF8(tmp, "")
+				}
+				stringBuilder.Reset()
+				stringBuilder.WriteString(tmp)
+				break
 			}
 		}
 	}
 
-	// commits list is in reverse chronological order
-	first := true
-	for i := len(commits) - 1; i >= 0; i-- {
-		commit := commits[i]
-
-		if setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages {
-			maxSize := setting.Repository.PullRequest.DefaultMergeMessageSize
-			if maxSize < 0 || stringBuilder.Len() < maxSize {
-				var toWrite []byte
-				if first {
-					first = false
-					toWrite = []byte(strings.TrimPrefix(commit.CommitMessage, pr.Issue.Title))
-				} else {
-					toWrite = []byte(commit.CommitMessage)
-				}
-
-				if len(toWrite) > maxSize-stringBuilder.Len() && maxSize > -1 {
-					toWrite = append(toWrite[:maxSize-stringBuilder.Len()], "..."...)
-				}
-				if _, err := stringBuilder.Write(toWrite); err != nil {
-					log.Error("Unable to write commit message Error: %v", err)
-					return ""
-				}
-
-				if _, err := stringBuilder.WriteRune('\n'); err != nil {
-					log.Error("Unable to write commit message Error: %v", err)
-					return ""
-				}
-			}
-		}
-
+	// collect co-authors
+	for _, commit := range commits {
 		authorString := commit.Author.String()
 		if uniqueAuthors.Add(authorString) && authorString != posterSig {
 			// Compare use account as well to avoid adding the same author multiple times
-			// times when email addresses are private or multiple emails are used.
+			// when email addresses are private or multiple emails are used.
 			commitUser, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
 			if commitUser == nil || commitUser.ID != pr.Issue.Poster.ID {
 				authors = append(authors, authorString)
@@ -891,12 +900,12 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		}
 	}
 
-	// Consider collecting the remaining authors
+	// collect the remaining authors
 	if limit >= 0 && setting.Repository.PullRequest.DefaultMergeMessageAllAuthors {
 		skip := limit
 		limit = 30
 		for {
-			commits, err := gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
+			commits, err = gitRepo.CommitsBetweenLimit(headCommit, mergeBase, limit, skip)
 			if err != nil {
 				log.Error("Unable to get commits between: %s %s Error: %v", pr.HeadBranch, pr.MergeBase, err)
 				return ""
@@ -917,19 +926,15 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		}
 	}
 
+	if stringBuilder.Len() > 0 && len(authors) > 0 {
+		// TODO: this separator line doesn't work with the trailer check (commitMessageTrailersPattern) above
+		stringBuilder.WriteString("---------\n\n")
+	}
+
 	for _, author := range authors {
-		if _, err := stringBuilder.WriteString("Co-authored-by: "); err != nil {
-			log.Error("Unable to write to string builder Error: %v", err)
-			return ""
-		}
-		if _, err := stringBuilder.WriteString(author); err != nil {
-			log.Error("Unable to write to string builder Error: %v", err)
-			return ""
-		}
-		if _, err := stringBuilder.WriteRune('\n'); err != nil {
-			log.Error("Unable to write to string builder Error: %v", err)
-			return ""
-		}
+		stringBuilder.WriteString("Co-authored-by: ")
+		stringBuilder.WriteString(author)
+		stringBuilder.WriteRune('\n')
 	}
 
 	return stringBuilder.String()

@@ -2,7 +2,7 @@ import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {initDiffFileTree} from './repo-diff-filetree.ts';
 import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
-import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
+import {initViewedCheckboxListenerFor, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
@@ -152,7 +152,6 @@ function onShowMoreFiles() {
   // TODO: replace these calls with the "observer.ts" methods
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
-  countAndUpdateViewedFiles();
   initImageDiff();
   initDiffHeaderPopup();
 }

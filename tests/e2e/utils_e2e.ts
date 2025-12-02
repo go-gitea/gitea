@@ -33,15 +33,15 @@ export async function login_user(browser: Browser, workerInfo: WorkerInfo, user:
 }
 
 export async function load_logged_in_context(browser: Browser, workerInfo: WorkerInfo, user: string) {
-  let context;
   try {
-    context = await browser.newContext({storageState: `${ARTIFACTS_PATH}/state-${user}-${workerInfo.workerIndex}.json`});
+    return await browser.newContext({storageState: `${ARTIFACTS_PATH}/state-${user}-${workerInfo.workerIndex}.json`});
   } catch (err) {
     if (err.code === 'ENOENT') {
       throw new Error(`Could not find state for '${user}'. Did you call login_user(browser, workerInfo, '${user}') in test.beforeAll()?`);
+    } else {
+      throw err;
     }
   }
-  return context;
 }
 
 export async function save_visual(page: Page) {

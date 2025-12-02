@@ -32,16 +32,14 @@ XGO_VERSION := go-1.25.x
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.5.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.1
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
-ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
-GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.20.0
-GOPLS_MODERNIZE_PACKAGE ?= golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.9
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -199,6 +197,10 @@ TEST_MSSQL_DBNAME ?= gitea
 TEST_MSSQL_USERNAME ?= sa
 TEST_MSSQL_PASSWORD ?= MwantsaSecurePassword1
 
+# Include local Makefile
+# Makefile.local is listed in .gitignore
+sinclude Makefile.local
+
 .PHONY: all
 all: build
 
@@ -276,19 +278,6 @@ fmt-check: fmt
 	  exit 1; \
 	fi
 
-.PHONY: fix
-fix: ## apply automated fixes to Go code
-	$(GO) run $(GOPLS_MODERNIZE_PACKAGE) -fix ./...
-
-.PHONY: fix-check
-fix-check: fix
-	@diff=$$(git diff --color=always $(GO_SOURCES)); \
-	if [ -n "$$diff" ]; then \
-	  echo "Please run 'make fix' and commit the result:"; \
-	  printf "%s" "$${diff}"; \
-	  exit 1; \
-	fi
-
 .PHONY: $(TAGS_EVIDENCE)
 $(TAGS_EVIDENCE):
 	@mkdir -p $(MAKE_EVIDENCE_DIR)
@@ -328,7 +317,7 @@ checks: checks-frontend checks-backend ## run various consistency checks
 checks-frontend: lockfile-check svg-check ## check frontend files
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check fmt-check fix-check swagger-validate security-check ## check backend files
+checks-backend: tidy-check swagger-check fmt-check swagger-validate security-check ## check backend files
 
 .PHONY: lint
 lint: lint-frontend lint-backend lint-spell ## lint everything
@@ -343,7 +332,7 @@ lint-frontend: lint-js lint-css ## lint frontend files
 lint-frontend-fix: lint-js-fix lint-css-fix ## lint frontend files and fix issues
 
 .PHONY: lint-backend
-lint-backend: lint-go lint-go-gitea-vet lint-go-gopls lint-editorconfig ## lint backend files
+lint-backend: lint-go lint-go-gitea-vet lint-editorconfig ## lint backend files
 
 .PHONY: lint-backend-fix
 lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backend files and fix issues
@@ -374,6 +363,10 @@ lint-swagger: node_modules ## lint swagger files
 lint-md: node_modules ## lint markdown files
 	$(NODE_VARS) pnpm exec markdownlint *.md
 
+.PHONY: lint-md-fix
+lint-md-fix: node_modules ## lint markdown files and fix issues
+	$(NODE_VARS) pnpm exec markdownlint --fix *.md
+
 .PHONY: lint-spell
 lint-spell: ## lint spelling
 	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error $(SPELLCHECK_FILES)
@@ -400,13 +393,7 @@ lint-go-windows:
 .PHONY: lint-go-gitea-vet
 lint-go-gitea-vet: ## lint go files with gitea-vet
 	@echo "Running gitea-vet..."
-	@GOOS= GOARCH= $(GO) build code.gitea.io/gitea-vet
-	@$(GO) vet -vettool=gitea-vet ./...
-
-.PHONY: lint-go-gopls
-lint-go-gopls: ## lint go files with gopls
-	@echo "Running gopls check..."
-	@GO=$(GO) GOPLS_PACKAGE=$(GOPLS_PACKAGE) tools/lint-go-gopls.sh $(GO_SOURCES)
+	@$(GO) vet -vettool="$(shell GOOS= GOARCH= go tool -n gitea-vet)" ./...
 
 .PHONY: lint-editorconfig
 lint-editorconfig:
@@ -851,8 +838,6 @@ deps-tools: ## install tool dependencies
 	$(GO) install $(GO_LICENSES_PACKAGE) & \
 	$(GO) install $(GOVULNCHECK_PACKAGE) & \
 	$(GO) install $(ACTIONLINT_PACKAGE) & \
-	$(GO) install $(GOPLS_PACKAGE) & \
-	$(GO) install $(GOPLS_MODERNIZE_PACKAGE) & \
 	wait
 
 node_modules: pnpm-lock.yaml
