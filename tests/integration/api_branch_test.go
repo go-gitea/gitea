@@ -297,13 +297,13 @@ func TestAPIUpdateBranchReference(t *testing.T) {
 			NewCommitID: newCommit,
 			OldCommitID: featureInitialCommit,
 		}).AddTokenAuth(ctx.Token)
-		ctx.Session.MakeRequest(t, staleReq, http.StatusConflict)
+		ctx.Session.MakeRequest(t, staleReq, http.StatusUnprocessableEntity)
 
 		nonFFReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
 			NewCommitID: featureInitialCommit,
 			OldCommitID: newCommit,
 		}).AddTokenAuth(ctx.Token)
-		ctx.Session.MakeRequest(t, nonFFReq, http.StatusConflict)
+		ctx.Session.MakeRequest(t, nonFFReq, http.StatusUnprocessableEntity)
 
 		forceReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
 			NewCommitID: featureInitialCommit,
