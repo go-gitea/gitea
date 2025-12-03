@@ -15,8 +15,8 @@ const props = defineProps({
   placeholder: { type: String, required: true },
 });
 
-const refElemInput = useTemplateRef<HTMLInputElement>('searchInput') as Readonly<ShallowRef<HTMLInputElement>>;
-const refElemPopup = useTemplateRef<HTMLElement>('searchPopup') as Readonly<ShallowRef<HTMLDivElement>>;
+const refElemInput = useTemplateRef('searchInput') as Readonly<ShallowRef<HTMLInputElement>>;
+const refElemPopup = useTemplateRef('searchPopup') as Readonly<ShallowRef<HTMLDivElement>>;
 
 const searchQuery = ref('');
 const allFiles = ref<string[]>([]);
