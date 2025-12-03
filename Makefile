@@ -50,9 +50,10 @@ ifeq ($(HAS_GO), yes)
 	CGO_CFLAGS ?= $(shell $(GO) env CGO_CFLAGS) $(CGO_EXTRA_CFLAGS)
 endif
 
-CGO_ENABLED ?= 0
-ifneq (,$(findstring sqlite,$(TAGS))$(findstring pam,$(TAGS)))
-	CGO_ENABLED = 1
+ifeq (arm64,$(shell $(GO) env GOARCH))
+	CGO_ENABLED ?= 0
+else
+	CGO_ENABLED ?= 1
 endif
 
 STATIC ?=
