@@ -42,7 +42,7 @@ export function registerGlobalInitFunc<T extends HTMLElement>(name: string, hand
 }
 
 function callGlobalInitFunc(el: HTMLElement) {
-  const initFunc = el.getAttribute('data-global-init');
+  const initFunc = el.getAttribute('data-global-init')!;
   const func = globalInitFuncs[initFunc];
   if (!func) throw new Error(`Global init function "${initFunc}" not found`);
 
@@ -66,7 +66,7 @@ function attachGlobalEvents() {
   });
 }
 
-export function initGlobalSelectorObserver(perfTracer?: InitPerformanceTracer): void {
+export function initGlobalSelectorObserver(perfTracer: InitPerformanceTracer | null): void {
   if (globalSelectorObserverInited) throw new Error('initGlobalSelectorObserver() already called');
   globalSelectorObserverInited = true;
 

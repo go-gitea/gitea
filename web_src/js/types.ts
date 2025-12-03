@@ -41,7 +41,7 @@ export type IssuePathInfo = {
   ownerName: string,
   repoName: string,
   pathType: string,
-  indexString?: string,
+  indexString: string,
 };
 
 export type IssuePageInfo = {

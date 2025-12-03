@@ -77,43 +77,44 @@ func ReplacePrimaryEmailAddress(ctx context.Context, u *user_model.User, emailSt
 		return err
 	}
 
-	if !u.IsOrganization() {
-		// Check if address exists already
-		email, err := user_model.GetEmailAddressByEmail(ctx, emailStr)
-		if err != nil && !errors.Is(err, util.ErrNotExist) {
-			return err
-		}
-		if email != nil {
-			if email.IsPrimary && email.UID == u.ID {
-				return nil
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if !u.IsOrganization() {
+			// Check if address exists already
+			email, err := user_model.GetEmailAddressByEmail(ctx, emailStr)
+			if err != nil && !errors.Is(err, util.ErrNotExist) {
+				return err
 			}
-			return user_model.ErrEmailAlreadyUsed{Email: emailStr}
+			if email != nil {
+				if email.IsPrimary && email.UID == u.ID {
+					return nil
+				}
+				return user_model.ErrEmailAlreadyUsed{Email: emailStr}
+			}
+
+			// Remove old primary address
+			primary, err := user_model.GetPrimaryEmailAddressOfUser(ctx, u.ID)
+			if err != nil {
+				return err
+			}
+			if _, err := db.DeleteByID[user_model.EmailAddress](ctx, primary.ID); err != nil {
+				return err
+			}
+
+			// Insert new primary address
+			if _, err := user_model.InsertEmailAddress(ctx, &user_model.EmailAddress{
+				UID:         u.ID,
+				Email:       emailStr,
+				IsActivated: true,
+				IsPrimary:   true,
+			}); err != nil {
+				return err
+			}
 		}
 
-		// Remove old primary address
-		primary, err := user_model.GetPrimaryEmailAddressOfUser(ctx, u.ID)
-		if err != nil {
-			return err
-		}
-		if _, err := db.DeleteByID[user_model.EmailAddress](ctx, primary.ID); err != nil {
-			return err
-		}
+		u.Email = emailStr
 
-		// Insert new primary address
-		email = &user_model.EmailAddress{
-			UID:         u.ID,
-			Email:       emailStr,
-			IsActivated: true,
-			IsPrimary:   true,
-		}
-		if _, err := user_model.InsertEmailAddress(ctx, email); err != nil {
-			return err
-		}
-	}
-
-	u.Email = emailStr
-
-	return user_model.UpdateUserCols(ctx, u, "email")
+		return user_model.UpdateUserCols(ctx, u, "email")
+	})
 }
 
 func AddEmailAddresses(ctx context.Context, u *user_model.User, emails []string) error {

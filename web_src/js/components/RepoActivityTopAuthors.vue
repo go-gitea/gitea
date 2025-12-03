@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 // @ts-expect-error - module exports no types
 import {VueBarGraph} from 'vue-bar-graph';
-import {computed, onMounted, shallowRef, useTemplateRef} from 'vue';
+import {computed, onMounted, shallowRef, useTemplateRef, type ShallowRef} from 'vue';
 
 const colors = shallowRef({
   barColor: 'green',
@@ -41,8 +41,8 @@ const graphWidth = computed(() => {
   return activityTopAuthors.length * 40;
 });
 
-const styleElement = useTemplateRef('styleElement');
-const altStyleElement = useTemplateRef('altStyleElement');
+const styleElement = useTemplateRef('styleElement') as Readonly<ShallowRef<HTMLDivElement>>;
+const altStyleElement = useTemplateRef('altStyleElement') as Readonly<ShallowRef<HTMLDivElement>>;
 
 onMounted(() => {
   const refStyle = window.getComputedStyle(styleElement.value);

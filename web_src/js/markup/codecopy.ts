@@ -17,6 +17,6 @@ export function initMarkupCodeCopy(elMarkup: HTMLElement): void {
     btn.setAttribute('data-clipboard-text', el.textContent.replace(/\r?\n$/, ''));
     // we only want to use `.code-block-container` if it exists, no matter `.code-block` exists or not.
     const btnContainer = el.closest('.code-block-container') ?? el.closest('.code-block');
-    btnContainer.append(btn);
+    btnContainer!.append(btn);
   });
 }

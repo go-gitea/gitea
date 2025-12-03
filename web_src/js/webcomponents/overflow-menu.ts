@@ -6,7 +6,7 @@ import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab
 window.customElements.define('overflow-menu', class extends HTMLElement {
   tippyContent: HTMLDivElement;
   tippyItems: Array<HTMLElement>;
-  button: HTMLButtonElement;
+  button: HTMLButtonElement | null;
   menuItemsEl: HTMLElement;
   resizeObserver: ResizeObserver;
   mutationObserver: MutationObserver;
@@ -38,8 +38,8 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
         } else if (e.key === 'Escape') {
           e.preventDefault();
           e.stopPropagation();
-          this.button._tippy.hide();
-          this.button.focus();
+          this.button?._tippy.hide();
+          this.button?.focus();
         } else if (e.key === ' ' || e.code === 'Enter') {
           if (document.activeElement?.matches('[role="menuitem"]')) {
             e.preventDefault();
@@ -50,7 +50,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           if (document.activeElement?.matches('.tippy-target')) {
             e.preventDefault();
             e.stopPropagation();
-            document.activeElement.querySelector<HTMLElement>('[role="menuitem"]:first-of-type').focus();
+            document.activeElement.querySelector<HTMLElement>('[role="menuitem"]:first-of-type')?.focus();
           } else if (document.activeElement?.matches('[role="menuitem"]')) {
             e.preventDefault();
             e.stopPropagation();
@@ -60,7 +60,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           if (document.activeElement?.matches('.tippy-target')) {
             e.preventDefault();
             e.stopPropagation();
-            document.activeElement.querySelector<HTMLElement>('[role="menuitem"]:last-of-type').focus();
+            document.activeElement.querySelector<HTMLElement>('[role="menuitem"]:last-of-type')?.focus();
           } else if (document.activeElement?.matches('[role="menuitem"]')) {
             e.preventDefault();
             e.stopPropagation();
@@ -170,7 +170,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       for (const item of this.querySelectorAll('.item')) {
         for (const child of item.childNodes) {
           if (child.nodeType === Node.TEXT_NODE) {
-            const text = child.textContent.trim(); // whitespace is insignificant inside flexbox
+            const text = child.textContent?.trim(); // whitespace is insignificant inside flexbox
             if (!text) continue;
             const span = document.createElement('span');
             span.classList.add('resize-for-semibold');

@@ -2,7 +2,7 @@ import {generateElemId, queryElemChildren} from '../utils/dom.ts';
 import {isDarkTheme} from '../utils.ts';
 
 export async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
-  const iframeSrcUrl = iframe.getAttribute('data-src');
+  const iframeSrcUrl = iframe.getAttribute('data-src')!;
   if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
 
   window.addEventListener('message', (e) => {

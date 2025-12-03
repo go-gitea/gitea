@@ -7,7 +7,7 @@ const hasPrefix = (str: string): boolean => str.startsWith('user-content-');
 // scroll to anchor while respecting the `user-content` prefix that exists on the target
 function scrollToAnchor(encodedId?: string): void {
   // FIXME: need to rewrite this function with new a better markup anchor generation logic, too many tricks here
-  let elemId: string;
+  let elemId: string | undefined;
   try {
     elemId = decodeURIComponent(encodedId ?? '');
   } catch {} // ignore the errors, since the "encodedId" is from user's input
@@ -44,7 +44,7 @@ export function initMarkupAnchors(): void {
     // remove `user-content-` prefix from links so they don't show in url bar when clicked
     for (const a of markupEl.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
       const href = a.getAttribute('href');
-      if (!href.startsWith('#user-content-')) continue;
+      if (!href?.startsWith('#user-content-')) continue;
       a.setAttribute('href', `#${removePrefix(href.substring(1))}`);
     }
 

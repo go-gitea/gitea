@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import { ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted } from 'vue';
+import {ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted, type ShallowRef} from 'vue';
 import {generateElemId} from '../utils/dom.ts';
-import { GET } from '../modules/fetch.ts';
-import { filterRepoFilesWeighted } from '../features/repo-findfile.ts';
-import { pathEscapeSegments } from '../utils/url.ts';
-import { SvgIcon } from '../svg.ts';
+import {GET} from '../modules/fetch.ts';
+import {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
+import {pathEscapeSegments} from '../utils/url.ts';
+import {SvgIcon} from '../svg.ts';
 import {throttle} from 'throttle-debounce';
 
 const props = defineProps({
@@ -15,8 +15,8 @@ const props = defineProps({
   placeholder: { type: String, required: true },
 });
 
-const refElemInput = useTemplateRef<HTMLInputElement>('searchInput');
-const refElemPopup = useTemplateRef<HTMLElement>('searchPopup');
+const refElemInput = useTemplateRef('searchInput') as Readonly<ShallowRef<HTMLInputElement>>;
+const refElemPopup = useTemplateRef('searchPopup') as Readonly<ShallowRef<HTMLDivElement>>;
 
 const searchQuery = ref('');
 const allFiles = ref<string[]>([]);

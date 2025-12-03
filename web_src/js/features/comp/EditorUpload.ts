@@ -121,7 +121,10 @@ function getPastedImages(e: ClipboardEvent) {
   const images: Array<File> = [];
   for (const item of e.clipboardData?.items ?? []) {
     if (item.type?.startsWith('image/')) {
-      images.push(item.getAsFile());
+      const file = item.getAsFile();
+      if (file) {
+        images.push(file);
+      }
     }
   }
   return images;
@@ -135,7 +138,7 @@ export function initEasyMDEPaste(easyMDE: EasyMDE, dropzoneEl: HTMLElement) {
     handleUploadFiles(editor, dropzoneEl, images, e);
   });
   easyMDE.codemirror.on('drop', (_, e) => {
-    if (!e.dataTransfer.files.length) return;
+    if (!e.dataTransfer?.files.length) return;
     handleUploadFiles(editor, dropzoneEl, e.dataTransfer.files, e);
   });
   dropzoneEl.dropzone.on(DropzoneCustomEventRemovedFile, ({fileUuid}) => {
@@ -145,7 +148,7 @@ export function initEasyMDEPaste(easyMDE: EasyMDE, dropzoneEl: HTMLElement) {
   });
 }
 
-export function initTextareaEvents(textarea: HTMLTextAreaElement, dropzoneEl: HTMLElement) {
+export function initTextareaEvents(textarea: HTMLTextAreaElement, dropzoneEl: HTMLElement | null) {
   subscribe(textarea); // enable paste features
   textarea.addEventListener('paste', (e: ClipboardEvent) => {
     const images = getPastedImages(e);
@@ -154,7 +157,7 @@ export function initTextareaEvents(textarea: HTMLTextAreaElement, dropzoneEl: HT
     }
   });
   textarea.addEventListener('drop', (e: DragEvent) => {
-    if (!e.dataTransfer.files.length) return;
+    if (!e.dataTransfer?.files.length) return;
     if (!dropzoneEl) return;
     handleUploadFiles(new TextareaEditor(textarea), dropzoneEl, e.dataTransfer.files, e);
   });
