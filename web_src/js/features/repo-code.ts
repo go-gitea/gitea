@@ -5,14 +5,14 @@ import {addDelegatedEventListener} from '../utils/dom.ts';
 
 function changeHash(hash: string) {
   if (window.history.pushState) {
-    window.history.pushState(null, null, hash);
+    window.history.pushState(null, '', hash);
   } else {
     window.location.hash = hash;
   }
 }
 
 // it selects the code lines defined by range: `L1-L3` (3 lines) or `L2` (singe line)
-function selectRange(range: string): Element {
+function selectRange(range: string): Element | null {
   for (const el of document.querySelectorAll('.code-view tr.active')) el.classList.remove('active');
   const elLineNums = document.querySelectorAll(`.code-view td.lines-num span[data-line-number]`);
 
@@ -23,14 +23,14 @@ function selectRange(range: string): Element {
   const updateIssueHref = function (anchor: string) {
     if (!refInNewIssue) return;
     const urlIssueNew = refInNewIssue.getAttribute('data-url-issue-new');
-    const urlParamBodyLink = refInNewIssue.getAttribute('data-url-param-body-link');
+    const urlParamBodyLink = refInNewIssue.getAttribute('data-url-param-body-link')!;
     const issueContent = `${toAbsoluteUrl(urlParamBodyLink)}#${anchor}`; // the default content for issue body
     refInNewIssue.setAttribute('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
   };
 
   const updateViewGitBlameFragment = function (anchor: string) {
     if (!viewGitBlame) return;
-    let href = viewGitBlame.getAttribute('href');
+    let href = viewGitBlame.getAttribute('href')!;
     href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}`;
     if (anchor.length !== 0) {
       href = `${href}#${anchor}`;
@@ -40,7 +40,7 @@ function selectRange(range: string): Element {
 
   const updateCopyPermalinkUrl = function (anchor: string) {
     if (!copyPermalink) return;
-    let link = copyPermalink.getAttribute('data-url');
+    let link = copyPermalink.getAttribute('data-url')!;
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
     copyPermalink.setAttribute('data-clipboard-text', link);
     copyPermalink.setAttribute('data-clipboard-text-type', 'url');
@@ -63,7 +63,7 @@ function selectRange(range: string): Element {
 
   const first = elLineNums[startLineNum - 1] ?? null;
   for (let i = startLineNum - 1; i <= stopLineNum - 1 && i < elLineNums.length; i++) {
-    elLineNums[i].closest('tr').classList.add('active');
+    elLineNums[i].closest('tr')!.classList.add('active');
   }
   changeHash(`#${range}`);
   updateIssueHref(range);
@@ -85,14 +85,14 @@ function showLineButton() {
   const tr = document.querySelector('.code-view tr.active');
   if (!tr) return;
 
-  const td = tr.querySelector('td.lines-num');
+  const td = tr.querySelector('td.lines-num')!;
   const btn = document.createElement('button');
   btn.classList.add('code-line-button', 'ui', 'basic', 'button');
   btn.innerHTML = svg('octicon-kebab-horizontal');
   td.prepend(btn);
 
   // put a copy of the menu back into DOM for the next click
-  btn.closest('.code-view').append(menu.cloneNode(true));
+  btn.closest('.code-view')!.append(menu.cloneNode(true));
 
   createTippy(btn, {
     theme: 'menu',
@@ -117,16 +117,16 @@ export function initRepoCodeView() {
   if (!document.querySelector('.repo-view-container .file-view')) return;
 
   // "file code view" and "blame" pages need this "line number button" feature
-  let selRangeStart: string;
+  let selRangeStart: string | undefined;
   addDelegatedEventListener(document, 'click', '.code-view .lines-num span', (el: HTMLElement, e: KeyboardEvent) => {
     if (!selRangeStart || !e.shiftKey) {
-      selRangeStart = el.getAttribute('id');
+      selRangeStart = el.getAttribute('id')!;
       selectRange(selRangeStart);
     } else {
       const selRangeStop = el.getAttribute('id');
       selectRange(`${selRangeStart}-${selRangeStop}`);
     }
-    window.getSelection().removeAllRanges();
+    window.getSelection()!.removeAllRanges();
     showLineButton();
   });
 
