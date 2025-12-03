@@ -56,8 +56,6 @@ function initRepoDiffConversationForm() {
       const idx = newConversationHolder.getAttribute('data-idx');
 
       form.closest('.conversation-holder')!.replaceWith(newConversationHolder);
-      // @ts-expect-error -- this assignment likely does nothing
-      form = null; // prevent further usage of the form because it should have been replaced
 
       if (trLineType) {
         // if there is a line-type for the "tr", it means the form is on the diff page
