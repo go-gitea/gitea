@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import ViewFileTreeItem from './ViewFileTreeItem.vue';
-import {onMounted, useTemplateRef} from 'vue';
+import {onMounted, useTemplateRef, type ShallowRef} from 'vue';
 import {createViewFileTreeStore} from './ViewFileTreeStore.ts';
 
-const elRoot = useTemplateRef('elRoot');
+const elRoot = useTemplateRef('elRoot') as Readonly<ShallowRef<HTMLDivElement>>;;
 
 const props = defineProps({
   repoLink: {type: String, required: true},
@@ -14,7 +14,7 @@ const props = defineProps({
 const store = createViewFileTreeStore(props);
 onMounted(async () => {
   store.rootFiles = await store.loadChildren('', props.treePath);
-  elRoot.value?.closest('.is-loading')?.classList?.remove('is-loading');
+  elRoot.value.closest('.is-loading')?.classList?.remove('is-loading');
   window.addEventListener('popstate', (e) => {
     store.selectedItem = e.state?.treePath || '';
     if (e.state?.url) store.loadViewContent(e.state.url);

@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import { ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted } from 'vue';
+import {ref, computed, watch, nextTick, useTemplateRef, onMounted, onUnmounted, type ShallowRef} from 'vue';
 import {generateElemId} from '../utils/dom.ts';
-import { GET } from '../modules/fetch.ts';
-import { filterRepoFilesWeighted } from '../features/repo-findfile.ts';
-import { pathEscapeSegments } from '../utils/url.ts';
-import { SvgIcon } from '../svg.ts';
+import {GET} from '../modules/fetch.ts';
+import {filterRepoFilesWeighted} from '../features/repo-findfile.ts';
+import {pathEscapeSegments} from '../utils/url.ts';
+import {SvgIcon} from '../svg.ts';
 import {throttle} from 'throttle-debounce';
 
 const props = defineProps({
@@ -15,8 +15,8 @@ const props = defineProps({
   placeholder: { type: String, required: true },
 });
 
-const refElemInput = useTemplateRef<HTMLInputElement>('searchInput');
-const refElemPopup = useTemplateRef<HTMLElement>('searchPopup');
+const refElemInput = useTemplateRef<HTMLInputElement>('searchInput') as Readonly<ShallowRef<HTMLInputElement>>;
+const refElemPopup = useTemplateRef<HTMLElement>('searchPopup') as Readonly<ShallowRef<HTMLDivElement>>;
 
 const searchQuery = ref('');
 const allFiles = ref<string[]>([]);
@@ -32,7 +32,7 @@ const filteredFiles = computed(() => {
 });
 
 const applySearchQuery = throttle(300, () => {
-  searchQuery.value = refElemInput.value?.value ?? '';
+  searchQuery.value = refElemInput.value.value ?? '';
   selectedIndex.value = 0;
 });
 
@@ -71,9 +71,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
 
 const clearSearch = () => {
   searchQuery.value = '';
-  if (refElemInput.value) {
-    refElemInput.value.value = '';
-  }
+  refElemInput.value.value = '';
 };
 
 
@@ -81,7 +79,7 @@ const handleClickOutside = (e: MouseEvent) => {
   if (!searchQuery.value) return;
 
   const target = e.target as HTMLElement;
-  const clickInside = refElemInput.value?.contains(target) || refElemPopup.value?.contains(target);
+  const clickInside = refElemInput.value.contains(target) || refElemPopup.value.contains(target);
   if (!clickInside) clearSearch();
 };
 
@@ -104,7 +102,7 @@ function handleSearchResultClick(filePath: string) {
 }
 
 const updatePosition = () => {
-  if (!showPopup.value || !refElemInput.value || !refElemPopup.value) return;
+  if (!showPopup.value) return;
 
   const rectInput = refElemInput.value.getBoundingClientRect();
   const rectPopup = refElemPopup.value.getBoundingClientRect();
