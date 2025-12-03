@@ -18,7 +18,7 @@ async function fetchIssueSuggestions(key: string, text: string): Promise<TextExp
   }
   if (!issuePathInfo.ownerName) return {matched: false};
 
-  const matches = await matchIssue(issuePathInfo.ownerName, issuePathInfo.repoName, issuePathInfo.indexString!, text);
+  const matches = await matchIssue(issuePathInfo.ownerName, issuePathInfo.repoName, issuePathInfo.indexString, text);
   if (!matches.length) return {matched: false};
 
   const ul = createElementFromAttrs('ul', {class: 'suggestions'});

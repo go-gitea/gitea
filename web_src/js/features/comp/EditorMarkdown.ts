@@ -178,13 +178,11 @@ export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHa
 
 function handleNewline(textarea: HTMLTextAreaElement, e: Event) {
   const ret = markdownHandleIndention({value: textarea.value, selStart: textarea.selectionStart, selEnd: textarea.selectionEnd});
-  if (!ret.handled) return;
+  if (!ret.handled || !ret.valueSelection) return; // FIXME: the "handled" seems redundant, only valueSelection is enough (null for unhandled)
   e.preventDefault();
-  if (ret.valueSelection) {
-    textarea.value = ret.valueSelection.value;
-    textarea.setSelectionRange(ret.valueSelection.selStart, ret.valueSelection.selEnd);
-    triggerEditorContentChanged(textarea);
-  }
+  textarea.value = ret.valueSelection.value;
+  textarea.setSelectionRange(ret.valueSelection.selStart, ret.valueSelection.selEnd);
+  triggerEditorContentChanged(textarea);
 }
 
 function isTextExpanderShown(textarea: HTMLElement): boolean {

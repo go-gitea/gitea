@@ -105,8 +105,8 @@ export class ComboMarkdownEditor {
     await this.switchToUserPreference();
   }
 
-  applyEditorHeights(el: HTMLElement | null, heights: Heights | undefined) {
-    if (!el || !heights) return;
+  applyEditorHeights(el: HTMLElement, heights: Heights | undefined) {
+    if (!heights) return;
     if (heights.minHeight) el.style.minHeight = heights.minHeight;
     if (heights.height) el.style.height = heights.height;
     if (heights.maxHeight) el.style.maxHeight = heights.maxHeight;
@@ -361,7 +361,7 @@ export class ComboMarkdownEditor {
         }
       },
     });
-    this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll'), this.options.editorHeights);
+    this.applyEditorHeights(this.container.querySelector('.CodeMirror-scroll')!, this.options.editorHeights);
     await attachTribute(this.easyMDE.codemirror.getInputField());
     if (this.dropzone) {
       initEasyMDEPaste(this.easyMDE, this.dropzone);
@@ -402,11 +402,11 @@ export class ComboMarkdownEditor {
     }
   }
 
-  get userPreferredEditor() {
-    return window.localStorage.getItem(`markdown-editor-${this.previewMode ?? 'default'}`);
+  get userPreferredEditor(): string {
+    return window.localStorage.getItem(`markdown-editor-${this.previewMode ?? 'default'}`) || '';
   }
-  set userPreferredEditor(s) {
-    window.localStorage.setItem(`markdown-editor-${this.previewMode ?? 'default'}`, String(s));
+  set userPreferredEditor(s: string) {
+    window.localStorage.setItem(`markdown-editor-${this.previewMode ?? 'default'}`, s);
   }
 }
 
