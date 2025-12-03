@@ -125,7 +125,7 @@ function switchTitleToTooltip(target: Element): void {
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  */
 function lazyTooltipOnMouseHover(this: HTMLElement, e: Event): void {
-  e.target?.removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
+  (e.target as HTMLElement).removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
   attachTooltip(this);
 }
 
