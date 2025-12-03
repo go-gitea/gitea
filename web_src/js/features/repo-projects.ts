@@ -30,7 +30,7 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
     });
   } catch (error) {
     console.error(error);
-    if (oldIndex) {
+    if (oldIndex !== undefined) {
       from.insertBefore(item, from.children[oldIndex]);
     }
   }
