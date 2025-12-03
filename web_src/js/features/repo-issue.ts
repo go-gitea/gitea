@@ -189,10 +189,7 @@ export function initRepoIssueCodeCommentCancel() {
     const form = (e.target as HTMLElement).closest('form')!;
     if (form?.classList.contains('comment-form')) {
       hideElem(form);
-      const replyBtn = form.closest('.comment-code-cloud')?.querySelectorAll('button.comment-form-reply');
-      if (replyBtn) {
-        showElem(replyBtn);
-      }
+      showElem(form.closest('.comment-code-cloud')!.querySelectorAll('button.comment-form-reply'));
     } else {
       form.closest('.comment-code-cloud')?.remove();
     }
