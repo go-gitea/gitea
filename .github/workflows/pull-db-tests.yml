@@ -45,12 +45,10 @@ jobs:
           check-latest: true
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 pgsql ldap minio" | sudo tee -a /etc/hosts'
-      - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata
       - name: run migration tests
         run: make test-pgsql-migration
+        env:
+          TAGS: bindata
       - name: run tests
         run: make test-pgsql
         timeout-minutes: 50
@@ -71,12 +69,10 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-      - run: make deps-backend
-      - run: GOEXPERIMENT='' make backend
+      - name: run migration tests
+        run: GOEXPERIMENT='' make test-sqlite-migration
         env:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
-      - name: run migration tests
-        run: make test-sqlite-migration
       - name: run tests
         run: GOEXPERIMENT='' make test-sqlite
         timeout-minutes: 50
@@ -131,10 +127,6 @@ jobs:
           check-latest: true
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 minio devstoreaccount1.azurite.local mysql elasticsearch meilisearch smtpimap" | sudo tee -a /etc/hosts'
-      - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata
       - name: unit-tests
         run: make unit-test-coverage test-check
         env:
@@ -184,12 +176,10 @@ jobs:
           check-latest: true
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mysql elasticsearch smtpimap" | sudo tee -a /etc/hosts'
-      - run: make deps-backend
-      - run: make backend
-        env:
-          TAGS: bindata
       - name: run migration tests
         run: make test-mysql-migration
+        env:
+          TAGS: bindata
       - name: run tests
         # run: make integration-test-coverage (at the moment, no coverage is really handled)
         run: make test-mysql
@@ -224,11 +214,9 @@ jobs:
           check-latest: true
       - name: Add hosts to /etc/hosts
         run: '[ -e "/.dockerenv" ] || [ -e "/run/.containerenv" ] || echo "127.0.0.1 mssql devstoreaccount1.azurite.local" | sudo tee -a /etc/hosts'
-      - run: make deps-backend
-      - run: make backend
+      - run: make test-mssql-migration
         env:
           TAGS: bindata
-      - run: make test-mssql-migration
       - name: run tests
         run: make test-mssql
         timeout-minutes: 50
