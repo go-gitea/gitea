@@ -15,7 +15,7 @@
 				{{if $diffBlobExcerptData}}
 					<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $file.NameHash $diffBlobExcerptData}}</td>
 				{{else}}
-					{{/* when DiffBlobExcerptData is not available, do not show the expansion arrows */}}
+					{{/* when DiffBlobExcerptData is not available (code file preview, pull conversation diff comment), do not show the expansion arrows */}}
 					<td colspan="2" class="lines-num"></td>
 				{{end}}
 			{{else}}
