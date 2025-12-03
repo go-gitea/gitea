@@ -11,7 +11,7 @@ async function onDownloadArchive(e: Event) {
   e.preventDefault();
   // there are many places using the "archive-link", eg: the dropdown on the repo code page, the release list
   const el = (e.target as HTMLElement).closest<HTMLAnchorElement>('a.archive-link[href]')!;
-  const targetLoading = el.closest('.ui.dropdown')! ?? el;
+  const targetLoading = el.closest('.ui.dropdown') ?? el;
   targetLoading.classList.add('is-loading', 'loading-icon-2px');
   try {
     for (let tryCount = 0; ;tryCount++) {
