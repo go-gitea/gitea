@@ -111,11 +111,10 @@ self.addEventListener('connect', (e: MessageEvent) => {
         sourcesByUrl.set(url, source);
         sourcesByPort.set(port, source);
       } else if (event.data.type === 'listen') {
-        const source = sourcesByPort.get(port);
-        source?.listen(event.data.eventType);
+        const source = sourcesByPort.get(port)!;
+        source.listen(event.data.eventType);
       } else if (event.data.type === 'close') {
         const source = sourcesByPort.get(port);
-
         if (!source) return;
 
         const count = source.deregister(port);

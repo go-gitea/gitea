@@ -3,8 +3,7 @@ export function initOAuth2SettingsDisableCheckbox() {
     el.addEventListener('change', (e) => {
       const target = e.target as HTMLInputElement;
       const dataTarget = target.getAttribute('data-target')!;
-      const disabled = (e.target as HTMLInputElement).checked;
-      document.querySelector(dataTarget)!.classList.toggle('disabled', disabled);
+      document.querySelector(dataTarget)!.classList.toggle('disabled', target.checked);
     });
   }
 }

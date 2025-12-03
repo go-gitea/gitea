@@ -56,9 +56,7 @@ function addCopyLink(file: Partial<CustomDropzoneFile>) {
     const success = await clippie(generateMarkdownLinkForAttachment(file));
     showTemporaryTooltip(e.target as Element, success ? i18n.copy_success : i18n.copy_error);
   });
-  if (file.previewTemplate) {
-    file.previewTemplate.append(copyLinkEl);
-  }
+  file.previewTemplate!.append(copyLinkEl);
 }
 
 type FileUuidDict = Record<string, {submitted: boolean}>;

@@ -126,7 +126,7 @@ export function initRepoCodeView() {
       const selRangeStop = el.getAttribute('id');
       selectRange(`${selRangeStart}-${selRangeStop}`);
     }
-    window.getSelection()?.removeAllRanges();
+    window.getSelection()!.removeAllRanges();
     showLineButton();
   });
 
