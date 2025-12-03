@@ -19,7 +19,7 @@ function addTags(area: Element, tags: Array<Record<string, any>>) {
   const tagArea = area.querySelector('.tag-area')!;
   toggleElem(tagArea.parentElement!, tags.length > 0);
   for (const tag of tags) {
-    addLink(tagArea, tag.web_link, tag.name, null);
+    addLink(tagArea, tag.web_link, tag.name);
   }
 }
 
@@ -33,7 +33,7 @@ function addBranches(area: Element, branches: Array<Record<string, any>>, defaul
   }
 }
 
-function addLink(parent: Element, href: string, text: string, tooltip: string | null) {
+function addLink(parent: Element, href: string, text: string, tooltip: string | null = null) {
   const link = document.createElement('a');
   link.classList.add('muted', 'tw-px-1');
   link.href = href;
