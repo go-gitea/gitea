@@ -8,13 +8,13 @@
 */}}
 {{$avatarLink := (.Repo.RelAvatarLink ctx)}}
 {{if .ShowRepoOwnerAvatar}}
-	{{ctx.AvatarUtils.Avatar .Repo.Owner $size}}
+	{{ctx.AvatarUtils.Avatar .Repo.Owner .Size}}
 {{else if and $avatarLink .ShowRepoAvatar}}
-	<img class="ui avatar tw-align-middle" src="{{$avatarLink}}" width="{{$size}}" height="{{$size}}" aria-hidden="true">
+	<img class="ui avatar tw-align-middle" src="{{$avatarLink}}" width="{{.Size}}" height="{{.Size}}" aria-hidden="true">
 {{else if .Repo.IsMirror}}
-	{{svg "octicon-mirror" $size}}
+	{{svg "octicon-mirror" .Size}}
 {{else if .Repo.IsFork}}
-	{{svg "octicon-repo-forked" $size}}
+	{{svg "octicon-repo-forked" .Size}}
 {{else}}
-	{{svg "octicon-repo" $size}}
+	{{svg "octicon-repo" .Size}}
 {{end}}
