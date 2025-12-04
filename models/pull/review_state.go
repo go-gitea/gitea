@@ -49,6 +49,19 @@ func init() {
 	db.RegisterModel(new(ReviewState))
 }
 
+func (rs *ReviewState) GetViewedFileCount() int {
+	if len(rs.UpdatedFiles) == 0 {
+		return 0
+	}
+	var numViewedFiles int
+	for _, state := range rs.UpdatedFiles {
+		if state == Viewed {
+			numViewedFiles++
+		}
+	}
+	return numViewedFiles
+}
+
 // GetReviewState returns the ReviewState with all given values prefilled, whether or not it exists in the database.
 // If the review didn't exist before in the database, it won't afterwards either.
 // The returned boolean shows whether the review exists in the database
@@ -60,18 +73,18 @@ func GetReviewState(ctx context.Context, userID, pullID int64, commitSHA string)
 
 // UpdateReviewState updates the given review inside the database, regardless of whether it existed before or not
 // The given map of files with their viewed state will be merged with the previous review, if present
-func UpdateReviewState(ctx context.Context, userID, pullID int64, commitSHA string, updatedFiles map[string]ViewedState) error {
+func UpdateReviewState(ctx context.Context, userID, pullID int64, commitSHA string, updatedFiles map[string]ViewedState) (*ReviewState, error) {
 	log.Trace("Updating review for user %d, repo %d, commit %s with the updated files %v.", userID, pullID, commitSHA, updatedFiles)
 
 	review, exists, err := GetReviewState(ctx, userID, pullID, commitSHA)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if exists {
 		review.UpdatedFiles = mergeFiles(review.UpdatedFiles, updatedFiles)
 	} else if previousReview, err := getNewestReviewStateApartFrom(ctx, userID, pullID, commitSHA); err != nil {
-		return err
+		return nil, err
 
 		// Overwrite the viewed files of the previous review if present
 	} else if previousReview != nil {
@@ -85,11 +98,11 @@ func UpdateReviewState(ctx context.Context, userID, pullID int64, commitSHA stri
 	if !exists {
 		log.Trace("Inserting new review for user %d, repo %d, commit %s with the updated files %v.", userID, pullID, commitSHA, review.UpdatedFiles)
 		_, err := engine.Insert(review)
-		return err
+		return nil, err
 	}
 	log.Trace("Updating already existing review with ID %d (user %d, repo %d, commit %s) with the updated files %v.", review.ID, userID, pullID, commitSHA, review.UpdatedFiles)
-	_, err = engine.ID(review.ID).Update(&ReviewState{UpdatedFiles: review.UpdatedFiles})
-	return err
+	_, err = engine.ID(review.ID).Cols("updated_files").Update(review)
+	return review, err
 }
 
 // mergeFiles merges the given maps of files with their viewing state into one map.

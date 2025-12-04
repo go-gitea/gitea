@@ -449,10 +449,9 @@ func getCommitFileLineCountAndLimitedContent(commit *git.Commit, filePath string
 
 // Diff represents a difference between two git trees.
 type Diff struct {
-	Start, End     string
-	Files          []*DiffFile
-	IsIncomplete   bool
-	NumViewedFiles int // user-specific
+	Start, End   string
+	Files        []*DiffFile
+	IsIncomplete bool
 }
 
 // LoadComments loads comments into each line
@@ -1342,19 +1341,20 @@ outer:
 		// Check whether the file has already been viewed
 		if fileViewedState == pull_model.Viewed {
 			diffFile.IsViewed = true
-			diff.NumViewedFiles++
 		}
 	}
 
-	// Explicitly store files that have changed in the database, if any is present at all.
-	// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
-	// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
 	if len(filesChangedSinceLastDiff) > 0 {
-		err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
+		// Explicitly store files that have changed in the database, if any is present at all.
+		// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
+		// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
+		updatedReview, err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
 		if err != nil {
 			log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
 			return nil, err
 		}
+		// Update the local review to reflect the changes immediately
+		review = updatedReview
 	}
 
 	return review, nil

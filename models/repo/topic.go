@@ -159,7 +159,7 @@ func RemoveTopicsFromRepo(ctx context.Context, repoID int64) error {
 		builder.In("id",
 			builder.Select("topic_id").From("repo_topic").Where(builder.Eq{"repo_id": repoID}),
 		),
-	).Cols("repo_count").SetExpr("repo_count", "repo_count-1").Update(&Topic{})
+	).Decr("repo_count").Update(&Topic{})
 	if err != nil {
 		return err
 	}

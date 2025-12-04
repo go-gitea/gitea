@@ -71,7 +71,8 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 	}
 	cmdCommit := gitcmd.NewCommand("commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email).
-		AddOptionFormat("--message=%s", message)
+		AddOptionFormat("--message=%s", message).
+		AddArguments("--allow-empty")
 	if ctx.signKey == nil {
 		cmdCommit.AddArguments("--no-gpg-sign")
 	} else {
