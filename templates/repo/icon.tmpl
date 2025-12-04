@@ -2,11 +2,10 @@
 * Repo: The repo
 * ShowRepoAvatar: Enable repo avatar when `true`
 * ShowRepoOwnerAvatar: Enable owner avatars when `true`
-* Size: Icon size in pixels, default is 16
+* Size: Icon size in pixels
 *
 * Note: Keep the icon logic in sync with web_src/js/utils/mappings.ts
 */}}
-{{$size := or .Size 16}}
 {{$avatarLink := (.Repo.RelAvatarLink ctx)}}
 
 {{if .ShowRepoOwnerAvatar}}
