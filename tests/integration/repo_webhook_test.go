@@ -63,7 +63,7 @@ func TestNewWebHookLink(t *testing.T) {
 	}
 }
 
-func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, repoName, url, event string, branchFilter ...string) {
+func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, groupID int64, userName, repoName, url, event string, branchFilter ...string) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 	var branchFilterString string
 	if len(branchFilter) > 0 {
@@ -154,10 +154,10 @@ func Test_WebhookCreate(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "create")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "create")
 
 		// 2. trigger the webhook
-		testAPICreateBranch(t, session, "user2", "repo1", "master", "master2", http.StatusCreated)
+		testAPICreateBranch(t, session, 0, "user2", "repo1", "master", "master2", http.StatusCreated)
 
 		// 3. validate the webhook is triggered
 		assert.Len(t, payloads, 1)
@@ -186,10 +186,10 @@ func Test_WebhookDelete(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "delete")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "delete")
 
 		// 2. trigger the webhook
-		testAPICreateBranch(t, session, "user2", "repo1", "master", "master2", http.StatusCreated)
+		testAPICreateBranch(t, session, 0, "user2", "repo1", "master", "master2", http.StatusCreated)
 		testAPIDeleteBranch(t, "master2", http.StatusNoContent)
 
 		// 3. validate the webhook is triggered
@@ -219,10 +219,10 @@ func Test_WebhookFork(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user1")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "fork")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "fork")
 
 		// 2. trigger the webhook
-		testRepoFork(t, session, "user2", "repo1", "user1", "repo1-fork", "master")
+		testRepoFork(t, session, 0, "user2", "repo1", "user1", "repo1-fork", "master")
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "fork", triggeredEvent)
@@ -251,7 +251,7 @@ func Test_WebhookIssueComment(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "issue_comment")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "issue_comment")
 
 		t.Run("create comment", func(t *testing.T) {
 			// 2. trigger the webhook
@@ -335,7 +335,7 @@ func Test_WebhookRelease(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "release")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "release")
 
 		// 2. trigger the webhook
 		createNewRelease(t, session, "/user2/repo1", "v0.0.99", "v0.0.99", false, false)
@@ -368,10 +368,10 @@ func Test_WebhookPush(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "push")
 
 		// 2. trigger the webhook
-		testCreateFile(t, session, "user2", "repo1", "master", "", "test_webhook_push.md", "# a test file for webhook push")
+		testCreateFile(t, session, 0, "user2", "repo1", "master", "", "test_webhook_push.md", "# a test file for webhook push")
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "push", triggeredEvent)
@@ -401,10 +401,10 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 		session := loginUser(t, "user2")
 
 		// only for dev branch
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", "develop")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "push", "develop")
 
 		// 2. this should not trigger the webhook
-		testCreateFile(t, session, "user2", "repo1", "master", "", "test_webhook_push.md", "# a test file for webhook push")
+		testCreateFile(t, session, 0, "user2", "repo1", "master", "", "test_webhook_push.md", "# a test file for webhook push")
 		assert.Empty(t, triggeredEvent)
 		assert.Empty(t, payloads)
 
@@ -417,7 +417,7 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 		assert.NoError(t, err)
 
 		// 3. trigger the webhook
-		testCreateFile(t, session, "user2", "repo1", "develop", "", "test_webhook_push.md", "# a test file for webhook push")
+		testCreateFile(t, session, 0, "user2", "repo1", "develop", "", "test_webhook_push.md", "# a test file for webhook push")
 
 		afterCommitID, err := gitRepo.GetBranchCommitID("develop")
 		assert.NoError(t, err)
@@ -457,7 +457,7 @@ func Test_WebhookPushToNewBranch(t *testing.T) {
 		session := loginUser(t, "user2")
 
 		// only for dev branch
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", "new_branch")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "push", "new_branch")
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
@@ -468,7 +468,7 @@ func Test_WebhookPushToNewBranch(t *testing.T) {
 		assert.NoError(t, err)
 
 		// 2. trigger the webhook
-		testCreateFile(t, session, "user2", "repo1", "master", "new_branch", "test_webhook_push.md", "# a new push from new branch")
+		testCreateFile(t, session, 0, "user2", "repo1", "master", "new_branch", "test_webhook_push.md", "# a new push from new branch")
 
 		afterCommitID, err := gitRepo.GetBranchCommitID("new_branch")
 		assert.NoError(t, err)
@@ -508,7 +508,7 @@ func Test_WebhookIssue(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "issues")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "issues")
 
 		// 2. trigger the webhook
 		testNewIssue(t, session, "user2", "repo1", "Title1", "Description1")
@@ -542,7 +542,7 @@ func Test_WebhookIssueDelete(t *testing.T) {
 
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "issues")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "issues")
 		issueURL := testNewIssue(t, session, "user2", "repo1", "Title1", "Description1")
 
 		// 2. trigger the webhook
@@ -579,7 +579,7 @@ func Test_WebhookIssueAssign(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "pull_request_assign")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "pull_request_assign")
 
 		// 2. trigger the webhook, issue 2 is a pull request
 		testIssueAssign(t, session, repo1.Link(), 2, user2.ID)
@@ -613,7 +613,7 @@ func Test_WebhookIssueMilestone(t *testing.T) {
 		// create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "issue_milestone")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "issue_milestone")
 
 		t.Run("assign a milestone", func(t *testing.T) {
 			// trigger the webhook
@@ -682,7 +682,7 @@ func Test_WebhookPullRequest(t *testing.T) {
 		}, http.StatusOK)
 		defer provider.Close()
 
-		testCtx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeAll)
+		testCtx := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeAll)
 		// add user4 as collabrator so that it can be a reviewer
 		doAPIAddCollaborator(testCtx, "user4", perm.AccessModeWrite)(t)
 
@@ -691,9 +691,9 @@ func Test_WebhookPullRequest(t *testing.T) {
 		sessionUser4 := loginUser(t, "user4")
 
 		// ignore the possible review_requested event to keep the test deterministic
-		testAPICreateWebhookForRepo(t, sessionUser2, "user2", "repo1", provider.URL(), "pull_request_only")
+		testAPICreateWebhookForRepo(t, sessionUser2, 0, "user2", "repo1", provider.URL(), "pull_request_only")
 
-		testAPICreateBranch(t, sessionUser2, "user2", "repo1", "master", "master2", http.StatusCreated)
+		testAPICreateBranch(t, sessionUser2, 0, "user2", "repo1", "master", "master2", http.StatusCreated)
 		// 2. trigger the webhook
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 		testPullCreateDirectly(t, sessionUser4, createPullRequestOptions{
@@ -738,9 +738,9 @@ func Test_WebhookPullRequestDelete(t *testing.T) {
 
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "pull_request")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "pull_request")
 
-		testAPICreateBranch(t, session, "user2", "repo1", "master", "master2", http.StatusCreated)
+		testAPICreateBranch(t, session, 0, "user2", "repo1", "master", "master2", http.StatusCreated)
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 		issueURL := testCreatePullToDefaultBranch(t, session, repo1, repo1, "master2", "first pull request")
@@ -777,10 +777,10 @@ func Test_WebhookPullRequestComment(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "pull_request_comment")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "pull_request_comment")
 
 		// 2. trigger the webhook
-		testAPICreateBranch(t, session, "user2", "repo1", "master", "master2", http.StatusCreated)
+		testAPICreateBranch(t, session, 0, "user2", "repo1", "master", "master2", http.StatusCreated)
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 		prID := testCreatePullToDefaultBranch(t, session, repo1, repo1, "master2", "first pull request")
 
@@ -815,7 +815,7 @@ func Test_WebhookWiki(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "wiki")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "wiki")
 
 		// 2. trigger the webhook
 		testAPICreateWikiPage(t, session, "user2", "repo1", "Test Wiki Page", http.StatusCreated)
@@ -921,7 +921,7 @@ func Test_WebhookStatus(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "status")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "status")
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
@@ -931,7 +931,7 @@ func Test_WebhookStatus(t *testing.T) {
 		assert.NoError(t, err)
 
 		// 2. trigger the webhook
-		testCtx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeAll)
+		testCtx := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeAll)
 
 		// update a status for a commit via API
 		doAPICreateCommitStatus(testCtx, commitID, api.CreateStatusOption{
@@ -970,7 +970,7 @@ func Test_WebhookStatus_NoWrongTrigger(t *testing.T) {
 		testCreateWebhookForRepo(t, session, "gitea", "user2", "repo1", provider.URL(), "push_only")
 
 		// 2. trigger the webhook with a push action
-		testCreateFile(t, session, "user2", "repo1", "master", "", "test_webhook_push.md", "# a test file for webhook push")
+		testCreateFile(t, session, 0, "user2", "repo1", "master", "", "test_webhook_push.md", "# a test file for webhook push")
 
 		// 3. validate the webhook is triggered with right event
 		assert.Equal(t, "push", trigger)
@@ -999,7 +999,7 @@ func Test_WebhookWorkflowJob(t *testing.T) {
 		session := loginUser(t, "user2")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "workflow_job")
+		testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", provider.URL(), "workflow_job")
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
@@ -1029,7 +1029,7 @@ jobs:
       - run: echo 'cmd 2'
 `
 		opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
+		createWorkflowFile(t, token, "user2", "repo1", repo1.GroupID, wfTreePath, opts)
 
 		commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 		assert.NoError(t, err)
@@ -1187,7 +1187,7 @@ func testWorkflowRunEvents(t *testing.T, webhookData *workflowRunWebhook) {
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-	testAPICreateWebhookForRepo(t, session, "user2", "repo1", webhookData.URL, "workflow_run")
+	testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", webhookData.URL, "workflow_run")
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
@@ -1266,7 +1266,7 @@ jobs:
     steps:
       - run: exit 0`
 	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
+	createWorkflowFile(t, token, "user2", "repo1", 0, wfTreePath, opts)
 
 	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)
@@ -1314,7 +1314,7 @@ func testWorkflowRunEventsOnRerun(t *testing.T, webhookData *workflowRunWebhook)
 		runners[i].registerAsRepoRunner(t, "user2", "repo1", fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
 	}
 
-	testAPICreateWebhookForRepo(t, session, "user2", "repo1", webhookData.URL, "workflow_run")
+	testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", webhookData.URL, "workflow_run")
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
@@ -1393,7 +1393,7 @@ jobs:
     steps:
       - run: exit 0`
 	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
+	createWorkflowFile(t, token, "user2", "repo1", 0, wfTreePath, opts)
 
 	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)
@@ -1473,7 +1473,7 @@ func testWorkflowRunEventsOnCancellingAbandonedRun(t *testing.T, webhookData *wo
 			fmt.Sprintf("mock-runner-%d", i), []string{"ubuntu-latest"}, false)
 	}
 
-	testAPICreateWebhookForRepo(t, session, "user2", repoName, webhookData.URL, "workflow_run")
+	testAPICreateWebhookForRepo(t, session, 0, "user2", repoName, webhookData.URL, "workflow_run")
 
 	ctx := t.Context()
 	gitRepo, err := gitrepo.OpenRepository(ctx, testRepo)
@@ -1553,7 +1553,7 @@ jobs:
       - run: exit 0`
 
 	opts := getWorkflowCreateFileOptions(user2, testRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", repoName, wfTreePath, opts)
+	createWorkflowFile(t, token, "user2", repoName, 0, wfTreePath, opts)
 
 	commitID, err := gitRepo.GetBranchCommitID(testRepo.DefaultBranch)
 	assert.NoError(t, err)
@@ -1597,7 +1597,7 @@ func testWebhookWorkflowRun(t *testing.T, webhookData *workflowRunWebhook) {
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-	testAPICreateWebhookForRepo(t, session, "user2", "repo1", webhookData.URL, "workflow_run")
+	testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", webhookData.URL, "workflow_run")
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
@@ -1621,7 +1621,7 @@ jobs:
     steps:
       - run: echo 'test the webhook'
 `)
-	createWorkflowFile(t, token, "user2", "repo1", ".gitea/workflows/dispatch.yml", opts)
+	createWorkflowFile(t, token, "user2", "repo1", 0, ".gitea/workflows/dispatch.yml", opts)
 
 	// 2.2 trigger the webhooks
 
@@ -1643,7 +1643,7 @@ jobs:
       - run: echo 'cmd 2'
 `
 	opts = getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
+	createWorkflowFile(t, token, "user2", "repo1", repo1.GroupID, wfTreePath, opts)
 
 	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)
@@ -1695,7 +1695,7 @@ func testWebhookWorkflowRunDepthLimit(t *testing.T, webhookData *workflowRunWebh
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-	testAPICreateWebhookForRepo(t, session, "user2", "repo1", webhookData.URL, "workflow_run")
+	testAPICreateWebhookForRepo(t, session, 0, "user2", "repo1", webhookData.URL, "workflow_run")
 
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
 
@@ -1720,7 +1720,7 @@ jobs:
       - run: echo 'test the webhook'
 `
 	opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+wfTreePath, wfFileContent)
-	createWorkflowFile(t, token, "user2", "repo1", wfTreePath, opts)
+	createWorkflowFile(t, token, "user2", "repo1", repo1.GroupID, wfTreePath, opts)
 
 	commitID, err := gitRepo1.GetBranchCommitID(repo1.DefaultBranch)
 	assert.NoError(t, err)

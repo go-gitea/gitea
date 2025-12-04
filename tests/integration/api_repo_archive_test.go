@@ -30,13 +30,13 @@ func TestAPIDownloadArchive(t *testing.T) {
 	session := loginUser(t, user2.LowerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master.zip", user2.Name, repo.Name))
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s%s/archive/master.zip", user2.Name, maybeGroupSegment(repo.GroupID), repo.Name))
 	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	bs, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Len(t, bs, 320)
 
-	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master.tar.gz", user2.Name, repo.Name))
+	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s%s/archive/master.tar.gz", user2.Name, maybeGroupSegment(repo.GroupID), repo.Name))
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
@@ -52,13 +52,13 @@ func TestAPIDownloadArchive(t *testing.T) {
 	// The locked URL should give the same bytes as the non-locked one
 	assert.Equal(t, bs, bs2)
 
-	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master.bundle", user2.Name, repo.Name))
+	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s%s/archive/master.bundle", user2.Name, maybeGroupSegment(repo.GroupID), repo.Name))
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Len(t, bs, 382)
 
-	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master", user2.Name, repo.Name))
+	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s%s/archive/master", user2.Name, maybeGroupSegment(repo.GroupID), repo.Name))
 	MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusBadRequest)
 
 	t.Run("GitHubStyle", testAPIDownloadArchiveGitHubStyle)
@@ -73,13 +73,13 @@ func testAPIDownloadArchiveGitHubStyle(t *testing.T) {
 	session := loginUser(t, user2.LowerName)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/zipball/master", user2.Name, repo.Name))
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s%s/zipball/master", user2.Name, maybeGroupSegment(repo.GroupID), repo.Name))
 	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	bs, err := io.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Len(t, bs, 320)
 
-	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/tarball/master", user2.Name, repo.Name))
+	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s%s/tarball/master", user2.Name, maybeGroupSegment(repo.GroupID), repo.Name))
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)
@@ -95,7 +95,7 @@ func testAPIDownloadArchiveGitHubStyle(t *testing.T) {
 	// The locked URL should give the same bytes as the non-locked one
 	assert.Equal(t, bs, bs2)
 
-	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/bundle/master", user2.Name, repo.Name))
+	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s%s/bundle/master", user2.Name, maybeGroupSegment(repo.GroupID), repo.Name))
 	resp = MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
 	bs, err = io.ReadAll(resp.Body)
 	assert.NoError(t, err)

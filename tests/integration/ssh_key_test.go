@@ -48,8 +48,8 @@ func TestPushDeployKeyOnEmptyRepo(t *testing.T) {
 
 func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
 	// OK login
-	ctx := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-	ctxWithDeleteRepo := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	ctx := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	ctxWithDeleteRepo := NewAPITestContext(t, "user2", "deploy-key-empty-repo-1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	keyname := ctx.Reponame + "-push"
 	u.Path = ctx.GitPath()
@@ -92,8 +92,8 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 	keyname := reponame + "-push"
 
 	// OK login
-	ctx := NewAPITestContext(t, username, reponame, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-	ctxWithDeleteRepo := NewAPITestContext(t, username, reponame, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	ctx := NewAPITestContext(t, username, reponame, 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	ctxWithDeleteRepo := NewAPITestContext(t, username, reponame, 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	otherCtx := ctx
 	otherCtx.Reponame = "ssh-key-test-repo-2"

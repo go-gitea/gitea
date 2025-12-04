@@ -41,7 +41,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 		// create a fork
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseUser.Name, baseRepo.Name), &api.CreateForkOption{
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/forks", baseUser.Name, maybeGroupSegment(baseRepo.GroupID), baseRepo.Name), &api.CreateForkOption{
 			Name: util.ToPointer("test-repo-fork"),
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusAccepted)

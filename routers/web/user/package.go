@@ -471,7 +471,7 @@ func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSett
 		return
 	}
 
-	repo, err := repo_model.GetRepositoryByName(ctx, pd.Owner.ID, form.RepoName)
+	repo, err := repo_model.GetRepositoryByName(ctx, pd.Owner.ID, form.RepoGroup, form.RepoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.JSONError(ctx.Tr("packages.settings.link.repo_not_found", form.RepoName))

@@ -141,7 +141,7 @@ jobs:
 			t.Run("test "+tc.treePath, func(t *testing.T) {
 				// create the workflow file
 				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+tc.treePath, tc.fileContent)
-				fileResp := createWorkflowFile(t, token, user2.Name, apiRepo.Name, tc.treePath, opts)
+				fileResp := createWorkflowFile(t, token, user2.Name, apiRepo.Name, apiRepo.GroupID, tc.treePath, opts)
 
 				// fetch and execute task
 				for i := 0; i < len(tc.outcomes); i++ {
@@ -153,7 +153,8 @@ jobs:
 				}
 
 				// check result
-				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/actions/tasks", user2.Name, apiRepo.Name)).
+
+				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s%s/actions/tasks", user2.Name, maybeGroupSegment(apiRepo.GroupID), apiRepo.Name)).
 					AddTokenAuth(token)
 				resp := MakeRequest(t, req, http.StatusOK)
 				var actionTaskRespAfter api.ActionTaskResponse
@@ -323,7 +324,7 @@ jobs:
 		for _, tc := range testCases {
 			t.Run("test "+tc.treePath, func(t *testing.T) {
 				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+tc.treePath, tc.fileContent)
-				createWorkflowFile(t, token, user2.Name, apiRepo.Name, tc.treePath, opts)
+				createWorkflowFile(t, token, user2.Name, apiRepo.Name, apiRepo.GroupID, tc.treePath, opts)
 
 				for i := 0; i < len(tc.outcomes); i++ {
 					task := runner.fetchTask(t)
@@ -357,7 +358,7 @@ func TestActionsGiteaContext(t *testing.T) {
 
 		apiBaseRepo := createActionsTestRepo(t, user2Token, "actions-gitea-context", false)
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 
 		runner := newMockRunner()
 		runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
@@ -373,7 +374,7 @@ jobs:
       - run: echo 'test the pull'
 `
 		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
+		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, wfTreePath, opts)
 		// user2 creates a pull request
 		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
 			FileOptions: api.FileOptions{
@@ -441,7 +442,7 @@ func TestActionsGiteaContextEphemeral(t *testing.T) {
 
 		apiBaseRepo := createActionsTestRepo(t, user2Token, "actions-gitea-context", false)
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 
 		runner := newMockRunner()
 		runner.registerAsRepoRunner(t, baseRepo.OwnerName, baseRepo.Name, "mock-runner", []string{"ubuntu-latest"}, true)
@@ -465,7 +466,7 @@ jobs:
       - run: echo 'test the pull'
 `
 		opts := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts)
+		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, wfTreePath, opts)
 		// user2 creates a pull request
 		doAPICreateFile(user2APICtx, "user2-patch.txt", &api.CreateFileOptions{
 			FileOptions: api.FileOptions{
@@ -617,8 +618,8 @@ func getWorkflowCreateFileOptions(u *user_model.User, branch, msg, content strin
 	}
 }
 
-func createWorkflowFile(t *testing.T, authToken, ownerName, repoName, treePath string, opts *api.CreateFileOptions) *api.FileResponse {
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", ownerName, repoName, treePath), opts).
+func createWorkflowFile(t *testing.T, authToken, ownerName, repoName string, groupID int64, treePath string, opts *api.CreateFileOptions) *api.FileResponse {
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/contents/%s", ownerName, maybeGroupSegment(groupID), repoName, treePath), opts).
 		AddTokenAuth(authToken)
 	resp := MakeRequest(t, req, http.StatusCreated)
 	var fileResponse api.FileResponse

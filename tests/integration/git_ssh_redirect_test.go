@@ -16,7 +16,7 @@ func TestGitSSHRedirect(t *testing.T) {
 }
 
 func testGitSSHRedirect(t *testing.T, u *url.URL) {
-	apiTestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	apiTestContext := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 	withKeyFile(t, "my-testing-key", func(keyFile string) {
 		t.Run("CreateUserKey", doAPICreateUserKey(apiTestContext, "test-key", keyFile))

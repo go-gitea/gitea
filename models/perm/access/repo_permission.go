@@ -11,6 +11,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	perm_model "code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -386,9 +387,22 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 			return perm, nil
 		}
 	}
+	groupTeams, err := group_model.FindUserGroupTeams(ctx, repo.GroupID, user.ID)
+	for _, team := range groupTeams {
+		if team.AccessMode >= perm_model.AccessModeAdmin {
+			perm.AccessMode = perm_model.AccessModeOwner
+			perm.unitsMode = nil
+			return perm, nil
+		}
+	}
 
 	for _, u := range repo.Units {
 		for _, team := range teams {
+			teamMode, _ := team.UnitAccessModeEx(ctx, u.Type)
+			unitAccessMode := max(perm.unitsMode[u.Type], minAccessMode, teamMode)
+			perm.unitsMode[u.Type] = unitAccessMode
+		}
+		for _, team := range groupTeams {
 			teamMode, _ := team.UnitAccessModeEx(ctx, u.Type)
 			unitAccessMode := max(perm.unitsMode[u.Type], minAccessMode, teamMode)
 			perm.unitsMode[u.Type] = unitAccessMode
@@ -431,6 +445,17 @@ func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *use
 	}
 	if mode >= perm_model.AccessModeAdmin {
 		return true, nil
+	}
+
+	groupTeams, err := organization.GetUserGroupTeams(ctx, repo.GroupID, user.ID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, team := range groupTeams {
+		if team.AccessMode >= perm_model.AccessModeAdmin {
+			return true, nil
+		}
 	}
 
 	teams, err := organization.GetUserRepoTeams(ctx, repo.OwnerID, user.ID, repo.ID)

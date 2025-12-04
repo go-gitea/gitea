@@ -42,6 +42,7 @@ import (
 type requestContext struct {
 	User          string
 	Repo          string
+	GroupID       int64
 	Authorization string
 	Method        string
 }
@@ -424,6 +425,7 @@ func getRequestContext(ctx *context.Context) *requestContext {
 	return &requestContext{
 		User:          ctx.PathParam("username"),
 		Repo:          strings.TrimSuffix(ctx.PathParam("reponame"), ".git"),
+		GroupID:       ctx.PathParamInt64("group_id"),
 		Authorization: ctx.Req.Header.Get("Authorization"),
 		Method:        ctx.Req.Method,
 	}
@@ -452,7 +454,7 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 }
 
 func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *repo_model.Repository {
-	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rc.User, rc.Repo)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rc.User, rc.Repo, rc.GroupID)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
 		writeStatus(ctx, http.StatusNotFound)

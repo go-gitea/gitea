@@ -72,7 +72,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 	assert.Len(t, apiNL, 2)
 
 	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801 <- only Notification 4 is in this filter ...
-	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?last_read_at=%s", user2.Name, repo1.Name, lastReadAt)).
+	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s%s/notifications?last_read_at=%s", user2.Name, maybeGroupSegment(repo1.GroupID), repo1.Name, lastReadAt)).
 		AddTokenAuth(token)
 	session.MakeRequest(t, req, http.StatusResetContent)
 

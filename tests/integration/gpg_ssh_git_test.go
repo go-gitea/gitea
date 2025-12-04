@@ -79,14 +79,14 @@ func TestSSHGit(t *testing.T) {
 func testGitSigning(t *testing.T) {
 	username := "user2"
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: username})
-	baseAPITestContext := NewAPITestContext(t, username, "repo1")
+	baseAPITestContext := NewAPITestContext(t, username, "repo1", 0)
 
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("Unsigned-Initial", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
 				assert.NotNil(t, branch.Commit)
@@ -107,7 +107,7 @@ func testGitSigning(t *testing.T) {
 		setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
 		t.Run("Unsigned-Initial-CRUD-ParentSigned", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
 					assert.False(t, response.Verification.Verified)
@@ -121,7 +121,7 @@ func testGitSigning(t *testing.T) {
 		setting.Repository.Signing.CRUDActions = []string{"never"}
 		t.Run("Unsigned-Initial-CRUD-Never", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
 				t, testCtx, user, "parentsigned", "parentsigned-never", "unsigned-never2.txt", func(t *testing.T, response api.FileResponse) {
 					assert.False(t, response.Verification.Verified)
@@ -131,7 +131,7 @@ func testGitSigning(t *testing.T) {
 		setting.Repository.Signing.CRUDActions = []string{"always"}
 		t.Run("Unsigned-Initial-CRUD-Always", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
 				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
 					require.NotNil(t, response.Verification, "no verification provided with response! %v", response)
@@ -149,7 +149,7 @@ func testGitSigning(t *testing.T) {
 		setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
 		t.Run("Unsigned-Initial-CRUD-ParentSigned", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateCRUDFile-Always-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "always", "always-parentsigned", "signed-always-parentsigned.txt", func(t *testing.T, response api.FileResponse) {
 					require.NotNil(t, response.Verification, "no verification provided with response! %v", response)
@@ -161,7 +161,7 @@ func testGitSigning(t *testing.T) {
 		setting.Repository.Signing.InitialCommit = []string{"always"}
 		t.Run("AlwaysSign-Initial", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-always", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-always", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CheckMasterBranchSigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
 				require.NotNil(t, branch.Commit, "no commit provided with branch! %v", branch)
@@ -174,7 +174,7 @@ func testGitSigning(t *testing.T) {
 		setting.Repository.Signing.CRUDActions = []string{"never"}
 		t.Run("AlwaysSign-Initial-CRUD-Never", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-always-never", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-always-never", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
 				t, testCtx, user, "master", "never", "unsigned-never.txt", func(t *testing.T, response api.FileResponse) {
@@ -185,7 +185,7 @@ func testGitSigning(t *testing.T) {
 		setting.Repository.Signing.CRUDActions = []string{"parentsigned"}
 		t.Run("AlwaysSign-Initial-CRUD-ParentSigned-On-Always", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-always-parent", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-always-parent", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
@@ -197,7 +197,7 @@ func testGitSigning(t *testing.T) {
 		setting.Repository.Signing.CRUDActions = []string{"always"}
 		t.Run("AlwaysSign-Initial-CRUD-Always", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-always-always", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-always-always", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
 				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
@@ -209,7 +209,7 @@ func testGitSigning(t *testing.T) {
 		setting.Repository.Signing.Merges = []string{"commitssigned"}
 		t.Run("UnsignedMerging", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreatePullRequest", func(t *testing.T) {
 				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "never2")(t)
 				assert.NoError(t, err)
@@ -226,7 +226,7 @@ func testGitSigning(t *testing.T) {
 		setting.Repository.Signing.Merges = []string{"basesigned"}
 		t.Run("BaseSignedMerging", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreatePullRequest", func(t *testing.T) {
 				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "parentsigned2")(t)
 				assert.NoError(t, err)
@@ -243,7 +243,7 @@ func testGitSigning(t *testing.T) {
 		setting.Repository.Signing.Merges = []string{"commitssigned"}
 		t.Run("CommitsSignedMerging", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
-			testCtx := NewAPITestContext(t, username, "initial-unsigned", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+			testCtx := NewAPITestContext(t, username, "initial-unsigned", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 			t.Run("CreatePullRequest", func(t *testing.T) {
 				pr, err := doAPICreatePullRequest(testCtx, testCtx.Username, testCtx.Reponame, "master", "always-parentsigned")(t)
 				assert.NoError(t, err)

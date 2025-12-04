@@ -73,12 +73,12 @@ func TestAPIApplyDiffPatchFileOptions(t *testing.T) {
 		MakeRequest(t, req, http.StatusCreated)
 
 		// Test using org repo "org3/repo3" where user2 is a collaborator
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/diffpatch", org3.Name, repo3.Name), getApplyDiffPatchFileOptions()).
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/diffpatch", org3.Name, maybeGroupSegment(repo3.GroupID), repo3.Name), getApplyDiffPatchFileOptions()).
 			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusCreated)
 
 		// Test using org repo "org3/repo3" with no user token
-		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/diffpatch", org3.Name, repo3.Name), getApplyDiffPatchFileOptions())
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/diffpatch", org3.Name, maybeGroupSegment(repo3.GroupID), repo3.Name), getApplyDiffPatchFileOptions())
 		MakeRequest(t, req, http.StatusNotFound)
 
 		// Test using repo "user2/repo1" where user4 is a NOT collaborator

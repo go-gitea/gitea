@@ -30,7 +30,7 @@ func TestAPIListRepoComments(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments", repoOwner.Name, repo.Name))
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s%s/issues/comments", repoOwner.Name, maybeGroupSegment(repo.GroupID), repo.Name))
 	req := NewRequest(t, "GET", link.String())
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -76,7 +76,7 @@ func TestAPIListIssueComments(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeReadIssue)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/comments", repoOwner.Name, repo.Name, issue.Index).
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/issues/%d/comments", repoOwner.Name, maybeGroupSegment(repo.GroupID), repo.Name, issue.Index).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -115,7 +115,7 @@ func TestAPICreateComment(t *testing.T) {
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/comments", repo.OwnerName, repo.Name, issue.Index), map[string]string{
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/issues/%d/comments", repo.OwnerName, maybeGroupSegment(repo.GroupID), repo.Name, issue.Index), map[string]string{
 			"body": commentBody,
 		}).AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteRepository))
 		MakeRequest(t, req, http.StatusForbidden)
@@ -128,7 +128,7 @@ func TestAPICreateComment(t *testing.T) {
 		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 13})
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/comments", repo.OwnerName, repo.Name, issue.Index), map[string]string{
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/issues/%d/comments", repo.OwnerName, maybeGroupSegment(repo.GroupID), repo.Name, issue.Index), map[string]string{
 			"body": commentBody,
 		}).AddTokenAuth(getUserToken(t, user34.Name, auth_model.AccessTokenScopeWriteRepository))
 		MakeRequest(t, req, http.StatusForbidden)
@@ -144,9 +144,9 @@ func TestAPIGetComment(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeReadIssue)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/issues/comments/%d", repoOwner.Name, maybeGroupSegment(repo.GroupID), repo.Name, comment.ID)
 	MakeRequest(t, req, http.StatusOK)
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID).
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/issues/comments/%d", repoOwner.Name, maybeGroupSegment(repo.GroupID), repo.Name, comment.ID).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusOK)
 
@@ -183,7 +183,7 @@ func TestAPIGetSystemUserComment(t *testing.T) {
 		})
 		assert.NoError(t, err)
 
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID)
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/issues/comments/%d", repoOwner.Name, maybeGroupSegment(repo.GroupID), repo.Name, comment.ID)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var apiComment api.Comment
@@ -251,13 +251,13 @@ func TestAPIDeleteComment(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 		token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
-		req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID).
+		req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s%s/issues/comments/%d", repoOwner.Name, maybeGroupSegment(repo.GroupID), repo.Name, comment.ID).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
-	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/comments/%d", repoOwner.Name, repo.Name, comment.ID).
+	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s%s/issues/comments/%d", repoOwner.Name, maybeGroupSegment(repo.GroupID), repo.Name, comment.ID).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 
@@ -273,7 +273,7 @@ func TestAPIListIssueTimeline(t *testing.T) {
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	// make request
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/timeline", repoOwner.Name, repo.Name, issue.Index)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/issues/%d/timeline", repoOwner.Name, maybeGroupSegment(repo.GroupID), repo.Name, issue.Index)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	// check if lens of list returned by API and

@@ -60,10 +60,10 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	v.shortLinkPattern = regexp.MustCompile(`\[\[(.*?)\]\](\w*)`)
 
 	// anyHashPattern splits url containing SHA into parts
-	v.anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{40,64})(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
+	v.anyHashPattern = regexp.MustCompile(`https?://(?:\S+/){4,6}([0-9a-f]{40,64})(/[-+~%./\w]+)?(\?[-+~%.\w&=]+)?(#[-+~%.\w]+)?`)
 
 	// comparePattern matches "http://domain/org/repo/compare/COMMIT1...COMMIT2#hash"
-	v.comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,5}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
+	v.comparePattern = regexp.MustCompile(`https?://(?:\S+/){4,6}([0-9a-f]{7,64})(\.\.\.?)([0-9a-f]{7,64})?(#[-+~_%.a-zA-Z0-9]+)?`)
 
 	// fullURLPattern matches full URL like "mailto:...", "https://..." and "ssh+git://..."
 	v.fullURLPattern = regexp.MustCompile(`^[a-z][-+\w]+:`)
@@ -79,13 +79,13 @@ var globalVars = sync.OnceValue(func() *globalVarsType {
 	v.emojiShortCodeRegex = regexp.MustCompile(`:[-+\w]+:`)
 
 	// example: https://domain/org/repo/pulls/27#hash
-	v.issueFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
+	v.issueFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/(?:[\w_.-]+/)?[\w_.-]+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 
 	// example: https://domain/org/repo/pulls/27/files#hash
-	v.filesChangedFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
+	v.filesChangedFullPattern = regexp.MustCompile(`https?://(?:\S+/)[\w_.-]+/(?:[\w_.-]+/)?[\w_.-]+/pulls/((?:\w{1,10}-)?[1-9][0-9]*)/files([\?|#](\S+)?)?\b`)
 
 	// codePreviewPattern matches "http://domain/.../{owner}/{repo}/src/commit/{commit}/{filepath}#L10-L20"
-	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
+	v.codePreviewPattern = regexp.MustCompile(`https?://\S+/([^\s/]+)/((?:[^\s/]+/)?)([^\s/]+)/src/commit/([0-9a-f]{7,64})(/\S+)#(L\d+(-L\d+)?)`)
 
 	// cleans: "<foo/bar", "<any words/", ("<html", "<head", "<script", "<style", "<?", "<%")
 	v.tagCleaner = regexp.MustCompile(`(?i)<(/?\w+/\w+|/[\w ]+/|/?(html|head|script|style|%|\?)\b)`)

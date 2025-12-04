@@ -218,7 +218,7 @@ func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "merged-pr", http.StatusSeeOther)
 	prID = testCreatePullToDefaultBranch(t, baseSession, baseRepo, headRepo, "merged-pr", "merged pr")
 	testAPINewFile(t, headSession, headRepo.OwnerName, headRepo.Name, "merged-pr", fmt.Sprintf("new-commit-%s.txt", headRepo.Name), "new-commit")
-	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, MergeOptions{
+	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, prID, MergeOptions{
 		Style:        repo_model.MergeStyleRebaseMerge,
 		DeleteBranch: false,
 	})
@@ -227,7 +227,7 @@ func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "merged-pr-deleted", http.StatusSeeOther)
 	prID = testCreatePullToDefaultBranch(t, baseSession, baseRepo, headRepo, "merged-pr-deleted", "merged pr with deleted branch")
 	testAPINewFile(t, headSession, headRepo.OwnerName, headRepo.Name, "merged-pr-deleted", fmt.Sprintf("new-commit-%s-2.txt", headRepo.Name), "new-commit")
-	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, MergeOptions{
+	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, prID, MergeOptions{
 		Style:        repo_model.MergeStyleRebaseMerge,
 		DeleteBranch: true,
 	})
@@ -255,7 +255,7 @@ func TestRecentlyPushedNewBranches(t *testing.T) {
 		prepareRecentlyPushedBranchSpecialTest(t, user12Session, repo10, repo10)
 
 		// create a fork repo in public org
-		testRepoFork(t, user12Session, repo10.OwnerName, repo10.Name, "org25", "org25_fork_repo10", repo10.DefaultBranch)
+		testRepoFork(t, user12Session, repo10.GroupID, repo10.OwnerName, repo10.Name, "org25", "org25_fork_repo10", repo10.DefaultBranch)
 		orgPublicForkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: 25, Name: "org25_fork_repo10"})
 		prepareRepoPR(t, user12Session, user12Session, repo10, orgPublicForkRepo)
 		prepareRecentlyPushedBranchTest(t, user12Session, repo10, orgPublicForkRepo)

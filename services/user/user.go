@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -75,6 +76,10 @@ func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doe
 	}
 
 	if err = repo_model.UpdateRepositoryOwnerName(ctx, oldUserName, newUserName); err != nil {
+		return err
+	}
+
+	if err = group_model.UpdateGroupOwnerName(ctx, oldUserName, newUserName); err != nil {
 		return err
 	}
 

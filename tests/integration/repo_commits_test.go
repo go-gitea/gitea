@@ -95,7 +95,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 	assert.NotEmpty(t, commitURL)
 
 	// Call API to add status for commit
-	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
+	ctx := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository)
 	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
 		State:       commitstatus.CommitStatusState(state),
 		TargetURL:   "http://test.ci/",
@@ -193,7 +193,7 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 		wg.Add(1)
 		go func(parentT *testing.T, i int) {
 			parentT.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
-				ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
+				ctx := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository)
 				runBody := doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
 					State:       commitstatus.CommitStatusPending,
 					TargetURL:   "http://test.ci/",
@@ -224,7 +224,7 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 	assert.NotEmpty(t, commitURL)
 
 	// Call API to add status for commit
-	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
+	ctx := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository)
 	t.Run("CreateStatus", doAPICreateCommitStatus(ctx, path.Base(commitURL), api.CreateStatusOption{
 		State:       commitstatus.CommitStatusSuccess,
 		TargetURL:   "http://test.ci/",

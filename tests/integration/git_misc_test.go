@@ -82,7 +82,7 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 
 func TestAgitPullPush(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 		u.Path = baseAPITestContext.GitPath()
 		u.User = url.UserPassword("user2", userPassword)
@@ -145,7 +145,7 @@ func TestAgitPullPush(t *testing.T) {
 
 func TestAgitReviewStaleness(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		baseAPITestContext := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 		u.Path = baseAPITestContext.GitPath()
 		u.User = url.UserPassword("user2", userPassword)

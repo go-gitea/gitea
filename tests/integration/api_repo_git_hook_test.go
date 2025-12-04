@@ -37,7 +37,7 @@ echo "TestGitHookScript"
 		// user1 is an admin user
 		session := loginUser(t, "user1")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/hooks/git", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 		var apiGitHooks []*api.GitHook
@@ -63,7 +63,7 @@ echo "TestGitHookScript"
 		// user1 is an admin user
 		session := loginUser(t, "user1")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/hooks/git", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 		var apiGitHooks []*api.GitHook
@@ -83,7 +83,7 @@ echo "TestGitHookScript"
 
 		session := loginUser(t, owner.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git", owner.Name, repo.Name).
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/hooks/git", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
@@ -97,7 +97,7 @@ echo "TestGitHookScript"
 		// user1 is an admin user
 		session := loginUser(t, "user1")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/hooks/git/pre-receive", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 		var apiGitHook *api.GitHook
@@ -113,7 +113,7 @@ echo "TestGitHookScript"
 
 		session := loginUser(t, owner.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/hooks/git/pre-receive", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
@@ -139,7 +139,7 @@ echo "TestGitHookScript"
 		assert.True(t, apiGitHook.IsActive)
 		assert.Equal(t, testHookContent, apiGitHook.Content)
 
-		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/hooks/git/pre-receive", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name).
 			AddTokenAuth(token)
 		resp = MakeRequest(t, req, http.StatusOK)
 		var apiGitHook2 *api.GitHook
@@ -156,7 +156,7 @@ echo "TestGitHookScript"
 
 		session := loginUser(t, owner.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s%s/hooks/git/pre-receive", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name)
 		req := NewRequestWithJSON(t, "PATCH", urlStr, &api.EditGitHookOption{
 			Content: testHookContent,
 		}).AddTokenAuth(token)
@@ -173,11 +173,11 @@ echo "TestGitHookScript"
 		session := loginUser(t, "user1")
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-		req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s%s/hooks/git/pre-receive", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNoContent)
 
-		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/hooks/git/pre-receive", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 		var apiGitHook2 *api.GitHook
@@ -194,7 +194,7 @@ echo "TestGitHookScript"
 
 		session := loginUser(t, owner.Name)
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/hooks/git/pre-receive", owner.Name, repo.Name).
+		req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s%s/hooks/git/pre-receive", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusForbidden)
 	})
