@@ -1,4 +1,5 @@
-/* some material icons have "fill=none" (e.g.: ".txt -> document"), so the CSS styles shouldn't overwrite it */
+/* some material icons have "fill=none" (e.g.: ".txt -> document"), so the CSS styles shouldn't overwrite it,
+ and material icons should have no "fill" set explicitly, otherwise some like ".editorconfig" won't render correctly */
 .svg:not(.git-entry-icon) {
   display: inline-block;
   vertical-align: text-top;
@@ -10,7 +11,7 @@
 }
 
 /* some browsers like Chrome have a bug: when a SVG is in a "display: none" container and referenced
-somewhere else by `<use href="#id">`, it won't be rendered correctly. e.g.: ".kts -> kotlin" */
+ somewhere else by `<use href="#id">`, it won't be rendered correctly. e.g.: ".kts -> kotlin" */
 .svg-icon-container {
   position: absolute;
   width: 0;
