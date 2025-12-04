@@ -7,7 +7,6 @@
 * Note: Keep the icon logic in sync with web_src/js/utils/mappings.ts
 */}}
 {{$avatarLink := (.Repo.RelAvatarLink ctx)}}
-
 {{if .ShowRepoOwnerAvatar}}
 	{{ctx.AvatarUtils.Avatar .Repo.Owner $size}}
 {{else if and $avatarLink .ShowRepoAvatar}}
