@@ -16,7 +16,7 @@ import (
 )
 
 func CherryPick(ctx *context.Context) {
-	prepareEditorCommitFormOptions(ctx, "_cherrypick")
+	prepareEditorPage(ctx, "_cherrypick")
 	if ctx.Written() {
 		return
 	}
