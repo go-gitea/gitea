@@ -10,7 +10,7 @@
 {{if .ShowRepoOwnerAvatar}}
 	{{ctx.AvatarUtils.Avatar .Repo.Owner .Size}}
 {{else if and $avatarLink .ShowRepoAvatar}}
-	<img class="ui avatar tw-align-middle" src="{{$avatarLink}}" width="{{.Size}}" height="{{.Size}}" aria-hidden="true">
+	<img class="ui avatar tw-align-middle" src="{{$avatarLink}}" width="{{.Size}}" height="{{.Size}}" alt aria-hidden="true">
 {{else if .Repo.IsMirror}}
 	{{svg "octicon-mirror" .Size}}
 {{else if .Repo.IsFork}}
