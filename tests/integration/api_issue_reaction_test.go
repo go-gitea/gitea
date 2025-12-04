@@ -118,7 +118,7 @@ func TestAPICommentReactions(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 		token := getUserToken(t, repoOwner.Name, auth_model.AccessTokenScopeWriteIssue)
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions", repoOwner.Name, repo.Name, comment.ID)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s%s/issues/comments/%d/reactions", repoOwner.Name, maybeGroupSegment(repo.GroupID), repo.Name, comment.ID)
 		req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 			Reaction: "+1",
 		}).AddTokenAuth(token)

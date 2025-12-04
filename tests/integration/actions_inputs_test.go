@@ -26,7 +26,7 @@ func TestWorkflowWithInputsContext(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-inputs-context", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		wRunner := newMockRunner()
@@ -57,7 +57,7 @@ jobs:
 `
 
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
 
 		// run the workflow with os=windows
 		urlStr := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "test-inputs-context.yml")

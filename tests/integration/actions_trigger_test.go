@@ -61,7 +61,7 @@ func TestPullRequestTargetEvent(t *testing.T) {
 		assert.NotEmpty(t, baseRepo)
 
 		// add user4 as the collaborator
-		ctx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		ctx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 		t.Run("AddUser4AsCollaboratorWithReadAccess", doAPIAddCollaborator(ctx, "user4", perm.AccessModeRead))
 
 		// create the forked repo
@@ -487,7 +487,7 @@ func TestPullRequestCommitStatusEvent(t *testing.T) {
 		assert.NotEmpty(t, repo)
 
 		// add user4 as the collaborator
-		ctx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		ctx := NewAPITestContext(t, repo.OwnerName, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 		t.Run("AddUser4AsCollaboratorWithReadAccess", doAPIAddCollaborator(ctx, "user4", perm.AccessModeRead))
 
 		// add the workflow file to the repo
@@ -1383,7 +1383,7 @@ func TestClosePullRequestWithPath(t *testing.T) {
 		// create the base repo
 		apiBaseRepo := createActionsTestRepo(t, user2Token, "close-pull-request-with-path", false)
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 
 		// init the workflow
 		wfTreePath := ".gitea/workflows/pull.yml"
@@ -1401,10 +1401,10 @@ jobs:
       - run: echo 'Hello World'
 `
 		opts1 := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts1)
+		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, wfTreePath, opts1)
 
 		// user4 forks the repo
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/forks", baseRepo.OwnerName, maybeGroupSegment(baseRepo.GroupID), baseRepo.Name),
 			&api.CreateForkOption{
 				Name: util.ToPointer("close-pull-request-with-path-fork"),
 			}).AddTokenAuth(user4Token)
@@ -1412,7 +1412,7 @@ jobs:
 		var apiForkRepo api.Repository
 		DecodeJSON(t, resp, &apiForkRepo)
 		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
-		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, forkRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 
 		// user4 creates a pull request to add file "app/main.go"
 		doAPICreateFile(user4APICtx, "app/main.go", &api.CreateFileOptions{
@@ -1606,15 +1606,15 @@ func TestPullRequestWithPathsRebase(t *testing.T) {
 		repoName := "actions-pr-paths-rebase"
 		apiRepo := createActionsTestRepo(t, token, repoName, false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		apiCtx := NewAPITestContext(t, "user2", repoName, auth_model.AccessTokenScopeWriteRepository)
+		apiCtx := NewAPITestContext(t, "user2", repoName, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 		runner := newMockRunner()
 		runner.registerAsRepoRunner(t, "user2", repoName, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		// init files and dirs
-		testCreateFile(t, session, "user2", repoName, repo.DefaultBranch, "", "dir1/dir1.txt", "1")
-		testCreateFile(t, session, "user2", repoName, repo.DefaultBranch, "", "dir2/dir2.txt", "2")
+		testCreateFile(t, session, repo.GroupID, "user2", repoName, repo.DefaultBranch, "", "dir1/dir1.txt", "1")
+		testCreateFile(t, session, repo.GroupID, "user2", repoName, repo.DefaultBranch, "", "dir2/dir2.txt", "2")
 		wfFileContent := `name: ci
-on: 
+on:
   pull_request:
     paths:
       - 'dir1/**'
@@ -1624,10 +1624,10 @@ jobs:
     steps:
       - run: echo 'ci'
 `
-		testCreateFile(t, session, "user2", repoName, repo.DefaultBranch, "", ".gitea/workflows/ci.yml", wfFileContent)
+		testCreateFile(t, session, repo.GroupID, "user2", repoName, repo.DefaultBranch, "", ".gitea/workflows/ci.yml", wfFileContent)
 
 		// create a PR to modify "dir1/dir1.txt", the workflow will be triggered
-		testEditFileToNewBranch(t, session, "user2", repoName, repo.DefaultBranch, "update-dir1", "dir1/dir1.txt", "11")
+		testEditFileToNewBranch(t, session, repo.GroupID, "user2", repoName, repo.DefaultBranch, "update-dir1", "dir1/dir1.txt", "11")
 		_, err := doAPICreatePullRequest(apiCtx, "user2", repoName, repo.DefaultBranch, "update-dir1")(t)
 		assert.NoError(t, err)
 		pr1Task := runner.fetchTask(t)
@@ -1635,11 +1635,11 @@ jobs:
 		assert.Equal(t, webhook_module.HookEventPullRequest, pr1Run.Event)
 
 		// create a PR to modify "dir2/dir2.txt" then update main branch and rebase, the workflow will not be triggered
-		testEditFileToNewBranch(t, session, "user2", repoName, repo.DefaultBranch, "update-dir2", "dir2/dir2.txt", "22")
+		testEditFileToNewBranch(t, session, repo.GroupID, "user2", repoName, repo.DefaultBranch, "update-dir2", "dir2/dir2.txt", "22")
 		apiPull, err := doAPICreatePullRequest(apiCtx, "user2", repoName, repo.DefaultBranch, "update-dir2")(t)
 		runner.fetchNoTask(t)
 		assert.NoError(t, err)
-		testEditFile(t, session, "user2", repoName, repo.DefaultBranch, "dir1/dir1.txt", "11") // change the file in "dir1"
+		testEditFile(t, session, repo.GroupID, "user2", repoName, repo.DefaultBranch, "dir1/dir1.txt", "11") // change the file in "dir1"
 		req := NewRequestWithValues(t, "POST",
 			fmt.Sprintf("/%s/%s/pulls/%d/update?style=rebase", "user2", repoName, apiPull.Index), // update by rebase
 			map[string]string{

@@ -34,7 +34,7 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	// update values of issue
 	milestoneState := "closed"
 
-	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/milestones/%d", owner.Name, repo.Name, milestone.ID)
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s%s/milestones/%d", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name, milestone.ID)
 	req := NewRequestWithJSON(t, "PATCH", urlStr, structs.EditMilestoneOption{
 		State: &milestoneState,
 	}).AddTokenAuth(token)
@@ -50,7 +50,7 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	DecodeJSON(t, resp, &apiMilestone2)
 	assert.EqualValues(t, "closed", apiMilestone2.State)
 
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/milestones", owner.Name, repo.Name), structs.CreateMilestoneOption{
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s%s/milestones", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name), structs.CreateMilestoneOption{
 		Title:       "wow",
 		Description: "closed one",
 		State:       "closed",
@@ -62,27 +62,27 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	assert.Nil(t, apiMilestone.Deadline)
 
 	var apiMilestones []structs.Milestone
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/milestones?state=%s", owner.Name, repo.Name, "all")).
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s%s/milestones?state=%s", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name, "all")).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiMilestones)
 	assert.Len(t, apiMilestones, 4)
 	assert.Nil(t, apiMilestones[0].Deadline)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/milestones/%s", owner.Name, repo.Name, apiMilestones[2].Title)).
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s%s/milestones/%s", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name, apiMilestones[2].Title)).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiMilestone)
 	assert.Equal(t, apiMilestones[2], apiMilestone)
 
-	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/milestones?state=%s&name=%s", owner.Name, repo.Name, "all", "milestone2")).
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s%s/milestones?state=%s&name=%s", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name, "all", "milestone2")).
 		AddTokenAuth(token)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiMilestones)
 	assert.Len(t, apiMilestones, 1)
 	assert.Equal(t, int64(2), apiMilestones[0].ID)
 
-	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/milestones/%d", owner.Name, repo.Name, apiMilestone.ID)).
+	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s%s/milestones/%d", owner.Name, maybeGroupSegment(repo.GroupID), repo.Name, apiMilestone.ID)).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
 }

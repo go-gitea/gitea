@@ -11,6 +11,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/avatars"
+	group_model "code.gitea.io/gitea/models/group"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -57,6 +58,11 @@ func (au *AvatarUtils) Avatar(item any, others ...any) template.HTML {
 		src := t.AsUser().AvatarLinkWithSize(au.ctx, size*setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
+		}
+	case *group_model.Group:
+		src := t.AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, t.Name)
 		}
 	}
 

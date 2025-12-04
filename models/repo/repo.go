@@ -153,10 +153,10 @@ const (
 // Repository represents a git repository.
 type Repository struct {
 	ID                  int64 `xorm:"pk autoincr"`
-	OwnerID             int64 `xorm:"UNIQUE(s) index"`
+	OwnerID             int64 `xorm:"UNIQUE(s) UNIQUE(g) index"`
 	OwnerName           string
 	Owner               *user_model.User   `xorm:"-"`
-	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	LowerName           string             `xorm:"UNIQUE(s) UNIQUE(g) INDEX NOT NULL"`
 	Name                string             `xorm:"INDEX NOT NULL"`
 	Description         string             `xorm:"TEXT"`
 	Website             string             `xorm:"VARCHAR(2048)"`
@@ -219,19 +219,30 @@ type Repository struct {
 	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
 	ArchivedUnix timeutil.TimeStamp `xorm:"DEFAULT 0"`
+
+	GroupID        int64 `xorm:"UNIQUE(g) INDEX DEFAULT 0"`
+	GroupSortOrder int   `xorm:"INDEX"`
 }
 
 func init() {
 	db.RegisterModel(new(Repository))
 }
 
-func RelativePath(ownerName, repoName string) string {
-	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
+func RelativePathBaseName(ownerName, repoName string, groupID int64) string {
+	var groupSegment string
+	if groupID > 0 {
+		groupSegment = strconv.FormatInt(groupID, 10) + "/"
+	}
+	return strings.ToLower(ownerName) + "/" + groupSegment + strings.ToLower(repoName)
+}
+
+func RelativePath(ownerName, repoName string, groupID int64) string {
+	return RelativePathBaseName(ownerName, repoName, groupID) + ".git"
 }
 
 // RelativePath should be an unix style path like username/reponame.git
 func (repo *Repository) RelativePath() string {
-	return RelativePath(repo.OwnerName, repo.Name)
+	return RelativePath(repo.OwnerName, repo.Name, repo.GroupID)
 }
 
 type StorageRepo string
@@ -354,7 +365,7 @@ func (repo *Repository) LoadAttributes(ctx context.Context) error {
 
 // FullName returns the repository full name
 func (repo *Repository) FullName() string {
-	return repo.OwnerName + "/" + repo.Name
+	return repo.OwnerName + "/" + groupSegmentWithTrailingSlash(repo.GroupID) + repo.Name
 }
 
 // HTMLURL returns the repository HTML URL
@@ -377,7 +388,11 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 
 // APIURL returns the repository API URL
 func (repo *Repository) APIURL() string {
-	return setting.AppURL + "api/v1/repos/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+	var groupSegment string
+	if repo.GroupID > 0 {
+		groupSegment = fmt.Sprintf("group/%d/", repo.GroupID)
+	}
+	return setting.AppURL + "api/v1/repos/" + url.PathEscape(repo.OwnerName) + "/" + groupSegment + url.PathEscape(repo.Name)
 }
 
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
@@ -594,18 +609,24 @@ func (repo *Repository) IsGenerated() bool {
 }
 
 // RepoPath returns repository path by given user and repository name.
-func RepoPath(userName, repoName string) string { //revive:disable-line:exported
-	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)), filepath.Clean(strings.ToLower(repoName)+".git"))
+func RepoPath(userName, repoName string, groupID int64) string { //revive:disable-line:exported
+	var joinArgs []string
+	joinArgs = append(joinArgs, user_model.UserPath(userName))
+	if groupID > 0 {
+		joinArgs = append(joinArgs, strconv.FormatInt(groupID, 10))
+	}
+	joinArgs = append(joinArgs, strings.ToLower(repoName)+".git")
+	return filepath.Join(joinArgs...)
 }
 
 // RepoPath returns the repository path
 func (repo *Repository) RepoPath() string {
-	return RepoPath(repo.OwnerName, repo.Name)
+	return RepoPath(repo.OwnerName, repo.Name, repo.GroupID)
 }
 
 // Link returns the repository relative url
 func (repo *Repository) Link() string {
-	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
+	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + groupSegmentWithTrailingSlash(repo.GroupID) + url.PathEscape(repo.Name)
 }
 
 // ComposeCompareURL returns the repository comparison URL
@@ -673,13 +694,28 @@ type CloneLink struct {
 	Tea   string
 }
 
+func getGroupSegment(gid int64) string {
+	var groupSegment string
+	if gid > 0 {
+		groupSegment = fmt.Sprintf("group/%d", gid)
+	}
+	return groupSegment
+}
+
+func groupSegmentWithTrailingSlash(gid int64) string {
+	if gid < 1 {
+		return ""
+	}
+	return getGroupSegment(gid) + "/"
+}
+
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on the given owner and repository name.
-func ComposeHTTPSCloneURL(ctx context.Context, owner, repo string) string {
-	return fmt.Sprintf("%s%s/%s.git", httplib.GuessCurrentAppURL(ctx), url.PathEscape(owner), url.PathEscape(repo))
+func ComposeHTTPSCloneURL(ctx context.Context, owner, repo string, groupID int64) string {
+	return fmt.Sprintf("%s%s/%s%s.git", httplib.GuessCurrentAppURL(ctx), url.PathEscape(owner), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repo))
 }
 
 // ComposeSSHCloneURL returns SSH clone URL based on the given owner and repository name.
-func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) string {
+func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string, groupID int64) string {
 	sshUser := setting.SSH.User
 	sshDomain := setting.SSH.Domain
 
@@ -698,7 +734,7 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) strin
 	// non-standard port, it must use full URI
 	if setting.SSH.Port != 22 {
 		sshHost := net.JoinHostPort(sshDomain, strconv.Itoa(setting.SSH.Port))
-		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
+		return fmt.Sprintf("ssh://%s@%s/%s/%s%s.git", sshUser, sshHost, url.PathEscape(ownerName), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repoName))
 	}
 
 	// for standard port, it can use a shorter URI (without the port)
@@ -707,31 +743,31 @@ func ComposeSSHCloneURL(doer *user_model.User, ownerName, repoName string) strin
 		sshHost = "[" + sshHost + "]" // for IPv6 address, wrap it with brackets
 	}
 	if setting.Repository.UseCompatSSHURI {
-		return fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
+		return fmt.Sprintf("ssh://%s@%s/%s/%s%s.git", sshUser, sshHost, url.PathEscape(ownerName), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repoName))
 	}
-	return fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshHost, url.PathEscape(ownerName), url.PathEscape(repoName))
+	return fmt.Sprintf("%s@%s:%s/%s%s.git", sshUser, sshHost, url.PathEscape(ownerName), groupSegmentWithTrailingSlash(groupID), url.PathEscape(repoName))
 }
 
 // ComposeTeaCloneCommand returns Tea CLI clone command based on the given owner and repository name.
-func ComposeTeaCloneCommand(ctx context.Context, owner, repo string) string {
-	return fmt.Sprintf("tea clone %s/%s", url.PathEscape(owner), url.PathEscape(repo))
+func ComposeTeaCloneCommand(ctx context.Context, owner, repo string, groupID int64) string {
+	return fmt.Sprintf("tea clone %s/%s%s", url.PathEscape(owner), url.PathEscape(repo), groupSegmentWithTrailingSlash(groupID))
 }
 
-func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string) *CloneLink {
+func (repo *Repository) cloneLink(ctx context.Context, doer *user_model.User, repoPathName string, groupID int64) *CloneLink {
 	return &CloneLink{
-		SSH:   ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName),
-		HTTPS: ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName),
-		Tea:   ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName),
+		SSH:   ComposeSSHCloneURL(doer, repo.OwnerName, repoPathName, groupID),
+		HTTPS: ComposeHTTPSCloneURL(ctx, repo.OwnerName, repoPathName, groupID),
+		Tea:   ComposeTeaCloneCommand(ctx, repo.OwnerName, repoPathName, groupID),
 	}
 }
 
 // CloneLink returns clone URLs of repository.
 func (repo *Repository) CloneLink(ctx context.Context, doer *user_model.User) (cl *CloneLink) {
-	return repo.cloneLink(ctx, doer, repo.Name)
+	return repo.cloneLink(ctx, doer, repo.Name, repo.GroupID)
 }
 
 func (repo *Repository) CloneLinkGeneral(ctx context.Context) (cl *CloneLink) {
-	return repo.cloneLink(ctx, nil /* no doer, use a general git user */, repo.Name)
+	return repo.cloneLink(ctx, nil /* no doer, use a general git user */, repo.Name, repo.GroupID)
 }
 
 // GetOriginalURLHostname returns the hostname of a URL or the URL
@@ -796,11 +832,17 @@ func (err ErrRepoNotExist) Unwrap() error {
 }
 
 // GetRepositoryByOwnerAndName returns the repository by given owner name and repo name
-func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string) (*Repository, error) {
+func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string, groupID int64) (*Repository, error) {
 	var repo Repository
+	var gid any = groupID
+	if groupID == 0 {
+		gid = nil
+	}
+	_ = gid
 	has, err := db.GetEngine(ctx).Table("repository").Select("repository.*").
 		Join("INNER", "`user`", "`user`.id = repository.owner_id").
 		Where("repository.lower_name = ?", strings.ToLower(repoName)).
+		And("`repository`.group_id = ?", groupID).
 		And("`user`.lower_name = ?", strings.ToLower(ownerName)).
 		Get(&repo)
 	if err != nil {
@@ -812,10 +854,11 @@ func GetRepositoryByOwnerAndName(ctx context.Context, ownerName, repoName string
 }
 
 // GetRepositoryByName returns the repository by given name under user if exists.
-func GetRepositoryByName(ctx context.Context, ownerID int64, name string) (*Repository, error) {
+func GetRepositoryByName(ctx context.Context, ownerID, groupID int64, name string) (*Repository, error) {
 	var repo Repository
 	has, err := db.GetEngine(ctx).
 		Where("`owner_id`=?", ownerID).
+		And("`group_id`=?", groupID).
 		And("`lower_name`=?", strings.ToLower(name)).
 		NoAutoCondition().
 		Get(&repo)
@@ -833,7 +876,7 @@ func GetRepositoryByURL(ctx context.Context, repoURL string) (*Repository, error
 	if err != nil || ret.OwnerName == "" {
 		return nil, errors.New("unknown or malformed repository URL")
 	}
-	return GetRepositoryByOwnerAndName(ctx, ret.OwnerName, ret.RepoName)
+	return GetRepositoryByOwnerAndName(ctx, ret.OwnerName, ret.RepoName, ret.GroupID)
 }
 
 // GetRepositoryByURLRelax also accepts an SSH clone URL without user part
@@ -870,19 +913,20 @@ func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repos
 }
 
 // IsRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
-func IsRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
-	has, err := IsRepositoryModelExist(ctx, u, repoName)
+func IsRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName string, groupID int64) (bool, error) {
+	has, err := IsRepositoryModelExist(ctx, u, repoName, groupID)
 	if err != nil {
 		return false, err
 	}
-	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
+	isDir, err := util.IsDir(RepoPath(u.Name, repoName, groupID))
 	return has || isDir, err
 }
 
-func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
+func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName string, groupID int64) (bool, error) {
 	return db.GetEngine(ctx).Get(&Repository{
 		OwnerID:   u.ID,
 		LowerName: strings.ToLower(repoName),
+		GroupID:   groupID,
 	})
 }
 

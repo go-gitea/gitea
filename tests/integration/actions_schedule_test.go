@@ -89,7 +89,7 @@ jobs:
 				assert.NoError(t, err)
 
 				// merge pull request
-				testPullMerge(t, testContext.Session, repo.OwnerName, repo.Name, strconv.FormatInt(apiPull.Index, 10), MergeOptions{
+				testPullMerge(t, testContext.Session, repo.OwnerName, repo.Name, repo.GroupID, strconv.FormatInt(apiPull.Index, 10), MergeOptions{
 					Style: mergeStyle,
 				})
 
@@ -165,7 +165,7 @@ func testScheduleUpdateMirrorSync(t *testing.T) {
 		assert.True(t, mirrorRepo.IsMirror)
 		mirrorRepo, err = repo_service.MigrateRepositoryGitData(t.Context(), user, mirrorRepo, opts, nil)
 		assert.NoError(t, err)
-		mirrorContext := NewAPITestContext(t, user.Name, mirrorRepo.Name, auth_model.AccessTokenScopeWriteRepository)
+		mirrorContext := NewAPITestContext(t, user.Name, mirrorRepo.Name, mirrorRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 
 		// enable actions unit for mirror repo
 		assert.False(t, mirrorRepo.UnitEnabled(t.Context(), unit_model.TypeActions))
@@ -239,7 +239,7 @@ func doTestScheduleUpdate(t *testing.T, updateTrigger scheduleUpdateTrigger) {
 		apiRepo := createActionsTestRepo(t, token, "actions-schedule", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 		assert.NoError(t, repo.LoadAttributes(t.Context()))
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		wfTreePath := ".gitea/workflows/actions-schedule.yml"
@@ -255,7 +255,7 @@ jobs:
 `
 
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		apiFileResp := createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, opts1)
+		apiFileResp := createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wfTreePath, opts1)
 
 		actionSchedule := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionSchedule{RepoID: repo.ID, CommitSHA: apiFileResp.Commit.SHA})
 		scheduleSpec := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionScheduleSpec{RepoID: repo.ID, ScheduleID: actionSchedule.ID})

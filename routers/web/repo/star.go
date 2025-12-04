@@ -21,7 +21,7 @@ func ActionStar(ctx *context.Context) {
 	}
 
 	ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)
-	ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.Name)
+	ctx.Data["Repository"], err = repo_model.GetRepositoryByName(ctx, ctx.Repo.Repository.OwnerID, ctx.Repo.Repository.GroupID, ctx.Repo.Repository.Name)
 	if err != nil {
 		ctx.ServerError("GetRepositoryByName", err)
 		return

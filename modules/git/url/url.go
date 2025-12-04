@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	stdurl "net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/httplib"
@@ -102,6 +103,7 @@ type RepositoryURL struct {
 
 	// if the URL belongs to current Gitea instance, then the below fields have values
 	OwnerName     string
+	GroupID       int64
 	RepoName      string
 	RemainingPath string
 }
@@ -123,12 +125,23 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 
 	fillPathParts := func(s string) {
 		s = strings.TrimPrefix(s, "/")
-		fields := strings.SplitN(s, "/", 3)
+		fields := strings.SplitN(s, "/", 4)
+		var pathErr error
 		if len(fields) >= 2 {
 			ret.OwnerName = fields[0]
-			ret.RepoName = strings.TrimSuffix(fields[1], ".git")
-			if len(fields) == 3 {
-				ret.RemainingPath = "/" + fields[2]
+			if len(fields) >= 3 {
+				ret.GroupID, pathErr = strconv.ParseInt(fields[1], 10, 64)
+				if pathErr != nil {
+					ret.RepoName = strings.TrimSuffix(fields[1], ".git")
+					ret.RemainingPath = "/" + fields[2]
+					return
+				}
+				ret.RepoName = strings.TrimSuffix(fields[2], ".git")
+				if len(fields) >= 4 {
+					ret.RemainingPath = "/" + fields[3]
+				}
+			} else {
+				ret.RepoName = strings.TrimSuffix(fields[1], ".git")
 			}
 		}
 	}
@@ -161,7 +174,11 @@ func ParseRepositoryURL(ctx context.Context, repoURL string) (*RepositoryURL, er
 // MakeRepositoryWebLink generates a web link (http/https) for a git repository (by guessing sometimes)
 func MakeRepositoryWebLink(repoURL *RepositoryURL) string {
 	if repoURL.OwnerName != "" {
-		return setting.AppSubURL + "/" + repoURL.OwnerName + "/" + repoURL.RepoName
+		var groupSegment string
+		if repoURL.GroupID > 0 {
+			groupSegment = strconv.FormatInt(repoURL.GroupID, 10) + "/"
+		}
+		return setting.AppSubURL + "/" + repoURL.OwnerName + "/" + groupSegment + repoURL.RepoName
 	}
 
 	// now, let's guess, for example:

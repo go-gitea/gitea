@@ -38,7 +38,7 @@ func getCreateProfileReadmeFileOptions(content string) api.CreateFileOptions {
 func createTestProfile(t *testing.T, orgName, profileRepoName, readmeContent string) {
 	isPrivate := profileRepoName == user.RepoNameProfilePrivate
 
-	ctx := NewAPITestContext(t, "user1", profileRepoName, auth_model.AccessTokenScopeAll)
+	ctx := NewAPITestContext(t, "user1", profileRepoName, 0, auth_model.AccessTokenScopeAll)
 	session := loginUser(t, "user1")
 	tokenAdmin := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeAll)
 

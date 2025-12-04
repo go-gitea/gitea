@@ -514,7 +514,7 @@ func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Is
 			return nil
 		}
 		var err error
-		repo, err = repo_model.GetRepositoryByOwnerAndName(ctx, form.Owner, form.Name)
+		repo, err = repo_model.GetRepositoryByOwnerAndName(ctx, form.Owner, form.Name, form.GroupID)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
 				ctx.APIErrorNotFound("IsErrRepoNotExist", err)

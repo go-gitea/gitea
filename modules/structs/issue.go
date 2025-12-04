@@ -266,8 +266,9 @@ func (it IssueTemplate) Type() IssueTemplateType {
 type IssueMeta struct {
 	Index int64 `json:"index"`
 	// owner of the issue's repo
-	Owner string `json:"owner"`
-	Name  string `json:"repo"`
+	Owner   string `json:"owner"`
+	Name    string `json:"repo"`
+	GroupID int64  `json:"group_id"`
 }
 
 // LockIssueOption options to lock an issue

@@ -1,0 +1,18 @@
+<div class="ui floating dropdown jump">
+	<span class="text">
+		{{if .Group}}
+		{{.Group.Name}}
+		{{else}}
+		{{ctx.Locale.Tr "org.groups"}}
+		{{end}}
+	</span>
+	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	<div class="context user overflow menu" data-variation="basic">
+		<div class="ui header">
+			{{ctx.Locale.Tr "home.filter_by_group_repositories"}}
+		</div>
+		<div class="scrolling menu items">
+			{{template "group/dashboard/submenu" dict "." . "Items" .GroupNavItems "Depth" 0}}
+		</div>
+	</div>
+</div>

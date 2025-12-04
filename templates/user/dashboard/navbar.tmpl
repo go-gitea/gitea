@@ -74,25 +74,34 @@
 					</div>
 				</div>
 			</div>
+			<div class="item">
+				{{template "group/dashboard/menu" .}}
+			</div>
 		{{end}}
 
 	{{if .ContextUser.IsOrganization}}
+		{{$suffix := ""}}
+		{{if .Team}}
+		{{$suffix = PathEscape .Team.Name}}
+		{{else if .Group}}
+		{{$suffix = URLJoin "group" (StringUtils.ToString .Group.ID)}}
+		{{end}}
 		<div class="right menu tw-flex-wrap tw-justify-end">
-			<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+			<a class="{{if .PageIsNews}}active {{end}}item tw-ml-auto" href="{{.ContextUser.DashboardLink}}/{{$suffix}}">
 				{{svg "octicon-rss"}}&nbsp;{{ctx.Locale.Tr "activities"}}
 			</a>
 			{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
-			<a class="{{if .PageIsIssues}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/issues{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+			<a class="{{if .PageIsIssues}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/issues/{{$suffix}}">
 				{{svg "octicon-issue-opened"}}&nbsp;{{ctx.Locale.Tr "issues"}}
 			</a>
 			{{end}}
 			{{if not ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled}}
-			<a class="{{if .PageIsPulls}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/pulls{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+			<a class="{{if .PageIsPulls}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/pulls/{{$suffix}}">
 				{{svg "octicon-git-pull-request"}}&nbsp;{{ctx.Locale.Tr "pull_requests"}}
 			</a>
 			{{end}}
 			{{if and .ShowMilestonesDashboardPage (not (and ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled ctx.Consts.RepoUnitTypePullRequests.UnitGlobalDisabled))}}
-			<a class="{{if .PageIsMilestonesDashboard}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/milestones{{if .Team}}/{{PathEscape .Team.Name}}{{end}}">
+			<a class="{{if .PageIsMilestonesDashboard}}active {{end}}item" href="{{.ContextUser.OrganisationLink}}/milestones/{{$suffix}}">
 				{{svg "octicon-milestone"}}&nbsp;{{ctx.Locale.Tr "milestones"}}
 			</a>
 			{{end}}

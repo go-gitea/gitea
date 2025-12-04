@@ -55,6 +55,7 @@
 @import "./home.css";
 @import "./install.css";
 @import "./form.css";
+@import "./group.css";
 
 @import "./repo.css";
 @import "./repo/release-tag.css";

@@ -318,7 +318,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 			// <em> and </em> tags? If elastic search has handled that?
 			startIndex, endIndex = contentMatchIndexPos(c[0], "<em>", "</em>")
 			if startIndex == -1 {
-				panic(fmt.Sprintf("1===%s,,,%#v,,,%s", kw, hit.Highlight, c[0]))
+				panic(fmt.Sprintf("1===%s,,%#v,,%s", kw, hit.Highlight, c[0]))
 			}
 		} else {
 			panic(fmt.Sprintf("2===%#v", hit.Highlight))

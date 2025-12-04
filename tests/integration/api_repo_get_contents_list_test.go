@@ -93,7 +93,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	// ref is default ref
 	ref := repo1.DefaultBranch
 	refType := "branch"
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents?ref=%s", user2.Name, repo1.Name, ref)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/contents?ref=%s", user2.Name, maybeGroupSegment(repo1.GroupID), repo1.Name, ref)
 	resp := MakeRequest(t, req, http.StatusOK)
 	var contentsListResponse []*api.ContentsResponse
 	DecodeJSON(t, resp, &contentsListResponse)
@@ -105,7 +105,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 
 	// No ref
 	refType = "branch"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/", user2.Name, repo1.Name)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/contents/", user2.Name, maybeGroupSegment(repo1.GroupID), repo1.Name)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
@@ -116,7 +116,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	// ref is the branch we created above in setup
 	ref = newBranch
 	refType = "branch"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents?ref=%s", user2.Name, repo1.Name, ref)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/contents?ref=%s", user2.Name, maybeGroupSegment(repo1.GroupID), repo1.Name, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
@@ -130,7 +130,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	// ref is the new tag we created above in setup
 	ref = newTag
 	refType = "tag"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/?ref=%s", user2.Name, repo1.Name, ref)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/contents/?ref=%s", user2.Name, maybeGroupSegment(repo1.GroupID), repo1.Name, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
@@ -144,7 +144,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	// ref is a commit
 	ref = commitID
 	refType = "commit"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/?ref=%s", user2.Name, repo1.Name, ref)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/contents/?ref=%s", user2.Name, maybeGroupSegment(repo1.GroupID), repo1.Name, ref)
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
@@ -153,21 +153,21 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 
 	// Test file contents a file with a bad ref
 	ref = "badref"
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/?ref=%s", user2.Name, repo1.Name, ref)
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/contents/?ref=%s", user2.Name, maybeGroupSegment(repo1.GroupID), repo1.Name, ref)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test accessing private ref with user token that does not have access - should fail
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/", user2.Name, repo16.Name).
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/contents/", user2.Name, maybeGroupSegment(repo16.GroupID), repo16.Name).
 		AddTokenAuth(token4)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	// Test access private ref of owner of token
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/", user2.Name, repo16.Name).
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/contents/", user2.Name, maybeGroupSegment(repo16.GroupID), repo16.Name).
 		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusOK)
 
 	// Test access of org org3 private repo file by owner user2
-	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/", org3.Name, repo3.Name).
+	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s%s/contents/", org3.Name, maybeGroupSegment(repo3.GroupID), repo3.Name).
 		AddTokenAuth(token2)
 	MakeRequest(t, req, http.StatusOK)
 }

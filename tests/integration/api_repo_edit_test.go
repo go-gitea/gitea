@@ -398,11 +398,11 @@ func TestAPIRepoEdit(t *testing.T) {
 		// Test using org repo "org3/repo3" where user2 is a collaborator
 		origRepoEditOption = getRepoEditOptionFromRepo(repo3)
 		repoEditOption = getNewRepoEditOption(origRepoEditOption)
-		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", org3.Name, repo3.Name), &repoEditOption).
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/group/%d/%s", org3.Name, repo3.GroupID, repo3.Name), &repoEditOption).
 			AddTokenAuth(token2)
 		MakeRequest(t, req, http.StatusOK)
 		// reset repo in db
-		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", org3.Name, *repoEditOption.Name), &origRepoEditOption).
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/group/%d/%s", org3.Name, repo3.GroupID, *repoEditOption.Name), &origRepoEditOption).
 			AddTokenAuth(token2)
 		_ = MakeRequest(t, req, http.StatusOK)
 
