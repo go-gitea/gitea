@@ -215,8 +215,8 @@ func addValidGroupTeamMapRule() {
 }
 
 func portOnly(hostport string) string {
-	colon := strings.IndexByte(hostport, ':')
-	if colon == -1 {
+	_, after, ok := strings.Cut(hostport, ":")
+	if !ok {
 		return ""
 	}
 	if i := strings.Index(hostport, "]:"); i != -1 {
@@ -225,7 +225,7 @@ func portOnly(hostport string) string {
 	if strings.Contains(hostport, "]") {
 		return ""
 	}
-	return hostport[colon+len(":"):]
+	return after
 }
 
 func validPort(p string) bool {
