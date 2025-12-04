@@ -402,7 +402,7 @@ export default defineComponent({
         }
 
         // auto-scroll to the last log line of the last step
-        let autoScrollJobStepElement: HTMLElement;
+        let autoScrollJobStepElement: HTMLElement | undefined;
         for (let stepIndex = 0; stepIndex < this.currentJob.steps.length; stepIndex++) {
           if (!autoScrollStepIndexes.get(stepIndex)) continue;
           autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
@@ -468,7 +468,7 @@ export default defineComponent({
       }
       const logLine = this.elStepsContainer().querySelector(selectedLogStep);
       if (!logLine) return;
-      logLine.querySelector<HTMLAnchorElement>('.line-num').click();
+      logLine.querySelector<HTMLAnchorElement>('.line-num')!.click();
     },
   },
 });
@@ -489,7 +489,7 @@ export default defineComponent({
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+        <button class="ui basic small compact button link-action tw-shrink-0" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
@@ -520,7 +520,7 @@ export default defineComponent({
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
               </div>
               <span class="job-brief-item-right">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun"/>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action interact-fg" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </a>

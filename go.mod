@@ -2,7 +2,7 @@ module code.gitea.io/gitea
 
 go 1.25.0
 
-toolchain go1.25.4
+toolchain go1.25.5
 
 // rfc5280 said: "The serial number is an integer assigned by the CA to each certificate."
 // But some CAs use negative serial number, just relax the check. related:
@@ -17,7 +17,7 @@ require (
 	gitea.com/go-chi/binding v0.0.0-20240430071103-39a851e106ed
 	gitea.com/go-chi/cache v0.2.1
 	gitea.com/go-chi/captcha v0.0.0-20240315150714-fb487f629098
-	gitea.com/go-chi/session v0.0.0-20250926004215-636cadd82e15
+	gitea.com/go-chi/session v0.0.0-20251124165456-68e0254e989e
 	gitea.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	gitea.com/lunny/levelqueue v0.4.2-0.20230414023320-3c0159fe0fe4
 	github.com/42wim/httpsig v1.2.3
@@ -117,13 +117,13 @@ require (
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	github.com/yuin/goldmark-meta v1.1.0
 	gitlab.com/gitlab-org/api/client-go v0.142.4
-	golang.org/x/crypto v0.42.0
+	golang.org/x/crypto v0.45.0
 	golang.org/x/image v0.30.0
-	golang.org/x/net v0.44.0
+	golang.org/x/net v0.47.0
 	golang.org/x/oauth2 v0.30.0
-	golang.org/x/sync v0.17.0
-	golang.org/x/sys v0.37.0
-	golang.org/x/text v0.30.0
+	golang.org/x/sync v0.18.0
+	golang.org/x/sys v0.38.0
+	golang.org/x/text v0.31.0
 	google.golang.org/grpc v1.75.0
 	google.golang.org/protobuf v1.36.8
 	gopkg.in/ini.v1 v1.67.0
@@ -281,9 +281,9 @@ require (
 	go.uber.org/zap/exp v0.3.0 // indirect
 	go4.org v0.0.0-20230225012048-214862532bf5 // indirect
 	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
-	golang.org/x/mod v0.28.0 // indirect
+	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
-	golang.org/x/tools v0.37.0 // indirect
+	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect

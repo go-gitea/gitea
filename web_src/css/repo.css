@@ -150,63 +150,68 @@ td .commit-summary {
   }
 }
 
-.repository.file.list .non-diff-file-content .header .icon {
+.non-diff-file-content .header .icon {
   font-size: 1em;
 }
 
-.repository.file.list .non-diff-file-content .header .small.icon {
+.non-diff-file-content .header .small.icon {
   font-size: 0.75em;
 }
 
-.repository.file.list .non-diff-file-content .header .tiny.icon {
+.non-diff-file-content .header .tiny.icon {
   font-size: 0.5em;
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon {
+.non-diff-file-content .header .file-actions .btn-octicon {
   line-height: var(--line-height-default);
   padding: 8px;
   vertical-align: middle;
   color: var(--color-text);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon:hover {
+.non-diff-file-content .header .file-actions .btn-octicon:hover {
   color: var(--color-primary);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon-danger:hover {
+.non-diff-file-content .header .file-actions .btn-octicon-danger:hover {
   color: var(--color-red);
 }
 
-.repository.file.list .non-diff-file-content .header .file-actions .btn-octicon.disabled {
+.non-diff-file-content .header .file-actions .btn-octicon.disabled {
   color: inherit;
   opacity: var(--opacity-disabled);
   cursor: default;
 }
 
-.repository.file.list .non-diff-file-content .plain-text {
+.non-diff-file-content .plain-text {
   padding: 1em 2em;
 }
 
-.repository.file.list .non-diff-file-content .plain-text pre {
+.non-diff-file-content .plain-text pre {
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
-.repository.file.list .non-diff-file-content .csv {
+.non-diff-file-content .csv {
   overflow-x: auto;
   padding: 0 !important;
 }
 
-.repository.file.list .non-diff-file-content pre {
+.non-diff-file-content pre {
   overflow: auto;
 }
 
-.repository.file.list .non-diff-file-content .asciicast {
+.non-diff-file-content .asciicast {
   padding: 0 !important;
 }
 
 .repo-editor-header {
+  display: flex;
+  margin: 1rem 0;
+  padding: 3px 0;
   width: 100%;
+  gap: 0.5em;
+  align-items: center;
 }
 
 .repo-editor-header input {
@@ -216,17 +221,13 @@ td .commit-summary {
   margin-right: 5px !important;
 }
 
-.repository.file.editor .tabular.menu .svg {
-  margin-right: 5px;
-}
-
 .repository.file.editor .commit-form-wrapper {
-  padding-left: 48px;
+  padding-left: 58px;
 }
 
 .repository.file.editor .commit-form-wrapper .commit-avatar {
   float: left;
-  margin-left: -48px;
+  margin-left: -58px;
 }
 
 .repository.file.editor .commit-form-wrapper .commit-form {
@@ -528,9 +529,12 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .timeline-item .comment-text-line {
+  /* TODO: this "line-height" is not ideal (actually it is abused), many layouts depend on this magic value,
+      for example: alignment of the header arrow and the avatar, view PR commit list left icon layout, dismiss review with reason, etc */
   line-height: 32px;
   vertical-align: middle;
   color: var(--color-text-light);
+  min-width: 0;
 }
 
 .repository.view.issue .comment-list .timeline-item .comment-text-line .ui.label {
@@ -601,9 +605,6 @@ td .commit-summary {
     width: 100%;
     margin: 0;
   }
-  .repository.view.issue .comment-list .comment .content .form .button:not(:last-child) {
-    margin-bottom: 1rem;
-  }
 }
 
 .repository.view.issue .comment-list .comment .merge-section {
@@ -654,7 +655,7 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .code-comment {
   border: 1px solid transparent;
-  margin: 0;
+  padding: 8px;
 }
 
 .repository.view.issue .comment-list .code-comment .comment-header {
@@ -664,6 +665,7 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .code-comment .comment-content {
+  margin-top: 6px;
   margin-left: 24px;
 }
 
@@ -1286,9 +1288,9 @@ td .commit-summary {
   box-shadow: 0 0 0 3px var(--color-primary-alpha-30) !important;
 }
 
-.comment:target .header::before {
+.comment:target .comment-header::before {
   border-right-color: var(--color-primary) !important;
-  filter: drop-shadow(-3px 0 0 var(--color-primary-alpha-30)) !important;
+  filter: drop-shadow(-4px 0 0 var(--color-primary-alpha-30)) !important;
 }
 
 .code-comment:target,
@@ -1308,12 +1310,15 @@ td .commit-summary {
   padding: 0.5em 1rem;
   position: relative;
   color: var(--color-text);
-  min-height: 41px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.25em;
+}
+
+.comment-header.avatar-content-left-arrow {
+  min-height: 41px; /* for a comment header with left arrow, the arrow is absolutely positioned, but the header content varies (for example: no "roles", etc), so it needs a min-height */
 }
 
 .comment-header.avatar-content-left-arrow::after {
@@ -1339,12 +1344,16 @@ td .commit-summary {
 .comment-header-right {
   display: flex;
   align-items: center;
-  gap: 0.5em;
+  gap: 6px;
 }
 
 .comment-header-right {
   flex: 1;
   justify-content: end;
+}
+
+.comment-header-right > .item.action {
+  padding: 4px; /* add some padding to make click area larger for the "item action ... ui dropdown" items */
 }
 
 .comment-body {
@@ -1401,10 +1410,23 @@ td .commit-summary {
   flex-grow: 1;
 }
 
-.repo-button-row .ui.button {
+.repo-button-row .ui.button,
+.repo-view-container .ui.button.repo-view-file-tree-toggle {
   flex-shrink: 0;
   margin: 0;
   min-height: 30px;
+}
+
+.repo-view-container .ui.button.repo-view-file-tree-toggle {
+  padding: 0 6px;
+}
+
+.repo-button-row .repo-file-search-container .ui.input {
+  height: 30px;
+}
+
+.repo-button-row .ui.dropdown > .menu {
+  margin-top: 4px;
 }
 
 tbody.commit-list {
@@ -1473,6 +1495,12 @@ tbody.commit-list {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   line-height: initial;
+}
+
+.commit-body a.commit code,
+.commit-summary a.commit code {
+  /* these links are generated by the render: <a class="commit" href="...">...</a> */
+  background: inherit;
 }
 
 .git-notes.top {
