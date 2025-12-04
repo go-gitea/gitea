@@ -35,7 +35,7 @@ SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@717e3cb29becaaf0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
-ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.8
 GOPLS_PACKAGE ?= golang.org/x/tools/gopls@v0.20.0
 GOPLS_MODERNIZE_PACKAGE ?= golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize@v0.20.0
 
