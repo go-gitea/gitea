@@ -381,7 +381,7 @@ export default defineComponent({
                 <div class="ui checkbox" ref="checkboxPrivateFilter" :title="checkboxPrivateFilterTitle">
                   <input type="checkbox" class="tw-pointer-events-none" v-bind.prop="checkboxPrivateFilterProps">
                   <label>
-                    <svg-icon name="octicon-repo-locked" :size="16" class="tw-mr-1"/>
+                    <svg-icon name="octicon-lock" :size="16" class="tw-mr-1"/>
                     {{ textShowPrivate }}
                   </label>
                 </div>
