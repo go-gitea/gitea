@@ -23,9 +23,6 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	u, _ := url.Parse("https://code.onedev.io")
 	ctx := t.Context()
 	downloader := NewOneDevDownloader(ctx, u, "", "", "go-gitea-test_repo")
-	if err != nil {
-		t.Fatalf("NewOneDevDownloader is nil: %v", err)
-	}
 	repo, err := downloader.GetRepoInfo(ctx)
 	assert.NoError(t, err)
 	assertRepositoryEqual(t, &base.Repository{

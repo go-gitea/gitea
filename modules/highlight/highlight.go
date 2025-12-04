@@ -77,8 +77,8 @@ func Code(fileName, language, code string) (output template.HTML, lexerName stri
 
 		if lexer == nil {
 			// Attempt stripping off the '?'
-			if idx := strings.IndexByte(language, '?'); idx > 0 {
-				lexer = lexers.Get(language[:idx])
+			if before, _, ok := strings.Cut(language, "?"); ok {
+				lexer = lexers.Get(before)
 			}
 		}
 	}
