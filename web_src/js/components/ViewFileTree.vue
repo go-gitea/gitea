@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import ViewFileTreeItem from './ViewFileTreeItem.vue';
-import {onMounted, useTemplateRef} from 'vue';
+import {onMounted, useTemplateRef, type ShallowRef} from 'vue';
 import {createViewFileTreeStore} from './ViewFileTreeStore.ts';
 
-const elRoot = useTemplateRef('elRoot');
+const elRoot = useTemplateRef('elRoot') as Readonly<ShallowRef<HTMLDivElement>>;;
 
 const props = defineProps({
   repoLink: {type: String, required: true},
@@ -24,7 +24,7 @@ onMounted(async () => {
 
 <template>
   <div class="view-file-tree-items" ref="elRoot">
-    <ViewFileTreeItem v-for="item in store.rootFiles" :key="item.name" :item="item" :store="store"/>
+    <ViewFileTreeItem v-for="item in store.rootFiles" :key="item.entryName" :item="item" :store="store"/>
   </div>
 </template>
 
