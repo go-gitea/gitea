@@ -1,7 +1,6 @@
 import {showTemporaryTooltip} from '../modules/tippy.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {clippie} from 'clippie';
-import type {DOMEvent} from '../utils/dom.ts';
 
 const {copy_success, copy_error} = window.config.i18n;
 
@@ -10,15 +9,15 @@ const {copy_success, copy_error} = window.config.i18n;
 // - data-clipboard-target: Holds a selector for a <input> or <textarea> whose content is copied
 // - data-clipboard-text-type: When set to 'url' will convert relative to absolute urls
 export function initGlobalCopyToClipboardListener() {
-  document.addEventListener('click', async (e: DOMEvent<MouseEvent>) => {
-    const target = e.target.closest('[data-clipboard-text], [data-clipboard-target]');
+  document.addEventListener('click', async (e) => {
+    const target = (e.target as HTMLElement).closest('[data-clipboard-text], [data-clipboard-target]');
     if (!target) return;
 
     e.preventDefault();
 
     let text = target.getAttribute('data-clipboard-text');
     if (!text) {
-      text = document.querySelector<HTMLInputElement>(target.getAttribute('data-clipboard-target'))?.value;
+      text = document.querySelector<HTMLInputElement>(target.getAttribute('data-clipboard-target')!)?.value ?? null;
     }
 
     if (text && target.getAttribute('data-clipboard-text-type') === 'url') {

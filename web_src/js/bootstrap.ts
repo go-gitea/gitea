@@ -35,7 +35,7 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
   const msgCount = Number(msgDiv.getAttribute(`data-global-error-msg-count`)) + 1;
   msgDiv.setAttribute(`data-global-error-msg-compact`, msgCompact);
   msgDiv.setAttribute(`data-global-error-msg-count`, msgCount.toString());
-  msgDiv.querySelector('.ui.message').textContent = msg + (msgCount > 1 ? ` (${msgCount})` : '');
+  msgDiv.querySelector('.ui.message')!.textContent = msg + (msgCount > 1 ? ` (${msgCount})` : '');
   msgContainer.prepend(msgDiv);
 }
 
