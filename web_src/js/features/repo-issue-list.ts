@@ -34,8 +34,8 @@ function initRepoIssueListCheckboxes() {
     toggleElem('#issue-actions', anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
     const panels = document.querySelectorAll<HTMLElement>('#issue-filters, #issue-actions');
-    const visiblePanel = Array.from(panels).find((el) => isElemVisible(el));
-    const toolbarLeft = visiblePanel.querySelector('.issue-list-toolbar-left');
+    const visiblePanel = Array.from(panels).find((el) => isElemVisible(el))!;
+    const toolbarLeft = visiblePanel.querySelector('.issue-list-toolbar-left')!;
     toolbarLeft.prepend(issueSelectAll);
   };
 
@@ -54,12 +54,12 @@ function initRepoIssueListCheckboxes() {
     async (e: MouseEvent) => {
       e.preventDefault();
 
-      const url = el.getAttribute('data-url');
-      let action = el.getAttribute('data-action');
-      let elementId = el.getAttribute('data-element-id');
+      const url = el.getAttribute('data-url')!;
+      let action = el.getAttribute('data-action')!;
+      let elementId = el.getAttribute('data-element-id')!;
       const issueIDList: string[] = [];
       for (const el of document.querySelectorAll('.issue-checkbox:checked')) {
-        issueIDList.push(el.getAttribute('data-issue-id'));
+        issueIDList.push(el.getAttribute('data-issue-id')!);
       }
       const issueIDs = issueIDList.join(',');
       if (!issueIDs) return;
@@ -77,7 +77,7 @@ function initRepoIssueListCheckboxes() {
 
       // for delete
       if (action === 'delete') {
-        const confirmText = el.getAttribute('data-action-delete-confirm');
+        const confirmText = el.getAttribute('data-action-delete-confirm')!;
         if (!await confirmModal({content: confirmText, confirmButtonColor: 'red'})) {
           return;
         }
@@ -95,12 +95,12 @@ function initRepoIssueListCheckboxes() {
 
 function initDropdownUserRemoteSearch(el: Element) {
   let searchUrl = el.getAttribute('data-search-url');
-  const actionJumpUrl = el.getAttribute('data-action-jump-url');
+  const actionJumpUrl = el.getAttribute('data-action-jump-url')!;
   let selectedUsername = el.getAttribute('data-selected-username') || '';
   const $searchDropdown = fomanticQuery(el);
-  const elMenu = el.querySelector('.menu');
-  const elSearchInput = el.querySelector<HTMLInputElement>('.ui.search input');
-  const elItemFromInput = el.querySelector('.menu > .item-from-input');
+  const elMenu = el.querySelector('.menu')!;
+  const elSearchInput = el.querySelector<HTMLInputElement>('.ui.search input')!;
+  const elItemFromInput = el.querySelector('.menu > .item-from-input')!;
 
   $searchDropdown.dropdown('setting', {
     fullTextSearch: true,
@@ -183,21 +183,21 @@ function initPinRemoveButton() {
       const id = Number(el.getAttribute('data-issue-id'));
 
       // Send the unpin request
-      const response = await DELETE(el.getAttribute('data-unpin-url'));
+      const response = await DELETE(el.getAttribute('data-unpin-url')!);
       if (response.ok) {
         // Delete the tooltip
         el._tippy.destroy();
         // Remove the Card
-        el.closest(`div.issue-card[data-issue-id="${id}"]`).remove();
+        el.closest(`div.issue-card[data-issue-id="${id}"]`)!.remove();
       }
     });
   }
 }
 
 async function pinMoveEnd(e: SortableEvent) {
-  const url = e.item.getAttribute('data-move-url');
+  const url = e.item.getAttribute('data-move-url')!;
   const id = Number(e.item.getAttribute('data-issue-id'));
-  await POST(url, {data: {id, position: e.newIndex + 1}});
+  await POST(url, {data: {id, position: e.newIndex! + 1}});
 }
 
 async function initIssuePinSort() {

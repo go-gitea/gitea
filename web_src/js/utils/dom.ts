@@ -7,7 +7,6 @@ type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Ar
 type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
 type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
-export type DOMEvent<E extends Event, T extends Element = HTMLElement> = E & {target: Partial<T>;};
 
 function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]): ArrayLikeIterable<Element> {
   if (typeof el === 'string' || el instanceof String) {
@@ -65,6 +64,7 @@ function applyElemsCallback<T extends Element>(elems: ArrayLikeIterable<T>, fn?:
 }
 
 export function queryElemSiblings<T extends Element>(el: Element, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  if (!el.parentNode) return [];
   const elems = Array.from(el.parentNode.children) as T[];
   return applyElemsCallback<T>(elems.filter((child: Element) => {
     return child !== el && child.matches(selector);
@@ -125,10 +125,10 @@ export function isDocumentFragmentOrElementNode(el: Node) {
 export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 0}: {viewportMarginBottom?: number} = {}) {
   let isUserResized = false;
   // lastStyleHeight and initialStyleHeight are CSS values like '100px'
-  let lastMouseX: number;
-  let lastMouseY: number;
-  let lastStyleHeight: string;
-  let initialStyleHeight: string;
+  let lastMouseX: number | undefined;
+  let lastMouseY: number | undefined;
+  let lastStyleHeight: string | undefined;
+  let initialStyleHeight: string | undefined;
 
   function onUserResize(event: MouseEvent) {
     if (isUserResized) return;
@@ -153,7 +153,8 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       el = el.offsetParent as HTMLTextAreaElement;
     }
 
-    const top = offsetTop - document.defaultView.scrollY;
+    const scrollY = document.defaultView ? document.defaultView.scrollY : 0;
+    const top = offsetTop - scrollY;
     const bottom = document.documentElement.clientHeight - (top + textarea.offsetHeight);
     return {top, bottom};
   }
@@ -265,10 +266,10 @@ export function submitEventSubmitter(e: any) {
   return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
 }
 
-function submitEventPolyfillListener(e: DOMEvent<Event>) {
-  const form = e.target.closest('form');
+function submitEventPolyfillListener(e: Event) {
+  const form = (e.target as HTMLElement).closest('form');
   if (!form) return;
-  form._submitter = e.target.closest('button:not([type]), button[type="submit"], input[type="submit"]');
+  form._submitter = (e.target as HTMLElement).closest('button:not([type]), button[type="submit"], input[type="submit"]');
 }
 
 export function initSubmitEventPolyfill() {
@@ -283,7 +284,7 @@ export function isElemVisible(el: HTMLElement): boolean {
   // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"
   if (!el) return false;
   // checking el.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
-  return !el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none';
+  return Boolean(!el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
 }
 
 export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
@@ -293,14 +294,14 @@ export function createElementFromHTML<T extends HTMLElement>(htmlString: string)
   if (htmlString.startsWith('<tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
-    return container.querySelector<T>('tr');
+    return container.querySelector<T>('tr')!;
   }
   const div = document.createElement('div');
   div.innerHTML = htmlString;
   return div.firstChild as T;
 }
 
-export function createElementFromAttrs(tagName: string, attrs: Record<string, any>, ...children: (Node | string)[]): HTMLElement {
+export function createElementFromAttrs(tagName: string, attrs: Record<string, any> | null, ...children: (Node | string)[]): HTMLElement {
   const el = document.createElement(tagName);
   for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;
