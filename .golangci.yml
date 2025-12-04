@@ -77,7 +77,6 @@ linters:
         - name: identical-branches
         - name: if-return
         - name: increment-decrement
-        - name: indent-error-flow
         - name: modifies-value-receiver
         - name: package-comments
         - name: range

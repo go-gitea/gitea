@@ -17,10 +17,6 @@
 	{{svg "octicon-mirror" $size}}
 {{else if .Repo.IsFork}}
 	{{svg "octicon-repo-forked" $size}}
-{{else if .Repo.IsPrivate}}
-	{{svg "octicon-repo-locked" $size}}
-{{else if .Repo.IsTemplate}}
-	{{svg "octicon-repo-template" $size}}
 {{else}}
 	{{svg "octicon-repo" $size}}
 {{end}}

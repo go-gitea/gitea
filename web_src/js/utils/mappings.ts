@@ -3,10 +3,7 @@ export function getRepoIcon(repo: Record<string, any>) {
     return 'octicon-mirror';
   } else if (repo.fork) {
     return 'octicon-repo-forked';
-  } else if (repo.private) {
-    return 'octicon-repo-locked';
-  } else if (repo.template) {
-    return `octicon-repo-template`;
+  } else {
+    return 'octicon-repo';
   }
-  return 'octicon-repo';
 }
