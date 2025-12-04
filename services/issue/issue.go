@@ -287,12 +287,6 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
 			return nil, err
 		}
-		// if the issue is closed, update the closed issue numbers
-		if issue.IsClosed {
-			if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true); err != nil {
-				return nil, err
-			}
-		}
 
 		if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
 			return nil, fmt.Errorf("error updating counters for milestone id %d: %w",

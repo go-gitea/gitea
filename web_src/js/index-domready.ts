@@ -1,11 +1,9 @@
-import './globals.ts';
 import '../fomantic/build/fomantic.js';
 import '../../node_modules/easymde/dist/easymde.min.css'; // TODO: lazy load in "switchToEasyMDE"
 
 import {initHtmx} from './htmx.ts';
 import {initDashboardRepoList} from './features/dashboard.ts';
 import {initGlobalCopyToClipboardListener} from './features/clipboard.ts';
-import {initContextPopups} from './features/contextpopup.ts';
 import {initRepoGraphGit} from './features/repo-graph.ts';
 import {initHeatmap} from './features/heatmap.ts';
 import {initImageDiff} from './features/imagediff.ts';
@@ -18,7 +16,7 @@ import {initMarkupAnchors} from './markup/anchors.ts';
 import {initNotificationCount} from './features/notification.ts';
 import {initRepoIssueContentHistory} from './features/repo-issue-content.ts';
 import {initStopwatch} from './features/stopwatch.ts';
-import {initFindFileInRepo} from './features/repo-findfile.ts';
+import {initRepoFileSearch} from './features/repo-findfile.ts';
 import {initMarkupContent} from './markup/content.ts';
 import {initRepoFileView} from './features/file-view.ts';
 import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
@@ -61,7 +59,7 @@ import {initColorPickers} from './features/colorpicker.ts';
 import {initAdminSelfCheck} from './features/admin/selfcheck.ts';
 import {initOAuth2SettingsDisableCheckbox} from './features/oauth2-settings.ts';
 import {initGlobalFetchAction} from './features/common-fetch-action.ts';
-import {initFootLanguageMenu, initGlobalComponent, initGlobalDropdown, initGlobalInput, initHeadNavbarContentToggle} from './features/common-page.ts';
+import {initCommmPageComponents, initGlobalComponent, initGlobalDropdown, initGlobalInput} from './features/common-page.ts';
 import {initGlobalButtonClickOnEnter, initGlobalButtons, initGlobalDeleteButton} from './features/common-button.ts';
 import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFormDirtyLeaveConfirm} from './features/common-form.ts';
 import {callInitFunctions} from './modules/init.ts';
@@ -94,10 +92,8 @@ const initPerformanceTracer = callInitFunctions([
 
   initInstall,
 
-  initHeadNavbarContentToggle,
-  initFootLanguageMenu,
+  initCommmPageComponents,
 
-  initContextPopups,
   initHeatmap,
   initImageDiff,
   initMarkupAnchors,
@@ -105,7 +101,7 @@ const initPerformanceTracer = callInitFunctions([
   initSshKeyFormParser,
   initStopwatch,
   initTableSort,
-  initFindFileInRepo,
+  initRepoFileSearch,
   initCopyContent,
 
   initAdminCommon,

@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"image"
 	"image/png"
-	"io"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -21,22 +20,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func generateImg() bytes.Buffer {
-	// Generate image
+func testGeneratePngBytes() []byte {
 	myImage := image.NewRGBA(image.Rect(0, 0, 32, 32))
 	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
-	return buff
+	_ = png.Encode(&buff, myImage)
+	return buff.Bytes()
 }
 
-func createAttachment(t *testing.T, session *TestSession, csrf, repoURL, filename string, buff bytes.Buffer, expectedStatus int) string {
+func testCreateIssueAttachment(t *testing.T, session *TestSession, csrf, repoURL, filename string, content []byte, expectedStatus int) string {
 	body := &bytes.Buffer{}
 
 	// Setup multi-part
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("file", filename)
 	assert.NoError(t, err)
-	_, err = io.Copy(part, &buff)
+	_, err = part.Write(content)
 	assert.NoError(t, err)
 	err = writer.Close()
 	assert.NoError(t, err)
@@ -57,14 +55,14 @@ func createAttachment(t *testing.T, session *TestSession, csrf, repoURL, filenam
 func TestCreateAnonymousAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	session := emptyTestSession(t)
-	createAttachment(t, session, GetAnonymousCSRFToken(t, session), "user2/repo1", "image.png", generateImg(), http.StatusSeeOther)
+	testCreateIssueAttachment(t, session, GetAnonymousCSRFToken(t, session), "user2/repo1", "image.png", testGeneratePngBytes(), http.StatusSeeOther)
 }
 
 func TestCreateIssueAttachment(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	const repoURL = "user2/repo1"
 	session := loginUser(t, "user2")
-	uuid := createAttachment(t, session, GetUserCSRFToken(t, session), repoURL, "image.png", generateImg(), http.StatusOK)
+	uuid := testCreateIssueAttachment(t, session, GetUserCSRFToken(t, session), repoURL, "image.png", testGeneratePngBytes(), http.StatusOK)
 
 	req := NewRequest(t, "GET", repoURL+"/issues/new")
 	resp := session.MakeRequest(t, req, http.StatusOK)

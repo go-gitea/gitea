@@ -21,18 +21,20 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
@@ -65,18 +67,6 @@ const (
 	DiffFileCopy
 )
 
-// DiffLineExpandDirection represents the DiffLineSection expand direction
-type DiffLineExpandDirection uint8
-
-// DiffLineExpandDirection possible values.
-const (
-	DiffLineExpandNone DiffLineExpandDirection = iota + 1
-	DiffLineExpandSingle
-	DiffLineExpandUpDown
-	DiffLineExpandUp
-	DiffLineExpandDown
-)
-
 // DiffLine represents a line difference in a DiffSection.
 type DiffLine struct {
 	LeftIdx     int // line number, 1-based
@@ -90,13 +80,35 @@ type DiffLine struct {
 
 // DiffLineSectionInfo represents diff line section meta data
 type DiffLineSectionInfo struct {
-	Path          string
-	LastLeftIdx   int
-	LastRightIdx  int
-	LeftIdx       int
-	RightIdx      int
+	Path string
+
+	// These line "idx" are 1-based line numbers
+	// Left/Right refer to the left/right side of the diff:
+	//
+	// LastLeftIdx | LastRightIdx
+	// [up/down expander] @@ hunk info @@
+	// LeftIdx     | RightIdx
+
+	LastLeftIdx  int
+	LastRightIdx int
+	LeftIdx      int
+	RightIdx     int
+
+	// Hunk sizes of the hidden lines
 	LeftHunkSize  int
 	RightHunkSize int
+
+	// For example:
+	// 17 | 31
+	// [up/down] @@ -40,23 +54,9 @@ ....
+	// 40 | 54
+	//
+	// In this case:
+	// LastLeftIdx = 17, LastRightIdx = 31
+	// LeftHunkSize = 23, RightHunkSize = 9
+	// LeftIdx = 40, RightIdx = 54
+
+	HiddenCommentIDs []int64 // IDs of hidden comments in this section
 }
 
 // DiffHTMLOperation is the HTML version of diffmatchpatch.Diff
@@ -151,8 +163,7 @@ func (d *DiffLine) GetLineTypeMarker() string {
 	return ""
 }
 
-// GetBlobExcerptQuery builds query string to get blob excerpt
-func (d *DiffLine) GetBlobExcerptQuery() string {
+func (d *DiffLine) getBlobExcerptQuery() string {
 	query := fmt.Sprintf(
 		"last_left=%d&last_right=%d&"+
 			"left=%d&right=%d&"+
@@ -165,19 +176,89 @@ func (d *DiffLine) GetBlobExcerptQuery() string {
 	return query
 }
 
-// GetExpandDirection gets DiffLineExpandDirection
-func (d *DiffLine) GetExpandDirection() DiffLineExpandDirection {
+func (d *DiffLine) GetExpandDirection() string {
 	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
-		return DiffLineExpandNone
+		return ""
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
-		return DiffLineExpandUp
-	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
-		return DiffLineExpandUpDown
+		return "up"
+	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx-1 > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
+		return "updown"
 	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
-		return DiffLineExpandDown
+		return "down"
 	}
-	return DiffLineExpandSingle
+	return "single"
+}
+
+type DiffBlobExcerptData struct {
+	BaseLink       string
+	IsWikiRepo     bool
+	PullIssueIndex int64
+	DiffStyle      string
+	BeforeCommitID string
+	AfterCommitID  string
+}
+
+func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
+	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
+	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
+
+	makeButton := func(direction, svgName string) template.HTML {
+		style := util.IfZero(data.DiffStyle, "unified")
+		link := data.BaseLink + "/" + data.AfterCommitID + fmt.Sprintf("?style=%s&direction=%s&anchor=%s&before_commit_id=%s", url.QueryEscape(style), direction, url.QueryEscape(anchor), url.QueryEscape(data.BeforeCommitID)) + "&" + d.getBlobExcerptQuery()
+		if data.PullIssueIndex > 0 {
+			link += fmt.Sprintf("&pull_issue_index=%d", data.PullIssueIndex)
+		}
+		return htmlutil.HTMLFormat(
+			`<button class="code-expander-button" hx-target="closest tr" hx-get="%s" data-hidden-comment-ids=",%s,">%s</button>`,
+			link, dataHiddenCommentIDs, svg.RenderHTML(svgName),
+		)
+	}
+	var content template.HTML
+
+	if len(d.SectionInfo.HiddenCommentIDs) > 0 {
+		tooltip := fmt.Sprintf("%d hidden comment(s)", len(d.SectionInfo.HiddenCommentIDs))
+		content += htmlutil.HTMLFormat(`<span class="code-comment-more" data-tooltip-content="%s">%d</span>`, tooltip, len(d.SectionInfo.HiddenCommentIDs))
+	}
+
+	expandDirection := d.GetExpandDirection()
+	if expandDirection == "updown" || expandDirection == "down" {
+		content += makeButton("down", "octicon-fold-down")
+	}
+	if expandDirection == "up" || expandDirection == "updown" {
+		content += makeButton("up", "octicon-fold-up")
+	}
+	if expandDirection == "single" {
+		content += makeButton("single", "octicon-fold")
+	}
+	return htmlutil.HTMLFormat(`<div class="code-expander-buttons" data-expand-direction="%s">%s</div>`, expandDirection, content)
+}
+
+// FillHiddenCommentIDsForDiffLine finds comment IDs that are in the hidden range of an expand button
+func FillHiddenCommentIDsForDiffLine(line *DiffLine, lineComments map[int64][]*issues_model.Comment) {
+	if line.Type != DiffLineSection {
+		return
+	}
+
+	var hiddenCommentIDs []int64
+	for commentLineNum, comments := range lineComments {
+		if commentLineNum < 0 {
+			// ATTENTION: BLOB-EXCERPT-COMMENT-RIGHT: skip left-side, unchanged lines always use "right (proposed)" side for comments
+			continue
+		}
+		lineNum := int(commentLineNum)
+		isEndOfFileExpansion := line.SectionInfo.RightHunkSize == 0
+		inRange := lineNum > line.SectionInfo.LastRightIdx &&
+			(isEndOfFileExpansion && lineNum <= line.SectionInfo.RightIdx ||
+				!isEndOfFileExpansion && lineNum < line.SectionInfo.RightIdx)
+
+		if inRange {
+			for _, comment := range comments {
+				hiddenCommentIDs = append(hiddenCommentIDs, comment.ID)
+			}
+		}
+	}
+	line.SectionInfo.HiddenCommentIDs = hiddenCommentIDs
 }
 
 func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
@@ -458,10 +539,9 @@ func getCommitFileLineCountAndLimitedContent(commit *git.Commit, filePath string
 
 // Diff represents a difference between two git trees.
 type Diff struct {
-	Start, End     string
-	Files          []*DiffFile
-	IsIncomplete   bool
-	NumViewedFiles int // user-specific
+	Start, End   string
+	Files        []*DiffFile
+	IsIncomplete bool
 }
 
 const cmdDiffHead = "diff --git "
@@ -1253,7 +1333,7 @@ type DiffShortStat struct {
 	NumFiles, TotalAddition, TotalDeletion int
 }
 
-func GetDiffShortStat(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
+func GetDiffShortStat(ctx context.Context, repoStorage gitrepo.Repository, gitRepo *git.Repository, beforeCommitID, afterCommitID string) (*DiffShortStat, error) {
 	afterCommit, err := gitRepo.GetCommit(afterCommitID)
 	if err != nil {
 		return nil, err
@@ -1265,7 +1345,7 @@ func GetDiffShortStat(ctx context.Context, repo *repo_model.Repository, gitRepo 
 	}
 
 	diff := &DiffShortStat{}
-	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = gitrepo.GetDiffShortStatByCmdArgs(ctx, repo, nil, actualBeforeCommitID.String(), afterCommitID)
+	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = gitrepo.GetDiffShortStatByCmdArgs(ctx, repoStorage, nil, actualBeforeCommitID.String(), afterCommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -1322,19 +1402,20 @@ outer:
 		// Check whether the file has already been viewed
 		if fileViewedState == pull_model.Viewed {
 			diffFile.IsViewed = true
-			diff.NumViewedFiles++
 		}
 	}
 
-	// Explicitly store files that have changed in the database, if any is present at all.
-	// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
-	// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
 	if len(filesChangedSinceLastDiff) > 0 {
-		err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
+		// Explicitly store files that have changed in the database, if any is present at all.
+		// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
+		// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
+		updatedReview, err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
 		if err != nil {
 			log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
 			return nil, err
 		}
+		// Update the local review to reflect the changes immediately
+		review = updatedReview
 	}
 
 	return review, nil
@@ -1356,6 +1437,75 @@ func CommentAsDiff(ctx context.Context, c *issues_model.Comment) (*Diff, error) 
 		return nil, fmt.Errorf("no sections found for comment ID: %d", c.ID)
 	}
 	return diff, nil
+}
+
+// GeneratePatchForUnchangedLine creates a patch showing code context for an unchanged line
+func GeneratePatchForUnchangedLine(gitRepo *git.Repository, commitID, treePath string, line int64, contextLines int) (string, error) {
+	commit, err := gitRepo.GetCommit(commitID)
+	if err != nil {
+		return "", fmt.Errorf("GetCommit: %w", err)
+	}
+
+	entry, err := commit.GetTreeEntryByPath(treePath)
+	if err != nil {
+		return "", fmt.Errorf("GetTreeEntryByPath: %w", err)
+	}
+
+	blob := entry.Blob()
+	dataRc, err := blob.DataAsync()
+	if err != nil {
+		return "", fmt.Errorf("DataAsync: %w", err)
+	}
+	defer dataRc.Close()
+
+	return generatePatchForUnchangedLineFromReader(dataRc, treePath, line, contextLines)
+}
+
+// generatePatchForUnchangedLineFromReader is the testable core logic that generates a patch from a reader
+func generatePatchForUnchangedLineFromReader(reader io.Reader, treePath string, line int64, contextLines int) (string, error) {
+	// Calculate line range (commented line + lines above it)
+	commentLine := int(line)
+	if line < 0 {
+		commentLine = int(-line)
+	}
+	startLine := max(commentLine-contextLines, 1)
+	endLine := commentLine
+
+	// Read only the needed lines efficiently
+	scanner := bufio.NewScanner(reader)
+	currentLine := 0
+	var lines []string
+	for scanner.Scan() {
+		currentLine++
+		if currentLine >= startLine && currentLine <= endLine {
+			lines = append(lines, scanner.Text())
+		}
+		if currentLine > endLine {
+			break
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		return "", fmt.Errorf("scanner error: %w", err)
+	}
+
+	if len(lines) == 0 {
+		return "", fmt.Errorf("no lines found in range %d-%d", startLine, endLine)
+	}
+
+	// Generate synthetic patch
+	var patchBuilder strings.Builder
+	patchBuilder.WriteString(fmt.Sprintf("diff --git a/%s b/%s\n", treePath, treePath))
+	patchBuilder.WriteString(fmt.Sprintf("--- a/%s\n", treePath))
+	patchBuilder.WriteString(fmt.Sprintf("+++ b/%s\n", treePath))
+	patchBuilder.WriteString(fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", startLine, len(lines), startLine, len(lines)))
+
+	for _, lineContent := range lines {
+		patchBuilder.WriteString(" ")
+		patchBuilder.WriteString(lineContent)
+		patchBuilder.WriteString("\n")
+	}
+
+	return patchBuilder.String(), nil
 }
 
 // CommentMustAsDiff executes AsDiff and logs the error instead of returning

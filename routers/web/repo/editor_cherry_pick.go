@@ -16,7 +16,7 @@ import (
 )
 
 func CherryPick(ctx *context.Context) {
-	prepareEditorCommitFormOptions(ctx, "_cherrypick")
+	prepareEditorPage(ctx, "_cherrypick")
 	if ctx.Written() {
 		return
 	}
@@ -74,7 +74,7 @@ func CherryPickPost(ctx *context.Context) {
 			opts.Content = buf.String()
 			_, err = files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts)
 			if err != nil {
-				err = util.ErrorWrapLocale(err, "repo.editor.fail_to_apply_patch")
+				err = util.ErrorWrapTranslatable(err, "repo.editor.fail_to_apply_patch")
 			}
 		}
 		if err != nil {

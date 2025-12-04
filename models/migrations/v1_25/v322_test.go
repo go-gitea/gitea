@@ -7,97 +7,28 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/migrations/base"
-	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func Test_AddBeforeCommitIDForComment(t *testing.T) {
-	type Comment struct { // old struct
-		ID               int64 `xorm:"pk autoincr"`
-		Type             int   `xorm:"INDEX"`
-		PosterID         int64 `xorm:"INDEX"`
-		OriginalAuthor   string
-		OriginalAuthorID int64
-		IssueID          int64 `xorm:"INDEX"`
-		LabelID          int64
-		OldProjectID     int64
-		ProjectID        int64
-		OldMilestoneID   int64
-		MilestoneID      int64
-		TimeID           int64
-		AssigneeID       int64
-		RemovedAssignee  bool
-		AssigneeTeamID   int64 `xorm:"NOT NULL DEFAULT 0"`
-		ResolveDoerID    int64
-		OldTitle         string
-		NewTitle         string
-		OldRef           string
-		NewRef           string
-		DependentIssueID int64 `xorm:"index"` // This is used by issue_service.deleteIssue
-
-		CommitID       int64
-		Line           int64 // - previous line / + proposed line
-		TreePath       string
-		Content        string `xorm:"LONGTEXT"`
-		ContentVersion int    `xorm:"NOT NULL DEFAULT 0"`
-
-		// Path represents the 4 lines of code cemented by this comment
-		Patch       string `xorm:"-"`
-		PatchQuoted string `xorm:"LONGTEXT patch"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-
-		// Reference issue in commit message
-		CommitSHA string `xorm:"VARCHAR(64)"`
-
-		ReviewID    int64 `xorm:"index"`
-		Invalidated bool
-
-		// Reference an issue or pull from another comment, issue or PR
-		// All information is about the origin of the reference
-		RefRepoID    int64                 `xorm:"index"` // Repo where the referencing
-		RefIssueID   int64                 `xorm:"index"`
-		RefCommentID int64                 `xorm:"index"`    // 0 if origin is Issue title or content (or PR's)
-		RefAction    references.XRefAction `xorm:"SMALLINT"` // What happens if RefIssueID resolves
-		RefIsPull    bool
-
-		CommentMetaData string `xorm:"JSON TEXT"` // put all non-index metadata in a single field
+func Test_ExtendCommentTreePathLength(t *testing.T) {
+	if setting.Database.Type.IsSQLite3() {
+		t.Skip("For SQLITE, varchar or char will always be represented as TEXT")
 	}
 
-	type PullRequest struct {
-		ID              int64 `xorm:"pk autoincr"`
-		Type            int
-		Status          int
-		ConflictedFiles []string `xorm:"TEXT JSON"`
-		CommitsAhead    int
-		CommitsBehind   int
-
-		ChangedProtectedFiles []string `xorm:"TEXT JSON"`
-
-		IssueID int64 `xorm:"INDEX"`
-		Index   int64
-
-		HeadRepoID          int64 `xorm:"INDEX"`
-		BaseRepoID          int64 `xorm:"INDEX"`
-		HeadBranch          string
-		BaseBranch          string
-		MergeBase           string `xorm:"VARCHAR(64)"`
-		AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
-
-		HasMerged      bool               `xorm:"INDEX"`
-		MergedCommitID string             `xorm:"VARCHAR(64)"`
-		MergerID       int64              `xorm:"INDEX"`
-		MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
-
-		Flow int `xorm:"NOT NULL DEFAULT 0"`
+	type Comment struct {
+		ID       int64  `xorm:"pk autoincr"`
+		TreePath string `xorm:"VARCHAR(255)"`
 	}
 
-	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(Comment), new(PullRequest))
-	defer deferable()
+	x, deferrable := base.PrepareTestEnv(t, 0, new(Comment))
+	defer deferrable()
 
-	assert.NoError(t, AddBeforeCommitIDForComment(x))
+	require.NoError(t, ExtendCommentTreePathLength(x))
+	table := base.LoadTableSchemasMap(t, x)["comment"]
+	column := table.GetColumn("tree_path")
+	assert.Contains(t, []string{"NVARCHAR", "VARCHAR"}, column.SQLType.Name)
+	assert.EqualValues(t, 4000, column.Length)
 }

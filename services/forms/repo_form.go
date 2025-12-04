@@ -104,7 +104,6 @@ type RepoSettingForm struct {
 	PushMirrorPassword     string
 	PushMirrorSyncOnCommit bool
 	PushMirrorInterval     string
-	Private                bool
 	Template               bool
 	EnablePrune            bool
 
@@ -147,10 +146,6 @@ type RepoSettingForm struct {
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
-
-	EnableActions bool
-
-	IsArchived bool
 
 	// Signing Settings
 	TrustModel string
@@ -540,7 +535,7 @@ type MergePullRequestForm struct {
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
 	ForceMerge             bool   `json:"force_merge,omitempty"`
 	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
-	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
+	DeleteBranchAfterMerge *bool  `json:"delete_branch_after_merge,omitempty"`
 }
 
 // Validate validates the fields

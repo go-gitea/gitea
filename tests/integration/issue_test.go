@@ -497,9 +497,13 @@ func TestIssueRedirect(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/user2/repo1/pulls/2", test.RedirectURL(resp))
 
-	repoUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: 1, Type: unit.TypeIssues})
+	// by the way, test PR redirection
+	req = NewRequest(t, "GET", "/user2/repo1/pulls/1")
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/user2/repo1/issues/1", test.RedirectURL(resp))
 
-	// disable issue unit, it will be reset
+	// disable issue unit
+	repoUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: 1, Type: unit.TypeIssues})
 	_, err := db.DeleteByID[repo_model.RepoUnit](t.Context(), repoUnit.ID)
 	assert.NoError(t, err)
 

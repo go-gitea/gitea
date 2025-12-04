@@ -18,6 +18,7 @@ import (
 	actions_module "code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	commitstatus_service "code.gitea.io/gitea/services/repository/commitstatus"
 
@@ -50,6 +51,33 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 			log.Error("Failed to create commit status for job %d: %v", job.ID, err)
 		}
 	}
+}
+
+func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.CommitStatus) ([]*actions_model.ActionRun, error) {
+	runMap := make(map[int64]*actions_model.ActionRun)
+	for _, status := range statuses {
+		runIndex, _, ok := status.ParseGiteaActionsTargetURL(ctx)
+		if !ok {
+			continue
+		}
+		_, ok = runMap[runIndex]
+		if !ok {
+			run, err := actions_model.GetRunByIndex(ctx, status.RepoID, runIndex)
+			if err != nil {
+				if errors.Is(err, util.ErrNotExist) {
+					// the run may be deleted manually, just skip it
+					continue
+				}
+				return nil, fmt.Errorf("GetRunByIndex: %w", err)
+			}
+			runMap[runIndex] = run
+		}
+	}
+	runs := make([]*actions_model.ActionRun, 0, len(runMap))
+	for _, run := range runMap {
+		runs = append(runs, run)
+	}
+	return runs, nil
 }
 
 func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {

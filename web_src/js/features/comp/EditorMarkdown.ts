@@ -45,7 +45,8 @@ function handleIndentSelection(textarea: HTMLTextAreaElement, e: KeyboardEvent) 
   }
 
   // re-calculating the selection range
-  let newSelStart, newSelEnd;
+  let newSelStart: number | null = null;
+  let newSelEnd: number | null = null;
   pos = 0;
   for (let i = 0; i < lines.length; i++) {
     if (i === selectedLines[0]) {
@@ -134,7 +135,7 @@ export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHa
 
   // parse the indention
   let lineContent = line;
-  const indention = /^\s*/.exec(lineContent)[0];
+  const indention = (/^\s*/.exec(lineContent) || [''])[0];
   lineContent = lineContent.slice(indention.length);
   if (linesBuf.inlinePos <= indention.length) return unhandled; // if cursor is at the indention, do nothing, let the browser handle it
 
@@ -177,7 +178,7 @@ export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHa
 
 function handleNewline(textarea: HTMLTextAreaElement, e: Event) {
   const ret = markdownHandleIndention({value: textarea.value, selStart: textarea.selectionStart, selEnd: textarea.selectionEnd});
-  if (!ret.handled) return;
+  if (!ret.handled || !ret.valueSelection) return; // FIXME: the "handled" seems redundant, only valueSelection is enough (null for unhandled)
   e.preventDefault();
   textarea.value = ret.valueSelection.value;
   textarea.setSelectionRange(ret.valueSelection.selStart, ret.valueSelection.selEnd);

@@ -5,7 +5,6 @@ package graceful
 
 import (
 	"os"
-	"runtime"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -48,26 +47,8 @@ func (srv *Server) doShutdown() {
 }
 
 func (srv *Server) doHammer() {
-	defer func() {
-		// We call srv.wg.Done() until it panics.
-		// This happens if we call Done() when the WaitGroup counter is already at 0
-		// So if it panics -> we're done, Serve() will return and the
-		// parent will goroutine will exit.
-		if r := recover(); r != nil {
-			log.Error("WaitGroup at 0: Error: %v", r)
-		}
-	}()
 	if srv.getState() != stateShuttingDown {
 		return
 	}
-	log.Warn("Forcefully shutting down parent")
-	for {
-		if srv.getState() == stateTerminate {
-			break
-		}
-		srv.wg.Done()
-
-		// Give other goroutines a chance to finish before we forcibly stop them.
-		runtime.Gosched()
-	}
+	srv.closeAllConnections()
 }

@@ -181,7 +181,7 @@ export function svg(name: SvgName, size = 16, classNames?: string | string[]): s
     svgNode.setAttribute('width', String(size));
     svgNode.setAttribute('height', String(size));
   }
-  if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean));
+  if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean as unknown as <T>(x: T | boolean) => x is T));
   return serializeXml(svgNode);
 }
 

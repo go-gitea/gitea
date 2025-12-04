@@ -70,7 +70,6 @@ import (
 	"net/http"
 	"strings"
 
-	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -82,6 +81,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/activitypub"
 	"code.gitea.io/gitea/routers/api/v1/admin"
@@ -190,27 +190,11 @@ func repoAssignment() func(ctx *context.APIContext) {
 
 		if ctx.Doer != nil && ctx.Doer.ID == user_model.ActionsUserID {
 			taskID := ctx.Data["ActionsTaskID"].(int64)
-			task, err := actions_model.GetTaskByID(ctx, taskID)
+			ctx.Repo.Permission, err = access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
 			if err != nil {
 				ctx.APIErrorInternal(err)
 				return
 			}
-			if task.RepoID != repo.ID {
-				ctx.APIErrorNotFound()
-				return
-			}
-
-			if task.IsForkPullRequest {
-				ctx.Repo.Permission.AccessMode = perm.AccessModeRead
-			} else {
-				ctx.Repo.Permission.AccessMode = perm.AccessModeWrite
-			}
-
-			if err := ctx.Repo.Repository.LoadUnits(ctx); err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			ctx.Repo.Permission.SetUnitsWithDefaultAccessMode(ctx.Repo.Repository.Units, ctx.Repo.Permission.AccessMode)
 		} else {
 			needTwoFactor, err := doerNeedTwoFactorAuth(ctx, ctx.Doer)
 			if err != nil {
@@ -791,7 +775,9 @@ func apiAuth(authMethod auth.Method) func(*context.APIContext) {
 	return func(ctx *context.APIContext) {
 		ar, err := common.AuthShared(ctx.Base, nil, authMethod)
 		if err != nil {
-			ctx.APIError(http.StatusUnauthorized, err)
+			msg, ok := auth.ErrAsUserAuthMessage(err)
+			msg = util.Iif(ok, msg, "invalid username, password or token")
+			ctx.APIError(http.StatusUnauthorized, msg)
 			return
 		}
 		ctx.Doer = ar.Doer

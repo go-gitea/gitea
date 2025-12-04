@@ -5,7 +5,6 @@ package git
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -25,7 +24,7 @@ import (
 	"xorm.io/builder"
 )
 
-var ErrBranchIsProtected = errors.New("branch is protected")
+var ErrBranchIsProtected = util.ErrorWrap(util.ErrPermissionDenied, "branch is protected")
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
@@ -467,11 +466,13 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 		return currentWhitelist, nil
 	}
 
+	prUserIDs, err := access_model.GetUserIDsWithUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
+	if err != nil {
+		return nil, err
+	}
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		if reader, err := access_model.IsRepoReader(ctx, repo, userID); err != nil {
-			return nil, err
-		} else if !reader {
+		if !prUserIDs.Contains(userID) {
 			continue
 		}
 		whitelist = append(whitelist, userID)

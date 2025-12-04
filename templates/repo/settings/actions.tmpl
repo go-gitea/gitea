@@ -6,6 +6,8 @@
 			{{template "shared/secrets/add_list" .}}
 		{{else if eq .PageType "variables"}}
 			{{template "shared/variables/variable_list" .}}
+		{{else if eq .PageType "general"}}
+			{{template "repo/settings/actions_general" .}}
 		{{end}}
 	</div>
 {{template "repo/settings/layout_footer" .}}

@@ -302,6 +302,15 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			return nil, err
 		}
 
+		// If patch is still empty (unchanged line), generate code context
+		if patch == "" && beforeCommitID != "" {
+			patch, err = gitdiff.GeneratePatchForUnchangedLine(gitRepo, beforeCommitID, treePath, line, setting.UI.CodeCommentLines)
+			if err != nil {
+				// Log the error but don't fail comment creation
+				log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, beforeCommitID, err)
+			}
+		}
+
 		// The line commit ID Must be referenced in the git repository, because the branch maybe rebased or force-pushed.
 		// If the review commit is GC, the position can not be calculated dynamically.
 		if err := gitrepo.UpdateRef(ctx, pr.BaseRepo, issues_model.GetCodeCommentRefName(pr.Index, comment.ID, "before"), beforeCommitID); err != nil {
@@ -340,7 +349,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		if headCommitID == commitID {
 			stale = false
 		} else {
-			stale, err = checkIfPRContentChanged(ctx, pr, commitID, headCommitID)
+			stale, _, err = checkIfPRContentChanged(ctx, pr, commitID, headCommitID)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -616,64 +625,79 @@ func LoadCodeComments(ctx context.Context, gitRepo *git.Repository, repo *repo_m
 
 	for _, file := range diff.Files {
 		if fileComments, ok := allComments[file.Name]; ok {
-			lineComments := make(map[int64][]*issues_model.Comment)
-			hunksCache := make(map[string][]*git.HunkInfo)
-			// filecomments should be sorted by created time, so that the latest comments are at the end
-			for _, comment := range fileComments {
-				if comment.BeforeCommitID == "" {
-					comment.BeforeCommitID = beforeCommit.ID.String()
-				}
-				if comment.CommitSHA == "" {
-					comment.CommitSHA = afterCommit.ID.String()
-				}
-
-				dstCommitID := beforeCommit.ID.String()
-				commentCommitID := comment.BeforeCommitID
-				if comment.Line > 0 {
-					dstCommitID = afterCommit.ID.String()
-					commentCommitID = comment.CommitSHA
-				}
-
-				if commentCommitID != dstCommitID {
-					// If the comment is not for the current commit, we need to recalculate the line number
-					hunks, ok := hunksCache[commentCommitID+".."+dstCommitID]
-					if !ok {
-						hunks, err = git.GetAffectedHunksForTwoCommitsSpecialFile(ctx, repo.RepoPath(), commentCommitID, dstCommitID, file.Name)
-						if err != nil {
-							return fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s]: %w", repo.FullName(), commentCommitID, dstCommitID, err)
-						}
-						hunksCache[commentCommitID+".."+dstCommitID] = hunks
-					}
-					comment.Line = ReCalculateLineNumber(hunks, comment.Line)
-				}
-
-				if comment.Line != 0 {
-					commentAfterCommit, err := gitRepo.GetCommit(comment.CommitSHA)
-					if err != nil {
-						return fmt.Errorf("GetCommit[%s]: %w", comment.CommitSHA, err)
-					}
-					// If the comment is not the first one or the comment created before the current commit
-					if lineComments[comment.Line] != nil || comment.CommitSHA == afterCommit.ID.String() ||
-						commentAfterCommit.Committer.When.Before(afterCommit.Committer.When) {
-						lineComments[comment.Line] = append(lineComments[comment.Line], comment)
-					}
-				}
+			lineComments, err := RecaculateCommentLineNumbers(ctx, file.Name, fileComments, repo, gitRepo, beforeCommit, afterCommit)
+			if err != nil {
+				return err
 			}
 
 			for _, section := range file.Sections {
-				for _, line := range section.Lines {
-					if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
-					if comments, ok := lineComments[int64(line.RightIdx)]; ok {
-						line.Comments = append(line.Comments, comments...)
-					}
-					sort.SliceStable(line.Comments, func(i, j int) bool {
-						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
-					})
-				}
+				AttachCommentsToLines(section, lineComments)
 			}
 		}
 	}
 	return nil
+}
+
+func RecaculateCommentLineNumbers(ctx context.Context, fileName string, fileComments issues_model.CommentList, repo *repo_model.Repository, gitRepo *git.Repository, beforeCommit, afterCommit *git.Commit) (map[int64][]*issues_model.Comment, error) {
+	lineComments := make(map[int64][]*issues_model.Comment)
+	hunksCache := make(map[string][]*git.HunkInfo)
+	// filecomments should be sorted by created time, so that the latest comments are at the end
+	for _, comment := range fileComments {
+		if comment.BeforeCommitID == "" {
+			comment.BeforeCommitID = beforeCommit.ID.String()
+		}
+		if comment.CommitSHA == "" {
+			comment.CommitSHA = afterCommit.ID.String()
+		}
+
+		dstCommitID := beforeCommit.ID.String()
+		commentCommitID := comment.BeforeCommitID
+		if comment.Line > 0 {
+			dstCommitID = afterCommit.ID.String()
+			commentCommitID = comment.CommitSHA
+		}
+
+		if commentCommitID != dstCommitID {
+			// If the comment is not for the current commit, we need to recalculate the line number
+			hunks, ok := hunksCache[commentCommitID+".."+dstCommitID]
+			if !ok {
+				var err error
+				hunks, err = git.GetAffectedHunksForTwoCommitsSpecialFile(ctx, repo.RepoPath(), commentCommitID, dstCommitID, fileName)
+				if err != nil {
+					return nil, fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s]: %w", repo.FullName(), commentCommitID, dstCommitID, err)
+				}
+				hunksCache[commentCommitID+".."+dstCommitID] = hunks
+			}
+			comment.Line = ReCalculateLineNumber(hunks, comment.Line)
+		}
+
+		if comment.Line != 0 {
+			commentAfterCommit, err := gitRepo.GetCommit(comment.CommitSHA)
+			if err != nil {
+				return nil, fmt.Errorf("GetCommit[%s]: %w", comment.CommitSHA, err)
+			}
+			// If the comment is not the first one or the comment created before the current commit
+			if lineComments[comment.Line] != nil || comment.CommitSHA == afterCommit.ID.String() ||
+				commentAfterCommit.Committer.When.Before(afterCommit.Committer.When) {
+				lineComments[comment.Line] = append(lineComments[comment.Line], comment)
+			}
+		}
+	}
+	return lineComments, nil
+}
+
+func AttachCommentsToLines(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
+	for _, line := range section.Lines {
+		if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
+			line.Comments = append(line.Comments, comments...)
+		}
+		if comments, ok := lineComments[int64(line.RightIdx)]; ok {
+			line.Comments = append(line.Comments, comments...)
+		}
+		sort.SliceStable(line.Comments, func(i, j int) bool {
+			return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+		})
+		// Mark expand buttons that have comments in hidden lines
+		gitdiff.FillHiddenCommentIDsForDiffLine(line, lineComments)
+	}
 }
