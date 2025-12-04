@@ -1162,8 +1162,3 @@ the "!important" is necessary to override Fomantic UI menu item styles, meanwhil
 .svg.octicon-file-directory-symlink {
   color: var(--color-secondary-dark-7);
 }
-
-.hide-absolute {
-  position: absolute;
-  left: -9999px;
-}

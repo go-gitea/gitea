@@ -25,7 +25,7 @@ func (p *RenderedIconPool) RenderToHTML() template.HTML {
 		return ""
 	}
 	sb := &strings.Builder{}
-	sb.WriteString(`<div class="hide-absolute">`)
+	sb.WriteString(`<div class="svg-icon-container">`)
 	for _, icon := range p.IconSVGs {
 		sb.WriteString(string(icon))
 	}
