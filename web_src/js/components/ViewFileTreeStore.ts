@@ -18,7 +18,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
         if (!document.querySelector(`.global-svg-icon-pool #${svgId}`)) poolSvgs.push(svgContent);
       }
       if (poolSvgs.length) {
-        const svgContainer = createElementFromHTML(html`<div class="global-svg-icon-pool tw-hidden"></div>`);
+        const svgContainer = createElementFromHTML(html`<div class="global-svg-icon-pool svg-icon-container"></div>`);
         svgContainer.innerHTML = poolSvgs.join('');
         document.body.append(svgContainer);
       }
