@@ -1,17 +1,17 @@
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
-import {hideElem, showElem, type DOMEvent} from '../utils/dom.ts';
+import {hideElem, showElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 export function initRepoRelease() {
-  document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
-    if (e.target.matches('.remove-rel-attach')) {
-      const uuid = e.target.getAttribute('data-uuid');
-      const id = e.target.getAttribute('data-id');
-      document.querySelector<HTMLInputElement>(`input[name='attachment-del-${uuid}']`)!.value = 'true';
-      hideElem(`#attachment-${id}`);
-    }
+  document.addEventListener('click', (e: MouseEvent) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement) || !target.matches('.remove-rel-attach')) return;
+    const uuid = target.getAttribute('data-uuid')!;
+    const id = target.getAttribute('data-id')!;
+    document.querySelector<HTMLInputElement>(`input[name='attachment-del-${uuid}']`)!.value = 'true';
+    hideElem(`#attachment-${id}`);
   });
 }
 
@@ -59,8 +59,8 @@ function initGenerateReleaseNotes() {
   const tagNameInput = document.querySelector<HTMLInputElement>('#tag-name')!;
   const targetInput = document.querySelector<HTMLInputElement>("input[name='tag_target']")!;
   const previousTagSelect = document.querySelector<HTMLSelectElement>('[name=previous_tag]')!;
-  const missingTagMessage = button.getAttribute('data-missing-tag-message');
-  const generateUrl = button.getAttribute('data-generate-url');
+  const missingTagMessage = button.getAttribute('data-missing-tag-message')!;
+  const generateUrl = button.getAttribute('data-generate-url')!;
 
   button.addEventListener('click', async () => {
     const tagName = tagNameInput.value.trim();
