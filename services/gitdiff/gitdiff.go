@@ -82,13 +82,33 @@ type DiffLine struct {
 
 // DiffLineSectionInfo represents diff line section meta data
 type DiffLineSectionInfo struct {
-	Path          string
-	LastLeftIdx   int
-	LastRightIdx  int
-	LeftIdx       int
-	RightIdx      int
+	Path string
+
+	// These line "idx" are 1-based line numbers
+	// Left/Right refer to the left/right side of the diff:
+	//
+	// LastLeftIdx | LastRightIdx
+	// [up/down expander] @@ hunk info @@
+	// LeftIdx     | RightIdx
+
+	LastLeftIdx  int
+	LastRightIdx int
+	LeftIdx      int
+	RightIdx     int
+
+	// Hunk sizes of the hidden lines
 	LeftHunkSize  int
 	RightHunkSize int
+
+	// For example:
+	// 17 | 31
+	// [up/down] @@ -40,23 +54,9 @@ ....
+	// 40 | 54
+	//
+	// In this case:
+	// LastLeftIdx = 17, LastRightIdx = 31
+	// LeftHunkSize = 23, RightHunkSize = 9
+	// LeftIdx = 40, RightIdx = 54
 
 	HiddenCommentIDs []int64 // IDs of hidden comments in this section
 }
@@ -158,13 +178,13 @@ func (d *DiffLine) getBlobExcerptQuery() string {
 	return query
 }
 
-func (d *DiffLine) getExpandDirection() string {
+func (d *DiffLine) GetExpandDirection() string {
 	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
 		return ""
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
 		return "up"
-	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
+	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx-1 > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
 		return "updown"
 	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
 		return "down"
@@ -202,12 +222,12 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 		content += htmlutil.HTMLFormat(`<span class="code-comment-more" data-tooltip-content="%s">%d</span>`, tooltip, len(d.SectionInfo.HiddenCommentIDs))
 	}
 
-	expandDirection := d.getExpandDirection()
-	if expandDirection == "up" || expandDirection == "updown" {
-		content += makeButton("up", "octicon-fold-up")
-	}
+	expandDirection := d.GetExpandDirection()
 	if expandDirection == "updown" || expandDirection == "down" {
 		content += makeButton("down", "octicon-fold-down")
+	}
+	if expandDirection == "up" || expandDirection == "updown" {
+		content += makeButton("up", "octicon-fold-up")
 	}
 	if expandDirection == "single" {
 		content += makeButton("single", "octicon-fold")
@@ -520,10 +540,9 @@ func getCommitFileLineCountAndLimitedContent(commit *git.Commit, filePath string
 
 // Diff represents a difference between two git trees.
 type Diff struct {
-	Start, End     string
-	Files          []*DiffFile
-	IsIncomplete   bool
-	NumViewedFiles int // user-specific
+	Start, End   string
+	Files        []*DiffFile
+	IsIncomplete bool
 }
 
 // LoadComments loads comments into each line
@@ -1412,19 +1431,20 @@ outer:
 		// Check whether the file has already been viewed
 		if fileViewedState == pull_model.Viewed {
 			diffFile.IsViewed = true
-			diff.NumViewedFiles++
 		}
 	}
 
-	// Explicitly store files that have changed in the database, if any is present at all.
-	// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
-	// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
 	if len(filesChangedSinceLastDiff) > 0 {
-		err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
+		// Explicitly store files that have changed in the database, if any is present at all.
+		// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
+		// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
+		updatedReview, err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
 		if err != nil {
 			log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
 			return nil, err
 		}
+		// Update the local review to reflect the changes immediately
+		review = updatedReview
 	}
 
 	return review, nil

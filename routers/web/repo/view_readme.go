@@ -67,7 +67,7 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 	for _, entry := range entries {
 		if i, ok := util.IsReadmeFileExtension(entry.Name(), exts...); ok {
 			fullPath := path.Join(parentDir, entry.Name())
-			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].Name(), entry.Blob().Name()) {
+			if readmeFiles[i] == nil || base.NaturalSortCompare(readmeFiles[i].Name(), entry.Blob().Name()) < 0 {
 				if entry.IsLink() {
 					res, err := git.EntryFollowLinks(ctx.Repo.Commit, fullPath, entry)
 					if err == nil && (res.TargetEntry.IsExecutable() || res.TargetEntry.IsRegular()) {

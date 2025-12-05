@@ -81,6 +81,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/activitypub"
 	"code.gitea.io/gitea/routers/api/v1/admin"
@@ -774,7 +775,9 @@ func apiAuth(authMethod auth.Method) func(*context.APIContext) {
 	return func(ctx *context.APIContext) {
 		ar, err := common.AuthShared(ctx.Base, nil, authMethod)
 		if err != nil {
-			ctx.APIError(http.StatusUnauthorized, err)
+			msg, ok := auth.ErrAsUserAuthMessage(err)
+			msg = util.Iif(ok, msg, "invalid username, password or token")
+			ctx.APIError(http.StatusUnauthorized, msg)
 			return
 		}
 		ctx.Doer = ar.Doer

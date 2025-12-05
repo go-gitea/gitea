@@ -51,10 +51,10 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 	for _, unescapeIdx := range escapeStringIndices {
 		preceding := encoded[last:unescapeIdx[0]]
 		if !inKey {
-			if splitter := strings.Index(preceding, "__"); splitter > -1 {
-				section += preceding[:splitter]
+			if before, after, cutOk := strings.Cut(preceding, "__"); cutOk {
+				section += before
 				inKey = true
-				key += preceding[splitter+2:]
+				key += after
 			} else {
 				section += preceding
 			}
@@ -77,9 +77,9 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 	}
 	remaining := encoded[last:]
 	if !inKey {
-		if splitter := strings.Index(remaining, "__"); splitter > -1 {
-			section += remaining[:splitter]
-			key += remaining[splitter+2:]
+		if before, after, cutOk := strings.Cut(remaining, "__"); cutOk {
+			section += before
+			key += after
 		} else {
 			section += remaining
 		}
@@ -111,21 +111,21 @@ func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, sect
 
 func EnvironmentToConfig(cfg ConfigProvider, envs []string) (changed bool) {
 	for _, kv := range envs {
-		idx := strings.IndexByte(kv, '=')
-		if idx < 0 {
+		before, after, ok := strings.Cut(kv, "=")
+		if !ok {
 			continue
 		}
 
 		// parse the environment variable to config section name and key name
-		envKey := kv[:idx]
-		envValue := kv[idx+1:]
+		envKey := before
+		envValue := after
 		ok, sectionName, keyName, useFileValue := decodeEnvironmentKey(EnvConfigKeyPrefixGitea, EnvConfigKeySuffixFile, envKey)
 		if !ok {
 			continue
 		}
 
 		// use environment value as config value, or read the file content as value if the key indicates a file
-		keyValue := envValue
+		keyValue := envValue //nolint:staticcheck // false positive
 		if useFileValue {
 			fileContent, err := os.ReadFile(envValue)
 			if err != nil {

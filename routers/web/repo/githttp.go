@@ -146,7 +146,13 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		// rely on the results of Contexter
 		if !ctx.IsSigned {
 			// TODO: support digit auth - which would be Authorization header with digit
-			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea"`)
+			if setting.OAuth2.Enabled {
+				// `Basic realm="Gitea"` tells the GCM to use builtin OAuth2 application: https://github.com/git-ecosystem/git-credential-manager/pull/1442
+				ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea"`)
+			} else {
+				// If OAuth2 is disabled, then use another realm to avoid GCM OAuth2 attempt
+				ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea (Basic Auth)"`)
+			}
 			ctx.HTTPError(http.StatusUnauthorized)
 			return nil
 		}
@@ -191,7 +197,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 				taskID := ctx.Data["ActionsTaskID"].(int64)
 				p, err := access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
 				if err != nil {
-					ctx.ServerError("GetUserRepoPermission", err)
+					ctx.ServerError("GetActionsUserRepoPermission", err)
 					return nil
 				}
 

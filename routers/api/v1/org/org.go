@@ -202,7 +202,7 @@ func GetAll(ctx *context.APIContext) {
 	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		ListOptions: listOptions,
-		Type:        user_model.UserTypeOrganization,
+		Types:       []user_model.UserType{user_model.UserTypeOrganization},
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Visible:     vMode,
 	})
@@ -340,7 +340,7 @@ func Rename(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.RenameOrgOption)
 	orgUser := ctx.Org.Organization.AsUser()
-	if err := user_service.RenameUser(ctx, orgUser, form.NewName); err != nil {
+	if err := user_service.RenameUser(ctx, orgUser, form.NewName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
