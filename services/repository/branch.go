@@ -32,6 +32,7 @@ import (
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	actions_service "code.gitea.io/gitea/services/actions"
 	notify_service "code.gitea.io/gitea/services/notify"
+	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 
 	"xorm.io/builder"
@@ -483,7 +484,129 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	return "", nil
 }
 
+// UpdateBranch moves a branch reference to the provided commit. permission check should be done before calling this function.
+func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, branchName, newCommitID, expectedOldCommitID string, force bool) error {
+	branch, err := git_model.GetBranch(ctx, repo.ID, branchName)
+	if err != nil {
+		return err
+	}
+	if branch.IsDeleted {
+		return git_model.ErrBranchNotExist{
+			BranchName: branchName,
+		}
+	}
+
+	if expectedOldCommitID != "" {
+		expectedID, err := gitRepo.ConvertToGitID(expectedOldCommitID)
+		if err != nil {
+			return fmt.Errorf("ConvertToGitID(old): %w", err)
+		}
+		if expectedID.String() != branch.CommitID {
+			return util.NewInvalidArgumentErrorf("branch commit does not match [expected: %s, given: %s]", expectedID.String(), branch.CommitID)
+		}
+	}
+
+	newID, err := gitRepo.ConvertToGitID(newCommitID)
+	if err != nil {
+		return fmt.Errorf("ConvertToGitID(new): %w", err)
+	}
+	newCommit, err := gitRepo.GetCommit(newID.String())
+	if err != nil {
+		return err
+	}
+
+	if newCommit.ID.String() == branch.CommitID {
+		return nil
+	}
+
+	isForcePush, err := newCommit.IsForcePush(branch.CommitID)
+	if err != nil {
+		return err
+	}
+	if isForcePush && !force {
+		return util.NewInvalidArgumentErrorf("Force push %s need a confirm force parameter", branchName)
+	}
+
+	pushEnv := repo_module.PushingEnvironment(doer, repo)
+
+	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branchName)
+	if err != nil {
+		return fmt.Errorf("GetFirstMatchProtectedBranchRule: %w", err)
+	}
+	if protectedBranch != nil {
+		protectedBranch.Repo = repo
+		globsProtected := protectedBranch.GetProtectedFilePatterns()
+		if len(globsProtected) > 0 {
+			changedProtectedFiles, protectErr := pull_service.CheckFileProtection(gitRepo, branchName, branch.CommitID, newCommit.ID.String(), globsProtected, 1, pushEnv)
+			if protectErr != nil {
+				if !pull_service.IsErrFilePathProtected(protectErr) {
+					return fmt.Errorf("CheckFileProtection: %w", protectErr)
+				}
+				protectedPath := ""
+				if len(changedProtectedFiles) > 0 {
+					protectedPath = changedProtectedFiles[0]
+				} else if pathErr, ok := protectErr.(pull_service.ErrFilePathProtected); ok {
+					protectedPath = pathErr.Path
+				}
+				if protectedPath == "" {
+					protectedPath = branchName
+				}
+				return &git.ErrPushRejected{Message: fmt.Sprintf("branch %s is protected from changing file %s", branchName, protectedPath)}
+			}
+		}
+
+		if isForcePush {
+			if !protectedBranch.CanUserForcePush(ctx, doer) {
+				return &git.ErrPushRejected{Message: "Not allowed to force-push to protected branch " + branchName}
+			}
+		} else if !protectedBranch.CanUserPush(ctx, doer) {
+			globsUnprotected := protectedBranch.GetUnprotectedFilePatterns()
+			if len(globsUnprotected) > 0 {
+				unprotectedOnly, unprotectedErr := pull_service.CheckUnprotectedFiles(gitRepo, branchName, branch.CommitID, newCommit.ID.String(), globsUnprotected, pushEnv)
+				if unprotectedErr != nil {
+					return fmt.Errorf("CheckUnprotectedFiles: %w", unprotectedErr)
+				}
+				if !unprotectedOnly {
+					return &git.ErrPushRejected{Message: "Not allowed to push to protected branch " + branchName}
+				}
+			} else {
+				return &git.ErrPushRejected{Message: "Not allowed to push to protected branch " + branchName}
+			}
+		}
+	}
+
+	pushOpts := git.PushOptions{
+		Remote: repo.RepoPath(),
+		Branch: fmt.Sprintf("%s:%s%s", newCommit.ID.String(), git.BranchPrefix, branchName),
+		Env:    pushEnv,
+	}
+
+	if expectedOldCommitID != "" {
+		pushOpts.ForceWithLease = fmt.Sprintf("%s:%s", git.BranchPrefix+branchName, branch.CommitID)
+	}
+	if isForcePush || force {
+		pushOpts.Force = true
+	}
+	return gitrepo.Push(ctx, repo, pushOpts)
+}
+
 var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default")
+
+// ErrBranchCommitDoesNotMatch indicates the provided old commit id does not match the branch tip.
+type ErrBranchCommitDoesNotMatch struct {
+	Expected string
+	Given    string
+}
+
+// IsErrBranchCommitDoesNotMatch checks if the error is ErrBranchCommitDoesNotMatch.
+func IsErrBranchCommitDoesNotMatch(err error) bool {
+	_, ok := err.(ErrBranchCommitDoesNotMatch)
+	return ok
+}
+
+func (e ErrBranchCommitDoesNotMatch) Error() string {
+	return fmt.Sprintf("branch commit does not match [expected: %s, given: %s]", e.Expected, e.Given)
+}
 
 func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
 	if branchName == repo.DefaultBranch {
