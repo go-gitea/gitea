@@ -255,7 +255,10 @@ func Test_WebhookIssueComment(t *testing.T) {
 
 		t.Run("create comment", func(t *testing.T) {
 			// 2. trigger the webhook
-			issueURL := testNewIssue(t, session, "user2", "repo1", "Title2", "Description2")
+			issueURL := testNewIssue(t, session, "user2", "repo1", newIssueOptions{
+				Title:   "Title2",
+				Content: "Description2",
+			})
 			testIssueAddComment(t, session, issueURL, "issue title2 comment1", "")
 
 			// 3. validate the webhook is triggered
@@ -274,7 +277,10 @@ func Test_WebhookIssueComment(t *testing.T) {
 			triggeredEvent = ""
 
 			// 2. trigger the webhook
-			issueURL := testNewIssue(t, session, "user2", "repo1", "Title3", "Description3")
+			issueURL := testNewIssue(t, session, "user2", "repo1", newIssueOptions{
+				Title:   "Title3",
+				Content: "Description3",
+			})
 			commentID := testIssueAddComment(t, session, issueURL, "issue title3 comment1", "")
 			modifiedContent := "issue title2 comment1 - modified"
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
@@ -300,7 +306,10 @@ func Test_WebhookIssueComment(t *testing.T) {
 			commentContent := "issue title3 comment1"
 
 			// 2. trigger the webhook
-			issueURL := testNewIssue(t, session, "user2", "repo1", "Title3", "Description3")
+			issueURL := testNewIssue(t, session, "user2", "repo1", newIssueOptions{
+				Title:   "Title3",
+				Content: "Description3",
+			})
 			commentID := testIssueAddComment(t, session, issueURL, commentContent, "")
 
 			payloads = make([]api.IssueCommentPayload, 0, 2)
@@ -511,7 +520,10 @@ func Test_WebhookIssue(t *testing.T) {
 		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "issues")
 
 		// 2. trigger the webhook
-		testNewIssue(t, session, "user2", "repo1", "Title1", "Description1")
+		testNewIssue(t, session, "user2", "repo1", newIssueOptions{
+			Title:   "Title1",
+			Content: "Description1",
+		})
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "issues", triggeredEvent)
@@ -543,7 +555,10 @@ func Test_WebhookIssueDelete(t *testing.T) {
 		// 1. create a new webhook with special webhook for repo1
 		session := loginUser(t, "user2")
 		testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "issues")
-		issueURL := testNewIssue(t, session, "user2", "repo1", "Title1", "Description1")
+		issueURL := testNewIssue(t, session, "user2", "repo1", newIssueOptions{
+			Title:   "Title1",
+			Content: "Description1",
+		})
 
 		// 2. trigger the webhook
 		testIssueDelete(t, session, issueURL)

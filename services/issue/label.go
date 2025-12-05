@@ -8,7 +8,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -47,21 +46,6 @@ func AddLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.
 // RemoveLabel removes a label from issue by given ID.
 func RemoveLabel(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, label *issues_model.Label) error {
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		if err := issue.LoadRepo(ctx); err != nil {
-			return err
-		}
-
-		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
-		if err != nil {
-			return err
-		}
-		if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
-			if label.OrgID > 0 {
-				return issues_model.ErrOrgLabelNotExist{}
-			}
-			return issues_model.ErrRepoLabelNotExist{}
-		}
-
 		return issues_model.DeleteIssueLabel(ctx, issue, label, doer)
 	}); err != nil {
 		return err
@@ -83,5 +67,31 @@ func ReplaceLabels(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	}
 
 	notify_service.IssueChangeLabels(ctx, doer, issue, labels, old)
+	return nil
+}
+
+func AddRemoveLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, toAddLabels, toRemoveLabels []*issues_model.Label) error {
+	if len(toAddLabels) == 0 && len(toRemoveLabels) == 0 {
+		return nil
+	}
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if len(toAddLabels) > 0 {
+			if err := issues_model.NewIssueLabels(ctx, issue, toAddLabels, doer); err != nil {
+				return err
+			}
+		}
+
+		for _, label := range toRemoveLabels {
+			if err := issues_model.DeleteIssueLabel(ctx, issue, label, doer); err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	notify_service.IssueChangeLabels(ctx, doer, issue, toAddLabels, toRemoveLabels)
 	return nil
 }
