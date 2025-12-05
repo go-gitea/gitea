@@ -128,19 +128,22 @@
 		</div>
 
 		<div class="ui bottom attached segment flex-text-block tw-flex-wrap">
-			<div class="flex-text-inline">
-				{{if .Author}}
+			{{if .Author}}
+				<div class="flex-text-inline">
 					{{ctx.AvatarUtils.Avatar .Author 20}}
 					{{if .Author.FullName}}
 						<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a>
 					{{else}}
 						<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
 					{{end}}
-				{{else}}
+				</div>
+			{{else}}
+				<div class="flex-text-inline" data-tooltip-content={{.Commit.Author.Email}}>
 					{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email .Commit.Author.Email 20}}
 					<strong>{{.Commit.Author.Name}}</strong>
-				{{end}}
-			</div>
+				</div>
+			{{end}}
+
 
 			<span class="text grey">{{DateUtils.TimeSince .Commit.Author.When}}</span>
 
