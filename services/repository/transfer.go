@@ -90,6 +90,17 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	return nil
 }
 
+// isRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
+func isRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
+	has, err := repo_model.IsRepositoryModelExist(ctx, u, repoName)
+	if err != nil {
+		return false, err
+	}
+	repo := repo_model.StorageRepo(repo_model.RelativePath(u.Name, repoName))
+	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	return has || isExist, err
+}
+
 // transferOwnership transfers all corresponding repository items from old user to new one.
 func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName string, repo *repo_model.Repository, teams []*organization.Team) (err error) {
 	repoRenamed := false
@@ -143,7 +154,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	newOwnerName = newOwner.Name // ensure capitalisation matches
 
 	// Check if new owner has repository with same name.
-	if has, err := repo_model.IsRepositoryModelOrDirExist(ctx, newOwner, repo.Name); err != nil {
+	if has, err := isRepositoryModelOrDirExist(ctx, newOwner, repo.Name); err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
@@ -345,7 +356,7 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryModelOrDirExist(ctx, repo.Owner, newRepoName)
+	has, err := isRepositoryModelOrDirExist(ctx, repo.Owner, newRepoName)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {

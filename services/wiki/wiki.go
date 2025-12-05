@@ -25,8 +25,6 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-const DefaultRemote = "origin"
-
 func getWikiWorkingLockKey(repoID int64) string {
 	return fmt.Sprintf("wiki_working_%d", repoID)
 }
@@ -214,8 +212,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
-		Remote: DefaultRemote,
+	if err := gitrepo.PushFromLocal(gitRepo.Ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, repo.DefaultWikiBranch),
 		Env: repo_module.FullPushingEnvironment(
 			doer,
@@ -333,8 +330,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
-		Remote: DefaultRemote,
+	if err := gitrepo.PushFromLocal(gitRepo.Ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, repo.DefaultWikiBranch),
 		Env: repo_module.FullPushingEnvironment(
 			doer,

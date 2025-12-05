@@ -345,3 +345,31 @@ func HasWiki(ctx context.Context, repo *repo_model.Repository) bool {
 	}
 	return hasWiki && err == nil
 }
+
+// CheckCreateRepository check if doer could create a repository in new owner
+func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, name string, overwriteOrAdopt bool) error {
+	if !doer.CanCreateRepoIn(owner) {
+		return repo_model.ErrReachLimitOfRepo{Limit: owner.MaxRepoCreation}
+	}
+
+	if err := repo_model.IsUsableRepoName(name); err != nil {
+		return err
+	}
+
+	has, err := repo_model.IsRepositoryModelExist(ctx, owner, name)
+	if err != nil {
+		return err
+	} else if has {
+		return repo_model.ErrRepoAlreadyExist{Uname: owner.Name, Name: name}
+	}
+	repo := repo_model.StorageRepo(repo_model.RelativePath(owner.Name, name))
+	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repo.RelativePath(), err)
+		return err
+	}
+	if !overwriteOrAdopt && isExist {
+		return repo_model.ErrRepoFilesAlreadyExist{Uname: owner.Name, Name: name}
+	}
+	return nil
+}
