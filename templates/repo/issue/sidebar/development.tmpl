@@ -1,0 +1,105 @@
+{{if not .Issue.IsPull}}
+	<div class="divider"></div>
+
+	<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.development"}}</strong></span>
+	<div class="ui devlinks list">
+	{{/* AllowedRepos not empty means login user can create new branch in some of the repositories */}}
+	{{if .ShowCreateBranchLink}}
+		<div class="tw-items-center">
+			<a class="tw-mt-1 fluid ui show-modal" data-modal="#create_branch">{{ctx.Locale.Tr "repo.branch.new_branch"}}</a>
+		</div>
+	{{end}}
+	{{range .DevLinks}}
+		{{if .PullRequest}}
+			<div class="tw-flex tw-items-center tw-overflow-hidden tw-max-w-full tw-mt-2">
+				<span class="tw-mr-1">{{template "shared/issueicon" .PullRequest.Issue}}</span>
+				<a href="{{.PullRequest.Issue.Link}}" class="ref-issue item tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">
+					{{.PullRequest.Issue.Title}}
+				</a>
+			</div>
+			<div>
+			{{ctx.Locale.Tr "repo.issues.link.created" (DateUtils.AbsoluteShort .PullRequest.Issue.CreatedUnix)}}
+			{{if .PullRequest.HasMerged}}
+				{{ctx.Locale.Tr "repo.issues.pr.completed"}}
+				</div>
+				<div class="tw-flex tw-items-center tw-overflow-hidden tw-max-w-full">
+				{{svg "octicon-git-commit" 14 "tw-mr-1"}} <a href="{{.PullRequest.BaseRepo.Link}}/src/commit/{{.PullRequest.MergedCommitID}}" data-tooltip-content="{{.PullRequest.MergedCommitID}}" class="tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">{{.PullRequest.MergedCommitID | ShortSha}}</a>
+				</div>
+				<div>
+				{{ctx.Locale.Tr "repo.issues.link.created" (DateUtils.AbsoluteShort .PullRequest.MergedUnix)}}
+			{{else if .PullRequest.ChangedProtectedFiles}}
+				{{ctx.Locale.Tr "repo.issues.pr.conflicted"}}
+			{{end}}
+			</div>
+		{{else if and .Branch .DisplayBranch}}
+			<div class="tw-flex tw-justify-between tw-items-center tw-mt-2">
+				<div class="tw-flex tw-left tw-items-center tw-overflow-hidden tw-max-w-full">
+					{{svg "octicon-git-branch" 14 "tw-mr-1"}}
+					<a href="{{.Branch.Repo.Link}}/src/branch/{{.Branch.Name}}" data-tooltip-content="{{.BranchFullName}}" class="tw-overflow-hidden gt-ellipsis tw-whitespace-nowrap">
+						{{.BranchFullName}}
+					</a>
+				</div>
+				<div class="tw-right tw-items-center">
+					<a class="ui button mini compact basic icon" href="{{$.Issue.Repo.Link}}/compare/{{$.Issue.Repo.DefaultBranch}}...{{.Branch.Repo.FullName}}:{{.Branch.Name}}?ref_issue_index={{$.Issue.Index}}">
+					{{svg "octicon-git-pull-request"}}
+					</a>
+				</div>
+			</div>
+			<div>{{ctx.Locale.Tr "repo.issues.branch.latest" (DateUtils.AbsoluteShort .Branch.CommitTime)}}</div>
+		{{end}}
+	{{end}}
+	</div>
+
+	<div class="ui tiny modal" id="create_branch">
+		<div class="header">
+			{{ctx.Locale.Tr "repo.branch.new_branch"}}
+		</div>
+		<div class="content">
+			<form class="ui form form-fetch-action" action="{{.Issue.Link}}/create_branch"
+				method="post">
+				{{.CsrfTokenHtml}}
+				<div class="required field">
+					<label for="new_branch_name">{{ctx.Locale.Tr "form.NewBranchName"}}</label>
+					<input name="new_branch_name" type="text" required>
+				</div>
+
+				<div class="required field">
+					<label for="source_repository">{{ctx.Locale.Tr "repo.issues.create_branch_from_repository"}}</label>
+					<div class="ui selection dropdown ellipsis-items-nowrap">
+						<input type="hidden" name="repo_id" value="{{.Issue.Repo.ID}}">
+						<div class="text">
+							<strong id="repo-branch-current">{{.Issue.Repo.FullName}}</strong>
+						</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							{{range .AllowedRepos}}
+								<div class="item" data-value="{{.ID}}" title="{{.FullName}}">{{.FullName}}</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+
+				<div class="required field">
+					<label for="source_branch_name">{{ctx.Locale.Tr "repo.issues.base_branch"}}</label>
+					<div class="ui selection dropdown ellipsis-items-nowrap">
+						<input type="hidden" name="source_branch_name" value="{{.Issue.Repo.DefaultBranch}}">
+						<div class="text">
+							<strong id="repo-branch-current">{{.Issue.Repo.DefaultBranch}}</strong>
+						</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							{{range .Branches}}
+								<div class="item" data-value="{{.}}" title="{{.}}">{{.}}</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+
+				<div class="text right actions">
+					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
+					<button class="ui primary button">{{ctx.Locale.Tr "repo.branch.new_branch"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+{{end}}
