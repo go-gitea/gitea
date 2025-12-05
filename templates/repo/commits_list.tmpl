@@ -22,8 +22,8 @@
 								{{end}}
 								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
 							{{else}}
-								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Name 28 "tw-mr-2"}}
-								<span class="author-wrapper">{{$userName}}</span>
+								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Email 28 "tw-mr-2"}}
+								<span class="author-wrapper" data-tooltip-content={{.Author.Email}}>{{$userName}}</span>
 							{{end}}
 						</div>
 					</td>
