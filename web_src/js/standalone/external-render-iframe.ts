@@ -35,7 +35,7 @@ function mainExternalRenderIframe() {
     // safe links: "./any", "../any", "/any", "//host/any", "http://host/any", "https://host/any"
     if (href.startsWith('.') || href.startsWith('/') || href.startsWith('http://') || href.startsWith('https://')) {
       e.preventDefault();
-      openIframeLink(href, el.getAttribute('target'));
+      openIframeLink(href, el.getAttribute('target')!);
     }
   });
 }

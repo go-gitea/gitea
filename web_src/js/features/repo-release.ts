@@ -2,14 +2,14 @@ import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {hideElem, showElem, type DOMEvent} from '../utils/dom.ts';
-import {fomanticQuery} from "../modules/fomantic/base.ts";
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 export function initRepoRelease() {
   document.addEventListener('click', (e: DOMEvent<MouseEvent>) => {
     if (e.target.matches('.remove-rel-attach')) {
       const uuid = e.target.getAttribute('data-uuid');
       const id = e.target.getAttribute('data-id');
-      document.querySelector<HTMLInputElement>(`input[name='attachment-del-${uuid}']`).value = 'true';
+      document.querySelector<HTMLInputElement>(`input[name='attachment-del-${uuid}']`)!.value = 'true';
       hideElem(`#attachment-${id}`);
     }
   });
@@ -26,17 +26,17 @@ function initTagNameEditor() {
   const el = document.querySelector('#tag-name-editor');
   if (!el) return;
 
-  const existingTags = JSON.parse(el.getAttribute('data-existing-tags'));
+  const existingTags = JSON.parse(el.getAttribute('data-existing-tags')!);
   if (!Array.isArray(existingTags)) return;
 
   const defaultTagHelperText = el.getAttribute('data-tag-helper');
   const newTagHelperText = el.getAttribute('data-tag-helper-new');
   const existingTagHelperText = el.getAttribute('data-tag-helper-existing');
 
-  const tagNameInput = document.querySelector<HTMLInputElement>('#tag-name');
+  const tagNameInput = document.querySelector<HTMLInputElement>('#tag-name')!;
   const hideTargetInput = function(tagNameInput: HTMLInputElement) {
     const value = tagNameInput.value;
-    const tagHelper = document.querySelector('#tag-helper');
+    const tagHelper = document.querySelector('#tag-helper')!;
     if (existingTags.includes(value)) {
       // If the tag already exists, hide the target branch selector.
       hideElem('#tag-target-selector');
@@ -56,9 +56,9 @@ function initGenerateReleaseNotes() {
   const button = document.querySelector<HTMLButtonElement>('#generate-release-notes');
   if (!button) return;
 
-  const tagNameInput = document.querySelector<HTMLInputElement>('#tag-name');
-  const targetInput = document.querySelector<HTMLInputElement>("input[name='tag_target']");
-  const previousTagSelect = document.querySelector<HTMLSelectElement>('[name=previous_tag]');
+  const tagNameInput = document.querySelector<HTMLInputElement>('#tag-name')!;
+  const targetInput = document.querySelector<HTMLInputElement>("input[name='tag_target']")!;
+  const previousTagSelect = document.querySelector<HTMLSelectElement>('[name=previous_tag]')!;
   const missingTagMessage = button.getAttribute('data-missing-tag-message');
   const generateUrl = button.getAttribute('data-generate-url');
 
@@ -78,7 +78,7 @@ function initGenerateReleaseNotes() {
 
     button.classList.add('loading', 'disabled');
     try {
-      const resp = await POST(generateUrl, {data: form,});
+      const resp = await POST(generateUrl, {data: form});
       const data = await resp.json();
       if (!resp.ok) {
         showErrorToast(data.errorMessage || resp.statusText);
@@ -95,6 +95,7 @@ function initGenerateReleaseNotes() {
 
 function applyGeneratedReleaseNotes(content: string) {
   const editorContainer = document.querySelector<HTMLElement>('.combo-markdown-editor');
+  if (!editorContainer) return;
 
   const comboEditor = getComboMarkdownEditor(editorContainer);
   comboEditor.value(content);
