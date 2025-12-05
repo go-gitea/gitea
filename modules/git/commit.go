@@ -25,8 +25,7 @@ type Commit struct {
 	CommitMessage string
 	Signature     *CommitSignature
 
-	Parents        []ObjectID // ID strings
-	submoduleCache *ObjectCache[*SubModule]
+	Parents []ObjectID // ID strings
 }
 
 // CommitSignature represents a git commit signature part.

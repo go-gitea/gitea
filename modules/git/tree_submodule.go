@@ -3,17 +3,13 @@
 
 package git
 
-type SubmoduleWebLink struct {
-	RepoWebLink, CommitWebLink string
-}
-
 // GetSubModules get all the submodules of current revision git tree
-func (c *Commit) GetSubModules() (*ObjectCache[*SubModule], error) {
-	if c.submoduleCache != nil {
-		return c.submoduleCache, nil
+func (t *Tree) GetSubModules() (*ObjectCache[*SubModule], error) {
+	if t.submoduleCache != nil {
+		return t.submoduleCache, nil
 	}
 
-	entry, err := c.GetTreeEntryByPath(".gitmodules")
+	entry, err := t.GetTreeEntryByPath(".gitmodules")
 	if err != nil {
 		if _, ok := err.(ErrNotExist); ok {
 			return nil, nil
@@ -28,17 +24,17 @@ func (c *Commit) GetSubModules() (*ObjectCache[*SubModule], error) {
 	defer rd.Close()
 
 	// at the moment we do not strictly limit the size of the .gitmodules file because some users would have huge .gitmodules files (>1MB)
-	c.submoduleCache, err = configParseSubModules(rd)
+	t.submoduleCache, err = configParseSubModules(rd)
 	if err != nil {
 		return nil, err
 	}
-	return c.submoduleCache, nil
+	return t.submoduleCache, nil
 }
 
 // GetSubModule gets the submodule by the entry name.
 // It returns "nil, nil" if the submodule does not exist, caller should always remember to check the "nil"
-func (c *Commit) GetSubModule(entryName string) (*SubModule, error) {
-	modules, err := c.GetSubModules()
+func (t *Tree) GetSubModule(entryName string) (*SubModule, error) {
+	modules, err := t.GetSubModules()
 	if err != nil {
 		return nil, err
 	}

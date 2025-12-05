@@ -7,17 +7,17 @@ package git
 type CommitInfo struct {
 	Entry         *TreeEntry
 	Commit        *Commit
-	SubmoduleFile *CommitSubmoduleFile
+	SubmoduleFile *SubmoduleFile
 }
 
-func GetCommitInfoSubmoduleFile(repoLink, fullPath string, commit *Commit, refCommitID ObjectID) (*CommitSubmoduleFile, error) {
+func GetCommitInfoSubmoduleFile(repoLink, fullPath string, commit *Commit, refCommitID ObjectID) (*SubmoduleFile, error) {
 	submodule, err := commit.GetSubModule(fullPath)
 	if err != nil {
 		return nil, err
 	}
 	if submodule == nil {
 		// unable to find submodule from ".gitmodules" file
-		return NewCommitSubmoduleFile(repoLink, fullPath, "", refCommitID.String()), nil
+		return NewSubmoduleFile(repoLink, fullPath, "", refCommitID.String()), nil
 	}
-	return NewCommitSubmoduleFile(repoLink, fullPath, submodule.URL, refCommitID.String()), nil
+	return NewSubmoduleFile(repoLink, fullPath, submodule.URL, refCommitID.String()), nil
 }
