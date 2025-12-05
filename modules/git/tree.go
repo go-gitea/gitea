@@ -15,8 +15,9 @@ type TreeCommon struct {
 	ID         ObjectID
 	ResolvedID ObjectID
 
-	repo  *Repository
-	ptree *Tree // parent tree
+	repo           *Repository
+	ptree          *Tree // parent tree
+	submoduleCache *ObjectCache[*SubModule]
 }
 
 // NewTree create a new tree according the repository and tree id

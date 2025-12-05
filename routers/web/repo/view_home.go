@@ -268,7 +268,7 @@ func isViewHomeOnlyContent(ctx *context.Context) bool {
 	return ctx.FormBool("only_content")
 }
 
-func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.CommitSubmoduleFile) {
+func handleRepoViewSubmodule(ctx *context.Context, commitSubmoduleFile *git.SubmoduleFile) {
 	submoduleWebLink := commitSubmoduleFile.SubmoduleWebLinkTree(ctx)
 	if submoduleWebLink == nil {
 		ctx.Data["NotFoundPrompt"] = ctx.Repo.TreePath

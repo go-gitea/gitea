@@ -129,7 +129,7 @@ func TestEntries_GetCommitsInfo(t *testing.T) {
 		require.NoError(t, err)
 		cisf, err := GetCommitInfoSubmoduleFile("/any/repo-link", "file1.txt", commit, treeEntry.ID)
 		require.NoError(t, err)
-		assert.Equal(t, &CommitSubmoduleFile{
+		assert.Equal(t, &SubmoduleFile{
 			repoLink: "/any/repo-link",
 			fullPath: "file1.txt",
 			refURL:   "",
