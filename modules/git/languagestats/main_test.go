@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/tests/env"
 )
 
 func testRun(m *testing.M) error {
@@ -33,6 +34,7 @@ func testRun(m *testing.M) error {
 }
 
 func TestMain(m *testing.M) {
+	env.Filter([]string{"GITEA_TEST_", "GITEA_UNIT_TESTS_"}, []string{"GITEA_"})
 	if err := testRun(m); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Test failed: %v", err)
 		os.Exit(1)

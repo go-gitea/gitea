@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/tests/env"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -48,6 +49,7 @@ mail@domain.com
 }
 
 func TestMain(m *testing.M) {
+	env.Filter([]string{"GITEA_TEST_", "GITEA_UNIT_TESTS_"}, []string{"GITEA_"})
 	setting.Markdown.RenderOptionsComment.ShortIssuePattern = true
 	markup.Init(&markup.RenderHelperFuncs{
 		IsUsernameMentionable: func(ctx context.Context, username string) bool {

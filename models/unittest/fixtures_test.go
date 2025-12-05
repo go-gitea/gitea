@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/tests/env"
 
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"
@@ -111,4 +112,9 @@ func BenchmarkFixturesLoader(b *testing.B) {
 			require.NoError(b, loaderVendor.Load())
 		}
 	})
+}
+
+func TestMain(m *testing.M) {
+	env.Filter([]string{"GITEA_TEST_", "GITEA_UNIT_TESTS_"}, []string{"GITEA_"})
+	m.Run()
 }

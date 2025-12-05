@@ -146,6 +146,9 @@ jobs:
       - name: unit-tests
         run: make unit-test-coverage test-check
         env:
+          GITEA_ROOT: foo
+          GITEA_CONF: bar
+          GITEA_CUSTOM: baz
           TAGS: bindata
           RACE_ENABLED: true
           GITHUB_READ_TOKEN: ${{ secrets.GITHUB_READ_TOKEN }}

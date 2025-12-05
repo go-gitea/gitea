@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/tempdir"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/tests/env"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
@@ -73,6 +74,7 @@ type TestOptions struct {
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
+	env.Filter([]string{"GITEA_TEST_", "GITEA_UNIT_TESTS_"}, []string{"GITEA_"})
 	testOpts := util.OptionalArg(testOptsArg, &TestOptions{})
 	giteaRoot = test.SetupGiteaRoot()
 	setting.CustomPath = filepath.Join(giteaRoot, "custom")
