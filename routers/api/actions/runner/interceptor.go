@@ -45,14 +45,21 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 		}
 
-		cols := []string{"last_online"}
-		runner.LastOnline = timeutil.TimeStampNow()
-		if methodName == "UpdateTask" || methodName == "UpdateLog" {
-			runner.LastActive = timeutil.TimeStampNow()
+		// Reduce db writes by only updating last active/online when needed
+		var cols []string
+		now := timeutil.TimeStampNow()
+		if runner.LastActive.AddDuration(actions_model.RunnerOfflineTime/2) < now {
+			runner.LastOnline = now
+			cols = append(cols, "last_online")
+		}
+		if (methodName == "UpdateTask" || methodName == "UpdateLog") && runner.LastActive.AddDuration(actions_model.RunnerIdleTime/2) < now {
+			runner.LastActive = now
 			cols = append(cols, "last_active")
 		}
-		if err := actions_model.UpdateRunner(ctx, runner, cols...); err != nil {
-			log.Error("can't update runner status: %v", err)
+		if cols != nil {
+			if err := actions_model.UpdateRunner(ctx, runner, cols...); err != nil {
+				log.Error("can't update runner status: %v", err)
+			}
 		}
 
 		ctx = context.WithValue(ctx, runnerCtxKey{}, runner)
