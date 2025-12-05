@@ -416,6 +416,14 @@ func SignOut(ctx *context.Context) {
 		})
 	}
 	HandleSignOut(ctx)
+	if setting.ReverseProxyLogoutRedirect != "" {
+		ctx.Redirect(setting.ReverseProxyLogoutRedirect)
+		return
+	}
+	if ctx.Req.Method == http.MethodGet {
+		ctx.Redirect(setting.AppSubURL + "/")
+		return
+	}
 	ctx.JSONRedirect(setting.AppSubURL + "/")
 }
 

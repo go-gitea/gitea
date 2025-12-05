@@ -206,6 +206,8 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["ManifestData"] = setting.ManifestData
 			ctx.Data["AllLangs"] = translation.AllLangs()
 
+			ctx.Data["ReverseProxyLogoutRedirect"] = setting.ReverseProxyLogoutRedirect != ""
+
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
