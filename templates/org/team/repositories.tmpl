@@ -30,7 +30,7 @@
 						{{range $.TeamRepos}}
 							<div class="flex-item tw-items-center">
 								<div class="flex-item-leading">
-									{{template "repo/icon" .}}
+									{{template "repo/icon" (dict "Repo" . "Size" 24)}}
 								</div>
 								<div class="flex-item-main">
 									<a class="flex-item-title text primary" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
