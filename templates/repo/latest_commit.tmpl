@@ -12,9 +12,7 @@
 	{{else}}
 		{{if .LatestCommit.Author}}
 			{{ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
-			<span class="author-wrapper" data-tooltip-content={{.LatestCommit.Author}}>
-				<strong>{{.LatestCommit.Author.Name}}</strong>
-			</span>
+			<span class="author-wrapper" data-tooltip-content={{.LatestCommit.Author}}><strong>{{.LatestCommit.Author.Name}}</strong></span>
 		{{end}}
 	{{end}}
 
