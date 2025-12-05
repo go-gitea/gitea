@@ -1,20 +1,25 @@
+import {POST} from '../modules/fetch.ts';
+import {showErrorToast} from '../modules/toast.ts';
+import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {hideElem, showElem} from '../utils/dom.ts';
+import {fomanticQuery} from '../modules/fomantic/base.ts';
 
 export function initRepoRelease() {
-  document.addEventListener('click', (e: Event) => {
-    if ((e.target as HTMLElement).matches('.remove-rel-attach')) {
-      const uuid = (e.target as HTMLElement).getAttribute('data-uuid');
-      const id = (e.target as HTMLElement).getAttribute('data-id');
-      document.querySelector<HTMLInputElement>(`input[name='attachment-del-${uuid}']`)!.value = 'true';
-      hideElem(`#attachment-${id}`);
-    }
+  document.addEventListener('click', (e: MouseEvent) => {
+    const target = e.target;
+    if (!(target instanceof HTMLElement) || !target.matches('.remove-rel-attach')) return;
+    const uuid = target.getAttribute('data-uuid')!;
+    const id = target.getAttribute('data-id')!;
+    document.querySelector<HTMLInputElement>(`input[name='attachment-del-${uuid}']`)!.value = 'true';
+    hideElem(`#attachment-${id}`);
   });
 }
 
 export function initRepoReleaseNew() {
-  if (!document.querySelector('.repository.new.release')) return;
+  if (!document.querySelector('.repository.new.release')) return; // FIXME: edit release page also uses this class
 
   initTagNameEditor();
+  initGenerateReleaseNotes();
 }
 
 function initTagNameEditor() {
@@ -45,4 +50,53 @@ function initTagNameEditor() {
   tagNameInput.addEventListener('input', (e) => {
     hideTargetInput(e.target as HTMLInputElement);
   });
+}
+
+function initGenerateReleaseNotes() {
+  const button = document.querySelector<HTMLButtonElement>('#generate-release-notes');
+  if (!button) return;
+
+  const tagNameInput = document.querySelector<HTMLInputElement>('#tag-name')!;
+  const targetInput = document.querySelector<HTMLInputElement>("input[name='tag_target']")!;
+  const previousTagSelect = document.querySelector<HTMLSelectElement>('[name=previous_tag]')!;
+  const missingTagMessage = button.getAttribute('data-missing-tag-message')!;
+  const generateUrl = button.getAttribute('data-generate-url')!;
+
+  button.addEventListener('click', async () => {
+    const tagName = tagNameInput.value.trim();
+
+    if (!tagName) {
+      showErrorToast(missingTagMessage);
+      tagNameInput.focus();
+      return;
+    }
+
+    const form = new URLSearchParams();
+    form.set('tag_name', tagName);
+    form.set('tag_target', targetInput.value);
+    form.set('previous_tag', previousTagSelect.value);
+
+    button.classList.add('loading', 'disabled');
+    try {
+      const resp = await POST(generateUrl, {data: form});
+      const data = await resp.json();
+      if (!resp.ok) {
+        showErrorToast(data.errorMessage || resp.statusText);
+        return;
+      }
+
+      fomanticQuery(previousTagSelect).dropdown('set selected', data.previous_tag);
+      applyGeneratedReleaseNotes(data.content);
+    } finally {
+      button.classList.remove('loading', 'disabled');
+    }
+  });
+}
+
+function applyGeneratedReleaseNotes(content: string) {
+  const editorContainer = document.querySelector<HTMLElement>('.combo-markdown-editor');
+  if (!editorContainer) return;
+
+  const comboEditor = getComboMarkdownEditor(editorContainer);
+  comboEditor.value(content);
 }
