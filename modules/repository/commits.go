@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cachegroup"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -72,7 +73,7 @@ func ToAPIPayloadCommit(ctx context.Context, emailUsers map[string]*user_model.U
 		committerUsername = committer.Name
 	}
 
-	fileStatus, err := git.GetCommitFileStatus(ctx, repo.RepoPath(), commit.Sha1)
+	fileStatus, err := gitrepo.GetCommitFileStatus(ctx, repo, commit.Sha1)
 	if err != nil {
 		return nil, fmt.Errorf("FileStatus [commit_sha1: %s]: %w", commit.Sha1, err)
 	}

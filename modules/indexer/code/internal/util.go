@@ -17,20 +17,20 @@ func FilenameIndexerID(repoID int64, filename string) string {
 }
 
 func ParseIndexerID(indexerID string) (int64, string) {
-	index := strings.IndexByte(indexerID, '_')
-	if index == -1 {
+	before, after, ok := strings.Cut(indexerID, "_")
+	if !ok {
 		log.Error("Unexpected ID in repo indexer: %s", indexerID)
 	}
-	repoID, _ := internal.ParseBase36(indexerID[:index])
-	return repoID, indexerID[index+1:]
+	repoID, _ := internal.ParseBase36(before)
+	return repoID, after
 }
 
 func FilenameOfIndexerID(indexerID string) string {
-	index := strings.IndexByte(indexerID, '_')
-	if index == -1 {
+	_, after, ok := strings.Cut(indexerID, "_")
+	if !ok {
 		log.Error("Unexpected ID in repo indexer: %s", indexerID)
 	}
-	return indexerID[index+1:]
+	return after
 }
 
 // FilenameMatchIndexPos returns the boundaries of its first seven lines.
