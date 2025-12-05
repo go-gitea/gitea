@@ -10,12 +10,15 @@ import (
 	"fmt"
 	"io"
 	"regexp"
+	"slices"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -106,11 +109,48 @@ func InvalidateCodeComments(ctx context.Context, prs issues_model.PullRequestLis
 }
 
 // CreateCodeComment creates a comment on the code line
-func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *issues_model.Issue, line int64, content, treePath string, pendingReview bool, replyReviewID int64, latestCommitID string, attachments []string) (*issues_model.Comment, error) {
+func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository,
+	issue *issues_model.Issue, line int64, beforeCommitID, afterCommitID, content, treePath string,
+	pendingReview bool, replyReviewID int64, attachments []string,
+) (*issues_model.Comment, error) {
 	var (
 		existsReview bool
 		err          error
 	)
+
+	if gitRepo == nil {
+		var closer io.Closer
+		gitRepo, closer, err = gitrepo.RepositoryFromContextOrOpen(ctx, issue.Repo)
+		if err != nil {
+			return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
+		}
+		defer closer.Close()
+	}
+
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		return nil, fmt.Errorf("LoadPullRequest: %w", err)
+	}
+
+	headCommitID, err := gitRepo.GetRefCommitID(issue.PullRequest.GetGitHeadRefName())
+	if err != nil {
+		return nil, fmt.Errorf("GetRefCommitID[%s]: %w", issue.PullRequest.GetGitHeadRefName(), err)
+	}
+	prCommitIDs, err := git.CommitIDsBetween(ctx, gitRepo.Path, issue.PullRequest.MergeBase, headCommitID)
+	if err != nil {
+		return nil, fmt.Errorf("CommitIDsBetween[%s, %s]: %w", beforeCommitID, afterCommitID, err)
+	}
+
+	if beforeCommitID == "" || beforeCommitID == issue.PullRequest.MergeBase {
+		beforeCommitID = issue.PullRequest.MergeBase
+	} else if !slices.Contains(prCommitIDs, beforeCommitID) { // beforeCommitID must be one of the pull request commits
+		return nil, fmt.Errorf("beforeCommitID[%s] is not a valid pull request commit", beforeCommitID)
+	}
+
+	if afterCommitID == "" || afterCommitID == headCommitID {
+		afterCommitID = headCommitID
+	} else if !slices.Contains(prCommitIDs, afterCommitID) { // afterCommitID must be one of the pull request commits
+		return nil, fmt.Errorf("afterCommitID[%s] is not a valid pull request commit", afterCommitID)
+	}
 
 	// CreateCodeComment() is used for:
 	// - Single comments
@@ -134,7 +174,10 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 		comment, err := createCodeComment(ctx,
 			doer,
 			issue.Repo,
+			gitRepo,
 			issue,
+			beforeCommitID,
+			afterCommitID,
 			content,
 			treePath,
 			line,
@@ -166,7 +209,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 			Reviewer: doer,
 			Issue:    issue,
 			Official: false,
-			CommitID: latestCommitID,
+			CommitID: afterCommitID,
 		}); err != nil {
 			return nil, err
 		}
@@ -175,7 +218,10 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	comment, err := createCodeComment(ctx,
 		doer,
 		issue.Repo,
+		gitRepo,
 		issue,
+		beforeCommitID,
+		afterCommitID,
 		content,
 		treePath,
 		line,
@@ -188,7 +234,7 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 
 	if !pendingReview && !existsReview {
 		// Submit the review we've just created so the comment shows up in the issue view
-		if _, _, err = SubmitReview(ctx, doer, gitRepo, issue, issues_model.ReviewTypeComment, "", latestCommitID, nil); err != nil {
+		if _, _, err = SubmitReview(ctx, doer, gitRepo, issue, issues_model.ReviewTypeComment, "", afterCommitID, nil); err != nil {
 			return nil, err
 		}
 	}
@@ -198,9 +244,16 @@ func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.
 	return comment, nil
 }
 
+func patchCacheKey(issueID int64, beforeCommitID, afterCommitID, treePath string, line int64) string {
+	// The key is used to cache the patch for a specific line in a review comment.
+	// It is composed of the issue ID, commit IDs, tree path and line number.
+	return fmt.Sprintf("review-line-patch-%d-%s-%s-%s-%d", issueID, beforeCommitID, afterCommitID, treePath, line)
+}
+
 // createCodeComment creates a plain code comment at the specified line / path
-func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, content, treePath string, line, reviewID int64, attachments []string) (*issues_model.Comment, error) {
-	var commitID, patch string
+func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository,
+	issue *issues_model.Issue, beforeCommitID, afterCommitID, content, treePath string, line, reviewID int64, attachments []string,
+) (*issues_model.Comment, error) {
 	if err := issue.LoadPullRequest(ctx); err != nil {
 		return nil, fmt.Errorf("LoadPullRequest: %w", err)
 	}
@@ -208,105 +261,68 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		return nil, fmt.Errorf("LoadBaseRepo: %w", err)
 	}
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
-	if err != nil {
-		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %w", err)
-	}
-	defer closer.Close()
 
-	invalidated := false
-	head := pr.GetGitHeadRefName()
-	if line > 0 {
-		if reviewID != 0 {
-			first, err := issues_model.FindComments(ctx, &issues_model.FindCommentsOptions{
-				ReviewID: reviewID,
-				Line:     line,
-				TreePath: treePath,
-				Type:     issues_model.CommentTypeCode,
-				ListOptions: db.ListOptions{
-					PageSize: 1,
-					Page:     1,
-				},
-			})
-			if err == nil && len(first) > 0 {
-				commitID = first[0].CommitSHA
-				invalidated = first[0].Invalidated
-				patch = first[0].Patch
-			} else if err != nil && !issues_model.IsErrCommentNotExist(err) {
-				return nil, fmt.Errorf("Find first comment for %d line %d path %s. Error: %w", reviewID, line, treePath, err)
-			} else {
-				review, err := issues_model.GetReviewByID(ctx, reviewID)
-				if err == nil && len(review.CommitID) > 0 {
-					head = review.CommitID
-				} else if err != nil && !issues_model.IsErrReviewNotExist(err) {
-					return nil, fmt.Errorf("GetReviewByID %d. Error: %w", reviewID, err)
-				}
-			}
-		}
-
-		if len(commitID) == 0 {
-			// FIXME validate treePath
-			// Get latest commit referencing the commented line
-			// No need for get commit for base branch changes
-			commit, err := lineBlame(ctx, pr.BaseRepo, gitRepo, head, treePath, uint(line))
-			if err == nil {
-				commitID = commit.ID.String()
-			} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
-				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %w", pr.GetGitHeadRefName(), gitRepo.Path, treePath, line, err)
-			}
-		}
-	}
-
-	// Only fetch diff if comment is review comment
-	if len(patch) == 0 && reviewID != 0 {
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
-		if err != nil {
-			return nil, fmt.Errorf("GetRefCommitID[%s]: %w", pr.GetGitHeadRefName(), err)
-		}
-		if len(commitID) == 0 {
-			commitID = headCommitID
-		}
+	patch, err := cache.GetString(patchCacheKey(issue.ID, beforeCommitID, afterCommitID, treePath, line), func() (string, error) {
 		reader, writer := io.Pipe()
 		defer func() {
 			_ = reader.Close()
 			_ = writer.Close()
 		}()
 		go func() {
-			if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, writer); err != nil {
-				_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %w", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err))
+			if err := git.GetRepoRawDiffForFile(gitRepo, beforeCommitID, afterCommitID, git.RawDiffNormal, treePath, writer); err != nil {
+				_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %w", gitRepo.Path, beforeCommitID, afterCommitID, treePath, err))
 				return
 			}
 			_ = writer.Close()
 		}()
 
-		patch, err = git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		return git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+	})
+	if err != nil {
+		return nil, fmt.Errorf("GetPatch failed: %w", err)
+	}
+
+	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+		comment, err := issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
+			Type:           issues_model.CommentTypeCode,
+			Doer:           doer,
+			Repo:           repo,
+			Issue:          issue,
+			Content:        content,
+			LineNum:        line,
+			TreePath:       treePath,
+			BeforeCommitID: beforeCommitID,
+			CommitSHA:      afterCommitID,
+			ReviewID:       reviewID,
+			Patch:          patch,
+			Invalidated:    false,
+			Attachments:    attachments,
+		})
 		if err != nil {
-			log.Error("Error whilst generating patch: %v", err)
 			return nil, err
 		}
 
 		// If patch is still empty (unchanged line), generate code context
-		if patch == "" && commitID != "" {
-			patch, err = gitdiff.GeneratePatchForUnchangedLine(gitRepo, commitID, treePath, line, setting.UI.CodeCommentLines)
+		if patch == "" && beforeCommitID != "" {
+			patch, err = gitdiff.GeneratePatchForUnchangedLine(gitRepo, beforeCommitID, treePath, line, setting.UI.CodeCommentLines)
 			if err != nil {
 				// Log the error but don't fail comment creation
-				log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, commitID, err)
+				log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, beforeCommitID, err)
 			}
 		}
-	}
-	return issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
-		Type:        issues_model.CommentTypeCode,
-		Doer:        doer,
-		Repo:        repo,
-		Issue:       issue,
-		Content:     content,
-		LineNum:     line,
-		TreePath:    treePath,
-		CommitSHA:   commitID,
-		ReviewID:    reviewID,
-		Patch:       patch,
-		Invalidated: invalidated,
-		Attachments: attachments,
+
+		// The line commit ID Must be referenced in the git repository, because the branch maybe rebased or force-pushed.
+		// If the review commit is GC, the position can not be calculated dynamically.
+		if err := gitrepo.UpdateRef(ctx, pr.BaseRepo, issues_model.GetCodeCommentRefName(pr.Index, comment.ID, "before"), beforeCommitID); err != nil {
+			log.Error("Unable to update ref before_commitid in base repository for PR[%d] Error: %v", pr.ID, err)
+			return nil, err
+		}
+		if err := gitrepo.UpdateRef(ctx, pr.BaseRepo, issues_model.GetCodeCommentRefName(pr.Index, comment.ID, "after"), afterCommitID); err != nil {
+			log.Error("Unable to update ref after_commitid in base repository for PR[%d] Error: %v", pr.ID, err)
+			return nil, err
+		}
+
+		return comment, nil
 	})
 }
 
@@ -352,15 +368,13 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 
 	notify_service.PullRequestReview(ctx, pr, review, comm, mentions)
 
-	for _, lines := range review.CodeComments {
-		for _, comments := range lines {
-			for _, codeComment := range comments {
-				mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, doer, codeComment.Content)
-				if err != nil {
-					return nil, nil, err
-				}
-				notify_service.PullRequestCodeComment(ctx, pr, codeComment, mentions)
+	for _, fileComments := range review.CodeComments {
+		for _, codeComment := range fileComments {
+			mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, doer, codeComment.Content)
+			if err != nil {
+				return nil, nil, err
 			}
+			notify_service.PullRequestCodeComment(ctx, pr, codeComment, mentions)
 		}
 	}
 
@@ -494,4 +508,196 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	notify_service.PullReviewDismiss(ctx, doer, review, comment)
 
 	return comment, nil
+}
+
+// ReCalculateLineNumber recalculates the line number based on the hunks of the diff.
+// left side is the commit the comment was created on, right side is the commit the comment is displayed on.
+// If the returned line number is zero, it should not be displayed.
+func ReCalculateLineNumber(hunks []*git.HunkInfo, leftLine int64) int64 {
+	if len(hunks) == 0 || leftLine == 0 {
+		return leftLine
+	}
+
+	isLeft := leftLine < 0
+	absLine := leftLine
+	if isLeft {
+		absLine = -leftLine
+	}
+	newLine := absLine
+
+	for _, hunk := range hunks {
+		if absLine < hunk.LeftLine {
+			// The line is before the hunk, so we can ignore it
+			continue
+		} else if hunk.LeftLine <= absLine && absLine < hunk.LeftLine+hunk.LeftHunk {
+			// The line is within the hunk, that means the line is deleted from the current commit
+			// So that we don't need to display this line
+			return 0
+		}
+		// The line is after the hunk, so we can add the right hunk size
+		newLine += hunk.RightHunk - hunk.LeftHunk
+	}
+	return util.Iif(isLeft, -newLine, newLine)
+}
+
+// FetchCodeCommentsByLine fetches the code comments for a given commit, treePath and line number of a pull request.
+func FetchCodeCommentsByLine(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, issueID int64, currentUser *user_model.User, beforeCommitID, afterCommitID, treePath string, line int64, showOutdatedComments bool) (issues_model.CommentList, error) {
+	opts := issues_model.FindCommentsOptions{
+		Type:     issues_model.CommentTypeCode,
+		IssueID:  issueID,
+		TreePath: treePath,
+	}
+	// load all the comments on this file and then filter them by line number
+	// we cannot use the line number in the options because some comments's line number may have changed
+	comments, err := issues_model.FindCodeComments(ctx, opts, repo, currentUser, nil, showOutdatedComments)
+	if err != nil {
+		return nil, fmt.Errorf("FindCodeComments: %w", err)
+	}
+	if len(comments) == 0 {
+		return nil, nil
+	}
+	afterCommit, err := gitRepo.GetCommit(afterCommitID)
+	if err != nil {
+		return nil, fmt.Errorf("GetCommit[%s]: %w", afterCommitID, err)
+	}
+	n := 0
+	hunksCache := make(map[string][]*git.HunkInfo)
+	for _, comment := range comments {
+		// Code comment should always have a commit SHA, if not, we need to set it based on the line number
+		if comment.BeforeCommitID == "" {
+			comment.BeforeCommitID = beforeCommitID
+		}
+		if comment.CommitSHA == "" {
+			comment.CommitSHA = afterCommitID
+		}
+
+		dstCommitID := beforeCommitID
+		commentCommitID := comment.BeforeCommitID
+		if comment.Line > 0 {
+			dstCommitID = afterCommitID
+			commentCommitID = comment.CommitSHA
+		}
+
+		if commentCommitID != dstCommitID {
+			// If the comment is not for the current commit, we need to recalculate the line number
+			hunks, ok := hunksCache[commentCommitID+".."+dstCommitID]
+			if !ok {
+				hunks, err = git.GetAffectedHunksForTwoCommitsSpecialFile(ctx, repo.RepoPath(), commentCommitID, dstCommitID, treePath)
+				if err != nil {
+					return nil, fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s]: %w", repo.FullName(), commentCommitID, dstCommitID, err)
+				}
+				hunksCache[commentCommitID+".."+dstCommitID] = hunks
+			}
+			comment.Line = ReCalculateLineNumber(hunks, comment.Line)
+		}
+
+		if comment.Line == line {
+			commentAfterCommit, err := gitRepo.GetCommit(comment.CommitSHA)
+			if err != nil {
+				return nil, fmt.Errorf("GetCommit[%s]: %w", comment.CommitSHA, err)
+			}
+
+			// If the comment is not the first one or the comment created before the current commit
+			if n > 0 || comment.CommitSHA == afterCommitID ||
+				commentAfterCommit.Committer.When.Before(afterCommit.Committer.When) {
+				comments[n] = comment
+				n++
+			}
+		}
+	}
+	return comments[:n], nil
+}
+
+// LoadCodeComments loads comments into each line, so that the comments can be displayed in the diff view.
+// the comments' line number is recalculated based on the hunks of the diff.
+func LoadCodeComments(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository,
+	diff *gitdiff.Diff, issueID int64, currentUser *user_model.User,
+	beforeCommit, afterCommit *git.Commit, showOutdatedComments bool,
+) error {
+	if beforeCommit == nil || afterCommit == nil {
+		return errors.New("startCommit and endCommit cannot be nil")
+	}
+
+	allComments, err := issues_model.FetchCodeComments(ctx, repo, issueID, currentUser, showOutdatedComments)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range diff.Files {
+		if fileComments, ok := allComments[file.Name]; ok {
+			lineComments, err := RecaculateCommentLineNumbers(ctx, file.Name, fileComments, repo, gitRepo, beforeCommit, afterCommit)
+			if err != nil {
+				return err
+			}
+
+			for _, section := range file.Sections {
+				AttachCommentsToLines(section, lineComments)
+			}
+		}
+	}
+	return nil
+}
+
+func RecaculateCommentLineNumbers(ctx context.Context, fileName string, fileComments issues_model.CommentList, repo *repo_model.Repository, gitRepo *git.Repository, beforeCommit, afterCommit *git.Commit) (map[int64][]*issues_model.Comment, error) {
+	lineComments := make(map[int64][]*issues_model.Comment)
+	hunksCache := make(map[string][]*git.HunkInfo)
+	// filecomments should be sorted by created time, so that the latest comments are at the end
+	for _, comment := range fileComments {
+		if comment.BeforeCommitID == "" {
+			comment.BeforeCommitID = beforeCommit.ID.String()
+		}
+		if comment.CommitSHA == "" {
+			comment.CommitSHA = afterCommit.ID.String()
+		}
+
+		dstCommitID := beforeCommit.ID.String()
+		commentCommitID := comment.BeforeCommitID
+		if comment.Line > 0 {
+			dstCommitID = afterCommit.ID.String()
+			commentCommitID = comment.CommitSHA
+		}
+
+		if commentCommitID != dstCommitID {
+			// If the comment is not for the current commit, we need to recalculate the line number
+			hunks, ok := hunksCache[commentCommitID+".."+dstCommitID]
+			if !ok {
+				var err error
+				hunks, err = git.GetAffectedHunksForTwoCommitsSpecialFile(ctx, repo.RepoPath(), commentCommitID, dstCommitID, fileName)
+				if err != nil {
+					return nil, fmt.Errorf("GetAffectedHunksForTwoCommitsSpecialFile[%s, %s, %s]: %w", repo.FullName(), commentCommitID, dstCommitID, err)
+				}
+				hunksCache[commentCommitID+".."+dstCommitID] = hunks
+			}
+			comment.Line = ReCalculateLineNumber(hunks, comment.Line)
+		}
+
+		if comment.Line != 0 {
+			commentAfterCommit, err := gitRepo.GetCommit(comment.CommitSHA)
+			if err != nil {
+				return nil, fmt.Errorf("GetCommit[%s]: %w", comment.CommitSHA, err)
+			}
+			// If the comment is not the first one or the comment created before the current commit
+			if lineComments[comment.Line] != nil || comment.CommitSHA == afterCommit.ID.String() ||
+				commentAfterCommit.Committer.When.Before(afterCommit.Committer.When) {
+				lineComments[comment.Line] = append(lineComments[comment.Line], comment)
+			}
+		}
+	}
+	return lineComments, nil
+}
+
+func AttachCommentsToLines(section *gitdiff.DiffSection, lineComments map[int64][]*issues_model.Comment) {
+	for _, line := range section.Lines {
+		if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
+			line.Comments = append(line.Comments, comments...)
+		}
+		if comments, ok := lineComments[int64(line.RightIdx)]; ok {
+			line.Comments = append(line.Comments, comments...)
+		}
+		sort.SliceStable(line.Comments, func(i, j int) bool {
+			return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+		})
+		// Mark expand buttons that have comments in hidden lines
+		gitdiff.FillHiddenCommentIDsForDiffLine(line, lineComments)
+	}
 }

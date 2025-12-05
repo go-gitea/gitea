@@ -9,6 +9,9 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/services/gitdiff"
 	pull_service "code.gitea.io/gitea/services/pull"
 
 	"github.com/stretchr/testify/assert"
@@ -44,4 +47,117 @@ func TestDismissReview(t *testing.T) {
 	_, err = pull_service.DismissReview(t.Context(), review.ID, issue.RepoID, "", &user_model.User{}, false, false)
 	assert.Error(t, err)
 	assert.True(t, pull_service.IsErrDismissRequestOnClosedPR(err))
+}
+
+func setupDefaultDiff() *gitdiff.Diff {
+	return &gitdiff.Diff{
+		Files: []*gitdiff.DiffFile{
+			{
+				Name: "README.md",
+				Sections: []*gitdiff.DiffSection{
+					{
+						Lines: []*gitdiff.DiffLine{
+							{
+								LeftIdx:  4,
+								RightIdx: 4,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func TestDiff_LoadCommentsNoOutdated(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	diff := setupDefaultDiff()
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+	assert.NoError(t, issue.LoadPullRequest(t.Context()))
+
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), issue.Repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+	beforeCommit, err := gitRepo.GetCommit(issue.PullRequest.MergeBase)
+	assert.NoError(t, err)
+	afterCommit, err := gitRepo.GetCommit(issue.PullRequest.GetGitHeadRefName())
+	assert.NoError(t, err)
+
+	assert.NoError(t, pull_service.LoadCodeComments(t.Context(), gitRepo, issue.Repo, diff, issue.ID, user, beforeCommit, afterCommit, false))
+	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
+}
+
+func TestDiff_LoadCommentsWithOutdated(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	assert.NoError(t, issue.LoadRepo(t.Context()))
+	assert.NoError(t, issue.LoadPullRequest(t.Context()))
+
+	diff := setupDefaultDiff()
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), issue.Repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+	startCommit, err := gitRepo.GetCommit(issue.PullRequest.MergeBase)
+	assert.NoError(t, err)
+	endCommit, err := gitRepo.GetCommit(issue.PullRequest.GetGitHeadRefName())
+	assert.NoError(t, err)
+
+	assert.NoError(t, pull_service.LoadCodeComments(t.Context(), gitRepo, issue.Repo, diff, issue.ID, user, startCommit, endCommit, true))
+	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 3)
+}
+
+func Test_reCalculateLineNumber(t *testing.T) {
+	hunks := []*git.HunkInfo{
+		{
+			LeftLine:  0,
+			LeftHunk:  0,
+			RightLine: 1,
+			RightHunk: 3,
+		},
+	}
+	assert.EqualValues(t, 6, pull_service.ReCalculateLineNumber(hunks, 3))
+
+	hunks = []*git.HunkInfo{
+		{
+			LeftLine:  1,
+			LeftHunk:  4,
+			RightLine: 1,
+			RightHunk: 4,
+		},
+	}
+	assert.EqualValues(t, 0, pull_service.ReCalculateLineNumber(hunks, 4))
+	assert.EqualValues(t, 5, pull_service.ReCalculateLineNumber(hunks, 5))
+	assert.EqualValues(t, 0, pull_service.ReCalculateLineNumber(hunks, -1))
+}
+
+func TestAttachCommentsToLines(t *testing.T) {
+	section := &gitdiff.DiffSection{
+		Lines: []*gitdiff.DiffLine{
+			{LeftIdx: 5, RightIdx: 10},
+			{LeftIdx: 6, RightIdx: 11},
+		},
+	}
+
+	lineComments := map[int64][]*issues_model.Comment{
+		-5: {{ID: 100, CreatedUnix: 1000}},                               // left side comment
+		10: {{ID: 200, CreatedUnix: 2000}},                               // right side comment
+		11: {{ID: 300, CreatedUnix: 1500}, {ID: 301, CreatedUnix: 2500}}, // multiple comments
+	}
+
+	pull_service.AttachCommentsToLines(section, lineComments)
+
+	// First line should have left and right comments
+	assert.Len(t, section.Lines[0].Comments, 2)
+	assert.Equal(t, int64(100), section.Lines[0].Comments[0].ID)
+	assert.Equal(t, int64(200), section.Lines[0].Comments[1].ID)
+
+	// Second line should have two comments, sorted by creation time
+	assert.Len(t, section.Lines[1].Comments, 2)
+	assert.Equal(t, int64(300), section.Lines[1].Comments[0].ID)
+	assert.Equal(t, int64(301), section.Lines[1].Comments[1].ID)
 }
