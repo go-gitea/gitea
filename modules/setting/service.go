@@ -48,11 +48,6 @@ var Service = struct {
 	EnableNotifyMail                        bool
 	EnableBasicAuth                         bool
 	EnablePasskeyAuth                       bool
-	EnableReverseProxyAuth                  bool
-	EnableReverseProxyAuthAPI               bool
-	EnableReverseProxyAutoRegister          bool
-	EnableReverseProxyEmail                 bool
-	EnableReverseProxyFullName              bool
 	EnableCaptcha                           bool
 	RequireCaptchaForLogin                  bool
 	RequireExternalRegistrationCaptcha      bool
@@ -182,11 +177,6 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	Service.EnableBasicAuth = sec.Key("ENABLE_BASIC_AUTHENTICATION").MustBool(true)
 	Service.EnablePasswordSignInForm = sec.Key("ENABLE_PASSWORD_SIGNIN_FORM").MustBool(true)
 	Service.EnablePasskeyAuth = sec.Key("ENABLE_PASSKEY_AUTHENTICATION").MustBool(true)
-	Service.EnableReverseProxyAuth = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION").MustBool()
-	Service.EnableReverseProxyAuthAPI = sec.Key("ENABLE_REVERSE_PROXY_AUTHENTICATION_API").MustBool()
-	Service.EnableReverseProxyAutoRegister = sec.Key("ENABLE_REVERSE_PROXY_AUTO_REGISTRATION").MustBool()
-	Service.EnableReverseProxyEmail = sec.Key("ENABLE_REVERSE_PROXY_EMAIL").MustBool()
-	Service.EnableReverseProxyFullName = sec.Key("ENABLE_REVERSE_PROXY_FULL_NAME").MustBool()
 	Service.EnableCaptcha = sec.Key("ENABLE_CAPTCHA").MustBool(false)
 	Service.RequireCaptchaForLogin = sec.Key("REQUIRE_CAPTCHA_FOR_LOGIN").MustBool(false)
 	Service.RequireExternalRegistrationCaptcha = sec.Key("REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA").MustBool(Service.EnableCaptcha)
