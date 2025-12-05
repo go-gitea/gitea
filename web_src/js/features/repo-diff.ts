@@ -11,6 +11,7 @@ import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom, sleep} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {parseDiffHashRange, highlightDiffSelectionFromHash, initDiffLineSelection} from './repo-diff-selection.ts';
 
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -149,12 +150,14 @@ function initDiffHeaderPopup() {
 }
 
 // Will be called when the show more (files) button has been pressed
-function onShowMoreFiles() {
+async function onShowMoreFiles() {
   // TODO: replace these calls with the "observer.ts" methods
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
   initImageDiff();
   initDiffHeaderPopup();
+  // Re-apply hash selection in case the target was just loaded
+  await highlightDiffSelectionFromHash();
 }
 
 async function loadMoreFiles(btn: Element): Promise<boolean> {
@@ -225,19 +228,45 @@ async function onLocationHashChange() {
   const attrAutoScrollRunning = 'data-auto-scroll-running';
   if (document.body.hasAttribute(attrAutoScrollRunning)) return;
 
-  const targetElementId = currentHash.substring(1);
-  while (currentHash === window.location.hash) {
-    // use getElementById to avoid querySelector throws an error when the hash is invalid
-    // eslint-disable-next-line unicorn/prefer-query-selector
-    const targetElement = document.getElementById(targetElementId);
-    if (targetElement) {
-      // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
-      targetElement.scrollIntoView();
-      document.body.setAttribute(attrAutoScrollRunning, 'true');
-      window.location.hash = '';
-      window.location.hash = currentHash;
-      setTimeout(() => document.body.removeAttribute(attrAutoScrollRunning), 0);
+  // Check if this is a diff line selection hash (e.g., #diff-xxxL10 or #diff-xxxL10-R20)
+  const hashValue = currentHash.substring(1);
+  const range = parseDiffHashRange(hashValue);
+  if (range) {
+    // This is a line selection hash, try to highlight it first
+    const success = await highlightDiffSelectionFromHash();
+    if (success) {
+      // Successfully highlighted and scrolled, we're done
       return;
+    }
+    // If not successful, fall through to load more files
+  }
+
+  const targetElementId = hashValue;
+  while (currentHash === window.location.hash) {
+    // For line selections, check the range-based target
+    let targetElement;
+    if (range) {
+      const targetId = `${range.fragment}${range.startSide}${range.startLine}`;
+      // eslint-disable-next-line unicorn/prefer-query-selector
+      targetElement = document.getElementById(targetId);
+      if (targetElement) {
+        // Try again to highlight and scroll now that the element is loaded
+        await highlightDiffSelectionFromHash();
+        return;
+      }
+    } else {
+      // use getElementById to avoid querySelector throws an error when the hash is invalid
+      // eslint-disable-next-line unicorn/prefer-query-selector
+      targetElement = document.getElementById(targetElementId);
+      if (targetElement) {
+        // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
+        targetElement.scrollIntoView();
+        document.body.setAttribute(attrAutoScrollRunning, 'true');
+        window.location.hash = '';
+        window.location.hash = currentHash;
+        setTimeout(() => document.body.removeAttribute(attrAutoScrollRunning), 0);
+        return;
+      }
     }
 
     // If looking for a hidden comment, try to expand the section that contains it
@@ -284,6 +313,7 @@ export function initRepoDiffView() {
   initDiffHeaderPopup();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
+  initDiffLineSelection();
   initRepoDiffHashChangeListener();
 
   registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
