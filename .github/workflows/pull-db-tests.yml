@@ -51,7 +51,7 @@ jobs:
           TAGS: bindata
       - name: run tests
         run: make test-pgsql
-        timeout-minutes: 50
+        timeout-minutes: 75
         env:
           TAGS: bindata gogit
           RACE_ENABLED: true
