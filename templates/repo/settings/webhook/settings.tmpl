@@ -80,6 +80,7 @@
 	</div>
 
 	<div class="events fields ui grid {{if not .Webhook.ChooseEvents}}tw-hidden{{end}}">
+		<!-- Repository Events -->
 		<div class="fourteen wide column">
 			<div class="field">
 				<button type="button" class="ui tiny button" id="event-select-all">
@@ -90,7 +91,6 @@
 				</button>
 			</div>
 		</div>
-		<!-- Repository Events -->
 		<div class="fourteen wide column">
 			<label>{{ctx.Locale.Tr "repo.settings.event_header_repository"}}</label>
 		</div>
@@ -364,20 +364,3 @@
 		>{{ctx.Locale.Tr "repo.settings.delete_webhook"}}</a>
 	{{end}}
 </div>
-
-<script>
-	(function () {
-		const section = document.querySelector('.events.fields.ui.grid');
-		if (!section) return;
-
-		const all = section.querySelectorAll('input[type="checkbox"]');
-
-		document.getElementById('event-select-all')?.addEventListener('click', () => {
-			all.forEach(i => { i.checked = true; });
-		});
-
-		document.getElementById('event-deselect-all')?.addEventListener('click', () => {
-			all.forEach(i => { i.checked = false; });
-		});
-	})();
-</script>

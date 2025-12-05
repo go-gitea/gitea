@@ -22,6 +22,19 @@ export function initCompWebHookEditor() {
     });
   }
 
+  const section = document.querySelector('.events.fields.ui.grid');
+  if (section) {
+    const checkboxes = section.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+
+    document.querySelector('#event-select-all')?.addEventListener('click', () => {
+      for (const i of checkboxes) { i.checked = true }
+    });
+
+    document.querySelector('#event-deselect-all')?.addEventListener('click', () => {
+      for (const i of checkboxes) { i.checked = false }
+    });
+  }
+
   // some webhooks (like Gitea) allow to set the request method (GET/POST), and it would toggle the "Content Type" field
   const httpMethodInput = document.querySelector<HTMLInputElement>('#http_method');
   if (httpMethodInput) {
