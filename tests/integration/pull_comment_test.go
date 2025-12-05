@@ -13,8 +13,8 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
-
 	pull_service "code.gitea.io/gitea/services/pull"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

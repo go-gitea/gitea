@@ -105,7 +105,7 @@ type CachedCommit struct {
 	TrustStatus              string
 }
 
-func convertCachedCommitsToGitCommits(cachedCommits []CachedCommit, repo *repo_model.Repository) []*asymkey_model.SignCommit {
+func convertCachedCommitsToGitCommits(cachedCommits []CachedCommit) []*asymkey_model.SignCommit {
 	var gitCommits []*asymkey_model.SignCommit
 	for _, cc := range cachedCommits {
 		objectID := git.MustIDFromString(cc.CommitID)
@@ -280,7 +280,7 @@ func LoadCommentPushCommits(ctx context.Context, c *issues_model.Comment) error 
 		defer closer.Close()
 
 		if data.CachedCommits != nil {
-			convertedCommits := convertCachedCommitsToGitCommits(data.CachedCommits, c.Issue.Repo)
+			convertedCommits := convertCachedCommitsToGitCommits(data.CachedCommits)
 			c.Commits, err = git_service.ParseCommitsWithStatus(ctx, convertedCommits, c.Issue.Repo)
 		} else {
 			c.Commits, err = git_service.ConvertFromGitCommit(ctx, gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
