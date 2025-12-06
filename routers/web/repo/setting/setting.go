@@ -554,6 +554,18 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		}
 	}
 
+	// Update DefaultWikiFormat if wiki is enabled
+	if form.EnableWiki && !form.EnableExternalWiki {
+		defaultWikiFormat := form.DefaultWikiFormat
+		if defaultWikiFormat == "" {
+			defaultWikiFormat = setting.Repository.DefaultWikiFormat
+		}
+		if repo.DefaultWikiFormat != defaultWikiFormat {
+			repo.DefaultWikiFormat = defaultWikiFormat
+			repoChanged = true
+		}
+	}
+
 	if form.EnableIssues && form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 		if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))

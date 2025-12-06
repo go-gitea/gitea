@@ -37,7 +37,7 @@ func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.
 	entries, err := commit.ListEntries()
 	assert.NoError(t, err)
 	for _, entry := range entries {
-		if entry.Name() == wiki_service.WebPathToGitPath(wikiName) {
+		if entry.Name() == wiki_service.WebPathToGitPath(wikiName, repo.DefaultWikiFormat) {
 			return entry
 		}
 	}
