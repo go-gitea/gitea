@@ -206,6 +206,47 @@ func SignInOAuthCallback(ctx *context.Context) {
 				ctx.ServerError("SyncGroupsToTeams", err)
 				return
 			}
+		} else if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
+			// allow ACCOUNT_LINKING=auto to work without ENABLE_AUTO_REGISTRATION.
+			user := &user_model.User{Email: gothUser.Email}
+			hasUser, err := user_model.GetUser(ctx, user)
+			if err != nil {
+				ctx.ServerError("UserLinkAccount", err)
+				return
+			}
+
+			if hasUser {
+				if user.ProhibitLogin || !user.IsActive {
+					log.Info("Failed authentication attempt for %s from %s: user has disabled sign-in", user.Name, ctx.RemoteAddr())
+					ctx.Flash.Error(ctx.Tr("auth.prohibit_login"))
+					ctx.Redirect(setting.AppSubURL + "/user/login")
+					return
+				}
+				if err := externalaccount.LinkAccountToUser(ctx, authSource.ID, user, gothUser); err != nil {
+					ctx.ServerError("LinkAccountToUser", err)
+					return
+				}
+
+				userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, user.ID)
+				if err != nil {
+					ctx.ServerError("HasTwoFactorOrWebAuthn", err)
+					return
+				}
+				if err := updateSession(ctx, nil, map[string]any{
+					session.KeyUID:                  user.ID,
+					session.KeyUname:                user.Name,
+					session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
+				}); err != nil {
+					ctx.ServerError("updateSession", err)
+					return
+				}
+				ctx.Csrf.PrepareForSessionUser(ctx)
+				ctx.Redirect(setting.AppSubURL + "/")
+				return
+			}
+
+			showLinkingLogin(ctx, authSource.ID, gothUser)
+			return
 		} else {
 			// no existing user is found, request attach or new account
 			showLinkingLogin(ctx, authSource.ID, gothUser)
