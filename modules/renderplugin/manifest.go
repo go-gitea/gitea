@@ -4,7 +4,7 @@
 package renderplugin
 
 import (
-	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -33,7 +34,7 @@ type Manifest struct {
 // Normalize validates mandatory fields and normalizes values.
 func (m *Manifest) Normalize() error {
 	if m.SchemaVersion == 0 {
-		return fmt.Errorf("manifest schemaVersion is required")
+		return errors.New("manifest schemaVersion is required")
 	}
 	if m.SchemaVersion != SupportedManifestVersion {
 		return fmt.Errorf("manifest schemaVersion %d is not supported", m.SchemaVersion)
@@ -44,11 +45,11 @@ func (m *Manifest) Normalize() error {
 	}
 	m.Name = strings.TrimSpace(m.Name)
 	if m.Name == "" {
-		return fmt.Errorf("manifest name is required")
+		return errors.New("manifest name is required")
 	}
 	m.Version = strings.TrimSpace(m.Version)
 	if m.Version == "" {
-		return fmt.Errorf("manifest version is required")
+		return errors.New("manifest version is required")
 	}
 	if m.Entry == "" {
 		m.Entry = "render.js"
@@ -66,7 +67,7 @@ func (m *Manifest) Normalize() error {
 		cleanPatterns = append(cleanPatterns, pattern)
 	}
 	if len(cleanPatterns) == 0 {
-		return fmt.Errorf("manifest must declare at least one file pattern")
+		return errors.New("manifest must declare at least one file pattern")
 	}
 	sort.Strings(cleanPatterns)
 	m.FilePatterns = cleanPatterns
@@ -93,13 +94,13 @@ func LoadManifest(dir string) (*Manifest, error) {
 
 // Metadata is the public information exposed to the frontend for an enabled plugin.
 type Metadata struct {
-	ID           string   `json:"id"`
-	Name         string   `json:"name"`
-	Version      string   `json:"version"`
-	Description  string   `json:"description"`
-	Entry        string   `json:"entry"`
-	EntryURL     string   `json:"entryUrl"`
-	AssetsBase   string   `json:"assetsBaseUrl"`
-	FilePatterns []string `json:"filePatterns"`
-	SchemaVersion int     `json:"schemaVersion"`
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Version       string   `json:"version"`
+	Description   string   `json:"description"`
+	Entry         string   `json:"entry"`
+	EntryURL      string   `json:"entryUrl"`
+	AssetsBase    string   `json:"assetsBaseUrl"`
+	FilePatterns  []string `json:"filePatterns"`
+	SchemaVersion int      `json:"schemaVersion"`
 }

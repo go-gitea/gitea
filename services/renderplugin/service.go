@@ -109,14 +109,14 @@ func BuildMetadata(ctx context.Context) ([]renderplugin.Metadata, error) {
 		}
 		assetsBase := base + plug.Identifier + "/"
 		metas = append(metas, renderplugin.Metadata{
-			ID:           plug.Identifier,
-			Name:         plug.Name,
-			Version:      plug.Version,
-			Description:  plug.Description,
-			Entry:        plug.Entry,
-			EntryURL:     assetsBase + plug.Entry,
-			AssetsBase:   assetsBase,
-			FilePatterns: append([]string(nil), plug.FilePatterns...),
+			ID:            plug.Identifier,
+			Name:          plug.Name,
+			Version:       plug.Version,
+			Description:   plug.Description,
+			Entry:         plug.Entry,
+			EntryURL:      assetsBase + plug.Entry,
+			AssetsBase:    assetsBase,
+			FilePatterns:  append([]string(nil), plug.FilePatterns...),
 			SchemaVersion: plug.FormatVersion,
 		})
 	}
@@ -216,7 +216,7 @@ func findManifest(root string) (string, error) {
 		}
 		if strings.EqualFold(d.Name(), "manifest.json") {
 			if manifestPath != "" {
-				return fmt.Errorf("multiple manifest.json files found")
+				return errors.New("multiple manifest.json files found")
 			}
 			manifestPath = path
 		}
@@ -257,7 +257,7 @@ func uploadPluginDir(identifier, src string) error {
 			return nil
 		}
 		if d.Type()&os.ModeSymlink != 0 {
-			return fmt.Errorf("symlinks are not supported inside plugin archives")
+			return errors.New("symlinks are not supported inside plugin archives")
 		}
 		rel, err := filepath.Rel(src, path)
 		if err != nil {

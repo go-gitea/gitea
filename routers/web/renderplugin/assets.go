@@ -4,12 +4,12 @@
 package renderplugin
 
 import (
-	"encoding/json"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/renderplugin"
 	"code.gitea.io/gitea/modules/setting"
