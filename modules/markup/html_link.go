@@ -33,7 +33,7 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 		// Of text and link contents
 		sl := strings.SplitSeq(content, "|")
 		for v := range sl {
-			if equalPos := strings.IndexByte(v, '='); equalPos == -1 {
+			if found := strings.Contains(v, "="); !found {
 				// There is no equal in this argument; this is a mandatory arg
 				if props["name"] == "" {
 					if IsFullURLString(v) {
@@ -55,8 +55,8 @@ func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 			} else {
 				// There is an equal; optional argument.
 
-				sep := strings.IndexByte(v, '=')
-				key, val := v[:sep], html.UnescapeString(v[sep+1:])
+				before, after, _ := strings.Cut(v, "=")
+				key, val := before, html.UnescapeString(after)
 
 				// When parsing HTML, x/net/html will change all quotes which are
 				// not used for syntax into UTF-8 quotes. So checking val[0] won't

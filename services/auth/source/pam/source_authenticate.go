@@ -35,9 +35,9 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	// Allow PAM sources with `@` in their name, like from Active Directory
 	username := pamLogin
 	email := pamLogin
-	idx := strings.Index(pamLogin, "@")
-	if idx > -1 {
-		username = pamLogin[:idx]
+	before, _, ok := strings.Cut(pamLogin, "@")
+	if ok {
+		username = before
 	}
 	if user_model.ValidateEmail(email) != nil {
 		if source.EmailDomain != "" {

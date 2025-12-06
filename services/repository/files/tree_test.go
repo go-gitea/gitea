@@ -67,13 +67,13 @@ func TestGetTreeViewNodes(t *testing.T) {
 	curRepoLink := "/any/repo-link"
 	renderedIconPool := fileicon.NewRenderedIconPool()
 	mockIconForFile := func(id string) template.HTML {
-		return template.HTML(`<svg class="svg git-entry-icon octicon-file" width="16" height="16" aria-hidden="true"><use xlink:href="#` + id + `"></use></svg>`)
+		return template.HTML(`<svg class="svg git-entry-icon octicon-file" width="16" height="16" aria-hidden="true"><use href="#` + id + `"></use></svg>`)
 	}
 	mockIconForFolder := func(id string) template.HTML {
-		return template.HTML(`<svg class="svg git-entry-icon octicon-file-directory-fill" width="16" height="16" aria-hidden="true"><use xlink:href="#` + id + `"></use></svg>`)
+		return template.HTML(`<svg class="svg git-entry-icon octicon-file-directory-fill" width="16" height="16" aria-hidden="true"><use href="#` + id + `"></use></svg>`)
 	}
 	mockOpenIconForFolder := func(id string) template.HTML {
-		return template.HTML(`<svg class="svg git-entry-icon octicon-file-directory-open-fill" width="16" height="16" aria-hidden="true"><use xlink:href="#` + id + `"></use></svg>`)
+		return template.HTML(`<svg class="svg git-entry-icon octicon-file-directory-open-fill" width="16" height="16" aria-hidden="true"><use href="#` + id + `"></use></svg>`)
 	}
 	treeNodes, err := GetTreeViewNodes(ctx, curRepoLink, renderedIconPool, ctx.Repo.Commit, "", "")
 	assert.NoError(t, err)

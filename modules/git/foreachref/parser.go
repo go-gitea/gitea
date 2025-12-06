@@ -113,10 +113,10 @@ func (p *Parser) parseRef(refBlock string) (map[string]string, error) {
 
 		var fieldKey string
 		var fieldVal string
-		firstSpace := strings.Index(field, " ")
-		if firstSpace > 0 {
-			fieldKey = field[:firstSpace]
-			fieldVal = field[firstSpace+1:]
+		before, after, ok := strings.Cut(field, " ")
+		if ok {
+			fieldKey = before
+			fieldVal = after
 		} else {
 			// could be the case if the requested field had no value
 			fieldKey = field
