@@ -4,7 +4,7 @@ export function newRenderPluginPdfViewer(): FileRenderPlugin {
   return {
     name: 'pdf-viewer',
 
-    canHandle(filename: string, _mimeType: string): boolean {
+    canHandle(filename: string, _mimeType: string, _headChunk?: Uint8Array | null): boolean {
       return filename.toLowerCase().endsWith('.pdf');
     },
 

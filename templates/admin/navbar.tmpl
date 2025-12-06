@@ -38,6 +38,9 @@
 						{{ctx.Locale.Tr "packages.title"}}
 					</a>
 				{{end}}
+				<a class="{{if .PageIsAdminRenderPlugins}}active {{end}}item" href="{{AppSubUrl}}/-/admin/render-plugins">
+					{{ctx.Locale.Tr "admin.render_plugins"}}
+				</a>
 				<a class="{{if .PageIsAdminRepositories}}active {{end}}item" href="{{AppSubUrl}}/-/admin/repos">
 					{{ctx.Locale.Tr "admin.repositories"}}
 				</a>

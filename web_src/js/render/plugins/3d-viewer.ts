@@ -40,7 +40,7 @@ export function newRenderPlugin3DViewer(): FileRenderPlugin {
   return {
     name: '3d-model-viewer',
 
-    canHandle(filename: string, _mimeType: string): boolean {
+    canHandle(filename: string, _mimeType: string, _headChunk?: Uint8Array | null): boolean {
       const ext = extname(filename).toLowerCase();
       return SUPPORTED_EXTENSIONS.includes(ext);
     },

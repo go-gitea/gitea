@@ -1,5 +1,6 @@
 <div {{if .ReadmeInList}}id="readme"{{end}} class="{{TabSizeClass .Editorconfig .FileTreePath}} non-diff-file-content"
-	data-global-init="initRepoFileView" data-raw-file-link="{{.RawFileLink}}">
+	data-global-init="initRepoFileView" data-raw-file-link="{{.RawFileLink}}"
+	data-mime-type="{{.RenderFileMimeType}}"{{if .RenderFileHeadChunk}} data-head-chunk="{{.RenderFileHeadChunk}}"{{end}}>
 
 	{{- if .FileError}}
 		<div class="ui error message">
