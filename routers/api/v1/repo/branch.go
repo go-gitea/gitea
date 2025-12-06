@@ -6,6 +6,7 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -26,6 +27,8 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
+
+	"github.com/jinzhu/copier"
 )
 
 // GetBranch get a branch of a repository
@@ -203,6 +206,62 @@ func CreateBranch(ctx *context.APIContext) {
 	//   "423":
 	//     "$ref": "#/responses/repoArchivedError"
 
+	optCreate := web.GetForm(ctx).(*api.CreateBranchRepoOption)
+	opt := api.UpdateBranchRepoOption{}
+	err := copier.Copy(&opt, optCreate)
+	if err != nil {
+		ctx.APIError(http.StatusInternalServerError, fmt.Sprintf("Error processing request %s.", err))
+		return
+	}
+
+	CreateUpdateRepoBranch(ctx, &opt)
+}
+
+// UpdateBranch update (reset) a branch in a user's repository
+func UpdateBranch(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/branches repository repoUpdateBranch
+	// ---
+	// summary: Update a branch
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/UpdateBranchRepoOption"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Branch"
+	//   "403":
+	//     description: The branch is archived or a mirror.
+	//   "404":
+	//     description: The branch does not exist.
+	//   "409":
+	//     description: The branch SHA does not match.
+	//   "423":
+	//     "$ref": "#/responses/repoArchivedError"
+
+	opt := web.GetForm(ctx).(*api.UpdateBranchRepoOption)
+
+	CreateUpdateRepoBranch(ctx, opt)
+}
+
+func CreateUpdateRepoBranch(ctx *context.APIContext, opt *api.UpdateBranchRepoOption) {
+	var oldCommit *git.Commit
+	var err error
+
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.APIError(http.StatusNotFound, "Git Repository is empty.")
 		return
@@ -212,11 +271,6 @@ func CreateBranch(ctx *context.APIContext) {
 		ctx.APIError(http.StatusForbidden, "Git Repository is a mirror.")
 		return
 	}
-
-	opt := web.GetForm(ctx).(*api.CreateBranchRepoOption)
-
-	var oldCommit *git.Commit
-	var err error
 
 	if len(opt.OldRefName) > 0 {
 		oldCommit, err = ctx.Repo.GitRepo.GetCommit(opt.OldRefName)
@@ -243,14 +297,16 @@ func CreateBranch(ctx *context.APIContext) {
 		}
 	}
 
-	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
+	err = repo_service.CreateUpdateBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName, opt.SHA)
 	if err != nil {
 		if git_model.IsErrBranchNotExist(err) {
 			ctx.APIError(http.StatusNotFound, "The old branch does not exist")
 		} else if release_service.IsErrTagAlreadyExists(err) {
 			ctx.APIError(http.StatusConflict, "The branch with the same tag already exists.")
-		} else if git_model.IsErrBranchAlreadyExists(err) || git.IsErrPushOutOfDate(err) {
+		} else if git_model.IsErrBranchAlreadyExists(err) {
 			ctx.APIError(http.StatusConflict, "The branch already exists.")
+		} else if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
+			ctx.APIError(http.StatusConflict, "The branch SHA does not match.")
 		} else if git_model.IsErrBranchNameConflict(err) {
 			ctx.APIError(http.StatusConflict, "The branch with the same name already exists.")
 		} else {

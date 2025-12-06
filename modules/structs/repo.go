@@ -292,6 +292,30 @@ type RenameBranchRepoOption struct {
 	Name string `json:"name" binding:"Required;GitRefName;MaxSize(100)"`
 }
 
+// UpdateBranchRepoOption options when updating a branch reference in a repository
+// swagger:model
+type UpdateBranchRepoOption struct {
+	// Name of the branch to update
+	//
+	// required: true
+	// unique: true
+	BranchName string `json:"new_branch_name" binding:"Required;GitRefName;MaxSize(100)"`
+
+	// the commit ID (SHA) for the branch that already exists to update
+	SHA string `json:"sha" binding:"Required"`
+
+	// Deprecated: true
+	// Name of the old branch to reset to
+	//
+	// unique: true
+	OldBranchName string `json:"old_branch_name" binding:"GitRefName;MaxSize(100)"`
+
+	// Name of the old branch/tag/commit to reset to
+	//
+	// unique: true
+	OldRefName string `json:"old_ref_name" binding:"GitRefName;MaxSize(100)"`
+}
+
 // TransferRepoOption options when transfer a repository's ownership
 // swagger:model
 type TransferRepoOption struct {
