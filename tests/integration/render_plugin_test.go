@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -69,7 +68,7 @@ func TestRenderPluginLifecycle(t *testing.T) {
 	assert.Contains(t, flash.SuccessMsg, "disabled")
 	row = requireRenderPluginRow(t, session, pluginID)
 	assert.False(t, row.Enabled)
-	require.Len(t, fetchRenderPluginMetadata(t), 0)
+	require.Empty(t, fetchRenderPluginMetadata(t))
 
 	postPluginAction(t, session, fmt.Sprintf("/-/admin/render-plugins/%d/delete", row.ID))
 	flash = expectFlashSuccess(t, session)

@@ -1,3 +1,6 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package renderplugin
 
 import (
@@ -50,7 +53,6 @@ func TestManifestNormalizeErrors(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			m := base
 			tt.mutate(&m)
