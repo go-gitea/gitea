@@ -10,6 +10,11 @@ as a quick way to validate the dynamic plugin system locally.
 - `render.js` &mdash; an ES module that exports a `render(container, fileUrl)`
   function; it downloads the source file and renders it in a styled `<pre>`
 
+By default plugins may only fetch the file that is currently being rendered.
+If your plugin needs to contact Gitea APIs or any external services, list their
+domains under the `permissions` array in `manifest.json`. Requests to hosts that
+are not declared there will be blocked by the runtime.
+
 ## Build & Install
 
 1. Create a zip archive that contains both files:

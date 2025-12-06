@@ -20,6 +20,7 @@ type Plugin struct {
 	Source        string             `xorm:"TEXT"`
 	Entry         string             `xorm:"NOT NULL"`
 	FilePatterns  []string           `xorm:"JSON"`
+	Permissions   []string           `xorm:"JSON"`
 	FormatVersion int                `xorm:"NOT NULL DEFAULT 1"`
 	Enabled       bool               `xorm:"NOT NULL DEFAULT false"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created NOT NULL"`

@@ -27,6 +27,7 @@ func TestManifestNormalizeDefaults(t *testing.T) {
 	assert.Equal(t, "example.plugin", manifest.ID)
 	assert.Equal(t, "render.js", manifest.Entry)
 	assert.Equal(t, []string{"*.TXT", "README.md"}, manifest.FilePatterns)
+	assert.Empty(t, manifest.Permissions)
 }
 
 func TestManifestNormalizeErrors(t *testing.T) {
@@ -50,6 +51,7 @@ func TestManifestNormalizeErrors(t *testing.T) {
 		{"missing name", func(m *Manifest) { m.Name = "" }, "name is required"},
 		{"missing version", func(m *Manifest) { m.Version = "" }, "version is required"},
 		{"no patterns", func(m *Manifest) { m.FilePatterns = nil }, "at least one file pattern"},
+		{"invalid permission", func(m *Manifest) { m.Permissions = []string{"http://bad"} }, "manifest permission"},
 	}
 
 	for _, tt := range tests {
@@ -81,4 +83,19 @@ func TestLoadManifest(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "example", manifest.ID)
 	assert.Equal(t, []string{"*.md", "*.txt"}, manifest.FilePatterns)
+}
+
+func TestManifestNormalizePermissions(t *testing.T) {
+	manifest := Manifest{
+		SchemaVersion: SupportedManifestVersion,
+		ID:            "perm",
+		Name:          "perm",
+		Version:       "1.0.0",
+		Entry:         "render.js",
+		FilePatterns:  []string{"*.md"},
+		Permissions:   []string{" Example.com ", "api.example.com:8080", "example.com", ""},
+	}
+
+	require.NoError(t, manifest.Normalize())
+	assert.Equal(t, []string{"api.example.com:8080", "example.com"}, manifest.Permissions)
 }

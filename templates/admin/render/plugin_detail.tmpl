@@ -57,15 +57,25 @@
 						</td>
 					</tr>
 					<tr>
-						<td>{{ctx.Locale.Tr "admin.render_plugins.table.patterns"}}</td>
-						<td>
-							{{if .Plugin.FilePatterns}}
-								{{range $i, $pattern := .Plugin.FilePatterns}}{{if $i}}, {{end}}{{$pattern}}{{end}}
-							{{else}}
-								<span class="text light">{{ctx.Locale.Tr "admin.render_plugins.detail.file_patterns_empty"}}</span>
-							{{end}}
-						</td>
-					</tr>
+					<td>{{ctx.Locale.Tr "admin.render_plugins.table.patterns"}}</td>
+					<td>
+						{{if .Plugin.FilePatterns}}
+							{{range $i, $pattern := .Plugin.FilePatterns}}{{if $i}}, {{end}}{{$pattern}}{{end}}
+						{{else}}
+							<span class="text light">{{ctx.Locale.Tr "admin.render_plugins.detail.file_patterns_empty"}}</span>
+						{{end}}
+					</td>
+				</tr>
+				<tr>
+					<td>{{ctx.Locale.Tr "admin.render_plugins.detail.permissions"}}</td>
+					<td>
+						{{if .Plugin.Permissions}}
+							{{range $i, $perm := .Plugin.Permissions}}{{if $i}}, {{end}}<code>{{$perm}}</code>{{end}}
+						{{else}}
+							<span class="text light">{{ctx.Locale.Tr "admin.render_plugins.detail.none"}}</span>
+						{{end}}
+					</td>
+				</tr>
 				</tbody>
 			</table>
 		</div>

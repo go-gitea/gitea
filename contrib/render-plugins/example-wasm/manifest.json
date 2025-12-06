@@ -7,5 +7,6 @@
   "entry": "render.js",
   "filePatterns": [
     "*.wasmnote"
-  ]
+  ],
+  "permissions": []
 }

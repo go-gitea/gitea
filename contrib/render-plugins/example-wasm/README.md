@@ -16,6 +16,11 @@ then renders the result inside the file viewer.
 - `build.sh` &mdash; helper script that builds `plugin.wasm` and produces a zip
   archive ready for upload
 
+As with other plugins, declare any Gitea endpoints or external hosts the WASM
+module needs to call inside the `permissions` array in `manifest.json`. Without
+an explicit entry, the plugin may only download the file that is currently being
+rendered.
+
 ## Build & Install
 
 1. Build the WASM binary and zip archive:

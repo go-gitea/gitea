@@ -778,10 +778,13 @@ func registerWebRoutes(m *web.Router) {
 			m.Get("", admin.RenderPlugins)
 			m.Get("/{id}", admin.RenderPluginDetail)
 			m.Post("/upload", admin.RenderPluginsUpload)
+			m.Post("/upload/confirm", admin.RenderPluginsUploadConfirm)
+			m.Post("/upload/discard", admin.RenderPluginsUploadDiscard)
 			m.Post("/{id}/enable", admin.RenderPluginsEnable)
 			m.Post("/{id}/disable", admin.RenderPluginsDisable)
 			m.Post("/{id}/delete", admin.RenderPluginsDelete)
 			m.Post("/{id}/upgrade", admin.RenderPluginsUpgrade)
+			m.Post("/{id}/upgrade/confirm", admin.RenderPluginsUpgradeConfirm)
 		})
 
 		m.Group("/hooks", func() {

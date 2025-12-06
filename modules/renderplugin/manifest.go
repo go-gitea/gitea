@@ -29,6 +29,7 @@ type Manifest struct {
 	Description   string   `json:"description"`
 	Entry         string   `json:"entry"`
 	FilePatterns  []string `json:"filePatterns"`
+	Permissions   []string `json:"permissions"`
 }
 
 // Normalize validates mandatory fields and normalizes values.
@@ -71,7 +72,32 @@ func (m *Manifest) Normalize() error {
 	}
 	sort.Strings(cleanPatterns)
 	m.FilePatterns = cleanPatterns
+
+	cleanPerms := make([]string, 0, len(m.Permissions))
+	seenPerm := make(map[string]struct{}, len(m.Permissions))
+	for _, perm := range m.Permissions {
+		perm = strings.TrimSpace(strings.ToLower(perm))
+		if perm == "" {
+			continue
+		}
+		if !isValidPermissionHost(perm) {
+			return fmt.Errorf("manifest permission %q is invalid; only plain domains optionally including a port are allowed", perm)
+		}
+		if _, ok := seenPerm[perm]; ok {
+			continue
+		}
+		seenPerm[perm] = struct{}{}
+		cleanPerms = append(cleanPerms, perm)
+	}
+	sort.Strings(cleanPerms)
+	m.Permissions = cleanPerms
 	return nil
+}
+
+var permissionHostRegexp = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*(?::[0-9]{1,5})?$`)
+
+func isValidPermissionHost(value string) bool {
+	return permissionHostRegexp.MatchString(value)
 }
 
 // LoadManifest reads and validates the manifest.json file located under dir.
@@ -103,4 +129,5 @@ type Metadata struct {
 	AssetsBase    string   `json:"assetsBaseUrl"`
 	FilePatterns  []string `json:"filePatterns"`
 	SchemaVersion int      `json:"schemaVersion"`
+	Permissions   []string `json:"permissions"`
 }

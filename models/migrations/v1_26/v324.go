@@ -18,6 +18,7 @@ func AddRenderPluginTable(x *xorm.Engine) error {
 		Version       string             `xorm:"NOT NULL"`
 		Description   string             `xorm:"TEXT"`
 		Source        string             `xorm:"TEXT"`
+		Permissions   []string           `xorm:"JSON"`
 		Entry         string             `xorm:"NOT NULL"`
 		FilePatterns  []string           `xorm:"JSON"`
 		FormatVersion int                `xorm:"NOT NULL DEFAULT 1"`

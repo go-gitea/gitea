@@ -64,12 +64,23 @@ func InstallFromArchive(ctx context.Context, upload io.Reader, filename, expecte
 		Source:        strings.TrimSpace(filename),
 		Entry:         manifest.Entry,
 		FilePatterns:  manifest.FilePatterns,
+		Permissions:   manifest.Permissions,
 		FormatVersion: manifest.SchemaVersion,
 	}
 	if err := render_model.UpsertPlugin(ctx, plug); err != nil {
 		return nil, err
 	}
 	return plug, nil
+}
+
+// LoadManifestFromArchive extracts and validates only the manifest from a plugin archive.
+func LoadManifestFromArchive(zipPath string) (*renderplugin.Manifest, error) {
+	_, manifest, cleanup, err := extractArchive(zipPath)
+	if err != nil {
+		return nil, err
+	}
+	defer cleanup()
+	return manifest, nil
 }
 
 // Delete removes a plugin from disk and database.
@@ -118,6 +129,7 @@ func BuildMetadata(ctx context.Context) ([]renderplugin.Metadata, error) {
 			AssetsBase:    assetsBase,
 			FilePatterns:  append([]string(nil), plug.FilePatterns...),
 			SchemaVersion: plug.FormatVersion,
+			Permissions:   append([]string(nil), plug.Permissions...),
 		})
 	}
 	return metas, nil
