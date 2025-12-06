@@ -37,14 +37,14 @@ import (
 	"xorm.io/builder"
 )
 
-// CreateNewBranch creates a new repository branch
-func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldBranchName, branchName string) (err error) {
+// CreateUpdateBranch creates or updates a repository branch
+func CreateUpdateBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldBranchName, branchName, sha string) (err error) {
 	branch, err := git_model.GetBranch(ctx, repo.ID, oldBranchName)
 	if err != nil {
 		return err
 	}
 
-	return CreateNewBranchFromCommit(ctx, doer, repo, branch.CommitID, branchName)
+	return CreateUpdateBranchFromCommit(ctx, doer, repo, branch.CommitID, branchName, sha)
 }
 
 // Branch contains the branch information
@@ -373,23 +373,36 @@ func SyncBranchesToDB(ctx context.Context, repoID, pusherID int64, branchNames, 
 	})
 }
 
-// CreateNewBranchFromCommit creates a new repository branch
-func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitID, branchName string) (err error) {
+// CreateUpdateBranchFromCommit creates or updates a repository branch
+func CreateUpdateBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commitID, branchName, sha string) (err error) {
 	err = repo.MustNotBeArchived()
 	if err != nil {
 		return err
 	}
 
-	// Check if branch name can be used
-	if err := checkBranchName(ctx, repo, branchName); err != nil {
-		return err
+	if sha != "" {
+		_, err := git_model.GetBranch(ctx, repo.ID, branchName)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Check if branch name can be used
+		if err := checkBranchName(ctx, repo, branchName); err != nil {
+			return err
+		}
 	}
 
-	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
+	pushOpts := git.PushOptions{
 		Remote: repo.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", commitID, git.BranchPrefix, branchName),
 		Env:    repo_module.PushingEnvironment(doer, repo),
-	}); err != nil {
+	}
+
+	if sha != "" {
+		pushOpts.ForceWithLease = fmt.Sprintf("%s:%s", git.BranchPrefix+branchName, sha)
+	}
+
+	if err := git.Push(ctx, repo.RepoPath(), pushOpts); err != nil {
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
 		}

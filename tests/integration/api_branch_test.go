@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -18,14 +19,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
-	token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
-	req := NewRequestf(t, "GET", "/api/v1/repos/user2/repo1/branches/%s", branchName).
+func testAPIGetBranch(t *testing.T, user, repo, branchName string, exists bool) string {
+	token := getUserToken(t, user, auth_model.AccessTokenScopeReadRepository)
+	req := NewRequestf(t, "GET", "/api/v1/repos/"+user+"/"+repo+"/branches/%s", branchName).
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, NoExpectedStatus)
 	if !exists {
 		assert.Equal(t, http.StatusNotFound, resp.Code)
-		return
+		return ""
 	}
 	assert.Equal(t, http.StatusOK, resp.Code)
 	var branch api.Branch
@@ -33,6 +34,7 @@ func testAPIGetBranch(t *testing.T, branchName string, exists bool) {
 	assert.Equal(t, branchName, branch.Name)
 	assert.True(t, branch.UserCanPush)
 	assert.True(t, branch.UserCanMerge)
+	return branch.Commit.ID
 }
 
 func testAPIGetBranchProtection(t *testing.T, branchName string, expectedHTTPStatus int) *api.BranchProtection {
@@ -103,7 +105,7 @@ func TestAPIGetBranch(t *testing.T) {
 		{"feature/1", true},
 		{"feature/1/doesnotexist", false},
 	} {
-		testAPIGetBranch(t, test.BranchName, test.Exists)
+		testAPIGetBranch(t, "user2", "repo1", test.BranchName, test.Exists)
 	}
 }
 
@@ -113,7 +115,8 @@ func TestAPICreateBranch(t *testing.T) {
 
 func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 	username := "user2"
-	ctx := NewAPITestContext(t, username, "my-noo-repo", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	reponame := "my-noo-repo"
+	ctx := NewAPITestContext(t, username, reponame, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	giteaURL.Path = ctx.GitPath()
 
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
@@ -164,7 +167,7 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 	for _, test := range testCases {
 		session := ctx.Session
 		t.Run(test.NewBranch, func(t *testing.T) {
-			testAPICreateBranch(t, session, "user2", "my-noo-repo", test.OldBranch, test.NewBranch, test.ExpectedHTTPStatus)
+			testAPICreateBranch(t, session, username, reponame, test.OldBranch, test.NewBranch, test.ExpectedHTTPStatus)
 		})
 	}
 }
@@ -249,6 +252,81 @@ func testAPIRenameBranch(t *testing.T, doerName, ownerName, repoName, from, to s
 		Name: to,
 	}).AddTokenAuth(token)
 	return MakeRequest(t, req, expectedHTTPStatus)
+}
+
+func TestAPIUpdateBranch(t *testing.T) {
+	onGiteaRun(t, testAPIUpdateBranches)
+}
+
+func testAPIUpdateBranches(t *testing.T, giteaURL *url.URL) {
+	username := "user2"
+	reponame := "my-nuu-repo"
+	branchname := "new-branch"
+	ctx := NewAPITestContext(t, username, reponame, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+	giteaURL.Path = ctx.GitPath()
+	session := ctx.Session
+
+	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
+
+	t.Run("create branch", func(t *testing.T) {
+		testAPICreateBranch(t, session, username, reponame, "", branchname, http.StatusCreated)
+	})
+
+	oldCommit := ""
+	t.Run("get commit ID", func(t *testing.T) {
+		oldCommit = testAPIGetBranch(t, username, reponame, branchname, true)
+	})
+	t.Run("advance branch", func(t *testing.T) {
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/"+username+"/"+reponame+"/contents/a new file",
+			&api.CreateFileOptions{
+				FileOptions: api.FileOptions{
+					BranchName: branchname,
+				},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("foo")),
+			}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		assert.Equal(t, http.StatusCreated, resp.Result().StatusCode)
+	})
+	newCommit := ""
+	t.Run("get new commit ID", func(t *testing.T) {
+		newCommit = testAPIGetBranch(t, username, reponame, branchname, true)
+	})
+
+	t.Run("fail update nonexistent branch", func(t *testing.T) {
+		testAPIUpdateBranch(t, session, username, reponame, oldCommit, "no-branch-here", oldCommit, http.StatusNotFound)
+	})
+	t.Run("fail update on sha mismatch", func(t *testing.T) {
+		testAPIUpdateBranch(t, session, username, reponame, oldCommit, branchname, oldCommit, http.StatusConflict)
+		assert.Equal(t, newCommit, testAPIGetBranch(t, username, reponame, branchname, true))
+	})
+	t.Run("reset to old commit", func(t *testing.T) {
+		testAPIUpdateBranch(t, session, username, reponame, oldCommit, branchname, newCommit, http.StatusCreated)
+		assert.Equal(t, oldCommit, testAPIGetBranch(t, username, reponame, branchname, true))
+	})
+	t.Run("reset to new commit", func(t *testing.T) {
+		testAPIUpdateBranch(t, session, username, reponame, newCommit, branchname, oldCommit, http.StatusCreated)
+		assert.Equal(t, newCommit, testAPIGetBranch(t, username, reponame, branchname, true))
+	})
+}
+
+func testAPIUpdateBranch(t testing.TB, session *TestSession, user, repo, oldBranch, newBranch, sha string, status int) bool {
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+	req := NewRequestWithJSON(t, "PUT", "/api/v1/repos/"+user+"/"+repo+"/branches", &api.UpdateBranchRepoOption{
+		BranchName: newBranch,
+		OldRefName: oldBranch,
+		SHA:        sha,
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, status)
+
+	var branch api.Branch
+	DecodeJSON(t, resp, &branch)
+
+	if resp.Result().StatusCode == http.StatusCreated {
+		assert.Equal(t, newBranch, branch.Name)
+	}
+
+	return resp.Result().StatusCode == status
 }
 
 func TestAPIBranchProtection(t *testing.T) {

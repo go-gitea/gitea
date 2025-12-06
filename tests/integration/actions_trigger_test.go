@@ -412,7 +412,7 @@ jobs:
 		assert.NoError(t, err)
 
 		// create a branch
-		err = repo_service.CreateNewBranchFromCommit(t.Context(), user2, repo, branch.CommitID, "test-create-branch")
+		err = repo_service.CreateUpdateBranchFromCommit(t.Context(), user2, repo, branch.CommitID, "test-create-branch", "")
 		assert.NoError(t, err)
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "add workflow",
@@ -530,7 +530,7 @@ jobs:
 
 		// create a new branch
 		testBranch := "test-branch"
-		err = repo_service.CreateNewBranch(t.Context(), user2, repo, "main", testBranch)
+		err = repo_service.CreateUpdateBranch(t.Context(), user2, repo, "main", testBranch, "")
 		assert.NoError(t, err)
 
 		// create Pull
@@ -1509,7 +1509,7 @@ jobs:
 		assert.NoError(t, err)
 
 		// create a branch
-		err = repo_service.CreateNewBranchFromCommit(t.Context(), user2, repo, branch.CommitID, "test-action-run-name-with-variables")
+		err = repo_service.CreateUpdateBranchFromCommit(t.Context(), user2, repo, branch.CommitID, "test-action-run-name-with-variables", "")
 		assert.NoError(t, err)
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      user2.LoginName + " is running this workflow",
@@ -1583,7 +1583,7 @@ jobs:
 		assert.NoError(t, err)
 
 		// create a branch
-		err = repo_service.CreateNewBranchFromCommit(t.Context(), user2, repo, branch.CommitID, "test-action-run-name")
+		err = repo_service.CreateUpdateBranchFromCommit(t.Context(), user2, repo, branch.CommitID, "test-action-run-name", "")
 		assert.NoError(t, err)
 		run := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{
 			Title:      "run name without variables",
