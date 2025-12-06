@@ -30,6 +30,7 @@ const (
 	tplConversationOutdated templates.TplName = "repo/diff/conversation_outdated"
 	tplTimelineConversation templates.TplName = "repo/issue/view_content/conversation"
 	tplNewComment           templates.TplName = "repo/diff/new_comment"
+	tplCommitConversation   templates.TplName = "repo/diff/commit_conversation"
 )
 
 // RenderNewCodeCommentForm will render the form for creating a new review comment

@@ -554,6 +554,7 @@ type CodeCommentForm struct {
 	SingleReview   bool   `form:"single_review"`
 	Reply          int64  `form:"reply"`
 	LatestCommitID string
+	CommitSHA      string // For commit comments (non-PR)
 	Files          []string
 }
 
