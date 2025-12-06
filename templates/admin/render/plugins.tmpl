@@ -1,0 +1,65 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin render-plugins")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "admin.render_plugins"}}
+			<div class="sub header tw-text-normal">{{ctx.Locale.Tr "admin.render_plugins.description"}}</div>
+		</h4>
+			<div class="ui attached segment">
+				<form class="ui form" method="post" action="{{AppSubUrl}}/-/admin/render-plugins/upload" enctype="multipart/form-data">
+					{{.CsrfTokenHtml}}
+					<div class="field">
+						<label>{{ctx.Locale.Tr "admin.render_plugins.upload_label"}}</label>
+						<input type="file" name="plugin" accept=".zip" required>
+					</div>
+					<button class="ui primary button" type="submit">{{ctx.Locale.Tr "admin.render_plugins.install"}}</button>
+				</form>
+				<div class="tw-mt-2 tw-text-sm tw-text-secondary">
+					{{ctx.Locale.Tr "admin.render_plugins.example_hint"}}
+				</div>
+			</div>
+		<div class="ui attached table segment">
+			<table class="ui very basic striped table">
+				<thead>
+					<tr>
+						<th>{{ctx.Locale.Tr "admin.render_plugins.table.name"}}</th>
+						<th>{{ctx.Locale.Tr "admin.render_plugins.table.identifier"}}</th>
+						<th>{{ctx.Locale.Tr "admin.render_plugins.table.version"}}</th>
+						<th>{{ctx.Locale.Tr "admin.render_plugins.table.patterns"}}</th>
+						<th>{{ctx.Locale.Tr "admin.render_plugins.table.status"}}</th>
+						<th class="tw-text-right">{{ctx.Locale.Tr "admin.render_plugins.table.actions"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range .Plugins}}
+					<tr>
+						<td>
+							<div>{{.Name}}</div>
+							<div class="text light tw-text-sm">{{.Description}}</div>
+						</td>
+						<td>{{.Identifier}}</td>
+						<td>{{.Version}}</td>
+						<td class="tw-text-sm">
+							{{range $i, $pattern := .FilePatterns}}{{if $i}}, {{end}}{{$pattern}}{{end}}
+						</td>
+						<td>
+							{{if .Enabled}}
+								<span class="ui green basic label">{{ctx.Locale.Tr "admin.render_plugins.status.enabled"}}</span>
+							{{else}}
+								<span class="ui grey basic label">{{ctx.Locale.Tr "admin.render_plugins.status.disabled"}}</span>
+							{{end}}
+						</td>
+					<td class="tw-text-right">
+						<a class="ui mini basic button" href="{{AppSubUrl}}/-/admin/render-plugins/{{.ID}}">{{ctx.Locale.Tr "view"}}</a>
+					</td>
+					</tr>
+					{{else}}
+					<tr>
+						<td class="tw-text-center" colspan="6">{{ctx.Locale.Tr "admin.render_plugins.empty"}}</td>
+					</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	</div>
+
+{{template "admin/layout_footer" .}}

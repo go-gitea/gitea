@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	org_setting "code.gitea.io/gitea/routers/web/org/setting"
+	"code.gitea.io/gitea/routers/web/renderplugin"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
@@ -232,6 +233,7 @@ func Routes() *web.Router {
 	routes := web.NewRouter()
 
 	routes.Head("/", misc.DummyOK) // for health check - doesn't need to be passed through gzip handler
+	routes.Methods("GET, HEAD, OPTIONS", "/assets/render-plugins/*", optionsCorsHandler(), renderplugin.AssetsHandler())
 	routes.Methods("GET, HEAD, OPTIONS", "/assets/*", optionsCorsHandler(), public.FileHandlerFunc())
 	routes.Methods("GET, HEAD", "/avatars/*", avatarStorageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
 	routes.Methods("GET, HEAD", "/repo-avatars/*", avatarStorageHandler(setting.RepoAvatar.Storage, "repo-avatars", storage.RepoAvatars))
@@ -771,6 +773,16 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("/delete", admin.DeletePackageVersion)
 			m.Post("/cleanup", admin.CleanupExpiredData)
 		}, packagesEnabled)
+
+		m.Group("/render-plugins", func() {
+			m.Get("", admin.RenderPlugins)
+			m.Get("/{id}", admin.RenderPluginDetail)
+			m.Post("/upload", admin.RenderPluginsUpload)
+			m.Post("/{id}/enable", admin.RenderPluginsEnable)
+			m.Post("/{id}/disable", admin.RenderPluginsDisable)
+			m.Post("/{id}/delete", admin.RenderPluginsDelete)
+			m.Post("/{id}/upgrade", admin.RenderPluginsUpgrade)
+		})
 
 		m.Group("/hooks", func() {
 			m.Get("", admin.DefaultOrSystemWebhooks)

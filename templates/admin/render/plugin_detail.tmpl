@@ -1,0 +1,112 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin render-plugin-detail")}}
+	<div class="admin-setting-content">
+		<h4 class="ui top attached header">
+			{{.Plugin.Name}}
+			<div class="ui right">
+				<a class="ui small button" href="{{AppSubUrl}}/-/admin/render-plugins">{{ctx.Locale.Tr "admin.render_plugins.back_to_list"}}</a>
+			</div>
+			<div class="sub header tw-text-normal">{{ctx.Locale.Tr "admin.render_plugins.detail_title" .Plugin.Name}}</div>
+		</h4>
+		<div class="ui attached segment">
+			<table class="ui very basic definition table">
+				<tbody>
+					<tr>
+						<td>{{ctx.Locale.Tr "admin.render_plugins.detail.format_version"}}</td>
+						<td>{{.Plugin.FormatVersion}}</td>
+					</tr>
+					<tr>
+						<td>{{ctx.Locale.Tr "admin.render_plugins.table.version"}}</td>
+						<td>{{.Plugin.Version}}</td>
+					</tr>
+					<tr>
+						<td>{{ctx.Locale.Tr "admin.render_plugins.table.identifier"}}</td>
+						<td>{{.Plugin.Identifier}}</td>
+					</tr>
+					<tr>
+						<td>{{ctx.Locale.Tr "admin.render_plugins.table.status"}}</td>
+						<td>
+							{{if .Plugin.Enabled}}
+								<span class="ui green basic label">{{ctx.Locale.Tr "admin.render_plugins.status.enabled"}}</span>
+							{{else}}
+								<span class="ui grey basic label">{{ctx.Locale.Tr "admin.render_plugins.status.disabled"}}</span>
+							{{end}}
+						</td>
+					</tr>
+					<tr>
+						<td>{{ctx.Locale.Tr "admin.render_plugins.detail.description"}}</td>
+						<td>
+							{{if .Plugin.Description}}
+								<div class="tw-whitespace-pre-wrap">{{.Plugin.Description}}</div>
+							{{else}}
+								<span class="text light">{{ctx.Locale.Tr "admin.render_plugins.detail.description_empty"}}</span>
+							{{end}}
+						</td>
+					</tr>
+					<tr>
+						<td>{{ctx.Locale.Tr "admin.render_plugins.detail.entry"}}</td>
+						<td>{{.Plugin.Entry}}</td>
+					</tr>
+					<tr>
+						<td>{{ctx.Locale.Tr "admin.render_plugins.detail.source"}}</td>
+						<td>
+							{{if .Plugin.Source}}
+								{{.Plugin.Source}}
+							{{else}}
+								<span class="text light">{{ctx.Locale.Tr "admin.render_plugins.detail.none"}}</span>
+							{{end}}
+						</td>
+					</tr>
+					<tr>
+						<td>{{ctx.Locale.Tr "admin.render_plugins.table.patterns"}}</td>
+						<td>
+							{{if .Plugin.FilePatterns}}
+								{{range $i, $pattern := .Plugin.FilePatterns}}{{if $i}}, {{end}}{{$pattern}}{{end}}
+							{{else}}
+								<span class="text light">{{ctx.Locale.Tr "admin.render_plugins.detail.file_patterns_empty"}}</span>
+							{{end}}
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "admin.render_plugins.detail.actions"}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="tw-flex tw-flex-wrap tw-gap-2">
+				{{if .Plugin.Enabled}}
+				<form method="post" action="{{AppSubUrl}}/-/admin/render-plugins/{{.Plugin.ID}}/disable">
+					{{.CsrfTokenHtml}}
+					<input type="hidden" name="redirect_to" value="{{AppSubUrl}}/-/admin/render-plugins/{{.Plugin.ID}}">
+					<button class="ui button" type="submit">{{ctx.Locale.Tr "admin.render_plugins.disable"}}</button>
+				</form>
+				{{else}}
+				<form method="post" action="{{AppSubUrl}}/-/admin/render-plugins/{{.Plugin.ID}}/enable">
+					{{.CsrfTokenHtml}}
+					<input type="hidden" name="redirect_to" value="{{AppSubUrl}}/-/admin/render-plugins/{{.Plugin.ID}}">
+					<button class="ui primary button" type="submit">{{ctx.Locale.Tr "admin.render_plugins.enable"}}</button>
+				</form>
+				{{end}}
+				<form method="post" action="{{AppSubUrl}}/-/admin/render-plugins/{{.Plugin.ID}}/delete">
+					{{.CsrfTokenHtml}}
+					<button class="ui red button" type="submit" data-confirm="{{ctx.Locale.Tr "admin.render_plugins.delete_confirm" .Plugin.Name}}">{{ctx.Locale.Tr "admin.render_plugins.delete"}}</button>
+				</form>
+			</div>
+		</div>
+		<h4 class="ui top attached header">
+			{{ctx.Locale.Tr "admin.render_plugins.detail.upgrade"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" method="post" action="{{AppSubUrl}}/-/admin/render-plugins/{{.Plugin.ID}}/upgrade" enctype="multipart/form-data">
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="redirect_to" value="{{AppSubUrl}}/-/admin/render-plugins/{{.Plugin.ID}}">
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.render_plugins.upload_label"}}</label>
+					<input type="file" name="plugin" accept=".zip" required>
+				</div>
+				<button class="ui primary button" type="submit">{{ctx.Locale.Tr "admin.render_plugins.upgrade"}}</button>
+			</form>
+		</div>
+	</div>
+
+{{template "admin/layout_footer" .}}

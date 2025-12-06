@@ -5,6 +5,7 @@ package repo
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"io"
@@ -228,6 +229,14 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	ctx.Data["IsRepresentableAsText"] = fInfo.st.IsRepresentableAsText()
 	ctx.Data["IsExecutable"] = entry.IsExecutable()
 	ctx.Data["CanCopyContent"] = fInfo.st.IsRepresentableAsText() || fInfo.st.IsImage()
+	ctx.Data["RenderFileMimeType"] = fInfo.st.GetMimeType()
+	if len(buf) > 0 {
+		chunk := buf
+		if len(chunk) > typesniffer.SniffContentSize {
+			chunk = chunk[:typesniffer.SniffContentSize]
+		}
+		ctx.Data["RenderFileHeadChunk"] = base64.StdEncoding.EncodeToString(chunk)
+	}
 
 	attrs, ok := prepareFileViewLfsAttrs(ctx)
 	if !ok {

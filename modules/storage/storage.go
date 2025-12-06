@@ -133,6 +133,9 @@ var (
 	Actions ObjectStorage = uninitializedStorage
 	// Actions Artifacts represents actions artifacts storage
 	ActionsArtifacts ObjectStorage = uninitializedStorage
+
+	// RenderPlugins represents render plugin storage
+	RenderPlugins ObjectStorage = uninitializedStorage
 )
 
 // Init init the storage
@@ -145,6 +148,7 @@ func Init() error {
 		initRepoArchives,
 		initPackages,
 		initActions,
+		initRenderPlugins,
 	} {
 		if err := f(); err != nil {
 			return err
@@ -226,5 +230,11 @@ func initActions() (err error) {
 	}
 	log.Info("Initialising ActionsArtifacts storage with type: %s", setting.Actions.ArtifactStorage.Type)
 	ActionsArtifacts, err = NewStorage(setting.Actions.ArtifactStorage.Type, setting.Actions.ArtifactStorage)
+	return err
+}
+
+func initRenderPlugins() (err error) {
+	log.Info("Initialising Render Plugin storage with type: %s", setting.RenderPlugin.Storage.Type)
+	RenderPlugins, err = NewStorage(setting.RenderPlugin.Storage.Type, setting.RenderPlugin.Storage)
 	return err
 }

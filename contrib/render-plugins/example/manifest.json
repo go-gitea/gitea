@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "id": "example-highlight-txt",
+  "name": "Example TXT Highlighter",
+  "version": "1.0.0",
+  "description": "Simple sample plugin that renders .txt files with a custom color scheme.",
+  "entry": "render.js",
+  "filePatterns": ["*.txt"]
+}

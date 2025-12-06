@@ -44,30 +44,24 @@
 			</div>
 		</details>
 		<!-- Webhooks and OAuth can be both disabled here, so add this if statement to display different ui -->
-		{{if and (not DisableWebhooks) .EnableOAuth2}}
-			<details class="item toggleable-item" {{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks .PageIsAdminApplications}}open{{end}}>
-				<summary>{{ctx.Locale.Tr "admin.integrations"}}</summary>
-				<div class="menu">
-					<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/-/admin/applications">
-						{{ctx.Locale.Tr "settings.applications"}}
-					</a>
+		<details class="item toggleable-item" {{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks .PageIsAdminApplications .PageIsAdminRenderPlugins}}open{{end}}>
+			<summary>{{ctx.Locale.Tr "admin.integrations"}}</summary>
+			<div class="menu">
+				<a class="{{if .PageIsAdminRenderPlugins}}active {{end}}item" href="{{AppSubUrl}}/-/admin/render-plugins">
+					{{ctx.Locale.Tr "admin.render_plugins"}}
+				</a>
+				{{if not DisableWebhooks}}
 					<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/-/admin/hooks">
 						{{ctx.Locale.Tr "admin.hooks"}}
 					</a>
-				</div>
-			</details>
-		{{else}}
-			{{if not DisableWebhooks}}
-			<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active {{end}}item" href="{{AppSubUrl}}/-/admin/hooks">
-				{{ctx.Locale.Tr "admin.hooks"}}
-			</a>
-			{{end}}
-			{{if .EnableOAuth2}}
-				<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/-/admin/applications">
-					{{ctx.Locale.Tr "settings.applications"}}
-				</a>
-			{{end}}
-		{{end}}
+				{{end}}
+				{{if .EnableOAuth2}}
+					<a class="{{if .PageIsAdminApplications}}active {{end}}item" href="{{AppSubUrl}}/-/admin/applications">
+						{{ctx.Locale.Tr "settings.applications"}}
+					</a>
+				{{end}}
+			</div>
+		</details>
 		{{if .EnableActions}}
 		<details class="item toggleable-item" {{if or .PageIsSharedSettingsRunners .PageIsSharedSettingsVariables}}open{{end}}>
 			<summary>{{ctx.Locale.Tr "actions.actions"}}</summary>
