@@ -241,10 +241,16 @@ func replacePluginFiles(identifier, srcDir string) error {
 func deletePluginFiles(identifier string) error {
 	store := renderplugin.Storage()
 	prefix := renderplugin.ObjectPrefix(identifier)
-	return store.IterateObjects(prefix, func(path string, obj storage.Object) error {
+	if err := store.IterateObjects(prefix, func(path string, obj storage.Object) error {
 		_ = obj.Close()
 		return store.Delete(path)
-	})
+	}); err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	return nil
 }
 
 func uploadPluginDir(identifier, src string) error {

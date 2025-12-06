@@ -11,7 +11,7 @@ const plugins: FileRenderPlugin[] = [];
 let pluginsInitialized = false;
 let pluginsInitPromise: Promise<void> | null = null;
 
-function decodeHeadChunk(value: string | null): Uint8Array | null {
+export function decodeHeadChunk(value: string | null): Uint8Array | null {
   if (!value) return null;
   try {
     const binary = window.atob(value);
