@@ -98,7 +98,15 @@ func uploadArchive(t *testing.T, session *TestSession, path string, archive []by
 
 	req := NewRequestWithBody(t, "POST", path, bytes.NewReader(body.Bytes()))
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	doc := NewHTMLParser(t, resp.Body)
+	token := doc.GetInputValueByName("token")
+	require.NotEmpty(t, token, "pending upload token not found")
+	confirmReq := NewRequestWithValues(t, "POST", path+"/confirm", map[string]string{
+		"_csrf": GetUserCSRFToken(t, session),
+		"token": token,
+	})
+	session.MakeRequest(t, confirmReq, http.StatusSeeOther)
 }
 
 func buildRenderPluginArchive(t *testing.T, id, name, version string) []byte {
