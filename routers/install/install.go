@@ -55,8 +55,8 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 	return dbTypeNames
 }
 
-// Contexter prepare for rendering installation page
-func Contexter() func(next http.Handler) http.Handler {
+// installContexter prepare for rendering installation page
+func installContexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
 	dbTypeNames := getSupportedDbTypeNames()
 	envConfigKeys := setting.CollectEnvConfigKeys()

@@ -80,6 +80,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 			pr.HeadRepo,
 			pr.HeadRepo.Name,
 			pr.ID,
+			pr.Index,
 		)).
 		WithDir(mergeCtx.tmpBasePath).
 		WithStdout(mergeCtx.outbuf).

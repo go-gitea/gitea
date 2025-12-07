@@ -21,7 +21,7 @@ import (
 func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte) error {
 	avatarData, err := avatar.ProcessAvatarImage(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("UploadAvatar: failed to process repo avatar image: %w", err)
 	}
 
 	newAvatar := avatar.HashAvatar(repo.ID, data)
@@ -36,19 +36,19 @@ func UploadAvatar(ctx context.Context, repo *repo_model.Repository, data []byte)
 		// Then repo will be removed - only it avatar file will be removed
 		repo.Avatar = newAvatar
 		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "avatar"); err != nil {
-			return fmt.Errorf("UploadAvatar: Update repository avatar: %w", err)
+			return fmt.Errorf("UploadAvatar: failed to update repository avatar: %w", err)
 		}
 
 		if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
 			_, err := w.Write(avatarData)
 			return err
 		}); err != nil {
-			return fmt.Errorf("UploadAvatar %s failed: Failed to remove old repo avatar %s: %w", repo.RelativePath(), newAvatar, err)
+			return fmt.Errorf("UploadAvatar: failed to save repo avatar %s: %w", newAvatar, err)
 		}
 
 		if len(oldAvatarPath) > 0 {
 			if err := storage.RepoAvatars.Delete(oldAvatarPath); err != nil {
-				return fmt.Errorf("UploadAvatar: Failed to remove old repo avatar %s: %w", oldAvatarPath, err)
+				return fmt.Errorf("UploadAvatar: failed to remove old repo avatar %s: %w", oldAvatarPath, err)
 			}
 		}
 		return nil

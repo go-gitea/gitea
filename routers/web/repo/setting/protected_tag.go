@@ -149,9 +149,9 @@ func setTagsContext(ctx *context.Context) error {
 	}
 	ctx.Data["ProtectedTags"] = protectedTags
 
-	users, err := access_model.GetRepoReaders(ctx, ctx.Repo.Repository)
+	users, err := access_model.GetUsersWithUnitAccess(ctx, ctx.Repo.Repository, perm.AccessModeRead, unit.TypePullRequests)
 	if err != nil {
-		ctx.ServerError("Repo.Repository.GetReaders", err)
+		ctx.ServerError("GetUsersWithUnitAccess", err)
 		return err
 	}
 	ctx.Data["Users"] = users

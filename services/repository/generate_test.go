@@ -4,6 +4,7 @@
 package repository
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -174,6 +175,31 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 		assertSymLink("subst-TemplateRepoName-to-link", tmpDir+"/sub/link-target")
 		// subst from a link, skip, and the target is unchanged
 		assertSymLink("subst-${TEMPLATE_NAME}-from-link", tmpDir+"/sub/link-target")
+	}
+
+	{
+		templateFilePath := tmpDir + "/.gitea/template"
+
+		_ = os.Remove(templateFilePath)
+		_, err := os.Lstat(templateFilePath)
+		require.ErrorIs(t, err, fs.ErrNotExist)
+		_, err = readGiteaTemplateFile(tmpDir) // no template file
+		require.ErrorIs(t, err, fs.ErrNotExist)
+
+		_ = os.WriteFile(templateFilePath+".target", []byte("test-data-target"), 0o644)
+		_ = os.Symlink(templateFilePath+".target", templateFilePath)
+		content, _ := os.ReadFile(templateFilePath)
+		require.Equal(t, "test-data-target", string(content))
+		_, err = readGiteaTemplateFile(tmpDir) // symlinked template file
+		require.ErrorIs(t, err, fs.ErrNotExist)
+
+		_ = os.Remove(templateFilePath)
+		_ = os.WriteFile(templateFilePath, []byte("test-data-regular"), 0o644)
+		content, _ = os.ReadFile(templateFilePath)
+		require.Equal(t, "test-data-regular", string(content))
+		fm, err := readGiteaTemplateFile(tmpDir) // regular template file
+		require.NoError(t, err)
+		assert.Len(t, fm.globs, 1)
 	}
 }
 

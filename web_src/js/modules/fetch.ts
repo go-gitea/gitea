@@ -10,8 +10,8 @@ const safeMethods = new Set(['GET', 'HEAD', 'OPTIONS', 'TRACE']);
 // which will automatically set an appropriate headers. For json content, only object
 // and array types are currently supported.
 export function request(url: string, {method = 'GET', data, headers = {}, ...other}: RequestOpts = {}): Promise<Response> {
-  let body: string | FormData | URLSearchParams;
-  let contentType: string;
+  let body: string | FormData | URLSearchParams | undefined;
+  let contentType: string | undefined;
   if (data instanceof FormData || data instanceof URLSearchParams) {
     body = data;
   } else if (isObject(data) || Array.isArray(data)) {

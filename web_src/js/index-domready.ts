@@ -1,4 +1,3 @@
-import './globals.ts';
 import '../fomantic/build/fomantic.js';
 import '../../node_modules/easymde/dist/easymde.min.css'; // TODO: lazy load in "switchToEasyMDE"
 
@@ -17,7 +16,7 @@ import {initMarkupAnchors} from './markup/anchors.ts';
 import {initNotificationCount} from './features/notification.ts';
 import {initRepoIssueContentHistory} from './features/repo-issue-content.ts';
 import {initStopwatch} from './features/stopwatch.ts';
-import {initFindFileInRepo} from './features/repo-findfile.ts';
+import {initRepoFileSearch} from './features/repo-findfile.ts';
 import {initMarkupContent} from './markup/content.ts';
 import {initRepoFileView} from './features/file-view.ts';
 import {initUserAuthOauth2, initUserCheckAppUrl} from './features/user-auth.ts';
@@ -102,7 +101,7 @@ const initPerformanceTracer = callInitFunctions([
   initSshKeyFormParser,
   initStopwatch,
   initTableSort,
-  initFindFileInRepo,
+  initRepoFileSearch,
   initCopyContent,
 
   initAdminCommon,

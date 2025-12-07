@@ -17,13 +17,7 @@ make clean frontend
 
 ## Install playwright system dependencies
 ```
-npx playwright install-deps
-```
-
-
-## Run all tests via local act_runner
-```
-act_runner exec -W ./.github/workflows/pull-e2e-tests.yml --event=pull_request --default-actions-url="https://github.com" -i catthehacker/ubuntu:runner-latest
+pnpm exec playwright install-deps
 ```
 
 ## Run sqlite e2e tests
@@ -85,8 +79,8 @@ TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TES
 
 Although the main goal of e2e is assertion testing, we have added a framework for visual regress testing. If you are working on front-end features, please use the following:
  - Check out `main`, `make clean frontend`, and run e2e tests with `VISUAL_TEST=1` to generate outputs. This will initially fail, as no screenshots exist. You can run the e2e tests again to assert it passes.
- - Check out your branch, `make clean frontend`, and run e2e tests with `VISUAL_TEST=1`. You should be able to assert you front-end changes don't break any other tests unintentionally. 
+ - Check out your branch, `make clean frontend`, and run e2e tests with `VISUAL_TEST=1`. You should be able to assert you front-end changes don't break any other tests unintentionally.
 
-VISUAL_TEST=1 will create screenshots in tests/e2e/test-snapshots. The test will fail the first time this is enabled (until we get visual test image persistence figured out), because it will be testing against an empty screenshot folder. 
+VISUAL_TEST=1 will create screenshots in tests/e2e/test-snapshots. The test will fail the first time this is enabled (until we get visual test image persistence figured out), because it will be testing against an empty screenshot folder.
 
 ACCEPT_VISUAL=1 will overwrite the snapshot images with new images.

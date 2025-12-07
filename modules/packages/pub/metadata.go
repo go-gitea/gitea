@@ -89,7 +89,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				return nil, err
 			}
 		} else if strings.EqualFold(hd.Name, "readme.md") {
-			data, err := io.ReadAll(tr)
+			data, err := util.ReadWithLimit(tr, 1024*1024)
 			if err != nil {
 				return nil, err
 			}

@@ -174,7 +174,7 @@ export default defineComponent({
         user.max_contribution_type = 0;
         const filteredWeeks = user.weeks.filter((week: Record<string, number>) => {
           const oneWeek = 7 * 24 * 60 * 60 * 1000;
-          if (week.week >= this.xAxisMin - oneWeek && week.week <= this.xAxisMax + oneWeek) {
+          if (week.week >= this.xAxisMin! - oneWeek && week.week <= this.xAxisMax! + oneWeek) {
             user.total_commits += week.commits;
             user.total_additions += week.additions;
             user.total_deletions += week.deletions;
@@ -238,8 +238,8 @@ export default defineComponent({
     },
 
     updateOtherCharts({chart}: {chart: Chart}, reset: boolean = false) {
-      const minVal = Number(chart.options.scales.x.min);
-      const maxVal = Number(chart.options.scales.x.max);
+      const minVal = Number(chart.options.scales?.x?.min);
+      const maxVal = Number(chart.options.scales?.x?.max);
       if (reset) {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;
@@ -302,8 +302,8 @@ export default defineComponent({
         },
         scales: {
           x: {
-            min: this.xAxisMin,
-            max: this.xAxisMax,
+            min: this.xAxisMin ?? undefined,
+            max: this.xAxisMax ?? undefined,
             type: 'time',
             grid: {
               display: false,
@@ -334,7 +334,7 @@ export default defineComponent({
     <div class="ui header tw-flex tw-items-center tw-justify-between">
       <div>
         <relative-time
-          v-if="xAxisMin > 0"
+          v-if="xAxisMin && xAxisMin > 0"
           format="datetime"
           year="numeric"
           month="short"
@@ -346,7 +346,7 @@ export default defineComponent({
         </relative-time>
         {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "-" }}
         <relative-time
-          v-if="xAxisMax > 0"
+          v-if="xAxisMax && xAxisMax > 0"
           format="datetime"
           year="numeric"
           month="short"
@@ -381,7 +381,7 @@ export default defineComponent({
     <div class="tw-flex ui segment main-graph">
       <div v-if="isLoading || errorText !== ''" class="tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="tw-mr-2 circular-spin"/>
+          <SvgIcon name="gitea-running" class="tw-mr-2 rotate-clockwise"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">

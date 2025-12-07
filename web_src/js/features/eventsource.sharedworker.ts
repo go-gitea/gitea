@@ -1,6 +1,6 @@
 class Source {
   url: string;
-  eventSource: EventSource;
+  eventSource: EventSource | null;
   listening: Record<string, boolean>;
   clients: Array<MessagePort>;
 
@@ -47,7 +47,7 @@ class Source {
   listen(eventType: string) {
     if (this.listening[eventType]) return;
     this.listening[eventType] = true;
-    this.eventSource.addEventListener(eventType, (event) => {
+    this.eventSource?.addEventListener(eventType, (event) => {
       this.notifyClients({
         type: eventType,
         data: event.data,
@@ -64,13 +64,13 @@ class Source {
   status(port: MessagePort) {
     port.postMessage({
       type: 'status',
-      message: `url: ${this.url} readyState: ${this.eventSource.readyState}`,
+      message: `url: ${this.url} readyState: ${this.eventSource?.readyState}`,
     });
   }
 }
 
-const sourcesByUrl: Map<string, Source | null> = new Map();
-const sourcesByPort: Map<MessagePort, Source | null> = new Map();
+const sourcesByUrl = new Map<string, Source | null>();
+const sourcesByPort = new Map<MessagePort, Source | null>();
 
 // @ts-expect-error: typescript bug?
 self.addEventListener('connect', (e: MessageEvent) => {
@@ -85,14 +85,14 @@ self.addEventListener('connect', (e: MessageEvent) => {
       }
       if (event.data.type === 'start') {
         const url = event.data.url;
-        if (sourcesByUrl.get(url)) {
+        let source = sourcesByUrl.get(url);
+        if (source) {
           // we have a Source registered to this url
-          const source = sourcesByUrl.get(url);
           source.register(port);
           sourcesByPort.set(port, source);
           return;
         }
-        let source = sourcesByPort.get(port);
+        source = sourcesByPort.get(port);
         if (source) {
           if (source.eventSource && source.url === url) return;
 
@@ -111,11 +111,10 @@ self.addEventListener('connect', (e: MessageEvent) => {
         sourcesByUrl.set(url, source);
         sourcesByPort.set(port, source);
       } else if (event.data.type === 'listen') {
-        const source = sourcesByPort.get(port);
+        const source = sourcesByPort.get(port)!;
         source.listen(event.data.eventType);
       } else if (event.data.type === 'close') {
         const source = sourcesByPort.get(port);
-
         if (!source) return;
 
         const count = source.deregister(port);

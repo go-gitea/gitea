@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_23"
 	"code.gitea.io/gitea/models/migrations/v1_24"
 	"code.gitea.io/gitea/models/migrations/v1_25"
+	"code.gitea.io/gitea/models/migrations/v1_26"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -379,8 +380,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(309, "Improve Notification table indices", v1_23.ImproveNotificationTableIndices),
 		newMigration(310, "Add Priority to ProtectedBranch", v1_23.AddPriorityToProtectedBranch),
 		newMigration(311, "Add TimeEstimate to Issue table", v1_23.AddTimeEstimateColumnToIssueTable),
-
 		// Gitea 1.23.0-rc0 ends at migration ID number 311 (database version 312)
+
 		newMigration(312, "Add DeleteBranchAfterMerge to AutoMerge", v1_24.AddDeleteBranchAfterMergeForAutoMerge),
 		newMigration(313, "Move PinOrder from issue table to a new table issue_pin", v1_24.MovePinOrderToTableIssuePin),
 		newMigration(314, "Update OwnerID as zero for repository level action tables", v1_24.UpdateOwnerIDOfRepoLevelActionsTables),
@@ -390,11 +391,13 @@ func prepareMigrationTasks() []*migration {
 		newMigration(318, "Add anonymous_access_mode for repo_unit", v1_24.AddRepoUnitAnonymousAccessMode),
 		newMigration(319, "Add ExclusiveOrder to Label table", v1_24.AddExclusiveOrderColumnToLabelTable),
 		newMigration(320, "Migrate two_factor_policy to login_source table", v1_24.MigrateSkipTwoFactor),
+		// Gitea 1.24.0 ends at migration ID number 320 (database version 321)
 
-		// Gitea 1.24.0 ends at database version 321
 		newMigration(321, "Use LONGTEXT for some columns and fix review_state.updated_files column", v1_25.UseLongTextInSomeColumnsAndFixBugs),
 		newMigration(322, "Extend comment tree_path length limit", v1_25.ExtendCommentTreePathLength),
-		newMigration(323, "Add support for actions concurrency", v1_25.AddActionsConcurrency),
+		// Gitea 1.25.0 ends at migration ID number 322 (database version 323)
+
+		newMigration(323, "Add support for actions concurrency", v1_26.AddActionsConcurrency),
 	}
 	return preparedMigrations
 }

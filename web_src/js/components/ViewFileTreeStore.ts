@@ -3,10 +3,11 @@ import {GET} from '../modules/fetch.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
+import type {Item} from './ViewFileTreeItem.vue';
 
 export function createViewFileTreeStore(props: {repoLink: string, treePath: string, currentRefNameSubURL: string}) {
   const store = reactive({
-    rootFiles: [],
+    rootFiles: [] as Array<Item>,
     selectedItem: props.treePath,
 
     async loadChildren(treePath: string, subPath: string = '') {
@@ -17,7 +18,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
         if (!document.querySelector(`.global-svg-icon-pool #${svgId}`)) poolSvgs.push(svgContent);
       }
       if (poolSvgs.length) {
-        const svgContainer = createElementFromHTML(html`<div class="global-svg-icon-pool tw-hidden"></div>`);
+        const svgContainer = createElementFromHTML(html`<div class="global-svg-icon-pool svg-icon-container"></div>`);
         svgContainer.innerHTML = poolSvgs.join('');
         document.body.append(svgContainer);
       }
@@ -28,7 +29,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
       const u = new URL(url, window.origin);
       u.searchParams.set('only_content', 'true');
       const response = await GET(u.href);
-      const elViewContent = document.querySelector('.repo-view-content');
+      const elViewContent = document.querySelector('.repo-view-content')!;
       elViewContent.innerHTML = await response.text();
       const elViewContentData = elViewContent.querySelector('.repo-view-content-data');
       if (!elViewContentData) return; // if error occurs, there is no such element
@@ -39,7 +40,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
 
     async navigateTreeView(treePath: string) {
       const url = store.buildTreePathWebUrl(treePath);
-      window.history.pushState({treePath, url}, null, url);
+      window.history.pushState({treePath, url}, '', url);
       store.selectedItem = treePath;
       await store.loadViewContent(url);
     },

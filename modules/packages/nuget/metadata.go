@@ -216,7 +216,7 @@ func ParseNuspecMetaData(archive *zip.Reader, r io.Reader) (*Package, error) {
 	if p.Metadata.Readme != "" {
 		f, err := archive.Open(p.Metadata.Readme)
 		if err == nil {
-			buf, _ := io.ReadAll(f)
+			buf, _ := util.ReadWithLimit(f, 1024*1024)
 			m.Readme = string(buf)
 			_ = f.Close()
 		}

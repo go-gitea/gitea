@@ -10,9 +10,12 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"sync"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
@@ -137,7 +140,14 @@ func TestPullCreate(t *testing.T) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo1.NumPulls)
+		assert.Equal(t, 3, repo1.NumOpenPulls)
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+
+		repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 4, repo1.NumPulls)
+		assert.Equal(t, 4, repo1.NumOpenPulls)
 
 		// check the redirected URL
 		url := test.RedirectURL(resp)
@@ -285,6 +295,44 @@ func TestPullCreatePrFromBaseToFork(t *testing.T) {
 	})
 }
 
+func TestPullCreateParallel(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		sessionFork := loginUser(t, "user1")
+		testRepoFork(t, sessionFork, "user2", "repo1", "user1", "repo1", "")
+
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo1.NumPulls)
+		assert.Equal(t, 3, repo1.NumOpenPulls)
+
+		var wg sync.WaitGroup
+		for i := range 5 {
+			wg.Go(func() {
+				branchName := fmt.Sprintf("new-branch-%d", i)
+				testEditFileToNewBranch(t, sessionFork, "user1", "repo1", "master", branchName, "README.md", fmt.Sprintf("Hello, World (Edited) %d\n", i))
+
+				// Create a PR
+				resp := testPullCreateDirectly(t, sessionFork, createPullRequestOptions{
+					BaseRepoOwner: "user2",
+					BaseRepoName:  "repo1",
+					BaseBranch:    "master",
+					HeadRepoOwner: "user1",
+					HeadRepoName:  "repo1",
+					HeadBranch:    branchName,
+					Title:         fmt.Sprintf("This is a pull title %d", i),
+				})
+				// check the redirected URL
+				url := test.RedirectURL(resp)
+				assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
+			})
+		}
+		wg.Wait()
+
+		repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 8, repo1.NumPulls)
+		assert.Equal(t, 8, repo1.NumOpenPulls)
+	})
+}
+
 func TestCreateAgitPullWithReadPermission(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		dstPath := t.TempDir()
@@ -300,11 +348,19 @@ func TestCreateAgitPullWithReadPermission(t *testing.T) {
 			TreeFileContent: "temp content",
 		})(t)
 
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
+
 		err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
 			AddDynamicArguments("topic=test-topic").
 			WithDir(dstPath).
 			Run(t.Context())
 		assert.NoError(t, err)
+
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 4, repo.NumOpenPulls)
 	})
 }
 

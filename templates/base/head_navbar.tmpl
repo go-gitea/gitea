@@ -120,6 +120,13 @@
 						{{svg "octicon-question"}}
 						{{ctx.Locale.Tr "help"}}
 					</a>
+					{{if .IsAdmin}}
+					<div class="divider"></div>
+					<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/-/admin">
+						{{svg "octicon-server"}}
+						{{ctx.Locale.Tr "admin_panel"}}
+					</a>
+					{{end}}
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}

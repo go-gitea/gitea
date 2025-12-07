@@ -101,11 +101,11 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
+// update PR means send new commits to PR head branch from base branch
 func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
 	if pull.Flow == issues_model.PullRequestFlowAGit {
 		return false, false, nil
 	}
-
 	if user == nil {
 		return false, false, nil
 	}
@@ -121,60 +121,55 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		return false, false, err
 	}
 
-	pr := &issues_model.PullRequest{
-		HeadRepoID: pull.BaseRepoID,
-		HeadRepo:   pull.BaseRepo,
-		BaseRepoID: pull.HeadRepoID,
-		BaseRepo:   pull.HeadRepo,
-		HeadBranch: pull.BaseBranch,
-		BaseBranch: pull.HeadBranch,
-	}
-
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
-	if err != nil {
-		return false, false, err
-	}
-
-	if err := pr.LoadBaseRepo(ctx); err != nil {
-		return false, false, err
-	}
-	prUnit, err := pr.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
-	if err != nil {
+	// 1. check base repository's AllowRebaseUpdate configuration
+	// it is a config in base repo but controls the head (fork) repo's "Update" behavior
+	{
+		prBaseUnit, err := pull.BaseRepo.GetUnit(ctx, unit.TypePullRequests)
 		if repo_model.IsErrUnitTypeNotExist(err) {
-			return false, false, nil
+			return false, false, nil // the PR unit is disabled in base repo
+		} else if err != nil {
+			return false, false, fmt.Errorf("get base repo unit: %v", err)
 		}
-		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
-		return false, false, err
+		rebaseAllowed = prBaseUnit.PullRequestsConfig().AllowRebaseUpdate
 	}
 
-	rebaseAllowed = prUnit.PullRequestsConfig().AllowRebaseUpdate
-
-	// If branch protected, disable rebase unless user is whitelisted to force push (which extends regular push)
-	if pb != nil {
-		pb.Repo = pull.BaseRepo
-		if !pb.CanUserForcePush(ctx, user) {
-			rebaseAllowed = false
+	// 2. check head branch protection whether rebase is allowed, if pb not found then rebase depends on the above setting
+	{
+		pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.HeadRepoID, pull.HeadBranch)
+		if err != nil {
+			return false, false, err
+		}
+		// If branch protected, disable rebase unless user is whitelisted to force push (which extends regular push)
+		if pb != nil {
+			pb.Repo = pull.HeadRepo
+			rebaseAllowed = rebaseAllowed && pb.CanUserForcePush(ctx, user)
 		}
 	}
 
+	// 3. check whether user has write access to head branch
 	baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)
 	if err != nil {
 		return false, false, err
 	}
 
-	mergeAllowed, err = IsUserAllowedToMerge(ctx, pr, headRepoPerm, user)
+	mergeAllowed, err = isUserAllowedToMergeInRepoBranch(ctx, pull.HeadRepoID, pull.HeadBranch, headRepoPerm, user)
 	if err != nil {
 		return false, false, err
 	}
 
+	// 4. if the pull creator allows maintainer to edit, it means the write permissions of the head branch has been
+	// granted to the user with write permission of the base repository
 	if pull.AllowMaintainerEdit {
-		mergeAllowedMaintainer, err := IsUserAllowedToMerge(ctx, pr, baseRepoPerm, user)
+		mergeAllowedMaintainer, err := isUserAllowedToMergeInRepoBranch(ctx, pull.BaseRepoID, pull.BaseBranch, baseRepoPerm, user)
 		if err != nil {
 			return false, false, err
 		}
 
 		mergeAllowed = mergeAllowed || mergeAllowedMaintainer
 	}
+
+	// if merge is not allowed, rebase is also not allowed
+	rebaseAllowed = rebaseAllowed && mergeAllowed
 
 	return mergeAllowed, rebaseAllowed, nil
 }

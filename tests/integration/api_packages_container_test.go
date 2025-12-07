@@ -28,6 +28,7 @@ import (
 
 	oci "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageContainer(t *testing.T) {
@@ -70,13 +71,12 @@ func TestPackageContainer(t *testing.T) {
 
 	manifestDigest := "sha256:4f10484d1c1bb13e3956b4de1cd42db8e0f14a75be1617b60f2de3cd59c803c6"
 	manifestContent := `{"schemaVersion":2,"mediaType":"` + container_module.ContentTypeDockerDistributionManifestV2 + `","config":{"mediaType":"application/vnd.docker.container.image.v1+json","digest":"sha256:4607e093bec406eaadb6f3a340f63400c9d3a7038680744c406903766b938f0d","size":1069},"layers":[{"mediaType":"application/vnd.docker.image.rootfs.diff.tar.gzip","digest":"sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4","size":32}]}`
-	manifestContentType := container_module.ContentTypeDockerDistributionManifestV2
 
 	untaggedManifestDigest := "sha256:4305f5f5572b9a426b88909b036e52ee3cf3d7b9c1b01fac840e90747f56623d"
 	untaggedManifestContent := `{"schemaVersion":2,"mediaType":"` + oci.MediaTypeImageManifest + `","config":{"mediaType":"application/vnd.docker.container.image.v1+json","digest":"sha256:4607e093bec406eaadb6f3a340f63400c9d3a7038680744c406903766b938f0d","size":1069},"layers":[{"mediaType":"application/vnd.docker.image.rootfs.diff.tar.gzip","digest":"sha256:a3ed95caeb02ffe68cdd9fd84406680ae93d633cb16422d00e8a7c22955b46d4","size":32}]}`
 
-	indexManifestDigest := "sha256:bab112d6efb9e7f221995caaaa880352feb5bd8b1faf52fae8d12c113aa123ec"
-	indexManifestContent := `{"schemaVersion":2,"mediaType":"` + oci.MediaTypeImageIndex + `","manifests":[{"mediaType":"application/vnd.docker.distribution.manifest.v2+json","digest":"` + manifestDigest + `","platform":{"os":"linux","architecture":"arm","variant":"v7"}},{"mediaType":"` + oci.MediaTypeImageManifest + `","digest":"` + untaggedManifestDigest + `","platform":{"os":"linux","architecture":"arm64","variant":"v8"}}]}`
+	indexManifestDigest := "sha256:2c6b5afb967d5de02795ee1d177c3746d005df4b4c2b829385b0d186b3414b6b"
+	indexManifestContent := `{"schemaVersion":2,"mediaType":"` + oci.MediaTypeImageIndex + `","is_tagged":true,"manifests":[{"mediaType":"application/vnd.docker.distribution.manifest.v2+json","digest":"` + manifestDigest + `","platform":{"os":"linux","architecture":"arm","variant":"v7"}},{"mediaType":"` + oci.MediaTypeImageManifest + `","digest":"` + untaggedManifestDigest + `","platform":{"os":"linux","architecture":"arm64","variant":"v8"}}]}`
 
 	anonymousToken := ""
 	userToken := ""
@@ -467,15 +467,16 @@ func TestPackageContainer(t *testing.T) {
 						assert.NoError(t, err)
 						assert.EqualValues(t, 1, pv.DownloadCount)
 
-						// Overwrite existing tag should keep the download count
-						req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/manifests/%s", url, tag), strings.NewReader(manifestContent)).
-							AddTokenAuth(userToken).
-							SetHeader("Content-Type", oci.MediaTypeImageManifest)
-						MakeRequest(t, req, http.StatusCreated)
+						t.Run("OverwriteTagKeepDownloadCount", func(t *testing.T) {
+							req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/manifests/%s", url, tag), strings.NewReader(manifestContent)).
+								AddTokenAuth(userToken).
+								SetHeader("Content-Type", oci.MediaTypeImageManifest)
+							MakeRequest(t, req, http.StatusCreated)
 
-						pv, err = packages_model.GetVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeContainer, image, tag)
-						assert.NoError(t, err)
-						assert.EqualValues(t, 1, pv.DownloadCount)
+							pv, err = packages_model.GetVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeContainer, image, tag)
+							assert.NoError(t, err)
+							assert.EqualValues(t, 1, pv.DownloadCount)
+						})
 					})
 
 					t.Run("HeadManifest", func(t *testing.T) {
@@ -505,7 +506,7 @@ func TestPackageContainer(t *testing.T) {
 						resp := MakeRequest(t, req, http.StatusOK)
 
 						assert.Equal(t, strconv.Itoa(len(manifestContent)), resp.Header().Get("Content-Length"))
-						assert.Equal(t, manifestContentType, resp.Header().Get("Content-Type"))
+						assert.Equal(t, oci.MediaTypeImageManifest, resp.Header().Get("Content-Type")) // the manifest is overwritten by above OverwriteTagKeepDownloadCount
 						assert.Equal(t, manifestDigest, resp.Header().Get("Docker-Content-Digest"))
 						assert.Equal(t, manifestContent, resp.Body.String())
 					})
@@ -599,6 +600,17 @@ func TestPackageContainer(t *testing.T) {
 				assert.True(t, pd.Files[0].File.IsLead)
 				assert.Equal(t, oci.MediaTypeImageIndex, pd.Files[0].Properties.GetByName(container_module.PropertyMediaType))
 				assert.Equal(t, indexManifestDigest, pd.Files[0].Properties.GetByName(container_module.PropertyDigest))
+
+				lastPackageVersionID := pv.ID
+				t.Run("UploadAgain", func(t *testing.T) {
+					req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/manifests/%s", url, multiTag), strings.NewReader(indexManifestContent)).
+						AddTokenAuth(userToken).
+						SetHeader("Content-Type", oci.MediaTypeImageIndex)
+					MakeRequest(t, req, http.StatusCreated)
+					pv, err := packages_model.GetVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeContainer, image, multiTag)
+					require.NoError(t, err)
+					assert.NotEqual(t, lastPackageVersionID, pv.ID)
+				})
 			})
 
 			t.Run("HeadBlob", func(t *testing.T) {

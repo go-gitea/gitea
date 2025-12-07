@@ -16,7 +16,7 @@ export function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
   if (getAttachedTippyInstance(refIssue)) return;
   if (refIssue.classList.contains('ref-external-issue')) return;
 
-  const issuePathInfo = parseIssueHref(refIssue.getAttribute('href'));
+  const issuePathInfo = parseIssueHref(refIssue.getAttribute('href')!);
   if (!issuePathInfo.ownerName) return;
 
   const el = document.createElement('div');

@@ -919,20 +919,32 @@ func TestOAuth_GrantScopesClaimAllGroups(t *testing.T) {
 }
 
 func testOAuth2WellKnown(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/")()
 	urlOpenidConfiguration := "/.well-known/openid-configuration"
 
-	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/")()
-	req := NewRequest(t, "GET", urlOpenidConfiguration)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var respMap map[string]any
-	DecodeJSON(t, resp, &respMap)
-	assert.Equal(t, "https://try.gitea.io", respMap["issuer"])
-	assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
-	assert.Equal(t, "https://try.gitea.io/login/oauth/access_token", respMap["token_endpoint"])
-	assert.Equal(t, "https://try.gitea.io/login/oauth/keys", respMap["jwks_uri"])
-	assert.Equal(t, "https://try.gitea.io/login/oauth/userinfo", respMap["userinfo_endpoint"])
-	assert.Equal(t, "https://try.gitea.io/login/oauth/introspect", respMap["introspection_endpoint"])
-	assert.Equal(t, []any{"RS256"}, respMap["id_token_signing_alg_values_supported"])
+	t.Run("WellKnown", func(t *testing.T) {
+		req := NewRequest(t, "GET", urlOpenidConfiguration)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var respMap map[string]any
+		DecodeJSON(t, resp, &respMap)
+		assert.Equal(t, "https://try.gitea.io", respMap["issuer"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/access_token", respMap["token_endpoint"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/keys", respMap["jwks_uri"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/userinfo", respMap["userinfo_endpoint"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/introspect", respMap["introspection_endpoint"])
+		assert.Equal(t, []any{"RS256"}, respMap["id_token_signing_alg_values_supported"])
+	})
+
+	t.Run("WellKnownWithIssuer", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.OAuth2.JWTClaimIssuer, "https://try.gitea.io/")()
+		req := NewRequest(t, "GET", urlOpenidConfiguration)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var respMap map[string]any
+		DecodeJSON(t, resp, &respMap)
+		assert.Equal(t, "https://try.gitea.io/", respMap["issuer"]) // has trailing by JWTClaimIssuer
+		assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
+	})
 
 	defer test.MockVariableValue(&setting.OAuth2.Enabled, false)()
 	MakeRequest(t, NewRequest(t, "GET", urlOpenidConfiguration), http.StatusNotFound)

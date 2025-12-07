@@ -5,7 +5,6 @@
 package auth
 
 import (
-	"errors"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -146,7 +145,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 			return nil, err
 		}
 		if hasWebAuthn {
-			return nil, errors.New("basic authorization is not allowed while WebAuthn enrolled")
+			return nil, ErrUserAuthMessage("basic authorization is not allowed while WebAuthn enrolled")
 		}
 
 		if err := validateTOTP(req, u); err != nil {

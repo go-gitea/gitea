@@ -22,9 +22,6 @@ import (
 
 var gothRWMutex = sync.RWMutex{}
 
-// UsersStoreKey is the key for the store
-const UsersStoreKey = "gitea-oauth2-sessions"
-
 // ProviderHeaderKey is the HTTP header key
 const ProviderHeaderKey = "gitea-oauth2-provider"
 
@@ -33,7 +30,7 @@ func Init(ctx context.Context) error {
 	// Lock our mutex
 	gothRWMutex.Lock()
 
-	gob.Register(&sessions.Session{})
+	gob.Register(&sessions.Session{}) // TODO: CHI-SESSION-GOB-REGISTER. FIXME: it seems to be an abuse, why the Session struct itself is stored in session store again?
 
 	gothic.Store = &SessionsStore{
 		maxLength: int64(setting.OAuth2.MaxTokenLength),

@@ -110,6 +110,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		"FilePath":         opts.FilePath,
 		"LineStart":        opts.LineStart,
 		"LineStop":         realLineStop,
+		"RepoName":         opts.RepoName,
 		"RepoLink":         dbRepo.Link(),
 		"CommitID":         opts.CommitID,
 		"HighlightLines":   highlightLines,

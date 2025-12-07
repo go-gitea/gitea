@@ -14,7 +14,7 @@ import (
 )
 
 func NewDiffPatch(ctx *context.Context) {
-	prepareEditorCommitFormOptions(ctx, "_diffpatch")
+	prepareEditorPage(ctx, "_diffpatch")
 	if ctx.Written() {
 		return
 	}

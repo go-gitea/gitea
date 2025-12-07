@@ -51,7 +51,6 @@ modifies/internal:
           - ".github/**"
           - ".gitea/**"
           - ".devcontainer/**"
-          - "build.go"
           - "build/**"
           - "contrib/**"
 

@@ -4,7 +4,7 @@ export async function initCaptcha() {
   const captchaEl = document.querySelector('#captcha');
   if (!captchaEl) return;
 
-  const siteKey = captchaEl.getAttribute('data-sitekey');
+  const siteKey = captchaEl.getAttribute('data-sitekey')!;
   const isDark = isDarkTheme();
 
   const params = {
@@ -43,7 +43,7 @@ export async function initCaptcha() {
 
       // @ts-expect-error TS2540: Cannot assign to 'INPUT_NAME' because it is a read-only property.
       mCaptcha.INPUT_NAME = 'm-captcha-response';
-      const instanceURL = captchaEl.getAttribute('data-instance-url');
+      const instanceURL = captchaEl.getAttribute('data-instance-url')!;
 
       new mCaptcha.default({
         siteKey: {

@@ -33,7 +33,7 @@ func TreeList(ctx *context.Context) {
 		ctx.ServerError("ListEntriesRecursiveFast", err)
 		return
 	}
-	entries.CustomSort(base.NaturalSortLess)
+	entries.CustomSort(base.NaturalSortCompare)
 
 	files := make([]string, 0, len(entries))
 	for _, entry := range entries {
