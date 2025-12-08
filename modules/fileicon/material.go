@@ -76,7 +76,7 @@ func (m *MaterialIconProvider) renderFileIconSVG(p *RenderedIconPool, name, svg,
 	if p.IconSVGs[svgID] == "" {
 		p.IconSVGs[svgID] = svgHTML
 	}
-	return template.HTML(`<svg ` + svgCommonAttrs + `><use xlink:href="#` + svgID + `"></use></svg>`)
+	return template.HTML(`<svg ` + svgCommonAttrs + `><use href="#` + svgID + `"></use></svg>`)
 }
 
 func (m *MaterialIconProvider) EntryIconHTML(p *RenderedIconPool, entry *EntryInfo) template.HTML {

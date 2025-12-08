@@ -110,11 +110,11 @@ func WalkShowRef(ctx context.Context, repoPath string, extraArgs gitcmd.TrustedC
 		stderrBuilder := &strings.Builder{}
 		args := gitcmd.TrustedCmdArgs{"for-each-ref", "--format=%(objectname) %(refname)"}
 		args = append(args, extraArgs...)
-		err := gitcmd.NewCommand(args...).Run(ctx, &gitcmd.RunOpts{
-			Dir:    repoPath,
-			Stdout: stdoutWriter,
-			Stderr: stderrBuilder,
-		})
+		err := gitcmd.NewCommand(args...).
+			WithDir(repoPath).
+			WithStdout(stdoutWriter).
+			WithStderr(stderrBuilder).
+			Run(ctx)
 		if err != nil {
 			if stderrBuilder.Len() == 0 {
 				_ = stdoutWriter.Close()

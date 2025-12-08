@@ -1,4 +1,4 @@
-import {queryElems, type DOMEvent} from '../utils/dom.ts';
+import {queryElems} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {sleep} from '../utils.ts';
@@ -7,10 +7,10 @@ import {createApp} from 'vue';
 import {toOriginUrl} from '../utils/url.ts';
 import {createTippy} from '../modules/tippy.ts';
 
-async function onDownloadArchive(e: DOMEvent<MouseEvent>) {
+async function onDownloadArchive(e: Event) {
   e.preventDefault();
   // there are many places using the "archive-link", eg: the dropdown on the repo code page, the release list
-  const el = e.target.closest<HTMLAnchorElement>('a.archive-link[href]');
+  const el = (e.target as HTMLElement).closest<HTMLAnchorElement>('a.archive-link[href]')!;
   const targetLoading = el.closest('.ui.dropdown') ?? el;
   targetLoading.classList.add('is-loading', 'loading-icon-2px');
   try {
@@ -51,13 +51,13 @@ export function substituteRepoOpenWithUrl(tmpl: string, url: string): string {
 }
 
 function initCloneSchemeUrlSelection(parent: Element) {
-  const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url');
+  const elCloneUrlInput = parent.querySelector<HTMLInputElement>('.repo-clone-url')!;
 
   const tabHttps = parent.querySelector('.repo-clone-https');
   const tabSsh = parent.querySelector('.repo-clone-ssh');
   const tabTea = parent.querySelector('.repo-clone-tea');
   const updateClonePanelUi = function() {
-    let scheme = localStorage.getItem('repo-clone-protocol');
+    let scheme = localStorage.getItem('repo-clone-protocol')!;
     if (!['https', 'ssh', 'tea'].includes(scheme)) {
       scheme = 'https';
     }
@@ -87,7 +87,7 @@ function initCloneSchemeUrlSelection(parent: Element) {
       tabTea.classList.toggle('active', isTea);
     }
 
-    let tab: Element;
+    let tab: Element | null = null;
     if (isHttps) {
       tab = tabHttps;
     } else if (isSsh) {
@@ -97,7 +97,7 @@ function initCloneSchemeUrlSelection(parent: Element) {
     }
 
     if (!tab) return;
-    const link = toOriginUrl(tab.getAttribute('data-link'));
+    const link = toOriginUrl(tab.getAttribute('data-link')!);
 
     for (const el of document.querySelectorAll('.js-clone-url')) {
       if (el.nodeName === 'INPUT') {
@@ -107,7 +107,7 @@ function initCloneSchemeUrlSelection(parent: Element) {
       }
     }
     for (const el of parent.querySelectorAll<HTMLAnchorElement>('.js-clone-url-editor')) {
-      el.href = substituteRepoOpenWithUrl(el.getAttribute('data-href-template'), link);
+      el.href = substituteRepoOpenWithUrl(el.getAttribute('data-href-template')!, link);
     }
   };
 
@@ -131,7 +131,7 @@ function initCloneSchemeUrlSelection(parent: Element) {
 }
 
 function initClonePanelButton(btn: HTMLButtonElement) {
-  const elPanel = btn.nextElementSibling;
+  const elPanel = btn.nextElementSibling!;
   // "init" must be before the "createTippy" otherwise the "tippy-target" will be removed from the document
   initCloneSchemeUrlSelection(elPanel);
   createTippy(btn, {

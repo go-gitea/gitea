@@ -47,6 +47,10 @@ function processAssetsSvgFiles(pattern: string, opts: Opts = {}) {
   return glob(pattern).map((path) => processAssetsSvgFile(path, opts));
 }
 
+function lowercaseKeys(obj: Record<string, any>) {
+  return Object.fromEntries(Object.entries(obj).map(([key, value]) => [key.toLowerCase(), value]));
+}
+
 async function processMaterialFileIcons() {
   const paths = glob('node_modules/material-icon-theme/icons/*.svg');
   const svgSymbols: Record<string, string> = {};
@@ -76,18 +80,30 @@ async function processMaterialFileIcons() {
   //    * https://code.visualstudio.com/docs/languages/identifiers#_known-language-identifiers
   //    * https://github.com/microsoft/vscode/tree/1.98.0/extensions
   delete iconRules.iconDefinitions;
-  for (const [k, v] of Object.entries(iconRules.fileNames)) iconRules.fileNames[k.toLowerCase()] = v;
-  for (const [k, v] of Object.entries(iconRules.folderNames)) iconRules.folderNames[k.toLowerCase()] = v;
-  for (const [k, v] of Object.entries(iconRules.fileExtensions)) iconRules.fileExtensions[k.toLowerCase()] = v;
+
+  if (iconRules.fileNames) {
+    iconRules.fileNames = lowercaseKeys(iconRules.fileNames);
+  }
+  if (iconRules.folderNames) {
+    iconRules.folderNames = lowercaseKeys(iconRules.folderNames);
+  }
+  if (iconRules.fileExtensions) {
+    iconRules.fileExtensions = lowercaseKeys(iconRules.fileExtensions);
+  }
+
   // Use VSCode's "Language ID" mapping from its extensions
   for (const [_, langIdExtMap] of Object.entries(vscodeExtensions)) {
     for (const [langId, names] of Object.entries(langIdExtMap)) {
       for (const name of names) {
         const nameLower = name.toLowerCase();
         if (nameLower[0] === '.') {
-          iconRules.fileExtensions[nameLower.substring(1)] ??= langId;
+          if (iconRules.fileExtensions) {
+            iconRules.fileExtensions[nameLower.substring(1)] ??= langId;
+          }
         } else {
-          iconRules.fileNames[nameLower] ??= langId;
+          if (iconRules.fileNames) {
+            iconRules.fileNames[nameLower] ??= langId;
+          }
         }
       }
     }

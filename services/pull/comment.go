@@ -63,10 +63,15 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 	var data issues_model.PushActionContent
 	if opts.IsForcePush {
 		data.CommitIDs = []string{oldCommitID, newCommitID}
+		data.IsForcePush = true
 	} else {
 		data.CommitIDs, err = getCommitIDsFromRepo(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
 		if err != nil {
 			return nil, err
+		}
+		// It maybe an empty pull request. Only non-empty pull request need to create push comment
+		if len(data.CommitIDs) == 0 {
+			return nil, nil
 		}
 	}
 

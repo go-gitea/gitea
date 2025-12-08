@@ -153,7 +153,8 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 	var stdout []byte
 	if stdout, _, err = cloneCmd.AddDynamicArguments(opts.BaseRepo.RepoPath(), repo.RepoPath()).
-		RunStdBytes(ctx, &gitcmd.RunOpts{Timeout: 10 * time.Minute}); err != nil {
+		WithTimeout(10 * time.Minute).
+		RunStdBytes(ctx); err != nil {
 		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
 		return nil, fmt.Errorf("git clone: %w", err)
 	}

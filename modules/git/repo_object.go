@@ -76,12 +76,12 @@ func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) 
 	}
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err := cmd.Run(repo.Ctx, &gitcmd.RunOpts{
-		Dir:    repo.Path,
-		Stdin:  reader,
-		Stdout: stdout,
-		Stderr: stderr,
-	})
+	err := cmd.
+		WithDir(repo.Path).
+		WithStdin(reader).
+		WithStdout(stdout).
+		WithStderr(stderr).
+		Run(repo.Ctx)
 	if err != nil {
 		return "", err
 	}

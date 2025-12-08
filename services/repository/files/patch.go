@@ -165,12 +165,11 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		cmdApply.AddArguments("-3")
 	}
 
-	if err := cmdApply.Run(ctx, &gitcmd.RunOpts{
-		Dir:    t.basePath,
-		Stdout: stdout,
-		Stderr: stderr,
-		Stdin:  strings.NewReader(opts.Content),
-	}); err != nil {
+	if err := cmdApply.WithDir(t.basePath).
+		WithStdout(stdout).
+		WithStderr(stderr).
+		WithStdin(strings.NewReader(opts.Content)).
+		Run(ctx); err != nil {
 		return nil, fmt.Errorf("Error: Stdout: %s\nStderr: %s\nErr: %w", stdout.String(), stderr.String(), err)
 	}
 
@@ -201,7 +200,7 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	}
 
 	// Then push this tree to NewBranch
-	if err := t.Push(ctx, doer, commitHash, opts.NewBranch); err != nil {
+	if err := t.Push(ctx, doer, commitHash, opts.NewBranch, false); err != nil {
 		return nil, err
 	}
 

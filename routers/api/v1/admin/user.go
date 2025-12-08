@@ -216,9 +216,12 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if form.Email != nil {
-		if err := user_service.AdminAddOrSetPrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
+		if err := user_service.ReplacePrimaryEmailAddress(ctx, ctx.ContextUser, *form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
+				if !user_model.IsEmailDomainAllowed(*form.Email) {
+					err = fmt.Errorf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", *form.Email)
+				}
 				ctx.APIError(http.StatusBadRequest, err)
 			case user_model.IsErrEmailAlreadyUsed(err):
 				ctx.APIError(http.StatusBadRequest, err)
@@ -226,10 +229,6 @@ func EditUser(ctx *context.APIContext) {
 				ctx.APIErrorInternal(err)
 			}
 			return
-		}
-
-		if !user_model.IsEmailDomainAllowed(*form.Email) {
-			ctx.Resp.Header().Add("X-Gitea-Warning", fmt.Sprintf("the domain of user email %s conflicts with EMAIL_DOMAIN_ALLOWLIST or EMAIL_DOMAIN_BLOCKLIST", *form.Email))
 		}
 	}
 
@@ -425,7 +424,7 @@ func SearchUsers(ctx *context.APIContext) {
 
 	users, maxResults, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
-		Type:        user_model.UserTypeIndividual,
+		Types:       []user_model.UserType{user_model.UserTypeIndividual},
 		LoginName:   ctx.FormTrim("login_name"),
 		SourceID:    ctx.FormInt64("source_id"),
 		OrderBy:     db.SearchOrderByAlphabetically,
@@ -480,7 +479,7 @@ func RenameUser(ctx *context.APIContext) {
 	newName := web.GetForm(ctx).(*api.RenameUserOption).NewName
 
 	// Check if username has been changed
-	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName); err != nil {
+	if err := user_service.RenameUser(ctx, ctx.ContextUser, newName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {

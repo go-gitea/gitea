@@ -12,7 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +43,7 @@ func TestChangeDefaultBranch(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
-func checkDivergence(t *testing.T, session *TestSession, branchesURL, expectedDefaultBranch string, expectedBranchToDivergence map[string]git.DivergeObject) {
+func checkDivergence(t *testing.T, session *TestSession, branchesURL, expectedDefaultBranch string, expectedBranchToDivergence map[string]*gitrepo.DivergeObject) {
 	req := NewRequest(t, "GET", branchesURL)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -92,7 +92,7 @@ func TestChangeDefaultBranchDivergence(t *testing.T) {
 	settingsBranchesURL := fmt.Sprintf("/%s/%s/settings/branches", owner.Name, repo.Name)
 
 	// check branch divergence before switching default branch
-	expectedBranchToDivergenceBefore := map[string]git.DivergeObject{
+	expectedBranchToDivergenceBefore := map[string]*gitrepo.DivergeObject{
 		"not-signed": {
 			Ahead:  0,
 			Behind: 0,
@@ -119,7 +119,7 @@ func TestChangeDefaultBranchDivergence(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// check branch divergence after switching default branch
-	expectedBranchToDivergenceAfter := map[string]git.DivergeObject{
+	expectedBranchToDivergenceAfter := map[string]*gitrepo.DivergeObject{
 		"master": {
 			Ahead:  1,
 			Behind: 0,

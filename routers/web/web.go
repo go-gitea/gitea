@@ -267,7 +267,7 @@ func Routes() *web.Router {
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	mid = append(mid, common.Sessioner(), context.Contexter())
+	mid = append(mid, common.MustInitSessioner(), context.Contexter())
 
 	// Get user from session if logged in.
 	mid = append(mid, webAuth(buildAuthGroup()))
@@ -302,13 +302,6 @@ func registerWebRoutes(m *web.Router) {
 	optExploreSignIn := verifyAuthWithOptions(&common.VerifyOptions{SignInRequired: setting.Service.RequireSignInViewStrict || setting.Service.Explore.RequireSigninView})
 
 	validation.AddBindingRules()
-
-	linkAccountEnabled := func(ctx *context.Context) {
-		if !setting.Service.EnableOpenIDSignIn && !setting.Service.EnableOpenIDSignUp && !setting.OAuth2.Enabled {
-			ctx.HTTPError(http.StatusForbidden)
-			return
-		}
-	}
 
 	openIDSignInEnabled := func(ctx *context.Context) {
 		if !setting.Service.EnableOpenIDSignIn {
@@ -493,6 +486,9 @@ func registerWebRoutes(m *web.Router) {
 
 	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
 
+	m.Get("/-/web-theme/list", misc.WebThemeList)
+	m.Post("/-/web-theme/apply", optSignInIgnoreCsrf, misc.WebThemeApply)
+
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
@@ -541,9 +537,9 @@ func registerWebRoutes(m *web.Router) {
 		}, openIDSignInEnabled)
 		m.Get("/sign_up", auth.SignUp)
 		m.Post("/sign_up", web.Bind(forms.RegisterForm{}), auth.SignUpPost)
-		m.Get("/link_account", linkAccountEnabled, auth.LinkAccount)
-		m.Post("/link_account_signin", linkAccountEnabled, web.Bind(forms.SignInForm{}), auth.LinkAccountPostSignIn)
-		m.Post("/link_account_signup", linkAccountEnabled, web.Bind(forms.RegisterForm{}), auth.LinkAccountPostRegister)
+		m.Get("/link_account", auth.LinkAccount)
+		m.Post("/link_account_signin", web.Bind(forms.SignInForm{}), auth.LinkAccountPostSignIn)
+		m.Post("/link_account_signup", web.Bind(forms.RegisterForm{}), auth.LinkAccountPostRegister)
 		m.Group("/two_factor", func() {
 			m.Get("", auth.TwoFactor)
 			m.Post("", web.Bind(forms.TwoFactorAuthForm{}), auth.TwoFactorPost)
@@ -618,7 +614,7 @@ func registerWebRoutes(m *web.Router) {
 				m.Post("/delete", security.DeleteOpenID)
 				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
-			m.Post("/account_link", linkAccountEnabled, security.DeleteAccountLink)
+			m.Post("/account_link", security.DeleteAccountLink)
 		})
 
 		m.Group("/applications", func() {
@@ -1155,11 +1151,21 @@ func registerWebRoutes(m *web.Router) {
 				m.Post("/{lid}/unlock", repo_setting.LFSUnlock)
 			})
 		})
+		m.Group("/actions/general", func() {
+			m.Get("", repo_setting.ActionsGeneralSettings)
+			m.Post("/actions_unit", repo_setting.ActionsUnitPost)
+		})
 		m.Group("/actions", func() {
 			m.Get("", shared_actions.RedirectToDefaultSetting)
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
+			m.Group("/general", func() {
+				m.Group("/collaborative_owner", func() {
+					m.Post("/add", repo_setting.AddCollaborativeOwner)
+					m.Post("/delete", repo_setting.DeleteCollaborativeOwner)
+				})
+			})
 		}, actions.MustEnableActions)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
 		m.Group("/migrate", func() {
@@ -1178,7 +1184,6 @@ func registerWebRoutes(m *web.Router) {
 	m.Post("/{username}/{reponame}/markup", optSignIn, context.RepoAssignment, reqUnitsWithMarkdown, web.Bind(structs.MarkupOption{}), misc.Markup)
 
 	m.Group("/{username}/{reponame}", func() {
-		m.Get("/find/*", repo.FindFiles)
 		m.Group("/tree-list", func() {
 			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.TreeList)
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.TreeList)
@@ -1455,6 +1460,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Post("/enable", reqRepoAdmin, actions.EnableWorkflowFile)
 		m.Post("/run", reqRepoActionsWriter, actions.Run)
 		m.Get("/workflow-dispatch-inputs", reqRepoActionsWriter, actions.WorkflowDispatchInputs)
+		m.Post("/approve-all-checks", reqRepoActionsWriter, actions.ApproveAllChecks)
 
 		m.Group("/runs/{run}", func() {
 			m.Combo("").

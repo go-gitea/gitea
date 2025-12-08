@@ -14,18 +14,10 @@ import (
 
 // Tree represents a flat directory listing.
 type Tree struct {
-	ID         ObjectID
-	ResolvedID ObjectID
-	repo       *Repository
-
-	// parent tree
-	ptree *Tree
+	TreeCommon
 
 	entries       Entries
 	entriesParsed bool
-
-	entriesRecursive       Entries
-	entriesRecursiveParsed bool
 }
 
 // ListEntries returns all entries of current tree.
@@ -72,7 +64,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 	}
 
-	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).RunStdBytes(t.repo.Ctx, &gitcmd.RunOpts{Dir: t.repo.Path})
+	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-l").AddDynamicArguments(t.ID.String()).WithDir(t.repo.Path).RunStdBytes(t.repo.Ctx)
 	if runErr != nil {
 		if strings.Contains(runErr.Error(), "fatal: Not a valid object name") || strings.Contains(runErr.Error(), "fatal: not a tree object") {
 			return nil, ErrNotExist{
@@ -94,25 +86,18 @@ func (t *Tree) ListEntries() (Entries, error) {
 // listEntriesRecursive returns all entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
 func (t *Tree) listEntriesRecursive(extraArgs gitcmd.TrustedCmdArgs) (Entries, error) {
-	if t.entriesRecursiveParsed {
-		return t.entriesRecursive, nil
-	}
-
 	stdout, _, runErr := gitcmd.NewCommand("ls-tree", "-t", "-r").
 		AddArguments(extraArgs...).
 		AddDynamicArguments(t.ID.String()).
-		RunStdBytes(t.repo.Ctx, &gitcmd.RunOpts{Dir: t.repo.Path})
+		WithDir(t.repo.Path).
+		RunStdBytes(t.repo.Ctx)
 	if runErr != nil {
 		return nil, runErr
 	}
 
-	var err error
-	t.entriesRecursive, err = parseTreeEntries(stdout, t)
-	if err == nil {
-		t.entriesRecursiveParsed = true
-	}
-
-	return t.entriesRecursive, err
+	// FIXME: the "name" field is abused, here it is a full path
+	// FIXME: this ptree is not right, fortunately it isn't really used
+	return parseTreeEntries(stdout, t)
 }
 
 // ListEntriesRecursiveFast returns all entries of current tree recursively including all subtrees, no size

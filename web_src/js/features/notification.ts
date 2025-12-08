@@ -90,7 +90,7 @@ export function initNotificationCount() {
 }
 
 function getCurrentCount() {
-  return Number(document.querySelector('.notification_count').textContent ?? '0');
+  return Number(document.querySelector('.notification_count')!.textContent ?? '0');
 }
 
 async function updateNotificationCountWithCallback(callback: (timeout: number, newCount: number) => void, timeout: number, lastCount: number) {
@@ -131,9 +131,9 @@ async function updateNotificationTable() {
 
       const data = await response.text();
       const el = createElementFromHTML(data);
-      if (parseInt(el.getAttribute('data-sequence-number')) === notificationSequenceNumber) {
+      if (parseInt(el.getAttribute('data-sequence-number')!) === notificationSequenceNumber) {
         notificationDiv.outerHTML = data;
-        notificationDiv = document.querySelector('#notification_div');
+        notificationDiv = document.querySelector('#notification_div')!;
         window.htmx.process(notificationDiv); // when using htmx, we must always remember to process the new content changed by us
       }
     } catch (error) {

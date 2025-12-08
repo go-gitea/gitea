@@ -7,9 +7,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
+	"os"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -20,9 +23,9 @@ type Repository interface {
 	RelativePath() string // We don't assume how the directory structure of the repository is, so we only need the relative path
 }
 
-// RelativePath should be an unix style path like username/reponame.git
-// This method should change it according to the current OS.
-func repoPath(repo Repository) string {
+// repoPath resolves the Repository.RelativePath (which is a unix-style path like "username/reponame.git")
+// to a local filesystem path according to setting.RepoRootPath
+var repoPath = func(repo Repository) string {
 	return filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo.RelativePath()))
 }
 
@@ -85,4 +88,13 @@ func RenameRepository(ctx context.Context, repo, newRepo Repository) error {
 
 func InitRepository(ctx context.Context, repo Repository, objectFormatName string) error {
 	return git.InitRepository(ctx, repoPath(repo), true, objectFormatName)
+}
+
+func UpdateServerInfo(ctx context.Context, repo Repository) error {
+	_, _, err := RunCmdBytes(ctx, repo, gitcmd.NewCommand("update-server-info"))
+	return err
+}
+
+func GetRepoFS(repo Repository) fs.FS {
+	return os.DirFS(repoPath(repo))
 }

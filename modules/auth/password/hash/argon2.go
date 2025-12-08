@@ -61,17 +61,11 @@ func NewArgon2Hasher(config string) *Argon2Hasher {
 		return nil
 	}
 
-	parsed, err := parseUIntParam(vals[0], "time", "argon2", config, nil)
-	hasher.time = uint32(parsed)
-
-	parsed, err = parseUIntParam(vals[1], "memory", "argon2", config, err)
-	hasher.memory = uint32(parsed)
-
-	parsed, err = parseUIntParam(vals[2], "threads", "argon2", config, err)
-	hasher.threads = uint8(parsed)
-
-	parsed, err = parseUIntParam(vals[3], "keyLen", "argon2", config, err)
-	hasher.keyLen = uint32(parsed)
+	var err error
+	hasher.time, err = parseUintParam[uint32](vals[0], "time", "argon2", config, nil)
+	hasher.memory, err = parseUintParam[uint32](vals[1], "memory", "argon2", config, err)
+	hasher.threads, err = parseUintParam[uint8](vals[2], "threads", "argon2", config, err)
+	hasher.keyLen, err = parseUintParam[uint32](vals[3], "keyLen", "argon2", config, err)
 	if err != nil {
 		return nil
 	}
