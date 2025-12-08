@@ -195,110 +195,76 @@ func setCsvCompareContext(ctx *context.Context) {
 func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	baseRepo := ctx.Repo.Repository
 	ci := &common.CompareInfo{}
-
 	fileOnly := ctx.FormBool("file-only")
 
-	// Get compared branches information
-	// A full compare url is of the form:
-	//
-	// 1. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headBranch}
-	// 2. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}:{:headBranch}
-	// 3. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}/{:headRepoName}:{:headBranch}
-	// 4. /{:baseOwner}/{:baseRepoName}/compare/{:headBranch}
-	// 5. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}:{:headBranch}
-	// 6. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}/{:headRepoName}:{:headBranch}
-	//
-	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.PathParam("*")
-	// with the :baseRepo in ctx.Repo.
-	//
-	// Note: Generally :headRepoName is not provided here - we are only passed :headOwner.
-	//
-	// How do we determine the :headRepo?
-	//
-	// 1. If :headOwner is not set then the :headRepo = :baseRepo
-	// 2. If :headOwner is set - then look for the fork of :baseRepo owned by :headOwner
-	// 3. But... :baseRepo could be a fork of :headOwner's repo - so check that
-	// 4. Now, :baseRepo and :headRepos could be forks of the same repo - so check that
-	//
-	// format: <base branch>...[<head repo>:]<head branch>
-	// base<-head: master...head:feature
-	// same repo: master...feature
-
-	var (
-		isSameRepo bool
-		infoPath   string
-		err        error
-	)
-
-	infoPath = ctx.PathParam("*")
-	var infos []string
-	if infoPath == "" {
-		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
-	} else {
-		infos = strings.SplitN(infoPath, "...", 2)
-		if len(infos) != 2 {
-			if infos = strings.SplitN(infoPath, "..", 2); len(infos) == 2 {
-				ci.DirectComparison = true
-				ctx.Data["PageIsComparePull"] = false
-			} else {
-				infos = []string{baseRepo.DefaultBranch, infoPath}
-			}
-		}
-	}
-
-	ctx.Data["BaseName"] = baseRepo.OwnerName
-	ci.BaseBranch = infos[0]
-	ctx.Data["BaseBranch"] = ci.BaseBranch
-
-	// If there is no head repository, it means compare between same repository.
-	headInfos := strings.Split(infos[1], ":")
-	if len(headInfos) == 1 {
-		isSameRepo = true
-		ci.HeadUser = ctx.Repo.Owner
-		ci.HeadBranch = headInfos[0]
-	} else if len(headInfos) == 2 {
-		headInfosSplit := strings.Split(headInfos[0], "/")
-		if len(headInfosSplit) == 1 {
-			ci.HeadUser, err = user_model.GetUserByName(ctx, headInfos[0])
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					ctx.NotFound(nil)
-				} else {
-					ctx.ServerError("GetUserByName", err)
-				}
-				return nil
-			}
-			ci.HeadBranch = headInfos[1]
-			isSameRepo = ci.HeadUser.ID == ctx.Repo.Owner.ID
-			if isSameRepo {
-				ci.HeadRepo = baseRepo
-			}
-		} else {
-			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, headInfosSplit[0], headInfosSplit[1])
-			if err != nil {
-				if repo_model.IsErrRepoNotExist(err) {
-					ctx.NotFound(nil)
-				} else {
-					ctx.ServerError("GetRepositoryByOwnerAndName", err)
-				}
-				return nil
-			}
-			if err := ci.HeadRepo.LoadOwner(ctx); err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					ctx.NotFound(nil)
-				} else {
-					ctx.ServerError("GetUserByName", err)
-				}
-				return nil
-			}
-			ci.HeadBranch = headInfos[1]
-			ci.HeadUser = ci.HeadRepo.Owner
-			isSameRepo = ci.HeadRepo.ID == ctx.Repo.Repository.ID
-		}
-	} else {
-		ctx.NotFound(nil)
+	compareReq, err := common.ParseCompareRouterParam(baseRepo, ctx.PathParam("*"))
+	if err != nil {
+		ctx.ServerError("GetUserByName", err)
 		return nil
 	}
+
+	if compareReq.HeadOwner == "" {
+		if compareReq.HeadRepoName == "" {
+			ci.HeadRepo = baseRepo
+		} else {
+			ctx.NotFound(nil)
+			return nil
+		}
+	} else {
+		var headUser *user_model.User
+		if compareReq.HeadOwner == ctx.Repo.Owner.Name {
+			headUser = ctx.Repo.Owner
+		} else {
+			headUser, err = user_model.GetUserByName(ctx, compareReq.HeadOwner)
+			if err != nil {
+				if user_model.IsErrUserNotExist(err) {
+					ctx.NotFound(nil)
+				} else {
+					ctx.ServerError("GetUserByName", err)
+				}
+				return nil
+			}
+		}
+		if compareReq.HeadRepoName == "" {
+			ci.HeadRepo = repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
+			if ci.HeadRepo == nil && headUser.ID != baseRepo.OwnerID {
+				err = baseRepo.GetBaseRepo(ctx)
+				if err != nil {
+					ctx.ServerError("GetBaseRepo", err)
+					return nil
+				}
+
+				// Check if baseRepo's base repository is the same as headUser's repository.
+				if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
+					log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
+					ctx.NotFound(nil)
+					return nil
+				}
+				// Assign headRepo so it can be used below.
+				ci.HeadRepo = baseRepo.BaseRepo
+			}
+		} else {
+			if compareReq.HeadOwner == ctx.Repo.Owner.Name && compareReq.HeadRepoName == ctx.Repo.Repository.Name {
+				ci.HeadRepo = ctx.Repo.Repository
+			} else {
+				ci.HeadRepo, err = repo_model.GetRepositoryByName(ctx, headUser.ID, compareReq.HeadRepoName)
+				if err != nil {
+					if repo_model.IsErrRepoNotExist(err) {
+						ctx.NotFound(nil)
+					} else {
+						ctx.ServerError("GetRepositoryByName", err)
+					}
+					return nil
+				}
+			}
+		}
+	}
+	ci.BaseBranch = compareReq.BaseOriRef
+	ci.HeadBranch = compareReq.HeadOriRef
+	isSameRepo := baseRepo.ID == ci.HeadRepo.ID
+
+	ctx.Data["BaseName"] = baseRepo.OwnerName
+	ctx.Data["BaseBranch"] = ci.BaseBranch
 	ctx.Data["HeadUser"] = ci.HeadUser
 	ctx.Data["HeadBranch"] = ci.HeadBranch
 	ctx.Repo.PullRequest.SameRepo = isSameRepo
