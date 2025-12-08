@@ -276,8 +276,14 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
 			// The task repo can access the current repo only if the task repo is private and
 			// the owner of the task repo is a collaborative owner of the current repo.
-			// FIXME allow public repo read access if tokenless pull is enabled
 			// FIXME should owner's visibility also be considered here?
+
+			// check permission like simple user but limit to read-only
+			perm, err = GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
+			if err != nil {
+				return perm, err
+			}
+			perm.AccessMode = min(perm.AccessMode, perm_model.AccessModeRead)
 			return perm, nil
 		}
 		accessMode = perm_model.AccessModeRead
