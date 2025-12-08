@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/common"
@@ -1068,7 +1069,7 @@ type parseCompareInfoResult struct {
 // parseCompareInfo returns non-nil if it succeeds, it always writes to the context and returns nil if it fails
 func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *parseCompareInfoResult, closer func()) {
 	baseRepo := ctx.Repo.Repository
-	compareReq, err := common.ParseCompareRouterParam(baseRepo, compareParam)
+	compareReq, err := common.ParseCompareRouterParam(compareParam)
 	if err != nil {
 		ctx.APIErrorNotFound()
 		return nil, nil
@@ -1178,8 +1179,8 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 		return nil, nil
 	}
 
-	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(compareReq.BaseOriRef)
-	headRef := headGitRepo.UnstableGuessRefByShortName(compareReq.HeadOriRef)
+	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(util.Iif(compareReq.BaseOriRef == "", baseRepo.DefaultBranch, compareReq.BaseOriRef))
+	headRef := headGitRepo.UnstableGuessRefByShortName(util.Iif(compareReq.HeadOriRef == "", headRepo.DefaultBranch, compareReq.HeadOriRef))
 
 	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), compareReq.BaseOriRef, baseRef, compareReq.HeadOriRef, headRef)
 
@@ -1191,7 +1192,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 		return nil, nil
 	}
 
-	compareInfo, err := pull_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef.ShortName(), headRef.ShortName(), false, false)
+	compareInfo, err := pull_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef.ShortName(), headRef.ShortName(), compareReq.DirectComparison(), false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil

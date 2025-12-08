@@ -197,7 +197,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	ci := &common.CompareInfo{}
 	fileOnly := ctx.FormBool("file-only")
 
-	compareReq, err := common.ParseCompareRouterParam(baseRepo, ctx.PathParam("*"))
+	compareReq, err := common.ParseCompareRouterParam(ctx.PathParam("*"))
 	if err != nil {
 		ctx.ServerError("GetUserByName", err)
 		return nil
@@ -259,8 +259,9 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			}
 		}
 	}
-	ci.BaseBranch = compareReq.BaseOriRef
-	ci.HeadBranch = compareReq.HeadOriRef
+	ci.BaseBranch = util.Iif(compareReq.BaseOriRef == "", baseRepo.DefaultBranch, compareReq.BaseOriRef)
+	ci.HeadBranch = util.Iif(compareReq.HeadOriRef == "", ci.HeadRepo.DefaultBranch, compareReq.HeadOriRef)
+	ci.DirectComparison = compareReq.DirectComparison()
 	isSameRepo := baseRepo.ID == ci.HeadRepo.ID
 
 	ctx.Data["BaseName"] = baseRepo.OwnerName

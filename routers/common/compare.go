@@ -34,11 +34,7 @@ type CompareRouterReq struct {
 }
 
 func (cr *CompareRouterReq) DirectComparison() bool {
-	return cr.DotTimes == 2
-}
-
-func (cr *CompareRouterReq) CompareDots() string {
-	return strings.Repeat(".", cr.DotTimes)
+	return cr.DotTimes == 2 || cr.CaretTimes == 0
 }
 
 func parseBase(base string) (string, int) {
@@ -86,15 +82,9 @@ func parseHead(head string) (string, string, string) {
 // format: <base branch>...[<head repo>:]<head branch>
 // base<-head: master...head:feature
 // same repo: master...feature
-func ParseCompareRouterParam(baseRepo *repo_model.Repository, routerParam string) (*CompareRouterReq, error) {
+func ParseCompareRouterParam(routerParam string) (*CompareRouterReq, error) {
 	if routerParam == "" {
-		return &CompareRouterReq{
-			BaseOriRef:   baseRepo.DefaultBranch,
-			HeadOwner:    baseRepo.Owner.Name,
-			HeadRepoName: baseRepo.Name,
-			HeadOriRef:   baseRepo.DefaultBranch,
-			DotTimes:     2,
-		}, nil
+		return &CompareRouterReq{}, nil
 	}
 
 	var basePart, headPart string
@@ -108,7 +98,6 @@ func ParseCompareRouterParam(baseRepo *repo_model.Repository, routerParam string
 		if len(parts) == 1 {
 			headOwnerName, headRepoName, headRef := parseHead(routerParam)
 			return &CompareRouterReq{
-				BaseOriRef:   baseRepo.DefaultBranch,
 				HeadOriRef:   headRef,
 				HeadOwner:    headOwnerName,
 				HeadRepoName: headRepoName,
