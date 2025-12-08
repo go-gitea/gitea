@@ -1077,12 +1077,12 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 
 	var headRepo *repo_model.Repository
 	if compareReq.HeadOwner == "" {
-		if compareReq.HeadRepoName == "" {
-			headRepo = ctx.Repo.Repository
-		} else {
+		if compareReq.HeadRepoName != "" { // unsupported syntax
 			ctx.APIErrorNotFound()
 			return nil, nil
 		}
+
+		headRepo = ctx.Repo.Repository
 	} else {
 		var headUser *user_model.User
 		if compareReq.HeadOwner == ctx.Repo.Owner.Name {

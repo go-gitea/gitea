@@ -204,18 +204,18 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	}
 
 	if compareReq.HeadOwner == "" {
-		if compareReq.HeadRepoName == "" {
-			ci.HeadRepo = baseRepo
-		} else {
+		if compareReq.HeadRepoName != "" { // unsupported syntax
 			ctx.NotFound(nil)
 			return nil
 		}
+
+		ci.HeadUser = baseRepo.Owner
+		ci.HeadRepo = baseRepo
 	} else {
-		var headUser *user_model.User
 		if compareReq.HeadOwner == ctx.Repo.Owner.Name {
-			headUser = ctx.Repo.Owner
+			ci.HeadUser = ctx.Repo.Owner
 		} else {
-			headUser, err = user_model.GetUserByName(ctx, compareReq.HeadOwner)
+			ci.HeadUser, err = user_model.GetUserByName(ctx, compareReq.HeadOwner)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.NotFound(nil)
@@ -226,8 +226,8 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			}
 		}
 		if compareReq.HeadRepoName == "" {
-			ci.HeadRepo = repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
-			if ci.HeadRepo == nil && headUser.ID != baseRepo.OwnerID {
+			ci.HeadRepo = repo_model.GetForkedRepo(ctx, ci.HeadUser.ID, baseRepo.ID)
+			if ci.HeadRepo == nil && ci.HeadUser.ID != baseRepo.OwnerID {
 				err = baseRepo.GetBaseRepo(ctx)
 				if err != nil {
 					ctx.ServerError("GetBaseRepo", err)
@@ -235,7 +235,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				}
 
 				// Check if baseRepo's base repository is the same as headUser's repository.
-				if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
+				if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != ci.HeadUser.ID {
 					log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
 					ctx.NotFound(nil)
 					return nil
@@ -247,7 +247,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 			if compareReq.HeadOwner == ctx.Repo.Owner.Name && compareReq.HeadRepoName == ctx.Repo.Repository.Name {
 				ci.HeadRepo = ctx.Repo.Repository
 			} else {
-				ci.HeadRepo, err = repo_model.GetRepositoryByName(ctx, headUser.ID, compareReq.HeadRepoName)
+				ci.HeadRepo, err = repo_model.GetRepositoryByName(ctx, ci.HeadUser.ID, compareReq.HeadRepoName)
 				if err != nil {
 					if repo_model.IsErrRepoNotExist(err) {
 						ctx.NotFound(nil)
