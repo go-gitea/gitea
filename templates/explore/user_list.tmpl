@@ -21,7 +21,7 @@
 							<a href="mailto:{{.Email}}">{{.Email}}</a>
 						</span>
 					{{end}}
-					<span class="flex-text-inline">{{svg "octicon-calendar"}}{{ctx.Locale.Tr "user.joined_on" (DateTime "short" .CreatedUnix)}}</span>
+					<span class="flex-text-inline">{{svg "octicon-calendar"}}{{ctx.Locale.Tr "user.joined_on" (DateUtils.AbsoluteShort .CreatedUnix)}}</span>
 				</div>
 			</div>
 		</div>

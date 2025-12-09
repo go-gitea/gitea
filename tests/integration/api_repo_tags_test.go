@@ -48,10 +48,10 @@ func TestAPIRepoTags(t *testing.T) {
 	assert.Len(t, tags, 2)
 	for _, tag := range tags {
 		if tag.Name != "v1.1" {
-			assert.EqualValues(t, newTag.Name, tag.Name)
-			assert.EqualValues(t, newTag.Message, tag.Message)
-			assert.EqualValues(t, "nice!\nand some text", tag.Message)
-			assert.EqualValues(t, newTag.Commit.SHA, tag.Commit.SHA)
+			assert.Equal(t, newTag.Name, tag.Name)
+			assert.Equal(t, newTag.Message, tag.Message)
+			assert.Equal(t, "nice!\nand some text", tag.Message)
+			assert.Equal(t, newTag.Commit.SHA, tag.Commit.SHA)
 		}
 	}
 
@@ -61,7 +61,7 @@ func TestAPIRepoTags(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	var tag *api.Tag
 	DecodeJSON(t, resp, &tag)
-	assert.EqualValues(t, newTag, tag)
+	assert.Equal(t, newTag, tag)
 
 	// delete tag
 	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/tags/%s", user.Name, repoName, newTag.Name).

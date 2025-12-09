@@ -5,7 +5,6 @@ package repo
 
 import (
 	"context"
-	"fmt"
 	"slices"
 	"strings"
 
@@ -33,7 +32,7 @@ func IsErrUnitTypeNotExist(err error) bool {
 }
 
 func (err ErrUnitTypeNotExist) Error() string {
-	return fmt.Sprintf("Unit type does not exist: %s", err.UT.LogString())
+	return "Unit type does not exist: " + err.UT.LogString()
 }
 
 func (err ErrUnitTypeNotExist) Unwrap() error {
@@ -42,12 +41,13 @@ func (err ErrUnitTypeNotExist) Unwrap() error {
 
 // RepoUnit describes all units of a repository
 type RepoUnit struct { //revive:disable-line:exported
-	ID                 int64
-	RepoID             int64              `xorm:"INDEX(s)"`
-	Type               unit.Type          `xorm:"INDEX(s)"`
-	Config             convert.Conversion `xorm:"TEXT"`
-	CreatedUnix        timeutil.TimeStamp `xorm:"INDEX CREATED"`
-	EveryoneAccessMode perm.AccessMode    `xorm:"NOT NULL DEFAULT 0"`
+	ID                  int64
+	RepoID              int64              `xorm:"INDEX(s)"`
+	Type                unit.Type          `xorm:"INDEX(s)"`
+	Config              convert.Conversion `xorm:"TEXT"`
+	CreatedUnix         timeutil.TimeStamp `xorm:"INDEX CREATED"`
+	AnonymousAccessMode perm.AccessMode    `xorm:"NOT NULL DEFAULT 0"`
+	EveryoneAccessMode  perm.AccessMode    `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -170,6 +170,9 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 
 type ActionsConfig struct {
 	DisabledWorkflows []string
+	// CollaborativeOwnerIDs is a list of owner IDs used to share actions from private repos.
+	// Only workflows from the private repos whose owners are in CollaborativeOwnerIDs can access the current repo's actions.
+	CollaborativeOwnerIDs []int64
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
@@ -185,13 +188,25 @@ func (cfg *ActionsConfig) IsWorkflowDisabled(file string) bool {
 }
 
 func (cfg *ActionsConfig) DisableWorkflow(file string) {
-	for _, workflow := range cfg.DisabledWorkflows {
-		if file == workflow {
-			return
-		}
+	if slices.Contains(cfg.DisabledWorkflows, file) {
+		return
 	}
 
 	cfg.DisabledWorkflows = append(cfg.DisabledWorkflows, file)
+}
+
+func (cfg *ActionsConfig) AddCollaborativeOwner(ownerID int64) {
+	if !slices.Contains(cfg.CollaborativeOwnerIDs, ownerID) {
+		cfg.CollaborativeOwnerIDs = append(cfg.CollaborativeOwnerIDs, ownerID)
+	}
+}
+
+func (cfg *ActionsConfig) RemoveCollaborativeOwner(ownerID int64) {
+	cfg.CollaborativeOwnerIDs = util.SliceRemoveAll(cfg.CollaborativeOwnerIDs, ownerID)
+}
+
+func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
+	return slices.Contains(cfg.CollaborativeOwnerIDs, ownerID)
 }
 
 // FromDB fills up a ActionsConfig from serialized format.
@@ -339,5 +354,11 @@ func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err
 // UpdateRepoUnit updates the provided repo unit
 func UpdateRepoUnit(ctx context.Context, unit *RepoUnit) error {
 	_, err := db.GetEngine(ctx).ID(unit.ID).Update(unit)
+	return err
+}
+
+func UpdateRepoUnitPublicAccess(ctx context.Context, unit *RepoUnit) error {
+	_, err := db.GetEngine(ctx).Where("repo_id=? AND `type`=?", unit.RepoID, unit.Type).
+		Cols("anonymous_access_mode", "everyone_access_mode").Update(unit)
 	return err
 }

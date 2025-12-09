@@ -10,6 +10,7 @@ import (
 	"io"
 	"testing"
 
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/zstd"
 
 	"github.com/blakesmith/ar"
@@ -77,7 +78,7 @@ func TestParsePackage(t *testing.T) {
 			{
 				Extension: "",
 				WriterFactory: func(w io.Writer) io.WriteCloser {
-					return nopCloser{w}
+					return util.NopCloser{Writer: w}
 				},
 			},
 			{
@@ -129,14 +130,6 @@ func TestParsePackage(t *testing.T) {
 	})
 }
 
-type nopCloser struct {
-	io.Writer
-}
-
-func (nopCloser) Close() error {
-	return nil
-}
-
 func TestParseControlFile(t *testing.T) {
 	buildContent := func(name, version, architecture string) *bytes.Buffer {
 		var buf bytes.Buffer
@@ -182,5 +175,13 @@ func TestParseControlFile(t *testing.T) {
 		assert.Equal(t, packageAuthor, p.Metadata.Maintainer)
 		assert.Equal(t, []string{"a", "b"}, p.Metadata.Dependencies)
 		assert.Equal(t, full, p.Control)
+	})
+
+	t.Run("ValidVersions", func(t *testing.T) {
+		for _, version := range []string{"1.0", "0:1.2", "9:1.0", "10:1.0", "900:1a.2b-x-y_z~1+2"} {
+			p, err := ParseControlFile(buildContent("testpkg", version, "amd64"))
+			assert.NoError(t, err, "ParseControlFile with version %q", version)
+			assert.NotNil(t, p)
+		}
 	})
 }

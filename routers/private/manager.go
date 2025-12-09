@@ -180,7 +180,7 @@ func AddLogger(ctx *context.PrivateContext) {
 		writerOption.Addr, _ = opts.Config["address"].(string)
 		writerMode.WriterOption = writerOption
 	default:
-		panic(fmt.Sprintf("invalid log writer mode: %s", writerType))
+		panic("invalid log writer mode: " + writerType)
 	}
 	writer, err := log.NewEventWriter(opts.Writer, writerType, writerMode)
 	if err != nil {

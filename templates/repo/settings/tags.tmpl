@@ -104,7 +104,7 @@
 												{{ctx.Locale.Tr "repo.settings.tags.protection.allowed.noone"}}
 											{{end}}
 										</td>
-										<td class="right aligned">
+										<td class="tw-text-right">
 											<a class="ui tiny primary button" href="{{$.RepoLink}}/settings/tags/{{.ID}}">{{ctx.Locale.Tr "edit"}}</a>
 											<form class="tw-inline-block" action="{{$.RepoLink}}/settings/tags/delete" method="post">
 												{{$.CsrfTokenHtml}}
@@ -114,7 +114,7 @@
 										</td>
 									</tr>
 								{{else}}
-									<tr class="center aligned"><td colspan="3">{{ctx.Locale.Tr "repo.settings.tags.protection.none"}}</td></tr>
+									<tr class="tw-text-center"><td colspan="3">{{ctx.Locale.Tr "repo.settings.tags.protection.none"}}</td></tr>
 								{{end}}
 							</tbody>
 						</table>

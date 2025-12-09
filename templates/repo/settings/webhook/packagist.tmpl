@@ -14,6 +14,7 @@
 			<label for="package_url">{{ctx.Locale.Tr "repo.settings.packagist_package_url"}}</label>
 			<input id="package_url" name="package_url" value="{{.PackagistHook.PackageURL}}" placeholder="https://packagist.org/packages/laravel/framework" required>
 		</div>
-		{{template "repo/settings/webhook/settings" .}}
+		{{/* FIXME: support authorization header or not? */}}
+		{{template "repo/settings/webhook/settings" dict "BaseLink" .BaseLink "Webhook" .Webhook "UseAuthorizationHeader" "optional"}}
 	</form>
 {{end}}

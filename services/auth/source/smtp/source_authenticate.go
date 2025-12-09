@@ -21,10 +21,10 @@ import (
 func (source *Source) Authenticate(ctx context.Context, user *user_model.User, userName, password string) (*user_model.User, error) {
 	// Verify allowed domains.
 	if len(source.AllowedDomains) > 0 {
-		idx := strings.Index(userName, "@")
-		if idx == -1 {
+		_, after, ok := strings.Cut(userName, "@")
+		if !ok {
 			return nil, user_model.ErrUserNotExist{Name: userName}
-		} else if !util.SliceContainsString(strings.Split(source.AllowedDomains, ","), userName[idx+1:], true) {
+		} else if !util.SliceContainsString(strings.Split(source.AllowedDomains, ","), after, true) {
 			return nil, user_model.ErrUserNotExist{Name: userName}
 		}
 	}
@@ -61,9 +61,9 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 
 	username := userName
-	idx := strings.Index(userName, "@")
-	if idx > -1 {
-		username = userName[:idx]
+	before, _, ok := strings.Cut(userName, "@")
+	if ok {
+		username = before
 	}
 
 	user = &user_model.User{
@@ -72,21 +72,16 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		Email:       userName,
 		Passwd:      password,
 		LoginType:   auth_model.SMTP,
-		LoginSource: source.authSource.ID,
+		LoginSource: source.AuthSource.ID,
 		LoginName:   userName,
 	}
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
 		IsActive: optional.Some(true),
 	}
 
-	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return user, err
 	}
 
 	return user, nil
-}
-
-// IsSkipLocalTwoFA returns if this source should skip local 2fa for password authentication
-func (source *Source) IsSkipLocalTwoFA() bool {
-	return source.SkipLocalTwoFA
 }

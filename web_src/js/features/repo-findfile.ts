@@ -1,16 +1,13 @@
-import {svg} from '../svg.ts';
-import {toggleElem} from '../utils/dom.ts';
-import {pathEscapeSegments} from '../utils/url.ts';
-import {GET} from '../modules/fetch.ts';
+import {createApp} from 'vue';
+import RepoFileSearch from '../components/RepoFileSearch.vue';
+import {registerGlobalInitFunc} from '../modules/observer.ts';
 
 const threshold = 50;
-let files = [];
-let repoFindFileInput, repoFindFileTableBody, repoFindFileNoResult;
 
 // return the case-insensitive sub-match result as an array:  [unmatched, matched, unmatched, matched, ...]
 // res[even] is unmatched, res[odd] is matched, see unit tests for examples
 // argument subLower must be a lower-cased string.
-export function strSubMatch(full, subLower) {
+export function strSubMatch(full: string, subLower: string) {
   const res = [''];
   let i = 0, j = 0;
   const fullLower = full.toLowerCase();
@@ -38,7 +35,7 @@ export function strSubMatch(full, subLower) {
   return res;
 }
 
-export function calcMatchedWeight(matchResult) {
+export function calcMatchedWeight(matchResult: Array<any>) {
   let weight = 0;
   for (let i = 0; i < matchResult.length; i++) {
     if (i % 2 === 1) { // matches are on odd indices, see strSubMatch
@@ -49,7 +46,7 @@ export function calcMatchedWeight(matchResult) {
   return weight;
 }
 
-export function filterRepoFilesWeighted(files, filter) {
+export function filterRepoFilesWeighted(files: Array<string>, filter: string) {
   let filterResult = [];
   if (filter) {
     const filterLower = filter.toLowerCase();
@@ -71,47 +68,14 @@ export function filterRepoFilesWeighted(files, filter) {
   return filterResult;
 }
 
-function filterRepoFiles(filter) {
-  const treeLink = repoFindFileInput.getAttribute('data-url-tree-link');
-  repoFindFileTableBody.innerHTML = '';
-
-  const filterResult = filterRepoFilesWeighted(files, filter);
-
-  toggleElem(repoFindFileNoResult, !filterResult.length);
-  for (const r of filterResult) {
-    const row = document.createElement('tr');
-    const cell = document.createElement('td');
-    const a = document.createElement('a');
-    a.setAttribute('href', `${treeLink}/${pathEscapeSegments(r.matchResult.join(''))}`);
-    a.innerHTML = svg('octicon-file', 16, 'tw-mr-2');
-    row.append(cell);
-    cell.append(a);
-    for (const [index, part] of r.matchResult.entries()) {
-      const span = document.createElement('span');
-      // safely escape by using textContent
-      span.textContent = part;
-      // if the target file path is "abc/xyz", to search "bx", then the matchResult is ['a', 'b', 'c/', 'x', 'yz']
-      // the matchResult[odd] is matched and highlighted to red.
-      if (index % 2 === 1) span.classList.add('ui', 'text', 'red');
-      a.append(span);
-    }
-    repoFindFileTableBody.append(row);
-  }
-}
-
-async function loadRepoFiles() {
-  const response = await GET(repoFindFileInput.getAttribute('data-url-data-link'));
-  files = await response.json();
-  filterRepoFiles(repoFindFileInput.value);
-}
-
-export function initFindFileInRepo() {
-  repoFindFileInput = document.querySelector('#repo-file-find-input');
-  if (!repoFindFileInput) return;
-
-  repoFindFileTableBody = document.querySelector('#repo-find-file-table tbody');
-  repoFindFileNoResult = document.querySelector('#repo-find-file-no-result');
-  repoFindFileInput.addEventListener('input', () => filterRepoFiles(repoFindFileInput.value));
-
-  loadRepoFiles();
+export function initRepoFileSearch() {
+  registerGlobalInitFunc('initRepoFileSearch', (el) => {
+    createApp(RepoFileSearch, {
+      repoLink: el.getAttribute('data-repo-link'),
+      currentRefNameSubURL: el.getAttribute('data-current-ref-name-sub-url'),
+      treeListUrl: el.getAttribute('data-tree-list-url'),
+      noResultsText: el.getAttribute('data-no-results-text'),
+      placeholder: el.getAttribute('data-placeholder'),
+    }).mount(el);
+  });
 }

@@ -35,57 +35,41 @@
 			{{end}}
 		</div>
 
-		{{if not (and ($.UserDisabledFeatures.Contains "manage_credentials") (not $.EnableNotifyMail))}}
+		{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "settings.manage_emails"}}
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui list">
-				{{if $.EnableNotifyMail}}
-				<div class="item">
-					<div class="tw-mb-2">{{ctx.Locale.Tr "settings.email_desc"}}</div>
-					<form action="{{AppSubUrl}}/user/settings/account/email" class="ui form" method="post">
-						{{$.CsrfTokenHtml}}
-						<input name="_method" type="hidden" value="NOTIFICATION">
-						<div class="tw-flex tw-flex-wrap tw-gap-2">
-							<div class="ui selection dropdown">
-								<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-								<div class="text"></div>
-								<div class="menu">
-									<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.enable"}}</div>
-									<div data-value="andyourown" class="{{if eq .EmailNotificationsPreference "andyourown"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.andyourown"}}</div>
-									<div data-value="onmention" class="{{if eq .EmailNotificationsPreference "onmention"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.onmention"}}</div>
-									<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{ctx.Locale.Tr "settings.email_notifications.disable"}}</div>
-								</div>
-							</div>
-							<button class="ui primary button">{{ctx.Locale.Tr "settings.email_notifications.submit"}}</button>
-						</div>
-					</form>
-				</div>
-				{{end}}
+			<div class="ui list flex-items-block">
 				{{if not ($.UserDisabledFeatures.Contains "manage_credentials")}}
-				{{range .Emails}}
-					<div class="item">
-						{{if not .IsPrimary}}
-							<div class="right floated content">
+					{{range .Emails}}
+						<div class="item tw-flex-wrap">
+							<div class="content tw-flex-1">
+								<strong>{{.Email}}</strong>
+								{{if .IsPrimary}}
+									<div class="ui primary label">{{ctx.Locale.Tr "settings.primary"}}</div>
+								{{end}}
+								{{if .IsActivated}}
+									<div class="ui green label">{{ctx.Locale.Tr "settings.activated"}}</div>
+								{{else}}
+									<div class="ui label">{{ctx.Locale.Tr "settings.requires_activation"}}</div>
+								{{end}}
+							</div>
+							<div class="flex-text-block">
+							{{if not .IsPrimary}}
 								<button class="ui red tiny button delete-button" data-modal-id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
 									{{ctx.Locale.Tr "settings.delete_email"}}
 								</button>
-							</div>
-							{{if .CanBePrimary}}
-								<div class="right floated content">
+								{{if .CanBePrimary}}
 									<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 										{{$.CsrfTokenHtml}}
 										<input name="_method" type="hidden" value="PRIMARY">
 										<input name="id" type="hidden" value="{{.ID}}">
 										<button class="ui primary tiny button">{{ctx.Locale.Tr "settings.primary_email"}}</button>
 									</form>
-								</div>
+								{{end}}
 							{{end}}
-						{{end}}
-						{{if not .IsActivated}}
-							<div class="right floated content">
+							{{if not .IsActivated}}
 								<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 									{{$.CsrfTokenHtml}}
 									<input name="_method" type="hidden" value="SENDACTIVATION">
@@ -96,22 +80,11 @@
 										<button class="ui primary tiny button">{{ctx.Locale.Tr "settings.activate_email"}}</button>
 									{{end}}
 								</form>
+							{{end}}
 							</div>
-						{{end}}
-						<div class="content tw-py-2">
-							<strong>{{.Email}}</strong>
-							{{if .IsPrimary}}
-								<div class="ui primary label">{{ctx.Locale.Tr "settings.primary"}}</div>
-							{{end}}
-							{{if .IsActivated}}
-								<div class="ui green label">{{ctx.Locale.Tr "settings.activated"}}</div>
-							{{else}}
-								<div class="ui label">{{ctx.Locale.Tr "settings.requires_activation"}}</div>
-							{{end}}
 						</div>
-					</div>
-				{{end}}
-				{{end}}
+					{{end}}{{/* range Emails */}}
+				{{end}}{{/* if manage_credentials */}}
 			</div>
 		</div>
 		{{end}}

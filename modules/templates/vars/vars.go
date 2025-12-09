@@ -16,7 +16,7 @@ type ErrWrongSyntax struct {
 }
 
 func (err ErrWrongSyntax) Error() string {
-	return fmt.Sprintf("wrong syntax found in %s", err.Template)
+	return "wrong syntax found in " + err.Template
 }
 
 // ErrVarMissing represents an error that no matched variable

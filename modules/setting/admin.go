@@ -29,4 +29,6 @@ const (
 	UserFeatureManageGPGKeys     = "manage_gpg_keys"
 	UserFeatureManageMFA         = "manage_mfa"
 	UserFeatureManageCredentials = "manage_credentials"
+	UserFeatureChangeUsername    = "change_username"
+	UserFeatureChangeFullName    = "change_full_name"
 )

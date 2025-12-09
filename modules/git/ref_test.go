@@ -20,6 +20,8 @@ func TestRefName(t *testing.T) {
 
 	// Test pull names
 	assert.Equal(t, "1", RefName("refs/pull/1/head").PullName())
+	assert.True(t, RefName("refs/pull/1/head").IsPull())
+	assert.True(t, RefName("refs/pull/1/merge").IsPull())
 	assert.Equal(t, "my/pull", RefName("refs/pull/my/pull/head").PullName())
 
 	// Test for branch names
@@ -30,9 +32,8 @@ func TestRefName(t *testing.T) {
 	assert.Equal(t, "c0ffee", RefName("c0ffee").ShortName())
 }
 
-func TestRefURL(t *testing.T) {
-	repoURL := "/user/repo"
-	assert.Equal(t, repoURL+"/src/branch/foo", RefURL(repoURL, "refs/heads/foo"))
-	assert.Equal(t, repoURL+"/src/tag/foo", RefURL(repoURL, "refs/tags/foo"))
-	assert.Equal(t, repoURL+"/src/commit/c0ffee", RefURL(repoURL, "c0ffee"))
+func TestRefWebLinkPath(t *testing.T) {
+	assert.Equal(t, "branch/foo", RefName("refs/heads/foo").RefWebLinkPath())
+	assert.Equal(t, "tag/foo", RefName("refs/tags/foo").RefWebLinkPath())
+	assert.Equal(t, "commit/c0ffee", RefName("c0ffee").RefWebLinkPath())
 }

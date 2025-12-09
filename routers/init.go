@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -47,6 +48,7 @@ import (
 	markup_service "code.gitea.io/gitea/services/markup"
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	"code.gitea.io/gitea/services/oauth2_provider"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -110,10 +112,10 @@ func InitWebInstallPage(ctx context.Context) {
 	mustInit(svg.Init)
 }
 
-// InitWebInstalled is for global installed configuration.
+// InitWebInstalled is for the global configuration of an installed instance
 func InitWebInstalled(ctx context.Context) {
-	mustInitCtx(ctx, git.InitFull)
-	log.Info("Git version: %s (home: %s)", git.DefaultFeatures().VersionInfo(), git.HomeDir())
+	mustInit(git.InitFull)
+	log.Info("Git version: %s (home: %s)", git.DefaultFeatures().VersionInfo(), gitcmd.HomeDir())
 	if !git.DefaultFeatures().SupportHashSha256 {
 		log.Warn("sha256 hash support is disabled - requires Git >= 2.42." + util.Iif(git.DefaultFeatures().UsingGogit, " Gogit is currently unsupported.", ""))
 	}
@@ -132,7 +134,7 @@ func InitWebInstalled(ctx context.Context) {
 
 	highlight.NewContext()
 	external.RegisterRenderers()
-	markup.Init(markup_service.ProcessorHelper())
+	markup.Init(markup_service.FormalRenderHelperFuncs())
 
 	if setting.EnableSQLite3 {
 		log.Info("SQLite3 support is enabled")
@@ -144,7 +146,7 @@ func InitWebInstalled(ctx context.Context) {
 	log.Info("ORM engine initialization successful!")
 	mustInit(system.Init)
 	mustInitCtx(ctx, oauth2.Init)
-
+	mustInitCtx(ctx, oauth2_provider.Init)
 	mustInit(release_service.Init)
 
 	mustInitCtx(ctx, models.Init)
@@ -170,10 +172,12 @@ func InitWebInstalled(ctx context.Context) {
 	auth.Init()
 	mustInit(svg.Init)
 
-	actions_service.Init()
+	mustInitCtx(ctx, actions_service.Init)
+
+	mustInit(repo_service.InitLicenseClassifier)
 
 	// Finally start up the cron
-	cron.NewContext(ctx)
+	cron.Init(ctx)
 }
 
 // NormalRoutes represents non install routes
@@ -210,7 +214,7 @@ func NormalRoutes() *web.Router {
 	}
 
 	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
-		routing.UpdateFuncInfo(req.Context(), routing.GetFuncInfo(http.NotFound, "GlobalNotFound"))
+		defer routing.RecordFuncInfo(req.Context(), routing.GetFuncInfo(http.NotFound, "GlobalNotFound"))()
 		http.NotFound(w, req)
 	})
 	return r

@@ -12,8 +12,7 @@ import (
 // SliceContainsString sequential searches if string exists in slice.
 func SliceContainsString(slice []string, target string, insensitive ...bool) bool {
 	if len(insensitive) != 0 && insensitive[0] {
-		target = strings.ToLower(target)
-		return slices.ContainsFunc(slice, func(t string) bool { return strings.ToLower(t) == target })
+		return slices.ContainsFunc(slice, func(t string) bool { return strings.EqualFold(t, target) })
 	}
 
 	return slices.Contains(slice, target)
@@ -70,4 +69,11 @@ func KeysOfMap[K comparable, V any](m map[K]V) []K {
 		keys = append(keys, k)
 	}
 	return keys
+}
+
+func SliceNilAsEmpty[T any](a []T) []T {
+	if a == nil {
+		return []T{}
+	}
+	return a
 }

@@ -23,7 +23,7 @@ type LicenseValues struct {
 func GetLicense(name string, values *LicenseValues) ([]byte, error) {
 	data, err := options.License(name)
 	if err != nil {
-		return nil, fmt.Errorf("GetRepoInitFile[%s]: %w", name, err)
+		return nil, fmt.Errorf("GetLicense[%s]: %w", name, err)
 	}
 	return fillLicensePlaceholder(name, values, data), nil
 }

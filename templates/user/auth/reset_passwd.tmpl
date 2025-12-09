@@ -34,18 +34,18 @@
 							{{ctx.Locale.Tr "twofa"}}
 						</h4>
 						<div class="ui warning visible message">{{ctx.Locale.Tr "settings.twofa_is_enrolled"}}</div>
-						{{if .scratch_code}}
-						<div class="required inline field {{if .Err_Token}}error{{end}}">
-							<label for="token">{{ctx.Locale.Tr "auth.scratch_code"}}</label>
-							<input id="token" name="token" type="text" autocomplete="off" autofocus required>
-						</div>
-						<input type="hidden" name="scratch_code" value="true">
-						{{else}}
-						<div class="required field {{if .Err_Passcode}}error{{end}}">
-							<label for="passcode">{{ctx.Locale.Tr "passcode"}}</label>
-							<input id="passcode" name="passcode" type="number" autocomplete="off" autofocus required>
-						</div>
-						{{end}}
+							{{if .scratch_code}}
+							<div class="required inline field {{if .Err_Token}}error{{end}}">
+								<label for="token">{{ctx.Locale.Tr "auth.scratch_code"}}</label>
+								<input id="token" name="token" type="text" autocomplete="off" autofocus required>
+							</div>
+							<input type="hidden" name="scratch_code" value="true">
+							{{else}}
+							<div class="required field {{if .Err_Passcode}}error{{end}}">
+								<label for="passcode">{{ctx.Locale.Tr "passcode"}}</label>
+								<input id="passcode" name="passcode" type="number" autocomplete="off" autofocus required>
+							</div>
+							{{end}}
 						{{end}}
 						<div class="divider"></div>
 						<div class="inline field">

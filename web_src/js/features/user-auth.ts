@@ -1,9 +1,14 @@
-import {checkAppUrl} from './common-page.ts';
+import {checkAppUrl, checkAppUrlScheme} from './common-page.ts';
+
+export function initUserCheckAppUrl() {
+  if (!document.querySelector('.page-content.user.signin, .page-content.user.signup, .page-content.user.link-account')) return;
+  checkAppUrlScheme();
+}
 
 export function initUserAuthOauth2() {
   const outer = document.querySelector('#oauth2-login-navigator');
   if (!outer) return;
-  const inner = document.querySelector('#oauth2-login-navigator-inner');
+  const inner = document.querySelector('#oauth2-login-navigator-inner')!;
 
   checkAppUrl();
 

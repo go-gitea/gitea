@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"sync"
 
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/mcaptcha"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/turnstile"
 
 	"gitea.com/go-chi/captcha"
@@ -60,7 +60,7 @@ const (
 
 // VerifyCaptcha verifies Captcha data
 // No-op if captchas are not enabled
-func VerifyCaptcha(ctx *Context, tpl base.TplName, form any) {
+func VerifyCaptcha(ctx *Context, tpl templates.TplName, form any) {
 	if !setting.Service.EnableCaptcha {
 		return
 	}

@@ -5,35 +5,38 @@ package actions
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"path/filepath"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/modules/badge"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 )
 
 func GetWorkflowBadge(ctx *context.Context) {
 	workflowFile := ctx.PathParam("workflow_name")
-	branch := ctx.Req.URL.Query().Get("branch")
-	if branch == "" {
-		branch = ctx.Repo.Repository.DefaultBranch
-	}
-	branchRef := fmt.Sprintf("refs/heads/%s", branch)
-	event := ctx.Req.URL.Query().Get("event")
+	branch := ctx.FormString("branch", ctx.Repo.Repository.DefaultBranch)
+	event := ctx.FormString("event")
+	style := ctx.FormString("style")
 
-	badge, err := getWorkflowBadge(ctx, workflowFile, branchRef, event)
+	branchRef := git.RefNameFromBranch(branch)
+	b, err := getWorkflowBadge(ctx, workflowFile, branchRef.String(), event)
 	if err != nil {
 		ctx.ServerError("GetWorkflowBadge", err)
 		return
 	}
 
-	ctx.Data["Badge"] = badge
+	ctx.Data["Badge"] = b
 	ctx.RespHeader().Set("Content-Type", "image/svg+xml")
-	ctx.HTML(http.StatusOK, "shared/actions/runner_badge")
+	switch style {
+	case badge.StyleFlatSquare:
+		ctx.HTML(http.StatusOK, "shared/actions/runner_badge_flat-square")
+	default: // defaults to badge.StyleFlat
+		ctx.HTML(http.StatusOK, "shared/actions/runner_badge_flat")
+	}
 }
 
 func getWorkflowBadge(ctx *context.Context, workflowFile, branchName, event string) (badge.Badge, error) {
@@ -48,7 +51,7 @@ func getWorkflowBadge(ctx *context.Context, workflowFile, branchName, event stri
 		return badge.Badge{}, err
 	}
 
-	color, ok := badge.StatusColorMap[run.Status]
+	color, ok := badge.GlobalVars().StatusColorMap[run.Status]
 	if !ok {
 		return badge.GenerateBadge(workflowName, "unknown status", badge.DefaultColor), nil
 	}

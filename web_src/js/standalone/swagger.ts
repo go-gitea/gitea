@@ -2,7 +2,7 @@ import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
 import 'swagger-ui-dist/swagger-ui.css';
 
 window.addEventListener('load', async () => {
-  const url = document.querySelector('#swagger-ui').getAttribute('data-source');
+  const url = document.querySelector('#swagger-ui')!.getAttribute('data-source')!;
   const res = await fetch(url);
   const spec = await res.json();
 
@@ -14,7 +14,7 @@ window.addEventListener('load', async () => {
     return 0;
   });
 
-  const ui = SwaggerUI({
+  SwaggerUI({
     spec,
     dom_id: '#swagger-ui',
     deepLinking: true,
@@ -27,6 +27,4 @@ window.addEventListener('load', async () => {
       SwaggerUI.plugins.DownloadUrl,
     ],
   });
-
-  window.ui = ui;
 });

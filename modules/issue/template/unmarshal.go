@@ -5,7 +5,6 @@ package template
 
 import (
 	"fmt"
-	"io"
 	"path"
 	"strconv"
 
@@ -76,7 +75,7 @@ func unmarshalFromEntry(entry *git.TreeEntry, filename string) (*api.IssueTempla
 	}
 	defer r.Close()
 
-	content, err := io.ReadAll(r)
+	content, err := util.ReadWithLimit(r, 1024*1024)
 	if err != nil {
 		return nil, fmt.Errorf("read all: %w", err)
 	}
@@ -109,7 +108,7 @@ func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 
 			it.Content = string(content)
 			it.Name = path.Base(it.FileName) // paths in Git are always '/' separated - do not use filepath!
-			it.About, _ = util.SplitStringAtByteN(it.Content, 80)
+			it.About = util.EllipsisDisplayString(it.Content, 80)
 		} else {
 			it.Content = templateBody
 			if it.About == "" {

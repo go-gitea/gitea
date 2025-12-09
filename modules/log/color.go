@@ -86,11 +86,17 @@ type ColoredValue struct {
 	colors []ColorAttribute
 }
 
+var _ fmt.Formatter = (*ColoredValue)(nil)
+
 func (c *ColoredValue) Format(f fmt.State, verb rune) {
 	_, _ = f.Write(ColorBytes(c.colors...))
 	s := fmt.Sprintf(fmt.FormatString(f, verb), c.v)
 	_, _ = f.Write([]byte(s))
 	_, _ = f.Write(resetBytes)
+}
+
+func (c *ColoredValue) Value() any {
+	return c.v
 }
 
 func NewColoredValue(v any, color ...ColorAttribute) *ColoredValue {

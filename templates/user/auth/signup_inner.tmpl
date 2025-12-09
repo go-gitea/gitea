@@ -7,6 +7,9 @@
 		{{end}}
 	</h4>
 	<div class="ui attached segment">
+		{{if .IsFirstTimeRegistration}}
+			<p>{{ctx.Locale.Tr "auth.sign_up_tip"}}</p>
+		{{end}}
 		<form class="ui form" action="{{.SignUpLink}}" method="post">
 			{{.CsrfTokenHtml}}
 			{{if or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeRegister)}}
@@ -47,19 +50,24 @@
 					</button>
 				</div>
 			{{end}}
-
-			{{template "user/auth/oauth_container" .}}
+			{{/* "oauth_container" contains not only "oauth2" methods, but also "OIDC" and "SSPI" methods */}}
+			{{/* TODO: it seems that "EnableSSPI" is only set in "sign-in" handlers, but it should use the same logic to control its display */}}
+			{{$showOAuth2Methods := or .OAuth2Providers .EnableOpenIDSignIn .EnableSSPI}}
+			{{if $showOAuth2Methods}}
+				<div class="divider divider-text">{{ctx.Locale.Tr "sign_in_or"}}</div>
+				{{template "user/auth/oauth_container" .}}
+			{{end}}
 		</form>
 	</div>
 </div>
 
 <div class="ui container fluid">
+	{{if not .LinkAccountMode}}
 	<div class="ui attached segment header top tw-flex tw-flex-col tw-items-center">
-		{{if not .LinkAccountMode}}
 		<div class="field">
 			<span>{{ctx.Locale.Tr "auth.already_have_account"}}</span>
 			<a href="{{AppSubUrl}}/user/login">{{ctx.Locale.Tr "auth.sign_in_now"}}</a>
 		</div>
-		{{end}}
 	</div>
+	{{end}}
 </div>

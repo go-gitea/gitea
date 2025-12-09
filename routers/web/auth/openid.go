@@ -4,15 +4,15 @@
 package auth
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"net/url"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/openid"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/auth"
@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	tplSignInOpenID base.TplName = "user/auth/signin_openid"
-	tplConnectOID   base.TplName = "user/auth/signup_openid_connect"
-	tplSignUpOID    base.TplName = "user/auth/signup_openid_register"
+	tplSignInOpenID templates.TplName = "user/auth/signin_openid"
+	tplConnectOID   templates.TplName = "user/auth/signup_openid_connect"
+	tplSignUpOID    templates.TplName = "user/auth/signup_openid_register"
 )
 
 // SignInOpenID render sign in page
@@ -55,13 +55,13 @@ func allowedOpenIDURI(uri string) (err error) {
 			}
 		}
 		// must match one of this or be refused
-		return fmt.Errorf("URI not allowed by whitelist")
+		return errors.New("URI not allowed by whitelist")
 	}
 
 	// A blacklist match expliclty forbids
 	for _, pat := range setting.Service.OpenIDBlacklist {
 		if pat.MatchString(uri) {
-			return fmt.Errorf("URI forbidden by blacklist")
+			return errors.New("URI forbidden by blacklist")
 		}
 	}
 
@@ -99,7 +99,7 @@ func SignInOpenIDPost(ctx *context.Context) {
 	url, err := openid.RedirectURL(id, redirectTo, setting.AppURL)
 	if err != nil {
 		log.Error("Error in OpenID redirect URL: %s, %v", redirectTo, err.Error())
-		ctx.RenderWithErr(fmt.Sprintf("Unable to find OpenID provider in %s", redirectTo), tplSignInOpenID, &form)
+		ctx.RenderWithErr("Unable to find OpenID provider in "+redirectTo, tplSignInOpenID, &form)
 		return
 	}
 
@@ -337,7 +337,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["OpenID"] = oid
 
 	if setting.Service.AllowOnlyInternalRegistration {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -349,10 +349,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		context.VerifyCaptcha(ctx, tplSignUpOID, form)
 	}
 
-	length := setting.MinPasswordLength
-	if length < 256 {
-		length = 256
-	}
+	length := max(setting.MinPasswordLength, 256)
 	password, err := util.CryptoRandomString(int64(length))
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)
@@ -364,7 +361,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 		Email:  form.Email,
 		Passwd: password,
 	}
-	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, nil, false) {
+	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, nil) {
 		// error already handled
 		return
 	}

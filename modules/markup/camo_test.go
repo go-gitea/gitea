@@ -28,7 +28,7 @@ func TestCamoHandleLink(t *testing.T) {
 		"https://image.proxy/eivin43gJwGVIjR9MiYYtFIk0mw/aHR0cDovL3Rlc3RpbWFnZXMub3JnL2ltZy5qcGc",
 		camoHandleLink("http://testimages.org/img.jpg"))
 
-	setting.Camo.Allways = true
+	setting.Camo.Always = true
 	assert.Equal(t,
 		"https://gitea.com/img.jpg",
 		camoHandleLink("https://gitea.com/img.jpg"))

@@ -23,7 +23,7 @@ func TestGetManager(t *testing.T) {
 func TestManager_AddContext(t *testing.T) {
 	pm := Manager{processMap: make(map[IDType]*process), next: 1}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	p1Ctx, _, finished := pm.AddContext(ctx, "foo")
@@ -42,7 +42,7 @@ func TestManager_AddContext(t *testing.T) {
 func TestManager_Cancel(t *testing.T) {
 	pm := Manager{processMap: make(map[IDType]*process), next: 1}
 
-	ctx, _, finished := pm.AddContext(context.Background(), "foo")
+	ctx, _, finished := pm.AddContext(t.Context(), "foo")
 	defer finished()
 
 	pm.Cancel(GetPID(ctx))
@@ -54,7 +54,7 @@ func TestManager_Cancel(t *testing.T) {
 	}
 	finished()
 
-	ctx, cancel, finished := pm.AddContext(context.Background(), "foo")
+	ctx, cancel, finished := pm.AddContext(t.Context(), "foo")
 	defer finished()
 
 	cancel()
@@ -70,7 +70,7 @@ func TestManager_Cancel(t *testing.T) {
 func TestManager_Remove(t *testing.T) {
 	pm := Manager{processMap: make(map[IDType]*process), next: 1}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	p1Ctx, _, finished := pm.AddContext(ctx, "foo")

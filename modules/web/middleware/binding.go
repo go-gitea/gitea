@@ -50,7 +50,7 @@ func AssignForm(form any, data map[string]any) {
 }
 
 func getRuleBody(field reflect.StructField, prefix string) string {
-	for _, rule := range strings.Split(field.Tag.Get("binding"), ";") {
+	for rule := range strings.SplitSeq(field.Tag.Get("binding"), ";") {
 		if strings.HasPrefix(rule, prefix) {
 			return rule[len(prefix) : len(rule)-1]
 		}
@@ -78,7 +78,7 @@ func GetInclude(field reflect.StructField) string {
 	return getRuleBody(field, "Include(")
 }
 
-// Validate validate TODO:
+// Validate validate
 func Validate(errs binding.Errors, data map[string]any, f Form, l translation.Locale) binding.Errors {
 	if errs.Len() == 0 {
 		return errs

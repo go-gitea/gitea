@@ -1,0 +1,69 @@
+<div class="repo-setting-content">
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.general.enable_actions"}}
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form" action="{{.Link}}/actions_unit" method="post">
+			{{.CsrfTokenHtml}}
+			{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
+			{{$isActionsGlobalDisabled := ctx.Consts.RepoUnitTypeActions.UnitGlobalDisabled}}
+			<div class="inline field">
+				<label>{{ctx.Locale.Tr "actions.actions"}}</label>
+				<div class="ui checkbox{{if $isActionsGlobalDisabled}} disabled{{end}}"{{if $isActionsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
+					<input name="enable_actions" type="checkbox" {{if $isActionsGlobalDisabled}}disabled{{end}} {{if $isActionsEnabled}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "repo.settings.actions_desc"}}</label>
+				</div>
+			</div>
+			{{if not $isActionsGlobalDisabled}}
+			<div class="divider"></div>
+				<div class="field">
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+			</div>
+			{{end}}
+		</form>
+	</div>
+
+{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+	{{if .Repository.IsPrivate}}
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.general.collaborative_owners_management"}}
+	</h4>
+	{{if len .CollaborativeOwners}}
+	<div class="ui attached segment">
+		<div class="flex-list">
+			{{range .CollaborativeOwners}}
+			<div class="flex-item tw-items-center">
+				<div class="flex-item-leading">
+					<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
+				</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">
+						{{template "shared/user/name" .}}
+					</div>
+				</div>
+				<div class="flex-item-trailing">
+					<button class="ui red tiny button inline link-action"
+						data-url="{{$.Link}}/collaborative_owner/delete?id={{.ID}}"
+						data-modal-confirm-header="{{ctx.Locale.Tr "actions.general.remove_collaborative_owner"}}"
+						data-modal-confirm-content="{{ctx.Locale.Tr "actions.general.remove_collaborative_owner_desc"}}"
+					>{{ctx.Locale.Tr "remove"}}</button>
+				</div>
+			</div>
+			{{end}}
+		</div>
+	</div>
+	{{end}}
+	<div class="ui bottom attached segment">
+		<form class="ui form form-fetch-action" action="{{.Link}}/collaborative_owner/add" method="post">
+			{{.CsrfTokenHtml}}
+			<div id="search-user-box" class="ui search input tw-align-middle" data-include-orgs="true">
+				<input class="prompt" name="collaborative_owner" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
+			</div>
+			<button class="ui primary button">{{ctx.Locale.Tr "actions.general.add_collaborative_owner"}}</button>
+		</form>
+		<br>
+		{{ctx.Locale.Tr "actions.general.collaborative_owners_management_help"}}
+	</div>
+	{{end}}
+{{end}}
+</div>

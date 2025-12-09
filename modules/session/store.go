@@ -11,16 +11,16 @@ import (
 	"gitea.com/go-chi/session"
 )
 
-// Store represents a session store
+type RawStore = session.RawStore
+
 type Store interface {
-	Get(any) any
-	Set(any, any) error
-	Delete(any) error
-	ID() string
-	Release() error
-	Flush() error
+	RawStore
 	Destroy(http.ResponseWriter, *http.Request) error
 }
+
+type mockStoreContextKeyStruct struct{}
+
+var MockStoreContextKey = mockStoreContextKeyStruct{}
 
 // RegenerateSession regenerates the underlying session and returns the new store
 func RegenerateSession(resp http.ResponseWriter, req *http.Request) (Store, error) {
@@ -28,8 +28,8 @@ func RegenerateSession(resp http.ResponseWriter, req *http.Request) (Store, erro
 		f(resp, req)
 	}
 	if setting.IsInTesting {
-		if store, ok := req.Context().Value(MockStoreContextKey).(*MockStore); ok {
-			return store, nil
+		if store := req.Context().Value(MockStoreContextKey); store != nil {
+			return store.(Store), nil
 		}
 	}
 	return session.RegenerateSession(resp, req)
@@ -37,8 +37,8 @@ func RegenerateSession(resp http.ResponseWriter, req *http.Request) (Store, erro
 
 func GetContextSession(req *http.Request) Store {
 	if setting.IsInTesting {
-		if store, ok := req.Context().Value(MockStoreContextKey).(*MockStore); ok {
-			return store
+		if store := req.Context().Value(MockStoreContextKey); store != nil {
+			return store.(Store)
 		}
 	}
 	return session.GetSession(req)

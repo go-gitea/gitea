@@ -26,13 +26,14 @@ func HexToRBGColor(colorString string) (float64, float64, float64) {
 	if len(hexString) == 8 {
 		hexString = hexString[0:6]
 	}
-	color, err := strconv.ParseUint(hexString, 16, 64)
+	color, err := strconv.ParseUint(hexString, 16, 32)
+	color32 := uint32(color)
 	if err != nil {
 		return 0, 0, 0
 	}
-	r := float64(uint8(0xFF & (uint32(color) >> 16)))
-	g := float64(uint8(0xFF & (uint32(color) >> 8)))
-	b := float64(uint8(0xFF & uint32(color)))
+	r := float64(uint8(0xFF & (color32 >> 16)))
+	g := float64(uint8(0xFF & (color32 >> 8)))
+	b := float64(uint8(0xFF & color32))
 	return r, g, b
 }
 

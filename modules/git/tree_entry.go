@@ -5,10 +5,60 @@
 package git
 
 import (
-	"io"
-	"sort"
+	"path"
+	"slices"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
+
+// TreeEntry the leaf in the git tree
+type TreeEntry struct {
+	ID ObjectID
+
+	name  string
+	ptree *Tree
+
+	entryMode EntryMode
+
+	size  int64
+	sized bool
+}
+
+// Name returns the name of the entry (base name)
+func (te *TreeEntry) Name() string {
+	return te.name
+}
+
+// Mode returns the mode of the entry
+func (te *TreeEntry) Mode() EntryMode {
+	return te.entryMode
+}
+
+// IsSubModule if the entry is a submodule
+func (te *TreeEntry) IsSubModule() bool {
+	return te.entryMode.IsSubModule()
+}
+
+// IsDir if the entry is a sub dir
+func (te *TreeEntry) IsDir() bool {
+	return te.entryMode.IsDir()
+}
+
+// IsLink if the entry is a symlink
+func (te *TreeEntry) IsLink() bool {
+	return te.entryMode.IsLink()
+}
+
+// IsRegular if the entry is a regular file
+func (te *TreeEntry) IsRegular() bool {
+	return te.entryMode.IsRegular()
+}
+
+// IsExecutable if the entry is an executable file (not necessarily binary)
+func (te *TreeEntry) IsExecutable() bool {
+	return te.entryMode.IsExecutable()
+}
 
 // Type returns the type of the entry (commit, tree, blob)
 func (te *TreeEntry) Type() string {
@@ -22,83 +72,57 @@ func (te *TreeEntry) Type() string {
 	}
 }
 
-// FollowLink returns the entry pointed to by a symlink
-func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
-	if !te.IsLink() {
-		return nil, ErrBadLink{te.Name(), "not a symlink"}
-	}
-
-	// read the link
-	r, err := te.Blob().DataAsync()
-	if err != nil {
-		return nil, err
-	}
-	closed := false
-	defer func() {
-		if !closed {
-			_ = r.Close()
-		}
-	}()
-	buf := make([]byte, te.Size())
-	_, err = io.ReadFull(r, buf)
-	if err != nil {
-		return nil, err
-	}
-	_ = r.Close()
-	closed = true
-
-	lnk := string(buf)
-	t := te.ptree
-
-	// traverse up directories
-	for ; t != nil && strings.HasPrefix(lnk, "../"); lnk = lnk[3:] {
-		t = t.ptree
-	}
-
-	if t == nil {
-		return nil, ErrBadLink{te.Name(), "points outside of repo"}
-	}
-
-	target, err := t.GetTreeEntryByPath(lnk)
-	if err != nil {
-		if IsErrNotExist(err) {
-			return nil, ErrBadLink{te.Name(), "broken link"}
-		}
-		return nil, err
-	}
-	return target, nil
+type EntryFollowResult struct {
+	SymlinkContent string
+	TargetFullPath string
+	TargetEntry    *TreeEntry
 }
 
-// FollowLinks returns the entry ultimately pointed to by a symlink
-func (te *TreeEntry) FollowLinks() (*TreeEntry, error) {
+func EntryFollowLink(commit *Commit, fullPath string, te *TreeEntry) (*EntryFollowResult, error) {
 	if !te.IsLink() {
-		return nil, ErrBadLink{te.Name(), "not a symlink"}
+		return nil, util.ErrorWrap(util.ErrUnprocessableContent, "%q is not a symlink", fullPath)
 	}
-	entry := te
-	for i := 0; i < 999; i++ {
-		if entry.IsLink() {
-			next, err := entry.FollowLink()
-			if err != nil {
-				return nil, err
-			}
-			if next.ID == entry.ID {
-				return nil, ErrBadLink{
-					entry.Name(),
-					"recursive link",
-				}
-			}
-			entry = next
-		} else {
+
+	// git's filename max length is 4096, hopefully a link won't be longer than multiple of that
+	const maxSymlinkSize = 20 * 4096
+	if te.Blob().Size() > maxSymlinkSize {
+		return nil, util.ErrorWrap(util.ErrUnprocessableContent, "%q content exceeds symlink limit", fullPath)
+	}
+
+	link, err := te.Blob().GetBlobContent(maxSymlinkSize)
+	if err != nil {
+		return nil, err
+	}
+	if strings.HasPrefix(link, "/") {
+		// It's said that absolute path will be stored as is in Git
+		return &EntryFollowResult{SymlinkContent: link}, util.ErrorWrap(util.ErrUnprocessableContent, "%q is an absolute symlink", fullPath)
+	}
+
+	targetFullPath := path.Join(path.Dir(fullPath), link)
+	targetEntry, err := commit.GetTreeEntryByPath(targetFullPath)
+	if err != nil {
+		return &EntryFollowResult{SymlinkContent: link}, err
+	}
+	return &EntryFollowResult{SymlinkContent: link, TargetFullPath: targetFullPath, TargetEntry: targetEntry}, nil
+}
+
+func EntryFollowLinks(commit *Commit, firstFullPath string, firstTreeEntry *TreeEntry, optLimit ...int) (res *EntryFollowResult, err error) {
+	limit := util.OptionalArg(optLimit, 10)
+	treeEntry, fullPath := firstTreeEntry, firstFullPath
+	for range limit {
+		res, err = EntryFollowLink(commit, fullPath, treeEntry)
+		if err != nil {
+			return res, err
+		}
+		treeEntry, fullPath = res.TargetEntry, res.TargetFullPath
+		if !treeEntry.IsLink() {
 			break
 		}
 	}
-	if entry.IsLink() {
-		return nil, ErrBadLink{
-			te.Name(),
-			"too many levels of symbolic links",
-		}
+	if treeEntry.IsLink() {
+		return res, util.ErrorWrap(util.ErrUnprocessableContent, "%q has too many links", firstFullPath)
 	}
-	return entry, nil
+	return res, nil
 }
 
 // returns the Tree pointed to by this TreeEntry, or nil if this is not a tree
@@ -133,49 +157,16 @@ func (te *TreeEntry) GetSubJumpablePathName() string {
 // Entries a list of entry
 type Entries []*TreeEntry
 
-type customSortableEntries struct {
-	Comparer func(s1, s2 string) bool
-	Entries
-}
-
-var sorter = []func(t1, t2 *TreeEntry, cmp func(s1, s2 string) bool) bool{
-	func(t1, t2 *TreeEntry, cmp func(s1, s2 string) bool) bool {
-		return (t1.IsDir() || t1.IsSubModule()) && !t2.IsDir() && !t2.IsSubModule()
-	},
-	func(t1, t2 *TreeEntry, cmp func(s1, s2 string) bool) bool {
-		return cmp(t1.Name(), t2.Name())
-	},
-}
-
-func (ctes customSortableEntries) Len() int { return len(ctes.Entries) }
-
-func (ctes customSortableEntries) Swap(i, j int) {
-	ctes.Entries[i], ctes.Entries[j] = ctes.Entries[j], ctes.Entries[i]
-}
-
-func (ctes customSortableEntries) Less(i, j int) bool {
-	t1, t2 := ctes.Entries[i], ctes.Entries[j]
-	var k int
-	for k = 0; k < len(sorter)-1; k++ {
-		s := sorter[k]
-		switch {
-		case s(t1, t2, ctes.Comparer):
-			return true
-		case s(t2, t1, ctes.Comparer):
-			return false
-		}
-	}
-	return sorter[k](t1, t2, ctes.Comparer)
-}
-
-// Sort sort the list of entry
-func (tes Entries) Sort() {
-	sort.Sort(customSortableEntries{func(s1, s2 string) bool {
-		return s1 < s2
-	}, tes})
-}
-
 // CustomSort customizable string comparing sort entry list
-func (tes Entries) CustomSort(cmp func(s1, s2 string) bool) {
-	sort.Sort(customSortableEntries{cmp, tes})
+func (tes Entries) CustomSort(cmp func(s1, s2 string) int) {
+	slices.SortFunc(tes, func(a, b *TreeEntry) int {
+		s1Dir, s2Dir := a.IsDir() || a.IsSubModule(), b.IsDir() || b.IsSubModule()
+		if s1Dir != s2Dir {
+			if s1Dir {
+				return -1
+			}
+			return 1
+		}
+		return cmp(a.Name(), b.Name())
+	})
 }

@@ -19,18 +19,18 @@ func TestIterate(t *testing.T) {
 	xe := unittest.GetXORMEngine()
 	assert.NoError(t, xe.Sync(&repo_model.RepoUnit{}))
 
-	cnt, err := db.GetEngine(db.DefaultContext).Count(&repo_model.RepoUnit{})
+	cnt, err := db.GetEngine(t.Context()).Count(&repo_model.RepoUnit{})
 	assert.NoError(t, err)
 
 	var repoUnitCnt int
-	err = db.Iterate(db.DefaultContext, nil, func(ctx context.Context, repo *repo_model.RepoUnit) error {
+	err = db.Iterate(t.Context(), nil, func(ctx context.Context, repo *repo_model.RepoUnit) error {
 		repoUnitCnt++
 		return nil
 	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, cnt, repoUnitCnt)
 
-	err = db.Iterate(db.DefaultContext, nil, func(ctx context.Context, repoUnit *repo_model.RepoUnit) error {
+	err = db.Iterate(t.Context(), nil, func(ctx context.Context, repoUnit *repo_model.RepoUnit) error {
 		has, err := db.ExistByID[repo_model.RepoUnit](ctx, repoUnit.ID)
 		if err != nil {
 			return err
@@ -38,8 +38,6 @@ func TestIterate(t *testing.T) {
 		if !has {
 			return db.ErrNotExist{Resource: "repo_unit", ID: repoUnit.ID}
 		}
-		assert.EqualValues(t, repoUnit.RepoID, repoUnit.RepoID)
-		assert.EqualValues(t, repoUnit.CreatedUnix, repoUnit.CreatedUnix)
 		return nil
 	})
 	assert.NoError(t, err)

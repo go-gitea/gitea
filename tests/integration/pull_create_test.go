@@ -10,8 +10,13 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"sync"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
@@ -58,7 +63,55 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSel
 	return resp
 }
 
-func testPullCreateDirectly(t *testing.T, session *TestSession, baseRepoOwner, baseRepoName, baseBranch, headRepoOwner, headRepoName, headBranch, title string) *httptest.ResponseRecorder {
+type createPullRequestOptions struct {
+	BaseRepoOwner string
+	BaseRepoName  string
+	BaseBranch    string
+	HeadRepoOwner string
+	HeadRepoName  string
+	HeadBranch    string
+	Title         string
+	ReviewerIDs   string // comma-separated list of user IDs
+}
+
+func (opts createPullRequestOptions) IsValid() bool {
+	return opts.BaseRepoOwner != "" && opts.BaseRepoName != "" && opts.BaseBranch != "" &&
+		opts.HeadBranch != "" && opts.Title != ""
+}
+
+func testPullCreateDirectly(t *testing.T, session *TestSession, opts createPullRequestOptions) *httptest.ResponseRecorder {
+	if !opts.IsValid() {
+		t.Fatal("Invalid pull request options")
+	}
+
+	headCompare := opts.HeadBranch
+	if opts.HeadRepoOwner != "" {
+		if opts.HeadRepoName != "" {
+			headCompare = fmt.Sprintf("%s/%s:%s", opts.HeadRepoOwner, opts.HeadRepoName, opts.HeadBranch)
+		} else {
+			headCompare = fmt.Sprintf("%s:%s", opts.HeadRepoOwner, opts.HeadBranch)
+		}
+	}
+	req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/compare/%s...%s", opts.BaseRepoOwner, opts.BaseRepoName, opts.BaseBranch, headCompare))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	// Submit the form for creating the pull
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
+	assert.True(t, exists, "The template has changed")
+	params := map[string]string{
+		"_csrf": htmlDoc.GetCSRF(),
+		"title": opts.Title,
+	}
+	if opts.ReviewerIDs != "" {
+		params["reviewer_ids"] = opts.ReviewerIDs
+	}
+	req = NewRequestWithValues(t, "POST", link, params)
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	return resp
+}
+
+func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, baseRepoName, baseBranch, headRepoOwner, headRepoName, headBranch, title string) *httptest.ResponseRecorder {
 	headCompare := headBranch
 	if headRepoOwner != "" {
 		if headRepoName != "" {
@@ -78,7 +131,7 @@ func testPullCreateDirectly(t *testing.T, session *TestSession, baseRepoOwner, b
 		"_csrf": htmlDoc.GetCSRF(),
 		"title": title,
 	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusBadRequest)
 	return resp
 }
 
@@ -87,7 +140,14 @@ func TestPullCreate(t *testing.T) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo1.NumPulls)
+		assert.Equal(t, 3, repo1.NumOpenPulls)
 		resp := testPullCreate(t, session, "user1", "repo1", false, "master", "master", "This is a pull title")
+
+		repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 4, repo1.NumPulls)
+		assert.Equal(t, 4, repo1.NumOpenPulls)
 
 		// check the redirected URL
 		url := test.RedirectURL(resp)
@@ -137,10 +197,10 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 		req = NewRequest(t, "GET", url)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc = NewHTMLParser(t, resp.Body)
-		titleHTML, err := htmlDoc.doc.Find(".comment-list .timeline-item.event .text b").First().Html()
+		titleHTML, err := htmlDoc.doc.Find(".comment-list .timeline-item.event .comment-text-line b").First().Html()
 		assert.NoError(t, err)
 		assert.Equal(t, "<strike>&lt;i&gt;XSS PR&lt;/i&gt;</strike>", titleHTML)
-		titleHTML, err = htmlDoc.doc.Find(".comment-list .timeline-item.event .text b").Next().Html()
+		titleHTML, err = htmlDoc.doc.Find(".comment-list .timeline-item.event .comment-text-line b").Next().Html()
 		assert.NoError(t, err)
 		assert.Equal(t, "&lt;u&gt;XSS PR&lt;/u&gt;", titleHTML)
 	})
@@ -197,5 +257,152 @@ func TestPullBranchDelete(t *testing.T) {
 		testDeleteRepository(t, session, "user1", "repo1")
 		req = NewRequest(t, "GET", url)
 		session.MakeRequest(t, req, http.StatusOK)
+	})
+}
+
+/*
+Setup:
+The base repository is: user2/repo1
+Fork repository to: user1/repo1
+Push extra commit to: user2/repo1, which changes README.md
+Create a PR on user1/repo1
+
+Test checks:
+Check if pull request can be created from base to the fork repository.
+*/
+func TestPullCreatePrFromBaseToFork(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		sessionFork := loginUser(t, "user1")
+		testRepoFork(t, sessionFork, "user2", "repo1", "user1", "repo1", "")
+
+		// Edit base repository
+		sessionBase := loginUser(t, "user2")
+		testEditFile(t, sessionBase, "user2", "repo1", "master", "README.md", "Hello, World (Edited)\n")
+
+		// Create a PR
+		resp := testPullCreateDirectly(t, sessionFork, createPullRequestOptions{
+			BaseRepoOwner: "user1",
+			BaseRepoName:  "repo1",
+			BaseBranch:    "master",
+			HeadRepoOwner: "user2",
+			HeadRepoName:  "repo1",
+			HeadBranch:    "master",
+			Title:         "This is a pull title",
+		})
+		// check the redirected URL
+		url := test.RedirectURL(resp)
+		assert.Regexp(t, "^/user1/repo1/pulls/[0-9]*$", url)
+	})
+}
+
+func TestPullCreateParallel(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		sessionFork := loginUser(t, "user1")
+		testRepoFork(t, sessionFork, "user2", "repo1", "user1", "repo1", "")
+
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo1.NumPulls)
+		assert.Equal(t, 3, repo1.NumOpenPulls)
+
+		var wg sync.WaitGroup
+		for i := range 5 {
+			wg.Go(func() {
+				branchName := fmt.Sprintf("new-branch-%d", i)
+				testEditFileToNewBranch(t, sessionFork, "user1", "repo1", "master", branchName, "README.md", fmt.Sprintf("Hello, World (Edited) %d\n", i))
+
+				// Create a PR
+				resp := testPullCreateDirectly(t, sessionFork, createPullRequestOptions{
+					BaseRepoOwner: "user2",
+					BaseRepoName:  "repo1",
+					BaseBranch:    "master",
+					HeadRepoOwner: "user1",
+					HeadRepoName:  "repo1",
+					HeadBranch:    branchName,
+					Title:         fmt.Sprintf("This is a pull title %d", i),
+				})
+				// check the redirected URL
+				url := test.RedirectURL(resp)
+				assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
+			})
+		}
+		wg.Wait()
+
+		repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 8, repo1.NumPulls)
+		assert.Equal(t, 8, repo1.NumOpenPulls)
+	})
+}
+
+func TestCreateAgitPullWithReadPermission(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		dstPath := t.TempDir()
+
+		u.Path = "user2/repo1.git"
+		u.User = url.UserPassword("user4", userPassword)
+
+		doGitClone(dstPath, u)(t)
+		doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+			LocalRepoPath:   dstPath,
+			CheckoutBranch:  "master",
+			TreeFilePath:    "new-file-for-agit.txt",
+			TreeFileContent: "temp content",
+		})(t)
+
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 3, repo.NumPulls)
+		assert.Equal(t, 3, repo.NumOpenPulls)
+
+		err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
+			AddDynamicArguments("topic=test-topic").
+			WithDir(dstPath).
+			Run(t.Context())
+		assert.NoError(t, err)
+
+		repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		assert.Equal(t, 4, repo.NumPulls)
+		assert.Equal(t, 4, repo.NumOpenPulls)
+	})
+}
+
+/*
+Setup: user2 has repository, user1 forks it
+---
+
+1. User2 blocks User1
+2. User1 adds changes to fork
+3. User1 attempts to create a pull request
+4. User1 sees alert that the action is not allowed because of the block
+*/
+func TestCreatePullWhenBlocked(t *testing.T) {
+	RepoOwner := "user2"
+	ForkOwner := "user16"
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// Setup
+		// User1 forks repo1 from User2
+		sessionFork := loginUser(t, ForkOwner)
+		testRepoFork(t, sessionFork, RepoOwner, "repo1", ForkOwner, "forkrepo1", "")
+
+		// 1. User2 blocks user1
+		// sessionBase := loginUser(t, "user2")
+		token := getUserToken(t, RepoOwner, auth_model.AccessTokenScopeWriteUser)
+
+		req := NewRequest(t, "GET", "/api/v1/user/blocks/"+ForkOwner).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNotFound)
+		req = NewRequest(t, "PUT", "/api/v1/user/blocks/"+ForkOwner).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		// 2. User1 adds changes to fork
+		testEditFile(t, sessionFork, ForkOwner, "forkrepo1", "master", "README.md", "Hello, World (Edited)\n")
+
+		// 3. User1 attempts to create a pull request
+		testPullCreateFailure(t, sessionFork, RepoOwner, "repo1", "master", ForkOwner, "forkrepo1", "master", "This is a pull title")
+
+		// Teardown
+		// Unblock user
+		req = NewRequest(t, "DELETE", "/api/v1/user/blocks/"+ForkOwner).
+			AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusNoContent)
 	})
 }

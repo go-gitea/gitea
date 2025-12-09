@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// OAuth2UsernameType is enum describing the way gitea 'name' should be generated from oauth2 data
+// OAuth2UsernameType is enum describing the way gitea generates its 'username' from oauth2 data
 type OAuth2UsernameType string
 
 const (
@@ -96,6 +96,7 @@ var OAuth2 = struct {
 	InvalidateRefreshTokens    bool
 	JWTSigningAlgorithm        string `ini:"JWT_SIGNING_ALGORITHM"`
 	JWTSigningPrivateKeyFile   string `ini:"JWT_SIGNING_PRIVATE_KEY_FILE"`
+	JWTClaimIssuer             string `ini:"JWT_CLAIM_ISSUER"`
 	MaxTokenLength             int
 	DefaultApplications        []string
 }{

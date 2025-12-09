@@ -32,7 +32,7 @@ func (specs SpecList) LoadSchedules(ctx context.Context) error {
 	}
 
 	repoIDs := specs.GetRepoIDs()
-	repos, err := GetReposMapByIDs(ctx, repoIDs)
+	repos, err := repo_model.GetRepositoriesMapByIDs(ctx, repoIDs)
 	if err != nil {
 		return err
 	}

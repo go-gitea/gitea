@@ -1,7 +1,7 @@
 // Copyright 2023 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_20 //nolint
+package v1_20
 
 import (
 	"sort"
@@ -96,7 +96,7 @@ func Test_ConvertScopedAccessTokens(t *testing.T) {
 	tokens := make([]AccessToken, 0)
 	err = x.Find(&tokens)
 	assert.NoError(t, err)
-	assert.Equal(t, len(tests), len(tokens))
+	assert.Len(t, tokens, len(tests))
 
 	// sort the tokens (insertion order by auto-incrementing primary key)
 	sort.Slice(tokens, func(i, j int) bool {

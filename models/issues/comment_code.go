@@ -5,10 +5,11 @@ package issues
 
 import (
 	"context"
+	"strconv"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/renderhelper"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 
 	"xorm.io/builder"
@@ -86,8 +87,10 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 			ids = append(ids, comment.ReviewID)
 		}
 	}
-	if err := e.In("id", ids).Find(&reviews); err != nil {
-		return nil, err
+	if len(ids) > 0 {
+		if err := e.In("id", ids).Find(&reviews); err != nil {
+			return nil, err
+		}
 	}
 
 	n := 0
@@ -112,14 +115,10 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		}
 
 		var err error
-		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Ctx:  ctx,
-			Repo: issue.Repo,
-			Links: markup.Links{
-				Base: issue.Repo.Link(),
-			},
-			Metas: issue.Repo.ComposeMetas(ctx),
-		}, comment.Content); err != nil {
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+			FootnoteContextID: strconv.FormatInt(comment.ID, 10),
+		})
+		if comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content); err != nil {
 			return nil, err
 		}
 	}

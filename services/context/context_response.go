@@ -17,7 +17,6 @@ import (
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,7 +28,7 @@ import (
 func RedirectToUser(ctx *Base, userName string, redirectUserID int64) {
 	user, err := user_model.GetUserByID(ctx, redirectUserID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "unable to get user")
+		ctx.HTTPError(http.StatusInternalServerError, "unable to get user")
 		return
 	}
 
@@ -63,10 +62,10 @@ func (ctx *Context) RedirectToCurrentSite(location ...string) {
 	ctx.Redirect(setting.AppSubURL + "/")
 }
 
-const tplStatus500 base.TplName = "status/500"
+const tplStatus500 templates.TplName = "status/500"
 
 // HTML calls Context.HTML and renders the template to HTTP response
-func (ctx *Context) HTML(status int, name base.TplName) {
+func (ctx *Context) HTML(status int, name templates.TplName) {
 	log.Debug("Template: %s", name)
 
 	tmplStartTime := time.Now()
@@ -77,7 +76,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
 
-	err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data, ctx.TemplateContext)
+	err := ctx.Render.HTML(ctx.Resp, status, name, ctx.Data, ctx.TemplateContext)
 	if err == nil || errors.Is(err, syscall.EPIPE) {
 		return
 	}
@@ -93,8 +92,8 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 }
 
 // JSONTemplate renders the template as JSON response
-// keep in mind that the template is processed in HTML context, so JSON-things should be handled carefully, eg: by JSEscape
-func (ctx *Context) JSONTemplate(tmpl base.TplName) {
+// keep in mind that the template is processed in HTML context, so JSON things should be handled carefully, e.g.: use JSEscape
+func (ctx *Context) JSONTemplate(tmpl templates.TplName) {
 	t, err := ctx.Render.TemplateLookup(string(tmpl), nil)
 	if err != nil {
 		ctx.ServerError("unable to find template", err)
@@ -107,14 +106,14 @@ func (ctx *Context) JSONTemplate(tmpl base.TplName) {
 }
 
 // RenderToHTML renders the template content to a HTML string
-func (ctx *Context) RenderToHTML(name base.TplName, data map[string]any) (template.HTML, error) {
+func (ctx *Context) RenderToHTML(name templates.TplName, data any) (template.HTML, error) {
 	var buf strings.Builder
-	err := ctx.Render.HTML(&buf, 0, string(name), data, ctx.TemplateContext)
+	err := ctx.Render.HTML(&buf, 0, name, data, ctx.TemplateContext)
 	return template.HTML(buf.String()), err
 }
 
 // RenderWithErr used for page has form validation but need to prompt error to users.
-func (ctx *Context) RenderWithErr(msg any, tpl base.TplName, form any) {
+func (ctx *Context) RenderWithErr(msg any, tpl templates.TplName, form any) {
 	if form != nil {
 		middleware.AssignForm(form, ctx.Data)
 	}
@@ -123,8 +122,8 @@ func (ctx *Context) RenderWithErr(msg any, tpl base.TplName, form any) {
 }
 
 // NotFound displays a 404 (Not Found) page and prints the given error, if any.
-func (ctx *Context) NotFound(logMsg string, logErr error) {
-	ctx.notFoundInternal(logMsg, logErr)
+func (ctx *Context) NotFound(logErr error) {
+	ctx.notFoundInternal("", logErr)
 }
 
 func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
@@ -151,7 +150,7 @@ func (ctx *Context) notFoundInternal(logMsg string, logErr error) {
 
 	ctx.Data["IsRepo"] = ctx.Repo.Repository != nil
 	ctx.Data["Title"] = "Page Not Found"
-	ctx.HTML(http.StatusNotFound, base.TplName("status/404"))
+	ctx.HTML(http.StatusNotFound, "status/404")
 }
 
 // ServerError displays a 500 (Internal Server Error) page and prints the given error, if any.

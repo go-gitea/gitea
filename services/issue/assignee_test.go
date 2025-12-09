@@ -6,7 +6,6 @@ package issue
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -18,30 +17,30 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Fake issue with assignees
-	issue, err := issues_model.GetIssueByID(db.DefaultContext, 1)
+	issue, err := issues_model.GetIssueByID(t.Context(), 1)
 	assert.NoError(t, err)
 
-	err = issue.LoadAttributes(db.DefaultContext)
+	err = issue.LoadAttributes(t.Context())
 	assert.NoError(t, err)
 
 	assert.Len(t, issue.Assignees, 1)
 
-	user1, err := user_model.GetUserByID(db.DefaultContext, 1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
+	user1, err := user_model.GetUserByID(t.Context(), 1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
 	assert.NoError(t, err)
 
 	// Check if he got removed
-	isAssigned, err := issues_model.IsUserAssignedToIssue(db.DefaultContext, issue, user1)
+	isAssigned, err := issues_model.IsUserAssignedToIssue(t.Context(), issue, user1)
 	assert.NoError(t, err)
 	assert.True(t, isAssigned)
 
 	// Clean everyone
-	err = DeleteNotPassedAssignee(db.DefaultContext, issue, user1, []*user_model.User{})
+	err = DeleteNotPassedAssignee(t.Context(), issue, user1, []*user_model.User{})
 	assert.NoError(t, err)
 	assert.Empty(t, issue.Assignees)
 
 	// Reload to check they're gone
 	issue.ResetAttributesLoaded()
-	assert.NoError(t, issue.LoadAssignees(db.DefaultContext))
+	assert.NoError(t, issue.LoadAssignees(t.Context()))
 	assert.Empty(t, issue.Assignees)
 	assert.Empty(t, issue.Assignee)
 }

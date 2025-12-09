@@ -6,6 +6,7 @@ package log
 import (
 	"io"
 
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/util/rotatingfilewriter"
 )
 
@@ -42,7 +43,7 @@ func NewEventWriterFile(name string, mode WriterMode) EventWriter {
 		// if the log file can't be opened, what should it do? panic/exit? ignore logs? fallback to stderr?
 		// it seems that "fallback to stderr" is slightly better than others ....
 		FallbackErrorf("unable to open log file %q: %v", opt.FileName, err)
-		w.fileWriter = nopCloser{Writer: LoggerToWriter(FallbackErrorf)}
+		w.fileWriter = util.NopCloser{Writer: LoggerToWriter(FallbackErrorf)}
 	}
 	w.OutputWriteCloser = w.fileWriter
 	return w

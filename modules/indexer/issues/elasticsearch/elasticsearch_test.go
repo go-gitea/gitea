@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/indexer/issues/internal/tests"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestElasticsearchIndexer(t *testing.T) {
@@ -26,20 +28,10 @@ func TestElasticsearchIndexer(t *testing.T) {
 		}
 	}
 
-	ok := false
-	for i := 0; i < 60; i++ {
+	require.Eventually(t, func() bool {
 		resp, err := http.Get(url)
-		if err == nil && resp.StatusCode == http.StatusOK {
-			ok = true
-			break
-		}
-		t.Logf("Waiting for elasticsearch to be up: %v", err)
-		time.Sleep(time.Second)
-	}
-	if !ok {
-		t.Fatalf("Failed to wait for elasticsearch to be up")
-		return
-	}
+		return err == nil && resp.StatusCode == http.StatusOK
+	}, time.Minute, time.Second, "Expected elasticsearch to be up")
 
 	indexer := NewIndexer(url, fmt.Sprintf("test_elasticsearch_indexer_%d", time.Now().Unix()))
 	defer indexer.Close()

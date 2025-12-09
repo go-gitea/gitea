@@ -15,8 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
-
-	"github.com/nektos/act/pkg/jobparser"
 )
 
 // StartScheduleTasks start the task
@@ -52,20 +50,6 @@ func startTasks(ctx context.Context) error {
 
 		// Loop through each spec and create a schedule task for it
 		for _, row := range specs {
-			// cancel running jobs if the event is push
-			if row.Schedule.Event == webhook_module.HookEventPush {
-				// cancel running jobs of the same workflow
-				if err := actions_model.CancelPreviousJobs(
-					ctx,
-					row.RepoID,
-					row.Schedule.Ref,
-					row.Schedule.WorkflowID,
-					webhook_module.HookEventSchedule,
-				); err != nil {
-					log.Error("CancelPreviousJobs: %v", err)
-				}
-			}
-
 			if row.Repo.IsArchived {
 				// Skip if the repo is archived
 				continue
@@ -132,20 +116,10 @@ func CreateScheduleTask(ctx context.Context, cron *actions_model.ActionSchedule)
 		Status:        actions_model.StatusWaiting,
 	}
 
-	vars, err := actions_model.GetVariablesOfRun(ctx, run)
-	if err != nil {
-		log.Error("GetVariablesOfRun: %v", err)
-		return err
-	}
-
-	// Parse the workflow specification from the cron schedule
-	workflows, err := jobparser.Parse(cron.Content, jobparser.WithVars(vars))
-	if err != nil {
-		return err
-	}
-
+	// FIXME cron.Content might be outdated if the workflow file has been changed.
+	// Load the latest sha from default branch
 	// Insert the action run and its associated jobs into the database
-	if err := actions_model.InsertRun(ctx, run, workflows); err != nil {
+	if err := PrepareRunAndInsert(ctx, cron.Content, run, nil); err != nil {
 		return err
 	}
 

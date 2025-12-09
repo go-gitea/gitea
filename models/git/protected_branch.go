@@ -5,7 +5,6 @@ package git
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -17,16 +16,15 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/gobwas/glob"
-	"github.com/gobwas/glob/syntax"
 	"xorm.io/builder"
 )
 
-var ErrBranchIsProtected = errors.New("branch is protected")
+var ErrBranchIsProtected = util.ErrorWrap(util.ErrPermissionDenied, "branch is protected")
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
@@ -34,6 +32,7 @@ type ProtectedBranch struct {
 	RepoID                        int64                  `xorm:"UNIQUE(s)"`
 	Repo                          *repo_model.Repository `xorm:"-"`
 	RuleName                      string                 `xorm:"'branch_name' UNIQUE(s)"` // a branch name or a glob match to branch name
+	Priority                      int64                  `xorm:"NOT NULL DEFAULT 0"`
 	globRule                      glob.Glob              `xorm:"-"`
 	isPlainName                   bool                   `xorm:"-"`
 	CanPush                       bool                   `xorm:"NOT NULL DEFAULT false"`
@@ -63,6 +62,7 @@ type ProtectedBranch struct {
 	RequireSignedCommits          bool     `xorm:"NOT NULL DEFAULT false"`
 	ProtectedFilePatterns         string   `xorm:"TEXT"`
 	UnprotectedFilePatterns       string   `xorm:"TEXT"`
+	BlockAdminMergeOverride       bool     `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
@@ -75,7 +75,7 @@ func init() {
 // IsRuleNameSpecial return true if it contains special character
 func IsRuleNameSpecial(ruleName string) bool {
 	for i := 0; i < len(ruleName); i++ {
-		if syntax.Special(ruleName[i]) {
+		if glob.IsSpecialByte(ruleName[i]) {
 			return true
 		}
 	}
@@ -83,14 +83,20 @@ func IsRuleNameSpecial(ruleName string) bool {
 }
 
 func (protectBranch *ProtectedBranch) loadGlob() {
-	if protectBranch.globRule == nil {
-		var err error
-		protectBranch.globRule, err = glob.Compile(protectBranch.RuleName, '/')
-		if err != nil {
-			log.Warn("Invalid glob rule for ProtectedBranch[%d]: %s %v", protectBranch.ID, protectBranch.RuleName, err)
-			protectBranch.globRule = glob.MustCompile(glob.QuoteMeta(protectBranch.RuleName), '/')
-		}
-		protectBranch.isPlainName = !IsRuleNameSpecial(protectBranch.RuleName)
+	if protectBranch.isPlainName || protectBranch.globRule != nil {
+		return
+	}
+	// detect if it is not glob
+	if !IsRuleNameSpecial(protectBranch.RuleName) {
+		protectBranch.isPlainName = true
+		return
+	}
+	// now we load the glob
+	var err error
+	protectBranch.globRule, err = glob.Compile(protectBranch.RuleName, '/')
+	if err != nil {
+		log.Warn("Invalid glob rule for ProtectedBranch[%d]: %s %v", protectBranch.ID, protectBranch.RuleName, err)
+		protectBranch.globRule = glob.MustCompile(glob.QuoteMeta(protectBranch.RuleName), '/')
 	}
 }
 
@@ -238,7 +244,7 @@ func (protectBranch *ProtectedBranch) GetUnprotectedFilePatterns() []glob.Glob {
 
 func getFilePatterns(filePatterns string) []glob.Glob {
 	extarr := make([]glob.Glob, 0, 10)
-	for _, expr := range strings.Split(strings.ToLower(filePatterns), ";") {
+	for expr := range strings.SplitSeq(strings.ToLower(filePatterns), ";") {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
 			if g, err := glob.Compile(expr, '.', '/'); err != nil {
@@ -406,19 +412,50 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 	protectBranch.ApprovalsWhitelistTeamIDs = whitelist
 
-	// Make sure protectBranch.ID is not 0 for whitelists
+	// Looks like it's a new rule
 	if protectBranch.ID == 0 {
+		// as it's a new rule and if priority was not set, we need to calc it.
+		if protectBranch.Priority == 0 {
+			var lowestPrio int64
+			// because of mssql we can not use builder or save xorm syntax, so raw sql it is
+			if _, err := db.GetEngine(ctx).SQL(`SELECT MAX(priority) FROM protected_branch WHERE repo_id = ?`, protectBranch.RepoID).
+				Get(&lowestPrio); err != nil {
+				return err
+			}
+			log.Trace("Create new ProtectedBranch at repo[%d] and detect current lowest priority '%d'", protectBranch.RepoID, lowestPrio)
+			protectBranch.Priority = lowestPrio + 1
+		}
+
 		if _, err = db.GetEngine(ctx).Insert(protectBranch); err != nil {
 			return fmt.Errorf("Insert: %v", err)
 		}
 		return nil
 	}
 
+	// update the rule
 	if _, err = db.GetEngine(ctx).ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
 		return fmt.Errorf("Update: %v", err)
 	}
 
 	return nil
+}
+
+func UpdateProtectBranchPriorities(ctx context.Context, repo *repo_model.Repository, ids []int64) error {
+	prio := int64(1)
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, id := range ids {
+			if _, err := db.GetEngine(ctx).
+				ID(id).Where("repo_id = ?", repo.ID).
+				Cols("priority").
+				Update(&ProtectedBranch{
+					Priority: prio,
+				}); err != nil {
+				return err
+			}
+			prio++
+		}
+		return nil
+	})
 }
 
 // updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with
@@ -429,11 +466,13 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 		return currentWhitelist, nil
 	}
 
+	prUserIDs, err := access_model.GetUserIDsWithUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
+	if err != nil {
+		return nil, err
+	}
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		if reader, err := access_model.IsRepoReader(ctx, repo, userID); err != nil {
-			return nil, err
-		} else if !reader {
+		if !prUserIDs.Contains(userID) {
 			continue
 		}
 		whitelist = append(whitelist, userID)
@@ -479,7 +518,7 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 		return currentWhitelist, nil
 	}
 
-	teams, err := organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
+	teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 	if err != nil {
 		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
 	}

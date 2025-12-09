@@ -7,7 +7,7 @@ import (
 	"bytes"
 	stdcsv "encoding/csv"
 	"io"
-	"path/filepath"
+	"path"
 	"regexp"
 	"strings"
 
@@ -30,6 +30,8 @@ func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
 		// thus would change `\t\t` to just `\t` or `  ` (two spaces) to just ` ` (single space)
 		rd.TrimLeadingSpace = true
 	}
+	// Don't force validation of every row to have the same number of entries as the first row.
+	rd.FieldsPerRecord = -1
 	return rd
 }
 
@@ -53,7 +55,7 @@ func CreateReaderAndDetermineDelimiter(ctx *markup.RenderContext, rd io.Reader) 
 func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 	extension := ".csv"
 	if ctx != nil {
-		extension = strings.ToLower(filepath.Ext(ctx.RelativePath))
+		extension = strings.ToLower(path.Ext(ctx.RenderOptions.RelativePath))
 	}
 
 	var delimiter rune

@@ -1,5 +1,12 @@
 {{if not .PageIsWiki}}
 <div class="branch-and-tag-area" data-text-default-branch-tooltip="{{ctx.Locale.Tr "repo.commit.contained_in_default_branch"}}">
+	{{if .MergedPRIssueNumber}}
+	{{$prLink := HTMLFormat `<a href="%s/pulls/%d">#%d</a>` $.RepoLink $.MergedPRIssueNumber $.MergedPRIssueNumber}}
+	<div>
+		<div class="divider"></div>
+		<div>{{ctx.Locale.Tr "repo.commit.merged_in_pr" $prLink}}</div>
+	</div>
+	{{end}}
 	<button class="ui button ellipsis-button load-branches-and-tags tw-mt-2" aria-expanded="false"
 		data-fetch-url="{{.RepoLink}}/commit/{{.CommitID}}/load-branches-and-tags"
 		data-tooltip-content="{{ctx.Locale.Tr "repo.commit.load_referencing_branches_and_tags"}}"

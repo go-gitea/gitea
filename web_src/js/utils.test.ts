@@ -1,8 +1,14 @@
 import {
-  basename, extname, isObject, stripTags, parseIssueHref,
+  dirname, basename, extname, isObject, stripTags, parseIssueHref,
   parseUrl, translateMonth, translateDay, blobToDataURI,
-  toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile,
+  toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
 } from './utils.ts';
+
+test('dirname', () => {
+  expect(dirname('/path/to/file.js')).toEqual('/path/to');
+  expect(dirname('/path/to')).toEqual('/path');
+  expect(dirname('file.js')).toEqual('');
+});
 
 test('basename', () => {
   expect(basename('/path/to/file.js')).toEqual('file.js');
@@ -28,21 +34,31 @@ test('stripTags', () => {
 });
 
 test('parseIssueHref', () => {
-  expect(parseIssueHref('/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('/owner/repo/pulls/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
-  expect(parseIssueHref('/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('/sub/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('/sub/sub2/owner/repo/pulls/1')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
-  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('https://example.com/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('https://example.com/owner/repo/pulls/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
-  expect(parseIssueHref('https://example.com/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('https://example.com/sub/owner/repo/issues/1')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/pulls/1')).toEqual({owner: 'owner', repo: 'repo', type: 'pulls', index: '1'});
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
-  expect(parseIssueHref('')).toEqual({owner: undefined, repo: undefined, type: undefined, index: undefined});
+  expect(parseIssueHref('/owner/repo/issues/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('/owner/repo/pulls/1?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
+  expect(parseIssueHref('/owner/repo/issues/1#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('/sub/owner/repo/issues/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('/sub/sub2/owner/repo/pulls/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
+  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('/sub/sub2/owner/repo/issues/1#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('https://example.com/owner/repo/issues/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('https://example.com/owner/repo/pulls/1?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
+  expect(parseIssueHref('https://example.com/owner/repo/issues/1#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('https://example.com/sub/owner/repo/issues/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/pulls/1')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'pulls', indexString: '1'});
+  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1?query')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1#hash')).toEqual({ownerName: 'owner', repoName: 'repo', pathType: 'issues', indexString: '1'});
+  expect(parseIssueHref('')).toEqual({ownerName: undefined, repoName: undefined, type: undefined, index: undefined});
+});
+
+test('parseRepoOwnerPathInfo', () => {
+  expect(parseRepoOwnerPathInfo('/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});
+  expect(parseRepoOwnerPathInfo('/owner/repo/releases')).toEqual({ownerName: 'owner', repoName: 'repo'});
+  expect(parseRepoOwnerPathInfo('/other')).toEqual({});
+  window.config.appSubUrl = '/sub';
+  expect(parseRepoOwnerPathInfo('/sub/owner/repo/issues/new')).toEqual({ownerName: 'owner', repoName: 'repo'});
+  expect(parseRepoOwnerPathInfo('/sub/owner/repo/compare/feature/branch-1...fix/branch-2')).toEqual({ownerName: 'owner', repoName: 'repo'});
+  window.config.appSubUrl = '';
 });
 
 test('parseUrl', () => {
@@ -112,7 +128,7 @@ test('encodeURLEncodedBase64, decodeURLEncodedBase64', () => {
 });
 
 test('file detection', () => {
-  for (const name of ['a.jpg', '/a.jpeg', '.file.png', '.webp', 'file.svg']) {
+  for (const name of ['a.avif', 'a.jpg', '/a.jpeg', '.file.png', '.webp', 'file.svg']) {
     expect(isImageFile({name})).toBeTruthy();
   }
   for (const name of ['', 'a.jpg.x', '/path.png/x', 'webp']) {

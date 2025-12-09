@@ -92,20 +92,30 @@ func getIssueIndexerData(ctx context.Context, issueID int64) (*internal.IndexerD
 		projectID = issue.Project.ID
 	}
 
+	projectColumnID, err := issue.ProjectColumnID(ctx)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if err := issue.Repo.LoadOwner(ctx); err != nil {
+		return nil, false, fmt.Errorf("issue.Repo.LoadOwner: %w", err)
+	}
+
 	return &internal.IndexerData{
 		ID:                 issue.ID,
 		RepoID:             issue.RepoID,
-		IsPublic:           !issue.Repo.IsPrivate,
+		IsPublic:           !issue.Repo.IsPrivate && issue.Repo.Owner.Visibility.IsPublic(),
 		Title:              issue.Title,
 		Content:            issue.Content,
 		Comments:           comments,
 		IsPull:             issue.IsPull,
 		IsClosed:           issue.IsClosed,
+		IsArchived:         issue.Repo.IsArchived,
 		LabelIDs:           labels,
 		NoLabel:            len(labels) == 0,
 		MilestoneID:        issue.MilestoneID,
 		ProjectID:          projectID,
-		ProjectColumnID:    issue.ProjectColumnID(ctx),
+		ProjectColumnID:    projectColumnID,
 		PosterID:           issue.PosterID,
 		AssigneeID:         issue.AssigneeID,
 		MentionIDs:         mentionIDs,

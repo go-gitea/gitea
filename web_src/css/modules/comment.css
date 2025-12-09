@@ -21,7 +21,6 @@
   padding: 0.5em 0 0;
   border: none;
   border-top: none;
-  line-height: 1.2;
 }
 
 .edit-content-zone .comment {
@@ -54,10 +53,7 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-}
-
-.ui.comments .comment > .avatar ~ .content {
-  margin-left: 12px;
+  min-width: 0;
 }
 
 .ui.comments .comment .author {
@@ -87,6 +83,6 @@
 .ui.comments .comment .text {
   margin: 0.25em 0 0.5em;
   font-size: 1em;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
   line-height: 1.3;
 }

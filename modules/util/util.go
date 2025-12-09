@@ -11,20 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/optional"
-
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
-
-// OptionalBoolParse get the corresponding optional.Option[bool] of a string using strconv.ParseBool
-func OptionalBoolParse(s string) optional.Option[bool] {
-	v, e := strconv.ParseBool(s)
-	if e != nil {
-		return optional.None[bool]()
-	}
-	return optional.Some(v)
-}
 
 // IsEmptyString checks if the provided string is empty
 func IsEmptyString(s string) bool {
@@ -228,6 +217,32 @@ func IfZero[T comparable](v, def T) T {
 		return def
 	}
 	return v
+}
+
+func IfEmpty[T any](v, def []T) []T {
+	if len(v) == 0 {
+		return def
+	}
+	return v
+}
+
+// OptionalArg helps the "optional argument" in Golang:
+//
+//	func foo(optArg ...int) { return OptionalArg(optArg) }
+//		calling `foo()` gets zero value 0, calling `foo(100)` gets 100
+//	func bar(optArg ...int) { return OptionalArg(optArg, 42) }
+//		calling `bar()` gets default value 42, calling `bar(100)` gets 100
+//
+// Passing more than 1 item to `optArg` or `defaultValue` is undefined behavior.
+// At the moment only the first item is used.
+func OptionalArg[T any](optArg []T, defaultValue ...T) (ret T) {
+	if len(optArg) >= 1 {
+		return optArg[0]
+	}
+	if len(defaultValue) >= 1 {
+		return defaultValue[0]
+	}
+	return ret
 }
 
 func ReserveLineBreakForTextarea(input string) string {

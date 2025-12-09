@@ -1,15 +1,8 @@
-.show-outdated,
-.hide-outdated {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-  margin-right: 0 !important;
-}
-
 .ui.button.add-code-comment {
   padding: 2px;
   position: absolute;
   margin-left: -22px;
+  min-height: 0;
   z-index: 5;
   opacity: 0;
   transition: transform 0.1s ease-in-out;
@@ -58,13 +51,8 @@
   margin-bottom: 0.5em;
 }
 
-.show-outdated:hover,
-.hide-outdated:hover {
-  text-decoration: underline;
-}
-
 .comment-code-cloud {
-  padding: 0.5rem 1rem !important;
+  padding: 0.5rem !important;
   position: relative;
 }
 
@@ -102,17 +90,9 @@
   cursor: pointer;
 }
 
-.comment-code-cloud .ui.active.tab {
-  padding: 0.5em;
-}
-
 .comment-code-cloud .ui.active.tab.markup {
   padding: 1em;
   min-height: 168px;
-}
-
-.comment-code-cloud .ui.tabular.menu {
-  margin: 0.5em;
 }
 
 .comment-code-cloud .editor-statusbar {
@@ -121,23 +101,6 @@
 
 .comment-code-cloud .footer {
   padding: 10px 0;
-}
-
-.comment-code-cloud .footer .markup-info {
-  display: inline-block;
-  margin: 5px 0;
-  font-size: 12px;
-  color: var(--color-text-light);
-}
-
-.comment-code-cloud .footer .ui.right.floated {
-  padding-top: 6px;
-}
-
-.comment-code-cloud .footer::after {
-  clear: both;
-  content: "";
-  display: block;
 }
 
 .diff-file-body .comment-form {
@@ -152,6 +115,23 @@
   color: var(--color-text);
 }
 
+.code-expander-buttons {
+  position: relative;
+}
+
+.code-expander-buttons .code-comment-more {
+  position: absolute;
+  line-height: 12px;
+  padding: 2px 4px;
+  font-size: 10px;
+  background-color: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-radius: 8px !important;
+  left: -12px;
+  top: 6px;
+  text-align: center;
+}
+
 .code-expander-button {
   border: none;
   color: var(--color-text-light);
@@ -164,8 +144,8 @@
   flex: 1;
 }
 
-/* expand direction 3 is both ways with two buttons */
-.code-expander-buttons[data-expand-direction="3"] .code-expander-button {
+/* expand direction "updown" is both ways with two buttons */
+.code-expander-buttons[data-expand-direction="updown"] .code-expander-button {
   height: 18px;
 }
 

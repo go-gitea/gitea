@@ -10,14 +10,14 @@ const {copy_success, copy_error} = window.config.i18n;
 // - data-clipboard-text-type: When set to 'url' will convert relative to absolute urls
 export function initGlobalCopyToClipboardListener() {
   document.addEventListener('click', async (e) => {
-    const target = e.target.closest('[data-clipboard-text], [data-clipboard-target]');
+    const target = (e.target as HTMLElement).closest('[data-clipboard-text], [data-clipboard-target]');
     if (!target) return;
 
     e.preventDefault();
 
     let text = target.getAttribute('data-clipboard-text');
     if (!text) {
-      text = document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
+      text = document.querySelector<HTMLInputElement>(target.getAttribute('data-clipboard-target')!)?.value ?? null;
     }
 
     if (text && target.getAttribute('data-clipboard-text-type') === 'url') {
