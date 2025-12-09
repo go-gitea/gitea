@@ -534,7 +534,6 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		return fmt.Errorf("GetFirstMatchProtectedBranchRule: %w", err)
 	}
 	if protectedBranch != nil {
-		protectedBranch.Repo = repo
 		globsProtected := protectedBranch.GetProtectedFilePatterns()
 		if len(globsProtected) > 0 {
 			changedProtectedFiles, protectErr := pull_service.CheckFileProtection(gitRepo, branchName, branch.CommitID, newCommit.ID.String(), globsProtected, 1, pushEnv)
