@@ -44,11 +44,11 @@ func (parser *Parser) Reset() {
 
 // AddLineToGraph adds the line as a row to the graph
 func (parser *Parser) AddLineToGraph(graph *Graph, row int, line []byte) error {
-	idx := bytes.Index(line, []byte("DATA:"))
-	if idx < 0 {
+	before, after, ok := bytes.Cut(line, []byte("DATA:"))
+	if !ok {
 		parser.ParseGlyphs(line)
 	} else {
-		parser.ParseGlyphs(line[:idx])
+		parser.ParseGlyphs(before)
 	}
 
 	var err error
@@ -72,7 +72,7 @@ func (parser *Parser) AddLineToGraph(graph *Graph, row int, line []byte) error {
 				}
 			}
 			commitDone = true
-			if idx < 0 {
+			if !ok {
 				if err != nil {
 					err = fmt.Errorf("missing data section on line %d with commit: %s. %w", row, string(line), err)
 				} else {
@@ -80,7 +80,7 @@ func (parser *Parser) AddLineToGraph(graph *Graph, row int, line []byte) error {
 				}
 				continue
 			}
-			err2 := graph.AddCommit(row, column, flowID, line[idx+5:])
+			err2 := graph.AddCommit(row, column, flowID, after)
 			if err != nil && err2 != nil {
 				err = fmt.Errorf("%v %w", err2, err)
 				continue

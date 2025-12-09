@@ -24,7 +24,7 @@ test('textareaSplitLines', () => {
 });
 
 test('markdownHandleIndention', () => {
-  const testInput = (input: string, expected?: string) => {
+  const testInput = (input: string, expected: string | null) => {
     const inputPos = input.indexOf('|');
     input = input.replaceAll('|', '');
     const ret = markdownHandleIndention({value: input, selStart: inputPos, selEnd: inputPos});

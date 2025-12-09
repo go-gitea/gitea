@@ -23,7 +23,7 @@ export function extname(path: string): string {
 }
 
 /** test whether a variable is an object */
-export function isObject(obj: any): boolean {
+export function isObject<T = Record<string, any>>(obj: any): obj is T {
   return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
@@ -60,9 +60,9 @@ export function parseRepoOwnerPathInfo(pathname: string): RepoOwnerPathInfo {
 export function parseIssuePageInfo(): IssuePageInfo {
   const el = document.querySelector('#issue-page-info');
   return {
-    issueNumber: parseInt(el?.getAttribute('data-issue-index')),
+    issueNumber: parseInt(el?.getAttribute('data-issue-index') || ''),
     issueDependencySearchType: el?.getAttribute('data-issue-dependency-search-type') || '',
-    repoId: parseInt(el?.getAttribute('data-issue-repo-id')),
+    repoId: parseInt(el?.getAttribute('data-issue-repo-id') || ''),
     repoLink: el?.getAttribute('data-issue-repo-link') || '',
   };
 }
@@ -93,10 +93,14 @@ export function blobToDataURI(blob: Blob): Promise<string> {
     try {
       const reader = new FileReader();
       reader.addEventListener('load', (e) => {
-        resolve(e.target.result as string);
+        if (e.target) {
+          resolve(e.target.result as string);
+        } else {
+          reject(new Error('blobToDataURI: FileReader failed'));
+        }
       });
       reader.addEventListener('error', () => {
-        reject(new Error('FileReader failed'));
+        reject(new Error('blobToDataURI: FileReader error'));
       });
       reader.readAsDataURL(blob);
     } catch (err) {
@@ -116,9 +120,10 @@ export function convertImage(blob: Blob, mime: string): Promise<Blob> {
           canvas.width = img.naturalWidth;
           canvas.height = img.naturalHeight;
           const context = canvas.getContext('2d');
+          if (!context) return reject(new Error('convertImage: no context'));
           context.drawImage(img, 0, 0);
           canvas.toBlob((blob) => {
-            if (!(blob instanceof Blob)) return reject(new Error('imageBlobToPng failed'));
+            if (!(blob instanceof Blob)) return reject(new Error('convertImage: toBlob failed'));
             resolve(blob);
           }, mime);
         } catch (err) {
@@ -126,7 +131,7 @@ export function convertImage(blob: Blob, mime: string): Promise<Blob> {
         }
       });
       img.addEventListener('error', () => {
-        reject(new Error('imageBlobToPng failed'));
+        reject(new Error('convertImage: image failed to load'));
       });
       img.src = await blobToDataURI(blob);
     } catch (err) {
@@ -179,26 +184,25 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function isImageFile({name, type}: {name?: string, type?: string}): boolean {
-  return /\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
+  return Boolean(/\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/'));
 }
 
 export function isVideoFile({name, type}: {name?: string, type?: string}): boolean {
-  return /\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/');
+  return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
 }
 
 export function toggleFullScreen(fullscreenElementsSelector: string, isFullScreen: boolean, sourceParentSelector?: string): void {
   // hide other elements
-  const headerEl = document.querySelector('#navbar');
-  const contentEl = document.querySelector('.page-content');
-  const footerEl = document.querySelector('.page-footer');
+  const headerEl = document.querySelector('#navbar')!;
+  const contentEl = document.querySelector('.page-content')!;
+  const footerEl = document.querySelector('.page-footer')!;
   toggleElem(headerEl, !isFullScreen);
   toggleElem(contentEl, !isFullScreen);
   toggleElem(footerEl, !isFullScreen);
 
-  const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector) : contentEl;
-
-  const fullScreenEl = document.querySelector(fullscreenElementsSelector);
-  const outerEl = document.querySelector('.full.height');
+  const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector)! : contentEl;
+  const fullScreenEl = document.querySelector(fullscreenElementsSelector)!;
+  const outerEl = document.querySelector('.full.height')!;
   toggleElemClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
   if (isFullScreen) {
     outerEl.append(fullScreenEl);

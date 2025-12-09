@@ -96,8 +96,8 @@ func (attrs *Attributes) GetGitlabLanguage() optional.Option[string] {
 		// gitlab-language may have additional parameters after the language
 		// ignore them and just use the main language
 		// https://docs.gitlab.com/ee/user/project/highlighting.html#override-syntax-highlighting-for-a-file-type
-		if idx := strings.IndexByte(raw, '?'); idx >= 0 {
-			return optional.Some(raw[:idx])
+		if before, _, ok := strings.Cut(raw, "?"); ok {
+			return optional.Some(before)
 		}
 	}
 	return attrStr

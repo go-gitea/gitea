@@ -27,15 +27,15 @@ func parseLsTreeLine(line []byte) (*LsTreeEntry, error) {
 	// <mode> <type> <sha>\t<filename>
 
 	var err error
-	posTab := bytes.IndexByte(line, '\t')
-	if posTab == -1 {
+	before, after, ok := bytes.Cut(line, []byte{'\t'})
+	if !ok {
 		return nil, fmt.Errorf("invalid ls-tree output (no tab): %q", line)
 	}
 
 	entry := new(LsTreeEntry)
 
-	entryAttrs := line[:posTab]
-	entryName := line[posTab+1:]
+	entryAttrs := before
+	entryName := after
 
 	entryMode, entryAttrs, _ := bytes.Cut(entryAttrs, sepSpace)
 	_ /* entryType */, entryAttrs, _ = bytes.Cut(entryAttrs, sepSpace) // the type is not used, the mode is enough to determine the type

@@ -402,7 +402,7 @@ export default defineComponent({
         }
 
         // auto-scroll to the last log line of the last step
-        let autoScrollJobStepElement: HTMLElement;
+        let autoScrollJobStepElement: HTMLElement | undefined;
         for (let stepIndex = 0; stepIndex < this.currentJob.steps.length; stepIndex++) {
           if (!autoScrollStepIndexes.get(stepIndex)) continue;
           autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
@@ -468,7 +468,7 @@ export default defineComponent({
       }
       const logLine = this.elStepsContainer().querySelector(selectedLogStep);
       if (!logLine) return;
-      logLine.querySelector<HTMLAnchorElement>('.line-num').click();
+      logLine.querySelector<HTMLAnchorElement>('.line-num')!.click();
     },
   },
 });
