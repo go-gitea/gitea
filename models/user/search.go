@@ -19,7 +19,7 @@ import (
 )
 
 // AdminUserOrderByMap represents all possible admin user search orders
-// This should only be ised for admin API endpoints as we should not expose "updated" ordering which could expose recent user activity including logins. 
+// This should only be used for admin API endpoints as we should not expose "updated" ordering which could expose recent user activity including logins.
 var AdminUserOrderByMap = map[string]map[string]db.SearchOrderBy{
 	"asc": {
 		"name":    db.SearchOrderByAlphabetically,
