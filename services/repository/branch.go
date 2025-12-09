@@ -543,22 +543,6 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 
 var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default")
 
-// ErrBranchCommitDoesNotMatch indicates the provided old commit id does not match the branch tip.
-type ErrBranchCommitDoesNotMatch struct {
-	Expected string
-	Given    string
-}
-
-// IsErrBranchCommitDoesNotMatch checks if the error is ErrBranchCommitDoesNotMatch.
-func IsErrBranchCommitDoesNotMatch(err error) bool {
-	_, ok := err.(ErrBranchCommitDoesNotMatch)
-	return ok
-}
-
-func (e ErrBranchCommitDoesNotMatch) Error() string {
-	return fmt.Sprintf("branch commit does not match [expected: %s, given: %s]", e.Expected, e.Given)
-}
-
 func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
 	if branchName == repo.DefaultBranch {
 		return ErrBranchIsDefault
