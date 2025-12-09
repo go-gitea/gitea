@@ -160,7 +160,12 @@ func ListCrossRepoAccess(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/CrossRepoAccessList"
 
-	if !ctx.Org.IsOwner {
+	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !isOwner {
 		ctx.APIError(http.StatusForbidden, "Organization owner access required")
 		return
 	}
@@ -209,7 +214,12 @@ func AddCrossRepoAccess(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Org.IsOwner {
+	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !isOwner {
 		ctx.APIError(http.StatusForbidden, "Organization owner access required")
 		return
 	}
@@ -264,7 +274,12 @@ func DeleteCrossRepoAccess(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Org.IsOwner {
+	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !isOwner {
 		ctx.APIError(http.StatusForbidden, "Organization owner access required")
 		return
 	}
