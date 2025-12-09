@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/graceful"
@@ -191,7 +190,7 @@ func GetPullDiffStats(ctx *context.Context) {
 	}
 	pull := issue.PullRequest
 
-	mergeBaseCommitID := GetMergedBaseCommitID(ctx, issue)
+	mergeBaseCommitID := GetMergedBaseCommitID(ctx, pull)
 	if mergeBaseCommitID == "" {
 		return // no merge base, do nothing, do not stop the route handler, see below
 	}
@@ -211,49 +210,17 @@ func GetPullDiffStats(ctx *context.Context) {
 	ctx.Data["DiffShortStat"] = diffShortStat
 }
 
-func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) string {
-	pull := issue.PullRequest
-
-	var baseCommit string
-	// Some migrated PR won't have any Base SHA and lose history, try to get one
-	if pull.MergeBase == "" {
-		var commitSHA, parentCommit string
-		// If there is a head or a patch file, and it is readable, grab info
-		commitSHA, err := ctx.Repo.GitRepo.GetRefCommitID(pull.GetGitHeadRefName())
-		if err != nil {
-			// Head File does not exist, try the patch
-			commitSHA, err = ctx.Repo.GitRepo.ReadPatchCommit(pull.Index)
-			if err == nil {
-				// Recreate pull head in files for next time
-				if err := gitrepo.UpdateRef(ctx, ctx.Repo.Repository, pull.GetGitHeadRefName(), commitSHA); err != nil {
-					log.Error("Could not write head file", err)
-				}
-			} else {
-				// There is no history available
-				log.Trace("No history file available for PR %d", pull.Index)
-			}
-		}
-		if commitSHA != "" {
-			// Get immediate parent of the first commit in the patch, grab history back
-			parentCommit, err = gitrepo.RunCmdString(ctx, ctx.Repo.Repository,
-				gitcmd.NewCommand("rev-list", "-1", "--skip=1").AddDynamicArguments(commitSHA))
-			if err == nil {
-				parentCommit = strings.TrimSpace(parentCommit)
-			}
-			// Special case on Git < 2.25 that doesn't fail on immediate empty history
-			if err != nil || parentCommit == "" {
-				log.Info("No known parent commit for PR %d, error: %v", pull.Index, err)
-				// bring at least partial history if it can work
-				parentCommit = commitSHA
-			}
-		}
-		baseCommit = parentCommit
-	} else {
-		// Keep an empty history or original commit
-		baseCommit = pull.MergeBase
+func GetMergedBaseCommitID(ctx *context.Context, pull *issues_model.PullRequest) string {
+	if pull.MergeBase != "" {
+		return pull.MergeBase
 	}
 
-	return baseCommit
+	var err error
+	pull.MergeBase, err = pull_service.CalcMergeBase(ctx, pull)
+	if err != nil {
+		log.Error("CalcMergeBase: %v", err)
+	}
+	return pull.MergeBase
 }
 
 func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_service.CompareInfo {
@@ -273,7 +240,13 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 	setMergeTarget(ctx, pull)
 	ctx.Data["HasMerged"] = true
 
-	baseCommit := GetMergedBaseCommitID(ctx, issue)
+	baseCommit := GetMergedBaseCommitID(ctx, pull)
+	if baseCommit == "" {
+		ctx.Data["BaseTarget"] = pull.BaseBranch
+		ctx.Data["NumCommits"] = 0
+		ctx.Data["NumFiles"] = 0
+		return nil // no merge base, do nothing
+	}
 
 	compareInfo, err := pull_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo,
 		baseCommit, pull.GetGitHeadRefName(), false, false)
@@ -691,7 +664,6 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		return
 	}
 	pull := issue.PullRequest
-
 	gitRepo := ctx.Repo.GitRepo
 
 	prInfo := preparePullViewPullInfo(ctx, issue)
@@ -807,7 +779,8 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		"numberOfViewedFiles": numViewedFiles,
 	}
 
-	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
+	if err = pull_service.LoadCodeComments(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository,
+		diff, issue.ID, ctx.Doer, beforeCommit, afterCommit, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}
@@ -864,6 +837,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		BaseLink:       ctx.Repo.RepoLink + "/blob_excerpt",
 		PullIssueIndex: pull.Index,
 		DiffStyle:      ctx.FormString("style"),
+		BeforeCommitID: beforeCommitID,
 		AfterCommitID:  afterCommitID,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0

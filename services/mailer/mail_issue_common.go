@@ -90,12 +90,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 	fallback = prefix + fallbackIssueMailSubject(comment.Issue)
 
 	if comment.Comment != nil && comment.Comment.Review != nil {
-		reviewComments = make([]*issues_model.Comment, 0, 10)
-		for _, lines := range comment.Comment.Review.CodeComments {
-			for _, comments := range lines {
-				reviewComments = append(reviewComments, comments...)
-			}
-		}
+		reviewComments = comment.Comment.Review.CodeComments.AllComments()
 	}
 	locale := translation.NewLocale(lang)
 

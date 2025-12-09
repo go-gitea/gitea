@@ -139,11 +139,34 @@ func UpdateComment(ctx context.Context, c *issues_model.Comment, contentVersion 
 
 // DeleteComment deletes the comment
 func DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) error {
-	err := db.WithTx(ctx, func(ctx context.Context) error {
+	if comment.Type == issues_model.CommentTypeCode {
+		if err := comment.LoadIssue(ctx); err != nil {
+			return err
+		}
+		if err := comment.Issue.LoadRepo(ctx); err != nil {
+			return err
+		}
+		if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+			return err
+		}
+	}
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		return issues_model.DeleteComment(ctx, comment)
-	})
-	if err != nil {
+	}); err != nil {
 		return err
+	}
+
+	if comment.Type == issues_model.CommentTypeCode {
+		// We should not return error here, because the comment has been removed from database.
+		// users have to delete this ref manually or we should have a synchronize between
+		// database comment table and git refs.
+		if err := gitrepo.RemoveRef(ctx, comment.Issue.Repo, issues_model.GetCodeCommentRefName(comment.Issue.PullRequest.Index, comment.ID, "before")); err != nil {
+			log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", comment.Issue.PullRequest.ID, err)
+		}
+		if err := gitrepo.RemoveRef(ctx, comment.Issue.Repo, issues_model.GetCodeCommentRefName(comment.Issue.PullRequest.Index, comment.ID, "after")); err != nil {
+			log.Error("Unable to remove ref in base repository for PR[%d] Error: %v", comment.Issue.PullRequest.ID, err)
+		}
 	}
 
 	notify_service.DeleteComment(ctx, doer, comment)

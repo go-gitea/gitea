@@ -7,15 +7,18 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	pull_model "code.gitea.io/gitea/models/pull"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
@@ -49,12 +52,8 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	ctx.Data["PageIsPullFiles"] = true
 	ctx.Data["Issue"] = issue
 	ctx.Data["CurrentReview"] = currentReview
-	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(issue.PullRequest.GetGitHeadRefName())
-	if err != nil {
-		ctx.ServerError("GetRefCommitID", err)
-		return
-	}
-	ctx.Data["AfterCommitID"] = pullHeadCommitID
+	ctx.Data["BeforeCommitID"] = ctx.FormString("before_commit_id")
+	ctx.Data["AfterCommitID"] = ctx.FormString("after_commit_id")
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 	ctx.HTML(http.StatusOK, tplNewComment)
@@ -77,10 +76,7 @@ func CreateCodeComment(ctx *context.Context) {
 		return
 	}
 
-	signedLine := form.Line
-	if form.Side == "previous" {
-		signedLine *= -1
-	}
+	signedLine := util.Iif(form.Side == "previous", -form.Line, form.Line)
 
 	var attachments []string
 	if setting.Attachment.Enabled {
@@ -92,11 +88,12 @@ func CreateCodeComment(ctx *context.Context) {
 		ctx.Repo.GitRepo,
 		issue,
 		signedLine,
+		form.BeforeCommitID,
+		form.AfterCommitID,
 		form.Content,
 		form.TreePath,
 		!form.SingleReview,
 		form.Reply,
-		form.LatestCommitID,
 		attachments,
 	)
 	if err != nil {
@@ -112,7 +109,7 @@ func CreateCodeComment(ctx *context.Context) {
 
 	log.Trace("Comment created: %-v #%d[%d] Comment[%d]", ctx.Repo.Repository, issue.Index, issue.ID, comment.ID)
 
-	renderConversation(ctx, comment, form.Origin)
+	renderConversation(ctx, comment, form.Origin, form.BeforeCommitID, form.AfterCommitID)
 }
 
 // UpdateResolveConversation add or remove an Conversation resolved mark
@@ -163,14 +160,47 @@ func UpdateResolveConversation(ctx *context.Context) {
 		return
 	}
 
-	renderConversation(ctx, comment, origin)
+	beforeCommitID, afterCommitID := ctx.FormString("before_commit_id"), ctx.FormString("after_commit_id")
+
+	renderConversation(ctx, comment, origin, beforeCommitID, afterCommitID)
 }
 
-func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin string) {
+func renderConversation(ctx *context.Context, comment *issues_model.Comment, origin, beforeCommitID, afterCommitID string) {
 	ctx.Data["PageIsPullFiles"] = origin == "diff"
 
+	if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+		ctx.ServerError("comment.Issue.LoadPullRequest", err)
+		return
+	}
+
+	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitHeadRefName())
+	if err != nil {
+		ctx.ServerError("GetRefCommitID", err)
+		return
+	}
+	prCommitIDs, err := git.CommitIDsBetween(ctx, ctx.Repo.GitRepo.Path, comment.Issue.PullRequest.MergeBase, headCommitID)
+	if err != nil {
+		ctx.ServerError("CommitIDsBetween", err)
+		return
+	}
+
+	if beforeCommitID == "" || beforeCommitID == comment.Issue.PullRequest.MergeBase {
+		beforeCommitID = comment.Issue.PullRequest.MergeBase
+	} else if !slices.Contains(prCommitIDs, beforeCommitID) { // beforeCommitID must be one of the pull request commits
+		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("beforeCommitID[%s] is not a valid pull request commit", beforeCommitID))
+		return
+	}
+
+	if afterCommitID == "" || afterCommitID == headCommitID {
+		afterCommitID = headCommitID
+	} else if !slices.Contains(prCommitIDs, afterCommitID) { // afterCommitID must be one of the pull request commits
+		ctx.HTTPError(http.StatusBadRequest, fmt.Sprintf("afterCommitID[%s] is not a valid pull request commit", afterCommitID))
+		return
+	}
+
 	showOutdatedComments := origin == "timeline" || ctx.Data["ShowOutdatedComments"].(bool)
-	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line, showOutdatedComments)
+	comments, err := pull_service.FetchCodeCommentsByLine(ctx, ctx.Repo.GitRepo, ctx.Repo.Repository, comment.IssueID,
+		ctx.Doer, beforeCommitID, afterCommitID, comment.TreePath, comment.Line, showOutdatedComments)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
@@ -195,16 +225,8 @@ func renderConversation(ctx *context.Context, comment *issues_model.Comment, ori
 		return
 	}
 	ctx.Data["Issue"] = comment.Issue
-	if err = comment.Issue.LoadPullRequest(ctx); err != nil {
-		ctx.ServerError("comment.Issue.LoadPullRequest", err)
-		return
-	}
-	pullHeadCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(comment.Issue.PullRequest.GetGitHeadRefName())
-	if err != nil {
-		ctx.ServerError("GetRefCommitID", err)
-		return
-	}
-	ctx.Data["AfterCommitID"] = pullHeadCommitID
+	ctx.Data["BeforeCommitID"] = beforeCommitID
+	ctx.Data["AfterCommitID"] = afterCommitID
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
 	}

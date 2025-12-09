@@ -21,6 +21,10 @@ func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.
 		r.Reviewer = user_model.NewGhostUser()
 	}
 
+	if err := r.Issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+
 	result := &api.PullReview{
 		ID:                r.ID,
 		Reviewer:          ToUser(ctx, r.Reviewer, doer),
@@ -87,34 +91,36 @@ func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, d
 		review.Reviewer = user_model.NewGhostUser()
 	}
 
+	if err := review.Issue.LoadRepo(ctx); err != nil {
+		return nil, err
+	}
+
 	apiComments := make([]*api.PullReviewComment, 0, len(review.CodeComments))
 
-	for _, lines := range review.CodeComments {
-		for _, comments := range lines {
-			for _, comment := range comments {
-				apiComment := &api.PullReviewComment{
-					ID:           comment.ID,
-					Body:         comment.Content,
-					Poster:       ToUser(ctx, comment.Poster, doer),
-					Resolver:     ToUser(ctx, comment.ResolveDoer, doer),
-					ReviewID:     review.ID,
-					Created:      comment.CreatedUnix.AsTime(),
-					Updated:      comment.UpdatedUnix.AsTime(),
-					Path:         comment.TreePath,
-					CommitID:     comment.CommitSHA,
-					OrigCommitID: comment.OldRef,
-					DiffHunk:     patch2diff(comment.Patch),
-					HTMLURL:      comment.HTMLURL(ctx),
-					HTMLPullURL:  review.Issue.HTMLURL(ctx),
-				}
-
-				if comment.Line < 0 {
-					apiComment.OldLineNum = comment.UnsignedLine()
-				} else {
-					apiComment.LineNum = comment.UnsignedLine()
-				}
-				apiComments = append(apiComments, apiComment)
+	for _, comments := range review.CodeComments {
+		for _, comment := range comments {
+			apiComment := &api.PullReviewComment{
+				ID:           comment.ID,
+				Body:         comment.Content,
+				Poster:       ToUser(ctx, comment.Poster, doer),
+				Resolver:     ToUser(ctx, comment.ResolveDoer, doer),
+				ReviewID:     review.ID,
+				Created:      comment.CreatedUnix.AsTime(),
+				Updated:      comment.UpdatedUnix.AsTime(),
+				Path:         comment.TreePath,
+				CommitID:     comment.CommitSHA,
+				OrigCommitID: comment.OldRef,
+				DiffHunk:     patch2diff(comment.Patch),
+				HTMLURL:      comment.HTMLURL(ctx),
+				HTMLPullURL:  review.Issue.HTMLURL(ctx),
 			}
+
+			if comment.Line < 0 {
+				apiComment.OldLineNum = comment.UnsignedLine()
+			} else {
+				apiComment.LineNum = comment.UnsignedLine()
+			}
+			apiComments = append(apiComments, apiComment)
 		}
 	}
 	return apiComments, nil

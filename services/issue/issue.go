@@ -12,6 +12,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
@@ -205,7 +206,23 @@ func DeleteIssue(ctx context.Context, doer *user_model.User, issue *issues_model
 			return err
 		}
 		if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitHeadRefName()); err != nil {
-			return err
+			log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issue.PullRequest.GetGitHeadRefName(), issue.PullRequest.ID, err)
+		}
+		if issue.PullRequest.HasMerged {
+			if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issue.PullRequest.GetGitMergeRefName()); err != nil {
+				log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issue.PullRequest.GetGitMergeRefName(), issue.PullRequest.ID, err)
+			}
+		}
+
+		for _, comment := range issue.Comments {
+			if comment.Type == issues_model.CommentTypeCode {
+				if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "before")); err != nil {
+					log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "before"), issue.PullRequest.ID, err)
+				}
+				if err := gitrepo.RemoveRef(ctx, issue.PullRequest.BaseRepo, issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "after")); err != nil {
+					log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "after"), issue.PullRequest.ID, err)
+				}
+			}
 		}
 	}
 
@@ -266,11 +283,8 @@ func GetRefEndNamesAndURLs(issues []*issues_model.Issue, repoLink string) (map[i
 // deleteIssue deletes the issue
 func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) ([]string, error) {
-		if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
-			return nil, err
-		}
-
-		if err := issues_model.DecrRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, true, issue.IsClosed); err != nil {
+		// update the total issue numbers
+		if err := repo_model.UpdateRepoIssueNumbers(ctx, issue.RepoID, issue.IsPull, false); err != nil {
 			return nil, err
 		}
 
@@ -293,10 +307,21 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 			attachmentPaths = append(attachmentPaths, issue.Attachments[i].RelativePath())
 		}
 
+		// deference all review comments
+		if err := issue.LoadRepo(ctx); err != nil {
+			return nil, err
+		}
+		if err := issue.LoadPullRequest(ctx); err != nil {
+			return nil, err
+		}
+
+		if err := issue.LoadComments(ctx); err != nil {
+			return nil, err
+		}
+
 		// delete all database data still assigned to this issue
 		if err := db.DeleteBeans(ctx,
 			&issues_model.ContentHistory{IssueID: issue.ID},
-			&issues_model.Comment{IssueID: issue.ID},
 			&issues_model.IssueLabel{IssueID: issue.ID},
 			&issues_model.IssueDependency{IssueID: issue.ID},
 			&issues_model.IssueAssignees{IssueID: issue.ID},
@@ -317,6 +342,34 @@ func deleteIssue(ctx context.Context, issue *issues_model.Issue) ([]string, erro
 			return nil, err
 		}
 
+		for _, comment := range issue.Comments {
+			if err := issues_model.DeleteComment(ctx, comment); err != nil {
+				return nil, err
+			}
+		}
+
+		// delete all pull request records
+		if issue.IsPull {
+			// Delete scheduled auto merges
+			if _, err := db.GetEngine(ctx).Where("pull_id=?", issue.PullRequest.ID).
+				Delete(&pull_model.AutoMerge{}); err != nil {
+				return nil, err
+			}
+
+			// Delete review states
+			if _, err := db.GetEngine(ctx).Where("pull_id=?", issue.PullRequest.ID).
+				Delete(&pull_model.ReviewState{}); err != nil {
+				return nil, err
+			}
+
+			if _, err := db.GetEngine(ctx).ID(issue.PullRequest.ID).Delete(&issues_model.PullRequest{}); err != nil {
+				return nil, err
+			}
+		}
+
+		if _, err := db.GetEngine(ctx).ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
+			return nil, err
+		}
 		return attachmentPaths, nil
 	})
 }
@@ -369,6 +422,17 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 			issueAttachPaths, err := deleteIssue(ctx, issue)
 			if err != nil {
 				return nil, fmt.Errorf("deleteIssue [issue_id: %d]: %w", issue.ID, err)
+			}
+
+			for _, comment := range issue.Comments {
+				if comment.Type == issues_model.CommentTypeCode {
+					if err := gitrepo.RemoveRef(ctx, issue.Repo, issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "before")); err != nil {
+						log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "before"), issue.PullRequest.ID, err)
+					}
+					if err := gitrepo.RemoveRef(ctx, issue.Repo, issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "after")); err != nil {
+						log.Error("Unable to remove ref %s in base repository for PR[%d] Error: %v", issues_model.GetCodeCommentRefName(issue.PullRequest.Index, comment.ID, "after"), issue.PullRequest.ID, err)
+					}
+				}
 			}
 
 			attachmentPaths = append(attachmentPaths, issueAttachPaths...)

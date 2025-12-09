@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
@@ -730,6 +731,12 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 			return false, fmt.Errorf("failed to update pr[%d]: %w", pr.ID, err)
 		} else if cnt != 1 {
 			return false, issues_model.ErrIssueAlreadyChanged
+		}
+
+		// update merge ref, this is necessary to ensure pr.MergedCommitID can be used to do diff operations even
+		// if the repository rebased/force-pushed and the pull request's merge commit is no longer in the history
+		if err := gitrepo.UpdateRef(ctx, pr.Issue.Repo, pr.GetGitMergeRefName(), pr.MergedCommitID); err != nil {
+			return false, fmt.Errorf("UpdateRef: %w", err)
 		}
 
 		return true, nil
