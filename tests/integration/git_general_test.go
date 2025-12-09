@@ -91,25 +91,25 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 			setting.SaveGlobalRepositorySetting(true, 0)
 			t.Run("Under", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
-				doCommitAndPush(t, littleSize, dstPath, "data-file-")
+				doCommitAndPush(t, testFileSizeSmall, dstPath, "data-file-")
 			})
 			t.Run("Over", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 				u.Path = forkedUserCtx.GitPath()
 				u.User = url.UserPassword(forkedUserCtx.Username, userPassword)
 				t.Run("Clone", doGitClone(dstForkedPath, u))
-				t.Run("APISetRepoSizeLimit", doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, littleSize))
-				doCommitAndPushWithExpectedError(t, bigSize, dstForkedPath, "data-file-")
+				t.Run("APISetRepoSizeLimit", doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, testFileSizeSmall))
+				doCommitAndPushWithExpectedError(t, testFileSizeLarge, dstForkedPath, "data-file-")
 			})
 			t.Run("UnderAfterResize", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
-				t.Run("APISetRepoSizeLimit", doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, bigSize*10))
-				doCommitAndPush(t, littleSize, dstPath, "data-file-")
+				t.Run("APISetRepoSizeLimit", doAPISetRepoSizeLimit(forkedUserCtx, forkedUserCtx.Username, forkedUserCtx.Reponame, testFileSizeLarge*10))
+				doCommitAndPush(t, testFileSizeSmall, dstPath, "data-file-")
 			})
 			t.Run("Deletion", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
-				doCommitAndPush(t, littleSize, dstPath, "data-file-")
-				bigFileName := doCommitAndPush(t, bigSize, dstPath, "data-file-")
+				doCommitAndPush(t, testFileSizeSmall, dstPath, "data-file-")
+				bigFileName := doCommitAndPush(t, testFileSizeLarge, dstPath, "data-file-")
 				oldRepoSize := doGetRemoteRepoSizeViaAPI(t, forkedUserCtx)
 				lastCommitID := doGetAddCommitID(t, dstPath, bigFileName)
 				doDeleteAndPush(t, dstPath, bigFileName)
@@ -119,7 +119,7 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 				setting.SaveGlobalRepositorySetting(false, 0)
 			})
 		})
-		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "master", "test/head"))
+		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "test/head"))
 		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "test/head"))
 		t.Run("CreateProtectedBranch", doCreateProtectedBranch(&httpContext, dstPath))
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
@@ -365,29 +365,29 @@ func doGetRemoteRepoSizeViaAPI(t *testing.T, ctx APITestContext) int64 {
 }
 
 func doDeleteAndPush(t *testing.T, repoPath, filename string) {
-	_, _, err := git.NewCommand(git.DefaultContext, "rm").AddDashesAndList(filename).RunStdString(&git.RunOpts{Dir: repoPath}) // Delete
+	_, _, err := gitcmd.NewCommand("rm").AddDashesAndList(filename).WithDir(repoPath).RunStdString(t.Context()) // Delete
 	assert.NoError(t, err)
 	signature := git.Signature{
 		Email: "user2@example.com",
 		Name:  "User Two",
 		When:  time.Now(),
 	}
-	_, _, err = git.NewCommand(git.DefaultContext, "status").RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = gitcmd.NewCommand("status").WithDir(repoPath).RunStdString(t.Context())
 	assert.NoError(t, err)
-	err2 := git.CommitChanges(repoPath, git.CommitChangesOptions{ // Commit
+	err2 := git.CommitChanges(t.Context(), repoPath, git.CommitChangesOptions{ // Commit
 		Committer: &signature,
 		Author:    &signature,
 		Message:   "Delete Commit",
 	})
 	assert.NoError(t, err2)
-	_, _, err = git.NewCommand(git.DefaultContext, "status").RunStdString(&git.RunOpts{Dir: repoPath})
+	_, _, err = gitcmd.NewCommand("status").WithDir(repoPath).RunStdString(t.Context())
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
+	_, _, err = gitcmd.NewCommand("push", "origin", "master").WithDir(repoPath).RunStdString(t.Context()) // Push
 	assert.NoError(t, err)
 }
 
 func doGetAddCommitID(t *testing.T, repoPath, filename string) string {
-	output, _, err := git.NewCommand(git.DefaultContext, "log", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
+	output, _, err := gitcmd.NewCommand("log", "origin", "master").WithDir(repoPath).RunStdString(t.Context()) // Push
 	assert.NoError(t, err)
 	list := strings.Fields(output)
 	assert.LessOrEqual(t, 2, len(list))
@@ -395,12 +395,12 @@ func doGetAddCommitID(t *testing.T, repoPath, filename string) string {
 }
 
 func doRebaseCommitAndPush(t *testing.T, repoPath, commitID string) {
-	command := git.NewCommand(git.DefaultContext, "rebase", "--interactive").AddDashesAndList(commitID)
+	command := gitcmd.NewCommand("rebase", "--interactive").AddDashesAndList(commitID)
 	env := os.Environ()
 	env = append(env, "GIT_SEQUENCE_EDITOR=true")
-	_, _, err := command.RunStdString(&git.RunOpts{Dir: repoPath, Env: env}) // Push
+	_, _, err := command.WithDir(repoPath).WithEnv(env).RunStdString(t.Context()) // Push
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master", "-f").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
+	_, _, err = gitcmd.NewCommand("push", "origin", "master", "-f").WithDir(repoPath).RunStdString(t.Context()) // Push
 	assert.NoError(t, err)
 }
 
@@ -413,9 +413,9 @@ func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 }
 
 func doCommitAndPushWithExpectedError(t *testing.T, size int, repoPath, prefix string) string {
-	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", prefix)
+	name, err := generateCommitWithNewData(t.Context(), size, repoPath, "user2@example.com", "User Two", prefix)
 	assert.NoError(t, err)
-	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
+	_, _, err = gitcmd.NewCommand("push", "origin", "master").WithDir(repoPath).RunStdString(t.Context()) // Push
 	assert.Error(t, err)
 	return name
 }
