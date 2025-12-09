@@ -381,7 +381,7 @@ func TestIssueListExport(t *testing.T) {
 	_ = testNewIssue(t, session, "user2", "repo1", "Title3", "Description3")
 
 	// trying to export all open issues of the given repository
-	req := NewRequestWithValues(t, "GET", fmt.Sprintf("/%s/%s/issues/export?%s", "user2", "repo1", "type=all&state=open"))
+	req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/issues/export?%s", "user2", "repo1", "type=all&state=open"))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Content-Type should be an Excel file (XLSX)
@@ -391,7 +391,7 @@ func TestIssueListExport(t *testing.T) {
 	// Content-Disposition should indicate attachment with .xlsx
 	cd := resp.Header().Get("Content-Disposition")
 	assert.Contains(t, cd, "attachment")
-	assert.True(t, strings.Contains(cd, ".xlsx"))
+	assert.Contains(t, cd, ".xlsx")
 
 	// open bytes as XLSX with excelize
 	data := resp.Body.Bytes()
