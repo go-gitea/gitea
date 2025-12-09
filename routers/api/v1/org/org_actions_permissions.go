@@ -34,14 +34,10 @@ func GetActionsPermissions(ctx *context.APIContext) {
 	// Organization settings are more sensitive than repo settings because they
 	// affect ALL repositories in the org. We should be extra careful here.
 	// Only org owners should be able to modify these settings.
-	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	} else if !isOwner {
-		ctx.APIError(http.StatusForbidden, "You must be an organization owner")
-		return
-	}
+	// Organization settings are more sensitive than repo settings because they
+	// affect ALL repositories in the org. We should be extra careful here.
+	// Only org owners should be able to modify these settings.
+	// This is enforced by the reqOrgOwnership middleware.
 
 	perms, err := actions_model.GetOrgActionPermissions(ctx, ctx.Org.Organization.ID)
 	if err != nil {
@@ -90,14 +86,10 @@ func UpdateActionsPermissions(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
-	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
-		return
-	} else if !isOwner {
-		ctx.APIError(http.StatusForbidden, "Organization owner access required")
-		return
-	}
+	// Organization settings are more sensitive than repo settings because they
+	// affect ALL repositories in the org. We should be extra careful here.
+	// Only org owners should be able to modify these settings.
+	// This is enforced by the reqOrgOwnership middleware.
 
 	form := web.GetForm(ctx).(*api.OrgActionsPermissions)
 
@@ -160,20 +152,13 @@ func ListCrossRepoAccess(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/CrossRepoAccessList"
 
-	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if !isOwner {
-		ctx.APIError(http.StatusForbidden, "Organization owner access required")
-		return
-	}
-
 	// This is a critical security feature - cross-repo access allows one repo's
 	// Actions to access another repo's code/resources. We need to be very careful
 	// about how we implement this. See the discussion:
 	// https://github.com/go-gitea/gitea/issues/24635
+	// Permission check handled by reqOrgOwnership middleware
+
+
 
 	rules, err := actions_model.ListCrossRepoAccessRules(ctx, ctx.Org.Organization.ID)
 	if err != nil {
@@ -214,15 +199,7 @@ func AddCrossRepoAccess(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if !isOwner {
-		ctx.APIError(http.StatusForbidden, "Organization owner access required")
-		return
-	}
+	// Permission check handled by reqOrgOwnership middleware
 
 	form := web.GetForm(ctx).(*api.CrossRepoAccessRule)
 
@@ -274,16 +251,7 @@ func DeleteCrossRepoAccess(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if !isOwner {
-		ctx.APIError(http.StatusForbidden, "Organization owner access required")
-		return
-	}
-
+	// Permission check handled by reqOrgOwnership middleware
 	ruleID := ctx.PathParamInt64("id")
 
 	// Security check: Verify the rule belongs to this org before deleting

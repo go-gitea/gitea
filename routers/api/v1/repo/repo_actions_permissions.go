@@ -40,10 +40,8 @@ func GetActionsPermissions(ctx *context.APIContext) {
 	// NOTE: Only repo admins should be able to view/modify permission settings
 	// This is important for security - we don't want regular contributors
 	// to be able to grant themselves elevated permissions via Actions
-	if !ctx.Repo.IsAdmin() {
-		ctx.APIError(http.StatusForbidden, "You must be a repository admin to access this")
-		return
-	}
+	// Only repo admins and owners should be able to view/modify permission settings
+	// This is enforced by the reqAdmin middleware.
 
 	perms, err := actions_model.GetRepoActionPermissions(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
@@ -98,11 +96,8 @@ func UpdateActionsPermissions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
-	if !ctx.Repo.IsAdmin() {
-		ctx.APIError(http.StatusForbidden, "You must be a repository admin to modify this")
-		return
-	}
+	// Only repo admins and owners should be able to modify these settings.
+	// This is enforced by the reqAdmin middleware.
 
 	form := web.GetForm(ctx).(*api.ActionsPermissions)
 
@@ -166,10 +161,8 @@ func ResetActionsPermissions(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Repo.IsAdmin() {
-		ctx.APIError(http.StatusForbidden, "You must be a repository admin")
-		return
-	}
+	// Only repo admins and owners should be able to modify these settings.
+	// This is enforced by the reqAdmin middleware.
 
 	// Create default restricted permissions
 	// This is a "safe reset" - puts the repo back to secure defaults

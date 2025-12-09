@@ -1270,6 +1270,11 @@ func Routes() *web.Router {
 					})
 				}, reqToken(), reqAdmin())
 				m.Group("/actions", func() {
+					m.Group("/permissions", func() {
+						m.Get("", reqAdmin(), repo.GetActionsPermissions)
+						m.Put("", reqAdmin(), repo.UpdateActionsPermissions)
+					}, reqToken())
+
 					m.Get("/tasks", repo.ListActionTasks)
 					m.Group("/runs", func() {
 						m.Group("/{run}", func() {
@@ -1618,6 +1623,18 @@ func Routes() *web.Router {
 		m.Post("/orgs", tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization))
 		m.Group("/orgs/{org}", func() {
+			m.Group("/settings/actions", func() {
+				m.Group("/permissions", func() {
+					m.Get("", reqOrgOwnership(), org.GetActionsPermissions)
+					m.Put("", reqOrgOwnership(), org.UpdateActionsPermissions)
+				})
+				m.Group("/cross-repo-access", func() {
+					m.Get("", reqOrgOwnership(), org.ListCrossRepoAccess)
+					m.Post("", reqOrgOwnership(), org.AddCrossRepoAccess)
+					m.Delete("/{id}", reqOrgOwnership(), org.DeleteCrossRepoAccess)
+				})
+			}, reqToken())
+
 			m.Combo("").Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
 				Delete(reqToken(), reqOrgOwnership(), org.Delete)
