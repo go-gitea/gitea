@@ -112,7 +112,8 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
-	ctx.Data["Err_RepoSize"] = repo.IsRepoSizeOversized(repo.SizeLimit / 10) // less than 10% left
+	repo := ctx.Repo.Repository
+	ctx.Data["Err_RepoSize"] = repo.IsRepoSizeOversized(repo.GetActualSizeLimit() / 10) // less than 10% left
 
 	switch ctx.FormString("action") {
 	case "update":
