@@ -34,7 +34,11 @@ func GetActionsPermissions(ctx *context.APIContext) {
 	// Organization settings are more sensitive than repo settings because they
 	// affect ALL repositories in the org. We should be extra careful here.
 	// Only org owners should be able to modify these settings.
-	if !ctx.Org.IsOwner {
+	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIError(http.StatusInternalServerError, err)
+		return
+	} else if !isOwner {
 		ctx.APIError(http.StatusForbidden, "You must be an organization owner")
 		return
 	}
@@ -86,7 +90,11 @@ func UpdateActionsPermissions(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if !ctx.Org.IsOwner {
+	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
+	if err != nil {
+		ctx.APIError(http.StatusInternalServerError, err)
+		return
+	} else if !isOwner {
 		ctx.APIError(http.StatusForbidden, "Organization owner access required")
 		return
 	}
@@ -261,7 +269,7 @@ func DeleteCrossRepoAccess(ctx *context.APIContext) {
 		return
 	}
 
-	ruleID := ctx.ParamsInt64("id")
+	ruleID := ctx.PathParamInt64("id")
 
 	// Security check: Verify the rule belongs to this org before deleting
 	// We don't want one org to be able to delete another org's rules
