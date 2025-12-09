@@ -400,7 +400,7 @@ func prepareMigrationTasks() []*migration {
 		newMigration(323, "Add support for actions concurrency", v1_26.AddActionsConcurrency),
 
 		// to modify later
-		newMigration(999, "Add size limit on repository", v1_26.AddSizeLimitOnRepo),
+		newMigration(324, "Add size limit on repository", v1_26.AddSizeLimitOnRepo),
 	}
 	return preparedMigrations
 }

@@ -66,8 +66,6 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 
 		dstPath := t.TempDir()
 
-		dstForkedPath := t.TempDir()
-
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
 		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, perm.AccessModeRead))
 
@@ -88,6 +86,7 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 		mediaTest(t, &httpContext, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
 
 		t.Run("SizeLimit", func(t *testing.T) {
+			dstForkedPath := t.TempDir()
 			setting.SaveGlobalRepositorySetting(true, 0)
 			t.Run("Under", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
@@ -119,7 +118,6 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 				setting.SaveGlobalRepositorySetting(false, 0)
 			})
 		})
-		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "test/head"))
 		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "test/head"))
 		t.Run("CreateProtectedBranch", doCreateProtectedBranch(&httpContext, dstPath))
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
