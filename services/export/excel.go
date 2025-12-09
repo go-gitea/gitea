@@ -73,7 +73,7 @@ func IssuesToExcel(ctx *context.Context, issues issues_model.IssueList) *exceliz
 			}
 		}
 
-		cell, _ := excelize.CoordinatesToCellName(1, i+1)
+		cell, _ := excelize.CoordinatesToCellName(1, i+2)
 		err = sw.SetRow(cell, []any{
 			excelize.Cell{Value: issue.Index},
 			excelize.Cell{Value: issue.Title},
