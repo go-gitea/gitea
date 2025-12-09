@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/services/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 )
 
 // GetActionsPermissions returns the Actions token permissions for an organization
@@ -36,7 +36,7 @@ func GetActionsPermissions(ctx *context.APIContext) {
 	// Only org owners should be able to modify these settings.
 	isOwner, err := ctx.Org.Organization.IsOwnedBy(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	} else if !isOwner {
 		ctx.APIError(http.StatusForbidden, "You must be an organization owner")
@@ -45,7 +45,7 @@ func GetActionsPermissions(ctx *context.APIContext) {
 
 	perms, err := actions_model.GetOrgActionPermissions(ctx, ctx.Org.Organization.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -131,7 +131,7 @@ func UpdateActionsPermissions(ctx *context.APIContext) {
 	}
 
 	if err := actions_model.CreateOrUpdateOrgPermissions(ctx, perm); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -177,7 +177,7 @@ func ListCrossRepoAccess(ctx *context.APIContext) {
 
 	rules, err := actions_model.ListCrossRepoAccessRules(ctx, ctx.Org.Organization.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -245,7 +245,7 @@ func AddCrossRepoAccess(ctx *context.APIContext) {
 	}
 
 	if err := actions_model.CreateCrossRepoAccess(ctx, rule); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -300,7 +300,7 @@ func DeleteCrossRepoAccess(ctx *context.APIContext) {
 	}
 
 	if err := actions_model.DeleteCrossRepoAccess(ctx, ruleID); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -336,4 +336,3 @@ func convertToCrossRepoAccessRule(rule *actions_model.ActionCrossRepoAccess) *ap
 		AccessLevel:  rule.AccessLevel,
 	}
 }
-

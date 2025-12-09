@@ -7,9 +7,9 @@ import (
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/services/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 )
 
 // GetActionsPermissions returns the Actions token permissions for a repository
@@ -47,7 +47,7 @@ func GetActionsPermissions(ctx *context.APIContext) {
 
 	perms, err := actions_model.GetRepoActionPermissions(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -135,7 +135,7 @@ func UpdateActionsPermissions(ctx *context.APIContext) {
 	}
 
 	if err := actions_model.CreateOrUpdateRepoPermissions(ctx, perm); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -181,7 +181,7 @@ func ResetActionsPermissions(ctx *context.APIContext) {
 	}
 
 	if err := actions_model.CreateOrUpdateRepoPermissions(ctx, defaultPerm); err != nil {
-		ctx.APIError(http.StatusInternalServerError, err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -206,4 +206,3 @@ func convertToAPIPermissions(perm *actions_model.ActionTokenPermission) *api.Act
 		MetadataRead:      perm.MetadataRead,
 	}
 }
-
