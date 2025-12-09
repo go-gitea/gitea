@@ -225,7 +225,7 @@ async function initIssuePinSort() {
 }
 
 function initMiscActionsButton(btn: HTMLButtonElement) {
-  const elPanel = btn.nextElementSibling;
+  const elPanel = btn.nextElementSibling!;
   createTippy(btn, {
     content: elPanel,
     trigger: 'click',
