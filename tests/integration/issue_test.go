@@ -371,6 +371,27 @@ func TestIssueReaction(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
+func TestIssueListExport(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	_ = testNewIssue(t, session, "user2", "repo1", "Title", "Description")
+	_ = testNewIssue(t, session, "user2", "repo1", "Title2", "Description2")
+	_ = testNewIssue(t, session, "user2", "repo1", "Title3", "Description3")
+
+	// trying to export all open issues of the given repository
+	req := NewRequestWithValues(t, "GET", fmt.Sprintf("/%s/%s/issues/export?%s", "user2", "repo1", "type=all&state=open"))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	// Content-Type should be an Excel file (XLSX)
+	ct := strings.Split(resp.Header().Get("Content-Type"), ";")[0]
+	assert.Equal(t, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ct)
+
+	// Content-Disposition should indicate attachment with .xlsx
+	cd := resp.Header().Get("Content-Disposition")
+	assert.Contains(t, cd, "attachment")
+	assert.True(t, strings.Contains(cd, ".xlsx"))
+}
+
 func TestIssueCrossReference(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
