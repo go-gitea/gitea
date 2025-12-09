@@ -5,6 +5,7 @@ package storage
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -12,7 +13,8 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/minio/minio-go/v7"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	awshttp "github.com/aws/smithy-go/transport/http"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -83,11 +85,14 @@ func TestS3StorageBadRequest(t *testing.T) {
 	message := "ERROR"
 	old := getBucketVersioning
 	defer func() { getBucketVersioning = old }()
-	getBucketVersioning = func(ctx context.Context, minioClient *minio.Client, bucket string) error {
-		return minio.ErrorResponse{
-			StatusCode: http.StatusBadRequest,
-			Code:       "FixtureError",
-			Message:    message,
+	getBucketVersioning = func(ctx context.Context, client *s3.Client, bucket string) error {
+		return &awshttp.ResponseError{
+			Response: &awshttp.Response{
+				Response: &http.Response{
+					StatusCode: http.StatusBadRequest,
+				},
+			},
+			Err: errors.New(message),
 		}
 	}
 	_, err := NewStorage(setting.MinioStorageType, cfg)
@@ -109,12 +114,12 @@ func TestMinioCredentials(t *testing.T) {
 			SecretAccessKey: ExpectedSecretAccessKey,
 			IamEndpoint:     FakeEndpoint,
 		}
-		creds := buildMinioCredentials(cfg)
-		v, err := creds.Get()
+		credProvider := buildS3CredentialsProvider(cfg)
+		creds, err := credProvider.Retrieve(context.Background())
 
 		assert.NoError(t, err)
-		assert.Equal(t, ExpectedAccessKey, v.AccessKeyID)
-		assert.Equal(t, ExpectedSecretAccessKey, v.SecretAccessKey)
+		assert.Equal(t, ExpectedAccessKey, creds.AccessKeyID)
+		assert.Equal(t, ExpectedSecretAccessKey, creds.SecretAccessKey)
 	})
 
 	t.Run("Chain", func(t *testing.T) {
@@ -126,24 +131,24 @@ func TestMinioCredentials(t *testing.T) {
 			t.Setenv("MINIO_ACCESS_KEY", ExpectedAccessKey+"Minio")
 			t.Setenv("MINIO_SECRET_KEY", ExpectedSecretAccessKey+"Minio")
 
-			creds := buildMinioCredentials(cfg)
-			v, err := creds.Get()
+			credProvider := buildS3CredentialsProvider(cfg)
+			creds, err := credProvider.Retrieve(context.Background())
 
 			assert.NoError(t, err)
-			assert.Equal(t, ExpectedAccessKey+"Minio", v.AccessKeyID)
-			assert.Equal(t, ExpectedSecretAccessKey+"Minio", v.SecretAccessKey)
+			assert.Equal(t, ExpectedAccessKey+"Minio", creds.AccessKeyID)
+			assert.Equal(t, ExpectedSecretAccessKey+"Minio", creds.SecretAccessKey)
 		})
 
 		t.Run("EnvAWS", func(t *testing.T) {
 			t.Setenv("AWS_ACCESS_KEY", ExpectedAccessKey+"AWS")
 			t.Setenv("AWS_SECRET_KEY", ExpectedSecretAccessKey+"AWS")
 
-			creds := buildMinioCredentials(cfg)
-			v, err := creds.Get()
+			credProvider := buildS3CredentialsProvider(cfg)
+			creds, err := credProvider.Retrieve(context.Background())
 
 			assert.NoError(t, err)
-			assert.Equal(t, ExpectedAccessKey+"AWS", v.AccessKeyID)
-			assert.Equal(t, ExpectedSecretAccessKey+"AWS", v.SecretAccessKey)
+			assert.Equal(t, ExpectedAccessKey+"AWS", creds.AccessKeyID)
+			assert.Equal(t, ExpectedSecretAccessKey+"AWS", creds.SecretAccessKey)
 		})
 
 		t.Run("FileMinio", func(t *testing.T) {
@@ -151,12 +156,12 @@ func TestMinioCredentials(t *testing.T) {
 			t.Setenv("MINIO_SHARED_CREDENTIALS_FILE", "testdata/minio.json")
 			t.Setenv("AWS_SHARED_CREDENTIALS_FILE", "testdata/fake")
 
-			creds := buildMinioCredentials(cfg)
-			v, err := creds.Get()
+			credProvider := buildS3CredentialsProvider(cfg)
+			creds, err := credProvider.Retrieve(context.Background())
 
 			assert.NoError(t, err)
-			assert.Equal(t, ExpectedAccessKey+"MinioFile", v.AccessKeyID)
-			assert.Equal(t, ExpectedSecretAccessKey+"MinioFile", v.SecretAccessKey)
+			assert.Equal(t, ExpectedAccessKey+"MinioFile", creds.AccessKeyID)
+			assert.Equal(t, ExpectedSecretAccessKey+"MinioFile", creds.SecretAccessKey)
 		})
 
 		t.Run("FileAWS", func(t *testing.T) {
@@ -164,12 +169,12 @@ func TestMinioCredentials(t *testing.T) {
 			t.Setenv("MINIO_SHARED_CREDENTIALS_FILE", "testdata/fake.json")
 			t.Setenv("AWS_SHARED_CREDENTIALS_FILE", "testdata/aws_credentials")
 
-			creds := buildMinioCredentials(cfg)
-			v, err := creds.Get()
+			credProvider := buildS3CredentialsProvider(cfg)
+			creds, err := credProvider.Retrieve(context.Background())
 
 			assert.NoError(t, err)
-			assert.Equal(t, ExpectedAccessKey+"AWSFile", v.AccessKeyID)
-			assert.Equal(t, ExpectedSecretAccessKey+"AWSFile", v.SecretAccessKey)
+			assert.Equal(t, ExpectedAccessKey+"AWSFile", creds.AccessKeyID)
+			assert.Equal(t, ExpectedSecretAccessKey+"AWSFile", creds.SecretAccessKey)
 		})
 
 		t.Run("IAM", func(t *testing.T) {
@@ -190,14 +195,14 @@ func TestMinioCredentials(t *testing.T) {
 			defer server.Close()
 
 			// Use the provided EC2 Instance Metadata server
-			creds := buildMinioCredentials(setting.MinioStorageConfig{
+			credProvider := buildS3CredentialsProvider(setting.MinioStorageConfig{
 				IamEndpoint: server.URL,
 			})
-			v, err := creds.Get()
+			creds, err := credProvider.Retrieve(context.Background())
 
 			assert.NoError(t, err)
-			assert.Equal(t, ExpectedAccessKey+"IAM", v.AccessKeyID)
-			assert.Equal(t, ExpectedSecretAccessKey+"IAM", v.SecretAccessKey)
+			assert.Equal(t, ExpectedAccessKey+"IAM", creds.AccessKeyID)
+			assert.Equal(t, ExpectedSecretAccessKey+"IAM", creds.SecretAccessKey)
 		})
 	})
 }
