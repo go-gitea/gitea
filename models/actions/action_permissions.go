@@ -4,9 +4,9 @@
 package actions
 
 import (
-	"context"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"context"
 )
 
 // PermissionMode represents the permission configuration mode
@@ -15,59 +15,59 @@ type PermissionMode int
 const (
 	// PermissionModeRestricted - minimal permissions (default, secure)
 	PermissionModeRestricted PermissionMode = 0
-	
+
 	// PermissionModePermissive - broad permissions (convenience)
 	PermissionModePermissive PermissionMode = 1
-	
+
 	// PermissionModeCustom - user-defined permissions
 	PermissionModeCustom PermissionMode = 2
 )
 
 // ActionTokenPermission represents repository-level Actions token permissions
 type ActionTokenPermission struct {
-	ID        int64  `xorm:"pk autoincr"`
-	RepoID    int64  `xorm:"UNIQUE NOT NULL"`
-	
+	ID     int64 `xorm:"pk autoincr"`
+	RepoID int64 `xorm:"UNIQUE NOT NULL"`
+
 	PermissionMode PermissionMode `xorm:"NOT NULL DEFAULT 0"`
-	
+
 	// Granular permissions (only used in Custom mode)
-	ActionsRead        bool `xorm:"NOT NULL DEFAULT false"`
-	ActionsWrite       bool `xorm:"NOT NULL DEFAULT false"`
-	ContentsRead       bool `xorm:"NOT NULL DEFAULT true"`
-	ContentsWrite      bool `xorm:"NOT NULL DEFAULT false"`
-	IssuesRead         bool `xorm:"NOT NULL DEFAULT false"`
-	IssuesWrite        bool `xorm:"NOT NULL DEFAULT false"`
-	PackagesRead       bool `xorm:"NOT NULL DEFAULT false"`
-	PackagesWrite      bool `xorm:"NOT NULL DEFAULT false"`
-	PullRequestsRead   bool `xorm:"NOT NULL DEFAULT false"`
-	PullRequestsWrite  bool `xorm:"NOT NULL DEFAULT false"`
-	MetadataRead       bool `xorm:"NOT NULL DEFAULT true"`
-	
+	ActionsRead       bool `xorm:"NOT NULL DEFAULT false"`
+	ActionsWrite      bool `xorm:"NOT NULL DEFAULT false"`
+	ContentsRead      bool `xorm:"NOT NULL DEFAULT true"`
+	ContentsWrite     bool `xorm:"NOT NULL DEFAULT false"`
+	IssuesRead        bool `xorm:"NOT NULL DEFAULT false"`
+	IssuesWrite       bool `xorm:"NOT NULL DEFAULT false"`
+	PackagesRead      bool `xorm:"NOT NULL DEFAULT false"`
+	PackagesWrite     bool `xorm:"NOT NULL DEFAULT false"`
+	PullRequestsRead  bool `xorm:"NOT NULL DEFAULT false"`
+	PullRequestsWrite bool `xorm:"NOT NULL DEFAULT false"`
+	MetadataRead      bool `xorm:"NOT NULL DEFAULT true"`
+
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
-// ActionOrgPermission represents organization-level Actions token permissions  
+// ActionOrgPermission represents organization-level Actions token permissions
 type ActionOrgPermission struct {
-	ID        int64  `xorm:"pk autoincr"`
-	OrgID     int64  `xorm:"UNIQUE NOT NULL"`
-	
+	ID    int64 `xorm:"pk autoincr"`
+	OrgID int64 `xorm:"UNIQUE NOT NULL"`
+
 	PermissionMode    PermissionMode `xorm:"NOT NULL DEFAULT 0"`
 	AllowRepoOverride bool           `xorm:"NOT NULL DEFAULT true"`
-	
+
 	// Granular permissions (only used in Custom mode)
-	ActionsRead        bool `xorm:"NOT NULL DEFAULT false"`
-	ActionsWrite       bool `xorm:"NOT NULL DEFAULT false"`
-	ContentsRead       bool `xorm:"NOT NULL DEFAULT true"`
-	ContentsWrite      bool `xorm:"NOT NULL DEFAULT false"`
-	IssuesRead         bool `xorm:"NOT NULL DEFAULT false"`
-	IssuesWrite        bool `xorm:"NOT NULL DEFAULT false"`
-	PackagesRead       bool `xorm:"NOT NULL DEFAULT false"`
-	PackagesWrite      bool `xorm:"NOT NULL DEFAULT false"`
-	PullRequestsRead   bool `xorm:"NOT NULL DEFAULT false"`
-	PullRequestsWrite  bool `xorm:"NOT NULL DEFAULT false"`
-	MetadataRead       bool `xorm:"NOT NULL DEFAULT true"`
-	
+	ActionsRead       bool `xorm:"NOT NULL DEFAULT false"`
+	ActionsWrite      bool `xorm:"NOT NULL DEFAULT false"`
+	ContentsRead      bool `xorm:"NOT NULL DEFAULT true"`
+	ContentsWrite     bool `xorm:"NOT NULL DEFAULT false"`
+	IssuesRead        bool `xorm:"NOT NULL DEFAULT false"`
+	IssuesWrite       bool `xorm:"NOT NULL DEFAULT false"`
+	PackagesRead      bool `xorm:"NOT NULL DEFAULT false"`
+	PackagesWrite     bool `xorm:"NOT NULL DEFAULT false"`
+	PullRequestsRead  bool `xorm:"NOT NULL DEFAULT false"`
+	PullRequestsWrite bool `xorm:"NOT NULL DEFAULT false"`
+	MetadataRead      bool `xorm:"NOT NULL DEFAULT true"`
+
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
@@ -111,7 +111,7 @@ func CreateOrUpdateRepoPermissions(ctx context.Context, perm *ActionTokenPermiss
 	if err != nil {
 		return err
 	}
-	
+
 	if has {
 		// Update existing
 		perm.ID = existing.ID
@@ -119,7 +119,7 @@ func CreateOrUpdateRepoPermissions(ctx context.Context, perm *ActionTokenPermiss
 		_, err = db.GetEngine(ctx).ID(perm.ID).Update(perm)
 		return err
 	}
-	
+
 	// Create new
 	_, err = db.GetEngine(ctx).Insert(perm)
 	return err
@@ -132,7 +132,7 @@ func CreateOrUpdateOrgPermissions(ctx context.Context, perm *ActionOrgPermission
 	if err != nil {
 		return err
 	}
-	
+
 	if has {
 		// Update existing
 		perm.ID = existing.ID
@@ -140,7 +140,7 @@ func CreateOrUpdateOrgPermissions(ctx context.Context, perm *ActionOrgPermission
 		_, err = db.GetEngine(ctx).ID(perm.ID).Update(perm)
 		return err
 	}
-	
+
 	// Create new
 	_, err = db.GetEngine(ctx).Insert(perm)
 	return err
@@ -150,7 +150,7 @@ func CreateOrUpdateOrgPermissions(ctx context.Context, perm *ActionOrgPermission
 func (p *ActionTokenPermission) ToPermissionMap() map[string]map[string]bool {
 	// Apply permission mode defaults
 	var perms map[string]map[string]bool
-	
+
 	switch p.PermissionMode {
 	case PermissionModeRestricted:
 		// Minimal permissions - only read metadata and contents
@@ -183,14 +183,14 @@ func (p *ActionTokenPermission) ToPermissionMap() map[string]map[string]bool {
 			"metadata":      {"read": p.MetadataRead, "write": false},
 		}
 	}
-	
+
 	return perms
 }
 
 // ToPermissionMap converts org permission struct to a map
 func (p *ActionOrgPermission) ToPermissionMap() map[string]map[string]bool {
 	var perms map[string]map[string]bool
-	
+
 	switch p.PermissionMode {
 	case PermissionModeRestricted:
 		perms = map[string]map[string]bool{
@@ -220,6 +220,6 @@ func (p *ActionOrgPermission) ToPermissionMap() map[string]map[string]bool {
 			"metadata":      {"read": p.MetadataRead, "write": false},
 		}
 	}
-	
+
 	return perms
 }

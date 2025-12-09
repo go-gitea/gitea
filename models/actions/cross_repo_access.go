@@ -4,30 +4,30 @@
 package actions
 
 import (
-	"context"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"context"
 )
 
 // ActionCrossRepoAccess represents cross-repository access rules
 type ActionCrossRepoAccess struct {
-	ID           int64  `xorm:"pk autoincr"`
-	OrgID        int64  `xorm:"INDEX NOT NULL"`
-	SourceRepoID int64  `xorm:"INDEX NOT NULL"` // Repo that wants access
-	TargetRepoID int64  `xorm:"INDEX NOT NULL"` // Repo being accessed
-	
+	ID           int64 `xorm:"pk autoincr"`
+	OrgID        int64 `xorm:"INDEX NOT NULL"`
+	SourceRepoID int64 `xorm:"INDEX NOT NULL"` // Repo that wants access
+	TargetRepoID int64 `xorm:"INDEX NOT NULL"` // Repo being accessed
+
 	// Access level: 0=none, 1=read, 2=write
 	AccessLevel int `xorm:"NOT NULL DEFAULT 0"`
-	
+
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
 // PackageRepoLink links packages to repositories
 type PackageRepoLink struct {
-	ID        int64  `xorm:"pk autoincr"`
-	PackageID int64  `xorm:"INDEX NOT NULL"`
-	RepoID    int64  `xorm:"INDEX NOT NULL"`
-	
+	ID        int64 `xorm:"pk autoincr"`
+	PackageID int64 `xorm:"INDEX NOT NULL"`
+	RepoID    int64 `xorm:"INDEX NOT NULL"`
+
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
@@ -66,22 +66,22 @@ func CheckCrossRepoAccess(ctx context.Context, sourceRepoID, targetRepoID int64)
 	if sourceRepoID == targetRepoID {
 		return 2, nil // Full access to own repo
 	}
-	
+
 	rule := &ActionCrossRepoAccess{}
 	has, err := db.GetEngine(ctx).
 		Where("source_repo_id = ? AND target_repo_id = ?", sourceRepoID, targetRepoID).
 		Get(rule)
-	
+
 	if err != nil {
 		return 0, err
 	}
-	
+
 	if !has {
 		// No rule found - deny access by default (secure default)
 		// This is intentional - cross-repo access must be explicitly granted
 		return 0, nil
 	}
-	
+
 	return rule.AccessLevel, nil
 }
 
@@ -94,18 +94,18 @@ func CreateCrossRepoAccess(ctx context.Context, rule *ActionCrossRepoAccess) err
 		Where("org_id = ? AND source_repo_id = ? AND target_repo_id = ?",
 			rule.OrgID, rule.SourceRepoID, rule.TargetRepoID).
 		Get(existing)
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	if has {
 		// Update existing rule instead of creating duplicate
 		existing.AccessLevel = rule.AccessLevel
 		_, err = db.GetEngine(ctx).ID(existing.ID).Update(existing)
 		return err
 	}
-	
+
 	// Create new rule
 	_, err = db.GetEngine(ctx).Insert(rule)
 	return err
@@ -127,21 +127,21 @@ func LinkPackageToRepo(ctx context.Context, packageID, repoID int64) error {
 	has, err := db.GetEngine(ctx).
 		Where("package_id = ? AND repo_id = ?", packageID, repoID).
 		Get(existing)
-	
+
 	if err != nil {
 		return err
 	}
-	
+
 	if has {
 		// Already linked - this is idempotent
 		return nil
 	}
-	
+
 	link := &PackageRepoLink{
 		PackageID: packageID,
 		RepoID:    repoID,
 	}
-	
+
 	_, err = db.GetEngine(ctx).Insert(link)
 	return err
 }
@@ -167,16 +167,16 @@ func GetPackageLinkedRepos(ctx context.Context, packageID int64) ([]int64, error
 	err := db.GetEngine(ctx).
 		Where("package_id = ?", packageID).
 		Find(&links)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	repoIDs := make([]int64, len(links))
 	for i, link := range links {
 		repoIDs[i] = link.RepoID
 	}
-	
+
 	return repoIDs, nil
 }
 
@@ -186,16 +186,16 @@ func GetRepoLinkedPackages(ctx context.Context, repoID int64) ([]int64, error) {
 	err := db.GetEngine(ctx).
 		Where("repo_id = ?", repoID).
 		Find(&links)
-	
+
 	if err != nil {
 		return nil, err
 	}
-	
+
 	packageIDs := make([]int64, len(links))
 	for i, link := range links {
 		packageIDs[i] = link.PackageID
 	}
-	
+
 	return packageIDs, nil
 }
 
@@ -213,7 +213,7 @@ func CanAccessPackage(ctx context.Context, repoID, packageID int64, needWrite bo
 	if err != nil {
 		return false, err
 	}
-	
+
 	if linked {
 		// Package is directly linked - access granted!
 		// Note: Direct linking grants both read and write access
@@ -221,33 +221,33 @@ func CanAccessPackage(ctx context.Context, repoID, packageID int64, needWrite bo
 		// you probably want to be able to publish to it
 		return true, nil
 	}
-	
+
 	// Check indirect access via cross-repo rules
 	// Get all repos linked to this package
 	linkedRepos, err := GetPackageLinkedRepos(ctx, packageID)
 	if err != nil {
 		return false, err
 	}
-	
+
 	// Check if we have cross-repo access to any of those repos
 	for _, targetRepoID := range linkedRepos {
 		accessLevel, err := CheckCrossRepoAccess(ctx, repoID, targetRepoID)
 		if err != nil {
 			continue // Skip on error, check next repo
 		}
-		
+
 		if accessLevel > 0 {
 			// We have some level of access to the target repo
 			if needWrite && accessLevel < 2 {
 				// We need write but only have read - not enough
 				continue
 			}
-			
+
 			// Access granted via cross-repo rule!
 			return true, nil
 		}
 	}
-	
+
 	// No access found
 	return false, nil
 }

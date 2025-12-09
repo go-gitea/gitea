@@ -5,11 +5,11 @@ package org
 
 import (
 	"net/http"
-	
+
 	actions_model "code.gitea.io/gitea/models/actions"
-	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 )
 
 // GetActionsPermissions returns the Actions token permissions for an organization
@@ -30,21 +30,21 @@ func GetActionsPermissions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/OrgActionsPermissionsResponse"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	
+
 	// Organization settings are more sensitive than repo settings because they
 	// affect ALL repositories in the org. We should be extra careful here.
 	// Only org owners should be able to modify these settings.
 	if !ctx.Org.IsOwner {
-		ctx.Error(http.StatusForbidden, "NoPermission", "You must be an organization owner")
+		ctx.APIError(http.StatusForbidden, "You must be an organization owner")
 		return
 	}
-	
+
 	perms, err := actions_model.GetOrgActionPermissions(ctx, ctx.Org.Organization.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetOrgPermissions", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
-	
+
 	// Return default if no custom config exists
 	// Organizations default to restricted mode for maximum security
 	// Individual repos can be given more permissions if needed
@@ -57,7 +57,7 @@ func GetActionsPermissions(ctx *context.APIContext) {
 			MetadataRead:      true,
 		}
 	}
-	
+
 	ctx.JSON(http.StatusOK, convertToAPIOrgPermissions(perms))
 }
 
@@ -85,54 +85,53 @@ func UpdateActionsPermissions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/OrgActionsPermissionsResponse"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	
+
 	if !ctx.Org.IsOwner {
-		ctx.Error(http.StatusForbidden, "NoPermission", "Organization owner access required")
+		ctx.APIError(http.StatusForbidden, "Organization owner access required")
 		return
 	}
-	
+
 	form := web.GetForm(ctx).(*api.OrgActionsPermissions)
-	
+
 	// Validate permission mode
 	if form.PermissionMode < 0 || form.PermissionMode > 2 {
-		ctx.Error(http.StatusUnprocessableEntity, "InvalidMode", 
-			"Permission mode must be 0 (restricted), 1 (permissive), or 2 (custom)")
+		ctx.APIError(http.StatusUnprocessableEntity, "Permission mode must be 0 (restricted), 1 (permissive), or 2 (custom)")
 		return
 	}
-	
+
 	// Important security consideration:
 	// If AllowRepoOverride is false, ALL repos in this org MUST use org settings.
 	// This is useful for security-conscious organizations that want centralized control.
 	// However, it's a big change, so we should log this action for audit purposes.
 	// TODO: Add audit logging when this feature is used
-	
+
 	perm := &actions_model.ActionOrgPermission{
-		OrgID:              ctx.Org.Organization.ID,
-		PermissionMode:     actions_model.PermissionMode(form.PermissionMode),
-		AllowRepoOverride:  form.AllowRepoOverride,
-		ActionsRead:        form.ActionsRead,
-		ActionsWrite:       form.ActionsWrite,
-		ContentsRead:       form.ContentsRead,
-		ContentsWrite:      form.ContentsWrite,
-		IssuesRead:         form.IssuesRead,
-		IssuesWrite:        form.IssuesWrite,
-		PackagesRead:       form.PackagesRead,
-		PackagesWrite:      form.PackagesWrite,
-		PullRequestsRead:   form.PullRequestsRead,
-		PullRequestsWrite:  form.PullRequestsWrite,
-		MetadataRead:       true, // Always true
+		OrgID:             ctx.Org.Organization.ID,
+		PermissionMode:    actions_model.PermissionMode(form.PermissionMode),
+		AllowRepoOverride: form.AllowRepoOverride,
+		ActionsRead:       form.ActionsRead,
+		ActionsWrite:      form.ActionsWrite,
+		ContentsRead:      form.ContentsRead,
+		ContentsWrite:     form.ContentsWrite,
+		IssuesRead:        form.IssuesRead,
+		IssuesWrite:       form.IssuesWrite,
+		PackagesRead:      form.PackagesRead,
+		PackagesWrite:     form.PackagesWrite,
+		PullRequestsRead:  form.PullRequestsRead,
+		PullRequestsWrite: form.PullRequestsWrite,
+		MetadataRead:      true, // Always true
 	}
-	
+
 	if err := actions_model.CreateOrUpdateOrgPermissions(ctx, perm); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateOrgPermissions", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
-	
+
 	// If AllowRepoOverride is false, we might want to update all repo permissions
 	// to match org settings. But that's a big operation, so let's do it lazily
 	// when permissions are actually checked, rather than updating all repos here.
 	// This is more performant and avoids potential race conditions.
-	
+
 	ctx.JSON(http.StatusOK, convertToAPIOrgPermissions(perm))
 }
 
@@ -152,28 +151,28 @@ func ListCrossRepoAccess(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/CrossRepoAccessList"
-	
+
 	if !ctx.Org.IsOwner {
-		ctx.Error(http.StatusForbidden, "NoPermission", "Organization owner access required")
+		ctx.APIError(http.StatusForbidden, "Organization owner access required")
 		return
 	}
-	
+
 	// This is a critical security feature - cross-repo access allows one repo's
 	// Actions to access another repo's code/resources. We need to be very careful
 	// about how we implement this. See the discussion:
 	// https://github.com/go-gitea/gitea/issues/24635
-	
+
 	rules, err := actions_model.ListCrossRepoAccessRules(ctx, ctx.Org.Organization.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListCrossRepoAccess", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
-	
+
 	apiRules := make([]*api.CrossRepoAccessRule, len(rules))
 	for i, rule := range rules {
 		apiRules[i] = convertToCrossRepoAccessRule(rule)
 	}
-	
+
 	ctx.JSON(http.StatusOK, apiRules)
 }
 
@@ -201,38 +200,37 @@ func AddCrossRepoAccess(ctx *context.APIContext) {
 	//     "$ref": "#/responses/CrossRepoAccessRule"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	
+
 	if !ctx.Org.IsOwner {
-		ctx.Error(http.StatusForbidden, "NoPermission", "Organization owner access required")
+		ctx.APIError(http.StatusForbidden, "Organization owner access required")
 		return
 	}
-	
+
 	form := web.GetForm(ctx).(*api.CrossRepoAccessRule)
-	
+
 	// Validation: source and target repos must both belong to this org
 	// We don't want to allow cross-organization access - that would be a
 	// security nightmare and makes audit trails very complex.
 	// TODO: Verify both repos belong to this org
-	
+
 	// Validation: Access level must be valid (0=none, 1=read, 2=write)
 	if form.AccessLevel < 0 || form.AccessLevel > 2 {
-		ctx.Error(http.StatusUnprocessableEntity, "InvalidAccessLevel",
-			"Access level must be 0 (none), 1 (read), or 2 (write)")
+		ctx.APIError(http.StatusUnprocessableEntity, "Access level must be 0 (none), 1 (read), or 2 (write)")
 		return
 	}
-	
+
 	rule := &actions_model.ActionCrossRepoAccess{
 		OrgID:        ctx.Org.Organization.ID,
 		SourceRepoID: form.SourceRepoID,
 		TargetRepoID: form.TargetRepoID,
 		AccessLevel:  form.AccessLevel,
 	}
-	
+
 	if err := actions_model.CreateCrossRepoAccess(ctx, rule); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateCrossRepoAccess", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
-	
+
 	ctx.JSON(http.StatusCreated, convertToCrossRepoAccessRule(rule))
 }
 
@@ -257,32 +255,32 @@ func DeleteCrossRepoAccess(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-	
+
 	if !ctx.Org.IsOwner {
-		ctx.Error(http.StatusForbidden, "NoPermission", "Organization owner access required")
+		ctx.APIError(http.StatusForbidden, "Organization owner access required")
 		return
 	}
-	
+
 	ruleID := ctx.ParamsInt64("id")
-	
+
 	// Security check: Verify the rule belongs to this org before deleting
 	// We don't want one org to be able to delete another org's rules
 	rule, err := actions_model.GetCrossRepoAccessByID(ctx, ruleID)
 	if err != nil {
-		ctx.Error(http.StatusNotFound, "RuleNotFound", "Cross-repo access rule not found")
+		ctx.APIError(http.StatusNotFound, "Cross-repo access rule not found")
 		return
 	}
-	
+
 	if rule.OrgID != ctx.Org.Organization.ID {
-		ctx.Error(http.StatusForbidden, "WrongOrg", "This rule belongs to a different organization")
+		ctx.APIError(http.StatusForbidden, "This rule belongs to a different organization")
 		return
 	}
-	
+
 	if err := actions_model.DeleteCrossRepoAccess(ctx, ruleID); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteCrossRepoAccess", err)
+		ctx.APIError(http.StatusInternalServerError, err)
 		return
 	}
-	
+
 	ctx.Status(http.StatusNoContent)
 }
 
@@ -315,3 +313,4 @@ func convertToCrossRepoAccessRule(rule *actions_model.ActionCrossRepoAccess) *ap
 		AccessLevel:  rule.AccessLevel,
 	}
 }
+

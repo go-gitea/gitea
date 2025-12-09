@@ -5,7 +5,7 @@ package actions
 
 import (
 	"testing"
-	
+
 	actions_model "code.gitea.io/gitea/models/actions"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,14 +18,14 @@ import (
 func TestGetEffectivePermissions_ForkPRAlwaysRestricted(t *testing.T) {
 	// Even if repo has permissive mode enabled
 	repoPerms := map[string]map[string]bool{
-		"contents":   {"read": true, "write": true},
-		"packages":   {"read": true, "write": true},
-		"issues":     {"read": true, "write": true},
+		"contents": {"read": true, "write": true},
+		"packages": {"read": true, "write": true},
+		"issues":   {"read": true, "write": true},
 	}
-	
+
 	// Fork PR should still be read-only
 	result := applyForkPRRestrictions(repoPerms)
-	
+
 	assert.True(t, result["contents"]["read"], "Should allow reading contents")
 	assert.False(t, result["contents"]["write"], "Should NOT allow writing contents")
 	assert.False(t, result["packages"]["write"], "Should NOT allow package writes")
@@ -40,15 +40,15 @@ func TestOrgPermissionsCap(t *testing.T) {
 		"packages": {"read": true, "write": false},
 		"contents": {"read": true, "write": true},
 	}
-	
+
 	// Repo tries to enable package writes
 	repoPerms := map[string]map[string]bool{
 		"packages": {"read": true, "write": true}, // Trying to override!
 		"contents": {"read": true, "write": true},
 	}
-	
+
 	result := capPermissions(repoPerms, orgPerms)
-	
+
 	// Org restriction should win
 	assert.False(t, result["packages"]["write"], "Org should prevent package writes")
 	assert.True(t, result["contents"]["write"], "Contents write should be allowed")
@@ -64,15 +64,15 @@ func TestWorkflowCannotEscalate(t *testing.T) {
 		"packages": {"read": true, "write": false},
 		"contents": {"read": true, "write": true},
 	}
-	
+
 	// Workflow tries to declare package write
 	workflowPerms := map[string]string{
 		"packages": "write", // Trying to escalate!
 		"contents": "write",
 	}
-	
+
 	result := applyWorkflowPermissions(basePerms, workflowPerms)
-	
+
 	// Should NOT be able to escalate
 	assert.False(t, result["packages"]["write"], "Workflow should not escalate package perms")
 	assert.True(t, result["contents"]["write"], "Contents write should still work")
@@ -87,15 +87,15 @@ func TestWorkflowCanReducePermissions(t *testing.T) {
 		"contents": {"read": true, "write": true},
 		"issues":   {"read": true, "write": true},
 	}
-	
+
 	// Workflow declares it only needs read
 	workflowPerms := map[string]string{
 		"contents": "read",
 		"issues":   "none", // Explicitly denies
 	}
-	
+
 	result := applyWorkflowPermissions(basePerms, workflowPerms)
-	
+
 	assert.True(t, result["contents"]["read"], "Should allow reading")
 	assert.False(t, result["contents"]["write"], "Should reduce to read-only")
 	assert.False(t, result["issues"]["read"], "Should deny issues entirely")
@@ -105,11 +105,11 @@ func TestWorkflowCanReducePermissions(t *testing.T) {
 // We want it to be usable (can clone code, read metadata) but secure (no writes)
 func TestRestrictedModeDefaults(t *testing.T) {
 	perms := getRestrictedPermissions()
-	
+
 	// Should be able to read code (needed for checkout action)
 	assert.True(t, perms["contents"]["read"], "Must be able to read code")
 	assert.True(t, perms["metadata"]["read"], "Must be able to read metadata")
-	
+
 	// Should NOT be able to write anything
 	assert.False(t, perms["contents"]["write"], "Should not write code")
 	assert.False(t, perms["packages"]["write"], "Should not write packages")
@@ -120,33 +120,33 @@ func TestRestrictedModeDefaults(t *testing.T) {
 // This is important for the UI - users should be able to switch modes easily
 func TestPermissionModeTransitions(t *testing.T) {
 	tests := []struct {
-		name string
-		mode actions_model.PermissionMode
-		expectPackageWrite bool
+		name                string
+		mode                actions_model.PermissionMode
+		expectPackageWrite  bool
 		expectContentsWrite bool
 	}{
 		{
-			name: "Restricted mode - no writes",
-			mode: actions_model.PermissionModeRestricted,
-			expectPackageWrite: false,
+			name:                "Restricted mode - no writes",
+			mode:                actions_model.PermissionModeRestricted,
+			expectPackageWrite:  false,
 			expectContentsWrite: false,
 		},
 		{
-			name: "Permissive mode - has writes",
-			mode: actions_model.PermissionModePermissive,
-			expectPackageWrite: true,
+			name:                "Permissive mode - has writes",
+			mode:                actions_model.PermissionModePermissive,
+			expectPackageWrite:  true,
 			expectContentsWrite: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			perm := &actions_model.ActionTokenPermission{
 				PermissionMode: tt.mode,
 			}
-			
+
 			permMap := perm.ToPermissionMap()
-			
+
 			assert.Equal(t, tt.expectPackageWrite, permMap["packages"]["write"])
 			assert.Equal(t, tt.expectContentsWrite, permMap["contents"]["write"])
 		})
@@ -158,23 +158,23 @@ func TestPermissionModeTransitions(t *testing.T) {
 func TestMultipleLayers(t *testing.T) {
 	// Scenario: Org allows package reads, Repo allows package writes,
 	// but workflow only declares package read
-	
+
 	orgPerms := map[string]map[string]bool{
 		"packages": {"read": true, "write": false}, // Org blocks writes
 	}
-	
+
 	repoPerms := map[string]map[string]bool{
 		"packages": {"read": true, "write": true}, // Repo tries to enable
 	}
-	
+
 	workflowPerms := map[string]string{
 		"packages": "read", // Workflow only needs read
 	}
-	
+
 	// Apply caps (org limits repo)
 	afterOrgCap := capPermissions(repoPerms, orgPerms)
 	assert.False(t, afterOrgCap["packages"]["write"], "Org should block write")
-	
+
 	// Apply workflow (workflow selects read)
 	final := applyWorkflowPermissions(afterOrgCap, workflowPerms)
 	assert.True(t, final["packages"]["read"], "Should have read access")
@@ -193,7 +193,7 @@ func BenchmarkPermissionCalculation(b *testing.B) {
 		"pull_requests": {"read": true, "write": false},
 		"metadata":      {"read": true, "write": false},
 	}
-	
+
 	orgPerms := map[string]map[string]bool{
 		"actions":       {"read": true, "write": false},
 		"contents":      {"read": true, "write": false},
@@ -202,12 +202,12 @@ func BenchmarkPermissionCalculation(b *testing.B) {
 		"pull_requests": {"read": true, "write": false},
 		"metadata":      {"read": true, "write": false},
 	}
-	
+
 	workflowPerms := map[string]string{
 		"contents": "read",
 		"packages": "read",
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		capped := capPermissions(repoPerms, orgPerms)
@@ -221,11 +221,11 @@ func BenchmarkPermissionCalculation(b *testing.B) {
 func applyForkPRRestrictions(perms map[string]map[string]bool) map[string]map[string]bool {
 	// Fork PRs get read-only access to contents and metadata, nothing else
 	return map[string]map[string]bool{
-		"contents": {"read": true, "write": false},
-		"metadata": {"read": true, "write": false},
-		"actions": {"read": false, "write": false},
-		"packages": {"read": false, "write": false},
-		"issues": {"read": false, "write": false},
+		"contents":      {"read": true, "write": false},
+		"metadata":      {"read": true, "write": false},
+		"actions":       {"read": false, "write": false},
+		"packages":      {"read": false, "write": false},
+		"issues":        {"read": false, "write": false},
 		"pull_requests": {"read": false, "write": false},
 	}
 }
