@@ -196,25 +196,23 @@ function handleNewline(textarea: HTMLTextAreaElement, e: KeyboardEvent) {
 
 // Keys that act as dead keys will not work because the spec dictates that such keys are
 // emitted as `Dead` in e.key instead of the actual key.
-const pairs: Record<string, string> = {
-  "'": "'",
-  '"': '"',
-  '`': '`',
-  '(': ')',
-  '[': ']',
-  '{': '}',
-  '<': '>',
-};
+const pairs = new Map<string, string>([
+  ["'", "'"],
+  ['"', '"'],
+  ['`', '`'],
+  ['(', ')'],
+  ['[', ']'],
+  ['{', '}'],
+  ['<', '>'],
+]);
 
 function handlePairCharacter(textarea: HTMLTextAreaElement, e: KeyboardEvent): void {
   const selStart = textarea.selectionStart;
   const selEnd = textarea.selectionEnd;
   if (selEnd === selStart) return; // do not process when no selection
   e.preventDefault();
-  const openChar = e.key;
-  const closeChar = pairs[e.key];
   const inner = textarea.value.substring(selStart, selEnd);
-  replaceTextareaSelection(textarea, `${openChar}${inner}${closeChar}`);
+  replaceTextareaSelection(textarea, `${e.key}${inner}${pairs.get(e.key)}`);
   textarea.setSelectionRange(selStart + 1, selEnd + 1);
 }
 
@@ -231,7 +229,7 @@ export function initTextareaMarkdown(textarea: HTMLTextAreaElement) {
     } else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
       // use Enter to insert a new line with the same indention and prefix
       handleNewline(textarea, e);
-    } else if (Object.keys(pairs).includes(e.key)) {
+    } else if (pairs.has(e.key)) {
       handlePairCharacter(textarea, e);
     }
   });
