@@ -1461,3 +1461,14 @@ func GetUserOrOrgIDByName(ctx context.Context, name string) (int64, error) {
 	}
 	return id, nil
 }
+
+func GetUserOrOrgByName(ctx context.Context, name string) (*User, error) {
+	var u User
+	has, err := db.GetEngine(ctx).Table("user").Where("name = ?", name).Get(&u)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, fmt.Errorf("user or org with name %s: %w", name, util.ErrNotExist)
+	}
+	return &u, nil
+}

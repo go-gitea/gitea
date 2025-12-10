@@ -1075,6 +1075,12 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 		return nil, nil
 	}
 
+	// remove the check when we support compare with carets
+	if compareReq.CaretTimes > 0 {
+		ctx.APIErrorNotFound("Unsupported compare syntax with carets")
+		return nil, nil
+	}
+
 	var headRepo *repo_model.Repository
 	if compareReq.HeadOwner == "" {
 		if compareReq.HeadRepoName != "" { // unsupported syntax
@@ -1084,11 +1090,11 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 
 		headRepo = ctx.Repo.Repository
 	} else {
-		var headUser *user_model.User
+		var headOwner *user_model.User
 		if compareReq.HeadOwner == ctx.Repo.Owner.Name {
-			headUser = ctx.Repo.Owner
+			headOwner = ctx.Repo.Owner
 		} else {
-			headUser, err = user_model.GetUserByName(ctx, compareReq.HeadOwner)
+			headOwner, err = user_model.GetUserOrOrgByName(ctx, compareReq.HeadOwner)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.APIErrorNotFound("GetUserByName")
@@ -1099,34 +1105,24 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 			}
 		}
 		if compareReq.HeadRepoName == "" {
-			if headUser.ID == baseRepo.OwnerID {
+			if headOwner.ID == baseRepo.OwnerID {
 				headRepo = baseRepo
 			} else {
-				// TODO: forked's fork
-				headRepo = repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
+				headRepo, err = common.FindHeadRepo(ctx, baseRepo, headOwner.ID)
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return nil, nil
+				}
 				if headRepo == nil {
-					// TODO: based's base?
-					err = baseRepo.GetBaseRepo(ctx)
-					if err != nil {
-						ctx.APIErrorInternal(err)
-						return nil, nil
-					}
-
-					// Check if baseRepo's base repository is the same as headUser's repository.
-					if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
-						log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-						ctx.APIErrorNotFound("GetBaseRepo")
-						return nil, nil
-					}
-					// Assign headRepo so it can be used below.
-					headRepo = baseRepo.BaseRepo
+					ctx.HTTPError(http.StatusBadRequest, "The user "+headOwner.Name+" does not have a fork of the base repository")
+					return nil, nil
 				}
 			}
 		} else {
 			if compareReq.HeadOwner == ctx.Repo.Owner.Name && compareReq.HeadRepoName == ctx.Repo.Repository.Name {
 				headRepo = ctx.Repo.Repository
 			} else {
-				headRepo, err = repo_model.GetRepositoryByName(ctx, headUser.ID, compareReq.HeadRepoName)
+				headRepo, err = repo_model.GetRepositoryByName(ctx, headOwner.ID, compareReq.HeadRepoName)
 				if err != nil {
 					if repo_model.IsErrRepoNotExist(err) {
 						ctx.APIErrorNotFound("GetRepositoryByName")
