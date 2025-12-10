@@ -34,7 +34,7 @@ type CompareRouterReq struct {
 }
 
 func (cr *CompareRouterReq) DirectComparison() bool {
-	return cr.DotTimes == 2 || cr.CaretTimes == 0
+	return cr.DotTimes == 2 || cr.DotTimes == 0
 }
 
 func parseBase(base string) (string, int) {
