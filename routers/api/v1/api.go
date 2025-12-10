@@ -1633,7 +1633,7 @@ func Routes() *web.Router {
 					m.Post("", reqOrgOwnership(), org.AddCrossRepoAccess)
 					m.Delete("/{id}", reqOrgOwnership(), org.DeleteCrossRepoAccess)
 				})
-			}, reqToken())
+			}, reqToken(), context.OrgAssignment(context.OrgAssignmentOptions{}))
 
 			m.Combo("").Get(org.Get).
 				Patch(reqToken(), reqOrgOwnership(), bind(api.EditOrgOption{}), org.Edit).
