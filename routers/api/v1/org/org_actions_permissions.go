@@ -34,9 +34,6 @@ func GetActionsPermissions(ctx *context.APIContext) {
 	// Organization settings are more sensitive than repo settings because they
 	// affect ALL repositories in the org. We should be extra careful here.
 	// Only org owners should be able to modify these settings.
-	// Organization settings are more sensitive than repo settings because they
-	// affect ALL repositories in the org. We should be extra careful here.
-	// Only org owners should be able to modify these settings.
 	// This is enforced by the reqOrgOwnership middleware.
 
 	perms, err := actions_model.GetOrgActionPermissions(ctx, ctx.Org.Organization.ID)

@@ -37,10 +37,9 @@ func GetActionsPermissions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	// Check if user has admin access to this repo
-	// NOTE: Only repo admins should be able to view/modify permission settings
+	// NOTE: Only repo admins and owners should be able to view/modify permission settings
 	// This is important for security - we don't want regular contributors
 	// to be able to grant themselves elevated permissions via Actions
-	// Only repo admins and owners should be able to view/modify permission settings
 	// This is enforced by the reqAdmin middleware.
 
 	perms, err := actions_model.GetRepoActionPermissions(ctx, ctx.Repo.Repository.ID)
