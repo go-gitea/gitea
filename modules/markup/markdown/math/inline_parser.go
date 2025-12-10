@@ -55,9 +55,7 @@ func isAlphanumeric(b byte) bool {
 }
 
 func isInMarkdownLinkText(block text.Reader, lineAfter []byte) bool {
-	src := block.Source()
-	_, pos := block.Position()
-	return pos.Start-1 >= 0 && src[pos.Start-1] == '[' && bytes.HasPrefix(lineAfter, []byte("]("))
+	return block.PrecendingCharacter() == '[' && bytes.HasPrefix(lineAfter, []byte("]("))
 }
 
 // Parse parses the current line and returns a result of parsing.
