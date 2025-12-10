@@ -537,7 +537,7 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 
 	// branch protection will be checked in the pre received hook, so that we don't need any check here
-	return gitrepo.Push(ctx, repo, pushOpts)
+	return gitrepo.Push(ctx, repo, repo, pushOpts)
 }
 
 var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default")
