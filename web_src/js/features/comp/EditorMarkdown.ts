@@ -194,10 +194,12 @@ function handleNewline(textarea: HTMLTextAreaElement, e: KeyboardEvent) {
   triggerEditorContentChanged(textarea);
 }
 
+// Keys that act as dead keys will not work because the spec dictates that such keys are
+// emitted as `Dead` in e.key instead of the actual key.
 const pairs: Record<string, string> = {
   "'": "'",
   '"': '"',
-  '`': '`', // will not work on keyboard layouts with it as dead key
+  '`': '`',
   '(': ')',
   '[': ']',
   '{': '}',
