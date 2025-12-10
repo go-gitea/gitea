@@ -1099,22 +1099,28 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 			}
 		}
 		if compareReq.HeadRepoName == "" {
-			headRepo = repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
-			if headRepo == nil && headUser.ID != baseRepo.OwnerID {
-				err = baseRepo.GetBaseRepo(ctx)
-				if err != nil {
-					ctx.APIErrorInternal(err)
-					return nil, nil
-				}
+			if headUser.ID == baseRepo.OwnerID {
+				headRepo = baseRepo
+			} else {
+				// TODO: forked's fork
+				headRepo = repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
+				if headRepo == nil {
+					// TODO: based's base?
+					err = baseRepo.GetBaseRepo(ctx)
+					if err != nil {
+						ctx.APIErrorInternal(err)
+						return nil, nil
+					}
 
-				// Check if baseRepo's base repository is the same as headUser's repository.
-				if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
-					log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-					ctx.APIErrorNotFound("GetBaseRepo")
-					return nil, nil
+					// Check if baseRepo's base repository is the same as headUser's repository.
+					if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
+						log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
+						ctx.APIErrorNotFound("GetBaseRepo")
+						return nil, nil
+					}
+					// Assign headRepo so it can be used below.
+					headRepo = baseRepo.BaseRepo
 				}
-				// Assign headRepo so it can be used below.
-				headRepo = baseRepo.BaseRepo
 			}
 		} else {
 			if compareReq.HeadOwner == ctx.Repo.Owner.Name && compareReq.HeadRepoName == ctx.Repo.Repository.Name {
