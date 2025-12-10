@@ -380,6 +380,81 @@ func ListBranches(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiBranches)
 }
 
+// UpdateBranch moves a branch reference to a new commit.
+func UpdateBranch(ctx *context.APIContext) {
+	// swagger:operation PUT /repos/{owner}/{repo}/branches/{branch} repository repoUpdateBranch
+	// ---
+	// summary: Update a branch reference to a new commit
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: branch
+	//   in: path
+	//   description: name of the branch
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/UpdateBranchRepoOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	opt := web.GetForm(ctx).(*api.UpdateBranchRepoOption)
+
+	branchName := ctx.PathParam("*")
+	repo := ctx.Repo.Repository
+
+	if repo.IsEmpty {
+		ctx.APIError(http.StatusNotFound, "Git Repository is empty.")
+		return
+	}
+
+	if repo.IsMirror {
+		ctx.APIError(http.StatusForbidden, "Git Repository is a mirror.")
+		return
+	}
+
+	// permission check has been done in api.go
+	if err := repo_service.UpdateBranch(ctx, repo, ctx.Repo.GitRepo, ctx.Doer, branchName, opt.NewCommitID, opt.OldCommitID, opt.Force); err != nil {
+		switch {
+		case git_model.IsErrBranchNotExist(err):
+			ctx.APIErrorNotFound(err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.APIError(http.StatusUnprocessableEntity, err)
+		case git.IsErrPushRejected(err):
+			rej := err.(*git.ErrPushRejected)
+			ctx.APIError(http.StatusForbidden, rej.Message)
+		default:
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
 // RenameBranch renames a repository's branch.
 func RenameBranch(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/branches/{branch} repository repoRenameBranch
