@@ -195,12 +195,12 @@ function handleNewline(textarea: HTMLTextAreaElement, e: KeyboardEvent) {
 }
 
 const pairs: Record<string, string> = {
-  "'": `'`,
-  '"': `"`,
-  '(': `)`,
-  '[': `]`,
-  '{': `}`,
-  '<': `>`,
+  "'": "'",
+  '"': '"',
+  '(': ')',
+  '[': ']',
+  '{': '}',
+  '<': '>',
 };
 
 function handlePairCharacter(textarea: HTMLTextAreaElement, e: KeyboardEvent): void {
