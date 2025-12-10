@@ -9,9 +9,9 @@ export function triggerEditorContentChanged(target: HTMLElement) {
 export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: string) {
   const before = textarea.value.slice(0, textarea.selectionStart);
   const after = textarea.value.slice(textarea.selectionEnd);
-  let success = false;
 
   textarea.focus();
+  let success = false;
   try {
     success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
   } catch {}
