@@ -207,9 +207,9 @@ function handlePairCharacter(textarea: HTMLTextAreaElement, e: KeyboardEvent): v
   const selStart = textarea.selectionStart;
   const selEnd = textarea.selectionEnd;
   if (selEnd === selStart) return; // do not process when no selection
+  e.preventDefault();
   const openChar = e.key;
   const closeChar = pairs[e.key];
-  e.preventDefault();
   const inner = textarea.value.substring(selStart, selEnd);
   replaceTextareaSelection(textarea, `${openChar}${inner}${closeChar}`);
   textarea.setSelectionRange(selStart + 1, selEnd + 1);
