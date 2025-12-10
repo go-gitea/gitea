@@ -49,7 +49,6 @@ func (pc *PermissionChecker) GetEffectivePermissions(
 	isFromForkPR bool,
 	workflowPermissions map[string]string, // From workflow YAML
 ) (*EffectivePermissions, error) {
-
 	// SECURITY: Fork PRs are ALWAYS restricted, regardless of any configuration
 	// This prevents malicious PRs from accessing sensitive resources
 	// Reference: https://github.com/go-gitea/gitea/pull/24554#issuecomment-1537040811

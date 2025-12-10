@@ -72,7 +72,6 @@ func CheckCrossRepoAccess(ctx context.Context, sourceRepoID, targetRepoID int64)
 	has, err := db.GetEngine(ctx).
 		Where("source_repo_id = ? AND target_repo_id = ?", sourceRepoID, targetRepoID).
 		Get(rule)
-
 	if err != nil {
 		return 0, err
 	}
@@ -95,7 +94,6 @@ func CreateCrossRepoAccess(ctx context.Context, rule *ActionCrossRepoAccess) err
 		Where("org_id = ? AND source_repo_id = ? AND target_repo_id = ?",
 			rule.OrgID, rule.SourceRepoID, rule.TargetRepoID).
 		Get(existing)
-
 	if err != nil {
 		return err
 	}
@@ -128,7 +126,6 @@ func LinkPackageToRepo(ctx context.Context, packageID, repoID int64) error {
 	has, err := db.GetEngine(ctx).
 		Where("package_id = ? AND repo_id = ?", packageID, repoID).
 		Get(existing)
-
 	if err != nil {
 		return err
 	}
@@ -168,7 +165,6 @@ func GetPackageLinkedRepos(ctx context.Context, packageID int64) ([]int64, error
 	err := db.GetEngine(ctx).
 		Where("package_id = ?", packageID).
 		Find(&links)
-
 	if err != nil {
 		return nil, err
 	}
@@ -187,7 +183,6 @@ func GetRepoLinkedPackages(ctx context.Context, repoID int64) ([]int64, error) {
 	err := db.GetEngine(ctx).
 		Where("repo_id = ?", repoID).
 		Find(&links)
-
 	if err != nil {
 		return nil, err
 	}

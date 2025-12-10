@@ -155,8 +155,6 @@ func ListCrossRepoAccess(ctx *context.APIContext) {
 	// https://github.com/go-gitea/gitea/issues/24635
 	// Permission check handled by reqOrgOwnership middleware
 
-
-
 	rules, err := actions_model.ListCrossRepoAccessRules(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.APIErrorInternal(err)
