@@ -12,30 +12,30 @@ import (
 	"code.gitea.io/gitea/services/context"
 )
 
+// swagger:operation GET /repos/{owner}/{repo}/settings/actions/permissions repository repoGetActionsPermissions
+// ---
+// summary: Get repository Actions token permissions
+// produces:
+// - application/json
+// parameters:
+// - name: owner
+//   in: path
+//   description: owner of the repo
+//   type: string
+//   required: true
+// - name: repo
+//   in: path
+//   description: name of the repo
+//   type: string
+//   required: true
+// responses:
+//   "200":
+//     "$ref": "#/responses/ActionsPermissionsResponse"
+//   "404":
+//     "$ref": "#/responses/notFound"
+
 // GetActionsPermissions returns the Actions token permissions for a repository
 func GetActionsPermissions(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/settings/actions/permissions repository repoGetActionsPermissions
-	// ---
-	// summary: Get repository Actions token permissions
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/ActionsPermissionsResponse"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-
 	// Check if user has admin access to this repo
 	// NOTE: Only repo admins and owners should be able to view/modify permission settings
 	// This is important for security - we don't want regular contributors
@@ -64,37 +64,38 @@ func GetActionsPermissions(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convertToAPIPermissions(perms))
 }
 
+// swagger:operation PUT /repos/{owner}/{repo}/settings/actions/permissions repository repoUpdateActionsPermissions
+// ---
+// summary: Update repository Actions token permissions
+// consumes:
+// - application/json
+// produces:
+// - application/json
+// parameters:
+// - name: owner
+//   in: path
+//   description: owner of the repo
+//   type: string
+//   required: true
+// - name: repo
+//   in: path
+//   description: name of the repo
+//   type: string
+//   required: true
+// - name: body
+//   in: body
+//   schema:
+//     "$ref": "#/definitions/ActionsPermissions"
+// responses:
+//   "200":
+//     "$ref": "#/responses/ActionsPermissionsResponse"
+//   "403":
+//     "$ref": "#/responses/forbidden"
+//   "422":
+//     "$ref": "#/responses/validationError"
+
 // UpdateActionsPermissions updates the Actions token permissions for a repository
 func UpdateActionsPermissions(ctx *context.APIContext) {
-	// swagger:operation PUT /repos/{owner}/{repo}/settings/actions/permissions repository repoUpdateActionsPermissions
-	// ---
-	// summary: Update repository Actions token permissions
-	// consumes:
-	// - application/json
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: body
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/ActionsPermissions"
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/ActionsPermissionsResponse"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "422":
-	//     "$ref": "#/responses/validationError"
 	// Only repo admins and owners should be able to modify these settings.
 	// This is enforced by the reqAdmin middleware.
 
