@@ -197,6 +197,7 @@ function handleNewline(textarea: HTMLTextAreaElement, e: KeyboardEvent) {
 const pairs: Record<string, string> = {
   "'": "'",
   '"': '"',
+  '`': '`', // will not work on keyboard layouts with it as dead key
   '(': ')',
   '[': ']',
   '{': '}',
