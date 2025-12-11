@@ -25,8 +25,6 @@ function initRepoDiffFileBox(el: HTMLElement) {
     hideElem(queryElemSiblings(target));
     showElem(target);
   }));
-
-  highlightDiffSelectionFromHash();
 }
 
 function initRepoDiffConversationForm() {
