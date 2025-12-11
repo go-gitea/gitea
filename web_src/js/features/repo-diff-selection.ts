@@ -25,7 +25,7 @@ function isDiffAnchorId(id: string | null): boolean {
   return id !== null && id.startsWith('diff-');
 }
 
-function parseDiffAnchor(anchor: string | null): DiffAnchorInfo | null {
+function parseDiffAnchor(anchor: string): DiffAnchorInfo | null {
   if (!isDiffAnchorId(anchor)) return null;
   const suffixMatch = diffAnchorSuffixRegex.exec(anchor);
   if (!suffixMatch) return null;
@@ -184,7 +184,7 @@ export async function highlightDiffSelectionFromHash(): Promise<boolean> {
 
 function handleDiffLineNumberClick(cell: HTMLElement, e: MouseEvent) {
   let span = cell.querySelector<HTMLSpanElement>('span[id^="diff-"]');
-  let info = parseDiffAnchor(span?.id ?? null);
+  let info = parseDiffAnchor(span?.id ?? '');
 
   // If clicked cell has no line number (e.g., clicking on the empty side of a deletion/addition),
   // try to find the line number from the sibling cell on the same row
@@ -197,7 +197,7 @@ function handleDiffLineNumberClick(cell: HTMLElement, e: MouseEvent) {
       row.querySelector<HTMLElement>('td.lines-num-old');
     if (siblingCell) {
       span = siblingCell.querySelector<HTMLSpanElement>('span[id^="diff-"]');
-      info = parseDiffAnchor(span?.id ?? null);
+      info = parseDiffAnchor(span?.id ?? '');
     }
     if (!info) return;
   }
@@ -219,7 +219,7 @@ function handleDiffLineNumberClick(cell: HTMLElement, e: MouseEvent) {
         diffSelectionStart = null;
         // Remove hash from URL completely
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        window.getSelection().removeAllRanges();
+        window.getSelection()?.removeAllRanges();
         return;
       }
     }
@@ -245,7 +245,7 @@ function handleDiffLineNumberClick(cell: HTMLElement, e: MouseEvent) {
     if (!e.shiftKey || !diffSelectionStart || diffSelectionStart.container !== container || diffSelectionStart.fragment !== info.fragment) {
       diffSelectionStart = {...info, container};
     }
-    window.getSelection().removeAllRanges();
+    window.getSelection()?.removeAllRanges();
   }
 }
 
