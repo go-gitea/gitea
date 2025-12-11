@@ -25,6 +25,8 @@ function initRepoDiffFileBox(el: HTMLElement) {
     hideElem(queryElemSiblings(target));
     showElem(target);
   }));
+
+  highlightDiffSelectionFromHash();
 }
 
 function initRepoDiffConversationForm() {
@@ -156,8 +158,6 @@ async function onShowMoreFiles() {
   initViewedCheckboxListenerFor();
   initImageDiff();
   initDiffHeaderPopup();
-  // Re-apply hash selection in case the target was just loaded
-  await highlightDiffSelectionFromHash();
 }
 
 async function loadMoreFiles(btn: Element): Promise<boolean> {
