@@ -1162,9 +1162,9 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 		return nil, nil
 	}
 
-	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(unit.TypeCode) {
-		log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
-		ctx.APIErrorNotFound("Can't read pulls or can't read UnitTypeCode")
+	if !permBase.CanRead(unit.TypeCode) {
+		log.Trace("Permission Denied: User %-v cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
+		ctx.APIErrorNotFound("can't read baseRepo UnitTypeCode")
 		return nil, nil
 	}
 
