@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -112,19 +113,21 @@ func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 }
 
 // calculateSizeOfObject calculates the size of one git object via git cat-file -s command
-func calculateSizeOfObject(ctx *gitea_context.PrivateContext, dir string, env []string, objectID string) (objectSize int64) {
+func calculateSizeOfObject(ctx *gitea_context.PrivateContext, dir string, env []string, objectID string) (int64, error) {
 	objectSizeStr, _, err := gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(objectID).WithDir(dir).WithEnv(env).RunStdString(ctx)
 	if err != nil {
 		log.Trace("CalculateSizeOfRemovedObjects: Error during git cat-file -s on object: %s", objectID)
-		return objectSize
+		return 0, err
 	}
 
-	objectSize, _ = strconv.ParseInt(strings.TrimSpace(objectSizeStr), 10, 64)
-	if err != nil {
+	var errParse error
+	var objectSize int64
+	objectSize, errParse = strconv.ParseInt(strings.TrimSpace(objectSizeStr), 10, 64)
+	if errParse != nil {
 		log.Trace("CalculateSizeOfRemovedObjects: Error during ParseInt on string '%s'", objectID)
-		return objectSize
+		return 0, errParse
 	}
-	return objectSize
+	return objectSize, nil
 }
 
 // calculateSizeOfObjectsFromCache calculates the size of objects added and removed from the repository by new push
@@ -162,7 +165,7 @@ func calculateSizeOfObjectsFromCache(newCommitObjects, oldCommitObjects, otherCo
 // converts it into a map for efficient lookup.
 func convertObjectsToMap(objects string) map[string]bool {
 	objectsMap := make(map[string]bool)
-	for _, object := range strings.Split(objects, "\n") {
+	for object := range strings.SplitSeq(objects, "\n") {
 		if len(object) == 0 {
 			continue
 		}
@@ -174,7 +177,7 @@ func convertObjectsToMap(objects string) map[string]bool {
 
 // convertObjectsToSlice converts a list of hashes in a string from the git rev-list --objects command to a slice of string objects
 func convertObjectsToSlice(objects string) (objectIDs []string) {
-	for _, object := range strings.Split(objects, "\n") {
+	for object := range strings.SplitSeq(objects, "\n") {
 		if len(object) == 0 {
 			continue
 		}
@@ -187,12 +190,10 @@ func convertObjectsToSlice(objects string) (objectIDs []string) {
 // loadObjectSizesFromPack access all packs that this push or repo has
 // and load compressed object size in bytes into objectSizes map
 // using `git verify-pack -v` output
-// loadObjectSizesFromPack access all packs that this push or repo has
-// and load compressed object size in bytes into objectSizes map
-// using `git verify-pack -v` output
-func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env, objectIDs []string, objectsSizes map[string]int64) error {
+func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env, _ []string, objectsSizes map[string]int64) error {
 	// Find the path from GIT_QUARANTINE_PATH environment variable (path to the pack file)
 	var packPath string
+	var errExec error
 	for _, envVar := range env {
 		split := strings.SplitN(envVar, "=", 2)
 		if split[0] == "GIT_QUARANTINE_PATH" {
@@ -223,12 +224,17 @@ func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env,
 		output, _, err := gitcmd.NewCommand("verify-pack", "-v").AddDynamicArguments(packFile).WithDir(dir).WithEnv(env).RunStdString(ctx)
 		if err != nil {
 			log.Trace("Error during git verify-pack on pack file: %s", packFile)
+			if errExec == nil {
+				errExec = err
+			} else {
+				errExec = fmt.Errorf("%w; %v", errExec, err)
+			}
 			continue
 		}
 
 		// Parsing the output of the git verify-pack command
-		lines := strings.Split(output, "\n")
-		for _, line := range lines {
+		lines := strings.SplitSeq(output, "\n")
+		for line := range lines {
 			fields := strings.Fields(line)
 			if len(fields) < 4 {
 				continue
@@ -256,7 +262,7 @@ func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env,
 	}
 
 	log.Trace("Loaded %d items from packfiles", i)
-	return nil
+	return errExec
 }
 
 // loadObjectsSizesViaCatFile uses hashes from objectIDs and runs `git cat-file -s` in 10 workers to return each object sizes
@@ -269,9 +275,16 @@ func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, dir string, e
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	// Prepare numWorker slices to store the work
+	// errExec will hold the first error.
+	var errOnce sync.Once
+	var errExec error
+
+	// errCount will count how many *additional* errors occurred after the first one.
+	var errCount int64
+
+	// Prepare numWorkers slices to store the work
 	reducedObjectIDs := make([][]string, numWorkers)
-	for i := 0; i < numWorkers; i++ {
+	for i := range reducedObjectIDs {
 		reducedObjectIDs[i] = make([]string, 0, len(objectIDs)/numWorkers+1)
 	}
 
@@ -287,7 +300,7 @@ func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, dir string, e
 		}
 	}
 
-	// Start workers and determine size using `git cat-file -s` store in objectsSizes cache
+	// Start workers and determine size using `git cat-file -s`, store in objectsSizes cache
 	for w := 1; w <= numWorkers; w++ {
 		wg.Add(1)
 		go func(reducedObjectIDs *[]string) {
@@ -296,7 +309,23 @@ func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, dir string, e
 				ctx := ctx
 				// Ensure that each worker has its own copy of the env environment to prevent races
 				env := append([]string(nil), env...)
-				objectSize := calculateSizeOfObject(ctx, dir, env, objectID)
+
+				objectSize, err := calculateSizeOfObject(ctx, dir, env, objectID)
+				// Upon error we store the first error and continue processing, as we can't stop the push
+				// if we were not able to calculate the size of the object, but we keep one error to
+				// return at the end, along with a count of subsequent similar errors.
+				if err != nil {
+					ran := false
+					errOnce.Do(func() {
+						errExec = err
+						ran = true
+					})
+					if !ran {
+						// This is not the first error – count it as a subsequent error.
+						atomic.AddInt64(&errCount, 1)
+					}
+				}
+
 				mu.Lock() // Protecting shared resource
 				objectsSizes[objectID] = objectSize
 				mu.Unlock() // Releasing shared resource for other goroutines
@@ -307,7 +336,17 @@ func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, dir string, e
 	// Wait for all workers to finish processing.
 	wg.Wait()
 
-	return nil
+	if errExec == nil {
+		return nil
+	}
+
+	// If there were additional errors, wrap the first one with a summary.
+	if n := atomic.LoadInt64(&errCount); n > 0 {
+		return fmt.Errorf("%w (and %d subsequent similar errors)", errExec, n)
+	}
+
+	// Only one error occurred.
+	return errExec
 }
 
 // loadObjectsSizesViaBatch uses hashes from objectIDs and uses pre-opened `git cat-file --batch-check` command to slice and return each object sizes
@@ -404,7 +443,6 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	var duration time.Duration
 
 	if repo.IsRepoSizeLimitEnabled() {
-
 		// Calculating total size of the repo using `git count-objects`
 		repoSize, err = git.CountObjects(ctx, repo.RepoPath())
 		if err != nil {
@@ -442,7 +480,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		// If operation is in potential breach of size limit prepare data for analysis
 		if isRepoOversized {
 			var gitObjects string
-			var error error
+			var errLoop error
 
 			// Create cache of objects in old commit
 			// if oldCommitID all 0 then it's a fresh repository on gitea server and all git operations on such oldCommitID would fail
@@ -481,7 +519,6 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 					})
 					return
 				}
-
 			}
 
 			otherCommitObjects := convertObjectsToMap(gitObjects)
@@ -490,20 +527,16 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			// so we would load compressed sizes from pack file via `git verify-pack -v` if there are pack files in repo
 			// The result would still miss items that are loose as individual objects (not part of pack files)
 			if repoSize.InPack > 0 {
-				error = loadObjectSizesFromPack(ctx, repo.RepoPath(), nil, objectIDs, commitObjectsSizes)
-				if error != nil {
-					log.Error("Unable to get sizes of objects from the pack in %-v Error: %v", repo, error)
-					ctx.JSON(http.StatusInternalServerError, private.Response{
-						Err: fmt.Sprintf("Fail to get sizes of objects in repo: %v", err),
-					})
-					return
+				errLoop = loadObjectSizesFromPack(ctx, repo.RepoPath(), nil, objectIDs, commitObjectsSizes)
+				if errLoop != nil {
+					log.Error("Unable to get sizes of objects from the pack in %-v Error: %v", repo, errLoop)
 				}
 			}
 
 			// Load loose objects that are missing
-			error = loadObjectsSizesViaBatch(ctx, repo.RepoPath(), objectIDs, commitObjectsSizes)
-			if error != nil {
-				log.Error("Unable to get sizes of objects that are missing in both old %s and new commits %s in %-v Error: %v", oldCommitID, newCommitID, repo, error)
+			errLoop = loadObjectsSizesViaBatch(ctx, repo.RepoPath(), objectIDs, commitObjectsSizes)
+			if errLoop != nil {
+				log.Error("Unable to get sizes of objects that are missing in both old %s and new commits %s in %-v Error: %v", oldCommitID, newCommitID, repo, errLoop)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
 					Err: fmt.Sprintf("Fail to get sizes of objects missing in both old and new commit and those in old commit: %v", err),
 				})
@@ -526,25 +559,17 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			// so the sizes will be calculated through pack file `git verify-pack -v` if there are pack files
 			// The result would still miss items that were sent loose as individual objects (not part of pack files)
 			if pushSize.InPack > 0 {
-				error = loadObjectSizesFromPack(ctx, repo.RepoPath(), ourCtx.env, objectIDs, commitObjectsSizes)
-				if error != nil {
-					log.Error("Unable to get sizes of objects from the pack in new commit %s in %-v Error: %v", newCommitID, repo, error)
-					ctx.JSON(http.StatusInternalServerError, private.Response{
-						Err: fmt.Sprintf("Fail to get sizes of objects in new commit: %v", err),
-					})
-					return
+				errLoop = loadObjectSizesFromPack(ctx, repo.RepoPath(), ourCtx.env, objectIDs, commitObjectsSizes)
+				if errLoop != nil {
+					log.Error("Unable to get sizes of objects from the pack in new commit %s in %-v Error: %v", newCommitID, repo, errLoop)
 				}
 			}
 
 			// After loading everything we could from pack file, objects could have been sent as loose bunch as well
 			// We need to load them individually with `git cat-file -s` on any object that is missing from accumulated size cache commitObjectsSizes
-			error = loadObjectsSizesViaCatFile(ctx, repo.RepoPath(), ourCtx.env, objectIDs, commitObjectsSizes)
-			if error != nil {
-				log.Error("Unable to get sizes of objects in new commit %s in %-v Error: %v", newCommitID, repo, error)
-				ctx.JSON(http.StatusInternalServerError, private.Response{
-					Err: fmt.Sprintf("Fail to get sizes of objects in new commit: %v", err),
-				})
-				return
+			errLoop = loadObjectsSizesViaCatFile(ctx, repo.RepoPath(), ourCtx.env, objectIDs, commitObjectsSizes)
+			if errLoop != nil {
+				log.Error("Unable to get sizes of objects in new commit %s in %-v Error: %v", newCommitID, repo, errLoop)
 			}
 
 			// Calculate size that was added and removed by the new commit
@@ -575,7 +600,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	if (addedSize > removedSize) && isRepoOversized {
 		log.Warn("Forbidden: new repo size %s would be over limitation of %s. Push size: %s. Took %s seconds. addedSize: %s. removedSize: %s", base.FileSize(repo.GitSize+addedSize-removedSize), base.FileSize(repo.GetActualSizeLimit()), base.FileSize(pushSize.Size+pushSize.SizePack), duration, base.FileSize(addedSize), base.FileSize(removedSize))
 		ctx.JSON(http.StatusForbidden, private.Response{
-			UserMsg: fmt.Sprintf("New repository size is over limitation of %s", base.FileSize(repo.GetActualSizeLimit())),
+			UserMsg: "New repository size is over limitation of " + base.FileSize(repo.GetActualSizeLimit()),
 		})
 		return
 	}

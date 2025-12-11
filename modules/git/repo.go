@@ -268,7 +268,7 @@ func CountObjectsWithEnv(ctx context.Context, repoPath string, env []string) (*C
 // parseSize parses the output from count-objects and return a CountObject
 func parseSize(objects string) *CountObject {
 	repoSize := new(CountObject)
-	for _, line := range strings.Split(objects, "\n") {
+	for line := range strings.SplitSeq(objects, "\n") {
 		switch {
 		case strings.HasPrefix(line, statCount):
 			repoSize.Count, _ = strconv.ParseInt(line[7:], 10, 64)

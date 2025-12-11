@@ -95,7 +95,7 @@ func TestGetFileSize(t *testing.T) {
 	var size int64 = 512 * 1024 * 1024 * 1024
 	s, err := GetFileSize("512 GiB")
 	assert.Equal(t, s, size)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 }
 
 func TestStringsToInt64s(t *testing.T) {
