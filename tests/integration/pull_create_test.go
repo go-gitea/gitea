@@ -156,8 +156,16 @@ func TestPullCreate(t *testing.T) {
 		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
+		// test create the pull request again and it should fail now
+		link := "/user2/repo1/compare/master...user1/repo1:master"
+		req := NewRequestWithValues(t, "POST", link, map[string]string{
+			"_csrf": GetUserCSRFToken(t, session),
+			"title": "This is a pull title",
+		})
+		session.MakeRequest(t, req, http.StatusBadRequest)
+
 		// check .diff can be accessed and matches performed change
-		req := NewRequest(t, "GET", url+".diff")
+		req = NewRequest(t, "GET", url+".diff")
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
 		assert.Regexp(t, "^diff", resp.Body)
