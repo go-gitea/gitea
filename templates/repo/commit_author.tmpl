@@ -19,18 +19,17 @@
 			{{$username}}
 		</a>
 	{{else if .Author}}
-		b
 		{{$username := ""}}
-		{{if and .Author .Author.FullName DefaultShowFullName}}
+		{{if and .Author.FullName DefaultShowFullName}}
 			{{$username = .Author.FullName}}
 		{{else if .Author.Name}}
 			{{$username = .Author.Name}}
-		{{else if and .Commit .Commit.Author .Commit.Author.Name}}
+		{{else if .Commit.Author.Name}}
 			{{$username = .Commit.Author.Name}}
 		{{end}}
 		{{ctx.AvatarUtils.AvatarByEmail .Author.Email $username .AvatarSize}}
 		<span{{if .IsSigned}} title="{{.Author.Email}}"{{end}}>
-			{{if and .Hack .Author.HomeLink}}
+			{{if .Author.HomeLink}}
 				<a class="muted author-wrapper" href="{{.Author.HomeLink}}">
 					{{$username}}
 				</a>
@@ -40,14 +39,14 @@
 		</span>
 	{{else}}
 		{{$username := ""}}
-		{{if and .Commit .Commit.Author .Commit.Author.Name}}
+		{{if .Commit.Author.Name}}
 			{{$username = .Commit.Author.Name}}
 		{{else}}
 			{{$username = .Author.Name}}
 		{{end}}
 		{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email $username .AvatarSize}}
 		<span{{if .IsSigned}} title="{{.Commit.Author.Email}}"{{end}}>
-			{{if and .Commit .Commit.Author .Commit.Author.Name}}
+			{{if .Commit.Author.Name}}
 				{{.Commit.Author.Name}}
 			{{else}}
 				{{.Author.Name}}
