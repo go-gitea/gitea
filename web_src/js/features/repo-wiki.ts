@@ -8,8 +8,8 @@ async function initRepoWikiFormEditor() {
   const editArea = document.querySelector<HTMLTextAreaElement>('.repository.wiki .combo-markdown-editor textarea');
   if (!editArea) return;
 
-  const form = document.querySelector('.repository.wiki.new .ui.form');
-  const editorContainer = form.querySelector<HTMLElement>('.combo-markdown-editor');
+  const form = document.querySelector('.repository.wiki.new .ui.form')!;
+  const editorContainer = form.querySelector<HTMLElement>('.combo-markdown-editor')!;
   let editor: ComboMarkdownEditor;
 
   let renderRequesting = false;

@@ -1,6 +1,6 @@
 import {applyAreYouSure, initAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.ts';
-import {queryElems, type DOMEvent} from '../utils/dom.ts';
+import {queryElems} from '../utils/dom.ts';
 import {initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 
 export function initGlobalFormDirtyLeaveConfirm() {
@@ -13,14 +13,14 @@ export function initGlobalFormDirtyLeaveConfirm() {
 }
 
 export function initGlobalEnterQuickSubmit() {
-  document.addEventListener('keydown', (e: DOMEvent<KeyboardEvent>) => {
+  document.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
-    if (hasCtrlOrMeta && e.target.matches('textarea')) {
+    if (hasCtrlOrMeta && (e.target as HTMLElement).matches('textarea')) {
       if (handleGlobalEnterQuickSubmit(e.target as HTMLElement)) {
         e.preventDefault();
       }
-    } else if (e.target.matches('input') && !e.target.closest('form')) {
+    } else if ((e.target as HTMLElement).matches('input') && !(e.target as HTMLElement).closest('form')) {
       // input in a normal form could handle Enter key by default, so we only handle the input outside a form
       // eslint-disable-next-line unicorn/no-lonely-if
       if (handleGlobalEnterQuickSubmit(e.target as HTMLElement)) {

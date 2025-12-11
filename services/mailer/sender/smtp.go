@@ -9,13 +9,13 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/mail"
+	"net/smtp"
 	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/wneessen/go-mail/smtp"
 )
 
 // SMTPSender Sender SMTP mail sender
@@ -108,7 +108,7 @@ func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
 		if strings.Contains(options, "CRAM-MD5") {
 			auth = smtp.CRAMMD5Auth(opts.User, opts.Passwd)
 		} else if strings.Contains(options, "PLAIN") {
-			auth = smtp.PlainAuth("", opts.User, opts.Passwd, host, false)
+			auth = smtp.PlainAuth("", opts.User, opts.Passwd, host)
 		} else if strings.Contains(options, "LOGIN") {
 			// Patch for AUTH LOGIN
 			auth = LoginAuth(opts.User, opts.Passwd)
@@ -123,18 +123,24 @@ func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
 		}
 	}
 
-	if opts.OverrideEnvelopeFrom {
-		if err = client.Mail(opts.EnvelopeFrom); err != nil {
-			return fmt.Errorf("failed to issue MAIL command: %w", err)
-		}
-	} else {
-		if err = client.Mail(fmt.Sprintf("<%s>", from)); err != nil {
-			return fmt.Errorf("failed to issue MAIL command: %w", err)
-		}
+	fromAddr := from
+	if opts.OverrideEnvelopeFrom && opts.EnvelopeFrom != "" {
+		fromAddr = opts.EnvelopeFrom
+	}
+	smtpFrom, err := sanitizeEmailAddress(fromAddr)
+	if err != nil {
+		return fmt.Errorf("invalid envelope from address: %w", err)
+	}
+	if err = client.Mail(smtpFrom); err != nil {
+		return fmt.Errorf("failed to issue MAIL command: %w", err)
 	}
 
 	for _, rec := range to {
-		if err = client.Rcpt(rec); err != nil {
+		smtpTo, err := sanitizeEmailAddress(rec)
+		if err != nil {
+			return fmt.Errorf("invalid recipient address %q: %w", rec, err)
+		}
+		if err = client.Rcpt(smtpTo); err != nil {
 			return fmt.Errorf("failed to issue RCPT command: %w", err)
 		}
 	}
@@ -154,4 +160,12 @@ func (s *SMTPSender) Send(from string, to []string, msg io.WriterTo) error {
 	}
 
 	return nil
+}
+
+func sanitizeEmailAddress(raw string) (string, error) {
+	addr, err := mail.ParseAddress(strings.TrimSpace(strings.Trim(raw, "<>")))
+	if err != nil {
+		return "", err
+	}
+	return addr.Address, nil
 }
