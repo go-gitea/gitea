@@ -190,7 +190,7 @@ func convertObjectsToSlice(objects string) (objectIDs []string) {
 // loadObjectSizesFromPack access all packs that this push or repo has
 // and load compressed object size in bytes into objectSizes map
 // using `git verify-pack -v` output
-func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env []string, objectIDs []string, objectsSizes map[string]int64) error {
+func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env, objectIDs []string, objectsSizes map[string]int64) error {
 	// Find the path from GIT_QUARANTINE_PATH environment variable (path to the pack file)
 	var packPath string
 	for _, envVar := range env {
@@ -262,7 +262,7 @@ func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env 
 // loadObjectsSizesViaCatFile uses hashes from objectIDs and runs `git cat-file -s` in 10 workers to return each object sizes
 // Objects for which size is already loaded are skipped
 // can't use `git cat-file --batch-check` here as it only provides data from git DB before the commit applied and has no knowledge on new commit objects
-func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, dir string, env []string, objectIDs []string, objectsSizes map[string]int64) error {
+func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, dir string, env, objectIDs []string, objectsSizes map[string]int64) error {
 	// This is the number of workers that will simultaneously process CalculateSizeOfObject.
 	const numWorkers = 10
 
@@ -409,7 +409,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		repoSize, err = git.CountObjects(ctx, repo.RepoPath())
 		if err != nil {
 			log.Error("Unable to get repository size with env %v: %s Error: %v", repo.RepoPath(), ourCtx.env, err)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			ctx.JSON(http.StatusInternalServerError, map[string]any{
 				"err": err.Error(),
 			})
 			return
@@ -419,7 +419,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		pushSize, err = git.CountObjectsWithEnv(ctx, repo.RepoPath(), ourCtx.env)
 		if err != nil {
 			log.Error("Unable to get push size with env %v: %s Error: %v", repo.RepoPath(), ourCtx.env, err)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			ctx.JSON(http.StatusInternalServerError, map[string]any{
 				"err": err.Error(),
 			})
 			return
