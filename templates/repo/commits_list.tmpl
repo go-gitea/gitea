@@ -16,8 +16,8 @@
 					<td class="author">
 						<div class="tw-flex">
 							{{template "repo/commit_author" (dict
+								"Commit" .
 								"User" .User
-								"Author" .Author
 								"AvatarSize" 28
 								"IsSigned" $.IsSigned
 							)}}

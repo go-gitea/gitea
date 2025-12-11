@@ -4,7 +4,7 @@
 {{else}}
 	{{template "repo/commit_author" (dict
 		"User" .LatestCommitUser
-		"Author" .LatestCommit.Author
+		"Commit" .LatestCommit
 		"AvatarSize" 24
 		"AuthorBold" true
 		"IsSigned" $.IsSigned
