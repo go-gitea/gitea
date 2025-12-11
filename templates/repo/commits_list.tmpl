@@ -15,16 +15,12 @@
 				<tr>
 					<td class="author">
 						<div class="tw-flex">
-							{{$userName := .Author.Name}}
-							{{if .User}}
-								{{if and .User.FullName DefaultShowFullName}}
-									{{$userName = .User.FullName}}
-								{{end}}
-								{{ctx.AvatarUtils.Avatar .User 28 "tw-mr-2"}}<a class="muted author-wrapper" href="{{.User.HomeLink}}">{{$userName}}</a>
-							{{else}}
-								{{ctx.AvatarUtils.AvatarByEmail .Author.Email .Author.Email 28 "tw-mr-2"}}
-								<span class="author-wrapper" data-tooltip-content={{.Author.Email}}>{{$userName}}</span>
-							{{end}}
+							{{template "repo/commit_author" (dict
+								"User" .User
+								"Author" .Author
+								"AvatarSize" 28
+								"IsSigned" $.IsSigned
+							)}}
 						</div>
 					</td>
 					<td class="sha">

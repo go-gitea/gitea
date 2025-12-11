@@ -1,0 +1,58 @@
+{{/* Template Attributes:
+* User: The user associated with the commit
+* Author: The author associated with the commit
+* Commit: The author associated with the commit
+* AvatarSize: Avatar size in pixels
+* AuthorBold: Whether to render the autor as bold text
+* IsSigned: Whether the user is currently signed in
+* Hack: Hack to avoid error related to .Author.FullName and .Author.HomeLink
+*/}}
+<div class="flex-text-inline{{if .AuthorBold}} tw-font-semibold{{end}}">
+	{{if .User}}
+		{{ctx.AvatarUtils.Avatar .User .AvatarSize}}
+		{{$username := ""}}
+		{{if and .User.FullName DefaultShowFullName}}
+			{{$username = .User.FullName}}
+		{{else if .User.Name}}
+			{{$username = .User.Name}}
+		{{end}}
+		<a class="muted author-wrapper" href="{{.User.HomeLink}}" data-tooltip-content="{{$username}}">
+			{{$username}}
+		</a>
+	{{else if .Author}}
+		b
+		{{$username := ""}}
+		{{if and .Author .Author.FullName DefaultShowFullName}}
+			{{$username = .Author.FullName}}
+		{{else if .Author.Name}}
+			{{$username = .Author.Name}}
+		{{else if and .Commit .Commit.Author .Commit.Author.Name}}
+			{{$username = .Commit.Author.Name}}
+		{{end}}
+		{{ctx.AvatarUtils.AvatarByEmail .Author.Email $username .AvatarSize}}
+		<span{{if .IsSigned}} title="{{.Author.Email}}"{{end}}>
+			{{if and .Hack .Author.HomeLink}}
+				<a class="muted author-wrapper" href="{{.Author.HomeLink}}">
+					{{$username}}
+				</a>
+			{{else}}
+				{{$username}}
+			{{end}}
+		</span>
+	{{else}}
+		{{$username := ""}}
+		{{if and .Commit .Commit.Author .Commit.Author.Name}}
+			{{$username = .Commit.Author.Name}}
+		{{else}}
+			{{$username = .Author.Name}}
+		{{end}}
+		{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email $username .AvatarSize}}
+		<span{{if .IsSigned}} title="{{.Commit.Author.Email}}"{{end}}>
+			{{if and .Commit .Commit.Author .Commit.Author.Name}}
+				{{.Commit.Author.Name}}
+			{{else}}
+				{{.Author.Name}}
+			{{end}}
+		</span>
+	{{end}}
+</div>

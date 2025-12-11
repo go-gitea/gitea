@@ -2,20 +2,13 @@
 {{if not .LatestCommit}}
 	…
 {{else}}
-	{{if .LatestCommitUser}}
-		{{ctx.AvatarUtils.Avatar .LatestCommitUser 24}}
-		{{if and .LatestCommitUser.FullName DefaultShowFullName}}
-			<a class="muted author-wrapper" title="{{.LatestCommitUser.FullName}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
-		{{else}}
-			<a class="muted author-wrapper" title="{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}" href="{{.LatestCommitUser.HomeLink}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
-		{{end}}
-	{{else}}
-		{{if .LatestCommit.Author}}
-			{{ctx.AvatarUtils.AvatarByEmail .LatestCommit.Author.Email .LatestCommit.Author.Name 24}}
-			<span class="author-wrapper" data-tooltip-content={{.LatestCommit.Author.Email}}><strong>{{.LatestCommit.Author.Name}}</strong></span>
-		{{end}}
-	{{end}}
-
+	{{template "repo/commit_author" (dict
+		"User" .LatestCommitUser
+		"Author" .LatestCommit.Author
+		"AvatarSize" 24
+		"AuthorBold" true
+		"IsSigned" $.IsSigned
+	)}}
 	{{template "repo/commit_sign_badge" dict "Commit" .LatestCommit "CommitBaseLink" (print .RepoLink "/commit") "CommitSignVerification" .LatestCommitVerification}}
 
 	{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses}}
