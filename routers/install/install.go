@@ -145,9 +145,9 @@ func Install(ctx *context.Context) {
 	form.AllowOnlyExternalRegistration = setting.Service.AllowOnlyExternalRegistration
 	form.EnableCaptcha = setting.Service.EnableCaptcha
 	form.RequireSignInView = setting.Service.RequireSignInViewStrict
-	form.DefaultKeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
-	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
-	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
+	form.DefaultKeepEmailPrivate = setting.Config().Service.DefaultKeepEmailPrivate.Value(ctx)
+	form.DefaultAllowCreateOrganization = setting.Config().Service.DefaultAllowCreateOrganization.Value(ctx)
+	form.DefaultEnableTimetracking = setting.Config().Service.DefaultEnableTimeTracking.Value(ctx)
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 	form.PasswordAlgorithm = hash.ConfigHashAlgorithm(setting.PasswordHashAlgo)
 
@@ -440,9 +440,6 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("ALLOW_ONLY_EXTERNAL_REGISTRATION").SetValue(strconv.FormatBool(form.AllowOnlyExternalRegistration))
 	cfg.Section("service").Key("ENABLE_CAPTCHA").SetValue(strconv.FormatBool(form.EnableCaptcha))
 	cfg.Section("service").Key("REQUIRE_SIGNIN_VIEW").SetValue(strconv.FormatBool(form.RequireSignInView))
-	cfg.Section("service").Key("DEFAULT_KEEP_EMAIL_PRIVATE").SetValue(strconv.FormatBool(form.DefaultKeepEmailPrivate))
-	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(strconv.FormatBool(form.DefaultAllowCreateOrganization))
-	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(strconv.FormatBool(form.DefaultEnableTimetracking))
 	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(form.NoReplyAddress)
 	cfg.Section("cron.update_checker").Key("ENABLED").SetValue(strconv.FormatBool(form.EnableUpdateChecker))
 

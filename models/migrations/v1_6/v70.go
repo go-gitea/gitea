@@ -4,6 +4,7 @@
 package v1_6
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -99,7 +100,7 @@ func AddIssueDependencies(x *xorm.Engine) (err error) {
 			unit.Config = make(map[string]any)
 		}
 		if _, ok := unit.Config["EnableDependencies"]; !ok {
-			unit.Config["EnableDependencies"] = setting.Service.DefaultEnableDependencies
+			unit.Config["EnableDependencies"] = setting.Config().Service.DefaultEnableDependencies.Value(context.Background())
 		}
 		if _, err := x.ID(unit.ID).Cols("config").Update(unit); err != nil {
 			return err

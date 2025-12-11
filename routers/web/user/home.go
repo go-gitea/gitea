@@ -109,7 +109,7 @@ func Dashboard(ctx *context.Context) {
 		"uid":         uid,
 	}
 
-	if setting.Service.EnableUserHeatmap {
+	if setting.Config().Service.EnableUserHeatmap.Value(ctx) {
 		data, err := activities_model.GetUserHeatmapDataByUserTeam(ctx, ctxUser, ctx.Org.Team, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)

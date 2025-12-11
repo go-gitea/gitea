@@ -149,25 +149,10 @@
 				<dd>{{svg (Iif .Service.EnableNotifyMail "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.enable_captcha"}}</dt>
 				<dd>{{svg (Iif .Service.EnableCaptcha "octicon-check" "octicon-x")}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.default_keep_email_private"}}</dt>
-				<dd>{{svg (Iif .Service.DefaultKeepEmailPrivate "octicon-check" "octicon-x")}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.default_allow_create_organization"}}</dt>
-				<dd>{{svg (Iif .Service.DefaultAllowCreateOrganization "octicon-check" "octicon-x")}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.enable_timetracking"}}</dt>
-				<dd>{{svg (Iif .Service.EnableTimetracking "octicon-check" "octicon-x")}}</dd>
-				{{if .Service.EnableTimetracking}}
-					<dt>{{ctx.Locale.Tr "admin.config.default_enable_timetracking"}}</dt>
-					<dd>{{svg (Iif .Service.DefaultEnableTimetracking "octicon-check" "octicon-x")}}</dd>
-					<dt>{{ctx.Locale.Tr "admin.config.default_allow_only_contributors_to_track_time"}}</dt>
-					<dd>{{svg (Iif .Service.DefaultAllowOnlyContributorsToTrackTime "octicon-check" "octicon-x")}}</dd>
-				{{end}}
 				<dt>{{ctx.Locale.Tr "admin.config.default_visibility_organization"}}</dt>
 				<dd>{{.Service.DefaultOrgVisibility}}</dd>
-
 				<dt>{{ctx.Locale.Tr "admin.config.no_reply_address"}}</dt>
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.default_enable_dependencies"}}</dt>
-				<dd>{{svg (Iif .Service.DefaultEnableDependencies "octicon-check" "octicon-x")}}</dd>
 				<div class="divider"></div>
 				<dt>{{ctx.Locale.Tr "admin.config.active_code_lives"}}</dt>
 				<dd>{{.Service.ActiveCodeLives}} {{ctx.Locale.Tr "tool.raw_minutes"}}</dd>

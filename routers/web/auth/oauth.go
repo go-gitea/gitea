@@ -191,7 +191,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 			isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &gothUser)
 			u.IsAdmin = isAdmin.ValueOrDefault(user_service.UpdateOptionField[bool]{FieldValue: false}).FieldValue
-			u.IsRestricted = isRestricted.ValueOrDefault(setting.Service.DefaultUserIsRestricted)
+			u.IsRestricted = isRestricted.ValueOrDefault(setting.Config().Service.DefaultUserIsRestricted.Value(ctx))
 
 			linkAccountData := &LinkAccountData{authSource.ID, gothUser}
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingDisabled {

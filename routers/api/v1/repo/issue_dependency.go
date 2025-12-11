@@ -509,7 +509,7 @@ func getParamsIssue(ctx *context.APIContext) *issues_model.Issue {
 func getFormIssue(ctx *context.APIContext, form *api.IssueMeta) *issues_model.Issue {
 	var repo *repo_model.Repository
 	if form.Owner != ctx.Repo.Repository.OwnerName || form.Name != ctx.Repo.Repository.Name {
-		if !setting.Service.AllowCrossRepositoryDependencies {
+		if !setting.Config().Service.AllowCrossRepositoryDependencies.Value(ctx) {
 			ctx.JSON(http.StatusBadRequest, "CrossRepositoryDependencies not enabled")
 			return nil
 		}

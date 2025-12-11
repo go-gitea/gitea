@@ -251,7 +251,7 @@ func AddTeamMember(ctx context.Context, team *organization.Team, user *user_mode
 
 	// this behaviour may spend much time so run it in a goroutine
 	// FIXME: Update watch repos batchly
-	if setting.Service.AutoWatchNewRepos {
+	if setting.Config().Service.AutoWatchNewRepos.Value(ctx) {
 		// Get team and its repositories.
 		repos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
 			TeamID: team.ID,

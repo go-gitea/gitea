@@ -45,7 +45,7 @@ func addRepositoryToTeam(ctx context.Context, t *organization.Team, repo *repo_m
 	}
 
 	// Make all team members watch this repo if enabled in global settings
-	if setting.Service.AutoWatchNewRepos {
+	if setting.Config().Service.AutoWatchNewRepos.Value(ctx) {
 		if err = t.LoadMembers(ctx); err != nil {
 			return fmt.Errorf("getMembers: %w", err)
 		}
