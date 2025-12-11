@@ -277,8 +277,11 @@ type LinkAccountData struct {
 	GothUser     goth.User
 }
 
-func oauth2GetLinkAccountData(ctx *context.Context) *LinkAccountData {
+func init() {
 	gob.Register(LinkAccountData{})
+}
+
+func oauth2GetLinkAccountData(ctx *context.Context) *LinkAccountData {
 	v, ok := ctx.Session.Get("linkAccountData").(LinkAccountData)
 	if !ok {
 		return nil
@@ -287,7 +290,6 @@ func oauth2GetLinkAccountData(ctx *context.Context) *LinkAccountData {
 }
 
 func Oauth2SetLinkAccountData(ctx *context.Context, linkAccountData LinkAccountData) error {
-	gob.Register(LinkAccountData{})
 	return updateSession(ctx, nil, map[string]any{
 		"linkAccountData": linkAccountData,
 	})
