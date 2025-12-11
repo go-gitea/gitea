@@ -44,10 +44,39 @@
 				<dd>{{.LogRootPath}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.script_type"}}</dt>
 				<dd>{{.ScriptType}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.reverse_auth_user"}}</dt>
-				<dd>{{.ReverseProxyAuthUser}}</dd>
 			</dl>
 		</div>
+
+		{{if or .ReverseProxy.EnableAuth .ReverseProxy.EnableAuthAPI}}
+			<h4 class="ui top attached header">
+				{{ctx.Locale.Tr "admin.config.reverseproxy_config"}}
+			</h4>
+			<div class="ui attached table segment">
+				<dl class="admin-dl-horizontal">
+					<dt>{{ctx.Locale.Tr "admin.config.reverseproxy_enable_auth"}}</dt>
+					<dd>{{.ReverseProxy.EnableAuth}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverseproxy_enable_auth_api"}}</dt>
+					<dd>{{.ReverseProxy.EnableAuthAPI}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverseproxy_enable_auto_register"}}</dt>
+					<dd>{{.ReverseProxy.EnableAutoRegister}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverseproxy_enable_email"}}</dt>
+					<dd>{{.ReverseProxy.EnableEmail}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverseproxy_enable_full_name"}}</dt>
+					<dd>{{.ReverseProxy.EnableFullName}}</dd>
+
+					<dt>{{ctx.Locale.Tr "admin.config.reverseproxy_auth_user"}}</dt>
+					<dd>{{.ReverseProxy.AuthUser}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverseproxy_auth_email"}}</dt>
+					<dd>{{.ReverseProxy.AuthEmail}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverseproxy_auth_full_name"}}</dt>
+					<dd>{{.ReverseProxy.AuthFullName}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverseproxy_limit"}}</dt>
+					<dd>{{.ReverseProxy.Limit}}</dd>
+					<dt>{{ctx.Locale.Tr "admin.config.reverseproxy_trusted_proxies"}}</dt>
+					<dd>{{.ReverseProxy.TrustedProxies}}</dd>
+				</dl>
+			</div>
+		{{end}}
 
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.ssh_config"}}
