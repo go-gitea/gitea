@@ -195,18 +195,21 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 
 // PushOptions options when push to remote
 type PushOptions struct {
-	Remote  string
-	Branch  string
-	Force   bool
-	Mirror  bool
-	Env     []string
-	Timeout time.Duration
+	Remote         string
+	Branch         string
+	Force          bool
+	ForceWithLease string
+	Mirror         bool
+	Env            []string
+	Timeout        time.Duration
 }
 
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	cmd := gitcmd.NewCommand("push")
-	if opts.Force {
+	if opts.ForceWithLease != "" {
+		cmd.AddOptionFormat("--force-with-lease=%s", opts.ForceWithLease)
+	} else if opts.Force {
 		cmd.AddArguments("-f")
 	}
 	if opts.Mirror {

@@ -292,6 +292,21 @@ type RenameBranchRepoOption struct {
 	Name string `json:"name" binding:"Required;GitRefName;MaxSize(100)"`
 }
 
+// UpdateBranchRepoOption options when updating a branch reference in a repository
+// swagger:model
+type UpdateBranchRepoOption struct {
+	// New commit SHA (or any ref) the branch should point to
+	//
+	// required: true
+	NewCommitID string `json:"new_commit_id" binding:"Required"`
+
+	// Expected old commit SHA of the branch; if provided it must match the current tip
+	OldCommitID string `json:"old_commit_id"`
+
+	// Force update even if the change is not a fast-forward
+	Force bool `json:"force"`
+}
+
 // TransferRepoOption options when transfer a repository's ownership
 // swagger:model
 type TransferRepoOption struct {
