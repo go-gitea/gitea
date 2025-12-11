@@ -1,0 +1,99 @@
+-
+  id: 1
+  version_id: 1
+  blob_id: 1
+  name: gitea-test-1.0-20230101.000000-1.jar
+  lower_name: gitea-test-1.0-20230101.000000-1.jar
+  composite_key: ""
+  is_lead: false
+  created_unix: 1672531200
+-
+  id: 2
+  version_id: 1
+  blob_id: 2
+  name: gitea-test-1.0-20230101.000000-2.jar
+  lower_name: gitea-test-1.0-20230101.000000-2.jar
+  composite_key: ""
+  is_lead: false
+  created_unix: 1672531200
+-
+  id: 3
+  version_id: 1
+  blob_id: 3
+  name: gitea-test-1.0-20230101.000000-3.jar
+  lower_name: gitea-test-1.0-20230101.000000-3.jar
+  composite_key: ""
+  is_lead: false
+  created_unix: 1672531200
+-
+  id: 4
+  version_id: 1
+  blob_id: 4
+  name: gitea-test-1.0-20230101.000000-4.jar
+  lower_name: gitea-test-1.0-20230101.000000-4.jar
+  composite_key: ""
+  is_lead: false
+  created_unix: 1672531200
+-
+  id: 5
+  version_id: 1
+  blob_id: 5
+  name: gitea-test-1.0-20230101.000000-5.jar
+  lower_name: gitea-test-1.0-20230101.000000-5.jar
+  composite_key: ""
+  is_lead: false
+  created_unix: 1672531200
+-
+  id: 6
+  version_id: 1
+  blob_id: 6
+  name: gitea-test-1.0-20230101.000000-3-sources.jar
+  lower_name: gitea-test-1.0-20230101.000000-3-sources.jar
+  composite_key: ""
+  is_lead: false
+  created_unix: 1672531200
+-
+  id: 7
+  version_id: 1
+  blob_id: 7
+  name: gitea-test-1.0-20230101.000000-3-javadoc.jar
+  lower_name: gitea-test-1.0-20230101.000000-3-javadoc.jar
+  composite_key: ""
+  is_lead: false
+  created_unix: 1672531200
+-
+  id: 8
+  version_id: 1
+  blob_id: 8
+  name: gitea-test-1.0-20230101.000000-4-sources.jar
+  lower_name: gitea-test-1.0-20230101.000000-4-sources.jar
+  composite_key: ""
+  is_lead: false
+  created_unix: 1672531200
+-
+  id: 9
+  version_id: 1
+  blob_id: 9
+  name: gitea-test-1.0-20230101.000000-4-javadoc.jar
+  lower_name: gitea-test-1.0-20230101.000000-4-javadoc.jar
+  composite_key: ""
+  is_lead: false
+  created_unix: 1672531200
+-
+  id: 10
+  version_id: 1
+  blob_id: 10
+  name: gitea-test-1.0-20230101.000000-5-sources.jar
+  lower_name: gitea-test-1.0-20230101.000000-5-sources.jar
+  composite_key: ""
+  is_lead: false
+  created_unix: 1672531200
+-
+  id: 11
+  version_id: 1
+  blob_id: 11
+  name: gitea-test-1.0-20230101.000000-5-javadoc.jar
+  lower_name: gitea-test-1.0-20230101.000000-5-javadoc.jar
+  composite_key: ""
+  is_lead: false
+  created_unix: 1672531200
