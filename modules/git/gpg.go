@@ -50,12 +50,21 @@ func (gpgSettings *GPGSettings) LoadPublicKeyContent() error {
 }
 
 var (
-	loadPublicGPGKeyMutex sync.Mutex
+	loadPublicGPGKeyMutex sync.RWMutex
 	globalGPGSettings     *GPGSettings
 )
 
 // GetDefaultPublicGPGKey will return and cache the default public GPG settings
 func GetDefaultPublicGPGKey(ctx context.Context, forceUpdate bool) (*GPGSettings, error) {
+	if !forceUpdate {
+		loadPublicGPGKeyMutex.RLock()
+		if globalGPGSettings != nil {
+			defer loadPublicGPGKeyMutex.RUnlock()
+			return globalGPGSettings, nil
+		}
+		loadPublicGPGKeyMutex.RUnlock()
+	}
+
 	loadPublicGPGKeyMutex.Lock()
 	defer loadPublicGPGKeyMutex.Unlock()
 
