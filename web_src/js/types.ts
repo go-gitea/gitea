@@ -76,13 +76,3 @@ export type FomanticInitFunction = {
 export type GitRefType = 'branch' | 'tag';
 
 export type Promisable<T> = T | Promise<T>; // stricter than type-fest which uses PromiseLike
-
-export type FileTreeItem = {
-  entryName: string;
-  entryMode: 'blob' | 'exec' | 'tree' | 'commit' | 'symlink' | 'unknown';
-  entryIcon: string;
-  entryIconOpen: string;
-  fullPath: string;
-  submoduleUrl?: string;
-  children?: FileTreeItem[];
-};

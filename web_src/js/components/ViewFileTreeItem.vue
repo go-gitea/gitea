@@ -2,8 +2,7 @@
 import {SvgIcon} from '../svg.ts';
 import {isPlainClick} from '../utils/dom.ts';
 import {shallowRef} from 'vue';
-import type {createViewFileTreeStore} from './ViewFileTreeStore.ts';
-import type {FileTreeItem} from '../types.ts';
+import type {createViewFileTreeStore, FileTreeItem} from './ViewFileTreeStore.ts';
 
 const props = defineProps<{
   item: FileTreeItem,
