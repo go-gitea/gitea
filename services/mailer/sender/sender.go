@@ -24,6 +24,7 @@ func send(sender Sender, msg *Message) error {
 
 	// TODO: implement sending from multiple addresses
 	if len(froms) == 0 {
+		// FIXME: no idea why sometimes the "froms" can be empty, need to figure out the root problem
 		return errors.New("no FROM specified")
 	}
 	return sender.Send(froms[0].Address, to, m)
