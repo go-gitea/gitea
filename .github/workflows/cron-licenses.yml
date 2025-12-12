@@ -9,6 +9,8 @@ jobs:
   cron-licenses:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6

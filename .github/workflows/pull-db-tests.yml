@@ -15,6 +15,8 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       pgsql:
         image: postgres:14
@@ -65,6 +67,8 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -90,6 +94,8 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       elasticsearch:
         image: elasticsearch:7.5.0
@@ -152,6 +158,8 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       mysql:
         # the bitnami mysql image has more options than the official one, it's easier to customize
@@ -203,6 +211,8 @@ jobs:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2019-latest
