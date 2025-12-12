@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -17,7 +18,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -153,8 +156,16 @@ func TestPullCreate(t *testing.T) {
 		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user2/repo1/pulls/[0-9]*$", url)
 
+		// test create the pull request again and it should fail now
+		link := "/user2/repo1/compare/master...user1/repo1:master"
+		req := NewRequestWithValues(t, "POST", link, map[string]string{
+			"_csrf": GetUserCSRFToken(t, session),
+			"title": "This is a pull title",
+		})
+		session.MakeRequest(t, req, http.StatusBadRequest)
+
 		// check .diff can be accessed and matches performed change
-		req := NewRequest(t, "GET", url+".diff")
+		req = NewRequest(t, "GET", url+".diff")
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.Regexp(t, `\+Hello, World \(Edited\)`, resp.Body)
 		assert.Regexp(t, "^diff", resp.Body)
@@ -292,6 +303,95 @@ func TestPullCreatePrFromBaseToFork(t *testing.T) {
 		// check the redirected URL
 		url := test.RedirectURL(resp)
 		assert.Regexp(t, "^/user1/repo1/pulls/[0-9]*$", url)
+	})
+}
+
+func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		session := loginUser(t, "user1")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
+
+		const (
+			baseOrg     = "test-fork-org1"
+			midForkOrg  = "test-fork-org2"
+			leafForkOrg = "test-fork-org3"
+			repoName    = "test-fork-repo"
+			patchBranch = "teabot-patch-1"
+		)
+
+		createOrg := func(name string) {
+			req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &api.CreateOrgOption{
+				UserName:   name,
+				Visibility: "public",
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
+		}
+
+		createOrg(baseOrg)
+		createOrg(midForkOrg)
+		createOrg(leafForkOrg)
+
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/repos", baseOrg), &api.CreateRepoOption{
+			Name:          repoName,
+			AutoInit:      true,
+			DefaultBranch: "main",
+			Private:       false,
+			Readme:        "Default",
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var baseRepo api.Repository
+		DecodeJSON(t, resp, &baseRepo)
+		assert.Equal(t, "main", baseRepo.DefaultBranch)
+
+		forkIntoOrg := func(srcOrg, dstOrg string) api.Repository {
+			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", srcOrg, repoName), &api.CreateForkOption{
+				Organization: util.ToPointer(dstOrg),
+			}).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusAccepted)
+			var forkRepo api.Repository
+			DecodeJSON(t, resp, &forkRepo)
+			assert.NotNil(t, forkRepo.Owner)
+			if forkRepo.Owner != nil {
+				assert.Equal(t, dstOrg, forkRepo.Owner.UserName)
+			}
+			return forkRepo
+		}
+
+		forkIntoOrg(baseOrg, midForkOrg)
+		forkIntoOrg(midForkOrg, leafForkOrg)
+
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", leafForkOrg, repoName, "patch-from-org3.txt"), &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				BranchName:    "main",
+				NewBranchName: patchBranch,
+				Message:       "create patch from org3",
+			},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("patch content")),
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		prPayload := map[string]string{
+			"head":  fmt.Sprintf("%s:%s", leafForkOrg, patchBranch),
+			"base":  "main",
+			"title": "test creating pull from test-fork-org3 to test-fork-org1",
+		}
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/pulls", baseOrg, repoName), prPayload).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusCreated)
+		var pr api.PullRequest
+		DecodeJSON(t, resp, &pr)
+		assert.Equal(t, prPayload["title"], pr.Title)
+		if assert.NotNil(t, pr.Head) {
+			assert.Equal(t, patchBranch, pr.Head.Ref)
+			if assert.NotNil(t, pr.Head.Repository) {
+				assert.Equal(t, fmt.Sprintf("%s/%s", leafForkOrg, repoName), pr.Head.Repository.FullName)
+			}
+		}
+		if assert.NotNil(t, pr.Base) {
+			assert.Equal(t, "main", pr.Base.Ref)
+			if assert.NotNil(t, pr.Base.Repository) {
+				assert.Equal(t, fmt.Sprintf("%s/%s", baseOrg, repoName), pr.Base.Repository.FullName)
+			}
+		}
 	})
 }
 
