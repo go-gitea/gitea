@@ -113,7 +113,7 @@ type RepoSettingForm struct {
 	PushMirrorInterval     string
 	Template               bool
 	EnablePrune            bool
-	RepoSizeLimit          int64
+	RepoSizeLimit          string
 
 	// Advanced settings
 	EnableCode bool

@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code"
@@ -213,18 +214,28 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
 
-	if form.RepoSizeLimit < 0 {
+	var repoSizeLimit int64
+	var err error
+	if form.RepoSizeLimit != "" {
+		repoSizeLimit, err = base.GetFileSize(form.RepoSizeLimit)
+		if err != nil {
+			ctx.Data["Err_RepoSizeLimit"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.invalid_repo_size_limit"), tplSettingsOptions, &form)
+			return
+		}
+	}
+	if repoSizeLimit < 0 {
 		ctx.Data["Err_RepoSizeLimit"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.repo_size_limit_negative"), tplSettingsOptions, &form)
 		return
 	}
 
-	if !ctx.Doer.IsAdmin && repo.SizeLimit != form.RepoSizeLimit {
+	if !ctx.Doer.IsAdmin && repo.SizeLimit != repoSizeLimit {
 		ctx.Data["Err_RepoSizeLimit"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.repo_size_limit_only_by_admins"), tplSettingsOptions, &form)
 		return
 	}
-	repo.SizeLimit = form.RepoSizeLimit
+	repo.SizeLimit = repoSizeLimit
 
 	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 		ctx.ServerError("UpdateRepository", err)
