@@ -69,7 +69,7 @@ func TestFilePathSanitize(t *testing.T) {
 
 	// special chars
 	assert.Equal(t, "_", filePathSanitize("\u0000"))
-	assert.Equal(t, ".", filePathSanitize("")) //nolint:testifylint // for easy reading
+	assert.Equal(t, ".", filePathSanitize(""))
 	assert.Equal(t, ".", filePathSanitize("."))
 	assert.Equal(t, ".", filePathSanitize("/"))
 }
