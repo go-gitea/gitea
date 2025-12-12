@@ -16,6 +16,7 @@ declare module '*.vue' {
   // To actually lint .vue files, `vue-tsc` is used because `tsc` can not parse them.
   export function initDashboardRepoList(): void;
   export function initRepositoryActionView(): void;
+  export type Item = any;
 }
 
 declare let __webpack_public_path__: string;
