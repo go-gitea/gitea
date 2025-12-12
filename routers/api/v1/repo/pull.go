@@ -1097,7 +1097,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 			headOwner, err = user_model.GetUserOrOrgByName(ctx, compareReq.HeadOwner)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
-					ctx.APIErrorNotFound("GetUserByName")
+					ctx.APIErrorNotFound("GetUserOrOrgByName")
 				} else {
 					ctx.APIErrorInternal(err)
 				}
@@ -1114,7 +1114,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 					return nil, nil
 				}
 				if headRepo == nil {
-					ctx.HTTPError(http.StatusBadRequest, "The user "+headOwner.Name+" does not have a fork of the base repository")
+					ctx.APIError(http.StatusBadRequest, "The user "+headOwner.Name+" does not have a fork of the base repository")
 					return nil, nil
 				}
 			}
