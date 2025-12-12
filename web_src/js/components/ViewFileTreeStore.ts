@@ -3,11 +3,11 @@ import {GET} from '../modules/fetch.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
-import type {Item} from './ViewFileTreeItem.vue';
+import type {FileTreeItem} from '../types.ts';
 
 export function createViewFileTreeStore(props: {repoLink: string, treePath: string, currentRefNameSubURL: string}) {
   const store = reactive({
-    rootFiles: [] as Array<Item>,
+    rootFiles: [] as Array<FileTreeItem>,
     selectedItem: props.treePath,
 
     async loadChildren(treePath: string, subPath: string = '') {
