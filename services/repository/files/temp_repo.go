@@ -55,12 +55,11 @@ func (t *TemporaryUploadRepository) Close() {
 
 // Clone the base repository to our path and set branch as the HEAD
 func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, bare bool) error {
-	cmd := gitcmd.NewCommand("clone", "-s", "-b").AddDynamicArguments(branch, t.repo.RepoPath(), t.basePath)
-	if bare {
-		cmd.AddArguments("--bare")
-	}
-
-	if _, _, err := cmd.RunStdString(ctx); err != nil {
+	if err := gitrepo.CloneRepoToLocal(ctx, t.repo, t.basePath, git.CloneRepoOptions{
+		Bare:   bare,
+		Branch: branch,
+		Shared: true,
+	}); err != nil {
 		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
 			return git.ErrBranchNotExist{

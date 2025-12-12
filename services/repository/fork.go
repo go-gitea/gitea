@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -147,15 +146,16 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 
 	// 3 - Clone the repository
-	cloneCmd := gitcmd.NewCommand("clone", "--bare")
-	if opts.SingleBranch != "" {
-		cloneCmd.AddArguments("--single-branch", "--branch").AddDynamicArguments(opts.SingleBranch)
+	cloneOpts := git.CloneRepoOptions{
+		Bare:    true,
+		Timeout: 10 * time.Minute,
 	}
-	var stdout []byte
-	if stdout, _, err = cloneCmd.AddDynamicArguments(opts.BaseRepo.RepoPath(), repo.RepoPath()).
-		WithTimeout(10 * time.Minute).
-		RunStdBytes(ctx); err != nil {
-		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
+	if opts.SingleBranch != "" {
+		cloneOpts.SingleBranch = true
+		cloneOpts.Branch = opts.SingleBranch
+	}
+	if err = gitrepo.Clone(ctx, opts.BaseRepo, repo, cloneOpts); err != nil {
+		log.Error("Fork Repository (git clone) Failed for %v (from %v):\nError: %v", repo, opts.BaseRepo, err)
 		return nil, fmt.Errorf("git clone: %w", err)
 	}
 
