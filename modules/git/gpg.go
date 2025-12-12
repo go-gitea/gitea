@@ -5,6 +5,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -34,38 +35,32 @@ func (gpgSettings *GPGSettings) LoadPublicKeyContent() error {
 }
 
 // GetDefaultPublicGPGKey will return and cache the default public GPG settings for this repository
-func (repo *Repository) GetDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, error) {
-	if repo.gpgSettings != nil && !forceUpdate {
-		return repo.gpgSettings, nil
-	}
-
+func GetDefaultPublicGPGKey(ctx context.Context, forceUpdate bool) (*GPGSettings, error) {
 	gpgSettings := &GPGSettings{
 		Sign: true,
 	}
 
-	value, _, _ := gitcmd.NewCommand("config", "--get", "commit.gpgsign").WithDir(repo.Path).RunStdString(repo.Ctx)
+	value, _, _ := gitcmd.NewCommand("config", "--global", "--get", "commit.gpgsign").RunStdString(ctx)
 	sign, valid := ParseBool(strings.TrimSpace(value))
 	if !sign || !valid {
 		gpgSettings.Sign = false
-		repo.gpgSettings = gpgSettings
 		return gpgSettings, nil
 	}
 
-	signingKey, _, _ := gitcmd.NewCommand("config", "--get", "user.signingkey").WithDir(repo.Path).RunStdString(repo.Ctx)
+	signingKey, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.signingkey").RunStdString(ctx)
 	gpgSettings.KeyID = strings.TrimSpace(signingKey)
 
-	format, _, _ := gitcmd.NewCommand("config", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").WithDir(repo.Path).RunStdString(repo.Ctx)
+	format, _, _ := gitcmd.NewCommand("config", "--global", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(ctx)
 	gpgSettings.Format = strings.TrimSpace(format)
 
-	defaultEmail, _, _ := gitcmd.NewCommand("config", "--get", "user.email").WithDir(repo.Path).RunStdString(repo.Ctx)
+	defaultEmail, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.email").RunStdString(ctx)
 	gpgSettings.Email = strings.TrimSpace(defaultEmail)
 
-	defaultName, _, _ := gitcmd.NewCommand("config", "--get", "user.name").WithDir(repo.Path).RunStdString(repo.Ctx)
+	defaultName, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.name").RunStdString(ctx)
 	gpgSettings.Name = strings.TrimSpace(defaultName)
 
 	if err := gpgSettings.LoadPublicKeyContent(); err != nil {
 		return nil, err
 	}
-	repo.gpgSettings = gpgSettings
-	return repo.gpgSettings, nil
+	return gpgSettings, nil
 }
