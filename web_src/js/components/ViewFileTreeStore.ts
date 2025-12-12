@@ -14,7 +14,6 @@ export type FileTreeItem = {
   children?: FileTreeItem[];
 };
 
-
 export function createViewFileTreeStore(props: {repoLink: string, treePath: string, currentRefNameSubURL: string}) {
   const store = reactive({
     rootFiles: [] as Array<FileTreeItem>,
