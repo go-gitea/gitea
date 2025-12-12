@@ -111,7 +111,7 @@ func NewComment(ctx *context.Context) {
 						ctx.ServerError("Unable to load base repo", err)
 						return
 					}
-					prHeadCommitID, err := git.GetFullCommitID(ctx, pull.BaseRepo.RepoPath(), prHeadRef)
+					prHeadCommitID, err := gitrepo.GetFullCommitID(ctx, pull.BaseRepo, prHeadRef)
 					if err != nil {
 						ctx.ServerError("Get head commit Id of pr fail", err)
 						return
@@ -128,7 +128,7 @@ func NewComment(ctx *context.Context) {
 						return
 					}
 					headBranchRef := git.RefNameFromBranch(pull.HeadBranch)
-					headBranchCommitID, err := git.GetFullCommitID(ctx, pull.HeadRepo.RepoPath(), headBranchRef.String())
+					headBranchCommitID, err := gitrepo.GetFullCommitID(ctx, pull.HeadRepo, headBranchRef.String())
 					if err != nil {
 						ctx.ServerError("Get head commit Id of head branch fail", err)
 						return
