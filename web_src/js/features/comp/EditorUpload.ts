@@ -1,5 +1,5 @@
 import {imageInfo} from '../../utils/image.ts';
-import {textareaInsertText, triggerEditorContentChanged} from './EditorMarkdown.ts';
+import {replaceTextareaSelection, triggerEditorContentChanged} from './EditorMarkdown.ts';
 import {
   DropzoneCustomEventRemovedFile,
   DropzoneCustomEventUploadDone,
@@ -43,7 +43,7 @@ class TextareaEditor {
   }
 
   insertPlaceholder(value: string) {
-    textareaInsertText(this.editor, value);
+    replaceTextareaSelection(this.editor, value);
   }
 
   replacePlaceholder(oldVal: string, newVal: string) {

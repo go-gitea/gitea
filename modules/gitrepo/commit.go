@@ -7,6 +7,7 @@ import (
 	"context"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -93,4 +94,19 @@ func AllCommitsCount(ctx context.Context, repo Repository, hidePRRefs bool, file
 	}
 
 	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
+}
+
+func GetFullCommitID(ctx context.Context, repo Repository, shortID string) (string, error) {
+	return git.GetFullCommitID(ctx, repoPath(repo), shortID)
+}
+
+// GetLatestCommitTime returns time for latest commit in repository (across all branches)
+func GetLatestCommitTime(ctx context.Context, repo Repository) (time.Time, error) {
+	stdout, err := RunCmdString(ctx, repo,
+		gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", git.BranchPrefix, "--count", "1", "--format=%(committerdate)"))
+	if err != nil {
+		return time.Time{}, err
+	}
+	commitTime := strings.TrimSpace(stdout)
+	return time.Parse("Mon Jan _2 15:04:05 2006 -0700", commitTime)
 }

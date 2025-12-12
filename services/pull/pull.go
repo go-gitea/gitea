@@ -570,13 +570,11 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 		log.Error("Unable to load head repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
-	headRepoPath := pr.HeadRepo.RepoPath()
 
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
-	baseRepoPath := pr.BaseRepo.RepoPath()
 
 	if err = pr.LoadIssue(ctx); err != nil {
 		return fmt.Errorf("unable to load issue %d for pr %d: %w", pr.IssueID, pr.ID, err)
@@ -587,8 +585,7 @@ func pushToBaseRepoHelper(ctx context.Context, pr *issues_model.PullRequest, pre
 
 	gitRefName := pr.GetGitHeadRefName()
 
-	if err := git.Push(ctx, headRepoPath, git.PushOptions{
-		Remote: baseRepoPath,
+	if err := gitrepo.Push(ctx, pr.HeadRepo, pr.BaseRepo, git.PushOptions{
 		Branch: prefixHeadBranch + pr.HeadBranch + ":" + gitRefName,
 		Force:  true,
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...

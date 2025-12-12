@@ -11,8 +11,10 @@ concurrency:
 jobs:
   nightly-binary:
     runs-on: namespace-profile-gitea-release-binary
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force
@@ -56,12 +58,14 @@ jobs:
       - name: upload binaries to s3
         run: |
           aws s3 sync dist/release s3://${{ secrets.AWS_S3_BUCKET }}/gitea/${{ steps.clean_name.outputs.branch }} --no-progress
+
   nightly-container:
     runs-on: namespace-profile-gitea-release-docker
     permissions:
+      contents: read
       packages: write # to publish to ghcr.io
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       # fetch all commits instead of only the last as some branches are long lived and could have many between versions
       # fetch all tags to ensure that "git describe" reports expected Gitea version, eg. v1.21.0-dev-1-g1234567
       - run: git fetch --unshallow --quiet --tags --force

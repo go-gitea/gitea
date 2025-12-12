@@ -69,9 +69,10 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, _, err := gitcmd.NewCommand("clone").AddDynamicArguments(repo.RepoPath(), tmpDir).
-		WithEnv(env).RunStdString(ctx); err != nil {
-		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
+	if err := gitrepo.CloneRepoToLocal(ctx, repo, tmpDir, git.CloneRepoOptions{
+		Env: env,
+	}); err != nil {
+		log.Error("Failed to clone from %v into %s\nError: %v", repo, tmpDir, err)
 		return fmt.Errorf("git clone: %w", err)
 	}
 

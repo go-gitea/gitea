@@ -227,6 +227,8 @@ func ctxDataSet(args ...any) func(ctx *context.Context) {
 	}
 }
 
+const RouterMockPointBeforeWebRoutes = "before-web-routes"
+
 // Routes returns all web routes
 func Routes() *web.Router {
 	routes := web.NewRouter()
@@ -285,7 +287,7 @@ func Routes() *web.Router {
 
 	webRoutes := web.NewRouter()
 	webRoutes.Use(mid...)
-	webRoutes.Group("", func() { registerWebRoutes(webRoutes) }, common.BlockExpensive(), common.QoS())
+	webRoutes.Group("", func() { registerWebRoutes(webRoutes) }, common.BlockExpensive(), common.QoS(), web.RouterMockPoint(RouterMockPointBeforeWebRoutes))
 	routes.Mount("", webRoutes)
 	return routes
 }

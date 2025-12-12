@@ -9,8 +9,10 @@ jobs:
   crowdin-pull:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: crowdin/github-action@v1
         with:
           upload_sources: true

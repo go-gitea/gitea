@@ -449,7 +449,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Error("SyncMirrors [repo_id: %v]: unable to GetMirrorByRepoID: %v", repoID, err)
 		return false
 	}
-	_ = m.GetRepository(ctx) // force load repository of mirror
+	repo := m.GetRepository(ctx) // force load repository of mirror
 
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
 	defer finished()
@@ -515,12 +515,12 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 
 		// Push commits
-		oldCommitID, err := git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, result.oldCommitID)
+		oldCommitID, err := gitrepo.GetFullCommitID(ctx, repo, result.oldCommitID)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get GetFullCommitID[%s]: %v", m.Repo, result.oldCommitID, err)
 			continue
 		}
-		newCommitID, err := git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, result.newCommitID)
+		newCommitID, err := gitrepo.GetFullCommitID(ctx, repo, result.newCommitID)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to get GetFullCommitID [%s]: %v", m.Repo, result.newCommitID, err)
 			continue
@@ -560,7 +560,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	}
 	if !isEmpty {
 		// Get latest commit date and update to current repository updated time
-		commitDate, err := git.GetLatestCommitTime(ctx, m.Repo.RepoPath())
+		commitDate, err := gitrepo.GetLatestCommitTime(ctx, m.Repo)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: unable to GetLatestCommitDate: %v", m.Repo, err)
 			return false

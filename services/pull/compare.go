@@ -48,14 +48,14 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 
 	compareInfo := new(CompareInfo)
 
-	compareInfo.HeadCommitID, err = git.GetFullCommitID(ctx, headGitRepo.Path, headBranch)
+	compareInfo.HeadCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, headBranch)
 	if err != nil {
 		compareInfo.HeadCommitID = headBranch
 	}
 
 	compareInfo.MergeBase, remoteBranch, err = headGitRepo.GetMergeBase(tmpRemote, baseBranch, headBranch)
 	if err == nil {
-		compareInfo.BaseCommitID, err = git.GetFullCommitID(ctx, headGitRepo.Path, remoteBranch)
+		compareInfo.BaseCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, remoteBranch)
 		if err != nil {
 			compareInfo.BaseCommitID = remoteBranch
 		}
@@ -77,7 +77,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		}
 	} else {
 		compareInfo.Commits = []*git.Commit{}
-		compareInfo.MergeBase, err = git.GetFullCommitID(ctx, headGitRepo.Path, remoteBranch)
+		compareInfo.MergeBase, err = gitrepo.GetFullCommitID(ctx, headRepo, remoteBranch)
 		if err != nil {
 			compareInfo.MergeBase = remoteBranch
 		}

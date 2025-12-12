@@ -230,8 +230,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	)
 
 	// Clone to temporary path and do the init commit.
-	templateRepoPath := templateRepo.RepoPath()
-	if err := git.Clone(ctx, templateRepoPath, tmpDir, git.CloneRepoOptions{
+	if err := gitrepo.CloneRepoToLocal(ctx, templateRepo, tmpDir, git.CloneRepoOptions{
 		Depth:  1,
 		Branch: templateRepo.DefaultBranch,
 	}); err != nil {

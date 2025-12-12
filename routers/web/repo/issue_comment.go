@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/renderhelper"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -110,7 +111,7 @@ func NewComment(ctx *context.Context) {
 						ctx.ServerError("Unable to load base repo", err)
 						return
 					}
-					prHeadCommitID, err := git.GetFullCommitID(ctx, pull.BaseRepo.RepoPath(), prHeadRef)
+					prHeadCommitID, err := gitrepo.GetFullCommitID(ctx, pull.BaseRepo, prHeadRef)
 					if err != nil {
 						ctx.ServerError("Get head commit Id of pr fail", err)
 						return
@@ -127,7 +128,7 @@ func NewComment(ctx *context.Context) {
 						return
 					}
 					headBranchRef := git.RefNameFromBranch(pull.HeadBranch)
-					headBranchCommitID, err := git.GetFullCommitID(ctx, pull.HeadRepo.RepoPath(), headBranchRef.String())
+					headBranchCommitID, err := gitrepo.GetFullCommitID(ctx, pull.HeadRepo, headBranchRef.String())
 					if err != nil {
 						ctx.ServerError("Get head commit Id of head branch fail", err)
 						return
@@ -141,8 +142,7 @@ func NewComment(ctx *context.Context) {
 
 					if prHeadCommitID != headBranchCommitID {
 						// force push to base repo
-						err := git.Push(ctx, pull.HeadRepo.RepoPath(), git.PushOptions{
-							Remote: pull.BaseRepo.RepoPath(),
+						err := gitrepo.Push(ctx, pull.HeadRepo, pull.BaseRepo, git.PushOptions{
 							Branch: pull.HeadBranch + ":" + prHeadRef,
 							Force:  true,
 							Env:    repo_module.InternalPushingEnvironment(pull.Issue.Poster, pull.BaseRepo),

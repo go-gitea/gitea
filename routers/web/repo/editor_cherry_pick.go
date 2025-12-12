@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -66,7 +67,7 @@ func CherryPickPost(ctx *context.Context) {
 		// Drop through to the "apply" method
 		buf := &bytes.Buffer{}
 		if parsed.form.Revert {
-			err = git.GetReverseRawDiff(ctx, ctx.Repo.Repository.RepoPath(), fromCommitID, buf)
+			err = gitrepo.GetReverseRawDiff(ctx, ctx.Repo.Repository, fromCommitID, buf)
 		} else {
 			err = git.GetRawDiff(ctx.Repo.GitRepo, fromCommitID, "patch", buf)
 		}

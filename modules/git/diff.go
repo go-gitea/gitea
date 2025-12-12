@@ -32,20 +32,6 @@ func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer 
 	return GetRepoRawDiffForFile(repo, "", commitID, diffType, "", writer)
 }
 
-// GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
-func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io.Writer) error {
-	stderr := new(bytes.Buffer)
-	if err := gitcmd.NewCommand("show", "--pretty=format:revert %H%n", "-R").
-		AddDynamicArguments(commitID).
-		WithDir(repoPath).
-		WithStdout(writer).
-		WithStderr(stderr).
-		Run(ctx); err != nil {
-		return fmt.Errorf("Run: %w - %s", err, stderr)
-	}
-	return nil
-}
-
 // GetRepoRawDiffForFile dumps diff results of file in given commit ID to io.Writer according given repository
 func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
 	commit, err := repo.GetCommit(endCommit)

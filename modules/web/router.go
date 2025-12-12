@@ -55,7 +55,7 @@ func NewRouter() *Router {
 // Use supports two middlewares
 func (r *Router) Use(middlewares ...any) {
 	for _, m := range middlewares {
-		if m != nil {
+		if !isNilOrFuncNil(m) {
 			r.chiRouter.Use(toHandlerProvider(m))
 		}
 	}
