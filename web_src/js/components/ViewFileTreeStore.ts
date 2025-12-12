@@ -11,7 +11,7 @@ export type FileTreeItem = {
   entryIconOpen: string;
   fullPath: string;
   submoduleUrl?: string;
-  children?: FileTreeItem[];
+  children?: Array<FileTreeItem>;
 };
 
 export function createViewFileTreeStore(props: {repoLink: string, treePath: string, currentRefNameSubURL: string}) {
