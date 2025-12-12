@@ -256,11 +256,9 @@ async function onLocationHashChange() {
       // eslint-disable-next-line unicorn/prefer-query-selector
       const commentElement = document.getElementById(hashValue);
       if (commentElement) {
-        commentElement.scrollIntoView();
-        document.body.setAttribute(diffAutoScrollAttr, 'true');
+        commentElement.scrollIntoView({behavior: 'instant'});
         window.location.hash = '';
         window.location.hash = currentHash;
-        setTimeout(() => document.body.removeAttribute(diffAutoScrollAttr), 0);
         return;
       }
     }
