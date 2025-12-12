@@ -14,6 +14,16 @@ import (
 	"code.gitea.io/gitea/modules/process"
 )
 
+// GPGSettings represents the default GPG settings for this repository
+type GPGSettings struct {
+	Sign             bool
+	KeyID            string
+	Email            string
+	Name             string
+	PublicKeyContent string
+	Format           string
+}
+
 // LoadPublicKeyContent will load the key from gpg
 func (gpgSettings *GPGSettings) LoadPublicKeyContent() error {
 	if gpgSettings.Format == SigningKeyFormatSSH {
