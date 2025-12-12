@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/process"
@@ -26,6 +27,10 @@ type GPGSettings struct {
 
 // LoadPublicKeyContent will load the key from gpg
 func (gpgSettings *GPGSettings) LoadPublicKeyContent() error {
+	if gpgSettings.PublicKeyContent != "" {
+		return nil
+	}
+
 	if gpgSettings.Format == SigningKeyFormatSSH {
 		content, err := os.ReadFile(gpgSettings.KeyID)
 		if err != nil {
@@ -44,33 +49,45 @@ func (gpgSettings *GPGSettings) LoadPublicKeyContent() error {
 	return nil
 }
 
-// GetDefaultPublicGPGKey will return and cache the default public GPG settings for this repository
+var (
+	loadPublicGPGKeyMutex sync.Mutex
+	globalGPGSettings     *GPGSettings
+)
+
+// GetDefaultPublicGPGKey will return and cache the default public GPG settings
 func GetDefaultPublicGPGKey(ctx context.Context, forceUpdate bool) (*GPGSettings, error) {
-	gpgSettings := &GPGSettings{
+	loadPublicGPGKeyMutex.Lock()
+	defer loadPublicGPGKeyMutex.Unlock()
+
+	if globalGPGSettings != nil && !forceUpdate {
+		return globalGPGSettings, nil
+	}
+
+	globalGPGSettings = &GPGSettings{
 		Sign: true,
 	}
 
 	value, _, _ := gitcmd.NewCommand("config", "--global", "--get", "commit.gpgsign").RunStdString(ctx)
 	sign, valid := ParseBool(strings.TrimSpace(value))
 	if !sign || !valid {
-		gpgSettings.Sign = false
-		return gpgSettings, nil
+		globalGPGSettings.Sign = false
+		return globalGPGSettings, nil
 	}
 
 	signingKey, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.signingkey").RunStdString(ctx)
-	gpgSettings.KeyID = strings.TrimSpace(signingKey)
+	globalGPGSettings.KeyID = strings.TrimSpace(signingKey)
 
 	format, _, _ := gitcmd.NewCommand("config", "--global", "--default", SigningKeyFormatOpenPGP, "--get", "gpg.format").RunStdString(ctx)
-	gpgSettings.Format = strings.TrimSpace(format)
+	globalGPGSettings.Format = strings.TrimSpace(format)
 
 	defaultEmail, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.email").RunStdString(ctx)
-	gpgSettings.Email = strings.TrimSpace(defaultEmail)
+	globalGPGSettings.Email = strings.TrimSpace(defaultEmail)
 
 	defaultName, _, _ := gitcmd.NewCommand("config", "--global", "--get", "user.name").RunStdString(ctx)
-	gpgSettings.Name = strings.TrimSpace(defaultName)
+	globalGPGSettings.Name = strings.TrimSpace(defaultName)
 
-	if err := gpgSettings.LoadPublicKeyContent(); err != nil {
+	if err := globalGPGSettings.LoadPublicKeyContent(); err != nil {
 		return nil, err
 	}
-	return gpgSettings, nil
+	return globalGPGSettings, nil
 }
