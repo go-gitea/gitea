@@ -80,6 +80,7 @@
     "@types/tinycolor2": "1.4.6",
     "@types/toastify-js": "1.12.4",
     "@typescript-eslint/parser": "8.48.1",
+    "@typescript/native-preview": "7.0.0-dev.20251212.1",
     "@vitejs/plugin-vue": "6.0.2",
     "@vitest/eslint-plugin": "1.5.1",
     "eslint": "9.39.1",
