@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code"
@@ -60,6 +61,9 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
+	ctx.Data["Err_RepoSize"] = ctx.Repo.Repository.IsRepoSizeOversized(ctx.Repo.Repository.GetActualSizeLimit() / 10) // less than 10% left
+	ctx.Data["ActualSizeLimit"] = ctx.Repo.Repository.GetActualSizeLimit()
+	ctx.Data["EnableSizeLimit"] = setting.EnableSizeLimit
 
 	signing, _ := gitrepo.GetSigningKey(ctx, ctx.Repo.Repository)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
@@ -108,6 +112,9 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
+	repo := ctx.Repo.Repository
+	ctx.Data["Err_RepoSize"] = repo.IsRepoSizeOversized(repo.GetActualSizeLimit() / 10) // less than 10% left
 
 	switch ctx.FormString("action") {
 	case "update":
@@ -206,6 +213,29 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.Description = form.Description
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
+
+	var repoSizeLimit int64
+	var err error
+	if form.RepoSizeLimit != "" {
+		repoSizeLimit, err = base.GetFileSize(form.RepoSizeLimit)
+		if err != nil {
+			ctx.Data["Err_RepoSizeLimit"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.invalid_repo_size_limit"), tplSettingsOptions, &form)
+			return
+		}
+	}
+	if repoSizeLimit < 0 {
+		ctx.Data["Err_RepoSizeLimit"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.repo_size_limit_negative"), tplSettingsOptions, &form)
+		return
+	}
+
+	if !ctx.Doer.IsAdmin && repo.SizeLimit != repoSizeLimit {
+		ctx.Data["Err_RepoSizeLimit"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.repo_size_limit_only_by_admins"), tplSettingsOptions, &form)
+		return
+	}
+	repo.SizeLimit = repoSizeLimit
 
 	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 		ctx.ServerError("UpdateRepository", err)

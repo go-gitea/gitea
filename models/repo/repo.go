@@ -201,7 +201,9 @@ type Repository struct {
 	BaseRepo                        *Repository        `xorm:"-"`
 	IsTemplate                      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	TemplateID                      int64              `xorm:"INDEX"`
+	SizeLimit                       int64              `xorm:"NOT NULL DEFAULT 0"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
+	EnableSizeLimit                 bool               `xorm:"NOT NULL DEFAULT true"`
 	GitSize                         int64              `xorm:"NOT NULL DEFAULT 0"`
 	LFSSize                         int64              `xorm:"NOT NULL DEFAULT 0"`
 	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
@@ -628,6 +630,27 @@ func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, branchName
 // IsOwnedBy returns true when user owns this repository
 func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
+}
+
+// GetActualSizeLimit returns repository size limit in bytes
+// or global repository limit setting if per repository size limit is not set
+func (repo *Repository) GetActualSizeLimit() int64 {
+	sizeLimit := repo.SizeLimit
+	if setting.RepoSizeLimit > 0 && sizeLimit == 0 {
+		sizeLimit = setting.RepoSizeLimit
+	}
+	return sizeLimit
+}
+
+// RepoSizeIsOversized return true if is over size limitation
+func (repo *Repository) IsRepoSizeOversized(additionalSize int64) bool {
+	return setting.EnableSizeLimit && repo.GetActualSizeLimit() > 0 && repo.GitSize+additionalSize > repo.GetActualSizeLimit()
+}
+
+// RepoSizeLimitEnabled return true if size limit checking is enabled and limit is non zero for this specific repository
+// this is used to enable size checking during pre-receive hook
+func (repo *Repository) IsRepoSizeLimitEnabled() bool {
+	return setting.EnableSizeLimit && repo.GetActualSizeLimit() > 0
 }
 
 // CanCreateBranch returns true if repository meets the requirements for creating new branches.

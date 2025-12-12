@@ -95,6 +95,13 @@ func FileSize(s int64) string {
 	return humanize.IBytes(uint64(s))
 }
 
+// Get FileSize bytes value from  String.
+func GetFileSize(s string) (int64, error) {
+	v, err := humanize.ParseBytes(s)
+	iv := int64(v)
+	return iv, err
+}
+
 // StringsToInt64s converts a slice of string to a slice of int64.
 func StringsToInt64s(strs []string) ([]int64, error) {
 	if strs == nil {

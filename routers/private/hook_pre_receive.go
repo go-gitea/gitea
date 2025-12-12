@@ -8,6 +8,12 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
@@ -16,6 +22,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -105,8 +112,318 @@ func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 	return true
 }
 
+// calculateSizeOfObject calculates the size of one git object via git cat-file -s command
+func calculateSizeOfObject(ctx *gitea_context.PrivateContext, dir string, env []string, objectID string) (int64, error) {
+	objectSizeStr, _, err := gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(objectID).WithDir(dir).WithEnv(env).RunStdString(ctx)
+	if err != nil {
+		log.Trace("CalculateSizeOfRemovedObjects: Error during git cat-file -s on object: %s", objectID)
+		return 0, err
+	}
+
+	var errParse error
+	var objectSize int64
+	objectSize, errParse = strconv.ParseInt(strings.TrimSpace(objectSizeStr), 10, 64)
+	if errParse != nil {
+		log.Trace("CalculateSizeOfRemovedObjects: Error during ParseInt on string '%s'", objectID)
+		return 0, errParse
+	}
+	return objectSize, nil
+}
+
+// calculateSizeOfObjectsFromCache calculates the size of objects added and removed from the repository by new push
+// it uses data that was cached about the repository for this run
+func calculateSizeOfObjectsFromCache(newCommitObjects, oldCommitObjects, otherCommitObjects map[string]bool, commitObjectsSizes map[string]int64) (addedSize, removedSize int64) {
+	// Calculate size of objects that were added
+	for objectID := range newCommitObjects {
+		if _, exists := oldCommitObjects[objectID]; !exists {
+			// objectID is not referenced in the list of objects of old commit so it is a new object
+			// Calculate its size and add it to the addedSize
+			addedSize += commitObjectsSizes[objectID]
+		}
+		// We might check here if new object is not already in the rest of repo to be precise
+		// However our goal is to prevent growth of repository so on determination of addedSize
+		// We can skip this preciseness, addedSize will be more then real addedSize
+		// TODO - do not count size of object that is referenced in other part of repo but not referenced neither in old nor new commit
+		//        git will not add the object twice
+	}
+
+	// Calculate size of objects that were removed
+	for objectID := range oldCommitObjects {
+		if _, exists := newCommitObjects[objectID]; !exists {
+			// objectID is not referenced in the list of new commit objects so it was possibly removed
+			if _, exists := otherCommitObjects[objectID]; !exists {
+				// objectID is not referenced in rest of the objects of the repository so it was removed
+				// Calculate its size and add it to the removedSize
+				removedSize += commitObjectsSizes[objectID]
+			}
+		}
+	}
+	return addedSize, removedSize
+}
+
+// convertObjectsToMap takes a newline-separated string of git objects and
+// converts it into a map for efficient lookup.
+func convertObjectsToMap(objects string) map[string]bool {
+	objectsMap := make(map[string]bool)
+	for object := range strings.SplitSeq(objects, "\n") {
+		if len(object) == 0 {
+			continue
+		}
+		objectID := strings.Split(object, " ")[0]
+		objectsMap[objectID] = true
+	}
+	return objectsMap
+}
+
+// convertObjectsToSlice converts a list of hashes in a string from the git rev-list --objects command to a slice of string objects
+func convertObjectsToSlice(objects string) (objectIDs []string) {
+	for object := range strings.SplitSeq(objects, "\n") {
+		if len(object) == 0 {
+			continue
+		}
+		objectID := strings.Split(object, " ")[0]
+		objectIDs = append(objectIDs, objectID)
+	}
+	return objectIDs
+}
+
+// loadObjectSizesFromPack access all packs that this push or repo has
+// and load compressed object size in bytes into objectSizes map
+// using `git verify-pack -v` output
+func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env, _ []string, objectsSizes map[string]int64) error {
+	// Find the path from GIT_QUARANTINE_PATH environment variable (path to the pack file)
+	var packPath string
+	var errExec error
+	for _, envVar := range env {
+		split := strings.SplitN(envVar, "=", 2)
+		if split[0] == "GIT_QUARANTINE_PATH" {
+			packPath = split[1]
+			break
+		}
+	}
+
+	// if no quarantinPath determined we silently ignore
+	if packPath == "" {
+		log.Trace("GIT_QUARANTINE_PATH not found in the environment variables. Will read the pack files from main repo instead")
+		packPath = filepath.Join(ctx.Repo.Repository.RepoPath(), "./objects/")
+	}
+	log.Warn("packPath: %s", packPath)
+
+	// Find all pack files *.idx in the quarantine directory
+	packFiles, err := filepath.Glob(filepath.Join(packPath, "./pack/*.idx"))
+	// if pack file not found we silently ignore
+	if err != nil {
+		log.Trace("Error during finding pack files %s: %v", filepath.Join(packPath, "./pack/*.idx"), err)
+	}
+
+	// Loop over each pack file
+	i := 0
+	for _, packFile := range packFiles {
+		log.Trace("Processing packfile %s", packFile)
+		// Extract and store in cache objectsSizes the sizes of the object parsing output of the `git verify-pack` command
+		output, _, err := gitcmd.NewCommand("verify-pack", "-v").AddDynamicArguments(packFile).WithDir(dir).WithEnv(env).RunStdString(ctx)
+		if err != nil {
+			log.Trace("Error during git verify-pack on pack file: %s", packFile)
+			if errExec == nil {
+				errExec = err
+			} else {
+				errExec = fmt.Errorf("%w; %v", errExec, err)
+			}
+			continue
+		}
+
+		// Parsing the output of the git verify-pack command
+		lines := strings.SplitSeq(output, "\n")
+		for line := range lines {
+			fields := strings.Fields(line)
+			if len(fields) < 4 {
+				continue
+			}
+
+			// Second field has object type
+			// If object type is not known filter it out and do not process
+			objectType := fields[1]
+			if objectType != "commit" && objectType != "tree" && objectType != "blob" && objectType != "tag" {
+				continue
+			}
+
+			// First field would have an object hash
+			objectID := fields[0]
+
+			// Forth field would have an object compressed size
+			size, err := strconv.ParseInt(fields[3], 10, 64)
+			if err != nil {
+				log.Trace("Failed to parse size for object %s: %v", objectID, err)
+				continue
+			}
+			i++
+			objectsSizes[objectID] = size
+		}
+	}
+
+	log.Trace("Loaded %d items from packfiles", i)
+	return errExec
+}
+
+// loadObjectsSizesViaCatFile uses hashes from objectIDs and runs `git cat-file -s` in 10 workers to return each object sizes
+// Objects for which size is already loaded are skipped
+// can't use `git cat-file --batch-check` here as it only provides data from git DB before the commit applied and has no knowledge on new commit objects
+func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, dir string, env, objectIDs []string, objectsSizes map[string]int64) error {
+	// This is the number of workers that will simultaneously process CalculateSizeOfObject.
+	const numWorkers = 10
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	// errExec will hold the first error.
+	var errOnce sync.Once
+	var errExec error
+
+	// errCount will count how many *additional* errors occurred after the first one.
+	var errCount int64
+
+	// Prepare numWorkers slices to store the work
+	reducedObjectIDs := make([][]string, numWorkers)
+	for i := range reducedObjectIDs {
+		reducedObjectIDs[i] = make([]string, 0, len(objectIDs)/numWorkers+1)
+	}
+
+	// Loop over all objectIDs and find which ones are missing size information
+	i := 0
+	for _, objectID := range objectIDs {
+		_, exists := objectsSizes[objectID]
+
+		// If object doesn't yet have size in objectsSizes add it for further processing
+		if !exists {
+			reducedObjectIDs[i%numWorkers] = append(reducedObjectIDs[i%numWorkers], objectID)
+			i++
+		}
+	}
+
+	// Start workers and determine size using `git cat-file -s`, store in objectsSizes cache
+	for w := 1; w <= numWorkers; w++ {
+		wg.Add(1)
+		go func(reducedObjectIDs *[]string) {
+			defer wg.Done()
+			for _, objectID := range *reducedObjectIDs {
+				ctx := ctx
+				// Ensure that each worker has its own copy of the env environment to prevent races
+				env := append([]string(nil), env...)
+
+				objectSize, err := calculateSizeOfObject(ctx, dir, env, objectID)
+				// Upon error we store the first error and continue processing, as we can't stop the push
+				// if we were not able to calculate the size of the object, but we keep one error to
+				// return at the end, along with a count of subsequent similar errors.
+				if err != nil {
+					ran := false
+					errOnce.Do(func() {
+						errExec = err
+						ran = true
+					})
+					if !ran {
+						// This is not the first error – count it as a subsequent error.
+						atomic.AddInt64(&errCount, 1)
+					}
+				}
+
+				mu.Lock() // Protecting shared resource
+				objectsSizes[objectID] = objectSize
+				mu.Unlock() // Releasing shared resource for other goroutines
+			}
+		}(&reducedObjectIDs[(w-1)%numWorkers])
+	}
+
+	// Wait for all workers to finish processing.
+	wg.Wait()
+
+	if errExec == nil {
+		return nil
+	}
+
+	// If there were additional errors, wrap the first one with a summary.
+	if n := atomic.LoadInt64(&errCount); n > 0 {
+		return fmt.Errorf("%w (and %d subsequent similar errors)", errExec, n)
+	}
+
+	// Only one error occurred.
+	return errExec
+}
+
+// loadObjectsSizesViaBatch uses hashes from objectIDs and uses pre-opened `git cat-file --batch-check` command to slice and return each object sizes
+// This function can't be used for new commit objects.
+// It speeds up loading object sizes from existing git database of the repository avoiding
+// multiple `git cat-files -s`
+func loadObjectsSizesViaBatch(ctx *gitea_context.PrivateContext, repoPath string, objectIDs []string, objectsSizes map[string]int64) error {
+	var i int32
+
+	reducedObjectIDs := make([]string, 0, len(objectIDs))
+
+	// Loop over all objectIDs and find which ones are missing size information
+	for _, objectID := range objectIDs {
+		_, exists := objectsSizes[objectID]
+
+		// If object doesn't yet have size in objectsSizes add it for further processing
+		if !exists {
+			reducedObjectIDs = append(reducedObjectIDs, objectID)
+		}
+	}
+
+	batch, err := git.NewBatchCheck(ctx, repoPath)
+	if err != nil {
+		log.Error("Unable to create CatFileBatchCheck in %s Error: %v", repoPath, err)
+		return fmt.Errorf("Fail to create CatFileBatchCheck: %v", err)
+	}
+	defer batch.Close()
+	wr := batch.Writer
+	rd := batch.Reader
+
+	for _, commitID := range reducedObjectIDs {
+		_, err := wr.Write([]byte(commitID + "\n"))
+		if err != nil {
+			return err
+		}
+		i++
+		line, err := rd.ReadString('\n')
+		if err != nil {
+			return err
+		}
+		if len(line) == 1 {
+			line, err = rd.ReadString('\n')
+			if err != nil {
+				return err
+			}
+		}
+		fields := strings.Fields(line)
+		objectID := fields[0]
+		if len(fields) < 3 || len(fields) > 3 {
+			log.Trace("String '%s' does not contain size ignored %s: %v", line, objectID, err)
+			continue
+		}
+		sizeStr := fields[2]
+		size, err := parseSize(sizeStr)
+		if err != nil {
+			log.Trace("String '%s' Failed to parse size for object %s: %v", line, objectID, err)
+			continue
+		}
+		objectsSizes[objectID] = size
+	}
+
+	return nil
+}
+
+// parseSize parses the object size from a string
+func parseSize(sizeStr string) (int64, error) {
+	size, err := strconv.ParseInt(sizeStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse object size: %w", err)
+	}
+	return size, nil
+}
+
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *gitea_context.PrivateContext) {
+	startTime := time.Now()
+
 	opts := web.GetForm(ctx).(*private.HookOptions)
 
 	ourCtx := &preReceiveContext{
@@ -115,11 +432,149 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		opts:           opts,
 	}
 
+	repo := ourCtx.Repo.Repository
+
+	var addedSize int64
+	var removedSize int64
+	var isRepoOversized bool
+	var pushSize *git.CountObject
+	var repoSize *git.CountObject
+	var err error
+	var duration time.Duration
+
+	if repo.IsRepoSizeLimitEnabled() {
+		// Calculating total size of the repo using `git count-objects`
+		repoSize, err = git.CountObjects(ctx, repo.RepoPath())
+		if err != nil {
+			log.Error("Unable to get repository size with env %v: %s Error: %v", repo.RepoPath(), ourCtx.env, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]any{
+				"err": err.Error(),
+			})
+			return
+		}
+
+		// Calculating total size of the push using `git count-objects`
+		pushSize, err = git.CountObjectsWithEnv(ctx, repo.RepoPath(), ourCtx.env)
+		if err != nil {
+			log.Error("Unable to get push size with env %v: %s Error: %v", repo.RepoPath(), ourCtx.env, err)
+			ctx.JSON(http.StatusInternalServerError, map[string]any{
+				"err": err.Error(),
+			})
+			return
+		}
+
+		// Cache whether the repository would breach the size limit after the operation
+		isRepoOversized = repo.IsRepoSizeOversized(pushSize.Size + pushSize.SizePack)
+		log.Warn("Push counts %+v", pushSize)
+		log.Warn("Repo counts %+v", repoSize)
+	}
+
 	// Iterate across the provided old commit IDs
 	for i := range opts.OldCommitIDs {
 		oldCommitID := opts.OldCommitIDs[i]
 		newCommitID := opts.NewCommitIDs[i]
 		refFullName := opts.RefFullNames[i]
+
+		log.Trace("Processing old commit: %s, new commit: %s, ref: %s", oldCommitID, newCommitID, refFullName)
+
+		// If operation is in potential breach of size limit prepare data for analysis
+		if isRepoOversized {
+			var gitObjects string
+			var errLoop error
+
+			// Create cache of objects in old commit
+			// if oldCommitID all 0 then it's a fresh repository on gitea server and all git operations on such oldCommitID would fail
+			if oldCommitID != "0000000000000000000000000000000000000000" {
+				gitObjects, _, err = gitcmd.NewCommand("rev-list", "--objects").AddDynamicArguments(oldCommitID).WithDir(repo.RepoPath()).WithEnv(ourCtx.env).RunStdString(ctx)
+				if err != nil {
+					log.Error("Unable to list objects in old commit: %s in %-v Error: %v", oldCommitID, repo, err)
+					ctx.JSON(http.StatusInternalServerError, private.Response{
+						Err: fmt.Sprintf("Fail to list objects in old commit: %v", err),
+					})
+					return
+				}
+			}
+
+			commitObjectsSizes := make(map[string]int64)
+			oldCommitObjects := convertObjectsToMap(gitObjects)
+			objectIDs := convertObjectsToSlice(gitObjects)
+
+			// Create cache of objects that are in the repository but not part of old or new commit
+			// if oldCommitID all 0 then it's a fresh repository on gitea server and all git operations on such oldCommitID would fail
+			if oldCommitID == "0000000000000000000000000000000000000000" {
+				gitObjects, _, err = gitcmd.NewCommand("rev-list", "--objects", "--all").AddDynamicArguments("^" + newCommitID).WithDir(repo.RepoPath()).WithEnv(ourCtx.env).RunStdString(ctx)
+				if err != nil {
+					log.Error("Unable to list objects in the repo that are missing from both old %s and new %s commits in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+					ctx.JSON(http.StatusInternalServerError, private.Response{
+						Err: fmt.Sprintf("Fail to list objects missing from both old and new commits: %v", err),
+					})
+					return
+				}
+			} else {
+				gitObjects, _, err = gitcmd.NewCommand("rev-list", "--objects", "--all").AddDynamicArguments("^"+oldCommitID, "^"+newCommitID).WithDir(repo.RepoPath()).WithEnv(ourCtx.env).RunStdString(ctx)
+				if err != nil {
+					log.Error("Unable to list objects in the repo that are missing from both old %s and new %s commits in %-v Error: %v", oldCommitID, newCommitID, repo, err)
+					ctx.JSON(http.StatusInternalServerError, private.Response{
+						Err: fmt.Sprintf("Fail to list objects missing from both old and new commits: %v", err),
+					})
+					return
+				}
+			}
+
+			otherCommitObjects := convertObjectsToMap(gitObjects)
+			objectIDs = append(objectIDs, convertObjectsToSlice(gitObjects)...)
+			// Unfortunately `git cat-file --check-batch` shows full object size
+			// so we would load compressed sizes from pack file via `git verify-pack -v` if there are pack files in repo
+			// The result would still miss items that are loose as individual objects (not part of pack files)
+			if repoSize.InPack > 0 {
+				errLoop = loadObjectSizesFromPack(ctx, repo.RepoPath(), nil, objectIDs, commitObjectsSizes)
+				if errLoop != nil {
+					log.Error("Unable to get sizes of objects from the pack in %-v Error: %v", repo, errLoop)
+				}
+			}
+
+			// Load loose objects that are missing
+			errLoop = loadObjectsSizesViaBatch(ctx, repo.RepoPath(), objectIDs, commitObjectsSizes)
+			if errLoop != nil {
+				log.Error("Unable to get sizes of objects that are missing in both old %s and new commits %s in %-v Error: %v", oldCommitID, newCommitID, repo, errLoop)
+				ctx.JSON(http.StatusInternalServerError, private.Response{
+					Err: fmt.Sprintf("Fail to get sizes of objects missing in both old and new commit and those in old commit: %v", err),
+				})
+				return
+			}
+
+			// Create cache of objects in new commit
+			gitObjects, _, err = gitcmd.NewCommand("rev-list", "--objects").AddDynamicArguments(newCommitID).WithDir(repo.RepoPath()).WithEnv(ourCtx.env).RunStdString(ctx)
+			if err != nil {
+				log.Error("Unable to list objects in new commit %s in %-v Error: %v", newCommitID, repo, err)
+				ctx.JSON(http.StatusInternalServerError, private.Response{
+					Err: fmt.Sprintf("Fail to list objects in new commit: %v", err),
+				})
+				return
+			}
+
+			newCommitObjects := convertObjectsToMap(gitObjects)
+			objectIDs = convertObjectsToSlice(gitObjects)
+			// Unfortunately `git cat-file --check-batch` doesn't work on objects not yet accepted into git database
+			// so the sizes will be calculated through pack file `git verify-pack -v` if there are pack files
+			// The result would still miss items that were sent loose as individual objects (not part of pack files)
+			if pushSize.InPack > 0 {
+				errLoop = loadObjectSizesFromPack(ctx, repo.RepoPath(), ourCtx.env, objectIDs, commitObjectsSizes)
+				if errLoop != nil {
+					log.Error("Unable to get sizes of objects from the pack in new commit %s in %-v Error: %v", newCommitID, repo, errLoop)
+				}
+			}
+
+			// After loading everything we could from pack file, objects could have been sent as loose bunch as well
+			// We need to load them individually with `git cat-file -s` on any object that is missing from accumulated size cache commitObjectsSizes
+			errLoop = loadObjectsSizesViaCatFile(ctx, repo.RepoPath(), ourCtx.env, objectIDs, commitObjectsSizes)
+			if errLoop != nil {
+				log.Error("Unable to get sizes of objects in new commit %s in %-v Error: %v", newCommitID, repo, errLoop)
+			}
+
+			// Calculate size that was added and removed by the new commit
+			addedSize, removedSize = calculateSizeOfObjectsFromCache(newCommitObjects, oldCommitObjects, otherCommitObjects, commitObjectsSizes)
+		}
 
 		switch {
 		case refFullName.IsBranch():
@@ -134,6 +589,20 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		if ctx.Written() {
 			return
 		}
+	}
+
+	if repo.IsRepoSizeLimitEnabled() {
+		duration = time.Since(startTime)
+		log.Warn("During size checking - Addition in size is: %d, removal in size is: %d, limit size: %d, push size: %d, repo size: %d. Took %s seconds.", addedSize, removedSize, repo.GetActualSizeLimit(), pushSize.Size+pushSize.SizePack, repo.GitSize, duration)
+	}
+
+	// If total of commits add more size then they remove and we are in a potential breach of size limit -- abort
+	if (addedSize > removedSize) && isRepoOversized {
+		log.Warn("Forbidden: new repo size %s would be over limitation of %s. Push size: %s. Took %s seconds. addedSize: %s. removedSize: %s", base.FileSize(repo.GitSize+addedSize-removedSize), base.FileSize(repo.GetActualSizeLimit()), base.FileSize(pushSize.Size+pushSize.SizePack), duration, base.FileSize(addedSize), base.FileSize(removedSize))
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: "New repository size is over limitation of " + base.FileSize(repo.GetActualSizeLimit()),
+		})
+		return
 	}
 
 	ctx.PlainText(http.StatusOK, "ok")

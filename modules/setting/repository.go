@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+
+	"github.com/dustin/go-humanize"
 )
 
 // enumerates all the policy repository creating
@@ -273,12 +275,35 @@ var (
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
+
+	EnableSizeLimit = true
+	RepoSizeLimit   int64
 )
+
+func SaveGlobalRepositorySetting(enableSizeLimit bool, repoSizeLimit int64) error {
+	EnableSizeLimit = enableSizeLimit
+	RepoSizeLimit = repoSizeLimit
+	sec := CfgProvider.Section("repository")
+	if EnableSizeLimit {
+		sec.Key("ENABLE_SIZE_LIMIT").SetValue("true")
+	} else {
+		sec.Key("ENABLE_SIZE_LIMIT").SetValue("false")
+	}
+
+	sec.Key("REPO_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(RepoSizeLimit)))
+	return nil
+}
 
 func loadRepositoryFrom(rootCfg ConfigProvider) {
 	var err error
+
 	// Determine and create root git repository path.
 	sec := rootCfg.Section("repository")
+	EnableSizeLimit = sec.Key("ENABLE_SIZE_LIMIT").MustBool(false)
+
+	v, _ := humanize.ParseBytes(sec.Key("REPO_SIZE_LIMIT").MustString("0"))
+	RepoSizeLimit = int64(v)
+
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")
