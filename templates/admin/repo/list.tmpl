@@ -1,23 +1,23 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.config.repository_config"}}
+			{{ctx.Locale.Tr "admin.config.global_repo_size_limit_manage_panel"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="inline field">
-					<label>{{.locale.Tr "admin.config.enable_size_limit"}}</label>
+					<label>{{ctx.Locale.Tr "admin.config.enable_size_limit"}}</label>
 					<div class="ui checkbox">
 						<input name="enable_size_limit" type="checkbox" {{if .EnableSizeLimit}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field {{if .Err_Repo_Size_Limit}}error{{end}}">
-					<label for="repo_size_limit">{{.locale.Tr "admin.config.repo_size_limit"}}</label>
-					<input id="repo_size_limit" name="repo_size_limit" value="{{.RepoSizeLimit}}">
+					<label for="repo_size_limit">{{ctx.Locale.Tr "admin.config.repo_size_limit"}}</label>
+					<input id="repo_size_limit" name="repo_size_limit" value="{{.RepoSizeLimit}}" data-tooltip-content='{{ctx.Locale.Tr "admin.config.repo_size_limit.desc"}}'>
 				</div>
 				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "repo.settings.update_settings"}}</button>
+					<button class="ui green button">{{ctx.Locale.Tr "admin.config.update_settings"}}</button>
 				</div>
 			</form>
 		</div>

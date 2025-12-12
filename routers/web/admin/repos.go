@@ -89,7 +89,7 @@ func UpdateRepoPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.config.repository_setting_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/repos")
+	ctx.Redirect(setting.AppSubURL + "/-/admin/repos")
 }
 
 // DeleteRepo delete one repository
