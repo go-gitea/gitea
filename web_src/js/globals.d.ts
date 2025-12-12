@@ -16,7 +16,6 @@ declare module '*.vue' {
   // non-vue files. To lint .vue files, `vue-tsc` must be used.
   export function initDashboardRepoList(): void;
   export function initRepositoryActionView(): void;
-  export type Item = any;
 }
 
 declare let __webpack_public_path__: string;
