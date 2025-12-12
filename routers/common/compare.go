@@ -174,3 +174,51 @@ func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Reposito
 	}
 	return nil, nil
 }
+
+func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, compareReq *CompareRouterReq) (headOwner *user_model.User, headRepo *repo_model.Repository, err error) {
+	if compareReq.HeadOwner == "" {
+		if compareReq.HeadRepoName != "" { // unsupported syntax
+			return nil, nil, nil
+		}
+
+		return baseRepo.Owner, baseRepo, nil
+	}
+
+	if compareReq.HeadOwner == baseRepo.Owner.Name {
+		headOwner = baseRepo.Owner
+	} else {
+		headOwner, err = user_model.GetUserOrOrgByName(ctx, compareReq.HeadOwner)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				return nil, nil, nil
+			}
+			return nil, nil, err
+		}
+	}
+	if compareReq.HeadRepoName == "" {
+		if headOwner.ID == baseRepo.OwnerID {
+			headRepo = baseRepo
+		} else {
+			headRepo, err = FindHeadRepo(ctx, baseRepo, headOwner.ID)
+			if err != nil {
+				return nil, nil, err
+			}
+			if headRepo == nil {
+				return nil, nil, util.ErrorWrap(util.ErrInvalidArgument, "the user %s does not have a fork of the base repository", headOwner.Name)
+			}
+		}
+	} else {
+		if compareReq.HeadOwner == baseRepo.Owner.Name && compareReq.HeadRepoName == baseRepo.Name {
+			headRepo = baseRepo
+		} else {
+			headRepo, err = repo_model.GetRepositoryByName(ctx, headOwner.ID, compareReq.HeadRepoName)
+			if err != nil {
+				if repo_model.IsErrRepoNotExist(err) {
+					return nil, nil, nil
+				}
+				return nil, nil, err
+			}
+		}
+	}
+	return headOwner, headRepo, nil
+}

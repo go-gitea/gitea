@@ -1081,58 +1081,17 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 		return nil, nil
 	}
 
-	var headRepo *repo_model.Repository
-	if compareReq.HeadOwner == "" {
-		if compareReq.HeadRepoName != "" { // unsupported syntax
-			ctx.APIErrorNotFound()
-			return nil, nil
-		}
-
-		headRepo = ctx.Repo.Repository
-	} else {
-		var headOwner *user_model.User
-		if compareReq.HeadOwner == ctx.Repo.Owner.Name {
-			headOwner = ctx.Repo.Owner
-		} else {
-			headOwner, err = user_model.GetUserOrOrgByName(ctx, compareReq.HeadOwner)
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					ctx.APIErrorNotFound("GetUserOrOrgByName")
-				} else {
-					ctx.APIErrorInternal(err)
-				}
-				return nil, nil
-			}
-		}
-		if compareReq.HeadRepoName == "" {
-			if headOwner.ID == baseRepo.OwnerID {
-				headRepo = baseRepo
-			} else {
-				headRepo, err = common.FindHeadRepo(ctx, baseRepo, headOwner.ID)
-				if err != nil {
-					ctx.APIErrorInternal(err)
-					return nil, nil
-				}
-				if headRepo == nil {
-					ctx.APIError(http.StatusBadRequest, "The user "+headOwner.Name+" does not have a fork of the base repository")
-					return nil, nil
-				}
-			}
-		} else {
-			if compareReq.HeadOwner == ctx.Repo.Owner.Name && compareReq.HeadRepoName == ctx.Repo.Repository.Name {
-				headRepo = ctx.Repo.Repository
-			} else {
-				headRepo, err = repo_model.GetRepositoryByName(ctx, headOwner.ID, compareReq.HeadRepoName)
-				if err != nil {
-					if repo_model.IsErrRepoNotExist(err) {
-						ctx.APIErrorNotFound("GetRepositoryByName")
-					} else {
-						ctx.APIErrorInternal(err)
-					}
-					return nil, nil
-				}
-			}
-		}
+	headOwner, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.APIError(http.StatusBadRequest, err.Error())
+		return nil, nil
+	case err != nil:
+		ctx.APIErrorInternal(err)
+		return nil, nil
+	case headOwner == nil || headRepo == nil:
+		ctx.APIErrorNotFound()
+		return nil, nil
 	}
 
 	isSameRepo := baseRepo.ID == headRepo.ID

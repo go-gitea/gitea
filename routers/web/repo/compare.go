@@ -208,58 +208,19 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 		return nil
 	}
 
-	if compareReq.HeadOwner == "" {
-		if compareReq.HeadRepoName != "" { // unsupported syntax
-			ctx.NotFound(nil)
-			return nil
-		}
-
-		ci.HeadOwner = baseRepo.Owner
-		ci.HeadRepo = baseRepo
-	} else {
-		if compareReq.HeadOwner == ctx.Repo.Owner.Name {
-			ci.HeadOwner = ctx.Repo.Owner
-		} else {
-			ci.HeadOwner, err = user_model.GetUserOrOrgByName(ctx, compareReq.HeadOwner)
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					ctx.NotFound(nil)
-				} else {
-					ctx.ServerError("GetUserByName", err)
-				}
-				return nil
-			}
-		}
-		if compareReq.HeadRepoName == "" {
-			if ci.HeadOwner.ID == baseRepo.OwnerID {
-				ci.HeadRepo = baseRepo
-			} else {
-				ci.HeadRepo, err = common.FindHeadRepo(ctx, baseRepo, ci.HeadOwner.ID)
-				if err != nil {
-					ctx.ServerError("FindHeadRepo", err)
-					return nil
-				}
-				if ci.HeadRepo == nil {
-					ctx.HTTPError(http.StatusBadRequest, "The user "+ci.HeadOwner.Name+" does not have a fork of the base repository")
-					return nil
-				}
-			}
-		} else {
-			if compareReq.HeadOwner == ctx.Repo.Owner.Name && compareReq.HeadRepoName == ctx.Repo.Repository.Name {
-				ci.HeadRepo = ctx.Repo.Repository
-			} else {
-				ci.HeadRepo, err = repo_model.GetRepositoryByName(ctx, ci.HeadOwner.ID, compareReq.HeadRepoName)
-				if err != nil {
-					if repo_model.IsErrRepoNotExist(err) {
-						ctx.NotFound(nil)
-					} else {
-						ctx.ServerError("GetRepositoryByName", err)
-					}
-					return nil
-				}
-			}
-		}
+	ci.HeadOwner, ci.HeadRepo, err = common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.HTTPError(http.StatusBadRequest, err.Error())
+		return nil
+	case err != nil:
+		ctx.ServerError("GetHeadOwnerAndRepo", err)
+		return nil
+	case ci.HeadOwner == nil || ci.HeadRepo == nil:
+		ctx.NotFound(nil)
+		return nil
 	}
+
 	ci.BaseBranch = util.Iif(compareReq.BaseOriRef == "", baseRepo.DefaultBranch, compareReq.BaseOriRef)
 	ci.HeadBranch = util.Iif(compareReq.HeadOriRef == "", ci.HeadRepo.DefaultBranch, compareReq.HeadOriRef)
 	ci.DirectComparison = compareReq.DirectComparison()
