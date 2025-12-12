@@ -80,7 +80,7 @@ func (l *License) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(data, &values); err != nil {
 			return err
 		}
-		value := values["type"].(string)
+		value, _ := values["type"].(string)
 		*l = License(value)
 	}
 	return nil
