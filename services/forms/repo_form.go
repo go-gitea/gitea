@@ -110,6 +110,7 @@ type RepoSettingForm struct {
 	// Advanced settings
 	EnableCode bool
 
+	DefaultWikiFormat  string
 	EnableWiki         bool
 	EnableExternalWiki bool
 	DefaultWikiBranch  string
