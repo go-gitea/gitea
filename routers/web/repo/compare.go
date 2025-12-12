@@ -224,13 +224,9 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	// base<-head: master...head:feature
 	// same repo: master...feature
 
-	var (
-		isSameRepo bool
-		infoPath   string
-		err        error
-	)
+	var isSameRepo bool
 
-	infoPath = ctx.PathParam("*")
+	infoPath := ctx.PathParam("*")
 	var infos []string
 	if infoPath == "" {
 		infos = []string{baseRepo.DefaultBranch, baseRepo.DefaultBranch}
@@ -250,15 +246,17 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	ci.BaseBranch = infos[0]
 	ctx.Data["BaseBranch"] = ci.BaseBranch
 
-	// If there is no head repository, it means compare between same repository.
+	var err error
+
+	// If there is no head repository, it means compare between the same repository.
 	headInfos := strings.Split(infos[1], ":")
-	if len(headInfos) == 1 {
+	if len(headInfos) == 1 { // {:headBranch} case, guaranteed baseRepo is headRepo
 		isSameRepo = true
 		ci.HeadUser = ctx.Repo.Owner
-		ci.HeadBranch = headInfos[0]
-	} else if len(headInfos) == 2 {
+		ci.HeadBranch, ci.RawDiffType = parseRefForRawDiff(ctx, baseRepo, headInfos[0])
+	} else if len(headInfos) == 2 { // {:headOwner}:{:headBranch} or {:headOwner}/{:headRepoName}:{:headBranch} case
 		headInfosSplit := strings.Split(headInfos[0], "/")
-		if len(headInfosSplit) == 1 {
+		if len(headInfosSplit) == 1 { // {:headOwner}:{:headBranch} case, guaranteed baseRepo.Name is headRepo.Name
 			ci.HeadUser, err = user_model.GetUserByName(ctx, headInfos[0])
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
@@ -268,12 +266,23 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				}
 				return nil
 			}
-			ci.HeadBranch = headInfos[1]
+
+			headRepo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ci.HeadUser.Name, baseRepo.Name)
+			if err != nil {
+				if repo_model.IsErrRepoNotExist(err) {
+					ctx.NotFound(nil)
+				} else {
+					ctx.ServerError("GetRepositoryByOwnerAndName", err)
+				}
+				return nil
+			}
+			ci.HeadBranch, ci.RawDiffType = parseRefForRawDiff(ctx, headRepo, headInfos[1])
+
 			isSameRepo = ci.HeadUser.ID == ctx.Repo.Owner.ID
-			if isSameRepo {
+			if isSameRepo { // not a fork
 				ci.HeadRepo = baseRepo
 			}
-		} else {
+		} else { // {:headOwner}/{:headRepoName}:{:headBranch} case, across forks
 			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(ctx, headInfosSplit[0], headInfosSplit[1])
 			if err != nil {
 				if repo_model.IsErrRepoNotExist(err) {
@@ -291,7 +300,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 				}
 				return nil
 			}
-			ci.HeadBranch = headInfos[1]
+			ci.HeadBranch, ci.RawDiffType = parseRefForRawDiff(ctx, ci.HeadRepo, headInfos[1])
 			ci.HeadUser = ci.HeadRepo.Owner
 			isSameRepo = ci.HeadRepo.ID == ctx.Repo.Repository.ID
 		}
@@ -752,6 +761,14 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
+	if ci.RawDiffType != "" {
+		err := git.GetRepoRawDiffForFile(ci.HeadGitRepo, ci.BaseBranch, ci.HeadBranch, ci.RawDiffType, "", ctx.Resp)
+		if err != nil {
+			ctx.ServerError("GetRepoRawDiffForFile", err)
+		}
+		return
+	}
+
 	baseTags, err := repo_model.GetTagNamesByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetTagNamesByRepoID", err)
@@ -1050,4 +1067,21 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 		return nil, fmt.Errorf("getExcerptLines scan: %w", err)
 	}
 	return diffLines, nil
+}
+
+func parseRefForRawDiff(ctx *context.Context, refRepo *repo_model.Repository, refShortName string) (string, git.RawDiffType) {
+	if !strings.HasSuffix(refShortName, ".diff") && !strings.HasSuffix(refShortName, ".patch") {
+		return refShortName, ""
+	}
+
+	if gitrepo.IsBranchExist(ctx, refRepo, refShortName) || gitrepo.IsTagExist(ctx, refRepo, refShortName) {
+		return refShortName, ""
+	}
+
+	if s, ok := strings.CutSuffix(refShortName, ".diff"); ok {
+		return s, git.RawDiffNormal
+	} else if s, ok = strings.CutSuffix(refShortName, ".patch"); ok {
+		return s, git.RawDiffPatch
+	}
+	return refShortName, ""
 }
