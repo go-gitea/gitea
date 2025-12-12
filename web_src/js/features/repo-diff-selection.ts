@@ -36,7 +36,7 @@ function parseDiffAnchor(anchor: string): DiffAnchorInfo | null {
   return {anchor, fragment, side, line};
 }
 
-function applyDiffLineSelection(container: HTMLElement, range: DiffSelectionRange): boolean {
+export function applyDiffLineSelection(container: HTMLElement, range: DiffSelectionRange): boolean {
   // Find the start and end anchor elements
   const startId = `${range.fragment}${range.startSide}${range.startLine}`;
   const endId = `${range.fragment}${range.endSide}${range.endLine}`;
