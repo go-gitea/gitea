@@ -252,12 +252,6 @@ function handleDiffLineNumberClick(cell: HTMLElement, e: MouseEvent) {
 export function initDiffLineSelection() {
   addDelegatedEventListener<HTMLElement, MouseEvent>(document, 'click', diffLineNumberCellSelector, (cell, e) => {
     if (e.defaultPrevented) return;
-    // Ignore clicks on or inside code-expander-buttons
-    const target = e.target as HTMLElement;
-    if (target.closest('.code-expander-button') || target.closest('.code-expander-buttons') ||
-      target.closest('button, a, input, select, textarea, summary, [role="button"]')) {
-      return;
-    }
     handleDiffLineNumberClick(cell, e);
   });
   window.addEventListener('hashchange', () => {
