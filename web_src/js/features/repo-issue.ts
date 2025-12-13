@@ -67,7 +67,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
     e.preventDefault();
     e.stopPropagation();
     const labelId = item.getAttribute('data-label-id')!;
-    let labelIds: string[] = queryLabels ? queryLabels.split(',') : [];
+    let labelIds: Array<string> = queryLabels ? queryLabels.split(',') : [];
     labelIds = labelIds.filter((id) => Math.abs(parseInt(id)) !== Math.abs(parseInt(labelId)));
     labelIds.push(`-${labelId}`);
     url.searchParams.set('labels', labelIds.join(','));

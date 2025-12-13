@@ -11,7 +11,7 @@ dayjs.extend(utc);
  * @param startDate The start date. Can take any type that dayjs accepts.
  * @param endDate The end date. Can take any type that dayjs accepts.
  */
-export function startDaysBetween(startDate: ConfigType, endDate: ConfigType): number[] {
+export function startDaysBetween(startDate: ConfigType, endDate: ConfigType): Array<number> {
   const start = dayjs.utc(startDate);
   const end = dayjs.utc(endDate);
 
@@ -22,7 +22,7 @@ export function startDaysBetween(startDate: ConfigType, endDate: ConfigType): nu
     current = current.add(1, 'day');
   }
 
-  const startDays: number[] = [];
+  const startDays: Array<number> = [];
   while (current.isBefore(end)) {
     startDays.push(current.valueOf());
     current = current.add(1, 'week');
@@ -53,7 +53,7 @@ export type DayDataObject = {
   [timestamp: string]: DayData,
 };
 
-export function fillEmptyStartDaysWithZeroes(startDays: number[], data: DayDataObject): DayData[] {
+export function fillEmptyStartDaysWithZeroes(startDays: Array<number>, data: DayDataObject): Array<DayData> {
   const result: Record<string, any> = {};
 
   for (const startDay of startDays) {

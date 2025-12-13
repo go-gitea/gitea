@@ -147,7 +147,7 @@ export default defineConfig([
       '@stylistic/wrap-regex': [0],
       '@stylistic/yield-star-spacing': [2, 'after'],
       '@typescript-eslint/adjacent-overload-signatures': [0],
-      '@typescript-eslint/array-type': [0],
+      '@typescript-eslint/array-type': [2, {default: 'generic'}],
       '@typescript-eslint/await-thenable': [2],
       '@typescript-eslint/ban-ts-comment': [2, {'ts-expect-error': false, 'ts-ignore': true, 'ts-nocheck': false, 'ts-check': false}],
       '@typescript-eslint/ban-tslint-comment': [0],
@@ -215,7 +215,7 @@ export default defineConfig([
       '@typescript-eslint/no-unnecessary-condition': [0],
       '@typescript-eslint/no-unnecessary-qualifier': [0],
       '@typescript-eslint/no-unnecessary-template-expression': [0],
-      '@typescript-eslint/no-unnecessary-type-arguments': [0],
+      '@typescript-eslint/no-unnecessary-type-arguments': [2],
       '@typescript-eslint/no-unnecessary-type-assertion': [2],
       '@typescript-eslint/no-unnecessary-type-constraint': [2],
       '@typescript-eslint/no-unnecessary-type-conversion': [2],
@@ -228,7 +228,7 @@ export default defineConfig([
       '@typescript-eslint/no-unsafe-member-access': [0],
       '@typescript-eslint/no-unsafe-return': [0],
       '@typescript-eslint/no-unsafe-unary-minus': [2],
-      '@typescript-eslint/no-unused-expressions': [0],
+      '@typescript-eslint/no-unused-expressions': [2],
       '@typescript-eslint/no-unused-private-class-members': [2],
       '@typescript-eslint/no-unused-vars': [2, {vars: 'all', args: 'all', caughtErrors: 'all', ignoreRestSiblings: false, argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_'}],
       '@typescript-eslint/no-use-before-define': [2, {functions: false, classes: true, variables: true, allowNamedExports: true, typedefs: false, enums: false, ignoreTypeReferences: true}],
@@ -584,7 +584,7 @@ export default defineConfig([
       'no-unreachable': [2],
       'no-unsafe-finally': [2],
       'no-unsafe-negation': [2],
-      'no-unused-expressions': [2],
+      'no-unused-expressions': [0], // handled by @typescript-eslint/no-unused-expressions
       'no-unused-labels': [2],
       'no-unused-private-class-members': [0], // handled by @typescript-eslint/no-unused-private-class-members
       'no-unused-vars': [0], // handled by @typescript-eslint/no-unused-vars

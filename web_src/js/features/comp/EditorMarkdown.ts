@@ -78,7 +78,7 @@ type MarkdownHandleIndentionResult = {
 };
 
 type TextLinesBuffer = {
-  lines: string[];
+  lines: Array<string>;
   lengthBeforePosLine: number;
   posLineIndex: number;
   inlinePos: number

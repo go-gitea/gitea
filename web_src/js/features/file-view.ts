@@ -6,7 +6,7 @@ import {createElementFromHTML, showElem, toggleElemClass} from '../utils/dom.ts'
 import {html} from '../utils/html.ts';
 import {basename} from '../utils.ts';
 
-const plugins: FileRenderPlugin[] = [];
+const plugins: Array<FileRenderPlugin> = [];
 
 function initPluginsOnce(): void {
   if (plugins.length) return;
