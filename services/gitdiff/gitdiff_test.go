@@ -5,6 +5,7 @@
 package gitdiff
 
 import (
+	"html/template"
 	"strconv"
 	"strings"
 	"testing"
@@ -1105,4 +1106,42 @@ func TestDiffLine_GetExpandDirection(t *testing.T) {
 	for _, c := range cases {
 		assert.Equal(t, c.direction, c.diffLine.GetExpandDirection(), "case %s expected direction: %s", c.name, c.direction)
 	}
+}
+
+func TestHighlightCodeLines(t *testing.T) {
+	t.Run("CharsetDetecting", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name:     "a.c",
+			Language: "c",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{{LeftIdx: 1}},
+				},
+			},
+		}
+		ret := highlightCodeLines(diffFile, true, []byte("// abc\xcc def\xcd")) // ISO-8859-1 bytes
+		assert.Equal(t, "<span class=\"c1\">// abcÌ defÍ\n</span>", string(ret[0]))
+	})
+
+	t.Run("LeftLines", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name:     "a.c",
+			Language: "c",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{
+						{LeftIdx: 1},
+						{LeftIdx: 2},
+						{LeftIdx: 3},
+					},
+				},
+			},
+		}
+		const nl = "\n"
+		ret := highlightCodeLines(diffFile, true, []byte("a\nb\n"))
+		assert.Equal(t, map[int]template.HTML{
+			0: `<span class="n">a</span>` + nl,
+			1: `<span class="n">b</span>`,
+		}, ret)
+	})
 }
