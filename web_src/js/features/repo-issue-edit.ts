@@ -84,7 +84,7 @@ async function tryOnEditContent(e: Event) {
   showElem(editContentZone);
   hideElem(renderContent);
 
-  comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'));
+  comboMarkdownEditor = getComboMarkdownEditor(editContentZone.querySelector('.combo-markdown-editor'))!;
   if (!comboMarkdownEditor) {
     editContentZone.innerHTML = document.querySelector('#issue-comment-editor-template')!.innerHTML;
     const form = editContentZone.querySelector('form')!;
@@ -139,7 +139,7 @@ async function tryOnQuoteReply(e: Event) {
     editor = await handleReply(replyBtn);
   } else {
     // for normal issue/comment page
-    editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'));
+    editor = getComboMarkdownEditor(document.querySelector('#comment-form .combo-markdown-editor'))!;
   }
 
   if (editor.value()) {
