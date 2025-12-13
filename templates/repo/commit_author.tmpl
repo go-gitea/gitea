@@ -44,7 +44,7 @@
 			{{$username = .Author.Name}}
 		{{end}}
 		{{ctx.AvatarUtils.AvatarByEmail .Commit.Author.Email $username .AvatarSize}}
-		<span{{if ctx.RootData.IsSigned}} title="{{.Commit.Author.Email}}"{{end}}>
+		<span class="author-wrapper" {{if ctx.RootData.IsSigned}} title="{{.Commit.Author.Email}}"{{end}}>
 			{{if .Commit.Author.Name}}
 				{{.Commit.Author.Name}}
 			{{else}}
