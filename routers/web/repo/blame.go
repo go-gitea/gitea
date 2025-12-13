@@ -274,6 +274,7 @@ func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames 
 			if i != len(lines)-1 {
 				line += "\n"
 			}
+			line = util.UnsafeBytesToString(charset.ToUTF8([]byte(line), charset.ConvertOpts{}))
 			line, lexerNameForLine := highlight.Code(path.Base(ctx.Repo.TreePath), language, line)
 
 			// set lexer name to the first detected lexer. this is certainly suboptimal and
