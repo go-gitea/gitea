@@ -11,11 +11,13 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/orgmode"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/tests/env"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
+	env.Filter([]string{"GITEA_TEST_"}, []string{"GITEA_"})
 	setting.AppURL = "http://localhost:3000/"
 	setting.IsInTesting = true
 	os.Exit(m.Run())
