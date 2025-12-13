@@ -36,9 +36,7 @@ func CherryPick(ctx *context.Context) {
 		ctx.Data["commit_message"] = "revert " + cherryPickCommit.Message()
 	} else {
 		ctx.Data["CherryPickType"] = "cherry-pick"
-		splits := strings.SplitN(cherryPickCommit.Message(), "\n", 2)
-		ctx.Data["commit_summary"] = splits[0]
-		ctx.Data["commit_message"] = splits[1]
+		ctx.Data["commit_summary"], ctx.Data["commit_message"], _ = strings.Cut(cherryPickCommit.Message(), "\n")
 	}
 
 	ctx.HTML(http.StatusOK, tplCherryPick)
