@@ -5,7 +5,6 @@ package repo
 
 import (
 	"net/http"
-	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -52,18 +51,7 @@ func CompareDiff(ctx *context.APIContext) {
 		}
 	}
 
-	infoPath := ctx.PathParam("*")
-	infos := []string{ctx.Repo.Repository.DefaultBranch, ctx.Repo.Repository.DefaultBranch}
-	if infoPath != "" {
-		infos = strings.SplitN(infoPath, "...", 2)
-		if len(infos) != 2 {
-			if infos = strings.SplitN(infoPath, "..", 2); len(infos) != 2 {
-				infos = []string{ctx.Repo.Repository.DefaultBranch, infoPath}
-			}
-		}
-	}
-
-	compareResult, closer := parseCompareInfo(ctx, api.CreatePullRequestOption{Base: infos[0], Head: infos[1]})
+	compareResult, closer := parseCompareInfo(ctx, ctx.PathParam("*"))
 	if ctx.Written() {
 		return
 	}

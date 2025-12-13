@@ -28,8 +28,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/routers/common"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/context"
@@ -413,7 +415,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	)
 
 	// Get repo/branch information
-	compareResult, closer := parseCompareInfo(ctx, form)
+	compareResult, closer := parseCompareInfo(ctx, form.Base+".."+form.Head)
 	if ctx.Written() {
 		return
 	}
@@ -1065,61 +1067,37 @@ type parseCompareInfoResult struct {
 }
 
 // parseCompareInfo returns non-nil if it succeeds, it always writes to the context and returns nil if it fails
-func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (result *parseCompareInfoResult, closer func()) {
-	var err error
-	// Get compared branches information
-	// format: <base branch>...[<head repo>:]<head branch>
-	// base<-head: master...head:feature
-	// same repo: master...feature
+func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *parseCompareInfoResult, closer func()) {
 	baseRepo := ctx.Repo.Repository
-	baseRefToGuess := form.Base
-
-	headUser := ctx.Repo.Owner
-	headRefToGuess := form.Head
-	if headInfos := strings.Split(form.Head, ":"); len(headInfos) == 1 {
-		// If there is no head repository, it means pull request between same repository.
-		// Do nothing here because the head variables have been assigned above.
-	} else if len(headInfos) == 2 {
-		// There is a head repository (the head repository could also be the same base repo)
-		headRefToGuess = headInfos[1]
-		headUser, err = user_model.GetUserByName(ctx, headInfos[0])
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				ctx.APIErrorNotFound("GetUserByName")
-			} else {
-				ctx.APIErrorInternal(err)
-			}
-			return nil, nil
-		}
-	} else {
+	compareReq, err := common.ParseCompareRouterParam(compareParam)
+	if err != nil {
 		ctx.APIErrorNotFound()
 		return nil, nil
 	}
 
-	isSameRepo := ctx.Repo.Owner.ID == headUser.ID
-
-	// Check if current user has fork of repository or in the same repository.
-	headRepo := repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
-	if headRepo == nil && !isSameRepo {
-		err = baseRepo.GetBaseRepo(ctx)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return nil, nil
-		}
-
-		// Check if baseRepo's base repository is the same as headUser's repository.
-		if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
-			log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-			ctx.APIErrorNotFound("GetBaseRepo")
-			return nil, nil
-		}
-		// Assign headRepo so it can be used below.
-		headRepo = baseRepo.BaseRepo
+	// remove the check when we support compare with carets
+	if compareReq.CaretTimes > 0 {
+		ctx.APIErrorNotFound("Unsupported compare syntax with carets")
+		return nil, nil
 	}
+
+	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.APIError(http.StatusBadRequest, err.Error())
+		return nil, nil
+	case err != nil:
+		ctx.APIErrorInternal(err)
+		return nil, nil
+	case user_model.IsErrUserNotExist(err) || repo_model.IsErrRepoNotExist(err):
+		ctx.APIErrorNotFound()
+		return nil, nil
+	}
+
+	isSameRepo := baseRepo.ID == headRepo.ID
 
 	var headGitRepo *git.Repository
 	if isSameRepo {
-		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 		closer = func() {} // no need to close the head repo because it shares the base repo
 	} else {
@@ -1143,9 +1121,9 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(unit.TypeCode) {
-		log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
-		ctx.APIErrorNotFound("Can't read pulls or can't read UnitTypeCode")
+	if !permBase.CanRead(unit.TypeCode) {
+		log.Trace("Permission Denied: User %-v cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
+		ctx.APIErrorNotFound("can't read baseRepo UnitTypeCode")
 		return nil, nil
 	}
 
@@ -1162,10 +1140,10 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefToGuess)
-	headRef := headGitRepo.UnstableGuessRefByShortName(headRefToGuess)
+	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(util.Iif(compareReq.BaseOriRef == "", baseRepo.DefaultBranch, compareReq.BaseOriRef))
+	headRef := headGitRepo.UnstableGuessRefByShortName(util.Iif(compareReq.HeadOriRef == "", headRepo.DefaultBranch, compareReq.HeadOriRef))
 
-	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), baseRefToGuess, baseRef, headRefToGuess, headRef)
+	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), compareReq.BaseOriRef, baseRef, compareReq.HeadOriRef, headRef)
 
 	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
 	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())
@@ -1175,7 +1153,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	compareInfo, err := pull_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef.ShortName(), headRef.ShortName(), false, false)
+	compareInfo, err := pull_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef.ShortName(), headRef.ShortName(), compareReq.DirectComparison(), false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
