@@ -341,13 +341,11 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 lint-js: node_modules ## lint js files
 	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --flag unstable_native_nodejs_ts_config $(ESLINT_FILES)
 	$(NODE_VARS) pnpm exec vue-tsc
-	$(NODE_VARS) pnpm exec tsgo
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js files and fix issues
 	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 --flag unstable_native_nodejs_ts_config $(ESLINT_FILES) --fix
 	$(NODE_VARS) pnpm exec vue-tsc
-	$(NODE_VARS) pnpm exec tsgo
 
 .PHONY: lint-css
 lint-css: node_modules ## lint css files
