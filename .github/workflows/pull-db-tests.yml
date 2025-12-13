@@ -10,6 +10,8 @@ concurrency:
 jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
+    permissions:
+      contents: read
 
   test-pgsql:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
