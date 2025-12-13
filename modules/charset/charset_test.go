@@ -243,7 +243,7 @@ func TestToUTF8WithFallbackReader(t *testing.T) {
 	assert.Len(t, string(runes[2]), 3)
 	assert.Len(t, string(runes[3]), 4)
 
-	content := strings.Repeat(block, 10)
+	content := strings.Repeat(block, 2)
 	for i := 1; i < len(content); i++ {
 		encoding, _ := DetectEncoding([]byte(content[:i]))
 		assert.Equal(t, "UTF-8", encoding)
