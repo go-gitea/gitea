@@ -1,0 +1,89 @@
+{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin render-plugins")}}
+	<div class="admin-render-plugin-confirm tw-max-w-4xl tw-mx-auto">
+	<h2 class="tw-mb-4">
+		{{if .IsUpgradePreview}}
+			{{ctx.Locale.Tr "admin.render_plugins.confirm_upgrade" .CurrentPlugin.Name}}
+		{{else}}
+			{{ctx.Locale.Tr "admin.render_plugins.confirm_install" .PluginManifest.Name}}
+		{{end}}
+	</h2>
+	<div class="ui message">
+		{{ctx.Locale.Tr "admin.render_plugins.confirm.description"}}
+	</div>
+	<div class="ui segments tw-mb-4">
+		<div class="ui segment">
+			<h3>{{ctx.Locale.Tr "admin.render_plugins.detail.actions"}}</h3>
+			<table class="ui very basic table">
+				<tbody>
+					<tr>
+						<th class="tw-w-48">{{ctx.Locale.Tr "admin.render_plugins.table.name"}}</th>
+						<td>{{.PluginManifest.Name}}</td>
+					</tr>
+					<tr>
+						<th>{{ctx.Locale.Tr "admin.render_plugins.table.identifier"}}</th>
+						<td>{{.PluginManifest.ID}}</td>
+					</tr>
+					<tr>
+						<th>{{ctx.Locale.Tr "admin.render_plugins.table.version"}}</th>
+						<td>{{.PluginManifest.Version}}</td>
+					</tr>
+					<tr>
+						<th>{{ctx.Locale.Tr "admin.render_plugins.confirm.archive"}}</th>
+						<td>{{.UploadFilename}}</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<div class="ui segment">
+			<h3>{{ctx.Locale.Tr "admin.render_plugins.confirm.permissions"}}</h3>
+			<p class="tw-text-sm tw-text-gray-500">{{ctx.Locale.Tr "admin.render_plugins.confirm.permission_hint"}}</p>
+			{{if .PluginManifest.Permissions}}
+				<ul class="tw-list-disc tw-ml-6">
+					{{range .PluginManifest.Permissions}}
+						<li><code>{{.}}</code></li>
+					{{end}}
+				</ul>
+			{{else}}
+				<p>{{ctx.Locale.Tr "admin.render_plugins.confirm.permission_none"}}</p>
+			{{end}}
+		</div>
+		{{if .PluginManifest.Description}}
+		<div class="ui segment">
+			<h3>{{ctx.Locale.Tr "admin.render_plugins.detail.description"}}</h3>
+			<p>{{.PluginManifest.Description}}</p>
+		</div>
+		{{end}}
+		{{if .IsUpgradePreview}}
+		<div class="ui segment">
+			<h3>{{ctx.Locale.Tr "admin.render_plugins.detail.actions"}}</h3>
+			<p>{{ctx.Locale.Tr "admin.render_plugins.detail.entry"}}: {{.PluginManifest.Entry}}</p>
+		</div>
+		{{end}}
+	</div>
+	<div class="tw-flex tw-gap-2">
+		<form class="ui form" method="post" action="{{if .IsUpgradePreview}}{{AppSubUrl}}/-/admin/render-plugins/{{.CurrentPlugin.ID}}/upgrade/confirm{{else}}{{AppSubUrl}}/-/admin/render-plugins/upload/confirm{{end}}">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="token" value="{{.PendingUploadToken}}">
+			{{if .RedirectTo}}
+				<input type="hidden" name="redirect_to" value="{{.RedirectTo}}">
+			{{end}}
+			<button class="ui primary button" type="submit">
+				{{if .IsUpgradePreview}}
+					{{ctx.Locale.Tr "admin.render_plugins.confirm.actions.upgrade"}}
+				{{else}}
+					{{ctx.Locale.Tr "admin.render_plugins.confirm.actions.install"}}
+				{{end}}
+			</button>
+		</form>
+		<form class="ui form" method="post" action="{{AppSubUrl}}/-/admin/render-plugins/upload/discard">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="token" value="{{.PendingUploadToken}}">
+			{{if .RedirectTo}}
+				<input type="hidden" name="redirect_to" value="{{.RedirectTo}}">
+			{{end}}
+			<button class="ui button" type="submit">{{ctx.Locale.Tr "admin.render_plugins.confirm.actions.cancel"}}</button>
+		</form>
+	</div>
+	</div>
+
+{{template "admin/layout_footer" .}}
