@@ -5,7 +5,7 @@ try {
 } catch {
   const intlNumberFormat = Intl.NumberFormat;
   // @ts-expect-error - polyfill is incomplete
-  Intl.NumberFormat = function(locales: string | string[], options: Intl.NumberFormatOptions) {
+  Intl.NumberFormat = function(locales: string | Array<string>, options: Intl.NumberFormatOptions) {
     if (options.style === 'unit') {
       return {
         format(value: number | bigint | string) {

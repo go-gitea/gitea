@@ -17,7 +17,7 @@ export type Config = {
   pageData: Record<string, any>,
   notificationSettings: Record<string, any>,
   enableTimeTracking: boolean,
-  mentionValues?: MentionValue[],
+  mentionValues?: Array<MentionValue>,
   mermaidMaxSourceCharacters: number,
   i18n: Record<string, string>,
 };
@@ -70,7 +70,7 @@ export type Issue = {
 
 export type FomanticInitFunction = {
   settings?: Record<string, any>,
-  (...args: any[]): any,
+  (...args: Array<any>): any,
 };
 
 export type GitRefType = 'branch' | 'tag';

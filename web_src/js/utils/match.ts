@@ -4,12 +4,12 @@ import type {Issue} from '../types.ts';
 
 const maxMatches = 6;
 
-function sortAndReduce<T>(map: Map<T, number>): T[] {
+function sortAndReduce<T>(map: Map<T, number>): Array<T> {
   const sortedMap = new Map(Array.from(map.entries()).sort((a, b) => a[1] - b[1]));
   return Array.from(sortedMap.keys()).slice(0, maxMatches);
 }
 
-export function matchEmoji(queryText: string): string[] {
+export function matchEmoji(queryText: string): Array<string> {
   const query = queryText.toLowerCase().replaceAll('_', ' ');
   if (!query) return emojis.slice(0, maxMatches).map((e) => e.aliases[0]);
 
@@ -30,7 +30,7 @@ export function matchEmoji(queryText: string): string[] {
 }
 
 type MentionSuggestion = {value: string; name: string; fullname: string; avatar: string};
-export function matchMention(queryText: string): MentionSuggestion[] {
+export function matchMention(queryText: string): Array<MentionSuggestion> {
   const query = queryText.toLowerCase();
 
   // results is a map of weights, lower is better
@@ -45,10 +45,10 @@ export function matchMention(queryText: string): MentionSuggestion[] {
   return sortAndReduce(results);
 }
 
-export async function matchIssue(owner: string, repo: string, issueIndexStr: string, query: string): Promise<Issue[]> {
+export async function matchIssue(owner: string, repo: string, issueIndexStr: string, query: string): Promise<Array<Issue>> {
   const res = await GET(`${window.config.appSubUrl}/${owner}/${repo}/issues/suggestions?q=${encodeURIComponent(query)}`);
 
-  const issues: Issue[] = await res.json();
+  const issues: Array<Issue> = await res.json();
   const issueNumber = parseInt(issueIndexStr);
 
   // filter out issue with same id

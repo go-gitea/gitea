@@ -147,7 +147,7 @@ export default defineConfig([
       '@stylistic/wrap-regex': [0],
       '@stylistic/yield-star-spacing': [2, 'after'],
       '@typescript-eslint/adjacent-overload-signatures': [0],
-      '@typescript-eslint/array-type': [0],
+      '@typescript-eslint/array-type': [2, {default: 'generic'}],
       '@typescript-eslint/await-thenable': [2],
       '@typescript-eslint/ban-ts-comment': [2, {'ts-expect-error': false, 'ts-ignore': true, 'ts-nocheck': false, 'ts-check': false}],
       '@typescript-eslint/ban-tslint-comment': [0],
