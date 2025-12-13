@@ -7,7 +7,6 @@
 		"Commit" .LatestCommit
 		"AvatarSize" 24
 		"AuthorBold" true
-		"IsSigned" $.IsSigned
 	)}}
 	{{template "repo/commit_sign_badge" dict "Commit" .LatestCommit "CommitBaseLink" (print .RepoLink "/commit") "CommitSignVerification" .LatestCommitVerification}}
 
