@@ -6,6 +6,7 @@ package charset
 import (
 	"bytes"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -15,20 +16,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func resetDefaultCharsetsOrder() {
-	defaultDetectedCharsetsOrder := make([]string, 0, len(setting.Repository.DetectedCharsetsOrder))
-	for _, charset := range setting.Repository.DetectedCharsetsOrder {
-		defaultDetectedCharsetsOrder = append(defaultDetectedCharsetsOrder, strings.ToLower(strings.TrimSpace(charset)))
-	}
+func TestMain(m *testing.M) {
 	setting.Repository.DetectedCharsetScore = map[string]int{}
-	i := 0
-	for _, charset := range defaultDetectedCharsetsOrder {
-		canonicalCharset := strings.ToLower(strings.TrimSpace(charset))
-		if _, has := setting.Repository.DetectedCharsetScore[canonicalCharset]; !has {
-			setting.Repository.DetectedCharsetScore[canonicalCharset] = i
-			i++
-		}
+	for i, charset := range setting.Repository.DetectedCharsetsOrder {
+		setting.Repository.DetectedCharsetScore[strings.ToLower(charset)] = i
 	}
+	os.Exit(m.Run())
 }
 
 func TestMaybeRemoveBOM(t *testing.T) {
@@ -40,8 +33,6 @@ func TestMaybeRemoveBOM(t *testing.T) {
 }
 
 func TestToUTF8(t *testing.T) {
-	resetDefaultCharsetsOrder()
-
 	// Note: golang compiler seems so behave differently depending on the current
 	// locale, so some conversions might behave differently. For that reason, we don't
 	// depend on particular conversions but in expected behaviors.
@@ -97,7 +88,6 @@ func TestToUTF8(t *testing.T) {
 }
 
 func TestToUTF8WithFallback(t *testing.T) {
-	resetDefaultCharsetsOrder()
 	// "ABC"
 	res := ToUTF8WithFallback([]byte{0x41, 0x42, 0x43}, ConvertOpts{})
 	assert.Equal(t, []byte{0x41, 0x42, 0x43}, res)
@@ -144,8 +134,6 @@ func TestToUTF8WithFallback(t *testing.T) {
 }
 
 func TestToUTF8DropErrors(t *testing.T) {
-	resetDefaultCharsetsOrder()
-
 	// "ABC"
 	res := ToUTF8DropErrors([]byte{0x41, 0x42, 0x43})
 	assert.Equal(t, []byte{0x41, 0x42, 0x43}, res)
@@ -187,12 +175,17 @@ func TestToUTF8DropErrors(t *testing.T) {
 }
 
 func TestDetectEncoding(t *testing.T) {
-	resetDefaultCharsetsOrder()
 	testSuccess := func(b []byte, expected string) {
 		encoding, err := DetectEncoding(b)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, encoding)
 	}
+
+	// invalid bytes
+	encoding, err := DetectEncoding([]byte{0xfa})
+	assert.Error(t, err)
+	assert.Equal(t, "UTF-8", encoding)
+
 	// utf-8
 	b := []byte("just some ascii")
 	testSuccess(b, "UTF-8")
@@ -207,21 +200,12 @@ func TestDetectEncoding(t *testing.T) {
 
 	// iso-8859-1: d<accented e>cor<newline>
 	b = []byte{0x44, 0xe9, 0x63, 0x6f, 0x72, 0x0a}
-	encoding, err := DetectEncoding(b)
+	encoding, err = DetectEncoding(b)
 	assert.NoError(t, err)
 	assert.Contains(t, encoding, "ISO-8859-1")
 
-	old := setting.Repository.AnsiCharset
-	setting.Repository.AnsiCharset = "placeholder"
-	defer func() {
-		setting.Repository.AnsiCharset = old
-	}()
-	testSuccess(b, "placeholder")
-
-	// invalid bytes
-	b = []byte{0xfa}
-	_, err = DetectEncoding(b)
-	assert.Error(t, err)
+	defer test.MockVariableValue(&setting.Repository.AnsiCharset, "MyEncoding")()
+	testSuccess(b, "MyEncoding")
 }
 
 func stringMustStartWith(t *testing.T, expected string, value []byte) {
@@ -233,7 +217,6 @@ func stringMustEndWith(t *testing.T, expected string, value []byte) {
 }
 
 func TestToUTF8WithFallbackReader(t *testing.T) {
-	resetDefaultCharsetsOrder()
 	test.MockVariableValue(&ToUTF8WithFallbackReaderPrefetchSize)
 
 	block := "aá啊🤔"
