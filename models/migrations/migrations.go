@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/models/migrations/v1_24"
 	"code.gitea.io/gitea/models/migrations/v1_25"
 	"code.gitea.io/gitea/models/migrations/v1_26"
+	"code.gitea.io/gitea/models/migrations/v1_27"
 	"code.gitea.io/gitea/models/migrations/v1_6"
 	"code.gitea.io/gitea/models/migrations/v1_7"
 	"code.gitea.io/gitea/models/migrations/v1_8"
@@ -398,6 +399,7 @@ func prepareMigrationTasks() []*migration {
 		// Gitea 1.25.0 ends at migration ID number 322 (database version 323)
 
 		newMigration(323, "Add support for actions concurrency", v1_26.AddActionsConcurrency),
+		newMigration(324, "Add Actions token permissions configuration", v1_27.AddActionsPermissionsTables),
 	}
 	return preparedMigrations
 }
