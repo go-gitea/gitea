@@ -1081,7 +1081,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 		return nil, nil
 	}
 
-	headOwner, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
+	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
 	switch {
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.APIError(http.StatusBadRequest, err.Error())
@@ -1089,7 +1089,7 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 	case err != nil:
 		ctx.APIErrorInternal(err)
 		return nil, nil
-	case headOwner == nil || headRepo == nil:
+	case user_model.IsErrUserNotExist(err) || repo_model.IsErrRepoNotExist(err):
 		ctx.APIErrorNotFound()
 		return nil, nil
 	}

@@ -216,7 +216,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	case err != nil:
 		ctx.ServerError("GetHeadOwnerAndRepo", err)
 		return nil
-	case ci.HeadOwner == nil || ci.HeadRepo == nil:
+	case user_model.IsErrUserNotExist(err) || repo_model.IsErrRepoNotExist(err):
 		ctx.NotFound(nil)
 		return nil
 	}

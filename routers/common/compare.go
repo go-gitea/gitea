@@ -150,7 +150,6 @@ func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Reposito
 	if traverseLevel == 0 {
 		return nil, nil
 	}
-	// test if we are lucky
 	repo, err := repo_model.GetUserFork(ctx, baseRepo.ID, headUserID)
 	if err != nil {
 		return nil, err
@@ -178,7 +177,7 @@ func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Reposito
 func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, compareReq *CompareRouterReq) (headOwner *user_model.User, headRepo *repo_model.Repository, err error) {
 	if compareReq.HeadOwner == "" {
 		if compareReq.HeadRepoName != "" { // unsupported syntax
-			return nil, nil, nil
+			return nil, nil, util.ErrorWrap(util.ErrInvalidArgument, "head owner must be specified when head repo name is given")
 		}
 
 		return baseRepo.Owner, baseRepo, nil
@@ -189,9 +188,6 @@ func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, c
 	} else {
 		headOwner, err = user_model.GetUserOrOrgByName(ctx, compareReq.HeadOwner)
 		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				return nil, nil, nil
-			}
 			return nil, nil, err
 		}
 	}
@@ -213,9 +209,6 @@ func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, c
 		} else {
 			headRepo, err = repo_model.GetRepositoryByName(ctx, headOwner.ID, compareReq.HeadRepoName)
 			if err != nil {
-				if repo_model.IsErrRepoNotExist(err) {
-					return nil, nil, nil
-				}
 				return nil, nil, err
 			}
 		}
