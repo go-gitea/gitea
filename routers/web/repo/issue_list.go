@@ -654,6 +654,18 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		return
 	}
 
+	blockingCounts, err := issues.GetBlockingCount(ctx)
+	if err != nil {
+		ctx.ServerError("BlockingCounts", err)
+		return
+	}
+
+	blockedByCounts, err := issues.GetBlockedByCount(ctx)
+	if err != nil {
+		ctx.ServerError("BlockedByCounts", err)
+		return
+	}
+
 	if ctx.IsSigned {
 		if err := issues.LoadIsRead(ctx, ctx.Doer.ID); err != nil {
 			ctx.ServerError("LoadIsRead", err)
@@ -716,6 +728,21 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 			}
 		}
 		return 0
+	}
+
+	ctx.Data["BlockingCounts"] = func(issueID int64) int64 {
+		counts, ok := blockingCounts[issueID]
+		if !ok {
+			return 0
+		}
+		return counts
+	}
+	ctx.Data["BlockedByCounts"] = func(issueID int64) int64 {
+		counts, ok := blockedByCounts[issueID]
+		if !ok {
+			return 0
+		}
+		return counts
 	}
 
 	retrieveProjectsForIssueList(ctx, repo)
