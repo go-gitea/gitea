@@ -212,17 +212,18 @@ func findPreviousTagName(tags []*git.Tag, target string) (string, bool) {
 }
 
 func parseSemanticVersion(tag string) *version.Version {
-	tag = strings.TrimSpace(tag)
-	tag = strings.TrimPrefix(tag, "v")
-	tag = strings.TrimPrefix(tag, "V")
-	v, err := version.NewVersion(tag)
-	if err != nil {
-		return nil
+	if pos := strings.LastIndexByte(tag, '/'); pos >= 0 {
+		tag = tag[pos+1:]
 	}
+	tag = strings.TrimLeft(tag, "vV")
+	v, _ := version.NewVersion(tag)
 	return v
 }
 
 func findInitialCommit(commit *git.Commit) (*git.Commit, error) {
+	// FIXME: this method is inefficient for large repos with long histories, and it doesn't seem right:
+	// FIXME: "git diff aaaa...bbbb" doesn't include commits from "aaaa", so the changes in "root commit" won't appear in the tag release's diff.
+	// No idea whether we should really make things so complicated.
 	current := commit
 	for current.ParentCount() > 0 {
 		parent, err := current.Parent(0)

@@ -410,7 +410,7 @@ export class ComboMarkdownEditor {
   }
 }
 
-export function getComboMarkdownEditor(el: any) {
+export function getComboMarkdownEditor(el: any): ComboMarkdownEditor | null {
   if (!el) return null;
   if (el.length) el = el[0];
   return el._giteaComboMarkdownEditor;
