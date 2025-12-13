@@ -152,7 +152,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
-						context.RedirectToUser(ctx.Base, userName, redirectUserID)
+						context.RedirectToUser(ctx.Base, ctx.Doer, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.APIErrorNotFound("GetUserByName", err)
 					} else {
@@ -612,7 +612,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 				if organization.IsErrOrgNotExist(err) {
 					redirectUserID, err := user_model.LookupUserRedirect(ctx, ctx.PathParam("org"))
 					if err == nil {
-						context.RedirectToUser(ctx.Base, ctx.PathParam("org"), redirectUserID)
+						context.RedirectToUser(ctx.Base, ctx.Doer, ctx.PathParam("org"), redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.APIErrorNotFound("GetOrgByName", err)
 					} else {
