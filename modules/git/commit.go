@@ -323,14 +323,6 @@ func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, err
 	return strings.TrimSpace(commitID), nil
 }
 
-// GetRepositoryDefaultPublicGPGKey returns the default public key for this commit
-func (c *Commit) GetRepositoryDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, error) {
-	if c.repo == nil {
-		return nil, nil
-	}
-	return c.repo.GetDefaultPublicGPGKey(forceUpdate)
-}
-
 func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) bool {
 	maxLen := 64 // sha256
 	if objFmt != nil {

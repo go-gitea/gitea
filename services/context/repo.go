@@ -140,7 +140,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, targetRepo.RepoPath(), doer, targetRepo.RepoPath(), refName.String())
+	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, doer, targetRepo.RepoPath(), refName.String())
 	wontSignReason := ""
 	if asymkey_service.IsErrWontSign(err) {
 		wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)

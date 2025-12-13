@@ -303,9 +303,9 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	var key *git.SigningKey
 	var signer *git.Signature
 	if opts.ParentCommitID != "" {
-		sign, key, signer, _ = asymkey_service.SignCRUDAction(ctx, t.repo.RepoPath(), opts.DoerUser, t.basePath, opts.ParentCommitID)
+		sign, key, signer, _ = asymkey_service.SignCRUDAction(ctx, opts.DoerUser, t.basePath, opts.ParentCommitID)
 	} else {
-		sign, key, signer, _ = asymkey_service.SignInitialCommit(ctx, t.repo.RepoPath(), opts.DoerUser)
+		sign, key, signer, _ = asymkey_service.SignInitialCommit(ctx, opts.DoerUser)
 	}
 	if sign {
 		if key.Format != "" {
