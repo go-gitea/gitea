@@ -74,7 +74,7 @@ func ToUTF8(content []byte, opts ConvertOpts) []byte {
 
 	encoding, _ := charset.Lookup(charsetLabel)
 	if encoding == nil {
-		setting.PanicInDevOrTesting("unknown detected charset %q, it shouldn't happen", charsetLabel)
+		setting.PanicInDevOrTesting("unsupported detected charset %q, it shouldn't happen", charsetLabel)
 		return content
 	}
 
