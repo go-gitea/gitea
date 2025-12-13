@@ -136,7 +136,7 @@ func NewAzureBlobStorage(ctx context.Context, cfg *setting.Storage) (ObjectStora
 	if err != nil {
 		// Check to see if we already own this container (which happens if you run this twice)
 		if !bloberror.HasCode(err, bloberror.ContainerAlreadyExists) {
-			return nil, convertMinioErr(err)
+			return nil, convertAzureBlobErr(err)
 		}
 	}
 
