@@ -463,7 +463,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 			},
 			getAuthSourceByID: func(ctx context.Context, id int64) (*auth.Source, error) {
 				assert.FailNow(t, "getAuthSourceById called", "case %d: should not call getAuthSourceByID", n)
-				return nil, nil
+				return nil, nil //nolint:nilnil // mock function covering improper behavior
 			},
 		}
 
