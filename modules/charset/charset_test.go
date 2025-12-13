@@ -4,7 +4,6 @@
 package charset
 
 import (
-	"bytes"
 	"io"
 	"os"
 	"strings"
@@ -228,12 +227,21 @@ func TestToUTF8WithFallbackReader(t *testing.T) {
 
 	content := strings.Repeat(block, 2)
 	for i := 1; i < len(content); i++ {
-		encoding, _ := DetectEncoding([]byte(content[:i]))
+		encoding, err := DetectEncoding([]byte(content[:i]))
+		assert.NoError(t, err)
 		assert.Equal(t, "UTF-8", encoding)
 
 		ToUTF8WithFallbackReaderPrefetchSize = i
-		rd := ToUTF8WithFallbackReader(bytes.NewReader([]byte(content)), ConvertOpts{})
+		rd := ToUTF8WithFallbackReader(strings.NewReader(content), ConvertOpts{})
 		r, _ := io.ReadAll(rd)
 		assert.Equal(t, content, string(r))
+	}
+	for _, r := range runes {
+		content = "abc abc " + string(r) + string(r) + string(r)
+		for i := 0; i < len(content); i++ {
+			encoding, err := DetectEncoding([]byte(content[:i]))
+			assert.NoError(t, err)
+			assert.Equal(t, "UTF-8", encoding)
+		}
 	}
 }

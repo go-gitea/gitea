@@ -125,11 +125,15 @@ func DetectEncoding(content []byte) (encoding string, _ error) {
 	cnt := 0
 	for end >= 0 && cnt < 4 {
 		c := toValidate[end]
-		if c>>6 == 0b10 {
-			end--
-		}
 		if c>>5 == 0b110 || c>>4 == 0b1110 || c>>3 == 0b11110 {
+			// a leading byte
 			toValidate = toValidate[:end]
+			break
+		} else if c>>6 == 0b10 {
+			// a continuation byte
+			end--
+		} else {
+			// not an utf-8 byte
 			break
 		}
 		cnt++
