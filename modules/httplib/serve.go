@@ -19,7 +19,6 @@ import (
 	charsetModule "code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
@@ -109,11 +108,7 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byt
 	}
 
 	if isPlain {
-		charset, err := charsetModule.DetectEncoding(mineBuf)
-		if err != nil {
-			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", opts.Filename, err)
-			charset = "utf-8"
-		}
+		charset, _ := charsetModule.DetectEncoding(mineBuf)
 		opts.ContentTypeCharset = strings.ToLower(charset)
 	}
 
