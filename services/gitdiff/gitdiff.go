@@ -835,11 +835,11 @@ parsingLoop:
 			if buffer.Len() == 0 {
 				continue
 			}
-			charsetLabel, err := charset.DetectEncoding(buffer.Bytes())
-			if charsetLabel != "UTF-8" && err == nil {
-				encoding, _ := stdcharset.Lookup(charsetLabel)
-				if encoding != nil {
-					diffLineTypeDecoders[lineType] = encoding.NewDecoder()
+			charsetLabel, _ := charset.DetectEncoding(buffer.Bytes())
+			if charsetLabel != "UTF-8" {
+				charsetEncoding, _ := stdcharset.Lookup(charsetLabel)
+				if charsetEncoding != nil {
+					diffLineTypeDecoders[lineType] = charsetEncoding.NewDecoder()
 				}
 			}
 		}
@@ -1337,7 +1337,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 }
 
 func highlightCodeLines(diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
-	content, _ := charset.ToUTF8(rawContent, charset.ConvertOpts{KeepBOM: false})
+	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
 	highlightedNewContent, _ := highlight.Code(diffFile.Name, diffFile.Language, content)
 	splitLines := strings.Split(string(highlightedNewContent), "\n")
 	lines := make(map[int]template.HTML, len(splitLines))

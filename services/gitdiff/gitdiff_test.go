@@ -1106,3 +1106,18 @@ func TestDiffLine_GetExpandDirection(t *testing.T) {
 		assert.Equal(t, c.direction, c.diffLine.GetExpandDirection(), "case %s expected direction: %s", c.name, c.direction)
 	}
 }
+
+func TestHighlightCodeLines(t *testing.T) {
+	diffFile := &DiffFile{
+		Name:     "a.c",
+		Language: "C",
+		Sections: []*DiffSection{
+			{
+				Lines: []*DiffLine{{LeftIdx: 1}},
+			},
+		},
+	}
+	ret := highlightCodeLines(diffFile, true, []byte("// abc\xcc def\xcd")) // ISO-8859-1 bytes
+	// FIXME: tag is not correctly closed
+	assert.Equal(t, `<span class="c1">// abcÌ defÍ`, string(ret[0]))
+}
