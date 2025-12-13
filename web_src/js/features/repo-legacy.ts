@@ -4,6 +4,7 @@ import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel, initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueReferenceIssue,
   initRepoIssueTitleEdit, initRepoIssueWipNewTitle, initRepoIssueWipToggle,
+  initRepoPullRequestReview,
 } from './repo-issue.ts';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.ts';
 import {initRepoCloneButtons} from './repo-common.ts';
@@ -43,6 +44,7 @@ export function initRepository() {
 
   initRepoBranchTagSelector();
   initRepoCommentFormAndSidebar();
+  initRepoPullRequestReview(); // This handles code comment buttons on diffs
 
   // Labels
   initCompLabelEdit('.page-content.repository.labels');
@@ -70,6 +72,15 @@ export function initRepository() {
     initCompReactionSelector();
 
     registerGlobalInitFunc('initRepoPullMergeBox', initRepoPullMergeBox);
+  }
+
+  // Commit diff - enable code comments
+  if (pageContent.matches('.page-content.repository.diff')) {
+    initRepoIssueCommentEdit();
+    initRepoIssueCommentDelete();
+    initRepoIssueReferenceIssue();
+    initRepoIssueCodeCommentCancel();
+    initCompReactionSelector();
   }
 
   initUnicodeEscapeButton();

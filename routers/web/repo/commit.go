@@ -36,6 +36,7 @@ import (
 	"code.gitea.io/gitea/services/gitdiff"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/gitgraph"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -272,6 +273,16 @@ func LoadBranchesAndTags(ctx *context.Context) {
 // Diff show different from current commit to previous commit
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
+	ctx.Data["PageIsCommitDiff"] = true // Enable comment buttons on commit diffs
+
+	// Set up user blocking function for comments (only if signed in)
+	if ctx.IsSigned {
+		ctx.Data["SignedUserID"] = ctx.Doer.ID
+		ctx.Data["SignedUser"] = ctx.Doer
+		ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+			return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+		}
+	}
 
 	userName := ctx.Repo.Owner.Name
 	repoName := ctx.Repo.Repository.Name
@@ -363,6 +374,13 @@ func Diff(ctx *context.Context) {
 	setCompareContext(ctx, parentCommit, commit, userName, repoName)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
+
+	// Load commit comments into the diff
+	if err := loadCommitCommentsIntoDiff(ctx, diff, commitID); err != nil {
+		ctx.ServerError("loadCommitCommentsIntoDiff", err)
+		return
+	}
+
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
@@ -425,6 +443,99 @@ func Diff(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplCommitPage)
+}
+
+// loadCommitCommentsIntoDiff loads commit comments and attaches them to diff lines
+func loadCommitCommentsIntoDiff(ctx *context.Context, diff *gitdiff.Diff, commitSHA string) error {
+	comments, err := repo_model.FindCommitComments(ctx, repo_model.FindCommitCommentsOptions{
+		RepoID:    ctx.Repo.Repository.ID,
+		CommitSHA: commitSHA,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Load posters, attachments, reactions, and render comments
+	for _, comment := range comments {
+		if err := comment.LoadPoster(ctx); err != nil {
+			return err
+		}
+		if err := comment.LoadAttachments(ctx); err != nil {
+			return err
+		}
+		if err := repo_service.RenderCommitComment(ctx, comment); err != nil {
+			return err
+		}
+		// Load reactions for this comment
+		reactions, _, err := issues_model.FindCommentReactions(ctx, 0, comment.ID)
+		if err != nil {
+			return err
+		}
+		if _, err := reactions.LoadUsers(ctx, ctx.Repo.Repository); err != nil {
+			return err
+		}
+		comment.Reactions = reactions
+	}
+
+	// Group comments by file and line number
+	allComments := make(map[string]map[int64][]*repo_model.CommitComment)
+	for _, comment := range comments {
+		if allComments[comment.TreePath] == nil {
+			allComments[comment.TreePath] = make(map[int64][]*repo_model.CommitComment)
+		}
+		allComments[comment.TreePath][comment.Line] = append(allComments[comment.TreePath][comment.Line], comment)
+	}
+
+	// Attach comments to diff lines
+	for _, file := range diff.Files {
+		if lineComments, ok := allComments[file.Name]; ok {
+			for _, section := range file.Sections {
+				for _, line := range section.Lines {
+					// Check for comments on the left side (previous/old)
+					if comments, ok := lineComments[int64(line.LeftIdx*-1)]; ok {
+						line.Comments = append(line.Comments, convertCommitCommentsToIssueComments(comments)...)
+					}
+					// Check for comments on the right side (proposed/new)
+					if comments, ok := lineComments[int64(line.RightIdx)]; ok {
+						line.Comments = append(line.Comments, convertCommitCommentsToIssueComments(comments)...)
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// convertCommitCommentsToIssueComments converts CommitComment to Comment interface for template compatibility
+func convertCommitCommentsToIssueComments(commitComments []*repo_model.CommitComment) []*issues_model.Comment {
+	comments := make([]*issues_model.Comment, len(commitComments))
+	for i, cc := range commitComments {
+		var reactions issues_model.ReactionList
+		if cc.Reactions != nil {
+			if r, ok := cc.Reactions.(issues_model.ReactionList); ok {
+				reactions = r
+			}
+		}
+		// Create a minimal Comment struct that the template can use
+		comments[i] = &issues_model.Comment{
+			ID:               cc.ID,
+			PosterID:         cc.PosterID,
+			Poster:           cc.Poster,
+			OriginalAuthor:   cc.OriginalAuthor,
+			OriginalAuthorID: cc.OriginalAuthorID,
+			TreePath:         cc.TreePath,
+			Line:             cc.Line,
+			Content:          cc.Content,
+			ContentVersion:   cc.ContentVersion,
+			RenderedContent:  cc.RenderedContent,
+			CreatedUnix:      cc.CreatedUnix,
+			UpdatedUnix:      cc.UpdatedUnix,
+			Reactions:        reactions,
+			Attachments:      cc.Attachments,
+		}
+	}
+	return comments
 }
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
