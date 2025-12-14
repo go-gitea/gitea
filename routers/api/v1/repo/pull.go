@@ -1086,11 +1086,11 @@ func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *par
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.APIError(http.StatusBadRequest, err.Error())
 		return nil, nil
+	case errors.Is(err, util.ErrNotExist):
+		ctx.APIErrorNotFound()
+		return nil, nil
 	case err != nil:
 		ctx.APIErrorInternal(err)
-		return nil, nil
-	case user_model.IsErrUserNotExist(err) || repo_model.IsErrRepoNotExist(err):
-		ctx.APIErrorNotFound()
 		return nil, nil
 	}
 
