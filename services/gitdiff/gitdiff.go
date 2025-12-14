@@ -1336,35 +1336,11 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 	return diff, nil
 }
 
-func splitHighlightLines(buf []byte) (ret [][]byte) {
-	lineCount := bytes.Count(buf, []byte("\n")) + 1
-	ret = make([][]byte, 0, lineCount)
-	nlTagClose := []byte("\n</")
-	for {
-		pos := bytes.IndexByte(buf, '\n')
-		if pos == -1 {
-			ret = append(ret, buf)
-			return ret
-		}
-		// Chroma highlighting output sometimes have "</span>" right after \n, sometimes before.
-		// * "<span>text\n</span>"
-		// * "<span>text</span>\n"
-		if bytes.HasPrefix(buf[pos:], nlTagClose) {
-			pos1 := bytes.IndexByte(buf[pos:], '>')
-			if pos1 != -1 {
-				pos += pos1
-			}
-		}
-		ret = append(ret, buf[:pos+1])
-		buf = buf[pos+1:]
-	}
-}
-
 func highlightCodeLines(diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
 	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
 	highlightedNewContent, _ := highlight.Code(diffFile.Name, diffFile.Language, content)
-	splitLines := splitHighlightLines([]byte(highlightedNewContent))
-	lines := make(map[int]template.HTML, len(splitLines))
+	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
+	lines := make(map[int]template.HTML, len(unsafeLines))
 	// only save the highlighted lines we need, but not the whole file, to save memory
 	for _, sec := range diffFile.Sections {
 		for _, ln := range sec.Lines {
@@ -1374,8 +1350,8 @@ func highlightCodeLines(diffFile *DiffFile, isLeft bool, rawContent []byte) map[
 			}
 			if lineIdx >= 1 {
 				idx := lineIdx - 1
-				if idx < len(splitLines) {
-					lines[idx] = template.HTML(splitLines[idx])
+				if idx < len(unsafeLines) {
+					lines[idx] = template.HTML(util.UnsafeBytesToString(unsafeLines[idx]))
 				}
 			}
 		}
