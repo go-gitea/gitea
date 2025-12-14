@@ -105,8 +105,15 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	mergeCtx.sig = doer.NewGitSig()
 	mergeCtx.committer = mergeCtx.sig
 
+	gitRepo, err := git.OpenRepository(ctx, mergeCtx.tmpBasePath)
+	if err != nil {
+		defer cancel()
+		return nil, nil, fmt.Errorf("failed to open git repo %s: %w", mergeCtx.tmpBasePath, err)
+	}
+	defer gitRepo.Close()
+
 	// Determine if we should sign
-	sign, key, signer, _ := asymkey_service.SignMerge(ctx, mergeCtx.pr, mergeCtx.doer, mergeCtx.tmpBasePath, "HEAD", trackingBranch)
+	sign, key, signer, _ := asymkey_service.SignMerge(ctx, mergeCtx.pr, mergeCtx.doer, gitRepo, "HEAD", trackingBranch)
 	if sign {
 		mergeCtx.signKey = key
 		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
