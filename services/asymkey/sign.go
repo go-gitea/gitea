@@ -108,7 +108,7 @@ func IsErrWontSign(err error) bool {
 	return ok
 }
 
-// PublicSigningKey gets the public signing key
+// PublicSigningKey gets the public signing key of the entire instance
 func PublicSigningKey(ctx context.Context) (content, format string, err error) {
 	signingKey, _ := git.GetSigningKey(ctx)
 	if signingKey == nil {
