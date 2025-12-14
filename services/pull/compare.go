@@ -33,7 +33,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	)
 
 	// We don't need a temporary remote for same repository.
-	if headGitRepo.Path != baseRepo.RepoPath() {
+	if baseRepo.ID != headRepo.ID {
 		// Add a temporary remote
 		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
 		if err = gitrepo.GitRemoteAdd(ctx, headRepo, tmpRemote, baseRepo.RepoPath()); err != nil {

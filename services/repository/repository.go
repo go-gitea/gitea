@@ -257,7 +257,7 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 
 	isPublic := !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic
 	if !isPublic && isExist {
-		if err = gitrepo.RemoveRepoFile(ctx, repo, daemonExportFile); err != nil {
+		if err = gitrepo.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
 			log.Error("Failed to remove %s: %v", daemonExportFile, err)
 		}
 	} else if isPublic && !isExist {
