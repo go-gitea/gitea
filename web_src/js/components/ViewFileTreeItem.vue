@@ -2,20 +2,10 @@
 import {SvgIcon} from '../svg.ts';
 import {isPlainClick} from '../utils/dom.ts';
 import {shallowRef} from 'vue';
-import {type createViewFileTreeStore} from './ViewFileTreeStore.ts';
-
-export type Item = {
-  entryName: string;
-  entryMode: 'blob' | 'exec' | 'tree' | 'commit' | 'symlink' | 'unknown';
-  entryIcon: string;
-  entryIconOpen: string;
-  fullPath: string;
-  submoduleUrl?: string;
-  children?: Item[];
-};
+import type {createViewFileTreeStore, FileTreeItem} from './ViewFileTreeStore.ts';
 
 const props = defineProps<{
-  item: Item,
+  item: FileTreeItem,
   store: ReturnType<typeof createViewFileTreeStore>
 }>();
 
