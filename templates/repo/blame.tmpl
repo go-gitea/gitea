@@ -38,7 +38,7 @@
 			<table>
 				<tbody>
 					{{range $row := .BlameRows}}
-						<tr class="{{if and (gt $.CommitCnt 1) ($row.CommitMessage)}}top-line-blame{{end}}">
+						<tr class="{{if $row.CommitURL}}top-line-blame{{end}}">
 							<td class="lines-commit">
 								<div class="blame-info">
 									<div class="blame-data">
