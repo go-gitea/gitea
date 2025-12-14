@@ -15,10 +15,13 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/migrations"
@@ -159,18 +162,18 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 		&issues_model.Issue{RepoID: migratedRepo.ID},
 		unittest.Cond("is_pull = ?", false),
 	)
-	assert.EqualValues(t, 7, issueCount)
+	assert.Equal(t, 7, issueCount)
 	pullCount := unittest.GetCount(t,
 		&issues_model.Issue{RepoID: migratedRepo.ID},
 		unittest.Cond("is_pull = ?", true),
 	)
-	assert.EqualValues(t, 6, pullCount)
+	assert.Equal(t, 6, pullCount)
 
 	issue4, err := issues_model.GetIssueWithAttrsByIndex(t.Context(), migratedRepo.ID, 4)
 	require.NoError(t, err)
 	assert.Equal(t, owner.ID, issue4.PosterID)
 	assert.Equal(t, "Ghost", issue4.OriginalAuthor)
-	assert.EqualValues(t, -1, issue4.OriginalAuthorID)
+	assert.Equal(t, int64(-1), issue4.OriginalAuthorID)
 	assert.Equal(t, "what is this repo about?", issue4.Title)
 	assert.True(t, issue4.IsClosed)
 	assert.True(t, issue4.IsLocked)
@@ -195,19 +198,19 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, comments, 2)
 	assert.Equal(t, owner.ID, comments[0].PosterID)
-	assert.EqualValues(t, 689, comments[0].OriginalAuthorID)
+	assert.Equal(t, int64(689), comments[0].OriginalAuthorID)
 	assert.Equal(t, "6543", comments[0].OriginalAuthor)
-	assert.True(t, strings.Contains(comments[0].Content, "TESTSET for gitea2gitea"))
+	assert.Contains(t, comments[0].Content, "TESTSET for gitea2gitea")
 	assert.Equal(t, owner.ID, comments[1].PosterID)
 	assert.Equal(t, "Ghost", comments[1].OriginalAuthor)
-	assert.EqualValues(t, -1, comments[1].OriginalAuthorID)
+	assert.Equal(t, int64(-1), comments[1].OriginalAuthorID)
 	assert.Equal(t, "Oh!", strings.TrimSpace(comments[1].Content))
 
 	pr12, err := issues_model.GetPullRequestByIndex(t.Context(), migratedRepo.ID, 12)
 	require.NoError(t, err)
 	assert.Equal(t, owner.ID, pr12.Issue.PosterID)
 	assert.Equal(t, "6543", pr12.Issue.OriginalAuthor)
-	assert.EqualValues(t, 689, pr12.Issue.OriginalAuthorID)
+	assert.Equal(t, int64(689), pr12.Issue.OriginalAuthorID)
 	assert.Equal(t, "Dont Touch", pr12.Issue.Title)
 	assert.True(t, pr12.Issue.IsClosed)
 	assert.True(t, pr12.HasMerged)
@@ -217,4 +220,75 @@ func Test_MigrateFromGiteaToGitea(t *testing.T) {
 		assert.Equal(t, "V2 Finalize", pr12.Issue.Milestone.Name)
 	}
 	assert.Contains(t, pr12.Issue.Content, "dont touch")
+
+	pr8, err := issues_model.GetPullRequestByIndex(t.Context(), migratedRepo.ID, 8)
+	require.NoError(t, err)
+	assert.Equal(t, owner.ID, pr8.Issue.PosterID)
+	assert.Equal(t, "6543", pr8.Issue.OriginalAuthor)
+	assert.Equal(t, int64(689), pr8.Issue.OriginalAuthorID)
+	assert.Equal(t, "add garbage for close pull", pr8.Issue.Title)
+	assert.True(t, pr8.Issue.IsClosed)
+	assert.False(t, pr8.HasMerged)
+	assert.Contains(t, pr8.Issue.Content, "well you'll see")
+
+	pr13, err := issues_model.GetPullRequestByIndex(t.Context(), migratedRepo.ID, 13)
+	require.NoError(t, err)
+	assert.Equal(t, owner.ID, pr13.Issue.PosterID)
+	assert.Equal(t, "6543", pr13.Issue.OriginalAuthor)
+	assert.Equal(t, int64(689), pr13.Issue.OriginalAuthorID)
+	assert.Equal(t, "extend", pr13.Issue.Title)
+	assert.False(t, pr13.Issue.IsClosed)
+	assert.False(t, pr13.HasMerged)
+	assert.True(t, pr13.Issue.IsLocked)
+
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), migratedRepo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	branches, _, err := gitRepo.GetBranchNames(0, 0)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"6543-patch-1", "master", "6543-forks/add-xkcd-2199"}, branches) // last branch comes from the pull request
+
+	branchNames, err := git_model.FindBranchNames(t.Context(), git_model.FindBranchOptions{
+		RepoID: migratedRepo.ID,
+	})
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"6543-patch-1", "master", "6543-forks/add-xkcd-2199"}, branchNames)
+
+	tags, _, err := gitRepo.GetTagInfos(0, 0)
+	require.NoError(t, err)
+	tagNames := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		tagNames = append(tagNames, tag.Name)
+	}
+	assert.ElementsMatch(t, []string{"V1", "v2-rc1"}, tagNames)
+
+	releases, err := db.Find[repo_model.Release](t.Context(), repo_model.FindReleasesOptions{
+		RepoID:        migratedRepo.ID,
+		IncludeDrafts: true,
+		IncludeTags:   false,
+	})
+	require.NoError(t, err)
+	require.Len(t, releases, 2)
+
+	releaseMap := make(map[string]*repo_model.Release, len(releases))
+	for _, rel := range releases {
+		releaseMap[rel.TagName] = rel
+		assert.Equal(t, owner.ID, rel.PublisherID)
+		assert.Equal(t, "6543", rel.OriginalAuthor)
+		assert.Equal(t, int64(689), rel.OriginalAuthorID)
+		assert.False(t, rel.IsDraft)
+	}
+
+	require.Contains(t, releaseMap, "v2-rc1")
+	v2Release := releaseMap["v2-rc1"]
+	assert.Equal(t, "Second Release", v2Release.Title)
+	assert.True(t, v2Release.IsPrerelease)
+	assert.Contains(t, v2Release.Note, "this repo has:")
+
+	require.Contains(t, releaseMap, "V1")
+	v1Release := releaseMap["V1"]
+	assert.Equal(t, "First Release", v1Release.Title)
+	assert.False(t, v1Release.IsPrerelease)
+	assert.Equal(t, "as title", strings.TrimSpace(v1Release.Note))
 }
