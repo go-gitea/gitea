@@ -198,8 +198,12 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	fileOnly := ctx.FormBool("file-only")
 
 	compareReq, err := common.ParseCompareRouterParam(ctx.PathParam("*"))
-	if err != nil {
-		ctx.ServerError("GetUserByName", err)
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.HTTPError(http.StatusBadRequest, err.Error())
+		return nil
+	case err != nil:
+		ctx.ServerError("ParseCompareRouterParam", err)
 		return nil
 	}
 	// remove the check when we support compare with carets
@@ -213,11 +217,11 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	case errors.Is(err, util.ErrInvalidArgument):
 		ctx.HTTPError(http.StatusBadRequest, err.Error())
 		return nil
+	case errors.Is(err, util.ErrNotExist):
+		ctx.NotFound(nil)
+		return nil
 	case err != nil:
 		ctx.ServerError("GetHeadOwnerAndRepo", err)
-		return nil
-	case user_model.IsErrUserNotExist(err) || repo_model.IsErrRepoNotExist(err):
-		ctx.NotFound(nil)
 		return nil
 	}
 

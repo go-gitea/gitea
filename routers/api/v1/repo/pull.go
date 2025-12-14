@@ -1070,14 +1070,18 @@ type parseCompareInfoResult struct {
 func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *parseCompareInfoResult, closer func()) {
 	baseRepo := ctx.Repo.Repository
 	compareReq, err := common.ParseCompareRouterParam(compareParam)
-	if err != nil {
-		ctx.APIErrorNotFound()
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.APIError(http.StatusBadRequest, err.Error())
+		return nil, nil
+	case err != nil:
+		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
 
 	// remove the check when we support compare with carets
 	if compareReq.CaretTimes > 0 {
-		ctx.APIErrorNotFound("Unsupported compare syntax with carets")
+		ctx.APIError(http.StatusBadRequest, "Unsupported compare syntax with carets")
 		return nil, nil
 	}
 
