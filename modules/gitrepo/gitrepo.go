@@ -109,8 +109,8 @@ func IsRepoDirExist(ctx context.Context, repo Repository, relativeDirPath string
 	return util.IsDir(absoluteDirPath)
 }
 
-func RemoveRepoFile(ctx context.Context, repo Repository, relativeFilePath string) error {
-	absoluteFilePath := filepath.Join(repoPath(repo), relativeFilePath)
+func RemoveRepoFileOrDir(ctx context.Context, repo Repository, relativeFileOrDirPath string) error {
+	absoluteFilePath := filepath.Join(repoPath(repo), relativeFileOrDirPath)
 	return util.Remove(absoluteFilePath)
 }
 
