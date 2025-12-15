@@ -58,7 +58,7 @@ func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase b
 	}
 
 	cmd := gitcmd.NewCommand("diff-tree", "--raw", "-r", "--root")
-	cmd.AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameThreshold)
+	cmd.AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold)
 	if useMergeBase {
 		cmd.AddArguments("--merge-base")
 	}
