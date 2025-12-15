@@ -67,6 +67,8 @@ type AzureBlobStorageConfig struct {
 	Container   string `ini:"AZURE_BLOB_CONTAINER" json:",omitempty"`
 	BasePath    string `ini:"AZURE_BLOB_BASE_PATH" json:",omitempty"`
 	ServeDirect bool   `ini:"SERVE_DIRECT"`
+	ClientID    string `ini:"AZURE_CLIENT_ID" json:",omitempty"`
+	TenantID    string `ini:"AZURE_TENANT_ID" json:",omitempty"`
 }
 
 func (cfg *AzureBlobStorageConfig) ToShadow() {
@@ -75,6 +77,9 @@ func (cfg *AzureBlobStorageConfig) ToShadow() {
 	}
 	if cfg.AccountName != "" {
 		cfg.AccountName = "******"
+	}
+	if cfg.ClientID != "" {
+		cfg.ClientID = "******"
 	}
 }
 
@@ -118,6 +123,8 @@ func getDefaultStorageSection(rootCfg ConfigProvider) ConfigSection {
 	storageSec.Key("AZURE_BLOB_ACCOUNT_NAME").MustString("")
 	storageSec.Key("AZURE_BLOB_ACCOUNT_KEY").MustString("")
 	storageSec.Key("AZURE_BLOB_CONTAINER").MustString("gitea")
+	storageSec.Key("AZURE_CLIENT_ID").MustString("")
+	storageSec.Key("AZURE_TENANT_ID").MustString("")
 	return storageSec
 }
 
