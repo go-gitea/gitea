@@ -5,6 +5,7 @@ package setting
 
 import (
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -118,5 +119,10 @@ func loadGitFrom(rootCfg ConfigProvider) {
 		Git.HomePath = filepath.Join(AppDataPath, Git.HomePath)
 	} else {
 		Git.HomePath = filepath.Clean(Git.HomePath)
+	}
+
+	// validate for a integer percentage between 0% and 100%
+	if !regexp.MustCompile(`^([0-9]|[1-9][0-9]|100)%$`).MatchString(Git.DiffRenameSimilarityThreshold) {
+		log.Fatal("Invalid git.DIFF_RENAME_SIMILARITY_THRESHOLD: %s", Git.DiffRenameSimilarityThreshold)
 	}
 }
