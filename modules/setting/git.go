@@ -53,7 +53,7 @@ var Git = struct {
 	PullRequestPushMessage:        true,
 	LargeObjectThreshold:          1024 * 1024,
 	DisablePartialClone:           false,
-	DiffRenameSimilarityThreshold: "25%",
+	DiffRenameSimilarityThreshold: "50%",
 	Timeout: struct {
 		Default int
 		Migrate int
