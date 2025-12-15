@@ -51,7 +51,7 @@ func CompareDiff(ctx *context.APIContext) {
 		}
 	}
 
-	compareResult, closer := parseCompareInfo(ctx, ctx.PathParam("*"))
+	compareInfo, closer := parseCompareInfo(ctx, ctx.PathParam("*"))
 	if ctx.Written() {
 		return
 	}
@@ -60,10 +60,10 @@ func CompareDiff(ctx *context.APIContext) {
 	verification := ctx.FormString("verification") == "" || ctx.FormBool("verification")
 	files := ctx.FormString("files") == "" || ctx.FormBool("files")
 
-	apiCommits := make([]*api.Commit, 0, len(compareResult.compareInfo.Commits))
+	apiCommits := make([]*api.Commit, 0, len(compareInfo.Commits))
 	userCache := make(map[string]*user_model.User)
-	for i := 0; i < len(compareResult.compareInfo.Commits); i++ {
-		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, compareResult.compareInfo.Commits[i], userCache,
+	for i := 0; i < len(compareInfo.Commits); i++ {
+		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, compareInfo.Commits[i], userCache,
 			convert.ToCommitOptions{
 				Stat:         true,
 				Verification: verification,
@@ -77,7 +77,7 @@ func CompareDiff(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, &api.Compare{
-		TotalCommits: len(compareResult.compareInfo.Commits),
+		TotalCommits: len(compareInfo.Commits),
 		Commits:      apiCommits,
 	})
 }
