@@ -47,4 +47,8 @@
 		{{template "shared/webhook/icon" (dict "HookType" "packagist" "Size" $size)}}
 		{{ctx.Locale.Tr "repo.settings.web_hook_name_packagist"}}
 	</a>
+	<a class="item" href="{{.BaseLinkNew}}/bark/new">
+		{{template "shared/webhook/icon" (dict "HookType" "bark" "Size" $size)}}
+		{{ctx.Locale.Tr "repo.settings.web_hook_name_bark"}}
+	</a>
 </div>
