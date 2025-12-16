@@ -401,9 +401,9 @@ func GenerateReleaseNotes(ctx *context.Context) {
 		return
 	}
 
-	result, err := release_service.GenerateReleaseNotes(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, release_service.GenerateReleaseNotesOptions{
+	content, err := release_service.GenerateReleaseNotes(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, release_service.GenerateReleaseNotesOptions{
 		TagName:     form.TagName,
-		Target:      form.Target,
+		TagTarget:   form.TagTarget,
 		PreviousTag: form.PreviousTag,
 	})
 	if err != nil {
@@ -415,10 +415,7 @@ func GenerateReleaseNotes(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"content":      result.Content,
-		"previous_tag": result.PreviousTag,
-	})
+	ctx.JSON(http.StatusOK, map[string]any{"content": content})
 }
 
 // NewReleasePost response for creating a release

@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -37,41 +36,4 @@ func Test_FindTagsByCommitIDs(t *testing.T) {
 	assert.Equal(t, "v1.1", rels[0].TagName)
 	assert.Equal(t, "delete-tag", rels[1].TagName)
 	assert.Equal(t, "v1.0", rels[2].TagName)
-}
-
-func TestGetPreviousPublishedRelease(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	current := unittest.AssertExistsAndLoadBean(t, &Release{ID: 8})
-	prev, err := GetPreviousPublishedRelease(t.Context(), current.RepoID, current)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 7, prev.ID)
-}
-
-func TestGetPreviousPublishedRelease_NoPublishedCandidate(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repoID := int64(1)
-	draft := &Release{
-		RepoID:       repoID,
-		PublisherID:  1,
-		TagName:      "draft-prev",
-		LowerTagName: "draft-prev",
-		IsDraft:      true,
-		CreatedUnix:  timeutil.TimeStamp(2),
-	}
-	current := &Release{
-		RepoID:       repoID,
-		PublisherID:  1,
-		TagName:      "published-current",
-		LowerTagName: "published-current",
-		CreatedUnix:  timeutil.TimeStamp(3),
-	}
-
-	err := InsertReleases(t.Context(), draft, current)
-	assert.NoError(t, err)
-
-	_, err = GetPreviousPublishedRelease(t.Context(), repoID, current)
-	assert.Error(t, err)
-	assert.True(t, IsErrReleaseNotExist(err))
 }

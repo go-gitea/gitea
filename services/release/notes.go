@@ -16,223 +16,63 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
-
-	version "github.com/hashicorp/go-version"
 )
 
 // GenerateReleaseNotesOptions describes how to build release notes content.
 type GenerateReleaseNotesOptions struct {
 	TagName     string
-	Target      string
+	TagTarget   string
 	PreviousTag string
-}
-
-// GenerateReleaseNotesResult holds the rendered notes and the base tag used.
-type GenerateReleaseNotesResult struct {
-	Content     string
-	PreviousTag string
-}
-
-func newErrReleaseNotesTagNotFound(tagName string) error {
-	return util.ErrorWrapTranslatable(util.NewNotExistErrorf("tag %q not found", tagName), "repo.release.generate_notes_tag_not_found", tagName)
-}
-
-func newErrReleaseNotesTargetNotFound(ref string) error {
-	return util.ErrorWrapTranslatable(util.NewNotExistErrorf("release target %q not found", ref), "repo.release.generate_notes_target_not_found", ref)
 }
 
 // GenerateReleaseNotes builds the markdown snippet for release notes.
-func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts GenerateReleaseNotesOptions) (*GenerateReleaseNotesResult, error) {
-	tagName := strings.TrimSpace(opts.TagName)
-	if tagName == "" {
-		return nil, util.NewInvalidArgumentErrorf("empty target tag name for release notes")
+func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts GenerateReleaseNotesOptions) (string, error) {
+	headCommit, err := resolveHeadCommit(gitRepo, opts.TagName, opts.TagTarget)
+	if err != nil {
+		return "", err
 	}
 
-	headCommit, err := resolveHeadCommit(repo, gitRepo, tagName, opts.Target)
-	if err != nil {
-		return nil, err
+	if opts.PreviousTag == "" {
+		// no previous tag, usually due to there is no tag in the repo, use the same content as GitHub
+		content := fmt.Sprintf("**Full Changelog**: %s/commits/tag/%s\n", repo.HTMLURL(ctx), util.PathEscapeSegments(opts.TagName))
+		return content, nil
 	}
 
-	baseSelection, err := resolveBaseTag(ctx, repo, gitRepo, headCommit, tagName, opts.PreviousTag)
+	baseCommit, err := gitRepo.GetCommit(opts.PreviousTag)
 	if err != nil {
-		return nil, err
+		return "", util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_tag_not_found", opts.TagName)
 	}
 
-	commits, err := gitRepo.CommitsBetweenIDs(headCommit.ID.String(), baseSelection.Commit.ID.String())
+	commits, err := gitRepo.CommitsBetweenIDs(headCommit.ID.String(), baseCommit.ID.String())
 	if err != nil {
-		return nil, fmt.Errorf("CommitsBetweenIDs: %w", err)
+		return "", fmt.Errorf("CommitsBetweenIDs: %w", err)
 	}
 
 	prs, err := collectPullRequestsFromCommits(ctx, repo.ID, commits)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	contributors, newContributors, err := collectContributors(ctx, repo.ID, prs)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	content := buildReleaseNotesContent(ctx, repo, tagName, baseSelection.CompareBase, prs, contributors, newContributors)
-	return &GenerateReleaseNotesResult{
-		Content:     content,
-		PreviousTag: baseSelection.PreviousTag,
-	}, nil
+	content := buildReleaseNotesContent(ctx, repo, opts.TagName, opts.PreviousTag, prs, contributors, newContributors)
+	return content, nil
 }
 
-func resolveHeadCommit(repo *repo_model.Repository, gitRepo *git.Repository, tagName, target string) (*git.Commit, error) {
+func resolveHeadCommit(gitRepo *git.Repository, tagName, tagTarget string) (*git.Commit, error) {
 	ref := tagName
 	if !gitRepo.IsTagExist(tagName) {
-		ref = strings.TrimSpace(target)
-		if ref == "" {
-			ref = repo.DefaultBranch
-		}
+		ref = tagTarget
 	}
 
 	commit, err := gitRepo.GetCommit(ref)
 	if err != nil {
-		return nil, newErrReleaseNotesTargetNotFound(ref)
+		return nil, util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_target_not_found", ref)
 	}
 	return commit, nil
-}
-
-type baseSelection struct {
-	CompareBase string
-	PreviousTag string
-	Commit      *git.Commit
-}
-
-func resolveBaseTag(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, headCommit *git.Commit, tagName, requestedBase string) (*baseSelection, error) {
-	requestedBase = strings.TrimSpace(requestedBase)
-	if requestedBase != "" {
-		return buildBaseSelectionForTag(gitRepo, requestedBase)
-	}
-
-	candidate, err := autoPreviousReleaseTag(ctx, repo, tagName)
-	if err != nil {
-		return nil, err
-	}
-	if candidate != "" {
-		return buildBaseSelectionForTag(gitRepo, candidate)
-	}
-
-	tagInfos, _, err := gitRepo.GetTagInfos(0, 0)
-	if err != nil {
-		return nil, fmt.Errorf("GetTagInfos: %w", err)
-	}
-
-	if previousTag, ok := findPreviousTagName(tagInfos, tagName); ok {
-		return buildBaseSelectionForTag(gitRepo, previousTag)
-	}
-
-	initialCommit, err := findInitialCommit(headCommit)
-	if err != nil {
-		return nil, err
-	}
-	return &baseSelection{
-		CompareBase: initialCommit.ID.String(),
-		PreviousTag: "",
-		Commit:      initialCommit,
-	}, nil
-}
-
-func buildBaseSelectionForTag(gitRepo *git.Repository, tagName string) (*baseSelection, error) {
-	baseCommit, err := gitRepo.GetCommit(tagName)
-	if err != nil {
-		return nil, newErrReleaseNotesTagNotFound(tagName)
-	}
-	return &baseSelection{
-		CompareBase: tagName,
-		PreviousTag: tagName,
-		Commit:      baseCommit,
-	}, nil
-}
-
-func autoPreviousReleaseTag(ctx context.Context, repo *repo_model.Repository, tagName string) (string, error) {
-	currentRelease, err := repo_model.GetRelease(ctx, repo.ID, tagName)
-	switch {
-	case err == nil:
-		return findPreviousPublishedReleaseTag(ctx, repo, currentRelease)
-	case repo_model.IsErrReleaseNotExist(err):
-		// this tag has no stored release, fall back to latest release below
-	default:
-		return "", fmt.Errorf("GetRelease: %w", err)
-	}
-
-	rel, err := repo_model.GetLatestReleaseByRepoID(ctx, repo.ID)
-	switch {
-	case err == nil:
-		if strings.EqualFold(rel.TagName, tagName) {
-			return "", nil
-		}
-		return rel.TagName, nil
-	case repo_model.IsErrReleaseNotExist(err):
-		return "", nil
-	default:
-		return "", fmt.Errorf("GetLatestReleaseByRepoID: %w", err)
-	}
-}
-
-func findPreviousPublishedReleaseTag(ctx context.Context, repo *repo_model.Repository, current *repo_model.Release) (string, error) {
-	prev, err := repo_model.GetPreviousPublishedRelease(ctx, repo.ID, current)
-	switch {
-	case err == nil:
-	case repo_model.IsErrReleaseNotExist(err):
-		return "", nil
-	default:
-		return "", fmt.Errorf("GetPreviousPublishedRelease: %w", err)
-	}
-
-	return prev.TagName, nil
-}
-
-func findPreviousTagName(tags []*git.Tag, target string) (string, bool) {
-	foundTarget := false
-	targetVersion := parseSemanticVersion(target)
-
-	for _, tag := range tags {
-		name := strings.TrimSpace(tag.Name)
-		if strings.EqualFold(name, target) {
-			foundTarget = true
-			continue
-		}
-		if foundTarget {
-			if targetVersion != nil {
-				if candidateVersion := parseSemanticVersion(name); candidateVersion != nil && candidateVersion.GreaterThan(targetVersion) {
-					continue
-				}
-			}
-			return name, true
-		}
-	}
-	if len(tags) > 0 {
-		return strings.TrimSpace(tags[0].Name), true
-	}
-	return "", false
-}
-
-func parseSemanticVersion(tag string) *version.Version {
-	if pos := strings.LastIndexByte(tag, '/'); pos >= 0 {
-		tag = tag[pos+1:]
-	}
-	tag = strings.TrimLeft(tag, "vV")
-	v, _ := version.NewVersion(tag)
-	return v
-}
-
-func findInitialCommit(commit *git.Commit) (*git.Commit, error) {
-	// FIXME: this method is inefficient for large repos with long histories, and it doesn't seem right:
-	// FIXME: "git diff aaaa...bbbb" doesn't include commits from "aaaa", so the changes in "root commit" won't appear in the tag release's diff.
-	// No idea whether we should really make things so complicated.
-	current := commit
-	for current.ParentCount() > 0 {
-		parent, err := current.Parent(0)
-		if err != nil {
-			return nil, fmt.Errorf("Parent: %w", err)
-		}
-		current = parent
-	}
-	return current, nil
 }
 
 func collectPullRequestsFromCommits(ctx context.Context, repoID int64, commits []*git.Commit) ([]*issues_model.PullRequest, error) {
@@ -298,6 +138,7 @@ func buildReleaseNotesContent(ctx context.Context, repo *repo_model.Repository, 
 	builder.WriteString("**Full Changelog**: ")
 	compareURL := fmt.Sprintf("%s/compare/%s...%s", repo.HTMLURL(ctx), util.PathEscapeSegments(baseRef), util.PathEscapeSegments(tagName))
 	builder.WriteString(fmt.Sprintf("[%s...%s](%s)", baseRef, tagName, compareURL))
+	builder.WriteByte('\n')
 	return builder.String()
 }
 

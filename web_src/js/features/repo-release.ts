@@ -4,6 +4,8 @@ import {getComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
 import {hideElem, showElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {registerGlobalEventFunc, registerGlobalInitFunc} from '../modules/observer.ts';
+import {htmlEscape} from '../utils/html.ts';
+import {compareVersions} from 'compare-versions';
 
 export function initRepoReleaseNew() {
   registerGlobalEventFunc('click', 'onReleaseEditAttachmentDelete', (el) => {
@@ -18,11 +20,15 @@ export function initRepoReleaseNew() {
   });
 }
 
+function getReleaseFormExistingTags(elForm: HTMLFormElement): Array<string> {
+  return JSON.parse(elForm.getAttribute('data-existing-tags')!);
+}
+
 function initTagNameEditor(elForm: HTMLFormElement) {
   const tagNameInput = elForm.querySelector<HTMLInputElement>('input[type=text][name=tag_name]');
   if (!tagNameInput) return; // only init if tag name input exists (the tag name is editable)
 
-  const existingTags = JSON.parse(elForm.getAttribute('data-existing-tags')!);
+  const existingTags = getReleaseFormExistingTags(elForm);
   const defaultTagHelperText = elForm.getAttribute('data-tag-helper');
   const newTagHelperText = elForm.getAttribute('data-tag-helper-new');
   const existingTagHelperText = elForm.getAttribute('data-tag-helper-existing');
@@ -43,6 +49,30 @@ function initTagNameEditor(elForm: HTMLFormElement) {
   tagNameInput.addEventListener('input', (e) => {
     hideTargetInput(e.target as HTMLInputElement);
   });
+}
+
+export function guessPreviousReleaseTag(tagName: string, existingTags: Array<string>): string {
+  let guessedPreviousTag = '', guessedPreviousVer = '';
+
+  const cleanup = (s: string) => {
+    const pos = s.lastIndexOf('/');
+    if (pos >= 0) s = s.substring(pos + 1);
+    if (s.substring(0, 1).toLowerCase() === 'v') s = s.substring(1);
+    return s;
+  };
+
+  const newVer = cleanup(tagName);
+  for (const s of existingTags) {
+    const existingVer = cleanup(s);
+    try {
+      if (compareVersions(existingVer, newVer) >= 0) continue;
+      if (!guessedPreviousTag || compareVersions(existingVer, guessedPreviousVer) > 0) {
+        guessedPreviousTag = s;
+        guessedPreviousVer = existingVer;
+      }
+    } catch {}
+  }
+  return guessedPreviousTag;
 }
 
 function initGenerateReleaseNotes(elForm: HTMLFormElement) {
@@ -87,6 +117,7 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
     }
   };
 
+  let inited = false;
   const doShowModal = () => {
     hideToastsAll();
     const tagName = tagNameInput.value.trim();
@@ -95,6 +126,19 @@ function initGenerateReleaseNotes(elForm: HTMLFormElement) {
       tagNameInput.focus();
       return;
     }
+
+    const existingTags = getReleaseFormExistingTags(elForm);
+    const $dropdown = fomanticQuery(elModal.querySelector('[name=previous_tag]')!);
+    if (!inited) {
+      inited = true;
+      const values = [];
+      for (const tagName of existingTags) {
+        values.push({name: htmlEscape(tagName), value: tagName}); // ATTENTION: dropdown takes the "name" input as raw HTML
+      }
+      $dropdown.dropdown('change values', values);
+    }
+    $dropdown.dropdown('set selected', guessPreviousReleaseTag(tagName, existingTags));
+
     fomanticQuery(elModal).modal({
       onApprove: () => {
         doSubmit(tagName); // don't await, need to return false to keep the modal

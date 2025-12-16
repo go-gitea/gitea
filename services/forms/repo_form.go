@@ -641,7 +641,7 @@ func (f *NewReleaseForm) Validate(req *http.Request, errs binding.Errors) bindin
 // GenerateReleaseNotesForm retrieves release notes recommendations.
 type GenerateReleaseNotesForm struct {
 	TagName     string `form:"tag_name" binding:"Required;GitRefName;MaxSize(255)"`
-	Target      string `form:"tag_target" binding:"MaxSize(255)"`
+	TagTarget   string `form:"tag_target" binding:"MaxSize(255)"`
 	PreviousTag string `form:"previous_tag" binding:"MaxSize(255)"`
 }
 

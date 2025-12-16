@@ -322,36 +322,6 @@ func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, erro
 	return rel, nil
 }
 
-// GetPreviousPublishedRelease returns the most recent published release created before the provided release.
-func GetPreviousPublishedRelease(ctx context.Context, repoID int64, current *Release) (*Release, error) {
-	cond := builder.NewCond().
-		And(builder.Eq{"repo_id": repoID}).
-		And(builder.Eq{"is_draft": false}).
-		And(builder.Eq{"is_prerelease": false}).
-		And(builder.Eq{"is_tag": false}).
-		And(builder.Or(
-			builder.Lt{"created_unix": current.CreatedUnix},
-			builder.And(
-				builder.Eq{"created_unix": current.CreatedUnix},
-				builder.Lt{"id": current.ID},
-			),
-		))
-
-	rel := new(Release)
-	has, err := db.GetEngine(ctx).
-		Desc("created_unix", "id").
-		Where(cond).
-		Get(rel)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, ErrReleaseNotExist{0, "previous"}
-	}
-
-	return rel, nil
-}
-
 type releaseMetaSearch struct {
 	ID  []int64
 	Rel []*Release

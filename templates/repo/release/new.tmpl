@@ -152,13 +152,7 @@
 		<p>{{ctx.Locale.Tr "repo.release.generate_notes_desc"}}</p>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.release.previous_tag"}}</label>
-			<select name="previous_tag" class="ui selection dropdown">
-				<option value="">{{ctx.Locale.Tr "repo.release.previous_tag_auto"}}</option>
-				{{/* FIXME: use existing "data-existing-tags" to fill the items to avoid bloating the page twice by plenty of tags */}}
-				{{- range .Tags -}}
-				<option value="{{.}}">{{.}}</option>
-				{{- end -}}
-			</select>
+			<select name="previous_tag" class="ui selection dropdown"></select>
 		</div>
 		<div class="actions">
 			<button class="ui primary ok button">{{ctx.Locale.Tr "repo.release.generate_notes"}}</button>
