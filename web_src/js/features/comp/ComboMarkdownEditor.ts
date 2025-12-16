@@ -369,7 +369,7 @@ export class ComboMarkdownEditor {
     hideElem(this.textareaMarkdownToolbar);
   }
 
-  value(v: any) {
+  value(v: any = undefined) {
     if (v === undefined) {
       if (this.easyMDE) {
         return this.easyMDE.value();
