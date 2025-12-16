@@ -140,7 +140,7 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, targetRepo.RepoPath(), doer, targetRepo.RepoPath(), refName.String())
+	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, doer, targetRepo.RepoPath(), refName.String())
 	wontSignReason := ""
 	if asymkey_service.IsErrWontSign(err) {
 		wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
@@ -443,7 +443,7 @@ func RepoAssignment(ctx *Context) {
 				}
 
 				if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
-					RedirectToUser(ctx.Base, userName, redirectUserID)
+					RedirectToUser(ctx.Base, ctx.Doer, userName, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
 					ctx.NotFound(nil)
 				} else {

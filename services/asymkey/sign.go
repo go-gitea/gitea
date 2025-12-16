@@ -108,34 +108,34 @@ func IsErrWontSign(err error) bool {
 	return ok
 }
 
-// PublicSigningKey gets the public signing key within a provided repository directory
-func PublicSigningKey(ctx context.Context, repoPath string) (content, format string, err error) {
-	signingKey, _ := git.GetSigningKey(ctx, repoPath)
+// PublicSigningKey gets the public signing key of the entire instance
+func PublicSigningKey(ctx context.Context) (content, format string, err error) {
+	signingKey, _ := git.GetSigningKey(ctx)
 	if signingKey == nil {
 		return "", "", nil
 	}
 	if signingKey.Format == git.SigningKeyFormatSSH {
 		content, err := os.ReadFile(signingKey.KeyID)
 		if err != nil {
-			log.Error("Unable to read SSH public key file in %s: %s, %v", repoPath, signingKey, err)
+			log.Error("Unable to read SSH public key file: %s, %v", signingKey, err)
 			return "", signingKey.Format, err
 		}
 		return string(content), signingKey.Format, nil
 	}
 
-	content, stderr, err := process.GetManager().ExecDir(ctx, -1, repoPath,
+	content, stderr, err := process.GetManager().ExecDir(ctx, -1, setting.Git.HomePath,
 		"gpg --export -a", "gpg", "--export", "-a", signingKey.KeyID)
 	if err != nil {
-		log.Error("Unable to get default signing key in %s: %s, %s, %v", repoPath, signingKey, stderr, err)
+		log.Error("Unable to get default signing key: %s, %s, %v", signingKey, stderr, err)
 		return "", signingKey.Format, err
 	}
 	return content, signingKey.Format, nil
 }
 
 // SignInitialCommit determines if we should sign the initial commit to this repository
-func SignInitialCommit(ctx context.Context, repoPath string, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
+func SignInitialCommit(ctx context.Context, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.InitialCommit)
-	signingKey, sig := git.GetSigningKey(ctx, repoPath)
+	signingKey, sig := git.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -171,7 +171,7 @@ Loop:
 // SignWikiCommit determines if we should sign the commits to this repository wiki
 func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
-	signingKey, sig := gitrepo.GetSigningKey(ctx, repo.WikiStorageRepo())
+	signingKey, sig := gitrepo.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -222,9 +222,9 @@ Loop:
 }
 
 // SignCRUDAction determines if we should sign a CRUD commit to this repository
-func SignCRUDAction(ctx context.Context, repoPath string, u *user_model.User, tmpBasePath, parentCommit string) (bool, *git.SigningKey, *git.Signature, error) {
+func SignCRUDAction(ctx context.Context, u *user_model.User, tmpBasePath, parentCommit string) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.CRUDActions)
-	signingKey, sig := git.GetSigningKey(ctx, repoPath)
+	signingKey, sig := git.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -288,7 +288,7 @@ func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.
 	}
 	repo := pr.BaseRepo
 
-	signingKey, signer := gitrepo.GetSigningKey(ctx, repo)
+	signingKey, signer := gitrepo.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
