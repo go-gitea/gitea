@@ -233,6 +233,7 @@ export default defineConfig([
       '@typescript-eslint/no-unused-vars': [2, {vars: 'all', args: 'all', caughtErrors: 'all', ignoreRestSiblings: false, argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_'}],
       '@typescript-eslint/no-use-before-define': [2, {functions: false, classes: true, variables: true, allowNamedExports: true, typedefs: false, enums: false, ignoreTypeReferences: true}],
       '@typescript-eslint/no-useless-constructor': [0],
+      '@typescript-eslint/no-useless-default-assignment': [2],
       '@typescript-eslint/no-useless-empty-export': [0],
       '@typescript-eslint/no-wrapper-object-types': [2],
       '@typescript-eslint/non-nullable-type-assertion-style': [0],

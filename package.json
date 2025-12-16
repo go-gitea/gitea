@@ -1,6 +1,6 @@
 {
   "type": "module",
-  "packageManager": "pnpm@10.25.0",
+  "packageManager": "pnpm@10.26.0",
   "engines": {
     "node": ">= 22.6.0",
     "pnpm": ">= 10.0.0"
@@ -21,7 +21,7 @@
     "@techknowlogick/license-checker-webpack-plugin": "0.3.0",
     "add-asset-webpack-plugin": "3.1.1",
     "ansi_up": "6.0.6",
-    "asciinema-player": "3.13.2",
+    "asciinema-player": "3.13.4",
     "chart.js": "4.5.1",
     "chartjs-adapter-dayjs-4": "1.0.4",
     "chartjs-plugin-zoom": "2.2.0",
@@ -78,7 +78,7 @@
     "@types/throttle-debounce": "5.0.2",
     "@types/tinycolor2": "1.4.6",
     "@types/toastify-js": "1.12.4",
-    "@typescript-eslint/parser": "8.49.0",
+    "@typescript-eslint/parser": "8.50.0",
     "@vitejs/plugin-vue": "6.0.3",
     "@vitest/eslint-plugin": "1.5.2",
     "eslint": "9.39.2",
@@ -108,7 +108,7 @@
     "stylelint-value-no-unknown-custom-properties": "6.0.1",
     "svgo": "4.0.0",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.49.0",
+    "typescript-eslint": "8.50.0",
     "updates": "17.0.7",
     "vite-string-plugin": "1.4.9",
     "vitest": "4.0.15",
