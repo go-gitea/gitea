@@ -30,6 +30,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
+	defer resp.Body.Close()
 	ctx := t.Context()
 	downloader, err := NewGitlabDownloader(ctx, "https://gitlab.com", "gitea/test_repo", gitlabPersonalAccessToken)
 	if err != nil {
