@@ -172,7 +172,7 @@ export class ComboMarkdownEditor {
 
     // apply setting was changed in another tab
     window.addEventListener('storage', (e) => {
-      if (e.key === 'markdown-editor-monospace') {
+      if (e.storageArea === localStorage && e.key === 'markdown-editor-monospace') {
         applyMonospace(isMonospaceEnabled(), {save: false});
       }
     });
