@@ -47,6 +47,19 @@ export function validateTextareaNonEmpty(textarea: HTMLTextAreaElement) {
   return true;
 }
 
+/** Returns whether the user currently has the monospace font setting enabled */
+function isMonospaceEnabled() {
+  return localStorage?.getItem('markdown-editor-monospace') === 'true';
+}
+
+/** Apply font variant to the provided or all textareas on the page */
+function applyFontVariant(monospaceEnabled: boolean, textarea?: HTMLTextAreaElement) {
+  for (const el of textarea ? [textarea] : document.querySelectorAll('.markdown-text-editor')) {
+    el.classList.toggle('tw-font-mono', monospaceEnabled);
+  }
+  localStorage.setItem('markdown-editor-monospace', String(monospaceEnabled));
+}
+
 type Heights = {
   minHeight?: string,
   height?: string,
@@ -141,15 +154,15 @@ export class ComboMarkdownEditor {
     }
 
     const monospaceButton = this.container.querySelector('.markdown-switch-monospace')!;
-    const monospaceEnabled = localStorage?.getItem('markdown-editor-monospace') === 'true';
+    const monospaceEnabled = isMonospaceEnabled();
+    applyFontVariant(monospaceEnabled, this.textarea);
     const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text')!;
     monospaceButton.setAttribute('data-tooltip-content', monospaceText);
     monospaceButton.setAttribute('aria-checked', String(monospaceEnabled));
     monospaceButton.addEventListener('click', (e) => {
       e.preventDefault();
-      const enabled = localStorage?.getItem('markdown-editor-monospace') !== 'true';
-      localStorage.setItem('markdown-editor-monospace', String(enabled));
-      this.textarea.classList.toggle('tw-font-mono', enabled);
+      const enabled = !isMonospaceEnabled();
+      applyFontVariant(enabled);
       const text = monospaceButton.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text')!;
       monospaceButton.setAttribute('data-tooltip-content', text);
       monospaceButton.setAttribute('aria-checked', String(enabled));
