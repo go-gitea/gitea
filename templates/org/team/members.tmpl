@@ -3,6 +3,19 @@
 	{{template "org/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
+		{{if or .IsOrganizationOwner .IsOrganizationMember}}
+			<div class="flex-text-block tw-justify-end tw-gap-x-1 tw-gap-y-2 tw-mb-4">
+				{{if .IsOrganizationOwner}}
+					<a class="ui primary button" href="{{.OrgLink}}/teams/new">{{svg "octicon-plus"}} {{ctx.Locale.Tr "org.create_new_team"}}</a>
+				{{end}}
+				{{if .IsOrganizationMember}}
+					<a class="ui primary button" href="{{.OrgLink}}/teams">{{svg "octicon-people"}} {{ctx.Locale.Tr "org.all_teams"}}</a>
+				{{end}}
+			</div>
+		{{end}}
+		{{if and .IsOrganizationOwner .IsOrganizationMember}}
+			<div class="divider"></div>
+		{{end}}
 		<div class="ui stackable grid">
 			{{template "org/team/sidebar" .}}
 			<div class="ui ten wide column">
