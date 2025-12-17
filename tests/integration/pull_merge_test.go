@@ -52,14 +52,9 @@ type MergeOptions struct {
 }
 
 func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
-	resp := session.MakeRequest(t, req, http.StatusOK)
-
-	htmlDoc := NewHTMLParser(t, resp.Body)
 	link := path.Join(user, repo, "pulls", pullnum, "merge")
 
 	options := map[string]string{
-		"_csrf":          htmlDoc.GetCSRF(),
 		"do":             string(mergeOptions.Style),
 		"head_commit_id": mergeOptions.HeadCommitID,
 	}
@@ -68,8 +63,8 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 		options["delete_branch_after_merge"] = "on"
 	}
 
-	req = NewRequestWithValues(t, "POST", link, options)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	req := NewRequestWithValues(t, "POST", link, options)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	respJSON := struct {
 		Redirect string
@@ -97,9 +92,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find(".timeline-item .delete-branch-after-merge").Attr("data-url")
 	assert.True(t, exists, "The template has changed, can not find delete button url")
-	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-	})
+	req = NewRequestWithValues(t, "POST", link, map[string]string{})
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	return resp
@@ -844,11 +837,8 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 			HeadBranch: "master",
 		})
 
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
 		// Change the "master" branch to "protected"
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                 csrf,
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
@@ -937,11 +927,8 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 			HeadBranch: "master",
 		})
 
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                 csrf,
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
@@ -993,10 +980,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 
 		// approve the PR from non-author
 		approveSession := loginUser(t, "user2")
-		req = NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d", pr.Index))
-		resp := approveSession.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		testSubmitReview(t, approveSession, htmlDoc.GetCSRF(), "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
+		testSubmitReview(t, approveSession, "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
 
 		time.Sleep(2 * time.Second)
 
@@ -1067,11 +1051,8 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		})
 
 		session := loginUser(t, "user1")
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                 csrf,
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
@@ -1122,10 +1103,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 
 		// approve the PR from non-author
 		approveSession := loginUser(t, "user1")
-		req = NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d", pr.Index))
-		resp := approveSession.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		testSubmitReview(t, approveSession, htmlDoc.GetCSRF(), "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
+		testSubmitReview(t, approveSession, "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
 
 		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
@@ -1156,11 +1134,8 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 			HeadBranch: "master",
 		})
 
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		pbCreateReq := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                      csrf,
 			"rule_name":                  "master",
 			"enable_push":                "true",
 			"enable_status_check":        "true",
@@ -1172,7 +1147,6 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 		mergeReq := NewRequestWithValues(t, "POST", "/api/v1/repos/user2/repo1/pulls/6/merge", map[string]string{
-			"_csrf":                     csrf,
 			"head_commit_id":            "",
 			"merge_when_checks_succeed": "false",
 			"force_merge":               "true",

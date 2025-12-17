@@ -128,9 +128,7 @@ jobs:
 
 		// user2 approves all runs
 		req = NewRequestWithValues(t, "POST", dataURL,
-			map[string]string{
-				"_csrf": GetUserCSRFToken(t, user2Session),
-			})
+			map[string]string{})
 		user2Session.MakeRequest(t, req, http.StatusOK)
 
 		// check runs

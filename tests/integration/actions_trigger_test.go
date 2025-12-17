@@ -1642,9 +1642,7 @@ jobs:
 		testEditFile(t, session, "user2", repoName, repo.DefaultBranch, "dir1/dir1.txt", "11") // change the file in "dir1"
 		req := NewRequestWithValues(t, "POST",
 			fmt.Sprintf("/%s/%s/pulls/%d/update?style=rebase", "user2", repoName, apiPull.Index), // update by rebase
-			map[string]string{
-				"_csrf": GetUserCSRFToken(t, session),
-			})
+			map[string]string{})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 		runner.fetchNoTask(t)
 	})

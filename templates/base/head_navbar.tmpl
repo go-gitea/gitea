@@ -158,7 +158,6 @@
 				</a>
 				<div class="tw-flex tw-gap-1">
 					<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop">
-						{{.CsrfTokenHtml}}
 						<button
 							type="submit"
 							class="ui button mini compact basic icon tw-mr-0"
@@ -166,7 +165,6 @@
 						>{{svg "octicon-square-fill"}}</button>
 					</form>
 					<form class="stopwatch-cancel form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel">
-						{{.CsrfTokenHtml}}
 						<button
 							type="submit"
 							class="ui button mini compact basic icon tw-mr-0"

@@ -129,13 +129,13 @@ func webAuth(authMethod auth_service.Method) func(*context.Context) {
 			// ensure the session uid is deleted
 			_ = ctx.Session.Delete("uid")
 		}
-
-		ctx.Csrf.PrepareForSessionUser(ctx)
 	}
 }
 
 // verifyAuthWithOptions checks authentication according to options
 func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Context) {
+	crossOrginProtection := http.NewCrossOriginProtection()
+
 	return func(ctx *context.Context) {
 		// Check prohibit login users.
 		if ctx.IsSigned {
@@ -178,9 +178,9 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			return
 		}
 
-		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == http.MethodPost {
-			ctx.Csrf.Validate(ctx)
-			if ctx.Written() {
+		if !options.SignOutRequired && !options.DisableCSRF {
+			if err := crossOrginProtection.Check(ctx.Req); err != nil {
+				http.Error(ctx.Resp, err.Error(), http.StatusForbidden)
 				return
 			}
 		}
@@ -565,12 +565,14 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("/grant", web.Bind(forms.GrantApplicationForm{}), auth.GrantApplicationOAuth)
 			// TODO manage redirection
 			m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
-		}, optSignInIgnoreCsrf, reqSignIn)
+		}, reqSignIn)
 
-		m.Methods("GET, POST, OPTIONS", "/userinfo", optionsCorsHandler(), optSignInIgnoreCsrf, auth.InfoOAuth)
-		m.Methods("POST, OPTIONS", "/access_token", optionsCorsHandler(), web.Bind(forms.AccessTokenForm{}), optSignInIgnoreCsrf, auth.AccessTokenOAuth)
-		m.Methods("GET, OPTIONS", "/keys", optionsCorsHandler(), optSignInIgnoreCsrf, auth.OIDCKeys)
-		m.Methods("POST, OPTIONS", "/introspect", optionsCorsHandler(), web.Bind(forms.IntrospectTokenForm{}), optSignInIgnoreCsrf, auth.IntrospectOAuth)
+		m.Group("", func() {
+			m.Methods("GET, POST, OPTIONS", "/userinfo", auth.InfoOAuth)
+			m.Methods("POST, OPTIONS", "/access_token", web.Bind(forms.AccessTokenForm{}), optSignInIgnoreCsrf, auth.AccessTokenOAuth)
+			m.Methods("GET, OPTIONS", "/keys", auth.OIDCKeys)
+			m.Methods("POST, OPTIONS", "/introspect", web.Bind(forms.IntrospectTokenForm{}), auth.IntrospectOAuth)
+		}, optionsCorsHandler(), optSignInIgnoreCsrf)
 	}, oauth2Enabled)
 
 	m.Group("/user/settings", func() {

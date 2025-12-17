@@ -456,9 +456,7 @@ jobs:
 		pr2Run1 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: baseRepo.ID, TriggerUserID: user4.ID})
 		req = NewRequestWithValues(t, "POST",
 			fmt.Sprintf("/%s/%s/actions/runs/%d/approve", baseRepo.OwnerName, baseRepo.Name, pr2Run1.Index),
-			map[string]string{
-				"_csrf": GetUserCSRFToken(t, user2Session),
-			})
+			map[string]string{})
 		user2Session.MakeRequest(t, req, http.StatusOK)
 		// fetch the task and the previous task has been cancelled
 		pr2Task1 := runner.fetchTask(t)
@@ -624,9 +622,7 @@ jobs:
 		assert.Equal(t, actions_model.StatusCancelled, wf2Job2ActionJob.Status)
 
 		// rerun wf2
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, wf2Run.Index), map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
-		})
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, repo.Name, wf2Run.Index), map[string]string{})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// (rerun1) cannot fetch wf2-job2
@@ -650,9 +646,7 @@ jobs:
 		assert.Equal(t, "job-main-v1.24.0", wf2Job2Rerun1Job.ConcurrencyGroup)
 
 		// rerun wf2-job2
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, wf2Run.Index, 1), map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
-		})
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, repo.Name, wf2Run.Index, 1), map[string]string{})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 		// (rerun2) fetch and exec wf2-job2
 		wf2Job2Rerun2Task := runner1.fetchTask(t)
@@ -806,7 +800,6 @@ jobs:
 		// run the workflow with appVersion=v1.21 and cancel=false
 		urlStr := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "workflow-dispatch-concurrency.yml")
 		req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.21",
 		})
@@ -817,7 +810,6 @@ jobs:
 
 		// run the workflow with appVersion=v1.22 and cancel=false
 		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.22",
 		})
@@ -828,7 +820,6 @@ jobs:
 
 		// run the workflow with appVersion=v1.22 and cancel=false again
 		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.22",
 		})
@@ -837,7 +828,6 @@ jobs:
 
 		// run the workflow with appVersion=v1.22 and cancel=true
 		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.22",
 			"cancel":     "on",
@@ -900,7 +890,6 @@ jobs:
 		// run the workflow with appVersion=v1.21 and cancel=false
 		urlStr := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "workflow-dispatch-concurrency.yml")
 		req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.21",
 		})
@@ -910,7 +899,6 @@ jobs:
 		assert.Equal(t, "workflow-dispatch-v1.21", run1.ConcurrencyGroup)
 
 		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.22",
 		})
@@ -921,7 +909,6 @@ jobs:
 
 		// run the workflow with appVersion=v1.22 and cancel=false again
 		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.22",
 		})
@@ -931,7 +918,6 @@ jobs:
 
 		// run the workflow with appVersion=v1.22 and cancel=true
 		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.22",
 			"cancel":     "on",
@@ -950,14 +936,10 @@ jobs:
 
 		// rerun cancel true scenario
 
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.Index), map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
-		})
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.Index), map[string]string{})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run4.Index), map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
-		})
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run4.Index), map[string]string{})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task5 := runner.fetchTask(t)
@@ -973,17 +955,13 @@ jobs:
 
 		// rerun cancel false scenario
 
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.Index), map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
-		})
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.Index), map[string]string{})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		run2_2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
 		assert.Equal(t, actions_model.StatusWaiting, run2_2.Status)
 
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.Index+1), map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
-		})
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", user2.Name, apiRepo.Name, run2.Index+1), map[string]string{})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task6 := runner.fetchTask(t)
@@ -1044,7 +1022,6 @@ jobs:
 		// run the workflow with appVersion=v1.21 and cancel=false
 		urlStr := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "workflow-dispatch-concurrency.yml")
 		req := NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.21",
 		})
@@ -1054,7 +1031,6 @@ jobs:
 		assert.Equal(t, "workflow-dispatch-v1.21", run1.ConcurrencyGroup)
 
 		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.22",
 		})
@@ -1065,7 +1041,6 @@ jobs:
 
 		// run the workflow with appVersion=v1.22 and cancel=false again
 		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.22",
 		})
@@ -1075,7 +1050,6 @@ jobs:
 
 		// run the workflow with appVersion=v1.22 and cancel=true
 		req = NewRequestWithValues(t, "POST", urlStr, map[string]string{
-			"_csrf":      GetUserCSRFToken(t, session),
 			"ref":        "refs/heads/main",
 			"appVersion": "v1.22",
 			"cancel":     "on",
@@ -1094,14 +1068,10 @@ jobs:
 
 		// rerun cancel true scenario
 
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index, 1), map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
-		})
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index, 1), map[string]string{})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run4.Index, 1), map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
-		})
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run4.Index, 1), map[string]string{})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task5 := runner.fetchTask(t)
@@ -1117,17 +1087,13 @@ jobs:
 
 		// rerun cancel false scenario
 
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index, 1), map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
-		})
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index, 1), map[string]string{})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		run2_2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{ID: run2.ID})
 		assert.Equal(t, actions_model.StatusWaiting, run2_2.Status)
 
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index+1, 1), map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
-		})
+		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/jobs/%d/rerun", user2.Name, apiRepo.Name, run2.Index+1, 1), map[string]string{})
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		task6 := runner.fetchTask(t)
@@ -1491,9 +1457,7 @@ jobs:
 		runner.fetchNoTask(t)
 
 		// cancel the first run
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/cancel", user2.Name, repo.Name, run1.Index), map[string]string{
-			"_csrf": GetUserCSRFToken(t, user2Session),
-		})
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/cancel", user2.Name, repo.Name, run1.Index), map[string]string{})
 		user2Session.MakeRequest(t, req, http.StatusOK)
 
 		// the first run has been cancelled
