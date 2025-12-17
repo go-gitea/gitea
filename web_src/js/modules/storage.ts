@@ -10,11 +10,9 @@ export function setLocalStorageSetting(key: string, value: string) {
 
 /** Add a listener to the 'storage' event for given setting key. This event only fires in non-current tabs. */
 export function addLocalStorageChangeListener(key: string, listener: (e: StorageEvent) => void) {
-  const fn = (e: StorageEvent) => {
+  window.addEventListener('storage', (e: StorageEvent) => {
     if (e.storageArea === localStorage && e.key === key) {
       listener(e);
     }
-  };
-  window.addEventListener('storage', fn);
-  return fn; // for unregister
+  });
 }
