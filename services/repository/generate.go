@@ -177,7 +177,7 @@ func substGiteaTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, t
 	}
 
 	generatedContent := generateExpansion(ctx, string(content), templateRepo, generateRepo)
-	substSubPath := filepath.Clean(filePathSanitize(generateExpansion(ctx, tmpDirSubPath, templateRepo, generateRepo)))
+	substSubPath := filePathSanitize(generateExpansion(ctx, tmpDirSubPath, templateRepo, generateRepo))
 	newLocalPath := filepath.Join(tmpDir, substSubPath)
 	regular, err := util.IsRegularFile(newLocalPath)
 	if canWrite := regular || errors.Is(err, fs.ErrNotExist); !canWrite {
@@ -358,5 +358,5 @@ func filePathSanitize(s string) string {
 		}
 		fields[i] = field
 	}
-	return filepath.FromSlash(strings.Join(fields, "/"))
+	return filepath.Clean(filepath.FromSlash(strings.Trim(strings.Join(fields, "/"), "/")))
 }

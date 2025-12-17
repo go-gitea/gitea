@@ -26,6 +26,7 @@
     "chartjs-adapter-dayjs-4": "1.0.4",
     "chartjs-plugin-zoom": "2.2.0",
     "clippie": "4.1.9",
+    "compare-versions": "6.1.1",
     "cropperjs": "1.6.2",
     "css-loader": "7.1.2",
     "dayjs": "1.11.19",

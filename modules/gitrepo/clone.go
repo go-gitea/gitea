@@ -18,3 +18,7 @@ func CloneExternalRepo(ctx context.Context, fromRemoteURL string, toRepo Reposit
 func CloneRepoToLocal(ctx context.Context, fromRepo Repository, toLocalPath string, opts git.CloneRepoOptions) error {
 	return git.Clone(ctx, repoPath(fromRepo), toLocalPath, opts)
 }
+
+func Clone(ctx context.Context, fromRepo, toRepo Repository, opts git.CloneRepoOptions) error {
+	return git.Clone(ctx, repoPath(fromRepo), repoPath(toRepo), opts)
+}

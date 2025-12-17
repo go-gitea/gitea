@@ -20,16 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 )
 
-// GPGSettings represents the default GPG settings for this repository
-type GPGSettings struct {
-	Sign             bool
-	KeyID            string
-	Email            string
-	Name             string
-	PublicKeyContent string
-	Format           string
-}
-
 const prettyLogFormat = `--pretty=format:%H`
 
 func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {
@@ -123,6 +113,8 @@ type CloneRepoOptions struct {
 	Depth         int
 	Filter        string
 	SkipTLSVerify bool
+	SingleBranch  bool
+	Env           []string
 }
 
 // Clone clones original repository to target path.
@@ -157,6 +149,9 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	if opts.Filter != "" {
 		cmd.AddArguments("--filter").AddDynamicArguments(opts.Filter)
 	}
+	if opts.SingleBranch {
+		cmd.AddArguments("--single-branch")
+	}
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b").AddDynamicArguments(opts.Branch)
 	}
@@ -167,13 +162,17 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	}
 
 	envs := os.Environ()
-	u, err := url.Parse(from)
-	if err == nil {
-		envs = proxy.EnvWithProxy(u)
+	if opts.Env != nil {
+		envs = opts.Env
+	} else {
+		u, err := url.Parse(from)
+		if err == nil {
+			envs = proxy.EnvWithProxy(u)
+		}
 	}
 
 	stderr := new(bytes.Buffer)
-	if err = cmd.
+	if err := cmd.
 		WithTimeout(opts.Timeout).
 		WithEnv(envs).
 		WithStdout(io.Discard).
@@ -227,15 +226,4 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 
 	return nil
-}
-
-// GetLatestCommitTime returns time for latest commit in repository (across all branches)
-func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error) {
-	cmd := gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
-	stdout, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
-	if err != nil {
-		return time.Time{}, err
-	}
-	commitTime := strings.TrimSpace(stdout)
-	return time.Parse("Mon Jan _2 15:04:05 2006 -0700", commitTime)
 }

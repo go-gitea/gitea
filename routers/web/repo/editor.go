@@ -317,11 +317,7 @@ func EditFile(ctx *context.Context) {
 				ctx.ServerError("ReadAll", err)
 				return
 			}
-			if content, err := charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true}); err != nil {
-				ctx.Data["FileContent"] = string(buf)
-			} else {
-				ctx.Data["FileContent"] = content
-			}
+			ctx.Data["FileContent"] = string(charset.ToUTF8(buf, charset.ConvertOpts{KeepBOM: true, ErrorReturnOrigin: true}))
 		}
 	}
 
