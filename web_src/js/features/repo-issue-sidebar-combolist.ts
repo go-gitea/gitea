@@ -29,7 +29,7 @@ export class IssueSidebarComboList {
   elDropdown: HTMLElement;
   elList: HTMLElement;
   elComboValue: HTMLInputElement;
-  initialValues: Array<string>;
+  initialValues: string[];
   container: HTMLElement;
 
   constructor(container: HTMLElement) {

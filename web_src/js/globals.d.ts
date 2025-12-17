@@ -60,7 +60,7 @@ interface Window {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
-  codeEditors: Array<any>, // export editor for customization
+  codeEditors: any[], // export editor for customization
 
   // various captcha plugins
   grecaptcha: any,

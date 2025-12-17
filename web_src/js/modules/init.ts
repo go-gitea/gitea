@@ -1,5 +1,5 @@
 export class InitPerformanceTracer {
-  results: Array<{name: string, dur: number}> = [];
+  results: {name: string, dur: number}[] = [];
   recordCall(name: string, func: () => void) {
     const start = performance.now();
     func();
@@ -13,7 +13,7 @@ export class InitPerformanceTracer {
   }
 }
 
-export function callInitFunctions(functions: Array<() => any>): InitPerformanceTracer | null {
+export function callInitFunctions(functions: (() => any)[]): InitPerformanceTracer | null {
   // Start performance trace by accessing a URL by "https://localhost/?_ui_performance_trace=1" or "https://localhost/?key=value&_ui_performance_trace=1"
   // It is a quick check, no side effect so no need to do slow URL parsing.
   const perfTracer = !window.location.search.includes('_ui_performance_trace=1') ? null : new InitPerformanceTracer();

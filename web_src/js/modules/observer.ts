@@ -5,7 +5,7 @@ import type {InitPerformanceTracer} from './init.ts';
 let globalSelectorObserverInited = false;
 
 type SelectorHandler = {selector: string, handler: (el: HTMLElement) => void};
-const selectorHandlers: Array<SelectorHandler> = [];
+const selectorHandlers: SelectorHandler[] = [];
 
 type GlobalEventFunc<T extends HTMLElement, E extends Event> = (el: T, e: E) => Promisable<void>;
 const globalEventFuncs: Record<string, GlobalEventFunc<HTMLElement, Event>> = {};

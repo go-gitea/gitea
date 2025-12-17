@@ -75,7 +75,7 @@ function getLanguage(filename: string): string {
   return languagesByFilename[filename] || languagesByExt[extname(filename)] || 'plaintext';
 }
 
-function updateEditor(monaco: Monaco, editor: IStandaloneCodeEditor, filename: string, lineWrapExts: Array<string>): void {
+function updateEditor(monaco: Monaco, editor: IStandaloneCodeEditor, filename: string, lineWrapExts: string[]): void {
   editor.updateOptions(getFileBasedOptions(filename, lineWrapExts));
   const model = editor.getModel();
   if (!model) return;
@@ -175,7 +175,7 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
   return {monaco, editor};
 }
 
-function getFileBasedOptions(filename: string, lineWrapExts: Array<string>): MonacoOpts {
+function getFileBasedOptions(filename: string, lineWrapExts: string[]): MonacoOpts {
   return {
     wordWrap: (lineWrapExts || []).includes(extname(filename)) ? 'on' : 'off',
   };

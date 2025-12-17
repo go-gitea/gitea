@@ -3,9 +3,9 @@ type PngChunk = {
   data: Uint8Array,
 };
 
-export async function pngChunks(blob: Blob): Promise<Array<PngChunk>> {
+export async function pngChunks(blob: Blob): Promise<PngChunk[]> {
   const uint8arr = new Uint8Array(await blob.arrayBuffer());
-  const chunks: Array<PngChunk> = [];
+  const chunks: PngChunk[] = [];
   if (uint8arr.length < 12) return chunks;
   const view = new DataView(uint8arr.buffer);
   if (view.getBigUint64(0) !== 9894494448401390090n) return chunks;

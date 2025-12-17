@@ -6,9 +6,9 @@ import {isInFrontendUnitTest} from './testhelper.ts';
 type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Array
 type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
 type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
-type ElementsCallbackWithArgs = (el: Element, ...args: Array<any>) => Promisable<any>;
+type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
 
-function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: Array<any>): ArrayLikeIterable<Element> {
+function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]): ArrayLikeIterable<Element> {
   if (typeof el === 'string' || el instanceof String) {
     el = document.querySelectorAll(el as string);
   }
@@ -65,7 +65,7 @@ function applyElemsCallback<T extends Element>(elems: ArrayLikeIterable<T>, fn?:
 
 export function queryElemSiblings<T extends Element>(el: Element, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   if (!el.parentNode) return [];
-  const elems = Array.from(el.parentNode.children) as Array<T>;
+  const elems = Array.from(el.parentNode.children) as T[];
   return applyElemsCallback<T>(elems.filter((child: Element) => {
     return child !== el && child.matches(selector);
   }), fn);
@@ -301,7 +301,7 @@ export function createElementFromHTML<T extends HTMLElement>(htmlString: string)
   return div.firstChild as T;
 }
 
-export function createElementFromAttrs(tagName: string, attrs: Record<string, any> | null, ...children: Array<Node | string>): HTMLElement {
+export function createElementFromAttrs(tagName: string, attrs: Record<string, any> | null, ...children: (Node | string)[]): HTMLElement {
   const el = document.createElement(tagName);
   for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;

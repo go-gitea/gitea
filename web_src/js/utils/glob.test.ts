@@ -2,7 +2,7 @@ import {readFile} from 'node:fs/promises';
 import * as path from 'node:path';
 import {globCompile} from './glob.ts';
 
-async function loadGlobTestData(): Promise<{caseNames: Array<string>, caseDataMap: Record<string, string>}> {
+async function loadGlobTestData(): Promise<{caseNames: string[], caseDataMap: Record<string, string>}> {
   const fileContent = await readFile(path.join(import.meta.dirname, 'glob.test.txt'), 'utf8');
   const fileLines = fileContent.split('\n');
   const caseDataMap: Record<string, string> = {};

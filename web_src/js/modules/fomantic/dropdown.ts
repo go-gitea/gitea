@@ -291,8 +291,8 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
 // * z-label
 // when the "scope/*" are filtered out, we'd like to see "a-label" and "z-label" without the divider.
 export function hideScopedEmptyDividers(container: Element) {
-  const visibleItems: Array<Element> = [];
-  const curScopeVisibleItems: Array<Element> = [];
+  const visibleItems: Element[] = [];
+  const curScopeVisibleItems: Element[] = [];
   let curScope: string = '', lastVisibleScope: string = '';
   const isDivider = (item: Element) => item.classList.contains('divider');
   const isScopedDivider = (item: Element) => isDivider(item) && item.hasAttribute('data-scope');

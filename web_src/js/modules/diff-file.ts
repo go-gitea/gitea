@@ -12,7 +12,7 @@ export type DiffTreeEntry = {
   DiffStatus: DiffStatus,
   EntryMode: string,
   IsViewed: boolean,
-  Children: Array<DiffTreeEntry> | null,
+  Children: DiffTreeEntry[] | null,
   FileIcon: string,
   ParentEntry?: DiffTreeEntry,
 };

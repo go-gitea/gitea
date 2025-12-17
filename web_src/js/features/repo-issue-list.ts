@@ -57,7 +57,7 @@ function initRepoIssueListCheckboxes() {
       const url = el.getAttribute('data-url')!;
       let action = el.getAttribute('data-action')!;
       let elementId = el.getAttribute('data-element-id')!;
-      const issueIDList: Array<string> = [];
+      const issueIDList: string[] = [];
       for (const el of document.querySelectorAll('.issue-checkbox:checked')) {
         issueIDList.push(el.getAttribute('data-issue-id')!);
       }
@@ -116,7 +116,7 @@ function initDropdownUserRemoteSearch(el: Element) {
   };
 
   type ProcessedResult = {value: string, name: string};
-  const processedResults: Array<ProcessedResult> = []; // to be used by dropdown to generate menu items
+  const processedResults: ProcessedResult[] = []; // to be used by dropdown to generate menu items
   const syncItemFromInput = () => {
     const inputVal = elSearchInput.value.trim();
     elItemFromInput.setAttribute('data-value', inputVal);
