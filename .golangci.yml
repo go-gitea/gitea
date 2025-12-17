@@ -111,9 +111,6 @@ linters:
         - require-error
     usetesting:
       os-temp-dir: true
-    modernize:
-      disable:
-        - stringsbuilder
     perfsprint:
       concat-loop: false
     govet:
