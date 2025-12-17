@@ -21,7 +21,7 @@
     "@techknowlogick/license-checker-webpack-plugin": "0.3.0",
     "add-asset-webpack-plugin": "3.1.1",
     "ansi_up": "6.0.6",
-    "asciinema-player": "3.13.4",
+    "asciinema-player": "3.13.5",
     "chart.js": "4.5.1",
     "chartjs-adapter-dayjs-4": "1.0.4",
     "chartjs-plugin-zoom": "2.2.0",
@@ -60,7 +60,7 @@
     "vue-bar-graph": "2.2.0",
     "vue-chartjs": "5.3.3",
     "vue-loader": "17.4.2",
-    "webpack": "5.103.0",
+    "webpack": "5.104.0",
     "webpack-cli": "6.0.1",
     "wrap-ansi": "9.0.2"
   },
@@ -112,7 +112,7 @@
     "typescript-eslint": "8.50.0",
     "updates": "17.0.7",
     "vite-string-plugin": "1.4.9",
-    "vitest": "4.0.15",
+    "vitest": "4.0.16",
     "vue-tsc": "3.1.8"
   },
   "browserslist": [
