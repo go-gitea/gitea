@@ -52,12 +52,14 @@ function isMonospaceEnabled() {
   return localStorage?.getItem('markdown-editor-monospace') === 'true';
 }
 
-/** Apply font to the provided or all textareas on the page */
-function applyFont(monospaceEnabled: boolean, textarea?: HTMLTextAreaElement) {
+/** Apply font to the provided or all textareas on the page and optionally save on localStorage */
+function applyMonospace(monospaceEnabled: boolean, {textarea, save}: {textarea?: HTMLTextAreaElement, save?: boolean}) {
   for (const el of textarea ? [textarea] : document.querySelectorAll('.markdown-text-editor')) {
     el.classList.toggle('tw-font-mono', monospaceEnabled);
   }
-  localStorage.setItem('markdown-editor-monospace', String(monospaceEnabled));
+  if (save) {
+    localStorage.setItem('markdown-editor-monospace', String(monospaceEnabled));
+  }
 }
 
 type Heights = {
@@ -155,17 +157,24 @@ export class ComboMarkdownEditor {
 
     const monospaceButton = this.container.querySelector('.markdown-switch-monospace')!;
     const monospaceEnabled = isMonospaceEnabled();
-    applyFont(monospaceEnabled, this.textarea);
+    applyMonospace(monospaceEnabled, {textarea: this.textarea, save: false});
     const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text')!;
     monospaceButton.setAttribute('data-tooltip-content', monospaceText);
     monospaceButton.setAttribute('aria-checked', String(monospaceEnabled));
     monospaceButton.addEventListener('click', (e) => {
       e.preventDefault();
       const enabled = !isMonospaceEnabled();
-      applyFont(enabled);
+      applyMonospace(enabled, {save: true});
       const text = monospaceButton.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text')!;
       monospaceButton.setAttribute('data-tooltip-content', text);
       monospaceButton.setAttribute('aria-checked', String(enabled));
+    });
+
+    // apply setting was changed in another tab
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'markdown-editor-monospace') {
+        applyMonospace(isMonospaceEnabled(), {save: false});
+      }
     });
 
     if (this.supportEasyMDE) {
