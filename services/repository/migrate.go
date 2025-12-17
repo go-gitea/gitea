@@ -74,8 +74,6 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repo *repo_model.Repository, opts migration.MigrateOptions,
 	httpTransport *http.Transport,
 ) (*repo_model.Repository, error) {
-	repoPath := repo.RepoPath()
-
 	if u.IsOrganization() {
 		t, err := organization.OrgFromUser(u).GetOwnerTeam(ctx)
 		if err != nil {
@@ -92,7 +90,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("failed to remove existing repo dir %q, err: %w", repo.FullName(), err)
 	}
 
-	if err := git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
+	if err := gitrepo.CloneExternalRepo(ctx, opts.CloneAddr, repo, git.CloneRepoOptions{
 		Mirror:        true,
 		Quiet:         true,
 		Timeout:       migrateTimeout,
@@ -104,7 +102,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("clone error: %w", err)
 	}
 
-	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
+	if err := gitrepo.WriteCommitGraph(ctx, repo); err != nil {
 		return repo, err
 	}
 
