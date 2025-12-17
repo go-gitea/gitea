@@ -526,7 +526,6 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	}
 
 	pushOpts := git.PushOptions{
-		Remote: repo.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", newCommit.ID.String(), git.BranchPrefix, branchName),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 		Force:  isForcePush || force,

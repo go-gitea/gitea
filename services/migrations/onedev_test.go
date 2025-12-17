@@ -19,6 +19,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
+	defer resp.Body.Close()
 
 	u, _ := url.Parse("https://code.onedev.io")
 	ctx := t.Context()
