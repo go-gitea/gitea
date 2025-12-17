@@ -1,12 +1,13 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package gitrepo
 
 import (
 	"context"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -18,10 +19,10 @@ func TestReadingBlameOutput(t *testing.T) {
 	defer cancel()
 
 	t.Run("Without .git-blame-ignore-revs", func(t *testing.T) {
-		repo, err := OpenRepository(ctx, "./tests/repos/repo5_pulls")
+		storage := &mockRepository{path: "repo5_pulls"}
+		repo, err := OpenRepository(ctx, storage)
 		assert.NoError(t, err)
 		defer repo.Close()
-
 		commit, err := repo.GetCommit("f32b0a9dfd09a60f616f29158f772cedd89942d2")
 		assert.NoError(t, err)
 
@@ -42,7 +43,7 @@ func TestReadingBlameOutput(t *testing.T) {
 		}
 
 		for _, bypass := range []bool{false, true} {
-			blameReader, err := CreateBlameReader(ctx, Sha1ObjectFormat, "./tests/repos/repo5_pulls", commit, "README.md", bypass)
+			blameReader, err := CreateBlameReader(ctx, git.Sha1ObjectFormat, storage, commit, "README.md", bypass)
 			assert.NoError(t, err)
 			assert.NotNil(t, blameReader)
 			defer blameReader.Close()
@@ -63,7 +64,8 @@ func TestReadingBlameOutput(t *testing.T) {
 	})
 
 	t.Run("With .git-blame-ignore-revs", func(t *testing.T) {
-		repo, err := OpenRepository(ctx, "./tests/repos/repo6_blame")
+		storage := &mockRepository{path: "repo6_blame"}
+		repo, err := OpenRepository(ctx, storage)
 		assert.NoError(t, err)
 		defer repo.Close()
 
@@ -127,7 +129,7 @@ func TestReadingBlameOutput(t *testing.T) {
 			commit, err := repo.GetCommit(c.CommitID)
 			assert.NoError(t, err)
 
-			blameReader, err := CreateBlameReader(ctx, objectFormat, "./tests/repos/repo6_blame", commit, "blame.txt", c.Bypass)
+			blameReader, err := CreateBlameReader(ctx, objectFormat, storage, commit, "blame.txt", c.Bypass)
 			assert.NoError(t, err)
 			assert.NotNil(t, blameReader)
 			defer blameReader.Close()

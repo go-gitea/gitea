@@ -32,7 +32,7 @@ import {initRepoMigrationStatusChecker} from './features/repo-migrate.ts';
 import {initRepoDiffView} from './features/repo-diff.ts';
 import {initOrgTeam} from './features/org-team.ts';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.ts';
-import {initRepoRelease, initRepoReleaseNew} from './features/repo-release.ts';
+import {initRepoReleaseNew} from './features/repo-release.ts';
 import {initRepoEditor} from './features/repo-editor.ts';
 import {initCompSearchUserBox} from './features/comp/SearchUserBox.ts';
 import {initInstall} from './features/install.ts';
@@ -133,7 +133,6 @@ const initPerformanceTracer = callInitFunctions([
   initRepoProject,
   initRepoPullRequestAllowMaintainerEdit,
   initRepoPullRequestReview,
-  initRepoRelease,
   initRepoReleaseNew,
   initRepoTopicBar,
   initRepoViewFileTree,

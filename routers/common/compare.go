@@ -133,34 +133,6 @@ func FindHeadRepo(ctx context.Context, baseRepo *repo_model.Repository, headUser
 	return findHeadRepoFromRootBase(ctx, baseRepo, headUserID, maxForkTraverseLevel)
 }
 
-func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Repository, headUserID int64, traverseLevel int) (*repo_model.Repository, error) {
-	if traverseLevel == 0 {
-		return nil, nil
-	}
-	repo, err := repo_model.GetUserFork(ctx, baseRepo.ID, headUserID)
-	if err != nil {
-		return nil, err
-	}
-	if repo != nil {
-		return repo, nil
-	}
-
-	firstLevelForkedRepos, err := repo_model.GetRepositoriesByForkID(ctx, baseRepo.ID)
-	if err != nil {
-		return nil, err
-	}
-	for _, repo := range firstLevelForkedRepos {
-		forked, err := findHeadRepoFromRootBase(ctx, repo, headUserID, traverseLevel-1)
-		if err != nil {
-			return nil, err
-		}
-		if forked != nil {
-			return forked, nil
-		}
-	}
-	return nil, nil
-}
-
 func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, compareReq *CompareRouterReq) (headOwner *user_model.User, headRepo *repo_model.Repository, err error) {
 	if compareReq.HeadOwner == "" {
 		if compareReq.HeadRepoName != "" { // unsupported syntax
@@ -201,4 +173,33 @@ func GetHeadOwnerAndRepo(ctx context.Context, baseRepo *repo_model.Repository, c
 		}
 	}
 	return headOwner, headRepo, nil
+}
+
+func findHeadRepoFromRootBase(ctx context.Context, baseRepo *repo_model.Repository, headUserID int64, traverseLevel int) (*repo_model.Repository, error) {
+	if traverseLevel == 0 {
+		return nil, nil
+	}
+	// test if we are lucky
+	repo, err := repo_model.GetUserFork(ctx, baseRepo.ID, headUserID)
+	if err != nil {
+		return nil, err
+	}
+	if repo != nil {
+		return repo, nil
+	}
+
+	firstLevelForkedRepos, err := repo_model.GetRepositoriesByForkID(ctx, baseRepo.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, repo := range firstLevelForkedRepos {
+		forked, err := findHeadRepoFromRootBase(ctx, repo, headUserID, traverseLevel-1)
+		if err != nil {
+			return nil, err
+		}
+		if forked != nil {
+			return forked, nil
+		}
+	}
+	return nil, nil
 }
