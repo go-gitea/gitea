@@ -292,7 +292,7 @@ func Routes() *web.Router {
 	return routes
 }
 
-var noCrossOriginProtection = verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: true})
+var optSignInNoCOP = verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: true})
 
 // registerWebRoutes register routes
 func registerWebRoutes(m *web.Router) {
@@ -489,7 +489,7 @@ func registerWebRoutes(m *web.Router) {
 	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
 
 	m.Get("/-/web-theme/list", misc.WebThemeList)
-	m.Post("/-/web-theme/apply", noCrossOriginProtection, misc.WebThemeApply)
+	m.Post("/-/web-theme/apply", optSignInNoCOP, misc.WebThemeApply)
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
@@ -569,10 +569,10 @@ func registerWebRoutes(m *web.Router) {
 
 		m.Group("", func() {
 			m.Methods("GET, POST, OPTIONS", "/userinfo", auth.InfoOAuth)
-			m.Methods("POST, OPTIONS", "/access_token", web.Bind(forms.AccessTokenForm{}), noCrossOriginProtection, auth.AccessTokenOAuth)
+			m.Methods("POST, OPTIONS", "/access_token", web.Bind(forms.AccessTokenForm{}), optSignInNoCOP, auth.AccessTokenOAuth)
 			m.Methods("GET, OPTIONS", "/keys", auth.OIDCKeys)
 			m.Methods("POST, OPTIONS", "/introspect", web.Bind(forms.IntrospectTokenForm{}), auth.IntrospectOAuth)
-		}, optionsCorsHandler(), noCrossOriginProtection)
+		}, optionsCorsHandler(), optSignInNoCOP)
 	}, oauth2Enabled)
 
 	m.Group("/user/settings", func() {
@@ -1655,7 +1655,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.ActionTransfer)
 	}, optSignIn, context.RepoAssignment)
 
-	common.AddOwnerRepoGitLFSRoutes(m, noCrossOriginProtection, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
+	common.AddOwnerRepoGitLFSRoutes(m, optSignInNoCOP, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
 
 	addOwnerRepoGitHTTPRouters(m) // "/{username}/{reponame}/{git-paths}": git http support
 
