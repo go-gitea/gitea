@@ -53,12 +53,12 @@ function isMonospaceEnabled() {
 }
 
 /** Apply font to the provided or all textareas on the page and optionally save on localStorage */
-function applyMonospace(monospaceEnabled: boolean, {textarea, save}: {textarea?: HTMLTextAreaElement, save?: boolean}) {
+function applyMonospace(enabled: boolean, {textarea, save}: {textarea?: HTMLTextAreaElement, save?: boolean}) {
   for (const el of textarea ? [textarea] : document.querySelectorAll('.markdown-text-editor')) {
-    el.classList.toggle('tw-font-mono', monospaceEnabled);
+    el.classList.toggle('tw-font-mono', enabled);
   }
   if (save) {
-    localStorage.setItem('markdown-editor-monospace', String(monospaceEnabled));
+    localStorage.setItem('markdown-editor-monospace', String(enabled));
   }
 }
 
