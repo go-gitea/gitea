@@ -52,7 +52,7 @@ function isMonospaceEnabled() {
   return localStorage?.getItem('markdown-editor-monospace') === 'true';
 }
 
-/** Apply font variant to the provided or all textareas on the page */
+/** Apply font to the provided or all textareas on the page */
 function applyFont(monospaceEnabled: boolean, textarea?: HTMLTextAreaElement) {
   for (const el of textarea ? [textarea] : document.querySelectorAll('.markdown-text-editor')) {
     el.classList.toggle('tw-font-mono', monospaceEnabled);
