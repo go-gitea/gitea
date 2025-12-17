@@ -1,12 +1,13 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package gitrepo
 
 import (
 	"context"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -17,13 +18,14 @@ func TestReadingBlameOutputSha256(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
-	if isGogit {
+	if git.DefaultFeatures().UsingGogit {
 		t.Skip("Skipping test since gogit does not support sha256")
 		return
 	}
 
 	t.Run("Without .git-blame-ignore-revs", func(t *testing.T) {
-		repo, err := OpenRepository(ctx, "./tests/repos/repo5_pulls_sha256")
+		storage := &mockRepository{path: "repo5_pulls_sha256"}
+		repo, err := OpenRepository(ctx, storage)
 		assert.NoError(t, err)
 		defer repo.Close()
 
@@ -47,7 +49,7 @@ func TestReadingBlameOutputSha256(t *testing.T) {
 		}
 
 		for _, bypass := range []bool{false, true} {
-			blameReader, err := CreateBlameReader(ctx, Sha256ObjectFormat, "./tests/repos/repo5_pulls_sha256", commit, "README.md", bypass)
+			blameReader, err := CreateBlameReader(ctx, git.Sha256ObjectFormat, storage, commit, "README.md", bypass)
 			assert.NoError(t, err)
 			assert.NotNil(t, blameReader)
 			defer blameReader.Close()
@@ -68,7 +70,8 @@ func TestReadingBlameOutputSha256(t *testing.T) {
 	})
 
 	t.Run("With .git-blame-ignore-revs", func(t *testing.T) {
-		repo, err := OpenRepository(ctx, "./tests/repos/repo6_blame_sha256")
+		storage := &mockRepository{path: "repo6_blame_sha256"}
+		repo, err := OpenRepository(ctx, storage)
 		assert.NoError(t, err)
 		defer repo.Close()
 
@@ -131,7 +134,7 @@ func TestReadingBlameOutputSha256(t *testing.T) {
 		for _, c := range cases {
 			commit, err := repo.GetCommit(c.CommitID)
 			assert.NoError(t, err)
-			blameReader, err := CreateBlameReader(ctx, objectFormat, "./tests/repos/repo6_blame_sha256", commit, "blame.txt", c.Bypass)
+			blameReader, err := CreateBlameReader(ctx, objectFormat, storage, commit, "blame.txt", c.Bypass)
 			assert.NoError(t, err)
 			assert.NotNil(t, blameReader)
 			defer blameReader.Close()
