@@ -210,33 +210,4 @@
 	</div>
 </div>
 
-<!-- JavaScript for UI interactions -->
-<script>
-// Show/hide custom permissions based on mode selection
-// TODO: Could move this to a separate JS file if it gets more complex
-$(document).ready(function() {
-	// Drop down initialization
-	$('.ui.dropdown').dropdown({
-		onChange: function(value) {
-			// Show custom options only when Custom mode is selected
-			if (value === '2') {
-				$('#custom-permissions').removeClass('hide');
-			} else {
-				$('#custom-permissions').addClass('hide');
-			}
-		}
-	});
-	
-	// Warning when enabling write permissions
-	// Helps prevent accidental security issues  
-	$('#contents_write, #packages_write').change(function() {
-		if ($(this).is(':checked')) {
-			// Maybe add a confirmation dialog here?
-			// For now, just the inline warning text is probably enough
-			console.log('Write permission enabled - ensure this is intentional');
-		}
-	});
-});
-</script>
-
 {{template "base/footer" .}}
