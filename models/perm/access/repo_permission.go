@@ -266,13 +266,18 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		return perm, err
 	}
 
-	var accessMode perm_model.AccessMode
+	if err := repo.LoadUnits(ctx); err != nil {
+		return perm, err
+	}
+
+	actionsUnit := repo.MustGetUnit(ctx, unit.TypeActions)
+	actionsCfg := actionsUnit.ActionsConfig()
+
 	if task.RepoID != repo.ID {
 		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
 		if err != nil || !exist {
 			return perm, err
 		}
-		actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
 		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
 			// The task repo can access the current repo only if the task repo is private and
 			// the owner of the task repo is a collaborative owner of the current repo.
@@ -280,17 +285,33 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			// FIXME should owner's visibility also be considered here?
 			return perm, nil
 		}
-		accessMode = perm_model.AccessModeRead
-	} else if task.IsForkPullRequest {
-		accessMode = perm_model.AccessModeRead
-	} else {
-		accessMode = perm_model.AccessModeWrite
+		// Cross-repo access is always read-only
+		perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
+		return perm, nil
 	}
 
-	if err := repo.LoadUnits(ctx); err != nil {
-		return perm, err
+	// Get effective token permissions from repository settings
+	effectivePerms := actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
+
+	// Set up per-unit access modes based on configured permissions
+	perm.units = repo.Units
+	perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
+	perm.unitsMode[unit.TypeCode] = effectivePerms.Contents
+	perm.unitsMode[unit.TypeIssues] = effectivePerms.Issues
+	perm.unitsMode[unit.TypePullRequests] = effectivePerms.PullRequests
+	perm.unitsMode[unit.TypePackages] = effectivePerms.Packages
+	perm.unitsMode[unit.TypeActions] = effectivePerms.Actions
+	perm.unitsMode[unit.TypeWiki] = effectivePerms.Wiki
+
+	// Set base access mode to the maximum of all unit permissions
+	maxMode := perm_model.AccessModeNone
+	for _, mode := range perm.unitsMode {
+		if mode > maxMode {
+			maxMode = mode
+		}
 	}
-	perm.SetUnitsWithDefaultAccessMode(repo.Units, accessMode)
+	perm.AccessMode = maxMode
+
 	return perm, nil
 }
 

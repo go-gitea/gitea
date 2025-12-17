@@ -34,8 +34,17 @@ func ActionsGeneralSettings(ctx *context.Context) {
 		return
 	}
 
+	actionsCfg := actionsUnit.ActionsConfig()
+
+	// Token permission settings
+	ctx.Data["TokenPermissionMode"] = actionsCfg.GetTokenPermissionMode()
+	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
+	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
+	ctx.Data["EffectiveTokenPermissions"] = actionsCfg.GetEffectiveTokenPermissions(false)
+	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
+
 	if ctx.Repo.Repository.IsPrivate {
-		collaborativeOwnerIDs := actionsUnit.ActionsConfig().CollaborativeOwnerIDs
+		collaborativeOwnerIDs := actionsCfg.CollaborativeOwnerIDs
 		collaborativeOwners, err := user_model.GetUsersByIDs(ctx, collaborativeOwnerIDs)
 		if err != nil {
 			ctx.ServerError("GetUsersByIDs", err)
@@ -118,4 +127,33 @@ func DeleteCollaborativeOwner(ctx *context.Context) {
 	}
 
 	ctx.JSONOK()
+}
+
+// UpdateTokenPermissions updates the token permission settings for the repository
+func UpdateTokenPermissions(ctx *context.Context) {
+	redirectURL := ctx.Repo.RepoLink + "/settings/actions/general"
+
+	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
+	if err != nil {
+		ctx.ServerError("GetUnit", err)
+		return
+	}
+
+	actionsCfg := actionsUnit.ActionsConfig()
+
+	// Update permission mode
+	permissionMode := ctx.FormString("token_permission_mode")
+	if permissionMode == string(repo_model.ActionsTokenPermissionModeRestricted) {
+		actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionModeRestricted
+	} else {
+		actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionModePermissive
+	}
+
+	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
+		ctx.ServerError("UpdateRepoUnit", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+	ctx.Redirect(redirectURL)
 }

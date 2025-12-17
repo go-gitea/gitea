@@ -168,11 +168,78 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 	return MergeStyleMerge
 }
 
+// ActionsTokenPermissionMode defines the default permission mode for Actions tokens
+type ActionsTokenPermissionMode string
+
+const (
+	// ActionsTokenPermissionModePermissive - write access by default (current behavior, backwards compatible)
+	ActionsTokenPermissionModePermissive ActionsTokenPermissionMode = "permissive"
+	// ActionsTokenPermissionModeRestricted - read access by default
+	ActionsTokenPermissionModeRestricted ActionsTokenPermissionMode = "restricted"
+)
+
+// ActionsTokenPermissions defines the permissions for different repository units
+type ActionsTokenPermissions struct {
+	// Contents (repository code) - read/write/none
+	Contents perm.AccessMode `json:"contents"`
+	// Issues - read/write/none
+	Issues perm.AccessMode `json:"issues"`
+	// PullRequests - read/write/none
+	PullRequests perm.AccessMode `json:"pull_requests"`
+	// Packages - read/write/none
+	Packages perm.AccessMode `json:"packages"`
+	// Actions - read/write/none
+	Actions perm.AccessMode `json:"actions"`
+	// Wiki - read/write/none
+	Wiki perm.AccessMode `json:"wiki"`
+}
+
+// DefaultActionsTokenPermissions returns the default permissions for permissive mode
+func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsTokenPermissions {
+	if mode == ActionsTokenPermissionModeRestricted {
+		return ActionsTokenPermissions{
+			Contents:     perm.AccessModeRead,
+			Issues:       perm.AccessModeRead,
+			PullRequests: perm.AccessModeRead,
+			Packages:     perm.AccessModeRead,
+			Actions:      perm.AccessModeRead,
+			Wiki:         perm.AccessModeRead,
+		}
+	}
+	// Permissive mode (default)
+	return ActionsTokenPermissions{
+		Contents:     perm.AccessModeWrite,
+		Issues:       perm.AccessModeWrite,
+		PullRequests: perm.AccessModeWrite,
+		Packages:     perm.AccessModeRead, // Packages read by default for security
+		Actions:      perm.AccessModeWrite,
+		Wiki:         perm.AccessModeWrite,
+	}
+}
+
+// ForkPullRequestPermissions returns the restricted permissions for fork pull requests
+func ForkPullRequestPermissions() ActionsTokenPermissions {
+	return ActionsTokenPermissions{
+		Contents:     perm.AccessModeRead,
+		Issues:       perm.AccessModeRead,
+		PullRequests: perm.AccessModeRead,
+		Packages:     perm.AccessModeRead,
+		Actions:      perm.AccessModeRead,
+		Wiki:         perm.AccessModeRead,
+	}
+}
+
 type ActionsConfig struct {
 	DisabledWorkflows []string
 	// CollaborativeOwnerIDs is a list of owner IDs used to share actions from private repos.
 	// Only workflows from the private repos whose owners are in CollaborativeOwnerIDs can access the current repo's actions.
 	CollaborativeOwnerIDs []int64
+	// TokenPermissionMode defines the default permission mode (permissive or restricted)
+	TokenPermissionMode ActionsTokenPermissionMode `json:"token_permission_mode,omitempty"`
+	// DefaultTokenPermissions defines the default permissions for workflow tokens
+	DefaultTokenPermissions *ActionsTokenPermissions `json:"default_token_permissions,omitempty"`
+	// MaxTokenPermissions defines the maximum permissions (cannot be exceeded by workflow permissions keyword)
+	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions,omitempty"`
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
@@ -207,6 +274,59 @@ func (cfg *ActionsConfig) RemoveCollaborativeOwner(ownerID int64) {
 
 func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
 	return slices.Contains(cfg.CollaborativeOwnerIDs, ownerID)
+}
+
+// GetTokenPermissionMode returns the token permission mode (defaults to permissive for backwards compatibility)
+func (cfg *ActionsConfig) GetTokenPermissionMode() ActionsTokenPermissionMode {
+	if cfg.TokenPermissionMode == "" {
+		return ActionsTokenPermissionModePermissive
+	}
+	return cfg.TokenPermissionMode
+}
+
+// GetEffectiveTokenPermissions returns the effective token permissions based on settings and context
+func (cfg *ActionsConfig) GetEffectiveTokenPermissions(isForkPullRequest bool) ActionsTokenPermissions {
+	// Fork pull requests always get restricted read-only access for security
+	if isForkPullRequest {
+		return ForkPullRequestPermissions()
+	}
+
+	// Use custom default permissions if set
+	if cfg.DefaultTokenPermissions != nil {
+		return *cfg.DefaultTokenPermissions
+	}
+
+	// Otherwise use mode-based defaults
+	return DefaultActionsTokenPermissions(cfg.GetTokenPermissionMode())
+}
+
+// GetMaxTokenPermissions returns the maximum allowed permissions
+func (cfg *ActionsConfig) GetMaxTokenPermissions() ActionsTokenPermissions {
+	if cfg.MaxTokenPermissions != nil {
+		return *cfg.MaxTokenPermissions
+	}
+	// Default max is write for everything except packages
+	return ActionsTokenPermissions{
+		Contents:     perm.AccessModeWrite,
+		Issues:       perm.AccessModeWrite,
+		PullRequests: perm.AccessModeWrite,
+		Packages:     perm.AccessModeWrite,
+		Actions:      perm.AccessModeWrite,
+		Wiki:         perm.AccessModeWrite,
+	}
+}
+
+// ClampPermissions ensures that the given permissions don't exceed the maximum
+func (cfg *ActionsConfig) ClampPermissions(perms ActionsTokenPermissions) ActionsTokenPermissions {
+	maxPerms := cfg.GetMaxTokenPermissions()
+	return ActionsTokenPermissions{
+		Contents:     min(perms.Contents, maxPerms.Contents),
+		Issues:       min(perms.Issues, maxPerms.Issues),
+		PullRequests: min(perms.PullRequests, maxPerms.PullRequests),
+		Packages:     min(perms.Packages, maxPerms.Packages),
+		Actions:      min(perms.Actions, maxPerms.Actions),
+		Wiki:         min(perms.Wiki, maxPerms.Wiki),
+	}
 }
 
 // FromDB fills up a ActionsConfig from serialized format.

@@ -65,5 +65,44 @@
 		{{ctx.Locale.Tr "actions.general.collaborative_owners_management_help"}}
 	</div>
 	{{end}}
+
+	{{/* Token Permissions Section */}}
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.general.token_permissions"}}
+	</h4>
+	<div class="ui attached segment">
+		<p class="tw-text-secondary">{{ctx.Locale.Tr "actions.general.token_permissions.description"}}</p>
+		<form class="ui form" action="{{.Link}}/token_permissions" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="grouped fields">
+				<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode"}}</label>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="token_permission_mode" value="permissive" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}}>
+						<label>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.permissive"}}</strong>
+							<p class="tw-text-secondary tw-m-0">{{ctx.Locale.Tr "actions.general.token_permissions.permissive.description"}}</p>
+						</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="token_permission_mode" value="restricted" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}}>
+						<label>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.restricted"}}</strong>
+							<p class="tw-text-secondary tw-m-0">{{ctx.Locale.Tr "actions.general.token_permissions.restricted.description"}}</p>
+						</label>
+					</div>
+				</div>
+			</div>
+			<div class="ui warning message">
+				<p>{{ctx.Locale.Tr "actions.general.token_permissions.fork_pr_note"}}</p>
+			</div>
+			<div class="divider"></div>
+			<div class="field">
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+			</div>
+		</form>
+	</div>
 {{end}}
 </div>
