@@ -1,21 +1,23 @@
 import {svg} from '../svg.ts';
-import {htmlEscape} from 'escape-goat';
+import {html} from '../utils/html.ts';
 import {clippie} from 'clippie';
 import {showTemporaryTooltip} from '../modules/tippy.ts';
 import {GET, POST} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createElementFromHTML, createElementFromAttrs} from '../utils/dom.ts';
 import {isImageFile, isVideoFile} from '../utils.ts';
-import type {DropzoneFile} from 'dropzone/index.js';
+import type {DropzoneFile, DropzoneOptions} from 'dropzone/index.js';
 
 const {csrfToken, i18n} = window.config;
+
+type CustomDropzoneFile = DropzoneFile & {uuid: string};
 
 // dropzone has its owner event dispatcher (emitter)
 export const DropzoneCustomEventReloadFiles = 'dropzone-custom-reload-files';
 export const DropzoneCustomEventRemovedFile = 'dropzone-custom-removed-file';
 export const DropzoneCustomEventUploadDone = 'dropzone-custom-upload-done';
 
-async function createDropzone(el, opts) {
+async function createDropzone(el: HTMLElement, opts: DropzoneOptions) {
   const [{default: Dropzone}] = await Promise.all([
     import(/* webpackChunkName: "dropzone" */'dropzone'),
     import(/* webpackChunkName: "dropzone" */'dropzone/dist/dropzone.css'),
@@ -23,27 +25,26 @@ async function createDropzone(el, opts) {
   return new Dropzone(el, opts);
 }
 
-export function generateMarkdownLinkForAttachment(file, {width, dppx}: {width?: number, dppx?: number} = {}) {
+export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFile>, {width, dppx}: {width?: number, dppx?: number} = {}) {
   let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
   if (isImageFile(file)) {
-    fileMarkdown = `!${fileMarkdown}`;
-    if (width > 0 && dppx > 1) {
+    if (width && width > 0 && dppx && dppx > 1) {
       // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
       // method to change image size in Markdown that is supported by all implementations.
       // Make the image link relative to the repo path, then the final URL is "/sub-path/owner/repo/attachments/{uuid}"
-      fileMarkdown = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(file.name)}" src="attachments/${htmlEscape(file.uuid)}">`;
+      fileMarkdown = html`<img width="${Math.round(width / dppx)}" alt="${file.name}" src="attachments/${file.uuid}">`;
     } else {
       // Markdown always renders the image with a relative path, so the final URL is "/sub-path/owner/repo/attachments/{uuid}"
       // TODO: it should also use relative path for consistency, because absolute is ambiguous for "/sub-path/attachments" or "/attachments"
       fileMarkdown = `![${file.name}](/attachments/${file.uuid})`;
     }
   } else if (isVideoFile(file)) {
-    fileMarkdown = `<video src="attachments/${htmlEscape(file.uuid)}" title="${htmlEscape(file.name)}" controls></video>`;
+    fileMarkdown = html`<video src="attachments/${file.uuid}" title="${file.name}" controls></video>`;
   }
   return fileMarkdown;
 }
 
-function addCopyLink(file) {
+function addCopyLink(file: Partial<CustomDropzoneFile>) {
   // Create a "Copy Link" element, to conveniently copy the image or file link as Markdown to the clipboard
   // The "<a>" element has a hardcoded cursor: pointer because the default is overridden by .dropzone
   const copyLinkEl = createElementFromHTML(`
@@ -55,23 +56,25 @@ function addCopyLink(file) {
     const success = await clippie(generateMarkdownLinkForAttachment(file));
     showTemporaryTooltip(e.target as Element, success ? i18n.copy_success : i18n.copy_error);
   });
-  file.previewTemplate.append(copyLinkEl);
+  file.previewTemplate!.append(copyLinkEl);
 }
+
+type FileUuidDict = Record<string, {submitted: boolean}>;
 
 /**
  * @param {HTMLElement} dropzoneEl
  */
 export async function initDropzone(dropzoneEl: HTMLElement) {
   const listAttachmentsUrl = dropzoneEl.closest('[data-attachment-url]')?.getAttribute('data-attachment-url');
-  const removeAttachmentUrl = dropzoneEl.getAttribute('data-remove-url');
-  const attachmentBaseLinkUrl = dropzoneEl.getAttribute('data-link-url');
+  const removeAttachmentUrl = dropzoneEl.getAttribute('data-remove-url')!;
+  const attachmentBaseLinkUrl = dropzoneEl.getAttribute('data-link-url')!;
 
   let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
-  let fileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
+  let fileUuidDict: FileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
   const opts: Record<string, any> = {
     url: dropzoneEl.getAttribute('data-upload-url'),
     headers: {'X-Csrf-Token': csrfToken},
-    acceptedFiles: ['*/*', ''].includes(dropzoneEl.getAttribute('data-accepts')) ? null : dropzoneEl.getAttribute('data-accepts'),
+    acceptedFiles: ['*/*', ''].includes(dropzoneEl.getAttribute('data-accepts')!) ? null : dropzoneEl.getAttribute('data-accepts'),
     addRemoveLinks: true,
     dictDefaultMessage: dropzoneEl.getAttribute('data-default-message'),
     dictInvalidFileType: dropzoneEl.getAttribute('data-invalid-input-type'),
@@ -89,16 +92,16 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
   // "http://localhost:3000/owner/repo/issues/[object%20Event]"
   // the reason is that the preview "callback(dataURL)" is assign to "img.onerror" then "thumbnail" uses the error object as the dataURL and generates '<img src="[object Event]">'
   const dzInst = await createDropzone(dropzoneEl, opts);
-  dzInst.on('success', (file: DropzoneFile & {uuid: string}, resp: any) => {
+  dzInst.on('success', (file: CustomDropzoneFile, resp: any) => {
     file.uuid = resp.uuid;
     fileUuidDict[file.uuid] = {submitted: false};
     const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${resp.uuid}`, value: resp.uuid});
-    dropzoneEl.querySelector('.files').append(input);
+    dropzoneEl.querySelector('.files')!.append(input);
     addCopyLink(file);
     dzInst.emit(DropzoneCustomEventUploadDone, {file});
   });
 
-  dzInst.on('removedfile', async (file: DropzoneFile & {uuid: string}) => {
+  dzInst.on('removedfile', async (file: CustomDropzoneFile) => {
     if (disableRemovedfileEvent) return;
 
     dzInst.emit(DropzoneCustomEventRemovedFile, {fileUuid: file.uuid});
@@ -117,6 +120,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
 
   dzInst.on(DropzoneCustomEventReloadFiles, async () => {
     try {
+      if (!listAttachmentsUrl) return;
       const resp = await GET(listAttachmentsUrl);
       const respData = await resp.json();
       // do not trigger the "removedfile" event, otherwise the attachments would be deleted from server
@@ -124,7 +128,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
       dzInst.removeAllFiles(true);
       disableRemovedfileEvent = false;
 
-      dropzoneEl.querySelector('.files').innerHTML = '';
+      dropzoneEl.querySelector('.files')!.innerHTML = '';
       for (const el of dropzoneEl.querySelectorAll('.dz-preview')) el.remove();
       fileUuidDict = {};
       for (const attachment of respData) {
@@ -138,7 +142,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
         addCopyLink(file); // it is from server response, so no "type"
         fileUuidDict[file.uuid] = {submitted: true};
         const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${file.uuid}`, value: file.uuid});
-        dropzoneEl.querySelector('.files').append(input);
+        dropzoneEl.querySelector('.files')!.append(input);
       }
       if (!dropzoneEl.querySelector('.dz-preview')) {
         dropzoneEl.classList.remove('dz-started');

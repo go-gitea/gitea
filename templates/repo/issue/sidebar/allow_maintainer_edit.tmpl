@@ -1,13 +1,18 @@
-{{if and .Issue.IsPull .IsIssuePoster (not .Issue.IsClosed) .Issue.PullRequest.HeadRepo}}
-	{{if and (not (eq .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName)) .CanWriteToHeadRepo}}
+{{- $isHeadForkedRepo := and .Issue.PullRequest .Issue.PullRequest.HeadRepo (ne .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName) -}}
+{{if $isHeadForkedRepo}}
+	{{- $isPullPoster := and .Issue.IsPull .IsIssuePoster -}}
+	{{- $isPullEditable := and .Issue.PullRequest (not .Issue.IsClosed) (not .Repository.IsArchived) -}}
+	{{- $allowToChange := and $isPullPoster $isPullEditable -}}
 	<div class="divider"></div>
-	<div class="ui checkbox loading-icon-2px" id="allow-edits-from-maintainers"
+	<div class="ui checkbox {{if not $allowToChange}}disabled{{end}} loading-icon-2px"
+			{{if $allowToChange}}
+			id="allow-edits-from-maintainers"
 			data-url="{{.Issue.Link}}"
 			data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_desc"}}"
 			data-prompt-error="{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers_err"}}"
+			{{end}}
 	>
 		<label><strong>{{ctx.Locale.Tr "repo.pulls.allow_edits_from_maintainers"}}</strong></label>
-		<input type="checkbox" {{if .Issue.PullRequest.AllowMaintainerEdit}}checked{{end}}>
+		<input type="checkbox" {{if .Issue.PullRequest.AllowMaintainerEdit}}checked{{end}} {{if not $allowToChange}}disabled{{end}}>
 	</div>
-	{{end}}
 {{end}}

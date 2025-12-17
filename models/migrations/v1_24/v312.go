@@ -1,16 +1,25 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_24 //nolint
+package v1_24
 
 import (
-	"code.gitea.io/gitea/models/migrations/base"
-
 	"xorm.io/xorm"
 )
 
-func RemoveRepoNumWatches(x *xorm.Engine) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	return base.DropTableColumns(sess, "repository", "num_watches")
+type pullAutoMerge struct {
+	DeleteBranchAfterMerge bool
+}
+
+// TableName return database table name for xorm
+func (pullAutoMerge) TableName() string {
+	return "pull_auto_merge"
+}
+
+func AddDeleteBranchAfterMergeForAutoMerge(x *xorm.Engine) error {
+	_, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreConstrains: true,
+		IgnoreIndices:    true,
+	}, new(pullAutoMerge))
+	return err
 }

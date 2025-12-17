@@ -5,9 +5,13 @@ const {pageData} = window.config;
 
 async function initInputCitationValue(citationCopyApa: HTMLButtonElement, citationCopyBibtex: HTMLButtonElement) {
   const [{Cite, plugins}] = await Promise.all([
+    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
+    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),
+    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-bibtex" */'@citation-js/plugin-bibtex'),
+    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-csl" */'@citation-js/plugin-csl'),
   ]);
   const {citationFileContent} = pageData;
@@ -27,15 +31,15 @@ export async function initCitationFileCopyContent() {
 
   if (!pageData.citationFileContent) return;
 
-  const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa');
-  const citationCopyBibtex = document.querySelector<HTMLButtonElement>('#citation-copy-bibtex');
+  const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa')!;
+  const citationCopyBibtex = document.querySelector<HTMLButtonElement>('#citation-copy-bibtex')!;
   const inputContent = document.querySelector<HTMLInputElement>('#citation-copy-content');
 
   if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
 
   const updateUi = () => {
     const isBibtex = (localStorage.getItem('citation-copy-format') || defaultCitationFormat) === 'bibtex';
-    const copyContent = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text');
+    const copyContent = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text')!;
     inputContent.value = copyContent;
     citationCopyBibtex.classList.toggle('primary', isBibtex);
     citationCopyApa.classList.toggle('primary', !isBibtex);

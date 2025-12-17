@@ -129,8 +129,8 @@ func GitPathToWebPath(s string) (wp WebPath, err error) {
 func WebPathToUserTitle(s WebPath) (dir, display string) {
 	dir = path.Dir(string(s))
 	display = path.Base(string(s))
-	if strings.HasSuffix(display, ".md") {
-		display = strings.TrimSuffix(display, ".md")
+	if before, ok := strings.CutSuffix(display, ".md"); ok {
+		display = before
 		display, _ = url.PathUnescape(display)
 	}
 	display, _ = unescapeSegment(display)

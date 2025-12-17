@@ -171,3 +171,9 @@
   user_id: 40
   repo_id: 61
   mode: 4
+
+-
+  id: 30
+  user_id: 40
+  repo_id: 1
+  mode: 2

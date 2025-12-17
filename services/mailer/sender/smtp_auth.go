@@ -4,10 +4,11 @@
 package sender
 
 import (
+	"errors"
 	"fmt"
+	"net/smtp"
 
 	"github.com/Azure/go-ntlmssp"
-	"github.com/wneessen/go-mail/smtp"
 )
 
 type loginAuth struct {
@@ -60,7 +61,7 @@ func (a *ntlmAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
 func (a *ntlmAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 	if more {
 		if len(fromServer) == 0 {
-			return nil, fmt.Errorf("ntlm ChallengeMessage is empty")
+			return nil, errors.New("ntlm ChallengeMessage is empty")
 		}
 		authenticateMessage, err := ntlmssp.ProcessChallenge(fromServer, a.username, a.password, a.domainNeeded)
 		return authenticateMessage, err

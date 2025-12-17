@@ -123,13 +123,6 @@
   clear: both;
 }
 
-.ui[class*="left aligned"].segment {
-  text-align: left;
-}
-.ui[class*="center aligned"].segment {
-  text-align: center;
-}
-
 .ui.secondary.segment {
   background: var(--color-secondary-bg);
   color: var(--color-text-light);

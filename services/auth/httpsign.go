@@ -134,7 +134,7 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 	// Check if it's really a ssh certificate
 	cert, ok := pk.(*ssh.Certificate)
 	if !ok {
-		return nil, fmt.Errorf("no certificate found")
+		return nil, errors.New("no certificate found")
 	}
 
 	c := &ssh.CertChecker{
@@ -153,7 +153,7 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 
 	// check the CA of the cert
 	if !c.IsUserAuthority(cert.SignatureKey) {
-		return nil, fmt.Errorf("CA check failed")
+		return nil, errors.New("CA check failed")
 	}
 
 	// Create a verifier
@@ -191,7 +191,7 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 	}
 
 	// No public key matching a principal in the certificate is registered in gitea
-	return nil, fmt.Errorf("no valid principal found")
+	return nil, errors.New("no valid principal found")
 }
 
 // doVerify iterates across the provided public keys attempting the verify the current request against each key in turn

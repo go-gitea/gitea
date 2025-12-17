@@ -47,7 +47,7 @@ func ListSubscribers(ctx *context.APIContext) {
 
 	subscribers, err := repo_model.GetRepoWatchers(ctx, ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetRepoWatchers", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	users := make([]*api.User, len(subscribers))
@@ -57,7 +57,7 @@ func ListSubscribers(ctx *context.APIContext) {
 
 	total, err := repo_model.CountRepoWatchers(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CountRepoWatchers", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

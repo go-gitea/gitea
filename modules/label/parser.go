@@ -72,7 +72,7 @@ func parseYamlFormat(fileName string, data []byte) ([]*Label, error) {
 func parseLegacyFormat(fileName string, data []byte) ([]*Label, error) {
 	lines := strings.Split(string(data), "\n")
 	list := make([]*Label, 0, len(lines))
-	for i := 0; i < len(lines); i++ {
+	for i := range lines {
 		line := strings.TrimSpace(lines[i])
 		if len(line) == 0 {
 			continue
@@ -108,7 +108,7 @@ func LoadTemplateDescription(fileName string) (string, error) {
 		return "", err
 	}
 
-	for i := 0; i < len(list); i++ {
+	for i := range list {
 		if i > 0 {
 			buf.WriteString(", ")
 		}

@@ -74,7 +74,7 @@ func ToTimelineComment(ctx context.Context, repo *repo_model.Repository, c *issu
 			c.Content[0] == '|' {
 			// TimeTracking Comments from v1.21 on store the seconds instead of an formatted string
 			// so we check for the "|" delimiter and convert new to legacy format on demand
-			c.Content = util.SecToTime(c.Content[1:])
+			c.Content = util.SecToHours(c.Content[1:])
 		}
 
 		if c.Type == issues_model.CommentTypeChangeTimeEstimate {

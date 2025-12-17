@@ -280,11 +280,11 @@ func (n *Notification) HTMLURL(ctx context.Context) string {
 		if n.Comment != nil {
 			return n.Comment.HTMLURL(ctx)
 		}
-		return n.Issue.HTMLURL()
+		return n.Issue.HTMLURL(ctx)
 	case NotificationSourceCommit:
-		return n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
+		return n.Repository.HTMLURL(ctx) + "/commit/" + url.PathEscape(n.CommitID)
 	case NotificationSourceRepository:
-		return n.Repository.HTMLURL()
+		return n.Repository.HTMLURL(ctx)
 	}
 	return ""
 }
@@ -386,7 +386,7 @@ func SetNotificationStatus(ctx context.Context, notificationID int64, user *user
 
 	notification.Status = status
 
-	_, err = db.GetEngine(ctx).ID(notificationID).Update(notification)
+	_, err = db.GetEngine(ctx).ID(notificationID).Cols("status").Update(notification)
 	return notification, err
 }
 

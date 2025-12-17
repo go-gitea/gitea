@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/test"
@@ -27,7 +26,7 @@ func TestCompareTag(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1...master")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	selection := htmlDoc.doc.Find(".choose.branch .filter.dropdown")
+	selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
 	// A dropdown for both base and head.
 	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 
@@ -44,7 +43,7 @@ func TestCompareDefault(t *testing.T) {
 	req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	selection := htmlDoc.doc.Find(".choose.branch .filter.dropdown")
+	selection := htmlDoc.doc.Find(".ui.dropdown.select-branch")
 	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
 }
 
@@ -128,12 +127,12 @@ func TestCompareBranches(t *testing.T) {
 func TestCompareCodeExpand(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-		repo, err := repo_service.CreateRepositoryDirectly(db.DefaultContext, user1, user1, repo_service.CreateRepoOptions{
+		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user1, user1, repo_service.CreateRepoOptions{
 			Name:          "test_blob_excerpt",
 			Readme:        "Default",
 			AutoInit:      true,
 			DefaultBranch: "main",
-		})
+		}, true)
 		assert.NoError(t, err)
 
 		session := loginUser(t, user1.Name)

@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"testing"
@@ -72,12 +73,37 @@ func TestAdminDeleteUser(t *testing.T) {
 
 	session := loginUser(t, "user1")
 
-	csrf := GetUserCSRFToken(t, session)
-	req := NewRequestWithValues(t, "POST", "/-/admin/users/8/delete", map[string]string{
-		"_csrf": csrf,
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	usersToDelete := []struct {
+		userID int64
+		purge  bool
+	}{
+		{
+			userID: 2,
+			purge:  true,
+		},
+		{
+			userID: 8,
+		},
+	}
 
-	assertUserDeleted(t, 8)
-	unittest.CheckConsistencyFor(t, &user_model.User{})
+	for _, entry := range usersToDelete {
+		t.Run(fmt.Sprintf("DeleteUser%d", entry.userID), func(t *testing.T) {
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: entry.userID})
+			assert.NotNil(t, user)
+
+			var query string
+			if entry.purge {
+				query = "?purge=true"
+			}
+
+			csrf := GetUserCSRFToken(t, session)
+			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/-/admin/users/%d/delete%s", entry.userID, query), map[string]string{
+				"_csrf": csrf,
+			})
+			session.MakeRequest(t, req, http.StatusSeeOther)
+
+			assertUserDeleted(t, entry.userID)
+			unittest.CheckConsistencyFor(t, &user_model.User{})
+		})
+	}
 }

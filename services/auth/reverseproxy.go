@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/middleware"
 
 	gouuid "github.com/google/uuid"
 )
@@ -117,7 +116,8 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 	}
 
 	// Make sure requests to API paths, attachment downloads, git and LFS do not create a new session
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrAttachOrLFSPath(req) {
+	detector := newAuthPathDetector(req)
+	if !detector.isAPIPath() && !detector.isAttachmentDownload() && !detector.isGitRawOrAttachOrLFSPath() {
 		if sess != nil && (sess.Get("uid") == nil || sess.Get("uid").(int64) != user.ID) {
 			handleSignIn(w, req, sess, user)
 		}

@@ -22,8 +22,7 @@ import (
 
 func TestSignup(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.Service.EnableCaptcha = false
+	defer test.MockVariableValue(&setting.Service.EnableCaptcha, false)()
 
 	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
 		"user_name": "exampleUser",
@@ -40,9 +39,8 @@ func TestSignup(t *testing.T) {
 
 func TestSignupAsRestricted(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.Service.EnableCaptcha = false
-	setting.Service.DefaultUserIsRestricted = true
+	defer test.MockVariableValue(&setting.Service.EnableCaptcha, false)()
+	defer test.MockVariableValue(&setting.Service.DefaultUserIsRestricted, true)()
 
 	req := NewRequestWithValues(t, "POST", "/user/sign_up", map[string]string{
 		"user_name": "restrictedUser",
@@ -62,8 +60,7 @@ func TestSignupAsRestricted(t *testing.T) {
 
 func TestSignupEmailValidation(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	setting.Service.EnableCaptcha = false
+	defer test.MockVariableValue(&setting.Service.EnableCaptcha, false)()
 
 	tests := []struct {
 		email      string
@@ -128,7 +125,7 @@ func TestSignupEmailActive(t *testing.T) {
 	// generate an activation code from lower-cased email
 	activationCode := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, user)
 	// and update the user email to case-sensitive, it shouldn't affect the verification later
-	_, _ = db.Exec(db.DefaultContext, "UPDATE `user` SET email=? WHERE id=?", "EmAiL-changed@example.com", user.ID)
+	_, _ = db.Exec(t.Context(), "UPDATE `user` SET email=? WHERE id=?", "EmAiL-changed@example.com", user.ID)
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "Test-User-1"})
 	assert.Equal(t, "EmAiL-changed@example.com", user.Email)
 

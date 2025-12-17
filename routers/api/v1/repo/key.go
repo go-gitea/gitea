@@ -92,7 +92,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 
 	keys, count, err := db.FindAndCount[asymkey_model.DeployKey](ctx, opts)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -100,7 +100,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 	apiKeys := make([]*api.DeployKey, len(keys))
 	for i := range keys {
 		if err := keys[i].GetContent(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetContent", err)
+			ctx.APIErrorInternal(err)
 			return
 		}
 		apiKeys[i] = convert.ToDeployKey(apiLink, keys[i])
@@ -146,21 +146,21 @@ func GetDeployKey(ctx *context.APIContext) {
 	key, err := asymkey_model.GetDeployKeyByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetDeployKeyByID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	// this check make it more consistent
 	if key.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
 	if err = key.GetContent(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetContent", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -175,11 +175,11 @@ func GetDeployKey(ctx *context.APIContext) {
 // HandleCheckKeyStringError handle check key error
 func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 	if db.IsErrSSHDisabled(err) {
-		ctx.Error(http.StatusUnprocessableEntity, "", "SSH is disabled")
+		ctx.APIError(http.StatusUnprocessableEntity, "SSH is disabled")
 	} else if asymkey_model.IsErrKeyUnableVerify(err) {
-		ctx.Error(http.StatusUnprocessableEntity, "", "Unable to verify key content")
+		ctx.APIError(http.StatusUnprocessableEntity, "Unable to verify key content")
 	} else {
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid key content: %w", err))
+		ctx.APIError(http.StatusUnprocessableEntity, fmt.Errorf("Invalid key content: %w", err))
 	}
 }
 
@@ -187,15 +187,15 @@ func HandleCheckKeyStringError(ctx *context.APIContext, err error) {
 func HandleAddKeyError(ctx *context.APIContext, err error) {
 	switch {
 	case asymkey_model.IsErrDeployKeyAlreadyExist(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "This key has already been added to this repository")
+		ctx.APIError(http.StatusUnprocessableEntity, "This key has already been added to this repository")
 	case asymkey_model.IsErrKeyAlreadyExist(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "Key content has been used as non-deploy key")
+		ctx.APIError(http.StatusUnprocessableEntity, "Key content has been used as non-deploy key")
 	case asymkey_model.IsErrKeyNameAlreadyUsed(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "Key title has been used")
+		ctx.APIError(http.StatusUnprocessableEntity, "Key title has been used")
 	case asymkey_model.IsErrDeployKeyNameAlreadyUsed(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "A key with the same name already exists")
+		ctx.APIError(http.StatusUnprocessableEntity, "A key with the same name already exists")
 	default:
-		ctx.Error(http.StatusInternalServerError, "AddKey", err)
+		ctx.APIErrorInternal(err)
 	}
 }
 
@@ -281,9 +281,9 @@ func DeleteDeploykey(ctx *context.APIContext) {
 
 	if err := asymkey_service.DeleteDeployKey(ctx, ctx.Repo.Repository, ctx.PathParamInt64("id")); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
-			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
+			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteDeployKey", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

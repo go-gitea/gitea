@@ -70,7 +70,7 @@ func TestBranchRuleMatchPriority(t *testing.T) {
 				assert.Error(t, fmt.Errorf("no matched rules but expected %s[%d]", kase.Rules[kase.ExpectedMatchIdx], kase.ExpectedMatchIdx))
 			}
 		} else {
-			assert.EqualValues(t, kase.Rules[kase.ExpectedMatchIdx], matchedPB.RuleName)
+			assert.Equal(t, kase.Rules[kase.ExpectedMatchIdx], matchedPB.RuleName)
 		}
 	}
 }

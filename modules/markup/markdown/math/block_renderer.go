@@ -4,6 +4,8 @@
 package math
 
 import (
+	"html/template"
+
 	"code.gitea.io/gitea/modules/markup/internal"
 	giteaUtil "code.gitea.io/gitea/modules/util"
 
@@ -40,7 +42,7 @@ func (r *BlockRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 
 func (r *BlockRenderer) writeLines(w util.BufWriter, source []byte, n gast.Node) {
 	l := n.Lines().Len()
-	for i := 0; i < l; i++ {
+	for i := range l {
 		line := n.Lines().At(i)
 		_, _ = w.Write(util.EscapeHTML(line.Value(source)))
 	}
@@ -49,8 +51,8 @@ func (r *BlockRenderer) writeLines(w util.BufWriter, source []byte, n gast.Node)
 func (r *BlockRenderer) renderBlock(w util.BufWriter, source []byte, node gast.Node, entering bool) (gast.WalkStatus, error) {
 	n := node.(*Block)
 	if entering {
-		code := giteaUtil.Iif(n.Inline, "", `<pre class="code-block is-loading">`) + `<code class="language-math display">`
-		_ = r.renderInternal.FormatWithSafeAttrs(w, code)
+		codeHTML := giteaUtil.Iif[template.HTML](n.Inline, "", `<pre class="code-block is-loading">`) + `<code class="language-math display">`
+		_, _ = w.WriteString(string(r.renderInternal.ProtectSafeAttrs(codeHTML)))
 		r.writeLines(w, source, n)
 	} else {
 		_, _ = w.WriteString(`</code>` + giteaUtil.Iif(n.Inline, "", `</pre>`) + "\n")

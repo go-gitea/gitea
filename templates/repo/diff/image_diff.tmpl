@@ -9,20 +9,20 @@
 		>
 			<overflow-menu class="ui secondary pointing tabular menu custom">
 				<div class="overflow-menu-items tw-justify-center">
-					<a class="item active" data-tab="diff-side-by-side-{{.file.Index}}">{{ctx.Locale.Tr "repo.diff.image.side_by_side"}}</a>
+					<a class="item active" data-tab="diff-side-by-side-{{.file.NameHash}}">{{ctx.Locale.Tr "repo.diff.image.side_by_side"}}</a>
 					{{if and .blobBase .blobHead}}
-					<a class="item" data-tab="diff-swipe-{{.file.Index}}">{{ctx.Locale.Tr "repo.diff.image.swipe"}}</a>
-					<a class="item" data-tab="diff-overlay-{{.file.Index}}">{{ctx.Locale.Tr "repo.diff.image.overlay"}}</a>
+					<a class="item" data-tab="diff-swipe-{{.file.NameHash}}">{{ctx.Locale.Tr "repo.diff.image.swipe"}}</a>
+					<a class="item" data-tab="diff-overlay-{{.file.NameHash}}">{{ctx.Locale.Tr "repo.diff.image.overlay"}}</a>
 					{{end}}
 				</div>
 			</overflow-menu>
 			<div class="image-diff-tabs is-loading">
-				<div class="ui bottom attached tab image-diff-container active" data-tab="diff-side-by-side-{{.file.Index}}">
+				<div class="ui bottom attached tab image-diff-container active" data-tab="diff-side-by-side-{{.file.NameHash}}">
 					<div class="diff-side-by-side">
 						{{if .blobBase}}
 						<span class="side">
 							<p class="side-header">{{ctx.Locale.Tr "repo.diff.file_before"}}</p>
-							<span class="before-container"><img class="image-before"></span>
+							<span class="before-container"><img alt class="image-before"></span>
 							<p>
 								<span class="bounds-info-before">
 									{{ctx.Locale.Tr "repo.diff.file_image_width"}}: <span class="text bounds-info-width"></span>
@@ -37,7 +37,7 @@
 						{{if .blobHead}}
 						<span class="side">
 							<p class="side-header">{{ctx.Locale.Tr "repo.diff.file_after"}}</p>
-							<span class="after-container"><img class="image-after"></span>
+							<span class="after-container"><img alt class="image-after"></span>
 							<p>
 								<span class="bounds-info-after">
 									{{ctx.Locale.Tr "repo.diff.file_image_width"}}: <span class="text bounds-info-width"></span>
@@ -52,12 +52,12 @@
 					</div>
 				</div>
 				{{if and .blobBase .blobHead}}
-				<div class="ui bottom attached tab image-diff-container" data-tab="diff-swipe-{{.file.Index}}">
+				<div class="ui bottom attached tab image-diff-container" data-tab="diff-swipe-{{.file.NameHash}}">
 					<div class="diff-swipe">
 						<div class="swipe-frame">
-							<span class="before-container"><img class="image-before"></span>
+							<span class="before-container"><img alt class="image-before"></span>
 							<span class="swipe-container">
-								<span class="after-container"><img class="image-after"></span>
+								<span class="after-container"><img alt class="image-after"></span>
 							</span>
 							<span class="swipe-bar">
 								<span class="handle top-handle"></span>
@@ -66,12 +66,12 @@
 						</div>
 					</div>
 				</div>
-				<div class="ui bottom attached tab image-diff-container" data-tab="diff-overlay-{{.file.Index}}">
+				<div class="ui bottom attached tab image-diff-container" data-tab="diff-overlay-{{.file.NameHash}}">
 					<div class="diff-overlay">
 						<input type="range" min="0" max="100" value="50">
 						<div class="overlay-frame">
-							<span class="before-container"><img class="image-before"></span>
-							<span class="after-container"><img class="image-after"></span>
+							<span class="before-container"><img alt class="image-before"></span>
+							<span class="after-container"><img alt class="image-after"></span>
 						</div>
 					</div>
 				</div>

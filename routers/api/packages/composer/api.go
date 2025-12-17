@@ -66,6 +66,7 @@ type PackageMetadataResponse struct {
 }
 
 // PackageVersionMetadata contains package metadata
+// https://getcomposer.org/doc/05-repositories.md#package
 type PackageVersionMetadata struct {
 	*composer_module.Metadata
 	Name    string    `json:"name"`
@@ -73,6 +74,7 @@ type PackageVersionMetadata struct {
 	Type    string    `json:"type"`
 	Created time.Time `json:"time"`
 	Dist    Dist      `json:"dist"`
+	Source  Source    `json:"source"`
 }
 
 // Dist contains package download information
@@ -80,6 +82,13 @@ type Dist struct {
 	Type     string `json:"type"`
 	URL      string `json:"url"`
 	Checksum string `json:"shasum"`
+}
+
+// Source contains package source information
+type Source struct {
+	URL       string `json:"url"`
+	Type      string `json:"type"`
+	Reference string `json:"reference"`
 }
 
 func createPackageMetadataResponse(registryURL string, pds []*packages_model.PackageDescriptor) *PackageMetadataResponse {
@@ -94,7 +103,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 			}
 		}
 
-		versions = append(versions, &PackageVersionMetadata{
+		pkg := PackageVersionMetadata{
 			Name:     pd.Package.Name,
 			Version:  pd.Version.Version,
 			Type:     packageType,
@@ -105,7 +114,16 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 				URL:      fmt.Sprintf("%s/files/%s/%s/%s", registryURL, url.PathEscape(pd.Package.LowerName), url.PathEscape(pd.Version.LowerVersion), url.PathEscape(pd.Files[0].File.LowerName)),
 				Checksum: pd.Files[0].Blob.HashSHA1,
 			},
-		})
+		}
+		if pd.Repository != nil {
+			pkg.Source = Source{
+				URL:       pd.Repository.HTMLURL(),
+				Type:      "git",
+				Reference: pd.Version.Version,
+			}
+		}
+
+		versions = append(versions, &pkg)
 	}
 
 	return &PackageMetadataResponse{

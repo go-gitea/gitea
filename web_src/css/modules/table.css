@@ -152,31 +152,6 @@
   }
 }
 
-.ui.table[class*="left aligned"],
-.ui.table [class*="left aligned"] {
-  text-align: left;
-}
-
-.ui.table[class*="center aligned"],
-.ui.table [class*="center aligned"] {
-  text-align: center;
-}
-
-.ui.table[class*="right aligned"],
-.ui.table [class*="right aligned"] {
-  text-align: right;
-}
-
-.ui.table[class*="top aligned"],
-.ui.table [class*="top aligned"] {
-  vertical-align: top;
-}
-
-.ui.table[class*="middle aligned"],
-.ui.table [class*="middle aligned"] {
-  vertical-align: middle;
-}
-
 .ui.table th.collapsing,
 .ui.table td.collapsing {
   width: 1px;
@@ -190,6 +165,11 @@
 .ui.fixed.table td {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.ui.selectable.table > tbody > tr:hover,
+.ui.table tbody tr td.selectable:hover {
+  background: var(--color-hover);
 }
 
 .ui.attached.table {
@@ -313,6 +293,9 @@
 }
 .ui.basic.striped.table > tbody > tr:nth-child(2n) {
   background: var(--color-light);
+}
+.ui.basic.striped.selectable.table > tbody > tr:nth-child(2n):hover {
+  background: var(--color-hover);
 }
 
 .ui[class*="very basic"].table {

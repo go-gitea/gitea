@@ -24,7 +24,7 @@ package log
 
 // BaseLogger provides the basic logging functions
 type BaseLogger interface {
-	Log(skip int, level Level, format string, v ...any)
+	Log(skip int, event *Event, format string, v ...any)
 	GetLevel() Level
 }
 
@@ -45,6 +45,6 @@ type Logger interface {
 	LevelLogger
 }
 
-type LogStringer interface { //nolint:revive
+type LogStringer interface { //nolint:revive // export stutter
 	LogString() string
 }

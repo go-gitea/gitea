@@ -1,4 +1,5 @@
 <script lang="ts">
+import {defineComponent, type PropType} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import dayjs from 'dayjs';
 import {
@@ -26,7 +27,6 @@ import {chartJsColors} from '../utils/color.ts';
 import {sleep} from '../utils.ts';
 import 'chartjs-adapter-dayjs-4/dist/chartjs-adapter-dayjs-4.esm';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import type {Entries} from 'type-fest';
 import {pathEscapeSegments} from '../utils/url.ts';
 
 const customEventListener: Plugin = {
@@ -56,11 +56,18 @@ Chart.register(
   customEventListener,
 );
 
-export default {
+type ContributorsData = {
+  total: {
+    weeks: Record<string, any>,
+  },
+  [other: string]: Record<string, Record<string, any>>,
+}
+
+export default defineComponent({
   components: {ChartLine, SvgIcon},
   props: {
     locale: {
-      type: Object,
+      type: Object as PropType<Record<string, any>>,
       required: true,
     },
     repoLink: {
@@ -79,16 +86,16 @@ export default {
     sortedContributors: {} as Record<string, any>,
     type: 'commits',
     contributorsStats: {} as Record<string, any>,
-    xAxisStart: null,
-    xAxisEnd: null,
-    xAxisMin: null,
-    xAxisMax: null,
+    xAxisStart: null as number | null,
+    xAxisEnd: null as number | null,
+    xAxisMin: null as number | null,
+    xAxisMax: null as number | null,
   }),
   mounted() {
     this.fetchGraphData();
 
     fomanticQuery('#repo-contributors').dropdown({
-      onChange: (val) => {
+      onChange: (val: string) => {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;
         this.type = val;
@@ -98,7 +105,7 @@ export default {
   },
   methods: {
     sortContributors() {
-      const contributors = this.filterContributorWeeksByDateRange();
+      const contributors: Record<string, any> = this.filterContributorWeeksByDateRange();
       const criteria = `total_${this.type}`;
       this.sortedContributors = Object.values(contributors)
         .filter((contributor) => contributor[criteria] !== 0)
@@ -126,12 +133,12 @@ export default {
           }
         } while (response.status === 202);
         if (response.ok) {
-          const data = await response.json();
-          const {total, ...rest} = data;
+          const data = await response.json() as ContributorsData;
+          const {total, ...other} = data;
           // below line might be deleted if we are sure go produces map always sorted by keys
           total.weeks = Object.fromEntries(Object.entries(total.weeks).sort());
 
-          const weekValues = Object.values(total.weeks) as any;
+          const weekValues = Object.values(total.weeks);
           this.xAxisStart = weekValues[0].week;
           this.xAxisEnd = firstStartDateAfterDate(new Date());
           const startDays = startDaysBetween(this.xAxisStart, this.xAxisEnd);
@@ -139,7 +146,7 @@ export default {
           this.xAxisMin = this.xAxisStart;
           this.xAxisMax = this.xAxisEnd;
           this.contributorsStats = {};
-          for (const [email, user] of Object.entries(rest) as Entries<Record<string, Record<string, any>>>) {
+          for (const [email, user] of Object.entries(other)) {
             user.weeks = fillEmptyStartDaysWithZeroes(startDays, user.weeks);
             this.contributorsStats[email] = user;
           }
@@ -157,7 +164,7 @@ export default {
     },
 
     filterContributorWeeksByDateRange() {
-      const filteredData = {};
+      const filteredData: Record<string, any> = {};
       const data = this.contributorsStats;
       for (const key of Object.keys(data)) {
         const user = data[key];
@@ -167,7 +174,7 @@ export default {
         user.max_contribution_type = 0;
         const filteredWeeks = user.weeks.filter((week: Record<string, number>) => {
           const oneWeek = 7 * 24 * 60 * 60 * 1000;
-          if (week.week >= this.xAxisMin - oneWeek && week.week <= this.xAxisMax + oneWeek) {
+          if (week.week >= this.xAxisMin! - oneWeek && week.week <= this.xAxisMax! + oneWeek) {
             user.total_commits += week.commits;
             user.total_additions += week.additions;
             user.total_deletions += week.deletions;
@@ -195,7 +202,7 @@ export default {
       // Normally, chartjs handles this automatically, but it will resize the graph when you
       // zoom, pan etc. I think resizing the graph makes it harder to compare things visually.
       const maxValue = Math.max(
-        ...this.totalStats.weeks.map((o) => o[this.type]),
+        ...this.totalStats.weeks.map((o: Record<string, any>) => o[this.type]),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -207,7 +214,7 @@ export default {
       // for contributors' graph. If I let chartjs do this for me, it will choose different
       // maxY value for each contributors' graph which again makes it harder to compare.
       const maxValue = Math.max(
-        ...this.sortedContributors.map((c) => c.max_contribution_type),
+        ...this.sortedContributors.map((c: Record<string, any>) => c.max_contribution_type),
       );
       const [coefficient, exp] = maxValue.toExponential().split('e').map(Number);
       if (coefficient % 1 === 0) return maxValue;
@@ -231,8 +238,8 @@ export default {
     },
 
     updateOtherCharts({chart}: {chart: Chart}, reset: boolean = false) {
-      const minVal = chart.options.scales.x.min;
-      const maxVal = chart.options.scales.x.max;
+      const minVal = Number(chart.options.scales?.x?.min);
+      const maxVal = Number(chart.options.scales?.x?.max);
       if (reset) {
         this.xAxisMin = this.xAxisStart;
         this.xAxisMax = this.xAxisEnd;
@@ -295,8 +302,8 @@ export default {
         },
         scales: {
           x: {
-            min: this.xAxisMin,
-            max: this.xAxisMax,
+            min: this.xAxisMin ?? undefined,
+            max: this.xAxisMax ?? undefined,
             type: 'time',
             grid: {
               display: false,
@@ -320,14 +327,14 @@ export default {
       };
     },
   },
-};
+});
 </script>
 <template>
   <div>
     <div class="ui header tw-flex tw-items-center tw-justify-between">
       <div>
         <relative-time
-          v-if="xAxisMin > 0"
+          v-if="xAxisMin && xAxisMin > 0"
           format="datetime"
           year="numeric"
           month="short"
@@ -339,7 +346,7 @@ export default {
         </relative-time>
         {{ isLoading ? locale.loadingTitle : errorText ? locale.loadingTitleFailed: "-" }}
         <relative-time
-          v-if="xAxisMax > 0"
+          v-if="xAxisMax && xAxisMax > 0"
           format="datetime"
           year="numeric"
           month="short"
@@ -352,12 +359,12 @@ export default {
       </div>
       <div>
         <!-- Contribution type -->
-        <div class="ui dropdown jump" id="repo-contributors">
+        <div class="ui floating dropdown jump" id="repo-contributors">
           <div class="ui basic compact button">
             <span class="not-mobile">{{ locale.filterLabel }}</span> <strong>{{ locale.contributionType[type] }}</strong>
             <svg-icon name="octicon-triangle-down" :size="14"/>
           </div>
-          <div class="menu">
+          <div class="left menu">
             <div :class="['item', {'selected': type === 'commits'}]" data-value="commits">
               {{ locale.contributionType.commits }}
             </div>
@@ -372,9 +379,9 @@ export default {
       </div>
     </div>
     <div class="tw-flex ui segment main-graph">
-      <div v-if="isLoading || errorText !== ''" class="gt-tc tw-m-auto">
+      <div v-if="isLoading || errorText !== ''" class="tw-m-auto">
         <div v-if="isLoading">
-          <SvgIcon name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+          <SvgIcon name="gitea-running" class="tw-mr-2 rotate-clockwise"/>
           {{ locale.loadingInfo }}
         </div>
         <div v-else class="text red">
@@ -396,7 +403,7 @@ export default {
         <div class="ui top attached header tw-flex tw-flex-1">
           <b class="ui right">#{{ index + 1 }}</b>
           <a :href="contributor.home_link">
-            <img class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link" alt="">
+            <img loading="lazy" class="ui avatar tw-align-middle" height="40" width="40" :src="contributor.avatar_link" alt="">
           </a>
           <div class="tw-ml-2">
             <a v-if="contributor.home_link !== ''" :href="contributor.home_link"><h4>{{ contributor.name }}</h4></a>

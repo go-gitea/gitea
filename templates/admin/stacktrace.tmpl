@@ -1,22 +1,7 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin monitor")}}
 <div class="admin-setting-content">
 
-	<div class="tw-flex tw-items-center">
-		<div class="tw-flex-1">
-			<div class="ui compact small menu">
-				<a class="{{if eq .ShowGoroutineList "process"}}active {{end}}item" href="?show=process">{{ctx.Locale.Tr "admin.monitor.process"}}</a>
-				<a class="{{if eq .ShowGoroutineList "stacktrace"}}active {{end}}item" href="?show=stacktrace">{{ctx.Locale.Tr "admin.monitor.stacktrace"}}</a>
-			</div>
-		</div>
-		<form target="_blank" action="{{AppSubUrl}}/-/admin/monitor/diagnosis" class="ui form">
-			<div class="ui inline field">
-				<button class="ui primary small button">{{ctx.Locale.Tr "admin.monitor.download_diagnosis_report"}}</button>
-				<input name="seconds" size="3" maxlength="3" value="10"> {{ctx.Locale.Tr "tool.raw_seconds"}}
-			</div>
-		</form>
-	</div>
-
-	<div class="divider"></div>
+	{{template "admin/trace_tabs" .}}
 
 	<h4 class="ui top attached header">
 		{{printf "%d Goroutines" .GoroutineCount}}{{/* Goroutine is non-translatable*/}}
@@ -32,17 +17,6 @@
 		</div>
 	</div>
 	{{end}}
-</div>
-
-<div class="ui g-modal-confirm delete modal">
-	<div class="header">
-		{{ctx.Locale.Tr "admin.monitor.process.cancel"}}
-	</div>
-	<div class="content">
-		<p>{{ctx.Locale.Tr "admin.monitor.process.cancel_notices" (`<span class="name"></span>`|SafeHTML)}}</p>
-		<p>{{ctx.Locale.Tr "admin.monitor.process.cancel_desc"}}</p>
-	</div>
-	{{template "base/modal_actions_confirm" .}}
 </div>
 
 {{template "admin/layout_footer" .}}

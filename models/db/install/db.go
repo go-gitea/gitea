@@ -4,27 +4,22 @@
 package install
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
-
-	"xorm.io/xorm"
 )
 
-func getXORMEngine() *xorm.Engine {
-	return db.GetEngine(db.DefaultContext).(*xorm.Engine)
-}
-
 // CheckDatabaseConnection checks the database connection
-func CheckDatabaseConnection() error {
-	e := db.GetEngine(db.DefaultContext)
-	_, err := e.Exec("SELECT 1")
+func CheckDatabaseConnection(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Exec("SELECT 1")
 	return err
 }
 
 // GetMigrationVersion gets the database migration version
-func GetMigrationVersion() (int64, error) {
+func GetMigrationVersion(ctx context.Context) (int64, error) {
 	var installedDbVersion int64
-	x := getXORMEngine()
+	x := db.GetEngine(ctx)
 	exist, err := x.IsTableExist("version")
 	if err != nil {
 		return 0, err
@@ -40,8 +35,8 @@ func GetMigrationVersion() (int64, error) {
 }
 
 // HasPostInstallationUsers checks whether there are users after installation
-func HasPostInstallationUsers() (bool, error) {
-	x := getXORMEngine()
+func HasPostInstallationUsers(ctx context.Context) (bool, error) {
+	x := db.GetEngine(ctx)
 	exist, err := x.IsTableExist("user")
 	if err != nil {
 		return false, err

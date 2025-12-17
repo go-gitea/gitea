@@ -19,21 +19,21 @@ import (
 func assertNavbar(t *testing.T, doc *HTMLDoc) {
 	// Only show the account page if users can change their email notifications, delete themselves, or manage credentials
 	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureDeletion, setting.UserFeatureManageCredentials) && !setting.Service.EnableNotifyMail {
-		doc.AssertElement(t, ".menu a[href='/user/settings/account']", false)
+		AssertHTMLElement(t, doc, ".menu a[href='/user/settings/account']", false)
 	} else {
-		doc.AssertElement(t, ".menu a[href='/user/settings/account']", true)
+		AssertHTMLElement(t, doc, ".menu a[href='/user/settings/account']", true)
 	}
 
 	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageMFA, setting.UserFeatureManageCredentials) {
-		doc.AssertElement(t, ".menu a[href='/user/settings/security']", false)
+		AssertHTMLElement(t, doc, ".menu a[href='/user/settings/security']", false)
 	} else {
-		doc.AssertElement(t, ".menu a[href='/user/settings/security']", true)
+		AssertHTMLElement(t, doc, ".menu a[href='/user/settings/security']", true)
 	}
 
 	if setting.Admin.UserDisabledFeatures.Contains(setting.UserFeatureManageSSHKeys, setting.UserFeatureManageGPGKeys) {
-		doc.AssertElement(t, ".menu a[href='/user/settings/keys']", false)
+		AssertHTMLElement(t, doc, ".menu a[href='/user/settings/keys']", false)
 	} else {
-		doc.AssertElement(t, ".menu a[href='/user/settings/keys']", true)
+		AssertHTMLElement(t, doc, ".menu a[href='/user/settings/keys']", true)
 	}
 }
 
@@ -64,11 +64,11 @@ func TestUserSettingsAccount(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body)
 
 		// account navbar should display
-		doc.AssertElement(t, ".menu a[href='/user/settings/account']", true)
+		AssertHTMLElement(t, doc, ".menu a[href='/user/settings/account']", true)
 
-		doc.AssertElement(t, "#password", true)
-		doc.AssertElement(t, "#email", true)
-		doc.AssertElement(t, "#delete-form", true)
+		AssertHTMLElement(t, doc, "#password", true)
+		AssertHTMLElement(t, doc, "#email", true)
+		AssertHTMLElement(t, doc, "#delete-form", true)
 	})
 
 	t.Run("credentials disabled", func(t *testing.T) {
@@ -83,9 +83,9 @@ func TestUserSettingsAccount(t *testing.T) {
 
 		assertNavbar(t, doc)
 
-		doc.AssertElement(t, "#password", false)
-		doc.AssertElement(t, "#email", false)
-		doc.AssertElement(t, "#delete-form", true)
+		AssertHTMLElement(t, doc, "#password", false)
+		AssertHTMLElement(t, doc, "#email", false)
+		AssertHTMLElement(t, doc, "#delete-form", true)
 	})
 
 	t.Run("deletion disabled", func(t *testing.T) {
@@ -100,9 +100,9 @@ func TestUserSettingsAccount(t *testing.T) {
 
 		assertNavbar(t, doc)
 
-		doc.AssertElement(t, "#password", true)
-		doc.AssertElement(t, "#email", true)
-		doc.AssertElement(t, "#delete-form", false)
+		AssertHTMLElement(t, doc, "#password", true)
+		AssertHTMLElement(t, doc, "#email", true)
+		AssertHTMLElement(t, doc, "#delete-form", false)
 	})
 
 	t.Run("deletion, credentials and email notifications are disabled", func(t *testing.T) {
@@ -249,7 +249,7 @@ func TestUserSettingsSecurity(t *testing.T) {
 
 		assertNavbar(t, doc)
 
-		doc.AssertElement(t, "#register-webauthn", true)
+		AssertHTMLElement(t, doc, "#register-webauthn", true)
 	})
 
 	t.Run("mfa disabled", func(t *testing.T) {
@@ -263,7 +263,7 @@ func TestUserSettingsSecurity(t *testing.T) {
 
 		assertNavbar(t, doc)
 
-		doc.AssertElement(t, "#register-webauthn", false)
+		AssertHTMLElement(t, doc, "#register-webauthn", false)
 	})
 
 	t.Run("credentials and mfa disabled", func(t *testing.T) {
@@ -356,8 +356,8 @@ func TestUserSettingsKeys(t *testing.T) {
 
 		assertNavbar(t, doc)
 
-		doc.AssertElement(t, "#add-ssh-button", true)
-		doc.AssertElement(t, "#add-gpg-key-panel", true)
+		AssertHTMLElement(t, doc, "#add-ssh-button", true)
+		AssertHTMLElement(t, doc, "#add-gpg-key-panel", true)
 	})
 
 	t.Run("ssh keys disabled", func(t *testing.T) {
@@ -372,8 +372,8 @@ func TestUserSettingsKeys(t *testing.T) {
 
 		assertNavbar(t, doc)
 
-		doc.AssertElement(t, "#add-ssh-button", false)
-		doc.AssertElement(t, "#add-gpg-key-panel", true)
+		AssertHTMLElement(t, doc, "#add-ssh-button", false)
+		AssertHTMLElement(t, doc, "#add-gpg-key-panel", true)
 	})
 
 	t.Run("gpg keys disabled", func(t *testing.T) {
@@ -388,8 +388,8 @@ func TestUserSettingsKeys(t *testing.T) {
 
 		assertNavbar(t, doc)
 
-		doc.AssertElement(t, "#add-ssh-button", true)
-		doc.AssertElement(t, "#add-gpg-key-panel", false)
+		AssertHTMLElement(t, doc, "#add-ssh-button", true)
+		AssertHTMLElement(t, doc, "#add-gpg-key-panel", false)
 	})
 
 	t.Run("ssh & gpg keys disabled", func(t *testing.T) {

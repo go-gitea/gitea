@@ -128,79 +128,64 @@ const (
 
 // CreateIssueDependency creates a new dependency for an issue
 func CreateIssueDependency(ctx context.Context, user *user_model.User, issue, dep *Issue) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// Check if it already exists
+		exists, err := issueDepExists(ctx, issue.ID, dep.ID)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return ErrDependencyExists{issue.ID, dep.ID}
+		}
+		// And if it would be circular
+		circular, err := issueDepExists(ctx, dep.ID, issue.ID)
+		if err != nil {
+			return err
+		}
+		if circular {
+			return ErrCircularDependency{issue.ID, dep.ID}
+		}
 
-	// Check if it already exists
-	exists, err := issueDepExists(ctx, issue.ID, dep.ID)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return ErrDependencyExists{issue.ID, dep.ID}
-	}
-	// And if it would be circular
-	circular, err := issueDepExists(ctx, dep.ID, issue.ID)
-	if err != nil {
-		return err
-	}
-	if circular {
-		return ErrCircularDependency{issue.ID, dep.ID}
-	}
+		if err := db.Insert(ctx, &IssueDependency{
+			UserID:       user.ID,
+			IssueID:      issue.ID,
+			DependencyID: dep.ID,
+		}); err != nil {
+			return err
+		}
 
-	if err := db.Insert(ctx, &IssueDependency{
-		UserID:       user.ID,
-		IssueID:      issue.ID,
-		DependencyID: dep.ID,
-	}); err != nil {
-		return err
-	}
-
-	// Add comment referencing the new dependency
-	if err = createIssueDependencyComment(ctx, user, issue, dep, true); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+		// Add comment referencing the new dependency
+		return createIssueDependencyComment(ctx, user, issue, dep, true)
+	})
 }
 
 // RemoveIssueDependency removes a dependency from an issue
 func RemoveIssueDependency(ctx context.Context, user *user_model.User, issue, dep *Issue, depType DependencyType) (err error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		var issueDepToDelete IssueDependency
 
-	var issueDepToDelete IssueDependency
+		switch depType {
+		case DependencyTypeBlockedBy:
+			issueDepToDelete = IssueDependency{IssueID: issue.ID, DependencyID: dep.ID}
+		case DependencyTypeBlocking:
+			issueDepToDelete = IssueDependency{IssueID: dep.ID, DependencyID: issue.ID}
+		default:
+			return ErrUnknownDependencyType{depType}
+		}
 
-	switch depType {
-	case DependencyTypeBlockedBy:
-		issueDepToDelete = IssueDependency{IssueID: issue.ID, DependencyID: dep.ID}
-	case DependencyTypeBlocking:
-		issueDepToDelete = IssueDependency{IssueID: dep.ID, DependencyID: issue.ID}
-	default:
-		return ErrUnknownDependencyType{depType}
-	}
+		affected, err := db.GetEngine(ctx).Delete(&issueDepToDelete)
+		if err != nil {
+			return err
+		}
 
-	affected, err := db.GetEngine(ctx).Delete(&issueDepToDelete)
-	if err != nil {
-		return err
-	}
+		// If we deleted nothing, the dependency did not exist
+		if affected <= 0 {
+			return ErrDependencyNotExists{issue.ID, dep.ID}
+		}
 
-	// If we deleted nothing, the dependency did not exist
-	if affected <= 0 {
-		return ErrDependencyNotExists{issue.ID, dep.ID}
-	}
-
-	// Add comment referencing the removed dependency
-	if err = createIssueDependencyComment(ctx, user, issue, dep, false); err != nil {
-		return err
-	}
-	return committer.Commit()
+		// Add comment referencing the removed dependency
+		return createIssueDependencyComment(ctx, user, issue, dep, false)
+	})
 }
 
 // Check if the dependency already exists

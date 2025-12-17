@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -72,51 +72,50 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 	}()
 
 	stderr := &strings.Builder{}
-	err = git.NewCommand(ctx, "ls-files", "-u", "-z").
-		Run(&git.RunOpts{
-			Dir:    tmpBasePath,
-			Stdout: lsFilesWriter,
-			Stderr: stderr,
-			PipelineFunc: func(_ context.Context, _ context.CancelFunc) error {
-				_ = lsFilesWriter.Close()
-				defer func() {
-					_ = lsFilesReader.Close()
-				}()
-				bufferedReader := bufio.NewReader(lsFilesReader)
+	err = gitcmd.NewCommand("ls-files", "-u", "-z").
+		WithDir(tmpBasePath).
+		WithStdout(lsFilesWriter).
+		WithStderr(stderr).
+		WithPipelineFunc(func(_ context.Context, _ context.CancelFunc) error {
+			_ = lsFilesWriter.Close()
+			defer func() {
+				_ = lsFilesReader.Close()
+			}()
+			bufferedReader := bufio.NewReader(lsFilesReader)
 
-				for {
-					line, err := bufferedReader.ReadString('\000')
-					if err != nil {
-						if err == io.EOF {
-							return nil
-						}
-						return err
+			for {
+				line, err := bufferedReader.ReadString('\000')
+				if err != nil {
+					if err == io.EOF {
+						return nil
 					}
-					toemit := &lsFileLine{}
-
-					split := strings.SplitN(line, " ", 3)
-					if len(split) < 3 {
-						return fmt.Errorf("malformed line: %s", line)
-					}
-					toemit.mode = split[0]
-					toemit.sha = split[1]
-
-					if len(split[2]) < 4 {
-						return fmt.Errorf("malformed line: %s", line)
-					}
-
-					toemit.stage, err = strconv.Atoi(split[2][0:1])
-					if err != nil {
-						return fmt.Errorf("malformed line: %s", line)
-					}
-
-					toemit.path = split[2][2 : len(split[2])-1]
-					outputChan <- toemit
+					return err
 				}
-			},
-		})
+				toemit := &lsFileLine{}
+
+				split := strings.SplitN(line, " ", 3)
+				if len(split) < 3 {
+					return fmt.Errorf("malformed line: %s", line)
+				}
+				toemit.mode = split[0]
+				toemit.sha = split[1]
+
+				if len(split[2]) < 4 {
+					return fmt.Errorf("malformed line: %s", line)
+				}
+
+				toemit.stage, err = strconv.Atoi(split[2][0:1])
+				if err != nil {
+					return fmt.Errorf("malformed line: %s", line)
+				}
+
+				toemit.path = split[2][2 : len(split[2])-1]
+				outputChan <- toemit
+			}
+		}).
+		Run(ctx)
 	if err != nil {
-		outputChan <- &lsFileLine{err: fmt.Errorf("git ls-files -u -z: %w", git.ConcatenateError(err, stderr.String()))}
+		outputChan <- &lsFileLine{err: fmt.Errorf("git ls-files -u -z: %w", gitcmd.ConcatenateError(err, stderr.String()))}
 	}
 }
 

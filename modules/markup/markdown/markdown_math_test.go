@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -15,6 +17,7 @@ import (
 const nl = "\n"
 
 func TestMathRender(t *testing.T) {
+	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{ParseInlineDollar: true, ParseInlineParentheses: true}
 	testcases := []struct {
 		testcase string
 		expected string
@@ -26,6 +29,10 @@ func TestMathRender(t *testing.T) {
 		{
 			"$ a $",
 			`<p><code class="language-math">a</code></p>` + nl,
+		},
+		{
+			"$a$$b$",
+			`<p><code class="language-math">a</code><code class="language-math">b</code></p>` + nl,
 		},
 		{
 			"$a$ $b$",
@@ -56,7 +63,7 @@ func TestMathRender(t *testing.T) {
 			`<p>a$b $a a$b b$</p>` + nl,
 		},
 		{
-			"a$x$",
+			"a$x$", // Pattern: "word$other$" The real world example is: "Price is between US$1 and US$2.", so don't parse this.
 			`<p>a$x$</p>` + nl,
 		},
 		{
@@ -68,8 +75,12 @@ func TestMathRender(t *testing.T) {
 			`<p><code class="language-math">a</code> (<code class="language-math">b</code>) [$c$] {$d$}</p>` + nl,
 		},
 		{
+			"[$a$](link)",
+			`<p><a href="/link" rel="nofollow"><code class="language-math">a</code></a></p>` + nl,
+		},
+		{
 			"$$a$$",
-			`<code class="language-math display">a</code>` + nl,
+			`<p><code class="language-math">a</code></p>` + nl,
 		},
 		{
 			"$$a$$ test",
@@ -111,6 +122,7 @@ func TestMathRender(t *testing.T) {
 }
 
 func TestMathRenderBlockIndent(t *testing.T) {
+	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{ParseBlockDollar: true, ParseBlockSquareBrackets: true}
 	testcases := []struct {
 		name     string
 		testcase string
@@ -242,4 +254,65 @@ x
 			assert.Equal(t, test.expected, string(res), "unexpected result for test case:\n%s", test.testcase)
 		})
 	}
+}
+
+func TestMathRenderOptions(t *testing.T) {
+	setting.Markdown.MathCodeBlockOptions = setting.MarkdownMathCodeBlockOptions{}
+	defer test.MockVariableValue(&setting.Markdown.MathCodeBlockOptions)
+	test := func(t *testing.T, expected, input string) {
+		res, err := RenderString(markup.NewTestRenderContext(), input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(string(res)), "input: %s", input)
+	}
+
+	// default (non-conflict) inline syntax
+	test(t, `<p><code class="language-math">a</code></p>`, "$`a`$")
+
+	// ParseInlineDollar
+	test(t, `<p>$a$</p>`, `$a$`)
+	setting.Markdown.MathCodeBlockOptions.ParseInlineDollar = true
+	test(t, `<p><code class="language-math">a</code></p>`, `$a$`)
+
+	// ParseInlineParentheses
+	test(t, `<p>(a)</p>`, `\(a\)`)
+	setting.Markdown.MathCodeBlockOptions.ParseInlineParentheses = true
+	test(t, `<p><code class="language-math">a</code></p>`, `\(a\)`)
+
+	// ParseBlockDollar
+	test(t, `<p>$$
+a
+$$</p>
+`, `
+$$
+a
+$$
+`)
+	setting.Markdown.MathCodeBlockOptions.ParseBlockDollar = true
+	test(t, `<pre class="code-block is-loading"><code class="language-math display">
+a
+</code></pre>
+`, `
+$$
+a
+$$
+`)
+
+	// ParseBlockSquareBrackets
+	test(t, `<p>[
+a
+]</p>
+`, `
+\[
+a
+\]
+`)
+	setting.Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets = true
+	test(t, `<pre class="code-block is-loading"><code class="language-math display">
+a
+</code></pre>
+`, `
+\[
+a
+\]
+`)
 }

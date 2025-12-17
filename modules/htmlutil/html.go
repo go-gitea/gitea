@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"slices"
+	"strings"
 )
 
 // ParseSizeAndClass get size and class from string with default values
@@ -30,7 +31,10 @@ func ParseSizeAndClass(defaultSize int, defaultClass string, others ...any) (int
 	return size, class
 }
 
-func HTMLFormat(s string, rawArgs ...any) template.HTML {
+func HTMLFormat(s template.HTML, rawArgs ...any) template.HTML {
+	if !strings.Contains(string(s), "%") || len(rawArgs) == 0 {
+		panic("HTMLFormat requires one or more arguments")
+	}
 	args := slices.Clone(rawArgs)
 	for i, v := range args {
 		switch v := v.(type) {
@@ -38,11 +42,13 @@ func HTMLFormat(s string, rawArgs ...any) template.HTML {
 			// for most basic types (including template.HTML which is safe), just do nothing and use it
 		case string:
 			args[i] = template.HTMLEscapeString(v)
+		case template.URL:
+			args[i] = template.HTMLEscapeString(string(v))
 		case fmt.Stringer:
 			args[i] = template.HTMLEscapeString(v.String())
 		default:
 			args[i] = template.HTMLEscapeString(fmt.Sprint(v))
 		}
 	}
-	return template.HTML(fmt.Sprintf(s, args...))
+	return template.HTML(fmt.Sprintf(string(s), args...))
 }

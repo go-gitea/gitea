@@ -8,6 +8,7 @@
 			<input type="hidden" name="project" value="{{$.ProjectID}}">
 			<input type="hidden" name="assignee" value="{{$.AssigneeID}}">
 			<input type="hidden" name="poster" value="{{$.PosterUsername}}">
+			<input type="hidden" name="sort" value="{{$.SortType}}">
 		{{end}}
 		{{template "shared/search/input" dict "Value" .Keyword}}
 		{{if .PageIsIssueList}}

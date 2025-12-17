@@ -7,9 +7,7 @@ package forms
 import (
 	"mime/multipart"
 	"net/http"
-	"strings"
 
-	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -325,8 +323,9 @@ func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Er
 
 // AddSecretForm for adding secrets
 type AddSecretForm struct {
-	Name string `binding:"Required;MaxSize(255)"`
-	Data string `binding:"Required;MaxSize(65535)"`
+	Name        string `binding:"Required;MaxSize(255)"`
+	Data        string `binding:"Required;MaxSize(65535)"`
+	Description string `binding:"MaxSize(65535)"`
 }
 
 // Validate validates the fields
@@ -336,8 +335,9 @@ func (f *AddSecretForm) Validate(req *http.Request, errs binding.Errors) binding
 }
 
 type EditVariableForm struct {
-	Name string `binding:"Required;MaxSize(255)"`
-	Data string `binding:"Required;MaxSize(65535)"`
+	Name        string `binding:"Required;MaxSize(255)"`
+	Data        string `binding:"Required;MaxSize(65535)"`
+	Description string `binding:"MaxSize(65535)"`
 }
 
 func (f *EditVariableForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
@@ -347,20 +347,13 @@ func (f *EditVariableForm) Validate(req *http.Request, errs binding.Errors) bind
 
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
-	Name  string `binding:"Required;MaxSize(255)" locale:"settings.token_name"`
-	Scope []string
+	Name string `binding:"Required;MaxSize(255)" locale:"settings.token_name"`
 }
 
 // Validate validates the fields
 func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-func (f *NewAccessTokenForm) GetScope() (auth_model.AccessTokenScope, error) {
-	scope := strings.Join(f.Scope, ",")
-	s, err := auth_model.AccessTokenScope(scope).Normalize()
-	return s, err
 }
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications
@@ -423,8 +416,8 @@ func (f *WebauthnDeleteForm) Validate(req *http.Request, errs binding.Errors) bi
 
 // PackageSettingForm form for package settings
 type PackageSettingForm struct {
-	Action string
-	RepoID int64 `form:"repo_id"`
+	Action   string
+	RepoName string `form:"repo_name"`
 }
 
 // Validate validates the fields

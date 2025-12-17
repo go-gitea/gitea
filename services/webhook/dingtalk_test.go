@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	"context"
 	"net/url"
 	"testing"
 
@@ -236,7 +235,7 @@ func TestDingTalkJSONPayload(t *testing.T) {
 		PayloadVersion: 2,
 	}
 
-	req, reqBody, err := newDingtalkRequest(context.Background(), hook, task)
+	req, reqBody, err := newDingtalkRequest(t.Context(), hook, task)
 	require.NotNil(t, req)
 	require.NotNil(t, reqBody)
 	require.NoError(t, err)

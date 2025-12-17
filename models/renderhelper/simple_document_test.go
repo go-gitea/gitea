@@ -4,7 +4,6 @@
 package renderhelper
 
 import (
-	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
@@ -16,7 +15,7 @@ import (
 
 func TestSimpleDocument(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	rctx := NewRenderContextSimpleDocument(context.Background(), "/base").WithMarkupType(markdown.MarkupName)
+	rctx := NewRenderContextSimpleDocument(t.Context(), "/base").WithMarkupType(markdown.MarkupName)
 	rendered, err := markup.RenderString(rctx, `
 65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
@@ -31,7 +30,7 @@ func TestSimpleDocument(t *testing.T) {
 	assert.Equal(t,
 		`<p>65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
-<a href="/base/user2" rel="nofollow">@user2</a></p>
+<a href="/user2" rel="nofollow">@user2</a></p>
 <p><a href="/base/test" rel="nofollow">/test</a>
 <a href="/base/test" rel="nofollow">./test</a>
 <a href="/base/image" target="_blank" rel="nofollow noopener"><img src="/base/image" alt="/image"/></a>

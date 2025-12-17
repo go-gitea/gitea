@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	maven_module "code.gitea.io/gitea/modules/packages/maven"
 )
 
 // MetadataResponse https://maven.apache.org/ref/3.2.5/maven-repository-metadata/repository-metadata.html
@@ -22,7 +21,7 @@ type MetadataResponse struct {
 }
 
 // pds is expected to be sorted ascending by CreatedUnix
-func createMetadataResponse(pds []*packages_model.PackageDescriptor) *MetadataResponse {
+func createMetadataResponse(pds []*packages_model.PackageDescriptor, groupID, artifactID string) *MetadataResponse {
 	var release *packages_model.PackageDescriptor
 
 	versions := make([]string, 0, len(pds))
@@ -35,11 +34,9 @@ func createMetadataResponse(pds []*packages_model.PackageDescriptor) *MetadataRe
 
 	latest := pds[len(pds)-1]
 
-	metadata := latest.Metadata.(*maven_module.Metadata)
-
 	resp := &MetadataResponse{
-		GroupID:    metadata.GroupID,
-		ArtifactID: metadata.ArtifactID,
+		GroupID:    groupID,
+		ArtifactID: artifactID,
 		Latest:     latest.Version.Version,
 		Version:    versions,
 	}

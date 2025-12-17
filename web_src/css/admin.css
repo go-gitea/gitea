@@ -32,7 +32,7 @@
 .admin code,
 .admin pre {
   white-space: pre-wrap;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .admin .ui.table.segment {

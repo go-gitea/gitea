@@ -4,7 +4,6 @@
 package testlogger
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"runtime"
@@ -93,7 +92,7 @@ func (w *testLoggerWriterCloser) Reset() {
 // Printf takes a format and args and prints the string to os.Stdout
 func Printf(format string, args ...any) {
 	if !log.CanColorStdout {
-		for i := 0; i < len(args); i++ {
+		for i := range args {
 			if c, ok := args[i].(*log.ColoredValue); ok {
 				args[i] = c.Value()
 			}
@@ -131,7 +130,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 		slowFlushChecker := time.AfterFunc(TestSlowFlush, func() {
 			Printf("+++ %s ... still flushing after %v ...\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestSlowFlush)
 		})
-		if err := queue.GetManager().FlushAll(context.Background(), -1); err != nil {
+		if err := queue.GetManager().FlushAll(t.Context(), -1); err != nil {
 			t.Errorf("Flushing queues failed with error %v", err)
 		}
 		slowFlushChecker.Stop()

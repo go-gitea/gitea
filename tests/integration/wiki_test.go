@@ -4,8 +4,6 @@
 package integration
 
 import (
-	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"os"
@@ -13,7 +11,9 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/git"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
@@ -30,7 +30,7 @@ func assertFileExist(t *testing.T, p string) {
 func assertFileEqual(t *testing.T, p string, content []byte) {
 	bs, err := os.ReadFile(p)
 	assert.NoError(t, err)
-	assert.EqualValues(t, content, bs)
+	assert.Equal(t, content, bs)
 }
 
 func TestRepoCloneWiki(t *testing.T) {
@@ -39,11 +39,11 @@ func TestRepoCloneWiki(t *testing.T) {
 
 		dstPath := t.TempDir()
 
-		r := fmt.Sprintf("%suser2/repo1.wiki.git", u.String())
+		r := u.String() + "user2/repo1.wiki.git"
 		u, _ = url.Parse(r)
 		u.User = url.UserPassword("user2", userPassword)
 		t.Run("Clone", func(t *testing.T) {
-			assert.NoError(t, git.CloneWithArgs(context.Background(), git.AllowLFSFiltersArgs(), u.String(), dstPath, git.CloneRepoOptions{}))
+			assert.NoError(t, git.Clone(t.Context(), u.String(), dstPath, git.CloneRepoOptions{}))
 			assertFileEqual(t, filepath.Join(dstPath, "Home.md"), []byte("# Home page\n\nThis is the home page!\n"))
 			assertFileExist(t, filepath.Join(dstPath, "Page-With-Image.md"))
 			assertFileExist(t, filepath.Join(dstPath, "Page-With-Spaced-Name.md"))
@@ -70,6 +70,49 @@ func Test_RepoWikiPages(t *testing.T) {
 		href, _ := firstAnchor.Attr("href")
 		pagePath := strings.TrimPrefix(href, "/user2/repo1/wiki/")
 
-		assert.EqualValues(t, expectedPagePaths[i], pagePath)
+		assert.Equal(t, expectedPagePaths[i], pagePath)
+	})
+}
+
+func Test_WikiClone(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		username := "user2"
+		reponame := "repo1"
+		wikiPath := username + "/" + reponame + ".wiki.git"
+		keyname := "my-testing-key"
+		baseAPITestContext := NewAPITestContext(t, username, "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		u.Path = wikiPath
+
+		t.Run("Clone HTTP", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			dstLocalPath := t.TempDir()
+			assert.NoError(t, git.Clone(t.Context(), u.String(), dstLocalPath, git.CloneRepoOptions{}))
+			content, err := os.ReadFile(filepath.Join(dstLocalPath, "Home.md"))
+			assert.NoError(t, err)
+			assert.Equal(t, "# Home page\n\nThis is the home page!\n", string(content))
+		})
+
+		t.Run("Clone SSH", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+
+			dstLocalPath := t.TempDir()
+			sshURL := createSSHUrl(wikiPath, u)
+
+			withKeyFile(t, keyname, func(keyFile string) {
+				var keyID int64
+				t.Run("CreateUserKey", doAPICreateUserKey(baseAPITestContext, "test-key", keyFile, func(t *testing.T, key api.PublicKey) {
+					keyID = key.ID
+				}))
+				assert.NotZero(t, keyID)
+
+				// Setup clone folder
+				assert.NoError(t, git.Clone(t.Context(), sshURL.String(), dstLocalPath, git.CloneRepoOptions{}))
+				content, err := os.ReadFile(filepath.Join(dstLocalPath, "Home.md"))
+				assert.NoError(t, err)
+				assert.Equal(t, "# Home page\n\nThis is the home page!\n", string(content))
+			})
+		})
 	})
 }

@@ -79,13 +79,26 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 		return data
 	}
 
-	data.CanModifyIssueOrPull = ctx.Repo.CanWriteIssuesOrPulls(isPull) && !ctx.Repo.Repository.IsArchived
-	if !data.CanModifyIssueOrPull {
+	// it sets "Branches" template data,
+	// it is used to render the "edit PR target branches" dropdown, and the "branch selector" in the issue's sidebar.
+	PrepareBranchList(ctx)
+	if ctx.Written() {
 		return data
 	}
 
-	data.retrieveAssigneesDataForIssueWriter(ctx)
+	// it sets the "Assignees" template data, and the data is also used to "mention" users.
+	data.retrieveAssigneesData(ctx)
 	if ctx.Written() {
+		return data
+	}
+
+	// TODO: the issue/pull permissions are quite complex and unclear
+	// A reader could create an issue/PR with setting some meta (eg: assignees from issue template, reviewers, target branch)
+	// A reader(creator) could update some meta (eg: target branch), but can't change assignees anymore.
+	// For non-creator users, only writers could update some meta (eg: assignees, milestone, project)
+	// Need to clarify the logic and add some tests in the future
+	data.CanModifyIssueOrPull = ctx.Repo.CanWriteIssuesOrPulls(isPull) && !ctx.Repo.Repository.IsArchived
+	if !data.CanModifyIssueOrPull {
 		return data
 	}
 
@@ -95,11 +108,6 @@ func retrieveRepoIssueMetaData(ctx *context.Context, repo *repo_model.Repository
 	}
 
 	data.retrieveProjectsDataForIssueWriter(ctx)
-	if ctx.Written() {
-		return data
-	}
-
-	PrepareBranchList(ctx)
 	if ctx.Written() {
 		return data
 	}
@@ -131,7 +139,7 @@ func (d *IssuePageMetaData) retrieveMilestonesDataForIssueWriter(ctx *context.Co
 	}
 }
 
-func (d *IssuePageMetaData) retrieveAssigneesDataForIssueWriter(ctx *context.Context) {
+func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 	var err error
 	d.AssigneesData.CandidateAssignees, err = repo_model.GetRepoAssignees(ctx, d.Repository)
 	if err != nil {
@@ -193,6 +201,7 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 	var posterID int64
 	var isClosed bool
 	var reviews issues_model.ReviewList
+	var err error
 
 	if d.Issue == nil {
 		if ctx.Doer != nil {
@@ -206,14 +215,7 @@ func (d *IssuePageMetaData) retrieveReviewersData(ctx *context.Context) {
 
 		isClosed = d.Issue.IsClosed || d.Issue.PullRequest.HasMerged
 
-		originalAuthorReviews, err := issues_model.GetReviewersFromOriginalAuthorsByIssueID(ctx, d.Issue.ID)
-		if err != nil {
-			ctx.ServerError("GetReviewersFromOriginalAuthorsByIssueID", err)
-			return
-		}
-		data.OriginalReviews = originalAuthorReviews
-
-		reviews, err = issues_model.GetReviewsByIssueID(ctx, d.Issue.ID)
+		reviews, data.OriginalReviews, err = issues_model.GetReviewsByIssueID(ctx, d.Issue.ID)
 		if err != nil {
 			ctx.ServerError("GetReviewersByIssueID", err)
 			return

@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +15,7 @@ import (
 
 func TestSubjectBodySeparator(t *testing.T) {
 	test := func(input, subject, body string) {
-		loc := mailSubjectSplit.FindIndex([]byte(input))
+		loc := mailSubjectSplit.FindStringIndex(input)
 		if loc == nil {
 			assert.Empty(t, subject, "no subject found, but one expected")
 			assert.Equal(t, body, input)
@@ -58,10 +57,6 @@ func TestSubjectBodySeparator(t *testing.T) {
 		"Insufficient\n--\nSeparators")
 }
 
-func TestJSEscapeSafe(t *testing.T) {
-	assert.EqualValues(t, `\u0026\u003C\u003E\'\"`, jsEscapeSafe(`&<>'"`))
-}
-
 func TestSanitizeHTML(t *testing.T) {
 	assert.Equal(t, template.HTML(`<a href="/" rel="nofollow">link</a> xss <div>inline</div>`), SanitizeHTML(`<a href="/">link</a> <a href="javascript:">xss</a> <div style="dangerous">inline</div>`))
 }
@@ -88,7 +83,7 @@ func TestTemplateIif(t *testing.T) {
 func TestTemplateEscape(t *testing.T) {
 	execTmpl := func(code string) string {
 		tmpl := template.New("test")
-		tmpl.Funcs(template.FuncMap{"QueryBuild": QueryBuild, "HTMLFormat": htmlutil.HTMLFormat})
+		tmpl.Funcs(template.FuncMap{"QueryBuild": QueryBuild, "HTMLFormat": htmlFormat})
 		template.Must(tmpl.Parse(code))
 		w := &strings.Builder{}
 		assert.NoError(t, tmpl.Execute(w, nil))
@@ -121,8 +116,8 @@ func TestTemplateEscape(t *testing.T) {
 
 func TestQueryBuild(t *testing.T) {
 	t.Run("construct", func(t *testing.T) {
-		assert.Equal(t, "", string(QueryBuild()))
-		assert.Equal(t, "", string(QueryBuild("a", nil, "b", false, "c", 0, "d", "")))
+		assert.Empty(t, string(QueryBuild()))
+		assert.Empty(t, string(QueryBuild("a", nil, "b", false, "c", 0, "d", "")))
 		assert.Equal(t, "a=1&b=true", string(QueryBuild("a", 1, "b", "true")))
 
 		// path with query parameters
@@ -137,9 +132,9 @@ func TestQueryBuild(t *testing.T) {
 
 		// only query parameters
 		assert.Equal(t, "&k=1", string(QueryBuild("&", "k", 1)))
-		assert.Equal(t, "", string(QueryBuild("&", "k", 0)))
-		assert.Equal(t, "", string(QueryBuild("&k=a", "k", 0)))
-		assert.Equal(t, "", string(QueryBuild("k=a&", "k", 0)))
+		assert.Empty(t, string(QueryBuild("&", "k", 0)))
+		assert.Empty(t, string(QueryBuild("&k=a", "k", 0)))
+		assert.Empty(t, string(QueryBuild("k=a&", "k", 0)))
 		assert.Equal(t, "a=1&b=2", string(QueryBuild("a=1", "b", 2)))
 		assert.Equal(t, "&a=1&b=2", string(QueryBuild("&a=1", "b", 2)))
 		assert.Equal(t, "a=1&b=2&", string(QueryBuild("a=1&", "b", 2)))

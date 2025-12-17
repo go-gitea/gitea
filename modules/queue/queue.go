@@ -22,7 +22,7 @@
 //
 //  4. Handler (represented by HandlerFuncT type):
 //     - It's the function responsible for processing items. Each active worker will call it.
-//     - If an item or some items are not psuccessfully rocessed, the handler could return them as "unhandled items".
+//     - If an item or some items are not successfully processed, the handler could return them as "unhandled items".
 //     In such scenarios, the queue system ensures these unhandled items are returned to the base queue after a brief delay.
 //     This mechanism is particularly beneficial in cases where the processing entity (like a document indexer) is
 //     temporarily unavailable. It ensures that no item is skipped or lost due to transient failures in the processing

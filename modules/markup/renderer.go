@@ -4,12 +4,12 @@
 package markup
 
 import (
-	"bytes"
 	"io"
 	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/typesniffer"
 )
 
 // Renderer defines an interface for rendering markup file to HTML
@@ -25,19 +25,21 @@ type PostProcessRenderer interface {
 	NeedPostProcess() bool
 }
 
+type ExternalRendererOptions struct {
+	SanitizerDisabled bool
+	DisplayInIframe   bool
+	ContentSandbox    string
+}
+
 // ExternalRenderer defines an interface for external renderers
 type ExternalRenderer interface {
-	// SanitizerDisabled disabled sanitize if return true
-	SanitizerDisabled() bool
-
-	// DisplayInIFrame represents whether render the content with an iframe
-	DisplayInIFrame() bool
+	GetExternalRendererOptions() ExternalRendererOptions
 }
 
 // RendererContentDetector detects if the content can be rendered
 // by specified renderer
 type RendererContentDetector interface {
-	CanRender(filename string, input io.Reader) bool
+	CanRender(filename string, sniffedType typesniffer.SniffedType, prefetchBuf []byte) bool
 }
 
 var (
@@ -60,13 +62,9 @@ func GetRendererByFileName(filename string) Renderer {
 }
 
 // DetectRendererType detects the markup type of the content
-func DetectRendererType(filename string, input io.Reader) string {
-	buf, err := io.ReadAll(input)
-	if err != nil {
-		return ""
-	}
+func DetectRendererType(filename string, sniffedType typesniffer.SniffedType, prefetchBuf []byte) string {
 	for _, renderer := range renderers {
-		if detector, ok := renderer.(RendererContentDetector); ok && detector.CanRender(filename, bytes.NewReader(buf)) {
+		if detector, ok := renderer.(RendererContentDetector); ok && detector.CanRender(filename, sniffedType, prefetchBuf) {
 			return renderer.Name()
 		}
 	}

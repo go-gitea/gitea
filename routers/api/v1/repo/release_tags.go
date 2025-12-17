@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	release_service "code.gitea.io/gitea/services/release"
@@ -46,20 +47,27 @@ func GetReleaseByTag(ctx *context.APIContext) {
 	release, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tag)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if release.IsTag {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
+	if release.IsDraft { // only the users with write access can see draft releases
+		if !ctx.IsSigned || !ctx.Repo.CanWrite(unit_model.TypeReleases) {
+			ctx.APIErrorNotFound()
+			return
+		}
+	}
+
 	if err = release.LoadAttributes(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIRelease(ctx, ctx.Repo.Repository, release))
@@ -99,24 +107,24 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 	release, err := repo_model.GetRelease(ctx, ctx.Repo.Repository.ID, tag)
 	if err != nil {
 		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "GetRelease", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
 	if release.IsTag {
-		ctx.NotFound()
+		ctx.APIErrorNotFound()
 		return
 	}
 
 	if err = release_service.DeleteReleaseByID(ctx, ctx.Repo.Repository, release, ctx.Doer, false); err != nil {
 		if release_service.IsErrProtectedTagName(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "delTag", "user not allowed to delete protected tag")
+			ctx.APIError(http.StatusUnprocessableEntity, "user not allowed to delete protected tag")
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 

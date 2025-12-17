@@ -34,7 +34,6 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 
 	u, err := user_model.GetUserByID(req.Context(), packageMeta.UserID)
 	if err != nil {
-		log.Error("GetUserByID:  %v", err)
 		return nil, err
 	}
 	if packageMeta.Scope != "" {

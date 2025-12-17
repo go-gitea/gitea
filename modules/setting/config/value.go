@@ -46,7 +46,7 @@ func (value *Value[T]) Value(ctx context.Context) (v T) {
 
 	rev := dg.GetRevision(ctx)
 
-	// if the revision in database doesn't change, use the last value
+	// if the revision in the database doesn't change, use the last value
 	value.mu.RLock()
 	if rev == value.revision {
 		v = value.value
@@ -82,6 +82,10 @@ func (value *Value[T]) DynKey() string {
 func (value *Value[T]) WithDefault(def T) *Value[T] {
 	value.def = def
 	return value
+}
+
+func (value *Value[T]) DefaultValue() T {
+	return value.def
 }
 
 func (value *Value[T]) WithFileConfig(cfgSecKey CfgSecKey) *Value[T] {

@@ -73,7 +73,7 @@
 		{{ctx.Locale.Tr "org.members.leave"}}
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "org.members.leave.detail" (`<span class="dataOrganizationName"></span>`|SafeHTML)}}</p>
+		<p>{{ctx.Locale.Tr "org.members.leave.detail" (HTMLFormat `<span class="%s"></span>` "dataOrganizationName")}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>
@@ -82,7 +82,7 @@
 		{{ctx.Locale.Tr "org.members.remove"}}
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "org.members.remove.detail" (`<span class="name"></span>`|SafeHTML) (`<span class="dataOrganizationName"></span>`|SafeHTML)}}</p>
+		<p>{{ctx.Locale.Tr "org.members.remove.detail" (HTMLFormat `<span class="%s"></span>` "name") (HTMLFormat `<span class="%s"></span>` "dataOrganizationName")}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

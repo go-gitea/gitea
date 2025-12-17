@@ -462,11 +462,12 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 				continue
 			}
 			var sep string
-			if parts[3] == "issues" {
+			switch parts[3] {
+			case "issues":
 				sep = "#"
-			} else if parts[3] == "pulls" {
+			case "pulls":
 				sep = "!"
-			} else {
+			default:
 				continue
 			}
 			// Note: closing/reopening keywords not supported with URLs

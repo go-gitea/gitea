@@ -56,7 +56,7 @@
 			</form>
 		</div>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table unstackable">
+			<table class="ui very basic striped selectable table unstackable">
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" .SortType false}}</th>
@@ -109,6 +109,8 @@
 								</div>
 							</td>
 						</tr>
+					{{else}}
+						<tr class="no-results-row"><td class="tw-text-center" colspan="9">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>

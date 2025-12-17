@@ -25,6 +25,9 @@
 							<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.internal"}}">{{svg "octicon-shield-lock" 18}}</div>
 						{{end}}
 					{{end}}
+					{{if $.Permission.HasAnyUnitPublicAccess}}
+						<span class="ui basic orange label">{{ctx.Locale.Tr "repo.desc.public_access"}}</span>
+					{{end}}
 					{{if .IsTemplate}}
 						<span class="ui basic label not-mobile">{{ctx.Locale.Tr "repo.desc.template"}}</span>
 						<div class="repo-icon only-mobile" data-tooltip-content="{{ctx.Locale.Tr "repo.desc.template"}}">{{svg "octicon-repo-template" 18}}</div>
@@ -35,20 +38,20 @@
 				</div>
 			</div>
 			{{if not (or .IsBeingCreated .IsBroken)}}
-				<div class="repo-buttons">
+				<div class="flex-text-block tw-flex-wrap">
 					{{if $.RepoTransfer}}
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
-							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
-								<button type="submit" class="ui basic button {{if $.CanUserAcceptTransfer}}primary {{end}} ok small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
+								<button type="submit" class="ui compact small basic button {{if $.CanUserAcceptOrRejectTransfer}}primary {{end}} ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
 									{{ctx.Locale.Tr "repo.transfer.accept"}}
 								</button>
 							</div>
 						</form>
 						<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
 							{{$.CsrfTokenHtml}}
-							<div data-tooltip-content="{{if $.CanUserAcceptTransfer}}{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
-								<button type="submit" class="ui basic button {{if $.CanUserAcceptTransfer}}red {{end}}ok small"{{if not $.CanUserAcceptTransfer}} disabled{{end}}>
+							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
+								<button type="submit" class="ui compact small basic button {{if $.CanUserAcceptOrRejectTransfer}}red {{end}}ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
 									{{ctx.Locale.Tr "repo.transfer.reject"}}
 								</button>
 							</div>
@@ -133,7 +136,7 @@
 			{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
 				<div class="overflow-menu-items">
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeCode}}
-					<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.BranchNameSubURL}}{{end}}">
+					<a class="{{if .PageIsViewCode}}active {{end}}item" href="{{.RepoLink}}{{if and (ne .BranchName .Repository.DefaultBranch) (not $.PageIsWiki)}}/src/{{.RefTypeNameSubURL}}{{end}}">
 						{{svg "octicon-code"}} {{ctx.Locale.Tr "repo.code"}}
 					</a>
 					{{end}}
@@ -162,7 +165,7 @@
 						</a>
 					{{end}}
 
-					{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+					{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions) (not .IsEmptyRepo)}}
 						<a class="{{if .PageIsActions}}active {{end}}item" href="{{.RepoLink}}/actions">
 							{{svg "octicon-play"}} {{ctx.Locale.Tr "actions.actions"}}
 							{{if .Repository.NumOpenActionRuns}}
@@ -208,7 +211,7 @@
 						</a>
 					{{end}}
 
-					{{if and (.Permission.CanReadAny ctx.Consts.RepoUnitTypePullRequests ctx.Consts.RepoUnitTypeIssues ctx.Consts.RepoUnitTypeReleases) (not .IsEmptyRepo)}}
+					{{if and (.Permission.CanReadAny ctx.Consts.RepoUnitTypePullRequests ctx.Consts.RepoUnitTypeIssues ctx.Consts.RepoUnitTypeReleases ctx.Consts.RepoUnitTypeCode) (not .IsEmptyRepo)}}
 						<a class="{{if .PageIsActivity}}active {{end}}item" href="{{.RepoLink}}/activity">
 							{{svg "octicon-pulse"}} {{ctx.Locale.Tr "repo.activity"}}
 						</a>
@@ -223,11 +226,19 @@
 						</a>
 					{{end}}
 				</div>
-			{{else if .Permission.IsAdmin}}
+			{{else}}
 				<div class="overflow-menu-items">
+					{{if(and .Repository.IsBeingCreated (.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}
+					<a class="{{if not .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}">
+						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.migration_status"}}
+					</a>
+					{{end}}
+
+					{{if .Permission.IsAdmin}}
 					<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
 						{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 					</a>
+					{{end}}
 				</div>
 			{{end}}
 		</overflow-menu>

@@ -1,35 +1,21 @@
-import $ from 'jquery';
 import {svg} from '../svg.ts';
-import {invertFileFolding} from './file-fold.ts';
 import {createTippy} from '../modules/tippy.ts';
-import {clippie} from 'clippie';
 import {toAbsoluteUrl} from '../utils.ts';
-
-export const singleAnchorRegex = /^#(L|n)([1-9][0-9]*)$/;
-export const rangeAnchorRegex = /^#(L[1-9][0-9]*)-(L[1-9][0-9]*)$/;
+import {addDelegatedEventListener} from '../utils/dom.ts';
 
 function changeHash(hash: string) {
   if (window.history.pushState) {
-    window.history.pushState(null, null, hash);
+    window.history.pushState(null, '', hash);
   } else {
     window.location.hash = hash;
   }
 }
 
-function isBlame() {
-  return Boolean(document.querySelector('div.blame'));
-}
+// it selects the code lines defined by range: `L1-L3` (3 lines) or `L2` (singe line)
+function selectRange(range: string): Element | null {
+  for (const el of document.querySelectorAll('.code-view tr.active')) el.classList.remove('active');
+  const elLineNums = document.querySelectorAll(`.code-view td.lines-num span[data-line-number]`);
 
-function getLineEls() {
-  return document.querySelectorAll(`.code-view td.lines-code${isBlame() ? '.blame-code' : ''}`);
-}
-
-function selectRange($linesEls, $selectionEndEl, $selectionStartEls?) {
-  for (const el of $linesEls) {
-    el.closest('tr').classList.remove('active');
-  }
-
-  // add hashchange to permalink
   const refInNewIssue = document.querySelector('a.ref-in-new-issue');
   const copyPermalink = document.querySelector('a.copy-line-permalink');
   const viewGitBlame = document.querySelector('a.view_git_blame');
@@ -37,14 +23,14 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls?) {
   const updateIssueHref = function (anchor: string) {
     if (!refInNewIssue) return;
     const urlIssueNew = refInNewIssue.getAttribute('data-url-issue-new');
-    const urlParamBodyLink = refInNewIssue.getAttribute('data-url-param-body-link');
+    const urlParamBodyLink = refInNewIssue.getAttribute('data-url-param-body-link')!;
     const issueContent = `${toAbsoluteUrl(urlParamBodyLink)}#${anchor}`; // the default content for issue body
     refInNewIssue.setAttribute('href', `${urlIssueNew}?body=${encodeURIComponent(issueContent)}`);
   };
 
   const updateViewGitBlameFragment = function (anchor: string) {
     if (!viewGitBlame) return;
-    let href = viewGitBlame.getAttribute('href');
+    let href = viewGitBlame.getAttribute('href')!;
     href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}`;
     if (anchor.length !== 0) {
       href = `${href}#${anchor}`;
@@ -54,42 +40,36 @@ function selectRange($linesEls, $selectionEndEl, $selectionStartEls?) {
 
   const updateCopyPermalinkUrl = function (anchor: string) {
     if (!copyPermalink) return;
-    let link = copyPermalink.getAttribute('data-url');
+    let link = copyPermalink.getAttribute('data-url')!;
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
-    copyPermalink.setAttribute('data-url', link);
+    copyPermalink.setAttribute('data-clipboard-text', link);
+    copyPermalink.setAttribute('data-clipboard-text-type', 'url');
   };
 
-  if ($selectionStartEls) {
-    let a = parseInt($selectionEndEl[0].getAttribute('rel').slice(1));
-    let b = parseInt($selectionStartEls[0].getAttribute('rel').slice(1));
-    let c;
-    if (a !== b) {
-      if (a > b) {
-        c = a;
-        a = b;
-        b = c;
-      }
-      const classes = [];
-      for (let i = a; i <= b; i++) {
-        classes.push(`[rel=L${i}]`);
-      }
-      $linesEls.filter(classes.join(',')).each(function () {
-        this.closest('tr').classList.add('active');
-      });
-      changeHash(`#L${a}-L${b}`);
+  const rangeFields = range ? range.split('-') : [];
+  const start = rangeFields[0] ?? '';
+  if (!start) return null;
+  const stop = rangeFields[1] || start;
 
-      updateIssueHref(`L${a}-L${b}`);
-      updateViewGitBlameFragment(`L${a}-L${b}`);
-      updateCopyPermalinkUrl(`L${a}-L${b}`);
-      return;
-    }
+  // format is i.e. 'L14-L26'
+  let startLineNum = parseInt(start.substring(1));
+  let stopLineNum = parseInt(stop.substring(1));
+  if (startLineNum > stopLineNum) {
+    const tmp = startLineNum;
+    startLineNum = stopLineNum;
+    stopLineNum = tmp;
+    range = `${stop}-${start}`;
   }
-  $selectionEndEl[0].closest('tr').classList.add('active');
-  changeHash(`#${$selectionEndEl[0].getAttribute('rel')}`);
 
-  updateIssueHref($selectionEndEl[0].getAttribute('rel'));
-  updateViewGitBlameFragment($selectionEndEl[0].getAttribute('rel'));
-  updateCopyPermalinkUrl($selectionEndEl[0].getAttribute('rel'));
+  const first = elLineNums[startLineNum - 1] ?? null;
+  for (let i = startLineNum - 1; i <= stopLineNum - 1 && i < elLineNums.length; i++) {
+    elLineNums[i].closest('tr')!.classList.add('active');
+  }
+  changeHash(`#${range}`);
+  updateIssueHref(range);
+  updateViewGitBlameFragment(range);
+  updateCopyPermalinkUrl(range);
+  return first;
 }
 
 function showLineButton() {
@@ -103,14 +83,16 @@ function showLineButton() {
 
   // find active row and add button
   const tr = document.querySelector('.code-view tr.active');
-  const td = tr.querySelector('td.lines-num');
+  if (!tr) return;
+
+  const td = tr.querySelector('td.lines-num')!;
   const btn = document.createElement('button');
   btn.classList.add('code-line-button', 'ui', 'basic', 'button');
   btn.innerHTML = svg('octicon-kebab-horizontal');
   td.prepend(btn);
 
   // put a copy of the menu back into DOM for the next click
-  btn.closest('.code-view').append(menu.cloneNode(true));
+  btn.closest('.code-view')!.append(menu.cloneNode(true));
 
   createTippy(btn, {
     theme: 'menu',
@@ -128,62 +110,39 @@ function showLineButton() {
 }
 
 export function initRepoCodeView() {
-  if ($('.code-view .lines-num').length > 0) {
-    $(document).on('click', '.lines-num span', function (e) {
-      const linesEls = getLineEls();
-      const selectedEls = Array.from(linesEls).filter((el) => {
-        return el.matches(`[rel=${this.getAttribute('id')}]`);
-      });
+  // When viewing a file or blame, there is always a ".file-view" element,
+  // but the ".code-view" class is only present when viewing the "code" of a file; it is not present when viewing a PDF file.
+  // Since the ".file-view" will be dynamically reloaded when navigating via the left file tree (eg: view a PDF file, then view a source code file, etc.)
+  // the "code-view" related event listeners should always be added when the current page contains ".file-view" element.
+  if (!document.querySelector('.repo-view-container .file-view')) return;
 
-      let from;
-      if (e.shiftKey) {
-        from = Array.from(linesEls).filter((el) => {
-          return el.closest('tr').classList.contains('active');
-        });
-      }
-      selectRange($(linesEls), $(selectedEls), from ? $(from) : null);
-      window.getSelection().removeAllRanges();
+  // "file code view" and "blame" pages need this "line number button" feature
+  let selRangeStart: string | undefined;
+  addDelegatedEventListener(document, 'click', '.code-view .lines-num span', (el: HTMLElement, e: KeyboardEvent) => {
+    if (!selRangeStart || !e.shiftKey) {
+      selRangeStart = el.getAttribute('id')!;
+      selectRange(selRangeStart);
+    } else {
+      const selRangeStop = el.getAttribute('id');
+      selectRange(`${selRangeStart}-${selRangeStop}`);
+    }
+    window.getSelection()!.removeAllRanges();
+    showLineButton();
+  });
+
+  // apply the selected range from the URL hash
+  const onHashChange = () => {
+    if (!window.location.hash) return;
+    if (!document.querySelector('.code-view .lines-num')) return;
+    const range = window.location.hash.substring(1);
+    const first = selectRange(range);
+    if (first) {
+      // set scrollRestoration to 'manual' when there is a hash in the URL, so that the scroll position will not be remembered after refreshing
+      if (window.history.scrollRestoration !== 'manual') window.history.scrollRestoration = 'manual';
+      first.scrollIntoView({block: 'start'});
       showLineButton();
-    });
-
-    $(window).on('hashchange', () => {
-      let m = rangeAnchorRegex.exec(window.location.hash);
-      const $linesEls = $(getLineEls());
-      let $first;
-      if (m) {
-        $first = $linesEls.filter(`[rel=${m[1]}]`);
-        if ($first.length) {
-          selectRange($linesEls, $first, $linesEls.filter(`[rel=${m[2]}]`));
-
-          // show code view menu marker (don't show in blame page)
-          if (!isBlame()) {
-            showLineButton();
-          }
-
-          $('html, body').scrollTop($first.offset().top - 200);
-          return;
-        }
-      }
-      m = singleAnchorRegex.exec(window.location.hash);
-      if (m) {
-        $first = $linesEls.filter(`[rel=L${m[2]}]`);
-        if ($first.length) {
-          selectRange($linesEls, $first);
-
-          // show code view menu marker (don't show in blame page)
-          if (!isBlame()) {
-            showLineButton();
-          }
-
-          $('html, body').scrollTop($first.offset().top - 200);
-        }
-      }
-    }).trigger('hashchange');
-  }
-  $(document).on('click', '.fold-file', ({currentTarget}) => {
-    invertFileFolding(currentTarget.closest('.file-content'), currentTarget);
-  });
-  $(document).on('click', '.copy-line-permalink', async ({currentTarget}) => {
-    await clippie(toAbsoluteUrl(currentTarget.getAttribute('data-url')));
-  });
+    }
+  };
+  onHashChange();
+  window.addEventListener('hashchange', onHashChange);
 }

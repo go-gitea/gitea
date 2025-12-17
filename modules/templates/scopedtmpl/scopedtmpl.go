@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"maps"
 	"reflect"
 	"sync"
 	texttemplate "text/template"
@@ -40,9 +41,7 @@ func (t *ScopedTemplate) Funcs(funcMap template.FuncMap) {
 		panic("cannot add new functions to frozen template set")
 	}
 	t.all.Funcs(funcMap)
-	for k, v := range funcMap {
-		t.parseFuncs[k] = v
-	}
+	maps.Copy(t.parseFuncs, funcMap)
 }
 
 func (t *ScopedTemplate) New(name string) *template.Template {
@@ -103,31 +102,28 @@ func escapeTemplate(t *template.Template) error {
 	return nil
 }
 
-//nolint:unused
 type htmlTemplate struct {
-	escapeErr error
-	text      *texttemplate.Template
+	_/*escapeErr*/ error
+	text *texttemplate.Template
 }
 
-//nolint:unused
 type textTemplateCommon struct {
-	tmpl   map[string]*template.Template // Map from name to defined templates.
-	muTmpl sync.RWMutex                  // protects tmpl
-	option struct {
+	_/*tmpl*/ map[string]*template.Template
+	_/*muTmpl*/ sync.RWMutex
+	_/*option*/ struct {
 		missingKey int
 	}
-	muFuncs    sync.RWMutex // protects parseFuncs and execFuncs
-	parseFuncs texttemplate.FuncMap
-	execFuncs  map[string]reflect.Value
+	muFuncs sync.RWMutex
+	_/*parseFuncs*/ texttemplate.FuncMap
+	execFuncs map[string]reflect.Value
 }
 
-//nolint:unused
 type textTemplate struct {
-	name string
+	_/*name*/ string
 	*parse.Tree
 	*textTemplateCommon
-	leftDelim  string
-	rightDelim string
+	_/*leftDelim*/ string
+	_/*rightDelim*/ string
 }
 
 func ptr[T, P any](ptr *P) *T {
@@ -159,9 +155,7 @@ func newScopedTemplateSet(all *template.Template, name string) (*scopedTemplateS
 
 	textTmplPtr.muFuncs.Lock()
 	ts.execFuncs = map[string]reflect.Value{}
-	for k, v := range textTmplPtr.execFuncs {
-		ts.execFuncs[k] = v
-	}
+	maps.Copy(ts.execFuncs, textTmplPtr.execFuncs)
 	textTmplPtr.muFuncs.Unlock()
 
 	var collectTemplates func(nodes []parse.Node)
@@ -220,9 +214,7 @@ func (ts *scopedTemplateSet) newExecutor(funcMap map[string]any) TemplateExecuto
 	tmpl := texttemplate.New("")
 	tmplPtr := ptr[textTemplate](tmpl)
 	tmplPtr.execFuncs = map[string]reflect.Value{}
-	for k, v := range ts.execFuncs {
-		tmplPtr.execFuncs[k] = v
-	}
+	maps.Copy(tmplPtr.execFuncs, ts.execFuncs)
 	if funcMap != nil {
 		tmpl.Funcs(funcMap)
 	}

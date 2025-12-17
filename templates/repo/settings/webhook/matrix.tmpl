@@ -22,6 +22,6 @@
 				</div>
 			</div>
 		</div>
-		{{template "repo/settings/webhook/settings" .}}
+		{{template "repo/settings/webhook/settings" dict "BaseLink" .BaseLink "Webhook" .Webhook "UseAuthorizationHeader" "required"}}
 	</form>
 {{end}}

@@ -51,7 +51,7 @@ func saveUploadChunkBase(st storage.ObjectStorage, ctx *ArtifactContext,
 		log.Info("[artifact] check chunk md5, sum: %s, header: %s", chunkMd5String, reqMd5String)
 		// if md5 not match, delete the chunk
 		if reqMd5String != chunkMd5String {
-			checkErr = fmt.Errorf("md5 not match")
+			checkErr = errors.New("md5 not match")
 		}
 	}
 	if writtenSize != contentSize {
@@ -261,7 +261,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 		return fmt.Errorf("save merged file error: %v", err)
 	}
 	if written != artifact.FileCompressedSize {
-		return fmt.Errorf("merged file size is not equal to chunk length")
+		return errors.New("merged file size is not equal to chunk length")
 	}
 
 	defer func() {
@@ -292,7 +292,7 @@ func mergeChunksForArtifact(ctx *ArtifactContext, chunks []*chunkFileItem, st st
 	}
 
 	artifact.StoragePath = storagePath
-	artifact.Status = int64(actions.ArtifactStatusUploadConfirmed)
+	artifact.Status = actions.ArtifactStatusUploadConfirmed
 	if err := actions.UpdateArtifactByID(ctx, artifact.ID, artifact); err != nil {
 		return fmt.Errorf("update artifact error: %v", err)
 	}

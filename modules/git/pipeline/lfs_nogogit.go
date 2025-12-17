@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // FindLFSFile finds commits that contain a provided pointer file hash
@@ -32,13 +33,13 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	go func() {
 		stderr := strings.Builder{}
-		err := git.NewCommand(repo.Ctx, "rev-list", "--all").Run(&git.RunOpts{
-			Dir:    repo.Path,
-			Stdout: revListWriter,
-			Stderr: &stderr,
-		})
+		err := gitcmd.NewCommand("rev-list", "--all").
+			WithDir(repo.Path).
+			WithStdout(revListWriter).
+			WithStderr(&stderr).
+			Run(repo.Ctx)
 		if err != nil {
-			_ = revListWriter.CloseWithError(git.ConcatenateError(err, (&stderr).String()))
+			_ = revListWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
 		} else {
 			_ = revListWriter.Close()
 		}
@@ -114,7 +115,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 			case "tree":
 				var n int64
 				for n < size {
-					mode, fname, binObjectID, count, err := git.ParseTreeLine(objectID.Type(), batchReader, modeBuf, fnameBuf, workingShaBuf)
+					mode, fname, binObjectID, count, err := git.ParseCatFileTreeLine(objectID.Type(), batchReader, modeBuf, fnameBuf, workingShaBuf)
 					if err != nil {
 						return nil, err
 					}
