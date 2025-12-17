@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -52,12 +53,26 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 
 // prepareGitPath try to find a suitable file path with file name by the given raw wiki name.
 // return: existence, prepared file path with name, error
-func prepareGitPath(gitRepo *git.Repository, defaultWikiBranch string, wikiPath WebPath) (bool, string, error) {
-	unescaped := string(wikiPath) + ".md"
-	gitPath := WebPathToGitPath(wikiPath)
+func prepareGitPath(gitRepo *git.Repository, defaultWikiBranch string, wikiPath WebPath, defaultWikiFormat string) (bool, string, error) {
+	unescapedMd := string(wikiPath) + ".md"
+	unescapedOrg := string(wikiPath) + ".org"
+	gitPath := WebPathToGitPath(wikiPath, defaultWikiFormat)
 
-	// Look for both files
-	filesInIndex, err := gitRepo.LsTree(defaultWikiBranch, unescaped, gitPath)
+	// Build list of files to look for based on defaultWikiFormat
+	var filesToCheck []string
+	checkMarkdown := defaultWikiFormat == "markdown" || defaultWikiFormat == "both"
+	checkOrg := defaultWikiFormat == "org" || defaultWikiFormat == "both"
+
+	if checkMarkdown {
+		filesToCheck = append(filesToCheck, unescapedMd)
+	}
+	if checkOrg {
+		filesToCheck = append(filesToCheck, unescapedOrg)
+	}
+	filesToCheck = append(filesToCheck, gitPath)
+
+	// Look for files based on format setting
+	filesInIndex, err := gitRepo.LsTree(defaultWikiBranch, filesToCheck...)
 	if err != nil {
 		if strings.Contains(err.Error(), "Not a valid object name") {
 			return false, gitPath, nil // branch doesn't exist
@@ -69,9 +84,15 @@ func prepareGitPath(gitRepo *git.Repository, defaultWikiBranch string, wikiPath 
 	foundEscaped := false
 	for _, filename := range filesInIndex {
 		switch filename {
-		case unescaped:
-			// if we find the unescaped file return it
-			return true, unescaped, nil
+		// if we find unescaped file (.md or .org) return it
+		case unescapedMd:
+			if checkMarkdown {
+				return true, unescapedMd, nil
+			}
+		case unescapedOrg:
+			if checkOrg {
+				return true, unescapedOrg, nil
+			}
 		case gitPath:
 			foundEscaped = true
 		}
@@ -137,7 +158,11 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		}
 	}
 
-	isWikiExist, newWikiPath, err := prepareGitPath(gitRepo, repo.DefaultWikiBranch, newWikiName)
+	defaultWikiFormat := repo.DefaultWikiFormat
+	if defaultWikiFormat == "" {
+		defaultWikiFormat = setting.Repository.DefaultWikiFormat
+	}
+	isWikiExist, newWikiPath, err := prepareGitPath(gitRepo, repo.DefaultWikiBranch, newWikiName, defaultWikiFormat)
 	if err != nil {
 		return err
 	}
@@ -153,7 +178,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		isOldWikiExist := true
 		oldWikiPath := newWikiPath
 		if oldWikiName != newWikiName {
-			isOldWikiExist, oldWikiPath, err = prepareGitPath(gitRepo, repo.DefaultWikiBranch, oldWikiName)
+			isOldWikiExist, oldWikiPath, err = prepareGitPath(gitRepo, repo.DefaultWikiBranch, oldWikiName, defaultWikiFormat)
 			if err != nil {
 				return err
 			}
@@ -294,7 +319,11 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("unable to read HEAD tree to index in: %s %w", basePath, err)
 	}
 
-	found, wikiPath, err := prepareGitPath(gitRepo, repo.DefaultWikiBranch, wikiName)
+	defaultWikiFormat := repo.DefaultWikiFormat
+	if defaultWikiFormat == "" {
+		defaultWikiFormat = setting.Repository.DefaultWikiFormat
+	}
+	found, wikiPath, err := prepareGitPath(gitRepo, repo.DefaultWikiBranch, wikiName, defaultWikiFormat)
 	if err != nil {
 		return err
 	}

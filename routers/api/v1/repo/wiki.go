@@ -510,7 +510,8 @@ func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) string {
 // wikiContentsByName returns the contents of a wiki page, along with a boolean
 // indicating whether the page exists. Writes to ctx if an error occurs.
 func wikiContentsByName(ctx *context.APIContext, commit *git.Commit, wikiName wiki_service.WebPath, isSidebarOrFooter bool) (string, string) {
-	gitFilename := wiki_service.WebPathToGitPath(wikiName)
+	repoDefaultWikiFormat := ctx.Repo.Repository.DefaultWikiFormat
+	gitFilename := wiki_service.WebPathToGitPath(wikiName, repoDefaultWikiFormat)
 	entry, err := findEntryForFile(commit, gitFilename)
 	if err != nil {
 		if git.IsErrNotExist(err) {

@@ -10,6 +10,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/convert"
@@ -76,7 +77,7 @@ func unescapeSegment(s string) (string, error) {
 }
 
 func escapeSegToWeb(s string, hadDashMarker bool) string {
-	if hadDashMarker || strings.Contains(s, "-") || strings.HasSuffix(s, ".md") {
+	if hadDashMarker || strings.Contains(s, "-") || strings.HasSuffix(s, ".md") || strings.HasSuffix(s, ".org") {
 		s = addDashMarker(s)
 	} else {
 		s = strings.ReplaceAll(s, " ", "-")
@@ -93,10 +94,18 @@ func WebPathSegments(s WebPath) []string {
 	return a
 }
 
-func WebPathToGitPath(s WebPath) string {
-	if strings.HasSuffix(string(s), ".md") {
-		ret, _ := url.PathUnescape(string(s))
+func WebPathToGitPath(s WebPath, repoDefaultWikiFormat string) string {
+	str := string(s)
+	// Accept only .md or .org directly
+	if strings.HasSuffix(str, ".md") || strings.HasSuffix(str, ".org") {
+		ret, _ := url.PathUnescape(str)
 		return util.PathJoinRelX(ret)
+	}
+
+	// Prioritize repository's DefaultWikiFormat, fallback to global setting if empty
+	defaultWikiFormat := repoDefaultWikiFormat
+	if defaultWikiFormat == "" {
+		defaultWikiFormat = setting.Repository.DefaultWikiFormat
 	}
 
 	a := strings.Split(string(s), "/")
@@ -107,14 +116,26 @@ func WebPathToGitPath(s WebPath) string {
 		a[i] = strings.ReplaceAll(a[i], "%20", " ") // space is safe to be kept in git path
 		a[i] = strings.ReplaceAll(a[i], "+", " ")
 	}
-	return strings.Join(a, "/") + ".md"
+	basePath := strings.Join(a, "/")
+
+	// Determine extension based on format setting
+	if defaultWikiFormat == "org" {
+		return basePath + ".org"
+	}
+	// For "both" or "markdown", default to .md
+	return basePath + ".md"
 }
 
 func GitPathToWebPath(s string) (wp WebPath, err error) {
-	if !strings.HasSuffix(s, ".md") {
+	// Trim .md or .org suffix if present
+	if before, ok := strings.CutSuffix(s, ".md"); ok {
+		s = before
+	} else if before, ok := strings.CutSuffix(s, ".org"); ok {
+		s = before
+	} else {
+		// If it doesn't end with .md or .org, it's not a valid wiki file
 		return "", repo_model.ErrWikiInvalidFileName{FileName: s}
 	}
-	s = strings.TrimSuffix(s, ".md")
 	a := strings.Split(s, "/")
 	for i := range a {
 		shouldAddDashMarker := hasDashMarker(a[i])
@@ -130,6 +151,9 @@ func WebPathToUserTitle(s WebPath) (dir, display string) {
 	dir = path.Dir(string(s))
 	display = path.Base(string(s))
 	if before, ok := strings.CutSuffix(display, ".md"); ok {
+		display = before
+		display, _ = url.PathUnescape(display)
+	} else if before, ok := strings.CutSuffix(display, ".org"); ok {
 		display = before
 		display, _ = url.PathUnescape(display)
 	}
