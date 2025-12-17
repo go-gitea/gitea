@@ -40,7 +40,7 @@ func TestRenderHelperCodePreview(t *testing.T) {
 				<td class="lines-code chroma"><div class="code-inner"><span class="gh"># repo1</div></td>
 			</tr><tr>
 				<td class="lines-num"><span data-line-number="2"></span></td>
-				<td class="lines-code chroma"><div class="code-inner"></span><span class="gh"></span></div></td>
+				<td class="lines-code chroma"><div class="code-inner"></span></div></td>
 			</tr></tbody>
 	</table>
 </div>

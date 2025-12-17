@@ -1225,8 +1225,9 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 	}
 
 	cmdDiff := gitcmd.NewCommand().
-		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
-		AddArguments(opts.WhitespaceBehavior...)
+		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/").
+		AddArguments(opts.WhitespaceBehavior...).
+		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold)
 
 	// In git 2.31, git diff learned --skip-to which we can use to shortcut skip to file
 	// so if we are using at least this version of git we don't have to tell ParsePatch to do
