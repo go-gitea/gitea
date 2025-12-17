@@ -368,6 +368,11 @@ func (g *GiteaLocalUploader) SyncTags(ctx context.Context) error {
 	return repo_module.SyncReleasesWithTags(ctx, g.repo, g.gitRepo)
 }
 
+func (g *GiteaLocalUploader) SyncBranches(ctx context.Context) error {
+	_, err := repo_module.SyncRepoBranchesWithRepo(ctx, g.repo, g.gitRepo, g.doer.ID)
+	return err
+}
+
 // CreateIssues creates issues
 func (g *GiteaLocalUploader) CreateIssues(ctx context.Context, issues ...*base.Issue) error {
 	iss := make([]*issues_model.Issue, 0, len(issues))
