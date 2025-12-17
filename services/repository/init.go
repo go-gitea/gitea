@@ -41,7 +41,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	cmd := gitcmd.NewCommand("commit", "--message=Initial commit").
 		AddOptionFormat("--author='%s <%s>'", sig.Name, sig.Email)
 
-	sign, key, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
+	sign, key, signer, _ := asymkey_service.SignInitialCommit(ctx, u)
 	if sign {
 		if key.Format != "" {
 			cmd.AddConfig("gpg.format", key.Format)

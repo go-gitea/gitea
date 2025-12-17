@@ -6,10 +6,12 @@ linters:
   default: none
   enable:
     - bidichk
+    - bodyclose
     - depguard
     - dupl
     - errcheck
     - forbidigo
+    - gocheckcompilerdirectives
     - gocritic
     - govet
     - ineffassign

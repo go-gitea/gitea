@@ -3,11 +3,20 @@ import {GET} from '../modules/fetch.ts';
 import {pathEscapeSegments} from '../utils/url.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
-import type {Item} from './ViewFileTreeItem.vue';
+
+export type FileTreeItem = {
+  entryName: string;
+  entryMode: 'blob' | 'exec' | 'tree' | 'commit' | 'symlink' | 'unknown';
+  entryIcon: string;
+  entryIconOpen: string;
+  fullPath: string;
+  submoduleUrl?: string;
+  children?: Array<FileTreeItem>;
+};
 
 export function createViewFileTreeStore(props: {repoLink: string, treePath: string, currentRefNameSubURL: string}) {
   const store = reactive({
-    rootFiles: [] as Array<Item>,
+    rootFiles: [] as Array<FileTreeItem>,
     selectedItem: props.treePath,
 
     async loadChildren(treePath: string, subPath: string = '') {
@@ -18,7 +27,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
         if (!document.querySelector(`.global-svg-icon-pool #${svgId}`)) poolSvgs.push(svgContent);
       }
       if (poolSvgs.length) {
-        const svgContainer = createElementFromHTML(html`<div class="global-svg-icon-pool tw-hidden"></div>`);
+        const svgContainer = createElementFromHTML(html`<div class="global-svg-icon-pool svg-icon-container"></div>`);
         svgContainer.innerHTML = poolSvgs.join('');
         document.body.append(svgContainer);
       }

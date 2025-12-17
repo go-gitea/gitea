@@ -177,7 +177,7 @@ func substGiteaTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, t
 	}
 
 	generatedContent := generateExpansion(ctx, string(content), templateRepo, generateRepo)
-	substSubPath := filepath.Clean(filePathSanitize(generateExpansion(ctx, tmpDirSubPath, templateRepo, generateRepo)))
+	substSubPath := filePathSanitize(generateExpansion(ctx, tmpDirSubPath, templateRepo, generateRepo))
 	newLocalPath := filepath.Join(tmpDir, substSubPath)
 	regular, err := util.IsRegularFile(newLocalPath)
 	if canWrite := regular || errors.Is(err, fs.ErrNotExist); !canWrite {
@@ -230,8 +230,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	)
 
 	// Clone to temporary path and do the init commit.
-	templateRepoPath := templateRepo.RepoPath()
-	if err := git.Clone(ctx, templateRepoPath, tmpDir, git.CloneRepoOptions{
+	if err := gitrepo.CloneRepoToLocal(ctx, templateRepo, tmpDir, git.CloneRepoOptions{
 		Depth:  1,
 		Branch: templateRepo.DefaultBranch,
 	}); err != nil {
@@ -359,5 +358,5 @@ func filePathSanitize(s string) string {
 		}
 		fields[i] = field
 	}
-	return filepath.FromSlash(strings.Join(fields, "/"))
+	return filepath.Clean(filepath.FromSlash(strings.Trim(strings.Join(fields, "/"), "/")))
 }
