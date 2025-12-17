@@ -78,6 +78,7 @@ func TestActivityPubPerson(t *testing.T) {
 
 		// Signed request succeeds
 		resp, err := c.Post([]byte{}, user2inboxurl)
+		defer resp.Body.Close()
 		assert.NoError(t, err)
 		assert.Equal(t, http.StatusNoContent, resp.StatusCode)
 

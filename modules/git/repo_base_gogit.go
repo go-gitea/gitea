@@ -32,7 +32,6 @@ type Repository struct {
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
-	gpgSettings  *GPGSettings
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
