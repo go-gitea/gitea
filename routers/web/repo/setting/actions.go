@@ -43,6 +43,7 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
 	ctx.Data["TokenPermissionModeCustom"] = repo_model.ActionsTokenPermissionModeCustom
 	ctx.Data["DefaultTokenPermissions"] = actionsCfg.GetEffectiveTokenPermissions(false)
+	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
 
 	if ctx.Repo.Repository.IsPrivate {
 		collaborativeOwnerIDs := actionsCfg.CollaborativeOwnerIDs
@@ -175,6 +176,26 @@ func UpdateTokenPermissions(ctx *context.Context) {
 		}
 	} else {
 		actionsCfg.DefaultTokenPermissions = nil
+	}
+
+	// Update Maximum Permissions
+	parseMaxPerm := func(name string) perm.AccessMode {
+		if ctx.FormBool("max_" + name + "_write") {
+			return perm.AccessModeWrite
+		}
+		if ctx.FormBool("max_" + name + "_read") {
+			return perm.AccessModeRead
+		}
+		return perm.AccessModeNone
+	}
+
+	actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
+		Actions:      parseMaxPerm("actions"),
+		Contents:     parseMaxPerm("contents"),
+		Issues:       parseMaxPerm("issues"),
+		Packages:     parseMaxPerm("packages"),
+		PullRequests: parseMaxPerm("pull_requests"),
+		Wiki:         parseMaxPerm("wiki"),
 	}
 
 	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {

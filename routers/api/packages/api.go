@@ -103,8 +103,13 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 					}
 
 					if task.RepoID != packageRepoID {
-						// Not linked to the running repo.
-						// Check Org Policy
+						// 1. Private packages MUST be linked to a repository
+						if packageRepoID == 0 {
+							ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "private package must be linked to a repository to be accessed by Actions")
+							return
+						}
+
+						// 2. Check Org Cross-Repo Access Policy
 						if ctx.Package.Owner.IsOrganization() {
 							cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
 							if err != nil {
@@ -116,16 +121,11 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 								ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is disabled")
 								return
 							}
-						} else {
-							// For user-owned packages, maybe stricter? Or same?
-							// Issue says "only when they have been linked".
-							// If Owner is User, Cross-Repo setting is not available (it's Org setting).
-							// Default to Strict for Users?
-							if task.RepoID != ctx.Package.RepoID {
-								ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "package must be linked to the repository")
-								return
-							}
 						}
+
+						// 3. Fallthrough to GetActionsUserRepoPermission
+						// We rely on the backend permission check below to handle other Cross-Repository restrictions
+						// (e.g., User collaborative owners, token scopes).
 					}
 				}
 			}

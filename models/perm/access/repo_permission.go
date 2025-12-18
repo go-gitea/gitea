@@ -313,6 +313,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 
 	// Get effective token permissions from repository settings
 	effectivePerms := actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
+	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
 
 	// Set up per-unit access modes based on configured permissions
 	perm.units = repo.Units

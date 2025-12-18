@@ -9,12 +9,12 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplSettingsActionsGeneral base.TplName = "org/settings/actions_general"
+	tplSettingsActionsGeneral templates.TplName = "org/settings/actions_general"
 )
 
 // ActionsGeneral renders the actions general settings page
@@ -24,7 +24,7 @@ func ActionsGeneral(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettingsActions"] = true
 
 	// Load Org Actions Config
-	actionsCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Org.Organization.ID)
+	actionsCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID)
 	if err != nil {
 		ctx.ServerError("GetOrgActionsConfig", err)
 		return
@@ -35,6 +35,7 @@ func ActionsGeneral(ctx *context.Context) {
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
 	ctx.Data["TokenPermissionModeCustom"] = repo_model.ActionsTokenPermissionModeCustom
 	ctx.Data["DefaultTokenPermissions"] = actionsCfg.GetEffectiveTokenPermissions(false)
+	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
 
 	ctx.Data["AllowCrossRepoAccess"] = actionsCfg.AllowCrossRepoAccess
 
@@ -47,7 +48,7 @@ func ActionsGeneralPost(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsActions"] = true
 
-	actionsCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Org.Organization.ID)
+	actionsCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID)
 	if err != nil {
 		ctx.ServerError("GetOrgActionsConfig", err)
 		return
@@ -84,10 +85,30 @@ func ActionsGeneralPost(ctx *context.Context) {
 		actionsCfg.DefaultTokenPermissions = nil
 	}
 
+	// Update Maximum Permissions
+	parseMaxPerm := func(name string) perm.AccessMode {
+		if ctx.FormBool("max_" + name + "_write") {
+			return perm.AccessModeWrite
+		}
+		if ctx.FormBool("max_" + name + "_read") {
+			return perm.AccessModeRead
+		}
+		return perm.AccessModeNone
+	}
+
+	actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
+		Actions:      parseMaxPerm("actions"),
+		Contents:     parseMaxPerm("contents"),
+		Issues:       parseMaxPerm("issues"),
+		Packages:     parseMaxPerm("packages"),
+		PullRequests: parseMaxPerm("pull_requests"),
+		Wiki:         parseMaxPerm("wiki"),
+	}
+
 	// Update Cross-Repo Access
 	actionsCfg.AllowCrossRepoAccess = ctx.FormBool("allow_cross_repo_access")
 
-	if err := actions_model.SetOrgActionsConfig(ctx, ctx.Org.Organization.ID, actionsCfg); err != nil {
+	if err := actions_model.SetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID, actionsCfg); err != nil {
 		ctx.ServerError("SetOrgActionsConfig", err)
 		return
 	}

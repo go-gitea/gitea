@@ -195,6 +195,96 @@
 				</div>
 			</div>
 
+			<div class="divider"></div>
+			<h5 class="ui header">{{ctx.Locale.Tr "general.token_permissions.maximum"}}</h5>
+			<p class="tw-text-secondary">{{ctx.Locale.Tr "general.token_permissions.maximum.description"}}</p>
+			<div class="ui grid">
+				<!-- Actions -->
+				<div class="eight wide column">
+					<div class="field">
+						<label>{{ctx.Locale.Tr "actions.actions"}}</label>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_actions_read" {{if call $.MaxTokenPermissions.HasRead "actions"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_read"}}</label>
+						</div>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_actions_write" {{if call $.MaxTokenPermissions.HasWrite "actions"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_write"}}</label>
+						</div>
+					</div>
+				</div>
+				<!-- Contents -->
+				<div class="eight wide column">
+					<div class="field">
+						<label>{{ctx.Locale.Tr "general.token_permissions.contents"}}</label>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_contents_read" {{if call $.MaxTokenPermissions.HasRead "contents"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_read"}}</label>
+						</div>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_contents_write" {{if call $.MaxTokenPermissions.HasWrite "contents"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_write"}}</label>
+						</div>
+					</div>
+				</div>
+				<!-- Issues -->
+				<div class="eight wide column">
+					<div class="field">
+						<label>{{ctx.Locale.Tr "general.token_permissions.issues"}}</label>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_issues_read" {{if call $.MaxTokenPermissions.HasRead "issues"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_read"}}</label>
+						</div>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_issues_write" {{if call $.MaxTokenPermissions.HasWrite "issues"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_write"}}</label>
+						</div>
+					</div>
+				</div>
+				<!-- Packages -->
+				<div class="eight wide column">
+					<div class="field">
+						<label>{{ctx.Locale.Tr "general.token_permissions.packages"}}</label>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_packages_read" {{if call $.MaxTokenPermissions.HasRead "packages"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_read"}}</label>
+						</div>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_packages_write" {{if call $.MaxTokenPermissions.HasWrite "packages"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_write"}}</label>
+						</div>
+					</div>
+				</div>
+				<!-- Pull Requests -->
+				<div class="eight wide column">
+					<div class="field">
+						<label>{{ctx.Locale.Tr "general.token_permissions.pull_requests"}}</label>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_pull_requests_read" {{if call $.MaxTokenPermissions.HasRead "pull_requests"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_read"}}</label>
+						</div>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_pull_requests_write" {{if call $.MaxTokenPermissions.HasWrite "pull_requests"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_write"}}</label>
+						</div>
+					</div>
+				</div>
+				<!-- Wiki -->
+				<div class="eight wide column">
+					<div class="field">
+						<label>{{ctx.Locale.Tr "general.token_permissions.wiki"}}</label>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_wiki_read" {{if call $.MaxTokenPermissions.HasRead "wiki"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_read"}}</label>
+						</div>
+						<div class="ui checkbox">
+							<input type="checkbox" name="max_wiki_write" {{if call $.MaxTokenPermissions.HasWrite "wiki"}}checked{{end}}>
+							<label>{{ctx.Locale.Tr "general.token_permissions.access_write"}}</label>
+						</div>
+					</div>
+				</div>
+			</div>
+
 			<div class="ui info message">
 				<p>{{ctx.Locale.Tr "actions.general.token_permissions.fork_pr_note"}}</p>
 			</div>
