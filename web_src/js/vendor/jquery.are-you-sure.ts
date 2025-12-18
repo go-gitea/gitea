@@ -3,8 +3,7 @@
 // * use export to make it work with ES6 modules.
 // * the addition of `const` to make it strict mode compatible.
 // * ignore forms with "ignore-dirty" class, ignore hidden forms (closest('.tw-hidden'))
-// * extract the default options to make it available to other functions
-// * check if any form is dirty
+// * extract the dirty check logic into a separate function
 
 /*!
  * jQuery Plugin: Are-You-Sure (Dirty Form Detection)
@@ -18,21 +17,23 @@
  * Version: 1.9.0
  * Date:    13th August 2014
  */
-const defaultOptions = {
-  'message': 'You have unsaved changes!',
-  'dirtyClass': 'dirty',
-  'change': null,
-  'silent': false,
-  'addRemoveFieldsMarksDirty': false,
-  'fieldEvents': 'change keyup propertychange input',
-  'fieldSelector': ":input:not(input[type=submit]):not(input[type=button])"
-};
+
+const dataKeyAysSettings = 'ays-settings';
 
 export function initAreYouSure($) {
 
   $.fn.areYouSure = function(options) {
 
-    var settings = $.extend({}, defaultOptions, options);
+    var settings = $.extend(
+      {
+        'message' : 'You have unsaved changes!',
+        'dirtyClass' : 'dirty',
+        'change' : null,
+        'silent' : false,
+        'addRemoveFieldsMarksDirty' : false,
+        'fieldEvents' : 'change keyup propertychange input',
+        'fieldSelector': ":input:not(input[type=submit]):not(input[type=button])"
+      }, options);
 
     var getValue = function($field) {
       if ($field.hasClass('ays-ignore')
@@ -127,6 +128,7 @@ export function initAreYouSure($) {
       $(fields).unbind(settings.fieldEvents, checkForm);
       $(fields).bind(settings.fieldEvents, checkForm);
       $form.data("ays-orig-field-count", $(fields).length);
+      $form.data(dataKeyAysSettings, settings);
       setDirtyStatus($form, false);
     };
 
@@ -165,7 +167,7 @@ export function initAreYouSure($) {
     if (!settings.silent && !window.aysUnloadSet) {
       window.aysUnloadSet = true;
       $(window).bind('beforeunload', function() {
-        if (!triggersAreYouSure(settings)) return;
+        if (!shouldTriggerAreYouSure(settings)) return;
 
         // Prevent multiple prompts - seen on Chrome and IE
         if (navigator.userAgent.toLowerCase().match(/msie|chrome/)) {
@@ -212,7 +214,14 @@ export function ignoreAreYouSure(selectorOrEl: string|Element|$) {
   $(selectorOrEl).addClass('ignore-dirty');
 }
 
-export function triggersAreYouSure(opts = {}) {
-  const $forms = $('form:not(.ignore-dirty)').filter('.' + (opts.dirtyClass ?? defaultOptions.dirtyClass));
-  return Array.from($forms).some((form) => form.closest('.tw-hidden') === null);
+export function shouldTriggerAreYouSure(): boolean {
+  const forms = document.querySelectorAll('form:not(.ignore-dirty)');
+  for (const form of forms) {
+    const settings = $(form).data(dataKeyAysSettings);
+    if (!settings) continue;
+    if (!form.matches('.' + settings.dirtyClass)) continue;
+    if (form.closest('.tw-hidden')) continue;
+    return true;
+  }
+  return false;
 }
