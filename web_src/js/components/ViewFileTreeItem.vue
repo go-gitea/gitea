@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
 import {isPlainClick} from '../utils/dom.ts';
+import {triggersAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {shallowRef} from 'vue';
 import type {createViewFileTreeStore, FileTreeItem} from './ViewFileTreeStore.ts';
-import {triggersAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 
 const props = defineProps<{
   item: FileTreeItem,
