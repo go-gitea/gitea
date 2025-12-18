@@ -292,7 +292,7 @@ func Routes() *web.Router {
 	return routes
 }
 
-var optSignInNoCOP = verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: true})
+var optSignInAnyOrigin = verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: true})
 
 // registerWebRoutes register routes
 func registerWebRoutes(m *web.Router) {
@@ -489,7 +489,7 @@ func registerWebRoutes(m *web.Router) {
 	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
 
 	m.Get("/-/web-theme/list", misc.WebThemeList)
-	m.Post("/-/web-theme/apply", optSignInNoCOP, misc.WebThemeApply)
+	m.Post("/-/web-theme/apply", optSignInAnyOrigin, misc.WebThemeApply)
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
@@ -565,14 +565,14 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("/grant", web.Bind(forms.GrantApplicationForm{}), auth.GrantApplicationOAuth)
 			// TODO manage redirection
 			m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
-		}, reqSignIn)
+		}, optSignInAnyOrigin)
 
 		m.Group("", func() {
 			m.Methods("GET, POST, OPTIONS", "/userinfo", auth.InfoOAuth)
-			m.Methods("POST, OPTIONS", "/access_token", web.Bind(forms.AccessTokenForm{}), optSignInNoCOP, auth.AccessTokenOAuth)
+			m.Methods("POST, OPTIONS", "/access_token", web.Bind(forms.AccessTokenForm{}), auth.AccessTokenOAuth)
 			m.Methods("GET, OPTIONS", "/keys", auth.OIDCKeys)
 			m.Methods("POST, OPTIONS", "/introspect", web.Bind(forms.IntrospectTokenForm{}), auth.IntrospectOAuth)
-		}, optionsCorsHandler(), optSignInNoCOP)
+		}, optionsCorsHandler(), optSignInAnyOrigin)
 	}, oauth2Enabled)
 
 	m.Group("/user/settings", func() {
@@ -1655,7 +1655,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.ActionTransfer)
 	}, optSignIn, context.RepoAssignment)
 
-	common.AddOwnerRepoGitLFSRoutes(m, optSignInNoCOP, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
+	common.AddOwnerRepoGitLFSRoutes(m, optSignInAnyOrigin, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
 
 	addOwnerRepoGitHTTPRouters(m) // "/{username}/{reponame}/{git-paths}": git http support
 
