@@ -165,7 +165,7 @@ type Repository struct {
 	DefaultBranch       string
 	DefaultWikiBranch   string
 
-	NumWatches          int
+	NumWatches          int `xorm:"-"`
 	NumStars            int
 	NumForks            int
 	NumIssues           int
@@ -349,6 +349,18 @@ func (repo *Repository) LoadAttributes(ctx context.Context) error {
 			break
 		}
 	}
+	return nil
+}
+
+func (repo *Repository) LoadNumWatchers(ctx context.Context) error {
+	if repo.NumWatches > 0 {
+		return nil
+	}
+	cnt, err := CountRepoWatchers(ctx, repo.ID)
+	if err != nil {
+		return err
+	}
+	repo.NumWatches = int(cnt)
 	return nil
 }
 
