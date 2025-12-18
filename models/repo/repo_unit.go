@@ -176,6 +176,8 @@ const (
 	ActionsTokenPermissionModePermissive ActionsTokenPermissionMode = "permissive"
 	// ActionsTokenPermissionModeRestricted - read access by default
 	ActionsTokenPermissionModeRestricted ActionsTokenPermissionMode = "restricted"
+	// ActionsTokenPermissionModeCustom - user-defined permissions
+	ActionsTokenPermissionModeCustom ActionsTokenPermissionMode = "custom"
 )
 
 // ActionsTokenPermissions defines the permissions for different repository units
@@ -192,6 +194,46 @@ type ActionsTokenPermissions struct {
 	Actions perm.AccessMode `json:"actions"`
 	// Wiki - read/write/none
 	Wiki perm.AccessMode `json:"wiki"`
+}
+
+// HasRead checks if the permission has read access for the given scope
+func (p ActionsTokenPermissions) HasRead(scope string) bool {
+	var mode perm.AccessMode
+	switch scope {
+	case "actions":
+		mode = p.Actions
+	case "contents":
+		mode = p.Contents
+	case "issues":
+		mode = p.Issues
+	case "packages":
+		mode = p.Packages
+	case "pull_requests":
+		mode = p.PullRequests
+	case "wiki":
+		mode = p.Wiki
+	}
+	return mode >= perm.AccessModeRead
+}
+
+// HasWrite checks if the permission has write access for the given scope
+func (p ActionsTokenPermissions) HasWrite(scope string) bool {
+	var mode perm.AccessMode
+	switch scope {
+	case "actions":
+		mode = p.Actions
+	case "contents":
+		mode = p.Contents
+	case "issues":
+		mode = p.Issues
+	case "packages":
+		mode = p.Packages
+	case "pull_requests":
+		mode = p.PullRequests
+	case "wiki":
+		mode = p.Wiki
+	}
+	return mode >= perm.AccessModeWrite
 }
 
 // DefaultActionsTokenPermissions returns the default permissions for permissive mode

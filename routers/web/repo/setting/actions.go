@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -40,6 +41,8 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["TokenPermissionMode"] = actionsCfg.GetTokenPermissionMode()
 	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
+	ctx.Data["TokenPermissionModeCustom"] = repo_model.ActionsTokenPermissionModeCustom
+	ctx.Data["DefaultTokenPermissions"] = actionsCfg.GetEffectiveTokenPermissions(false)
 
 	if ctx.Repo.Repository.IsPrivate {
 		collaborativeOwnerIDs := actionsCfg.CollaborativeOwnerIDs
@@ -141,12 +144,37 @@ func UpdateTokenPermissions(ctx *context.Context) {
 
 	// Update permission mode
 	permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
-	if permissionMode == repo_model.ActionsTokenPermissionModeRestricted || permissionMode == repo_model.ActionsTokenPermissionModePermissive {
+	if permissionMode == repo_model.ActionsTokenPermissionModeRestricted ||
+		permissionMode == repo_model.ActionsTokenPermissionModePermissive ||
+		permissionMode == repo_model.ActionsTokenPermissionModeCustom {
 		actionsCfg.TokenPermissionMode = permissionMode
 	} else {
 		ctx.Flash.Error("Invalid token permission mode")
 		ctx.Redirect(redirectURL)
 		return
+	}
+
+	if actionsCfg.TokenPermissionMode == repo_model.ActionsTokenPermissionModeCustom {
+		parsePerm := func(name string) perm.AccessMode {
+			if ctx.FormBool(name + "_write") {
+				return perm.AccessModeWrite
+			}
+			if ctx.FormBool(name + "_read") {
+				return perm.AccessModeRead
+			}
+			return perm.AccessModeNone
+		}
+
+		actionsCfg.DefaultTokenPermissions = &repo_model.ActionsTokenPermissions{
+			Actions:      parsePerm("actions"),
+			Contents:     parsePerm("contents"),
+			Issues:       parsePerm("issues"),
+			Packages:     parsePerm("packages"),
+			PullRequests: parsePerm("pull_requests"),
+			Wiki:         parsePerm("wiki"),
+		}
+	} else {
+		actionsCfg.DefaultTokenPermissions = nil
 	}
 
 	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
