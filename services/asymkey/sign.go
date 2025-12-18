@@ -346,7 +346,7 @@ Loop:
 				return false, nil, nil, &ErrWontSign{commitsSigned}
 			}
 			// need to work out merge-base
-			mergeBaseCommit, _, err := gitRepo.GetMergeBase("", baseCommit, headCommit)
+			mergeBaseCommit, err := gitrepo.MergeBaseFromRemote(ctx, pr.BaseRepo, pr.HeadRepo, baseCommit, headCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}
