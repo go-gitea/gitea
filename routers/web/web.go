@@ -961,7 +961,8 @@ func registerWebRoutes(m *web.Router) {
 				})
 
 				m.Group("/actions", func() {
-					m.Get("", org_setting.RedirectToDefaultSetting)
+					m.Get("", org_setting.ActionsGeneral)
+					m.Post("", org_setting.ActionsGeneralPost)
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()

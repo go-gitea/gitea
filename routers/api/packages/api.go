@@ -6,7 +6,9 @@ package packages
 import (
 	"net/http"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -75,6 +77,55 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 					if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
 						ctx.HTTPError(http.StatusForbidden, "reqToken", "token scope is limited to public packages")
 						return
+					}
+				}
+			}
+		}
+
+		if ctx.Data["IsActionsToken"] == true {
+			if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+				// Actions rules:
+				// 1. If the package key matches the task repo, allow.
+				// 2. If not, check cross-repo policy.
+
+				taskID, ok := ctx.Data["ActionsTaskID"].(int64)
+				if ok {
+					task, err := actions_model.GetTaskByID(ctx, taskID)
+					if err != nil {
+						log.Error("GetTaskByID: %v", err)
+						ctx.HTTPError(http.StatusInternalServerError, "GetTaskByID", err.Error())
+						return
+					}
+
+					var packageRepoID int64
+					if ctx.Package.Descriptor != nil && ctx.Package.Descriptor.Package != nil {
+						packageRepoID = ctx.Package.Descriptor.Package.RepoID
+					}
+
+					if task.RepoID != packageRepoID {
+						// Not linked to the running repo.
+						// Check Org Policy
+						if ctx.Package.Owner.IsOrganization() {
+							cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
+							if err != nil {
+								log.Error("GetOrgActionsConfig: %v", err)
+								ctx.HTTPError(http.StatusInternalServerError, "GetOrgActionsConfig", err.Error())
+								return
+							}
+							if !cfg.AllowCrossRepoAccess {
+								ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is disabled")
+								return
+							}
+						} else {
+							// For user-owned packages, maybe stricter? Or same?
+							// Issue says "only when they have been linked".
+							// If Owner is User, Cross-Repo setting is not available (it's Org setting).
+							// Default to Strict for Users?
+							if task.RepoID != ctx.Package.RepoID {
+								ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "package must be linked to the repository")
+								return
+							}
+						}
 					}
 				}
 			}

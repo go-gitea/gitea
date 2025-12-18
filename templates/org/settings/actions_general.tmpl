@@ -1,0 +1,47 @@
+{{template "org/settings/layout_head" .}}
+<div class="org-setting-content">
+	<h4 class="ui top attached header">
+		{{.locale.Tr "actions.actions"}}
+	</h4>
+	<div class="ui attached segment">
+		<div class="ui grid">
+			<div class="sixteen wide column">
+				<form class="ui form" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
+					<div class="field">
+						<label>{{.locale.Tr "actions.general.token_permissions.mode"}}</label>
+						<div class="grouped fields">
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModePermissive}}" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}}>
+									<label>{{.locale.Tr "actions.general.token_permissions.permissive"}}</label>
+									<p class="help">{{.locale.Tr "actions.general.token_permissions.permissive.description"}}</p>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModeRestricted}}" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}}>
+									<label>{{.locale.Tr "actions.general.token_permissions.restricted"}}</label>
+									<p class="help">{{.locale.Tr "actions.general.token_permissions.restricted.description"}}</p>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<h4 class="ui dividing header">{{.locale.Tr "actions.general.token_permissions.cross_repo"}}</h4>
+					<div class="field">
+						<div class="ui checkbox">
+							<input type="checkbox" name="allow_cross_repo_access" {{if .AllowCrossRepoAccess}}checked{{end}}>
+							<label>{{.locale.Tr "actions.general.token_permissions.cross_repo_desc"}}</label>
+						</div>
+					</div>
+
+					<div class="field">
+						<button class="ui green button">{{.locale.Tr "save"}}</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "org/settings/layout_footer" .}}

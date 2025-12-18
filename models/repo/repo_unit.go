@@ -240,6 +240,8 @@ type ActionsConfig struct {
 	DefaultTokenPermissions *ActionsTokenPermissions `json:"default_token_permissions,omitempty"`
 	// MaxTokenPermissions defines the maximum permissions (cannot be exceeded by workflow permissions keyword)
 	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions,omitempty"`
+	// AllowCrossRepoAccess indicates if actions in this repo/org can access other repos in the same org
+	AllowCrossRepoAccess bool `json:"allow_cross_repo_access,omitempty"`
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {

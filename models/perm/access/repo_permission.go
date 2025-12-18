@@ -280,6 +280,19 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		if err != nil || !exist {
 			return perm, err
 		}
+
+		// Check Organization Cross-Repo Access Policy
+		if repo.OwnerID == taskRepo.OwnerID && repo.Owner.IsOrganization() {
+			orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
+			if err != nil {
+				return perm, err
+			}
+			if !orgCfg.AllowCrossRepoAccess {
+				// Deny access if cross-repo is disabled in Org
+				return perm, nil
+			}
+		}
+
 		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
 			// The task repo can access the current repo only if the task repo is private and
 			// the owner of the task repo is a collaborative owner of the current repo.
