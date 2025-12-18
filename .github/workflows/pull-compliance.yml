@@ -131,7 +131,7 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: make translation-check
 
   checks-backend:
