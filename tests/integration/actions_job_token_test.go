@@ -174,7 +174,11 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 		var sha string
 
 		// Test Write Access
-		context.ExpectedCode = util.Iif(expectReadOnly, http.StatusForbidden, http.StatusCreated)
+		if expectReadOnly {
+			context.ExpectedCode = http.StatusForbidden
+		} else {
+			context.ExpectedCode = 0
+		}
 		t.Run("API Create File", doAPICreateFile(context, "test-permissions.txt", &structs.CreateFileOptions{
 			FileOptions: structs.FileOptions{
 				NewBranchName: "new-branch-permissions",
@@ -187,7 +191,11 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 		}))
 
 		// Test Delete Access
-		context.ExpectedCode = util.Iif(expectReadOnly, http.StatusForbidden, http.StatusNoContent)
+		if expectReadOnly {
+			context.ExpectedCode = http.StatusForbidden
+		} else {
+			context.ExpectedCode = 0
+		}
 		if !expectReadOnly {
 			// Clean up created file if we had write access
 			t.Run("API Delete File", func(t *testing.T) {

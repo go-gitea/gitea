@@ -374,24 +374,6 @@ func doAPICreateFile(ctx APITestContext, treepath string, options *api.CreateFil
 	}
 }
 
-func doAPIDeleteFile(ctx APITestContext, treepath string, options *api.DeleteFileOptions, callback ...func(*testing.T, api.FileDeleteResponse)) func(*testing.T) {
-	return func(t *testing.T) {
-		req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", ctx.Username, ctx.Reponame, treepath), &options).
-			AddTokenAuth(ctx.Token)
-		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
-			return
-		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-
-		var contents api.FileDeleteResponse
-		DecodeJSON(t, resp, &contents)
-		if len(callback) > 0 {
-			callback[0](t, contents)
-		}
-	}
-}
-
 func doAPICreateOrganization(ctx APITestContext, options *api.CreateOrgOption, callback ...func(*testing.T, api.Organization)) func(t *testing.T) {
 	return func(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &options).
