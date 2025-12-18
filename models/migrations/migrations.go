@@ -398,9 +398,7 @@ func prepareMigrationTasks() []*migration {
 		// Gitea 1.25.0 ends at migration ID number 322 (database version 323)
 
 		newMigration(323, "Add support for actions concurrency", v1_26.AddActionsConcurrency),
-
-		// to modify later
-		newMigration(324, "Add size limit on repository", v1_26.AddSizeLimitOnRepo),
+		newMigration(324, "Add support for repository size limit - SizeLimit and LFSSizeLimit columns to repository table", v1_26.AddSizeLimitOnRepo),
 	}
 	return preparedMigrations
 }
