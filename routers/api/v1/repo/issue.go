@@ -32,6 +32,100 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
+// ErrOwnerOrgRequired represents an error when owner organisation is required for filtering on team
+type ErrOwnerOrgRequired struct{}
+
+// IsErrOwnerOrgRequired checks if an error is an ErrOwnerOrgRequired
+func IsErrOwnerOrgRequired(err error) bool {
+	_, ok := err.(ErrOwnerOrgRequired)
+	return ok
+}
+
+func (err ErrOwnerOrgRequired) Error() string {
+	return "owner organisation is required for filtering on team"
+}
+
+// parseIssueIsClosed parses the "state" query parameter and returns the corresponding isClosed option
+func parseIssueIsClosed(ctx *context.APIContext) optional.Option[bool] {
+	switch ctx.FormString("state") {
+	case "closed":
+		return optional.Some(true)
+	case "all":
+		return optional.None[bool]()
+	default:
+		return optional.Some(false)
+	}
+}
+
+// parseIssueIsPull parses the "type" query parameter and returns the corresponding isPull option
+func parseIssueIsPull(ctx *context.APIContext) optional.Option[bool] {
+	switch ctx.FormString("type") {
+	case "pulls":
+		return optional.Some(true)
+	case "issues":
+		return optional.Some(false)
+	default:
+		return optional.None[bool]()
+	}
+}
+
+// buildSearchIssuesRepoIDs builds the list of repository IDs for issue search based on query parameters.
+// It returns repoIDs, allPublic flag, and any error that occurred.
+func buildSearchIssuesRepoIDs(ctx *context.APIContext) ([]int64, bool, error) {
+	var repoIDs []int64
+	var allPublic bool
+
+	opts := repo_model.SearchRepoOptions{
+		Private:     false,
+		AllPublic:   true,
+		TopicOnly:   false,
+		Collaborate: optional.None[bool](),
+		// This needs to be a column that is not nil in fixtures or
+		// MySQL will return different results when sorting by null in some cases
+		OrderBy: db.SearchOrderByAlphabetically,
+		Actor:   ctx.Doer,
+	}
+	if ctx.IsSigned {
+		opts.Private = !ctx.PublicOnly
+		opts.AllLimited = true
+	}
+	if ctx.FormString("owner") != "" {
+		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
+		if err != nil {
+			return nil, false, err
+		}
+		opts.OwnerID = owner.ID
+		opts.AllLimited = false
+		opts.AllPublic = false
+		opts.Collaborate = optional.Some(false)
+	}
+	if ctx.FormString("team") != "" {
+		if ctx.FormString("owner") == "" {
+			return nil, false, ErrOwnerOrgRequired{}
+		}
+		team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
+		if err != nil {
+			return nil, false, err
+		}
+		opts.TeamID = team.ID
+	}
+
+	if opts.AllPublic {
+		allPublic = true
+		opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
+	}
+	repoIDs, _, err := repo_model.SearchRepositoryIDs(ctx, opts)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(repoIDs) == 0 {
+		// no repos found, don't let the indexer return all repos
+		repoIDs = []int64{0}
+	}
+
+	return repoIDs, allPublic, nil
+}
+
 // SearchIssues searches for issues across the repositories that the user has access to
 func SearchIssues(ctx *context.APIContext) {
 	// swagger:operation GET /repos/issues/search issue issueSearchIssues
@@ -136,81 +230,16 @@ func SearchIssues(ctx *context.APIContext) {
 		return
 	}
 
-	var isClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isClosed = optional.Some(true)
-	case "all":
-		isClosed = optional.None[bool]()
-	default:
-		isClosed = optional.Some(false)
-	}
+	isClosed := parseIssueIsClosed(ctx)
 
-	var (
-		repoIDs   []int64
-		allPublic bool
-	)
-	{
-		// find repos user can access (for issue search)
-		opts := repo_model.SearchRepoOptions{
-			Private:     false,
-			AllPublic:   true,
-			TopicOnly:   false,
-			Collaborate: optional.None[bool](),
-			// This needs to be a column that is not nil in fixtures or
-			// MySQL will return different results when sorting by null in some cases
-			OrderBy: db.SearchOrderByAlphabetically,
-			Actor:   ctx.Doer,
-		}
-		if ctx.IsSigned {
-			opts.Private = !ctx.PublicOnly
-			opts.AllLimited = true
-		}
-		if ctx.FormString("owner") != "" {
-			owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					ctx.APIError(http.StatusBadRequest, err)
-				} else {
-					ctx.APIErrorInternal(err)
-				}
-				return
-			}
-			opts.OwnerID = owner.ID
-			opts.AllLimited = false
-			opts.AllPublic = false
-			opts.Collaborate = optional.Some(false)
-		}
-		if ctx.FormString("team") != "" {
-			if ctx.FormString("owner") == "" {
-				ctx.APIError(http.StatusBadRequest, "Owner organisation is required for filtering on team")
-				return
-			}
-			team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
-			if err != nil {
-				if organization.IsErrTeamNotExist(err) {
-					ctx.APIError(http.StatusBadRequest, err)
-				} else {
-					ctx.APIErrorInternal(err)
-				}
-				return
-			}
-			opts.TeamID = team.ID
-		}
-
-		if opts.AllPublic {
-			allPublic = true
-			opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
-		}
-		repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
-		if err != nil {
+	repoIDs, allPublic, err := buildSearchIssuesRepoIDs(ctx)
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) || organization.IsErrTeamNotExist(err) || IsErrOwnerOrgRequired(err) {
+			ctx.APIError(http.StatusBadRequest, err)
+		} else {
 			ctx.APIErrorInternal(err)
-			return
 		}
-		if len(repoIDs) == 0 {
-			// no repos found, don't let the indexer return all repos
-			repoIDs = []int64{0}
-		}
+		return
 	}
 
 	keyword := ctx.FormTrim("q")
@@ -218,15 +247,7 @@ func SearchIssues(ctx *context.APIContext) {
 		keyword = ""
 	}
 
-	var isPull optional.Option[bool]
-	switch ctx.FormString("type") {
-	case "pulls":
-		isPull = optional.Some(true)
-	case "issues":
-		isPull = optional.Some(false)
-	default:
-		isPull = optional.None[bool]()
-	}
+	isPull := parseIssueIsPull(ctx)
 
 	var includedAnyLabels []int64
 	{
