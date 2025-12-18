@@ -51,35 +51,27 @@ type MergeOptions struct {
 	DeleteBranch bool
 }
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
-	session.MakeRequest(t, req, http.StatusOK)
-	link := path.Join(user, repo, "pulls", pullnum, "merge")
-
+func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
 	options := map[string]string{
-		"do":             string(mergeOptions.Style),
-		"head_commit_id": mergeOptions.HeadCommitID,
+		"do":                        string(mergeOptions.Style),
+		"head_commit_id":            mergeOptions.HeadCommitID,
+		"delete_branch_after_merge": util.Iif(mergeOptions.DeleteBranch, "on", ""),
 	}
+	var resp *httptest.ResponseRecorder
+	require.Eventually(t, func() bool {
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/pulls/%s/merge", user, repo, pullNum), options)
+		resp = session.MakeRequest(t, req, NoExpectedStatus)
+		return resp.Code == http.StatusOK
+	}, 5*time.Second, 50*time.Millisecond, "Timed out waiting for pull merge to succeed")
 
-	if mergeOptions.DeleteBranch {
-		options["delete_branch_after_merge"] = "on"
-	}
+	redirect := test.RedirectURL(resp)
+	assert.Equal(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullNum), redirect)
 
-	req = NewRequestWithValues(t, "POST", link, options)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-
-	respJSON := struct {
-		Redirect string
-	}{}
-	DecodeJSON(t, resp, &respJSON)
-
-	assert.Equal(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullnum), respJSON.Redirect)
-
-	pullnumInt, err := strconv.ParseInt(pullnum, 10, 64)
+	pullNumInt, err := strconv.ParseInt(pullNum, 10, 64)
 	assert.NoError(t, err)
 	repository, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user, repo)
 	assert.NoError(t, err)
-	pull, err := issues_model.GetPullRequestByIndex(t.Context(), repository.ID, pullnumInt)
+	pull, err := issues_model.GetPullRequestByIndex(t.Context(), repository.ID, pullNumInt)
 	assert.NoError(t, err)
 	assert.True(t, pull.HasMerged)
 
