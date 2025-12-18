@@ -1444,3 +1444,15 @@ func DisabledFeaturesWithLoginType(user *User) *container.Set[string] {
 	}
 	return &setting.Admin.UserDisabledFeatures
 }
+
+// GetUserOrOrgByName returns the user or org by name
+func GetUserOrOrgByName(ctx context.Context, name string) (*User, error) {
+	var u User
+	has, err := db.GetEngine(ctx).Where("lower_name = ?", strings.ToLower(name)).Get(&u)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrUserNotExist{Name: name}
+	}
+	return &u, nil
+}
