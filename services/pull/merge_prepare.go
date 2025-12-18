@@ -84,7 +84,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 		if err != nil {
 			defer cancel()
 			log.Error("failed to get sha of head branch in %-v: show-ref[%s] --hash refs/heads/tracking: %v", mergeCtx.pr, mergeCtx.tmpBasePath, err)
-			return nil, nil, fmt.Errorf("unable to get sha of head branch in %v %w", pr, err)
+			return nil, nil, fmt.Errorf("unable to get sha of head branch in pr[%d]: %w", pr.ID, err)
 		}
 		if strings.TrimSpace(trackingCommitID) != expectedHeadCommitID {
 			defer cancel()
@@ -105,8 +105,15 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	mergeCtx.sig = doer.NewGitSig()
 	mergeCtx.committer = mergeCtx.sig
 
+	gitRepo, err := git.OpenRepository(ctx, mergeCtx.tmpBasePath)
+	if err != nil {
+		defer cancel()
+		return nil, nil, fmt.Errorf("failed to open temp git repo for pr[%d]: %w", mergeCtx.pr.ID, err)
+	}
+	defer gitRepo.Close()
+
 	// Determine if we should sign
-	sign, key, signer, _ := asymkey_service.SignMerge(ctx, mergeCtx.pr, mergeCtx.doer, mergeCtx.tmpBasePath, "HEAD", trackingBranch)
+	sign, key, signer, _ := asymkey_service.SignMerge(ctx, mergeCtx.pr, mergeCtx.doer, gitRepo, "HEAD", trackingBranch)
 	if sign {
 		mergeCtx.signKey = key
 		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {

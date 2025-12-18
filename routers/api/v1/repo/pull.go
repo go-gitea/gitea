@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/routers/common"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/context"
@@ -1082,7 +1083,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	} else if len(headInfos) == 2 {
 		// There is a head repository (the head repository could also be the same base repo)
 		headRefToGuess = headInfos[1]
-		headUser, err = user_model.GetUserByName(ctx, headInfos[0])
+		headUser, err = user_model.GetUserOrOrgByName(ctx, headInfos[0])
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.APIErrorNotFound("GetUserByName")
@@ -1098,28 +1099,23 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 
 	isSameRepo := ctx.Repo.Owner.ID == headUser.ID
 
-	// Check if current user has fork of repository or in the same repository.
-	headRepo := repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
-	if headRepo == nil && !isSameRepo {
-		err = baseRepo.GetBaseRepo(ctx)
+	var headRepo *repo_model.Repository
+	if isSameRepo {
+		headRepo = baseRepo
+	} else {
+		headRepo, err = common.FindHeadRepo(ctx, baseRepo, headUser.ID)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return nil, nil
 		}
-
-		// Check if baseRepo's base repository is the same as headUser's repository.
-		if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
-			log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-			ctx.APIErrorNotFound("GetBaseRepo")
+		if headRepo == nil {
+			ctx.APIErrorNotFound("head repository not found")
 			return nil, nil
 		}
-		// Assign headRepo so it can be used below.
-		headRepo = baseRepo.BaseRepo
 	}
 
 	var headGitRepo *git.Repository
 	if isSameRepo {
-		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 		closer = func() {} // no need to close the head repo because it shares the base repo
 	} else {
@@ -1143,7 +1139,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(unit.TypeCode) {
+	if !permBase.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
 		ctx.APIErrorNotFound("Can't read pulls or can't read UnitTypeCode")
 		return nil, nil
