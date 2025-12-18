@@ -20,16 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 )
 
-// GPGSettings represents the default GPG settings for this repository
-type GPGSettings struct {
-	Sign             bool
-	KeyID            string
-	Email            string
-	Name             string
-	PublicKeyContent string
-	Format           string
-}
-
 const prettyLogFormat = `--pretty=format:%H`
 
 func (repo *Repository) ShowPrettyFormatLogToList(ctx context.Context, revisionRange string) ([]*Commit, error) {

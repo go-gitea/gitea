@@ -24,6 +24,8 @@ jobs:
   detect:
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    permissions:
+      contents: read
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
@@ -34,7 +36,7 @@ jobs:
       swagger: ${{ steps.changes.outputs.swagger }}
       yaml: ${{ steps.changes.outputs.yaml }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v3
         id: changes
         with:

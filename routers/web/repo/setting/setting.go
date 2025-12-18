@@ -68,7 +68,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["LFSSizeLimit"] = setting.LFSSizeLimit
 	ctx.Data["LFSSizeInRepoSize"] = setting.LFSSizeInRepoSize
 
-	signing, _ := gitrepo.GetSigningKey(ctx, ctx.Repo.Repository)
+	signing, _ := gitrepo.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
@@ -111,7 +111,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 
-	signing, _ := gitrepo.GetSigningKey(ctx, ctx.Repo.Repository)
+	signing, _ := gitrepo.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
