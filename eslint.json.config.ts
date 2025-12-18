@@ -1,13 +1,6 @@
 import {defineConfig} from 'eslint/config';
 import json from '@eslint/json';
 
-const jsoncFiles = [
-  'tsconfig.json',
-  '.devcontainer/*.json',
-  '.vscode/*.json',
-  'contrib/ide/vscode/*.json',
-];
-
 export default defineConfig([
   {
     plugins: {
@@ -22,7 +15,12 @@ export default defineConfig([
     },
   },
   {
-    files: jsoncFiles,
+    files: [
+      'tsconfig.json',
+      '.devcontainer/*.json',
+      '.vscode/*.json',
+      'contrib/ide/vscode/*.json',
+    ],
     language: 'json/jsonc',
     languageOptions: {
       allowTrailingCommas: true,
