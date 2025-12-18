@@ -420,7 +420,7 @@ lint-json: node_modules ## lint json files
 
 .PHONY: lint-json-fix
 lint-json-fix: node_modules ## lint and fix json files
-	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 $(JSON_FILES)
+	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 $(JSON_FILES) --fix
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
