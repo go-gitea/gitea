@@ -6,9 +6,7 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"html/template"
 	"net/http"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -76,16 +74,24 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 	}
 	for _, app := range apps {
 		schema, _, _ := strings.Cut(app.OpenURL, ":")
-		var iconHTML template.HTML
-		if schema == "vscode" || schema == "vscodium" || schema == "jetbrains" {
-			iconHTML = svg.RenderHTML("gitea-"+schema, 16)
-		} else {
-			iconHTML = svg.RenderHTML("gitea-git", 16) // TODO: it could support user's customized icon in the future
+
+		var iconName string
+		switch schema {
+		case "vscode":
+			iconName = "octicon-vscode"
+		case "vscodium":
+			iconName = "gitea-vscodium"
+		case "jetbrains":
+			iconName = "gitea-jetbrains"
+		default:
+			// TODO: it could support user's customized icon in the future
+			iconName = "gitea-git"
 		}
+
 		tmplApps = append(tmplApps, map[string]any{
 			"DisplayName": app.DisplayName,
 			"OpenURL":     app.OpenURL,
-			"IconHTML":    iconHTML,
+			"IconHTML":    svg.RenderHTML(iconName, 16),
 		})
 	}
 	ctx.Data["OpenWithEditorApps"] = tmplApps
@@ -139,7 +145,7 @@ func prepareToRenderDirectory(ctx *context.Context) {
 
 	if ctx.Repo.TreePath != "" {
 		ctx.Data["HideRepoInfo"] = true
-		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefFullName.ShortName())
+		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+ctx.Repo.TreePath, ctx.Repo.RefFullName.ShortName())
 	}
 
 	subfolder, readmeFile, err := findReadmeFileInEntries(ctx, ctx.Repo.TreePath, entries, true)
@@ -356,6 +362,32 @@ func redirectFollowSymlink(ctx *context.Context, treePathEntry *git.TreeEntry) b
 	return false
 }
 
+func prepareRepoViewContent(ctx *context.Context, refTypeNameSubURL string) {
+	// for: home, file list, file view, blame
+	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled // show Upload File button or menu item
+
+	// prepare the tree path navigation
+	var treeNames, paths []string
+	branchLink := ctx.Repo.RepoLink + "/src/" + refTypeNameSubURL
+	treeLink := branchLink
+	if ctx.Repo.TreePath != "" {
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+		treeNames = strings.Split(ctx.Repo.TreePath, "/")
+		for i := range treeNames {
+			paths = append(paths, strings.Join(treeNames[:i+1], "/"))
+		}
+		ctx.Data["HasParentPath"] = true
+		if len(paths)-2 >= 0 {
+			ctx.Data["ParentPath"] = "/" + paths[len(paths)-2]
+		}
+	}
+	ctx.Data["Paths"] = paths
+	ctx.Data["TreeLink"] = treeLink
+	ctx.Data["TreeNames"] = treeNames
+	ctx.Data["BranchLink"] = branchLink
+}
+
 // Home render repository home page
 func Home(ctx *context.Context) {
 	if handleRepoHomeFeed(ctx) {
@@ -377,8 +409,7 @@ func Home(ctx *context.Context) {
 		title += ": " + ctx.Repo.Repository.Description
 	}
 	ctx.Data["Title"] = title
-	ctx.Data["PageIsViewCode"] = true
-	ctx.Data["RepositoryUploadEnabled"] = setting.Repository.Upload.Enabled // show New File / Upload File buttons
+	prepareRepoViewContent(ctx, ctx.Repo.RefTypeNameSubURL())
 
 	if ctx.Repo.Commit == nil || ctx.Repo.Repository.IsEmpty || ctx.Repo.Repository.IsBroken() {
 		// empty or broken repositories need to be handled differently
@@ -398,26 +429,6 @@ func Home(ctx *context.Context) {
 	if redirectFollowSymlink(ctx, entry) {
 		return
 	}
-
-	// prepare the tree path
-	var treeNames, paths []string
-	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.RefTypeNameSubURL()
-	treeLink := branchLink
-	if ctx.Repo.TreePath != "" {
-		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
-		treeNames = strings.Split(ctx.Repo.TreePath, "/")
-		for i := range treeNames {
-			paths = append(paths, strings.Join(treeNames[:i+1], "/"))
-		}
-		ctx.Data["HasParentPath"] = true
-		if len(paths)-2 >= 0 {
-			ctx.Data["ParentPath"] = "/" + paths[len(paths)-2]
-		}
-	}
-	ctx.Data["Paths"] = paths
-	ctx.Data["TreeLink"] = treeLink
-	ctx.Data["TreeNames"] = treeNames
-	ctx.Data["BranchLink"] = branchLink
 
 	// some UI components are only shown when the tree path is root
 	isTreePathRoot := ctx.Repo.TreePath == ""
@@ -449,7 +460,7 @@ func Home(ctx *context.Context) {
 
 	if isViewHomeOnlyContent(ctx) {
 		ctx.HTML(http.StatusOK, tplRepoViewContent)
-	} else if len(treeNames) != 0 {
+	} else if ctx.Repo.TreePath != "" {
 		ctx.HTML(http.StatusOK, tplRepoView)
 	} else {
 		ctx.HTML(http.StatusOK, tplRepoHome)

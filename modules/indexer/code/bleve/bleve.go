@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer"
 	path_filter "code.gitea.io/gitea/modules/indexer/code/bleve/token/path"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
@@ -163,7 +164,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 	var err error
 	if !update.Sized {
 		var stdout string
-		stdout, _, err = gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha).RunStdString(ctx, &gitcmd.RunOpts{Dir: repo.RepoPath()})
+		stdout, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("cat-file", "-s").AddDynamicArguments(update.BlobSha))
 		if err != nil {
 			return err
 		}
@@ -202,7 +203,7 @@ func (b *Indexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserErro
 		RepoID:    repo.ID,
 		CommitID:  commitSha,
 		Filename:  update.Filename,
-		Content:   string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
+		Content:   string(charset.ToUTF8DropErrors(fileContents)),
 		Language:  analyze.GetCodeLanguage(update.Filename, fileContents),
 		UpdatedAt: time.Now().UTC(),
 	})
@@ -217,7 +218,7 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch 
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-		gitBatch, err := git.NewBatch(ctx, repo.RepoPath())
+		gitBatch, err := gitrepo.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}

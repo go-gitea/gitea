@@ -7,9 +7,12 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/fs"
+	"os"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -85,4 +88,33 @@ func RenameRepository(ctx context.Context, repo, newRepo Repository) error {
 
 func InitRepository(ctx context.Context, repo Repository, objectFormatName string) error {
 	return git.InitRepository(ctx, repoPath(repo), true, objectFormatName)
+}
+
+func UpdateServerInfo(ctx context.Context, repo Repository) error {
+	_, _, err := RunCmdBytes(ctx, repo, gitcmd.NewCommand("update-server-info"))
+	return err
+}
+
+func GetRepoFS(repo Repository) fs.FS {
+	return os.DirFS(repoPath(repo))
+}
+
+func IsRepoFileExist(ctx context.Context, repo Repository, relativeFilePath string) (bool, error) {
+	absoluteFilePath := filepath.Join(repoPath(repo), relativeFilePath)
+	return util.IsExist(absoluteFilePath)
+}
+
+func IsRepoDirExist(ctx context.Context, repo Repository, relativeDirPath string) (bool, error) {
+	absoluteDirPath := filepath.Join(repoPath(repo), relativeDirPath)
+	return util.IsDir(absoluteDirPath)
+}
+
+func RemoveRepoFileOrDir(ctx context.Context, repo Repository, relativeFileOrDirPath string) error {
+	absoluteFilePath := filepath.Join(repoPath(repo), relativeFileOrDirPath)
+	return util.Remove(absoluteFilePath)
+}
+
+func CreateRepoFile(ctx context.Context, repo Repository, relativeFilePath string) (io.WriteCloser, error) {
+	absoluteFilePath := filepath.Join(repoPath(repo), relativeFilePath)
+	return os.Create(absoluteFilePath)
 }

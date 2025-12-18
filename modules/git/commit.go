@@ -5,17 +5,13 @@
 package git
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"errors"
 	"io"
 	"os/exec"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -93,7 +89,7 @@ func AddChanges(ctx context.Context, repoPath string, all bool, files ...string)
 		cmd.AddArguments("--all")
 	}
 	cmd.AddDashesAndList(files...)
-	_, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+	_, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
 	return err
 }
 
@@ -122,71 +118,12 @@ func CommitChanges(ctx context.Context, repoPath string, opts CommitChangesOptio
 	}
 	cmd.AddOptionFormat("--message=%s", opts.Message)
 
-	_, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+	_, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
 	// No stderr but exit status 1 means nothing to commit.
 	if err != nil && err.Error() == "exit status 1" {
 		return nil
 	}
 	return err
-}
-
-// AllCommitsCount returns count of all commits in repository
-func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, files ...string) (int64, error) {
-	cmd := gitcmd.NewCommand("rev-list")
-	if hidePRRefs {
-		cmd.AddArguments("--exclude=" + PullPrefix + "*")
-	}
-	cmd.AddArguments("--all", "--count")
-	if len(files) > 0 {
-		cmd.AddDashesAndList(files...)
-	}
-
-	stdout, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
-	if err != nil {
-		return 0, err
-	}
-
-	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
-}
-
-// CommitsCountOptions the options when counting commits
-type CommitsCountOptions struct {
-	RepoPath string
-	Not      string
-	Revision []string
-	RelPath  []string
-	Since    string
-	Until    string
-}
-
-// CommitsCount returns number of total commits of until given revision.
-func CommitsCount(ctx context.Context, opts CommitsCountOptions) (int64, error) {
-	cmd := gitcmd.NewCommand("rev-list", "--count")
-
-	cmd.AddDynamicArguments(opts.Revision...)
-
-	if opts.Not != "" {
-		cmd.AddOptionValues("--not", opts.Not)
-	}
-
-	if len(opts.RelPath) > 0 {
-		cmd.AddDashesAndList(opts.RelPath...)
-	}
-
-	stdout, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: opts.RepoPath})
-	if err != nil {
-		return 0, err
-	}
-
-	return strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
-}
-
-// CommitsCount returns number of total commits of until current revision.
-func (c *Commit) CommitsCount() (int64, error) {
-	return CommitsCount(c.repo.Ctx, CommitsCountOptions{
-		RepoPath: c.repo.Path,
-		Revision: []string{c.ID.String()},
-	})
 }
 
 // CommitsByRange returns the specific page commits before current revision, every page's number default by CommitsRangeSize
@@ -208,7 +145,10 @@ func (c *Commit) HasPreviousCommit(objectID ObjectID) (bool, error) {
 		return false, nil
 	}
 
-	_, _, err := gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(that, this).RunStdString(c.repo.Ctx, &gitcmd.RunOpts{Dir: c.repo.Path})
+	_, _, err := gitcmd.NewCommand("merge-base", "--is-ancestor").
+		AddDynamicArguments(that, this).
+		WithDir(c.repo.Path).
+		RunStdString(c.repo.Ctx)
 	if err == nil {
 		return true, nil
 	}
@@ -354,7 +294,7 @@ func (c *Commit) GetBranchName() (string, error) {
 		cmd.AddArguments("--exclude", "refs/tags/*")
 	}
 	cmd.AddArguments("--name-only", "--no-undefined").AddDynamicArguments(c.ID.String())
-	data, _, err := cmd.RunStdString(c.repo.Ctx, &gitcmd.RunOpts{Dir: c.repo.Path})
+	data, _, err := cmd.WithDir(c.repo.Path).RunStdString(c.repo.Ctx)
 	if err != nil {
 		// handle special case where git can not describe commit
 		if strings.Contains(err.Error(), "cannot describe") {
@@ -368,87 +308,12 @@ func (c *Commit) GetBranchName() (string, error) {
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
 
-// CommitFileStatus represents status of files in a commit.
-type CommitFileStatus struct {
-	Added    []string
-	Removed  []string
-	Modified []string
-}
-
-// NewCommitFileStatus creates a CommitFileStatus
-func NewCommitFileStatus() *CommitFileStatus {
-	return &CommitFileStatus{
-		[]string{}, []string{}, []string{},
-	}
-}
-
-func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
-	rd := bufio.NewReader(stdout)
-	peek, err := rd.Peek(1)
-	if err != nil {
-		if err != io.EOF {
-			log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
-		}
-		return
-	}
-	if peek[0] == '\n' || peek[0] == '\x00' {
-		_, _ = rd.Discard(1)
-	}
-	for {
-		modifier, err := rd.ReadString('\x00')
-		if err != nil {
-			if err != io.EOF {
-				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
-			}
-			return
-		}
-		file, err := rd.ReadString('\x00')
-		if err != nil {
-			if err != io.EOF {
-				log.Error("Unexpected error whilst reading from git log --name-status. Error: %v", err)
-			}
-			return
-		}
-		file = file[:len(file)-1]
-		switch modifier[0] {
-		case 'A':
-			fileStatus.Added = append(fileStatus.Added, file)
-		case 'D':
-			fileStatus.Removed = append(fileStatus.Removed, file)
-		case 'M':
-			fileStatus.Modified = append(fileStatus.Modified, file)
-		}
-	}
-}
-
-// GetCommitFileStatus returns file status of commit in given repository.
-func GetCommitFileStatus(ctx context.Context, repoPath, commitID string) (*CommitFileStatus, error) {
-	stdout, w := io.Pipe()
-	done := make(chan struct{})
-	fileStatus := NewCommitFileStatus()
-	go func() {
-		parseCommitFileStatus(fileStatus, stdout)
-		close(done)
-	}()
-
-	stderr := new(bytes.Buffer)
-	err := gitcmd.NewCommand("log", "--name-status", "-m", "--pretty=format:", "--first-parent", "--no-renames", "-z", "-1").AddDynamicArguments(commitID).Run(ctx, &gitcmd.RunOpts{
-		Dir:    repoPath,
-		Stdout: w,
-		Stderr: stderr,
-	})
-	w.Close() // Close writer to exit parsing goroutine
-	if err != nil {
-		return nil, gitcmd.ConcatenateError(err, stderr.String())
-	}
-
-	<-done
-	return fileStatus, nil
-}
-
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.
 func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, error) {
-	commitID, _, err := gitcmd.NewCommand("rev-parse").AddDynamicArguments(shortID).RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath})
+	commitID, _, err := gitcmd.NewCommand("rev-parse").
+		AddDynamicArguments(shortID).
+		WithDir(repoPath).
+		RunStdString(ctx)
 	if err != nil {
 		if strings.Contains(err.Error(), "exit status 128") {
 			return "", ErrNotExist{shortID, ""}
@@ -456,14 +321,6 @@ func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, err
 		return "", err
 	}
 	return strings.TrimSpace(commitID), nil
-}
-
-// GetRepositoryDefaultPublicGPGKey returns the default public key for this commit
-func (c *Commit) GetRepositoryDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, error) {
-	if c.repo == nil {
-		return nil, nil
-	}
-	return c.repo.GetDefaultPublicGPGKey(forceUpdate)
 }
 
 func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) bool {

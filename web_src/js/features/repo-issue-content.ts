@@ -27,7 +27,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
   <div class="comment-diff-data is-loading"></div>
 </div>`);
   document.body.append(elDetailDialog);
-  const elOptionsDropdown = elDetailDialog.querySelector('.ui.dropdown.dialog-header-options');
+  const elOptionsDropdown = elDetailDialog.querySelector('.ui.dropdown.dialog-header-options')!;
   const $fomanticDialog = fomanticQuery(elDetailDialog);
   const $fomanticDropdownOptions = fomanticQuery(elOptionsDropdown);
   $fomanticDropdownOptions.dropdown({
@@ -74,7 +74,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
         const response = await GET(url);
         const resp = await response.json();
 
-        const commentDiffData = elDetailDialog.querySelector('.comment-diff-data');
+        const commentDiffData = elDetailDialog.querySelector('.comment-diff-data')!;
         commentDiffData.classList.remove('is-loading');
         commentDiffData.innerHTML = resp.diffHtml;
         // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
@@ -92,7 +92,7 @@ function showContentHistoryDetail(issueBaseUrl: string, commentId: string, histo
 }
 
 function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, commentId: string) {
-  const elHeaderLeft = elCommentItem.querySelector('.comment-header-left');
+  const elHeaderLeft = elCommentItem.querySelector('.comment-header-left')!;
   const menuHtml = `
   <div class="ui dropdown interact-fg content-history-menu" data-comment-id="${commentId}">
     &bull; ${i18nTextEdited}${svg('octicon-triangle-down', 14, 'dropdown icon')}
@@ -103,7 +103,7 @@ function showContentHistoryMenu(issueBaseUrl: string, elCommentItem: Element, co
   elHeaderLeft.querySelector(`.ui.dropdown.content-history-menu`)?.remove(); // remove the old one if exists
   elHeaderLeft.append(createElementFromHTML(menuHtml));
 
-  const elDropdown = elHeaderLeft.querySelector('.ui.dropdown.content-history-menu');
+  const elDropdown = elHeaderLeft.querySelector('.ui.dropdown.content-history-menu')!;
   const $fomanticDropdown = fomanticQuery(elDropdown);
   $fomanticDropdown.dropdown({
     action: 'hide',

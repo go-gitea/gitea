@@ -179,11 +179,11 @@ func AuthorizeOAuth(ctx *context.Context) {
 	errs := binding.Errors{}
 	errs = form.Validate(ctx.Req, errs)
 	if len(errs) > 0 {
-		errstring := ""
+		var errstring strings.Builder
 		for _, e := range errs {
-			errstring += e.Error() + "\n"
+			errstring.WriteString(e.Error() + "\n")
 		}
-		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring))
+		ctx.ServerError("AuthorizeOAuth: Validate: ", fmt.Errorf("errors occurred during validation: %s", errstring.String()))
 		return
 	}
 
@@ -636,6 +636,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 			ErrorCode:        oauth2_provider.AccessTokenErrorCodeInvalidRequest,
 			ErrorDescription: "cannot proceed your request",
 		})
+		return
 	}
 	resp, tokenErr := oauth2_provider.NewAccessTokenResponse(ctx, authorizationCode.Grant, serverKey, clientKey)
 	if tokenErr != nil {

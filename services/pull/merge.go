@@ -220,7 +220,7 @@ func (err ErrInvalidMergeStyle) Unwrap() error {
 
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
-func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
+func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string, wasAutoMerged bool) error {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repo: %v", err)
 		return fmt.Errorf("unable to load base repo: %w", err)
@@ -248,6 +248,11 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 	}
 	defer releaser()
 	defer func() {
+		// This is a duplicated call to AddTestPullRequestTask (it will also be called by the post-receive hook, via a push queue).
+		// This call will do some operations (push to base repo, sync commit divergence, add PR conflict check queue task, etc)
+		// immediately instead of waiting for the "push queue"'s task. The code is from https://github.com/go-gitea/gitea/pull/7082.
+		// But it's really questionable whether it's worth to do it ahead without waiting for the "push queue" task to run.
+		// TODO: DUPLICATE-PR-TASK: maybe can try to remove this in 1.26 to see if there is any issue.
 		go AddTestPullRequestTask(TestPullRequestOptions{
 			RepoID:      pr.BaseRepo.ID,
 			Doer:        doer,
@@ -398,6 +403,7 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		pr.BaseRepo,
 		pr.BaseRepo.Name,
 		pr.ID,
+		pr.Index,
 	)
 
 	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPushTrigger+"="+string(pushTrigger))
@@ -406,7 +412,7 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	// Push back to upstream.
 	// This cause an api call to "/api/internal/hook/post-receive/...",
 	// If it's merge, all db transaction and operations should be there but not here to prevent deadlock.
-	if err := pushCmd.Run(ctx, mergeCtx.RunOpts()); err != nil {
+	if err := mergeCtx.PrepareGitCmd(pushCmd).Run(ctx); err != nil {
 		if strings.Contains(mergeCtx.errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
 				StdOut: mergeCtx.outbuf.String(),
@@ -440,7 +446,7 @@ func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
 		}
 		cmdCommit.AddOptionFormat("-S%s", ctx.signKey.KeyID)
 	}
-	if err := cmdCommit.Run(ctx, ctx.RunOpts()); err != nil {
+	if err := ctx.PrepareGitCmd(cmdCommit).Run(ctx); err != nil {
 		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 		return fmt.Errorf("git commit %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
 	}
@@ -501,7 +507,7 @@ func (err ErrMergeDivergingFastForwardOnly) Error() string {
 }
 
 func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *gitcmd.Command) error {
-	if err := cmd.Run(ctx, ctx.RunOpts()); err != nil {
+	if err := ctx.PrepareGitCmd(cmd).Run(ctx); err != nil {
 		// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
 		if _, statErr := os.Stat(filepath.Join(ctx.tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
 			// We have a merge conflict error
@@ -541,11 +547,15 @@ var escapedSymbols = regexp.MustCompile(`([*[?! \\])`)
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
 func IsUserAllowedToMerge(ctx context.Context, pr *issues_model.PullRequest, p access_model.Permission, user *user_model.User) (bool, error) {
+	return isUserAllowedToMergeInRepoBranch(ctx, pr.BaseRepoID, pr.BaseBranch, p, user)
+}
+
+func isUserAllowedToMergeInRepoBranch(ctx context.Context, repoID int64, branch string, p access_model.Permission, user *user_model.User) (bool, error) {
 	if user == nil {
 		return false, nil
 	}
 
-	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repoID, branch)
 	if err != nil {
 		return false, err
 	}
@@ -663,7 +673,7 @@ func MergedManually(ctx context.Context, pr *issues_model.PullRequest, doer *use
 		return err
 	}
 
-	notify_service.MergePullRequest(baseGitRepo.Ctx, doer, pr)
+	notify_service.MergePullRequest(ctx, doer, pr)
 	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commitID)
 
 	return handleCloseCrossReferences(ctx, pr, doer)
@@ -724,4 +734,25 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 
 		return true, nil
 	})
+}
+
+func ShouldDeleteBranchAfterMerge(ctx context.Context, userOption *bool, repo *repo_model.Repository, pr *issues_model.PullRequest) (bool, error) {
+	if pr.Flow != issues_model.PullRequestFlowGithub {
+		// only support GitHub workflow (branch-based)
+		// for agit workflow, there is no branch, so nothing to delete
+		// TODO: maybe in the future, it should delete the "agit reference (refs/for/xxxx)"?
+		return false, nil
+	}
+
+	// if user has set an option, respect it
+	if userOption != nil {
+		return *userOption, nil
+	}
+
+	// otherwise, use repository default
+	prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
+	if err != nil {
+		return false, err
+	}
+	return prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge, nil
 }

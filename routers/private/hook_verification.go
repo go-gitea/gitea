@@ -39,11 +39,10 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 		command = gitcmd.NewCommand("rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID)
 	}
 	// This is safe as force pushes are already forbidden
-	err = command.Run(repo.Ctx, &gitcmd.RunOpts{
-		Env:    env,
-		Dir:    repo.Path,
-		Stdout: stdoutWriter,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+	err = command.WithEnv(env).
+		WithDir(repo.Path).
+		WithStdout(stdoutWriter).
+		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
 			if err != nil {
@@ -52,8 +51,8 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 			}
 			_ = stdoutReader.Close()
 			return err
-		},
-	})
+		}).
+		Run(repo.Ctx)
 	if err != nil && !isErrUnverifiedCommit(err) {
 		log.Error("Unable to check commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}
@@ -86,26 +85,25 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	commitID := git.MustIDFromString(sha)
 
 	return gitcmd.NewCommand("cat-file", "commit").AddDynamicArguments(sha).
-		Run(repo.Ctx, &gitcmd.RunOpts{
-			Env:    env,
-			Dir:    repo.Path,
-			Stdout: stdoutWriter,
-			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
-				_ = stdoutWriter.Close()
-				commit, err := git.CommitFromReader(repo, commitID, stdoutReader)
-				if err != nil {
-					return err
+		WithEnv(env).
+		WithDir(repo.Path).
+		WithStdout(stdoutWriter).
+		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
+			_ = stdoutWriter.Close()
+			commit, err := git.CommitFromReader(repo, commitID, stdoutReader)
+			if err != nil {
+				return err
+			}
+			verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
+			if !verification.Verified {
+				cancel()
+				return &errUnverifiedCommit{
+					commit.ID.String(),
 				}
-				verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
-				if !verification.Verified {
-					cancel()
-					return &errUnverifiedCommit{
-						commit.ID.String(),
-					}
-				}
-				return nil
-			},
-		})
+			}
+			return nil
+		}).
+		Run(repo.Ctx)
 }
 
 type errUnverifiedCommit struct {

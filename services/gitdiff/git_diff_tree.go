@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 type DiffTree struct {
@@ -56,12 +57,14 @@ func runGitDiffTree(ctx context.Context, gitRepo *git.Repository, useMergeBase b
 		return nil, err
 	}
 
-	cmd := gitcmd.NewCommand("diff-tree", "--raw", "-r", "--find-renames", "--root")
+	cmd := gitcmd.NewCommand("diff-tree", "--raw", "-r", "--root").
+		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold)
+
 	if useMergeBase {
 		cmd.AddArguments("--merge-base")
 	}
 	cmd.AddDynamicArguments(baseCommitID, headCommitID)
-	stdout, _, runErr := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: gitRepo.Path})
+	stdout, _, runErr := cmd.WithDir(gitRepo.Path).RunStdString(ctx)
 	if runErr != nil {
 		log.Warn("git diff-tree: %v", runErr)
 		return nil, runErr

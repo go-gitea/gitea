@@ -22,7 +22,7 @@ type DivergeObject struct {
 func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targetBranch string) (*DivergeObject, error) {
 	cmd := gitcmd.NewCommand("rev-list", "--count", "--left-right").
 		AddDynamicArguments(baseBranch + "..." + targetBranch).AddArguments("--")
-	stdout, _, err1 := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath(repo)})
+	stdout, err1 := RunCmdString(ctx, repo, cmd)
 	if err1 != nil {
 		return nil, err1
 	}

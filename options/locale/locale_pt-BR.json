@@ -1969,6 +1969,8 @@
     "settings.desc": "Configurações é onde você pode gerenciar as opções para o repositório.",
     "settings.options": "Repositório",
     "settings.public_access": "Acesso Público",
+    "settings.public_access_desc": "Configurar permissões de acesso do visitante público para substituir os padrões deste repositório.",
+    "settings.public_access.docs.not_set": "Não definido: nenhuma permissão extra de acesso público. A permissão do visitante segue a visibilidade e as permissões de membro do repositório.",
     "settings.collaboration": "Colaboradores",
     "settings.collaboration.admin": "Administrador",
     "settings.collaboration.write": "Escrita",
@@ -2634,7 +2636,12 @@
     "teams.invite.description": "Por favor, clique no botão abaixo para se juntar à equipe.",
     "view_as_role": "Ver como: %s",
     "view_as_public_hint": "Você está vendo o README como um usuário público.",
-    "view_as_member_hint": "Você está vendo o README como um membro desta organização."
+    "view_as_member_hint": "Você está vendo o README como um membro desta organização.",
+    "worktime.date_range_start": "Data de início",
+    "worktime.date_range_end": "Data de término",
+    "worktime.by_repositories": "Por repositórios",
+    "worktime.by_milestones": "Por marcos",
+    "worktime.by_members": "Por membros"
   },
   "admin": {
     "maintenance": "Manutenção",
@@ -3218,6 +3225,7 @@
     "versions.view_all": "Ver todas",
     "dependency.id": "ID",
     "dependency.version": "Versão",
+    "search_in_external_registry": "Pesquisar em %s",
     "alpine.registry": "Configure este registro adicionando o URL no arquivo <code>/etc/apk/repositories</code>:",
     "alpine.registry.key": "Baixe a chave RSA pública do registro para a pasta <code>/etc/apk/keys/</code> para verificar a assinatura do índice:",
     "alpine.registry.info": "Escolha o $branch e $repository da lista abaixo.",
@@ -3245,6 +3253,7 @@
     "container.details.type": "Tipo de Imagem",
     "container.details.platform": "Plataforma",
     "container.pull": "Puxe a imagem pela linha de comando:",
+    "container.images": "Imagens",
     "container.digest": "Digest",
     "container.multi_arch": "S.O. / Arquitetura",
     "container.layers": "Camadas da Imagem",
@@ -3349,6 +3358,8 @@
     "creation.description": "Descrição",
     "creation.name_placeholder": "apenas caracteres alfanuméricos ou underline (_), não pode começar com GITEA_ ou GITHUB_",
     "creation.value_placeholder": "Insira qualquer conteúdo. Espaços em branco no início e no fim serão omitidos.",
+    "add_secret": "Adicionar segredo",
+    "edit_secret": "Editar segredo",
     "deletion": "Excluir segredo",
     "deletion.description": "A exclusão de um segredo é permanente e não pode ser desfeita. Continuar?",
     "deletion.success": "O segredo foi excluído.",
@@ -3440,9 +3451,11 @@
     "variables.update.success": "A variável foi editada."
   },
   "projects": {
+    "deleted.display_name": "Excluir Projeto",
     "type-1.display_name": "Projeto Individual",
     "type-2.display_name": "Projeto do Repositório",
     "type-3.display_name": "Projeto da Organização",
+    "enter_fullscreen": "Tela cheia",
     "exit_fullscreen": "Sair da Tela Cheia"
   },
   "git.filemode": {

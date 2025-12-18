@@ -173,7 +173,6 @@ func BenchmarkEntries_GetCommitsInfo(b *testing.B) {
 		} else if entries, err = commit.Tree.ListEntries(); err != nil {
 			b.Fatal(err)
 		}
-		entries.Sort()
 		b.ResetTimer()
 		b.Run(benchmark.name, func(b *testing.B) {
 			for b.Loop() {

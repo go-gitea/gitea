@@ -11,13 +11,8 @@ export async function initUserAuthWebAuthn() {
     return;
   }
 
-  // webauthn is only supported on secure contexts
-  if (!window.isSecureContext) {
-    hideElem(elSignInPasskeyBtn);
-    return;
-  }
-
   if (!detectWebAuthnSupport()) {
+    if (elSignInPasskeyBtn) hideElem(elSignInPasskeyBtn);
     return;
   }
 
@@ -54,7 +49,7 @@ async function loginPasskey() {
     const clientDataJSON = new Uint8Array(credResp.clientDataJSON);
     const rawId = new Uint8Array(credential.rawId);
     const sig = new Uint8Array(credResp.signature);
-    const userHandle = new Uint8Array(credResp.userHandle);
+    const userHandle = new Uint8Array(credResp.userHandle ?? []);
 
     const res = await POST(`${appSubUrl}/user/webauthn/passkey/login`, {
       data: {
@@ -183,7 +178,7 @@ async function webauthnRegistered(newCredential: any) { // TODO: Credential type
 }
 
 function webAuthnError(errorType: string, message:string = '') {
-  const elErrorMsg = document.querySelector(`#webauthn-error-msg`);
+  const elErrorMsg = document.querySelector(`#webauthn-error-msg`)!;
 
   if (errorType === 'general') {
     elErrorMsg.textContent = message || 'unknown error';
@@ -228,7 +223,7 @@ export function initUserAuthWebAuthnRegister() {
 }
 
 async function webAuthnRegisterRequest() {
-  const elNickname = document.querySelector<HTMLInputElement>('#nickname');
+  const elNickname = document.querySelector<HTMLInputElement>('#nickname')!;
 
   const formData = new FormData();
   formData.append('name', elNickname.value);
@@ -246,7 +241,7 @@ async function webAuthnRegisterRequest() {
   }
 
   const options = await res.json();
-  elNickname.closest('div.field').classList.remove('error');
+  elNickname.closest('div.field')!.classList.remove('error');
 
   options.publicKey.challenge = decodeURLEncodedBase64(options.publicKey.challenge);
   options.publicKey.user.id = decodeURLEncodedBase64(options.publicKey.user.id);

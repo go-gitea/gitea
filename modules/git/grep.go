@@ -84,11 +84,10 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	cmd.AddDashesAndList(opts.PathspecList...)
 	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
 	stderr := bytes.Buffer{}
-	err = cmd.Run(ctx, &gitcmd.RunOpts{
-		Dir:    repo.Path,
-		Stdout: stdoutWriter,
-		Stderr: &stderr,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+	err = cmd.WithDir(repo.Path).
+		WithStdout(stdoutWriter).
+		WithStderr(&stderr).
+		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			defer stdoutReader.Close()
 
@@ -133,8 +132,8 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 				}
 			}
 			return nil
-		},
-	})
+		}).
+		Run(ctx)
 	// git grep exits by cancel (killed), usually it is caused by the limit of results
 	if gitcmd.IsErrorExitCode(err, -1) && stderr.Len() == 0 {
 		return results, nil

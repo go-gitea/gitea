@@ -11,11 +11,21 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
+type TreeCommon struct {
+	ID         ObjectID
+	ResolvedID ObjectID
+
+	repo  *Repository
+	ptree *Tree // parent tree
+}
+
 // NewTree create a new tree according the repository and tree id
 func NewTree(repo *Repository, id ObjectID) *Tree {
 	return &Tree{
-		ID:   id,
-		repo: repo,
+		TreeCommon: TreeCommon{
+			ID:   id,
+			repo: repo,
+		},
 	}
 }
 
@@ -53,7 +63,7 @@ func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error
 	cmd := gitcmd.NewCommand("ls-tree", "-z", "--name-only").
 		AddDashesAndList(append([]string{ref}, filenames...)...)
 
-	res, _, err := cmd.RunStdBytes(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	res, _, err := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +79,8 @@ func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error
 func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Commit, error) {
 	stdout, _, err := gitcmd.NewCommand("rev-list", "-1").
 		AddDynamicArguments(refName).AddDashesAndList(treePath).
-		RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}

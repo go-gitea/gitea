@@ -17,7 +17,10 @@ import (
 
 // ResolveReference resolves a name to a reference
 func (repo *Repository) ResolveReference(name string) (string, error) {
-	stdout, _, err := gitcmd.NewCommand("show-ref", "--hash").AddDynamicArguments(name).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	stdout, _, err := gitcmd.NewCommand("show-ref", "--hash").
+		AddDynamicArguments(name).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
 			return "", ErrNotExist{name, ""}
@@ -57,7 +60,10 @@ func (repo *Repository) IsCommitExist(name string) bool {
 		log.Error("IsCommitExist: %v", err)
 		return false
 	}
-	_, _, err := gitcmd.NewCommand("cat-file", "-e").AddDynamicArguments(name).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	_, _, err := gitcmd.NewCommand("cat-file", "-e").
+		AddDynamicArguments(name).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	return err == nil
 }
 

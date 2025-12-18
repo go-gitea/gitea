@@ -51,7 +51,10 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	actualCommitID, _, err := gitcmd.NewCommand("rev-parse", "--verify").AddDynamicArguments(commitID).RunStdString(repo.Ctx, &gitcmd.RunOpts{Dir: repo.Path})
+	actualCommitID, _, err := gitcmd.NewCommand("rev-parse", "--verify").
+		AddDynamicArguments(commitID).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
 	actualCommitID = strings.TrimSpace(actualCommitID)
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown revision or path") ||
@@ -104,7 +107,7 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 	}
 
 	commit.Tree.ID = ParseGogitHash(tree.Hash)
-	commit.Tree.gogitTree = tree
+	commit.Tree.resolvedGogitTreeObject = tree
 
 	return commit, nil
 }

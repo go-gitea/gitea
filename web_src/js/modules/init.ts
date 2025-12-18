@@ -1,6 +1,6 @@
 export class InitPerformanceTracer {
   results: {name: string, dur: number}[] = [];
-  recordCall(name: string, func: ()=>void) {
+  recordCall(name: string, func: () => void) {
     const start = performance.now();
     func();
     this.results.push({name, dur: performance.now() - start});

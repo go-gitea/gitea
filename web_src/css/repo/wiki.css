@@ -1,7 +1,3 @@
-.repository.wiki .wiki-pages-list tr:hover {
-  background-color: var(--color-hover);
-}
-
 .repository.wiki .wiki-pages-list .wiki-git-entry {
   margin-left: 10px;
   display: none;

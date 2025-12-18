@@ -49,7 +49,7 @@ func GetOrganizationByParams(ctx *Context) {
 		if organization.IsErrOrgNotExist(err) {
 			redirectUserID, err := user_model.LookupUserRedirect(ctx, orgName)
 			if err == nil {
-				RedirectToUser(ctx.Base, orgName, redirectUserID)
+				RedirectToUser(ctx.Base, ctx.Doer, orgName, redirectUserID)
 			} else if user_model.IsErrUserRedirectNotExist(err) {
 				ctx.NotFound(err)
 			} else {
@@ -70,8 +70,9 @@ type OrgAssignmentOptions struct {
 }
 
 // OrgAssignment returns a middleware to handle organization assignment
-func OrgAssignment(opts OrgAssignmentOptions) func(ctx *Context) {
+func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 	return func(ctx *Context) {
+		opts := orgAssignmentOpts // it must be a copy, because the values will be changed
 		var err error
 		if ctx.ContextUser == nil {
 			// if Organization is not defined, get it from params

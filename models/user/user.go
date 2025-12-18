@@ -249,8 +249,13 @@ func (u *User) MaxCreationLimit() int {
 }
 
 // CanCreateRepoIn checks whether the doer(u) can create a repository in the owner
-// NOTE: functions calling this assume a failure due to repository count limit; it ONLY checks the repo number LIMIT, if new checks are added, those functions should be revised
+// NOTE: functions calling this assume a failure due to repository count limit, or the owner is not a real user.
+// It ONLY checks the repo number LIMIT or whether owner user is real. If new checks are added, those functions should be revised.
+// TODO: the callers can only return ErrReachLimitOfRepo, need to fine tune to support other error types in the future.
 func (u *User) CanCreateRepoIn(owner *User) bool {
+	if u.ID <= 0 || owner.ID <= 0 {
+		return false // fake user like Ghost or Actions user
+	}
 	if u.IsAdmin {
 		return true
 	}
@@ -1257,8 +1262,8 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Finally, if email address is the protected email address:
-	if strings.HasSuffix(email, "@"+setting.Service.NoReplyAddress) {
-		username := strings.TrimSuffix(email, "@"+setting.Service.NoReplyAddress)
+	if before, ok := strings.CutSuffix(email, "@"+setting.Service.NoReplyAddress); ok {
+		username := before
 		user := &User{}
 		has, err := db.GetEngine(ctx).Where("lower_name=?", username).Get(user)
 		if err != nil {
@@ -1443,4 +1448,28 @@ func DisabledFeaturesWithLoginType(user *User) *container.Set[string] {
 		return &setting.Admin.ExternalUserDisableFeatures
 	}
 	return &setting.Admin.UserDisabledFeatures
+}
+
+// GetUserOrOrgIDByName returns the id for a user or an org by name
+func GetUserOrOrgIDByName(ctx context.Context, name string) (int64, error) {
+	var id int64
+	has, err := db.GetEngine(ctx).Table("user").Where("name = ?", name).Cols("id").Get(&id)
+	if err != nil {
+		return 0, err
+	} else if !has {
+		return 0, fmt.Errorf("user or org with name %s: %w", name, util.ErrNotExist)
+	}
+	return id, nil
+}
+
+// GetUserOrOrgByName returns the user or org by name
+func GetUserOrOrgByName(ctx context.Context, name string) (*User, error) {
+	var u User
+	has, err := db.GetEngine(ctx).Where("lower_name = ?", strings.ToLower(name)).Get(&u)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrUserNotExist{Name: name}
+	}
+	return &u, nil
 }

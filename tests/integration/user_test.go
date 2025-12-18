@@ -45,6 +45,78 @@ func TestRenameUsername(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user2"})
 }
 
+func TestViewLimitedAndPrivateUserAndRename(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// user 22 is a limited visibility org
+	org22 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 22})
+	req := NewRequest(t, "GET", "/"+org22.Name)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	session := loginUser(t, "user1")
+	oldName := org22.Name
+	newName := "org22_renamed"
+	req = NewRequestWithValues(t, "POST", "/org/"+oldName+"/settings/rename", map[string]string{
+		"_csrf":        GetUserCSRFToken(t, session),
+		"org_name":     oldName,
+		"new_org_name": newName,
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: newName})
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: oldName})
+
+	req = NewRequest(t, "GET", "/"+oldName)
+	MakeRequest(t, req, http.StatusNotFound) // anonymous user cannot visit limited visibility org via old name
+	req = NewRequest(t, "GET", "/"+oldName)
+	session.MakeRequest(t, req, http.StatusTemporaryRedirect) // login user can visit limited visibility org via old name
+
+	// org 23 is a private visibility org
+	org23 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 23})
+	req = NewRequest(t, "GET", "/"+org23.Name)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	oldName = org23.Name
+	newName = "org23_renamed"
+	req = NewRequestWithValues(t, "POST", "/org/"+oldName+"/settings/rename", map[string]string{
+		"_csrf":        GetUserCSRFToken(t, session),
+		"org_name":     oldName,
+		"new_org_name": newName,
+	})
+	session.MakeRequest(t, req, http.StatusOK)
+
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: newName})
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: oldName})
+
+	req = NewRequest(t, "GET", "/"+oldName)
+	MakeRequest(t, req, http.StatusNotFound) // anonymous user cannot visit limited visibility org via old name
+	req = NewRequest(t, "GET", "/"+oldName)
+	session.MakeRequest(t, req, http.StatusTemporaryRedirect) // login user can visit limited visibility org via old name
+
+	// user 31 is a private visibility user
+	user31 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31})
+	req = NewRequest(t, "GET", "/"+user31.Name)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	oldName = user31.Name
+	newName = "user31_renamed"
+	session2 := loginUser(t, oldName)
+	req = NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+		"_csrf":      GetUserCSRFToken(t, session2),
+		"name":       newName,
+		"visibility": "2", // private
+	})
+	session2.MakeRequest(t, req, http.StatusSeeOther)
+
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: newName})
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: oldName})
+
+	req = NewRequest(t, "GET", "/"+oldName)
+	MakeRequest(t, req, http.StatusNotFound) // anonymous user cannot visit private visibility user via old name
+	req = NewRequest(t, "GET", "/"+oldName)
+	session.MakeRequest(t, req, http.StatusTemporaryRedirect) // login user2 can visit private visibility user via old name
+}
+
 func TestRenameInvalidUsername(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 

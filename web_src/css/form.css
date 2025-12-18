@@ -228,6 +228,12 @@ textarea:focus,
   color: var(--color-text-light-1);
 }
 
+.form .help pre.command-block {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0.25em 0 0.25em 1em;
+}
+
 .m-captcha-style {
   width: 100%;
   height: 5em;

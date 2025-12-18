@@ -1,7 +1,9 @@
 @import "./theme-gitea-light.css";
 
 gitea-theme-meta-info {
-  --theme-display-name: "Light (Red/Green Colorblind-friendly)";
+  --theme-display-name: "Light";
+  --theme-colorblind-type: "red-green";
+  --theme-color-scheme: "light";
 }
 
 /* red/green colorblind-friendly colors */

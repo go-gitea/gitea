@@ -25,10 +25,11 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 	if err != nil {
 		return nil, err
 	}
-	opts := &gitcmd.RunOpts{
-		Dir:    repoPath,
-		Stdout: stdoutWriter,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+
+	err = gitcmd.NewCommand("ls-tree", "-r", "--", "HEAD").
+		WithDir(repoPath).
+		WithStdout(stdoutWriter).
+		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			defer stdoutReader.Close()
 
@@ -44,9 +45,8 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 				}
 			}
 			return scanner.Err()
-		},
-	}
-	err = gitcmd.NewCommand("ls-tree", "-r", "--", "HEAD").Run(ctx, opts)
+		}).
+		Run(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("GetTemplateSubmoduleCommits: error running git ls-tree: %v", err)
 	}
@@ -58,7 +58,7 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 func AddTemplateSubmoduleIndexes(ctx context.Context, repoPath string, submodules []TemplateSubmoduleCommit) error {
 	for _, submodule := range submodules {
 		cmd := gitcmd.NewCommand("update-index", "--add", "--cacheinfo", "160000").AddDynamicArguments(submodule.Commit, submodule.Path)
-		if stdout, _, err := cmd.RunStdString(ctx, &gitcmd.RunOpts{Dir: repoPath}); err != nil {
+		if stdout, _, err := cmd.WithDir(repoPath).RunStdString(ctx); err != nil {
 			log.Error("Unable to add %s as submodule to repo %s: stdout %s\nError: %v", submodule.Path, repoPath, stdout, err)
 			return err
 		}

@@ -65,11 +65,10 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 
 	go func() {
 		stderr := strings.Builder{}
-		err := cmd.Run(ctx, &gitcmd.RunOpts{
-			Dir:    repository,
-			Stdout: stdoutWriter,
-			Stderr: &stderr,
-		})
+		err := cmd.WithDir(repository).
+			WithStdout(stdoutWriter).
+			WithStderr(&stderr).
+			Run(ctx)
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
 			return

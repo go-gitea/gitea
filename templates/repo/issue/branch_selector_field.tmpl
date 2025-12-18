@@ -2,7 +2,8 @@
 PR: https://github.com/go-gitea/gitea/pull/32744
 
 The Issue.Ref was added by Add possibility to record branch or tag information in an issue (#780)
-After 8 years, this "branch selector" does nothing more than saving the branch/tag name into database and displays it.
+After 8 years, this "branch selector" does nothing more than saving the branch/tag name into database and displays it,
+or sometimes auto-close a ref-matched issue by a commit message when CloseIssuesViaCommitInAnyBranch=false.
 
 There are still users using it:
 * @didim99: it is a really useful feature to specify a branch in which issue found.

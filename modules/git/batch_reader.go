@@ -31,10 +31,9 @@ type WriteCloserError interface {
 func ensureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
 	err := gitcmd.NewCommand("rev-parse").
-		Run(ctx, &gitcmd.RunOpts{
-			Dir:    repoPath,
-			Stderr: &stderr,
-		})
+		WithDir(repoPath).
+		WithStderr(&stderr).
+		Run(ctx)
 	if err != nil {
 		return gitcmd.ConcatenateError(err, (&stderr).String())
 	}
@@ -63,14 +62,12 @@ func catFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 	go func() {
 		stderr := strings.Builder{}
 		err := gitcmd.NewCommand("cat-file", "--batch-check").
-			Run(ctx, &gitcmd.RunOpts{
-				Dir:    repoPath,
-				Stdin:  batchStdinReader,
-				Stdout: batchStdoutWriter,
-				Stderr: &stderr,
-
-				UseContextTimeout: true,
-			})
+			WithDir(repoPath).
+			WithStdin(batchStdinReader).
+			WithStdout(batchStdoutWriter).
+			WithStderr(&stderr).
+			WithUseContextTimeout(true).
+			Run(ctx)
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
 			_ = batchStdinReader.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
@@ -111,14 +108,12 @@ func catFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 	go func() {
 		stderr := strings.Builder{}
 		err := gitcmd.NewCommand("cat-file", "--batch").
-			Run(ctx, &gitcmd.RunOpts{
-				Dir:    repoPath,
-				Stdin:  batchStdinReader,
-				Stdout: batchStdoutWriter,
-				Stderr: &stderr,
-
-				UseContextTimeout: true,
-			})
+			WithDir(repoPath).
+			WithStdin(batchStdinReader).
+			WithStdout(batchStdoutWriter).
+			WithStderr(&stderr).
+			WithUseContextTimeout(true).
+			Run(ctx)
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
 			_ = batchStdinReader.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))

@@ -122,6 +122,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	org3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
@@ -129,6 +130,12 @@ func TestGetReviewersByIssueID(t *testing.T) {
 
 	expectedReviews := []*issues_model.Review{}
 	expectedReviews = append(expectedReviews,
+		&issues_model.Review{
+			ID:          5,
+			Reviewer:    user1,
+			Type:        issues_model.ReviewTypeComment,
+			UpdatedUnix: 946684810,
+		},
 		&issues_model.Review{
 			ID:          7,
 			Reviewer:    org3,
@@ -167,8 +174,9 @@ func TestGetReviewersByIssueID(t *testing.T) {
 	for _, review := range allReviews {
 		assert.NoError(t, review.LoadReviewer(t.Context()))
 	}
-	if assert.Len(t, allReviews, 5) {
+	if assert.Len(t, allReviews, 6) {
 		for i, review := range allReviews {
+			assert.Equal(t, expectedReviews[i].ID, review.ID)
 			assert.Equal(t, expectedReviews[i].Reviewer, review.Reviewer)
 			assert.Equal(t, expectedReviews[i].Type, review.Type)
 			assert.Equal(t, expectedReviews[i].UpdatedUnix, review.UpdatedUnix)

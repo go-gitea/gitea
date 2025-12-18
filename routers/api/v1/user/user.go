@@ -77,7 +77,7 @@ func Search(ctx *context.APIContext) {
 			Actor:         ctx.Doer,
 			Keyword:       ctx.FormTrim("q"),
 			UID:           uid,
-			Type:          user_model.UserTypeIndividual,
+			Types:         []user_model.UserType{user_model.UserTypeIndividual},
 			SearchByEmail: true,
 			Visible:       visible,
 			ListOptions:   listOptions,

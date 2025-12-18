@@ -4,6 +4,8 @@
 package integration
 
 import (
+	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -243,6 +245,79 @@ func TestAPIRenameBranch(t *testing.T) {
 	})
 }
 
+func TestAPIUpdateBranchReference(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		ctx := NewAPITestContext(t, "user2", "update-branch", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		giteaURL.Path = ctx.GitPath()
+
+		var defaultBranch string
+		t.Run("CreateRepo", doAPICreateRepository(ctx, false, func(t *testing.T, repo api.Repository) {
+			defaultBranch = repo.DefaultBranch
+		}))
+
+		createBranchReq := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/branches", ctx.Username, ctx.Reponame), &api.CreateBranchRepoOption{
+			BranchName: "feature",
+			OldRefName: defaultBranch,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, createBranchReq, http.StatusCreated)
+
+		var featureInitialCommit string
+		t.Run("LoadFeatureBranch", doAPIGetBranch(ctx, "feature", func(t *testing.T, branch api.Branch) {
+			featureInitialCommit = branch.Commit.ID
+			assert.NotEmpty(t, featureInitialCommit)
+		}))
+
+		content := base64.StdEncoding.EncodeToString([]byte("branch update test"))
+		var newCommit string
+		doAPICreateFile(ctx, "docs/update.txt", &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				BranchName:    defaultBranch,
+				NewBranchName: defaultBranch,
+				Message:       "add docs/update.txt",
+			},
+			ContentBase64: content,
+		}, func(t *testing.T, resp api.FileResponse) {
+			newCommit = resp.Commit.SHA
+			assert.NotEmpty(t, newCommit)
+		})(t)
+
+		updateReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: newCommit,
+			OldCommitID: featureInitialCommit,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, updateReq, http.StatusNoContent)
+
+		t.Run("FastForwardApplied", doAPIGetBranch(ctx, "feature", func(t *testing.T, branch api.Branch) {
+			assert.Equal(t, newCommit, branch.Commit.ID)
+		}))
+
+		staleReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: newCommit,
+			OldCommitID: featureInitialCommit,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, staleReq, http.StatusUnprocessableEntity)
+
+		nonFFReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: featureInitialCommit,
+			OldCommitID: newCommit,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, nonFFReq, http.StatusUnprocessableEntity)
+
+		forceReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: featureInitialCommit,
+			OldCommitID: newCommit,
+			Force:       true,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, forceReq, http.StatusNoContent)
+
+		t.Run("ForceApplied", doAPIGetBranch(ctx, "feature", func(t *testing.T, branch api.Branch) {
+			assert.Equal(t, featureInitialCommit, branch.Commit.ID)
+		}))
+	})
+}
+
 func testAPIRenameBranch(t *testing.T, doerName, ownerName, repoName, from, to string, expectedHTTPStatus int) *httptest.ResponseRecorder {
 	token := getUserToken(t, doerName, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, "PATCH", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from, &api.RenameBranchRepoOption{
@@ -303,7 +378,7 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, branches, 6)
+	assert.Len(t, branches, 8)
 
 	// make a broke repository with no branch on database
 	_, err = db.DeleteByBean(t.Context(), git_model.Branch{RepoID: 1})
@@ -320,7 +395,7 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, branches, 7)
+	assert.Len(t, branches, 9)
 
 	branches, err = db.Find[git_model.Branch](t.Context(), git_model.FindBranchOptions{
 		RepoID:  1,

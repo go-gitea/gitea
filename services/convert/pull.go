@@ -146,7 +146,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
-		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
+		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RelativePath(), err)
 		return nil
 	}
 	defer gitRepo.Close()
@@ -192,7 +192,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 
 		headGitRepo, err := gitrepo.OpenRepository(ctx, pr.HeadRepo)
 		if err != nil {
-			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.RepoPath(), err)
+			log.Error("OpenRepository[%s]: %v", pr.HeadRepo.RelativePath(), err)
 			return nil
 		}
 		defer headGitRepo.Close()
@@ -248,7 +248,7 @@ func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *u
 	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
 		baseGitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 		if err != nil {
-			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
+			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RelativePath(), err)
 			return nil
 		}
 		defer baseGitRepo.Close()

@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/routers/common"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/context"
@@ -756,7 +757,12 @@ func EditPullRequest(ctx *context.APIContext) {
 
 	// change pull target branch
 	if !pr.HasMerged && len(form.Base) != 0 && form.Base != pr.BaseBranch {
-		if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, form.Base) {
+		branchExist, err := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, form.Base)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if !branchExist {
 			ctx.APIError(http.StatusNotFound, fmt.Errorf("new base '%s' not exist", form.Base))
 			return
 		}
@@ -938,7 +944,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		} else if errors.Is(err, pull_service.ErrNoPermissionToMerge) {
 			ctx.APIError(http.StatusMethodNotAllowed, "User not allowed to merge PR")
 		} else if errors.Is(err, pull_service.ErrHasMerged) {
-			ctx.APIError(http.StatusMethodNotAllowed, "")
+			ctx.APIError(http.StatusMethodNotAllowed, "The PR is already merged")
 		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
 			ctx.APIError(http.StatusMethodNotAllowed, "Work in progress PRs cannot be merged")
 		} else if errors.Is(err, pull_service.ErrNotMergeableState) {
@@ -989,8 +995,14 @@ func MergePullRequest(ctx *context.APIContext) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
+	deleteBranchAfterMerge, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, form.DeleteBranchAfterMerge, ctx.Repo.Repository, pr)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
 	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, form.DeleteBranchAfterMerge)
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message, deleteBranchAfterMerge)
 		if err != nil {
 			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
 				ctx.APIError(http.StatusConflict, err)
@@ -1005,7 +1017,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.APIError(http.StatusMethodNotAllowed, fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 		} else if pull_service.IsErrMergeConflicts(err) {
@@ -1035,47 +1047,10 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 	log.Trace("Pull request merged: %d", pr.ID)
 
-	// for agit flow, we should not delete the agit reference after merge
-	if form.DeleteBranchAfterMerge && pr.Flow == issues_model.PullRequestFlowGithub {
-		// check permission even it has been checked in repo_service.DeleteBranch so that we don't need to
-		// do RetargetChildrenOnMerge
-		if err := repo_service.CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, ctx.Doer); err == nil {
-			// Don't cleanup when there are other PR's that use this branch as head branch.
-			exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
-			if err != nil {
-				ctx.APIErrorInternal(err)
-				return
-			}
-			if exist {
-				ctx.Status(http.StatusOK)
-				return
-			}
-
-			var headRepo *git.Repository
-			if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
-				headRepo = ctx.Repo.GitRepo
-			} else {
-				headRepo, err = gitrepo.OpenRepository(ctx, pr.HeadRepo)
-				if err != nil {
-					ctx.APIErrorInternal(err)
-					return
-				}
-				defer headRepo.Close()
-			}
-
-			if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch, pr); err != nil {
-				switch {
-				case git.IsErrBranchNotExist(err):
-					ctx.APIErrorNotFound(err)
-				case errors.Is(err, repo_service.ErrBranchIsDefault):
-					ctx.APIError(http.StatusForbidden, errors.New("can not delete default branch"))
-				case errors.Is(err, git_model.ErrBranchIsProtected):
-					ctx.APIError(http.StatusForbidden, errors.New("branch protected"))
-				default:
-					ctx.APIErrorInternal(err)
-				}
-				return
-			}
+	if deleteBranchAfterMerge {
+		if err = repo_service.DeleteBranchAfterMerge(ctx, ctx.Doer, pr.ID, nil); err != nil {
+			// no way to tell users that what error happens, and the PR has been merged, so ignore the error
+			log.Debug("DeleteBranchAfterMerge: pr %d, err: %v", pr.ID, err)
 		}
 	}
 
@@ -1108,7 +1083,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	} else if len(headInfos) == 2 {
 		// There is a head repository (the head repository could also be the same base repo)
 		headRefToGuess = headInfos[1]
-		headUser, err = user_model.GetUserByName(ctx, headInfos[0])
+		headUser, err = user_model.GetUserOrOrgByName(ctx, headInfos[0])
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.APIErrorNotFound("GetUserByName")
@@ -1124,28 +1099,23 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 
 	isSameRepo := ctx.Repo.Owner.ID == headUser.ID
 
-	// Check if current user has fork of repository or in the same repository.
-	headRepo := repo_model.GetForkedRepo(ctx, headUser.ID, baseRepo.ID)
-	if headRepo == nil && !isSameRepo {
-		err = baseRepo.GetBaseRepo(ctx)
+	var headRepo *repo_model.Repository
+	if isSameRepo {
+		headRepo = baseRepo
+	} else {
+		headRepo, err = common.FindHeadRepo(ctx, baseRepo, headUser.ID)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return nil, nil
 		}
-
-		// Check if baseRepo's base repository is the same as headUser's repository.
-		if baseRepo.BaseRepo == nil || baseRepo.BaseRepo.OwnerID != headUser.ID {
-			log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-			ctx.APIErrorNotFound("GetBaseRepo")
+		if headRepo == nil {
+			ctx.APIErrorNotFound("head repository not found")
 			return nil, nil
 		}
-		// Assign headRepo so it can be used below.
-		headRepo = baseRepo.BaseRepo
 	}
 
 	var headGitRepo *git.Repository
 	if isSameRepo {
-		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 		closer = func() {} // no need to close the head repo because it shares the base repo
 	} else {
@@ -1169,7 +1139,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(unit.TypeCode) {
+	if !permBase.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
 		ctx.APIErrorNotFound("Can't read pulls or can't read UnitTypeCode")
 		return nil, nil
@@ -1191,7 +1161,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefToGuess)
 	headRef := headGitRepo.UnstableGuessRefByShortName(headRefToGuess)
 
-	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.GitRepo.Path, baseRefToGuess, baseRef, headRefToGuess, headRef)
+	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), baseRefToGuess, baseRef, headRefToGuess, headRef)
 
 	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
 	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())
