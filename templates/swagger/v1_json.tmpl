@@ -1,9 +1,11 @@
 {
   "consumes": [
-    "application/json"
+    "application/json",
+    "text/plain"
   ],
   "produces": [
-    "application/json"
+    "application/json",
+    "text/html"
   ],
   "schemes": [
     "https",
@@ -74,17 +76,9 @@
         ],
         "summary": "Get all runners",
         "operationId": "getAdminRunners",
-        "parameters": [
-          {
-            "type": "boolean",
-            "description": "filter by disabled status (true or false)",
-            "name": "disabled",
-            "in": "query"
-          }
-        ],
         "responses": {
           "200": {
-            "$ref": "#/responses/RunnerList"
+            "$ref": "#/definitions/ActionRunnersResponse"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -133,7 +127,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Runner"
+            "$ref": "#/definitions/ActionRunner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -170,49 +164,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          }
-        }
-      },
-      "patch": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "admin"
-        ],
-        "summary": "Update a global runner",
-        "operationId": "updateAdminRunner",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "id of the runner",
-            "name": "runner_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/EditActionRunnerOption"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/Runner"
-          },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -1996,17 +1947,11 @@
             "name": "org",
             "in": "path",
             "required": true
-          },
-          {
-            "type": "boolean",
-            "description": "filter by disabled status (true or false)",
-            "name": "disabled",
-            "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/RunnerList"
+            "$ref": "#/definitions/ActionRunnersResponse"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -2071,7 +2016,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Runner"
+            "$ref": "#/definitions/ActionRunner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -2115,56 +2060,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          }
-        }
-      },
-      "patch": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "organization"
-        ],
-        "summary": "Update an org-level runner",
-        "operationId": "updateOrgRunner",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "name of the organization",
-            "name": "org",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "id of the runner",
-            "name": "runner_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/EditActionRunnerOption"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/Runner"
-          },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -3633,39 +3528,6 @@
             "$ref": "#/responses/notFound"
           }
         }
-      },
-      "delete": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "organization"
-        ],
-        "summary": "Delete all repositories in an organization",
-        "operationId": "orgDeleteRepos",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "name of the organization",
-            "name": "org",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "202": {
-            "$ref": "#/responses/empty"
-          },
-          "204": {
-            "$ref": "#/responses/empty"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
       }
     },
     "/orgs/{org}/teams": {
@@ -3868,7 +3730,6 @@
               "rpm",
               "rubygems",
               "swift",
-              "terraform",
               "vagrant"
             ],
             "type": "string",
@@ -3941,44 +3802,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PackageList"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "package"
-        ],
-        "summary": "Delete a package",
-        "operationId": "deletePackage",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the package",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "type of the package",
-            "name": "type",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the package",
-            "name": "name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "204": {
-            "$ref": "#/responses/empty"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -4169,8 +3992,8 @@
         "tags": [
           "package"
         ],
-        "summary": "Delete a package version",
-        "operationId": "deletePackageVersion",
+        "summary": "Delete a package",
+        "operationId": "deletePackage",
         "parameters": [
           {
             "type": "string",
@@ -5049,17 +4872,11 @@
             "name": "repo",
             "in": "path",
             "required": true
-          },
-          {
-            "type": "boolean",
-            "description": "filter by disabled status (true or false)",
-            "name": "disabled",
-            "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/RunnerList"
+            "$ref": "#/definitions/ActionRunnersResponse"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5111,7 +4928,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get a repo-level runner",
+        "summary": "Get an repo-level runner",
         "operationId": "getRepoRunner",
         "parameters": [
           {
@@ -5138,7 +4955,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Runner"
+            "$ref": "#/definitions/ActionRunner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5155,7 +4972,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Delete a repo-level runner",
+        "summary": "Delete an repo-level runner",
         "operationId": "deleteRepoRunner",
         "parameters": [
           {
@@ -5189,63 +5006,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          }
-        }
-      },
-      "patch": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Update a repo-level runner",
-        "operationId": "updateRepoRunner",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "id of the runner",
-            "name": "runner_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/EditActionRunnerOption"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/Runner"
-          },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -5357,7 +5117,7 @@
             "required": true
           },
           {
-            "type": "integer",
+            "type": "string",
             "description": "id of the run",
             "name": "run",
             "in": "path",
@@ -5463,130 +5223,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ArtifactsList"
-          },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/actions/runs/{run}/attempts/{attempt}": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Gets a specific workflow run attempt",
-        "operationId": "getWorkflowRunAttempt",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repository",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "id of the run",
-            "name": "run",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "logical attempt number of the run",
-            "name": "attempt",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/WorkflowRun"
-          },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/actions/runs/{run}/attempts/{attempt}/jobs": {
-      "get": {
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Lists all jobs for a workflow run attempt",
-        "operationId": "listWorkflowRunAttemptJobs",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repository",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "id of the workflow run",
-            "name": "run",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "logical attempt number of the run",
-            "name": "attempt",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "workflow status (pending, queued, in_progress, failure, success, skipped)",
-            "name": "status",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page number of results to return (1-based)",
-            "name": "page",
-            "in": "query"
-          },
-          {
-            "type": "integer",
-            "description": "page size of results",
-            "name": "limit",
-            "in": "query"
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/WorkflowJobsList"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5714,9 +5350,6 @@
           "404": {
             "$ref": "#/responses/notFound"
           },
-          "409": {
-            "$ref": "#/responses/error"
-          },
           "422": {
             "$ref": "#/responses/validationError"
           }
@@ -5768,61 +5401,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/error"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/actions/runs/{run}/rerun-failed-jobs": {
-      "post": {
-        "tags": [
-          "repository"
-        ],
-        "summary": "Reruns all failed jobs in a workflow run",
-        "operationId": "rerunFailedWorkflowRun",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repository",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "description": "id of the run",
-            "name": "run",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "201": {
-            "$ref": "#/responses/empty"
-          },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "409": {
-            "$ref": "#/responses/error"
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -10433,7 +10011,7 @@
           }
         ],
         "responses": {
-          "204": {
+          "200": {
             "$ref": "#/responses/empty"
           },
           "403": {
@@ -10567,7 +10145,6 @@
         }
       },
       "patch": {
-        "description": "Pass `content_version` to enable optimistic locking on body edits.\nIf the version doesn't match the current value, the request fails with 409 Conflict.\n",
         "consumes": [
           "application/json"
         ],
@@ -12173,7 +11750,7 @@
           }
         ],
         "responses": {
-          "204": {
+          "200": {
             "$ref": "#/responses/empty"
           },
           "403": {
@@ -13948,6 +13525,528 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/projects": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List projects in a repository",
+        "operationId": "repoListProjects",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "open",
+              "closed",
+              "all"
+            ],
+            "type": "string",
+            "default": "open",
+            "description": "State of the project (open, closed)",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a new project",
+        "operationId": "repoCreateProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateProjectOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Project"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/columns/{id}": {
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a project column",
+        "operationId": "repoDeleteProjectColumn",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the column",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a project column",
+        "operationId": "repoEditProjectColumn",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the column",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditProjectColumnOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectColumn"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/columns/{id}/issues": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add an issue to a project column",
+        "operationId": "repoAddIssueToProjectColumn",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the column",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "type": "object",
+              "required": [
+                "issue_id"
+              ],
+              "properties": {
+                "issue_id": {
+                  "description": "ID of the issue to add",
+                  "type": "integer",
+                  "format": "int64"
+                }
+              }
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a single project",
+        "operationId": "repoGetProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Project"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a project",
+        "operationId": "repoDeleteProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a project",
+        "operationId": "repoEditProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/EditProjectOption"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Project"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{id}/columns": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List columns in a project",
+        "operationId": "repoListProjectColumns",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectColumnList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a new column in a project",
+        "operationId": "repoCreateProjectColumn",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateProjectColumnOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/ProjectColumn"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls": {
       "get": {
         "produces": [
@@ -14470,75 +14569,6 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/pulls/{index}/comments/{id}/replies": {
-      "post": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Reply to a pull request review comment",
-        "operationId": "repoCreatePullReviewCommentReply",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "index of the pull request",
-            "name": "index",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "id of the review comment to reply to",
-            "name": "id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/CreatePullReviewCommentReplyOptions"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "$ref": "#/responses/PullReviewComment"
-          },
-          "400": {
-            "$ref": "#/responses/validationError"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
-          }
-        }
-      }
-    },
     "/repos/{owner}/{repo}/pulls/{index}/commits": {
       "get": {
         "produces": [
@@ -14767,9 +14797,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/empty"
-          },
-          "403": {
-            "$ref": "#/responses/forbidden"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -15007,7 +15034,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Create a review to a pull request",
+        "summary": "Create a review to an pull request",
         "operationId": "repoCreatePullReview",
         "parameters": [
           {
@@ -15112,7 +15139,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Submit a pending review to a pull request",
+        "summary": "Submit a pending review to an pull request",
         "operationId": "repoSubmitPullReview",
         "parameters": [
           {
@@ -15777,7 +15804,7 @@
           },
           {
             "type": "boolean",
-            "description": "filter (exclude / include) drafts, if you don't have repo write access none will show",
+            "description": "filter (exclude / include) drafts, if you dont have repo write access none will show",
             "name": "draft",
             "in": "query"
           },
@@ -18936,17 +18963,9 @@
         ],
         "summary": "Get user-level runners",
         "operationId": "getUserRunners",
-        "parameters": [
-          {
-            "type": "boolean",
-            "description": "filter by disabled status (true or false)",
-            "name": "disabled",
-            "in": "query"
-          }
-        ],
         "responses": {
           "200": {
-            "$ref": "#/responses/RunnerList"
+            "$ref": "#/definitions/ActionRunnersResponse"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -18965,7 +18984,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Get a user's actions runner registration token",
+        "summary": "Get an user's actions runner registration token",
         "operationId": "userCreateRunnerRegistrationToken",
         "responses": {
           "200": {
@@ -18982,7 +19001,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Get a user-level runner",
+        "summary": "Get an user-level runner",
         "operationId": "getUserRunner",
         "parameters": [
           {
@@ -18995,7 +19014,7 @@
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/Runner"
+            "$ref": "#/definitions/ActionRunner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -19012,7 +19031,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Delete a user-level runner",
+        "summary": "Delete an user-level runner",
         "operationId": "deleteUserRunner",
         "parameters": [
           {
@@ -19032,49 +19051,6 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
-          }
-        }
-      },
-      "patch": {
-        "consumes": [
-          "application/json"
-        ],
-        "produces": [
-          "application/json"
-        ],
-        "tags": [
-          "user"
-        ],
-        "summary": "Update a user-level runner",
-        "operationId": "updateUserRunner",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "id of the runner",
-            "name": "runner_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "$ref": "#/definitions/EditActionRunnerOption"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/Runner"
-          },
-          "400": {
-            "$ref": "#/responses/error"
-          },
-          "404": {
-            "$ref": "#/responses/notFound"
-          },
-          "422": {
-            "$ref": "#/responses/validationError"
           }
         }
       }
@@ -19555,9 +19531,6 @@
         "responses": {
           "200": {
             "$ref": "#/responses/OAuth2Application"
-          },
-          "400": {
-            "$ref": "#/responses/error"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -21664,10 +21637,6 @@
           "type": "boolean",
           "x-go-name": "Busy"
         },
-        "disabled": {
-          "type": "boolean",
-          "x-go-name": "Disabled"
-        },
         "ephemeral": {
           "type": "boolean",
           "x-go-name": "Ephemeral"
@@ -22098,11 +22067,6 @@
           "type": "string",
           "x-go-name": "Path"
         },
-        "previous_attempt_url": {
-          "description": "PreviousAttemptURL is the API URL of the previous attempt of this run, e.g. \".../actions/runs/{run_id}/attempts/{attempt-1}\".\nIt is set only when the current attempt is \u003e 1 (i.e. a rerun). For the first attempt, or for legacy runs that pre-date ActionRunAttempt, it is null.",
-          "type": "string",
-          "x-go-name": "PreviousAttemptURL"
-        },
         "repository": {
           "$ref": "#/definitions/Repository"
         },
@@ -22112,7 +22076,6 @@
           "x-go-name": "RepositoryID"
         },
         "run_attempt": {
-          "description": "RunAttempt is 1-based for runs created after ActionRunAttempt was introduced.\nA value of 0 is a legacy-only sentinel for runs created before attempts existed\nand indicates no corresponding /attempts/{n} resource is available.",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RunAttempt"
@@ -22299,15 +22262,29 @@
       "type": "object",
       "properties": {
         "permission": {
-          "description": "Permission level to grant the collaborator\nread RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "type": "string",
           "enum": [
             "read",
             "write",
             "admin"
           ],
-          "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "AddIssueToProjectColumnOption": {
+      "description": "AddIssueToProjectColumnOption represents options for adding an issue to a project column",
+      "type": "object",
+      "required": [
+        "issue_id"
+      ],
+      "properties": {
+        "issue_id": {
+          "description": "Issue ID to add to the column",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "IssueID"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -23748,11 +23725,6 @@
           },
           "x-go-name": "Events"
         },
-        "name": {
-          "description": "Optional human-readable name for the webhook",
-          "type": "string",
-          "x-go-name": "Name"
-        },
         "type": {
           "type": "string",
           "enum": [
@@ -23840,15 +23812,6 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
-        },
-        "projects": {
-          "description": "list of project ids",
-          "type": "array",
-          "items": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "x-go-name": "Projects"
         },
         "ref": {
           "type": "string",
@@ -24042,20 +24005,69 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "description": "possible values are `public` (default), `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "possible values are `public` (default), `limited` or `private`",
           "type": "string",
           "enum": [
             "public",
             "limited",
             "private"
           ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
           "description": "The website URL of the organization",
           "type": "string",
           "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateProjectColumnOption": {
+      "description": "CreateProjectColumnOption represents options for creating a project column",
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "color": {
+          "description": "Column color (hex format, e.g., #FF0000)",
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "CreateProjectOption": {
+      "description": "CreateProjectOption represents options for creating a project",
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "card_type": {
+          "description": "Card type: 0=text_only, 1=images_and_text",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CardType"
+        },
+        "description": {
+          "description": "Project description",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "template_type": {
+          "description": "Template type: 0=none, 1=basic_kanban, 2=bug_triage",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TemplateType"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -24169,17 +24181,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "CreatePullReviewCommentReplyOptions": {
-      "description": "CreatePullReviewCommentReplyOptions are options to reply to a pull request review comment",
-      "type": "object",
-      "properties": {
-        "body": {
-          "type": "string",
-          "x-go-name": "Body"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "CreatePullReviewOptions": {
       "description": "CreatePullReviewOptions are options to create a pull request review",
       "type": "object",
@@ -24200,16 +24201,7 @@
           "x-go-name": "CommitID"
         },
         "event": {
-          "type": "string",
-          "enum": [
-            "APPROVED",
-            "PENDING",
-            "COMMENT",
-            "REQUEST_CHANGES",
-            "REQUEST_REVIEW"
-          ],
-          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
-          "x-go-name": "Event"
+          "$ref": "#/definitions/ReviewStateType"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -24334,13 +24326,12 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
+          "description": "ObjectFormatName of the underlying git repository, empty string for default (sha1)",
           "type": "string",
           "enum": [
             "sha1",
             "sha256"
           ],
-          "x-go-enum-desc": "sha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
           "x-go-name": "ObjectFormatName"
         },
         "private": {
@@ -24493,7 +24484,6 @@
             "write",
             "admin"
           ],
-          "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
         },
         "units": {
@@ -24588,14 +24578,8 @@
           "x-go-name": "Username"
         },
         "visibility": {
-          "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level: public, limited, or private",
           "type": "string",
-          "enum": [
-            "public",
-            "limited",
-            "private"
-          ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         }
       },
@@ -24805,20 +24789,6 @@
         "priors": {
           "type": "boolean",
           "x-go-name": "Priors"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
-    "EditActionRunnerOption": {
-      "type": "object",
-      "title": "EditActionRunnerOption represents the editable fields for a runner.",
-      "required": [
-        "disabled"
-      ],
-      "properties": {
-        "disabled": {
-          "type": "boolean",
-          "x-go-name": "Disabled"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -25048,11 +25018,6 @@
             "type": "string"
           },
           "x-go-name": "Events"
-        },
-        "name": {
-          "description": "Optional human-readable name",
-          "type": "string",
-          "x-go-name": "Name"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -25091,12 +25056,6 @@
           "type": "string",
           "x-go-name": "Body"
         },
-        "content_version": {
-          "description": "The current version of the issue content to detect conflicts during editing",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ContentVersion"
-        },
         "due_date": {
           "type": "string",
           "format": "date-time",
@@ -25106,15 +25065,6 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Milestone"
-        },
-        "projects": {
-          "description": "list of project ids to set (replaces existing projects)",
-          "type": "array",
-          "items": {
-            "type": "integer",
-            "format": "int64"
-          },
-          "x-go-name": "Projects"
         },
         "ref": {
           "type": "string",
@@ -25185,10 +25135,6 @@
         "state": {
           "description": "State indicates the updated state of the milestone",
           "type": "string",
-          "enum": [
-            "open",
-            "closed"
-          ],
           "x-go-name": "State"
         },
         "title": {
@@ -25209,7 +25155,7 @@
           "x-go-name": "Description"
         },
         "email": {
-          "description": "The email address of the organization; use empty string to clear",
+          "description": "The email address of the organization",
           "type": "string",
           "x-go-name": "Email"
         },
@@ -25229,20 +25175,70 @@
           "x-go-name": "RepoAdminChangeTeamAccess"
         },
         "visibility": {
-          "description": "possible values are `public`, `limited` or `private`\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "possible values are `public`, `limited` or `private`",
           "type": "string",
           "enum": [
             "public",
             "limited",
             "private"
           ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
           "description": "The website URL of the organization",
           "type": "string",
           "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "EditProjectColumnOption": {
+      "description": "EditProjectColumnOption represents options for editing a project column",
+      "type": "object",
+      "properties": {
+        "color": {
+          "description": "Column color (hex format)",
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "sorting": {
+          "description": "Sorting order",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sorting"
+        },
+        "title": {
+          "description": "Column title",
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "EditProjectOption": {
+      "description": "EditProjectOption represents options for editing a project",
+      "type": "object",
+      "properties": {
+        "card_type": {
+          "description": "Card type: 0=text_only, 1=images_and_text",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CardType"
+        },
+        "description": {
+          "description": "Project description",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "is_closed": {
+          "description": "Whether the project is closed",
+          "type": "boolean",
+          "x-go-name": "IsClosed"
+        },
+        "title": {
+          "description": "Project title",
+          "type": "string",
+          "x-go-name": "Title"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -25278,12 +25274,6 @@
           "description": "The new description body for the pull request",
           "type": "string",
           "x-go-name": "Body"
-        },
-        "content_version": {
-          "description": "The current version of the pull request content to detect conflicts during editing",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ContentVersion"
         },
         "due_date": {
           "type": "string",
@@ -25615,7 +25605,6 @@
             "write",
             "admin"
           ],
-          "x-go-enum-desc": "read RepoWritePermissionRead\nwrite RepoWritePermissionWrite\nadmin RepoWritePermissionAdmin",
           "x-go-name": "Permission"
         },
         "units": {
@@ -25746,14 +25735,8 @@
           "x-go-name": "SourceID"
         },
         "visibility": {
-          "description": "User visibility level: public, limited, or private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level: public, limited, or private",
           "type": "string",
-          "enum": [
-            "public",
-            "limited",
-            "private"
-          ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -26505,11 +26488,6 @@
           "format": "int64",
           "x-go-name": "ID"
         },
-        "name": {
-          "description": "Optional human-readable name for the webhook",
-          "type": "string",
-          "x-go-name": "Name"
-        },
         "type": {
           "description": "The type of the webhook (e.g., gitea, slack, discord)",
           "type": "string",
@@ -26597,12 +26575,6 @@
           "format": "int64",
           "x-go-name": "Comments"
         },
-        "content_version": {
-          "description": "The version of the issue content for optimistic locking",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ContentVersion"
-        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -26655,13 +26627,6 @@
           "format": "int64",
           "x-go-name": "PinOrder"
         },
-        "projects": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/Project"
-          },
-          "x-go-name": "Projects"
-        },
         "pull_request": {
           "$ref": "#/definitions/PullRequestMeta"
         },
@@ -26673,13 +26638,7 @@
           "$ref": "#/definitions/RepositoryMeta"
         },
         "state": {
-          "type": "string",
-          "enum": [
-            "open",
-            "closed"
-          ],
-          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
-          "x-go-name": "State"
+          "$ref": "#/definitions/StateType"
         },
         "time_estimate": {
           "type": "integer",
@@ -26780,16 +26739,7 @@
           "x-go-name": "ID"
         },
         "type": {
-          "type": "string",
-          "enum": [
-            "markdown",
-            "textarea",
-            "input",
-            "dropdown",
-            "checkboxes"
-          ],
-          "x-go-enum-desc": "markdown IssueFormFieldTypeMarkdown\ntextarea IssueFormFieldTypeTextarea\ninput IssueFormFieldTypeInput\ndropdown IssueFormFieldTypeDropdown\ncheckboxes IssueFormFieldTypeCheckboxes",
-          "x-go-name": "Type"
+          "$ref": "#/definitions/IssueFormFieldType"
         },
         "validations": {
           "type": "object",
@@ -26799,16 +26749,21 @@
         "visible": {
           "type": "array",
           "items": {
-            "type": "string",
-            "enum": [
-              "form",
-              "content"
-            ],
-            "x-go-enum-desc": "form IssueFormFieldVisibleForm\ncontent IssueFormFieldVisibleContent"
+            "$ref": "#/definitions/IssueFormFieldVisible"
           },
           "x-go-name": "Visible"
         }
       },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IssueFormFieldType": {
+      "type": "string",
+      "title": "IssueFormFieldType defines issue form field type, can be \"markdown\", \"textarea\", \"input\", \"dropdown\" or \"checkboxes\"",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IssueFormFieldVisible": {
+      "description": "IssueFormFieldVisible defines issue form field visible",
+      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "IssueLabelsOption": {
@@ -27085,14 +27040,10 @@
       "description": "MergePullRequestForm form for merging Pull Request",
       "type": "object",
       "required": [
-        "do"
+        "Do"
       ],
       "properties": {
-        "delete_branch_after_merge": {
-          "type": "boolean",
-          "x-go-name": "DeleteBranchAfterMerge"
-        },
-        "do": {
+        "Do": {
           "type": "string",
           "enum": [
             "merge",
@@ -27101,8 +27052,20 @@
             "squash",
             "fast-forward-only",
             "manually-merged"
-          ],
-          "x-go-name": "Do"
+          ]
+        },
+        "MergeCommitID": {
+          "type": "string"
+        },
+        "MergeMessageField": {
+          "type": "string"
+        },
+        "MergeTitleField": {
+          "type": "string"
+        },
+        "delete_branch_after_merge": {
+          "type": "boolean",
+          "x-go-name": "DeleteBranchAfterMerge"
         },
         "force_merge": {
           "type": "boolean",
@@ -27111,18 +27074,6 @@
         "head_commit_id": {
           "type": "string",
           "x-go-name": "HeadCommitID"
-        },
-        "merge_commit_id": {
-          "type": "string",
-          "x-go-name": "MergeCommitID"
-        },
-        "merge_message_field": {
-          "type": "string",
-          "x-go-name": "MergeMessageField"
-        },
-        "merge_title_field": {
-          "type": "string",
-          "x-go-name": "MergeTitleField"
         },
         "merge_when_checks_succeed": {
           "type": "boolean",
@@ -27312,14 +27263,7 @@
           "x-go-name": "OpenIssues"
         },
         "state": {
-          "description": "State indicates if the milestone is open or closed\nopen StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
-          "type": "string",
-          "enum": [
-            "open",
-            "closed"
-          ],
-          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
-          "x-go-name": "State"
+          "$ref": "#/definitions/StateType"
         },
         "title": {
           "description": "Title is the title of the milestone",
@@ -27533,15 +27477,7 @@
           "x-go-name": "LatestCommentURL"
         },
         "state": {
-          "description": "State indicates the current state of the notification subject\nopen NotifySubjectStateOpen  NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed  NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged  NotifySubjectStateMerged is a merged pull request",
-          "type": "string",
-          "enum": [
-            "open",
-            "closed",
-            "merged"
-          ],
-          "x-go-enum-desc": "open NotifySubjectStateOpen  NotifySubjectStateOpen is an open subject\nclosed NotifySubjectStateClosed  NotifySubjectStateClosed is a closed subject\nmerged NotifySubjectStateMerged  NotifySubjectStateMerged is a merged pull request",
-          "x-go-name": "State"
+          "$ref": "#/definitions/StateType"
         },
         "title": {
           "description": "Title is the title of the notification subject",
@@ -27549,16 +27485,7 @@
           "x-go-name": "Title"
         },
         "type": {
-          "description": "Type indicates the type of the notification subject\nIssue NotifySubjectIssue  NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository a repository is subject of an notification",
-          "type": "string",
-          "enum": [
-            "Issue",
-            "Pull",
-            "Commit",
-            "Repository"
-          ],
-          "x-go-enum-desc": "Issue NotifySubjectIssue  NotifySubjectIssue a issue is subject of an notification\nPull NotifySubjectPull  NotifySubjectPull a pull is subject of an notification\nCommit NotifySubjectCommit  NotifySubjectCommit a commit is subject of an notification\nRepository NotifySubjectRepository  NotifySubjectRepository a repository is subject of an notification",
-          "x-go-name": "Type"
+          "$ref": "#/definitions/NotifySubjectType"
         },
         "url": {
           "description": "URL is the API URL for the notification subject",
@@ -27606,6 +27533,11 @@
           "x-go-name": "URL"
         }
       },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NotifySubjectType": {
+      "description": "NotifySubjectType represent type of notification subject",
+      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "OAuth2Application": {
@@ -27711,14 +27643,8 @@
           "x-go-name": "UserName"
         },
         "visibility": {
-          "description": "The visibility level of the organization (public, limited, private)\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "The visibility level of the organization (public, limited, private)",
           "type": "string",
-          "enum": [
-            "public",
-            "limited",
-            "private"
-          ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -28018,56 +27944,164 @@
       "description": "Project represents a project",
       "type": "object",
       "properties": {
-        "closed_at": {
+        "card_type": {
+          "description": "Card type: 0=text_only, 1=images_and_text",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CardType"
+        },
+        "closed_date": {
+          "description": "Closed time",
           "type": "string",
           "format": "date-time",
-          "x-go-name": "Closed"
+          "x-go-name": "ClosedDate"
         },
-        "created_at": {
+        "created": {
+          "description": "Created time",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
         },
         "creator_id": {
-          "description": "CreatorID is the user who created the project",
+          "description": "Creator ID",
           "type": "integer",
           "format": "int64",
           "x-go-name": "CreatorID"
         },
         "description": {
-          "description": "Description provides details about the project",
+          "description": "Project description",
           "type": "string",
           "x-go-name": "Description"
         },
         "id": {
-          "description": "ID is the unique identifier for the project",
+          "description": "Unique identifier of the project",
           "type": "integer",
           "format": "int64",
           "x-go-name": "ID"
         },
         "is_closed": {
-          "description": "IsClosed indicates if the project is closed",
+          "description": "Whether the project is closed",
           "type": "boolean",
           "x-go-name": "IsClosed"
         },
+        "num_closed_issues": {
+          "description": "Number of closed issues",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NumClosedIssues"
+        },
+        "num_issues": {
+          "description": "Total number of issues",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NumIssues"
+        },
+        "num_open_issues": {
+          "description": "Number of open issues",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NumOpenIssues"
+        },
         "owner_id": {
-          "description": "OwnerID is the owner of the project (for org-level projects)",
+          "description": "Owner ID (for organization or user projects)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "OwnerID"
         },
         "repo_id": {
-          "description": "RepoID is the repository this project belongs to (for repo-level projects)",
+          "description": "Repository ID (for repository projects)",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RepoID"
         },
+        "template_type": {
+          "description": "Template type: 0=none, 1=basic_kanban, 2=bug_triage",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "TemplateType"
+        },
         "title": {
-          "description": "Title is the title of the project",
+          "description": "Project title",
           "type": "string",
           "x-go-name": "Title"
         },
-        "updated_at": {
+        "type": {
+          "description": "Project type: 1=individual, 2=repository, 3=organization",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Type"
+        },
+        "updated": {
+          "description": "Updated time",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "url": {
+          "description": "Project URL",
+          "type": "string",
+          "x-go-name": "URL"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ProjectColumn": {
+      "description": "ProjectColumn represents a project column (board)",
+      "type": "object",
+      "properties": {
+        "color": {
+          "description": "Column color (hex format)",
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "created": {
+          "description": "Created time",
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "creator_id": {
+          "description": "Creator ID",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CreatorID"
+        },
+        "default": {
+          "description": "Whether this is the default column",
+          "type": "boolean",
+          "x-go-name": "Default"
+        },
+        "id": {
+          "description": "Unique identifier of the column",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "num_issues": {
+          "description": "Number of issues in this column",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "NumIssues"
+        },
+        "project_id": {
+          "description": "Project ID",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ProjectID"
+        },
+        "sorting": {
+          "description": "Sorting order",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Sorting"
+        },
+        "title": {
+          "description": "Column title",
+          "type": "string",
+          "x-go-name": "Title"
+        },
+        "updated": {
+          "description": "Updated time",
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
@@ -28182,12 +28216,6 @@
           "type": "integer",
           "format": "int64",
           "x-go-name": "Comments"
-        },
-        "content_version": {
-          "description": "The version of the pull request content for optimistic locking",
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ContentVersion"
         },
         "created_at": {
           "type": "string",
@@ -28313,14 +28341,7 @@
           "x-go-name": "ReviewComments"
         },
         "state": {
-          "description": "The current state of the pull request\nopen StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
-          "type": "string",
-          "enum": [
-            "open",
-            "closed"
-          ],
-          "x-go-enum-desc": "open StateOpen  StateOpen pr is opened\nclosed StateClosed  StateClosed pr is closed",
-          "x-go-name": "State"
+          "$ref": "#/definitions/StateType"
         },
         "title": {
           "description": "The title of the pull request",
@@ -28412,16 +28433,7 @@
           "x-go-name": "Stale"
         },
         "state": {
-          "type": "string",
-          "enum": [
-            "APPROVED",
-            "PENDING",
-            "COMMENT",
-            "REQUEST_CHANGES",
-            "REQUEST_REVIEW"
-          ],
-          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
-          "x-go-name": "State"
+          "$ref": "#/definitions/ReviewStateType"
         },
         "submitted_at": {
           "type": "string",
@@ -28763,16 +28775,8 @@
       "type": "object",
       "properties": {
         "permission": {
-          "description": "Permission level of the collaborator\nnone AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
+          "description": "Permission level of the collaborator",
           "type": "string",
-          "enum": [
-            "none",
-            "read",
-            "write",
-            "admin",
-            "owner"
-          ],
-          "x-go-enum-desc": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
           "x-go-name": "Permission"
         },
         "role_name": {
@@ -29049,13 +29053,12 @@
           "x-go-name": "Name"
         },
         "object_format_name": {
-          "description": "ObjectFormatName of the underlying git repository\nsha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
+          "description": "ObjectFormatName of the underlying git repository",
           "type": "string",
           "enum": [
             "sha1",
             "sha256"
           ],
-          "x-go-enum-desc": "sha1 ObjectFormatSHA1\nsha256 ObjectFormatSHA256",
           "x-go-name": "ObjectFormatName"
         },
         "open_issues_count": {
@@ -29167,6 +29170,11 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ReviewStateType": {
+      "description": "ReviewStateType review state type",
+      "type": "string",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "RunDetails": {
       "description": "RunDetails returns workflow_dispatch runid and url",
       "type": "object",
@@ -29241,6 +29249,11 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "StateType": {
+      "description": "StateType issue state type",
+      "type": "string",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "StopWatch": {
       "description": "StopWatch represent a running stopwatch",
       "type": "object",
@@ -29294,16 +29307,7 @@
           "x-go-name": "Body"
         },
         "event": {
-          "type": "string",
-          "enum": [
-            "APPROVED",
-            "PENDING",
-            "COMMENT",
-            "REQUEST_CHANGES",
-            "REQUEST_REVIEW"
-          ],
-          "x-go-enum-desc": "APPROVED ReviewStateApproved  ReviewStateApproved pr is approved\nPENDING ReviewStatePending  ReviewStatePending pr state is pending\nCOMMENT ReviewStateComment  ReviewStateComment is a comment review\nREQUEST_CHANGES ReviewStateRequestChanges  ReviewStateRequestChanges changes for pr are requested\nREQUEST_REVIEW ReviewStateRequestReview  ReviewStateRequestReview review is requested from user",
-          "x-go-name": "Event"
+          "$ref": "#/definitions/ReviewStateType"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -29429,7 +29433,6 @@
             "admin",
             "owner"
           ],
-          "x-go-enum-desc": "none AccessLevelNameNone\nread AccessLevelNameRead\nwrite AccessLevelNameWrite\nadmin AccessLevelNameAdmin\nowner AccessLevelNameOwner",
           "x-go-name": "Permission"
         },
         "units": {
@@ -29976,14 +29979,8 @@
           "x-go-name": "StarredRepos"
         },
         "visibility": {
-          "description": "User visibility level option: public, limited, private\npublic UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
+          "description": "User visibility level option: public, limited, private",
           "type": "string",
-          "enum": [
-            "public",
-            "limited",
-            "private"
-          ],
-          "x-go-enum-desc": "public UserVisibilityPublic\nlimited UserVisibilityLimited\nprivate UserVisibilityPrivate",
           "x-go-name": "Visibility"
         },
         "website": {
@@ -30904,6 +30901,36 @@
         }
       }
     },
+    "Project": {
+      "description": "Project",
+      "schema": {
+        "$ref": "#/definitions/Project"
+      }
+    },
+    "ProjectColumn": {
+      "description": "ProjectColumn",
+      "schema": {
+        "$ref": "#/definitions/ProjectColumn"
+      }
+    },
+    "ProjectColumnList": {
+      "description": "ProjectColumnList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ProjectColumn"
+        }
+      }
+    },
+    "ProjectList": {
+      "description": "ProjectList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Project"
+        }
+      }
+    },
     "PublicKey": {
       "description": "PublicKey",
       "schema": {
@@ -31371,7 +31398,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/LockIssueOption"
+        "$ref": "#/definitions/AddIssueToProjectColumnOption"
       }
     },
     "redirect": {
