@@ -68,6 +68,7 @@ jobs:
     permissions:
       contents: read
     steps:
+      - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v5
         with:
