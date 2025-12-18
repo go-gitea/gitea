@@ -12,6 +12,8 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -125,8 +127,20 @@ func TestActionsTokenPermissionsModes(t *testing.T) {
 
 func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly bool) func(t *testing.T) {
 	return func(t *testing.T) {
+		// Update repository settings to the requested mode
+		if mode != "" {
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo4", OwnerName: "user5"})
+			require.NoError(t, repo.LoadUnits(t.Context()))
+			actionsUnit := repo.MustGetUnit(t.Context(), unit_model.TypeActions)
+			actionsCfg := actionsUnit.ActionsConfig()
+			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionMode(mode)
+			actionsUnit.Config = actionsCfg
+			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), actionsUnit))
+		}
+
 		// Load a task that can be used for testing
 		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
+		// Regenerate token to pick up new permissions if any (though currently permissions are checked at runtime)
 		require.NoError(t, task.GenerateToken())
 		task.Status = actions_model.StatusRunning
 		task.IsForkPullRequest = false // Not a fork PR
@@ -154,6 +168,8 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 			require.Equal(t, "user5", r.Owner.UserName)
 		}))
 
+		var sha string
+
 		// Test Write Access
 		context.ExpectedCode = util.Iif(expectReadOnly, http.StatusForbidden, http.StatusCreated)
 		t.Run("API Create File", doAPICreateFile(context, "test-permissions.txt", &structs.CreateFileOptions{
@@ -162,6 +178,8 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 				Message:       "Create File",
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte(`This is a test file for permissions.`)),
+		}, func(t *testing.T, resp structs.FileResponse) {
+			sha = resp.Content.SHA
 		}))
 
 		// Test Delete Access
@@ -173,6 +191,7 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 					BranchName: "new-branch-permissions",
 					Message:    "Delete File",
 				},
+				SHA: sha,
 			}))
 		}
 	}
