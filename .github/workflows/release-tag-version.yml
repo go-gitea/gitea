@@ -63,7 +63,7 @@ jobs:
         run: |
           aws s3 sync dist/release s3://${{ secrets.AWS_S3_BUCKET }}/gitea/${{ steps.clean_name.outputs.branch }} --no-progress
       - name: Install GH CLI
-        uses: dev-hanz-ops/install-gh-cli-action@v0.1.0
+        uses: dev-hanz-ops/install-gh-cli-action@v0.2.1
         with:
           gh-cli-version: 2.39.1
       - name: create github release
