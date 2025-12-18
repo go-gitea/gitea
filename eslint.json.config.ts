@@ -8,16 +8,10 @@ export default defineConfig([
     '**/public',
   ]),
   {
-    plugins: {
-      json,
-    },
-  },
-  {
     files: ['**/*.json'],
+    plugins: {json},
     language: 'json/json',
-    rules: {
-      'json/no-duplicate-keys': [2],
-    },
+    extends: ['json/recommended'],
   },
   {
     files: [
@@ -26,12 +20,11 @@ export default defineConfig([
       '.vscode/*.json',
       'contrib/ide/vscode/*.json',
     ],
+    plugins: {json},
     language: 'json/jsonc',
     languageOptions: {
       allowTrailingCommas: true,
     },
-    rules: {
-      'json/no-duplicate-keys': [2],
-    },
+    extends: ['json/recommended'],
   },
 ]);
