@@ -4,7 +4,6 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-
 ## [1.25.3](https://github.com/go-gitea/gitea/releases/tag/1.25.3) - 2025-12-17
 
 * SECURITY
