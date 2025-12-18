@@ -510,14 +510,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 	defer cancel()
 
-	tmpRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
-	if err != nil {
-		return false, "", fmt.Errorf("OpenRepository: %w", err)
-	}
-	defer tmpRepo.Close()
-
-	// Find the merge-base
-	mergeBase, _, err = tmpRepo.GetMergeBase("", "base", "tracking")
+	mergeBase, err = gitrepo.MergeBaseFromRemote(ctx, pr.BaseRepo, pr.HeadRepo, pr.BaseBranch, pr.HeadBranch)
 	if err != nil {
 		return false, "", fmt.Errorf("GetMergeBase: %w", err)
 	}
