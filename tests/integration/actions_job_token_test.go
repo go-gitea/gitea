@@ -134,6 +134,8 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 			actionsUnit := repo.MustGetUnit(t.Context(), unit_model.TypeActions)
 			actionsCfg := actionsUnit.ActionsConfig()
 			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionMode(mode)
+			actionsCfg.DefaultTokenPermissions = nil // Ensure no custom permissions override the mode
+			actionsCfg.MaxTokenPermissions = nil     // Ensure no max permissions interfere
 			actionsUnit.Config = actionsCfg
 			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), actionsUnit))
 		}
@@ -180,6 +182,7 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte(`This is a test file for permissions.`)),
 		}, func(t *testing.T, resp structs.FileResponse) {
 			sha = resp.Content.SHA
+			require.NotEmpty(t, sha, "SHA should not be empty")
 		}))
 
 		// Test Delete Access
