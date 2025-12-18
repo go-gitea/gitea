@@ -52,6 +52,8 @@ type MergeOptions struct {
 }
 
 func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
+	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
+	session.MakeRequest(t, req, http.StatusOK)
 	link := path.Join(user, repo, "pulls", pullnum, "merge")
 
 	options := map[string]string{
@@ -63,7 +65,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 		options["delete_branch_after_merge"] = "on"
 	}
 
-	req := NewRequestWithValues(t, "POST", link, options)
+	req = NewRequestWithValues(t, "POST", link, options)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	respJSON := struct {
