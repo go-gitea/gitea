@@ -478,6 +478,15 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 				break
 			}
 		}
+		if len(mapInsertedPRIndexes) > 0 {
+			// The pull requests migrating process may created head branches in the base repository
+			// because head repository maybe a fork one which will not be migrated. So that we need
+			// to sync branches again.
+			log.Trace("syncing branches after migrating pull requests")
+			if err = uploader.SyncBranches(ctx); err != nil {
+				return err
+			}
+		}
 	}
 
 	if opts.Comments && supportAllComments {

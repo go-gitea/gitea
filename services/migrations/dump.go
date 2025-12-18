@@ -358,6 +358,11 @@ func (g *RepositoryDumper) SyncTags(ctx context.Context) error {
 	return nil
 }
 
+// SyncBranches syncs branches in the database
+func (g *RepositoryDumper) SyncBranches(ctx context.Context) error {
+	return nil
+}
+
 // CreateIssues creates issues
 func (g *RepositoryDumper) CreateIssues(_ context.Context, issues ...*base.Issue) error {
 	var err error
