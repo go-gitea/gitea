@@ -28,7 +28,7 @@
 						{{end}}
 					</span>
 				</div>
-				<div class="field {{if .Err_RepoSizeLimit}}error{{end}}" {{if not .IsAdmin}}style="display:none;"{{end}}>
+				<div class="field {{if .Err_RepoSizeLimit}}error{{end}} {{if not .IsAdmin}}tw-hidden{{end}}">
 					<label for="repo_size_limit">{{ctx.Locale.Tr "repo.repo_size_limit"}}</label>
 					<input id="repo_size_limit" name="repo_size_limit"
 						{{if and (eq .RepoSizeLimit -1) (eq .LFSSizeLimit -1)}}class="ui text light grey"{{end}}
