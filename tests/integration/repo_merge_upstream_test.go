@@ -97,12 +97,12 @@ func TestRepoMergeUpstream(t *testing.T) {
 			})
 
 			// click the "sync fork" button
-			req = NewRequestWithValues(t, "POST", mergeUpstreamLink, map[string]string{})
+			req = NewRequest(t, "POST", mergeUpstreamLink)
 			session.MakeRequest(t, req, http.StatusOK)
 			checkFileContent("fork-branch", "test-content-1")
 
 			// delete the "fork-branch" from the base repo
-			req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/delete?name=fork-branch", map[string]string{})
+			req = NewRequest(t, "POST", "/user2/repo1/branches/delete?name=fork-branch")
 			sessionBaseUser.MakeRequest(t, req, http.StatusOK)
 		})
 

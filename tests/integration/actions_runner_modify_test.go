@@ -56,7 +56,7 @@ func TestActionsRunnerModify(t *testing.T) {
 	}
 
 	doDelete := func(t *testing.T, sess *TestSession, baseURL string, id int64, expectedStatus int) {
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("%s/%d/delete", baseURL, id), map[string]string{})
+		req := NewRequest(t, "POST", fmt.Sprintf("%s/%d/delete", baseURL, id))
 		sess.MakeRequest(t, req, expectedStatus)
 	}
 

@@ -127,8 +127,7 @@ jobs:
 		)
 
 		// user2 approves all runs
-		req = NewRequestWithValues(t, "POST", dataURL,
-			map[string]string{})
+		req = NewRequest(t, "POST", dataURL)
 		user2Session.MakeRequest(t, req, http.StatusOK)
 
 		// check runs

@@ -167,7 +167,7 @@ func testViewRepoPrivate(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), `<span class="ui basic orange label">Public Access</span>`)
 
 		// remove "anonymous read"
-		req = NewRequestWithValues(t, "POST", "/org3/repo3/settings/public_access", map[string]string{})
+		req = NewRequest(t, "POST", "/org3/repo3/settings/public_access")
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// try to "anonymous read" (not found)

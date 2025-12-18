@@ -94,7 +94,7 @@ func TestAdminDeleteUser(t *testing.T) {
 				query = "?purge=true"
 			}
 
-			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/-/admin/users/%d/delete%s", entry.userID, query), map[string]string{})
+			req := NewRequest(t, "POST", fmt.Sprintf("/-/admin/users/%d/delete%s", entry.userID, query))
 			session.MakeRequest(t, req, http.StatusSeeOther)
 
 			assertUserDeleted(t, entry.userID)

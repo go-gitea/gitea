@@ -142,7 +142,7 @@ func TestUserSettingsUpdatePassword(t *testing.T) {
 
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
 		session := loginUser(t, "user2")
-		req := NewRequestWithValues(t, "POST", "/user/settings/account", map[string]string{})
+		req := NewRequest(t, "POST", "/user/settings/account")
 		session.MakeRequest(t, req, http.StatusNotFound)
 	})
 }
@@ -155,7 +155,7 @@ func TestUserSettingsUpdateEmail(t *testing.T) {
 
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
 		session := loginUser(t, "user2")
-		req := NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{})
+		req := NewRequest(t, "POST", "/user/settings/account/email")
 		session.MakeRequest(t, req, http.StatusNotFound)
 	})
 }
@@ -168,7 +168,7 @@ func TestUserSettingsDeleteEmail(t *testing.T) {
 
 		WithDisabledFeatures(t, setting.UserFeatureManageCredentials)
 		session := loginUser(t, "user2")
-		req := NewRequestWithValues(t, "POST", "/user/settings/account/email/delete", map[string]string{})
+		req := NewRequest(t, "POST", "/user/settings/account/email/delete")
 		session.MakeRequest(t, req, http.StatusNotFound)
 	})
 }
@@ -182,7 +182,7 @@ func TestUserSettingsDelete(t *testing.T) {
 		WithDisabledFeatures(t, setting.UserFeatureDeletion)
 
 		session := loginUser(t, "user2")
-		req := NewRequestWithValues(t, "POST", "/user/settings/account/delete", map[string]string{})
+		req := NewRequest(t, "POST", "/user/settings/account/delete")
 		session.MakeRequest(t, req, http.StatusNotFound)
 	})
 }

@@ -33,7 +33,7 @@ func TestUserDeleteAccount(t *testing.T) {
 
 	session := loginUser(t, "user8")
 	urlStr := "/user/settings/account/delete?password=" + userPassword
-	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{})
+	req := NewRequest(t, "POST", urlStr)
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	assertUserDeleted(t, 8)
@@ -45,7 +45,7 @@ func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
 
 	session := loginUser(t, "user2")
 	urlStr := "/user/settings/account/delete?password=" + userPassword
-	req := NewRequestWithValues(t, "POST", urlStr, map[string]string{})
+	req := NewRequest(t, "POST", urlStr)
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// user should not have been deleted, because the user still owns repos

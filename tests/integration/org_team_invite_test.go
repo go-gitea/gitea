@@ -56,7 +56,7 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 
 	// join the team
 	inviteURL := "/org/invite/" + invites[0].Token
-	req = NewRequestWithValues(t, "POST", inviteURL, map[string]string{})
+	req = NewRequest(t, "POST", inviteURL)
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
@@ -127,7 +127,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	session.jar.SetCookies(baseURL, cr.Cookies())
 
 	// make the request
-	req = NewRequestWithValues(t, "POST", test.RedirectURL(resp), map[string]string{})
+	req = NewRequest(t, "POST", test.RedirectURL(resp))
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
@@ -195,7 +195,7 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 	session.jar.SetCookies(baseURL, cr.Cookies())
 
 	// make the redirected request
-	req = NewRequestWithValues(t, "POST", test.RedirectURL(resp), map[string]string{})
+	req = NewRequest(t, "POST", test.RedirectURL(resp))
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
@@ -267,7 +267,7 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 	// should be redirected to accept the invite
 	assert.Equal(t, inviteURL, test.RedirectURL(resp))
 
-	req = NewRequestWithValues(t, "POST", test.RedirectURL(resp), map[string]string{})
+	req = NewRequest(t, "POST", test.RedirectURL(resp))
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
@@ -323,7 +323,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
 	assert.Equal(t, inviteURL, test.RedirectURL(resp))
 
 	// make the request
-	req = NewRequestWithValues(t, "POST", test.RedirectURL(resp), map[string]string{})
+	req = NewRequest(t, "POST", test.RedirectURL(resp))
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)

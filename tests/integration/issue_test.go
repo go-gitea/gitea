@@ -149,7 +149,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo, title, content
 }
 
 func testIssueDelete(t *testing.T, session *TestSession, issueURL string) {
-	req := NewRequestWithValues(t, "POST", path.Join(issueURL, "delete"), map[string]string{})
+	req := NewRequest(t, "POST", path.Join(issueURL, "delete"))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
@@ -258,9 +258,9 @@ func TestIssueCommentDelete(t *testing.T) {
 	assert.Equal(t, comment1, comment.Content)
 
 	// Using the ID of a comment that does not belong to the repository must fail
-	req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d/delete", "user5", "repo4", commentID), map[string]string{})
+	req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/comments/%d/delete", "user5", "repo4", commentID))
 	session.MakeRequest(t, req, http.StatusNotFound)
-	req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d/delete", "user2", "repo1", commentID), map[string]string{})
+	req = NewRequest(t, "POST", fmt.Sprintf("/%s/%s/comments/%d/delete", "user2", "repo1", commentID))
 	session.MakeRequest(t, req, http.StatusOK)
 	unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: commentID})
 }
