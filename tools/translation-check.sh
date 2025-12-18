@@ -18,4 +18,3 @@ for file in "${LOCALE_FILES[@]}"; do
     exit 1
   fi
 done
-go
