@@ -5,6 +5,7 @@ package integration
 
 import (
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -189,13 +190,24 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 		context.ExpectedCode = util.Iif(expectReadOnly, http.StatusForbidden, http.StatusNoContent)
 		if !expectReadOnly {
 			// Clean up created file if we had write access
-			t.Run("API Delete File", doAPIDeleteFile(context, "test-permissions.txt", &structs.DeleteFileOptions{
-				FileOptions: structs.FileOptions{
-					BranchName: "new-branch-permissions",
-					Message:    "Delete File",
-				},
-				SHA: sha,
-			}))
+			t.Run("API Delete File", func(t *testing.T) {
+				t.Logf("Deleting file with SHA: %s", sha)
+				require.NotEmpty(t, sha, "SHA must be captured before deletion")
+				deleteOpts := &structs.DeleteFileOptions{
+					FileOptions: structs.FileOptions{
+						BranchName: "new-branch-permissions",
+						Message:    "Delete File",
+					},
+					SHA: sha,
+				}
+				req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", context.Username, context.Reponame, "test-permissions.txt"), deleteOpts).
+					AddTokenAuth(context.Token)
+				if context.ExpectedCode != 0 {
+					context.Session.MakeRequest(t, req, context.ExpectedCode)
+					return
+				}
+				context.Session.MakeRequest(t, req, http.StatusNoContent)
+			})
 		}
 	}
 }
