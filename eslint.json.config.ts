@@ -1,7 +1,12 @@
-import {defineConfig} from 'eslint/config';
+import {defineConfig, globalIgnores} from 'eslint/config';
 import json from '@eslint/json';
 
 export default defineConfig([
+  globalIgnores([
+    '**/.venv',
+    '**/node_modules',
+    '**/public',
+  ]),
   {
     plugins: {
       json,
