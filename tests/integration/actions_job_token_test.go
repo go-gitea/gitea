@@ -181,8 +181,8 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 		}
 		t.Run("API Create File", doAPICreateFile(context, "test-permissions.txt", &structs.CreateFileOptions{
 			FileOptions: structs.FileOptions{
-				NewBranchName: "new-branch-permissions",
-				Message:       "Create File",
+				BranchName: "master",
+				Message:    "Create File",
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte(`This is a test file for permissions.`)),
 		}, func(t *testing.T, resp structs.FileResponse) {
@@ -203,7 +203,7 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 				require.NotEmpty(t, sha, "SHA must be captured before deletion")
 				deleteOpts := &structs.DeleteFileOptions{
 					FileOptions: structs.FileOptions{
-						BranchName: "new-branch-permissions",
+						BranchName: "master",
 						Message:    "Delete File",
 					},
 					SHA: sha,
