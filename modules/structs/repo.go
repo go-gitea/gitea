@@ -155,6 +155,8 @@ type CreateRepoOption struct {
 	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
 	// SizeLimit of the repository
 	SizeLimit int64 `json:"size_limit"`
+	// LFSSizeLimit of the repository
+	LFSSizeLimit int64 `json:"lfs_size_limit"`
 }
 
 // EditRepoOption options when editing a repository's properties
@@ -227,6 +229,8 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 	// SizeLimit of the repository.
 	SizeLimit *int64 `json:"size_limit,omitempty"`
+	// LFSSizeLimit of the repository.
+	LFSSizeLimit *int64 `json:"lfs_size_limit,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
 	// enable prune - remove obsolete remote-tracking references when mirroring

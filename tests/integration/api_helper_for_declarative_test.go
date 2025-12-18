@@ -483,3 +483,18 @@ func doAPISetRepoSizeLimit(ctx APITestContext, owner, repo string, size int64) f
 		ctx.Session.MakeRequest(t, req, 200)
 	}
 }
+
+func doAPISetRepoLFSSizeLimit(ctx APITestContext, owner, repo string, size int64) func(*testing.T) {
+	return func(t *testing.T) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s",
+			owner, repo)
+		req := NewRequestWithJSON(t, http.MethodPatch, urlStr, &api.EditRepoOption{LFSSizeLimit: &size}).
+			AddTokenAuth(ctx.Token)
+
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, 200)
+	}
+}

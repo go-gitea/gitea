@@ -20,8 +20,10 @@ import (
 
 // UpdateGlobalRepoFrom for updating global repository setting
 type UpdateGlobalRepoFrom struct {
-	RepoSizeLimit   string
-	EnableSizeLimit bool
+	RepoSizeLimit     string
+	LFSSizeLimit      string
+	EnableSizeLimit   bool
+	LFSSizeInRepoSize bool
 }
 
 // CreateRepoForm form for creating repository
@@ -114,6 +116,7 @@ type RepoSettingForm struct {
 	Template               bool
 	EnablePrune            bool
 	RepoSizeLimit          string
+	LFSSizeLimit           string
 
 	// Advanced settings
 	EnableCode bool

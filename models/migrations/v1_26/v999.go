@@ -9,8 +9,9 @@ import (
 
 func AddSizeLimitOnRepo(x *xorm.Engine) error {
 	type Repository struct {
-		ID        int64 `xorm:"pk autoincr"`
-		SizeLimit int64 `xorm:"NOT NULL DEFAULT 0"`
+		ID           int64 `xorm:"pk autoincr"`
+		SizeLimit    int64 `xorm:"NOT NULL DEFAULT 0"`
+		LFSSizeLimit int64 `xorm:"NOT NULL DEFAULT 0"`
 	}
 
 	return x.Sync2(new(Repository))

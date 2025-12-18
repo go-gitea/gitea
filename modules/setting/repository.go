@@ -276,13 +276,17 @@ var (
 	RepoRootPath string
 	ScriptType   = "bash"
 
-	EnableSizeLimit = true
-	RepoSizeLimit   int64
+	EnableSizeLimit   = true
+	RepoSizeLimit     int64
+	LFSSizeLimit      int64
+	LFSSizeInRepoSize bool
 )
 
-func SaveGlobalRepositorySetting(enableSizeLimit bool, repoSizeLimit int64) error {
+func SaveGlobalRepositorySetting(enableSizeLimit bool, repoSizeLimit, lfsSizeLimit int64, lfsSizeInRepoSize bool) error {
 	EnableSizeLimit = enableSizeLimit
 	RepoSizeLimit = repoSizeLimit
+	LFSSizeLimit = lfsSizeLimit
+	LFSSizeInRepoSize = lfsSizeInRepoSize
 	sec := CfgProvider.Section("repository")
 	if EnableSizeLimit {
 		sec.Key("ENABLE_SIZE_LIMIT").SetValue("true")
@@ -291,6 +295,12 @@ func SaveGlobalRepositorySetting(enableSizeLimit bool, repoSizeLimit int64) erro
 	}
 
 	sec.Key("REPO_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(RepoSizeLimit)))
+	sec.Key("LFS_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(LFSSizeLimit)))
+	if lfsSizeInRepoSize {
+		sec.Key("LFS_SIZE_IN_REPO_SIZE").SetValue("true")
+	} else {
+		sec.Key("LFS_SIZE_IN_REPO_SIZE").SetValue("false")
+	}
 	return nil
 }
 
@@ -303,6 +313,9 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 
 	v, _ := humanize.ParseBytes(sec.Key("REPO_SIZE_LIMIT").MustString("0"))
 	RepoSizeLimit = int64(v)
+	v, _ = humanize.ParseBytes(sec.Key("LFS_SIZE_LIMIT").MustString("0"))
+	LFSSizeLimit = int64(v)
+	LFSSizeInRepoSize = sec.Key("LFS_SIZE_IN_REPO_SIZE").MustBool(false)
 
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()

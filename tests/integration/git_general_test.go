@@ -87,7 +87,7 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 
 		t.Run("SizeLimit", func(t *testing.T) {
 			dstForkedPath := t.TempDir()
-			setting.SaveGlobalRepositorySetting(true, 0)
+			setting.SaveGlobalRepositorySetting(true, 0, 0, false)
 			t.Run("Under", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 				doCommitAndPush(t, testFileSizeSmall, dstPath, "data-file-")
@@ -115,7 +115,7 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 				doRebaseCommitAndPush(t, dstPath, lastCommitID)
 				newRepoSize := doGetRemoteRepoSizeViaAPI(t, forkedUserCtx)
 				assert.LessOrEqual(t, newRepoSize, oldRepoSize)
-				setting.SaveGlobalRepositorySetting(false, 0)
+				setting.SaveGlobalRepositorySetting(false, 0, 0, false)
 			})
 		})
 		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "test/head"))

@@ -5,6 +5,7 @@ package lfs
 
 import (
 	stdCtx "context"
+	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -28,6 +29,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/httpauth"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -184,6 +186,25 @@ func DownloadHandler(ctx *context.Context) {
 	}
 }
 
+// ---- tracing helpers ----
+
+func traceBatchDecision(rc *requestContext, op, msg string, args ...any) {
+	prefix := fmt.Sprintf("LFS[BATCH][%s/%s][op=%s] ", rc.User, rc.Repo, op)
+	log.Trace(prefix+msg, args...)
+}
+
+func batchReqID(br *lfs_module.BatchRequest) string {
+	h := sha1.New()
+	h.Write([]byte(br.Operation))
+	for _, o := range br.Objects {
+		h.Write([]byte(o.Oid))
+		h.Write([]byte{0})
+		h.Write([]byte(strconv.FormatInt(o.Size, 10)))
+		h.Write([]byte{0})
+	}
+	return hex.EncodeToString(h.Sum(nil))[:10]
+}
+
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
 	var br lfs_module.BatchRequest
@@ -206,6 +227,9 @@ func BatchHandler(ctx *context.Context) {
 	}
 
 	rc := getRequestContext(ctx)
+	reqID := batchReqID(&br)
+
+	log.Trace("LFS[BATCH][%s/%s] req=%s op=%s objects=%d", rc.User, rc.Repo, reqID, br.Operation, len(br.Objects))
 
 	repository := getAuthenticatedRepository(ctx, rc, isUpload)
 	if repository == nil {
@@ -217,7 +241,97 @@ func BatchHandler(ctx *context.Context) {
 		return
 	}
 
+	// Create content store once, reuse for tracing + normal logic below.
 	contentStore := lfs_module.NewContentStore()
+
+	currCombinedTotal := repository.GitSize + repository.LFSSize
+
+	// Baseline repo stats and limits
+	traceBatchDecision(rc, br.Operation,
+		"req=%s auth=%t isUpload=%t repoID=%d sizes: git=%s lfs=%s combined=%s limits: repo=%s lfs=%s LFSSizeInRepoSize=%v",
+		reqID,
+		ctx.IsSigned || ctx.Doer != nil,
+		isUpload,
+		repository.ID,
+		base.FileSize(repository.GitSize),
+		base.FileSize(repository.LFSSize),
+		base.FileSize(currCombinedTotal),
+		base.FileSize(repository.GetActualSizeLimit()),
+		base.FileSize(repository.GetActualLFSSizeLimit()),
+		setting.LFSSizeInRepoSize,
+	)
+
+	// Check LFS size limits for upload operations
+	if isUpload && (repository.ShouldCheckLFSSize() || (setting.LFSSizeInRepoSize && repository.ShouldCheckRepoSize())) {
+		// Sum sizes of objects that are NEW TO THIS REPO (no meta row)
+		var incomingNewToRepoLFS int64
+		var invalidCount, metaMissingCount, metaPresentCount, storeExistsCount int64
+
+		for _, p := range br.Objects {
+			if !p.IsValid() {
+				invalidCount++
+				continue
+			}
+
+			meta, _ := git_model.GetLFSMetaObjectByOid(ctx, repository.ID, p.Oid)
+
+			exists, _ := contentStore.Exists(p)
+			if exists {
+				storeExistsCount++
+			}
+
+			if meta == nil {
+				metaMissingCount++
+				incomingNewToRepoLFS += p.Size
+			} else {
+				metaPresentCount++
+			}
+		}
+
+		predictedLFS := repository.LFSSize + incomingNewToRepoLFS
+		predictedTotal := repository.GitSize + predictedLFS
+
+		traceBatchDecision(rc, br.Operation,
+			"req=%s accounting: objects=%d invalid=%d metaMissing=%d metaPresent=%d storeExists=%d incomingNewToRepoLFS=%s predictedLFS=%s predictedTotal=%s",
+			reqID,
+			len(br.Objects),
+			invalidCount,
+			metaMissingCount,
+			metaPresentCount,
+			storeExistsCount,
+			base.FileSize(incomingNewToRepoLFS),
+			base.FileSize(predictedLFS),
+			base.FileSize(predictedTotal),
+		)
+
+		// LFS-only limit if we are over, but size doesn't increase allow
+		if repository.ShouldCheckLFSSize() && predictedLFS > repository.GetActualLFSSizeLimit() && predictedLFS > repository.LFSSize {
+			traceBatchDecision(rc, br.Operation,
+				"req=%s DECISION=FORBID reason=LFS_LIMIT predictedLFS=%s limit=%s",
+				reqID, base.FileSize(predictedLFS), base.FileSize(repository.GetActualLFSSizeLimit()),
+			)
+			writeStatusMessage(ctx, http.StatusForbidden,
+				fmt.Sprintf("LFS size %s would exceed limit %s",
+					base.FileSize(predictedLFS), base.FileSize(repository.GetActualLFSSizeLimit())))
+			return
+		}
+
+		// Combined limit (conservative: ignores git delta/removals) if we are over, but combined size doesn't increase allow
+		if setting.LFSSizeInRepoSize && repository.ShouldCheckRepoSize() {
+			if predictedTotal > repository.GetActualSizeLimit() && predictedTotal > currCombinedTotal {
+				traceBatchDecision(rc, br.Operation,
+					"req=%s DECISION=FORBID reason=COMBINED_LIMIT predictedTotal=%s limit=%s",
+					reqID, base.FileSize(predictedTotal), base.FileSize(repository.GetActualSizeLimit()),
+				)
+				writeStatusMessage(ctx, http.StatusForbidden,
+					fmt.Sprintf("Repository size %s after LFS addition would exceed limit %s",
+						base.FileSize(predictedTotal), base.FileSize(repository.GetActualSizeLimit())))
+				return
+			}
+		}
+
+		traceBatchDecision(rc, br.Operation, "req=%s DECISION=ALLOW size-check passed", reqID)
+	}
 
 	var responseObjects []*lfs_module.ObjectResponse
 

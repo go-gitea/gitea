@@ -63,7 +63,9 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
 	ctx.Data["Err_RepoSize"] = ctx.Repo.Repository.IsRepoSizeOversized(ctx.Repo.Repository.GetActualSizeLimit() / 10) // less than 10% left
 	ctx.Data["ActualSizeLimit"] = ctx.Repo.Repository.GetActualSizeLimit()
+	ctx.Data["ActualLFSSizeLimit"] = ctx.Repo.Repository.GetActualLFSSizeLimit()
 	ctx.Data["EnableSizeLimit"] = setting.EnableSizeLimit
+	ctx.Data["LFSSizeInRepoSize"] = setting.LFSSizeInRepoSize
 
 	signing, _ := gitrepo.GetSigningKey(ctx, ctx.Repo.Repository)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
@@ -236,6 +238,28 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 		return
 	}
 	repo.SizeLimit = repoSizeLimit
+
+	// Handle LFS size limit (admin-only)
+	var lfsSizeLimit int64
+	if form.LFSSizeLimit != "" {
+		lfsSizeLimit, err = base.GetFileSize(form.LFSSizeLimit)
+		if err != nil {
+			ctx.Data["Err_LFSSizeLimit"] = true
+			ctx.RenderWithErr(ctx.Tr("repo.form.invalid_lfs_size_limit"), tplSettingsOptions, &form)
+			return
+		}
+	}
+	if lfsSizeLimit < 0 {
+		ctx.Data["Err_LFSSizeLimit"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.lfs_size_limit_negative"), tplSettingsOptions, &form)
+		return
+	}
+	if !ctx.Doer.IsAdmin && repo.LFSSizeLimit != lfsSizeLimit {
+		ctx.Data["Err_LFSSizeLimit"] = true
+		ctx.RenderWithErr(ctx.Tr("repo.form.lfs_size_limit_only_by_admins"), tplSettingsOptions, &form)
+		return
+	}
+	repo.LFSSizeLimit = lfsSizeLimit
 
 	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 		ctx.ServerError("UpdateRepository", err)

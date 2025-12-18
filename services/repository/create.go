@@ -53,6 +53,7 @@ type CreateRepoOptions struct {
 	MirrorInterval   string
 	ObjectFormatName string
 	SizeLimit        int64
+	LFSSizeLimit     int64
 }
 
 func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir string, opts CreateRepoOptions) error {
@@ -249,6 +250,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		IsEmpty:                         !opts.AutoInit,
 		TrustModel:                      opts.TrustModel,
 		SizeLimit:                       opts.SizeLimit,
+		LFSSizeLimit:                    opts.LFSSizeLimit,
 		IsMirror:                        opts.IsMirror,
 		DefaultBranch:                   opts.DefaultBranch,
 		DefaultWikiBranch:               setting.Repository.DefaultBranch,
