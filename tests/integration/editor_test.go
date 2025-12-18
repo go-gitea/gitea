@@ -342,6 +342,7 @@ func testForkToEditFile(t *testing.T, session *TestSession, user, owner, repo, b
 		assert.Contains(t, resp.Body.String(), "Fork Repository to Propose Changes")
 
 		// fork the repository
+		req = NewRequestWithValues(t, "POST", path.Join(owner, repo, "_fork", branch), map[string]string{})
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		assert.JSONEq(t, `{"redirect":""}`, resp.Body.String())
 	}

@@ -62,7 +62,10 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	assert.EqualValues(t, 2, columns[2].Sorting)
 
 	sess := loginUser(t, "user1")
-	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/projects/%d/move", repo2.FullName(), project1.ID), map[string]any{
+	req := NewRequest(t, "GET", fmt.Sprintf("/%s/projects/%d", repo2.FullName(), project1.ID))
+	sess.MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s/projects/%d/move", repo2.FullName(), project1.ID), map[string]any{
 		"columns": []map[string]any{
 			{"columnID": columns[1].ID, "sorting": 0},
 			{"columnID": columns[2].ID, "sorting": 1},

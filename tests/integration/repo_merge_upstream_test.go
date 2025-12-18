@@ -97,6 +97,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 			})
 
 			// click the "sync fork" button
+			req = NewRequestWithValues(t, "POST", mergeUpstreamLink, map[string]string{})
 			session.MakeRequest(t, req, http.StatusOK)
 			checkFileContent("fork-branch", "test-content-1")
 
