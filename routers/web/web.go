@@ -565,7 +565,7 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("/grant", web.Bind(forms.GrantApplicationForm{}), auth.GrantApplicationOAuth)
 			// TODO manage redirection
 			m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
-		}, optSignInAnyOrigin)
+		}, reqSignIn)
 
 		m.Group("", func() {
 			m.Methods("GET, POST, OPTIONS", "/userinfo", auth.InfoOAuth)
