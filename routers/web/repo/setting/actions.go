@@ -40,8 +40,6 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["TokenPermissionMode"] = actionsCfg.GetTokenPermissionMode()
 	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
-	ctx.Data["EffectiveTokenPermissions"] = actionsCfg.GetEffectiveTokenPermissions(false)
-	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
 
 	if ctx.Repo.Repository.IsPrivate {
 		collaborativeOwnerIDs := actionsCfg.CollaborativeOwnerIDs
@@ -142,11 +140,13 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	actionsCfg := actionsUnit.ActionsConfig()
 
 	// Update permission mode
-	permissionMode := ctx.FormString("token_permission_mode")
-	if permissionMode == string(repo_model.ActionsTokenPermissionModeRestricted) {
-		actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionModeRestricted
+	permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
+	if permissionMode == repo_model.ActionsTokenPermissionModeRestricted || permissionMode == repo_model.ActionsTokenPermissionModePermissive {
+		actionsCfg.TokenPermissionMode = permissionMode
 	} else {
-		actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionModePermissive
+		ctx.Flash.Error("Invalid token permission mode")
+		ctx.Redirect(redirectURL)
+		return
 	}
 
 	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {

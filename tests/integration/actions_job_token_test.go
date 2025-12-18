@@ -154,8 +154,26 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 			require.Equal(t, "user5", r.Owner.UserName)
 		}))
 
-		// For now, both modes allow write since the mode setting needs to be persisted to the repo unit
-		// This test validates the token permission infrastructure is working
-		// Once mode is applied to repository settings, the expectReadOnly parameter will control behavior
+		// Test Write Access
+		context.ExpectedCode = util.Iif(expectReadOnly, http.StatusForbidden, http.StatusCreated)
+		t.Run("API Create File", doAPICreateFile(context, "test-permissions.txt", &structs.CreateFileOptions{
+			FileOptions: structs.FileOptions{
+				NewBranchName: "new-branch-permissions",
+				Message:       "Create File",
+			},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte(`This is a test file for permissions.`)),
+		}))
+
+		// Test Delete Access
+		context.ExpectedCode = util.Iif(expectReadOnly, http.StatusForbidden, http.StatusNoContent)
+		if !expectReadOnly {
+			// Clean up created file if we had write access
+			t.Run("API Delete File", doAPIDeleteFile(context, "test-permissions.txt", &structs.DeleteFileOptions{
+				FileOptions: structs.FileOptions{
+					BranchName: "new-branch-permissions",
+					Message:    "Delete File",
+				},
+			}))
+		}
 	}
 }
