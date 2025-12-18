@@ -3,6 +3,7 @@ import {SvgIcon} from '../svg.ts';
 import {isPlainClick} from '../utils/dom.ts';
 import {shallowRef} from 'vue';
 import {type createViewFileTreeStore} from './ViewFileTreeStore.ts';
+import {triggersAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 
 export type Item = {
   entryName: string;
@@ -40,7 +41,7 @@ const onItemClick = (e: MouseEvent) => {
   // only handle the click event with partial page reloading if both
   // - the user didn't press any special key like "Ctrl+Click" (which may have custom browser behavior)
   // - the editor/commit form isn't dirty (a full page reload shows a confirmation dialog if the form contains unsaved changes)
-  if (!isPlainClick(e) || document.querySelector('.repo-view-content .form.dirty')) return;
+  if (!isPlainClick(e) || triggersAreYouSure()) return;
   e.preventDefault();
   if (props.item.entryMode === 'tree') doLoadChildren();
   store.navigateTreeView(props.item.fullPath);
