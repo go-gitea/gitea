@@ -64,7 +64,8 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["Err_RepoSize"] = ctx.Repo.Repository.IsRepoSizeOversized(ctx.Repo.Repository.GetActualSizeLimit() / 10) // less than 10% left
 	ctx.Data["ActualSizeLimit"] = ctx.Repo.Repository.GetActualSizeLimit()
 	ctx.Data["ActualLFSSizeLimit"] = ctx.Repo.Repository.GetActualLFSSizeLimit()
-	ctx.Data["EnableSizeLimit"] = setting.EnableSizeLimit
+	ctx.Data["RepoSizeLimit"] = setting.RepoSizeLimit
+	ctx.Data["LFSSizeLimit"] = setting.LFSSizeLimit
 	ctx.Data["LFSSizeInRepoSize"] = setting.LFSSizeInRepoSize
 
 	signing, _ := gitrepo.GetSigningKey(ctx, ctx.Repo.Repository)
@@ -213,6 +214,8 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.Name = newRepoName
 	repo.LowerName = strings.ToLower(newRepoName)
 	repo.Description = form.Description
+	ctx.Data["RepoSizeLimitText"] = form.RepoSizeLimit
+	ctx.Data["LFSSizeLimitText"] = form.LFSSizeLimit
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
 
@@ -222,13 +225,13 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 		repoSizeLimit, err = base.GetFileSize(form.RepoSizeLimit)
 		if err != nil {
 			ctx.Data["Err_RepoSizeLimit"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.form.invalid_repo_size_limit"), tplSettingsOptions, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.form.invalid_repo_size_limit_repo"), tplSettingsOptions, &form)
 			return
 		}
 	}
 	if repoSizeLimit < 0 {
 		ctx.Data["Err_RepoSizeLimit"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.repo_size_limit_negative"), tplSettingsOptions, &form)
+		ctx.RenderWithErr(ctx.Tr("repo.form.invalid_repo_size_limit_repo"), tplSettingsOptions, &form)
 		return
 	}
 
@@ -245,13 +248,13 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 		lfsSizeLimit, err = base.GetFileSize(form.LFSSizeLimit)
 		if err != nil {
 			ctx.Data["Err_LFSSizeLimit"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.form.invalid_lfs_size_limit"), tplSettingsOptions, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.form.invalid_lfs_size_limit_repo"), tplSettingsOptions, &form)
 			return
 		}
 	}
 	if lfsSizeLimit < 0 {
 		ctx.Data["Err_LFSSizeLimit"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.lfs_size_limit_negative"), tplSettingsOptions, &form)
+		ctx.RenderWithErr(ctx.Tr("repo.form.invalid_lfs_size_limit_repo"), tplSettingsOptions, &form)
 		return
 	}
 	if !ctx.Doer.IsAdmin && repo.LFSSizeLimit != lfsSizeLimit {

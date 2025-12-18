@@ -777,6 +777,10 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 					if _, inOld := oldLFSPtrs[oid]; !inOld {
 						addedLFSSize += sz
 						if _, inOther := otherLFSPtrs[oid]; !inOther {
+							// Check if the object is already in the database for this repository (e.g. orphan or referenced by hidden ref)
+							if _, err := git_model.GetLFSMetaObjectByOid(ctx, repo.ID, oid); err == nil {
+								continue
+							}
 							incomingNewToRepoLFS += sz
 						}
 					}
@@ -880,7 +884,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	// 2) Repo (git) size limit when NOT counting LFS into repo size
 	if repo.ShouldCheckRepoSize() && !setting.LFSSizeInRepoSize {
 		limit := repo.GetActualSizeLimit()
-		if limit > 0 && predictedGitAfter > limit {
+		if limit > 0 && predictedGitAfter > limit && predictedGitAfter > currentGit {
 			log.Warn("Forbidden: repository size limit exceeded: %s > %s for repo %-v",
 				base.FileSize(predictedGitAfter),
 				base.FileSize(limit),

@@ -22,7 +22,6 @@ import (
 type UpdateGlobalRepoFrom struct {
 	RepoSizeLimit     string
 	LFSSizeLimit      string
-	EnableSizeLimit   bool
 	LFSSizeInRepoSize bool
 }
 

@@ -6,6 +6,7 @@ package setting
 import (
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -276,32 +277,50 @@ var (
 	RepoRootPath string
 	ScriptType   = "bash"
 
-	EnableSizeLimit   = true
-	RepoSizeLimit     int64
-	LFSSizeLimit      int64
+	// Repository size limits
+	RepoSizeLimit     int64 = -1
+	LFSSizeLimit      int64 = -1
 	LFSSizeInRepoSize bool
 )
 
-func SaveGlobalRepositorySetting(enableSizeLimit bool, repoSizeLimit, lfsSizeLimit int64, lfsSizeInRepoSize bool) error {
-	EnableSizeLimit = enableSizeLimit
+func SaveGlobalRepositorySetting(repoSizeLimit, lfsSizeLimit int64, lfsSizeInRepoSize bool) error {
 	RepoSizeLimit = repoSizeLimit
 	LFSSizeLimit = lfsSizeLimit
 	LFSSizeInRepoSize = lfsSizeInRepoSize
-	sec := CfgProvider.Section("repository")
-	if EnableSizeLimit {
-		sec.Key("ENABLE_SIZE_LIMIT").SetValue("true")
-	} else {
-		sec.Key("ENABLE_SIZE_LIMIT").SetValue("false")
+
+	cfg, err := CfgProvider.PrepareSaving()
+	if err != nil {
+		return err
 	}
 
-	sec.Key("REPO_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(RepoSizeLimit)))
-	sec.Key("LFS_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(LFSSizeLimit)))
-	if lfsSizeInRepoSize {
-		sec.Key("LFS_SIZE_IN_REPO_SIZE").SetValue("true")
+	sec := cfg.Section("repository")
+	if RepoSizeLimit == -1 {
+		sec.Key("REPO_SIZE_LIMIT").SetValue("-1")
 	} else {
-		sec.Key("LFS_SIZE_IN_REPO_SIZE").SetValue("false")
+		sec.Key("REPO_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(RepoSizeLimit)))
 	}
-	return nil
+	if LFSSizeLimit == -1 {
+		sec.Key("LFS_SIZE_LIMIT").SetValue("-1")
+	} else {
+		sec.Key("LFS_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(LFSSizeLimit)))
+	}
+	sec.Key("LFS_SIZE_IN_REPO_SIZE").SetValue(strconv.FormatBool(LFSSizeInRepoSize))
+	return cfg.Save()
+}
+
+func parseSize(sec ConfigSection, key string, def int64) int64 {
+	v := sec.Key(key).MustString("")
+	if v == "" {
+		return def
+	}
+	if v == "-1" {
+		return -1
+	}
+	size, err := humanize.ParseBytes(v)
+	if err != nil {
+		return def
+	}
+	return int64(size)
 }
 
 func loadRepositoryFrom(rootCfg ConfigProvider) {
@@ -309,12 +328,8 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 
 	// Determine and create root git repository path.
 	sec := rootCfg.Section("repository")
-	EnableSizeLimit = sec.Key("ENABLE_SIZE_LIMIT").MustBool(false)
-
-	v, _ := humanize.ParseBytes(sec.Key("REPO_SIZE_LIMIT").MustString("0"))
-	RepoSizeLimit = int64(v)
-	v, _ = humanize.ParseBytes(sec.Key("LFS_SIZE_LIMIT").MustString("0"))
-	LFSSizeLimit = int64(v)
+	RepoSizeLimit = parseSize(sec, "REPO_SIZE_LIMIT", -1)
+	LFSSizeLimit = parseSize(sec, "LFS_SIZE_LIMIT", -1)
 	LFSSizeInRepoSize = sec.Key("LFS_SIZE_IN_REPO_SIZE").MustBool(false)
 
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()

@@ -52,7 +52,7 @@ func ID5() string {
 //
 // Enable/disable via:
 //
-//	setting.SaveGlobalRepositorySetting(enabled, repoLimit, lfsLimit, lfsSizeInRepoSize)
+//	setting.SaveGlobalRepositorySetting(repoLimit, lfsLimit, lfsSizeInRepoSize)
 //
 // Scenarios:
 //   - repo-only limit: blocks git blobs but not LFS objects (when lfsSizeInRepoSize=false, lfsLimit=0)
@@ -66,7 +66,7 @@ func TestLFSSizeLimit(t *testing.T) {
 func testLFSSizeLimit(t *testing.T, baseURL *url.URL) {
 	// Always disable at the end so we don't leak to other integration tests.
 	t.Cleanup(func() {
-		setting.SaveGlobalRepositorySetting(false, 0, 0, false)
+		setting.SaveGlobalRepositorySetting(-1, -1, false)
 	})
 
 	if !setting.LFS.StartServer {
@@ -263,7 +263,7 @@ func testLFSSizeLimit(t *testing.T, baseURL *url.URL) {
 			defer tests.PrintCurrentTest(t)()
 
 			// Global: repo limit ON, LFS limit OFF, LFS not counted into repo size.
-			setting.SaveGlobalRepositorySetting(true, repoLimitBytes, 0, false)
+			setting.SaveGlobalRepositorySetting(repoLimitBytes, 0, false)
 
 			ctx := newLimitRepo(t, "ggit")
 
@@ -282,8 +282,7 @@ func testLFSSizeLimit(t *testing.T, baseURL *url.URL) {
 		func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			// Per-repo: enable checking globally but do not set global limits.
-			setting.SaveGlobalRepositorySetting(true, 0, 0, false)
+			setting.SaveGlobalRepositorySetting(0, 0, false)
 
 			ctx := newLimitRepo(t, "rgit")
 
@@ -310,7 +309,7 @@ func testLFSSizeLimit(t *testing.T, baseURL *url.URL) {
 			defer tests.PrintCurrentTest(t)()
 
 			// Global: LFS limit ON, repo limit OFF, LFS not counted into repo size.
-			setting.SaveGlobalRepositorySetting(true, 0, lfsLimitBytes, false)
+			setting.SaveGlobalRepositorySetting(0, lfsLimitBytes, false)
 
 			ctx := newLimitRepo(t, "glfs")
 
@@ -329,8 +328,7 @@ func testLFSSizeLimit(t *testing.T, baseURL *url.URL) {
 		func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			// Per-repo: enable checking globally but do not set global limits.
-			setting.SaveGlobalRepositorySetting(true, 0, 0, false)
+			setting.SaveGlobalRepositorySetting(0, 0, false)
 
 			ctx := newLimitRepo(t, "rlfs")
 
@@ -353,7 +351,7 @@ func testLFSSizeLimit(t *testing.T, baseURL *url.URL) {
 			defer tests.PrintCurrentTest(t)()
 
 			// Global: repo limit ON, no LFS-specific limit, but LFS counted into repo size.
-			setting.SaveGlobalRepositorySetting(true, combinedRepoLimitBytes, 0, true)
+			setting.SaveGlobalRepositorySetting(combinedRepoLimitBytes, 0, true)
 
 			ctx := newLimitRepo(t, "gc")
 
@@ -369,7 +367,7 @@ func testLFSSizeLimit(t *testing.T, baseURL *url.URL) {
 			defer tests.PrintCurrentTest(t)()
 
 			// Per-repo: enable checking globally with LFSSizeInRepoSize=true but no global limits.
-			setting.SaveGlobalRepositorySetting(true, 0, 0, true)
+			setting.SaveGlobalRepositorySetting(0, 0, true)
 
 			ctx := newLimitRepo(t, "rc")
 
@@ -390,7 +388,7 @@ func testLFSSizeLimit(t *testing.T, baseURL *url.URL) {
 		defer tests.PrintCurrentTest(t)()
 
 		// Global: strict LFS limit, no repo limit.
-		setting.SaveGlobalRepositorySetting(true, 0, lfsLimitBytes, false)
+		setting.SaveGlobalRepositorySetting(-1, lfsLimitBytes, false)
 
 		ctx := newLimitRepo(t, "rwing")
 
