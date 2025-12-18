@@ -919,20 +919,10 @@ lockfile-check:
 	fi
 
 LOCALE_DIR := options/locale
-LOCALE_FILES := $(wildcard $(LOCALE_DIR)/*.json)
 
 .PHONY: translation-check
 translation-check:
-	@for f in $(LOCALE_FILES); do \
-		if ! $(NODE_VARS) pnpm exec jsonlint -q $$f > /dev/null 2>&1; then \
-			echo "Invalid JSON syntax: $$f"; \
-			exit 1; \
-		fi; \
-		if ! $(NODE_VARS) pnpm exec find-duplicated-property-keys -s $$f > /dev/null 2>&1; then \
-			echo "Duplicate key found in: $$f"; \
-			exit 1; \
-		fi; \
-	done
+	@$(NODE_VARS) tools/translation-check.sh $(LOCALE_DIR)
 
 .PHONY: generate-gitignore
 generate-gitignore: ## update gitignore files
