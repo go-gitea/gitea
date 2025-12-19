@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/indexer/issues"
@@ -475,19 +476,42 @@ func TestIssueRedirect(t *testing.T) {
 	session := loginUser(t, "user2")
 
 	// Test external tracker where style not set (shall default numeric)
-	req := NewRequest(t, "GET", path.Join("org26", "repo_external_tracker", "issues", "1"))
+	req := NewRequest(t, "GET", "/org26/repo_external_tracker/issues/1")
 	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker/issues/1", test.RedirectURL(resp))
 
 	// Test external tracker with numeric style
-	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_numeric", "issues", "1"))
+	req = NewRequest(t, "GET", "/org26/repo_external_tracker_numeric/issues/1")
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "https://tracker.com/org26/repo_external_tracker_numeric/issues/1", test.RedirectURL(resp))
 
 	// Test external tracker with alphanumeric style (for a pull request)
-	req = NewRequest(t, "GET", path.Join("org26", "repo_external_tracker_alpha", "issues", "1"))
+	req = NewRequest(t, "GET", "/org26/repo_external_tracker_alpha/issues/1")
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-	assert.Equal(t, "/"+path.Join("org26", "repo_external_tracker_alpha", "pulls", "1"), test.RedirectURL(resp))
+	assert.Equal(t, "/org26/repo_external_tracker_alpha/pulls/1", test.RedirectURL(resp))
+
+	// test to check that the PR redirection works if the issue unit is disabled
+	// repo1 is a normal repository with issue unit enabled, visit issue 2(which is a pull request)
+	// will redirect to pulls
+	req = NewRequest(t, "GET", "/user2/repo1/issues/2")
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/user2/repo1/pulls/2", test.RedirectURL(resp))
+
+	// by the way, test PR redirection
+	req = NewRequest(t, "GET", "/user2/repo1/pulls/1")
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/user2/repo1/issues/1", test.RedirectURL(resp))
+
+	// disable issue unit
+	repoUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: 1, Type: unit.TypeIssues})
+	_, err := db.DeleteByID[repo_model.RepoUnit](t.Context(), repoUnit.ID)
+	assert.NoError(t, err)
+
+	// even if the issue unit is disabled, visiting an issue which is a pull request
+	// will still redirect to pull request
+	req = NewRequest(t, "GET", "/user2/repo1/issues/2")
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/user2/repo1/pulls/2", test.RedirectURL(resp))
 }
 
 func TestSearchIssues(t *testing.T) {
@@ -646,7 +670,7 @@ func TestGetIssueInfo(t *testing.T) {
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	assert.NoError(t, issue.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, issue.LoadAttributes(t.Context()))
 	assert.Equal(t, int64(1019307200), int64(issue.DeadlineUnix))
 	assert.Equal(t, api.StateOpen, issue.State())
 
@@ -671,7 +695,7 @@ func TestUpdateIssueDeadline(t *testing.T) {
 	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
-	assert.NoError(t, issueBefore.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, issueBefore.LoadAttributes(t.Context()))
 	assert.Equal(t, "2002-04-20", issueBefore.DeadlineUnix.FormatDate())
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 

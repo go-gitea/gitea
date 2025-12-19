@@ -156,7 +156,6 @@ func serveInstall(cmd *cli.Command) error {
 	case <-graceful.GetManager().IsShutdown():
 		<-graceful.GetManager().Done()
 		log.Info("PID: %d Gitea Web Finished", os.Getpid())
-		log.GetManager().Close()
 		return err
 	default:
 	}
@@ -231,20 +230,20 @@ func serveInstalled(c *cli.Command) error {
 	err := listen(webRoutes, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
-	log.GetManager().Close()
 	return err
 }
 
 func servePprof() {
+	// FIXME: it shouldn't use the global DefaultServeMux, and it should use a proper context
 	http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
-	_, _, finished := process.GetManager().AddTypedContext(context.Background(), "Web: PProf Server", process.SystemProcessType, true)
-	// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment it's not worth to introduce a configurable option for it.
+	_, _, finished := process.GetManager().AddTypedContext(context.TODO(), "Web: PProf Server", process.SystemProcessType, true)
+	// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment, it's not worth introducing a configurable option for it.
 	log.Info("Starting pprof server on localhost:6060")
 	log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", nil))
 	finished()
 }
 
-func runWeb(_ context.Context, cmd *cli.Command) error {
+func runWeb(ctx context.Context, cmd *cli.Command) error {
 	defer func() {
 		if panicked := recover(); panicked != nil {
 			log.Fatal("PANIC: %v\n%s", panicked, log.Stack(2))
@@ -255,7 +254,7 @@ func runWeb(_ context.Context, cmd *cli.Command) error {
 		return fmt.Errorf("unknown command: %s", subCmdName)
 	}
 
-	managerCtx, cancel := context.WithCancel(context.Background())
+	managerCtx, cancel := context.WithCancel(ctx)
 	graceful.InitManager(managerCtx)
 	defer cancel()
 

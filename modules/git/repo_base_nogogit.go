@@ -23,8 +23,6 @@ type Repository struct {
 
 	tagCache *ObjectCache[*Tag]
 
-	gpgSettings *GPGSettings
-
 	batchInUse bool
 	batch      *Batch
 
@@ -35,11 +33,6 @@ type Repository struct {
 	LastCommitCache *LastCommitCache
 
 	objectFormat ObjectFormat
-}
-
-// openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
-func openRepositoryWithDefaultContext(repoPath string) (*Repository, error) {
-	return OpenRepository(DefaultContext, repoPath)
 }
 
 // OpenRepository opens the repository at the given path with the provided context.

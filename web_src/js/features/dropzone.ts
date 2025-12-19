@@ -1,5 +1,5 @@
 import {svg} from '../svg.ts';
-import {htmlEscape} from 'escape-goat';
+import {html} from '../utils/html.ts';
 import {clippie} from 'clippie';
 import {showTemporaryTooltip} from '../modules/tippy.ts';
 import {GET, POST} from '../modules/fetch.ts';
@@ -28,19 +28,18 @@ async function createDropzone(el: HTMLElement, opts: DropzoneOptions) {
 export function generateMarkdownLinkForAttachment(file: Partial<CustomDropzoneFile>, {width, dppx}: {width?: number, dppx?: number} = {}) {
   let fileMarkdown = `[${file.name}](/attachments/${file.uuid})`;
   if (isImageFile(file)) {
-    fileMarkdown = `!${fileMarkdown}`;
-    if (width > 0 && dppx > 1) {
+    if (width && width > 0 && dppx && dppx > 1) {
       // Scale down images from HiDPI monitors. This uses the <img> tag because it's the only
       // method to change image size in Markdown that is supported by all implementations.
       // Make the image link relative to the repo path, then the final URL is "/sub-path/owner/repo/attachments/{uuid}"
-      fileMarkdown = `<img width="${Math.round(width / dppx)}" alt="${htmlEscape(file.name)}" src="attachments/${htmlEscape(file.uuid)}">`;
+      fileMarkdown = html`<img width="${Math.round(width / dppx)}" alt="${file.name}" src="attachments/${file.uuid}">`;
     } else {
       // Markdown always renders the image with a relative path, so the final URL is "/sub-path/owner/repo/attachments/{uuid}"
       // TODO: it should also use relative path for consistency, because absolute is ambiguous for "/sub-path/attachments" or "/attachments"
       fileMarkdown = `![${file.name}](/attachments/${file.uuid})`;
     }
   } else if (isVideoFile(file)) {
-    fileMarkdown = `<video src="attachments/${htmlEscape(file.uuid)}" title="${htmlEscape(file.name)}" controls></video>`;
+    fileMarkdown = html`<video src="attachments/${file.uuid}" title="${file.name}" controls></video>`;
   }
   return fileMarkdown;
 }
@@ -57,7 +56,7 @@ function addCopyLink(file: Partial<CustomDropzoneFile>) {
     const success = await clippie(generateMarkdownLinkForAttachment(file));
     showTemporaryTooltip(e.target as Element, success ? i18n.copy_success : i18n.copy_error);
   });
-  file.previewTemplate.append(copyLinkEl);
+  file.previewTemplate!.append(copyLinkEl);
 }
 
 type FileUuidDict = Record<string, {submitted: boolean}>;
@@ -67,15 +66,15 @@ type FileUuidDict = Record<string, {submitted: boolean}>;
  */
 export async function initDropzone(dropzoneEl: HTMLElement) {
   const listAttachmentsUrl = dropzoneEl.closest('[data-attachment-url]')?.getAttribute('data-attachment-url');
-  const removeAttachmentUrl = dropzoneEl.getAttribute('data-remove-url');
-  const attachmentBaseLinkUrl = dropzoneEl.getAttribute('data-link-url');
+  const removeAttachmentUrl = dropzoneEl.getAttribute('data-remove-url')!;
+  const attachmentBaseLinkUrl = dropzoneEl.getAttribute('data-link-url')!;
 
   let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the "removedfile" event
   let fileUuidDict: FileUuidDict = {}; // to record: if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
   const opts: Record<string, any> = {
     url: dropzoneEl.getAttribute('data-upload-url'),
     headers: {'X-Csrf-Token': csrfToken},
-    acceptedFiles: ['*/*', ''].includes(dropzoneEl.getAttribute('data-accepts')) ? null : dropzoneEl.getAttribute('data-accepts'),
+    acceptedFiles: ['*/*', ''].includes(dropzoneEl.getAttribute('data-accepts')!) ? null : dropzoneEl.getAttribute('data-accepts'),
     addRemoveLinks: true,
     dictDefaultMessage: dropzoneEl.getAttribute('data-default-message'),
     dictInvalidFileType: dropzoneEl.getAttribute('data-invalid-input-type'),
@@ -97,7 +96,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
     file.uuid = resp.uuid;
     fileUuidDict[file.uuid] = {submitted: false};
     const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${resp.uuid}`, value: resp.uuid});
-    dropzoneEl.querySelector('.files').append(input);
+    dropzoneEl.querySelector('.files')!.append(input);
     addCopyLink(file);
     dzInst.emit(DropzoneCustomEventUploadDone, {file});
   });
@@ -121,6 +120,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
 
   dzInst.on(DropzoneCustomEventReloadFiles, async () => {
     try {
+      if (!listAttachmentsUrl) return;
       const resp = await GET(listAttachmentsUrl);
       const respData = await resp.json();
       // do not trigger the "removedfile" event, otherwise the attachments would be deleted from server
@@ -128,7 +128,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
       dzInst.removeAllFiles(true);
       disableRemovedfileEvent = false;
 
-      dropzoneEl.querySelector('.files').innerHTML = '';
+      dropzoneEl.querySelector('.files')!.innerHTML = '';
       for (const el of dropzoneEl.querySelectorAll('.dz-preview')) el.remove();
       fileUuidDict = {};
       for (const attachment of respData) {
@@ -142,7 +142,7 @@ export async function initDropzone(dropzoneEl: HTMLElement) {
         addCopyLink(file); // it is from server response, so no "type"
         fileUuidDict[file.uuid] = {submitted: true};
         const input = createElementFromAttrs('input', {name: 'files', type: 'hidden', id: `dropzone-file-${file.uuid}`, value: file.uuid});
-        dropzoneEl.querySelector('.files').append(input);
+        dropzoneEl.querySelector('.files')!.append(input);
       }
       if (!dropzoneEl.querySelector('.dz-preview')) {
         dropzoneEl.classList.remove('dz-started');

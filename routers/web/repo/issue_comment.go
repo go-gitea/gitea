@@ -9,12 +9,15 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
 
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/renderhelper"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -103,12 +106,12 @@ func NewComment(ctx *context.Context) {
 				// check whether the ref of PR <refs/pulls/pr_index/head> in base repo is consistent with the head commit of head branch in the head repo
 				// get head commit of PR
 				if pull.Flow == issues_model.PullRequestFlowGithub {
-					prHeadRef := pull.GetGitRefName()
+					prHeadRef := pull.GetGitHeadRefName()
 					if err := pull.LoadBaseRepo(ctx); err != nil {
 						ctx.ServerError("Unable to load base repo", err)
 						return
 					}
-					prHeadCommitID, err := git.GetFullCommitID(ctx, pull.BaseRepo.RepoPath(), prHeadRef)
+					prHeadCommitID, err := gitrepo.GetFullCommitID(ctx, pull.BaseRepo, prHeadRef)
 					if err != nil {
 						ctx.ServerError("Get head commit Id of pr fail", err)
 						return
@@ -119,13 +122,13 @@ func NewComment(ctx *context.Context) {
 						ctx.ServerError("Unable to load head repo", err)
 						return
 					}
-					if ok := gitrepo.IsBranchExist(ctx, pull.HeadRepo, pull.BaseBranch); !ok {
+					if exist, _ := git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.BaseBranch); !exist {
 						// todo localize
 						ctx.JSONError("The origin branch is delete, cannot reopen.")
 						return
 					}
-					headBranchRef := pull.GetGitHeadBranchRefName()
-					headBranchCommitID, err := git.GetFullCommitID(ctx, pull.HeadRepo.RepoPath(), headBranchRef)
+					headBranchRef := git.RefNameFromBranch(pull.HeadBranch)
+					headBranchCommitID, err := gitrepo.GetFullCommitID(ctx, pull.HeadRepo, headBranchRef.String())
 					if err != nil {
 						ctx.ServerError("Get head commit Id of head branch fail", err)
 						return
@@ -139,8 +142,7 @@ func NewComment(ctx *context.Context) {
 
 					if prHeadCommitID != headBranchCommitID {
 						// force push to base repo
-						err := git.Push(ctx, pull.HeadRepo.RepoPath(), git.PushOptions{
-							Remote: pull.BaseRepo.RepoPath(),
+						err := gitrepo.Push(ctx, pull.HeadRepo, pull.BaseRepo, git.PushOptions{
 							Branch: pull.HeadBranch + ":" + prHeadRef,
 							Force:  true,
 							Env:    repo_module.InternalPushingEnvironment(pull.Issue.Poster, pull.BaseRepo),
@@ -287,9 +289,10 @@ func UpdateCommentContent(ctx *context.Context) {
 			ctx.ServerError("RenderString", err)
 			return
 		}
-	} else {
-		contentEmpty := fmt.Sprintf(`<span class="no-content">%s</span>`, ctx.Tr("repo.issues.no_content"))
-		renderedContent = template.HTML(contentEmpty)
+	}
+
+	if strings.TrimSpace(string(renderedContent)) == "" {
+		renderedContent = htmlutil.HTMLFormat(`<span class="no-content">%s</span>`, ctx.Tr("repo.issues.no_content"))
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{

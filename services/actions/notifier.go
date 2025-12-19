@@ -169,7 +169,7 @@ func (n *actionsNotifier) IssueChangeAssignee(ctx context.Context, doer *user_mo
 		hookEvent = webhook_module.HookEventPullRequestAssign
 	}
 
-	notifyIssueChange(ctx, doer, issue, hookEvent, action)
+	notifyIssueChange(ctx, doer, issue, hookEvent, action, nil, nil)
 }
 
 // IssueChangeMilestone notifies assignee to notifiers
@@ -188,11 +188,11 @@ func (n *actionsNotifier) IssueChangeMilestone(ctx context.Context, doer *user_m
 		hookEvent = webhook_module.HookEventPullRequestMilestone
 	}
 
-	notifyIssueChange(ctx, doer, issue, hookEvent, action)
+	notifyIssueChange(ctx, doer, issue, hookEvent, action, nil, nil)
 }
 
 func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_model.User, issue *issues_model.Issue,
-	_, _ []*issues_model.Label,
+	addedLabels, removedLabels []*issues_model.Label,
 ) {
 	ctx = withMethod(ctx, "IssueChangeLabels")
 
@@ -201,10 +201,10 @@ func (n *actionsNotifier) IssueChangeLabels(ctx context.Context, doer *user_mode
 		hookEvent = webhook_module.HookEventPullRequestLabel
 	}
 
-	notifyIssueChange(ctx, doer, issue, hookEvent, api.HookIssueLabelUpdated)
+	notifyIssueChange(ctx, doer, issue, hookEvent, api.HookIssueLabelUpdated, addedLabels, removedLabels)
 }
 
-func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction) {
+func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, event webhook_module.HookEventType, action api.HookIssueAction, addedLabels, removedLabels []*issues_model.Label) {
 	var err error
 	if err = issue.LoadRepo(ctx); err != nil {
 		log.Error("LoadRepo: %v", err)
@@ -216,34 +216,65 @@ func notifyIssueChange(ctx context.Context, doer *user_model.User, issue *issues
 		return
 	}
 
+	var addedAPILabels []*api.Label
+	if addedLabels != nil {
+		addedAPILabels = make([]*api.Label, 0, len(addedLabels))
+		for _, label := range addedLabels {
+			addedAPILabels = append(addedAPILabels, convert.ToLabel(label, issue.Repo, doer))
+		}
+	}
+
+	// Get removed labels from context if present
+	var removedAPILabels []*api.Label
+	if removedLabels != nil {
+		removedAPILabels = make([]*api.Label, 0, len(removedLabels))
+		for _, label := range removedLabels {
+			removedAPILabels = append(removedAPILabels, convert.ToLabel(label, issue.Repo, doer))
+		}
+	}
+
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(ctx); err != nil {
 			log.Error("loadPullRequest: %v", err)
 			return
 		}
+
+		payload := &api.PullRequestPayload{
+			Action:      action,
+			Index:       issue.Index,
+			PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
+			Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
+			Sender:      convert.ToUser(ctx, doer, nil),
+			Changes: &api.ChangesPayload{
+				AddedLabels:   addedAPILabels,
+				RemovedLabels: removedAPILabels,
+			},
+		}
+
 		newNotifyInputFromIssue(issue, event).
 			WithDoer(doer).
-			WithPayload(&api.PullRequestPayload{
-				Action:      action,
-				Index:       issue.Index,
-				PullRequest: convert.ToAPIPullRequest(ctx, issue.PullRequest, nil),
-				Repository:  convert.ToRepo(ctx, issue.Repo, access_model.Permission{AccessMode: perm_model.AccessModeNone}),
-				Sender:      convert.ToUser(ctx, doer, nil),
-			}).
+			WithPayload(payload).
 			WithPullRequest(issue.PullRequest).
 			Notify(ctx)
 		return
 	}
+
 	permission, _ := access_model.GetUserRepoPermission(ctx, issue.Repo, issue.Poster)
+	payload := &api.IssuePayload{
+		Action:     action,
+		Index:      issue.Index,
+		Issue:      convert.ToAPIIssue(ctx, doer, issue),
+		Repository: convert.ToRepo(ctx, issue.Repo, permission),
+		Sender:     convert.ToUser(ctx, doer, nil),
+		Changes: &api.ChangesPayload{
+			AddedLabels:   addedAPILabels,
+			RemovedLabels: removedAPILabels,
+		},
+	}
+
 	newNotifyInputFromIssue(issue, event).
 		WithDoer(doer).
-		WithPayload(&api.IssuePayload{
-			Action:     action,
-			Index:      issue.Index,
-			Issue:      convert.ToAPIIssue(ctx, doer, issue),
-			Repository: convert.ToRepo(ctx, issue.Repo, permission),
-			Sender:     convert.ToUser(ctx, doer, nil),
-		}).
+		WithPayload(payload).
 		Notify(ctx)
 }
 
@@ -263,11 +294,6 @@ func (n *actionsNotifier) CreateIssueComment(ctx context.Context, doer *user_mod
 func (n *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.User, c *issues_model.Comment, oldContent string) {
 	ctx = withMethod(ctx, "UpdateComment")
 
-	if err := c.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
-		return
-	}
-
 	if c.Issue.IsPull {
 		notifyIssueCommentChange(ctx, doer, c, oldContent, webhook_module.HookEventPullRequestComment, api.HookIssueCommentEdited)
 		return
@@ -278,11 +304,6 @@ func (n *actionsNotifier) UpdateComment(ctx context.Context, doer *user_model.Us
 func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.User, comment *issues_model.Comment) {
 	ctx = withMethod(ctx, "DeleteComment")
 
-	if err := comment.LoadIssue(ctx); err != nil {
-		log.Error("LoadIssue: %v", err)
-		return
-	}
-
 	if comment.Issue.IsPull {
 		notifyIssueCommentChange(ctx, doer, comment, "", webhook_module.HookEventPullRequestComment, api.HookIssueCommentDeleted)
 		return
@@ -291,6 +312,7 @@ func (n *actionsNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 }
 
 func notifyIssueCommentChange(ctx context.Context, doer *user_model.User, comment *issues_model.Comment, oldContent string, event webhook_module.HookEventType, action api.HookIssueCommentAction) {
+	comment.Issue = nil // force issue to be loaded
 	if err := comment.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return

@@ -63,7 +63,7 @@ function initAdminAuthentication() {
 
   function onUsePagedSearchChange() {
     const searchPageSizeElements = document.querySelectorAll<HTMLDivElement>('.search-page-size');
-    if (document.querySelector<HTMLInputElement>('#use_paged_search').checked) {
+    if (document.querySelector<HTMLInputElement>('#use_paged_search')!.checked) {
       showElem('.search-page-size');
       for (const el of searchPageSizeElements) {
         el.querySelector('input')?.setAttribute('required', 'required');
@@ -82,10 +82,10 @@ function initAdminAuthentication() {
       input.removeAttribute('required');
     }
 
-    const provider = document.querySelector<HTMLInputElement>('#oauth2_provider').value;
+    const provider = document.querySelector<HTMLInputElement>('#oauth2_provider')!.value;
     switch (provider) {
       case 'openidConnect':
-        document.querySelector<HTMLInputElement>('.open_id_connect_auto_discovery_url input').setAttribute('required', 'required');
+        document.querySelector<HTMLInputElement>('.open_id_connect_auto_discovery_url input')!.setAttribute('required', 'required');
         showElem('.open_id_connect_auto_discovery_url');
         break;
       default: {
@@ -97,26 +97,29 @@ function initAdminAuthentication() {
           showElem('.oauth2_use_custom_url'); // show the checkbox
         }
         if (mustProvideCustomURLs) {
-          document.querySelector<HTMLInputElement>('#oauth2_use_custom_url').checked = true; // make the checkbox checked
+          document.querySelector<HTMLInputElement>('#oauth2_use_custom_url')!.checked = true; // make the checkbox checked
         }
         break;
       }
     }
+
+    const supportSshPublicKey = document.querySelector<HTMLInputElement>(`#${provider}_SupportSSHPublicKey`)?.value === 'true';
+    toggleElem('.field.oauth2_ssh_public_key_claim_name', supportSshPublicKey);
     onOAuth2UseCustomURLChange(applyDefaultValues);
   }
 
   function onOAuth2UseCustomURLChange(applyDefaultValues: boolean) {
-    const provider = document.querySelector<HTMLInputElement>('#oauth2_provider').value;
+    const provider = document.querySelector<HTMLInputElement>('#oauth2_provider')!.value;
     hideElem('.oauth2_use_custom_url_field');
     for (const input of document.querySelectorAll<HTMLInputElement>('.oauth2_use_custom_url_field input[required]')) {
       input.removeAttribute('required');
     }
 
     const elProviderCustomUrlSettings = document.querySelector(`#${provider}_customURLSettings`);
-    if (elProviderCustomUrlSettings && document.querySelector<HTMLInputElement>('#oauth2_use_custom_url').checked) {
+    if (elProviderCustomUrlSettings && document.querySelector<HTMLInputElement>('#oauth2_use_custom_url')!.checked) {
       for (const custom of ['token_url', 'auth_url', 'profile_url', 'email_url', 'tenant']) {
         if (applyDefaultValues) {
-          document.querySelector<HTMLInputElement>(`#oauth2_${custom}`).value = document.querySelector<HTMLInputElement>(`#${provider}_${custom}`).value;
+          document.querySelector<HTMLInputElement>(`#oauth2_${custom}`)!.value = document.querySelector<HTMLInputElement>(`#${provider}_${custom}`)!.value;
         }
         const customInput = document.querySelector(`#${provider}_${custom}`);
         if (customInput && customInput.getAttribute('data-available') === 'true') {
@@ -131,10 +134,10 @@ function initAdminAuthentication() {
 
   function onEnableLdapGroupsChange() {
     const checked = document.querySelector<HTMLInputElement>('.js-ldap-group-toggle')?.checked;
-    toggleElem(document.querySelector('#ldap-group-options'), checked);
+    toggleElem(document.querySelector('#ldap-group-options')!, checked);
   }
 
-  const elAuthType = document.querySelector<HTMLInputElement>('#auth_type');
+  const elAuthType = document.querySelector<HTMLInputElement>('#auth_type')!;
 
   // New authentication
   if (isNewPage) {
@@ -205,14 +208,14 @@ function initAdminAuthentication() {
     document.querySelector<HTMLInputElement>('#oauth2_provider')?.addEventListener('change', () => onOAuth2Change(true));
     document.querySelector<HTMLInputElement>('#oauth2_use_custom_url')?.addEventListener('change', () => onOAuth2UseCustomURLChange(true));
 
-    document.querySelector('.js-ldap-group-toggle').addEventListener('change', onEnableLdapGroupsChange);
+    document.querySelector('.js-ldap-group-toggle')!.addEventListener('change', onEnableLdapGroupsChange);
   }
   // Edit authentication
   if (isEditPage) {
     const authType = elAuthType.value;
     if (authType === '2' || authType === '5') {
       document.querySelector<HTMLInputElement>('#security_protocol')?.addEventListener('change', onSecurityProtocolChange);
-      document.querySelector('.js-ldap-group-toggle').addEventListener('change', onEnableLdapGroupsChange);
+      document.querySelector('.js-ldap-group-toggle')!.addEventListener('change', onEnableLdapGroupsChange);
       onEnableLdapGroupsChange();
       if (authType === '2') {
         document.querySelector<HTMLInputElement>('#use_paged_search')?.addEventListener('change', onUsePagedSearchChange);
@@ -224,10 +227,10 @@ function initAdminAuthentication() {
     }
   }
 
-  const elAuthName = document.querySelector<HTMLInputElement>('#auth_name');
+  const elAuthName = document.querySelector<HTMLInputElement>('#auth_name')!;
   const onAuthNameChange = function () {
     // appSubUrl is either empty or is a path that starts with `/` and doesn't have a trailing slash.
-    document.querySelector('#oauth2-callback-url').textContent = `${window.location.origin}${appSubUrl}/user/oauth2/${encodeURIComponent(elAuthName.value)}/callback`;
+    document.querySelector('#oauth2-callback-url')!.textContent = `${window.location.origin}${appSubUrl}/user/oauth2/${encodeURIComponent(elAuthName.value)}/callback`;
   };
   elAuthName.addEventListener('input', onAuthNameChange);
   onAuthNameChange();
@@ -237,13 +240,13 @@ function initAdminNotice() {
   const pageContent = document.querySelector('.page-content.admin.notice');
   if (!pageContent) return;
 
-  const detailModal = document.querySelector<HTMLDivElement>('#detail-modal');
+  const detailModal = document.querySelector<HTMLDivElement>('#detail-modal')!;
 
   // Attach view detail modals
   queryElems(pageContent, '.view-detail', (el) => el.addEventListener('click', (e) => {
     e.preventDefault();
-    const elNoticeDesc = el.closest('tr').querySelector('.notice-description');
-    const elModalDesc = detailModal.querySelector('.content pre');
+    const elNoticeDesc = el.closest('tr')!.querySelector('.notice-description')!;
+    const elModalDesc = detailModal.querySelector('.content pre')!;
     elModalDesc.textContent = elNoticeDesc.textContent;
     fomanticQuery(detailModal).modal('show');
   }));
@@ -277,10 +280,10 @@ function initAdminNotice() {
     const data = new FormData();
     for (const checkbox of checkboxes) {
       if (checkbox.checked) {
-        data.append('ids[]', checkbox.closest('.ui.checkbox').getAttribute('data-id'));
+        data.append('ids[]', checkbox.closest('.ui.checkbox')!.getAttribute('data-id')!);
       }
     }
-    await POST(this.getAttribute('data-link'), {data});
-    window.location.href = this.getAttribute('data-redirect');
+    await POST(this.getAttribute('data-link')!, {data});
+    window.location.href = this.getAttribute('data-redirect')!;
   });
 }

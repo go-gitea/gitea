@@ -481,6 +481,7 @@ func (m *webhookNotifier) DeleteComment(ctx context.Context, doer *user_model.Us
 		log.Error("LoadPoster: %v", err)
 		return
 	}
+	comment.Issue = nil // reload issue to ensure it has the latest data, especially the number of comments
 	if err = comment.LoadIssue(ctx); err != nil {
 		log.Error("LoadIssue: %v", err)
 		return

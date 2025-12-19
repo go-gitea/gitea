@@ -15,7 +15,7 @@ import (
 	"mime"
 	"regexp"
 	"strings"
-	texttmpl "text/template"
+	"sync/atomic"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/typesniffer"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 
@@ -31,11 +32,13 @@ import (
 
 const mailMaxSubjectRunes = 256 // There's no actual limit for subject in RFC 5322
 
-var (
-	bodyTemplates       *template.Template
-	subjectTemplates    *texttmpl.Template
-	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
-)
+var loadedTemplates atomic.Pointer[templates.MailTemplates]
+
+var subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
+
+func LoadedTemplates() *templates.MailTemplates {
+	return loadedTemplates.Load()
+}
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
@@ -170,4 +173,42 @@ func fromDisplayName(u *user_model.User) string {
 		log.Error("fromDisplayName: %w", err)
 	}
 	return u.GetCompleteName()
+}
+
+func generateMetadataHeaders(repo *repo_model.Repository) map[string]string {
+	return map[string]string{
+		// https://datatracker.ietf.org/doc/html/rfc2919
+		"List-ID": fmt.Sprintf("%s <%s.%s.%s>", repo.FullName(), repo.Name, repo.OwnerName, setting.Domain),
+
+		// https://datatracker.ietf.org/doc/html/rfc2369
+		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
+
+		"X-Mailer": "Gitea",
+
+		"X-Gitea-Repository":      repo.Name,
+		"X-Gitea-Repository-Path": repo.FullName(),
+		"X-Gitea-Repository-Link": repo.HTMLURL(),
+
+		"X-GitLab-Project":      repo.Name,
+		"X-GitLab-Project-Path": repo.FullName(),
+	}
+}
+
+func generateSenderRecipientHeaders(doer, recipient *user_model.User) map[string]string {
+	return map[string]string{
+		"X-Gitea-Sender":             doer.Name,
+		"X-Gitea-Recipient":          recipient.Name,
+		"X-Gitea-Recipient-Address":  recipient.Email,
+		"X-GitHub-Sender":            doer.Name,
+		"X-GitHub-Recipient":         recipient.Name,
+		"X-GitHub-Recipient-Address": recipient.Email,
+	}
+}
+
+func generateReasonHeaders(reason string) map[string]string {
+	return map[string]string{
+		"X-Gitea-Reason":              reason,
+		"X-GitHub-Reason":             reason,
+		"X-GitLab-NotificationReason": reason,
+	}
 }

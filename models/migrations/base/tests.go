@@ -4,7 +4,6 @@
 package base
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -20,6 +19,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 // FIXME: this file shouldn't be in a normal package, it should only be compiled for tests
@@ -89,6 +89,16 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 	return x, deferFn
 }
 
+func LoadTableSchemasMap(t *testing.T, x *xorm.Engine) map[string]*schemas.Table {
+	tables, err := x.DBMetas()
+	require.NoError(t, err)
+	tableMap := make(map[string]*schemas.Table)
+	for _, table := range tables {
+		tableMap[table.Name] = table
+	}
+	return tableMap
+}
+
 func MainTest(m *testing.M) {
 	testlogger.Init()
 
@@ -124,7 +134,7 @@ func MainTest(m *testing.M) {
 	setting.AppDataPath = tmpDataPath
 
 	unittest.InitSettingsForTesting()
-	if err = git.InitFull(context.Background()); err != nil {
+	if err = git.InitFull(); err != nil {
 		testlogger.Fatalf("Unable to InitFull: %v\n", err)
 	}
 	setting.LoadDBSetting()

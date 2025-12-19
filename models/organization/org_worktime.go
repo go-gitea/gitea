@@ -4,6 +4,7 @@
 package organization
 
 import (
+	"context"
 	"sort"
 
 	"code.gitea.io/gitea/models/db"
@@ -16,8 +17,8 @@ type WorktimeSumByRepos struct {
 	SumTime  int64
 }
 
-func GetWorktimeByRepos(org *Organization, unitFrom, unixTo int64) (results []WorktimeSumByRepos, err error) {
-	err = db.GetEngine(db.DefaultContext).
+func GetWorktimeByRepos(ctx context.Context, org *Organization, unitFrom, unixTo int64) (results []WorktimeSumByRepos, err error) {
+	err = db.GetEngine(ctx).
 		Select("repository.name AS repo_name, SUM(tracked_time.time) AS sum_time").
 		Table("tracked_time").
 		Join("INNER", "issue", "tracked_time.issue_id = issue.id").
@@ -41,8 +42,8 @@ type WorktimeSumByMilestones struct {
 	HideRepoName      bool
 }
 
-func GetWorktimeByMilestones(org *Organization, unitFrom, unixTo int64) (results []WorktimeSumByMilestones, err error) {
-	err = db.GetEngine(db.DefaultContext).
+func GetWorktimeByMilestones(ctx context.Context, org *Organization, unitFrom, unixTo int64) (results []WorktimeSumByMilestones, err error) {
+	err = db.GetEngine(ctx).
 		Select("repository.name AS repo_name, milestone.name AS milestone_name, milestone.id AS milestone_id, milestone.deadline_unix as milestone_deadline, SUM(tracked_time.time) AS sum_time").
 		Table("tracked_time").
 		Join("INNER", "issue", "tracked_time.issue_id = issue.id").
@@ -85,8 +86,8 @@ type WorktimeSumByMembers struct {
 	SumTime  int64
 }
 
-func GetWorktimeByMembers(org *Organization, unitFrom, unixTo int64) (results []WorktimeSumByMembers, err error) {
-	err = db.GetEngine(db.DefaultContext).
+func GetWorktimeByMembers(ctx context.Context, org *Organization, unitFrom, unixTo int64) (results []WorktimeSumByMembers, err error) {
+	err = db.GetEngine(ctx).
 		Select("`user`.name AS user_name, SUM(tracked_time.time) AS sum_time").
 		Table("tracked_time").
 		Join("INNER", "issue", "tracked_time.issue_id = issue.id").

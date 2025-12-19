@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/task"
 )
 
@@ -237,7 +238,7 @@ func MigratePost(ctx *context.Context) {
 		opts.AWSSecretAccessKey = form.AWSSecretAccessKey
 	}
 
-	err = repo_model.CheckCreateRepository(ctx, ctx.Doer, ctxUser, opts.RepoName, false)
+	err = repo_service.CheckCreateRepository(ctx, ctx.Doer, ctxUser, opts.RepoName, false)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 		return

@@ -366,8 +366,8 @@ It needs some tricks to tweak the left/right borders with active state */
 
 .ui.buttons .button {
   border-right: none;
-  flex: 1 0 auto;
   border-radius: 0;
+  flex-shrink: 0;
   margin: 0;
 }
 .ui.buttons .button:first-child {

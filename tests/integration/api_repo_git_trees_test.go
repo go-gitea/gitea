@@ -11,7 +11,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIReposGitTrees(t *testing.T) {
@@ -32,13 +36,21 @@ func TestAPIReposGitTrees(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
 	// Test a public repo that anyone can GET the tree of
-	for _, ref := range [...]string{
-		"master",     // Branch
-		repo1TreeSHA, // Tree SHA
-	} {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/trees/%s", user2.Name, repo1.Name, ref)
-		MakeRequest(t, req, http.StatusOK)
-	}
+	_ = MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/git/trees/master"), http.StatusOK)
+
+	resp := MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/git/trees/62fb502a7172d4453f0322a2cc85bddffa57f07a?per_page=1"), http.StatusOK)
+	var respGitTree api.GitTreeResponse
+	DecodeJSON(t, resp, &respGitTree)
+	assert.True(t, respGitTree.Truncated)
+	require.Len(t, respGitTree.Entries, 1)
+	assert.Equal(t, "File-WoW", respGitTree.Entries[0].Path)
+
+	resp = MakeRequest(t, NewRequest(t, "GET", "/api/v1/repos/user2/repo1/git/trees/62fb502a7172d4453f0322a2cc85bddffa57f07a?page=2&per_page=1"), http.StatusOK)
+	respGitTree = api.GitTreeResponse{}
+	DecodeJSON(t, resp, &respGitTree)
+	assert.False(t, respGitTree.Truncated)
+	require.Len(t, respGitTree.Entries, 1)
+	assert.Equal(t, "README.md", respGitTree.Entries[0].Path)
 
 	// Tests a private repo with no token so will fail
 	for _, ref := range [...]string{

@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -25,7 +26,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -436,6 +436,9 @@ func ViewIssue(ctx *context.Context) {
 
 func ViewPullMergeBox(ctx *context.Context) {
 	issue := prepareIssueViewLoad(ctx)
+	if ctx.Written() {
+		return
+	}
 	if !issue.IsPull {
 		ctx.NotFound(nil)
 		return
@@ -443,6 +446,10 @@ func ViewPullMergeBox(ctx *context.Context) {
 	preparePullViewPullInfo(ctx, issue)
 	preparePullViewReviewAndMerge(ctx, issue)
 	ctx.Data["PullMergeBoxReloading"] = issue.PullRequest.IsChecking()
+
+	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
+	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.HTML(http.StatusOK, tplPullMergeBox)
 }
 
@@ -488,9 +495,9 @@ func preparePullViewSigning(ctx *context.Context, issue *issues_model.Issue) {
 	pull := issue.PullRequest
 	ctx.Data["WillSign"] = false
 	if ctx.Doer != nil {
-		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitRefName())
+		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo, pull.BaseBranch, pull.GetGitHeadRefName())
 		ctx.Data["WillSign"] = sign
-		ctx.Data["SigningKey"] = key
+		ctx.Data["SigningKeyMergeDisplay"] = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {
 			if asymkey_service.IsErrWontSign(err) {
 				ctx.Data["WontSignReason"] = err.(*asymkey_service.ErrWontSign).Reason
@@ -558,8 +565,10 @@ func preparePullViewDeleteBranch(ctx *context.Context, issue *issues_model.Issue
 	pull := issue.PullRequest
 	isPullBranchDeletable := canDelete &&
 		pull.HeadRepo != nil &&
-		gitrepo.IsBranchExist(ctx, pull.HeadRepo, pull.HeadBranch) &&
 		(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
+	if isPullBranchDeletable {
+		isPullBranchDeletable, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
+	}
 
 	if isPullBranchDeletable && pull.HasMerged {
 		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pull.HeadRepoID, pull.HeadBranch)

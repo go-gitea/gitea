@@ -46,32 +46,24 @@ func AddLabels(ctx context.Context, issue *issues_model.Issue, doer *user_model.
 
 // RemoveLabel removes a label from issue by given ID.
 func RemoveLabel(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, label *issues_model.Label) error {
-	dbCtx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := issue.LoadRepo(dbCtx); err != nil {
-		return err
-	}
-
-	perm, err := access_model.GetUserRepoPermission(dbCtx, issue.Repo, doer)
-	if err != nil {
-		return err
-	}
-	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		if label.OrgID > 0 {
-			return issues_model.ErrOrgLabelNotExist{}
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		if err := issue.LoadRepo(ctx); err != nil {
+			return err
 		}
-		return issues_model.ErrRepoLabelNotExist{}
-	}
 
-	if err := issues_model.DeleteIssueLabel(dbCtx, issue, label, doer); err != nil {
-		return err
-	}
+		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
+		if err != nil {
+			return err
+		}
+		if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
+			if label.OrgID > 0 {
+				return issues_model.ErrOrgLabelNotExist{}
+			}
+			return issues_model.ErrRepoLabelNotExist{}
+		}
 
-	if err := committer.Commit(); err != nil {
+		return issues_model.DeleteIssueLabel(ctx, issue, label, doer)
+	}); err != nil {
 		return err
 	}
 

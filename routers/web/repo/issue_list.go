@@ -398,7 +398,7 @@ func BatchDeleteIssues(ctx *context.Context) {
 		return
 	}
 	for _, issue := range issues {
-		if err := issue_service.DeleteIssue(ctx, ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
+		if err := issue_service.DeleteIssue(ctx, ctx.Doer, issue); err != nil {
 			ctx.ServerError("DeleteIssue", err)
 			return
 		}
@@ -767,6 +767,10 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.pulls")
 		ctx.Data["PageIsPullList"] = true
+		prepareRecentlyPushedNewBranches(ctx)
+		if ctx.Written() {
+			return
+		}
 	} else {
 		MustEnableIssues(ctx)
 		if ctx.Written() {

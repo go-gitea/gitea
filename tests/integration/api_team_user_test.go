@@ -9,7 +9,6 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -38,7 +37,7 @@ func TestAPITeamUser(t *testing.T) {
 		user2.Created = user2.Created.In(time.Local)
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 
-		expectedUser := convert.ToUser(db.DefaultContext, user, user)
+		expectedUser := convert.ToUser(t.Context(), user, user)
 
 		// test time via unix timestamp
 		assert.Equal(t, expectedUser.LastLogin.Unix(), user2.LastLogin.Unix())

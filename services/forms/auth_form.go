@@ -18,45 +18,54 @@ type AuthenticationForm struct {
 	Type            int    `binding:"Range(2,7)"`
 	Name            string `binding:"Required;MaxSize(30)"`
 	TwoFactorPolicy string
+	IsActive        bool
+	IsSyncEnabled   bool
 
-	Host                          string
-	Port                          int
-	BindDN                        string
-	BindPassword                  string
-	UserBase                      string
-	UserDN                        string
-	AttributeUsername             string
-	AttributeName                 string
-	AttributeSurname              string
-	AttributeMail                 string
-	AttributeSSHPublicKey         string
-	AttributeAvatar               string
-	AttributesInBind              bool
-	UsePagedSearch                bool
-	SearchPageSize                int
-	Filter                        string
-	AdminFilter                   string
-	GroupsEnabled                 bool
-	GroupDN                       string
-	GroupFilter                   string
-	GroupMemberUID                string
-	UserUID                       string
-	RestrictedFilter              string
-	AllowDeactivateAll            bool
-	IsActive                      bool
-	IsSyncEnabled                 bool
-	SMTPAuth                      string
-	SMTPHost                      string
-	SMTPPort                      int
-	AllowedDomains                string
-	SecurityProtocol              int `binding:"Range(0,2)"`
-	TLS                           bool
-	SkipVerify                    bool
-	HeloHostname                  string
-	DisableHelo                   bool
-	ForceSMTPS                    bool
-	PAMServiceName                string
-	PAMEmailDomain                string
+	// LDAP
+	Host                  string
+	Port                  int
+	BindDN                string
+	BindPassword          string
+	UserBase              string
+	UserDN                string
+	AttributeUsername     string
+	AttributeName         string
+	AttributeSurname      string
+	AttributeMail         string
+	AttributeSSHPublicKey string
+	AttributeAvatar       string
+	AttributesInBind      bool
+	UsePagedSearch        bool
+	SearchPageSize        int
+	Filter                string
+	AdminFilter           string
+	GroupsEnabled         bool
+	GroupDN               string
+	GroupFilter           string
+	GroupMemberUID        string
+	UserUID               string
+	RestrictedFilter      string
+	AllowDeactivateAll    bool
+	GroupTeamMap          string `binding:"ValidGroupTeamMap"`
+	GroupTeamMapRemoval   bool
+
+	// SMTP
+	SMTPAuth         string
+	SMTPHost         string
+	SMTPPort         int
+	AllowedDomains   string
+	SecurityProtocol int `binding:"Range(0,2)"`
+	TLS              bool
+	SkipVerify       bool
+	HeloHostname     string
+	DisableHelo      bool
+	ForceSMTPS       bool
+
+	// PAM
+	PAMServiceName string
+	PAMEmailDomain string
+
+	// Oauth2 & OIDC
 	Oauth2Provider                string
 	Oauth2Key                     string
 	Oauth2Secret                  string
@@ -76,13 +85,15 @@ type AuthenticationForm struct {
 	Oauth2RestrictedGroup         string
 	Oauth2GroupTeamMap            string `binding:"ValidGroupTeamMap"`
 	Oauth2GroupTeamMapRemoval     bool
-	SSPIAutoCreateUsers           bool
-	SSPIAutoActivateUsers         bool
-	SSPIStripDomainNames          bool
-	SSPISeparatorReplacement      string `binding:"AlphaDashDot;MaxSize(5)"`
-	SSPIDefaultLanguage           string
-	GroupTeamMap                  string `binding:"ValidGroupTeamMap"`
-	GroupTeamMapRemoval           bool
+	Oauth2SSHPublicKeyClaimName   string
+	Oauth2FullNameClaimName       string
+
+	// SSPI
+	SSPIAutoCreateUsers      bool
+	SSPIAutoActivateUsers    bool
+	SSPIStripDomainNames     bool
+	SSPISeparatorReplacement string `binding:"AlphaDashDot;MaxSize(5)"`
+	SSPIDefaultLanguage      string
 }
 
 // Validate validates fields

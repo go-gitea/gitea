@@ -14,24 +14,26 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIViewPulls(t *testing.T) {
@@ -170,11 +172,11 @@ func TestAPIMergePullWIP(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{Status: issues_model.PullRequestStatusMergeable}, unittest.Cond("has_merged = ?", false))
-	pr.LoadIssue(db.DefaultContext)
-	issue_service.ChangeTitle(db.DefaultContext, pr.Issue, owner, setting.Repository.PullRequest.WorkInProgressPrefixes[0]+" "+pr.Issue.Title)
+	pr.LoadIssue(t.Context())
+	issue_service.ChangeTitle(t.Context(), pr.Issue, owner, setting.Repository.PullRequest.WorkInProgressPrefixes[0]+" "+pr.Issue.Title)
 
 	// force reload
-	pr.LoadAttributes(db.DefaultContext)
+	pr.LoadAttributes(t.Context())
 
 	assert.Contains(t, pr.Issue.Title, setting.Repository.PullRequest.WorkInProgressPrefixes[0])
 
@@ -186,6 +188,76 @@ func TestAPIMergePullWIP(t *testing.T) {
 	}).AddTokenAuth(token)
 
 	MakeRequest(t, req, http.StatusMethodNotAllowed)
+}
+
+func TestAPIMergePull(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+		apiCtx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+
+		checkBranchExists := func(t *testing.T, branchName string, status int) {
+			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", owner.Name, repo.Name, branchName)).AddTokenAuth(apiCtx.Token)
+			MakeRequest(t, req, status)
+		}
+
+		createTestBranchPR := func(t *testing.T, branchName string) *api.PullRequest {
+			testCreateFileInBranch(t, owner, repo, createFileInBranchOptions{NewBranch: branchName}, map[string]string{"a-new-file-" + branchName + ".txt": "dummy content"})
+			prDTO, err := doAPICreatePullRequest(apiCtx, repo.OwnerName, repo.Name, repo.DefaultBranch, branchName)(t)
+			require.NoError(t, err)
+			return &prDTO
+		}
+
+		performMerge := func(t *testing.T, prIndex int64, params map[string]any, optExpectedStatus ...int) {
+			req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge", owner.Name, repo.Name, prIndex), params).AddTokenAuth(apiCtx.Token)
+			expectedStatus := util.OptionalArg(optExpectedStatus, http.StatusOK)
+			MakeRequest(t, req, expectedStatus)
+		}
+
+		t.Run("Normal", func(t *testing.T) {
+			newBranch := "test-pull-1"
+			prDTO := createTestBranchPR(t, newBranch)
+			performMerge(t, prDTO.Index, map[string]any{"do": "merge"})
+			checkBranchExists(t, newBranch, http.StatusOK)
+			// try to merge again, make sure we cannot perform a merge on the same PR
+			performMerge(t, prDTO.Index, map[string]any{"do": "merge"}, http.StatusMethodNotAllowed)
+		})
+
+		t.Run("DeleteBranchAfterMergePassedByFormField", func(t *testing.T) {
+			newBranch := "test-pull-2"
+			prDTO := createTestBranchPR(t, newBranch)
+			performMerge(t, prDTO.Index, map[string]any{"do": "merge", "delete_branch_after_merge": true})
+			checkBranchExists(t, newBranch, http.StatusNotFound)
+		})
+
+		updateRepoUnitDefaultDeleteBranchAfterMerge := func(t *testing.T, repo *repo_model.Repository, value bool) {
+			prUnit, err := repo.GetUnit(t.Context(), unit_model.TypePullRequests)
+			require.NoError(t, err)
+
+			prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge = value
+			require.NoError(t, repo_service.UpdateRepositoryUnits(t.Context(), repo, []repo_model.RepoUnit{{
+				RepoID: repo.ID,
+				Type:   unit_model.TypePullRequests,
+				Config: prUnit.PullRequestsConfig(),
+			}}, nil))
+		}
+
+		t.Run("DeleteBranchAfterMergePassedByRepoSettings", func(t *testing.T) {
+			newBranch := "test-pull-3"
+			prDTO := createTestBranchPR(t, newBranch)
+			updateRepoUnitDefaultDeleteBranchAfterMerge(t, repo, true)
+			performMerge(t, prDTO.Index, map[string]any{"do": "merge"})
+			checkBranchExists(t, newBranch, http.StatusNotFound)
+		})
+
+		t.Run("DeleteBranchAfterMergeFormFieldIsSetButNotRepoSettings", func(t *testing.T) {
+			newBranch := "test-pull-4"
+			prDTO := createTestBranchPR(t, newBranch)
+			updateRepoUnitDefaultDeleteBranchAfterMerge(t, repo, false)
+			performMerge(t, prDTO.Index, map[string]any{"do": "merge", "delete_branch_after_merge": true})
+			checkBranchExists(t, newBranch, http.StatusNotFound)
+		})
+	})
 }
 
 func TestAPICreatePullSuccess(t *testing.T) {
@@ -387,7 +459,7 @@ func TestAPIEditPull(t *testing.T) {
 	assert.Equal(t, "feature/1", apiPull.Base.Name)
 	// check comment history
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: apiPull.ID})
-	err := pull.LoadIssue(db.DefaultContext)
+	err := pull.LoadIssue(t.Context())
 	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{IssueID: pull.Issue.ID, OldTitle: title, NewTitle: newTitle})
 	unittest.AssertExistsAndLoadBean(t, &issues_model.ContentHistory{IssueID: pull.Issue.ID, ContentText: newBody, IsFirstCreated: false})
@@ -444,7 +516,7 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		forkedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ForkID: baseRepo.ID, OwnerName: "user1"})
 
 		// add a new file to the forked repo
-		addFileToForkedResp, err := files_service.ChangeRepoFiles(git.DefaultContext, forkedRepo, user1, &files_service.ChangeRepoFilesOptions{
+		addFileToForkedResp, err := files_service.ChangeRepoFiles(t.Context(), forkedRepo, user1, &files_service.ChangeRepoFilesOptions{
 			Files: []*files_service.ChangeRepoFile{
 				{
 					Operation:     "create",
@@ -490,7 +562,7 @@ func TestAPIViewPullFilesWithHeadRepoDeleted(t *testing.T) {
 		}
 
 		prOpts := &pull_service.NewPullRequestOptions{Repo: baseRepo, Issue: pullIssue, PullRequest: pullRequest}
-		err = pull_service.NewPullRequest(git.DefaultContext, prOpts)
+		err = pull_service.NewPullRequest(t.Context(), prOpts)
 		assert.NoError(t, err)
 		pr := convert.ToAPIPullRequest(t.Context(), pullRequest, user1)
 

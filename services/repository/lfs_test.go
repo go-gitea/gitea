@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -27,7 +26,7 @@ func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 	err := storage.Init()
 	assert.NoError(t, err)
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
 	assert.NoError(t, err)
 
 	// add lfs object
@@ -43,7 +42,7 @@ func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 	assert.NoError(t, err)
 
 	// lfs meta has been deleted
-	_, err = git_model.GetLFSMetaObjectByOid(db.DefaultContext, repo.ID, lfsOid)
+	_, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, lfsOid)
 	assert.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
 }
 
@@ -51,7 +50,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	pointer, err := lfs.GeneratePointer(bytes.NewReader(*content))
 	assert.NoError(t, err)
 
-	_, err = git_model.NewLFSMetaObject(db.DefaultContext, repositoryID, pointer)
+	_, err = git_model.NewLFSMetaObject(t.Context(), repositoryID, pointer)
 	assert.NoError(t, err)
 	contentStore := lfs.NewContentStore()
 	exist, err := contentStore.Exists(pointer)

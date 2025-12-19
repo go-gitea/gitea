@@ -22,17 +22,22 @@ func (b *Blob) Name() string {
 	return b.name
 }
 
-// GetBlobContent Gets the limited content of the blob as raw text
-func (b *Blob) GetBlobContent(limit int64) (string, error) {
+// GetBlobBytes Gets the limited content of the blob
+func (b *Blob) GetBlobBytes(limit int64) ([]byte, error) {
 	if limit <= 0 {
-		return "", nil
+		return nil, nil
 	}
 	dataRc, err := b.DataAsync()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer dataRc.Close()
-	buf, err := util.ReadWithLimit(dataRc, int(limit))
+	return util.ReadWithLimit(dataRc, int(limit))
+}
+
+// GetBlobContent Gets the limited content of the blob as raw text
+func (b *Blob) GetBlobContent(limit int64) (string, error) {
+	buf, err := b.GetBlobBytes(limit)
 	return string(buf), err
 }
 
@@ -99,11 +104,9 @@ loop:
 
 // GuessContentType guesses the content type of the blob.
 func (b *Blob) GuessContentType() (typesniffer.SniffedType, error) {
-	r, err := b.DataAsync()
+	buf, err := b.GetBlobBytes(typesniffer.SniffContentSize)
 	if err != nil {
 		return typesniffer.SniffedType{}, err
 	}
-	defer r.Close()
-
-	return typesniffer.DetectContentTypeFromReader(r)
+	return typesniffer.DetectContentType(buf), nil
 }

@@ -29,7 +29,7 @@ func TestEllipsisGuessDisplayWidth(t *testing.T) {
 		t.Run(c.r, func(t *testing.T) {
 			w := 0
 			for _, r := range c.r {
-				w += ellipsisGuessDisplayWidth(r)
+				w += ellipsisDisplayGuessWidth(r)
 			}
 			assert.Equal(t, c.want, w, "hex=% x", []byte(c.r))
 		})

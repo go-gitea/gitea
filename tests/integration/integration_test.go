@@ -148,6 +148,9 @@ func (s *TestSession) GetCookieFlashMessage() *middleware.Flash {
 
 func (s *TestSession) MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
+	if s == nil {
+		return MakeRequest(t, rw, expectedStatus)
+	}
 	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
@@ -268,8 +271,8 @@ type RequestWrapper struct {
 	*http.Request
 }
 
-func (req *RequestWrapper) AddBasicAuth(username string) *RequestWrapper {
-	req.Request.SetBasicAuth(username, userPassword)
+func (req *RequestWrapper) AddBasicAuth(username string, password ...string) *RequestWrapper {
+	req.Request.SetBasicAuth(username, util.OptionalArg(password, userPassword))
 	return req
 }
 
@@ -410,7 +413,8 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
-	decoder := json.NewDecoder(resp.Body)
+	// FIXME: JSON-KEY-CASE: for testing purpose only, because many structs don't provide `json` tags, they just use capitalized field names
+	decoder := json.NewDecoderCaseInsensitive(resp.Body)
 	require.NoError(t, decoder.Decode(v))
 }
 

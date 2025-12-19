@@ -20,6 +20,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
@@ -302,7 +303,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 					return fmt.Errorf("GetTagCommit[%v]: %w", rel.TagName, err)
 				}
 				rel.Sha1 = commit.ID.String()
-				rel.NumCommits, err = commit.CommitsCount()
+				rel.NumCommits, err = gitrepo.CommitsCountOfCommit(ctx, g.repo, commit.ID.String())
 				if err != nil {
 					return fmt.Errorf("CommitsCount: %w", err)
 				}
@@ -365,6 +366,11 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 // SyncTags syncs releases with tags in the database
 func (g *GiteaLocalUploader) SyncTags(ctx context.Context) error {
 	return repo_module.SyncReleasesWithTags(ctx, g.repo, g.gitRepo)
+}
+
+func (g *GiteaLocalUploader) SyncBranches(ctx context.Context) error {
+	_, err := repo_module.SyncRepoBranchesWithRepo(ctx, g.repo, g.gitRepo, g.doer.ID)
+	return err
 }
 
 // CreateIssues creates issues
@@ -662,7 +668,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				fetchArg = git.BranchPrefix + fetchArg
 			}
 
-			_, _, err = git.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
+			_, err = gitrepo.RunCmdString(ctx, g.repo, gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg))
 			if err != nil {
 				log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 				return head, nil
@@ -681,8 +687,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 			pr.Head.SHA = headSha
 		}
 
-		_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
-		if err != nil {
+		if err = gitrepo.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
 			return "", err
 		}
 
@@ -698,14 +703,13 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		// The SHA is empty
 		log.Warn("Empty reference, no pull head for PR #%d in %s/%s", pr.Number, g.repoOwner, g.repoName)
 	} else {
-		_, _, err = git.NewCommand("rev-list", "--quiet", "-1").AddDynamicArguments(pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
+		_, err = gitrepo.RunCmdString(ctx, g.repo, gitcmd.NewCommand("rev-list", "--quiet", "-1").AddDynamicArguments(pr.Head.SHA))
 		if err != nil {
 			// Git update-ref remove bad references with a relative path
-			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitRefName())
+			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
 		} else {
 			// set head information
-			_, _, err = git.NewCommand("update-ref", "--no-deref").AddDynamicArguments(pr.GetGitRefName(), pr.Head.SHA).RunStdString(ctx, &git.RunOpts{Dir: g.repo.RepoPath()})
-			if err != nil {
+			if err = gitrepo.UpdateRef(ctx, g.repo, pr.GetGitHeadRefName(), pr.Head.SHA); err != nil {
 				log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			}
 		}
@@ -880,9 +884,9 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			continue
 		}
 
-		headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
+		headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
-			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, all review comments will be ignored", pr.Index, pr.GetGitRefName(), g.repoOwner, g.repoName, err)
+			log.Warn("PR #%d GetRefCommitID[%s] in %s/%s: %v, all review comments will be ignored", pr.Index, pr.GetGitHeadRefName(), g.repoOwner, g.repoName, err)
 			continue
 		}
 

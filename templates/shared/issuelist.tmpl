@@ -35,7 +35,7 @@
 					</div>
 					{{end}}
 				</div>
-				<div class="flex-item-body tw-mt-1">
+				<div class="flex-item-body">
 					<a class="index" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						{{if eq $.listType "dashboard"}}
 							{{.Repo.FullName}}#{{.Index}}

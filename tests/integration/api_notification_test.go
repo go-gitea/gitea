@@ -10,7 +10,6 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -26,7 +25,7 @@ func TestAPINotification(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
-	assert.NoError(t, thread5.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, thread5.LoadAttributes(t.Context()))
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteNotification, auth_model.AccessTokenScopeWriteRepository)
 
@@ -106,7 +105,7 @@ func TestAPINotification(t *testing.T) {
 	assert.True(t, apiN.Unread)
 	assert.Equal(t, "issue4", apiN.Subject.Title)
 	assert.EqualValues(t, "Issue", apiN.Subject.Type)
-	assert.Equal(t, thread5.Issue.APIURL(db.DefaultContext), apiN.Subject.URL)
+	assert.Equal(t, thread5.Issue.APIURL(t.Context()), apiN.Subject.URL)
 	assert.Equal(t, thread5.Repository.HTMLURL(), apiN.Repository.HTMLURL)
 
 	MakeRequest(t, NewRequest(t, "GET", "/api/v1/notifications/new"), http.StatusUnauthorized)
@@ -162,7 +161,7 @@ func TestAPINotificationPUT(t *testing.T) {
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
-	assert.NoError(t, thread5.LoadAttributes(db.DefaultContext))
+	assert.NoError(t, thread5.LoadAttributes(t.Context()))
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteNotification)
 

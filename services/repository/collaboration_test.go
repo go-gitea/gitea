@@ -6,7 +6,6 @@ package repository
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -20,9 +19,9 @@ func TestRepository_AddCollaborator(t *testing.T) {
 
 	testSuccess := func(repoID, userID int64) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID})
-		assert.NoError(t, repo.LoadOwner(db.DefaultContext))
+		assert.NoError(t, repo.LoadOwner(t.Context()))
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
-		assert.NoError(t, AddOrUpdateCollaborator(db.DefaultContext, repo, user, perm.AccessModeWrite))
+		assert.NoError(t, AddOrUpdateCollaborator(t.Context(), repo, user, perm.AccessModeWrite))
 		unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID}, &user_model.User{ID: userID})
 	}
 	testSuccess(1, 4)
@@ -36,11 +35,11 @@ func TestRepository_DeleteCollaboration(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 
-	assert.NoError(t, repo.LoadOwner(db.DefaultContext))
-	assert.NoError(t, DeleteCollaboration(db.DefaultContext, repo, user))
+	assert.NoError(t, repo.LoadOwner(t.Context()))
+	assert.NoError(t, DeleteCollaboration(t.Context(), repo, user))
 	unittest.AssertNotExistsBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: user.ID})
 
-	assert.NoError(t, DeleteCollaboration(db.DefaultContext, repo, user))
+	assert.NoError(t, DeleteCollaboration(t.Context(), repo, user))
 	unittest.AssertNotExistsBean(t, &repo_model.Collaboration{RepoID: repo.ID, UserID: user.ID})
 
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})

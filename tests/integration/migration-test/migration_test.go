@@ -4,6 +4,7 @@
 package migrations
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"database/sql"
@@ -21,7 +22,6 @@ import (
 	"code.gitea.io/gitea/models/migrations"
 	migrate_base "code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -56,7 +56,7 @@ func initMigrationTest(t *testing.T) func() {
 
 	assert.NotEmpty(t, setting.RepoRootPath)
 	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
-	assert.NoError(t, git.InitFull(t.Context()))
+	assert.NoError(t, git.InitFull())
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
 
@@ -108,11 +108,11 @@ func readSQLFromFile(version string) (string, error) {
 	}
 	defer gr.Close()
 
-	bytes, err := io.ReadAll(gr)
+	buf, err := io.ReadAll(gr)
 	if err != nil {
 		return "", err
 	}
-	return string(charset.MaybeRemoveBOM(bytes, charset.ConvertOpts{})), nil
+	return string(bytes.TrimPrefix(buf, []byte{'\xef', '\xbb', '\xbf'})), nil
 }
 
 func restoreOldDB(t *testing.T, version string) {
@@ -250,7 +250,7 @@ func restoreOldDB(t *testing.T, version string) {
 
 func wrappedMigrate(ctx context.Context, x *xorm.Engine) error {
 	currentEngine = x
-	return migrations.Migrate(x)
+	return migrations.Migrate(ctx, x)
 }
 
 func doMigrationTest(t *testing.T, version string) {

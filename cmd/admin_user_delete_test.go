@@ -19,9 +19,9 @@ import (
 func TestAdminUserDelete(t *testing.T) {
 	ctx := t.Context()
 	defer func() {
-		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.User{}))
-		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.EmailAddress{}))
-		require.NoError(t, db.TruncateBeans(db.DefaultContext, &auth_model.AccessToken{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.User{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.EmailAddress{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &auth_model.AccessToken{}))
 	}()
 
 	setupTestUser := func(t *testing.T) {
@@ -104,8 +104,8 @@ func TestAdminUserDeleteFailure(t *testing.T) {
 			require.Contains(t, err.Error(), tc.expectedErr)
 		})
 
-		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.User{}))
-		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.EmailAddress{}))
-		require.NoError(t, db.TruncateBeans(db.DefaultContext, &auth_model.AccessToken{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.User{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.EmailAddress{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &auth_model.AccessToken{}))
 	}
 }

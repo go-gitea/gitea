@@ -2,20 +2,10 @@
 import {SvgIcon} from '../svg.ts';
 import {isPlainClick} from '../utils/dom.ts';
 import {shallowRef} from 'vue';
-import {type createViewFileTreeStore} from './ViewFileTreeStore.ts';
-
-type Item = {
-  entryName: string;
-  entryMode: 'blob' | 'exec' | 'tree' | 'commit' | 'symlink' | 'unknown';
-  entryIcon: string;
-  entryIconOpen: string;
-  fullPath: string;
-  submoduleUrl?: string;
-  children?: Item[];
-};
+import type {createViewFileTreeStore, FileTreeItem} from './ViewFileTreeStore.ts';
 
 const props = defineProps<{
-  item: Item,
+  item: FileTreeItem,
   store: ReturnType<typeof createViewFileTreeStore>
 }>();
 
@@ -62,7 +52,7 @@ const onItemClick = (e: MouseEvent) => {
     @click.stop="onItemClick"
   >
     <div v-if="item.entryMode === 'tree'" class="item-toggle">
-      <SvgIcon v-if="isLoading" name="octicon-sync" class="circular-spin"/>
+      <SvgIcon v-if="isLoading" name="gitea-running" class="rotate-clockwise"/>
       <SvgIcon v-else :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'" @click.stop.prevent="doLoadChildren"/>
     </div>
     <div class="item-content">

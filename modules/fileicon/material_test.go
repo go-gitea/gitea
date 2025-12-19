@@ -20,8 +20,8 @@ func TestMain(m *testing.M) {
 func TestFindIconName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	p := fileicon.DefaultMaterialIconProvider()
-	assert.Equal(t, "php", p.FindIconName(&fileicon.EntryInfo{FullName: "foo.php", EntryMode: git.EntryModeBlob}))
-	assert.Equal(t, "php", p.FindIconName(&fileicon.EntryInfo{FullName: "foo.PHP", EntryMode: git.EntryModeBlob}))
-	assert.Equal(t, "javascript", p.FindIconName(&fileicon.EntryInfo{FullName: "foo.js", EntryMode: git.EntryModeBlob}))
-	assert.Equal(t, "visualstudio", p.FindIconName(&fileicon.EntryInfo{FullName: "foo.vba", EntryMode: git.EntryModeBlob}))
+	assert.Equal(t, "php", p.FindIconName(&fileicon.EntryInfo{BaseName: "foo.php", EntryMode: git.EntryModeBlob}))
+	assert.Equal(t, "php", p.FindIconName(&fileicon.EntryInfo{BaseName: "foo.PHP", EntryMode: git.EntryModeBlob}))
+	assert.Equal(t, "javascript", p.FindIconName(&fileicon.EntryInfo{BaseName: "foo.js", EntryMode: git.EntryModeBlob}))
+	assert.Equal(t, "visualstudio", p.FindIconName(&fileicon.EntryInfo{BaseName: "foo.vba", EntryMode: git.EntryModeBlob}))
 }

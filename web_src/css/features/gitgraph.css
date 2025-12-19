@@ -10,14 +10,6 @@
   align-items: center;
 }
 
-#git-graph-container .color-buttons {
-  margin-right: 0;
-}
-
-#git-graph-container .ui.header.dividing {
-  padding-bottom: 10px;
-}
-
 #git-graph-container #flow-select-refs-dropdown {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
@@ -31,25 +23,6 @@
   align-items: center;
 }
 
-#git-graph-container #flow-select-refs-dropdown .ui.label .truncate {
-  display: inline-block;
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  vertical-align: top;
-  white-space: nowrap;
-}
-
-#git-graph-container #flow-select-refs-dropdown .default.text {
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-
-#git-graph-container #flow-select-refs-dropdown input.search {
-  position: relative;
-  top: 1px;
-}
-
 #git-graph-container li {
   list-style-type: none;
   height: 24px;
@@ -57,16 +30,20 @@
   white-space: nowrap;
   display: flex;
   align-items: center;
-  gap: 0.25em;
+  gap: 0.5em;
+}
+
+#git-graph-container li > span {
+  flex-shrink: 0;
+}
+
+#git-graph-container li > span.message {
+  flex-shrink: 1;
 }
 
 #git-graph-container li .ui.label.commit-id-short {
-  padding-top: 2px;
-  padding-bottom: 2px;
-}
-
-#git-graph-container li .node-relation {
-  font-family: var(--fonts-monospace);
+  padding: 2px 4px;
+  height: 20px;
 }
 
 #git-graph-container li .author {
@@ -76,17 +53,6 @@
 #git-graph-container li .time {
   color: var(--color-text-light-3);
   font-size: 80%;
-}
-
-#git-graph-container li a:not(.ui):hover {
-  text-decoration: underline;
-}
-
-#git-graph-container li a em {
-  color: var(--color-red);
-  border-bottom: 1px dotted var(--color-secondary);
-  text-decoration: none;
-  font-style: normal;
 }
 
 #git-graph-container #rel-container {
@@ -105,32 +71,21 @@
   width: 100%;
 }
 
-#git-graph-container #rev-list li.highlight.hover {
-  background-color: var(--color-secondary-alpha-30);
-}
-
-#git-graph-container #rev-list .commit-refs .button {
+#git-graph-container li .commit-refs .ui.button,
+#git-graph-container li .commit-refs .ui.label.tag-label {
   padding: 2px 4px;
   margin-right: 0.25em;
   display: inline-block;
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: var(--line-height-default);
   min-height: 0;
-}
-
-#git-graph-container #graph-raw-list {
-  margin: 0;
 }
 
 #git-graph-container.monochrome #rel-container .flow-group {
   stroke: var(--color-secondary-dark-5);
   fill: var(--color-secondary-dark-5);
-}
-
-#git-graph-container.monochrome #rel-container .flow-group.highlight {
-  stroke: var(--color-secondary-dark-12);
-  fill: var(--color-secondary-dark-12);
 }
 
 #git-graph-container:not(.monochrome) #rel-container .flow-group.flow-color-16-1 {

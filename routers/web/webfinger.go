@@ -85,7 +85,7 @@ func WebfingerQuery(ctx *context.Context) {
 	}
 
 	aliases := []string{
-		u.HTMLURL(),
+		u.HTMLURL(ctx),
 		appURL.String() + "api/v1/activitypub/user-id/" + strconv.FormatInt(u.ID, 10),
 	}
 	if !u.KeepEmailPrivate {
@@ -96,7 +96,7 @@ func WebfingerQuery(ctx *context.Context) {
 		{
 			Rel:  "http://webfinger.net/rel/profile-page",
 			Type: "text/html",
-			Href: u.HTMLURL(),
+			Href: u.HTMLURL(ctx),
 		},
 		{
 			Rel:  "http://webfinger.net/rel/avatar",

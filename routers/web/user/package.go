@@ -203,9 +203,6 @@ func ViewPackageVersion(ctx *context.Context) {
 	}
 	ctx.Data["PackageRegistryHost"] = registryHostURL.Host
 
-	var pvs []*packages_model.PackageVersion
-	pvsTotal := int64(0)
-
 	switch pd.Package.Type {
 	case packages_model.TypeAlpine:
 		branches := make(container.Set[string])
@@ -296,12 +293,16 @@ func ViewPackageVersion(ctx *context.Context) {
 			}
 		}
 		ctx.Data["ContainerImageMetadata"] = imageMetadata
+	}
+	var pvs []*packages_model.PackageVersion
+	var pvsTotal int64
+	if pd.Package.Type == packages_model.TypeContainer {
 		pvs, pvsTotal, err = container_model.SearchImageTags(ctx, &container_model.ImageTagsSearchOptions{
 			Paginator: db.NewAbsoluteListOptions(0, 5),
 			PackageID: pd.Package.ID,
 			IsTagged:  true,
 		})
-	default:
+	} else {
 		pvs, pvsTotal, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
 			Paginator:  db.NewAbsoluteListOptions(0, 5),
 			PackageID:  pd.Package.ID,
@@ -312,7 +313,6 @@ func ViewPackageVersion(ctx *context.Context) {
 		ctx.ServerError("", err)
 		return
 	}
-
 	ctx.Data["LatestVersions"] = pvs
 	ctx.Data["TotalVersionCount"] = pvsTotal
 
@@ -431,74 +431,81 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
 	ctx.Data["PackageDescriptor"] = pd
-
-	repos, _, _ := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
-		Actor:   pd.Owner,
-		Private: true,
-	})
-	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
+
+	if pd.Package.RepoID > 0 {
+		repo, err := repo_model.GetRepositoryByID(ctx, pd.Package.RepoID)
+		if err != nil {
+			ctx.ServerError("GetRepositoryByID", err)
+			return
+		}
+		ctx.Data["LinkedRepoName"] = repo.Name
+	}
 
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }
 
 // PackageSettingsPost updates the package settings
 func PackageSettingsPost(ctx *context.Context) {
-	pd := ctx.Package.Descriptor
-
 	form := web.GetForm(ctx).(*forms.PackageSettingForm)
 	switch form.Action {
 	case "link":
-		success := func() bool {
-			repoID := int64(0)
-			if form.RepoID != 0 {
-				repo, err := repo_model.GetRepositoryByID(ctx, form.RepoID)
-				if err != nil {
-					log.Error("Error getting repository: %v", err)
-					return false
-				}
-
-				if repo.OwnerID != pd.Owner.ID {
-					return false
-				}
-
-				repoID = repo.ID
-			}
-
-			if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, repoID); err != nil {
-				log.Error("Error updating package: %v", err)
-				return false
-			}
-
-			return true
-		}()
-
-		if success {
-			ctx.Flash.Success(ctx.Tr("packages.settings.link.success"))
-		} else {
-			ctx.Flash.Error(ctx.Tr("packages.settings.link.error"))
-		}
-
-		ctx.Redirect(ctx.Link)
-		return
+		packageSettingsPostActionLink(ctx, form)
 	case "delete":
-		err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
-		if err != nil {
-			log.Error("Error deleting package: %v", err)
-			ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
-		} else {
-			ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+		packageSettingsPostActionDelete(ctx)
+	default:
+		ctx.NotFound(nil)
+	}
+}
+
+func packageSettingsPostActionLink(ctx *context.Context, form *forms.PackageSettingForm) {
+	pd := ctx.Package.Descriptor
+	if form.RepoName == "" { // remove the link
+		if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, 0); err != nil {
+			ctx.JSONError(ctx.Tr("packages.settings.unlink.error"))
+			return
 		}
 
-		redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
-		// redirect to the package if there are still versions available
-		if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: optional.Some(false)}); has {
-			redirectURL = ctx.Package.Descriptor.PackageWebLink()
-		}
-
-		ctx.Redirect(redirectURL)
+		ctx.Flash.Success(ctx.Tr("packages.settings.unlink.success"))
+		ctx.JSONRedirect("")
 		return
 	}
+
+	repo, err := repo_model.GetRepositoryByName(ctx, pd.Owner.ID, form.RepoName)
+	if err != nil {
+		if repo_model.IsErrRepoNotExist(err) {
+			ctx.JSONError(ctx.Tr("packages.settings.link.repo_not_found", form.RepoName))
+		} else {
+			ctx.ServerError("GetRepositoryByOwnerAndName", err)
+		}
+		return
+	}
+
+	if err := packages_model.SetRepositoryLink(ctx, pd.Package.ID, repo.ID); err != nil {
+		ctx.JSONError(ctx.Tr("packages.settings.link.error"))
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("packages.settings.link.success"))
+	ctx.JSONRedirect("")
+}
+
+func packageSettingsPostActionDelete(ctx *context.Context) {
+	err := packages_service.RemovePackageVersion(ctx, ctx.Doer, ctx.Package.Descriptor.Version)
+	if err != nil {
+		log.Error("Error deleting package: %v", err)
+		ctx.Flash.Error(ctx.Tr("packages.settings.delete.error"))
+	} else {
+		ctx.Flash.Success(ctx.Tr("packages.settings.delete.success"))
+	}
+
+	redirectURL := ctx.Package.Owner.HomeLink() + "/-/packages"
+	// redirect to the package if there are still versions available
+	if has, _ := packages_model.ExistVersion(ctx, &packages_model.PackageSearchOptions{PackageID: ctx.Package.Descriptor.Package.ID, IsInternal: optional.Some(false)}); has {
+		redirectURL = ctx.Package.Descriptor.PackageWebLink()
+	}
+
+	ctx.Redirect(redirectURL)
 }
 
 // DownloadPackageFile serves the content of a package file
@@ -513,7 +520,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf, ctx.Req.Method)
 	if err != nil {
 		ctx.ServerError("OpenFileForDownload", err)
 		return

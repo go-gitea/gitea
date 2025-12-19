@@ -1,12 +1,14 @@
 {{if eq .HookType "feishu"}}
-	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://feishu.cn" (ctx.Locale.Tr "repo.settings.web_hook_name_feishu")}}</p>
-	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://larksuite.com" (ctx.Locale.Tr "repo.settings.web_hook_name_larksuite")}}</p>
+	<p>
+		{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://feishu.cn" (ctx.Locale.Tr "repo.settings.web_hook_name_feishu")}}
+		{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://larksuite.com" (ctx.Locale.Tr "repo.settings.web_hook_name_larksuite")}}
+	</p>
 	<form class="ui form" action="{{.BaseLink}}/feishu/{{or .Webhook.ID "new"}}" method="post">
 		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
 			<label for="payload_url">{{ctx.Locale.Tr "repo.settings.payload_url"}}</label>
 			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>
 		</div>
-		{{template "repo/settings/webhook/settings" .}}
+		{{template "repo/settings/webhook/settings" dict "BaseLink" .BaseLink "Webhook" .Webhook "UseRequestSecret" "optional"}}
 	</form>
 {{end}}

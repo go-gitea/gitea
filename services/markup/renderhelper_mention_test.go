@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/services/context"
@@ -45,7 +44,7 @@ func TestRenderHelperMention(t *testing.T) {
 	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPublic))
 	assert.False(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPrivate))
 
-	giteaCtx.Doer, err = user.GetUserByName(db.DefaultContext, userPrivate)
+	giteaCtx.Doer, err = user.GetUserByName(t.Context(), userPrivate)
 	assert.NoError(t, err)
 	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPublic))
 	assert.True(t, FormalRenderHelperFuncs().IsUsernameMentionable(giteaCtx, userPrivate))

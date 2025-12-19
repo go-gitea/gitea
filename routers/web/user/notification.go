@@ -4,10 +4,8 @@
 package user
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -34,58 +32,42 @@ const (
 	tplNotificationSubscriptions templates.TplName = "user/notification/notification_subscriptions"
 )
 
-// Notifications is the notifications page
+// Notifications is the notification list page
 func Notifications(ctx *context.Context) {
-	getNotifications(ctx)
+	prepareUserNotificationsData(ctx)
 	if ctx.Written() {
 		return
 	}
 	if ctx.FormBool("div-only") {
-		ctx.Data["SequenceNumber"] = ctx.FormString("sequence-number")
 		ctx.HTML(http.StatusOK, tplNotificationDiv)
 		return
 	}
 	ctx.HTML(http.StatusOK, tplNotification)
 }
 
-func getNotifications(ctx *context.Context) {
-	var (
-		keyword = ctx.FormTrim("q")
-		status  activities_model.NotificationStatus
-		page    = ctx.FormInt("page")
-		perPage = ctx.FormInt("perPage")
-	)
-	if page < 1 {
-		page = 1
-	}
-	if perPage < 1 {
-		perPage = 20
-	}
-
-	switch keyword {
-	case "read":
-		status = activities_model.NotificationStatusRead
-	default:
-		status = activities_model.NotificationStatusUnread
-	}
+func prepareUserNotificationsData(ctx *context.Context) {
+	pageType := ctx.FormString("type", ctx.FormString("q")) // "q" is the legacy query parameter for "page type"
+	page := max(1, ctx.FormInt("page"))
+	perPage := util.IfZero(ctx.FormInt("perPage"), 20) // this value is never used or exposed ....
+	queryStatus := util.Iif(pageType == "read", activities_model.NotificationStatusRead, activities_model.NotificationStatusUnread)
 
 	total, err := db.Count[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
 		UserID: ctx.Doer.ID,
-		Status: []activities_model.NotificationStatus{status},
+		Status: []activities_model.NotificationStatus{queryStatus},
 	})
 	if err != nil {
 		ctx.ServerError("ErrGetNotificationCount", err)
 		return
 	}
 
-	// redirect to last page if request page is more than total pages
 	pager := context.NewPagination(int(total), perPage, page, 5)
 	if pager.Paginater.Current() < page {
-		ctx.Redirect(fmt.Sprintf("%s/notifications?q=%s&page=%d", setting.AppSubURL, url.QueryEscape(ctx.FormString("q")), pager.Paginater.Current()))
-		return
+		// use the last page if the requested page is more than total pages
+		page = pager.Paginater.Current()
+		pager = context.NewPagination(int(total), perPage, page, 5)
 	}
 
-	statuses := []activities_model.NotificationStatus{status, activities_model.NotificationStatusPinned}
+	statuses := []activities_model.NotificationStatus{queryStatus, activities_model.NotificationStatusPinned}
 	nls, err := db.Find[activities_model.Notification](ctx, activities_model.FindNotificationOptions{
 		ListOptions: db.ListOptions{
 			PageSize: perPage,
@@ -142,51 +124,37 @@ func getNotifications(ctx *context.Context) {
 	}
 
 	ctx.Data["Title"] = ctx.Tr("notifications")
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Status"] = status
+	ctx.Data["PageType"] = pageType
 	ctx.Data["Notifications"] = notifications
-
+	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
+	ctx.Data["SequenceNumber"] = ctx.FormString("sequence-number")
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 }
 
 // NotificationStatusPost is a route for changing the status of a notification
 func NotificationStatusPost(ctx *context.Context) {
-	var (
-		notificationID = ctx.FormInt64("notification_id")
-		statusStr      = ctx.FormString("status")
-		status         activities_model.NotificationStatus
-	)
-
-	switch statusStr {
-	case "read":
-		status = activities_model.NotificationStatusRead
-	case "unread":
-		status = activities_model.NotificationStatusUnread
-	case "pinned":
-		status = activities_model.NotificationStatusPinned
+	notificationID := ctx.FormInt64("notification_id")
+	var newStatus activities_model.NotificationStatus
+	switch ctx.FormString("notification_action") {
+	case "mark_as_read":
+		newStatus = activities_model.NotificationStatusRead
+	case "mark_as_unread":
+		newStatus = activities_model.NotificationStatusUnread
+	case "pin":
+		newStatus = activities_model.NotificationStatusPinned
 	default:
-		ctx.ServerError("InvalidNotificationStatus", errors.New("Invalid notification status"))
-		return
+		return // ignore user's invalid input
 	}
-
-	if _, err := activities_model.SetNotificationStatus(ctx, notificationID, ctx.Doer, status); err != nil {
+	if _, err := activities_model.SetNotificationStatus(ctx, notificationID, ctx.Doer, newStatus); err != nil {
 		ctx.ServerError("SetNotificationStatus", err)
 		return
 	}
 
-	if !ctx.FormBool("noredirect") {
-		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, url.QueryEscape(ctx.FormString("page")))
-		ctx.Redirect(url, http.StatusSeeOther)
-	}
-
-	getNotifications(ctx)
+	prepareUserNotificationsData(ctx)
 	if ctx.Written() {
 		return
 	}
-	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
-	ctx.Data["SequenceNumber"] = ctx.Req.PostFormValue("sequence-number")
-
 	ctx.HTML(http.StatusOK, tplNotificationDiv)
 }
 

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -35,7 +34,7 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 
-	projectsUnit := repo2.MustGetUnit(db.DefaultContext, unit.TypeProjects)
+	projectsUnit := repo2.MustGetUnit(t.Context(), unit.TypeProjects)
 	assert.True(t, projectsUnit.ProjectsConfig().IsProjectsAllowed(repo_model.ProjectsModeRepo))
 
 	project1 := project_model.Project{
@@ -44,18 +43,18 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 		Type:         project_model.TypeRepository,
 		TemplateType: project_model.TemplateTypeNone,
 	}
-	err := project_model.NewProject(db.DefaultContext, &project1)
+	err := project_model.NewProject(t.Context(), &project1)
 	assert.NoError(t, err)
 
 	for i := range 3 {
-		err = project_model.NewColumn(db.DefaultContext, &project_model.Column{
+		err = project_model.NewColumn(t.Context(), &project_model.Column{
 			Title:     fmt.Sprintf("column %d", i+1),
 			ProjectID: project1.ID,
 		})
 		assert.NoError(t, err)
 	}
 
-	columns, err := project1.GetColumns(db.DefaultContext)
+	columns, err := project1.GetColumns(t.Context())
 	assert.NoError(t, err)
 	assert.Len(t, columns, 3)
 	assert.EqualValues(t, 0, columns[0].Sorting)
@@ -76,12 +75,12 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 	})
 	sess.MakeRequest(t, req, http.StatusOK)
 
-	columnsAfter, err := project1.GetColumns(db.DefaultContext)
+	columnsAfter, err := project1.GetColumns(t.Context())
 	assert.NoError(t, err)
 	assert.Len(t, columnsAfter, 3)
 	assert.Equal(t, columns[1].ID, columnsAfter[0].ID)
 	assert.Equal(t, columns[2].ID, columnsAfter[1].ID)
 	assert.Equal(t, columns[0].ID, columnsAfter[2].ID)
 
-	assert.NoError(t, project_model.DeleteProjectByID(db.DefaultContext, project1.ID))
+	assert.NoError(t, project_model.DeleteProjectByID(t.Context(), project1.ID))
 }

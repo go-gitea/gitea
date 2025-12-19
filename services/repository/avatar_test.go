@@ -9,7 +9,6 @@ import (
 	"image/png"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/avatar"
@@ -26,7 +25,7 @@ func TestUploadAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	err := UploadAvatar(db.DefaultContext, repo, buff.Bytes())
+	err := UploadAvatar(t.Context(), repo, buff.Bytes())
 	assert.NoError(t, err)
 	assert.Equal(t, avatar.HashAvatar(10, buff.Bytes()), repo.Avatar)
 }
@@ -40,7 +39,7 @@ func TestUploadBigAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	err := UploadAvatar(db.DefaultContext, repo, buff.Bytes())
+	err := UploadAvatar(t.Context(), repo, buff.Bytes())
 	assert.Error(t, err)
 }
 
@@ -53,10 +52,10 @@ func TestDeleteAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	err := UploadAvatar(db.DefaultContext, repo, buff.Bytes())
+	err := UploadAvatar(t.Context(), repo, buff.Bytes())
 	assert.NoError(t, err)
 
-	err = DeleteAvatar(db.DefaultContext, repo)
+	err = DeleteAvatar(t.Context(), repo)
 	assert.NoError(t, err)
 
 	assert.Empty(t, repo.Avatar)
@@ -65,7 +64,7 @@ func TestDeleteAvatar(t *testing.T) {
 func TestGenerateAvatar(t *testing.T) {
 	templateRepo := &repo_model.Repository{ID: 10, Avatar: "a"}
 	generateRepo := &repo_model.Repository{ID: 11}
-	_ = generateAvatar(db.DefaultContext, templateRepo, generateRepo)
+	_ = generateAvatar(t.Context(), templateRepo, generateRepo)
 	assert.NotEmpty(t, generateRepo.Avatar)
 	assert.NotEqual(t, templateRepo.Avatar, generateRepo.Avatar)
 }

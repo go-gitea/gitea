@@ -5,7 +5,6 @@ package fileicon
 
 import (
 	"html/template"
-	"path"
 	"strings"
 	"sync"
 
@@ -77,7 +76,7 @@ func (m *MaterialIconProvider) renderFileIconSVG(p *RenderedIconPool, name, svg,
 	if p.IconSVGs[svgID] == "" {
 		p.IconSVGs[svgID] = svgHTML
 	}
-	return template.HTML(`<svg ` + svgCommonAttrs + `><use xlink:href="#` + svgID + `"></use></svg>`)
+	return template.HTML(`<svg ` + svgCommonAttrs + `><use href="#` + svgID + `"></use></svg>`)
 }
 
 func (m *MaterialIconProvider) EntryIconHTML(p *RenderedIconPool, entry *EntryInfo) template.HTML {
@@ -134,7 +133,7 @@ func (m *MaterialIconProvider) FindIconName(entry *EntryInfo) string {
 		return "folder-git"
 	}
 
-	fileNameLower := strings.ToLower(path.Base(entry.FullName))
+	fileNameLower := strings.ToLower(entry.BaseName)
 	if entry.EntryMode.IsDir() {
 		if s, ok := m.rules.FolderNames[fileNameLower]; ok {
 			return s

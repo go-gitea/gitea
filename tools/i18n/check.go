@@ -17,10 +17,10 @@ import (
 	"text/template"
 	"text/template/parse"
 
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/glob"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
-
-	"github.com/gobwas/glob"
+	"code.gitea.io/gitea/modules/translation/i18n"
 )
 
 func searchTranslationKeyInDirs(keys []string) ([]bool, []string, error) {
@@ -252,24 +252,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	iniFile, err := setting.NewConfigProviderForLocale("options/locale/locale_en-US.ini")
+
+	fileContent, err := os.ReadFile("options/locale/locale_en-US.json")
 	if err != nil {
 		panic(err)
 	}
-
-	keys := []string{}
-	for _, section := range iniFile.Sections() {
-		for _, key := range section.Keys() {
-			var trKey string
-			if section.Name() == "" || section.Name() == "DEFAULT" {
-				trKey = key.Name()
-			} else {
-				trKey = section.Name() + "." + key.Name()
-			}
-			keys = append(keys, trKey)
-		}
+	store := i18n.NewLocaleStore()
+	if err = store.AddLocaleByJSON("English", "en-US", fileContent, nil); err != nil {
+		log.Error("Failed to read translation from en-US: %v", err)
 	}
 
+	keys := store.Keys()
 	results, untranslatedKeys, err := searchTranslationKeyInDirs(keys)
 	if err != nil {
 		panic(err)

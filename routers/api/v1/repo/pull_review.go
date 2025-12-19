@@ -336,7 +336,7 @@ func CreatePullReview(ctx *context.APIContext) {
 		}
 		defer closer.Close()
 
-		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		headCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -455,7 +455,7 @@ func SubmitPullReview(ctx *context.APIContext) {
 		return
 	}
 
-	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pr.GetGitRefName())
+	headCommitID, err := ctx.Repo.GitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

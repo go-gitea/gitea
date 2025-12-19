@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/git/pipeline"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -112,7 +113,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	defer cleanup()
 
-	if err := git.Clone(ctx, ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
+	if err := gitrepo.CloneRepoToLocal(ctx, ctx.Repo.Repository, tmpBasePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 	}); err != nil {
@@ -267,9 +268,10 @@ func LFSFileGet(ctx *context.Context) {
 	buf = buf[:n]
 
 	st := typesniffer.DetectContentType(buf)
+	// FIXME: there is no IsPlainText set, but template uses it
 	ctx.Data["IsTextFile"] = st.IsText()
 	ctx.Data["FileSize"] = meta.Size
-	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/%s.git/info/lfs/objects/%s/%s", setting.AppURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid), "direct")
+	ctx.Data["RawFileLink"] = fmt.Sprintf("%s/%s/%s.git/info/lfs/objects/%s", setting.AppSubURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid))
 	switch {
 	case st.IsRepresentableAsText():
 		if meta.Size >= setting.UI.MaxDisplayFileSize {
@@ -309,8 +311,6 @@ func LFSFileGet(ctx *context.Context) {
 		}
 		ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 
-	case st.IsPDF():
-		ctx.Data["IsPDFFile"] = true
 	case st.IsVideo():
 		ctx.Data["IsVideoFile"] = true
 	case st.IsAudio():

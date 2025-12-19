@@ -13,12 +13,10 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
@@ -27,6 +25,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestRepoView(t *testing.T) {
@@ -41,6 +40,7 @@ func TestRepoView(t *testing.T) {
 	t.Run("BlameFileInRepo", testBlameFileInRepo)
 	t.Run("ViewRepoDirectory", testViewRepoDirectory)
 	t.Run("ViewRepoDirectoryReadme", testViewRepoDirectoryReadme)
+	t.Run("ViewRepoSymlink", testViewRepoSymlink)
 	t.Run("MarkDownReadmeImage", testMarkDownReadmeImage)
 	t.Run("MarkDownReadmeImageSubfolder", testMarkDownReadmeImageSubfolder)
 	t.Run("GeneratedSourceLink", testGeneratedSourceLink)
@@ -257,10 +257,12 @@ func testViewFileInRepo(t *testing.T) {
 	description := htmlDoc.doc.Find(".repo-description")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
+	fileSize := htmlDoc.Find("div.file-info-entry > .file-info-size").Text()
 
 	assert.Equal(t, 0, description.Length())
 	assert.Equal(t, 0, repoTopics.Length())
 	assert.Equal(t, 0, repoSummary.Length())
+	assert.Equal(t, "30 B", fileSize)
 }
 
 // TestBlameFileInRepo repo description, topics and summary should not be displayed when running blame on a file
@@ -412,6 +414,21 @@ func testViewRepoDirectoryReadme(t *testing.T) {
 	missing("symlink-loop", "/user2/readme-test/src/branch/symlink-loop/")
 }
 
+func testViewRepoSymlink(t *testing.T) {
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/readme-test/src/branch/symlink")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	AssertHTMLElement(t, htmlDoc, ".entry-symbol-link", true)
+	followSymbolLinkHref := htmlDoc.Find(".entry-symbol-link").AttrOr("href", "")
+	require.Equal(t, "/user2/readme-test/src/branch/symlink/README.md?follow_symlink=1", followSymbolLinkHref)
+
+	req = NewRequest(t, "GET", followSymbolLinkHref)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/user2/readme-test/src/branch/symlink/some/other/path/awefulcake.txt?follow_symlink=1", resp.Header().Get("Location"))
+}
+
 func testMarkDownReadmeImage(t *testing.T) {
 	defer tests.PrintCurrentTest(t)()
 
@@ -510,7 +527,7 @@ func TestGenerateRepository(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo44 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 44})
 
-	generatedRepo, err := repo_service.GenerateRepository(git.DefaultContext, user2, user2, repo44, repo_service.GenerateRepoOptions{
+	generatedRepo, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
 		Name:       "generated-from-template-44",
 		GitContent: true,
 	})
@@ -523,14 +540,14 @@ func TestGenerateRepository(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: generatedRepo.Name})
 
-	err = repo_service.DeleteRepositoryDirectly(db.DefaultContext, generatedRepo.ID)
+	err = repo_service.DeleteRepositoryDirectly(t.Context(), generatedRepo.ID)
 	assert.NoError(t, err)
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
 	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "generated-from-template-44"), os.ModePerm))
 
-	generatedRepo2, err := repo_service.GenerateRepository(db.DefaultContext, user2, user2, repo44, repo_service.GenerateRepoOptions{
+	generatedRepo2, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
 		Name:       "generated-from-template-44",
 		GitContent: true,
 	})

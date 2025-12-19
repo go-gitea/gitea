@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -195,24 +194,24 @@ func TestPackageRubyGems(t *testing.T) {
 
 		uploadFile(t, testGemContent, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
 		assert.NotNil(t, pd.SemVer)
 		assert.IsType(t, &rubygems.Metadata{}, pd.Metadata)
 		assert.Equal(t, testGemName, pd.Package.Name)
 		assert.Equal(t, testGemVersion, pd.Version.Version)
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, fmt.Sprintf("%s-%s.gem", testGemName, testGemVersion), pfs[0].Name)
 		assert.True(t, pfs[0].IsLead)
 
-		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 		assert.NoError(t, err)
 		assert.EqualValues(t, len(testGemContent), pb.Size)
 	})
@@ -231,7 +230,7 @@ func TestPackageRubyGems(t *testing.T) {
 
 		assert.Equal(t, testGemContent, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
@@ -250,7 +249,7 @@ DGAWSKc7zFhPJamg0qRK99TcYphehZLU4hKInFhGSUlBsZW+PtgZepn5+iDxECRzDUDGcfh6hoA4
 gAAAAP//MS06Gw==`)
 		assert.Equal(t, b, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
@@ -317,7 +316,7 @@ gitea-another 0.99 8b639e4048d282941485368ec42609be
 		defer tests.PrintCurrentTest(t)()
 		deleteGemPackage(t, testGemName, testGemVersion)
 		deleteGemPackage(t, testAnotherGemName, testAnotherGemVersion)
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
 	})

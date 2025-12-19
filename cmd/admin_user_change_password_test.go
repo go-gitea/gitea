@@ -18,12 +18,12 @@ func TestChangePasswordCommand(t *testing.T) {
 	ctx := t.Context()
 
 	defer func() {
-		require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.User{}))
+		require.NoError(t, db.TruncateBeans(t.Context(), &user_model.User{}))
 	}()
 
 	t.Run("change password successfully", func(t *testing.T) {
 		// defer func() {
-		// 	require.NoError(t, db.TruncateBeans(db.DefaultContext, &user_model.User{}))
+		// 	require.NoError(t, db.TruncateBeans(t.Context(), &user_model.User{}))
 		// }()
 		// Prepare test user
 		unittest.AssertNotExistsBean(t, &user_model.User{LowerName: "testuser"})

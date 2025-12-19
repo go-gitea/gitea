@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -146,18 +145,18 @@ license = MIT`)
 						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusCreated)
 
-					pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeArch)
+					pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeArch)
 					assert.NoError(t, err)
 					assert.Len(t, pvs, 1)
 
-					pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+					pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 					assert.NoError(t, err)
 					assert.Nil(t, pd.SemVer)
 					assert.IsType(t, &arch_module.VersionMetadata{}, pd.Metadata)
 					assert.Equal(t, packageName, pd.Package.Name)
 					assert.Equal(t, packageVersion, pd.Version.Version)
 
-					pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+					pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 					assert.NoError(t, err)
 					assert.NotEmpty(t, pfs)
 					assert.Condition(t, func() bool {
@@ -173,7 +172,7 @@ license = MIT`)
 
 								assert.True(t, pf.IsLead)
 
-								pfps, err := packages.GetProperties(db.DefaultContext, packages.PropertyTypeFile, pf.ID)
+								pfps, err := packages.GetProperties(t.Context(), packages.PropertyTypeFile, pf.ID)
 								assert.NoError(t, err)
 
 								for _, pfp := range pfps {

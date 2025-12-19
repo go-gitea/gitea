@@ -23,10 +23,10 @@ import (
 func TestRenderConversation(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	pr, _ := issues_model.GetPullRequestByID(db.DefaultContext, 2)
-	_ = pr.LoadIssue(db.DefaultContext)
-	_ = pr.Issue.LoadPoster(db.DefaultContext)
-	_ = pr.Issue.LoadRepo(db.DefaultContext)
+	pr, _ := issues_model.GetPullRequestByID(t.Context(), 2)
+	_ = pr.LoadIssue(t.Context())
+	_ = pr.Issue.LoadPoster(t.Context())
+	_ = pr.Issue.LoadRepo(t.Context())
 
 	run := func(name string, cb func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder)) {
 		t.Run(name, func(t *testing.T) {
@@ -73,7 +73,7 @@ func TestRenderConversation(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), `<div id="code-comments-`)
 	})
 	run("diff non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-		err := db.TruncateBeans(db.DefaultContext, &issues_model.Review{})
+		err := db.TruncateBeans(t.Context(), &issues_model.Review{})
 		assert.NoError(t, err)
 		ctx.Data["ShowOutdatedComments"] = true
 		renderConversation(ctx, preparedComment, "diff")
@@ -81,7 +81,7 @@ func TestRenderConversation(t *testing.T) {
 		assert.NotContains(t, resp.Body.String(), `status-page-500`)
 	})
 	run("timeline non-existing review", func(t *testing.T, ctx *context.Context, resp *httptest.ResponseRecorder) {
-		err := db.TruncateBeans(db.DefaultContext, &issues_model.Review{})
+		err := db.TruncateBeans(t.Context(), &issues_model.Review{})
 		assert.NoError(t, err)
 		ctx.Data["ShowOutdatedComments"] = true
 		renderConversation(ctx, preparedComment, "timeline")

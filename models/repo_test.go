@@ -6,7 +6,6 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 
@@ -15,13 +14,13 @@ import (
 
 func TestCheckRepoStats(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	assert.NoError(t, CheckRepoStats(db.DefaultContext))
+	assert.NoError(t, CheckRepoStats(t.Context()))
 }
 
 func TestDoctorUserStarNum(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	assert.NoError(t, DoctorUserStarNum(db.DefaultContext))
+	assert.NoError(t, DoctorUserStarNum(t.Context()))
 }
 
 func Test_repoStatsCorrectIssueNumComments(t *testing.T) {
@@ -31,7 +30,7 @@ func Test_repoStatsCorrectIssueNumComments(t *testing.T) {
 	assert.NotNil(t, issue2)
 	assert.Equal(t, 0, issue2.NumComments) // the fixture data is wrong, but we don't fix it here
 
-	assert.NoError(t, repoStatsCorrectIssueNumComments(db.DefaultContext, 2))
+	assert.NoError(t, repoStatsCorrectIssueNumComments(t.Context(), 2))
 	// reload the issue
 	issue2 = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 	assert.Equal(t, 1, issue2.NumComments)

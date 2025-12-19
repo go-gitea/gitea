@@ -6,14 +6,17 @@ linters:
   default: none
   enable:
     - bidichk
+    - bodyclose
     - depguard
     - dupl
     - errcheck
     - forbidigo
+    - gocheckcompilerdirectives
     - gocritic
     - govet
     - ineffassign
     - mirror
+    - modernize
     - nakedret
     - nolintlint
     - perfsprint
@@ -50,9 +53,12 @@ linters:
       require-explanation: true
       require-specific: true
     gocritic:
+      enabled-checks:
+        - equalFold
       disabled-checks:
         - ifElseChain
         - singleCaseSwitch # Every time this occurred in the code, there was no other way.
+        - deprecatedComment # conflicts with go-swagger comments
     revive:
       severity: error
       rules:
@@ -105,6 +111,12 @@ linters:
         - require-error
     usetesting:
       os-temp-dir: true
+    perfsprint:
+      concat-loop: false
+    govet:
+      enable:
+        - nilness
+        - unusedwrite
   exclusions:
     generated: lax
     presets:
@@ -151,6 +163,7 @@ linters:
         text: '(?i)exitAfterDefer:'
     paths:
       - node_modules
+      - .venv
       - public
       - web_src
       - third_party$
@@ -170,6 +183,7 @@ formatters:
     generated: lax
     paths:
       - node_modules
+      - .venv
       - public
       - web_src
       - third_party$

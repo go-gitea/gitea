@@ -49,7 +49,7 @@ func mockRequest(t *testing.T, reqPath string) *http.Request {
 
 type MockContextOption struct {
 	Render       context.Render
-	SessionStore *session.MockStore
+	SessionStore session.Store
 }
 
 // MockContext mock context for unit tests

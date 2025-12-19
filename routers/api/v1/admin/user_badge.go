@@ -22,7 +22,7 @@ func ListUserBadges(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose badges are to be listed
 	//   type: string
 	//   required: true
 	// responses:
@@ -53,7 +53,7 @@ func AddUserBadges(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user to whom a badge is to be added
 	//   type: string
 	//   required: true
 	// - name: body
@@ -87,7 +87,7 @@ func DeleteUserBadges(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose badge is to be deleted
 	//   type: string
 	//   required: true
 	// - name: body

@@ -42,7 +42,9 @@ type PullReview struct {
 	// swagger:strfmt date-time
 	Updated time.Time `json:"updated_at"`
 
-	HTMLURL     string `json:"html_url"`
+	// HTMLURL is the web URL for viewing the review
+	HTMLURL string `json:"html_url"`
+	// HTMLPullURL is the web URL for the pull request
 	HTMLPullURL string `json:"pull_request_url"`
 }
 

@@ -26,7 +26,7 @@
 							{{else}}
 								<span class="text red">{{svg "octicon-alert"}}</span>
 							{{end}}
-							<a class="ui primary sha label toggle button show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</a>
+							<button class="btn interact-bg tw-p-2 toggle show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</button>
 						</div>
 						<span class="text grey">
 							{{DateUtils.TimeSince .Delivered}}
@@ -68,7 +68,7 @@
 {{range $key, $val := .RequestInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
 								<h5>{{ctx.Locale.Tr "repo.settings.webhook.payload"}}</h5>
-								<pre class="webhook-info"><code class="json">{{or .RequestInfo.Body .PayloadContent}}</code></pre>
+								<pre class="webhook-info">{{or .RequestInfo.Body .PayloadContent}}</pre>
 							{{else}}
 								-
 							{{end}}
@@ -79,7 +79,7 @@
 								<pre class="webhook-info">{{range $key, $val := .ResponseInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
 								<h5>{{ctx.Locale.Tr "repo.settings.webhook.body"}}</h5>
-								<pre class="webhook-info"><code>{{.ResponseInfo.Body}}</code></pre>
+								<pre class="webhook-info">{{.ResponseInfo.Body}}</pre>
 							{{else}}
 								-
 							{{end}}

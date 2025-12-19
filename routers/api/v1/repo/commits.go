@@ -13,6 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -222,8 +223,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Total commit count
-		commitsCountTotal, err = git.CommitsCount(ctx.Repo.GitRepo.Ctx, git.CommitsCountOptions{
-			RepoPath: ctx.Repo.GitRepo.Path,
+		commitsCountTotal, err = gitrepo.CommitsCount(ctx, ctx.Repo.Repository, gitrepo.CommitsCountOptions{
 			Not:      not,
 			Revision: []string{baseCommit.ID.String()},
 			Since:    since,
@@ -245,9 +245,8 @@ func GetAllCommits(ctx *context.APIContext) {
 			sha = ctx.Repo.Repository.DefaultBranch
 		}
 
-		commitsCountTotal, err = git.CommitsCount(ctx,
-			git.CommitsCountOptions{
-				RepoPath: ctx.Repo.GitRepo.Path,
+		commitsCountTotal, err = gitrepo.CommitsCount(ctx, ctx.Repo.Repository,
+			gitrepo.CommitsCountOptions{
 				Not:      not,
 				Revision: []string{sha},
 				RelPath:  []string{path},

@@ -10,7 +10,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -33,7 +32,7 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, isMember)
 
@@ -51,7 +50,7 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
@@ -67,7 +66,7 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
 
-	isMember, err = organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err = organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember)
 }
@@ -85,7 +84,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, isMember)
 
@@ -103,7 +102,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
@@ -143,7 +142,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUser(t *testing.T) {
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
 
-	isMember, err = organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err = organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember)
 }
@@ -174,7 +173,7 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
@@ -217,10 +216,10 @@ func TestOrgTeamEmailInviteRedirectsNewUser(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the new user
-	newUser, err := user_model.GetUserByName(db.DefaultContext, "doesnotexist")
+	newUser, err := user_model.GetUserByName(t.Context(), "doesnotexist")
 	assert.NoError(t, err)
 
-	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, newUser.ID)
+	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, newUser.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember)
 }
@@ -253,7 +252,7 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
@@ -271,7 +270,7 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 
-	user, err := user_model.GetUserByName(db.DefaultContext, "doesnotexist")
+	user, err := user_model.GetUserByName(t.Context(), "doesnotexist")
 	assert.NoError(t, err)
 
 	activationCode := user_model.GenerateUserTimeLimitCode(&user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeActivateAccount}, user)
@@ -291,7 +290,7 @@ func TestOrgTeamEmailInviteRedirectsNewUserWithActivation(t *testing.T) {
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
 
-	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember)
 }
@@ -311,7 +310,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 
-	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err := organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, isMember)
 
@@ -329,7 +328,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the invite token
-	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
+	invites, err := organization.GetInvitesByTeamID(t.Context(), team.ID)
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
@@ -350,7 +349,7 @@ func TestOrgTeamEmailInviteRedirectsExistingUserWithLogin(t *testing.T) {
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
 
-	isMember, err = organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	isMember, err = organization.IsTeamMember(t.Context(), team.OrgID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember)
 }

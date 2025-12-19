@@ -14,6 +14,7 @@
 			<label for="thread_id">{{ctx.Locale.Tr "repo.settings.thread_id"}}</label>
 			<input id="thread_id" name="thread_id" type="text" value="{{.TelegramHook.ThreadID}}">
 		</div>
-		{{template "repo/settings/webhook/settings" .}}
+		{{/* FIXME: support authorization header or not? */}}
+		{{template "repo/settings/webhook/settings" dict "BaseLink" .BaseLink "Webhook" .Webhook "UseAuthorizationHeader" "optional"}}
 	</form>
 {{end}}

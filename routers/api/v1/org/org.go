@@ -82,7 +82,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose organizations are to be listed
 	//   type: string
 	//   required: true
 	// - name: page
@@ -112,7 +112,7 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose permissions are to be obtained
 	//   type: string
 	//   required: true
 	// - name: org
@@ -202,7 +202,7 @@ func GetAll(ctx *context.APIContext) {
 	publicOrgs, maxResults, err := user_model.SearchUsers(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
 		ListOptions: listOptions,
-		Type:        user_model.UserTypeOrganization,
+		Types:       []user_model.UserType{user_model.UserTypeOrganization},
 		OrderBy:     db.SearchOrderByAlphabetically,
 		Visible:     vMode,
 	})
@@ -340,7 +340,7 @@ func Rename(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.RenameOrgOption)
 	orgUser := ctx.Org.Organization.AsUser()
-	if err := user_service.RenameUser(ctx, orgUser, form.NewName); err != nil {
+	if err := user_service.RenameUser(ctx, orgUser, form.NewName, ctx.Doer); err != nil {
 		if user_model.IsErrUserAlreadyExist(err) || db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) || db.IsErrNameCharsNotAllowed(err) {
 			ctx.APIError(http.StatusUnprocessableEntity, err)
 		} else {
@@ -391,7 +391,7 @@ func Edit(ctx *context.APIContext) {
 		Description:               optional.Some(form.Description),
 		Website:                   optional.Some(form.Website),
 		Location:                  optional.Some(form.Location),
-		Visibility:                optional.FromNonDefault(api.VisibilityModes[form.Visibility]),
+		Visibility:                optional.FromMapLookup(api.VisibilityModes, form.Visibility),
 		RepoAdminChangeTeamAccess: optional.FromPtr(form.RepoAdminChangeTeamAccess),
 	}
 	if err := user_service.UpdateUser(ctx, ctx.Org.Organization.AsUser(), opts); err != nil {

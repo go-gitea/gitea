@@ -8,7 +8,6 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
@@ -70,7 +69,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		}
 
 		// get the action for comparison
-		actions, count, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+		actions, count, err := activities_model.GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 			RequestedUser:   user,
 			Actor:           doer,
 			IncludePrivate:  true,
@@ -80,7 +79,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Get the heatmap and compare
-		heatmap, err := activities_model.GetUserHeatmapDataByUser(db.DefaultContext, user, doer)
+		heatmap, err := activities_model.GetUserHeatmapDataByUser(t.Context(), user, doer)
 		var contributions int
 		for _, hm := range heatmap {
 			contributions += int(hm.Contributions)

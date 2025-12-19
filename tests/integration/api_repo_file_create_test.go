@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 
 	"github.com/stretchr/testify/assert"
@@ -52,8 +53,8 @@ func getCreateFileOptions() api.CreateFileOptions {
 func normalizeFileContentResponseCommitTime(c *api.ContentsResponse) {
 	// decoded JSON response may contain different timezone from the one parsed by git commit
 	// so we need to normalize the time to UTC to make "assert.Equal" pass
-	c.LastCommitterDate = c.LastCommitterDate.UTC()
-	c.LastAuthorDate = c.LastAuthorDate.UTC()
+	c.LastCommitterDate = util.ToPointer(c.LastCommitterDate.UTC())
+	c.LastAuthorDate = util.ToPointer(c.LastAuthorDate.UTC())
 }
 
 type apiFileResponseInfo struct {
@@ -74,9 +75,9 @@ func getExpectedFileResponseForCreate(info apiFileResponseInfo) *api.FileRespons
 			Name:              path.Base(info.treePath),
 			Path:              info.treePath,
 			SHA:               sha,
-			LastCommitSHA:     info.lastCommitSHA,
-			LastCommitterDate: info.lastCommitterWhen,
-			LastAuthorDate:    info.lastAuthorWhen,
+			LastCommitSHA:     util.ToPointer(info.lastCommitSHA),
+			LastCommitterDate: util.ToPointer(info.lastCommitterWhen),
+			LastAuthorDate:    util.ToPointer(info.lastAuthorWhen),
 			Size:              16,
 			Type:              "file",
 			Encoding:          &encoding,
@@ -132,7 +133,7 @@ func BenchmarkAPICreateFileSmall(b *testing.B) {
 		b.ResetTimer()
 		for n := 0; b.Loop(); n++ {
 			treePath := fmt.Sprintf("update/file%d.txt", n)
-			_, _ = createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
+			_, _ = createFile(user2, repo1, treePath)
 		}
 	})
 }
@@ -148,7 +149,7 @@ func BenchmarkAPICreateFileMedium(b *testing.B) {
 		for n := 0; b.Loop(); n++ {
 			treePath := fmt.Sprintf("update/file%d.txt", n)
 			copy(data, treePath)
-			_, _ = createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
+			_, _ = createFile(user2, repo1, treePath)
 		}
 	})
 }

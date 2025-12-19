@@ -1,3 +1,8 @@
+{{/* FIXME: DIFF-CONVERSATION-DATA: in the future this template should be refactor to avoid called by {{... "." $}}
+At the moment, two kinds of request handler call this template:
+* ExcerptBlob -> blob_excerpt.tmpl -> this
+* Other compare and diff pages -> ... -> {section_unified.tmpl|section_split.tmpl} -> this)
+The variables in "ctx.Data" are different in each case, making this template fragile, hard to read and maintain. */}}
 {{if len .comments}}
 	{{$comment := index .comments 0}}
 	{{$invalid := $comment.Invalidated}}
@@ -15,7 +20,7 @@
 					</span>
 				{{end}}
 			</div>
-			<div>
+			<div class="tw-flex tw-items-center">
 				{{if or $invalid $resolved}}
 					<button id="show-outdated-{{$comment.ID}}" data-comment="{{$comment.ID}}" class="{{if not $resolved}}tw-hidden{{end}} btn tiny show-outdated">
 						{{svg "octicon-unfold" 16 "tw-mr-2"}}
@@ -58,7 +63,7 @@
 					<div class="comment code-comment" id="{{.HashTag}}">
 						<div class="content comment-container">
 							<div class="comment-header">
-								<div class="comment-header-left tw-flex tw-items-center">
+								<div class="comment-header-left">
 									{{if not .OriginalAuthor}}
 										<a class="avatar">
 											{{ctx.AvatarUtils.Avatar .Poster 20}}
@@ -79,7 +84,7 @@
 										{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdSubStr}}
 									</span>
 								</div>
-								<div class="comment-header-right actions tw-flex tw-items-center">
+								<div class="comment-header-right">
 									{{template "repo/issue/view_content/show_role" dict "ShowRole" .ShowRole}}
 									{{if not $.Repository.IsArchived}}
 										{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.RepoLink .ID)}}

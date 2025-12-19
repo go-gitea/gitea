@@ -334,7 +334,7 @@ func UpdateSource(ctx context.Context, source *Source) error {
 
 	err = registerableSource.RegisterSource()
 	if err != nil {
-		// restore original values since we cannot update the provider it self
+		// restore original values since we cannot update the provider itself
 		if _, err := db.GetEngine(ctx).ID(source.ID).AllCols().Update(originalSource); err != nil {
 			log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}

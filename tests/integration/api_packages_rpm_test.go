@@ -15,7 +15,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -128,24 +127,24 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusCreated)
 
-				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRpm)
+				pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeRpm)
 				assert.NoError(t, err)
 				assert.Len(t, pvs, 1)
 
-				pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+				pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 				assert.NoError(t, err)
 				assert.Nil(t, pd.SemVer)
 				assert.IsType(t, &rpm_module.VersionMetadata{}, pd.Metadata)
 				assert.Equal(t, packageName, pd.Package.Name)
 				assert.Equal(t, packageVersion, pd.Version.Version)
 
-				pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+				pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 				assert.NoError(t, err)
 				assert.Len(t, pfs, 1)
 				assert.Equal(t, fmt.Sprintf("%s-%s.%s.rpm", packageName, packageVersion, packageArchitecture), pfs[0].Name)
 				assert.True(t, pfs[0].IsLead)
 
-				pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+				pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 				assert.NoError(t, err)
 				assert.Equal(t, int64(len(content)), pb.Size)
 
@@ -157,9 +156,14 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 			t.Run("Download", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
+				// download the package without the file name
 				req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture))
 				resp := MakeRequest(t, req, http.StatusOK)
+				assert.Equal(t, content, resp.Body.Bytes())
 
+				// download the package with a file name (it can be anything)
+				req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s/any-file-name", groupURL, packageName, packageVersion, packageArchitecture))
+				resp = MakeRequest(t, req, http.StatusOK)
 				assert.Equal(t, content, resp.Body.Bytes())
 			})
 
@@ -427,7 +431,7 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 					AddBasicAuth(user.Name)
 				MakeRequest(t, req, http.StatusNoContent)
 
-				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeRpm)
+				pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeRpm)
 				assert.NoError(t, err)
 				assert.Empty(t, pvs)
 				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture)).
@@ -447,7 +451,8 @@ gpgkey=%sapi/packages/%s/rpm/repository.key`,
 				pub, err := openpgp.ReadArmoredKeyRing(gpgResp.Body)
 				require.NoError(t, err)
 
-				req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture))
+				rpmFileName := fmt.Sprintf("%s-%s.%s.rpm", packageName, packageVersion, packageArchitecture)
+				req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s/%s", groupURL, packageName, packageVersion, packageArchitecture, rpmFileName))
 				resp := MakeRequest(t, req, http.StatusOK)
 
 				_, sigs, err := rpmutils.Verify(resp.Body, pub)

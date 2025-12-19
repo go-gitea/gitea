@@ -58,13 +58,13 @@ func Worktime(ctx *context.Context) {
 	var err error
 	switch worktimeBy {
 	case "milestones":
-		worktimeSumResult, err = organization.GetWorktimeByMilestones(ctx.Org.Organization, unixFrom, unixTo)
+		worktimeSumResult, err = organization.GetWorktimeByMilestones(ctx, ctx.Org.Organization, unixFrom, unixTo)
 		ctx.Data["WorktimeByMilestones"] = true
 	case "members":
-		worktimeSumResult, err = organization.GetWorktimeByMembers(ctx.Org.Organization, unixFrom, unixTo)
+		worktimeSumResult, err = organization.GetWorktimeByMembers(ctx, ctx.Org.Organization, unixFrom, unixTo)
 		ctx.Data["WorktimeByMembers"] = true
 	default: /* by repos */
-		worktimeSumResult, err = organization.GetWorktimeByRepos(ctx.Org.Organization, unixFrom, unixTo)
+		worktimeSumResult, err = organization.GetWorktimeByRepos(ctx, ctx.Org.Organization, unixFrom, unixTo)
 		ctx.Data["WorktimeByRepos"] = true
 	}
 	if err != nil {

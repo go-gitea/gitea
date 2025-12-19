@@ -93,10 +93,9 @@ func jsonResponse(ctx *context.Context, status int, obj any) {
 }
 
 func apiError(ctx *context.Context, status int, err error) {
-	helper.LogAndProcessError(ctx, status, err, func(message string) {
-		setResponseHeaders(ctx.Resp, &containerHeaders{
-			Status: status,
-		})
+	_ = helper.ProcessErrorForUser(ctx, status, err)
+	setResponseHeaders(ctx.Resp, &containerHeaders{
+		Status: status,
 	})
 }
 
@@ -291,8 +290,8 @@ func PostBlobsUploads(ctx *context.Context) {
 				Creator: ctx.Doer,
 			},
 		); err != nil {
-			switch err {
-			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			switch {
+			case errors.Is(err, packages_service.ErrQuotaTotalCount), errors.Is(err, packages_service.ErrQuotaTypeSize), errors.Is(err, packages_service.ErrQuotaTotalSize):
 				apiError(ctx, http.StatusForbidden, err)
 			default:
 				apiError(ctx, http.StatusInternalServerError, err)
@@ -440,8 +439,8 @@ func PutBlobsUpload(ctx *context.Context) {
 			Creator: ctx.Doer,
 		},
 	); err != nil {
-		switch err {
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+		switch {
+		case errors.Is(err, packages_service.ErrQuotaTotalCount), errors.Is(err, packages_service.ErrQuotaTypeSize), errors.Is(err, packages_service.ErrQuotaTotalSize):
 			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -449,9 +448,9 @@ func PutBlobsUpload(ctx *context.Context) {
 		return
 	}
 
-	// There was a strange bug: the "Close" fails with error "close .../tmp/package-upload/....: file already closed"
-	// AFAIK there should be no other "Close" call to the uploader between NewBlobUploader and this line.
-	// At least it's safe to call Close twice, so ignore the error.
+	// Some SDK (e.g.: minio) will close the Reader if it is also a Closer after "uploading".
+	// And we don't need to wrap the reader to anything else because the SDK will benefit from other interfaces like Seeker.
+	// It's safe to call Close twice, so ignore the error.
 	_ = uploader.Close()
 
 	if err := container_service.RemoveBlobUploadByID(ctx, uploader.ID); err != nil {
@@ -593,13 +592,10 @@ func PutManifest(ctx *context.Context) {
 			apiErrorDefined(ctx, namedError)
 		} else if errors.Is(err, container_model.ErrContainerBlobNotExist) {
 			apiErrorDefined(ctx, errBlobUnknown)
+		} else if errors.Is(err, packages_service.ErrQuotaTotalCount) || errors.Is(err, packages_service.ErrQuotaTypeSize) || errors.Is(err, packages_service.ErrQuotaTotalSize) {
+			apiError(ctx, http.StatusForbidden, err)
 		} else {
-			switch err {
-			case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
-				apiError(ctx, http.StatusForbidden, err)
-			default:
-				apiError(ctx, http.StatusInternalServerError, err)
-			}
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
 		return
 	}
@@ -710,7 +706,7 @@ func DeleteManifest(ctx *context.Context) {
 func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) {
 	serveDirectReqParams := make(url.Values)
 	serveDirectReqParams.Set("response-content-type", pfd.Properties.GetByName(container_module.PropertyMediaType))
-	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, serveDirectReqParams)
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pfd.File, pfd.Blob, ctx.Req.Method, serveDirectReqParams)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -734,9 +730,7 @@ func serveBlob(ctx *context.Context, pfd *packages_model.PackageFileDescriptor) 
 	defer s.Close()
 
 	setResponseHeaders(ctx.Resp, headers)
-	if _, err := io.Copy(ctx.Resp, s); err != nil {
-		log.Error("Error whilst copying content to response: %v", err)
-	}
+	_, _ = io.Copy(ctx.Resp, s)
 }
 
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#content-discovery

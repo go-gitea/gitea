@@ -52,7 +52,7 @@ func Person(ctx *context.APIContext) {
 		return
 	}
 
-	person.URL = ap.IRI(ctx.ContextUser.HTMLURL())
+	person.URL = ap.IRI(ctx.ContextUser.HTMLURL(ctx))
 
 	person.Icon = ap.Image{
 		Type:      ap.ImageType,

@@ -56,7 +56,7 @@
 						{{end}}
 						{{if $.CommitsTagsMap}}
 							{{range (index $.CommitsTagsMap .ID.String)}}
-								{{- template "repo/tag/name" dict "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
+								{{- template "repo/tag/name" dict "AdditionalClasses" "tw-py-0" "RepoLink" $.Repository.Link "TagName" .TagName "IsRelease" (not .IsTag) -}}
 							{{end}}
 						{{end}}
 					</td>

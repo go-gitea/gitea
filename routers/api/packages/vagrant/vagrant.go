@@ -24,14 +24,13 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.JSON(status, struct {
-			Errors []string `json:"errors"`
-		}{
-			Errors: []string{
-				message,
-			},
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.JSON(status, struct {
+		Errors []string `json:"errors"`
+	}{
+		Errors: []string{
+			message,
+		},
 	})
 }
 
@@ -229,6 +228,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageFileInfo{
 			Filename: ctx.PathParam("provider"),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {

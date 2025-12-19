@@ -241,7 +241,7 @@ func (source *Source) listLdapGroupMemberships(l *ldap.Conn, uid string, applyGr
 }
 
 func (source *Source) getUserAttributeListedInGroup(entry *ldap.Entry) string {
-	if strings.ToLower(source.UserUID) == "dn" {
+	if strings.EqualFold(source.UserUID, "dn") {
 		return entry.DN
 	}
 

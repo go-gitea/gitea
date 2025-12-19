@@ -15,41 +15,33 @@ import (
 
 // VerifySSHKey marks a SSH key as verified
 func VerifySSHKey(ctx context.Context, ownerID int64, fingerprint, token, signature string) (string, error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return "", err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) (string, error) {
+		key := new(PublicKey)
 
-	key := new(PublicKey)
+		has, err := db.GetEngine(ctx).Where("owner_id = ? AND fingerprint = ?", ownerID, fingerprint).Get(key)
+		if err != nil {
+			return "", err
+		} else if !has {
+			return "", ErrKeyNotExist{}
+		}
 
-	has, err := db.GetEngine(ctx).Where("owner_id = ? AND fingerprint = ?", ownerID, fingerprint).Get(key)
-	if err != nil {
-		return "", err
-	} else if !has {
-		return "", ErrKeyNotExist{}
-	}
-
-	err = sshsig.Verify(strings.NewReader(token), []byte(signature), []byte(key.Content), "gitea")
-	if err != nil {
-		// edge case for Windows based shells that will add CR LF if piped to ssh-keygen command
-		// see https://github.com/PowerShell/PowerShell/issues/5974
-		if sshsig.Verify(strings.NewReader(token+"\r\n"), []byte(signature), []byte(key.Content), "gitea") != nil {
-			log.Debug("VerifySSHKey sshsig.Verify failed: %v", err)
-			return "", ErrSSHInvalidTokenSignature{
-				Fingerprint: key.Fingerprint,
+		err = sshsig.Verify(strings.NewReader(token), []byte(signature), []byte(key.Content), "gitea")
+		if err != nil {
+			// edge case for Windows based shells that will add CR LF if piped to ssh-keygen command
+			// see https://github.com/PowerShell/PowerShell/issues/5974
+			if sshsig.Verify(strings.NewReader(token+"\r\n"), []byte(signature), []byte(key.Content), "gitea") != nil {
+				log.Debug("VerifySSHKey sshsig.Verify failed: %v", err)
+				return "", ErrSSHInvalidTokenSignature{
+					Fingerprint: key.Fingerprint,
+				}
 			}
 		}
-	}
 
-	key.Verified = true
-	if _, err := db.GetEngine(ctx).ID(key.ID).Cols("verified").Update(key); err != nil {
-		return "", err
-	}
+		key.Verified = true
+		if _, err := db.GetEngine(ctx).ID(key.ID).Cols("verified").Update(key); err != nil {
+			return "", err
+		}
 
-	if err := committer.Commit(); err != nil {
-		return "", err
-	}
-
-	return key.Fingerprint, nil
+		return key.Fingerprint, nil
+	})
 }

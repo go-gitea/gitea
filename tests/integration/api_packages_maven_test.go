@@ -12,7 +12,6 @@ import (
 	"sync"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -55,24 +54,24 @@ func TestPackageMaven(t *testing.T) {
 		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusConflict)
 		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeMaven)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeMaven)
 		require.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		require.NoError(t, err)
 		assert.Nil(t, pd.SemVer)
 		assert.Nil(t, pd.Metadata)
 		assert.Equal(t, groupID+":"+artifactID, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		require.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, filename, pfs[0].Name)
 		assert.False(t, pfs[0].IsLead)
 
-		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 		require.NoError(t, err)
 		assert.Equal(t, int64(4), pb.Size)
 	})
@@ -84,7 +83,7 @@ func TestPackageMaven(t *testing.T) {
 		legacyRootLink := "/api/packages/user2/maven/com/gitea/legacy-project"
 		req := NewRequestWithBody(t, "PUT", legacyRootLink+"/1.0.2/any-file-name?use_legacy_package_name=1", strings.NewReader("test-content")).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
-		p, err := packages.GetPackageByName(db.DefaultContext, user.ID, packages.TypeMaven, "com.gitea-legacy-project")
+		p, err := packages.GetPackageByName(t.Context(), user.ID, packages.TypeMaven, "com.gitea-legacy-project")
 		require.NoError(t, err)
 		assert.Equal(t, "com.gitea-legacy-project", p.Name)
 
@@ -107,9 +106,9 @@ func TestPackageMaven(t *testing.T) {
 		// then upload a package with correct package name (will be saved as "GroupID:ArtifactID")
 		req = NewRequestWithBody(t, "PUT", legacyRootLink+"/1.0.3/any-file-name", strings.NewReader("test-content")).AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
-		_, err = packages.GetPackageByName(db.DefaultContext, user.ID, packages.TypeMaven, "com.gitea-legacy-project")
+		_, err = packages.GetPackageByName(t.Context(), user.ID, packages.TypeMaven, "com.gitea-legacy-project")
 		require.ErrorIs(t, err, packages.ErrPackageNotExist)
-		p, err = packages.GetPackageByName(db.DefaultContext, user.ID, packages.TypeMaven, "com.gitea:legacy-project")
+		p, err = packages.GetPackageByName(t.Context(), user.ID, packages.TypeMaven, "com.gitea:legacy-project")
 		require.NoError(t, err)
 		assert.Equal(t, "com.gitea:legacy-project", p.Name)
 		req = NewRequest(t, "HEAD", legacyRootLink+"/1.0.2/any-file-name").AddBasicAuth(user.Name)
@@ -128,7 +127,7 @@ func TestPackageMaven(t *testing.T) {
 		respBody = resp.Body.String()
 		assert.Contains(t, respBody, "<version>1.0.2</version>")
 		assert.Contains(t, respBody, "<version>1.0.3</version>")
-		require.NoError(t, packages.DeletePackageByID(db.DefaultContext, p.ID))
+		require.NoError(t, packages.DeletePackageByID(t.Context(), p.ID))
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
@@ -152,7 +151,7 @@ func TestPackageMaven(t *testing.T) {
 
 		assert.Equal(t, []byte("test"), resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeMaven)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeMaven)
 		require.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(0), pvs[0].DownloadCount)
@@ -184,26 +183,26 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("UploadPOM", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeMaven)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeMaven)
 		require.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		require.NoError(t, err)
 		assert.Nil(t, pd.Metadata)
 
 		putFile(t, fmt.Sprintf("/%s/%s.pom", packageVersion, filename), pomContent, http.StatusCreated)
 
-		pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeMaven)
+		pvs, err = packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeMaven)
 		require.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err = packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		pd, err = packages.GetPackageDescriptor(t.Context(), pvs[0])
 		require.NoError(t, err)
 		assert.IsType(t, &maven.Metadata{}, pd.Metadata)
 		assert.Equal(t, packageDescription, pd.Metadata.(*maven.Metadata).Description)
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		require.NoError(t, err)
 		assert.Len(t, pfs, 2)
 		for _, pf := range pfs {
@@ -231,7 +230,7 @@ func TestPackageMaven(t *testing.T) {
 
 		assert.Equal(t, []byte(pomContent), resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeMaven)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeMaven)
 		require.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)

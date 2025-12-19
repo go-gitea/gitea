@@ -282,11 +282,8 @@ func (opts FindReleasesOptions) ToOrders() string {
 
 // GetTagNamesByRepoID returns a list of release tag names of repository.
 func GetTagNamesByRepoID(ctx context.Context, repoID int64) ([]string, error) {
-	listOptions := db.ListOptions{
-		ListAll: true,
-	}
 	opts := FindReleasesOptions{
-		ListOptions:   listOptions,
+		ListOptions:   db.ListOptionsAll,
 		IncludeDrafts: true,
 		IncludeTags:   true,
 		HasSha1:       optional.Some(true),
@@ -472,30 +469,24 @@ func (r *Release) GetExternalID() int64 { return r.OriginalAuthorID }
 
 // InsertReleases migrates release
 func InsertReleases(ctx context.Context, rels ...*Release) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
-
-	for _, rel := range rels {
-		if _, err := sess.NoAutoTime().Insert(rel); err != nil {
-			return err
-		}
-
-		if len(rel.Attachments) > 0 {
-			for i := range rel.Attachments {
-				rel.Attachments[i].ReleaseID = rel.ID
-			}
-
-			if _, err := sess.NoAutoTime().Insert(rel.Attachments); err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, rel := range rels {
+			if _, err := db.GetEngine(ctx).NoAutoTime().Insert(rel); err != nil {
 				return err
 			}
-		}
-	}
 
-	return committer.Commit()
+			if len(rel.Attachments) > 0 {
+				for i := range rel.Attachments {
+					rel.Attachments[i].ReleaseID = rel.ID
+				}
+
+				if _, err := db.GetEngine(ctx).NoAutoTime().Insert(rel.Attachments); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
 }
 
 func FindTagsByCommitIDs(ctx context.Context, repoID int64, commitIDs ...string) (map[string][]*Release, error) {

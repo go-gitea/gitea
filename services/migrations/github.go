@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/google/go-github/v71/github"
+	"github.com/google/go-github/v74/github"
 	"golang.org/x/oauth2"
 )
 
@@ -322,7 +322,10 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 	httpClient := NewMigrationHTTPClient()
 
 	for _, asset := range rel.Assets {
-		assetID := *asset.ID // Don't optimize this, for closure we need a local variable
+		assetID := asset.GetID() // Don't optimize this, for closure we need a local variable TODO: no need to do so in new Golang
+		if assetID == 0 {
+			continue
+		}
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            asset.GetID(),
 			Name:          asset.GetName(),
@@ -351,7 +354,8 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 
 				// Prevent open redirect
 				if !hasBaseURL(redirectURL, g.baseURL) &&
-					!hasBaseURL(redirectURL, "https://objects.githubusercontent.com/") {
+					!hasBaseURL(redirectURL, "https://objects.githubusercontent.com/") &&
+					!hasBaseURL(redirectURL, "https://release-assets.githubusercontent.com/") {
 					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", asset.GetID(), g, redirectURL)
 
 					return io.NopCloser(strings.NewReader(redirectURL)), nil

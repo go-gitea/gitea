@@ -6,7 +6,6 @@ package repo
 
 import (
 	"bytes"
-	gocontext "context"
 	"html/template"
 	"io"
 	"net/http"
@@ -34,6 +33,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
+	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
@@ -133,7 +133,7 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 		return nil
 	}
 	defer reader.Close()
-	content, err := io.ReadAll(reader)
+	content, err := util.ReadWithLimit(reader, 5*1024*1024) // 5MB should be enough for a wiki page
 	if err != nil {
 		ctx.ServerError("ReadAll", err)
 		return nil
@@ -310,7 +310,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiGitRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	return wikiGitRepo, entry
@@ -350,7 +350,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiGitRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
@@ -475,7 +475,7 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
 		ctx.HTML(http.StatusOK, tplWikiStart)
 		return
@@ -511,7 +511,7 @@ func Wiki(ctx *context.Context) {
 func WikiRevision(ctx *context.Context) {
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
 		ctx.HTML(http.StatusOK, tplWikiStart)
 		return
@@ -541,7 +541,7 @@ func WikiRevision(ctx *context.Context) {
 
 // WikiPages render wiki pages list page
 func WikiPages(ctx *context.Context) {
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
 		return
 	}
@@ -567,9 +567,9 @@ func WikiPages(ctx *context.Context) {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
-	allEntries.CustomSort(base.NaturalSortLess)
+	allEntries.CustomSort(base.NaturalSortCompare)
 
-	entries, _, err := allEntries.GetCommitsInfo(gocontext.Context(ctx), commit, treePath)
+	entries, _, err := allEntries.GetCommitsInfo(ctx, ctx.Repo.RepoLink, commit, treePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
@@ -649,7 +649,7 @@ func WikiRaw(ctx *context.Context) {
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Data["title"] = "Home"
 	}
 	if ctx.FormString("title") != "" {
@@ -702,7 +702,7 @@ func NewWikiPost(ctx *context.Context) {
 func EditWiki(ctx *context.Context) {
 	ctx.Data["PageIsWikiEdit"] = true
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
 		return
 	}

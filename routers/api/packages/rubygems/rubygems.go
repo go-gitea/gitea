@@ -25,9 +25,8 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.PlainText(status, message)
 }
 
 // EnumeratePackages serves the package list
@@ -184,6 +183,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageFileInfo{
 			Filename: filename,
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageFileNotExist) {
@@ -433,15 +433,16 @@ func makePackageVersionDependency(ctx *context.Context, version *packages_model.
 }
 
 func makePackageInfo(ctx *context.Context, versions []*packages_model.PackageVersion, c *cache.EphemeralCache) (string, error) {
-	ret := "---\n"
+	var ret strings.Builder
+	ret.WriteString("---\n")
 	for _, v := range versions {
 		dep, err := makePackageVersionDependency(ctx, v, c)
 		if err != nil {
 			return "", err
 		}
-		ret += dep + "\n"
+		ret.WriteString(dep + "\n")
 	}
-	return ret, nil
+	return ret.String(), nil
 }
 
 func makeGemFullFileName(gemName, version, platform string) string {

@@ -2,13 +2,15 @@
 <div class="page-content devtest ui container">
 	{{template "base/alert" .}}
 	<div class="modal-buttons flex-text-block tw-flex-wrap"></div>
-	<script type="module">
-		for (const el of $('.ui.modal:not([data-skip-button])')) {
-			const $btn = $('<button class="ui button">').text(`${el.id}`).on('click', () => {
-				$(el).modal({onApprove() {alert('confirmed')}}).modal('show');
-			});
-			$('.modal-buttons').append($btn);
-		}
+	<script>
+		document.addEventListener('gitea:index-ready', () => {
+			for (const el of $('.ui.modal:not([data-skip-button])')) {
+				const $btn = $('<button class="ui button">').text(`${el.id}`).on('click', () => {
+					$(el).modal({onApprove() {alert('confirmed')}}).modal('show');
+				});
+				$('.modal-buttons').append($btn);
+			}
+		});
 	</script>
 
 	<div id="test-modal-form-1" class="ui mini modal">

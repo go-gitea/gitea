@@ -48,7 +48,7 @@ type csrfProtector struct {
 	opt CsrfOptions
 	// id must be unique per user.
 	id string
-	// token is the valid one which wil be used by end user and passed via header, cookie, or hidden form value.
+	// token is the valid one which will be used by end user and passed via header, cookie, or hidden form value.
 	token string
 }
 
@@ -118,7 +118,7 @@ func (c *csrfProtector) PrepareForSessionUser(ctx *Context) {
 	if uidChanged {
 		_ = ctx.Session.Set(c.opt.oldSessionKey, c.id)
 	} else if cookieToken != "" {
-		// If cookie token presents, re-use existing unexpired token, else generate a new one.
+		// If cookie token present, re-use existing unexpired token, else generate a new one.
 		if issueTime, ok := ParseCsrfToken(cookieToken); ok {
 			dur := time.Since(issueTime) // issueTime is not a monotonic-clock, the server time may change a lot to an early time.
 			if dur >= -CsrfTokenRegenerationInterval && dur <= CsrfTokenRegenerationInterval {

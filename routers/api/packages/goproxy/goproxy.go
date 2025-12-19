@@ -22,9 +22,8 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.PlainText(status, message)
 }
 
 func EnumeratePackageVersions(ctx *context.Context) {
@@ -106,7 +105,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	s, u, _, err := packages_service.OpenFileForDownload(ctx, pfs[0])
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pfs[0], ctx.Req.Method)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)

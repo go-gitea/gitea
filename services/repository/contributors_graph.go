@@ -19,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -125,17 +126,16 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 		_ = stdoutWriter.Close()
 	}()
 
-	gitCmd := git.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
+	gitCmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
 	// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
 	var extendedCommitStats []*ExtendedCommitStats
 	stderr := new(strings.Builder)
-	err = gitCmd.Run(repo.Ctx, &git.RunOpts{
-		Dir:    repo.Path,
-		Stdout: stdoutWriter,
-		Stderr: stderr,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
+	err = gitCmd.WithDir(repo.Path).
+		WithStdout(stdoutWriter).
+		WithStderr(stderr).
+		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			scanner := bufio.NewScanner(stdoutReader)
 
@@ -190,8 +190,8 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 			}
 			_ = stdoutReader.Close()
 			return nil
-		},
-	})
+		}).
+		Run(repo.Ctx)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get ContributorsCommitStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}

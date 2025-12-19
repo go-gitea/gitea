@@ -211,7 +211,7 @@
 										{{else}}
 											{{ctx.Locale.Tr "never"}}
 										{{end}}
-										{{if .LastError}}<span class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error"}}</span>{{end}}
+										{{if .LastError}}<span class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error_title"}}</span>{{end}}
 									</span>
 								</td>
 								<td class="tw-text-right">
@@ -508,18 +508,6 @@
 						<label>{{ctx.Locale.Tr "repo.settings.packages_desc"}}</label>
 					</div>
 				</div>
-
-				{{if .EnableActions}}
-					{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
-					{{$isActionsGlobalDisabled := ctx.Consts.RepoUnitTypeActions.UnitGlobalDisabled}}
-					<div class="inline field">
-						<label>{{ctx.Locale.Tr "actions.actions"}}</label>
-							<div class="ui checkbox{{if $isActionsGlobalDisabled}} disabled{{end}}"{{if $isActionsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-							<input class="enable-system" name="enable_actions" type="checkbox" {{if $isActionsEnabled}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "repo.settings.actions_desc"}}</label>
-						</div>
-					</div>
-				{{end}}
 
 				{{if not .IsMirror}}
 					<div class="divider"></div>

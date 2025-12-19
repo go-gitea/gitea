@@ -56,17 +56,20 @@ func TestRouter(t *testing.T) {
 	recorder.Body = buff
 
 	type resultStruct struct {
-		method       string
-		pathParams   map[string]string
-		handlerMarks []string
+		method          string
+		pathParams      map[string]string
+		handlerMarks    []string
+		chiRoutePattern *string
 	}
 
 	var res resultStruct
 	h := func(optMark ...string) func(resp http.ResponseWriter, req *http.Request) {
 		mark := util.OptionalArg(optMark, "")
 		return func(resp http.ResponseWriter, req *http.Request) {
+			chiCtx := chi.RouteContext(req.Context())
 			res.method = req.Method
-			res.pathParams = chiURLParamsToMap(chi.RouteContext(req.Context()))
+			res.pathParams = chiURLParamsToMap(chiCtx)
+			res.chiRoutePattern = util.ToPointer(chiCtx.RoutePattern())
 			if mark != "" {
 				res.handlerMarks = append(res.handlerMarks, mark)
 			}
@@ -125,21 +128,29 @@ func TestRouter(t *testing.T) {
 			req, err := http.NewRequest(methodPathFields[0], methodPathFields[1], nil)
 			assert.NoError(t, err)
 			r.ServeHTTP(recorder, req)
+			if expected.chiRoutePattern == nil {
+				res.chiRoutePattern = nil
+			}
 			assert.Equal(t, expected, res)
 		})
 	}
 
 	t.Run("RootRouter", func(t *testing.T) {
-		testRoute(t, "GET /the-user/the-repo/other", resultStruct{method: "GET", handlerMarks: []string{"not-found:/"}})
+		testRoute(t, "GET /the-user/the-repo/other", resultStruct{
+			method:          "GET",
+			handlerMarks:    []string{"not-found:/"},
+			chiRoutePattern: util.ToPointer(""),
+		})
 		testRoute(t, "GET /the-user/the-repo/pulls", resultStruct{
 			method:       "GET",
 			pathParams:   map[string]string{"username": "the-user", "reponame": "the-repo", "type": "pulls"},
 			handlerMarks: []string{"list-issues-b"},
 		})
 		testRoute(t, "GET /the-user/the-repo/issues/123", resultStruct{
-			method:       "GET",
-			pathParams:   map[string]string{"username": "the-user", "reponame": "the-repo", "type": "issues", "index": "123"},
-			handlerMarks: []string{"view-issue"},
+			method:          "GET",
+			pathParams:      map[string]string{"username": "the-user", "reponame": "the-repo", "type": "issues", "index": "123"},
+			handlerMarks:    []string{"view-issue"},
+			chiRoutePattern: util.ToPointer("/{username}/{reponame}/{type:issues|pulls}/{index}"),
 		})
 		testRoute(t, "GET /the-user/the-repo/issues/123?stop=hijack", resultStruct{
 			method:       "GET",
@@ -154,7 +165,10 @@ func TestRouter(t *testing.T) {
 	})
 
 	t.Run("Sub Router", func(t *testing.T) {
-		testRoute(t, "GET /api/v1/other", resultStruct{method: "GET", handlerMarks: []string{"not-found:/api/v1"}})
+		testRoute(t, "GET /api/v1/other", resultStruct{
+			method:       "GET",
+			handlerMarks: []string{"not-found:/api/v1"},
+		})
 		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches", resultStruct{
 			method:     "GET",
 			pathParams: map[string]string{"username": "the-user", "reponame": "the-repo"},
@@ -211,9 +225,10 @@ func TestRouter(t *testing.T) {
 		})
 
 		testRoute(t, "GET /api/v1/repos/the-user/the-repo/branches/d1/d2/fn?stop=s3", resultStruct{
-			method:       "GET",
-			pathParams:   map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn", "dir": "d1/d2", "file": "fn"},
-			handlerMarks: []string{"s1", "s2", "s3"},
+			method:          "GET",
+			pathParams:      map[string]string{"username": "the-user", "reponame": "the-repo", "*": "d1/d2/fn", "dir": "d1/d2", "file": "fn"},
+			handlerMarks:    []string{"s1", "s2", "s3"},
+			chiRoutePattern: util.ToPointer("/api/v1/repos/{username}/{reponame}/branches/<dir:*>/<file:[a-z]{1,2}>"),
 		})
 	})
 }

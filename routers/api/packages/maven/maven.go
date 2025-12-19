@@ -22,7 +22,6 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/util"
@@ -49,14 +48,9 @@ var (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		// The maven client does not present the error message to the user. Log it for users with access to server logs.
-		if status == http.StatusBadRequest || status == http.StatusInternalServerError {
-			log.Error(message)
-		}
-
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	// Maven client doesn't present the error message to end users; site admin can check the server logs that outputted by ProcessErrorForUser
+	ctx.PlainText(status, message)
 }
 
 // DownloadPackageFile serves the content of a package
@@ -223,7 +217,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 		return
 	}
 
-	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pf, pb, nil)
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pf, pb, ctx.Req.Method, nil)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

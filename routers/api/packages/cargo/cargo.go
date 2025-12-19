@@ -37,15 +37,14 @@ type StatusMessage struct {
 }
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.JSON(status, StatusResponse{
-			OK: false,
-			Errors: []StatusMessage{
-				{
-					Message: message,
-				},
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.JSON(status, StatusResponse{
+		OK: false,
+		Errors: []StatusMessage{
+			{
+				Message: message,
 			},
-		})
+		},
 	})
 }
 
@@ -176,6 +175,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageFileInfo{
 			Filename: strings.ToLower(fmt.Sprintf("%s-%s.crate", ctx.PathParam("package"), ctx.PathParam("version"))),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {

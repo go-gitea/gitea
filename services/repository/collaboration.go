@@ -71,40 +71,32 @@ func DeleteCollaboration(ctx context.Context, repo *repo_model.Repository, colla
 		UserID: collaborator.ID,
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if has, err := db.GetEngine(ctx).Delete(collaboration); err != nil {
+			return err
+		} else if has == 0 {
+			return nil
+		}
 
-	if has, err := db.GetEngine(ctx).Delete(collaboration); err != nil {
-		return err
-	} else if has == 0 {
-		return committer.Commit()
-	}
+		if err := repo.LoadOwner(ctx); err != nil {
+			return err
+		}
 
-	if err := repo.LoadOwner(ctx); err != nil {
-		return err
-	}
+		if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
+			return err
+		}
 
-	if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
-		return err
-	}
+		if err = repo_model.WatchRepo(ctx, collaborator, repo, false); err != nil {
+			return err
+		}
 
-	if err = repo_model.WatchRepo(ctx, collaborator, repo, false); err != nil {
-		return err
-	}
+		if err = ReconsiderWatches(ctx, repo, collaborator); err != nil {
+			return err
+		}
 
-	if err = ReconsiderWatches(ctx, repo, collaborator); err != nil {
-		return err
-	}
-
-	// Unassign a user from any issue (s)he has been assigned to in the repository
-	if err := ReconsiderRepoIssuesAssignee(ctx, repo, collaborator); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+		// Unassign a user from any issue (s)he has been assigned to in the repository
+		return ReconsiderRepoIssuesAssignee(ctx, repo, collaborator)
+	})
 }
 
 func ReconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, user *user_model.User) error {

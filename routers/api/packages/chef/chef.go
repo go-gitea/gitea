@@ -30,10 +30,9 @@ func apiError(ctx *context.Context, status int, obj any) {
 		ErrorMessages []string `json:"error_messages"`
 	}
 
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.JSON(status, Error{
-			ErrorMessages: []string{message},
-		})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.JSON(status, Error{
+		ErrorMessages: []string{message},
 	})
 }
 
@@ -343,7 +342,7 @@ func DownloadPackage(ctx *context.Context) {
 
 	pf := pd.Files[0].File
 
-	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf, ctx.Req.Method)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
