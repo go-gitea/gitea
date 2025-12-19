@@ -37,11 +37,12 @@ func TestWorkflowConcurrency(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		runner := newMockRunner()
 		runner.registerAsRepoRunner(t, user2.Name, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
 		// add a variable for test
 		req := NewRequestWithJSON(t, "POST",
 			fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables/myvar", user2.Name, repo.Name), &api.CreateVariableOption{
@@ -52,7 +53,7 @@ func TestWorkflowConcurrency(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -66,7 +67,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -80,7 +81,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
@@ -94,7 +95,7 @@ jobs:
 `
 		// push workflow1
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 		// fetch and exec workflow1
 		task := runner.fetchTask(t)
 		_, _, run := getTaskAndJobAndRunByTaskID(t, task.Id)
@@ -107,7 +108,7 @@ jobs:
 
 		// push workflow2
 		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf2TreePath, opts2)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
 		// fetch workflow2
 		task = runner.fetchTask(t)
 		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
@@ -116,7 +117,7 @@ jobs:
 
 		// push workflow3
 		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf3TreePath, opts3)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
 		runner.fetchNoTask(t)
 
 		// exec workflow2
@@ -144,7 +145,7 @@ func TestWorkflowConcurrencyShort(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		runner := newMockRunner()
@@ -160,7 +161,7 @@ func TestWorkflowConcurrencyShort(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -173,7 +174,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -186,7 +187,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
@@ -199,7 +200,7 @@ jobs:
 `
 		// push workflow1
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 		// fetch and exec workflow1
 		task := runner.fetchTask(t)
 		_, _, run := getTaskAndJobAndRunByTaskID(t, task.Id)
@@ -212,7 +213,7 @@ jobs:
 
 		// push workflow2
 		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf2TreePath, opts2)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
 		// fetch workflow2
 		task = runner.fetchTask(t)
 		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
@@ -221,7 +222,7 @@ jobs:
 
 		// push workflow3
 		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf3TreePath, opts3)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
 		runner.fetchNoTask(t)
 
 		// exec workflow2
@@ -249,7 +250,7 @@ func TestWorkflowConcurrencyShortJson(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		runner := newMockRunner()
@@ -265,7 +266,7 @@ func TestWorkflowConcurrencyShortJson(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -282,7 +283,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -299,7 +300,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
@@ -316,7 +317,7 @@ jobs:
 `
 		// push workflow1
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 		// fetch and exec workflow1
 		task := runner.fetchTask(t)
 		_, _, run := getTaskAndJobAndRunByTaskID(t, task.Id)
@@ -329,7 +330,7 @@ jobs:
 
 		// push workflow2
 		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf2TreePath, opts2)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
 		// fetch workflow2
 		task = runner.fetchTask(t)
 		_, _, run = getTaskAndJobAndRunByTaskID(t, task.Id)
@@ -338,7 +339,7 @@ jobs:
 
 		// push workflow3
 		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf3TreePath, opts3)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
 		runner.fetchNoTask(t)
 
 		// exec workflow2
@@ -370,7 +371,7 @@ func TestPullRequestWorkflowConcurrency(t *testing.T) {
 
 		apiBaseRepo := createActionsTestRepo(t, user2Token, "actions-concurrency", false)
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiBaseRepo.ID})
-		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		user2APICtx := NewAPITestContext(t, baseRepo.OwnerName, baseRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(user2APICtx)(t)
 
 		runner := newMockRunner()
@@ -390,7 +391,7 @@ jobs:
       - run: echo 'test the pull'
 `
 		opts1 := getWorkflowCreateFileOptions(user2, baseRepo.DefaultBranch, "create %s"+wfTreePath, wfFileContent)
-		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, baseRepo.GroupID, wfTreePath, opts1)
+		createWorkflowFile(t, user2Token, baseRepo.OwnerName, baseRepo.Name, wfTreePath, opts1)
 		// user2 creates a pull request
 		doAPICreateFile(user2APICtx, "user2-fix.txt", &api.CreateFileOptions{
 			FileOptions: api.FileOptions{
@@ -426,7 +427,7 @@ jobs:
 		resp := MakeRequest(t, req, http.StatusAccepted)
 		apiForkRepo := DecodeJSON(t, resp, &api.Repository{})
 		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiForkRepo.ID})
-		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, forkRepo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		user4APICtx := NewAPITestContext(t, user4.Name, forkRepo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(user4APICtx)(t)
 
 		// user4 creates a pull request from branch "bugfix/bbb"
@@ -510,7 +511,7 @@ func TestJobConcurrency(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		runner1 := newMockRunner()
@@ -528,7 +529,7 @@ func TestJobConcurrency(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -542,7 +543,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -550,7 +551,7 @@ jobs:
   wf2-job1:
     runs-on: runner2
     outputs:
-      version: ${{ steps.version_step.outputs.app_version }}
+      version: ${{ steps.version_step.outputs.app_version }} 
     steps:
       - id: version_step
         run: echo "app_version=v1.23.0" >> "$GITHUB_OUTPUT"
@@ -564,7 +565,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
@@ -579,9 +580,9 @@ jobs:
 `
 
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf2TreePath, opts2)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
 
 		// fetch wf1-job1
 		wf1Job1Task := runner1.fetchTask(t)
@@ -609,7 +610,7 @@ jobs:
 		assert.Equal(t, actions_model.StatusRunning, wf2Job2ActionJob.Status)
 		// push workflow3 to trigger wf3-job1
 		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf3TreePath, wf3FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf3TreePath, opts3)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
 		// fetch wf3-job1
 		wf3Job1Task := runner1.fetchTask(t)
 		_, wf3Job1ActionJob, _ := getTaskAndJobAndRunByTaskID(t, wf3Job1Task.Id)
@@ -665,7 +666,7 @@ func TestMatrixConcurrency(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		linuxRunner := newMockRunner()
@@ -677,7 +678,7 @@ func TestMatrixConcurrency(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -695,7 +696,7 @@ jobs:
 
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -712,7 +713,7 @@ jobs:
 `
 
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 
 		job1WinTask := windowsRunner.fetchTask(t)
 		job1LinuxTask := linuxRunner.fetchTask(t)
@@ -726,7 +727,7 @@ jobs:
 		assert.Equal(t, "job-os-linux", job1LinuxJob.ConcurrencyGroup)
 
 		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf2TreePath, opts2)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
 		job2DarwinTask := darwinRunner.fetchTask(t)
 		_, job2DarwinJob, _ := getTaskAndJobAndRunByTaskID(t, job2DarwinTask.Id)
 		assert.Equal(t, "wf2-job (darwin)", job2DarwinJob.Name)
@@ -758,7 +759,7 @@ func TestWorkflowDispatchConcurrency(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		runner := newMockRunner()
@@ -794,7 +795,7 @@ jobs:
 `
 
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 
 		// run the workflow with appVersion=v1.21 and cancel=false
 		urlStr := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "workflow-dispatch-concurrency.yml")
@@ -848,7 +849,7 @@ func TestWorkflowDispatchRerunAllJobsConcurrency(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		runner := newMockRunner()
@@ -884,7 +885,7 @@ jobs:
 `
 
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 
 		// run the workflow with appVersion=v1.21 and cancel=false
 		urlStr := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "workflow-dispatch-concurrency.yml")
@@ -986,7 +987,7 @@ func TestWorkflowDispatchRerunSingleJobConcurrency(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		runner := newMockRunner()
@@ -1022,7 +1023,7 @@ jobs:
 `
 
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 
 		// run the workflow with appVersion=v1.21 and cancel=false
 		urlStr := fmt.Sprintf("/%s/%s/actions/run?workflow=%s", user2.Name, repo.Name, "workflow-dispatch-concurrency.yml")
@@ -1125,7 +1126,7 @@ func TestScheduleConcurrency(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		runner := newMockRunner()
@@ -1148,7 +1149,7 @@ jobs:
 `
 
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 
 		// fetch the task triggered by push
 		task1 := runner.fetchTask(t)
@@ -1227,7 +1228,7 @@ func TestWorkflowAndJobConcurrency(t *testing.T) {
 		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		runner1 := newMockRunner()
@@ -1237,7 +1238,7 @@ func TestWorkflowAndJobConcurrency(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -1259,7 +1260,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -1281,7 +1282,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
@@ -1298,7 +1299,7 @@ jobs:
 
 		wf4TreePath := ".gitea/workflows/concurrent-workflow-4.yml"
 		wf4FileContent := `name: concurrent-workflow-4
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-4.yml'
@@ -1316,7 +1317,7 @@ jobs:
 
 		// push workflow 1
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 
 		// fetch wf1-job1 and wf1-job2
 		w1j1Task := runner1.fetchTask(t)
@@ -1332,7 +1333,7 @@ jobs:
 
 		// push workflow 2
 		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf2TreePath, opts2)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
 		// cannot fetch wf2-job1 and wf2-job2 because workflow-2 is blocked by workflow-1's concurrency group "workflow-group-1"
 		runner1.fetchNoTask(t)
 		runner2.fetchNoTask(t)
@@ -1343,7 +1344,7 @@ jobs:
 
 		// push workflow 3
 		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf3TreePath, wf3FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf3TreePath, opts3)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
 		// cannot fetch wf3-job1 because it is blocked by wf1-job1's concurrency group "job-group-1"
 		runner1.fetchNoTask(t)
 		// query wf3-job1 from db and check its status
@@ -1382,7 +1383,7 @@ jobs:
 
 		// push workflow-4
 		opts4 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf4TreePath, wf4FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf4TreePath, opts4)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf4TreePath, opts4)
 		// cannot fetch wf4-job1 because it is blocked by workflow-3's concurrency group "workflow-group-2"
 		runner2.fetchNoTask(t)
 
@@ -1416,7 +1417,7 @@ func TestCancelConcurrentRun(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, user2Token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		user2APICtx := NewAPITestContext(t, repo.OwnerName, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		user2APICtx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(user2APICtx)(t)
 
 		runner := newMockRunner()
@@ -1436,7 +1437,7 @@ jobs:
       - run: echo 'test'
 `
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wfTreePath, wfFileContent)
-		createWorkflowFile(t, user2Token, repo.OwnerName, repo.Name, repo.GroupID, wfTreePath, opts1)
+		createWorkflowFile(t, user2Token, repo.OwnerName, repo.Name, wfTreePath, opts1)
 
 		// fetch and check the first task
 		task1 := runner.fetchTask(t)
@@ -1493,7 +1494,7 @@ func TestAbandonConcurrentRun(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, user2Token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		user2APICtx := NewAPITestContext(t, repo.OwnerName, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		user2APICtx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(user2APICtx)(t)
 
 		runner := newMockRunner()
@@ -1501,7 +1502,7 @@ func TestAbandonConcurrentRun(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/workflow-1.yml"
 		wf1FileContent := `name: Workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/workflow-1.yml'
@@ -1520,7 +1521,7 @@ jobs:
 
 		wf2TreePath := ".gitea/workflows/workflow-2.yml"
 		wf2FileContent := `name: Workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/workflow-2.yml'
@@ -1534,7 +1535,7 @@ jobs:
 `
 		// push workflow1
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, user2Token, repo.OwnerName, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, user2Token, repo.OwnerName, repo.Name, wf1TreePath, opts1)
 
 		// fetch wf1-job1
 		w1j1Task := runner.fetchTask(t)
@@ -1552,7 +1553,7 @@ jobs:
 
 		// push workflow2
 		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create %s"+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, user2Token, repo.OwnerName, repo.Name, repo.GroupID, wf2TreePath, opts2)
+		createWorkflowFile(t, user2Token, repo.OwnerName, repo.Name, wf2TreePath, opts2)
 
 		// query run2 from db and check its status
 		run2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "workflow-2.yml"})
@@ -1592,7 +1593,7 @@ func TestRunAndJobWithSameConcurrencyGroup(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-concurrency", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		runner := newMockRunner()
@@ -1600,7 +1601,7 @@ func TestRunAndJobWithSameConcurrencyGroup(t *testing.T) {
 
 		wf1TreePath := ".gitea/workflows/concurrent-workflow-1.yml"
 		wf1FileContent := `name: concurrent-workflow-1
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-1.yml'
@@ -1614,7 +1615,7 @@ jobs:
 `
 		wf2TreePath := ".gitea/workflows/concurrent-workflow-2.yml"
 		wf2FileContent := `name: concurrent-workflow-2
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-2.yml'
@@ -1628,7 +1629,7 @@ jobs:
 `
 		wf3TreePath := ".gitea/workflows/concurrent-workflow-3.yml"
 		wf3FileContent := `name: concurrent-workflow-3
-on:
+on: 
   push:
     paths:
       - '.gitea/workflows/concurrent-workflow-3.yml'
@@ -1643,7 +1644,7 @@ jobs:
 `
 		// push workflow1
 		opts1 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf1TreePath, wf1FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf1TreePath, opts1)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf1TreePath, opts1)
 		// fetch run1
 		task := runner.fetchTask(t)
 		_, job1, run1 := getTaskAndJobAndRunByTaskID(t, task.Id)
@@ -1652,7 +1653,7 @@ jobs:
 
 		// push workflow2
 		opts2 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf2TreePath, wf2FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf2TreePath, opts2)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf2TreePath, opts2)
 		// cannot fetch run2 because run1 is still running
 		runner.fetchNoTask(t)
 		run2 := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRun{RepoID: repo.ID, WorkflowID: "concurrent-workflow-2.yml"})
@@ -1671,7 +1672,7 @@ jobs:
 
 		// push workflow3
 		opts3 := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wf3TreePath, wf3FileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wf3TreePath, opts3)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wf3TreePath, opts3)
 		// fetch run3
 		task3 := runner.fetchTask(t)
 		_, job3, run3 := getTaskAndJobAndRunByTaskID(t, task3.Id)

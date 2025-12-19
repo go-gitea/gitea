@@ -183,7 +183,7 @@ func TestRepoCommitsStatusParallel(t *testing.T) {
 		wg.Add(1)
 		go func(parentT *testing.T, i int) {
 			parentT.Run(fmt.Sprintf("ParallelCreateStatus_%d", i), func(t *testing.T) {
-				ctx := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository)
+				ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 				doAPICreateCommitStatusTest(ctx, path.Base(commitURL), commitstatus.CommitStatusPending, "testci")(t)
 				wg.Done()
 			})
@@ -208,7 +208,7 @@ func TestRepoCommitsStatusMultiple(t *testing.T) {
 	assert.NotEmpty(t, commitURL)
 
 	// Call API to add status for commit
-	ctx := NewAPITestContext(t, "user2", "repo1", 0, auth_model.AccessTokenScopeWriteRepository)
+	ctx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
 	t.Run("CreateStatus", doAPICreateCommitStatusTest(ctx, path.Base(commitURL), commitstatus.CommitStatusSuccess, "testci"))
 	t.Run("CreateStatus", doAPICreateCommitStatusTest(ctx, path.Base(commitURL), commitstatus.CommitStatusSuccess, "other_context"))
 	req = NewRequest(t, "GET", "/user2/repo1/commits/branch/master")

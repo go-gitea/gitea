@@ -64,7 +64,7 @@ func testViewRepoPublic(t *testing.T) {
 	assert.True(t, repoTopics.HasClass("repo-topic"))
 	assert.True(t, repoSummary.HasClass("repository-menu"))
 
-	req = NewRequest(t, "GET", "/org3/group/129/repo3")
+	req = NewRequest(t, "GET", "/org3/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	session = loginUser(t, "user1")
@@ -74,7 +74,7 @@ func testViewRepoPublic(t *testing.T) {
 func testViewRepoWithCache(t *testing.T) {
 	defer tests.PrintCurrentTest(t)()
 	testView := func(t *testing.T) {
-		req := NewRequest(t, "GET", "/org3/group/129/repo3")
+		req := NewRequest(t, "GET", "/org3/repo3")
 		session := loginUser(t, "user2")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -145,11 +145,11 @@ func testViewRepoWithCache(t *testing.T) {
 func testViewRepoPrivate(t *testing.T) {
 	defer tests.PrintCurrentTest(t)()
 
-	req := NewRequest(t, "GET", "/org3/group/129/repo3")
+	req := NewRequest(t, "GET", "/org3/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
 	t.Run("OrgMemberAccess", func(t *testing.T) {
-		req = NewRequest(t, "GET", "/org3/group/129/repo3")
+		req = NewRequest(t, "GET", "/org3/repo3")
 		session := loginUser(t, "user4")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), `<div id="repo-files-table"`)
@@ -159,22 +159,22 @@ func testViewRepoPrivate(t *testing.T) {
 		session := loginUser(t, "user1")
 
 		// set unit code to "anonymous read"
-		req = NewRequestWithValues(t, "POST", "/org3/group/129/repo3/settings/public_access", map[string]string{
+		req = NewRequestWithValues(t, "POST", "/org3/repo3/settings/public_access", map[string]string{
 			"repo-unit-access-" + strconv.Itoa(int(unit.TypeCode)): "anonymous-read",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// try to "anonymous read" (ok)
-		req = NewRequest(t, "GET", "/org3/group/129/repo3")
+		req = NewRequest(t, "GET", "/org3/repo3")
 		resp := MakeRequest(t, req, http.StatusOK)
 		assert.Contains(t, resp.Body.String(), `<span class="ui basic orange label">Public Access</span>`)
 
 		// remove "anonymous read"
-		req = NewRequest(t, "POST", "/org3/group/129/repo3/settings/public_access")
+		req = NewRequest(t, "POST", "/org3/repo3/settings/public_access")
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// try to "anonymous read" (not found)
-		req = NewRequest(t, "GET", "/org3/group/129/repo3")
+		req = NewRequest(t, "GET", "/org3/repo3")
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 }
@@ -565,7 +565,7 @@ func TestGenerateRepository(t *testing.T) {
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
-	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "generated-from-template-44", generatedRepo.GroupID), os.ModePerm))
+	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "generated-from-template-44", 0), os.ModePerm))
 
 	generatedRepo2, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
 		Name:       "generated-from-template-44",
