@@ -196,8 +196,8 @@ type ActionsTokenPermissions struct {
 	Wiki perm.AccessMode `json:"wiki"`
 }
 
-// HasRead checks if the permission has read access for the given scope
-func (p ActionsTokenPermissions) HasRead(scope string) bool {
+// HasAccess checks if the permission meets the required access level for the given scope
+func (p ActionsTokenPermissions) HasAccess(scope string, required perm.AccessMode) bool {
 	var mode perm.AccessMode
 	switch scope {
 	case "actions":
@@ -213,27 +213,17 @@ func (p ActionsTokenPermissions) HasRead(scope string) bool {
 	case "wiki":
 		mode = p.Wiki
 	}
-	return mode >= perm.AccessModeRead
+	return mode >= required
 }
 
-// HasWrite checks if the permission has write access for the given scope
+// HasRead checks if the permission has read access for the given scope (convenience wrapper for templates)
+func (p ActionsTokenPermissions) HasRead(scope string) bool {
+	return p.HasAccess(scope, perm.AccessModeRead)
+}
+
+// HasWrite checks if the permission has write access for the given scope (convenience wrapper for templates)
 func (p ActionsTokenPermissions) HasWrite(scope string) bool {
-	var mode perm.AccessMode
-	switch scope {
-	case "actions":
-		mode = p.Actions
-	case "contents":
-		mode = p.Contents
-	case "issues":
-		mode = p.Issues
-	case "packages":
-		mode = p.Packages
-	case "pull_requests":
-		mode = p.PullRequests
-	case "wiki":
-		mode = p.Wiki
-	}
-	return mode >= perm.AccessModeWrite
+	return p.HasAccess(scope, perm.AccessModeWrite)
 }
 
 // DefaultActionsTokenPermissions returns the default permissions for permissive mode
