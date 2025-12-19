@@ -259,7 +259,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	} else if len(headInfos) == 2 {
 		headInfosSplit := strings.Split(headInfos[0], "/")
 		if len(headInfosSplit) == 1 {
-			ci.HeadUser, err = user_model.GetUserByName(ctx, headInfos[0])
+			ci.HeadUser, err = user_model.GetUserOrOrgByName(ctx, headInfos[0])
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.NotFound(nil)

@@ -159,7 +159,7 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
 
-	var text string
+	var text strings.Builder
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		// limit the commit message display to just the summary, otherwise it would be hard to read
@@ -169,14 +169,14 @@ func (d discordConvertor) Push(p *api.PushPayload) (DiscordPayload, error) {
 		if utf8.RuneCountInString(message) > 50 {
 			message = fmt.Sprintf("%.47s...", message)
 		}
-		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL, message, commit.Author.Name)
+		text.WriteString(fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL, message, commit.Author.Name))
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\n"
+			text.WriteString("\n")
 		}
 	}
 
-	return d.createPayload(p.Sender, title, text, titleLink, greenColor), nil
+	return d.createPayload(p.Sender, title, text.String(), titleLink, greenColor), nil
 }
 
 // Issue implements PayloadConvertor Issue method

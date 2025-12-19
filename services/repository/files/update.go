@@ -167,7 +167,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 				}
 			}
 		}
-	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, treePaths); err != nil {
+	} else if err := VerifyBranchProtection(ctx, repo, gitRepo, doer, opts.OldBranch, treePaths); err != nil {
 		return nil, err
 	}
 
@@ -659,7 +659,7 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 }
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
-func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, branchName string, treePaths []string) error {
+func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, branchName string, treePaths []string) error {
 	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
@@ -686,7 +686,7 @@ func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, do
 			}
 		}
 		if protectedBranch.RequireSignedCommits {
-			_, _, _, err := asymkey_service.SignCRUDAction(ctx, doer, repo.RepoPath(), branchName)
+			_, _, _, err := asymkey_service.SignCRUDAction(ctx, doer, gitRepo, branchName)
 			if err != nil {
 				if !asymkey_service.IsErrWontSign(err) {
 					return err

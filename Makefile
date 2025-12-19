@@ -32,7 +32,7 @@ XGO_VERSION := go-1.25.x
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.7.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.7.2
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.1
@@ -412,6 +412,14 @@ lint-templates: .venv node_modules ## lint template files
 .PHONY: lint-yaml
 lint-yaml: .venv ## lint yaml files
 	@uv run --frozen yamllint -s .
+
+.PHONY: lint-json
+lint-json: node_modules ## lint json files
+	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0
+
+.PHONY: lint-json-fix
+lint-json-fix: node_modules ## lint and fix json files
+	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --fix
 
 .PHONY: watch
 watch: ## watch everything and continuously rebuild

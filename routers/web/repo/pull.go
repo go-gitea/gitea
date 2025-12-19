@@ -1340,6 +1340,17 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
+	// Check if a pull request already exists with the same head and base branch.
+	pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, repo.ID, ci.HeadBranch, ci.BaseBranch, issues_model.PullRequestFlowGithub)
+	if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
+		ctx.ServerError("GetUnmergedPullRequest", err)
+		return
+	}
+	if pr != nil {
+		ctx.JSONError(ctx.Tr("repo.pulls.new.already_existed"))
+		return
+	}
+
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
 		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
