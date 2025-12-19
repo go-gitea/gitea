@@ -40,7 +40,7 @@ func TestActionsRerun(t *testing.T) {
 
 		apiRepo := createActionsTestRepo(t, token, "actions-rerun", false)
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, repo.GroupID, auth_model.AccessTokenScopeWriteRepository)
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
 		defer doAPIDeleteRepository(httpContext)(t)
 
 		runner := newMockRunner()
@@ -65,7 +65,7 @@ jobs:
 `
 
 		opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create"+wfTreePath, wfFileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, repo.GroupID, wfTreePath, opts)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, opts)
 
 		// fetch and exec job1
 		job1Task := runner.fetchTask(t)
