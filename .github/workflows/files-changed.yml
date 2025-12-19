@@ -19,8 +19,8 @@ on:
         value: ${{ jobs.detect.outputs.swagger }}
       yaml:
         value: ${{ jobs.detect.outputs.yaml }}
-      locale:
-        value: ${{ jobs.detect.outputs.locale }}
+      json:
+        value: ${{ jobs.detect.outputs.json }}
 
 jobs:
   detect:
@@ -37,7 +37,7 @@ jobs:
       docker: ${{ steps.changes.outputs.docker }}
       swagger: ${{ steps.changes.outputs.swagger }}
       yaml: ${{ steps.changes.outputs.yaml }}
-      locale: ${{ steps.changes.outputs.locale }}
+      json: ${{ steps.changes.outputs.json }}
     steps:
       - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v3
@@ -105,3 +105,6 @@ jobs:
               - "**/*.yaml"
               - ".yamllint.yaml"
               - "pyproject.toml"
+
+            json:
+              - "**/*.json"

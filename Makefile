@@ -413,6 +413,14 @@ lint-templates: .venv node_modules ## lint template files
 lint-yaml: .venv ## lint yaml files
 	@uv run --frozen yamllint -s .
 
+.PHONY: lint-json
+lint-json: node_modules ## lint json files
+	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0
+
+.PHONY: lint-json-fix
+lint-json-fix: node_modules ## lint and fix json files
+	$(NODE_VARS) pnpm exec eslint -c eslint.json.config.ts --color --max-warnings=0 --fix
+
 .PHONY: watch
 watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
@@ -902,12 +910,6 @@ lockfile-check:
 		printf "%s" "$${diff}"; \
 		exit 1; \
 	fi
-
-LOCALE_DIR := options/locale
-
-.PHONY: translation-check
-translation-check:
-	@$(NODE_VARS) tools/translation-check.sh $(LOCALE_DIR)
 
 .PHONY: generate-gitignore
 generate-gitignore: ## update gitignore files
