@@ -2,7 +2,7 @@ version: 2
 
 updates:
   - package-ecosystem: github-actions
-    labels: []
+    labels: [modifies/dependencies]
     directory: /
     schedule:
       interval: daily

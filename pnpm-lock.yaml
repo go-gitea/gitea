@@ -60,8 +60,8 @@ importers:
         specifier: 2.6.2
         version: 2.6.2
       '@silverwind/vue3-calendar-heatmap':
-        specifier: 2.0.6
-        version: 2.0.6(tippy.js@6.3.7)(vue@3.5.25(typescript@5.9.3))
+        specifier: 2.1.1
+        version: 2.1.1(tippy.js@6.3.7)(vue@3.5.25(typescript@5.9.3))
       '@techknowlogick/license-checker-webpack-plugin':
         specifier: 0.3.0
         version: 0.3.0(webpack@5.104.0)
@@ -1176,8 +1176,8 @@ packages:
   '@scarf/scarf@1.4.0':
     resolution: {integrity: sha512-xxeapPiUXdZAE3che6f3xogoJPeZgig6omHEy1rIY5WVsB3H2BHNnZH+gHG6x91SCWyQCzWGsuL2Hh3ClO5/qQ==}
 
-  '@silverwind/vue3-calendar-heatmap@2.0.6':
-    resolution: {integrity: sha512-efX+nf2GR7EfA7iNgZDeM9Jue5ksglSXvN0C/ja0M1bTmkCpAxKlGJ3vki7wfTPQgX1O0nCfAM62IKqUUEM0cQ==}
+  '@silverwind/vue3-calendar-heatmap@2.1.1':
+    resolution: {integrity: sha512-RQtLOpkysm0LR3PbUoc+aDcYxzy7xboygb1SQEwrUm2/XB2nmt0BEra2ADXpu4kwFxtk0+IyNwzFvbBai/wvTg==}
     engines: {node: '>=16'}
     peerDependencies:
       tippy.js: ^6.3.7
@@ -5078,7 +5078,7 @@ snapshots:
 
   '@scarf/scarf@1.4.0': {}
 
-  '@silverwind/vue3-calendar-heatmap@2.0.6(tippy.js@6.3.7)(vue@3.5.25(typescript@5.9.3))':
+  '@silverwind/vue3-calendar-heatmap@2.1.1(tippy.js@6.3.7)(vue@3.5.25(typescript@5.9.3))':
     dependencies:
       tippy.js: 6.3.7
       vue: 3.5.25(typescript@5.9.3)
