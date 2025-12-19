@@ -35,10 +35,7 @@ import (
 
 // buildSearchIssuesRepoIDs builds the list of repository IDs for issue search based on query parameters.
 // It returns repoIDs, allPublic flag, and any error that occurred.
-func buildSearchIssuesRepoIDs(ctx *context.APIContext) ([]int64, bool, error) {
-	var repoIDs []int64
-	var allPublic bool
-
+func buildSearchIssuesRepoIDs(ctx *context.APIContext) (repoIDs []int64, allPublic bool, err error) {
 	opts := repo_model.SearchRepoOptions{
 		Private:     false,
 		AllPublic:   true,
@@ -78,7 +75,7 @@ func buildSearchIssuesRepoIDs(ctx *context.APIContext) ([]int64, bool, error) {
 		allPublic = true
 		opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
 	}
-	repoIDs, _, err := repo_model.SearchRepositoryIDs(ctx, opts)
+	repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
 	if err != nil {
 		return nil, false, err
 	}
@@ -116,11 +113,6 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: Search string
 	//   type: string
-	// - name: priority_repo_id
-	//   in: query
-	//   description: Repository ID to prioritize in the results
-	//   type: integer
-	//   format: int64
 	// - name: type
 	//   in: query
 	//   description: Filter by issue type
@@ -241,14 +233,7 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 	}
 
-	// this api is also used in UI,
-	// so the default limit is set to fit UI needs
-	limit := ctx.FormInt("limit")
-	if limit == 0 {
-		limit = setting.UI.IssuePagingNum
-	} else if limit > setting.API.MaxResponseItems {
-		limit = setting.API.MaxResponseItems
-	}
+	limit := util.IfZero(ctx.FormInt("limit"), setting.API.DefaultPagingNum)
 
 	searchOpt := &issue_indexer.SearchOptions{
 		Paginator: &db.ListOptions{
@@ -290,10 +275,6 @@ func SearchIssues(ctx *context.APIContext) {
 			searchOpt.ReviewedID = optional.Some(ctxUserID)
 		}
 	}
-
-	// FIXME: It's unsupported to sort by priority repo when searching by indexer,
-	//        it's indeed an regression, but I think it is worth to support filtering by indexer first.
-	_ = ctx.FormInt64("priority_repo_id")
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
