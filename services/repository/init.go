@@ -30,8 +30,6 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		"GIT_AUTHOR_NAME="+sig.Name,
 		"GIT_AUTHOR_EMAIL="+sig.Email,
 		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+sig.Name,
-		"GIT_COMMITTER_EMAIL="+sig.Email,
 		"GIT_COMMITTER_DATE="+commitTimeStr,
 	)
 	committerName := sig.Name
