@@ -223,7 +223,7 @@ func (issue *Issue) LoadPullRequest(ctx context.Context) (err error) {
 	return nil
 }
 
-func (issue *Issue) loadComments(ctx context.Context) (err error) {
+func (issue *Issue) LoadComments(ctx context.Context) (err error) {
 	return issue.loadCommentsByType(ctx, CommentTypeUndefined)
 }
 
@@ -344,7 +344,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 
-	if err = issue.loadComments(ctx); err != nil {
+	if err = issue.LoadComments(ctx); err != nil {
 		return err
 	}
 

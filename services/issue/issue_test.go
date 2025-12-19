@@ -38,10 +38,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, issueIDs, 5)
 
-	issue := &issues_model.Issue{
-		RepoID: 1,
-		ID:     issueIDs[2],
-	}
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issueIDs[2]})
 
 	_, err = deleteIssue(t.Context(), issue)
 	assert.NoError(t, err)

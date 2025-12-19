@@ -159,7 +159,7 @@ func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if err = r.LoadIssue(ctx); err != nil {
 		return err
 	}
-	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r, false)
+	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue.Repo, r.Issue.ID, nil, r, false)
 	return err
 }
 
@@ -428,6 +428,10 @@ func SubmitReview(ctx context.Context, doer *user_model.User, issue *Issue, revi
 	}
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
+
+	if err := issue.LoadRepo(ctx); err != nil {
+		return nil, nil, fmt.Errorf("LoadRepo: %w", err)
+	}
 
 	official := false
 
