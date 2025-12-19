@@ -51,11 +51,22 @@ func WriteAuthorizedStringForValidKey(key *PublicKey, w io.Writer) error {
 }
 
 func writeAuthorizedStringForKey(key *PublicKey, w io.Writer) (keyValid bool, err error) {
-	const tpl = AuthorizedStringCommentPrefix + "\n" + `command=%s,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,no-user-rc,restrict %s %s` + "\n"
-	pubKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key.Content))
-	if err != nil {
-		return false, err
+	const tpl = AuthorizedStringCommentPrefix + "\n" + `command=%s,no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty,no-user-rc,restrict %s` + "\n"
+
+	var sshKey string
+
+	if key.Type == KeyTypePrincipal {
+		sshKey = fmt.Sprintf("%s # user-%d", key.Content, key.OwnerID)
+	} else {
+		pubKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(key.Content))
+		if err != nil {
+			return false, err
+		}
+
+		sshKeyMarshalled := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pubKey)))
+		sshKey = fmt.Sprintf("%s user-%d", sshKeyMarshalled, key.OwnerID)
 	}
+
 	// now the key is valid, the code below could only return template/IO related errors
 	sbCmd := &strings.Builder{}
 	err = setting.SSH.AuthorizedKeysCommandTemplateTemplate.Execute(sbCmd, map[string]any{
@@ -69,9 +80,7 @@ func writeAuthorizedStringForKey(key *PublicKey, w io.Writer) (keyValid bool, er
 		return true, err
 	}
 	sshCommandEscaped := util.ShellEscape(sbCmd.String())
-	sshKeyMarshalled := strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pubKey)))
-	sshKeyComment := fmt.Sprintf("user-%d", key.OwnerID)
-	_, err = fmt.Fprintf(w, tpl, sshCommandEscaped, sshKeyMarshalled, sshKeyComment)
+	_, err = fmt.Fprintf(w, tpl, sshCommandEscaped, sshKey)
 	return true, err
 }
 
