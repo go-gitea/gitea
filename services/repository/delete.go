@@ -188,14 +188,15 @@ func DeleteRepositoryDirectly(ctx context.Context, repoID int64, ignoreOrgTeams 
 		return err
 	}
 
-	// Delete Pulls and related objects
-	if err := issues_model.DeletePullsByBaseRepoID(ctx, repoID); err != nil {
-		return err
-	}
-
 	// Delete Issues and related objects
 	var attachmentPaths []string
 	if attachmentPaths, err = issue_service.DeleteIssuesByRepoID(ctx, repoID); err != nil {
+		return err
+	}
+
+	// Delete Pulls and related objects
+	// Notice: we should delete issue first because issue may load pull request
+	if err := issues_model.DeletePullsByBaseRepoID(ctx, repoID); err != nil {
 		return err
 	}
 

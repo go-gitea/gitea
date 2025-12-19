@@ -383,6 +383,7 @@ func ViewIssue(ctx *context.Context) {
 	prepareFuncs := []func(*context.Context, *issues_model.Issue){
 		prepareIssueViewContent,
 		prepareIssueViewCommentsAndSidebarParticipants,
+		prepareIssueViewSidebarDevLinks,
 		prepareIssueViewSidebarWatch,
 		prepareIssueViewSidebarTimeTracker,
 		prepareIssueViewSidebarDependency,
@@ -1010,4 +1011,51 @@ func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 		ctx.ServerError("roleDescriptor", err)
 		return
 	}
+}
+
+func prepareIssueViewSidebarDevLinks(ctx *context.Context, issue *issues_model.Issue) {
+	if issue.IsPull {
+		return
+	}
+
+	devLinks, err := issue_service.FindIssueDevLinksByIssue(ctx, issue)
+	if err != nil {
+		ctx.ServerError("FindIssueDevLinksByIssue", err)
+		return
+	}
+	ctx.Data["DevLinks"] = devLinks
+	for _, link := range devLinks {
+		if link.LinkType == issues_model.IssueDevLinkTypePullRequest &&
+			!(link.PullRequest.Issue.IsClosed && !link.PullRequest.HasMerged) {
+			ctx.Data["MaybeFixed"] = link.PullRequest
+			break
+		}
+	}
+
+	if !ctx.IsSigned {
+		return
+	}
+
+	// Get all possible repositories for creating branch model dropdown list
+	forkedRepos, err := repo_model.GetForksByUserAndOrgs(ctx, ctx.Doer, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetForksByUserAndOrgs", err)
+		return
+	}
+	allowedRepos := make([]*repo_model.Repository, 0, len(forkedRepos)+1)
+	for _, repo := range append(forkedRepos, ctx.Repo.Repository) {
+		perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+		if perm.CanWrite(unit.TypeCode) {
+			allowedRepos = append(allowedRepos, repo)
+		}
+	}
+
+	ctx.Data["AllowedRepos"] = allowedRepos
+	ctx.Data["ShowCreateBranchLink"] = !ctx.Repo.Repository.IsEmpty &&
+		ctx.Repo.Repository.CanCreateBranch() &&
+		len(allowedRepos) > 0 && !issue.IsClosed
 }

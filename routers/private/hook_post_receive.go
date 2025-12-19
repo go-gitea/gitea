@@ -113,6 +113,10 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 					})
 					return
 				}
+
+				if err := repo_service.DeleteIssueDevLinkByBranchName(ctx, repo.ID, update.RefFullName.BranchName()); err != nil {
+					log.Error("Failed to DeleteIssueDevLinkByBranchName: %s/%s %s Error: %v", ownerName, repoName, update.RefFullName.BranchName(), err)
+				}
 			} else {
 				branchesToSync = append(branchesToSync, update)
 
