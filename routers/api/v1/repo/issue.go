@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/common"
@@ -31,43 +32,6 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
-
-// ErrOwnerOrgRequired represents an error when owner organisation is required for filtering on team
-type ErrOwnerOrgRequired struct{}
-
-// IsErrOwnerOrgRequired checks if an error is an ErrOwnerOrgRequired
-func IsErrOwnerOrgRequired(err error) bool {
-	_, ok := err.(ErrOwnerOrgRequired)
-	return ok
-}
-
-func (err ErrOwnerOrgRequired) Error() string {
-	return "owner organisation is required for filtering on team"
-}
-
-// parseIssueIsClosed parses the "state" query parameter and returns the corresponding isClosed option
-func parseIssueIsClosed(ctx *context.APIContext) optional.Option[bool] {
-	switch ctx.FormString("state") {
-	case "closed":
-		return optional.Some(true)
-	case "all":
-		return optional.None[bool]()
-	default:
-		return optional.Some(false)
-	}
-}
-
-// parseIssueIsPull parses the "type" query parameter and returns the corresponding isPull option
-func parseIssueIsPull(ctx *context.APIContext) optional.Option[bool] {
-	switch ctx.FormString("type") {
-	case "pulls":
-		return optional.Some(true)
-	case "issues":
-		return optional.Some(false)
-	default:
-		return optional.None[bool]()
-	}
-}
 
 // buildSearchIssuesRepoIDs builds the list of repository IDs for issue search based on query parameters.
 // It returns repoIDs, allPublic flag, and any error that occurred.
@@ -101,7 +65,7 @@ func buildSearchIssuesRepoIDs(ctx *context.APIContext) ([]int64, bool, error) {
 	}
 	if ctx.FormString("team") != "" {
 		if ctx.FormString("owner") == "" {
-			return nil, false, ErrOwnerOrgRequired{}
+			return nil, false, util.NewInvalidArgumentErrorf("owner organisation is required for filtering on team")
 		}
 		team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
 		if err != nil {
@@ -230,11 +194,11 @@ func SearchIssues(ctx *context.APIContext) {
 		return
 	}
 
-	isClosed := parseIssueIsClosed(ctx)
+	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
 	repoIDs, allPublic, err := buildSearchIssuesRepoIDs(ctx)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) || organization.IsErrTeamNotExist(err) || IsErrOwnerOrgRequired(err) {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else {
 			ctx.APIErrorInternal(err)
@@ -247,7 +211,7 @@ func SearchIssues(ctx *context.APIContext) {
 		keyword = ""
 	}
 
-	isPull := parseIssueIsPull(ctx)
+	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	var includedAnyLabels []int64
 	{
@@ -430,16 +394,7 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
-	var isClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isClosed = optional.Some(true)
-	case "all":
-		isClosed = optional.None[bool]()
-	default:
-		isClosed = optional.Some(false)
-	}
-
+	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
