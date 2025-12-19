@@ -67,9 +67,6 @@ jobs:
               - ".eslintrc.cjs"
               - ".npmrc"
 
-            locale:
-              - "options/locale/*.json"
-
             docs:
               - "**/*.md"
               - ".markdownlint.yaml"
