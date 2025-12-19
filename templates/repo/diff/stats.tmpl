@@ -1,6 +1,8 @@
-<div class="tw-flex tw-items-center tw-gap-1 tw-text-[13px]">
-	{{if .file.Addition}}<span class="tw-text-green">+{{.file.Addition}}</span>{{end}}
-	{{if .file.Deletion}}<span class="tw-text-red">-{{.file.Deletion}}</span>{{end}}
+<div class="tw-flex tw-items-center tw-gap-2 tw-text-[13px] tw-font-sans">
+	<span>
+		{{if .file.Addition}}<span class="tw-text-green">+{{.file.Addition}}</span>{{end}}
+		{{if .file.Deletion}}<span class="tw-text-red">-{{.file.Deletion}}</span>{{end}}
+	</span>
 	<span class="diff-stats-bar" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.stats_desc_file" (Eval .file.Addition "+" .file.Deletion) .file.Addition .file.Deletion}}">
 		{{/* if the denominator is zero, then the float result is "width: NaNpx", as before, it just works */}}
 		<div class="diff-stats-add-bar" style="width: {{Eval 100 "*" .file.Addition "/" "(" .file.Addition "+" .file.Deletion "+" 0.0 ")"}}%"></div>
