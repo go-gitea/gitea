@@ -63,6 +63,21 @@ jobs:
       - run: make deps-py
       - run: make lint-yaml
 
+  lint-json:
+    if: needs.files-changed.outputs.json == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      - run: make deps-frontend
+      - run: make lint-json
+
   lint-swagger:
     if: needs.files-changed.outputs.swagger == 'true'
     needs: files-changed
