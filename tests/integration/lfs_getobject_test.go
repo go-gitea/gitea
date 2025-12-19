@@ -41,7 +41,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 }
 
 func storeAndGetLfsToken(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int, ts ...auth.AccessTokenScope) *httptest.ResponseRecorder {
-	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1", 0)
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
 	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
@@ -66,7 +66,7 @@ func storeAndGetLfsToken(t *testing.T, content *[]byte, extraHeader *http.Header
 }
 
 func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
-	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1", 0)
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
 	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)

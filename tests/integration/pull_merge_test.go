@@ -80,7 +80,7 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 
 	pullnumInt, err := strconv.ParseInt(pullnum, 10, 64)
 	assert.NoError(t, err)
-	repository, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user, repo)
+	repository, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user, repo, 0)
 	assert.NoError(t, err)
 	pull, err := issues_model.GetPullRequestByIndex(t.Context(), repository.ID, pullnumInt)
 	assert.NoError(t, err)
@@ -413,7 +413,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 			OwnerID: user1.ID,
 			Name:    "repo1",
 		})
-		path := repo_model.RepoPath(user1.Name, repo1.Name)
+		path := repo_model.RepoPath(user1.Name, repo1.Name, 0)
 
 		err := gitcmd.NewCommand("read-tree", "--empty").WithDir(path).Run(t.Context())
 		assert.NoError(t, err)

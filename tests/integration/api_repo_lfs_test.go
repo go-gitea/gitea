@@ -64,7 +64,7 @@ func createLFSTestRepository(t *testing.T, repoName string) *repo_model.Reposito
 	ctx := NewAPITestContext(t, "user2", repoName, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", repoName)
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", repoName, 0)
 	require.NoError(t, err)
 
 	return repo
