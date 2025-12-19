@@ -91,15 +91,6 @@
 										{{svg "octicon-chevron-down" 18}}
 									{{end}}
 								</button>
-								<div class="tw-font-semibold tw-flex tw-items-center tw-font-mono">
-									{{if $file.IsBin}}
-										<span class="tw-ml-0.5 tw-mr-2">
-											{{ctx.Locale.Tr "repo.diff.bin"}}
-										</span>
-									{{else}}
-										{{template "repo/diff/stats" dict "file" . "root" $}}
-									{{end}}
-								</div>
 								<span class="file tw-font-mono"><a class="muted file-link" title="{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} → {{end}}{{$file.Name}}</a>
 									<button class="btn interact-fg tw-p-2" data-clipboard-text="{{$file.Name}}" data-tooltip-content="{{ctx.Locale.Tr "copy_path"}}">{{svg "octicon-copy" 14}}</button>
 									{{if .IsLFSFile}}<span class="ui label">LFS</span>{{end}}
@@ -117,6 +108,15 @@
 										<span class="tw-mx-1 tw-whitespace-nowrap">{{ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
 									{{end}}
 								</span>
+							</div>
+							<div class="tw-font-semibold tw-flex tw-items-center tw-font-mono">
+								{{if $file.IsBin}}
+									<span class="tw-ml-0.5 tw-mr-2">
+										{{ctx.Locale.Tr "repo.diff.bin"}}
+									</span>
+								{{else}}
+									{{template "repo/diff/stats" dict "file" . "root" $}}
+								{{end}}
 							</div>
 							<div class="diff-file-header-actions tw-flex tw-items-center tw-gap-1 tw-flex-wrap">
 								{{if $showFileViewToggle}}
