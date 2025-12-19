@@ -214,7 +214,7 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 					context.Session.MakeRequest(t, req, context.ExpectedCode)
 					return
 				}
-				context.Session.MakeRequest(t, req, http.StatusNoContent)
+				context.Session.MakeRequest(t, req, http.StatusOK)
 			})
 		}
 	}
