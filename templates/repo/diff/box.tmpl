@@ -118,7 +118,7 @@
 									{{template "repo/diff/stats" dict "file" . "root" $}}
 								{{end}}
 							</div>
-							<div class="diff-file-header-actions tw-flex tw-items-center tw-gap-1 tw-flex-wrap">
+							<div class="diff-file-header-actions tw-flex tw-items-center tw-gap-1 tw-flex-wrap tw-ml-2">
 								{{if $showFileViewToggle}}
 									<div class="ui compact icon buttons">
 										<button class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
