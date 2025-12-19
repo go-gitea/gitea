@@ -627,6 +627,33 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 		return 0
 	}
+
+	blockingCounts, err := issues.GetBlockingCount(ctx)
+	if err != nil {
+		ctx.ServerError("BlockingCounts", err)
+		return
+	}
+
+	blockedByCounts, err := issues.GetBlockedByCount(ctx)
+	if err != nil {
+		ctx.ServerError("BlockedByCounts", err)
+		return
+	}
+	ctx.Data["BlockingCounts"] = func(issueID int64) int64 {
+		counts, ok := blockingCounts[issueID]
+		if !ok {
+			return 0
+		}
+		return counts
+	}
+	ctx.Data["BlockedByCounts"] = func(issueID int64) int64 {
+		counts, ok := blockedByCounts[issueID]
+		if !ok {
+			return 0
+		}
+		return counts
+	}
+
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["IssueStats"] = issueStats

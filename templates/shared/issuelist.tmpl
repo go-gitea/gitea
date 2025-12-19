@@ -1,6 +1,10 @@
 <div id="issue-list" class="flex-list">
 	{{$approvalCounts := .ApprovalCounts}}
+	{{$blockedByCounts := .BlockedByCounts}}
+	{{$blockingCounts := .BlockingCounts}}
 	{{range .Issues}}
+		{{$blockedByCount := call $blockedByCounts .ID}}
+		{{$blockingCount := call $blockingCounts .ID}}
 		<div class="flex-item">
 
 			<div class="flex-item-leading">
@@ -21,6 +25,22 @@
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
 								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
 							{{end}}
+						{{end}}
+						{{if gt $blockedByCount 0}}
+							<div class="ui label label-blocking">
+								<span data-tooltip-content="{{ctx.Locale.TrN $blockedByCount "repo.issues.dependency.blocked_by_count_1" "repo.issues.dependency.blocked_by_count_n" $blockedByCount}}" class="text red flex-text-block">
+									{{svg "octicon-blocked" 16}}
+									{{$blockedByCount}}
+								</span>
+							</div>
+						{{end}}
+						{{if and (gt $blockingCount 0) (not .IsClosed)}}
+							<div class="ui label label-blocking">
+								<span data-tooltip-content="{{ctx.Locale.TrN $blockingCount "repo.issues.dependency.blocking_count_1" "repo.issues.dependency.blocking_count_n" $blockingCount}}" class="text red flex-text-block">
+									{{svg "octicon-report" 16}}
+									{{$blockingCount}}
+								</span>
+							</div>
 						{{end}}
 						<span class="labels-list">
 							{{range .Labels}}

@@ -279,6 +279,32 @@ func NotificationSubscriptions(ctx *context.Context) {
 		return 0
 	}
 
+	blockingCounts, err := issues.GetBlockingCount(ctx)
+	if err != nil {
+		ctx.ServerError("BlockingCounts", err)
+		return
+	}
+
+	blockedByCounts, err := issues.GetBlockedByCount(ctx)
+	if err != nil {
+		ctx.ServerError("BlockedByCounts", err)
+		return
+	}
+	ctx.Data["BlockingCounts"] = func(issueID int64) int64 {
+		counts, ok := blockingCounts[issueID]
+		if !ok {
+			return 0
+		}
+		return counts
+	}
+	ctx.Data["BlockedByCounts"] = func(issueID int64) int64 {
+		counts, ok := blockedByCounts[issueID]
+		if !ok {
+			return 0
+		}
+		return counts
+	}
+
 	ctx.Data["Status"] = 1
 	ctx.Data["Title"] = ctx.Tr("notification.subscriptions")
 
