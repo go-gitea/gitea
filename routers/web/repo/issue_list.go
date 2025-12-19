@@ -29,6 +29,7 @@ import (
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
+	"code.gitea.io/gitea/services/export"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -258,14 +259,13 @@ func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
 	return user.ID
 }
 
-// SearchRepoIssuesJSON lists the issues of a repository
 // This function was copied from API (decouple the web and API routes),
 // it is only used by frontend to search some dependency or related issues
-func SearchRepoIssuesJSON(ctx *context.Context) {
+func SearchRepoIssues(ctx *context.Context) (issues_model.IssueList, int64) {
 	before, since, err := context.GetQueryBeforeSince(ctx.Base)
 	if err != nil {
 		ctx.HTTPError(http.StatusUnprocessableEntity, err.Error())
-		return
+		return nil, 0
 	}
 
 	var isClosed optional.Option[bool]
@@ -295,7 +295,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 			}
 			if !issues_model.IsErrMilestoneNotExist(err) {
 				ctx.HTTPError(http.StatusInternalServerError, err.Error())
-				return
+				return nil, 0
 			}
 			id, err := strconv.ParseInt(part[i], 10, 64)
 			if err != nil {
@@ -329,15 +329,15 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 	// FIXME: we should be more efficient here
 	createdByID := getUserIDForFilter(ctx, "created_by")
 	if ctx.Written() {
-		return
+		return nil, 0
 	}
 	assignedByID := getUserIDForFilter(ctx, "assigned_by")
 	if ctx.Written() {
-		return
+		return nil, 0
 	}
 	mentionedByID := getUserIDForFilter(ctx, "mentioned_by")
 	if ctx.Written() {
-		return
+		return nil, 0
 	}
 
 	searchOpt := &issue_indexer.SearchOptions{
@@ -380,16 +380,37 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
 		ctx.HTTPError(http.StatusInternalServerError, "SearchIssues", err.Error())
-		return
+		return nil, 0
 	}
 	issues, err := issues_model.GetIssuesByIDs(ctx, ids, true)
 	if err != nil {
 		ctx.HTTPError(http.StatusInternalServerError, "FindIssuesByIDs", err.Error())
-		return
+		return nil, 0
 	}
+
+	return issues, total
+}
+
+// SearchRepoIssuesJSON lists the issues of a repository
+func SearchRepoIssuesJSON(ctx *context.Context) {
+	issues, total := SearchRepoIssues(ctx)
 
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, convert.ToIssueList(ctx, ctx.Doer, issues))
+}
+
+func ExportIssues(ctx *context.Context) {
+	issues, total := SearchRepoIssues(ctx)
+
+	if total == 0 {
+		return
+	}
+
+	f := export.IssuesToExcel(ctx, issues)
+
+	ctx.Resp.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+	ctx.Resp.Header().Set("Content-Disposition", `attachment; filename="issues.xlsx"`)
+	_ = f.Write(ctx.Resp)
 }
 
 func BatchDeleteIssues(ctx *context.Context) {

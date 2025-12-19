@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"bytes"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -29,6 +30,7 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/xuri/excelize/v2"
 )
 
 func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
@@ -369,6 +371,62 @@ func TestIssueReaction(t *testing.T) {
 		"content": "eyes",
 	})
 	session.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestIssueListExport(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	session := loginUser(t, "user2")
+	_ = testNewIssue(t, session, "user2", "repo1", "Title1", "Description1")
+	_ = testNewIssue(t, session, "user2", "repo1", "Title2", "Description2")
+	_ = testNewIssue(t, session, "user2", "repo1", "Title3", "Description3")
+
+	// trying to export all open issues of the given repository
+	req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/issues/export?%s", "user2", "repo1", "type=all&state=open"))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	// Content-Type should be an Excel file (XLSX)
+	ct := strings.Split(resp.Header().Get("Content-Type"), ";")[0]
+	assert.Equal(t, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", ct)
+
+	// Content-Disposition should indicate attachment with .xlsx
+	cd := resp.Header().Get("Content-Disposition")
+	assert.Contains(t, cd, "attachment")
+	assert.Contains(t, cd, ".xlsx")
+
+	// open bytes as XLSX with excelize
+	data := resp.Body.Bytes()
+	f, err := excelize.OpenReader(bytes.NewReader(data))
+	assert.NoError(t, err)
+	defer func() { _ = f.Close() }()
+
+	// get first sheet and rows
+	sheets := f.GetSheetList()
+	assert.NotEmpty(t, sheets)
+	rows, err := f.GetRows(sheets[0])
+	assert.NoError(t, err)
+	// there should be at least a header row + our three issues
+	assert.GreaterOrEqual(t, len(rows), 4)
+
+	// ensure header has some cells and that our created titles appear somewhere
+	foundTitle1, foundTitle2, foundTitle3 := false, false, false
+	if len(rows) > 0 {
+		for _, row := range rows {
+			for _, cell := range row {
+				if strings.Contains(cell, "Title1") {
+					foundTitle1 = true
+				}
+				if strings.Contains(cell, "Title2") {
+					foundTitle2 = true
+				}
+				if strings.Contains(cell, "Title3") {
+					foundTitle3 = true
+				}
+			}
+		}
+	}
+	assert.True(t, foundTitle1, "Exported XLSX should contain Title1")
+	assert.True(t, foundTitle2, "Exported XLSX should contain Title2")
+	assert.True(t, foundTitle3, "Exported XLSX should contain Title3")
 }
 
 func TestIssueCrossReference(t *testing.T) {

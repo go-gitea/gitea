@@ -21,6 +21,19 @@
 			{{else}}
 				{{template "repo/issue/filter_list" .}}
 			{{end}}
+
+			<button class="ui compact secondary button js-btn-misc-actions">
+				…
+			</button>
+
+			<div class="misc-actions-popup tippy-target">
+				<div class="flex-items-block misc-actions-panel-field">
+					<a class="item muted" href="{{$.RepoLink}}/issues/export?{{$.Page.GetParams}}">
+						{{svg "gitea-double-chevron-left" 16 "tw-mr-2"}}
+						{{ctx.Locale.Tr "action.export_to_excel"}}</a>
+				</div>
+			</div>
+
 		</div>
 	</div>
 </div>
