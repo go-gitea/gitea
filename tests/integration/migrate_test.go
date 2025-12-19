@@ -89,7 +89,7 @@ func TestMigrateGiteaForm(t *testing.T) {
 		migratedRepoName := "otherrepo"
 		req = NewRequestWithValues(t, "POST", link, map[string]string{
 			"service":     fmt.Sprintf("%d", structs.GiteaService),
-			"clone_addr":  fmt.Sprintf("%s/%s%s", u, ownerName, repoName),
+			"clone_addr":  fmt.Sprintf("%s%s/%s", u, ownerName, repoName),
 			"auth_token":  token,
 			"issues":      "on",
 			"repo_name":   migratedRepoName,

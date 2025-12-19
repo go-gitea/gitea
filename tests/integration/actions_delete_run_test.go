@@ -120,7 +120,7 @@ jobs:
 		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+testCase.treePath, testCase.fileContent)
-		createWorkflowFile(t, token, user2.Name, apiRepo.Name, apiRepo.GroupID, testCase.treePath, opts)
+		createWorkflowFile(t, token, user2.Name, apiRepo.Name, testCase.treePath, opts)
 
 		var runID int64
 		for i := 0; i < len(testCase.outcomes); i++ {
