@@ -4,6 +4,420 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
+## [1.25.3](https://github.com/go-gitea/gitea/releases/tag/1.25.3) - 2025-12-17
+
+* SECURITY
+  * Bump toolchain to go1.25.5, misc fixes (#36082)
+* ENHANCEMENTS
+  * Add strikethrough button to markdown editor (#36087) (#36104)
+  * Add "site admin" back to profile menu (#36010) (#36013)
+  * Improve math rendering (#36124) (#36125)
+* BUGFIXES
+  * Check user visibility when redirecting to a renamed user (#36148) (#36159)
+  * Fix various bugs (#36139) (#36151)
+  * Fix bug when viewing the commit diff page with non-ANSI files (#36149) (#36150)
+  * Hide RSS icon when viewing a file not under a branch (#36135) (#36141)
+  * Fix SVG size calulation, only use `style` attribute (#36133) (#36134)
+  * Make Golang correctly delete temp files during uploading (#36128) (#36129)
+  * Fix the bug when ssh clone with redirect user or repository (#36039) (#36090)
+  * Use Golang net/smtp instead of gomail's smtp to send email (#36055) (#36083)
+  * Fix edit user email bug in API (#36068) (#36081)
+  * Fix bug when updating user email (#36058) (#36066)
+  * Fix incorrect viewed files counter if file has changed (#36009) (#36047)
+  * Fix container registry error handling (#36021) (#36037)
+  * Fix webAuthn insecure error view (#36165) (#36179)
+  * Fix some file icon ui (#36078) (#36088)
+  * Fix Actions `pull_request.paths` being triggered incorrectly by rebase (#36045) (#36054)
+  * Fix error handling in mailer and wiki services (#36041) (#36053)
+  * Fix bugs when comparing and creating pull request (#36166) (#36144)
+
+## [1.25.2](https://github.com/go-gitea/gitea/releases/tag/1.25.2) - 2025-11-23
+
+* SECURITY
+  * Upgrade golang.org/x/crypto to 0.45.0 (#35985) (#35988)
+  * Fix various permission & login related bugs (#36002) (#36004)
+* ENHANCEMENTS
+  * Display source code downloads last for release attachments (#35897) (#35903)
+  * Change project default column icon to 'star' (#35967) (#35979)
+* BUGFIXES
+  * Allow empty commit when merging pull request with squash style (#35989) (#36003)
+  * Fix container push tag overwriting (#35936) (#35954)
+  * Fix corrupted external render content (#35946) and upgrade golang.org/x packages (#35950)
+  * Limit reading bytes instead of ReadAll (#35928) (#35934)
+  * Use correct form field for allowed force push users in branch protection API (#35894) (#35908)
+  * Fix team member access check (#35899) (#35905)
+  * Fix conda null depend issue (#35900) (#35902)
+  * Set the dates to now when not specified by the caller (#35861) (#35874)
+  * Fix gogit ListEntriesRecursiveWithSize (#35862)
+  * Misc CSS fixes (#35888) (#35981)
+  * Don't show unnecessary error message to end users for DeleteBranchAfterMerge (#35937) (#35941)
+  * Load jQuery as early as possible to support custom scripts (#35926) (#35929)
+  * Allow to display embed images/pdfs when SERVE_DIRECT was enabled on MinIO storage (#35882) (#35917)
+  * Make OAuth2 issuer configurable (#35915) (#35916)
+  * Fix #35763: Add proper page title for project pages (#35773) (#35909)
+  * Fix avatar upload error handling (#35887) (#35890)
+  * Contribution heatmap improvements (#35876) (#35880)
+  * Remove padding override on `.ui .sha.label` (#35864) (#35873)
+  * Fix pull description code label background (#35865) (#35870)
+
+## [1.25.1](https://github.com/go-gitea/gitea/releases/tag/v1.25.1) - 2025-11-03
+
+* BUGFIXES
+  * Make ACME email optional (#35849) #35857
+  * Add a doctor command to fix inconsistent run status (#35840) (#35845)
+  * Remove wrong code (#35846)
+  * Fix viewed files number is not right if not all files loaded (#35821) (#35844)
+  * Fix incorrect pull request counter (#35819) (#35841)
+  * Upgrade go mail to 0.7.2 and fix the bug (#35833) (#35837)
+  * Revert gomail to v0.7.0 to fix sending mail failed (#35816) (#35824)
+  * Fix clone mixed bug (#35810) (#35822)
+  * Fix cli "Before" handling (#35797) (#35808)
+  * Improve and fix markup code preview rendering (#35777) (#35787)
+  * Fix actions rerun bug (#35783) (#35784)
+  * Fix actions schedule update issue (#35767) (#35774)
+  * Fix circular spin animation direction (#35785) (#35823)
+  * Fix file extension on gogs.png (#35793) (#35799)
+  * Add pnpm to Snapcraft (#35778)
+
+## [1.25.0](https://github.com/go-gitea/gitea/releases/tag/v1.25.0) - 2025-10-30
+
+* BREAKING
+  * Return 201 Created for CreateVariable API responses (#34517)
+  * Add label 'state' to metric 'gitea_users' (#34326)
+* SECURITY
+  * Upgrade security public key (#34956)
+  * Also include all security fixes in 1.24.x after 1.25.0-rc0
+* FEATURES
+  * Stream repo zip/tar.gz/bundle achives by default (#35487)
+  * Use configurable remote name for git commands (#35172)
+  * Send email on Workflow Run Success/Failure (#34982)
+  * Refactor OpenIDConnect to support SSH/FullName sync (#34978)
+  * Refactor repo contents API and add "contents-ext" API (#34822)
+  * Add support for 3D/CAD file formats preview (#34794)
+  * Improve instance wide ssh commit signing (#34341)
+  * Edit file workflow for creating a fork and proposing changes (#34240)
+  * Follow file symlinks in the UI to their target (#28835)
+  * Allow renaming/moving binary/LFS files in the UI (#34350)
+* PERFORMANCE
+  * Improve the performance when detecting the file editable (#34653)
+* ENHANCEMENTS
+  * Enable more markdown paste features in textarea editor (#35494)
+  * Don't store repo archives on `gitea dump` (#35467)
+  * Always return the relevant status information, even if no status exists. (#35335)
+  * Add start time on perf trace because it seems some steps haven't been recorded. (#35282)
+  * Remove deprecated auth sources (#35272)
+  * When sorting issues by nearest due date, issues without due date should be sorted ascending (#35267)
+  * Disable field count validation of CSV viewer (#35228)
+  * Add `has_code` to repository REST API (#35214)
+  * Display pull request in merged commit view (#35202)
+  * Support Basic Authentication for archive downloads (#35087)
+  * Add hover background to table rows in user and repo admin page (#35072)
+  * Partially refresh notifications list (#35010)
+  * Also display "recently pushed branch" alert on PR view (#35001)
+  * Refactor time tracker UI (#34983)
+  * Improve CLI commands (#34973)
+  * Improve project & label color picker and image scroll (#34971)
+  * Improve NuGet API Parity (#21291) (#34940)
+  * Support getting last commit message using contents-ext API (#34904)
+  * Adds title on branch commit counts (#34869)
+  * Add "Cancel workflow run" button to Actions list page (#34817)
+  * Improve img lazy loading (#34804)
+  * Forks repository list page follow other repositories page (#34784)
+  * Add ff_only parameter to POST /repos/{owner}/{repo}/merge-upstream (#34770)
+  * Rework delete org and rename org UI (#34762)
+  * Improve nuget/rubygems package registries (#34741)
+  * Add repo file tree item link behavior (#34730)
+  * Add issue delete notifier (#34592)
+  * Improve Actions list (#34530)
+  * Add a default tab on repo header when migrating (#34503)
+  * Add post-installation redirect based on admin account status (#34493)
+  * Trigger 'unlabeled' event when label is Deleted from PR (#34316)
+  * Support annotated tags when using create release API (#31840)
+  * Use lfs label for lfs file rather than a long description (#34363)
+  * Add "View workflow file" to Actions list page (#34538)
+  * Move organization's visibility change to danger zone. (#34814)
+  * Don't block site admin's operation if SECRET_KEY is lost (#35721)
+  * Make restricted users can access public repositories (#35693)
+  * The status icon of the Action step is consistent with GitHub (#35618) #35621
+* BUGFIXES
+  * Update tab title when navigating file tree (#35757) #35772
+  * Fix "ref-issue" handling in markup (#35739) #35771
+  * Fix webhook to prevent tag events from bypassing branch filters targets (#35567) #35577
+  * Fix markup init after issue comment editing (#35536) #35537
+  * Fix creating pull request failure when the target branch name is the same as some tag (#35552) #35582
+  * Fix auto-expand and auto-scroll for actions logs (#35570) (#35583) #35586
+  * Use inputs context when parsing workflows (#35590) #35595
+  * Fix diffpatch API endpoint (#35610) #35613
+  * Creating push comments before invoke pull request checking (#35647) #35668
+  * Fix missing Close when error occurs and abused connection pool (#35658) #35670
+  * Fix build (#35674)
+  * Use LFS object size instead of blob size when viewing a LFS file (#35679)
+  * Fix workflow run event status while rerunning a failed job (#35689)
+  * Avoid emoji mismatch and allow to only enable chosen emojis (#35692)
+  * Refactor legacy code, fix LFS auth bypass, fix symlink bypass (#35708)
+  * Fix various trivial problems (#35714)
+  * Fix attachment file size limit in server backend (#35519)
+  * Honor delete branch on merge repo setting when using merge API (#35488)
+  * Fix external render, make iframe render work (#35727, #35730)
+  * Upgrade go mail to 0.7.2 (#35748)
+  * Revert #18491, fix oauth2 client link account (#35745)
+  * Fix different behavior in status check pattern matching with double stars (#35474)
+  * Fix overflow in notifications list (#35446)
+  * Fix package link setting can only list limited repositories (#35394)
+  * Extend comment treepath length (#35389)
+  * Fix font-size in inline code comment preview (#35209)
+  * Move git config/remote to gitrepo package and add global lock to resolve possible conflict when updating repository git config file (#35151)
+  * Change some columns from text to longtext and fix column wrong type caused by xorm (#35141)
+  * Redirect to a presigned URL of HEAD for HEAD requests (#35088)
+  * Fix git commit committer parsing and add some tests (#35007)
+  * Fix OCI manifest parser (#34797)
+  * Refactor FindOrgOptions to use enum instead of bool, fix membership visibility (#34629)
+  * Fix notification count positioning for variable-width elements (#34597)
+  * Keeping consistent between UI and API about combined commit status state and fix some bugs (#34562)
+  * Fix possible panic (#34508)
+  * Fix autofocus behavior (#34397)
+  * Fix Actions API (#35204)
+  * Fix ListWorkflowRuns OpenAPI response model. (#35026)
+  * Small fix in Pull Requests page (#34612)
+  * Fix http auth header parsing (#34936)
+  * Fix modal + form abuse (#34921)
+  * Fix PR toggle WIP (#34920)
+  * Fix log fmt (#34810)
+  * Replace stopwatch toggle with explicit start/stop actions (#34818)
+  * Fix some package registry problems (#34759)
+  * Fix RPM package download routing & missing package version count (#34909)
+  * Fix repo search input height (#34330)
+  * Fix "The sidebar of the repository file list does not have a fixed height #34298" (#34321)
+  * Fix minor typos in two files #HSFDPMUW (#34944)
+  * Fix actions skipped commit status indicator (#34507)
+  * Fix job status aggregation logic (#35000)
+  * Fix broken OneDev migration caused by various REST API changes in OneDev 7.8.0 and later (#35216)
+  * Fix typo in oauth2_full_name_claim_name string (#35199)
+  * Fix typo in locale_en-US.ini (#35196)
+* API
+  * Exposing TimeEstimate field in the API (#35475)
+  * UpdateBranch API supports renaming a branch (#35374)
+  * Add `owner` and `parent` fields clarification to docs (#35023)
+  * Improve OAuth2 provider (correct Issuer, respect ENABLED) (#34966)
+  * Add a `login`/`login-name`/`username` disambiguation to affected endpoint parameters and response/request models (#34901)
+  * Do not mutate incoming options to SearchRepositoryByName (#34553)
+  * Do not mutate incoming options to RenderUserSearch and SearchUsers  (#34544)
+  * Export repo's manual merge settings (#34502)
+  * Add date range filtering to commit retrieval endpoints (#34497)
+  * Add endpoint deleting workflow run (#34337)
+  * Add workflow_run api + webhook (#33964)
+* REFACTOR
+  * Move updateref and removeref to gitrepo and remove unnecessary open repository (#35511)
+  * Remove unused param `doer` (#34545)
+  * Split GetLatestCommitStatus as two functions (#34535)
+  * Use gitrepo.SetDefaultBranch when set default branch of wiki repository (#33911)
+  * Refactor editor (#34780)
+  * Refactor packages (#34777)
+  * Refactor container package (#34877)
+  * Refactor "change file" API (#34855)
+  * Rename pull request GetGitRefName to GetGitHeadRefName to prepare introducing GetGitMergeRefName (#35093)
+  * Move git command to git/gitcmd (#35483)
+  * Use db.WithTx/WithTx2 instead of TxContext when possible (#35428)
+  * Support Node.js 22.6 with type stripping (#35427)
+  * Migrate tools and configs to typescript, require node.js >= 22.18.0 (#35421)
+  * Check user and repo for redirects when using git via SSH transport (#35416)
+  * Remove the duplicated function GetTags (#35375)
+  * Refactor to use reflect.TypeFor (#35370)
+  * Deleting branch could delete broken branch which has database record but git branch is missing (#35360)
+  * Exit with success when already up to date (#35312)
+  * Split admin config settings templates to make it maintain easier (#35294)
+  * A small refactor to use context in the service layer (#35179)
+  * Refactor and update mail templates (#35150)
+  * Use db.WithTx/WithTx2 instead of TxContext when possible (#35130)
+  * Align `issue-title-buttons` with `list-header` (#35018)
+  * Add Notifications section in User Settings (#35008)
+  * Tweak placement of diff file menu (#34999)
+  * Refactor mail template and support preview (#34990)
+  * Rerun job only when run is done (#34970)
+  * Merge index.js (#34963)
+  * Refactor "delete-button" to "link-action" (#34962)
+  * Refactor webhook and fix feishu/lark secret (#34961)
+  * Exclude devtest.ts from tailwindcss (#34935)
+  * Refactor head navbar icons (#34922)
+  * Improve html escape (#34911)
+  * Improve tags list page (#34898)
+  * Improve `labels-list` rendering (#34846)
+  * Remove unused variable HUGO_VERSION (#34840)
+  * Correct migration tab name (#34826)
+  * Refactor template helper (#34819)
+  * Use `shallowRef` instead of `ref` in `.vue` files where possible (#34813)
+  * Use standalone function to update repository cols (#34811)
+  * Refactor wiki (#34805)
+  * Remove unnecessary duplicate code (#34733)
+  * Refactor embedded assets and drop unnecessary dependencies (#34692)
+  * Update x/crypto package and make builtin SSH use default parameters (#34667)
+  * Add `--color-logo`, matching the logo's primary color (#34639)
+  * Add openssh-keygen to rootless image (#34625)
+  * Replace update repository function in some places (#34566)
+  * Change "rejected" to "changes requested" in 3rd party PR review notification (#34481)
+  * Remove legacy template helper functions (#34426)
+  * Use run-name and evaluate workflow variables (#34301)
+  * Move HasWiki to repository service package (#33912)
+  * Move some functions from package git to gitrepo (#33910)
+* TESTING
+  * Add webhook test for push event (#34442)
+  * Add a webhook push test for dev branch (#34421)
+  * Add migrations tests (#34456) (#34498)
+* STYLE
+  * Enforce explanation for necessary nolints and fix bugs (#34883)
+  * Fix remaining issues after `gopls modernize` formatting (#34771)
+  * Update gofumpt, add go.mod ignore directive (#35434)
+  * Enforce nolint scope (#34851)
+  * Enable gocritic `equalFold` and fix issues (#34952)
+  * Run `gopls modernize` on codebase (#34751)
+  * Upgrade `gopls` to v0.19.0, add `make fix` (#34772)
+* BUILD
+  * bump archives&rar dep (#35637) #35638
+  * Use github.com/mholt/archives replace github.com/mholt/archiver (#35390)
+  * Update JS and PY dependencies (#35444)
+  * Upgrade devcontainer go version to 1.24.6 (#35298)
+  * Upgrade golang to 1.25.1 and add descriptions for the swagger structs' fields (#35418)
+  * Update JS and PY deps (#35191)
+  * Update JS and PY dependencies (#34391)
+  * Update go tool dependencies (#34845)
+  * Update `uint8-to-base64`, remove type stub (#34844)
+  * Switch to `@resvg/resvg-wasm` for `generate-images` (#35415)
+  * Switch to pnpm (#35274)
+  * Update chroma to v2.20.0 (#35220)
+  * Migrate to urfave v3 (#34510)
+  * Update JS deps, regenerate SVGs (#34640)
+  * Upgrade dependencies (#35384)
+  * Bump `@github/relative-time-element` to v4.4.8 (#34413)
+  * Update JS dependencies (#34951)
+  * Upgrade orgmode to v1.8.0 (#34721)
+  * Raise minimum Node.js version to 20, test on 24 (#34713)
+  * Update JS deps (#34701)
+  * Upgrade htmx to 2.0.6 (#34887)
+  * Update eslint to v9 (#35485)
+  * Update js dependencies (#35429)
+  * Clean up npm dependencies (#35508)
+  * Clean up npm dependencies (#35484)
+  * Bump setup-node to v5 (#35448)
+* MISC
+  * Add gitignore rules to exclude LLM instruction files (#35076)
+  * Gitignore: Visual Studio settings folder (#34375)
+  * Improve language in en-US locale strings (#35124)
+  * Fixed all grammatical errors in locale_en-US.ini (#35053)
+  * Docs/fix typo and grammar in CONTRIBUTING.md (#35024)
+  * Improve english grammar and readability in locale_en-US.ini (#35017)
+
+## [1.24.7](https://github.com/go-gitea/gitea/releases/tag/v1.24.7) - 2025-10-24
+
+* SECURITY
+  * Refactor legacy code (#35708) (#35713)
+  * Fixing issue #35530: Password Leak in Log Messages (#35584) (#35665)
+  * Fix a bug missed return (#35655) (#35671)
+* BUGFIXES
+  * Fix inputing review comment will remove reviewer (#35591) (#35664)
+* TESTING
+  * Mock external service in hcaptcha TestCaptcha (#35604) (#35663)
+  * Fix build (#35669)
+
+## [1.24.6](https://github.com/go-gitea/gitea/releases/tag/v1.24.6) - 2025-09-10
+
+* SECURITY
+  * Upgrade xz to v0.5.15 (#35385)
+* BUGFIXES
+  * Fix a compare page 404 bug when the pull request disabled (#35441) (#35453)
+  * Fix bug when issue disabled, pull request number in the commit message cannot be redirected (#35420) (#35442)
+  * Add author.name field to Swift Package Registry API response (#35410) (#35431)
+  * Remove usernames when empty in discord webhook (#35412) (#35417)
+  * Allow foreachref parser to grow its buffer (#35365) (#35376)
+  * Allow deleting comment with content via API like web did (#35346) (#35354)
+  * Fix atom/rss mixed error (#35345) (#35347)
+  * Fix review request webhook bug (#35339)
+  * Remove duplicate html IDs (#35210) (#35325)
+  * Fix LFS range size header response (#35277) (#35293)
+  * Fix GitHub release assets URL validation (#35287) (#35290)
+  * Fix token lifetime, closes #35230 (#35271) (#35281)
+  * Fix push commits comments when changing the pull request target branch (#35386) (#35443)
+
+## [1.24.5](https://github.com/go-gitea/gitea/releases/tag/v1.24.5) - 2025-08-12
+
+* BUGFIXES
+  * Fix a bug where lfs gc never worked. (#35198) (#35255)
+  * Reload issue when sending webhook to make num comments is right. (#35243) (#35248)
+  * Fix bug when review pull request commits (#35192) (#35246)
+* MISC
+  * Vertically center "Show Resolved" (#35211) (#35218)
+
+## [1.24.4](https://github.com/go-gitea/gitea/releases/tag/v1.24.4) - 2025-08-03
+
+* BUGFIXES
+  * Fix various bugs (1.24) (#35186)
+  * Fix migrate input box bug (#35166) (#35171)
+  * Only hide dropzone when no files have been uploaded (#35156) (#35167)
+  * Fix review comment/dimiss comment x reference can be refereced back (#35094) (#35099)
+  * Fix submodule nil check (#35096) (#35098)
+* MISC
+  * Don't use full-file highlight when there is a git diff textconv (#35114) (#35119)
+  * Increase gap on latest commit (#35104) (#35113)
+
+## [1.24.3](https://github.com/go-gitea/gitea/releases/tag/v1.24.3) - 2025-07-15
+
+* BUGFIXES
+  * Fix form property assignment edge case (#35073) (#35078)
+  * Improve submodule relative path handling (#35056) (#35075)
+  * Fix incorrect comment diff hunk parsing, fix github asset ID nil panic (#35046) (#35055)
+  * Fix updating user visibility (#35036) (#35044)
+  * Support base64-encoded agit push options (#35037) (#35041)
+  * Make submodule link work with relative path (#35034) (#35038)
+  * Fix bug when displaying git user avatar in commits list (#35006)
+  * Fix API response for swagger spec (#35029)
+  * Start automerge check again after the conflict check and the schedule (#34988) (#35002)
+  * Fix the response format for actions/workflows (#35009) (#35016)
+  * Fix repo settings and protocol log problems (#35012) (#35013)
+  * Fix project images scroll (#34971) (#34972)
+  * Mark old reviews as stale on agit pr updates (#34933) (#34965)
+  * Fix git graph page (#34948) (#34949)
+  * Don't send trigger for a pending review's comment create/update/delete (#34928) (#34939)
+  * Fix some log and UI problems (#34863) (#34868)
+  * Fix archive API (#34853) (#34857)
+  * Ignore force pushes for changed files in a PR review (#34837) (#34843)
+  * Fix SSH LFS timeout (#34838) (#34842)
+  * Fix team permissions (#34827) (#34836)
+  * Fix job status aggregation logic (#34823) (#34835)
+  * Fix issue filter (#34914) (#34915)
+  * Fix typo in pull request merge warning message text (#34899) (#34903)
+  * Support the open-icon of folder (#34168) (#34896)
+  * Optimize flex layout of release attachment area (#34885) (#34886)
+  * Fix the issue of abnormal interface when there is no issue-item on the project page (#34791) (#34880)
+  * Skip updating timestamp when sync branch (#34875)
+  * Fix required contexts and commit status matching bug (#34815) (#34829)
+
+## [1.24.2](https://github.com/go-gitea/gitea/releases/tag/v1.24.2) - 2025-06-20
+
+* BUGFIXES
+  * Fix container range bug (#34795) (#34796)
+  * Upgrade chi to v5.2.2 (#34798) (#34799)
+* BUILD
+  * Bump poetry feature to new url for dev container (#34787) (#34790)
+
+## [1.24.1](https://github.com/go-gitea/gitea/releases/tag/v1.24.1) - 2025-06-18
+
+* ENHANCEMENTS
+  * Improve alignment of commit status icon on commit page (#34750) (#34757)
+  * Support title and body query parameters for new PRs (#34537) (#34752)
+
+* BUGFIXES
+  * When using rules to delete packages, remove unclean bugs (#34632) (#34761)
+  * Fix ghost user in feeds when pushing in an actions, it should be gitea-actions (#34703) (#34756)
+  * Prevent double markdown link brackets when pasting URL (#34745) (#34748)
+  * Prevent duplicate form submissions when creating forks (#34714) (#34735)
+  * Fix markdown wrap (#34697) (#34702)
+  * Fix pull requests API convert panic when head repository is deleted. (#34685) (#34687)
+  * Fix commit message rendering and some UI problems (#34680) (#34683)
+  * Fix container range bug (#34725) (#34732)
+  * Fix incorrect cli default values (#34765) (#34766)
+  * Fix dropdown filter (#34708) (#34711)
+  * Hide href attribute of a tag if there is no target_url (#34556) (#34684)
+  * Fix tag target (#34781) #34783
+
 ## [1.24.0](https://github.com/go-gitea/gitea/releases/tag/1.24.0) - 2025-05-26
 
 * BREAKING
