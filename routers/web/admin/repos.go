@@ -11,12 +11,15 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -30,12 +33,76 @@ func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
 	ctx.Data["PageIsAdminRepositories"] = true
 
+	ctx.Data["RepoSizeLimit"] = base.FileSize(setting.RepoSizeLimit)
+	ctx.Data["LFSSizeLimit"] = base.FileSize(setting.LFSSizeLimit)
+	ctx.Data["LFSSizeInRepoSize"] = setting.LFSSizeInRepoSize
+
 	explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
 		Private:          true,
 		PageSize:         setting.UI.Admin.RepoPagingNum,
 		TplName:          tplRepos,
 		OnlyShowRelevant: false,
 	})
+}
+
+func UpdateRepoPost(ctx *context.Context) {
+	temp := web.GetForm(ctx)
+	if temp == nil {
+		ctx.Data["Err_Repo_Size_Limit"] = ""
+		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
+			Private:          true,
+			PageSize:         setting.UI.Admin.RepoPagingNum,
+			TplName:          tplRepos,
+			OnlyShowRelevant: false,
+		})
+		return
+	}
+	form := temp.(*forms.UpdateGlobalRepoFrom)
+	ctx.Data["Title"] = ctx.Tr("admin.repositories")
+	ctx.Data["PageIsAdminRepositories"] = true
+
+	ctx.Data["RepoSizeLimit"] = form.RepoSizeLimit
+	ctx.Data["LFSSizeLimit"] = form.LFSSizeLimit
+	ctx.Data["LFSSizeInRepoSize"] = form.LFSSizeInRepoSize
+
+	repoSizeLimit, err := base.GetFileSize(form.RepoSizeLimit)
+	if err != nil {
+		ctx.Data["Err_Repo_Size_Limit"] = form.RepoSizeLimit
+		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
+			Private:          true,
+			PageSize:         setting.UI.Admin.RepoPagingNum,
+			TplName:          tplRepos,
+			OnlyShowRelevant: false,
+		})
+		return
+	}
+
+	lfsSizeLimit, err := base.GetFileSize(form.LFSSizeLimit)
+	if err != nil {
+		ctx.Data["Err_LFS_Size_Limit"] = form.LFSSizeLimit
+		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
+			Private:          true,
+			PageSize:         setting.UI.Admin.RepoPagingNum,
+			TplName:          tplRepos,
+			OnlyShowRelevant: false,
+		})
+		return
+	}
+
+	err = setting.SaveGlobalRepositorySetting(repoSizeLimit, lfsSizeLimit, form.LFSSizeInRepoSize)
+	if err != nil {
+		ctx.Data["Err_Repo_Size_Save"] = err.Error()
+		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
+			Private:          true,
+			PageSize:         setting.UI.Admin.RepoPagingNum,
+			TplName:          tplRepos,
+			OnlyShowRelevant: false,
+		})
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("admin.config.repository_setting_success"))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/repos")
 }
 
 // DeleteRepo delete one repository

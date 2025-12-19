@@ -141,6 +141,24 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 
+	if ctx.Data["Err_Repo_Size_Limit"] != nil {
+		ctx.RenderWithErr(ctx.Tr("admin.config.invalid_repo_size", ctx.Data["Err_Repo_Size_Limit"]),
+			opts.TplName, nil)
+		return
+	}
+
+	if ctx.Data["Err_LFS_Size_Limit"] != nil {
+		ctx.RenderWithErr(ctx.Tr("admin.config.invalid_lfs_size", ctx.Data["Err_LFS_Size_Limit"]),
+			opts.TplName, nil)
+		return
+	}
+
+	if ctx.Data["Err_Repo_Size_Save"] != nil {
+		ctx.RenderWithErr(ctx.Tr("admin.config.save_repo_size_setting_failed", ctx.Data["Err_Repo_Size_Save"]),
+			opts.TplName, nil)
+		return
+	}
+
 	ctx.HTML(http.StatusOK, opts.TplName)
 }
 

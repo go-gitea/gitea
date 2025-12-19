@@ -227,3 +227,71 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 
 	return nil
 }
+
+// CountObject represents repository count objects report
+type CountObject struct {
+	Count       int64
+	Size        int64
+	InPack      int64
+	Packs       int64
+	SizePack    int64
+	PrunePack   int64
+	Garbage     int64
+	SizeGarbage int64
+}
+
+const (
+	statCount        = "count: "
+	statSize         = "size: "
+	statInpack       = "in-pack: "
+	statPacks        = "packs: "
+	statSizePack     = "size-pack: "
+	statPrunePackage = "prune-package: "
+	statGarbage      = "garbage: "
+	statSizeGarbage  = "size-garbage: "
+)
+
+// CountObjects returns the results of git count-objects on the repoPath
+func CountObjects(ctx context.Context, repoPath string) (*CountObject, error) {
+	return CountObjectsWithEnv(ctx, repoPath, nil)
+}
+
+// CountObjectsWithEnv returns the results of git count-objects on the repoPath with custom env setup
+func CountObjectsWithEnv(ctx context.Context, repoPath string, env []string) (*CountObject, error) {
+	cmd := gitcmd.NewCommand("count-objects", "-v")
+	stdout, _, err := cmd.WithDir(repoPath).WithEnv(env).RunStdString(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseSize(stdout), nil
+}
+
+// parseSize parses the output from count-objects and return a CountObject
+func parseSize(objects string) *CountObject {
+	repoSize := new(CountObject)
+	for line := range strings.SplitSeq(objects, "\n") {
+		switch {
+		case strings.HasPrefix(line, statCount):
+			repoSize.Count, _ = strconv.ParseInt(line[7:], 10, 64)
+		case strings.HasPrefix(line, statSize):
+			number, _ := strconv.ParseInt(line[6:], 10, 64)
+			repoSize.Size = number * 1024
+		case strings.HasPrefix(line, statInpack):
+			repoSize.InPack, _ = strconv.ParseInt(line[9:], 10, 64)
+		case strings.HasPrefix(line, statPacks):
+			repoSize.Packs, _ = strconv.ParseInt(line[7:], 10, 64)
+		case strings.HasPrefix(line, statSizePack):
+			number, _ := strconv.ParseInt(line[11:], 10, 64)
+			repoSize.SizePack = number * 1024
+		case strings.HasPrefix(line, statPrunePackage):
+			repoSize.PrunePack, _ = strconv.ParseInt(line[16:], 10, 64)
+		case strings.HasPrefix(line, statGarbage):
+			repoSize.Garbage, _ = strconv.ParseInt(line[9:], 10, 64)
+		case strings.HasPrefix(line, statSizeGarbage):
+			number, _ := strconv.ParseInt(line[14:], 10, 64)
+			repoSize.SizeGarbage = number * 1024
+		}
+	}
+	return repoSize
+}

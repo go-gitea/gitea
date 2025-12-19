@@ -6,9 +6,12 @@ package setting
 import (
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+
+	"github.com/dustin/go-humanize"
 )
 
 // enumerates all the policy repository creating
@@ -273,12 +276,62 @@ var (
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
+
+	// Repository size limits
+	RepoSizeLimit     int64 = -1
+	LFSSizeLimit      int64 = -1
+	LFSSizeInRepoSize bool
 )
+
+func SaveGlobalRepositorySetting(repoSizeLimit, lfsSizeLimit int64, lfsSizeInRepoSize bool) error {
+	RepoSizeLimit = repoSizeLimit
+	LFSSizeLimit = lfsSizeLimit
+	LFSSizeInRepoSize = lfsSizeInRepoSize
+
+	cfg, err := CfgProvider.PrepareSaving()
+	if err != nil {
+		return err
+	}
+
+	sec := cfg.Section("repository")
+	if RepoSizeLimit == -1 {
+		sec.Key("REPO_SIZE_LIMIT").SetValue("-1")
+	} else {
+		sec.Key("REPO_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(RepoSizeLimit)))
+	}
+	if LFSSizeLimit == -1 {
+		sec.Key("LFS_SIZE_LIMIT").SetValue("-1")
+	} else {
+		sec.Key("LFS_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(LFSSizeLimit)))
+	}
+	sec.Key("LFS_SIZE_IN_REPO_SIZE").SetValue(strconv.FormatBool(LFSSizeInRepoSize))
+	return cfg.Save()
+}
+
+func parseSize(sec ConfigSection, key string, def int64) int64 {
+	v := sec.Key(key).MustString("")
+	if v == "" {
+		return def
+	}
+	if v == "-1" {
+		return -1
+	}
+	size, err := humanize.ParseBytes(v)
+	if err != nil {
+		return def
+	}
+	return int64(size)
+}
 
 func loadRepositoryFrom(rootCfg ConfigProvider) {
 	var err error
+
 	// Determine and create root git repository path.
 	sec := rootCfg.Section("repository")
+	RepoSizeLimit = parseSize(sec, "REPO_SIZE_LIMIT", -1)
+	LFSSizeLimit = parseSize(sec, "LFS_SIZE_LIMIT", -1)
+	LFSSizeInRepoSize = sec.Key("LFS_SIZE_IN_REPO_SIZE").MustBool(false)
+
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()
 	Repository.GoGetCloneURLProtocol = sec.Key("GO_GET_CLONE_URL_PROTOCOL").MustString("https")
