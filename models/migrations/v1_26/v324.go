@@ -3,18 +3,22 @@
 
 package v1_26
 
-import "xorm.io/xorm"
+import (
+	"fmt"
 
-func AddGroupColumnsToRepositoryTable(x *xorm.Engine) error {
-	type Repository struct {
-		LowerName      string `xorm:"UNIQUE(s) UNIQUE(g) INDEX NOT NULL"`
-		GroupID        int64  `xorm:"UNIQUE(g) INDEX DEFAULT 0"`
-		OwnerID        int64  `xorm:"UNIQUE(s) UNIQUE(g) index"`
-		GroupSortOrder int
+	"xorm.io/xorm"
+)
+
+func FixClosedMilestoneCompleteness(x *xorm.Engine) error {
+	// Update all milestones to recalculate completeness with the new logic:
+	// - Closed milestones with 0 issues should show 100%
+	// - All other milestones should calculate based on closed/total ratio
+	_, err := x.Exec("UPDATE `milestone` SET completeness=(CASE WHEN is_closed = ? AND num_issues = 0 THEN 100 ELSE 100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) END)",
+		true,
+	)
+	if err != nil {
+		return fmt.Errorf("error updating milestone completeness: %w", err)
 	}
-	_, err := x.SyncWithOptions(xorm.SyncOptions{
-		IgnoreConstrains: false,
-		IgnoreIndices:    false,
-	}, new(Repository))
-	return err
+
+	return nil
 }
