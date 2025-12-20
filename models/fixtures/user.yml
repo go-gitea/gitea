@@ -1556,3 +1556,40 @@
   repo_admin_change_team_access: false
   theme: ""
   keep_activity_private: false
+
+-
+  id: 43
+  lower_name: org-with-groups
+  name: org-with-groups
+  full_name: Org With Groups
+  email: org.with.groups@example.com
+  keep_email_private: false
+  email_notifications_preference: onmention
+  passwd: ZogKvWdyEx:password
+  passwd_hash_algo: dummy
+  must_change_password: false
+  login_source: 0
+  login_name: org-with-groups
+  type: 1
+  salt: ZogKvWdyEx
+  max_repo_creation: -1
+  is_active: false
+  is_admin: false
+  is_restricted: false
+  allow_git_hook: false
+  allow_import_local: false
+  allow_create_organization: true
+  prohibit_login: false
+  avatar: ""
+  avatar_email: org.with.groups@example.com
+  use_custom_avatar: true
+  num_followers: 0
+  num_following: 0
+  num_stars: 0
+  num_repos: 15
+  num_teams: 0
+  num_members: 0
+  visibility: 0
+  repo_admin_change_team_access: false
+  theme: ""
+  keep_activity_private: false
