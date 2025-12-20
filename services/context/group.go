@@ -242,7 +242,7 @@ func groupAssignment(ctx *Context) (bool, error) {
 		}
 		ctx.RepoGroup.IsGroupAdmin = ctx.RepoGroup.IsGroupAdmin || isAdmin
 	}
-	return canAccess && (ctx.RepoGroup.IsGroupAdmin || ctx.RepoGroup.IsMember || ctx.RepoGroup.IsOwner), nil
+	return canAccess, nil
 }
 
 func GroupAssignment(args GroupAssignmentOptions) func(ctx *Context) {
@@ -263,7 +263,7 @@ func GroupAssignment(args GroupAssignmentOptions) func(ctx *Context) {
 
 		if ctx.RepoGroup.Group.Visibility == structs.VisibleTypePrivate {
 			args.RequireMember = true
-		} else if ctx.IsSigned && !ca {
+		} else if ctx.IsSigned && (!ca && ctx.RepoGroup.Group.Visibility != structs.VisibleTypePublic) {
 			ctx.NotFound(err)
 			return
 		}
