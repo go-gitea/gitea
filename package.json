@@ -102,6 +102,7 @@
     "material-icon-theme": "5.29.0",
     "nolyfill": "1.0.44",
     "postcss-html": "1.8.0",
+    "rolldown": "1.0.0-beta.55",
     "spectral-cli-bundle": "1.0.3",
     "stylelint": "16.26.1",
     "stylelint-config-recommended": "17.0.0",
