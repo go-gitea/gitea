@@ -292,7 +292,10 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		if err := repo.LoadOwner(ctx); err != nil {
 			return perm, err
 		}
+
+		isSameOrg := false
 		if repo.OwnerID == taskRepo.OwnerID && repo.Owner.IsOrganization() {
+			isSameOrg = true
 			orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
 			if err != nil {
 				return perm, err
@@ -303,7 +306,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			}
 		}
 
-		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
+		if (!isSameOrg && !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID)) || !taskRepo.IsPrivate {
 			// The task repo can access the current repo only if the task repo is private and
 			// the owner of the task repo is a collaborative owner of the current repo.
 			// FIXME should owner's visibility also be considered here?
