@@ -137,7 +137,11 @@ func (g *Group) CanAccess(ctx context.Context, user *user_model.User) (bool, err
 }
 
 func (g *Group) CanAccessAtLevel(ctx context.Context, user *user_model.User, level perm.AccessMode) (bool, error) {
-	return db.GetEngine(ctx).Where(AccessibleGroupCondition(user, unit.TypeInvalid, level).And(builder.Eq{"`repo_group`.id": g.ID})).Exist(&Group{})
+	orCond := builder.Or(AccessibleGroupCondition(user, unit.TypeInvalid, level))
+	if level == perm.AccessModeRead {
+		orCond = orCond.Or(builder.Eq{"`repo_group`.visibility": structs.VisibleTypePublic})
+	}
+	return db.GetEngine(ctx).Table(g.TableName()).Where(orCond.And(builder.Eq{"`repo_group`.id": g.ID})).Exist()
 }
 
 func (g *Group) IsOwnedBy(ctx context.Context, userID int64) (bool, error) {
