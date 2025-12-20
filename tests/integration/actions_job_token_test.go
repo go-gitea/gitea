@@ -10,17 +10,17 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
-	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -301,9 +301,9 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		// 2. Create Two Repositories in Org
 		createRepoInOrg := func(name string) int64 {
 			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName), &structs.CreateRepoOption{
-				Name:          name,
-				AutoInit:      true,
-				Private:       true, // Must be private for potential restrictions
+				Name:     name,
+				AutoInit: true,
+				Private:  true, // Must be private for potential restrictions
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusCreated)
 			var repo structs.Repository
