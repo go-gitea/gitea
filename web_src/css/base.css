@@ -919,7 +919,7 @@ overflow-menu .ui.label {
 .blame-avatar {
   display: flex;
   align-items: center;
-  margin-right: 4px;
+  margin-right: 6px;
 }
 
 tr.top-line-blame {

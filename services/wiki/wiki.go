@@ -193,7 +193,13 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
+	originalGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo.WikiStorageRepo())
+	if err != nil {
+		return fmt.Errorf("unable to open wiki repository: %w", err)
+	}
+	defer closer.Close()
+
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, originalGitRepo, doer)
 	if sign {
 		commitTreeOpts.Key = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -212,7 +218,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	if err := gitrepo.PushFromLocal(gitRepo.Ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
+	if err := gitrepo.PushFromLocal(ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, repo.DefaultWikiBranch),
 		Env: repo_module.FullPushingEnvironment(
 			doer,
@@ -315,7 +321,13 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
+	originalGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo.WikiStorageRepo())
+	if err != nil {
+		return fmt.Errorf("unable to open wiki repository: %w", err)
+	}
+	defer closer.Close()
+
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, originalGitRepo, doer)
 	if sign {
 		commitTreeOpts.Key = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {

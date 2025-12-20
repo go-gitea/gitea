@@ -23,7 +23,7 @@ func OpenIDPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.AddOpenIDForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
 	if ctx.HasError() {
