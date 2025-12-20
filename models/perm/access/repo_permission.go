@@ -282,6 +282,9 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		}
 
 		// Check Organization Cross-Repo Access Policy
+		if err := repo.LoadOwner(ctx); err != nil {
+			return perm, err
+		}
 		if repo.OwnerID == taskRepo.OwnerID && repo.Owner.IsOrganization() {
 			orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
 			if err != nil {
