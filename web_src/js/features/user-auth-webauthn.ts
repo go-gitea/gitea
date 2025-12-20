@@ -4,9 +4,8 @@ import {GET, POST} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
 
-/** One of the possible values for the `data-webauthn-error-msg` attribute on the webauthn error message element.
-    The empty string means there is no error. */
-type ErrorType = 'general' | 'insecure' | 'browser' | 'unable-to-process' | 'duplicated' | 'unknown' | '';
+/** One of the possible values for the `data-webauthn-error-msg` attribute on the webauthn error message element */
+type ErrorType = 'general' | 'insecure' | 'browser' | 'unable-to-process' | 'duplicated' | 'unknown';
 
 export async function initUserAuthWebAuthn() {
   const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
@@ -199,8 +198,8 @@ function webAuthnError(errorType: ErrorType, message:string = '') {
   showElem('#webauthn-error');
 }
 
-/** Returns the error type or the empty string when there was no error. */
-function detectWebAuthnSupport(): ErrorType {
+/** Returns the error type or `null` when there was no error. */
+function detectWebAuthnSupport(): ErrorType | null {
   if (!window.isSecureContext) {
     return 'insecure';
   }
@@ -209,7 +208,7 @@ function detectWebAuthnSupport(): ErrorType {
     return 'browser';
   }
 
-  return '';
+  return null;
 }
 
 export function initUserAuthWebAuthnRegister() {
