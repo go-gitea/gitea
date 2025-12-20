@@ -21,7 +21,7 @@ const (
 func ActionsGeneral(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsOrgSettings"] = true
-	ctx.Data["PageIsOrgSettingsActions"] = true
+	ctx.Data["PageIsOrgSettingsActionsGeneral"] = true
 
 	// Load Org Actions Config
 	actionsCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID)
@@ -85,15 +85,17 @@ func ActionsGeneralPost(ctx *context.Context) {
 		actionsCfg.DefaultTokenPermissions = nil
 	}
 
-	// Update Maximum Permissions
+	// Update Maximum Permissions (radio buttons: none/read/write)
 	parseMaxPerm := func(name string) perm.AccessMode {
-		if ctx.FormBool("max_" + name + "_write") {
+		value := ctx.FormString("max_" + name)
+		switch value {
+		case "write":
 			return perm.AccessModeWrite
-		}
-		if ctx.FormBool("max_" + name + "_read") {
+		case "read":
 			return perm.AccessModeRead
+		default:
+			return perm.AccessModeNone
 		}
-		return perm.AccessModeNone
 	}
 
 	actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
