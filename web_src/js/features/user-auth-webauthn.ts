@@ -11,7 +11,8 @@ export async function initUserAuthWebAuthn() {
     return;
   }
 
-  if (!detectWebAuthnSupport()) {
+  const errorType = detectWebAuthnSupport();
+  if (errorType) {
     if (elSignInPasskeyBtn) hideElem(elSignInPasskeyBtn);
     return;
   }
@@ -194,25 +195,25 @@ function webAuthnError(errorType: string, message:string = '') {
   showElem('#webauthn-error');
 }
 
-function detectWebAuthnSupport() {
+function detectWebAuthnSupport(): string {
   if (!window.isSecureContext) {
-    webAuthnError('insecure');
-    return false;
+    return 'insecure';
   }
 
   if (typeof window.PublicKeyCredential !== 'function') {
-    webAuthnError('browser');
-    return false;
+    return 'browser';
   }
 
-  return true;
+  return '';
 }
 
 export function initUserAuthWebAuthnRegister() {
   const elRegister = document.querySelector<HTMLInputElement>('#register-webauthn');
   if (!elRegister) return;
 
-  if (!detectWebAuthnSupport()) {
+  const errorType = detectWebAuthnSupport();
+  if (errorType) {
+    webAuthnError(errorType);
     elRegister.disabled = true;
     return;
   }
