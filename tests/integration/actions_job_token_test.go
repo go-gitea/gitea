@@ -310,13 +310,13 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			return repo.ID
 		}
 
-		repoA_ID := createRepoInOrg("repo-A")
+		repoAID := createRepoInOrg("repo-A")
 		// repoB_ID is unused as we access it via API name
 		createRepoInOrg("repo-B")
 
 		// 3. Enable Actions in Repo A (Source)
 		err := db.Insert(t.Context(), &repo_model.RepoUnit{
-			RepoID: repoA_ID,
+			RepoID: repoAID,
 			Type:   unit_model.TypeActions,
 			Config: &repo_model.ActionsConfig{
 				TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
@@ -326,7 +326,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 
 		// 4. Create Task in Repo A
 		task := &actions_model.ActionTask{
-			RepoID:            repoA_ID,
+			RepoID:            repoAID,
 			Status:            actions_model.StatusRunning,
 			IsForkPullRequest: false,
 		}
