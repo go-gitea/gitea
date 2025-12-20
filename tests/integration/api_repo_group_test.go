@@ -9,11 +9,11 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/tests"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateGroup(t *testing.T) {
-
 }
 
 func TestOwnersAndAdminsCanSeeAllTopLevelGroups(t *testing.T) {
@@ -52,5 +52,4 @@ func TestNonOrgMemberWontSeeHiddenTopLevelGroups(t *testing.T) {
 }
 
 func TestGroupNotAccessibleWhenParentIsPrivate(t *testing.T) {
-
 }
