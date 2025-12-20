@@ -28,6 +28,30 @@ func (groups RepoGroupList) LoadOwners(ctx context.Context) error {
 	return nil
 }
 
+func universalGroupPermBuilder(idStr string, userID int64) builder.Cond {
+	teamUserSubquery := builder.Select("`team_user`.uid").
+		From("team_user").
+		Join("INNER", "team", "`team`.id = `team_user`.team_id").
+		Join("INNER", "`user`", "`user`.`id` = `team`.org_id").
+		Join("INNER", "`user` as iu", "iu.`id` = `team_user`.uid").
+		Where(
+			builder.And(
+				builder.Eq{"`team_user`.uid": userID},
+				builder.Or(
+					builder.Gte{"`team`.authorize": perm.AccessModeOwner},
+					builder.Eq{"iu.is_admin": true},
+				),
+			),
+		)
+
+	sq := builder.Select("`repo_group`.id").
+		From("`repo_group`, `team_user`").
+		Join("LEFT", "repo_group_team", "`repo_group_team`.group_id = `repo_group`.id").
+		Where(
+			builder.In("`team_user`.uid", teamUserSubquery))
+	return builder.In(idStr, sq)
+}
+
 // userOrgTeamGroupBuilder returns group ids where user's teams can access.
 func userOrgTeamGroupBuilder(userID int64) *builder.Builder {
 	return builder.Select("`repo_group_team`.group_id").
@@ -71,15 +95,17 @@ func AccessibleGroupCondition(user *user_model.User, unitType unit.Type, minMode
 		if user == nil || user.ID <= 0 {
 			orgVisibilityLimit = append(orgVisibilityLimit, structs.VisibleTypeLimited)
 		}
-		cond = cond.Or(builder.And(
-			builder.Eq{"`repo_group`.visibility": structs.VisibleTypePublic},
-			builder.NotIn("`repo_group`.owner_id", builder.Select("id").From("`user`").Where(
+		condAnd := builder.And(
+			builder.NotIn("`repo_group`.owner_id", builder.Select("`user`.`id`").From("`user`").Where(
 				builder.And(
 					builder.Eq{"type": user_model.UserTypeOrganization},
 					builder.In("visibility", orgVisibilityLimit)),
-			))))
+			)))
+		condAnd = condAnd.And(builder.NotIn("`repo_group`.visibility", orgVisibilityLimit))
+		cond = cond.Or(condAnd)
 	}
 	if user != nil {
+		cond = cond.Or(universalGroupPermBuilder("`repo_group`.id", user.ID))
 		cond = cond.Or(UserOrgTeamPermCond("`repo_group`.id", user.ID, minMode))
 		if unitType == unit.TypeInvalid {
 			cond = cond.Or(
