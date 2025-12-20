@@ -1748,6 +1748,7 @@ func Routes() *web.Router {
 				})
 			}, reqToken(), reqOrgOwnership())
 			m.Group("/groups", func() {
+				m.Get("", org.GetOrgGroups)
 				m.Post("/new", reqToken(), reqGroupMembership(perm.AccessModeWrite, true), group.NewGroup)
 			})
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryOrganization), orgAssignment(true), checkTokenPublicOnly())
