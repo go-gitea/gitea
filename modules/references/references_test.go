@@ -227,6 +227,38 @@ func TestFindAllIssueReferences(t *testing.T) {
 
 	testFixtures(t, fixtures, "default")
 
+	// Test closing/reopening keywords with URLs (issue #27549)
+	// Uses the same AppURL as testFixtures (https://gitea.com:3000/)
+	urlFixtures := []testFixture{
+		{
+			"Closes [this issue](https://gitea.com:3000/user/repo/issues/123)",
+			[]testResult{
+				{123, "user", "repo", "123", false, XRefActionCloses, nil, &RefSpan{Start: 0, End: 6}, ""},
+			},
+		},
+		{
+			"This fixes [#456](https://gitea.com:3000/org/project/issues/456)",
+			[]testResult{
+				{456, "org", "project", "456", false, XRefActionCloses, nil, &RefSpan{Start: 5, End: 10}, ""},
+			},
+		},
+		{
+			"Reopens [PR](https://gitea.com:3000/owner/repo/pulls/789)",
+			[]testResult{
+				{789, "owner", "repo", "789", true, XRefActionReopens, nil, &RefSpan{Start: 0, End: 7}, ""},
+			},
+		},
+		{
+			"See [issue](https://gitea.com:3000/user/repo/issues/100) but closes [another](https://gitea.com:3000/user/repo/issues/200)",
+			[]testResult{
+				{100, "user", "repo", "100", false, XRefActionNone, nil, nil, ""},
+				{200, "user", "repo", "200", false, XRefActionCloses, nil, &RefSpan{Start: 61, End: 67}, ""},
+			},
+		},
+	}
+
+	testFixtures(t, urlFixtures, "url-keywords")
+
 	type alnumFixture struct {
 		input          string
 		issue          string
