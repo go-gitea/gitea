@@ -195,6 +195,7 @@ function webAuthnError(errorType: string, message:string = '') {
   showElem('#webauthn-error');
 }
 
+/** Returns the error type or the empty string when there was no error. */
 function detectWebAuthnSupport(): string {
   if (!window.isSecureContext) {
     return 'insecure';
