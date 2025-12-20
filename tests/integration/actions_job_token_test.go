@@ -90,6 +90,14 @@ func TestActionsJobTokenAccessLFS(t *testing.T) {
 			task.RepoID = repository.ID
 			err := db.Insert(t.Context(), task)
 			require.NoError(t, err)
+
+			// Enable Actions unit for the repository
+			err = db.Insert(t.Context(), &repo_model.RepoUnit{
+				RepoID: repository.ID,
+				Type:   unit_model.TypeActions,
+				Config: &repo_model.ActionsConfig{},
+			})
+			require.NoError(t, err)
 			session := emptyTestSession(t)
 			httpContext := APITestContext{
 				Session:  session,
