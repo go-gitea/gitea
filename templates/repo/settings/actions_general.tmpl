@@ -9,50 +9,50 @@
 
 			<!-- Permission Mode Selection -->
 			<div class="field">
-				<label>{{ctx.Locale.Tr "general.token_permissions.mode"}}</label>
+				<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode"}}</label>
 				<div class="grouped fields">
 					<div class="field">
 						<div class="ui radio checkbox">
 							<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModePermissive}}" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "general.token_permissions.permissive"}}</label>
-							<p class="help">{{ctx.Locale.Tr "general.token_permissions.permissive.description"}}</p>
+							<label>{{ctx.Locale.Tr "actions.general.token_permissions.permissive"}}</label>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.permissive.description"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
 							<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModeRestricted}}" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "general.token_permissions.restricted"}}</label>
-							<p class="help">{{ctx.Locale.Tr "general.token_permissions.restricted.description"}}</p>
+							<label>{{ctx.Locale.Tr "actions.general.token_permissions.restricted"}}</label>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.restricted.description"}}</p>
 						</div>
 					</div>
 				</div>
 			</div>
 
-			<p class="text muted">{{ctx.Locale.Tr "general.token_permissions.fork_pr_note"}}</p>
+			<p class="text muted">{{ctx.Locale.Tr "actions.general.token_permissions.fork_pr_note"}}</p>
 
 			<div class="divider"></div>
 
 			<!-- Maximum Permissions Table -->
 			<h5 class="ui header">
-				{{ctx.Locale.Tr "general.token_permissions.maximum"}}
+				{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
 				<span class="ui red text">*</span>
 			</h5>
-			<p class="help">{{ctx.Locale.Tr "general.token_permissions.maximum.description"}}</p>
+			<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}</p>
 
 			<table class="ui celled table">
 				<thead>
 					<tr>
 						<th style="width: 40%">{{ctx.Locale.Tr "units.unit"}}</th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "general.token_permissions.access_none"}} <span class="ui basic circular label" data-tooltip="No access to this resource">?</span></th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "general.token_permissions.access_read"}} <span class="ui basic circular label" data-tooltip="Read-only access">?</span></th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "general.token_permissions.access_write"}} <span class="ui basic circular label" data-tooltip="Read and write access">?</span></th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_none"}} <span class="ui basic circular label" data-tooltip="No access to this resource">?</span></th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_read"}} <span class="ui basic circular label" data-tooltip="Read-only access">?</span></th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_write"}} <span class="ui basic circular label" data-tooltip="Read and write access">?</span></th>
 					</tr>
 				</thead>
 				<tbody>
 					<!-- Code -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.contents"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.contents"}}</strong>
 							<p class="text small grey">Access source code, files, commits and branches.</p>
 						</td>
 						<td style="text-align: center">
@@ -77,7 +77,7 @@
 					<!-- Issues -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.issues"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.issues"}}</strong>
 							<p class="text small grey">Organize bug reports, tasks and milestones.</p>
 						</td>
 						<td style="text-align: center">
@@ -102,7 +102,7 @@
 					<!-- Pull Requests -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.pull_requests"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.pull_requests"}}</strong>
 							<p class="text small grey">Enable pull requests and code reviews.</p>
 						</td>
 						<td style="text-align: center">
@@ -127,7 +127,7 @@
 					<!-- Wiki -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.wiki"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.wiki"}}</strong>
 							<p class="text small grey">Write and share documentation with collaborators.</p>
 						</td>
 						<td style="text-align: center">
@@ -152,7 +152,7 @@
 					<!-- Packages -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.packages"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.packages"}}</strong>
 							<p class="text small grey">Manage repository packages.</p>
 						</td>
 						<td style="text-align: center">
@@ -177,7 +177,7 @@
 					<!-- Actions -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.actions_scope"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.actions_scope"}}</strong>
 							<p class="text small grey">Manage actions.</p>
 						</td>
 						<td style="text-align: center">
@@ -211,3 +211,4 @@
 	</div>
 </div>
 {{template "repo/settings/layout_footer" .}}
+

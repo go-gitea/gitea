@@ -11,34 +11,34 @@
 			<div class="field">
 				<div class="ui checkbox">
 					<input type="checkbox" name="allow_cross_repo_access" {{if .AllowCrossRepoAccess}}checked{{end}}>
-					<label><strong>{{ctx.Locale.Tr "general.token_permissions.cross_repo"}}</strong></label>
+					<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo"}}</strong></label>
 				</div>
-				<p class="help">{{ctx.Locale.Tr "general.token_permissions.cross_repo_desc"}}</p>
+				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_desc"}}</p>
 			</div>
 
 			<div class="divider"></div>
 
 			<!-- Maximum Permissions Table -->
 			<h5 class="ui header">
-				{{ctx.Locale.Tr "general.token_permissions.maximum"}}
+				{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
 				<span class="ui red text">*</span>
 			</h5>
-			<p class="help">{{ctx.Locale.Tr "general.token_permissions.maximum.description"}}</p>
+			<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}</p>
 
 			<table class="ui celled table">
 				<thead>
 					<tr>
 						<th style="width: 40%">{{ctx.Locale.Tr "units.unit"}}</th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "general.token_permissions.access_none"}} <span class="ui basic circular label" data-tooltip="{{ctx.Locale.Tr "general.token_permissions.access_none"}}">?</span></th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "general.token_permissions.access_read"}} <span class="ui basic circular label" data-tooltip="{{ctx.Locale.Tr "general.token_permissions.access_read"}}">?</span></th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "general.token_permissions.access_write"}} <span class="ui basic circular label" data-tooltip="{{ctx.Locale.Tr "general.token_permissions.access_write"}}">?</span></th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_none"}} <span class="ui basic circular label" data-tooltip="{{ctx.Locale.Tr "actions.general.token_permissions.access_none"}}">?</span></th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_read"}} <span class="ui basic circular label" data-tooltip="{{ctx.Locale.Tr "actions.general.token_permissions.access_read"}}">?</span></th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_write"}} <span class="ui basic circular label" data-tooltip="{{ctx.Locale.Tr "actions.general.token_permissions.access_write"}}">?</span></th>
 					</tr>
 				</thead>
 				<tbody>
 					<!-- Code -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.contents"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.contents"}}</strong>
 							<p class="text small grey">Access source code, files, commits and branches.</p>
 						</td>
 						<td style="text-align: center">
@@ -63,7 +63,7 @@
 					<!-- Issues -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.issues"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.issues"}}</strong>
 							<p class="text small grey">Organize bug reports, tasks and milestones.</p>
 						</td>
 						<td style="text-align: center">
@@ -88,7 +88,7 @@
 					<!-- Pull Requests -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.pull_requests"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.pull_requests"}}</strong>
 							<p class="text small grey">Enable pull requests and code reviews.</p>
 						</td>
 						<td style="text-align: center">
@@ -113,7 +113,7 @@
 					<!-- Wiki -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.wiki"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.wiki"}}</strong>
 							<p class="text small grey">Write and share documentation with collaborators.</p>
 						</td>
 						<td style="text-align: center">
@@ -138,7 +138,7 @@
 					<!-- Packages -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.packages"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.packages"}}</strong>
 							<p class="text small grey">Manage repository packages.</p>
 						</td>
 						<td style="text-align: center">
@@ -163,7 +163,7 @@
 					<!-- Actions -->
 					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "general.token_permissions.actions_scope"}}</strong>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.actions_scope"}}</strong>
 							<p class="text small grey">Manage actions.</p>
 						</td>
 						<td style="text-align: center">
@@ -197,3 +197,4 @@
 	</div>
 </div>
 {{template "org/settings/layout_footer" .}}
+
