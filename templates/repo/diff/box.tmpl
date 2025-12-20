@@ -104,22 +104,20 @@
 									{{if and $file.Mode $file.OldMode}}
 										{{$old := ctx.Locale.Tr ($file.ModeTranslationKey $file.OldMode)}}
 										{{$new := ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}
-										<span class="tw-mx-1 tw-whitespace-nowrap">{{ctx.Locale.Tr "git.filemode.changed_filemode" $old $new}}</span>
+										<span class="ui label tw-font-sans tw-shrink-0">{{ctx.Locale.Tr "git.filemode.changed_filemode" $old $new}}</span>
 									{{else if $file.Mode}}
-										<span class="tw-mx-1 tw-whitespace-nowrap">{{ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
+										<span class="ui label tw-font-sans tw-shrink-0">{{ctx.Locale.Tr ($file.ModeTranslationKey $file.Mode)}}</span>
 									{{end}}
 								</span>
 							</div>
-							<div class="tw-font-semibold tw-flex tw-items-center tw-font-mono">
-								{{if $file.IsBin}}
-									<span class="tw-ml-0.5 tw-mr-2">
-										{{ctx.Locale.Tr "repo.diff.bin"}}
-									</span>
-								{{else}}
-									{{template "repo/diff/stats" dict "file" . "root" $}}
-								{{end}}
-							</div>
 							<div class="diff-file-header-actions tw-flex tw-items-center tw-gap-1 tw-flex-wrap tw-ml-2">
+								<div class="tw-font-semibold tw-flex tw-items-center tw-font-mono">
+									{{if $file.IsBin}}
+										{{ctx.Locale.Tr "repo.diff.bin"}}
+									{{else}}
+										{{template "repo/diff/stats" dict "file" . "root" $}}
+									{{end}}
+								</div>
 								{{if $showFileViewToggle}}
 									<div class="ui compact icon buttons">
 										<button class="ui tiny basic button file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code"}}</button>
