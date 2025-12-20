@@ -18,10 +18,32 @@
 
 			<div class="divider"></div>
 
+			<!-- Default Permission Mode -->
+			<h5 class="ui header">
+				{{ctx.Locale.Tr "actions.general.token_permissions.mode"}}
+			</h5>
+			<div class="grouped fields">
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="token_permission_mode" value="permissive" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.permissive"}}</label>
+					</div>
+					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.permissive.description"}}</p>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="token_permission_mode" value="restricted" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.restricted"}}</label>
+					</div>
+					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.restricted.description"}}</p>
+				</div>
+			</div>
+
+			<div class="divider"></div>
+
 			<!-- Maximum Permissions Table -->
 			<h5 class="ui header">
 				{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
-				<span class="ui red text">*</span>
 			</h5>
 			<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}</p>
 
@@ -29,17 +51,16 @@
 				<thead>
 					<tr>
 						<th style="width: 40%">{{ctx.Locale.Tr "units.unit"}}</th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_none"}} <span class="ui basic circular label" data-tooltip="{{ctx.Locale.Tr "actions.general.token_permissions.access_none"}}">?</span></th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_read"}} <span class="ui basic circular label" data-tooltip="{{ctx.Locale.Tr "actions.general.token_permissions.access_read"}}">?</span></th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_write"}} <span class="ui basic circular label" data-tooltip="{{ctx.Locale.Tr "actions.general.token_permissions.access_write"}}">?</span></th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_none"}}</th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_read"}}</th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_write"}}</th>
 					</tr>
 				</thead>
 				<tbody>
-					<!-- Code -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.contents"}}</strong>
-							<p class="text small grey">Access source code, files, commits and branches.</p>
+							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.contents.description"}}</p>
 						</td>
 						<td style="text-align: center">
 							<div class="ui radio checkbox">
@@ -60,11 +81,10 @@
 							</div>
 						</td>
 					</tr>
-					<!-- Issues -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.issues"}}</strong>
-							<p class="text small grey">Organize bug reports, tasks and milestones.</p>
+							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.issues.description"}}</p>
 						</td>
 						<td style="text-align: center">
 							<div class="ui radio checkbox">
@@ -85,11 +105,10 @@
 							</div>
 						</td>
 					</tr>
-					<!-- Pull Requests -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.pull_requests"}}</strong>
-							<p class="text small grey">Enable pull requests and code reviews.</p>
+							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.pull_requests.description"}}</p>
 						</td>
 						<td style="text-align: center">
 							<div class="ui radio checkbox">
@@ -110,11 +129,10 @@
 							</div>
 						</td>
 					</tr>
-					<!-- Wiki -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.wiki"}}</strong>
-							<p class="text small grey">Write and share documentation with collaborators.</p>
+							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.wiki.description"}}</p>
 						</td>
 						<td style="text-align: center">
 							<div class="ui radio checkbox">
@@ -135,11 +153,10 @@
 							</div>
 						</td>
 					</tr>
-					<!-- Packages -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.packages"}}</strong>
-							<p class="text small grey">Manage repository packages.</p>
+							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.packages.description"}}</p>
 						</td>
 						<td style="text-align: center">
 							<div class="ui radio checkbox">
@@ -160,11 +177,10 @@
 							</div>
 						</td>
 					</tr>
-					<!-- Actions -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.actions_scope"}}</strong>
-							<p class="text small grey">Manage actions.</p>
+							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.actions_scope.description"}}</p>
 						</td>
 						<td style="text-align: center">
 							<div class="ui radio checkbox">
@@ -197,4 +213,3 @@
 	</div>
 </div>
 {{template "org/settings/layout_footer" .}}
-

@@ -81,51 +81,54 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 			}
 		}
 
-		if ctx.Data["IsActionsToken"] == true {
-			if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
-				// Actions rules:
-				// 1. If the package key matches the task repo, allow.
-				// 2. If not, check cross-repo policy.
+		isActionsToken, _ := ctx.Data["IsActionsToken"].(bool)
+		if isActionsToken && ctx.Package != nil && ctx.Package.Owner != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+			// Actions rules:
+			// 1. If the package key matches the task repo, allow.
+			// 2. If not, check cross-repo policy.
 
-				taskID, ok := ctx.Data["ActionsTaskID"].(int64)
-				if ok {
-					task, err := actions_model.GetTaskByID(ctx, taskID)
-					if err != nil {
-						log.Error("GetTaskByID: %v", err)
-						ctx.HTTPError(http.StatusInternalServerError, "GetTaskByID", err.Error())
+			taskID, ok := ctx.Data["ActionsTaskID"].(int64)
+			if ok && taskID > 0 {
+				task, err := actions_model.GetTaskByID(ctx, taskID)
+				if err != nil {
+					log.Error("GetTaskByID: %v", err)
+					ctx.HTTPError(http.StatusInternalServerError, "GetTaskByID", err.Error())
+					return
+				}
+				if task == nil {
+					ctx.HTTPError(http.StatusInternalServerError, "GetTaskByID", "task not found")
+					return
+				}
+
+				var packageRepoID int64
+				if ctx.Package.Descriptor != nil && ctx.Package.Descriptor.Package != nil {
+					packageRepoID = ctx.Package.Descriptor.Package.RepoID
+				}
+
+				if task.RepoID != packageRepoID {
+					// 1. Private packages MUST be linked to a repository
+					if packageRepoID == 0 {
+						ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "private package must be linked to a repository to be accessed by Actions")
 						return
 					}
 
-					var packageRepoID int64
-					if ctx.Package.Descriptor != nil && ctx.Package.Descriptor.Package != nil {
-						packageRepoID = ctx.Package.Descriptor.Package.RepoID
-					}
-
-					if task.RepoID != packageRepoID {
-						// 1. Private packages MUST be linked to a repository
-						if packageRepoID == 0 {
-							ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "private package must be linked to a repository to be accessed by Actions")
+					// 2. Check Org Cross-Repo Access Policy
+					if ctx.Package.Owner.IsOrganization() {
+						cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
+						if err != nil {
+							log.Error("GetOrgActionsConfig: %v", err)
+							ctx.HTTPError(http.StatusInternalServerError, "GetOrgActionsConfig", err.Error())
 							return
 						}
-
-						// 2. Check Org Cross-Repo Access Policy
-						if ctx.Package.Owner.IsOrganization() {
-							cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
-							if err != nil {
-								log.Error("GetOrgActionsConfig: %v", err)
-								ctx.HTTPError(http.StatusInternalServerError, "GetOrgActionsConfig", err.Error())
-								return
-							}
-							if !cfg.AllowCrossRepoAccess {
-								ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is disabled")
-								return
-							}
+						if !cfg.AllowCrossRepoAccess {
+							ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is disabled")
+							return
 						}
-
-						// 3. Fallthrough to GetActionsUserRepoPermission
-						// We rely on the backend permission check below to handle other Cross-Repository restrictions
-						// (e.g., User collaborative owners, token scopes).
 					}
+
+					// 3. Fallthrough to GetActionsUserRepoPermission
+					// We rely on the backend permission check below to handle other Cross-Repository restrictions
+					// (e.g., User collaborative owners, token scopes).
 				}
 			}
 		}

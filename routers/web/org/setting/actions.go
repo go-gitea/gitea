@@ -63,23 +63,26 @@ func ActionsGeneralPost(ctx *context.Context) {
 	}
 
 	if actionsCfg.TokenPermissionMode == repo_model.ActionsTokenPermissionModeCustom {
+		// Custom mode uses radio buttons for each permission scope
 		parsePerm := func(name string) perm.AccessMode {
-			if ctx.FormBool(name + "_write") {
+			value := ctx.FormString(name)
+			switch value {
+			case "write":
 				return perm.AccessModeWrite
-			}
-			if ctx.FormBool(name + "_read") {
+			case "read":
 				return perm.AccessModeRead
+			default:
+				return perm.AccessModeNone
 			}
-			return perm.AccessModeNone
 		}
 
 		actionsCfg.DefaultTokenPermissions = &repo_model.ActionsTokenPermissions{
-			Actions:      parsePerm("actions"),
-			Contents:     parsePerm("contents"),
-			Issues:       parsePerm("issues"),
-			Packages:     parsePerm("packages"),
-			PullRequests: parsePerm("pull_requests"),
-			Wiki:         parsePerm("wiki"),
+			Actions:      parsePerm("perm_actions"),
+			Contents:     parsePerm("perm_contents"),
+			Issues:       parsePerm("perm_issues"),
+			Packages:     parsePerm("perm_packages"),
+			PullRequests: parsePerm("perm_pull_requests"),
+			Wiki:         parsePerm("perm_wiki"),
 		}
 	} else {
 		actionsCfg.DefaultTokenPermissions = nil

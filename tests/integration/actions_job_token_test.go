@@ -128,15 +128,17 @@ func TestActionsTokenPermissionsModes(t *testing.T) {
 
 func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly bool) func(t *testing.T) {
 	return func(t *testing.T) {
-		// Update repository settings to the requested mode
+	// Update repository settings to the requested mode
 		if mode != "" {
 			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo4", OwnerName: "user5"})
 			require.NoError(t, repo.LoadUnits(t.Context()))
-			actionsUnit := repo.MustGetUnit(t.Context(), unit_model.TypeActions)
+			actionsUnit, err := repo.GetUnit(t.Context(), unit_model.TypeActions)
+			require.NoError(t, err, "Actions unit should exist for repo4")
 			actionsCfg := actionsUnit.ActionsConfig()
 			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionMode(mode)
 			actionsCfg.DefaultTokenPermissions = nil // Ensure no custom permissions override the mode
 			actionsCfg.MaxTokenPermissions = nil     // Ensure no max permissions interfere
+			// Update the config
 			actionsUnit.Config = actionsCfg
 			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), actionsUnit))
 		}
