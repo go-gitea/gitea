@@ -1,0 +1,213 @@
+{{template "base/head" .}}
+<div class="page-content repository settings options">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="ui grid">
+			{{template "repo/settings/navbar" .}}
+			<div class="twelve wide column content">
+				{{template "base/alert" .}}
+				
+				<h4 class="ui top attached header">
+					{{.locale.Tr "repo.settings.actions.permissions.title"}}
+				</h4>
+				
+				<div class="ui attached segment">
+					<p class="help">
+						{{.locale.Tr "repo.settings.actions.permissions.desc"}}
+						<!-- TODO: Add link to documentation once it's written -->
+						<!-- Need to explain this feature clearly for users -->
+					</p>
+					
+					<form class="ui form" method="post" action="{{.Link}}">
+						{{.CsrfTokenHtml}}
+						
+						<!-- Permission Mode Selector -->
+						<div class="field">
+							<label>{{.locale.Tr "repo.settings.actions.permissions.mode"}}</label>
+							<div class="ui selection dropdown">
+								<input type="hidden" name="permission_mode" value="{{.PermissionMode}}">
+								<i class="dropdown icon"></i>
+								<div class="default text">Select permission mode</div>
+								<div class="menu">
+									<!-- Restricted mode - recommended for most users -->
+									<div class="item" data-value="0" data-text="Restricted (Recommended)">
+										<div class="header">🔒 Restricted (Recommended)</div>
+										<div class="description">
+											Minimal permissions. Actions can only read code. Secure default.
+										</div>
+									</div>
+									
+									<!-- Permissive mode - for trusted repos -->
+									<div class="item" data-value="1" data-text="Permissive">
+										<div class="header">🔓 Permissive</div>
+										<div class="description">
+											Broad permissions. Actions can read/write most resources. For trusted environments only.
+										</div>
+									</div>
+									
+									<!-- Custom mode - for advanced users -->
+									<div class="item" data-value="2" data-text="Custom">
+										<div class="header">⚙️ Custom</div>
+										<div class="description">
+											Fine-grained control. Configure each permission individually.
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Custom permissions - only shown when mode is Custom -->
+						<!-- Note: We could use Vue.js here for reactivity, but keeping it simple with vanilla JS -->
+						<!-- If this gets more complex, consider refactoring to use Vue component -->
+						<div id="custom-permissions" class="{{if ne .PermissionMode 2}}hide{{end}}">
+							<div class="ui divider"></div>
+							<h5>Individual Permissions</h5>
+							
+							{{/* Actions Permission */}}
+							<div class="field">
+								<div class="ui toggle checkbox">
+									<input type="checkbox" name="actions_read" id="actions_read" {{if .ActionsRead}}checked{{end}}>
+									<label for="actions_read">
+										<strong>Actions (Read)</strong> - View workflow runs and logs
+									</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui toggle checkbox">
+									<input type="checkbox" name="actions_write" id="actions_write" {{if .ActionsWrite}}checked{{end}}>
+									<label for="actions_write">
+										<strong>Actions (Write)</strong> - Cancel or re-run workflows
+									</label>
+								</div>
+							</div>
+							
+							{{/* Contents Permission */}}
+							<div class="ui divider"></div>
+							<div class="field">
+								<div class="ui toggle checkbox">
+									<input type="checkbox" name="contents_read" id="contents_read" {{if .ContentsRead}}checked{{end}}>
+									<label for="contents_read">
+										<strong>Contents (Read)</strong> - Clone and read repository code
+										<span class="text grey">(Recommended: Keep enabled)</span>
+									</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui toggle checkbox">
+									<input type="checkbox" name="contents_write" id="contents_write" {{if .ContentsWrite}}checked{{end}}>
+									<label for="contents_write">
+										<strong>Contents (Write)</strong> - Push commits and create branches
+										<span class="text red">(Warning: High risk for fork PRs)</span>
+									</label>
+								</div>
+							</div>
+							
+							{{/* Packages Permission */}}
+							<div class="ui divider"></div>
+							<div class="field">
+								<div class="ui toggle checkbox">
+									<input type="checkbox" name="packages_read" id="packages_read" {{if .PackagesRead}}checked{{end}}>
+									<label for="packages_read">
+										<strong>Packages (Read)</strong> - Pull packages from registry
+									</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui toggle checkbox">
+									<input type="checkbox" name="packages_write" id="packages_write" {{if .PackagesWrite}}checked{{end}}>
+									<label for="packages_write">
+										<strong>Packages (Write)</strong> - Publish and update packages
+										<!-- Note: Requires package-repository linking (see org settings) -->
+									</label>
+								</div>
+							</div>
+							
+							{{/* Issues Permission */}}
+							<div class="ui divider"></div>
+							<div class="field">
+								<div class="ui toggle checkbox">
+									<input type="checkbox" name="issues_read" id="issues_read" {{if .IssuesRead}}checked{{end}}>
+									<label for="issues_read">
+										<strong>Issues (Read)</strong> - View issues
+									</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui toggle checkbox">
+									<input type="checkbox" name="issues_write" id="issues_write" {{if .IssuesWrite}}checked{{end}}>
+									<label for="issues_write">
+										<strong>Issues (Write)</strong> - Create, comment, and close issues
+									</label>
+								</div>
+							</div>
+							
+							{{/* Pull Requests Permission */}}
+							<div class="ui divider"></div>
+							<div class="field">
+								<div class="ui toggle checkbox">
+									<input type="checkbox" name="pull_requests_read" id="pull_requests_read" {{if .PullRequestsRead}}checked{{end}}>
+									<label for="pull_requests_read">
+										<strong>Pull Requests (Read)</strong> - View pull requests
+									</label>
+								</div>
+							</div>
+							<div class="field">
+								<div class="ui toggle checkbox">
+									<input type="checkbox" name="pull_requests_write" id="pull_requests_write" {{if .PullRequestsWrite}}checked{{end}}>
+									<label for="pull_requests_write">
+										<strong>Pull Requests (Write)</strong> - Create and merge pull requests
+									</label>
+								</div>
+							</div>
+						</div>
+						
+						<!-- Warning Message for fork PRs -->
+						<!-- This is important - users need to understand that fork PRs are always restricted -->
+						<div class="ui warning message">
+							<div class="header">
+								<i class="shield icon"></i>
+								Security Notice: Fork Pull Requests
+							</div>
+							<p>
+								For security reasons, workflows triggered by pull requests from forked repositories
+								are <strong>always restricted</strong> to read-only access, regardless of the settings above.
+								This prevents malicious forks from accessing secrets or modifying your repository.
+							</p>
+							<!-- Reference the security discussion that led to this decision -->
+							<!-- https://github.com/go-gitea/gitea/pull/24554#issuecomment-1537040811 -->
+						</div>
+						
+						<!-- Organization Cap Notice (if applicable) -->
+						{{if .OrgID}}
+							{{if .OrgHasRestrictions}}
+								<div class="ui info message">
+									<div class="header">
+										<i class="building icon"></i>
+										Organization Restrictions Apply
+									</div>
+									<p>
+										This repository belongs to an organization with permission restrictions.
+										The settings above cannot exceed the organization's maximum permissions.
+										Contact your organization admin to grant additional permissions.
+									</p>
+								</div>
+							{{end}}
+						{{end}}
+						
+						<!-- Submit Buttons -->
+						<div class="field">
+							<button class="ui green button" type="submit">
+								{{.locale.Tr "repo.settings.actions.permissions.save"}}
+							</button>
+							<a class="ui button" href="{{.Link}}">
+								{{.locale.Tr "repo.settings.cancel"}}
+							</a>
+						</div>
+					</form>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+
+{{template "base/footer" .}}
