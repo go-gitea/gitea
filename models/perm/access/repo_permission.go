@@ -95,7 +95,7 @@ func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
 	if m, ok := p.unitsMode[unitType]; ok {
 		return util.Iif(p.AccessMode >= perm_model.AccessModeAdmin, p.AccessMode, m)
 	}
-	// if the units map does not contain the access mode, return the default access mode if the unit exists
+	// If the units map does not contain the access mode, return the default access mode if the unit exists
 	unitDefaultAccessMode := p.AccessMode
 	unitDefaultAccessMode = max(unitDefaultAccessMode, p.anonymousAccessMode[unitType])
 	unitDefaultAccessMode = max(unitDefaultAccessMode, p.everyoneAccessMode[unitType])
