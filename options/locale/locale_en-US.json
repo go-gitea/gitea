@@ -3781,10 +3781,10 @@
   },
   "git.filemode": {
     "changed_filemode": "%[1]s → %[2]s",
-    "directory": "Directory",
-    "normal_file": "Normal file",
-    "executable_file": "Executable file",
-    "symbolic_link": "Symbolic link",
-    "submodule": "Submodule"
+    "directory": "directory",
+    "normal_file": "normal",
+    "executable_file": "executable",
+    "symbolic_link": "symlink",
+    "submodule": "submodule"
   }
 }
