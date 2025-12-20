@@ -4,8 +4,8 @@ import {GET, POST} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
 
-/* One of the possible values for the `data-webauthn-error-msg` attribute on the webauthn error message element.
-   The empty string means there is no error. */
+/** One of the possible values for the `data-webauthn-error-msg` attribute on the webauthn error message element.
+    The empty string means there is no error. */
 type ErrorType = 'general' | 'insecure' | 'browser' | 'unable-to-process' | 'duplicated' | 'unknown' | '';
 
 export async function initUserAuthWebAuthn() {
