@@ -262,7 +262,6 @@
   includes_all_repositories: true
   can_create_org_repo: false
 
-
 - can_create_org_repo: true
   id: 25
   includes_all_repositories: true

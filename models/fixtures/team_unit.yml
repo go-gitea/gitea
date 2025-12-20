@@ -341,7 +341,6 @@
   type: 1 # code
   access_mode: 2
 
-
 - access_mode: 3
   id: 58
   team_id: 25
