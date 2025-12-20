@@ -111,6 +111,7 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 		case actions_model.StatusCancelled:
 			runStatusTrString = "mail.repo.actions.jobs.all_cancelled"
 		}
+		// i18n-check: mail.repo.actions.jobs.*
 		subject := fmt.Sprintf("%s: %s (%s)", locale.TrString(subjectTrString), run.WorkflowID, base.ShortSha(run.CommitSHA))
 		var mailBody bytes.Buffer
 		if err := LoadedTemplates().BodyTemplates.ExecuteTemplate(&mailBody, string(tplWorkflowRun), map[string]any{

@@ -338,7 +338,9 @@
     "enable_update_checker_helper": "Checks for new version releases periodically by connecting to gitea.io.",
     "env_config_keys": "Environment Configuration",
     "env_config_keys_prompt": "The following environment variables will also be applied to your configuration file:",
-    "config_write_file_prompt": "These configuration options will be written into: %s"
+    "config_write_file_prompt": "These configuration options will be written into: %s",
+    "invalid_lfs_path": "The Git LFS root path is invalid: %v",
+    "lfs_jwt_secret_failed": "The JWT secret could not be generated: %v"
   },
   "home": {
     "nav_menu": "Navigation Menu",
@@ -924,7 +926,8 @@
     "visibility.limited": "Limited",
     "visibility.limited_tooltip": "Visible only to authenticated users",
     "visibility.private": "Private",
-    "visibility.private_tooltip": "Visible only to members of organizations you have joined"
+    "visibility.private_tooltip": "Visible only to members of organizations you have joined",
+    "adopt": "Adopt Existing Repository"
   },
   "repo": {
     "new_repo_helper": "A repository contains all project files, including revision history. Already hosting one elsewhere? <a href=\"%s\">Migrate repository.</a>",
@@ -2775,7 +2778,6 @@
     "teams.delete_team_title": "Delete Team",
     "teams.delete_team_desc": "Deleting a team revokes repository access from its members. Continue?",
     "teams.delete_team_success": "The team has been deleted.",
-    "teams.read_permission_desc": "This team grants <strong>Read</strong> access: members can view and clone team repositories.",
     "teams.write_permission_desc": "This team grants <strong>Write</strong> access: members can read from and push to team repositories.",
     "teams.admin_permission_desc": "This team grants <strong>Admin</strong> access: members can read from, push to and add collaborators to team repositories.",
     "teams.create_repo_permission_desc": "Additionally, this team grants <strong>Create repository</strong> permission: members can create new repositories in organization.",

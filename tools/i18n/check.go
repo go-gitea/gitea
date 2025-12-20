@@ -50,24 +50,25 @@ func checkTranslationKeysInDir(dir string, keys []string, res *[]bool) ([]string
 		if err != nil {
 			return err
 		}
-		if d.IsDir() ||
-			(!strings.HasSuffix(d.Name(), ".go") && !strings.HasSuffix(d.Name(), ".tmpl")) ||
-			strings.HasSuffix(d.Name(), "_test.go") { // don't search in test files
+
+		switch {
+		case d.IsDir():
 			return nil
+		// check unused and untranslated keys in the file
+		case strings.HasSuffix(d.Name(), ".go") && !strings.HasSuffix(d.Name(), "_test.go"):
+			untranslatedKeys, err := checkTranslationKeysInGoFile(dir, path, keys, res)
+			if err != nil {
+				return err
+			}
+			untranslatedSum = append(untranslatedSum, untranslatedKeys...)
+		case strings.HasSuffix(d.Name(), ".tmpl"):
+			fmt.Println("----checking template file:", path)
+			untranslatedKeysInTmpl, err := checkTranslationKeysInTemplateFile(dir, path, keys, res)
+			if err != nil {
+				return err
+			}
+			untranslatedSum = append(untranslatedSum, untranslatedKeysInTmpl...)
 		}
-
-		// search unused keys in the file
-		if err := searchUnusedKeyInFile(dir, path, keys, res); err != nil {
-			return err
-		}
-
-		// search untranslated keys in the file
-		untranslated, err := searchUnTranslatedKeyInFile(dir, path, keys)
-		if err != nil {
-			return err
-		}
-		untranslatedSum = append(untranslatedSum, untranslated...)
-
 		return nil
 	}); err != nil {
 		return nil, err
@@ -75,25 +76,14 @@ func checkTranslationKeysInDir(dir string, keys []string, res *[]bool) ([]string
 	return untranslatedSum, nil
 }
 
-func searchUnusedKeyInFile(dir, path string, keys []string, res *[]bool) error {
-	bs, err := os.ReadFile(path)
-	if err != nil {
-		return err
-	}
-	for i, key := range keys {
-		if !(*res)[i] && strings.Contains(string(bs), `"`+key+`"`) {
-			(*res)[i] = true
-		}
-	}
-	return nil
-}
-
-func searchUntranslatedKeyInCall(path string, fset *token.FileSet, astf *ast.File, call *ast.CallExpr, arg ast.Expr, keys []string) string {
+func checkTranslationKeysInCall(path string, fset *token.FileSet, astf *ast.File, call *ast.CallExpr, arg ast.Expr, keys []string, res *[]bool) string {
 	if lit, ok := arg.(*ast.BasicLit); ok && lit.Kind == token.STRING {
 		key := strings.Trim(lit.Value, `"`)
-		if !slices.Contains(keys, key) {
+		idx := slices.Index(keys, key)
+		if idx == -1 {
 			return key
 		}
+		(*res)[idx] = true
 		return ""
 	}
 
@@ -124,10 +114,10 @@ func searchUntranslatedKeyInCall(path string, fset *token.FileSet, astf *ast.Fil
 	default: // i18n-check: <transKeyMatch>
 		g := glob.MustCompile(transKeyMatch)
 		found := false
-		for _, key := range keys {
+		for i, key := range keys {
 			if g.Match(key) {
+				(*res)[i] = true
 				found = true
-				break
 			}
 		}
 		if !found {
@@ -137,7 +127,7 @@ func searchUntranslatedKeyInCall(path string, fset *token.FileSet, astf *ast.Fil
 	return ""
 }
 
-func searchUntranslatedKeyInGoFile(dir, path string, keys []string) ([]string, error) {
+func checkTranslationKeysInGoFile(dir, path string, keys []string, res *[]bool) ([]string, error) {
 	if filepath.Ext(path) != ".go" || strings.HasSuffix(path, "_test.go") {
 		return nil, nil
 	}
@@ -158,16 +148,16 @@ func searchUntranslatedKeyInGoFile(dir, path string, keys []string) ([]string, e
 			switch funIdent.Sel.Name {
 			case "Tr", "TrString":
 				if len(call.Args) >= 1 {
-					if key := searchUntranslatedKeyInCall(path, fs, node, call, call.Args[0], keys); key != "" {
+					if key := checkTranslationKeysInCall(path, fs, node, call, call.Args[0], keys, res); key != "" {
 						untranslated = append(untranslated, key)
 					}
 				}
 			case "TrN":
 				if len(call.Args) >= 3 {
-					if key := searchUntranslatedKeyInCall(path, fs, node, call, call.Args[1], keys); key != "" {
+					if key := checkTranslationKeysInCall(path, fs, node, call, call.Args[1], keys, res); key != "" {
 						untranslated = append(untranslated, key)
 					}
-					if key := searchUntranslatedKeyInCall(path, fs, node, call, call.Args[2], keys); key != "" {
+					if key := checkTranslationKeysInCall(path, fs, node, call, call.Args[2], keys, res); key != "" {
 						untranslated = append(untranslated, key)
 					}
 				}
@@ -179,71 +169,22 @@ func searchUntranslatedKeyInGoFile(dir, path string, keys []string) ([]string, e
 	return untranslated, err
 }
 
-func extractI18nKeys(node parse.Node) []string {
-	switch n := node.(type) {
-	case *parse.ListNode:
-		var keys []string
-		for _, sub := range n.Nodes {
-			keys = append(keys, extractI18nKeys(sub)...)
-		}
-		return keys
-	case *parse.ActionNode:
-		return extractI18nKeys(n.Pipe)
-	case *parse.PipeNode:
-		var keys []string
-		for _, cmd := range n.Cmds {
-			keys = append(keys, extractI18nKeys(cmd)...)
-		}
-		return keys
-	case *parse.CommandNode:
-		if len(n.Args) >= 2 {
-			if ident, ok := n.Args[0].(*parse.IdentifierNode); ok && ident.Ident == "ctx.locale.Tr" {
-				if str, ok := n.Args[1].(*parse.StringNode); ok {
-					return []string{str.Text}
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func searchUntranslatedKeyInTemplateFile(dir, path string, keys []string) ([]string, error) {
-	if filepath.Ext(path) != ".tmpl" {
-		return nil, nil
-	}
-
-	bs, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	// The template parser requires the function map otherwise it will return failure
-	t, err := template.New("test").Funcs(templates.NewFuncMap()).Parse(string(bs))
-	if err != nil {
-		return nil, err
-	}
-
+func checkTranslationKeysInTemplateFile(dir, path string, keys []string, res *[]bool) ([]string, error) {
 	untranslatedKeys := []string{}
-	keysFoundInTempl := extractI18nKeys(t.Root)
+	keysFoundInTempl, err := FindTemplateKeys(path)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println("==== keys found in template:", keysFoundInTempl)
 	for _, key := range keysFoundInTempl {
-		if !slices.Contains(keys, key) {
+		idx := slices.Index(keys, key)
+		if idx == -1 {
 			untranslatedKeys = append(untranslatedKeys, key)
+		} else {
+			(*res)[idx] = true
 		}
 	}
 	return untranslatedKeys, nil
-}
-
-func searchUnTranslatedKeyInFile(dir, path string, keys []string) ([]string, error) {
-	untranslatedKeys, err := searchUntranslatedKeyInGoFile(dir, path, keys)
-	if err != nil {
-		return nil, err
-	}
-
-	untranslatedKeysInTmpl, err := searchUntranslatedKeyInTemplateFile(dir, path, keys)
-	if err != nil {
-		return nil, err
-	}
-	return append(untranslatedKeys, untranslatedKeysInTmpl...), nil
 }
 
 func main() {
