@@ -14,8 +14,6 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"text/template"
-	"text/template/parse"
 
 	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
@@ -171,12 +169,12 @@ func checkTranslationKeysInGoFile(dir, path string, keys []string, res *[]bool) 
 
 func checkTranslationKeysInTemplateFile(dir, path string, keys []string, res *[]bool) ([]string, error) {
 	untranslatedKeys := []string{}
-	keysFoundInTempl, err := FindTemplateKeys(path)
+	keysFoundInTempl, err := templates.FindTemplateKeys(path)
 	if err != nil {
 		return nil, err
 	}
 	fmt.Println("==== keys found in template:", keysFoundInTempl)
-	for _, key := range keysFoundInTempl {
+	for _, key := range keysFoundInTempl.Values() {
 		idx := slices.Index(keys, key)
 		if idx == -1 {
 			untranslatedKeys = append(untranslatedKeys, key)
