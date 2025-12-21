@@ -15,6 +15,14 @@
   min-height: 49px; /* +1px border-bottom */
 }
 
+.navbar-right .tw-relative .octicon-bell {
+  margin-top: 2px;
+}
+
+.navbar-left .tw-relative .octicon-bell {
+  margin-top: 1.5px;
+}
+
 .navbar-left > .item,
 .navbar-right > .item,
 .navbar-mobile-right > .item {
