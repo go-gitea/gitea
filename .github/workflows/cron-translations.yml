@@ -13,7 +13,7 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
-      - uses: crowdin/github-action@v1
+      - uses: crowdin/github-action@v2
         with:
           upload_sources: true
           upload_translations: false
@@ -29,7 +29,7 @@ jobs:
       - name: update locales
         run: ./build/update-locales.sh
       - name: push translations to repo
-        uses: appleboy/git-push-action@v0.0.3
+        uses: appleboy/git-push-action@v1.0.0
         with:
           author_email: "teabot@gitea.io"
           author_name: GiteaBot
