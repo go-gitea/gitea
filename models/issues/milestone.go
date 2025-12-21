@@ -75,6 +75,8 @@ func init() {
 func (m *Milestone) BeforeUpdate() {
 	if m.NumIssues > 0 {
 		m.Completeness = m.NumClosedIssues * 100 / m.NumIssues
+	} else if m.IsClosed {
+		m.Completeness = 100
 	} else {
 		m.Completeness = 0
 	}
@@ -195,8 +197,8 @@ func UpdateMilestoneCounters(ctx context.Context, id int64) error {
 	if err != nil {
 		return err
 	}
-	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
-		id,
+	_, err = e.Exec("UPDATE `milestone` SET completeness=(CASE WHEN is_closed = ? AND num_issues = 0 THEN 100 ELSE 100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) END) WHERE id=?",
+		true, id,
 	)
 	return err
 }
@@ -240,6 +242,11 @@ func changeMilestoneStatus(ctx context.Context, m *Milestone, isClosed bool) err
 	if count < 1 {
 		return nil
 	}
+
+	if err := UpdateMilestoneCounters(ctx, m.ID); err != nil {
+		return err
+	}
+
 	return updateRepoMilestoneNum(ctx, m.RepoID)
 }
 
