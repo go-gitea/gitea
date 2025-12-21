@@ -53,8 +53,9 @@ func run() error {
 		if err != nil {
 			return fmt.Errorf("count %s: %w", file, err)
 		}
+    fmt.Printf("Removing locale files with less than %d non-empty keys\n", threshold)
 		if lines < threshold {
-			fmt.Printf("Removing %s: %d/%d\n", file, lines, threshold)
+      fmt.Printf("%s: %d\n", file, lines)
 			if err := os.Remove(file); err != nil {
 				return fmt.Errorf("remove %s: %w", file, err)
 			}
