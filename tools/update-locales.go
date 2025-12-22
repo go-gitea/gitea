@@ -72,6 +72,7 @@ func cleanLocaleFile(path string) error {
 
 	buf := &bytes.Buffer{}
 
+	var lines = []string{}
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -79,6 +80,17 @@ func cleanLocaleFile(path string) error {
 		if strings.HasSuffix(line, `: "",`) || strings.HasSuffix(line, `: ""`) {
 			continue
 		}
+		lines = append(lines, line)
+	}
+
+	for i:=0; i < len(lines); i++ {
+		if (strings.HasSuffix(lines[i], "}") || strings.HasSuffix(lines[i], "},")) && i -1 >= 0 && strings.HasSuffix(lines[i-1], ",") {
+			// remove trailing comma before closing brace
+			lines[i-1] = strings.TrimSuffix(lines[i-1], ",")
+		}
+	}
+
+	for _, line := range lines {
 		buf.WriteString(line + "\n")
 	}
 
