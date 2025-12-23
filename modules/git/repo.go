@@ -186,7 +186,7 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 // PushOptions options when push to remote
 type PushOptions struct {
 	Remote         string
-	LocalBranch string
+	LocalBranch    string
 	Branch         string
 	Force          bool
 	ForceWithLease string

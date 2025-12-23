@@ -75,8 +75,8 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 
 	if err := gitrepo.PushFromLocal(ctx, tmpPath, repo, git.PushOptions{
 		LocalBranch: "HEAD",
-		Branch: defaultBranch,
-		Env:    repo_module.InternalPushingEnvironment(u, repo),
+		Branch:      defaultBranch,
+		Env:         repo_module.InternalPushingEnvironment(u, repo),
 	}); err != nil {
 		log.Error("Failed to push back to HEAD Error: %v", err)
 		return fmt.Errorf("git push: %w", err)
