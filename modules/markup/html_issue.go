@@ -22,6 +22,7 @@ import (
 type RenderIssueIconTitleOptions struct {
 	OwnerName  string
 	RepoName   string
+	GroupID    int64
 	LinkHref   string
 	IssueIndex int64
 }

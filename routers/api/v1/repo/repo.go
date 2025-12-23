@@ -36,6 +36,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	feed_service "code.gitea.io/gitea/services/feed"
+	group_service "code.gitea.io/gitea/services/group"
 	"code.gitea.io/gitea/services/issue"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -263,6 +264,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		TrustModel:       repo_model.ToTrustModel(opt.TrustModel),
 		IsTemplate:       opt.Template,
 		ObjectFormatName: opt.ObjectFormatName,
+		GroupID:          opt.GroupID,
 	})
 	if err != nil {
 		if repo_model.IsErrRepoAlreadyExist(err) {
@@ -1316,4 +1318,53 @@ func ListRepoActivityFeeds(ctx *context.APIContext) {
 	ctx.SetTotalCountHeader(count)
 
 	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
+}
+
+func MoveRepoToGroup(ctx *context.APIContext) {
+	// swagger:operation POST /repo/{owner}/{repo}/move
+	// ---
+	// summary: move a repository to another group
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/MoveGroupOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+	form := web.GetForm(ctx).(*api.MoveGroupOption)
+	npos := -1
+	if form.NewPos != nil {
+		npos = *form.NewPos
+	}
+	err := group_service.MoveGroupItem(ctx, group_service.MoveGroupOptions{
+		IsGroup:   false,
+		NewPos:    npos,
+		ItemID:    ctx.Repo.Repository.ID,
+		NewParent: form.NewParent,
+	}, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
 }

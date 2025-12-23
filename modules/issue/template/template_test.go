@@ -662,7 +662,7 @@ body:
 name: Name
 title: Title
 about: About
-labels: label1,label2,,label3 ,,
+labels: label1,label2,label3 ,
 ref: Ref
 body:
   - type: markdown
@@ -731,7 +731,7 @@ body:
 name: Name
 title: Title
 about: About
-labels: label1,label2,,label3 ,,
+labels: label1,label2,label3 ,
 ref: Ref
 ---
 Content

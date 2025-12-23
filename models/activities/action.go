@@ -267,6 +267,14 @@ func (a *Action) GetRepoName(ctx context.Context) string {
 	return a.Repo.Name
 }
 
+func (a *Action) GetRepoGroup(ctx context.Context) string {
+	_ = a.LoadRepo(ctx)
+	if a.Repo == nil || a.Repo.GroupID == 0 {
+		return ""
+	}
+	return strconv.FormatInt(a.Repo.GroupID, 10)
+}
+
 // ShortRepoName returns the name of the action repository
 // trimmed to max 33 chars.
 func (a *Action) ShortRepoName(ctx context.Context) string {
@@ -275,19 +283,26 @@ func (a *Action) ShortRepoName(ctx context.Context) string {
 
 // GetRepoPath returns the virtual path to the action repository.
 func (a *Action) GetRepoPath(ctx context.Context) string {
-	return path.Join(a.GetRepoUserName(ctx), a.GetRepoName(ctx))
+	return path.Join(a.GetRepoUserName(ctx), a.GetRepoGroup(ctx), a.GetRepoName(ctx))
 }
 
 // ShortRepoPath returns the virtual path to the action repository
 // trimmed to max 20 + 1 + 33 chars.
 func (a *Action) ShortRepoPath(ctx context.Context) string {
-	return path.Join(a.ShortRepoUserName(ctx), a.ShortRepoName(ctx))
+	return path.Join(a.ShortRepoUserName(ctx), a.makeGroupSegment(ctx), a.GetRepoGroup(ctx), a.ShortRepoName(ctx))
 }
 
 // GetRepoLink returns relative link to action repository.
 func (a *Action) GetRepoLink(ctx context.Context) string {
 	// path.Join will skip empty strings
-	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName(ctx)), url.PathEscape(a.GetRepoName(ctx)))
+	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName(ctx)), a.makeGroupSegment(ctx), a.GetRepoGroup(ctx), url.PathEscape(a.GetRepoName(ctx)))
+}
+
+func (a *Action) makeGroupSegment(ctx context.Context) string {
+	if a.GetRepoGroup(ctx) != "" {
+		return "group"
+	}
+	return ""
 }
 
 // GetRepoAbsoluteLink returns the absolute link to action repository.

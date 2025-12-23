@@ -1549,7 +1549,11 @@ func buildSignature(endp string, expires, artifactID int64) []byte {
 }
 
 func buildDownloadRawEndpoint(repo *repo_model.Repository, artifactID int64) string {
-	return fmt.Sprintf("api/v1/repos/%s/%s/actions/artifacts/%d/zip/raw", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), artifactID)
+	var groupSegment string
+	if repo.GroupID > 0 {
+		groupSegment = fmt.Sprintf("%d/", repo.GroupID)
+	}
+	return fmt.Sprintf("api/v1/repos/%s/%s%s/actions/artifacts/%d/zip/raw", url.PathEscape(repo.OwnerName), groupSegment, url.PathEscape(repo.Name), artifactID)
 }
 
 func buildSigURL(ctx go_context.Context, endPoint string, artifactID int64) string {
@@ -1623,7 +1627,7 @@ func DownloadArtifact(ctx *context.APIContext) {
 // DownloadArtifactRaw Downloads a specific artifact for a workflow run directly.
 func DownloadArtifactRaw(ctx *context.APIContext) {
 	// it doesn't use repoAssignment middleware, so it needs to prepare the repo and check permission (sig) by itself
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ctx.PathParam("username"), ctx.PathParam("reponame"))
+	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ctx.PathParam("username"), ctx.PathParam("reponame"), ctx.PathParamInt64("group_id"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			ctx.APIErrorNotFound()

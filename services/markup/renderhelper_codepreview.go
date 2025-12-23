@@ -31,7 +31,7 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		opts.LineStop = opts.LineStart + lineCount
 	}
 
-	dbRepo, err := repo.GetRepositoryByOwnerAndName(ctx, opts.OwnerName, opts.RepoName)
+	dbRepo, err := repo.GetRepositoryByOwnerAndName(ctx, opts.OwnerName, opts.RepoName, opts.GroupID)
 	if err != nil {
 		return "", err
 	}
