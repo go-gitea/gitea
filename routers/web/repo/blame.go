@@ -271,7 +271,7 @@ func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNa
 	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlighted)
 	for i, br := range rows {
 		var line template.HTML
-		if i < len(rows) {
+		if i < len(unsafeLines) {
 			line = template.HTML(util.UnsafeBytesToString(unsafeLines[i]))
 		}
 		br.EscapeStatus, br.Code = charset.EscapeControlHTML(line, ctx.Locale)
