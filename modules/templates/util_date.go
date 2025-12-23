@@ -91,10 +91,9 @@ func dateTimeFormat(format string, datetime any) template.HTML {
 	}
 
 	attrs := []string{`weekday=""`, `year="numeric"`}
-
 	switch format {
 	case "short", "long": // date only
-		attrs = append(attrs, `threshold="P0Y"`, `month="long"`, `prefix=""`)
+		attrs = append(attrs, `threshold="P0Y"`, `month="`+format+`"`, `prefix=""`)
 	case "full": // full date including time
 		attrs = append(attrs, `format="datetime"`, `month="short"`, `day="numeric"`, `hour="numeric"`, `minute="numeric"`, `second="numeric"`, `data-tooltip-content`, `data-tooltip-interactive="true"`)
 	default:

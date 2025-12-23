@@ -33,10 +33,10 @@ func TestDateTime(t *testing.T) {
 	assert.EqualValues(t, "-", du.AbsoluteShort(timeutil.TimeStamp(0)))
 
 	actual := du.AbsoluteShort(refTime)
-	snaps.MatchInlineSnapshot(t, actual, snaps.Inline("<relative-time weekday=\"\" year=\"numeric\" threshold=\"P0Y\" month=\"long\" prefix=\"\" datetime=\"2018-01-01T00:00:00Z\">2018-01-01</relative-time>"))
+	snaps.MatchInlineSnapshot(t, actual, snaps.Inline("<relative-time weekday=\"\" year=\"numeric\" threshold=\"P0Y\" month=\"short\" prefix=\"\" datetime=\"2018-01-01T00:00:00Z\">2018-01-01</relative-time>"))
 
 	actual = du.AbsoluteShort(refTimeStamp)
-	snaps.MatchInlineSnapshot(t, actual, snaps.Inline("<relative-time weekday=\"\" year=\"numeric\" threshold=\"P0Y\" month=\"long\" prefix=\"\" datetime=\"2017-12-31T19:00:00-05:00\">2017-12-31</relative-time>"))
+	snaps.MatchInlineSnapshot(t, actual, snaps.Inline("<relative-time weekday=\"\" year=\"numeric\" threshold=\"P0Y\" month=\"short\" prefix=\"\" datetime=\"2017-12-31T19:00:00-05:00\">2017-12-31</relative-time>"))
 
 	actual = du.FullTime(refTimeStamp)
 	snaps.MatchInlineSnapshot(t, actual, snaps.Inline("<relative-time weekday=\"\" year=\"numeric\" format=\"datetime\" month=\"short\" day=\"numeric\" hour=\"numeric\" minute=\"numeric\" second=\"numeric\" data-tooltip-content data-tooltip-interactive=\"true\" datetime=\"2017-12-31T19:00:00-05:00\">2017-12-31 19:00:00 -05:00</relative-time>"))
