@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
@@ -101,6 +102,11 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 		}
 		if ret.QueryHash != "" {
 			text += " (" + ret.QueryHash + ")"
+		}
+		// only turn commit links to the current instance into hash link
+		if strings.HasPrefix(ret.FullURL, "http") && !strings.HasPrefix(strings.ToLower(ret.FullURL), strings.ToLower(setting.AppURL)) {
+			node = node.NextSibling
+			continue
 		}
 		replaceContent(node, ret.PosStart, ret.PosEnd, createCodeLink(ret.FullURL, text, "commit"))
 		node = node.NextSibling.NextSibling
