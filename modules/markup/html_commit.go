@@ -104,7 +104,7 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 			text += " (" + ret.QueryHash + ")"
 		}
 		// only turn commit links to the current instance into hash link
-		if strings.HasPrefix(ret.FullURL, "http") && !strings.HasPrefix(strings.ToLower(ret.FullURL), strings.ToLower(setting.AppURL)) {
+		if !strings.HasPrefix(strings.ToLower(ret.FullURL), strings.ToLower(setting.AppURL)) {
 			node = node.NextSibling
 			continue
 		}
