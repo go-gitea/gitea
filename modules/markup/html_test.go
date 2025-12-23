@@ -71,6 +71,8 @@ func TestRender_Commits(t *testing.T) {
 }
 
 func TestRender_CrossReferences(t *testing.T) {
+	setting.AppURL = markup.TestAppURL
+
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
@@ -99,6 +101,11 @@ func TestRender_CrossReferences(t *testing.T) {
 		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
 
 	inputURL := "https://host/a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
+	test(
+		inputURL,
+		`<p><a href="`+inputURL+`" rel="nofollow">`+inputURL+`</a></p>`)
+
+	inputURL = setting.AppURL + "/a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
 	test(
 		inputURL,
 		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
