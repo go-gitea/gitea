@@ -64,6 +64,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		BaseRepo:         baseRepo,
 		BaseRef:          baseRef,
 		HeadRepo:         headRepo,
+		HeadGitRepo:      headGitRepo,
 		HeadRef:          headRef,
 		DirectComparison: directComparison,
 	}
