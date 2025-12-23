@@ -105,7 +105,7 @@ func TestRender_CrossReferences(t *testing.T) {
 		inputURL,
 		`<p><a href="`+inputURL+`" rel="nofollow">`+inputURL+`</a></p>`)
 
-	inputURL = setting.AppURL + "/a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
+	inputURL = setting.AppURL + "a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
 	test(
 		inputURL,
 		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
