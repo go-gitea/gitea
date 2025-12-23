@@ -1,0 +1,56 @@
+{{template "group/settings/layout_head" (dict "ctxData" . "pageClass" "repo-group settings options")}}
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "group.settings.options"}}
+</h4>
+<div class="ui attached segment">
+	<form class="ui form" action="{{.Link}}" method="post">
+		{{.CsrfTokenHtml}}
+		<div class="required field {{if .Err_Name}}error{{end}}">
+			<label for="group_name">
+				{{ctx.Locale.Tr "group.group_name_holder"}}
+			</label>
+			<input id="group_name" name="name" value="{{.Group.Name}}" data-group-name="{{.Group.Name}}" autofocus required maxlength="40">
+		</div>
+		<div class="divider"></div>
+		<div class="field" id="visibility_box">
+			<label for="visibility">{{ctx.Locale.Tr "group.settings.visibility"}}</label>
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input class="enable-system-radio" name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "group.settings.visibility.public"}}</label>
+				</div>
+			</div>
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input class="enable-system-radio" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "group.settings.visibility.limited"}}</label>
+				</div>
+			</div>
+			<div class="field">
+				<div class="ui radio checkbox">
+					<input class="enable-system-radio" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "group.settings.visibility.private"}}</label>
+				</div>
+			</div>
+		</div>
+		<div class="field">
+			<button class="ui primary button">{{ctx.Locale.Tr "group.settings.update_settings"}}</button>
+		</div>
+	</form>
+	<div class="divider"></div>
+
+	<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
+		{{.CsrfTokenHtml}}
+		<div class="inline field">
+			<label for="avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
+			<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+		</div>
+
+		<div class="field">
+			<button class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
+			<button class="ui red button link-action"
+							data-url="{{.Link}}/avatar/delete">{{ctx.Locale.Tr "settings.delete_current_avatar"}}</button>
+		</div>
+	</form>
+</div>
+{{template "group/settings/layout_footer" .}}

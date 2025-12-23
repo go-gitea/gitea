@@ -64,7 +64,7 @@ func testGitSSHRedirect(t *testing.T, u *url.URL) {
 		assert.NoError(t, err)
 		assert.Equal(t, "This is olduser2's repo1\n", string(readMEContent))
 
-		apiTestContext2 := NewAPITestContext(t, "user2", "oldrepo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteOrganization)
+		apiTestContext2 := NewAPITestContext(t, "user2", "oldrepo1", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteOrganization)
 		doAPICreateRepository(apiTestContext2, false)(t)
 		testEditFile(t, session, "user2", "oldrepo1", "master", "README.md", "This is user2's oldrepo1\n")
 

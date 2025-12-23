@@ -1,0 +1,27 @@
+{{define "group-selection-item"}}
+	<div class="item truncated-item-container" style="padding-left: {{.DisplayLeftMargin ctx}} !important;" data-value="{{.ID}}" title="{{.Name}}">
+		{{ctx.AvatarUtils.Avatar . 28 "mini"}}
+		<span class="truncated-item-name">{{.ShortName 40}}</span>
+	</div>
+	{{range .Subgroups}}
+		{{block "group-selection-item" .}}
+		{{end}}
+	{{end}}
+{{end}}
+<div class="inline field">
+	<label>{{ctx.Locale.Tr "group.parent"}}</label>
+	<div class="ui selection group dropdown" id="group_selector">
+		<span class="text truncated-item-container" title="{{ctx.Locale.Tr "group.parent.none_selected"}}"></span>
+		<input type="hidden" id="gid" name="parent_group_id" value="0" required>
+		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+		<div class="menu">
+			<div class="item truncated-item-container" data-value="0" title="{{ctx.Locale.Tr "group.parent.none"}}">
+				<span class="truncated-item-name">{{ctx.Locale.Tr "group.parent.none_selected"}}</span>
+			</div>
+			{{range .Groups}}
+				{{block "group-selection-item" .}}
+				{{end}}
+			{{end}}
+		</div>
+	</div>
+</div>

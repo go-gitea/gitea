@@ -238,7 +238,7 @@ func MigratePost(ctx *context.Context) {
 		opts.AWSSecretAccessKey = form.AWSSecretAccessKey
 	}
 
-	err = repo_service.CheckCreateRepository(ctx, ctx.Doer, ctxUser, opts.RepoName, false)
+	err = repo_service.CheckCreateRepository(ctx, ctx.Doer, ctxUser, opts.RepoName, 0, false)
 	if err != nil {
 		handleMigrateError(ctx, ctxUser, err, "MigratePost", tpl, form)
 		return

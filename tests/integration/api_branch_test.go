@@ -249,7 +249,7 @@ func TestAPIUpdateBranchReference(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		ctx := NewAPITestContext(t, "user2", "update-branch", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		ctx := NewAPITestContext(t, "user2", "update-branch", 0, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 		giteaURL.Path = ctx.GitPath()
 
 		var defaultBranch string

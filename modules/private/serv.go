@@ -46,10 +46,15 @@ type ServCommandResults struct {
 }
 
 // ServCommand preps for a serv call
-func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, mode perm.AccessMode, verb, lfsVerb string) (*ServCommandResults, ResponseExtra) {
-	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/command/%d/%s/%s?mode=%d",
+func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, groupID int64, mode perm.AccessMode, verb, lfsVerb string) (*ServCommandResults, ResponseExtra) {
+	var groupSegment string
+	if groupID > 0 {
+		groupSegment = fmt.Sprintf("%d/", groupID)
+	}
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/command/%d/%s/%s%s?mode=%d",
 		keyID,
 		url.PathEscape(ownerName),
+		groupSegment,
 		url.PathEscape(repoName),
 		mode,
 	)

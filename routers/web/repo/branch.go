@@ -160,6 +160,7 @@ func RestoreBranchPost(ctx *context.Context) {
 			PusherName:   ctx.Doer.Name,
 			RepoUserName: ctx.Repo.Owner.Name,
 			RepoName:     ctx.Repo.Repository.Name,
+			RepoGroupID:  ctx.Repo.Repository.GroupID,
 		}); err != nil {
 		log.Error("RestoreBranch: Update: %v", err)
 	}

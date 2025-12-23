@@ -17,6 +17,7 @@ import (
 const (
 	EnvRepoName     = "GITEA_REPO_NAME"
 	EnvRepoUsername = "GITEA_REPO_USER_NAME"
+	EnvRepoGroupID  = "GITEA_REPO_GROUP_ID"
 	EnvRepoID       = "GITEA_REPO_ID"
 	EnvRepoIsWiki   = "GITEA_REPO_IS_WIKI"
 	EnvPusherName   = "GITEA_PUSHER_NAME"
@@ -78,6 +79,7 @@ func FullPushingEnvironment(author, committer *user_model.User, repo *repo_model
 		EnvPRID+"="+strconv.FormatInt(prID, 10),
 		EnvPRIndex+"="+strconv.FormatInt(prIndex, 10),
 		EnvAppURL+"="+setting.AppURL,
+		EnvRepoGroupID+"="+strconv.FormatInt(repo.GroupID, 10),
 		"SSH_ORIGINAL_COMMAND=gitea-internal",
 	)
 
