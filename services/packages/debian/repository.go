@@ -75,7 +75,6 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 func generateKeypair(username string) (string, string, error) {
 	cfg := &packet.Config{
 		RSABits:       4096,
-		MinRSABits:    4096,
 		DefaultHash:   crypto.SHA256,
 		DefaultCipher: packet.CipherAES256,
 	}
