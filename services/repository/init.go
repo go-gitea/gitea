@@ -74,6 +74,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 	}
 
 	if err := gitrepo.PushFromLocal(ctx, tmpPath, repo, git.PushOptions{
+		LocalBranch: "HEAD",
 		Branch: defaultBranch,
 		Env:    repo_module.InternalPushingEnvironment(u, repo),
 	}); err != nil {
