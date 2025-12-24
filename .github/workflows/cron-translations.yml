@@ -26,12 +26,8 @@ jobs:
         env:
           CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
           CROWDIN_KEY: ${{ secrets.CROWDIN_KEY }}
-      - uses: actions/setup-go@v6
-        with:
-          go-version-file: go.mod
-          check-latest: true
       - name: update locales
-        run: go run ./tools/update-locales.go
+        run: ./build/update-locales.sh
       - name: push translations to repo
         uses: appleboy/git-push-action@v1.0.0
         with:
