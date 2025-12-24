@@ -50,12 +50,7 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 	}
 
 	if priv == "" || pub == "" {
-		username, err := user_model.GetUserNameByID(ctx, ownerID)
-		if err != nil {
-			return "", "", err
-		}
-
-		priv, pub, err = generateKeypair(username)
+		priv, pub, err = generateKeypair()
 		if err != nil {
 			return "", "", err
 		}
@@ -72,14 +67,14 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 	return priv, pub, nil
 }
 
-func generateKeypair(username string) (string, string, error) {
+func generateKeypair() (string, string, error) {
 	cfg := &packet.Config{
 		RSABits:       4096,
 		DefaultHash:   crypto.SHA256,
 		DefaultCipher: packet.CipherAES256,
 	}
 
-	e, err := openpgp.NewEntity(username, "Automatically generated Debian Registry Key; created "+time.Now().UTC().Format(time.RFC3339), "", cfg)
+	e, err := openpgp.NewEntity("", "Automatically generated Debian Registry Key; created "+time.Now().UTC().Format(time.RFC3339), "", cfg)
 	if err != nil {
 		return "", "", err
 	}
