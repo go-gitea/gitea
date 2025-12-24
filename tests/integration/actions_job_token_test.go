@@ -241,12 +241,9 @@ func TestActionsTokenPermissionsClamping(t *testing.T) {
 				RepoID: repository.ID,
 				Type:   unit_model.TypeActions,
 				Config: &repo_model.ActionsConfig{
-					TokenPermissionMode: repo_model.ActionsTokenPermissionModeCustom,
-					DefaultTokenPermissions: &repo_model.ActionsTokenPermissions{
-						Contents: perm.AccessModeWrite, // Default is Write
-					},
+					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
 					MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
-						Contents: perm.AccessModeRead, // Max is Read
+						Contents: perm.AccessModeRead, // Max is Read - will clamp default Write to Read
 					},
 				},
 			})

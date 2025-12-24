@@ -176,8 +176,6 @@ const (
 	ActionsTokenPermissionModePermissive ActionsTokenPermissionMode = "permissive"
 	// ActionsTokenPermissionModeRestricted - read access by default
 	ActionsTokenPermissionModeRestricted ActionsTokenPermissionMode = "restricted"
-	// ActionsTokenPermissionModeCustom - user-defined permissions
-	ActionsTokenPermissionModeCustom ActionsTokenPermissionMode = "custom"
 )
 
 // ActionsTokenPermissions defines the permissions for different repository units

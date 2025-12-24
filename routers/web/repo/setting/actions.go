@@ -41,8 +41,6 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["TokenPermissionMode"] = actionsCfg.GetTokenPermissionMode()
 	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
-	ctx.Data["TokenPermissionModeCustom"] = repo_model.ActionsTokenPermissionModeCustom
-	ctx.Data["DefaultTokenPermissions"] = actionsCfg.GetEffectiveTokenPermissions(false)
 	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
 
 	if ctx.Repo.Repository.IsPrivate {
@@ -146,39 +144,12 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	// Update permission mode
 	permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
 	if permissionMode == repo_model.ActionsTokenPermissionModeRestricted ||
-		permissionMode == repo_model.ActionsTokenPermissionModePermissive ||
-		permissionMode == repo_model.ActionsTokenPermissionModeCustom {
+		permissionMode == repo_model.ActionsTokenPermissionModePermissive {
 		actionsCfg.TokenPermissionMode = permissionMode
 	} else {
 		ctx.Flash.Error("Invalid token permission mode")
 		ctx.Redirect(redirectURL)
 		return
-	}
-
-	if actionsCfg.TokenPermissionMode == repo_model.ActionsTokenPermissionModeCustom {
-		// Custom mode uses radio buttons for each permission scope
-		parsePerm := func(name string) perm.AccessMode {
-			value := ctx.FormString(name)
-			switch value {
-			case "write":
-				return perm.AccessModeWrite
-			case "read":
-				return perm.AccessModeRead
-			default:
-				return perm.AccessModeNone
-			}
-		}
-
-		actionsCfg.DefaultTokenPermissions = &repo_model.ActionsTokenPermissions{
-			Actions:      parsePerm("perm_actions"),
-			Contents:     parsePerm("perm_contents"),
-			Issues:       parsePerm("perm_issues"),
-			Packages:     parsePerm("perm_packages"),
-			PullRequests: parsePerm("perm_pull_requests"),
-			Wiki:         parsePerm("perm_wiki"),
-		}
-	} else {
-		actionsCfg.DefaultTokenPermissions = nil
 	}
 
 	// Update Maximum Permissions (radio buttons: none/read/write)
