@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -362,5 +363,32 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		t.Run("Cross-Repo Access Allowed", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
 			assert.Equal(t, "repo-B", r.Name)
 		}))
+
+		// 6. Test Cross-Repo Package Access
+		t.Run("Cross-Repo Package Access", func(t *testing.T) {
+			packageName := "cross-test-pkg"
+			packageVersion := "1.0.0"
+			fileName := "test-file.bin"
+			content := []byte{1, 2, 3, 4, 5}
+
+			// First, upload a package to repo-B using the org owner's token
+			packageURL := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", orgName, packageName, packageVersion, fileName)
+			uploadReq := NewRequestWithBody(t, "PUT", packageURL, bytes.NewReader(content)).AddTokenAuth(token)
+			MakeRequest(t, uploadReq, http.StatusCreated)
+
+			// Try to download the package with task token from repo-A (cross-repo read)
+			// Cross-repo access should allow read
+			downloadReq := NewRequest(t, "GET", packageURL)
+			downloadReq.Header.Set("Authorization", "Bearer "+task.Token)
+			resp := MakeRequest(t, downloadReq, http.StatusOK)
+			assert.Equal(t, content, resp.Body.Bytes(), "Should be able to read package from other repo in same org")
+
+			// Try to upload a package to org with task token from repo-A (cross-repo write)
+			// Cross-repo access should be read-only, so this should fail
+			writePackageURL := fmt.Sprintf("/api/packages/%s/generic/%s/%s/write-test.bin", orgName, packageName, packageVersion)
+			writeReq := NewRequestWithBody(t, "PUT", writePackageURL, bytes.NewReader(content))
+			writeReq.Header.Set("Authorization", "Bearer "+task.Token)
+			MakeRequest(t, writeReq, http.StatusForbidden)
+		})
 	})
 }
