@@ -12,6 +12,7 @@ import (
 
 func TestProcessNodeAttrID_HTMLHeadingWithoutID(t *testing.T) {
 	// Test that HTML headings without id get an auto-generated id from their text content
+	// when EnableHeadingIDGeneration is true (for repo files and wiki pages)
 	testCases := []struct {
 		name     string
 		input    string
@@ -57,7 +58,8 @@ func TestProcessNodeAttrID_HTMLHeadingWithoutID(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var result strings.Builder
-			err := PostProcessDefault(NewTestRenderContext(), strings.NewReader(tc.input), &result)
+			ctx := NewTestRenderContext().WithEnableHeadingIDGeneration(true)
+			err := PostProcessDefault(ctx, strings.NewReader(tc.input), &result)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, strings.TrimSpace(result.String()))
 		})
@@ -65,12 +67,9 @@ func TestProcessNodeAttrID_HTMLHeadingWithoutID(t *testing.T) {
 }
 
 func TestProcessNodeAttrID_SkipHeadingIDForComments(t *testing.T) {
-	// Test that HTML headings in comment-like contexts (issue comments, wiki)
-	// do NOT get auto-generated IDs to avoid duplicate IDs on pages with multiple documents
-	commentMetas := map[string]string{
-		"markupAllowShortIssuePattern": "true",
-	}
-
+	// Test that HTML headings in comment-like contexts (issue comments)
+	// do NOT get auto-generated IDs to avoid duplicate IDs on pages with multiple documents.
+	// This is controlled by EnableHeadingIDGeneration which defaults to false.
 	testCases := []struct {
 		name     string
 		input    string
@@ -96,7 +95,8 @@ func TestProcessNodeAttrID_SkipHeadingIDForComments(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			var result strings.Builder
-			err := PostProcessDefault(NewTestRenderContext(commentMetas), strings.NewReader(tc.input), &result)
+			// Default context without EnableHeadingIDGeneration (simulates comment rendering)
+			err := PostProcessDefault(NewTestRenderContext(), strings.NewReader(tc.input), &result)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expected, strings.TrimSpace(result.String()))
 		})
