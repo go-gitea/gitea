@@ -384,11 +384,11 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			assert.Equal(t, content, resp.Body.Bytes(), "Should be able to read package from other repo in same org")
 
 			// Try to upload a package to org with task token from repo-A (cross-repo write)
-			// Cross-repo access should be read-only, so this should fail
+			// Cross-repo access should be read-only, write attempts return 401 Unauthorized
 			writePackageURL := fmt.Sprintf("/api/packages/%s/generic/%s/%s/write-test.bin", orgName, packageName, packageVersion)
 			writeReq := NewRequestWithBody(t, "PUT", writePackageURL, bytes.NewReader(content))
 			writeReq.Header.Set("Authorization", "Bearer "+task.Token)
-			MakeRequest(t, writeReq, http.StatusForbidden)
+			MakeRequest(t, writeReq, http.StatusUnauthorized)
 		})
 	})
 }
