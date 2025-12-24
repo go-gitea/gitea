@@ -115,7 +115,7 @@
 									{{if $file.IsBin}}
 										{{ctx.Locale.Tr "repo.diff.bin"}}
 									{{else}}
-										{{template "repo/diff/stats" dict "file" . "root" $}}
+										{{template "repo/diff/stats" dict "Addition" .Addition "Deletion" .Deletion}}
 									{{end}}
 								</div>
 								{{if $showFileViewToggle}}
