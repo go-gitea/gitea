@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -169,7 +170,8 @@ func (p *Permission) ReadableUnitTypes() []unit.Type {
 }
 
 func (p *Permission) LogString() string {
-	format := "<Permission AccessMode=%s, %d Units, %d UnitsMode(s): ["
+	var format strings.Builder
+	format.WriteString("<Permission AccessMode=%s, %d Units, %d UnitsMode(s): [")
 	args := []any{p.AccessMode.ToString(), len(p.units), len(p.unitsMode)}
 
 	for i, u := range p.units {
@@ -181,19 +183,19 @@ func (p *Permission) LogString() string {
 				config = err.Error()
 			}
 		}
-		format += "\n\tunits[%d]: ID=%d RepoID=%d Type=%s Config=%s"
+		format.WriteString("\n\tunits[%d]: ID=%d RepoID=%d Type=%s Config=%s")
 		args = append(args, i, u.ID, u.RepoID, u.Type.LogString(), config)
 	}
 	for key, value := range p.unitsMode {
-		format += "\n\tunitsMode[%-v]: %-v"
+		format.WriteString("\n\tunitsMode[%-v]: %-v")
 		args = append(args, key.LogString(), value.LogString())
 	}
-	format += "\n\tanonymousAccessMode: %-v"
+	format.WriteString("\n\tanonymousAccessMode: %-v")
 	args = append(args, p.anonymousAccessMode)
-	format += "\n\teveryoneAccessMode: %-v"
+	format.WriteString("\n\teveryoneAccessMode: %-v")
 	args = append(args, p.everyoneAccessMode)
-	format += "\n\t]>"
-	return fmt.Sprintf(format, args...)
+	format.WriteString("\n\t]>")
+	return fmt.Sprintf(format.String(), args...)
 }
 
 func applyPublicAccessPermission(unitType unit.Type, accessMode perm_model.AccessMode, modeMap *map[unit.Type]perm_model.AccessMode) {
@@ -276,8 +278,14 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
 			// The task repo can access the current repo only if the task repo is private and
 			// the owner of the task repo is a collaborative owner of the current repo.
-			// FIXME allow public repo read access if tokenless pull is enabled
 			// FIXME should owner's visibility also be considered here?
+
+			// check permission like simple user but limit to read-only
+			perm, err = GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
+			if err != nil {
+				return perm, err
+			}
+			perm.AccessMode = min(perm.AccessMode, perm_model.AccessModeRead)
 			return perm, nil
 		}
 		accessMode = perm_model.AccessModeRead

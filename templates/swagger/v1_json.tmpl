@@ -781,6 +781,60 @@
             "description": "page size of results",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort users by attribute. Supported values are \"name\", \"created\", \"updated\" and \"id\". Default is \"name\"",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\", ignored if \"sort\" is not specified.",
+            "name": "order",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "search term (username, full name, email)",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "visibility filter. Supported values are \"public\", \"limited\" and \"private\".",
+            "name": "visibility",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter active users",
+            "name": "is_active",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter admin users",
+            "name": "is_admin",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter restricted users",
+            "name": "is_restricted",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter 2FA enabled users",
+            "name": "is_2fa_enabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter login prohibited users",
+            "name": "is_prohibit_login",
+            "in": "query"
           }
         ],
         "responses": {
@@ -789,6 +843,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -4179,13 +4236,6 @@
             "in": "query"
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "Repository ID to prioritize in the results",
-            "name": "priority_repo_id",
-            "in": "query"
-          },
-          {
             "enum": [
               "issues",
               "pulls"
@@ -6747,6 +6797,66 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a branch reference to a new commit",
+        "operationId": "repoUpdateBranch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the branch",
+            "name": "branch",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateBranchRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -28698,6 +28808,31 @@
             "format": "int64"
           },
           "x-go-name": "IDs"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateBranchRepoOption": {
+      "description": "UpdateBranchRepoOption options when updating a branch reference in a repository",
+      "type": "object",
+      "required": [
+        "new_commit_id"
+      ],
+      "properties": {
+        "force": {
+          "description": "Force update even if the change is not a fast-forward",
+          "type": "boolean",
+          "x-go-name": "Force"
+        },
+        "new_commit_id": {
+          "description": "New commit SHA (or any ref) the branch should point to",
+          "type": "string",
+          "x-go-name": "NewCommitID"
+        },
+        "old_commit_id": {
+          "description": "Expected old commit SHA of the branch; if provided it must match the current tip",
+          "type": "string",
+          "x-go-name": "OldCommitID"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

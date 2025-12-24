@@ -4,8 +4,9 @@
 package repo
 
 import (
+	"bytes"
 	"fmt"
-	gotemplate "html/template"
+	"html/template"
 	"net/http"
 	"net/url"
 	"path"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/languagestats"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,18 +27,17 @@ import (
 )
 
 type blameRow struct {
-	RowNumber      int
-	Avatar         gotemplate.HTML
-	RepoLink       string
-	PartSha        string
+	RowNumber int
+
+	Avatar         template.HTML
 	PreviousSha    string
 	PreviousShaURL string
-	IsFirstCommit  bool
 	CommitURL      string
 	CommitMessage  string
-	CommitSince    gotemplate.HTML
-	Code           gotemplate.HTML
-	EscapeStatus   *charset.EscapeStatus
+	CommitSince    template.HTML
+
+	Code         template.HTML
+	EscapeStatus *charset.EscapeStatus
 }
 
 // RefBlame render blame page
@@ -99,7 +100,7 @@ func RefBlame(ctx *context.Context) {
 }
 
 type blameResult struct {
-	Parts                []*git.BlamePart
+	Parts                []*gitrepo.BlamePart
 	UsesIgnoreRevs       bool
 	FaultyIgnoreRevsFile bool
 }
@@ -107,7 +108,7 @@ type blameResult struct {
 func performBlame(ctx *context.Context, repo *repo_model.Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
 	objectFormat := ctx.Repo.GetObjectFormat()
 
-	blameReader, err := git.CreateBlameReader(ctx, objectFormat, repo.RepoPath(), commit, file, bypassBlameIgnore)
+	blameReader, err := gitrepo.CreateBlameReader(ctx, objectFormat, repo, commit, file, bypassBlameIgnore)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +124,7 @@ func performBlame(ctx *context.Context, repo *repo_model.Repository, commit *git
 		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
 			// try again without ignored revs
 
-			blameReader, err = git.CreateBlameReader(ctx, objectFormat, repo.RepoPath(), commit, file, true)
+			blameReader, err = gitrepo.CreateBlameReader(ctx, objectFormat, repo, commit, file, true)
 			if err != nil {
 				return nil, err
 			}
@@ -143,12 +144,12 @@ func performBlame(ctx *context.Context, repo *repo_model.Repository, commit *git
 	return r, nil
 }
 
-func fillBlameResult(br *git.BlameReader, r *blameResult) error {
+func fillBlameResult(br *gitrepo.BlameReader, r *blameResult) error {
 	r.UsesIgnoreRevs = br.UsesIgnoreRevs()
 
-	previousHelper := make(map[string]*git.BlamePart)
+	previousHelper := make(map[string]*gitrepo.BlamePart)
 
-	r.Parts = make([]*git.BlamePart, 0, 5)
+	r.Parts = make([]*gitrepo.BlamePart, 0, 5)
 	for {
 		blamePart, err := br.NextPart()
 		if err != nil {
@@ -173,7 +174,7 @@ func fillBlameResult(br *git.BlameReader, r *blameResult) error {
 	return nil
 }
 
-func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[string]*user_model.UserCommit {
+func processBlameParts(ctx *context.Context, blameParts []*gitrepo.BlamePart) map[string]*user_model.UserCommit {
 	// store commit data by SHA to look up avatar info etc
 	commitNames := make(map[string]*user_model.UserCommit)
 	// and as blameParts can reference the same commits multiple
@@ -220,76 +221,64 @@ func processBlameParts(ctx *context.Context, blameParts []*git.BlamePart) map[st
 	return commitNames
 }
 
-func renderBlame(ctx *context.Context, blameParts []*git.BlamePart, commitNames map[string]*user_model.UserCommit) {
-	repoLink := ctx.Repo.RepoLink
+func renderBlameFillFirstBlameRow(repoLink string, avatarUtils *templates.AvatarUtils, part *gitrepo.BlamePart, commit *user_model.UserCommit, br *blameRow) {
+	if commit.User != nil {
+		br.Avatar = avatarUtils.Avatar(commit.User, 18)
+	} else {
+		br.Avatar = avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18)
+	}
 
+	br.PreviousSha = part.PreviousSha
+	br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(part.PreviousSha), util.PathEscapeSegments(part.PreviousPath))
+	br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, url.PathEscape(part.Sha))
+	br.CommitMessage = commit.CommitMessage
+	br.CommitSince = templates.TimeSince(commit.Author.When)
+}
+
+func renderBlame(ctx *context.Context, blameParts []*gitrepo.BlamePart, commitNames map[string]*user_model.UserCommit) {
 	language, err := languagestats.GetFileLanguage(ctx, ctx.Repo.GitRepo, ctx.Repo.CommitID, ctx.Repo.TreePath)
 	if err != nil {
 		log.Error("Unable to get file language for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
 	}
 
-	lines := make([]string, 0)
+	buf := &bytes.Buffer{}
 	rows := make([]*blameRow, 0)
+	avatarUtils := templates.NewAvatarUtils(ctx)
+	rowNumber := 0 // will be 1-based
+	for _, part := range blameParts {
+		for partLineIdx, line := range part.Lines {
+			rowNumber++
+
+			br := &blameRow{RowNumber: rowNumber}
+			rows = append(rows, br)
+
+			if int64(buf.Len()) < setting.UI.MaxDisplayFileSize {
+				buf.WriteString(line)
+				buf.WriteByte('\n')
+			}
+
+			if partLineIdx == 0 {
+				renderBlameFillFirstBlameRow(ctx.Repo.RepoLink, avatarUtils, part, commitNames[part.Sha], br)
+			}
+		}
+	}
+
 	escapeStatus := &charset.EscapeStatus{}
 
-	var lexerName string
-
-	avatarUtils := templates.NewAvatarUtils(ctx)
-	i := 0
-	commitCnt := 0
-	for _, part := range blameParts {
-		for index, line := range part.Lines {
-			i++
-			lines = append(lines, line)
-
-			br := &blameRow{
-				RowNumber: i,
-			}
-
-			commit := commitNames[part.Sha]
-			if index == 0 {
-				// Count commit number
-				commitCnt++
-
-				// User avatar image
-				commitSince := templates.TimeSince(commit.Author.When)
-
-				var avatar string
-				if commit.User != nil {
-					avatar = string(avatarUtils.Avatar(commit.User, 18))
-				} else {
-					avatar = string(avatarUtils.AvatarByEmail(commit.Author.Email, commit.Author.Name, 18, "tw-mr-2"))
-				}
-
-				br.Avatar = gotemplate.HTML(avatar)
-				br.RepoLink = repoLink
-				br.PartSha = part.Sha
-				br.PreviousSha = part.PreviousSha
-				br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(part.PreviousSha), util.PathEscapeSegments(part.PreviousPath))
-				br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, url.PathEscape(part.Sha))
-				br.CommitMessage = commit.CommitMessage
-				br.CommitSince = commitSince
-			}
-
-			if i != len(lines)-1 {
-				line += "\n"
-			}
-			line, lexerNameForLine := highlight.Code(path.Base(ctx.Repo.TreePath), language, line)
-
-			// set lexer name to the first detected lexer. this is certainly suboptimal and
-			// we should instead highlight the whole file at once
-			if lexerName == "" {
-				lexerName = lexerNameForLine
-			}
-
-			br.EscapeStatus, br.Code = charset.EscapeControlHTML(line, ctx.Locale)
-			rows = append(rows, br)
-			escapeStatus = escapeStatus.Or(br.EscapeStatus)
+	bufContent := buf.Bytes()
+	bufContent = charset.ToUTF8(bufContent, charset.ConvertOpts{})
+	highlighted, lexerName := highlight.Code(path.Base(ctx.Repo.TreePath), language, util.UnsafeBytesToString(bufContent))
+	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlighted)
+	for i, br := range rows {
+		var line template.HTML
+		if i < len(unsafeLines) {
+			line = template.HTML(util.UnsafeBytesToString(unsafeLines[i]))
 		}
+		br.EscapeStatus, br.Code = charset.EscapeControlHTML(line, ctx.Locale)
+		escapeStatus = escapeStatus.Or(br.EscapeStatus)
 	}
 
 	ctx.Data["EscapeStatus"] = escapeStatus
 	ctx.Data["BlameRows"] = rows
-	ctx.Data["CommitCnt"] = commitCnt
 	ctx.Data["LexerName"] = lexerName
 }

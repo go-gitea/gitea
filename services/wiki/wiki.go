@@ -25,8 +25,6 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-const DefaultRemote = "origin"
-
 func getWikiWorkingLockKey(repoID int64) string {
 	return fmt.Sprintf("wiki_working_%d", repoID)
 }
@@ -195,7 +193,13 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
+	originalGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo.WikiStorageRepo())
+	if err != nil {
+		return fmt.Errorf("unable to open wiki repository: %w", err)
+	}
+	defer closer.Close()
+
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, originalGitRepo, doer)
 	if sign {
 		commitTreeOpts.Key = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -214,8 +218,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
-		Remote: DefaultRemote,
+	if err := gitrepo.PushFromLocal(ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, repo.DefaultWikiBranch),
 		Env: repo_module.FullPushingEnvironment(
 			doer,
@@ -318,7 +321,13 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
+	originalGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo.WikiStorageRepo())
+	if err != nil {
+		return fmt.Errorf("unable to open wiki repository: %w", err)
+	}
+	defer closer.Close()
+
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, originalGitRepo, doer)
 	if sign {
 		commitTreeOpts.Key = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -333,8 +342,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
-		Remote: DefaultRemote,
+	if err := gitrepo.PushFromLocal(gitRepo.Ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, repo.DefaultWikiBranch),
 		Env: repo_module.FullPushingEnvironment(
 			doer,

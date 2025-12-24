@@ -12,8 +12,8 @@ declare module '*.vue' {
   import type {DefineComponent} from 'vue';
   const component: DefineComponent<unknown, unknown, any>;
   export default component;
-  // List of named exports from vue components, used to make `tsc` output clean.
-  // To actually lint .vue files, `vue-tsc` is used because `tsc` can not parse them.
+  // Here we declare all exports from vue files so `tsc` or `tsgo` can work for
+  // non-vue files. To lint .vue files, `vue-tsc` must be used.
   export function initDashboardRepoList(): void;
   export function initRepositoryActionView(): void;
 }

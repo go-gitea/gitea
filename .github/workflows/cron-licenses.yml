@@ -9,8 +9,10 @@ jobs:
   cron-licenses:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
@@ -18,7 +20,7 @@ jobs:
       - run: make generate-gitignore
         timeout-minutes: 40
       - name: push translations to repo
-        uses: appleboy/git-push-action@v0.0.3
+        uses: appleboy/git-push-action@v1.0.0
         with:
           author_email: "teabot@gitea.io"
           author_name: GiteaBot
