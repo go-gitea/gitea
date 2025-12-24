@@ -12,7 +12,7 @@ mv ./options/locale/locale_en-US.json ./options/
 baselines=$(cat "./options/locale_en-US.json" | wc -l)
 baselines=$((baselines / 4))
 for filename in ./options/locale/*.json; do
-  lines=$(wc -l "$filename" | awk '{print $1}')
+  lines=$(cat "$filename" | wc -l)
   if [ "$lines" -lt "$baselines" ]; then
     echo "Removing $filename: $lines/$baselines"
     rm "$filename"
