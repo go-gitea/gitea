@@ -49,7 +49,7 @@ func getNodeText(node *html.Node) string {
 	return text.String()
 }
 
-func processNodeAttrID(node *html.Node) {
+func processNodeAttrID(ctx *RenderContext, node *html.Node) {
 	// Add user-content- to IDs and "#" links if they don't already have them,
 	// and convert the link href to a relative link to the host root
 	hasID := false
@@ -65,7 +65,13 @@ func processNodeAttrID(node *html.Node) {
 	// For heading tags (h1-h6) without an id attribute, generate one from the text content
 	// This ensures HTML headings like <h1>Title</h1> get proper permalink anchors
 	// matching the behavior of Markdown headings
+	//
+	// Skip this for comment-like contexts (issue comments, wiki pages) where
+	// multiple markdown documents exist on one page, as this could create duplicate IDs
 	if !hasID && isHeadingTag(node) {
+		if ctx.RenderOptions.Metas != nil && ctx.RenderOptions.Metas["markupAllowShortIssuePattern"] == "true" {
+			return
+		}
 		text := getNodeText(node)
 		if text != "" {
 			// Use the same CleanValue function used by Markdown heading ID generation

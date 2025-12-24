@@ -63,3 +63,42 @@ func TestProcessNodeAttrID_HTMLHeadingWithoutID(t *testing.T) {
 		})
 	}
 }
+
+func TestProcessNodeAttrID_SkipHeadingIDForComments(t *testing.T) {
+	// Test that HTML headings in comment-like contexts (issue comments, wiki)
+	// do NOT get auto-generated IDs to avoid duplicate IDs on pages with multiple documents
+	commentMetas := map[string]string{
+		"markupAllowShortIssuePattern": "true",
+	}
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "h1 without id in comment context",
+			input:    `<h1>Heading without ID</h1>`,
+			expected: `<h1>Heading without ID</h1>`,
+		},
+		{
+			name:     "h2 without id in comment context",
+			input:    `<h2>Another Heading</h2>`,
+			expected: `<h2>Another Heading</h2>`,
+		},
+		{
+			name:     "h1 with existing id should still be prefixed",
+			input:    `<h1 id="my-custom-id">Heading with ID</h1>`,
+			expected: `<h1 id="user-content-my-custom-id">Heading with ID</h1>`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var result strings.Builder
+			err := PostProcessDefault(NewTestRenderContext(commentMetas), strings.NewReader(tc.input), &result)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.expected, strings.TrimSpace(result.String()))
+		})
+	}
+}
