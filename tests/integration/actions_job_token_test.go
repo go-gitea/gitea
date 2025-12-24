@@ -371,9 +371,9 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			fileName := "test-file.bin"
 			content := []byte{1, 2, 3, 4, 5}
 
-			// First, upload a package to repo-B using the org owner's token
+			// First, upload a package to repo-B using basic auth (user2 is org owner)
 			packageURL := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", orgName, packageName, packageVersion, fileName)
-			uploadReq := NewRequestWithBody(t, "PUT", packageURL, bytes.NewReader(content)).AddTokenAuth(token)
+			uploadReq := NewRequestWithBody(t, "PUT", packageURL, bytes.NewReader(content)).AddBasicAuth("user2")
 			MakeRequest(t, uploadReq, http.StatusCreated)
 
 			// Try to download the package with task token from repo-A (cross-repo read)
