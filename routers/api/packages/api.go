@@ -82,7 +82,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 		}
 
 		isActionsToken, _ := ctx.Data["IsActionsToken"].(bool)
-		if isActionsToken && ctx.Package != nil && ctx.Package.Owner != nil && ctx.Package.Owner.Visibility.IsPrivate() {
+		if isActionsToken && ctx.Package != nil && ctx.Package.Owner != nil && ctx.Package.Owner.IsOrganization() {
 			// Actions rules:
 			// 1. If the package key matches the task repo, allow.
 			// 2. If not, check cross-repo policy.
