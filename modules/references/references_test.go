@@ -259,6 +259,30 @@ func TestFindAllIssueReferences(t *testing.T) {
 
 	testFixtures(t, urlFixtures, "url-keywords")
 
+	// Test bare URLs (not markdown links) with closing keywords
+	// These use FindAllIssueReferences (non-markdown) which converts full URLs to short refs first
+	setting.AppURL = "https://gitea.com:3000/"
+	bareURLTests := []struct {
+		name     string
+		input    string
+		expected XRefAction
+	}{
+		{"Fixes bare URL", "Fixes https://gitea.com:3000/org/project/issues/456", XRefActionCloses},
+		{"Fixes with colon", "Fixes: https://gitea.com:3000/org/project/issues/456", XRefActionCloses},
+		{"Closes bare URL", "Closes https://gitea.com:3000/user/repo/issues/123", XRefActionCloses},
+		{"Closes with colon", "Closes: https://gitea.com:3000/user/repo/issues/123", XRefActionCloses},
+	}
+
+	for _, tt := range bareURLTests {
+		t.Run(tt.name, func(t *testing.T) {
+			refs := FindAllIssueReferences(tt.input)
+			assert.Len(t, refs, 1, "Expected 1 reference for: %s", tt.input)
+			if len(refs) > 0 {
+				assert.Equal(t, tt.expected, refs[0].Action, "Expected action %v for: %s", tt.expected, tt.input)
+			}
+		})
+	}
+
 	type alnumFixture struct {
 		input          string
 		issue          string
