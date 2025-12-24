@@ -9,7 +9,7 @@ fi
 mv ./options/locale/locale_en-US.json ./options/
 
 # Remove translation under 25% of en_us
-baselines=$(wc -l "./options/locale_en-US.json" | awk '{print $1}')
+baselines=$(cat "./options/locale_en-US.json" | wc -l)
 baselines=$((baselines / 4))
 for filename in ./options/locale/*.json; do
   lines=$(wc -l "$filename" | awk '{print $1}')
