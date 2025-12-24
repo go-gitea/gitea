@@ -1683,7 +1683,6 @@ tbody.commit-list {
 
 .diff-file-header {
   padding: 5px 8px !important;
-  box-shadow: 0 -1px 0 1px var(--color-body); /* prevent borders being visible behind top corners when sticky and scrolled */
   font-size: 14px !important; /* override h4.ui.header */
   font-weight: var(--font-weight-normal);
   display: flex;
