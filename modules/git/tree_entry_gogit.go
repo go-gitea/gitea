@@ -55,7 +55,6 @@ func (te *TreeEntry) Size() int64 {
 func (te *TreeEntry) Blob() *Blob {
 	return &Blob{
 		ID:   te.ID,
-		hash: te.toGogitTreeEntry().Hash,
 		repo: te.ptree.repo,
 		name: te.Name(),
 	}

@@ -17,13 +17,12 @@ import (
 // Blob represents a Git object.
 type Blob struct {
 	ID   ObjectID
-	hash plumbing.Hash
 	repo *Repository
 	name string
 }
 
 func (b *Blob) gogitEncodedObj() (plumbing.EncodedObject, error) {
-	return b.repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, b.hash)
+	return b.repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, plumbing.Hash(b.ID.RawValue()))
 }
 
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
