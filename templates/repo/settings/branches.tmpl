@@ -13,7 +13,6 @@
 					{{ctx.Locale.Tr "repo.settings.default_branch_desc"}}
 				</p>
 				<form class="tw-flex" action="{{.Link}}" method="post">
-					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="default_branch">
 					<div class="ui dropdown selection search tw-flex-1 tw-mr-2 tw-max-w-96">
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
