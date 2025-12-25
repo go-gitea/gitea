@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/httpauth"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -44,6 +45,7 @@ type requestContext struct {
 	Repo          string
 	Authorization string
 	Method        string
+	HostURL       string
 }
 
 // Claims is a JWT Token Claims
@@ -83,17 +85,32 @@ func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
 
 // DownloadLink builds a URL to download the object.
 func (rc *requestContext) DownloadLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid))
+	rel := path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid))
+	// If AppURL is root ("/"), try to return an absolute URL using the
+	// request host when available to avoid git-lfs "missing protocol" errors.
+	// issue: https://github.com/go-gitea/gitea/issues/19345
+	if setting.AppURL == "/" && rc.HostURL != "" {
+		return rc.HostURL + "/" + strings.TrimPrefix(rel, "/")
+	}
+	return setting.AppURL + rel
 }
 
 // UploadLink builds a URL to upload the object.
 func (rc *requestContext) UploadLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid), strconv.FormatInt(p.Size, 10))
+	rel := path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid), strconv.FormatInt(p.Size, 10))
+	if setting.AppURL == "/" && rc.HostURL != "" {
+		return rc.HostURL + "/" + strings.TrimPrefix(rel, "/")
+	}
+	return setting.AppURL + rel
 }
 
 // VerifyLink builds a URL for verifying the object.
 func (rc *requestContext) VerifyLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/verify")
+	rel := path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/verify")
+	if setting.AppURL == "/" && rc.HostURL != "" {
+		return rc.HostURL + "/" + strings.TrimPrefix(rel, "/")
+	}
+	return setting.AppURL + rel
 }
 
 // CheckAcceptMediaType checks if the client accepts the LFS media type.
@@ -426,6 +443,7 @@ func getRequestContext(ctx *context.Context) *requestContext {
 		Repo:          strings.TrimSuffix(ctx.PathParam("reponame"), ".git"),
 		Authorization: ctx.Req.Header.Get("Authorization"),
 		Method:        ctx.Req.Method,
+		HostURL:       httplib.GuessCurrentHostURL(ctx),
 	}
 }
 
