@@ -10,7 +10,6 @@
 				{{if .IsOrganizationOwner}}
 					<div class="ui top attached segment">
 						<form class="ui form ignore-dirty tw-flex tw-flex-wrap tw-gap-2" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
-							{{.CsrfTokenHtml}}
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
 							<div id="search-user-box" class="ui search tw-mr-2"{{if .IsEmailInviteEnabled}} data-allow-email="true" data-allow-email-description="{{ctx.Locale.Tr "org.teams.invite_team_member" $.Team.Name}}"{{end}}>
 								<div class="ui input">
@@ -62,7 +61,6 @@
 								</div>
 								<div class="flex-item-trailing">
 									<form action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove_invite" method="post">
-										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="iid" value="{{.ID}}">
 										<button class="ui red button">{{ctx.Locale.Tr "org.members.remove"}}</button>
 									</form>
