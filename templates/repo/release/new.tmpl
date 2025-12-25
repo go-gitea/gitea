@@ -19,7 +19,6 @@
 			data-tag-helper-new="{{ctx.Locale.Tr "repo.release.tag_helper_new"}}"
 			data-tag-helper-existing="{{ctx.Locale.Tr "repo.release.tag_helper_existing"}}"
 		>
-			{{.CsrfTokenHtml}}
 			<div class="inline field {{if .Err_TagName}}error{{end}}">
 				<label class="tw-block tw-mb-1"><b>{{ctx.Locale.Tr "repo.git_tag"}}</b></label>
 				{{if .PageIsEditRelease}}

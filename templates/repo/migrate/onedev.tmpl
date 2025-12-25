@@ -8,7 +8,6 @@
 			{{template "base/alert" .}}
 			<form class="ui form left-right-form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
 
 				<input id="service_type" type="hidden" name="service" value="{{.service}}">
 

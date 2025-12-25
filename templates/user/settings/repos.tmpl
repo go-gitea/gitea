@@ -43,7 +43,6 @@
 														<p>{{ctx.Locale.Tr "repo.adopt_preexisting_content" $dir}}</p>
 													</div>
 													<form class="ui form" method="post" action="{{AppSubUrl}}/user/settings/repos/unadopted">
-														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="adopt">
 														{{template "base/modal_actions_confirm" $}}
@@ -60,7 +59,6 @@
 														<p>{{ctx.Locale.Tr "repo.delete_preexisting_content" $dir}}</p>
 													</div>
 													<form class="ui form" method="post" action="{{AppSubUrl}}/user/settings/repos/unadopted">
-														{{$.CsrfTokenHtml}}
 														<input type="hidden" name="id" value="{{$dir}}">
 														<input type="hidden" name="action" value="delete">
 														{{template "base/modal_actions_confirm" $}}
