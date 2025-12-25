@@ -8,8 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -589,12 +587,11 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		}
 		defer ret.Close()
 
-		pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
-		if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
+		if err = gitrepo.MkRepoDir(ctx, g.repo, "pulls"); err != nil {
 			return err
 		}
 
-		f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
+		f, err := gitrepo.CreateRepoFile(ctx, g.repo, "pulls/"+fmt.Sprintf("%d.patch", pr.Number))
 		if err != nil {
 			return err
 		}
@@ -739,7 +736,7 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 		if pr.Base.Ref != "" && pr.Head.SHA != "" {
 			// A PR against a tag base does not make sense - therefore pr.Base.Ref must be a branch
 			// TODO: should we be checking for the refs/heads/ prefix on the pr.Base.Ref? (i.e. are these actually branches or refs)
-			pr.Base.SHA, _, err = g.gitRepo.GetMergeBase("", git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
+			pr.Base.SHA, err = gitrepo.MergeBase(ctx, g.repo, git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
 			if err != nil {
 				log.Error("Cannot determine the merge base for PR #%d in %s/%s. Error: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}

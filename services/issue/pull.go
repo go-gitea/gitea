@@ -7,34 +7,15 @@ import (
 	"context"
 	"fmt"
 	"slices"
-	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
-
-func getMergeBase(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, pr *issues_model.PullRequest, baseBranch, headBranch string) (string, error) {
-	// Add a temporary remote
-	tmpRemote := fmt.Sprintf("mergebase-%d-%d", pr.ID, time.Now().UnixNano())
-	if err := gitrepo.GitRemoteAdd(ctx, repo, tmpRemote, gitRepo.Path); err != nil {
-		return "", fmt.Errorf("GitRemoteAdd: %w", err)
-	}
-	defer func() {
-		if err := gitrepo.GitRemoteRemove(graceful.GetManager().ShutdownContext(), repo, tmpRemote); err != nil {
-			log.Error("getMergeBase: GitRemoteRemove: %v", err)
-		}
-	}()
-
-	mergeBase, _, err := gitRepo.GetMergeBase(tmpRemote, baseBranch, headBranch)
-	return mergeBase, err
-}
 
 type ReviewRequestNotifier struct {
 	Comment    *issues_model.Comment
@@ -99,14 +80,16 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	// get the mergebase
-	mergeBase, err := getMergeBase(ctx, pr.BaseRepo, repo, pr, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
-	if err != nil {
-		return nil, err
+	if pr.MergeBase == "" {
+		mergeBase, err := gitrepo.MergeBaseFromRemote(ctx, pr.BaseRepo, pr.HeadRepo, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
+		if err != nil {
+			return nil, err
+		}
+		pr.MergeBase = mergeBase
 	}
-
 	// https://github.com/go-gitea/gitea/issues/29763, we need to get the files changed
 	// between the merge base and the head commit but not the base branch and the head commit
-	changedFiles, err := repo.GetFilesChangedBetween(mergeBase, pr.GetGitHeadRefName())
+	changedFiles, err := repo.GetFilesChangedBetween(pr.MergeBase, pr.GetGitHeadRefName())
 	if err != nil {
 		return nil, err
 	}
