@@ -69,13 +69,13 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		DirectComparison: directComparison,
 	}
 
-	compareInfo.HeadCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, headRef.ShortName())
+	compareInfo.HeadCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, headRef.String())
 	if err != nil {
-		compareInfo.HeadCommitID = headRef.ShortName()
+		compareInfo.HeadCommitID = headRef.String()
 	}
 
 	// FIXME: It seems we don't need mergebase if it's a direct comparison?
-	compareInfo.MergeBase, remoteBranch, err = headGitRepo.GetMergeBase(tmpRemote, baseRef.ShortName(), headRef.ShortName())
+	compareInfo.MergeBase, remoteBranch, err = headGitRepo.GetMergeBase(tmpRemote, baseRef.String(), headRef.String())
 	if err == nil {
 		compareInfo.BaseCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, remoteBranch)
 		if err != nil {
@@ -90,7 +90,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 
 		// We have a common base - therefore we know that ... should work
 		if !fileOnly {
-			compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, baseCommitID+separator+headRef.ShortName())
+			compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, baseCommitID+separator+headRef.String())
 			if err != nil {
 				return nil, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
 			}
@@ -109,7 +109,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	// Count number of changed files.
 	// This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(remoteBranch, headRef.ShortName(), directComparison)
+	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(remoteBranch, headRef.String(), directComparison)
 	if err != nil {
 		return nil, err
 	}
