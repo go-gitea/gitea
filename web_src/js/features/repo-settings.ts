@@ -5,7 +5,7 @@ import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {globMatch} from '../utils/glob.ts';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl} = window.config;
 
 function initRepoSettingsCollaboration() {
   // Change collaborator access mode
@@ -56,7 +56,6 @@ function initRepoSettingsSearchTeamBox() {
     rawResponse: true,
     apiSettings: {
       url: `${appSubUrl}/org/${searchTeamBox.getAttribute('data-org-name')}/teams/-/search?q={query}`,
-      headers: {'X-Csrf-Token': csrfToken},
       onResponse(response: any) {
         const items: Array<Record<string, any>> = [];
         for (const item of response.data) {

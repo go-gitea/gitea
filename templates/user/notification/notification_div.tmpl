@@ -15,7 +15,6 @@
 			</div>
 			{{if and (not $pageTypeIsRead) $notificationUnreadCount}}
 				<form action="{{AppSubUrl}}/notifications/purge" method="post">
-					{{$.CsrfTokenHtml}}
 					<button class="ui mini button primary tw-mr-0" title="{{ctx.Locale.Tr "notification.mark_all_as_read"}}">
 						{{svg "octicon-checklist"}}
 					</button>
@@ -57,7 +56,6 @@
 					<form class="notifications-buttons" action="{{AppSubUrl}}/notifications/status?type={{$.PageType}}&page={{$.Page.Paginater.Current}}&perPage={{$.Page.Paginater.PagingNum}}" method="post"
 								hx-boost="true" hx-target="#notification_div" hx-swap="outerHTML"
 					>
-						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="notification_id" value="{{$one.ID}}">
 						{{if ne $one.Status $statusPinned}}
 							<button class="btn interact-bg tw-p-2" data-tooltip-content="{{ctx.Locale.Tr "notification.pin"}}"
