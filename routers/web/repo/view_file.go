@@ -86,6 +86,8 @@ func handleFileViewRenderMarkup(ctx *context.Context, prefetchBuf []byte, utf8Re
 		ctx.ServerError("Render", err)
 		return true
 	}
+
+	ctx.Data["FileTocHTML"] = renderSidebarTocHTML(rctx)
 	return true
 }
 

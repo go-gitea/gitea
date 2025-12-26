@@ -202,6 +202,8 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
 			delete(ctx.Data, "IsMarkup")
 		}
+
+		ctx.Data["ReadmeTocHTML"] = renderSidebarTocHTML(rctx)
 	}
 
 	if ctx.Data["IsMarkup"] != true {
