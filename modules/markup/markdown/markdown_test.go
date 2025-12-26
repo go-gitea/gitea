@@ -484,20 +484,20 @@ foo: bar
 func TestRenderLinks(t *testing.T) {
 	input := `  space @mention-user${SPACE}${SPACE}
 /just/a/path.bin
-https://example.com/file.bin
+http://localhost:3000/file.bin
 [local link](file.bin)
-[remote link](https://example.com)
+[remote link](http://localhost:3000)
 [[local link|file.bin]]
-[[remote link|https://example.com]]
+[[remote link|http://localhost:3000]]
 ![local image](image.jpg)
 ![local image](path/file)
 ![local image](/path/file)
-![remote image](https://example.com/image.jpg)
+![remote image](http://localhost:3000/image.jpg)
 [[local image|image.jpg]]
-[[remote link|https://example.com/image.jpg]]
-https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash
+[[remote link|http://localhost:3000/image.jpg]]
+http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb
+http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 :+1:
 mail@domain.com
@@ -508,20 +508,20 @@ mail@domain.com
 	input = strings.ReplaceAll(input, "${SPACE}", " ") // replace ${SPACE} with " ", to avoid some editor's auto-trimming
 	expected := `<p>space @mention-user<br/>
 /just/a/path.bin
-<a href="https://example.com/file.bin" rel="nofollow">https://example.com/file.bin</a>
+<a href="http://localhost:3000/file.bin" rel="nofollow">http://localhost:3000/file.bin</a>
 <a href="/file.bin" rel="nofollow">local link</a>
-<a href="https://example.com" rel="nofollow">remote link</a>
+<a href="http://localhost:3000" rel="nofollow">remote link</a>
 <a href="/file.bin" rel="nofollow">local link</a>
-<a href="https://example.com" rel="nofollow">remote link</a>
+<a href="http://localhost:3000" rel="nofollow">remote link</a>
 <a href="/image.jpg" target="_blank" rel="nofollow noopener"><img src="/image.jpg" alt="local image"/></a>
 <a href="/path/file" target="_blank" rel="nofollow noopener"><img src="/path/file" alt="local image"/></a>
 <a href="/path/file" target="_blank" rel="nofollow noopener"><img src="/path/file" alt="local image"/></a>
-<a href="https://example.com/image.jpg" target="_blank" rel="nofollow noopener"><img src="https://example.com/image.jpg" alt="remote image"/></a>
+<a href="http://localhost:3000/image.jpg" target="_blank" rel="nofollow noopener"><img src="http://localhost:3000/image.jpg" alt="remote image"/></a>
 <a href="/image.jpg" rel="nofollow"><img src="/image.jpg" title="local image" alt="local image"/></a>
-<a href="https://example.com/image.jpg" rel="nofollow"><img src="https://example.com/image.jpg" title="remote link" alt="remote link"/></a>
-<a href="https://example.com/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
+<a href="http://localhost:3000/image.jpg" rel="nofollow"><img src="http://localhost:3000/image.jpg" title="remote link" alt="remote link"/></a>
+<a href="http://localhost:3000/user/repo/compare/88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb#hash" rel="nofollow"><code>88fc37a3c0...12fc37a3c0 (hash)</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb...12fc37a3c0a4dda553bdcfc80c178a58247f42fb pare
-<a href="https://example.com/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a>
+<a href="http://localhost:3000/user/repo/commit/88fc37a3c0a4dda553bdcfc80c178a58247f42fb" rel="nofollow"><code>88fc37a3c0</code></a>
 com 88fc37a3c0a4dda553bdcfc80c178a58247f42fb mit
 <span class="emoji" aria-label="thumbs up">👍</span>
 <a href="mailto:mail@domain.com" rel="nofollow">mail@domain.com</a>
