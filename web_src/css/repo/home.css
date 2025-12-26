@@ -144,7 +144,7 @@
 }
 
 .file-view-toc summary {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   cursor: pointer;
   padding: 8px 0;
   color: var(--color-text);
