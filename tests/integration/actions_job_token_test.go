@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
