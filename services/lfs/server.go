@@ -86,31 +86,19 @@ func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
 // DownloadLink builds a URL to download the object.
 func (rc *requestContext) DownloadLink(p lfs_module.Pointer) string {
 	rel := path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid))
-	// If AppURL is root ("/"), try to return an absolute URL using the
-	// request host when available to avoid git-lfs "missing protocol" errors.
-	// issue: https://github.com/go-gitea/gitea/issues/19345
-	if setting.AppURL == "/" && rc.HostURL != "" {
-		return rc.HostURL + "/" + strings.TrimPrefix(rel, "/")
-	}
-	return setting.AppURL + rel
+	return rc.HostURL + "/" + strings.TrimPrefix(rel, "/")
 }
 
 // UploadLink builds a URL to upload the object.
 func (rc *requestContext) UploadLink(p lfs_module.Pointer) string {
 	rel := path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid), strconv.FormatInt(p.Size, 10))
-	if setting.AppURL == "/" && rc.HostURL != "" {
-		return rc.HostURL + "/" + strings.TrimPrefix(rel, "/")
-	}
-	return setting.AppURL + rel
+	return rc.HostURL + "/" + strings.TrimPrefix(rel, "/")
 }
 
 // VerifyLink builds a URL for verifying the object.
 func (rc *requestContext) VerifyLink(p lfs_module.Pointer) string {
 	rel := path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/verify")
-	if setting.AppURL == "/" && rc.HostURL != "" {
-		return rc.HostURL + "/" + strings.TrimPrefix(rel, "/")
-	}
-	return setting.AppURL + rel
+	return rc.HostURL + "/" + strings.TrimPrefix(rel, "/")
 }
 
 // CheckAcceptMediaType checks if the client accepts the LFS media type.
