@@ -34,6 +34,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	git_service "code.gitea.io/gitea/services/git"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -1066,14 +1067,14 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 	if pull.HasMerged {
 		baseBranch = pull.MergeBase
 	}
-	prInfo, err := GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, baseBranch, pull.GetGitHeadRefName(), true, false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, git.RefNameFromBranch(baseBranch), git.RefName(pull.GetGitHeadRefName()), true, false)
 	if err != nil {
 		return nil, "", err
 	}
 
-	commits := make([]CommitInfo, 0, len(prInfo.Commits))
+	commits := make([]CommitInfo, 0, len(compareInfo.Commits))
 
-	for _, commit := range prInfo.Commits {
+	for _, commit := range compareInfo.Commits {
 		var committerOrAuthorName string
 		var commitTime time.Time
 		if commit.Author != nil {
