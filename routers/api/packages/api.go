@@ -4,6 +4,7 @@
 package packages
 
 import (
+	"fmt"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -108,11 +109,13 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				// If package is not linked to any repo (org-level package), deny access from Actions
 				// Actions tokens should only access packages linked to repos
 				if packageRepoID == 0 {
+					fmt.Printf("DEBUG: packageRepoID is 0 for pkgID %d. Denying access.\n", ctx.Package.Descriptor.Package.ID)
 					ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "Actions tokens cannot access packages not linked to a repository")
 					return
 				}
 
 				if task.RepoID != packageRepoID {
+					fmt.Printf("DEBUG: taskRepoID %d != packageRepoID %d. Checking cross-repo.\n", task.RepoID, packageRepoID)
 					// Cross-repository access - check org policy
 					cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
 					if err != nil {
