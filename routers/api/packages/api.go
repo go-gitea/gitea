@@ -4,7 +4,6 @@
 package packages
 
 import (
-	"fmt"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -124,7 +123,6 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				}
 
 				if task.RepoID != packageRepoID {
-					fmt.Printf("DEBUG: taskRepoID %d != packageRepoID %d. Checking cross-repo.\n", task.RepoID, packageRepoID)
 					// Cross-repository access - check org policy
 					cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
 					if err != nil {

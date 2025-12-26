@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -383,6 +384,11 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			require.NoError(t, packages_model.SetRepositoryLink(t.Context(), pkg.ID, repoBID))
 
 			// By default, cross-repo is disabled
+			// Explicitly set it to false to ensure test determinism (in case defaults change)
+			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
+				AllowCrossRepoAccess: false,
+			}))
+
 			// Try to download with cross-repo disabled - should fail
 			downloadReqDenied := NewRequest(t, "GET", packageURL)
 			downloadReqDenied.Header.Set("Authorization", "Bearer "+task.Token)
