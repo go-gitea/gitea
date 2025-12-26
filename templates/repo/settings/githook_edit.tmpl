@@ -6,7 +6,6 @@
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "repo.settings.githook_edit_desc"}}</p>
 			<form class="ui form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
 				{{with .Hook}}
 					<div class="inline field">
 						<label>{{ctx.Locale.Tr "repo.settings.githook_name"}}</label>

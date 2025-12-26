@@ -36,8 +36,6 @@ var (
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
 	DisableQueryAuthToken              bool
-	CSRFCookieName                     = "_csrf"
-	CSRFCookieHTTPOnly                 = true
 	RecordUserSignupMetadata           = false
 	TwoFactorAuthEnforced              = false
 )
@@ -139,7 +137,6 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		log.Fatal("The provided password hash algorithm was invalid: %s", sec.Key("PASSWORD_HASH_ALGO").MustString(""))
 	}
 
-	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
