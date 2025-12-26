@@ -3,7 +3,6 @@ import comments from '@eslint-community/eslint-plugin-eslint-comments';
 import github from 'eslint-plugin-github';
 import globals from 'globals';
 import importPlugin from 'eslint-plugin-import-x';
-import noUseExtendNative from 'eslint-plugin-no-use-extend-native';
 import playwright from 'eslint-plugin-playwright';
 import regexp from 'eslint-plugin-regexp';
 import sonarjs from 'eslint-plugin-sonarjs';
@@ -58,7 +57,6 @@ export default defineConfig([
       'array-func': arrayFunc,
       // @ts-expect-error -- https://github.com/un-ts/eslint-plugin-import-x/issues/203
       'import-x': importPlugin,
-      'no-use-extend-native': noUseExtendNative,
       regexp,
       sonarjs,
       unicorn,
@@ -155,7 +153,7 @@ export default defineConfig([
       '@typescript-eslint/ban-tslint-comment': [0],
       '@typescript-eslint/class-literal-property-style': [0],
       '@typescript-eslint/class-methods-use-this': [0],
-      '@typescript-eslint/consistent-generic-constructors': [0],
+      '@typescript-eslint/consistent-generic-constructors': [2, 'constructor'],
       '@typescript-eslint/consistent-indexed-object-style': [0],
       '@typescript-eslint/consistent-return': [0],
       '@typescript-eslint/consistent-type-assertions': [2, {assertionStyle: 'as', objectLiteralTypeAssertions: 'allow'}],
@@ -217,7 +215,7 @@ export default defineConfig([
       '@typescript-eslint/no-unnecessary-condition': [0],
       '@typescript-eslint/no-unnecessary-qualifier': [0],
       '@typescript-eslint/no-unnecessary-template-expression': [0],
-      '@typescript-eslint/no-unnecessary-type-arguments': [0],
+      '@typescript-eslint/no-unnecessary-type-arguments': [2],
       '@typescript-eslint/no-unnecessary-type-assertion': [2],
       '@typescript-eslint/no-unnecessary-type-constraint': [2],
       '@typescript-eslint/no-unnecessary-type-conversion': [2],
@@ -230,10 +228,12 @@ export default defineConfig([
       '@typescript-eslint/no-unsafe-member-access': [0],
       '@typescript-eslint/no-unsafe-return': [0],
       '@typescript-eslint/no-unsafe-unary-minus': [2],
-      '@typescript-eslint/no-unused-expressions': [0],
+      '@typescript-eslint/no-unused-expressions': [2],
+      '@typescript-eslint/no-unused-private-class-members': [2],
       '@typescript-eslint/no-unused-vars': [2, {vars: 'all', args: 'all', caughtErrors: 'all', ignoreRestSiblings: false, argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_'}],
       '@typescript-eslint/no-use-before-define': [2, {functions: false, classes: true, variables: true, allowNamedExports: true, typedefs: false, enums: false, ignoreTypeReferences: true}],
       '@typescript-eslint/no-useless-constructor': [0],
+      '@typescript-eslint/no-useless-default-assignment': [0], // https://github.com/typescript-eslint/typescript-eslint/issues/11847
       '@typescript-eslint/no-useless-empty-export': [0],
       '@typescript-eslint/no-wrapper-object-types': [2],
       '@typescript-eslint/non-nullable-type-assertion-style': [0],
@@ -585,12 +585,11 @@ export default defineConfig([
       'no-unreachable': [2],
       'no-unsafe-finally': [2],
       'no-unsafe-negation': [2],
-      'no-unused-expressions': [2],
+      'no-unused-expressions': [0], // handled by @typescript-eslint/no-unused-expressions
       'no-unused-labels': [2],
-      'no-unused-private-class-members': [2],
+      'no-unused-private-class-members': [0], // handled by @typescript-eslint/no-unused-private-class-members
       'no-unused-vars': [0], // handled by @typescript-eslint/no-unused-vars
       'no-use-before-define': [0], // handled by @typescript-eslint/no-use-before-define
-      'no-use-extend-native/no-use-extend-native': [2],
       'no-useless-assignment': [2],
       'no-useless-backreference': [2],
       'no-useless-call': [2],
@@ -935,7 +934,6 @@ export default defineConfig([
   },
   {
     files: ['**/*.test.ts', 'web_src/js/test/setup.ts'],
-    // @ts-expect-error - https://github.com/vitest-dev/eslint-plugin-vitest/issues/737
     plugins: {vitest},
     languageOptions: {globals: globals.vitest},
     rules: {

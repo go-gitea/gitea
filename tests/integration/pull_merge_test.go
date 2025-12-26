@@ -33,6 +33,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/automergequeue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -41,6 +42,7 @@ import (
 	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type MergeOptions struct {
@@ -49,38 +51,27 @@ type MergeOptions struct {
 	DeleteBranch bool
 }
 
-func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
-	resp := session.MakeRequest(t, req, http.StatusOK)
-
-	htmlDoc := NewHTMLParser(t, resp.Body)
-	link := path.Join(user, repo, "pulls", pullnum, "merge")
-
+func testPullMerge(t *testing.T, session *TestSession, user, repo, pullNum string, mergeOptions MergeOptions) *httptest.ResponseRecorder {
 	options := map[string]string{
-		"_csrf":          htmlDoc.GetCSRF(),
-		"do":             string(mergeOptions.Style),
-		"head_commit_id": mergeOptions.HeadCommitID,
+		"do":                        string(mergeOptions.Style),
+		"head_commit_id":            mergeOptions.HeadCommitID,
+		"delete_branch_after_merge": util.Iif(mergeOptions.DeleteBranch, "on", ""),
 	}
+	var resp *httptest.ResponseRecorder
+	require.Eventually(t, func() bool {
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/pulls/%s/merge", user, repo, pullNum), options)
+		resp = session.MakeRequest(t, req, NoExpectedStatus)
+		return resp.Code == http.StatusOK
+	}, 5*time.Second, 50*time.Millisecond, "Timed out waiting for pull merge to succeed")
 
-	if mergeOptions.DeleteBranch {
-		options["delete_branch_after_merge"] = "on"
-	}
+	redirect := test.RedirectURL(resp)
+	assert.Equal(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullNum), redirect)
 
-	req = NewRequestWithValues(t, "POST", link, options)
-	resp = session.MakeRequest(t, req, http.StatusOK)
-
-	respJSON := struct {
-		Redirect string
-	}{}
-	DecodeJSON(t, resp, &respJSON)
-
-	assert.Equal(t, fmt.Sprintf("/%s/%s/pulls/%s", user, repo, pullnum), respJSON.Redirect)
-
-	pullnumInt, err := strconv.ParseInt(pullnum, 10, 64)
+	pullNumInt, err := strconv.ParseInt(pullNum, 10, 64)
 	assert.NoError(t, err)
 	repository, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), user, repo)
 	assert.NoError(t, err)
-	pull, err := issues_model.GetPullRequestByIndex(t.Context(), repository.ID, pullnumInt)
+	pull, err := issues_model.GetPullRequestByIndex(t.Context(), repository.ID, pullNumInt)
 	assert.NoError(t, err)
 	assert.True(t, pull.HasMerged)
 
@@ -95,9 +86,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find(".timeline-item .delete-branch-after-merge").Attr("data-url")
 	assert.True(t, exists, "The template has changed, can not find delete button url")
-	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-	})
+	req = NewRequest(t, "POST", link)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	return resp
@@ -842,11 +831,8 @@ func TestPullAutoMergeAfterCommitStatusSucceed(t *testing.T) {
 			HeadBranch: "master",
 		})
 
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
 		// Change the "master" branch to "protected"
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                 csrf,
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
@@ -935,11 +921,8 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 			HeadBranch: "master",
 		})
 
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                 csrf,
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
@@ -991,10 +974,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApproval(t *testing.T) {
 
 		// approve the PR from non-author
 		approveSession := loginUser(t, "user2")
-		req = NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d", pr.Index))
-		resp := approveSession.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		testSubmitReview(t, approveSession, htmlDoc.GetCSRF(), "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
+		testSubmitReview(t, approveSession, "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
 
 		time.Sleep(2 * time.Second)
 
@@ -1065,11 +1045,8 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		})
 
 		session := loginUser(t, "user1")
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		req := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                 csrf,
 			"rule_name":             "master",
 			"enable_push":           "true",
 			"enable_status_check":   "true",
@@ -1120,10 +1097,7 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 
 		// approve the PR from non-author
 		approveSession := loginUser(t, "user1")
-		req = NewRequest(t, "GET", fmt.Sprintf("/user2/repo1/pulls/%d", pr.Index))
-		resp := approveSession.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-		testSubmitReview(t, approveSession, htmlDoc.GetCSRF(), "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
+		testSubmitReview(t, approveSession, "user2", "repo1", strconv.Itoa(int(pr.Index)), sha, "approve", http.StatusOK)
 
 		// reload pr again
 		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
@@ -1154,11 +1128,8 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 			HeadBranch: "master",
 		})
 
-		// add protected branch for commit status
-		csrf := GetUserCSRFToken(t, session)
 		// Change master branch to protected
 		pbCreateReq := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
-			"_csrf":                      csrf,
 			"rule_name":                  "master",
 			"enable_push":                "true",
 			"enable_status_check":        "true",
@@ -1170,7 +1141,6 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
 		mergeReq := NewRequestWithValues(t, "POST", "/api/v1/repos/user2/repo1/pulls/6/merge", map[string]string{
-			"_csrf":                     csrf,
 			"head_commit_id":            "",
 			"merge_when_checks_succeed": "false",
 			"force_merge":               "true",
@@ -1178,5 +1148,174 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 		}).AddTokenAuth(token)
 
 		session.MakeRequest(t, mergeReq, http.StatusMethodNotAllowed)
+	})
+}
+
+func TestPullSquashMergeEmpty(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user1")
+		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "pr-squash-empty", "README.md", "Hello, World (Edited)\n")
+		resp := testPullCreate(t, session, "user2", "repo1", false, "master", "pr-squash-empty", "This is a pull title")
+
+		elem := strings.Split(test.RedirectURL(resp), "/")
+		assert.Equal(t, "pulls", elem[3])
+
+		httpContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
+		dstPath := t.TempDir()
+
+		u.Path = httpContext.GitPath()
+		u.User = url.UserPassword("user2", userPassword)
+
+		t.Run("Clone", doGitClone(dstPath, u))
+		doGitCheckoutBranch(dstPath, "-b", "pr-squash-empty", "remotes/origin/pr-squash-empty")(t)
+		doGitCheckoutBranch(dstPath, "master")(t)
+		_, _, err := gitcmd.NewCommand("cherry-pick").AddArguments("pr-squash-empty").
+			WithDir(dstPath).
+			RunStdString(t.Context())
+		assert.NoError(t, err)
+
+		doGitPushTestRepository(dstPath)(t)
+
+		testPullMerge(t, session, elem[1], elem[2], elem[4], MergeOptions{
+			Style:        repo_model.MergeStyleSquash,
+			DeleteBranch: false,
+		})
+	})
+}
+
+func TestPullSquashMessage(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		user2Session := loginUser(t, user2.Name)
+
+		defer test.MockVariableValue(&setting.Repository.PullRequest.PopulateSquashCommentWithCommitMessages, true)()
+		defer test.MockVariableValue(&setting.Repository.PullRequest.DefaultMergeMessageSize, 80)()
+
+		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
+			Name:          "squash-message-test",
+			Description:   "Test squash message",
+			AutoInit:      true,
+			Readme:        "Default",
+			DefaultBranch: "main",
+		})
+		require.NoError(t, err)
+
+		type commitInfo struct {
+			userName      string
+			commitMessage string
+		}
+
+		testCases := []struct {
+			name            string
+			commitInfos     []*commitInfo
+			expectedMessage string
+		}{
+			{
+				name: "Single-line messages",
+				commitInfos: []*commitInfo{
+					{
+						userName:      user2.Name,
+						commitMessage: "commit msg 1",
+					},
+					{
+						userName:      user2.Name,
+						commitMessage: "commit msg 2",
+					},
+				},
+				expectedMessage: `* commit msg 1
+
+* commit msg 2
+
+`,
+			},
+			{
+				name: "Multiple-line messages",
+				commitInfos: []*commitInfo{
+					{
+						userName: user2.Name,
+						commitMessage: `commit msg 1
+
+Commit description.`,
+					},
+					{
+						userName: user2.Name,
+						commitMessage: `commit msg 2
+
+- Detail 1
+- Detail 2`,
+					},
+				},
+				expectedMessage: `* commit msg 1
+
+Commit description.
+
+* commit msg 2
+
+- Detail 1
+- Detail 2
+
+`,
+			},
+			{
+				name: "Too long message",
+				commitInfos: []*commitInfo{
+					{
+						userName:      user2.Name,
+						commitMessage: `loooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooong message`,
+					},
+				},
+				expectedMessage: `* looooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo...`,
+			},
+			{
+				name: "Test Co-authored-by",
+				commitInfos: []*commitInfo{
+					{
+						userName:      user2.Name,
+						commitMessage: "commit msg 1",
+					},
+					{
+						userName:      "user4",
+						commitMessage: "commit msg 2",
+					},
+				},
+				expectedMessage: `* commit msg 1
+
+* commit msg 2
+
+---------
+
+Co-authored-by: user4 <user4@example.com>
+`,
+			},
+		}
+
+		for tcNum, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				branchName := "test-branch-" + strconv.Itoa(tcNum)
+				for infoIdx, info := range tc.commitInfos {
+					createFileOpts := createFileInBranchOptions{
+						CommitMessage:  info.commitMessage,
+						CommitterName:  info.userName,
+						CommitterEmail: util.Iif(info.userName != "", info.userName+"@example.com", ""),
+						OldBranch:      util.Iif(infoIdx == 0, "main", branchName),
+						NewBranch:      branchName,
+					}
+					testCreateFileInBranch(t, user2, repo, createFileOpts, map[string]string{"dummy-file-" + strconv.Itoa(infoIdx): "dummy content"})
+				}
+				resp := testPullCreateDirectly(t, user2Session, createPullRequestOptions{
+					BaseRepoOwner: user2.Name,
+					BaseRepoName:  repo.Name,
+					BaseBranch:    repo.DefaultBranch,
+					HeadBranch:    branchName,
+					Title:         "Pull for " + branchName,
+				})
+				elems := strings.Split(test.RedirectURL(resp), "/")
+				pullIndex, err := strconv.ParseInt(elems[4], 10, 64)
+				assert.NoError(t, err)
+				pullRequest := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{BaseRepoID: repo.ID, Index: pullIndex})
+				squashMergeCommitMessage := pull_service.GetSquashMergeCommitMessages(t.Context(), pullRequest)
+				assert.Equal(t, tc.expectedMessage, squashMergeCommitMessage)
+			})
+		}
 	})
 }

@@ -1,7 +1,7 @@
 <nav id="navbar" aria-label="{{ctx.Locale.Tr "aria.navbar"}}">
 	<div class="navbar-left">
 		<!-- the logo -->
-		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home"}}{{end}}">
+		<a class="item" id="navbar-logo" href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{ctx.Locale.Tr "dashboard"}}{{else}}{{ctx.Locale.Tr "home_title"}}{{end}}">
 			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{ctx.Locale.Tr "logo"}}" aria-hidden="true">
 		</a>
 
@@ -26,11 +26,11 @@
 					<a class="item{{if .PageIsMilestonesDashboard}} active{{end}}" href="{{AppSubUrl}}/milestones">{{ctx.Locale.Tr "milestones"}}</a>
 				{{end}}
 			{{end}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore"}}</a>
+			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore_title"}}</a>
 		{{else if .IsLandingPageOrganizations}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{ctx.Locale.Tr "explore"}}</a>
+			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{ctx.Locale.Tr "explore_title"}}</a>
 		{{else}}
-			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore"}}</a>
+			<a class="item{{if .PageIsExplore}} active{{end}}" href="{{AppSubUrl}}/explore/repos">{{ctx.Locale.Tr "explore_title"}}</a>
 		{{end}}
 
 		{{template "custom/extra_links" .}}
@@ -120,6 +120,13 @@
 						{{svg "octicon-question"}}
 						{{ctx.Locale.Tr "help"}}
 					</a>
+					{{if .IsAdmin}}
+					<div class="divider"></div>
+					<a class="{{if .PageIsAdmin}}active {{end}}item" href="{{AppSubUrl}}/-/admin">
+						{{svg "octicon-server"}}
+						{{ctx.Locale.Tr "admin_panel"}}
+					</a>
+					{{end}}
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout">
 						{{svg "octicon-sign-out"}}
@@ -151,7 +158,6 @@
 				</a>
 				<div class="tw-flex tw-gap-1">
 					<form class="stopwatch-commit form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/stop">
-						{{.CsrfTokenHtml}}
 						<button
 							type="submit"
 							class="ui button mini compact basic icon tw-mr-0"
@@ -159,7 +165,6 @@
 						>{{svg "octicon-square-fill"}}</button>
 					</form>
 					<form class="stopwatch-cancel form-fetch-action" method="post" action="{{$activeStopwatch.IssueLink}}/times/stopwatch/cancel">
-						{{.CsrfTokenHtml}}
 						<button
 							type="submit"
 							class="ui button mini compact basic icon tw-mr-0"

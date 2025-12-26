@@ -28,8 +28,7 @@ import (
 
 func testCreateProjectWorkflow(t *testing.T, session *TestSession, userName, repoName string, projectID int64, event string, workflowData map[string]any) {
 	req := NewRequestWithJSON(t, "POST",
-		fmt.Sprintf("/%s/%s/projects/%d/workflows/%s?_csrf=%s",
-			userName, repoName, projectID, event, GetUserCSRFToken(t, session)),
+		fmt.Sprintf("/%s/%s/projects/%d/workflows/%s", userName, repoName, projectID, event),
 		workflowData)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
@@ -57,10 +56,9 @@ func testNewIssueReturnIssue(t *testing.T, session *TestSession, repo *repo_mode
 
 // testAddIssueToProject adds the issue to the project via web form if projectID == 0, it removes the issue from the project
 func testAddIssueToProject(t *testing.T, session *TestSession, userName, repoName string, projectID, issueID int64) {
-	addToProjectReq := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/issues/projects?_csrf=%s",
-		userName, repoName, GetUserCSRFToken(t, session)),
+	addToProjectReq := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/issues/projects",
+		userName, repoName),
 		map[string]string{
-			"_csrf":     GetUserCSRFToken(t, session),
 			"id":        strconv.FormatInt(projectID, 10),
 			"issue_ids": strconv.FormatInt(issueID, 10),
 		})
@@ -479,7 +477,7 @@ func TestProjectWorkflowExecutionColumnChanged(t *testing.T) {
 
 	// Move to "To Do" first
 	moveReq := NewRequestWithJSON(t, "POST",
-		fmt.Sprintf("/%s/%s/projects/%d/%d/move?_csrf=%s", user.Name, repo.Name, project.ID, columnToDo.ID, GetUserCSRFToken(t, session)),
+		fmt.Sprintf("/%s/%s/projects/%d/%d/move", user.Name, repo.Name, project.ID, columnToDo.ID),
 		map[string]any{
 			"issues": []map[string]any{
 				{
@@ -492,7 +490,7 @@ func TestProjectWorkflowExecutionColumnChanged(t *testing.T) {
 
 	// Move to "Done" - triggers workflow
 	moveReq = NewRequestWithJSON(t, "POST",
-		fmt.Sprintf("/%s/%s/projects/%d/%d/move?_csrf=%s", user.Name, repo.Name, project.ID, columnDone.ID, GetUserCSRFToken(t, session)),
+		fmt.Sprintf("/%s/%s/projects/%d/%d/move", user.Name, repo.Name, project.ID, columnDone.ID),
 		map[string]any{
 			"issues": []map[string]any{
 				{
@@ -566,8 +564,7 @@ func TestProjectWorkflowExecutionCodeChangesRequested(t *testing.T) {
 	user2Session := loginUser(t, "user2")
 	prURL := fmt.Sprintf("/%s/%s/pulls/%d", user.Name, repo.Name, pr.Issue.Index)
 	req := NewRequest(t, "GET", prURL+"/files")
-	resp := user2Session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
+	user2Session.MakeRequest(t, req, http.StatusOK)
 	gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
@@ -575,7 +572,7 @@ func TestProjectWorkflowExecutionCodeChangesRequested(t *testing.T) {
 	commitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	assert.NoError(t, err)
 
-	testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), user.Name, repo.Name, strconv.FormatInt(pr.Issue.Index, 10), commitID, "reject", http.StatusOK)
+	testSubmitReview(t, user2Session, user.Name, repo.Name, strconv.FormatInt(pr.Issue.Index, 10), commitID, "reject", http.StatusOK)
 
 	// Verify workflow executed: PR should have "needs-changes" label
 	issue, err := issues_model.GetIssueByID(t.Context(), pr.Issue.ID)
@@ -640,8 +637,8 @@ func TestProjectWorkflowExecutionCodeReviewApproved(t *testing.T) {
 	user2Session := loginUser(t, "user2")
 	prURL := fmt.Sprintf("/%s/%s/pulls/%d", user.Name, repo.Name, pr.Issue.Index)
 	req := NewRequest(t, "GET", prURL+"/files")
-	resp := user2Session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
+	user2Session.MakeRequest(t, req, http.StatusOK)
+
 	gitRepo, err := gitrepo.OpenRepository(t.Context(), pr.BaseRepo)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
@@ -649,7 +646,7 @@ func TestProjectWorkflowExecutionCodeReviewApproved(t *testing.T) {
 	commitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 	assert.NoError(t, err)
 
-	testSubmitReview(t, user2Session, htmlDoc.GetCSRF(), user.Name, repo.Name, strconv.FormatInt(pr.Issue.Index, 10), commitID, "approve", http.StatusOK)
+	testSubmitReview(t, user2Session, user.Name, repo.Name, strconv.FormatInt(pr.Issue.Index, 10), commitID, "approve", http.StatusOK)
 
 	// Verify workflow executed: PR should be in "Ready to Merge" column and have "approved" label
 	issue, err := issues_model.GetIssueByID(t.Context(), pr.Issue.ID)
@@ -735,12 +732,10 @@ func TestProjectWorkflowExecutionPullRequestMerged(t *testing.T) {
 		// Merge the PR (as user2, who has permission)
 		prURL := "/user2/repo1/pulls/" + prNum
 		req := NewRequest(t, "GET", prURL)
-		resp = user2Session.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
+		user2Session.MakeRequest(t, req, http.StatusOK)
 
 		req = NewRequestWithValues(t, "POST", path.Join(prURL, "merge"), map[string]string{
-			"_csrf": htmlDoc.GetCSRF(),
-			"do":    string(repo_model.MergeStyleMerge),
+			"do": string(repo_model.MergeStyleMerge),
 		})
 		user2Session.MakeRequest(t, req, http.StatusOK)
 

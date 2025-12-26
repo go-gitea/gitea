@@ -1,5 +1,5 @@
 {{$file := .file}}
-{{/* this tmpl is also used by the PR Conversation page, so the "AfterCommitID" and "DiffBlobExcerptData" may not exist */}}
+{{/* this tmpl is also used by the PR Conversation page, so "DiffBlobExcerptData" may not exist */}}
 {{$diffBlobExcerptData := $.root.DiffBlobExcerptData}}
 <colgroup>
 	<col width="50">
@@ -12,10 +12,10 @@
 	{{range $k, $line := $section.Lines}}
 		<tr class="{{.GetHTMLDiffLineType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{.GetHTMLDiffLineType}}">
 			{{if eq .GetType 4}}
-				{{if $.root.AfterCommitID}}
+				{{if $diffBlobExcerptData}}
 					<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $file.NameHash $diffBlobExcerptData}}</td>
 				{{else}}
-					{{/* for code file preview page or comment diffs on pull comment pages, do not show the expansion arrows */}}
+					{{/* when DiffBlobExcerptData is not available (code file preview, pull conversation diff comment), do not show the expansion arrows */}}
 					<td colspan="2" class="lines-num"></td>
 				{{end}}
 			{{else}}

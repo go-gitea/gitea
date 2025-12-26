@@ -182,7 +182,7 @@ func TestProjectWorkflowCreate(t *testing.T) {
 	assert.NoError(t, err)
 
 	req := NewRequestWithBody(t, "POST",
-		fmt.Sprintf("/%s/%s/projects/%d/workflows/item_opened?_csrf=%s", user.Name, repo.Name, project.ID, GetUserCSRFToken(t, session)),
+		fmt.Sprintf("/%s/%s/projects/%d/workflows/item_opened", user.Name, repo.Name, project.ID),
 		strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -263,7 +263,7 @@ func TestProjectWorkflowUpdate(t *testing.T) {
 	assert.NoError(t, err)
 
 	req := NewRequestWithBody(t, "POST",
-		fmt.Sprintf("/%s/%s/projects/%d/workflows/%d?_csrf=%s", user.Name, repo.Name, project.ID, workflow.ID, GetUserCSRFToken(t, session)),
+		fmt.Sprintf("/%s/%s/projects/%d/workflows/%d", user.Name, repo.Name, project.ID, workflow.ID),
 		strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -314,7 +314,7 @@ func TestProjectWorkflowToggleStatus(t *testing.T) {
 	// Test 1: Toggle status from enabled to disabled
 	t.Run("Disable workflow", func(t *testing.T) {
 		req := NewRequestWithValues(t, "POST",
-			fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/status?_csrf=%s", user.Name, repo.Name, project.ID, workflow.ID, GetUserCSRFToken(t, session)),
+			fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/status", user.Name, repo.Name, project.ID, workflow.ID),
 			map[string]string{
 				"enabled": "false",
 			})
@@ -335,7 +335,7 @@ func TestProjectWorkflowToggleStatus(t *testing.T) {
 	// Test 2: Toggle status from disabled to enabled
 	t.Run("Enable workflow", func(t *testing.T) {
 		req := NewRequestWithValues(t, "POST",
-			fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/status?_csrf=%s", user.Name, repo.Name, project.ID, workflow.ID, GetUserCSRFToken(t, session)),
+			fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/status", user.Name, repo.Name, project.ID, workflow.ID),
 			map[string]string{
 				"enabled": "true",
 			})
@@ -385,7 +385,7 @@ func TestProjectWorkflowDelete(t *testing.T) {
 
 	// Delete the workflow
 	req := NewRequest(t, "POST",
-		fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/delete?_csrf=%s", user.Name, repo.Name, project.ID, workflow.ID, GetUserCSRFToken(t, session)))
+		fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/delete", user.Name, repo.Name, project.ID, workflow.ID))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Parse response
@@ -401,7 +401,7 @@ func TestProjectWorkflowDelete(t *testing.T) {
 
 	// Verify we cannot delete it again (should fail gracefully)
 	req = NewRequest(t, "POST",
-		fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/delete?_csrf=%s", user.Name, repo.Name, project.ID, workflow.ID, GetUserCSRFToken(t, session)))
+		fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/delete", user.Name, repo.Name, project.ID, workflow.ID))
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
@@ -441,7 +441,7 @@ func TestProjectWorkflowPermissions(t *testing.T) {
 	// User without write permission should not be able to modify workflows
 	session2 := loginUser(t, user2.Name)
 	req = NewRequest(t, "POST",
-		fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/delete?_csrf=%s", user.Name, repo.Name, project.ID, workflow.ID, GetUserCSRFToken(t, session2)))
+		fmt.Sprintf("/%s/%s/projects/%d/workflows/%d/delete", user.Name, repo.Name, project.ID, workflow.ID))
 	session2.MakeRequest(t, req, http.StatusNotFound) // we use 404 to avoid leaking existence
 }
 
@@ -479,7 +479,7 @@ func TestProjectWorkflowValidation(t *testing.T) {
 		assert.NoError(t, err)
 
 		req := NewRequestWithBody(t, "POST",
-			fmt.Sprintf("/%s/%s/projects/%d/workflows/item_opened?_csrf=%s", user.Name, repo.Name, project.ID, GetUserCSRFToken(t, session)),
+			fmt.Sprintf("/%s/%s/projects/%d/workflows/item_opened", user.Name, repo.Name, project.ID),
 			strings.NewReader(string(body)))
 		req.Header.Set("Content-Type", "application/json")
 		resp := session.MakeRequest(t, req, http.StatusBadRequest)
@@ -537,7 +537,7 @@ func TestProjectWorkflowValidation(t *testing.T) {
 		assert.NoError(t, err)
 
 		req := NewRequestWithBody(t, "POST",
-			fmt.Sprintf("/%s/%s/projects/%d/workflows/%d?_csrf=%s", user.Name, repo.Name, project.ID, workflow.ID, GetUserCSRFToken(t, session)),
+			fmt.Sprintf("/%s/%s/projects/%d/workflows/%d", user.Name, repo.Name, project.ID, workflow.ID),
 			strings.NewReader(string(body)))
 		req.Header.Set("Content-Type", "application/json")
 		resp := session.MakeRequest(t, req, http.StatusBadRequest)

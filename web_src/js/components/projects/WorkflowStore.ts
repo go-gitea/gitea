@@ -23,6 +23,62 @@ type WorkflowDraftState = {
   actions: WorkflowActions;
 };
 
+export type ProjectColumn = {
+  id: string | number;
+  title: string;
+};
+
+export type ProjectLabel = {
+  id: string | number;
+  name: string;
+  color: string;
+};
+
+type WorkflowCapabilities = {
+  available_filters?: string[];
+  available_actions?: string[];
+};
+
+export type WorkflowEvent = {
+  id: number;
+  event_id: string;
+  workflow_event?: string;
+  display_name?: string;
+  summary?: string;
+  enabled?: boolean;
+  capabilities?: WorkflowCapabilities;
+  filters?: Array<{type: string, value: string}>;
+  actions?: Array<{type: string, value: string}>;
+  _isEditing?: boolean;
+  isConfigured?: boolean;
+} & Record<string, unknown>;
+
+type WorkflowStoreState = {
+  workflowEvents: WorkflowEvent[];
+  selectedItem: string | null;
+  selectedWorkflow: WorkflowEvent | null;
+  projectColumns: ProjectColumn[];
+  projectLabels: ProjectLabel[];
+  saving: boolean;
+  loading: boolean;
+  showCreateDialog: boolean;
+  selectedEventType: string | null;
+  workflowFilters: WorkflowFilters;
+  workflowActions: WorkflowActions;
+  workflowDrafts: Record<string, WorkflowDraftState>;
+  getDraft(eventId: string): WorkflowDraftState | undefined;
+  updateDraft(eventId: string, filters: WorkflowFilters, actions: WorkflowActions): void;
+  clearDraft(eventId: string): void;
+  loadEvents(): Promise<WorkflowEvent[]>;
+  loadProjectColumns(): Promise<void>;
+  loadWorkflowData(eventId: string): Promise<void>;
+  loadProjectLabels(): Promise<void>;
+  resetWorkflowData(): void;
+  saveWorkflow(): Promise<void>;
+  saveWorkflowStatus(): Promise<void>;
+  deleteWorkflow(): Promise<void>;
+};
+
 const createDefaultFilters = (): WorkflowFilters => ({issue_type: '', source_column: '', target_column: '', labels: []});
 const createDefaultActions = (): WorkflowActions => ({column: '', add_labels: [], remove_labels: [], issue_state: ''});
 
@@ -80,9 +136,9 @@ const cloneActions = (actions: WorkflowActions): WorkflowActions => ({
   issue_state: actions.issue_state,
 });
 
-export function createWorkflowStore(props: any) {
-  const store = reactive({
-    workflowEvents: [],
+export function createWorkflowStore(props: any): WorkflowStoreState {
+  const store: WorkflowStoreState = reactive<WorkflowStoreState>({
+    workflowEvents: [] as WorkflowEvent[],
     selectedItem: props.eventID,
     selectedWorkflow: null,
     projectColumns: [],
@@ -112,23 +168,23 @@ export function createWorkflowStore(props: any) {
       delete store.workflowDrafts[eventId];
     },
 
-    async loadEvents() {
+    async loadEvents(): Promise<WorkflowEvent[]> {
       const response = await GET(`${props.projectLink}/workflows/events`);
-      store.workflowEvents = await response.json();
+      store.workflowEvents = await response.json() as WorkflowEvent[];
       return store.workflowEvents;
     },
 
-    async loadProjectColumns() {
+    async loadProjectColumns(): Promise<void> {
       try {
         const response = await GET(`${props.projectLink}/workflows/columns`);
-        store.projectColumns = await response.json();
+        store.projectColumns = await response.json() as ProjectColumn[];
       } catch (error) {
         console.error('Failed to load project columns:', error);
         store.projectColumns = [];
       }
     },
 
-    async loadWorkflowData(eventId: string) {
+    async loadWorkflowData(eventId: string): Promise<void> {
       store.loading = true;
       try {
         // Load project columns and labels for the dropdowns
@@ -143,7 +199,7 @@ export function createWorkflowStore(props: any) {
         }
 
         // Find the workflow from existing workflowEvents
-        const workflow = store.workflowEvents.find((e) => e.event_id === eventId);
+        const workflow = store.workflowEvents.find((e: WorkflowEvent) => e.event_id === eventId);
 
         store.workflowFilters = convertFilters(workflow);
         store.workflowActions = convertActions(workflow);
@@ -153,17 +209,17 @@ export function createWorkflowStore(props: any) {
       }
     },
 
-    async loadProjectLabels() {
+    async loadProjectLabels(): Promise<void> {
       try {
         const response = await GET(`${props.projectLink}/workflows/labels`);
-        store.projectLabels = await response.json();
+        store.projectLabels = await response.json() as ProjectLabel[];
       } catch (error) {
         console.error('Failed to load project labels:', error);
         store.projectLabels = [];
       }
     },
 
-    resetWorkflowData() {
+    resetWorkflowData(): void {
       store.workflowFilters = createDefaultFilters();
       store.workflowActions = createDefaultActions();
 
@@ -173,7 +229,7 @@ export function createWorkflowStore(props: any) {
       }
     },
 
-    async saveWorkflow() {
+    async saveWorkflow(): Promise<void> {
       if (!store.selectedWorkflow) return;
 
       // Validate: at least one action must be configured
@@ -235,7 +291,7 @@ export function createWorkflowStore(props: any) {
                                  eventKey.startsWith('new-') ||
                                  eventKey.startsWith('clone-');
 
-          if (wasNewWorkflow) {
+          if (wasNewWorkflow && store.selectedWorkflow.workflow_event) {
             store.clearDraft(store.selectedWorkflow.workflow_event);
           }
 
@@ -243,7 +299,7 @@ export function createWorkflowStore(props: any) {
           await store.loadEvents();
 
           // Find the reloaded workflow which has complete data including capabilities
-          const reloadedWorkflow = store.workflowEvents.find((w) => w.event_id === result.workflow.event_id);
+          const reloadedWorkflow = store.workflowEvents.find((w: WorkflowEvent) => w.event_id === result.workflow.event_id);
 
           if (reloadedWorkflow) {
             // Use the reloaded workflow as it has all the necessary fields
@@ -262,7 +318,7 @@ export function createWorkflowStore(props: any) {
           }
 
           // Update URL to use the new workflow ID
-          if (wasNewWorkflow) {
+          if (wasNewWorkflow && store.selectedWorkflow?.event_id) {
             const newUrl = `${props.projectLink}/workflows/${store.selectedWorkflow.event_id}`;
             window.history.replaceState({eventId: store.selectedWorkflow.event_id}, '', newUrl);
           }
@@ -278,15 +334,19 @@ export function createWorkflowStore(props: any) {
       }
     },
 
-    async saveWorkflowStatus() {
-      if (!store.selectedWorkflow || store.selectedWorkflow.id === 0) return;
+    async saveWorkflowStatus(): Promise<void> {
+      const selected = store.selectedWorkflow;
+      if (!selected || selected.id === 0) return;
+
+      const desiredEnabled = Boolean(selected.enabled);
+      const previousEnabled = !desiredEnabled;
 
       try {
         const formData = new FormData();
-        formData.append('enabled', store.selectedWorkflow.enabled.toString());
+        formData.append('enabled', desiredEnabled.toString());
 
         // Use workflow ID for status update
-        const workflowId = store.selectedWorkflow.id;
+        const workflowId = selected.id;
         const response = await POST(`${props.projectLink}/workflows/${workflowId}/status`, {
           data: formData,
         });
@@ -296,36 +356,37 @@ export function createWorkflowStore(props: any) {
           console.error('Failed to update workflow status:', errorText);
           showErrorToast(`${props.locale.failedToUpdateWorkflowStatus}: ${response.status} ${response.statusText}`);
           // Revert the status change on error
-          store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
+          selected.enabled = previousEnabled;
           return;
         }
 
         const result = await response.json();
         if (result.success) {
           // Update workflow in the list
-          const existingIndex = store.workflowEvents.findIndex((e) => e.event_id === store.selectedWorkflow.event_id);
+          const existingIndex = store.workflowEvents.findIndex((e: WorkflowEvent) => e.event_id === selected.event_id);
           if (existingIndex >= 0) {
-            store.workflowEvents[existingIndex].enabled = store.selectedWorkflow.enabled;
+            store.workflowEvents[existingIndex].enabled = desiredEnabled;
           }
         } else {
           // Revert the status change on failure
-          store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
+          selected.enabled = previousEnabled;
           showErrorToast(`${props.locale.failedToUpdateWorkflowStatus}: Unexpected error`);
         }
       } catch (error) {
         console.error('Failed to update workflow status:', error);
         // Revert the status change on error
-        store.selectedWorkflow.enabled = !store.selectedWorkflow.enabled;
+        selected.enabled = previousEnabled;
         showErrorToast(`${props.locale.failedToUpdateWorkflowStatus}: ${error.message}`);
       }
     },
 
-    async deleteWorkflow() {
-      if (!store.selectedWorkflow || store.selectedWorkflow.id === 0) return;
+    async deleteWorkflow(): Promise<void> {
+      const selected = store.selectedWorkflow;
+      if (!selected || selected.id === 0) return;
 
       try {
         // Use workflow ID for deletion
-        const workflowId = store.selectedWorkflow.id;
+        const workflowId = selected.id;
         const response = await POST(`${props.projectLink}/workflows/${workflowId}/delete`, {
           data: new FormData(),
         });
@@ -340,7 +401,7 @@ export function createWorkflowStore(props: any) {
         const result = await response.json();
         if (result.success) {
           // Remove workflow from the list
-          const existingIndex = store.workflowEvents.findIndex((e) => e.event_id === store.selectedWorkflow.event_id);
+          const existingIndex = store.workflowEvents.findIndex((e: WorkflowEvent) => e.event_id === selected.event_id);
           if (existingIndex >= 0) {
             store.workflowEvents.splice(existingIndex, 1);
           }

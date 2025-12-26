@@ -133,7 +133,7 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 		return nil
 	}
 	defer reader.Close()
-	content, err := io.ReadAll(reader)
+	content, err := util.ReadWithLimit(reader, 5*1024*1024) // 5MB should be enough for a wiki page
 	if err != nil {
 		ctx.ServerError("ReadAll", err)
 		return nil
@@ -310,7 +310,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiGitRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	return wikiGitRepo, entry
@@ -350,7 +350,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiGitRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page

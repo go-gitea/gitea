@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -16,7 +17,7 @@ import (
 )
 
 func CherryPick(ctx *context.Context) {
-	prepareEditorCommitFormOptions(ctx, "_cherrypick")
+	prepareEditorPage(ctx, "_cherrypick")
 	if ctx.Written() {
 		return
 	}
@@ -35,9 +36,7 @@ func CherryPick(ctx *context.Context) {
 		ctx.Data["commit_message"] = "revert " + cherryPickCommit.Message()
 	} else {
 		ctx.Data["CherryPickType"] = "cherry-pick"
-		splits := strings.SplitN(cherryPickCommit.Message(), "\n", 2)
-		ctx.Data["commit_summary"] = splits[0]
-		ctx.Data["commit_message"] = splits[1]
+		ctx.Data["commit_summary"], ctx.Data["commit_message"], _ = strings.Cut(cherryPickCommit.Message(), "\n")
 	}
 
 	ctx.HTML(http.StatusOK, tplCherryPick)
@@ -66,7 +65,7 @@ func CherryPickPost(ctx *context.Context) {
 		// Drop through to the "apply" method
 		buf := &bytes.Buffer{}
 		if parsed.form.Revert {
-			err = git.GetReverseRawDiff(ctx, ctx.Repo.Repository.RepoPath(), fromCommitID, buf)
+			err = gitrepo.GetReverseRawDiff(ctx, ctx.Repo.Repository, fromCommitID, buf)
 		} else {
 			err = git.GetRawDiff(ctx.Repo.GitRepo, fromCommitID, "patch", buf)
 		}

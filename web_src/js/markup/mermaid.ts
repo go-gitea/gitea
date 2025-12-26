@@ -23,7 +23,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     });
 
     const pre = el.closest('pre');
-    if (pre.hasAttribute('data-render-done')) return;
+    if (!pre || pre.hasAttribute('data-render-done')) return;
 
     const source = el.textContent;
     if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {

@@ -9,7 +9,6 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"html"
 	"io"
 	"net/http"
 	"net/url"
@@ -260,7 +259,7 @@ func ParseCompareInfo(ctx *context.Context) *common.CompareInfo {
 	} else if len(headInfos) == 2 {
 		headInfosSplit := strings.Split(headInfos[0], "/")
 		if len(headInfosSplit) == 1 {
-			ci.HeadUser, err = user_model.GetUserByName(ctx, headInfos[0])
+			ci.HeadUser, err = user_model.GetUserOrOrgByName(ctx, headInfos[0])
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.NotFound(nil)
@@ -957,30 +956,26 @@ func ExcerptBlob(ctx *context.Context) {
 		ctx.HTTPError(http.StatusInternalServerError, "getExcerptLines")
 		return
 	}
-	if idxRight > lastRight {
-		lineText := " "
-		if rightHunkSize > 0 || leftHunkSize > 0 {
-			lineText = fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", idxLeft, leftHunkSize, idxRight, rightHunkSize)
-		}
-		lineText = html.EscapeString(lineText)
-		lineSection := &gitdiff.DiffLine{
-			Type:    gitdiff.DiffLineSection,
-			Content: lineText,
-			SectionInfo: &gitdiff.DiffLineSectionInfo{
-				Path:          filePath,
-				LastLeftIdx:   lastLeft,
-				LastRightIdx:  lastRight,
-				LeftIdx:       idxLeft,
-				RightIdx:      idxRight,
-				LeftHunkSize:  leftHunkSize,
-				RightHunkSize: rightHunkSize,
-			},
-		}
+
+	newLineSection := &gitdiff.DiffLine{
+		Type: gitdiff.DiffLineSection,
+		SectionInfo: &gitdiff.DiffLineSectionInfo{
+			Path:          filePath,
+			LastLeftIdx:   lastLeft,
+			LastRightIdx:  lastRight,
+			LeftIdx:       idxLeft,
+			RightIdx:      idxRight,
+			LeftHunkSize:  leftHunkSize,
+			RightHunkSize: rightHunkSize,
+		},
+	}
+	if newLineSection.GetExpandDirection() != "" {
+		newLineSection.Content = fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", idxLeft, leftHunkSize, idxRight, rightHunkSize)
 		switch direction {
 		case "up":
-			section.Lines = append([]*gitdiff.DiffLine{lineSection}, section.Lines...)
+			section.Lines = append([]*gitdiff.DiffLine{newLineSection}, section.Lines...)
 		case "down":
-			section.Lines = append(section.Lines, lineSection)
+			section.Lines = append(section.Lines, newLineSection)
 		}
 	}
 

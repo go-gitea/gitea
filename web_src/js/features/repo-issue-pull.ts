@@ -8,21 +8,21 @@ function initRepoPullRequestUpdate(el: HTMLElement) {
   const prUpdateButtonContainer = el.querySelector('#update-pr-branch-with-base');
   if (!prUpdateButtonContainer) return;
 
-  const prUpdateButton = prUpdateButtonContainer.querySelector<HTMLButtonElement>(':scope > button');
-  const prUpdateDropdown = prUpdateButtonContainer.querySelector(':scope > .ui.dropdown');
+  const prUpdateButton = prUpdateButtonContainer.querySelector<HTMLButtonElement>(':scope > button')!;
+  const prUpdateDropdown = prUpdateButtonContainer.querySelector(':scope > .ui.dropdown')!;
   prUpdateButton.addEventListener('click', async function (e) {
     e.preventDefault();
     const redirect = this.getAttribute('data-redirect');
     this.classList.add('is-loading');
-    let response: Response;
+    let response: Response | undefined;
     try {
-      response = await POST(this.getAttribute('data-do'));
+      response = await POST(this.getAttribute('data-do')!);
     } catch (error) {
       console.error(error);
     } finally {
       this.classList.remove('is-loading');
     }
-    let data: Record<string, any>;
+    let data: Record<string, any> | undefined;
     try {
       data = await response?.json(); // the response is probably not a JSON
     } catch (error) {
@@ -54,8 +54,8 @@ function initRepoPullRequestUpdate(el: HTMLElement) {
 
 function initRepoPullRequestCommitStatus(el: HTMLElement) {
   for (const btn of el.querySelectorAll('.commit-status-hide-checks')) {
-    const panel = btn.closest('.commit-status-panel');
-    const list = panel.querySelector<HTMLElement>('.commit-status-list');
+    const panel = btn.closest('.commit-status-panel')!;
+    const list = panel.querySelector<HTMLElement>('.commit-status-list')!;
     btn.addEventListener('click', () => {
       list.style.maxHeight = list.style.maxHeight ? '' : '0px'; // toggle
       btn.textContent = btn.getAttribute(list.style.maxHeight ? 'data-show-all' : 'data-hide-all');
@@ -96,7 +96,7 @@ export function initRepoPullMergeBox(el: HTMLElement) {
 
   const reloadingInterval = parseInt(reloadingIntervalValue);
   const pullLink = el.getAttribute('data-pull-link');
-  let timerId: number;
+  let timerId: number | null;
 
   let reloadMergeBox: () => Promise<void>;
   const stopReloading = () => {

@@ -7,9 +7,9 @@ import type {SortableEvent} from 'sortablejs';
 import {toggleFullScreen} from '../utils.ts';
 
 function updateIssueCount(card: HTMLElement): void {
-  const parent = card.parentElement;
+  const parent = card.parentElement!;
   const count = parent.querySelectorAll('.issue-card').length;
-  parent.querySelector('.project-column-issue-count').textContent = String(count);
+  parent.querySelector('.project-column-issue-count')!.textContent = String(count);
 }
 
 async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<void> {
@@ -19,7 +19,7 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
 
   const columnSorting = {
     issues: Array.from(columnCards, (card, i) => ({
-      issueID: parseInt(card.getAttribute('data-issue')),
+      issueID: parseInt(card.getAttribute('data-issue')!),
       sorting: i,
     })),
   };
@@ -30,13 +30,15 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
     });
   } catch (error) {
     console.error(error);
-    from.insertBefore(item, from.children[oldIndex]);
+    if (oldIndex !== undefined) {
+      from.insertBefore(item, from.children[oldIndex]);
+    }
   }
 }
 
 async function initRepoProjectSortable(): Promise<void> {
   // the HTML layout is: #project-board.board > .project-column .cards > .issue-card
-  const mainBoard = document.querySelector('#project-board');
+  const mainBoard = document.querySelector('#project-board')!;
   let boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
   createSortable(mainBoard, {
     group: 'project-column',
@@ -49,13 +51,13 @@ async function initRepoProjectSortable(): Promise<void> {
 
       const columnSorting = {
         columns: Array.from(boardColumns, (column, i) => ({
-          columnID: parseInt(column.getAttribute('data-id')),
+          columnID: parseInt(column.getAttribute('data-id')!),
           sorting: i,
         })),
       };
 
       try {
-        await POST(mainBoard.getAttribute('data-url'), {
+        await POST(mainBoard.getAttribute('data-url')!, {
           data: columnSorting,
         });
       } catch (error) {
@@ -65,7 +67,7 @@ async function initRepoProjectSortable(): Promise<void> {
   });
 
   for (const boardColumn of boardColumns) {
-    const boardCardList = boardColumn.querySelector('.cards');
+    const boardCardList = boardColumn.querySelector('.cards')!;
     createSortable(boardCardList, {
       group: 'shared',
       onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
@@ -77,12 +79,12 @@ async function initRepoProjectSortable(): Promise<void> {
 }
 
 function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
-  const elModal = document.querySelector<HTMLElement>('.ui.modal#project-column-modal-edit');
-  const elForm = elModal.querySelector<HTMLFormElement>('form');
+  const elModal = document.querySelector<HTMLElement>('.ui.modal#project-column-modal-edit')!;
+  const elForm = elModal.querySelector<HTMLFormElement>('form')!;
 
-  const elColumnId = elForm.querySelector<HTMLInputElement>('input[name="id"]');
-  const elColumnTitle = elForm.querySelector<HTMLInputElement>('input[name="title"]');
-  const elColumnColor = elForm.querySelector<HTMLInputElement>('input[name="color"]');
+  const elColumnId = elForm.querySelector<HTMLInputElement>('input[name="id"]')!;
+  const elColumnTitle = elForm.querySelector<HTMLInputElement>('input[name="title"]')!;
+  const elColumnColor = elForm.querySelector<HTMLInputElement>('input[name="color"]')!;
 
   const attrDataColumnId = 'data-modal-project-column-id';
   const attrDataColumnTitle = 'data-modal-project-column-title-input';
@@ -91,9 +93,9 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
   // the "new" button is not in project board, so need to query from document
   queryElems(document, '.show-project-column-modal-edit', (el) => {
     el.addEventListener('click', () => {
-      elColumnId.value = el.getAttribute(attrDataColumnId);
-      elColumnTitle.value = el.getAttribute(attrDataColumnTitle);
-      elColumnColor.value = el.getAttribute(attrDataColumnColor);
+      elColumnId.value = el.getAttribute(attrDataColumnId)!;
+      elColumnTitle.value = el.getAttribute(attrDataColumnTitle)!;
+      elColumnColor.value = el.getAttribute(attrDataColumnColor)!;
       elColumnColor.dispatchEvent(new Event('input', {bubbles: true})); // trigger the color picker
     });
   });
@@ -116,12 +118,12 @@ function initRepoProjectColumnEdit(writableProjectBoard: Element): void {
       }
 
       // update the newly saved column title and color in the project board (to avoid reload)
-      const elEditButton = writableProjectBoard.querySelector<HTMLButtonElement>(`.show-project-column-modal-edit[${attrDataColumnId}="${columnId}"]`);
+      const elEditButton = writableProjectBoard.querySelector<HTMLButtonElement>(`.show-project-column-modal-edit[${attrDataColumnId}="${columnId}"]`)!;
       elEditButton.setAttribute(attrDataColumnTitle, elColumnTitle.value);
       elEditButton.setAttribute(attrDataColumnColor, elColumnColor.value);
 
-      const elBoardColumn = writableProjectBoard.querySelector<HTMLElement>(`.project-column[data-id="${columnId}"]`);
-      const elBoardColumnTitle = elBoardColumn.querySelector<HTMLElement>(`.project-column-title-text`);
+      const elBoardColumn = writableProjectBoard.querySelector<HTMLElement>(`.project-column[data-id="${columnId}"]`)!;
+      const elBoardColumnTitle = elBoardColumn.querySelector<HTMLElement>(`.project-column-title-text`)!;
       elBoardColumnTitle.textContent = elColumnTitle.value;
       if (elColumnColor.value) {
         const textColor = contrastColor(elColumnColor.value);

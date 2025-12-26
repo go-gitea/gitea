@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/git/pipeline"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -112,7 +113,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	defer cleanup()
 
-	if err := git.Clone(ctx, ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
+	if err := gitrepo.CloneRepoToLocal(ctx, ctx.Repo.Repository, tmpBasePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 	}); err != nil {

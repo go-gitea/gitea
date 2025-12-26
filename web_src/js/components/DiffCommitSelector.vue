@@ -23,7 +23,7 @@ type CommitListResult = {
 export default defineComponent({
   components: {SvgIcon},
   data: () => {
-    const el = document.querySelector('#diff-commit-select');
+    const el = document.querySelector('#diff-commit-select')!;
     return {
       menuVisible: false,
       isLoading: false,
@@ -35,7 +35,7 @@ export default defineComponent({
       mergeBase: el.getAttribute('data-merge-base'),
       commits: [] as Array<Commit>,
       hoverActivated: false,
-      lastReviewCommitSha: '',
+      lastReviewCommitSha: '' as string | null,
       uniqueIdMenu: generateElemId('diff-commit-selector-menu-'),
       uniqueIdShowAll: generateElemId('diff-commit-selector-show-all-'),
     };
@@ -165,7 +165,7 @@ export default defineComponent({
     },
     /** Called when user clicks on since last review */
     changesSinceLastReviewClick() {
-      window.location.assign(`${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1).id}${this.queryParams}`);
+      window.location.assign(`${this.issueLink}/files/${this.lastReviewCommitSha}..${this.commits.at(-1)!.id}${this.queryParams}`);
     },
     /** Clicking on a single commit opens this specific commit */
     commitClicked(commitId: string, newWindow = false) {
@@ -193,7 +193,7 @@ export default defineComponent({
         // find all selected commits and generate a link
         const firstSelected = this.commits.findIndex((x) => x.selected);
         const lastSelected = this.commits.findLastIndex((x) => x.selected);
-        let beforeCommitID: string;
+        let beforeCommitID: string | null = null;
         if (firstSelected === 0) {
           beforeCommitID = this.mergeBase;
         } else {
@@ -204,7 +204,7 @@ export default defineComponent({
         if (firstSelected === lastSelected) {
           // if the start and end are the same, we show this single commit
           window.location.assign(`${this.issueLink}/commits/${afterCommitID}${this.queryParams}`);
-        } else if (beforeCommitID === this.mergeBase && afterCommitID === this.commits.at(-1).id) {
+        } else if (beforeCommitID === this.mergeBase && afterCommitID === this.commits.at(-1)!.id) {
           // if the first commit is selected and the last commit is selected, we show all commits
           window.location.assign(`${this.issueLink}/files${this.queryParams}`);
         } else {

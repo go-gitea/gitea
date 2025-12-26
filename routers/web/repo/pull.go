@@ -1243,7 +1243,11 @@ func MergePullRequest(ctx *context.Context) {
 func deleteBranchAfterMergeAndFlashMessage(ctx *context.Context, prID int64) {
 	var fullBranchName string
 	err := repo_service.DeleteBranchAfterMerge(ctx, ctx.Doer, prID, &fullBranchName)
-	if errTr := util.ErrorAsTranslatable(err); errTr != nil {
+	if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
+		// no need to show error to end users if no permission or branch not exist
+		log.Debug("DeleteBranchAfterMerge (ignore unnecessary error): %v", err)
+		return
+	} else if errTr := util.ErrorAsTranslatable(err); errTr != nil {
 		ctx.Flash.Error(errTr.Translate(ctx.Locale))
 		return
 	} else if err == nil {
@@ -1333,6 +1337,17 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	if util.IsEmptyString(form.Title) {
 		ctx.JSONError(ctx.Tr("repo.issues.new.title_empty"))
+		return
+	}
+
+	// Check if a pull request already exists with the same head and base branch.
+	pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, repo.ID, ci.HeadBranch, ci.BaseBranch, issues_model.PullRequestFlowGithub)
+	if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
+		ctx.ServerError("GetUnmergedPullRequest", err)
+		return
+	}
+	if pr != nil {
+		ctx.JSONError(ctx.Tr("repo.pulls.new.already_existed"))
 		return
 	}
 

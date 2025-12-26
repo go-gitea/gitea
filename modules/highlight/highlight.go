@@ -56,7 +56,39 @@ func NewContext() {
 	})
 }
 
-// Code returns a HTML version of code string with chroma syntax highlighting classes and the matched lexer name
+// UnsafeSplitHighlightedLines splits highlighted code into lines preserving HTML tags
+// It always includes '\n', '\n' can appear at the end of each line or in the middle of HTML tags
+// The '\n' is necessary for copying code from web UI to preserve original code lines
+// ATTENTION: It uses the unsafe conversion between string and []byte for performance reason
+// DO NOT make any modification to the returned [][]byte slice items
+func UnsafeSplitHighlightedLines(code template.HTML) (ret [][]byte) {
+	buf := util.UnsafeStringToBytes(string(code))
+	lineCount := bytes.Count(buf, []byte("\n")) + 1
+	ret = make([][]byte, 0, lineCount)
+	nlTagClose := []byte("\n</")
+	for {
+		pos := bytes.IndexByte(buf, '\n')
+		if pos == -1 {
+			if len(buf) > 0 {
+				ret = append(ret, buf)
+			}
+			return ret
+		}
+		// Chroma highlighting output sometimes have "</span>" right after \n, sometimes before.
+		// * "<span>text\n</span>"
+		// * "<span>text</span>\n"
+		if bytes.HasPrefix(buf[pos:], nlTagClose) {
+			pos1 := bytes.IndexByte(buf[pos:], '>')
+			if pos1 != -1 {
+				pos += pos1
+			}
+		}
+		ret = append(ret, buf[:pos+1])
+		buf = buf[pos+1:]
+	}
+}
+
+// Code returns an HTML version of code string with chroma syntax highlighting classes and the matched lexer name
 func Code(fileName, language, code string) (output template.HTML, lexerName string) {
 	NewContext()
 
@@ -77,8 +109,8 @@ func Code(fileName, language, code string) (output template.HTML, lexerName stri
 
 		if lexer == nil {
 			// Attempt stripping off the '?'
-			if idx := strings.IndexByte(language, '?'); idx > 0 {
-				lexer = lexers.Get(language[:idx])
+			if before, _, ok := strings.Cut(language, "?"); ok {
+				lexer = lexers.Get(before)
 			}
 		}
 	}

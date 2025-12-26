@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import {onMounted, onUnmounted, useTemplateRef, computed, ref, nextTick, watch} from 'vue';
 import {createWorkflowStore} from './WorkflowStore.ts';
+import type {WorkflowEvent} from './WorkflowStore.ts';
 import {svg} from '../../svg.ts';
 import {confirmModal} from '../../features/comp/ConfirmModal.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
@@ -55,8 +56,10 @@ const props = defineProps<{
 
 const store = createWorkflowStore(props);
 
+type WorkflowListItem = WorkflowEvent & {isConfigured?: boolean};
+
 // Track edit state directly on workflow objects
-const previousSelection = ref<{selectedItem: string | null, selectedWorkflow: any} | null>(null);
+const previousSelection = ref<{selectedItem: string | null, selectedWorkflow: WorkflowEvent | null} | null>(null);
 
 // Helper to check if current workflow is in edit mode
 const isInEditMode = computed(() => {
@@ -85,18 +88,18 @@ const showCancelButton = computed(() => {
   return typeof eventId === 'string' && eventId.startsWith('clone-');
 });
 
-const isTemporaryWorkflow = (workflow: any) => {
+const isTemporaryWorkflow = (workflow?: WorkflowEvent | null) => {
   if (!workflow) return false;
   if (workflow.id > 0) return false;
   const eventId = typeof workflow.event_id === 'string' ? workflow.event_id : '';
   return eventId.startsWith('clone-') || eventId.startsWith('new-');
 };
 
-const removeTemporaryWorkflow = (workflow: any) => {
-  if (!isTemporaryWorkflow(workflow)) return;
+const removeTemporaryWorkflow = (workflow?: WorkflowEvent | null) => {
+  if (!workflow || !isTemporaryWorkflow(workflow)) return;
 
   const eventId = workflow.event_id;
-  const tempIndex = store.workflowEvents.findIndex((w) => w.event_id === eventId);
+  const tempIndex = store.workflowEvents.findIndex((w: WorkflowEvent) => w.event_id === eventId);
   if (tempIndex >= 0) {
     store.workflowEvents.splice(tempIndex, 1);
   }
@@ -127,7 +130,7 @@ const toggleEditMode = () => {
       previousSelection.value = null;
     } else if (hadTemporarySelection) {
       // If we removed a temporary item but have no previous selection, fall back to first workflow
-      const fallback = store.workflowEvents.find((w) => {
+      const fallback = store.workflowEvents.find((w: WorkflowEvent) => {
         if (!canceledWorkflow) return false;
         const baseType = canceledWorkflow.workflow_event;
         return baseType && (w.workflow_event === baseType || w.event_id === baseType);
@@ -161,16 +164,17 @@ const toggleWorkflowStatus = async () => {
 };
 
 const deleteWorkflow = async () => {
-  if (!store.selectedWorkflow) return;
+  const currentSelection = store.selectedWorkflow;
+  if (!currentSelection) return;
 
   if (!await confirmModal({content: 'Are you sure you want to delete this workflow?', confirmButtonColor: 'red'})) {
     return;
   }
 
   // If deleting a temporary workflow (new or cloned, unsaved), just remove from list
-  if (store.selectedWorkflow.id === 0) {
-    const tempIndex = store.workflowEvents.findIndex((w) =>
-      w.event_id === store.selectedWorkflow.event_id,
+  if (currentSelection.id === 0) {
+    const tempIndex = store.workflowEvents.findIndex((w: WorkflowEvent) =>
+      w.event_id === currentSelection.event_id,
     );
     if (tempIndex >= 0) {
       store.workflowEvents.splice(tempIndex, 1);
@@ -183,22 +187,22 @@ const deleteWorkflow = async () => {
   }
 
   // Find workflows for the same base event type
-  const sameEventWorkflows = store.workflowEvents.filter((w) =>
-    (w.workflow_event === store.selectedWorkflow.workflow_event)
+  const sameEventWorkflows = store.workflowEvents.filter((w: WorkflowEvent) =>
+    (w.workflow_event === currentSelection.workflow_event)
   );
 
-  let workflowToSelect = null;
+  let workflowToSelect: WorkflowListItem | null = null;
 
   if (sameEventWorkflows.length > 0) {
     // Prefer configured workflows over placeholders
-    const configured = sameEventWorkflows.find(w => w.isConfigured || w.id > 0);
+    const configured = sameEventWorkflows.find((w: WorkflowEvent) => w.isConfigured || w.id > 0);
     workflowToSelect = configured || sameEventWorkflows[0];
   }
 
   // If no same-type workflow found, select the first available workflow
   if (!workflowToSelect && store.workflowEvents.length > 0) {
     // Try to find any configured workflow first
-    const anyConfigured = store.workflowEvents.find(w => w.isConfigured || w.id > 0);
+    const anyConfigured = store.workflowEvents.find((w: WorkflowEvent) => w.isConfigured || w.id > 0);
     workflowToSelect = anyConfigured || store.workflowEvents[0];
   }
 
@@ -223,7 +227,7 @@ const deleteWorkflow = async () => {
   setEditMode(false);
 };
 
-const cloneWorkflow = (sourceWorkflow: any) => {
+const cloneWorkflow = (sourceWorkflow?: WorkflowEvent | null) => {
   if (!sourceWorkflow) return;
 
   // Generate a unique temporary ID for the cloned workflow
@@ -247,7 +251,7 @@ const cloneWorkflow = (sourceWorkflow: any) => {
   };
 
   // Insert cloned workflow right after the source workflow (keep same type together)
-  const sourceIndex = store.workflowEvents.findIndex(w => w.event_id === sourceWorkflow.event_id);
+  const sourceIndex = store.workflowEvents.findIndex((w: WorkflowEvent) => w.event_id === sourceWorkflow.event_id);
   if (sourceIndex >= 0) {
     store.workflowEvents.splice(sourceIndex + 1, 0, clonedWorkflow);
   } else {
@@ -276,7 +280,7 @@ const cloneWorkflow = (sourceWorkflow: any) => {
   window.history.pushState({eventId: tempId}, '', newUrl);
 };
 
-const selectWorkflowEvent = async (event: any) => {
+const selectWorkflowEvent = async (event: WorkflowEvent) => {
   // Prevent rapid successive clicks
   if (store.loading) return;
 
@@ -316,20 +320,20 @@ const saveWorkflow = async () => {
   setEditMode(false);
 };
 
-const isWorkflowConfigured = (event: any) => {
+const isWorkflowConfigured = (event: WorkflowEvent) => {
   // Check if the event_id is a number (saved workflow ID) or if it has id > 0
   return !Number.isNaN(parseInt(event.event_id)) || (event.id !== undefined && event.id > 0);
 };
 
 // Get flat list of all workflows - use cached data to prevent frequent recomputation
-const workflowList = computed(() => {
+const workflowList = computed<WorkflowListItem[]>(() => {
   // Use a stable reference to prevent unnecessary DOM updates
   const workflows = store.workflowEvents;
   if (!workflows || workflows.length === 0) {
     return [];
   }
 
-  return workflows.map((workflow) => ({
+  return workflows.map((workflow: WorkflowEvent) => ({
     ...workflow,
     isConfigured: isWorkflowConfigured(workflow),
     display_name: workflow.display_name || workflow.workflow_event || workflow.event_id,
@@ -339,7 +343,7 @@ const workflowList = computed(() => {
 // Add debounce mechanism
 let selectTimeout: ReturnType<typeof setTimeout> | null = null;
 
-const selectWorkflowItem = async (item: any) => {
+const selectWorkflowItem = async (item: WorkflowListItem) => {
   // Prevent rapid successive clicks with debounce
   if (store.loading || selectTimeout) return;
 
@@ -358,7 +362,7 @@ const selectWorkflowItem = async (item: any) => {
     await selectWorkflowEvent(item);
   } else {
     // This is an unconfigured event - check if we already have a workflow object for it
-    const existingWorkflow = store.workflowEvents.find((w) =>
+    const existingWorkflow = store.workflowEvents.find((w: WorkflowEvent) =>
       w.id === 0 && w.workflow_event === item.workflow_event,
     );
 
@@ -372,7 +376,7 @@ const selectWorkflowItem = async (item: any) => {
 };
 
 const hasAvailableFilters = computed(() => {
-  return store.selectedWorkflow?.capabilities?.available_filters?.length > 0;
+  return (store.selectedWorkflow?.capabilities?.available_filters?.length ?? 0) > 0;
 });
 
 const hasFilter = (filterType: any) => {
@@ -404,7 +408,7 @@ const getLabelTextColor = (hexColor: any) => {
   return contrastColor(hexColor);
 };
 
-const getStatusClass = (item: any) => {
+const getStatusClass = (item: WorkflowListItem) => {
   if (!item.isConfigured) {
     return 'status-inactive'; // Gray dot for unconfigured
   }
@@ -417,7 +421,7 @@ const getStatusClass = (item: any) => {
   return 'status-active'; // Green dot for enabled
 };
 
-const isItemSelected = (item: any) => {
+const isItemSelected = (item: WorkflowListItem) => {
   if (!store.selectedItem) return false;
 
   if (item.isConfigured || item.id === 0) {
@@ -429,25 +433,26 @@ const isItemSelected = (item: any) => {
 };
 
 // Get display name for workflow with numbering for same types
-const getWorkflowDisplayName = (item: any, _index: any) => {
+const getWorkflowDisplayName = (item: WorkflowListItem, _index: number) => {
   const list = workflowList.value;
+  const displayName = item.display_name || item.workflow_event || item.event_id || '';
 
   // Find all workflows of the same type
-  const sameTypeWorkflows = list.filter(w =>
+  const sameTypeWorkflows = list.filter((w: WorkflowListItem) =>
     w.workflow_event === item.workflow_event &&
     (w.isConfigured || w.id === 0) // Only count configured workflows
   );
 
   // If there's only one of this type, return the display name as-is
   if (sameTypeWorkflows.length <= 1) {
-    return item.display_name;
+    return displayName;
   }
 
   // Find the index of this workflow among same-type workflows
-  const sameTypeIndex = sameTypeWorkflows.findIndex(w => w.event_id === item.event_id);
+  const sameTypeIndex = sameTypeWorkflows.findIndex((w: WorkflowListItem) => w.event_id === item.event_id);
 
   // Extract base name without filter summary (remove anything in parentheses)
-  const baseName = item.display_name.replace(/\s*\([^)]*\)\s*$/g, '');
+  const baseName = displayName.replace(/\s*\([^)]*\)\s*$/g, '');
 
   // Add numbering
   return `${baseName} #${sameTypeIndex + 1}`;
@@ -502,18 +507,20 @@ onMounted(async () => {
 
   // Add native event listener to prevent conflicts with Gitea
   await nextTick();
-  const workflowItemsContainer = elRoot.value.querySelector('.workflow-items');
+  const rootEl = elRoot.value;
+  const workflowItemsContainer = rootEl?.querySelector<HTMLElement>('.workflow-items');
   if (workflowItemsContainer) {
-    workflowClickHandler = (e: any) => {
-      const workflowItem = e.target.closest('.workflow-item');
+    workflowClickHandler = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const workflowItem = target?.closest('.workflow-item');
       if (workflowItem) {
-        e.preventDefault();
-        e.stopPropagation();
+        event.preventDefault();
+        event.stopPropagation();
         const itemData = workflowItem.getAttribute('data-workflow-item');
         if (itemData) {
           try {
-            const item = JSON.parse(itemData);
-            selectWorkflowItem(item);
+            const item = JSON.parse(itemData) as WorkflowListItem;
+            void selectWorkflowItem(item);
           } catch (error) {
             console.error('Error parsing workflow item data:', error);
           }
@@ -526,7 +533,7 @@ onMounted(async () => {
   // Auto-select logic
   if (props.eventID) {
     // If eventID is provided in URL, try to find and select it
-    const selectedEvent = store.workflowEvents.find((e) => e.event_id === props.eventID);
+    const selectedEvent = store.workflowEvents.find((e: WorkflowEvent) => e.event_id === props.eventID);
     if (selectedEvent) {
       // Found existing configured workflow
       store.selectedItem = props.eventID;
@@ -535,7 +542,7 @@ onMounted(async () => {
     } else {
       // Check if eventID matches a base event type (unconfigured workflow)
       const items = workflowList.value;
-      const matchingUnconfigured = items.find((item) =>
+      const matchingUnconfigured = items.find((item: WorkflowListItem) =>
         !item.isConfigured && (item.workflow_event === props.eventID || item.event_id === props.eventID),
       );
       if (matchingUnconfigured) {
@@ -545,7 +552,7 @@ onMounted(async () => {
       } else {
         // Fallback: select first available item
         if (items.length > 0) {
-          const firstConfigured = items.find((item) => item.isConfigured);
+          const firstConfigured = items.find((item: WorkflowListItem) => item.isConfigured);
           if (firstConfigured) {
             selectWorkflowItem(firstConfigured);
           } else {
@@ -559,7 +566,7 @@ onMounted(async () => {
     const items = workflowList.value;
     if (items.length > 0) {
       // Find first configured workflow
-      const firstConfigured = items.find((item) => item.isConfigured);
+      const firstConfigured = items.find((item: WorkflowListItem) => item.isConfigured);
 
       if (firstConfigured) {
         // Select first configured workflow
@@ -571,22 +578,22 @@ onMounted(async () => {
     }
   }
 
-  elRoot.value.closest('.is-loading')?.classList?.remove('is-loading');
+  elRoot.value?.closest('.is-loading')?.classList?.remove('is-loading');
 
   window.addEventListener('popstate', popstateHandler);
 });
 
 // Define popstateHandler at component level
-const popstateHandler = (e: any) => {
+const popstateHandler = (e: PopStateEvent) => {
   if (e.state?.eventId) {
     // Handle browser back/forward navigation
-    const event = store.workflowEvents.find((ev) => ev.event_id === e.state.eventId);
+    const event = store.workflowEvents.find((ev: WorkflowEvent) => ev.event_id === e.state.eventId);
     if (event) {
-      selectWorkflowEvent(event);
+      void selectWorkflowEvent(event);
     } else {
       // Check if it's a base event type
       const items = workflowList.value;
-      const matchingUnconfigured = items.find((item) =>
+      const matchingUnconfigured = items.find((item: WorkflowListItem) =>
         !item.isConfigured && (item.workflow_event === e.state.eventId || item.event_id === e.state.eventId),
       );
       if (matchingUnconfigured) {
@@ -597,7 +604,7 @@ const popstateHandler = (e: any) => {
 };
 
 // Store reference to cleanup event listener
-let workflowClickHandler: ((e: any) => void) | null = null;
+let workflowClickHandler: ((e: MouseEvent) => void) | null = null;
 
 onUnmounted(() => {
   // Clean up resources
@@ -608,7 +615,7 @@ onUnmounted(() => {
   window.removeEventListener('popstate', popstateHandler);
 
   // Remove native click event listener
-  const workflowItemsContainer = elRoot.value?.querySelector('.workflow-items');
+  const workflowItemsContainer = elRoot.value?.querySelector<HTMLElement>('.workflow-items');
   if (workflowItemsContainer && workflowClickHandler) {
     workflowItemsContainer.removeEventListener('click', workflowClickHandler);
   }

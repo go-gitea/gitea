@@ -45,7 +45,7 @@ func Keys(ctx *context.Context) {
 // KeysPost response for change user's SSH/GPG keys
 func KeysPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["BuiltinSSH"] = setting.SSH.StartBuiltinServer
@@ -325,7 +325,7 @@ func loadKeysData(ctx *context.Context) {
 	ctx.Data["GPGKeys"] = gpgkeys
 	tokenToSign := asymkey_model.VerificationToken(ctx.Doer, 1)
 
-	// generate a new aes cipher using the csrfToken
+	// generate a new aes cipher using the token
 	ctx.Data["TokenToSign"] = tokenToSign
 
 	principals, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{

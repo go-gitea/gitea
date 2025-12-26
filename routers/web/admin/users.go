@@ -345,7 +345,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.UserName != "" {
-		if err := user_service.RenameUser(ctx, u, form.UserName); err != nil {
+		if err := user_service.RenameUser(ctx, u, form.UserName, ctx.Doer); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
 				ctx.Data["Err_UserName"] = true
@@ -409,7 +409,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.Email != "" {
-		if err := user_service.AdminAddOrSetPrimaryEmailAddress(ctx, u, form.Email); err != nil {
+		if err := user_service.ReplacePrimaryEmailAddress(ctx, u, form.Email); err != nil {
 			switch {
 			case user_model.IsErrEmailCharIsNotSupported(err), user_model.IsErrEmailInvalid(err):
 				ctx.Data["Err_Email"] = true

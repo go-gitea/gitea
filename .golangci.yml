@@ -6,10 +6,12 @@ linters:
   default: none
   enable:
     - bidichk
+    - bodyclose
     - depguard
     - dupl
     - errcheck
     - forbidigo
+    - gocheckcompilerdirectives
     - gocritic
     - govet
     - ineffassign
@@ -109,11 +111,12 @@ linters:
         - require-error
     usetesting:
       os-temp-dir: true
-    modernize:
-      disable:
-        - stringsbuilder
     perfsprint:
       concat-loop: false
+    govet:
+      enable:
+        - nilness
+        - unusedwrite
   exclusions:
     generated: lax
     presets:

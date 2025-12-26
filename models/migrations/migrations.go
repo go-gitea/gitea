@@ -398,7 +398,8 @@ func prepareMigrationTasks() []*migration {
 		// Gitea 1.25.0 ends at migration ID number 322 (database version 323)
 
 		newMigration(323, "Add support for actions concurrency", v1_26.AddActionsConcurrency),
-		newMigration(324, "Add new table project_workflow", v1_26.AddProjectWorkflow),
+		newMigration(324, "Fix closed milestone completeness for milestones with no issues", v1_26.FixClosedMilestoneCompleteness),
+		newMigration(325, "Add new table project_workflow", v1_26.AddProjectWorkflow),
 	}
 	return preparedMigrations
 }
