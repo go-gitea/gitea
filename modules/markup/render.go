@@ -54,6 +54,10 @@ type RenderOptions struct {
 
 	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 	InStandalonePage bool
+
+	// EnableHeadingIDGeneration controls whether to auto-generate IDs for HTML headings without id attribute.
+	// This should be enabled for repository files and wiki pages, but disabled for comments to avoid duplicate IDs.
+	EnableHeadingIDGeneration bool
 }
 
 // RenderContext represents a render context
@@ -109,6 +113,11 @@ func (ctx *RenderContext) WithMetas(metas map[string]string) *RenderContext {
 
 func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
 	ctx.RenderOptions.InStandalonePage = v
+	return ctx
+}
+
+func (ctx *RenderContext) WithEnableHeadingIDGeneration(v bool) *RenderContext {
+	ctx.RenderOptions.EnableHeadingIDGeneration = v
 	return ctx
 }
 
