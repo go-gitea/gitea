@@ -109,7 +109,11 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				// If package is not linked to any repo (org-level package), deny access from Actions
 				// Actions tokens should only access packages linked to repos
 				if packageRepoID == 0 {
-					fmt.Printf("DEBUG: packageRepoID is 0 for pkgID %d. Denying access.\n", ctx.Package.Descriptor.Package.ID)
+					pkgID := int64(0)
+					if ctx.Package.Descriptor != nil && ctx.Package.Descriptor.Package != nil {
+						pkgID = ctx.Package.Descriptor.Package.ID
+					}
+					fmt.Printf("DEBUG: packageRepoID is 0 for pkgID %d. Denying access.\n", pkgID)
 					ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "Actions tokens cannot access packages not linked to a repository")
 					return
 				}
