@@ -7,7 +7,6 @@
 package git
 
 import (
-	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -83,14 +82,9 @@ func (te *TreeEntry) IsExecutable() bool {
 
 // Blob returns the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
-	encodedObj, err := te.ptree.repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, te.gogitTreeEntry.Hash)
-	if err != nil {
-		return nil
-	}
-
 	return &Blob{
-		ID:              ParseGogitHash(te.gogitTreeEntry.Hash),
-		gogitEncodedObj: encodedObj,
-		name:            te.Name(),
+		ID:   ParseGogitHash(te.gogitTreeEntry.Hash),
+		repo: te.ptree.repo,
+		name: te.Name(),
 	}
 }
