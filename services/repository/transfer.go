@@ -294,7 +294,6 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
-
 	repoRenamed = true
 
 	// Rename remote wiki repository to new path and delete local copy.
