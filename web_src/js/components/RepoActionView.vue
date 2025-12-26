@@ -707,7 +707,7 @@ export default defineComponent({
 
 .summary-toggle .ui.button:hover {
   background: var(--color-hover);
-  border-color: var(--color-secondary-dark);
+  border-color: var(--color-secondary);
 }
 
 .summary-toggle .ui.button.active {
@@ -870,8 +870,8 @@ export default defineComponent({
 /* begin fomantic dropdown menu overrides */
 
 .action-view-right .ui.dropdown .menu {
-  background: var(--color-dropdown-bg);
-  border-color: var(--color-secondary-alpha-30);
+  background: var(--color-menu);
+  border-color: var(--color-secondary);
 }
 
 .action-view-right .ui.dropdown .menu > .item {
@@ -893,8 +893,8 @@ export default defineComponent({
 }
 
 .action-view-right .ui.pointing.dropdown > .menu:not(.hidden)::after {
-  background: var(--color-dropdown-bg);
-  box-shadow: -1px -1px 0 0 var(--color-secondary-alpha-30);
+  background: var(--color-menu);
+  box-shadow: -1px -1px 0 0 var(--color-secondary);
 }
 
 /* end fomantic dropdown menu overrides */

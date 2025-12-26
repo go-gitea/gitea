@@ -129,7 +129,6 @@
             :y="job.y + 16"
             fill="white"
             font-size="12"
-            font-weight="500"
             text-anchor="start"
             class="job-name"
           >
@@ -896,7 +895,7 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
 .workflow-graph {
   margin: 20px 0;
   padding: 20px;
-  background: var(--color-secondary-alpha-5);
+  background: var(--color-box-body);
   border-radius: 12px;
   border: 1px solid var(--color-secondary-alpha-20);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -918,7 +917,7 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
   margin: 0;
   color: var(--color-text);
   font-size: 16px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   flex: 1;
   min-width: 200px;
 }
@@ -934,7 +933,7 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
 
 .graph-metrics {
   color: var(--color-primary);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .graph-controls {
@@ -1034,7 +1033,7 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
 }
 
 .job-node-group.current-job .job-rect {
-  filter: drop-shadow(0 0 8px rgba(var(--color-primary-rgb), 0.3));
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary) 30%, transparent));
 }
 
 .job-name {
@@ -1093,7 +1092,7 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
   50% {
     stroke-width: 3;
     opacity: 1;
-    filter: drop-shadow(0 0 4px rgba(var(--color-red-rgb), 0.5));
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--color-red) 50%, transparent));
   }
 }
 
