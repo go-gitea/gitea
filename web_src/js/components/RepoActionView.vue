@@ -8,6 +8,7 @@ import {renderAnsi} from '../render/ansi.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
+import WorkflowGraph from './WorkflowGraph.vue'
 
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
@@ -28,9 +29,11 @@ type LogLineCommand = {
 
 type Job = {
   id: number;
+  job_id: string;
   name: string;
   status: RunStatus;
   canRerun: boolean;
+  needs?: string[];
   duration: string;
 }
 
@@ -85,6 +88,7 @@ export default defineComponent({
   components: {
     SvgIcon,
     ActionRunStatus,
+    WorkflowGraph
   },
   props: {
     runIndex: {
@@ -115,6 +119,7 @@ export default defineComponent({
       artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
       isFullScreen: false,
+      showSummary: true,
       timeVisible: {
         'log-time-stamp': false,
         'log-time-seconds': false,
@@ -512,6 +517,16 @@ export default defineComponent({
     </div>
     <div class="action-view-body">
       <div class="action-view-left">
+        <div class="summary-toggle">
+          <button
+            class="ui basic small button"
+            @click="showSummary = !showSummary"
+            :class="{ active: showSummary }"
+          >
+            <SvgIcon :name="showSummary ? 'octicon-chevron-down' : 'octicon-chevron-right'"/>
+            Summary
+          </button>
+        </div>
         <div class="job-group-section">
           <div class="job-brief-list">
             <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
@@ -554,7 +569,16 @@ export default defineComponent({
       </div>
 
       <div class="action-view-right">
-        <div class="job-info-header">
+        <WorkflowGraph
+          v-if="showSummary && run.jobs.length > 1"
+          :jobs="run.jobs"
+          :current-job-id="parseInt(jobIndex)"
+          class="workflow-graph-container"
+        />
+
+        <div
+          class="job-info-header"
+        >
           <div class="job-info-header-left gt-ellipsis">
             <h3 class="job-info-header-title gt-ellipsis">
               {{ currentJob.title }}
@@ -602,7 +626,11 @@ export default defineComponent({
           </div>
         </div>
         <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
-        <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
+        <div
+          class="job-step-container"
+          ref="stepsContainer"
+          v-show="currentJob.steps.length"
+        >
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
@@ -658,6 +686,34 @@ export default defineComponent({
   margin: 0;
   flex: 1;
   overflow-wrap: anywhere;
+}
+
+.summary-toggle {
+  margin: 16px 0 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-secondary);
+}
+
+.summary-toggle .ui.button {
+  padding: 6px 12px;
+  border: 1px solid var(--color-secondary);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.summary-toggle .ui.button:hover {
+  background: var(--color-hover);
+  border-color: var(--color-secondary-dark);
+}
+
+.summary-toggle .ui.button.active {
+  background: var(--color-secondary-alpha-10);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .action-info-summary .ui.button {
@@ -780,14 +836,14 @@ export default defineComponent({
 
 .action-view-right {
   flex: 1;
-  color: var(--color-console-fg-subtle);
+  color: var(--color-text);
   max-height: 100%;
   width: 70%;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--color-console-border);
+  border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  background: var(--color-console-bg);
+  background: var(--color-body);
   align-self: flex-start;
 }
 
@@ -796,17 +852,17 @@ export default defineComponent({
 .action-view-right .ui.button,
 .action-view-right .ui.button:focus {
   background: transparent;
-  color: var(--color-console-fg-subtle);
+  color: var(--color-text);
 }
 
 .action-view-right .ui.button:hover {
-  background: var(--color-console-hover-bg);
-  color: var(--color-console-fg);
+  background: var(--color-hover);
+  color: var(--color-text);
 }
 
 .action-view-right .ui.button:active {
-  background: var(--color-console-active-bg);
-  color: var(--color-console-fg);
+  background: var(--color-active);
+  color: var(--color-text);
 }
 
 /* end fomantic button overrides */
@@ -814,31 +870,31 @@ export default defineComponent({
 /* begin fomantic dropdown menu overrides */
 
 .action-view-right .ui.dropdown .menu {
-  background: var(--color-console-menu-bg);
-  border-color: var(--color-console-menu-border);
+  background: var(--color-dropdown-bg);
+  border-color: var(--color-secondary-alpha-30);
 }
 
 .action-view-right .ui.dropdown .menu > .item {
-  color: var(--color-console-fg);
+  color: var(--color-text);
 }
 
 .action-view-right .ui.dropdown .menu > .item:hover {
-  color: var(--color-console-fg);
-  background: var(--color-console-hover-bg);
+  color: var(--color-text);
+  background: var(--color-hover);
 }
 
 .action-view-right .ui.dropdown .menu > .item:active {
-  color: var(--color-console-fg);
-  background: var(--color-console-active-bg);
+  color: var(--color-text);
+  background: var(--color-active);
 }
 
 .action-view-right .ui.dropdown .menu > .divider {
-  border-top-color: var(--color-console-menu-border);
+  border-top-color: var(--color-secondary-alpha-30);
 }
 
 .action-view-right .ui.pointing.dropdown > .menu:not(.hidden)::after {
-  background: var(--color-console-menu-bg);
-  box-shadow: -1px -1px 0 0 var(--color-console-menu-border);
+  background: var(--color-dropdown-bg);
+  box-shadow: -1px -1px 0 0 var(--color-secondary-alpha-30);
 }
 
 /* end fomantic dropdown menu overrides */
@@ -852,7 +908,7 @@ export default defineComponent({
   top: 0;
   height: 60px;
   z-index: 1; /* above .job-step-container */
-  background: var(--color-console-bg);
+  background: var(--color-body);
   border-radius: 3px;
 }
 
@@ -861,13 +917,13 @@ export default defineComponent({
 }
 
 .job-info-header .job-info-header-title {
-  color: var(--color-console-fg);
+  color: var(--color-text);
   font-size: 16px;
   margin: 0;
 }
 
 .job-info-header .job-info-header-detail {
-  color: var(--color-console-fg-subtle);
+  color: var(--color-text);
   font-size: 12px;
 }
 
@@ -878,7 +934,7 @@ export default defineComponent({
 .job-step-container {
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
-  border-top: 1px solid var(--color-console-border);
+  border-top: 1px solid var(--color-secondary);
   z-index: 0;
 }
 
@@ -894,8 +950,8 @@ export default defineComponent({
 }
 
 .job-step-container .job-step-summary.step-expandable:hover {
-  color: var(--color-console-fg);
-  background: var(--color-console-hover-bg);
+  color: var(--color-text);
+  background: var(--color-hover);
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -907,8 +963,8 @@ export default defineComponent({
 }
 
 .job-step-container .job-step-summary.selected {
-  color: var(--color-console-fg);
-  background-color: var(--color-console-active-bg);
+  color: var(--color-text);
+  background-color: var(--color-active);
   position: sticky;
   top: 60px;
 }
@@ -944,7 +1000,7 @@ export default defineComponent({
 
 .job-log-line:hover,
 .job-log-line:target {
-  background-color: var(--color-console-hover-bg);
+  background-color: var(--color-hover);
 }
 
 .job-log-line:target {

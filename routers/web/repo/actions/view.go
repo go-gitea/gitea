@@ -142,11 +142,13 @@ type ViewResponse struct {
 }
 
 type ViewJob struct {
-	ID       int64  `json:"id"`
-	Name     string `json:"name"`
-	Status   string `json:"status"`
-	CanRerun bool   `json:"canRerun"`
-	Duration string `json:"duration"`
+	ID       int64    `json:"id"`
+	JobID    string   `json:"job_id,omitempty"`
+	Name     string   `json:"name"`
+	Status   string   `json:"status"`
+	CanRerun bool     `json:"canRerun"`
+	Duration string   `json:"duration"`
+	Needs    []string `json:"needs,omitempty"`
 }
 
 type ViewCommit struct {
@@ -247,10 +249,12 @@ func ViewPost(ctx *context_module.Context) {
 	for _, v := range jobs {
 		resp.State.Run.Jobs = append(resp.State.Run.Jobs, &ViewJob{
 			ID:       v.ID,
+			JobID:    v.JobID,
 			Name:     v.Name,
 			Status:   v.Status.String(),
 			CanRerun: resp.State.Run.CanRerun,
 			Duration: v.Duration().String(),
+			Needs:    v.Needs,
 		})
 	}
 
