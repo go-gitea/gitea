@@ -1185,7 +1185,7 @@
   "repo.release": "发布",
   "repo.releases": "发布",
   "repo.tag": "Git 标签",
-  "repo.git_tag": "Git Tag",
+  "repo.git_tag": "Git 标签",
   "repo.released_this": "发布于",
   "repo.tagged_this": "已标记",
   "repo.file.title": "%s 位于 %s",
