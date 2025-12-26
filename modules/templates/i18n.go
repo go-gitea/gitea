@@ -6,6 +6,8 @@ package templates
 import (
 	"fmt"
 	"os"
+	"regexp"
+	"strings"
 	"text/template"
 	"text/template/parse"
 
@@ -16,57 +18,83 @@ func isI18nFunc(name string) bool {
 	return name == "ctx.Locale.Tr" || name == "ctx.Locale.TrN" || name == "ctx.Locale.TrString"
 }
 
+var i18nCheckPattern = regexp.MustCompile(`<!--\s*i18n-check:\s*([^>]+?)\s*-->`)
+
 func extractI18nKeys(node parse.Node) container.Set[string] {
+	keys, _ := collectI18nKeys(node, "")
+	return keys
+}
+
+func collectI18nKeys(node parse.Node, override string) (container.Set[string], string) {
 	switch n := node.(type) {
 	case *parse.WithNode:
-		keys := extractI18nKeys(n.List)
+		keys, nextOverride := collectI18nKeys(n.List, override)
 		if n.Pipe != nil {
-			keys = keys.Union(extractI18nKeys(n.Pipe))
+			var pipeKeys container.Set[string]
+			pipeKeys, nextOverride = collectI18nKeys(n.Pipe, nextOverride)
+			keys = keys.Union(pipeKeys)
 		}
-		return keys
+		return keys, nextOverride
 	case *parse.ListNode:
 		var keys = container.Set[string]{}
+		pending := override
 		for _, sub := range n.Nodes {
-			keys = keys.Union(extractI18nKeys(sub))
+			var subKeys container.Set[string]
+			subKeys, pending = collectI18nKeys(sub, pending)
+			keys = keys.Union(subKeys)
 		}
-		return keys
+		return keys, pending
 	case *parse.TemplateNode: // ignore the file inclusion
 		fmt.Printf("Visiting node: %#v\n---\n%s\n---\n", node, node.String())
 		if n.Pipe != nil {
-			return extractI18nKeys(n.Pipe)
+			return collectI18nKeys(n.Pipe, override)
 		}
-		return container.Set[string]{}
-	case *parse.TextNode: // ignore text nodes
-		return container.Set[string]{}
+		return container.Set[string]{}, override
+	case *parse.TextNode: // detect optional override hints
+		if hint, ok := extractI18nCheckOverride(string(n.Text)); ok {
+			return container.Set[string]{}, hint
+		}
+		return container.Set[string]{}, override
 	case *parse.IfNode:
-		keys := extractI18nKeys(n.List)
+		keys, nextOverride := collectI18nKeys(n.List, override)
 		if n.ElseList != nil {
-			keys = keys.Union(extractI18nKeys(n.ElseList))
+			var elseKeys container.Set[string]
+			elseKeys, nextOverride = collectI18nKeys(n.ElseList, nextOverride)
+			keys = keys.Union(elseKeys)
 		}
-		return keys
+		return keys, nextOverride
 	case *parse.RangeNode:
-		keys := extractI18nKeys(n.List)
+		keys, nextOverride := collectI18nKeys(n.List, override)
 		if n.Pipe != nil {
-			keys = keys.Union(extractI18nKeys(n.Pipe))
+			var pipeKeys container.Set[string]
+			pipeKeys, nextOverride = collectI18nKeys(n.Pipe, nextOverride)
+			keys = keys.Union(pipeKeys)
 		}
-		return keys
+		return keys, nextOverride
 	case *parse.ActionNode:
-		return extractI18nKeys(n.Pipe)
+		return collectI18nKeys(n.Pipe, override)
 	case *parse.PipeNode:
 		var keys = container.Set[string]{}
+		pending := override
 		for _, cmd := range n.Cmds {
-			keys = keys.Union(extractI18nKeys(cmd))
+			var subKeys container.Set[string]
+			subKeys, pending = collectI18nKeys(cmd, pending)
+			keys = keys.Union(subKeys)
 		}
-		return keys
+		return keys, pending
 	case *parse.CommandNode:
 		if len(n.Args) >= 2 {
 			if ident, ok := n.Args[0].(*parse.ChainNode); ok && isI18nFunc(ident.String()) {
 				var keys = container.Set[string]{}
+				if override != "" {
+					keys.Add(strings.TrimSpace(override))
+					return keys, ""
+				}
 				for _, arg := range n.Args[1:] { // sometimes it will be `ctx.Locale.Tr (print "key")`
 					if str, ok := arg.(*parse.StringNode); ok {
 						keys.Add(str.Text)
 						if (ident.String() == "ctx.Locale.TrN" && len(keys) == 2) || (ident.String() != "ctx.Locale.TrN" && len(keys) == 1) {
-							return keys
+							return keys, override
 						}
 					} else if p, ok := arg.(*parse.PipeNode); ok {
 						for _, cmd := range p.Cmds {
@@ -75,7 +103,7 @@ func extractI18nKeys(node parse.Node) container.Set[string] {
 									if str, ok := cmdArg.(*parse.StringNode); ok {
 										keys.Add(str.Text)
 										if (ident.String() == "ctx.Locale.TrN" && len(keys) == 2) || (ident.String() != "ctx.Locale.TrN" && len(keys) == 1) {
-											return keys
+											return keys, override
 										}
 									}
 								}
@@ -86,7 +114,15 @@ func extractI18nKeys(node parse.Node) container.Set[string] {
 			}
 		}
 	}
-	return container.Set[string]{}
+	return container.Set[string]{}, override
+}
+
+func extractI18nCheckOverride(text string) (string, bool) {
+	matches := i18nCheckPattern.FindAllStringSubmatch(text, -1)
+	if len(matches) == 0 {
+		return "", false
+	}
+	return strings.TrimSpace(matches[len(matches)-1][1]), true
 }
 
 func FindTemplateKeys(p string) (container.Set[string], error) {

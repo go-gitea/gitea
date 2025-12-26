@@ -3,6 +3,7 @@
 	<div class="ui right type dropdown">
 		<div class="text tw-flex tw-items-center">
 			{{template "shared/webhook/icon" (dict "Size" 20 "HookType" .ctxData.HookType)}}
+			<!-- i18n-check: repo.settings.web_hook_name_* -->
 			{{ctx.Locale.Tr (print "repo.settings.web_hook_name_" .ctxData.HookType)}}
 		</div>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}

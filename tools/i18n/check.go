@@ -177,7 +177,16 @@ func checkTranslationKeysInTemplateFile(dir, path string, keys []string, res *[]
 	for _, key := range keysFoundInTempl.Values() {
 		idx := slices.Index(keys, key)
 		if idx == -1 {
-			untranslatedKeys = append(untranslatedKeys, key)
+			found := false
+			for _, uk := range keys {
+				if glob.MustCompile(key).Match(uk) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				untranslatedKeys = append(untranslatedKeys, key)
+			}
 		} else {
 			(*res)[idx] = true
 		}
@@ -190,7 +199,6 @@ func main() {
 		println("usage: clean-locales")
 		os.Exit(1)
 	}
-
 
 	fileContent, err := os.ReadFile("options/locale/locale_en-US.json")
 	if err != nil {

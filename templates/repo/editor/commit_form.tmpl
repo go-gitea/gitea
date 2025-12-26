@@ -6,6 +6,7 @@
 			<span data-tooltip-content="{{ctx.Locale.Tr "repo.signing.will_sign" .CommitFormOptions.SigningKeyFormDisplay}}">{{svg "octicon-lock" 24}}</span>
 			{{ctx.Locale.Tr "repo.editor.commit_signed_changes"}}
 		{{- else}}
+			<!-- i18n-check: repo.signing.wont_sign.* -->
 			<span title="{{ctx.Locale.Tr (printf "repo.signing.wont_sign.%s" .CommitFormOptions.WontSignReason)}}">{{svg "octicon-unlock" 24}}</span>
 			{{ctx.Locale.Tr "repo.editor.commit_changes"}}
 		{{- end}}
