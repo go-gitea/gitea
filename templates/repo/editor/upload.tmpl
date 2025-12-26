@@ -7,7 +7,6 @@
 			{{template "repo/view_file_tree" .}}
 			<div class="repo-view-content">
 				<form class="ui comment form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}">
-					{{.CsrfTokenHtml}}
 					{{template "repo/editor/common_top" .}}
 					<div class="repo-editor-header">
 						{{template "repo/view_file_tree_toggle_button" .}}

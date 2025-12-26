@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/common"
@@ -31,6 +32,60 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
+
+// buildSearchIssuesRepoIDs builds the list of repository IDs for issue search based on query parameters.
+// It returns repoIDs, allPublic flag, and any error that occurred.
+func buildSearchIssuesRepoIDs(ctx *context.APIContext) (repoIDs []int64, allPublic bool, err error) {
+	opts := repo_model.SearchRepoOptions{
+		Private:     false,
+		AllPublic:   true,
+		TopicOnly:   false,
+		Collaborate: optional.None[bool](),
+		// This needs to be a column that is not nil in fixtures or
+		// MySQL will return different results when sorting by null in some cases
+		OrderBy: db.SearchOrderByAlphabetically,
+		Actor:   ctx.Doer,
+	}
+	if ctx.IsSigned {
+		opts.Private = !ctx.PublicOnly
+		opts.AllLimited = true
+	}
+	if ctx.FormString("owner") != "" {
+		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
+		if err != nil {
+			return nil, false, err
+		}
+		opts.OwnerID = owner.ID
+		opts.AllLimited = false
+		opts.AllPublic = false
+		opts.Collaborate = optional.Some(false)
+	}
+	if ctx.FormString("team") != "" {
+		if ctx.FormString("owner") == "" {
+			return nil, false, util.NewInvalidArgumentErrorf("owner organisation is required for filtering on team")
+		}
+		team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
+		if err != nil {
+			return nil, false, err
+		}
+		opts.TeamID = team.ID
+	}
+
+	if opts.AllPublic {
+		allPublic = true
+		opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
+	}
+	repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
+	if err != nil {
+		return nil, false, err
+	}
+	if len(repoIDs) == 0 {
+		// no repos found, don't let the indexer return all repos
+		repoIDs = []int64{0}
+	}
+
+	return repoIDs, allPublic, nil
+}
 
 // SearchIssues searches for issues across the repositories that the user has access to
 func SearchIssues(ctx *context.APIContext) {
@@ -58,11 +113,6 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: Search string
 	//   type: string
-	// - name: priority_repo_id
-	//   in: query
-	//   description: Repository ID to prioritize in the results
-	//   type: integer
-	//   format: int64
 	// - name: type
 	//   in: query
 	//   description: Filter by issue type
@@ -136,81 +186,16 @@ func SearchIssues(ctx *context.APIContext) {
 		return
 	}
 
-	var isClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isClosed = optional.Some(true)
-	case "all":
-		isClosed = optional.None[bool]()
-	default:
-		isClosed = optional.Some(false)
-	}
+	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
-	var (
-		repoIDs   []int64
-		allPublic bool
-	)
-	{
-		// find repos user can access (for issue search)
-		opts := repo_model.SearchRepoOptions{
-			Private:     false,
-			AllPublic:   true,
-			TopicOnly:   false,
-			Collaborate: optional.None[bool](),
-			// This needs to be a column that is not nil in fixtures or
-			// MySQL will return different results when sorting by null in some cases
-			OrderBy: db.SearchOrderByAlphabetically,
-			Actor:   ctx.Doer,
-		}
-		if ctx.IsSigned {
-			opts.Private = !ctx.PublicOnly
-			opts.AllLimited = true
-		}
-		if ctx.FormString("owner") != "" {
-			owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
-			if err != nil {
-				if user_model.IsErrUserNotExist(err) {
-					ctx.APIError(http.StatusBadRequest, err)
-				} else {
-					ctx.APIErrorInternal(err)
-				}
-				return
-			}
-			opts.OwnerID = owner.ID
-			opts.AllLimited = false
-			opts.AllPublic = false
-			opts.Collaborate = optional.Some(false)
-		}
-		if ctx.FormString("team") != "" {
-			if ctx.FormString("owner") == "" {
-				ctx.APIError(http.StatusBadRequest, "Owner organisation is required for filtering on team")
-				return
-			}
-			team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
-			if err != nil {
-				if organization.IsErrTeamNotExist(err) {
-					ctx.APIError(http.StatusBadRequest, err)
-				} else {
-					ctx.APIErrorInternal(err)
-				}
-				return
-			}
-			opts.TeamID = team.ID
-		}
-
-		if opts.AllPublic {
-			allPublic = true
-			opts.AllPublic = false // set it false to avoid returning too many repos, we could filter by indexer
-		}
-		repoIDs, _, err = repo_model.SearchRepositoryIDs(ctx, opts)
-		if err != nil {
+	repoIDs, allPublic, err := buildSearchIssuesRepoIDs(ctx)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
+			ctx.APIError(http.StatusBadRequest, err)
+		} else {
 			ctx.APIErrorInternal(err)
-			return
 		}
-		if len(repoIDs) == 0 {
-			// no repos found, don't let the indexer return all repos
-			repoIDs = []int64{0}
-		}
+		return
 	}
 
 	keyword := ctx.FormTrim("q")
@@ -218,15 +203,7 @@ func SearchIssues(ctx *context.APIContext) {
 		keyword = ""
 	}
 
-	var isPull optional.Option[bool]
-	switch ctx.FormString("type") {
-	case "pulls":
-		isPull = optional.Some(true)
-	case "issues":
-		isPull = optional.Some(false)
-	default:
-		isPull = optional.None[bool]()
-	}
+	isPull := common.ParseIssueFilterTypeIsPull(ctx.FormString("type"))
 
 	var includedAnyLabels []int64
 	{
@@ -256,14 +233,7 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 	}
 
-	// this api is also used in UI,
-	// so the default limit is set to fit UI needs
-	limit := ctx.FormInt("limit")
-	if limit == 0 {
-		limit = setting.UI.IssuePagingNum
-	} else if limit > setting.API.MaxResponseItems {
-		limit = setting.API.MaxResponseItems
-	}
+	limit := util.IfZero(ctx.FormInt("limit"), setting.API.DefaultPagingNum)
 
 	searchOpt := &issue_indexer.SearchOptions{
 		Paginator: &db.ListOptions{
@@ -305,10 +275,6 @@ func SearchIssues(ctx *context.APIContext) {
 			searchOpt.ReviewedID = optional.Some(ctxUserID)
 		}
 	}
-
-	// FIXME: It's unsupported to sort by priority repo when searching by indexer,
-	//        it's indeed an regression, but I think it is worth to support filtering by indexer first.
-	_ = ctx.FormInt64("priority_repo_id")
 
 	ids, total, err := issue_indexer.SearchIssues(ctx, searchOpt)
 	if err != nil {
@@ -409,16 +375,7 @@ func ListIssues(ctx *context.APIContext) {
 		return
 	}
 
-	var isClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isClosed = optional.Some(true)
-	case "all":
-		isClosed = optional.None[bool]()
-	default:
-		isClosed = optional.Some(false)
-	}
-
+	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
