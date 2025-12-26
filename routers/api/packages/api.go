@@ -110,7 +110,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				// If package is not linked to any repo (org-level package), deny access from Actions
 				// Actions tokens should only access packages linked to repos
 				if packageRepoID == 0 {
-					if packageName := ctx.Params("packagename"); packageName != "" && ctx.Package.Owner != nil {
+					if packageName := ctx.PathParam("packagename"); packageName != "" && ctx.Package.Owner != nil {
 						pkg, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, packageName)
 						if err == nil && pkg != nil {
 							packageRepoID = pkg.RepoID
