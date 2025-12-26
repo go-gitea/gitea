@@ -59,9 +59,47 @@ async function renderRawFileToContainer(container: HTMLElement, rawFileLink: str
   }
 }
 
+function initTocToggle(elFileView: HTMLElement): void {
+  const toggleBtn = elFileView.querySelector('#toggle-toc-btn');
+  const tocSidebar = elFileView.querySelector('.file-view-toc');
+  if (!toggleBtn || !tocSidebar) return;
+
+  // Restore saved state from localStorage (default to hidden)
+  const savedState = localStorage.getItem('file-view-toc-visible');
+  const isVisible = savedState === 'true'; // default to hidden
+
+  // Apply initial state
+  if (isVisible) {
+    tocSidebar.classList.remove('toc-panel-hidden');
+    toggleBtn.classList.add('active');
+  } else {
+    tocSidebar.classList.add('toc-panel-hidden');
+    toggleBtn.classList.remove('active');
+  }
+
+  toggleBtn.addEventListener('click', () => {
+    const isCurrentlyVisible = !tocSidebar.classList.contains('toc-panel-hidden');
+    if (isCurrentlyVisible) {
+      // Hide TOC
+      tocSidebar.classList.add('toc-panel-hidden');
+      toggleBtn.classList.remove('active');
+      localStorage.setItem('file-view-toc-visible', 'false');
+    } else {
+      // Show TOC
+      tocSidebar.classList.remove('toc-panel-hidden');
+      toggleBtn.classList.add('active');
+      localStorage.setItem('file-view-toc-visible', 'true');
+    }
+  });
+}
+
 export function initRepoFileView(): void {
   registerGlobalInitFunc('initRepoFileView', async (elFileView: HTMLElement) => {
     initPluginsOnce();
+
+    // Initialize TOC toggle functionality
+    initTocToggle(elFileView);
+
     const rawFileLink = elFileView.getAttribute('data-raw-file-link')!;
     const mimeType = elFileView.getAttribute('data-mime-type') || ''; // not used yet
     // TODO: we should also provide the prefetched file head bytes to let the plugin decide whether to render or not
