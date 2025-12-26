@@ -8,12 +8,30 @@
 			{{.CsrfTokenHtml}}
 
 			<!-- Cross-Repository Access -->
-			<div class="field">
-				<div class="ui checkbox">
-					<input type="checkbox" name="allow_cross_repo_access" {{if .AllowCrossRepoAccess}}checked{{end}}>
-					<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo"}}</strong></label>
+			<h5 class="ui header">
+				{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo"}}
+			</h5>
+			<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_desc"}}</p>
+
+			<div class="grouped fields">
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="none" {{if not .AllowCrossRepoAccess}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "settings.disabled"}}</label>
+					</div>
 				</div>
-				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_desc"}}</p>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="all" {{if and .AllowCrossRepoAccess (not .HasSelectedRepos)}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_all"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="selected" {{if and .AllowCrossRepoAccess .HasSelectedRepos}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_selected"}}</label>
+					</div>
+				</div>
 			</div>
 
 			<div class="divider"></div>
@@ -25,29 +43,38 @@
 			<div class="grouped fields">
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="token_permission_mode" value="permissive" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "actions.general.token_permissions.permissive"}}</label>
+						<input type="radio" name="token_permission_mode" value="permissive" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}} class="js-permission-mode-radio">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive"}}</label>
 					</div>
-					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.permissive.description"}}</p>
+					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive.desc"}}</p>
 				</div>
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="token_permission_mode" value="restricted" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "actions.general.token_permissions.restricted"}}</label>
+						<input type="radio" name="token_permission_mode" value="restricted" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}} class="js-permission-mode-radio">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted"}}</label>
 					</div>
-					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.restricted.description"}}</p>
+					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted.desc"}}</p>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="token_permission_mode" value="custom" {{if eq .TokenPermissionMode .TokenPermissionModeCustom}}checked{{end}} class="js-permission-mode-radio">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.custom"}}</label>
+					</div>
+					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.custom.desc"}}</p>
 				</div>
 			</div>
 
 			<div class="divider"></div>
 
 			<!-- Maximum Permissions Table -->
-			<h5 class="ui header">
-				{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
-			</h5>
-			<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}</p>
+			<div id="max-permissions-section">
+				<h5 class="ui header">
+					{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions"}}
+				</h5>
+				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions.desc"}}</p>
+			</div>
 
-			<table class="ui celled table">
+			<table class="ui celled table js-permissions-table">
 				<thead>
 					<tr>
 						<th style="width: 40%">{{ctx.Locale.Tr "units.unit"}}</th>

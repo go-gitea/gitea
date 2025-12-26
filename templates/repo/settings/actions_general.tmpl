@@ -32,22 +32,42 @@
 		<form class="ui form" action="{{.RepoLink}}/settings/actions/general/token_permissions" method="post">
 			{{.CsrfTokenHtml}}
 
-			<!-- Permission Mode Selection -->
+			{{if .IsInOrg}}
+			<!-- Follow Organization Configuration -->
 			<div class="field">
+				<div class="ui checkbox">
+					<input type="checkbox" name="follow_org_config" id="follow-org-config" {{if .FollowOrgConfig}}checked{{end}} class="js-follow-org-config">
+					<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions.follow_org"}}</strong></label>
+				</div>
+				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.follow_org_desc"}}</p>
+			</div>
+
+			<div class="divider"></div>
+			{{end}}
+
+			<!-- Permission Mode Selection -->
+			<div class="field js-permission-mode-section">
 				<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode"}}</label>
 				<div class="grouped fields">
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModePermissive}}" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "actions.general.token_permissions.permissive"}}</label>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.permissive.description"}}</p>
+							<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModePermissive}}" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}} class="js-permission-mode-radio">
+							<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive"}}</label>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive.desc"}}</p>
 						</div>
 					</div>
 					<div class="field">
 						<div class="ui radio checkbox">
-							<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModeRestricted}}" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "actions.general.token_permissions.restricted"}}</label>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.restricted.description"}}</p>
+							<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModeRestricted}}" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}} class="js-permission-mode-radio">
+							<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted"}}</label>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted.desc"}}</p>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui radio checkbox">
+							<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModeCustom}}" {{if eq .TokenPermissionMode .TokenPermissionModeCustom}}checked{{end}} class="js-permission-mode-radio">
+							<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.custom"}}</label>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.custom.desc"}}</p>
 						</div>
 					</div>
 				</div>
@@ -58,13 +78,15 @@
 			<div class="divider"></div>
 
 			<!-- Maximum Permissions Table -->
-			<h5 class="ui header">
-				{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
-				<span class="ui red text">*</span>
-			</h5>
-			<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}</p>
+			<div id="max-permissions-section">
+				<h5 class="ui header">
+					{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
+					<span class="ui red text">*</span>
+				</h5>
+				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}</p>
+			</div>
 
-			<table class="ui celled table">
+			<table class="ui celled table js-permissions-table">
 				<thead>
 					<tr>
 						<th style="width: 40%">{{ctx.Locale.Tr "units.unit"}}</th>

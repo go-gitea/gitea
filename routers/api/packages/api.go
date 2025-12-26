@@ -105,21 +105,26 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 					packageRepoID = ctx.Package.Descriptor.Package.RepoID
 				}
 
+				// If package is not linked to any repo (org-level package), deny access from Actions
+				// Actions tokens should only access packages linked to repos
+				if packageRepoID == 0 {
+					ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "Actions tokens cannot access packages not linked to a repository")
+					return
+				}
+
 				if task.RepoID != packageRepoID {
-					// Cross-repository access - check org policy first
+					// Cross-repository access - check org policy
 					cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
 					if err != nil {
 						log.Error("GetOrgActionsConfig: %v", err)
 						ctx.HTTPError(http.StatusInternalServerError, "GetOrgActionsConfig", err.Error())
 						return
 					}
-					if !cfg.AllowCrossRepoAccess {
-						ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is disabled")
+					// Use selective cross-repo access check
+					if !cfg.IsRepoAllowedCrossAccess(packageRepoID) {
+						ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is not allowed for this repository")
 						return
 					}
-
-					// Cross-repo is enabled. For org-level packages (RepoID=0), allow access.
-					// For repo-linked packages, allow read access (fallthrough to permission check below).
 				}
 			}
 		}

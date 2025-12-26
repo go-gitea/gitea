@@ -3740,8 +3740,12 @@
   "actions.general.token_permissions.none": "None",
   "actions.general.token_permissions.cross_repo": "Allow Cross-Repository Access",
   "actions.general.token_permissions.cross_repo_desc": "Control whether the token can access other repositories and packages within this organization.",
+  "actions.general.token_permissions.cross_repo_all": "All repositories in this organization",
+  "actions.general.token_permissions.cross_repo_selected": "Selected repositories only",
   "actions.general.token_permissions.allowed_repos": "Allowed Repositories",
   "actions.general.token_permissions.add_repo": "Add Repository",
+  "actions.general.token_permissions.follow_org": "Follow organization-level configuration",
+  "actions.general.token_permissions.follow_org_desc": "Use the Actions settings configured at the organization level instead of repository-specific settings.",
   "all_repositories": "All Repositories",
   "specific_repositories": "Specific Repositories"
 }

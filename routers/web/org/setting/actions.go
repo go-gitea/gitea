@@ -33,9 +33,11 @@ func ActionsGeneral(ctx *context.Context) {
 	ctx.Data["TokenPermissionMode"] = actionsCfg.GetTokenPermissionMode()
 	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
+	ctx.Data["TokenPermissionModeCustom"] = repo_model.ActionsTokenPermissionModeCustom
 	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
 
 	ctx.Data["AllowCrossRepoAccess"] = actionsCfg.AllowCrossRepoAccess
+	ctx.Data["HasSelectedRepos"] = len(actionsCfg.AllowedCrossRepoIDs) > 0
 
 	ctx.HTML(http.StatusOK, tplSettingsActionsGeneral)
 }
@@ -55,7 +57,8 @@ func ActionsGeneralPost(ctx *context.Context) {
 	// Update Token Permission Mode
 	permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
 	if permissionMode == repo_model.ActionsTokenPermissionModeRestricted ||
-		permissionMode == repo_model.ActionsTokenPermissionModePermissive {
+		permissionMode == repo_model.ActionsTokenPermissionModePermissive ||
+		permissionMode == repo_model.ActionsTokenPermissionModeCustom {
 		actionsCfg.TokenPermissionMode = permissionMode
 	}
 
@@ -81,8 +84,19 @@ func ActionsGeneralPost(ctx *context.Context) {
 		Wiki:         parseMaxPerm("wiki"),
 	}
 
-	// Update Cross-Repo Access
-	actionsCfg.AllowCrossRepoAccess = ctx.FormBool("allow_cross_repo_access")
+	// Update Cross-Repo Access Mode
+	crossRepoMode := ctx.FormString("cross_repo_mode")
+	switch crossRepoMode {
+	case "none":
+		actionsCfg.AllowCrossRepoAccess = false
+		actionsCfg.AllowedCrossRepoIDs = nil
+	case "all":
+		actionsCfg.AllowCrossRepoAccess = true
+		actionsCfg.AllowedCrossRepoIDs = nil
+	case "selected":
+		actionsCfg.AllowCrossRepoAccess = true
+		// Keep existing AllowedCrossRepoIDs, will be updated by separate API
+	}
 
 	if err := actions_model.SetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID, actionsCfg); err != nil {
 		ctx.ServerError("SetOrgActionsConfig", err)

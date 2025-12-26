@@ -41,7 +41,12 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["TokenPermissionMode"] = actionsCfg.GetTokenPermissionMode()
 	ctx.Data["TokenPermissionModePermissive"] = repo_model.ActionsTokenPermissionModePermissive
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
+	ctx.Data["TokenPermissionModeCustom"] = repo_model.ActionsTokenPermissionModeCustom
 	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
+
+	// Follow org config (only for repos in orgs)
+	ctx.Data["IsInOrg"] = ctx.Repo.Repository.Owner.IsOrganization()
+	ctx.Data["FollowOrgConfig"] = actionsCfg.FollowOrgConfig
 
 	if ctx.Repo.Repository.IsPrivate {
 		collaborativeOwnerIDs := actionsCfg.CollaborativeOwnerIDs
@@ -141,15 +146,21 @@ func UpdateTokenPermissions(ctx *context.Context) {
 
 	actionsCfg := actionsUnit.ActionsConfig()
 
-	// Update permission mode
-	permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
-	if permissionMode == repo_model.ActionsTokenPermissionModeRestricted ||
-		permissionMode == repo_model.ActionsTokenPermissionModePermissive {
-		actionsCfg.TokenPermissionMode = permissionMode
-	} else {
-		ctx.Flash.Error("Invalid token permission mode")
-		ctx.Redirect(redirectURL)
-		return
+	// Update Follow Org Config (for repos in orgs)
+	actionsCfg.FollowOrgConfig = ctx.FormBool("follow_org_config")
+
+	// Update permission mode (only if not following org config)
+	if !actionsCfg.FollowOrgConfig {
+		permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
+		if permissionMode == repo_model.ActionsTokenPermissionModeRestricted ||
+			permissionMode == repo_model.ActionsTokenPermissionModePermissive ||
+			permissionMode == repo_model.ActionsTokenPermissionModeCustom {
+			actionsCfg.TokenPermissionMode = permissionMode
+		} else {
+			ctx.Flash.Error("Invalid token permission mode")
+			ctx.Redirect(redirectURL)
+			return
+		}
 	}
 
 	// Update Maximum Permissions (radio buttons: none/read/write)

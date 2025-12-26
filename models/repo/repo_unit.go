@@ -176,6 +176,8 @@ const (
 	ActionsTokenPermissionModePermissive ActionsTokenPermissionMode = "permissive"
 	// ActionsTokenPermissionModeRestricted - read access by default
 	ActionsTokenPermissionModeRestricted ActionsTokenPermissionMode = "restricted"
+	// ActionsTokenPermissionModeCustom - custom permissions defined by MaxTokenPermissions
+	ActionsTokenPermissionModeCustom ActionsTokenPermissionMode = "custom"
 )
 
 // ActionsTokenPermissions defines the permissions for different repository units
@@ -272,6 +274,10 @@ type ActionsConfig struct {
 	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions,omitempty"`
 	// AllowCrossRepoAccess indicates if actions in this repo/org can access other repos in the same org
 	AllowCrossRepoAccess bool `json:"allow_cross_repo_access,omitempty"`
+	// AllowedCrossRepoIDs is a list of specific repo IDs that can be accessed cross-repo (empty means all if AllowCrossRepoAccess is true)
+	AllowedCrossRepoIDs []int64 `json:"allowed_cross_repo_ids,omitempty"`
+	// FollowOrgConfig indicates if this repository should follow the organization-level configuration
+	FollowOrgConfig bool `json:"follow_org_config,omitempty"`
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
@@ -359,6 +365,20 @@ func (cfg *ActionsConfig) ClampPermissions(perms ActionsTokenPermissions) Action
 		Actions:      min(perms.Actions, maxPerms.Actions),
 		Wiki:         min(perms.Wiki, maxPerms.Wiki),
 	}
+}
+
+// IsRepoAllowedCrossAccess checks if a specific repo is allowed for cross-repo access
+// Returns true if AllowCrossRepoAccess is enabled AND (AllowedCrossRepoIDs is empty OR repoID is in the list)
+func (cfg *ActionsConfig) IsRepoAllowedCrossAccess(repoID int64) bool {
+	if !cfg.AllowCrossRepoAccess {
+		return false
+	}
+	// If no specific repos are configured, allow all
+	if len(cfg.AllowedCrossRepoIDs) == 0 {
+		return true
+	}
+	// Check if repo is in the allowed list
+	return slices.Contains(cfg.AllowedCrossRepoIDs, repoID)
 }
 
 // FromDB fills up a ActionsConfig from serialized format.

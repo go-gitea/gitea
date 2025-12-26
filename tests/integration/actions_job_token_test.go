@@ -15,6 +15,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -376,17 +377,18 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			uploadReq := NewRequestWithBody(t, "PUT", packageURL, bytes.NewReader(content)).AddBasicAuth("user2")
 			MakeRequest(t, uploadReq, http.StatusCreated)
 
-			// Disable cross-repo access to test denied state
-			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
-				AllowCrossRepoAccess: false,
-			}))
+			// Link the package to repo-B (per reviewer feedback: packages must be linked to repos)
+			pkg, err := packages_model.GetPackageByName(t.Context(), org.ID, packages_model.TypeGeneric, packageName)
+			require.NoError(t, err)
+			require.NoError(t, packages_model.SetRepositoryLink(t.Context(), pkg.ID, repoBID))
 
+			// By default, cross-repo is disabled
 			// Try to download with cross-repo disabled - should fail
 			downloadReqDenied := NewRequest(t, "GET", packageURL)
 			downloadReqDenied.Header.Set("Authorization", "Bearer "+task.Token)
 			MakeRequest(t, downloadReqDenied, http.StatusForbidden)
 
-			// Re-enable cross-repo access
+			// Enable cross-repo access
 			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
 				AllowCrossRepoAccess: true,
 			}))
