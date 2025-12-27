@@ -6,7 +6,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -291,12 +290,8 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 
 	// Rename remote repository to new path and delete local copy.
-	dir := user_model.UserPath(newOwner.Name)
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %w", dir, err)
-	}
-
-	if err := util.Rename(repo_model.RepoPath(oldOwner.Name, repo.Name), repo_model.RepoPath(newOwner.Name, repo.Name)); err != nil {
+	oldRelativePath, newRelativePath := repo_model.RelativePath(oldOwner.Name, repo.Name), repo_model.RelativePath(newOwner.Name, repo.Name)
+	if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	repoRenamed = true
