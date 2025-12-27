@@ -22,20 +22,21 @@ import (
 func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
 	writeID := func(id string) error {
-		_, err := batchStdinWriter.Write([]byte(id + "\n"))
+		_, err := batch.Writer().Write([]byte(id + "\n"))
 		return err
 	}
 
 	if err := writeID(commitID); err != nil {
 		return nil, err
 	}
+	batchReader := batch.Reader()
 	shaBytes, typ, size, err := git.ReadBatchLine(batchReader)
 	if typ != "commit" {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
