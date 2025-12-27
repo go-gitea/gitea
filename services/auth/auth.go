@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
-	gitea_context "code.gitea.io/gitea/services/context"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -162,9 +161,4 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	}
 
 	middleware.SetLocaleCookie(resp, user.Language, 0)
-
-	// force to generate a new CSRF token
-	if ctx := gitea_context.GetWebContext(req.Context()); ctx != nil {
-		ctx.Csrf.PrepareForSessionUser(ctx)
-	}
 }

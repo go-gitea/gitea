@@ -4,7 +4,6 @@
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" action="{{.Link}}/actions_unit" method="post">
-			{{.CsrfTokenHtml}}
 			{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
 			{{$isActionsGlobalDisabled := ctx.Consts.RepoUnitTypeActions.UnitGlobalDisabled}}
 			<div class="inline field">
@@ -55,7 +54,6 @@
 	{{end}}
 	<div class="ui bottom attached segment">
 		<form class="ui form form-fetch-action" action="{{.Link}}/collaborative_owner/add" method="post">
-			{{.CsrfTokenHtml}}
 			<div id="search-user-box" class="ui search input tw-align-middle" data-include-orgs="true">
 				<input class="prompt" name="collaborative_owner" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
 			</div>

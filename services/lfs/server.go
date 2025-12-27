@@ -14,7 +14,6 @@ import (
 	"maps"
 	"net/http"
 	"net/url"
-	"path"
 	"regexp"
 	"strconv"
 	"strings"
@@ -28,6 +27,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/httpauth"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -44,6 +44,7 @@ type requestContext struct {
 	Repo          string
 	Authorization string
 	Method        string
+	RepoGitURL    string
 }
 
 // Claims is a JWT Token Claims
@@ -83,17 +84,17 @@ func GetLFSAuthTokenWithBearer(opts AuthTokenOptions) (string, error) {
 
 // DownloadLink builds a URL to download the object.
 func (rc *requestContext) DownloadLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid))
+	return rc.RepoGitURL + "/info/lfs/objects/" + url.PathEscape(p.Oid)
 }
 
 // UploadLink builds a URL to upload the object.
 func (rc *requestContext) UploadLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid), strconv.FormatInt(p.Size, 10))
+	return rc.RepoGitURL + "/info/lfs/objects/" + url.PathEscape(p.Oid) + "/" + strconv.FormatInt(p.Size, 10)
 }
 
 // VerifyLink builds a URL for verifying the object.
 func (rc *requestContext) VerifyLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/verify")
+	return rc.RepoGitURL + "/info/lfs/verify"
 }
 
 // CheckAcceptMediaType checks if the client accepts the LFS media type.
@@ -421,11 +422,14 @@ func decodeJSON(req *http.Request, v any) error {
 }
 
 func getRequestContext(ctx *context.Context) *requestContext {
+	ownerName := ctx.PathParam("username")
+	repoName := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 	return &requestContext{
-		User:          ctx.PathParam("username"),
-		Repo:          strings.TrimSuffix(ctx.PathParam("reponame"), ".git"),
+		User:          ownerName,
+		Repo:          repoName,
 		Authorization: ctx.Req.Header.Get("Authorization"),
 		Method:        ctx.Req.Method,
+		RepoGitURL:    httplib.GuessCurrentAppURL(ctx) + url.PathEscape(ownerName) + "/" + url.PathEscape(repoName+".git"),
 	}
 }
 

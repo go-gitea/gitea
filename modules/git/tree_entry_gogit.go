@@ -53,14 +53,9 @@ func (te *TreeEntry) Size() int64 {
 
 // Blob returns the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
-	encodedObj, err := te.ptree.repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, te.toGogitTreeEntry().Hash)
-	if err != nil {
-		return nil
-	}
-
 	return &Blob{
-		ID:              te.ID,
-		gogitEncodedObj: encodedObj,
-		name:            te.Name(),
+		ID:   te.ID,
+		repo: te.ptree.repo,
+		name: te.Name(),
 	}
 }

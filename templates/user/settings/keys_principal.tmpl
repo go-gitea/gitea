@@ -42,7 +42,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_Content}}error{{end}}">
 					<label for="ssh-principal-content">{{ctx.Locale.Tr "settings.principal_content"}}</label>
 					<input id="ssh-principal-content" name="content" value="{{.content}}" autofocus required>

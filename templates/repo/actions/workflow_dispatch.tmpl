@@ -5,7 +5,6 @@
 <div id="runWorkflowDispatchModal" class="ui tiny modal">
 	<div class="content">
 		<form id="runWorkflowDispatchForm" class="ui form" action="{{$.Link}}/run?workflow={{$.CurWorkflow}}&actor={{$.CurActor}}&status={{.Status}}" method="post">
-			{{.CsrfTokenHtml}}
 			<div class="ui inline field required tw-flex tw-items-center">
 				<span class="ui inline required field">
 					<label>{{ctx.Locale.Tr "actions.workflow.from_ref"}}:</label>

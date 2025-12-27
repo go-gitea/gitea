@@ -97,9 +97,7 @@ func TestSessionFileCreation(t *testing.T) {
 		// We're not logged in so there should be no session
 		assert.False(t, sessionFileExist(t, tmpDir, sessionID))
 
-		doc := NewHTMLParser(t, resp.Body)
 		req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
-			"_csrf":     doc.GetCSRF(),
 			"user_name": "user2",
 			"password":  userPassword,
 		})

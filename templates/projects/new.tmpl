@@ -9,7 +9,6 @@
 </h2>
 {{template "base/alert" .}}
 <form class="ui form" action="{{.Link}}" method="post">
-	{{.CsrfTokenHtml}}
 	<div>
 		<input type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
 		<div class="field {{if .Err_Title}}error{{end}}">

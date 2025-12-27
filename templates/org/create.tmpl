@@ -7,7 +7,6 @@
 		</h3>
 		<div class="ui attached segment">
 			<form class="ui form left-right-form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="inline required field {{if .Err_OrgName}}error{{end}}">
 					<label for="org_name">{{ctx.Locale.Tr "org.org_name_holder"}}</label>
 					<input id="org_name" name="org_name" value="{{.org_name}}" autofocus required maxlength="40">

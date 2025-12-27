@@ -10,7 +10,6 @@
 					data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
 					data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
 				>
-					{{.CsrfTokenHtml}}
 					{{template "repo/editor/common_top" .}}
 					<div class="repo-editor-header">
 						{{template "repo/view_file_tree_toggle_button" .}}

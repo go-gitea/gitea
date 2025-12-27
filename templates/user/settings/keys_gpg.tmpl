@@ -7,7 +7,6 @@
 <div class="ui attached segment">
 	<div class="{{if not .HasGPGError}}tw-hidden{{end}} tw-mb-4" id="add-gpg-key-panel">
 		<form class="ui form{{if .HasGPGError}} error{{end}}" action="{{.Link}}" method="post">
-			{{.CsrfTokenHtml}}
 			<input type="hidden" name="title" value="none">
 			<div class="field {{if .Err_Content}}error{{end}}">
 				<label for="gpg-key-content">{{ctx.Locale.Tr "settings.key_content"}}</label>
@@ -81,7 +80,6 @@
 				<div class="ui  segment">
 					<h4>{{ctx.Locale.Tr "settings.gpg_token_required"}}</h4>
 					<form class="ui form{{if $.HasGPGVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
-						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="title" value="none">
 						<input type="hidden" name="content" value="{{.KeyID}}">
 						<input type="hidden" name="key_id" value="{{.KeyID}}">

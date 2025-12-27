@@ -115,7 +115,6 @@
 				{{ctx.Locale.Tr "repo.issues.dismiss_review_warning"}}
 			</div>
 			<form class="ui form" action="{{$pageMeta.RepoLink}}/issues/dismiss_review" method="post">
-				{{ctx.RootData.CsrfTokenHtml}}
 				<input type="hidden" class="reviewer-id" name="review_id">
 				<div class="field">
 					<label for="issue-sidebar-dismiss-review-message">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</label>
