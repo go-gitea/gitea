@@ -6,7 +6,6 @@
 			</h4>
 			<div class="ui attached segment">
 				<form class="ui form ignore-dirty" method="post">
-					{{$.CsrfTokenHtml}}
 					<div class="ui fluid action input">
 						<input name="path" value="" placeholder="{{ctx.Locale.Tr "repo.settings.lfs_lock_path"}}" autofocus>
 						<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.lfs_lock"}}</button>
@@ -38,7 +37,6 @@
 							<td>{{DateUtils.TimeSince .Created}}</td>
 							<td class="tw-text-right">
 								<form action="{{$.LFSFilesLink}}/locks/{{$lock.ID}}/unlock" method="post">
-									{{$.CsrfTokenHtml}}
 									<button class="ui primary button"><span class="btn-octicon">{{svg "octicon-lock"}}</span>{{ctx.Locale.Tr "repo.settings.lfs_force_unlock"}}</button>
 								</form>
 							</td>
