@@ -186,6 +186,7 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 // PushOptions options when push to remote
 type PushOptions struct {
 	Remote         string
+	LocalRefName   string
 	Branch         string
 	Force          bool
 	ForceWithLease string
@@ -207,7 +208,13 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 	remoteBranchArgs := []string{opts.Remote}
 	if len(opts.Branch) > 0 {
-		remoteBranchArgs = append(remoteBranchArgs, opts.Branch)
+		var refspec string
+		if opts.LocalRefName != "" {
+			refspec = fmt.Sprintf("%s:%s", opts.LocalRefName, opts.Branch)
+		} else {
+			refspec = opts.Branch
+		}
+		remoteBranchArgs = append(remoteBranchArgs, refspec)
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
