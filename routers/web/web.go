@@ -968,7 +968,8 @@ func registerWebRoutes(m *web.Router) {
 				})
 
 				m.Group("/actions", func() {
-					m.Get("", org_setting.RedirectToDefaultSetting)
+					m.Get("", org_setting.ActionsGeneral)
+					m.Post("", org_setting.ActionsGeneralPost)
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
@@ -1174,6 +1175,7 @@ func registerWebRoutes(m *web.Router) {
 					m.Post("/add", repo_setting.AddCollaborativeOwner)
 					m.Post("/delete", repo_setting.DeleteCollaborativeOwner)
 				})
+				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
 			})
 		}, actions.MustEnableActions)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed

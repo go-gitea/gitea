@@ -95,7 +95,7 @@ func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
 	if m, ok := p.unitsMode[unitType]; ok {
 		return util.Iif(p.AccessMode >= perm_model.AccessModeAdmin, p.AccessMode, m)
 	}
-	// if the units map does not contain the access mode, return the default access mode if the unit exists
+	// If the units map does not contain the access mode, return the default access mode if the unit exists
 	unitDefaultAccessMode := p.AccessMode
 	unitDefaultAccessMode = max(unitDefaultAccessMode, p.anonymousAccessMode[unitType])
 	unitDefaultAccessMode = max(unitDefaultAccessMode, p.everyoneAccessMode[unitType])
@@ -104,6 +104,7 @@ func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
 }
 
 func (p *Permission) SetUnitsWithDefaultAccessMode(units []*repo_model.RepoUnit, mode perm_model.AccessMode) {
+	p.AccessMode = mode
 	p.units = units
 	p.unitsMode = make(map[unit.Type]perm_model.AccessMode)
 	for _, u := range p.units {
@@ -268,14 +269,45 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		return perm, err
 	}
 
-	var accessMode perm_model.AccessMode
+	if err := repo.LoadUnits(ctx); err != nil {
+		return perm, err
+	}
+
+	actionsUnit, err := repo.GetUnit(ctx, unit.TypeActions)
+	if err != nil {
+		// If Actions unit doesn't exist, return empty permission
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			return perm, nil
+		}
+		return perm, err
+	}
+	actionsCfg := actionsUnit.ActionsConfig()
+
 	if task.RepoID != repo.ID {
 		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
 		if err != nil || !exist {
 			return perm, err
 		}
-		actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
+
+		// Check Organization Cross-Repo Access Policy
+		if err := repo.LoadOwner(ctx); err != nil {
+			return perm, err
+		}
+
+		isSameOrg := false
+		if repo.OwnerID == taskRepo.OwnerID && repo.Owner.IsOrganization() {
+			isSameOrg = true
+			orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
+			if err != nil {
+				return perm, err
+			}
+			if !orgCfg.AllowCrossRepoAccess {
+				// Deny access if cross-repo is disabled in Org
+				return perm, nil
+			}
+		}
+
+		if (!isSameOrg && !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID)) || !taskRepo.IsPrivate {
 			// The task repo can access the current repo only if the task repo is private and
 			// the owner of the task repo is a collaborative owner of the current repo.
 			// FIXME should owner's visibility also be considered here?
@@ -288,17 +320,34 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			perm.AccessMode = min(perm.AccessMode, perm_model.AccessModeRead)
 			return perm, nil
 		}
-		accessMode = perm_model.AccessModeRead
-	} else if task.IsForkPullRequest {
-		accessMode = perm_model.AccessModeRead
-	} else {
-		accessMode = perm_model.AccessModeWrite
+		// Cross-repo access is always read-only
+		perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
+		return perm, nil
 	}
 
-	if err := repo.LoadUnits(ctx); err != nil {
-		return perm, err
+	// Get effective token permissions from repository settings
+	effectivePerms := actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
+	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+
+	// Set up per-unit access modes based on configured permissions
+	perm.units = repo.Units
+	perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
+	perm.unitsMode[unit.TypeCode] = effectivePerms.Contents
+	perm.unitsMode[unit.TypeIssues] = effectivePerms.Issues
+	perm.unitsMode[unit.TypePullRequests] = effectivePerms.PullRequests
+	perm.unitsMode[unit.TypePackages] = effectivePerms.Packages
+	perm.unitsMode[unit.TypeActions] = effectivePerms.Actions
+	perm.unitsMode[unit.TypeWiki] = effectivePerms.Wiki
+
+	// Set base access mode to the maximum of all unit permissions
+	maxMode := perm_model.AccessModeNone
+	for _, mode := range perm.unitsMode {
+		if mode > maxMode {
+			maxMode = mode
+		}
 	}
-	perm.SetUnitsWithDefaultAccessMode(repo.Units, accessMode)
+	perm.AccessMode = maxMode
+
 	return perm, nil
 }
 

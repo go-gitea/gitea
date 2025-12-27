@@ -6,7 +6,9 @@ package packages
 import (
 	"net/http"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -74,6 +76,63 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				if publicOnly {
 					if ctx.Package != nil && ctx.Package.Owner.Visibility.IsPrivate() {
 						ctx.HTTPError(http.StatusForbidden, "reqToken", "token scope is limited to public packages")
+						return
+					}
+				}
+			}
+		}
+
+		isActionsToken, _ := ctx.Data["IsActionsToken"].(bool)
+		if isActionsToken && ctx.Package != nil && ctx.Package.Owner != nil && ctx.Package.Owner.IsOrganization() {
+			// Actions rules:
+			// 1. If the package key matches the task repo, allow.
+			// 2. If not, check cross-repo policy.
+
+			taskID, ok := ctx.Data["ActionsTaskID"].(int64)
+			if ok && taskID > 0 {
+				task, err := actions_model.GetTaskByID(ctx, taskID)
+				if err != nil {
+					log.Error("GetTaskByID: %v", err)
+					ctx.HTTPError(http.StatusInternalServerError, "GetTaskByID", err.Error())
+					return
+				}
+				if task == nil {
+					ctx.HTTPError(http.StatusInternalServerError, "GetTaskByID", "task not found")
+					return
+				}
+
+				var packageRepoID int64
+				if ctx.Package.Descriptor != nil && ctx.Package.Descriptor.Package != nil {
+					packageRepoID = ctx.Package.Descriptor.Package.RepoID
+				}
+
+				// If package is not linked to any repo (org-level package), deny access from Actions
+				// Actions tokens should only access packages linked to repos
+				if packageRepoID == 0 {
+					if packageName := ctx.PathParam("packagename"); packageName != "" && ctx.Package.Owner != nil {
+						pkg, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, packageName)
+						if err == nil && pkg != nil {
+							packageRepoID = pkg.RepoID
+						}
+					}
+				}
+
+				if packageRepoID == 0 {
+					ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "Actions tokens cannot access packages not linked to a repository")
+					return
+				}
+
+				if task.RepoID != packageRepoID {
+					// Cross-repository access - check org policy
+					cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
+					if err != nil {
+						log.Error("GetOrgActionsConfig: %v", err)
+						ctx.HTTPError(http.StatusInternalServerError, "GetOrgActionsConfig", err.Error())
+						return
+					}
+					// Use selective cross-repo access check
+					if !cfg.IsRepoAllowedCrossAccess(packageRepoID) {
+						ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is not allowed for this repository")
 						return
 					}
 				}

@@ -4,7 +4,9 @@
 package integration
 
 import (
+	"bytes"
 	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -12,6 +14,11 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -87,6 +94,14 @@ func TestActionsJobTokenAccessLFS(t *testing.T) {
 			task.RepoID = repository.ID
 			err := db.Insert(t.Context(), task)
 			require.NoError(t, err)
+
+			// Enable Actions unit for the repository
+			err = db.Insert(t.Context(), &repo_model.RepoUnit{
+				RepoID: repository.ID,
+				Type:   unit_model.TypeActions,
+				Config: &repo_model.ActionsConfig{},
+			})
+			require.NoError(t, err)
 			session := emptyTestSession(t)
 			httpContext := APITestContext{
 				Session:  session,
@@ -113,5 +128,288 @@ func TestActionsJobTokenAccessLFS(t *testing.T) {
 			respLFS := MakeRequestNilResponseRecorder(t, reqLFS, http.StatusOK)
 			assert.Equal(t, testFileSizeSmall, respLFS.Length)
 		}))
+	})
+}
+
+func TestActionsTokenPermissionsModes(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		t.Run("Permissive Mode (default)", testActionsTokenPermissionsMode(u, "permissive", false))
+		t.Run("Restricted Mode", testActionsTokenPermissionsMode(u, "restricted", true))
+	})
+}
+
+func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly bool) func(t *testing.T) {
+	return func(t *testing.T) {
+		// Update repository settings to the requested mode
+		if mode != "" {
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo4", OwnerName: "user5"})
+			require.NoError(t, repo.LoadUnits(t.Context()))
+			actionsUnit, err := repo.GetUnit(t.Context(), unit_model.TypeActions)
+			require.NoError(t, err, "Actions unit should exist for repo4")
+			actionsCfg := actionsUnit.ActionsConfig()
+			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionMode(mode)
+			actionsCfg.DefaultTokenPermissions = nil // Ensure no custom permissions override the mode
+			actionsCfg.MaxTokenPermissions = nil     // Ensure no max permissions interfere
+			// Update the config
+			actionsUnit.Config = actionsCfg
+			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), actionsUnit))
+		}
+
+		// Load a task that can be used for testing
+		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
+		// Regenerate token to pick up new permissions if any (though currently permissions are checked at runtime)
+		require.NoError(t, task.GenerateToken())
+		task.Status = actions_model.StatusRunning
+		task.IsForkPullRequest = false // Not a fork PR
+		err := actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status", "is_fork_pull_request")
+		require.NoError(t, err)
+
+		session := emptyTestSession(t)
+		context := APITestContext{
+			Session:  session,
+			Token:    task.Token,
+			Username: "user5",
+			Reponame: "repo4",
+		}
+		dstPath := t.TempDir()
+
+		u.Path = context.GitPath()
+		u.User = url.UserPassword("gitea-actions", task.Token)
+
+		// Git clone should always work (read access)
+		t.Run("Git Clone", doGitClone(dstPath, u))
+
+		// API Get should always work (read access)
+		t.Run("API Get Repository", doAPIGetRepository(context, func(t *testing.T, r structs.Repository) {
+			require.Equal(t, "repo4", r.Name)
+			require.Equal(t, "user5", r.Owner.UserName)
+		}))
+
+		var sha string
+
+		// Test Write Access
+		if expectReadOnly {
+			context.ExpectedCode = http.StatusForbidden
+		} else {
+			context.ExpectedCode = 0
+		}
+		t.Run("API Create File", doAPICreateFile(context, "test-permissions.txt", &structs.CreateFileOptions{
+			FileOptions: structs.FileOptions{
+				BranchName: "master",
+				Message:    "Create File",
+			},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte(`This is a test file for permissions.`)),
+		}, func(t *testing.T, resp structs.FileResponse) {
+			sha = resp.Content.SHA
+			require.NotEmpty(t, sha, "SHA should not be empty")
+		}))
+
+		// Test Delete Access
+		if expectReadOnly {
+			context.ExpectedCode = http.StatusForbidden
+		} else {
+			context.ExpectedCode = 0
+		}
+		if !expectReadOnly {
+			// Clean up created file if we had write access
+			t.Run("API Delete File", func(t *testing.T) {
+				t.Logf("Deleting file with SHA: %s", sha)
+				require.NotEmpty(t, sha, "SHA must be captured before deletion")
+				deleteOpts := &structs.DeleteFileOptions{
+					FileOptions: structs.FileOptions{
+						BranchName: "master",
+						Message:    "Delete File",
+					},
+					SHA: sha,
+				}
+				req := NewRequestWithJSON(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s", context.Username, context.Reponame, "test-permissions.txt"), deleteOpts).
+					AddTokenAuth(context.Token)
+				if context.ExpectedCode != 0 {
+					context.Session.MakeRequest(t, req, context.ExpectedCode)
+					return
+				}
+				context.Session.MakeRequest(t, req, http.StatusOK)
+			})
+		}
+	}
+}
+
+func TestActionsTokenPermissionsClamping(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		httpContext := NewAPITestContext(t, "user2", "repo-clamping", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+		t.Run("Create Repository", doAPICreateRepository(httpContext, false, func(t *testing.T, repository structs.Repository) {
+			// Enable Actions unit with Clamping Config
+			err := db.Insert(t.Context(), &repo_model.RepoUnit{
+				RepoID: repository.ID,
+				Type:   unit_model.TypeActions,
+				Config: &repo_model.ActionsConfig{
+					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
+					MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
+						Contents: perm.AccessModeRead, // Max is Read - will clamp default Write to Read
+					},
+				},
+			})
+			require.NoError(t, err)
+
+			// Create Task and Token
+			task := &actions_model.ActionTask{
+				RepoID:            repository.ID,
+				Status:            actions_model.StatusRunning,
+				IsForkPullRequest: false,
+			}
+			require.NoError(t, task.GenerateToken())
+			require.NoError(t, db.Insert(t.Context(), task))
+
+			// Verify Token Permissions
+			session := emptyTestSession(t)
+			testCtx := APITestContext{
+				Session:  session,
+				Token:    task.Token,
+				Username: "user2",
+				Reponame: "repo-clamping",
+			}
+
+			// 1. Try to Write (Create File) - Should Fail (403) because Max is Read
+			testCtx.ExpectedCode = http.StatusForbidden
+			t.Run("Fail to Create File (Max Clamping)", doAPICreateFile(testCtx, "clamping.txt", &structs.CreateFileOptions{
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("test")),
+			}))
+
+			// 2. Try to Read (Get Repository) - Should Succeed (200)
+			testCtx.ExpectedCode = http.StatusOK
+			t.Run("Get Repository (Read Allowed)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+				assert.Equal(t, "repo-clamping", r.Name)
+			}))
+		}))
+	})
+}
+
+func TestActionsCrossRepoAccess(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user2")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
+
+		// 1. Create Organization
+		orgName := "org-cross-test"
+		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &structs.CreateOrgOption{
+			UserName: orgName,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// 2. Create Two Repositories in Org
+		createRepoInOrg := func(name string) int64 {
+			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName), &structs.CreateRepoOption{
+				Name:     name,
+				AutoInit: true,
+				Private:  true, // Must be private for potential restrictions
+			}).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusCreated)
+			var repo structs.Repository
+			DecodeJSON(t, resp, &repo)
+			return repo.ID
+		}
+
+		repoAID := createRepoInOrg("repo-A")
+		repoBID := createRepoInOrg("repo-B")
+
+		// 3. Enable Actions in Repo A (Source) and Repo B (Target)
+		enableActions := func(repoID int64) {
+			err := db.Insert(t.Context(), &repo_model.RepoUnit{
+				RepoID: repoID,
+				Type:   unit_model.TypeActions,
+				Config: &repo_model.ActionsConfig{
+					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
+				},
+			})
+			require.NoError(t, err)
+		}
+
+		enableActions(repoAID)
+		enableActions(repoBID)
+
+		// 4. Create Task in Repo A
+		task := &actions_model.ActionTask{
+			RepoID:            repoAID,
+			Status:            actions_model.StatusRunning,
+			IsForkPullRequest: false,
+		}
+		require.NoError(t, task.GenerateToken())
+		require.NoError(t, db.Insert(t.Context(), task))
+
+		// 5. Verify Access to Repo B (Target)
+		testCtx := APITestContext{
+			Session:  emptyTestSession(t),
+			Token:    task.Token,
+			Username: orgName,
+			Reponame: "repo-B",
+		}
+
+		// Case A: Default (AllowCrossRepoAccess = false/unset) -> Should Fail (404 Not Found)
+		// API returns 404 for private repos you can't access, not 403, to avoid leaking existence.
+		testCtx.ExpectedCode = http.StatusNotFound
+		t.Run("Cross-Repo Access Denied (Default)", doAPIGetRepository(testCtx, nil))
+
+		// Case B: Enable AllowCrossRepoAccess
+		org, err := org_model.GetOrgByName(t.Context(), orgName)
+		require.NoError(t, err)
+
+		cfg := &repo_model.ActionsConfig{
+			AllowCrossRepoAccess: true,
+		}
+		err = actions_model.SetOrgActionsConfig(t.Context(), org.ID, cfg)
+		require.NoError(t, err)
+
+		// Retry -> Should Succeed (200) - Read Only
+		testCtx.ExpectedCode = http.StatusOK
+		t.Run("Cross-Repo Access Allowed", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+			assert.Equal(t, "repo-B", r.Name)
+		}))
+
+		// 6. Test Cross-Repo Package Access
+		t.Run("Cross-Repo Package Access", func(t *testing.T) {
+			packageName := "cross-test-pkg"
+			packageVersion := "1.0.0"
+			fileName := "test-file.bin"
+			content := []byte{1, 2, 3, 4, 5}
+
+			// First, upload a package to the org using basic auth (user2 is org owner)
+			packageURL := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", orgName, packageName, packageVersion, fileName)
+			uploadReq := NewRequestWithBody(t, "PUT", packageURL, bytes.NewReader(content)).AddBasicAuth("user2")
+			MakeRequest(t, uploadReq, http.StatusCreated)
+
+			// Link the package to repo-B (per reviewer feedback: packages must be linked to repos)
+			pkg, err := packages_model.GetPackageByName(t.Context(), org.ID, packages_model.TypeGeneric, packageName)
+			require.NoError(t, err)
+			require.NoError(t, packages_model.SetRepositoryLink(t.Context(), pkg.ID, repoBID))
+
+			// By default, cross-repo is disabled
+			// Explicitly set it to false to ensure test determinism (in case defaults change)
+			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
+				AllowCrossRepoAccess: false,
+			}))
+
+			// Try to download with cross-repo disabled - should fail
+			downloadReqDenied := NewRequest(t, "GET", packageURL)
+			downloadReqDenied.Header.Set("Authorization", "Bearer "+task.Token)
+			MakeRequest(t, downloadReqDenied, http.StatusForbidden)
+
+			// Enable cross-repo access
+			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
+				AllowCrossRepoAccess: true,
+			}))
+
+			// Try to download with cross-repo enabled - should succeed
+			downloadReq := NewRequest(t, "GET", packageURL)
+			downloadReq.Header.Set("Authorization", "Bearer "+task.Token)
+			resp := MakeRequest(t, downloadReq, http.StatusOK)
+			assert.Equal(t, content, resp.Body.Bytes(), "Should be able to read package from other repo in same org")
+
+			// Try to upload a package with task token (cross-repo write)
+			// Cross-repo access should be read-only, write attempts return 401 Unauthorized
+			writePackageURL := fmt.Sprintf("/api/packages/%s/generic/%s/%s/write-test.bin", orgName, packageName, packageVersion)
+			writeReq := NewRequestWithBody(t, "PUT", writePackageURL, bytes.NewReader(content))
+			writeReq.Header.Set("Authorization", "Bearer "+task.Token)
+			MakeRequest(t, writeReq, http.StatusUnauthorized)
+		})
 	})
 }

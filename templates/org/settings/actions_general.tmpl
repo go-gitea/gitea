@@ -1,102 +1,89 @@
-
-<div class="repo-setting-content">
-	<!-- Enable/Disable Actions Section (First) -->
-	<h4 class="ui top attached header">
-		{{ctx.Locale.Tr "actions.general.enable_actions"}}
-	</h4>
-	<div class="ui attached segment">
-		<form class="ui form" action="{{.Link}}/actions_unit" method="post">
-			{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
-			{{$isActionsGlobalDisabled := ctx.Consts.RepoUnitTypeActions.UnitGlobalDisabled}}
-			<div class="inline field">
-				<label>{{ctx.Locale.Tr "actions.actions"}}</label>
-				<div class="ui checkbox{{if $isActionsGlobalDisabled}} disabled{{end}}"{{if $isActionsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-					<input name="enable_actions" type="checkbox" {{if $isActionsGlobalDisabled}}disabled{{end}} {{if $isActionsEnabled}}checked{{end}}>
-					<label>{{ctx.Locale.Tr "repo.settings.actions_desc"}}</label>
-				</div>
-			</div>
-			{{if not $isActionsGlobalDisabled}}
-			<div class="divider"></div>
-				<div class="field">
-				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
-			</div>
-			{{end}}
-		</form>
-	</div>
-
-	<!-- Token Permissions Section -->
+{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings actions")}}
+<div class="org-setting-content">
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.actions"}} - {{ctx.Locale.Tr "settings.general"}}
 	</h4>
 	<div class="ui attached segment">
-		<form class="ui form" action="{{.RepoLink}}/settings/actions/general/token_permissions" method="post">
+		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 
-			{{if .IsInOrg}}
-			<!-- Follow Organization Configuration -->
-			<div class="field">
-				<div class="ui checkbox">
-					<input type="checkbox" name="follow_org_config" id="follow-org-config" {{if .FollowOrgConfig}}checked{{end}} class="js-follow-org-config">
-					<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions.follow_org"}}</strong></label>
+			<!-- Cross-Repository Access -->
+			<h5 class="ui header">
+				{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo"}}
+			</h5>
+			<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_desc"}}</p>
+
+			<div class="grouped fields">
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="none" {{if not .AllowCrossRepoAccess}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "settings.disabled"}}</label>
+					</div>
 				</div>
-				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.follow_org_desc"}}</p>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="all" {{if and .AllowCrossRepoAccess (not .HasSelectedRepos)}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_all"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="selected" {{if and .AllowCrossRepoAccess .HasSelectedRepos}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_selected"}}</label>
+					</div>
+				</div>
 			</div>
 
 			<div class="divider"></div>
-			{{end}}
 
-			<!-- Permission Mode Selection -->
-			<div class="field js-permission-mode-section">
-				<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode"}}</label>
-				<div class="grouped fields">
-					<div class="field">
-						<div class="ui radio checkbox">
-							<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModePermissive}}" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}} class="js-permission-mode-radio">
-							<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive"}}</label>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive.desc"}}</p>
-						</div>
+			<!-- Default Permission Mode -->
+			<h5 class="ui header">
+				{{ctx.Locale.Tr "actions.general.token_permissions.mode"}}
+			</h5>
+			<div class="grouped fields">
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="token_permission_mode" value="permissive" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}} class="js-permission-mode-radio">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive"}}</label>
 					</div>
-					<div class="field">
-						<div class="ui radio checkbox">
-							<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModeRestricted}}" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}} class="js-permission-mode-radio">
-							<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted"}}</label>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted.desc"}}</p>
-						</div>
+					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive.desc"}}</p>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="token_permission_mode" value="restricted" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}} class="js-permission-mode-radio">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted"}}</label>
 					</div>
-					<div class="field">
-						<div class="ui radio checkbox">
-							<input type="radio" name="token_permission_mode" value="{{.TokenPermissionModeCustom}}" {{if eq .TokenPermissionMode .TokenPermissionModeCustom}}checked{{end}} class="js-permission-mode-radio">
-							<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.custom"}}</label>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.custom.desc"}}</p>
-						</div>
+					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted.desc"}}</p>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="token_permission_mode" value="custom" {{if eq .TokenPermissionMode .TokenPermissionModeCustom}}checked{{end}} class="js-permission-mode-radio">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.custom"}}</label>
 					</div>
+					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.custom.desc"}}</p>
 				</div>
 			</div>
-
-			<p class="text muted">{{ctx.Locale.Tr "actions.general.token_permissions.fork_pr_note"}}</p>
 
 			<div class="divider"></div>
 
 			<!-- Maximum Permissions Table -->
 			<div id="max-permissions-section">
 				<h5 class="ui header">
-					{{ctx.Locale.Tr "actions.general.token_permissions.maximum"}}
-					<span class="ui red text">*</span>
+					{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions"}}
 				</h5>
-				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.maximum.description"}}</p>
+				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions.desc"}}</p>
 			</div>
 
 			<table class="ui celled table js-permissions-table">
 				<thead>
 					<tr>
 						<th style="width: 40%">{{ctx.Locale.Tr "units.unit"}}</th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_none"}} <span class="ui basic circular label" data-tooltip="No access to this resource">?</span></th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_read"}} <span class="ui basic circular label" data-tooltip="Read-only access">?</span></th>
-						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_write"}} <span class="ui basic circular label" data-tooltip="Read and write access">?</span></th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_none"}}</th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_read"}}</th>
+						<th style="width: 20%; text-align: center">{{ctx.Locale.Tr "actions.general.token_permissions.access_write"}}</th>
 					</tr>
 				</thead>
 				<tbody>
-					<!-- Code -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.contents"}}</strong>
@@ -121,7 +108,6 @@
 							</div>
 						</td>
 					</tr>
-					<!-- Issues -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.issues"}}</strong>
@@ -146,7 +132,6 @@
 							</div>
 						</td>
 					</tr>
-					<!-- Pull Requests -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.pull_requests"}}</strong>
@@ -171,7 +156,6 @@
 							</div>
 						</td>
 					</tr>
-					<!-- Wiki -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.wiki"}}</strong>
@@ -196,7 +180,6 @@
 							</div>
 						</td>
 					</tr>
-					<!-- Packages -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.packages"}}</strong>
@@ -221,7 +204,6 @@
 							</div>
 						</td>
 					</tr>
-					<!-- Actions -->
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.actions_scope"}}</strong>
@@ -256,48 +238,5 @@
 			</div>
 		</form>
 	</div>
-
-{{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
-	{{if .Repository.IsPrivate}}
-	<!-- Collaborative Owners Section -->
-	<h4 class="ui top attached header">
-		{{ctx.Locale.Tr "actions.general.collaborative_owners_management"}}
-	</h4>
-	{{if len .CollaborativeOwners}}
-	<div class="ui attached segment">
-		<div class="flex-list">
-			{{range .CollaborativeOwners}}
-			<div class="flex-item tw-items-center">
-				<div class="flex-item-leading">
-					<a href="{{.HomeLink}}">{{ctx.AvatarUtils.Avatar . 32}}</a>
-				</div>
-				<div class="flex-item-main">
-					<div class="flex-item-title">
-						{{template "shared/user/name" .}}
-					</div>
-				</div>
-				<div class="flex-item-trailing">
-					<button class="ui red tiny button inline link-action"
-						data-url="{{$.Link}}/collaborative_owner/delete?id={{.ID}}"
-						data-modal-confirm-header="{{ctx.Locale.Tr "actions.general.remove_collaborative_owner"}}"
-						data-modal-confirm-content="{{ctx.Locale.Tr "actions.general.remove_collaborative_owner_desc"}}"
-					>{{ctx.Locale.Tr "remove"}}</button>
-				</div>
-			</div>
-			{{end}}
-		</div>
-	</div>
-	{{end}}
-	<div class="ui bottom attached segment">
-		<form class="ui form form-fetch-action" action="{{.Link}}/collaborative_owner/add" method="post">
-			<div id="search-user-box" class="ui search input tw-align-middle" data-include-orgs="true">
-				<input class="prompt" name="collaborative_owner" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
-			</div>
-			<button class="ui primary button">{{ctx.Locale.Tr "actions.general.add_collaborative_owner"}}</button>
-		</form>
-		<br>
-		{{ctx.Locale.Tr "actions.general.collaborative_owners_management_help"}}
-	</div>
-	{{end}}
-{{end}}
 </div>
+{{template "org/settings/layout_footer" .}}
