@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	org_setting "code.gitea.io/gitea/routers/web/org/setting"
+	"code.gitea.io/gitea/routers/web/projects"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
@@ -1042,7 +1043,14 @@ func registerWebRoutes(m *web.Router) {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-			m.Group("", func() { //nolint:dupl // duplicates lines 1421-1441
+			m.Group("/{id}/workflows", func() {
+				m.Get("", projects.Workflows)
+				m.Get("/{workflow_id}", projects.Workflows)
+				m.Post("/{workflow_id}", projects.WorkflowsPost)
+				m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
+				m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
+			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
+			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
 				m.Group("/{id}", func() {
@@ -1440,7 +1448,7 @@ func registerWebRoutes(m *web.Router) {
 	m.Group("/{username}/{reponame}/projects", func() {
 		m.Get("", repo.Projects)
 		m.Get("/{id}", repo.ViewProject)
-		m.Group("", func() { //nolint:dupl // duplicates lines 1034-1054
+		m.Group("", func() {
 			m.Get("/new", repo.RenderNewProject)
 			m.Post("/new", web.Bind(forms.CreateProjectForm{}), repo.NewProjectPost)
 			m.Group("/{id}", func() {
@@ -1458,6 +1466,14 @@ func registerWebRoutes(m *web.Router) {
 					m.Delete("", repo.DeleteProjectColumn)
 					m.Post("/default", repo.SetDefaultProjectColumn)
 					m.Post("/move", repo.MoveIssues)
+				})
+
+				m.Group("/workflows", func() {
+					m.Get("", projects.Workflows)
+					m.Get("/{workflow_id}", projects.Workflows)
+					m.Post("/{workflow_id}", projects.WorkflowsPost)
+					m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
+					m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
 				})
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
