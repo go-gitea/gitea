@@ -21322,6 +21322,10 @@
           "format": "int64",
           "x-go-name": "ID"
         },
+        "job_id": {
+          "type": "string",
+          "x-go-name": "JobID"
+        },
         "labels": {
           "type": "array",
           "items": {
@@ -21332,6 +21336,13 @@
         "name": {
           "type": "string",
           "x-go-name": "Name"
+        },
+        "needs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Needs"
         },
         "run_attempt": {
           "type": "integer",
