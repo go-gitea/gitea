@@ -110,7 +110,7 @@ function initTocToggle(elFileView: HTMLElement): void {
     };
 
     // For file view, first add margin, wait for layout, then show TOC
-    if (isFileView) {
+    if (isFileView && repoViewContent) {
       repoViewContent.classList.add('toc-visible');
       // Wait for CSS transition to complete (200ms) before calculating position
       setTimeout(showAfterLayout, 220);
@@ -125,7 +125,7 @@ function initTocToggle(elFileView: HTMLElement): void {
     tocSidebar.classList.add('toc-panel-hidden');
     tocSidebar.classList.remove('toc-positioned');
     toggleBtn.classList.remove('active');
-    if (isFileView) {
+    if (isFileView && repoViewContent) {
       repoViewContent.classList.remove('toc-visible');
     }
   };
@@ -154,7 +154,7 @@ function initTocToggle(elFileView: HTMLElement): void {
     }, {
       root: null,
       rootMargin: '0px',
-      threshold: [0, 0.25, 0.5, 0.75, 1.0],
+      threshold: [0, 0.25, 0.5, 0.75, 1],
     });
     intersectionObserver.observe(fileHeader);
   }
