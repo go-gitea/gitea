@@ -72,7 +72,6 @@
 										</div>
 										<div class="content">
 											<form class="ui form" id="create-branch-form" action="" data-base-action="{{.RepoLink}}/branches/_new/commit/" method="post">
-												{{.CsrfTokenHtml}}
 												<div class="field">
 													<label>
 														{{ctx.Locale.Tr "repo.branch.new_branch_from" (HTMLFormat `<span class="%s" id="%s"></span>` "text" "modal-create-branch-from-span")}}
@@ -96,7 +95,6 @@
 										</div>
 										<div class="content">
 											<form class="ui form" id="create-tag-form" action="" data-base-action="{{.RepoLink}}/branches/_new/commit/" method="post">
-												{{.CsrfTokenHtml}}
 												<input type="hidden" name="create_tag" value="true">
 												<div class="field">
 													<label>

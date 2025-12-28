@@ -368,7 +368,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 		}
 
 		// 1. update branch in database
-		if n, err := sess.Where("repo_id=? AND name=?", repo.ID, from).Update(&Branch{
+		if n, err := sess.Where("repo_id=? AND name=?", repo.ID, from).Cols("name").Update(&Branch{
 			Name: to,
 		}); err != nil {
 			return err

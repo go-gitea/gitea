@@ -23,8 +23,6 @@ type Repository struct {
 
 	tagCache *ObjectCache[*Tag]
 
-	gpgSettings *GPGSettings
-
 	batchInUse bool
 	batch      *Batch
 

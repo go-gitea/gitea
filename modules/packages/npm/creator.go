@@ -62,7 +62,28 @@ type PackageMetadata struct {
 	Author         User                               `json:"author"`
 	ReadmeFilename string                             `json:"readmeFilename,omitempty"`
 	Users          map[string]bool                    `json:"users,omitempty"`
-	License        string                             `json:"license,omitempty"`
+	License        License                            `json:"license,omitempty"`
+}
+
+type License string
+
+func (l *License) UnmarshalJSON(data []byte) error {
+	switch data[0] {
+	case '"':
+		var value string
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		*l = License(value)
+	case '{':
+		var values map[string]any
+		if err := json.Unmarshal(data, &values); err != nil {
+			return err
+		}
+		value, _ := values["type"].(string)
+		*l = License(value)
+	}
+	return nil
 }
 
 // PackageMetadataVersion documentation: https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
@@ -74,7 +95,7 @@ type PackageMetadataVersion struct {
 	Description          string              `json:"description"`
 	Author               User                `json:"author"`
 	Homepage             string              `json:"homepage,omitempty"`
-	License              string              `json:"license,omitempty"`
+	License              License             `json:"license,omitempty"`
 	Repository           Repository          `json:"repository"`
 	Keywords             []string            `json:"keywords,omitempty"`
 	Dependencies         map[string]string   `json:"dependencies,omitempty"`

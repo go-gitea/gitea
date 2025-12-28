@@ -19,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -264,9 +265,8 @@ func TestAPIEditIssue(t *testing.T) {
 
 func TestAPISearchIssues(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-
-	// as this API was used in the frontend, it uses UI page size
-	expectedIssueCount := min(20, setting.UI.IssuePagingNum) // 20 is from the fixtures
+	defer test.MockVariableValue(&setting.API.DefaultPagingNum, 20)()
+	expectedIssueCount := 20 // 20 is from the fixtures
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
 	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)

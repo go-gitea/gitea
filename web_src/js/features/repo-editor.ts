@@ -9,7 +9,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {submitFormFetchAction} from './common-fetch-action.ts';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {
-  const elTabMenu = elForm.querySelector('.repo-editor-menu');
+  const elTabMenu = elForm.querySelector('.repo-editor-menu')!;
   fomanticQuery(elTabMenu.querySelectorAll('.item')).tab();
 
   const elPreviewTab = elTabMenu.querySelector('a[data-tab="preview"]');
@@ -17,15 +17,15 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
   if (!elPreviewTab || !elPreviewPanel) return;
 
   elPreviewTab.addEventListener('click', async () => {
-    const elTreePath = elForm.querySelector<HTMLInputElement>('input#tree_path');
-    const previewUrl = elPreviewTab.getAttribute('data-preview-url');
+    const elTreePath = elForm.querySelector<HTMLInputElement>('input#tree_path')!;
+    const previewUrl = elPreviewTab.getAttribute('data-preview-url')!;
     const previewContextRef = elPreviewTab.getAttribute('data-preview-context-ref');
     let previewContext = `${previewContextRef}/${elTreePath.value}`;
     previewContext = previewContext.substring(0, previewContext.lastIndexOf('/'));
     const formData = new FormData();
     formData.append('mode', 'file');
     formData.append('context', previewContext);
-    formData.append('text', elForm.querySelector<HTMLTextAreaElement>('.tab[data-tab="write"] textarea').value);
+    formData.append('text', elForm.querySelector<HTMLTextAreaElement>('.tab[data-tab="write"] textarea')!.value);
     formData.append('file_path', elTreePath.value);
     const response = await POST(previewUrl, {data: formData});
     const data = await response.text();
@@ -41,16 +41,16 @@ export function initRepoEditor() {
     el.addEventListener('input', () => {
       if (el.value === 'commit-to-new-branch') {
         showElem('.quick-pull-branch-name');
-        document.querySelector<HTMLInputElement>('.quick-pull-branch-name input').required = true;
+        document.querySelector<HTMLInputElement>('.quick-pull-branch-name input')!.required = true;
       } else {
         hideElem('.quick-pull-branch-name');
-        document.querySelector<HTMLInputElement>('.quick-pull-branch-name input').required = false;
+        document.querySelector<HTMLInputElement>('.quick-pull-branch-name input')!.required = false;
       }
-      document.querySelector('#commit-button').textContent = el.getAttribute('data-button-text');
+      document.querySelector('#commit-button')!.textContent = el.getAttribute('data-button-text');
     });
   }
 
-  const filenameInput = document.querySelector<HTMLInputElement>('#file-name');
+  const filenameInput = document.querySelector<HTMLInputElement>('#file-name')!;
   if (!filenameInput) return;
   function joinTreePath() {
     const parts = [];
@@ -61,7 +61,7 @@ export function initRepoEditor() {
     if (filenameInput.value) {
       parts.push(filenameInput.value);
     }
-    document.querySelector<HTMLInputElement>('#tree_path').value = parts.join('/');
+    document.querySelector<HTMLInputElement>('#tree_path')!.value = parts.join('/');
   }
   filenameInput.addEventListener('input', function () {
     const parts = filenameInput.value.split('/');
@@ -76,8 +76,8 @@ export function initRepoEditor() {
         if (trimValue === '..') {
           // remove previous tree path
           if (links.length > 0) {
-            const link = links.pop();
-            const divider = dividers.pop();
+            const link = links.pop()!;
+            const divider = dividers.pop()!;
             link.remove();
             divider.remove();
           }
@@ -104,7 +104,7 @@ export function initRepoEditor() {
       }
     }
     containSpace = containSpace || Array.from(links).some((link) => {
-      const value = link.querySelector('a').textContent;
+      const value = link.querySelector('a')!.textContent;
       return value.trim() !== value;
     });
     containSpace = containSpace || parts[parts.length - 1].trim() !== parts[parts.length - 1];
@@ -115,7 +115,7 @@ export function initRepoEditor() {
         warningDiv.innerHTML = html`<p>File path contains leading or trailing whitespace.</p>`;
         // Add display 'block' because display is set to 'none' in formantic\build\semantic.css
         warningDiv.style.display = 'block';
-        const inputContainer = document.querySelector('.repo-editor-header');
+        const inputContainer = document.querySelector('.repo-editor-header')!;
         inputContainer.insertAdjacentElement('beforebegin', warningDiv);
       }
       showElem(warningDiv);
@@ -132,7 +132,7 @@ export function initRepoEditor() {
       e.preventDefault();
       const lastSection = sections[sections.length - 1];
       const lastDivider = dividers.length ? dividers[dividers.length - 1] : null;
-      const value = lastSection.querySelector('a').textContent;
+      const value = lastSection.querySelector('a')!.textContent;
       filenameInput.value = value + filenameInput.value;
       this.setSelectionRange(value.length, value.length);
       lastDivider?.remove();
@@ -141,7 +141,7 @@ export function initRepoEditor() {
     }
   });
 
-  const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form');
+  const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form')!;
 
   // on the upload page, there is no editor(textarea)
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
@@ -149,7 +149,7 @@ export function initRepoEditor() {
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
-  const commitButton = document.querySelector<HTMLButtonElement>('#commit-button');
+  const commitButton = document.querySelector<HTMLButtonElement>('#commit-button')!;
   const dirtyFileClass = 'dirty-file';
 
   const syncCommitButtonState = () => {
@@ -184,8 +184,8 @@ export function initRepoEditor() {
       if (!editArea.value) {
         e.preventDefault();
         if (await confirmModal({
-          header: elForm.getAttribute('data-text-empty-confirm-header'),
-          content: elForm.getAttribute('data-text-empty-confirm-content'),
+          header: elForm.getAttribute('data-text-empty-confirm-header')!,
+          content: elForm.getAttribute('data-text-empty-confirm-content')!,
         })) {
           ignoreAreYouSure(elForm);
           submitFormFetchAction(elForm);

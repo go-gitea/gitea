@@ -222,7 +222,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
+	commitsCount, err := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("FileCommitsCount", err)
 		return
@@ -415,6 +415,8 @@ func Diff(ctx *context.Context) {
 			ctx.ServerError("PostProcessCommitMessage", err)
 			return
 		}
+	} else if !git.IsErrNotExist(err) {
+		log.Error("GetNote: %v", err)
 	}
 
 	pr, _ := issues_model.GetPullRequestByMergedCommit(ctx, ctx.Repo.Repository.ID, commitID)

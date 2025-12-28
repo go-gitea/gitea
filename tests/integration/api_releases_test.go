@@ -15,6 +15,8 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -267,6 +269,42 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 	var err *api.APIError
 	DecodeJSON(t, resp, &err)
 	assert.NotEmpty(t, err.Message)
+}
+
+func TestAPIGetDraftReleaseByTag(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	tag := "draft-release"
+	// anonymous should not be able to get draft release
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag))
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// user 40 should be able to get draft release because he has write access to the repository
+	token := getUserToken(t, "user40", auth_model.AccessTokenScopeReadRepository)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag)).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	release := api.Release{}
+	DecodeJSON(t, resp, &release)
+	assert.Equal(t, "draft-release", release.Title)
+
+	// remove user 40 access from the repository
+	_, err := db.DeleteByID[access_model.Access](t.Context(), 30)
+	assert.NoError(t, err)
+
+	// user 40 should not be able to get draft release
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag)).AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
+	// user 2 should be able to get draft release because he is the publisher
+	user2Token := getUserToken(t, "user2", auth_model.AccessTokenScopeReadRepository)
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, tag)).AddTokenAuth(user2Token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	release = api.Release{}
+	DecodeJSON(t, resp, &release)
+	assert.Equal(t, "draft-release", release.Title)
 }
 
 func TestAPIDeleteReleaseByTagName(t *testing.T) {

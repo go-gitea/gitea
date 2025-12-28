@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -52,7 +53,7 @@ type ApplyDiffPatchOptions struct {
 }
 
 // Validate validates the provided options
-func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) error {
+func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User) error {
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -95,7 +96,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 			}
 		}
 		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
-			_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo.RepoPath(), doer, repo.RepoPath(), opts.OldBranch)
+			_, _, _, err := asymkey_service.SignCRUDAction(ctx, doer, gitRepo, opts.OldBranch)
 			if err != nil {
 				if !asymkey_service.IsErrWontSign(err) {
 					return err
@@ -116,7 +117,13 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		return nil, err
 	}
 
-	if err := opts.Validate(ctx, repo, doer); err != nil {
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	defer closer.Close()
+
+	if err := opts.Validate(ctx, repo, gitRepo, doer); err != nil {
 		return nil, err
 	}
 

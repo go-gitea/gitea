@@ -81,7 +81,6 @@
 						<div class="ui segment avatar-content-left-arrow">
 							<form class="ui form form-fetch-action" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
 								{{template "repo/issue/comment_tab" .}}
-								{{.CsrfTokenHtml}}
 								<div class="field footer">
 									<div class="flex-text-block tw-justify-end">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}

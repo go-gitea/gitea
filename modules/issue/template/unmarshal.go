@@ -5,7 +5,6 @@ package template
 
 import (
 	"fmt"
-	"io"
 	"path"
 	"strconv"
 
@@ -76,7 +75,7 @@ func unmarshalFromEntry(entry *git.TreeEntry, filename string) (*api.IssueTempla
 	}
 	defer r.Close()
 
-	content, err := io.ReadAll(r)
+	content, err := util.ReadWithLimit(r, 1024*1024)
 	if err != nil {
 		return nil, fmt.Errorf("read all: %w", err)
 	}

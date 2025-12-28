@@ -21,21 +21,21 @@ import (
 func UploadAvatar(ctx context.Context, u *user_model.User, data []byte) error {
 	avatarData, err := avatar.ProcessAvatarImage(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("UploadAvatar: failed to process user avatar image: %w", err)
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		u.UseCustomAvatar = true
 		u.Avatar = avatar.HashAvatar(u.ID, data)
 		if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
-			return fmt.Errorf("updateUser: %w", err)
+			return fmt.Errorf("UploadAvatar: failed to update user avatar: %w", err)
 		}
 
 		if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
 			_, err := w.Write(avatarData)
 			return err
 		}); err != nil {
-			return fmt.Errorf("Failed to create dir %s: %w", u.CustomAvatarRelativePath(), err)
+			return fmt.Errorf("UploadAvatar: failed to save user avatar %s: %w", u.CustomAvatarRelativePath(), err)
 		}
 
 		return nil

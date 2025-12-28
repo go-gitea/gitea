@@ -16,7 +16,7 @@ func GetUserByPathParam(ctx *context.APIContext, name string) *user_model.User {
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			if redirectUserID, err2 := user_model.LookupUserRedirect(ctx, username); err2 == nil {
-				context.RedirectToUser(ctx.Base, username, redirectUserID)
+				context.RedirectToUser(ctx.Base, ctx.Doer, username, redirectUserID)
 			} else {
 				ctx.APIErrorNotFound("GetUserByName", err)
 			}

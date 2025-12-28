@@ -4,6 +4,8 @@
 package integration
 
 import (
+	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -240,6 +242,79 @@ func TestAPIRenameBranch(t *testing.T) {
 		t.Run("RenameBranchNormalScenario", func(t *testing.T) {
 			testAPIRenameBranch(t, "user2", "user2", "repo1", "branch2", "new-branch-name", http.StatusNoContent)
 		})
+	})
+}
+
+func TestAPIUpdateBranchReference(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		ctx := NewAPITestContext(t, "user2", "update-branch", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		giteaURL.Path = ctx.GitPath()
+
+		var defaultBranch string
+		t.Run("CreateRepo", doAPICreateRepository(ctx, false, func(t *testing.T, repo api.Repository) {
+			defaultBranch = repo.DefaultBranch
+		}))
+
+		createBranchReq := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/branches", ctx.Username, ctx.Reponame), &api.CreateBranchRepoOption{
+			BranchName: "feature",
+			OldRefName: defaultBranch,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, createBranchReq, http.StatusCreated)
+
+		var featureInitialCommit string
+		t.Run("LoadFeatureBranch", doAPIGetBranch(ctx, "feature", func(t *testing.T, branch api.Branch) {
+			featureInitialCommit = branch.Commit.ID
+			assert.NotEmpty(t, featureInitialCommit)
+		}))
+
+		content := base64.StdEncoding.EncodeToString([]byte("branch update test"))
+		var newCommit string
+		doAPICreateFile(ctx, "docs/update.txt", &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				BranchName:    defaultBranch,
+				NewBranchName: defaultBranch,
+				Message:       "add docs/update.txt",
+			},
+			ContentBase64: content,
+		}, func(t *testing.T, resp api.FileResponse) {
+			newCommit = resp.Commit.SHA
+			assert.NotEmpty(t, newCommit)
+		})(t)
+
+		updateReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: newCommit,
+			OldCommitID: featureInitialCommit,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, updateReq, http.StatusNoContent)
+
+		t.Run("FastForwardApplied", doAPIGetBranch(ctx, "feature", func(t *testing.T, branch api.Branch) {
+			assert.Equal(t, newCommit, branch.Commit.ID)
+		}))
+
+		staleReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: newCommit,
+			OldCommitID: featureInitialCommit,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, staleReq, http.StatusUnprocessableEntity)
+
+		nonFFReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: featureInitialCommit,
+			OldCommitID: newCommit,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, nonFFReq, http.StatusUnprocessableEntity)
+
+		forceReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: featureInitialCommit,
+			OldCommitID: newCommit,
+			Force:       true,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, forceReq, http.StatusNoContent)
+
+		t.Run("ForceApplied", doAPIGetBranch(ctx, "feature", func(t *testing.T, branch api.Branch) {
+			assert.Equal(t, featureInitialCommit, branch.Commit.ID)
+		}))
 	})
 }
 

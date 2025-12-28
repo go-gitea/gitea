@@ -11,11 +11,21 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
+type TreeCommon struct {
+	ID         ObjectID
+	ResolvedID ObjectID
+
+	repo  *Repository
+	ptree *Tree // parent tree
+}
+
 // NewTree create a new tree according the repository and tree id
 func NewTree(repo *Repository, id ObjectID) *Tree {
 	return &Tree{
-		ID:   id,
-		repo: repo,
+		TreeCommon: TreeCommon{
+			ID:   id,
+			repo: repo,
+		},
 	}
 }
 

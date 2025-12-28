@@ -33,7 +33,7 @@ func TestTransformDiffTreeForWeb(t *testing.T) {
 	})
 
 	mockIconForFile := func(id string) template.HTML {
-		return template.HTML(`<svg class="svg git-entry-icon octicon-file" width="16" height="16" aria-hidden="true"><use xlink:href="#` + id + `"></use></svg>`)
+		return template.HTML(`<svg class="svg git-entry-icon octicon-file" width="16" height="16" aria-hidden="true"><use href="#` + id + `"></use></svg>`)
 	}
 	assert.Equal(t, WebDiffFileTree{
 		TreeRoot: WebDiffFileItem{

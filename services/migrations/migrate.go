@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
@@ -327,6 +328,9 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 		messenger("repo.migrate.migrating_issues")
 		issueBatchSize := uploader.MaxBatchInsertSize("issue")
 
+		// because when the migrating is running, some issues maybe removed, so after the next page
+		// some of issue maybe duplicated, so we need to record the inserted issue indexes
+		mapInsertedIssueIndexes := container.Set[int64]{}
 		for i := 1; ; i++ {
 			issues, isEnd, err := downloader.GetIssues(ctx, i, issueBatchSize)
 			if err != nil {
@@ -335,6 +339,14 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 				}
 				log.Warn("migrating issues is not supported, ignored")
 				break
+			}
+			for i := 0; i < len(issues); i++ {
+				if mapInsertedIssueIndexes.Contains(issues[i].Number) {
+					issues = append(issues[:i], issues[i+1:]...)
+					i--
+					continue
+				}
+				mapInsertedIssueIndexes.Add(issues[i].Number)
 			}
 
 			if err := uploader.CreateIssues(ctx, issues...); err != nil {
@@ -381,6 +393,7 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 		log.Trace("migrating pull requests and comments")
 		messenger("repo.migrate.migrating_pulls")
 		prBatchSize := uploader.MaxBatchInsertSize("pullrequest")
+		mapInsertedPRIndexes := container.Set[int64]{}
 		for i := 1; ; i++ {
 			prs, isEnd, err := downloader.GetPullRequests(ctx, i, prBatchSize)
 			if err != nil {
@@ -389,6 +402,14 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 				}
 				log.Warn("migrating pull requests is not supported, ignored")
 				break
+			}
+			for i := 0; i < len(prs); i++ {
+				if mapInsertedPRIndexes.Contains(prs[i].Number) {
+					prs = append(prs[:i], prs[i+1:]...)
+					i--
+					continue
+				}
+				mapInsertedPRIndexes.Add(prs[i].Number)
 			}
 
 			if err := uploader.CreatePullRequests(ctx, prs...); err != nil {
@@ -455,6 +476,15 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 
 			if isEnd {
 				break
+			}
+		}
+		if len(mapInsertedPRIndexes) > 0 {
+			// The pull requests migrating process may created head branches in the base repository
+			// because head repository maybe a fork one which will not be migrated. So that we need
+			// to sync branches again.
+			log.Trace("syncing branches after migrating pull requests")
+			if err = uploader.SyncBranches(ctx); err != nil {
+				return err
 			}
 		}
 	}

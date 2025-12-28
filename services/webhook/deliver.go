@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
 
@@ -264,7 +265,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		t.ResponseInfo.Headers[k] = strings.Join(vals, ",")
 	}
 
-	p, err := io.ReadAll(resp.Body)
+	p, err := util.ReadWithLimit(resp.Body, 1024*1024)
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("read body: %s", err)
 		return fmt.Errorf("unable to deliver webhook task[%d] in %s as unable to read response body: %w", t.ID, w.URL, err)

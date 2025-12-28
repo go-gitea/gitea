@@ -206,12 +206,11 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		ctx.NotFound(issues_model.ErrCommentNotExist{})
 		return
 	}
+	if history.CommentID != commentID {
+		ctx.NotFound(issues_model.ErrCommentNotExist{})
+		return
+	}
 	if commentID != 0 {
-		if history.CommentID != commentID {
-			ctx.NotFound(issues_model.ErrCommentNotExist{})
-			return
-		}
-
 		if comment, err = issues_model.GetCommentByID(ctx, commentID); err != nil {
 			log.Error("can not get comment for issue content history %v. err=%v", historyID, err)
 			return

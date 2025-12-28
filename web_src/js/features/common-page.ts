@@ -25,7 +25,7 @@ function initFooterLanguageMenu() {
     const item = (e.target as HTMLElement).closest('.item');
     if (!item) return;
     e.preventDefault();
-    await GET(item.getAttribute('data-url'));
+    await GET(item.getAttribute('data-url')!);
     window.location.reload();
   });
 }
@@ -39,7 +39,7 @@ function initFooterThemeSelector() {
     apiSettings: {url: `${appSubUrl}/-/web-theme/list`, cache: false},
   });
   addDelegatedEventListener(elDropdown, 'click', '.menu > .item', async (el) => {
-    const themeName = el.getAttribute('data-value');
+    const themeName = el.getAttribute('data-value')!;
     await POST(`${appSubUrl}/-/web-theme/apply?theme=${encodeURIComponent(themeName)}`);
     window.location.reload();
   });

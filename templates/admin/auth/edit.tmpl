@@ -6,7 +6,6 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="id" value="{{.Source.ID}}">
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "admin.auths.auth_type"}}</label>
@@ -113,6 +112,12 @@
 						<input id="attribute_avatar" name="attribute_avatar" value="{{$cfg.AttributeAvatar}}" placeholder="jpegPhoto">
 					</div>
 
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label for="ssh_keys_are_verified"><strong>{{ctx.Locale.Tr "admin.auths.ssh_keys_are_verified"}}</strong></label>
+							<input id="ssh_keys_are_verified" name="ssh_keys_are_verified" type="checkbox" {{if $cfg.SSHKeysAreVerified}}checked{{end}}>
+						</div>
+					</div>
 					<!-- ldap group begin -->
 					<div class="inline field">
 						<div class="ui checkbox">

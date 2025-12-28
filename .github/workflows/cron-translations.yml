@@ -9,9 +9,11 @@ jobs:
   crowdin-pull:
     runs-on: ubuntu-latest
     if: github.repository == 'go-gitea/gitea'
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: crowdin/github-action@v1
+      - uses: actions/checkout@v6
+      - uses: crowdin/github-action@v2
         with:
           upload_sources: true
           upload_translations: false
@@ -27,7 +29,7 @@ jobs:
       - name: update locales
         run: ./build/update-locales.sh
       - name: push translations to repo
-        uses: appleboy/git-push-action@v0.0.3
+        uses: appleboy/git-push-action@v1.0.0
         with:
           author_email: "teabot@gitea.io"
           author_name: GiteaBot

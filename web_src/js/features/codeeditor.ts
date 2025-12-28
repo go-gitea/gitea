@@ -41,6 +41,7 @@ const baseOptions: MonacoOpts = {
   wrappingIndent: 'none',
   wordWrapBreakAfterCharacters: '',
   wordWrapBreakBeforeCharacters: '',
+  matchBrackets: 'never',
 };
 
 function getEditorconfig(input: HTMLInputElement): EditorConfig | null {
@@ -62,9 +63,9 @@ function initLanguages(monaco: Monaco): void {
       languagesByExt[extension] = id;
     }
     if (id === 'typescript') {
-      monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+      monaco.typescript.typescriptDefaults.setCompilerOptions({
         // this is needed to suppress error annotations in tsx regarding missing --jsx flag.
-        jsx: monaco.languages.typescript.JsxEmit.Preserve,
+        jsx: monaco.typescript.JsxEmit.Preserve,
       });
     }
   }

@@ -43,8 +43,10 @@ type Base struct {
 	Locale translation.Locale
 }
 
+var ParseMultipartFormMaxMemory = int64(32 << 20)
+
 func (b *Base) ParseMultipartForm() bool {
-	err := b.Req.ParseMultipartForm(32 << 20)
+	err := b.Req.ParseMultipartForm(ParseMultipartFormMaxMemory)
 	if err != nil {
 		// TODO: all errors caused by client side should be ignored (connection closed).
 		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {

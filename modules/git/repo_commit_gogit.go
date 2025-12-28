@@ -107,7 +107,7 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 	}
 
 	commit.Tree.ID = ParseGogitHash(tree.Hash)
-	commit.Tree.gogitTree = tree
+	commit.Tree.resolvedGogitTreeObject = tree
 
 	return commit, nil
 }

@@ -467,13 +467,13 @@ func NewPullRequest(ctx context.Context, repo *repo_model.Repository, issue *Iss
 
 		issue.Index = idx
 		issue.Title = util.EllipsisDisplayString(issue.Title, 255)
+		issue.IsPull = true
 
 		if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 			Repo:        repo,
 			Issue:       issue,
 			LabelIDs:    labelIDs,
 			Attachments: uuids,
-			IsPull:      true,
 		}); err != nil {
 			if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 				return err

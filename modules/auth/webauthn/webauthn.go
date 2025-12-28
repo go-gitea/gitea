@@ -22,7 +22,7 @@ var WebAuthn *webauthn.WebAuthn
 
 // Init initializes the WebAuthn instance from the config.
 func Init() {
-	gob.Register(&webauthn.SessionData{})
+	gob.Register(&webauthn.SessionData{}) // TODO: CHI-SESSION-GOB-REGISTER.
 
 	appURL, _ := protocol.FullyQualifiedOrigin(setting.AppURL)
 

@@ -110,7 +110,6 @@
 		{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
 			<div>
 				<form method="post" action="{{.Issue.Link}}/dependency/add" id="addDependencyForm">
-					{{$.CsrfTokenHtml}}
 					<div class="ui fluid action input">
 						<div class="ui search selection dropdown" id="new-dependency-drop-list" data-issue-id="{{.Issue.ID}}" data-issue-cross-repo-search="{{.AllowCrossRepositoryDependencies}}">
 							<input name="newDependency" type="hidden">
@@ -131,7 +130,6 @@
 		<form id="issue-remove-dependency-confirm" class="ui g-modal-confirm modal" method="post" action="{{.Issue.Link}}/dependency/delete">
 			<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.issues.dependency.remove_header"}}</div>
 			<div class="content">
-				{{$.CsrfTokenHtml}}
 				<input type="hidden" value="" name="removeDependencyID" class="remove-dependency-id">
 				<input type="hidden" value="" name="dependencyType" class="dependency-type">
 				<p>

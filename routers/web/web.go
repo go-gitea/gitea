@@ -129,13 +129,13 @@ func webAuth(authMethod auth_service.Method) func(*context.Context) {
 			// ensure the session uid is deleted
 			_ = ctx.Session.Delete("uid")
 		}
-
-		ctx.Csrf.PrepareForSessionUser(ctx)
 	}
 }
 
 // verifyAuthWithOptions checks authentication according to options
 func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Context) {
+	crossOriginProtection := http.NewCrossOriginProtection()
+
 	return func(ctx *context.Context) {
 		// Check prohibit login users.
 		if ctx.IsSigned {
@@ -178,9 +178,9 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			return
 		}
 
-		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == http.MethodPost {
-			ctx.Csrf.Validate(ctx)
-			if ctx.Written() {
+		if !options.SignOutRequired && !options.DisableCrossOriginProtection {
+			if err := crossOriginProtection.Check(ctx.Req); err != nil {
+				http.Error(ctx.Resp, err.Error(), http.StatusForbidden)
 				return
 			}
 		}
@@ -227,6 +227,8 @@ func ctxDataSet(args ...any) func(ctx *context.Context) {
 	}
 }
 
+const RouterMockPointBeforeWebRoutes = "before-web-routes"
+
 // Routes returns all web routes
 func Routes() *web.Router {
 	routes := web.NewRouter()
@@ -267,11 +269,7 @@ func Routes() *web.Router {
 	routes.Get("/ssh_info", misc.SSHInfo)
 	routes.Get("/api/healthz", healthcheck.Check)
 
-	if sessionMid, err := common.Sessioner(); err == nil && sessionMid != nil {
-		mid = append(mid, sessionMid, context.Contexter())
-	} else {
-		log.Fatal("common.Sessioner failed: %v", err)
-	}
+	mid = append(mid, common.MustInitSessioner(), context.Contexter())
 
 	// Get user from session if logged in.
 	mid = append(mid, webAuth(buildAuthGroup()))
@@ -289,12 +287,17 @@ func Routes() *web.Router {
 
 	webRoutes := web.NewRouter()
 	webRoutes.Use(mid...)
-	webRoutes.Group("", func() { registerWebRoutes(webRoutes) }, common.BlockExpensive(), common.QoS())
+	webRoutes.Group("", func() { registerWebRoutes(webRoutes) }, common.BlockExpensive(), common.QoS(), web.RouterMockPoint(RouterMockPointBeforeWebRoutes))
 	routes.Mount("", webRoutes)
 	return routes
 }
 
-var optSignInIgnoreCsrf = verifyAuthWithOptions(&common.VerifyOptions{DisableCSRF: true})
+// optSignInFromAnyOrigin means that the user can (optionally) be signed in from any origin (no cross-origin protection)
+//   - With CORS middleware: CORS middleware does the preflight request handling, the requests has Sec-Fetch-Site header.
+//     The CORS mechanism already protects cross-origin requests, and the CrossOriginProtection has no "allowed origin" list, so disable CrossOriginProtection.
+//   - For non-browser client requests: git clone via http, no Sec-Fetch-Site header.
+//     Such requests are not cross-origin requests, so disable CrossOriginProtection.
+var optSignInFromAnyOrigin = verifyAuthWithOptions(&common.VerifyOptions{DisableCrossOriginProtection: true})
 
 // registerWebRoutes register routes
 func registerWebRoutes(m *web.Router) {
@@ -491,7 +494,7 @@ func registerWebRoutes(m *web.Router) {
 	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
 
 	m.Get("/-/web-theme/list", misc.WebThemeList)
-	m.Post("/-/web-theme/apply", optSignInIgnoreCsrf, misc.WebThemeApply)
+	m.Post("/-/web-theme/apply", optSignIn, misc.WebThemeApply)
 
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
@@ -567,12 +570,14 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("/grant", web.Bind(forms.GrantApplicationForm{}), auth.GrantApplicationOAuth)
 			// TODO manage redirection
 			m.Post("/authorize", web.Bind(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
-		}, optSignInIgnoreCsrf, reqSignIn)
+		}, reqSignIn)
 
-		m.Methods("GET, POST, OPTIONS", "/userinfo", optionsCorsHandler(), optSignInIgnoreCsrf, auth.InfoOAuth)
-		m.Methods("POST, OPTIONS", "/access_token", optionsCorsHandler(), web.Bind(forms.AccessTokenForm{}), optSignInIgnoreCsrf, auth.AccessTokenOAuth)
-		m.Methods("GET, OPTIONS", "/keys", optionsCorsHandler(), optSignInIgnoreCsrf, auth.OIDCKeys)
-		m.Methods("POST, OPTIONS", "/introspect", optionsCorsHandler(), web.Bind(forms.IntrospectTokenForm{}), optSignInIgnoreCsrf, auth.IntrospectOAuth)
+		m.Group("", func() {
+			m.Methods("GET, POST, OPTIONS", "/userinfo", auth.InfoOAuth)
+			m.Methods("POST, OPTIONS", "/access_token", web.Bind(forms.AccessTokenForm{}), auth.AccessTokenOAuth)
+			m.Methods("GET, OPTIONS", "/keys", auth.OIDCKeys)
+			m.Methods("POST, OPTIONS", "/introspect", web.Bind(forms.IntrospectTokenForm{}), auth.IntrospectOAuth)
+		}, optionsCorsHandler(), optSignInFromAnyOrigin)
 	}, oauth2Enabled)
 
 	m.Group("/user/settings", func() {
@@ -1188,7 +1193,6 @@ func registerWebRoutes(m *web.Router) {
 	m.Post("/{username}/{reponame}/markup", optSignIn, context.RepoAssignment, reqUnitsWithMarkdown, web.Bind(structs.MarkupOption{}), misc.Markup)
 
 	m.Group("/{username}/{reponame}", func() {
-		m.Get("/find/*", repo.FindFiles)
 		m.Group("/tree-list", func() {
 			m.Get("/branch/*", context.RepoRefByType(git.RefTypeBranch), repo.TreeList)
 			m.Get("/tag/*", context.RepoRefByType(git.RefTypeTag), repo.TreeList)
@@ -1406,6 +1410,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("/releases", func() {
 			m.Get("/new", repo.NewRelease)
 			m.Post("/new", web.Bind(forms.NewReleaseForm{}), repo.NewReleasePost)
+			m.Post("/generate-notes", web.Bind(forms.GenerateReleaseNotesForm{}), repo.GenerateReleaseNotes)
 			m.Post("/delete", repo.DeleteRelease)
 			m.Post("/attachments", repo.UploadReleaseAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
@@ -1655,7 +1660,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.ActionTransfer)
 	}, optSignIn, context.RepoAssignment)
 
-	common.AddOwnerRepoGitLFSRoutes(m, optSignInIgnoreCsrf, lfsServerEnabled) // "/{username}/{reponame}/{lfs-paths}": git-lfs support
+	common.AddOwnerRepoGitLFSRoutes(m, lfsServerEnabled, repo.CorsHandler(), optSignInFromAnyOrigin) // "/{username}/{reponame}/{lfs-paths}": git-lfs support, see also addOwnerRepoGitHTTPRouters
 
 	addOwnerRepoGitHTTPRouters(m) // "/{username}/{reponame}/{git-paths}": git http support
 

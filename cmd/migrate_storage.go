@@ -36,7 +36,7 @@ var CmdMigrateStorage = &cli.Command{
 			Name:    "type",
 			Aliases: []string{"t"},
 			Value:   "",
-			Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log', 'actions-artifacts",
+			Usage:   "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages', 'actions-log', 'actions-artifacts'",
 		},
 		&cli.StringFlag{
 			Name:    "storage",

@@ -12,7 +12,6 @@
 <div class="review-box-panel tippy-target">
 	<div class="ui segment">
 		<form class="ui form form-fetch-action" action="{{.Link}}/reviews/submit" method="post">
-			{{.CsrfTokenHtml}}
 			<input type="hidden" name="commit_id" value="{{.AfterCommitID}}">
 			<div class="field tw-flex tw-items-center">
 				<div class="tw-flex-1">{{ctx.Locale.Tr "repo.diff.review.header"}}</div>

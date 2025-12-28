@@ -18,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -54,12 +55,11 @@ func (t *TemporaryUploadRepository) Close() {
 
 // Clone the base repository to our path and set branch as the HEAD
 func (t *TemporaryUploadRepository) Clone(ctx context.Context, branch string, bare bool) error {
-	cmd := gitcmd.NewCommand("clone", "-s", "-b").AddDynamicArguments(branch, t.repo.RepoPath(), t.basePath)
-	if bare {
-		cmd.AddArguments("--bare")
-	}
-
-	if _, _, err := cmd.RunStdString(ctx); err != nil {
+	if err := gitrepo.CloneRepoToLocal(ctx, t.repo, t.basePath, git.CloneRepoOptions{
+		Bare:   bare,
+		Branch: branch,
+		Shared: true,
+	}); err != nil {
 		stderr := err.Error()
 		if matched, _ := regexp.MatchString(".*Remote branch .* not found in upstream origin.*", stderr); matched {
 			return git.ErrBranchNotExist{
@@ -133,6 +133,14 @@ func (t *TemporaryUploadRepository) LsFiles(ctx context.Context, filenames ...st
 	}
 
 	return fileList, nil
+}
+
+func (t *TemporaryUploadRepository) RemoveRecursivelyFromIndex(ctx context.Context, path string) error {
+	_, _, err := gitcmd.NewCommand("rm", "--cached", "-r").
+		AddDynamicArguments(path).
+		WithDir(t.basePath).
+		RunStdBytes(ctx)
+	return err
 }
 
 // RemoveFilesFromIndex removes the given files from the index
@@ -295,9 +303,9 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	var key *git.SigningKey
 	var signer *git.Signature
 	if opts.ParentCommitID != "" {
-		sign, key, signer, _ = asymkey_service.SignCRUDAction(ctx, t.repo.RepoPath(), opts.DoerUser, t.basePath, opts.ParentCommitID)
+		sign, key, signer, _ = asymkey_service.SignCRUDAction(ctx, opts.DoerUser, t.gitRepo, opts.ParentCommitID)
 	} else {
-		sign, key, signer, _ = asymkey_service.SignInitialCommit(ctx, t.repo.RepoPath(), opts.DoerUser)
+		sign, key, signer, _ = asymkey_service.SignInitialCommit(ctx, opts.DoerUser)
 	}
 	if sign {
 		if key.Format != "" {
@@ -354,8 +362,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.User, commitHash, branch string, force bool) error {
 	// Because calls hooks we need to pass in the environment
 	env := repo_module.PushingEnvironment(doer, t.repo)
-	if err := git.Push(ctx, t.basePath, git.PushOptions{
-		Remote: t.repo.RepoPath(),
+	if err := gitrepo.PushFromLocal(ctx, t.basePath, t.repo, git.PushOptions{
 		Branch: strings.TrimSpace(commitHash) + ":" + git.BranchPrefix + strings.TrimSpace(branch),
 		Env:    env,
 		Force:  force,

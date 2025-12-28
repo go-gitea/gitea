@@ -21,7 +21,6 @@
 		<form class="ui fluid action input issue-due-form form-fetch-action tw-mt-2 {{if .Issue.DeadlineUnix}}tw-hidden{{end}}"
 					method="post" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline"
 		>
-			{{$.CsrfTokenHtml}}
 			<input required type="date" name="deadline" placeholder="{{ctx.Locale.Tr "repo.issues.due_date_form"}}" {{if .Issue.DeadlineUnix}}value="{{.Issue.DeadlineUnix.FormatDate}}"{{end}}>
 			<button class="ui icon button">{{Iif .Issue.DeadlineUnix (svg "octicon-pencil") (svg "octicon-plus")}}</button>
 		</form>

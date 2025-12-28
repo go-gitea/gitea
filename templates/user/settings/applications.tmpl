@@ -53,7 +53,6 @@
 			<details {{if or .name (not .Tokens)}}open{{end}}>
 				<summary><h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr "settings.generate_new_token"}}</h4></summary>
 				<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
-					{{.CsrfTokenHtml}}
 					<div class="field {{if .Err_Name}}error{{end}}">
 						<label for="name">{{ctx.Locale.Tr "settings.token_name"}}</label>
 						<input id="name" name="name" value="{{.name}}" required maxlength="255">

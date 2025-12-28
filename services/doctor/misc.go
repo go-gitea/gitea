@@ -6,9 +6,7 @@ package doctor
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -20,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 
 	lru "github.com/hashicorp/golang-lru/v2"
 	"xorm.io/builder"
@@ -142,10 +139,10 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		daemonExportFile := filepath.Join(repo.RepoPath(), `git-daemon-export-ok`)
-		isExist, err := util.IsExist(daemonExportFile)
+		daemonExportFile := `git-daemon-export-ok`
+		isExist, err := gitrepo.IsRepoFileExist(ctx, repo, daemonExportFile)
 		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+			log.Error("Unable to check if %s:%s exists. Error: %v", repo.FullName(), daemonExportFile, err)
 			return err
 		}
 		isPublic := !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic
@@ -154,12 +151,12 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 			numNeedUpdate++
 			if autofix {
 				if !isPublic && isExist {
-					if err = util.Remove(daemonExportFile); err != nil {
-						log.Error("Failed to remove %s: %v", daemonExportFile, err)
+					if err = gitrepo.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
+						log.Error("Failed to remove %s:%s: %v", repo.FullName(), daemonExportFile, err)
 					}
 				} else if isPublic && !isExist {
-					if f, err := os.Create(daemonExportFile); err != nil {
-						log.Error("Failed to create %s: %v", daemonExportFile, err)
+					if f, err := gitrepo.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
+						log.Error("Failed to create %s:%s: %v", repo.FullName(), daemonExportFile, err)
 					} else {
 						f.Close()
 					}
@@ -190,16 +187,16 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 
 		commitGraphExists := func() (bool, error) {
 			// Check commit-graph exists
-			commitGraphFile := filepath.Join(repo.RepoPath(), `objects/info/commit-graph`)
-			isExist, err := util.IsExist(commitGraphFile)
+			commitGraphFile := `objects/info/commit-graph`
+			isExist, err := gitrepo.IsRepoFileExist(ctx, repo, commitGraphFile)
 			if err != nil {
 				logger.Error("Unable to check if %s exists. Error: %v", commitGraphFile, err)
 				return false, err
 			}
 
 			if !isExist {
-				commitGraphsDir := filepath.Join(repo.RepoPath(), `objects/info/commit-graphs`)
-				isExist, err = util.IsExist(commitGraphsDir)
+				commitGraphsDir := `objects/info/commit-graphs`
+				isExist, err = gitrepo.IsRepoDirExist(ctx, repo, commitGraphsDir)
 				if err != nil {
 					logger.Error("Unable to check if %s exists. Error: %v", commitGraphsDir, err)
 					return false, err
@@ -215,7 +212,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 		if !isExist {
 			numNeedUpdate++
 			if autofix {
-				if err := git.WriteCommitGraph(ctx, repo.RepoPath()); err != nil {
+				if err := gitrepo.WriteCommitGraph(ctx, repo); err != nil {
 					logger.Error("Unable to write commit-graph in %s. Error: %v", repo.FullName(), err)
 					return err
 				}

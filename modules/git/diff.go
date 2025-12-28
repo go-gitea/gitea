@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // RawDiffType type of a raw diff.
@@ -30,20 +31,6 @@ const (
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
 func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer io.Writer) error {
 	return GetRepoRawDiffForFile(repo, "", commitID, diffType, "", writer)
-}
-
-// GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
-func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io.Writer) error {
-	stderr := new(bytes.Buffer)
-	if err := gitcmd.NewCommand("show", "--pretty=format:revert %H%n", "-R").
-		AddDynamicArguments(commitID).
-		WithDir(repoPath).
-		WithStdout(writer).
-		WithStderr(stderr).
-		Run(ctx); err != nil {
-		return fmt.Errorf("Run: %w - %s", err, stderr)
-	}
-	return nil
 }
 
 // GetRepoRawDiffForFile dumps diff results of file in given commit ID to io.Writer according given repository
@@ -61,7 +48,9 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	switch diffType {
 	case RawDiffNormal:
 		if len(startCommit) != 0 {
-			cmd.AddArguments("diff", "-M").AddDynamicArguments(startCommit, endCommit).AddDashesAndList(files...)
+			cmd.AddArguments("diff").
+				AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold).
+				AddDynamicArguments(startCommit, endCommit).AddDashesAndList(files...)
 		} else if commit.ParentCount() == 0 {
 			cmd.AddArguments("show").AddDynamicArguments(endCommit).AddDashesAndList(files...)
 		} else {
@@ -69,7 +58,9 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 			if err != nil {
 				return err
 			}
-			cmd.AddArguments("diff", "-M").AddDynamicArguments(c.ID.String(), endCommit).AddDashesAndList(files...)
+			cmd.AddArguments("diff").
+				AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold).
+				AddDynamicArguments(c.ID.String(), endCommit).AddDashesAndList(files...)
 		}
 	case RawDiffPatch:
 		if len(startCommit) != 0 {

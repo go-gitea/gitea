@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	webhook_module "code.gitea.io/gitea/modules/webhook"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	release_service "code.gitea.io/gitea/services/release"
@@ -1593,5 +1594,56 @@ jobs:
 			CommitSHA:  branch.CommitID,
 		})
 		assert.NotNil(t, run)
+	})
+}
+
+func TestPullRequestWithPathsRebase(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		repoName := "actions-pr-paths-rebase"
+		apiRepo := createActionsTestRepo(t, token, repoName, false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		apiCtx := NewAPITestContext(t, "user2", repoName, auth_model.AccessTokenScopeWriteRepository)
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, "user2", repoName, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		// init files and dirs
+		testCreateFile(t, session, "user2", repoName, repo.DefaultBranch, "", "dir1/dir1.txt", "1")
+		testCreateFile(t, session, "user2", repoName, repo.DefaultBranch, "", "dir2/dir2.txt", "2")
+		wfFileContent := `name: ci
+on:
+  pull_request:
+    paths:
+      - 'dir1/**'
+jobs:
+  ci-job:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'ci'
+`
+		testCreateFile(t, session, "user2", repoName, repo.DefaultBranch, "", ".gitea/workflows/ci.yml", wfFileContent)
+
+		// create a PR to modify "dir1/dir1.txt", the workflow will be triggered
+		testEditFileToNewBranch(t, session, "user2", repoName, repo.DefaultBranch, "update-dir1", "dir1/dir1.txt", "11")
+		_, err := doAPICreatePullRequest(apiCtx, "user2", repoName, repo.DefaultBranch, "update-dir1")(t)
+		assert.NoError(t, err)
+		pr1Task := runner.fetchTask(t)
+		_, _, pr1Run := getTaskAndJobAndRunByTaskID(t, pr1Task.Id)
+		assert.Equal(t, webhook_module.HookEventPullRequest, pr1Run.Event)
+
+		// create a PR to modify "dir2/dir2.txt" then update main branch and rebase, the workflow will not be triggered
+		testEditFileToNewBranch(t, session, "user2", repoName, repo.DefaultBranch, "update-dir2", "dir2/dir2.txt", "22")
+		apiPull, err := doAPICreatePullRequest(apiCtx, "user2", repoName, repo.DefaultBranch, "update-dir2")(t)
+		runner.fetchNoTask(t)
+		assert.NoError(t, err)
+		// change the file in "dir1"
+		testEditFile(t, session, "user2", repoName, repo.DefaultBranch, "dir1/dir1.txt", "11")
+		// update by rebase
+		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/pulls/%d/update?style=rebase", "user2", repoName, apiPull.Index))
+		session.MakeRequest(t, req, http.StatusSeeOther)
+		runner.fetchNoTask(t)
 	})
 }

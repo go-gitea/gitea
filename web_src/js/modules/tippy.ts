@@ -68,7 +68,7 @@ export function createTippy(target: Element, opts: TippyOpts = {}): Instance {
  *
  * Note: "tooltip" doesn't equal to "tippy". "tooltip" means a auto-popup content, it just uses tippy as the implementation.
  */
-function attachTooltip(target: Element, content: Content = null): Instance {
+function attachTooltip(target: Element, content: Content | null = null): Instance | null {
   switchTitleToTooltip(target);
 
   content = content ?? target.getAttribute('data-tooltip-content');
@@ -125,7 +125,7 @@ function switchTitleToTooltip(target: Element): void {
  * The tippy by default uses "mouseenter" event to show, so we use "mouseover" event to switch to tippy
  */
 function lazyTooltipOnMouseHover(this: HTMLElement, e: Event): void {
-  e.target.removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
+  (e.target as HTMLElement).removeEventListener('mouseover', lazyTooltipOnMouseHover, true);
   attachTooltip(this);
 }
 
@@ -184,7 +184,7 @@ export function initGlobalTooltips(): void {
 export function showTemporaryTooltip(target: Element, content: Content): void {
   // if the target is inside a dropdown or tippy popup, the menu will be hidden soon
   // so display the tooltip on the "aria-controls" element or dropdown instead
-  let refClientRect: DOMRect;
+  let refClientRect: DOMRect | undefined;
   const popupTippyId = target.closest(`[data-tippy-root]`)?.id;
   if (popupTippyId) {
     // for example, the "Copy Permalink" button in the "File View" page for the selected lines

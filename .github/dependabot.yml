@@ -1,0 +1,10 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    labels: [modifies/dependencies]
+    directory: /
+    schedule:
+      interval: daily
+    cooldown:
+      default-days: 5

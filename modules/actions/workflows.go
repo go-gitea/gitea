@@ -5,7 +5,6 @@ package actions
 
 import (
 	"bytes"
-	"io"
 	"slices"
 	"strings"
 
@@ -13,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/nektos/act/pkg/jobparser"
@@ -77,7 +77,7 @@ func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	content, err := io.ReadAll(f)
+	content, err := util.ReadWithLimit(f, 1024*1024)
 	_ = f.Close()
 	if err != nil {
 		return nil, err

@@ -7,17 +7,23 @@ import (
 	"bytes"
 	"image"
 	"image/png"
+	"io/fs"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/web"
+	route_web "code.gitea.io/gitea/routers/web"
+	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testGeneratePngBytes() []byte {
@@ -27,7 +33,7 @@ func testGeneratePngBytes() []byte {
 	return buff.Bytes()
 }
 
-func testCreateIssueAttachment(t *testing.T, session *TestSession, csrf, repoURL, filename string, content []byte, expectedStatus int) string {
+func testCreateIssueAttachment(t *testing.T, session *TestSession, repoURL, filename string, content []byte, expectedStatus int) string {
 	body := &bytes.Buffer{}
 
 	// Setup multi-part
@@ -40,7 +46,6 @@ func testCreateIssueAttachment(t *testing.T, session *TestSession, csrf, repoURL
 	assert.NoError(t, err)
 
 	req := NewRequestWithBody(t, "POST", repoURL+"/issues/attachments", body)
-	req.Header.Add("X-Csrf-Token", csrf)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	resp := session.MakeRequest(t, req, expectedStatus)
 
@@ -52,17 +57,41 @@ func testCreateIssueAttachment(t *testing.T, session *TestSession, csrf, repoURL
 	return obj["uuid"]
 }
 
-func TestCreateAnonymousAttachment(t *testing.T) {
+func TestAttachments(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	session := emptyTestSession(t)
-	testCreateIssueAttachment(t, session, GetAnonymousCSRFToken(t, session), "user2/repo1", "image.png", testGeneratePngBytes(), http.StatusSeeOther)
+	t.Run("CreateAnonymousAttachment", testCreateAnonymousAttachment)
+	t.Run("CreateUser2IssueAttachment", testCreateUser2IssueAttachment)
+	t.Run("UploadAttachmentDeleteTemp", testUploadAttachmentDeleteTemp)
+	t.Run("GetAttachment", testGetAttachment)
 }
 
-func TestCreateIssueAttachment(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testUploadAttachmentDeleteTemp(t *testing.T) {
+	session := loginUser(t, "user2")
+	countTmpFile := func() int {
+		// TODO: GOLANG-HTTP-TMPDIR: Golang saves the uploaded file to os.TempDir() when it exceeds the max memory limit.
+		files, err := fs.Glob(os.DirFS(os.TempDir()), "multipart-*") //nolint:usetesting // Golang's "http" package's behavior
+		require.NoError(t, err)
+		return len(files)
+	}
+	var tmpFileCountDuringUpload int
+	defer test.MockVariableValue(&context.ParseMultipartFormMaxMemory, 1)()
+	defer web.RouteMock(route_web.RouterMockPointBeforeWebRoutes, func(resp http.ResponseWriter, req *http.Request) {
+		tmpFileCountDuringUpload = countTmpFile()
+	})()
+	_ = testCreateIssueAttachment(t, session, "user2/repo1", "image.png", testGeneratePngBytes(), http.StatusOK)
+	assert.Equal(t, 1, tmpFileCountDuringUpload, "the temp file should exist when uploaded size exceeds the parse form's max memory")
+	assert.Equal(t, 0, countTmpFile(), "the temp file should be deleted after upload")
+}
+
+func testCreateAnonymousAttachment(t *testing.T) {
+	session := emptyTestSession(t)
+	testCreateIssueAttachment(t, session, "user2/repo1", "image.png", testGeneratePngBytes(), http.StatusSeeOther)
+}
+
+func testCreateUser2IssueAttachment(t *testing.T) {
 	const repoURL = "user2/repo1"
 	session := loginUser(t, "user2")
-	uuid := testCreateIssueAttachment(t, session, GetUserCSRFToken(t, session), repoURL, "image.png", testGeneratePngBytes(), http.StatusOK)
+	uuid := testCreateIssueAttachment(t, session, repoURL, "image.png", testGeneratePngBytes(), http.StatusOK)
 
 	req := NewRequest(t, "GET", repoURL+"/issues/new")
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -72,7 +101,6 @@ func TestCreateIssueAttachment(t *testing.T) {
 	assert.True(t, exists, "The template has changed")
 
 	postData := map[string]string{
-		"_csrf":   htmlDoc.GetCSRF(),
 		"title":   "New Issue With Attachment",
 		"content": "some content",
 		"files":   uuid,
@@ -90,8 +118,7 @@ func TestCreateIssueAttachment(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 }
 
-func TestGetAttachment(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testGetAttachment(t *testing.T) {
 	adminSession := loginUser(t, "user1")
 	user2Session := loginUser(t, "user2")
 	user8Session := loginUser(t, "user8")

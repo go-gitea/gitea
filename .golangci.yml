@@ -6,14 +6,17 @@ linters:
   default: none
   enable:
     - bidichk
+    - bodyclose
     - depguard
     - dupl
     - errcheck
     - forbidigo
+    - gocheckcompilerdirectives
     - gocritic
     - govet
     - ineffassign
     - mirror
+    - modernize
     - nakedret
     - nolintlint
     - perfsprint
@@ -55,6 +58,7 @@ linters:
       disabled-checks:
         - ifElseChain
         - singleCaseSwitch # Every time this occurred in the code, there was no other way.
+        - deprecatedComment # conflicts with go-swagger comments
     revive:
       severity: error
       rules:
@@ -107,6 +111,12 @@ linters:
         - require-error
     usetesting:
       os-temp-dir: true
+    perfsprint:
+      concat-loop: false
+    govet:
+      enable:
+        - nilness
+        - unusedwrite
   exclusions:
     generated: lax
     presets:

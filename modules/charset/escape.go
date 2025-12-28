@@ -20,14 +20,17 @@ import (
 // RuneNBSP is the codepoint for NBSP
 const RuneNBSP = 0xa0
 
-// EscapeControlHTML escapes the unicode control sequences in a provided html document
+// EscapeControlHTML escapes the Unicode control sequences in a provided html document
 func EscapeControlHTML(html template.HTML, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, output template.HTML) {
+	if !setting.UI.AmbiguousUnicodeDetection {
+		return &EscapeStatus{}, html
+	}
 	sb := &strings.Builder{}
 	escaped, _ = EscapeControlReader(strings.NewReader(string(html)), sb, locale, allowed...) // err has been handled in EscapeControlReader
 	return escaped, template.HTML(sb.String())
 }
 
-// EscapeControlReader escapes the unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
+// EscapeControlReader escapes the Unicode control sequences in a provided reader of HTML content and writer in a locale and returns the findings as an EscapeStatus
 func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
 	if !setting.UI.AmbiguousUnicodeDetection {
 		_, err = io.Copy(writer, reader)

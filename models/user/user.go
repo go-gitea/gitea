@@ -1262,8 +1262,8 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Finally, if email address is the protected email address:
-	if strings.HasSuffix(email, "@"+setting.Service.NoReplyAddress) {
-		username := strings.TrimSuffix(email, "@"+setting.Service.NoReplyAddress)
+	if before, ok := strings.CutSuffix(email, "@"+setting.Service.NoReplyAddress); ok {
+		username := before
 		user := &User{}
 		has, err := db.GetEngine(ctx).Where("lower_name=?", username).Get(user)
 		if err != nil {
@@ -1460,4 +1460,16 @@ func GetUserOrOrgIDByName(ctx context.Context, name string) (int64, error) {
 		return 0, fmt.Errorf("user or org with name %s: %w", name, util.ErrNotExist)
 	}
 	return id, nil
+}
+
+// GetUserOrOrgByName returns the user or org by name
+func GetUserOrOrgByName(ctx context.Context, name string) (*User, error) {
+	var u User
+	has, err := db.GetEngine(ctx).Where("lower_name = ?", strings.ToLower(name)).Get(&u)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrUserNotExist{Name: name}
+	}
+	return &u, nil
 }

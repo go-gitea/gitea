@@ -13,7 +13,6 @@
 		<div class="ui attached segment">
 			<div class="{{if not .HasError}}tw-hidden{{end}} tw-mb-4" id="add-deploy-key-panel">
 				<form class="ui form" action="{{.Link}}" method="post">
-					{{.CsrfTokenHtml}}
 					<div class="field">
 						{{ctx.Locale.Tr "repo.settings.deploy_key_desc"}}
 					</div>

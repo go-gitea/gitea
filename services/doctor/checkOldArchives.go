@@ -5,12 +5,10 @@ package doctor
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 func checkOldArchives(ctx context.Context, logger log.Logger, autofix bool) error {
@@ -21,18 +19,18 @@ func checkOldArchives(ctx context.Context, logger log.Logger, autofix bool) erro
 			return nil
 		}
 
-		p := filepath.Join(repo.RepoPath(), "archives")
-		isDir, err := util.IsDir(p)
+		isDir, err := gitrepo.IsRepoDirExist(ctx, repo, "archives")
 		if err != nil {
-			log.Warn("check if %s is directory failed: %v", p, err)
+			log.Warn("check if %s is directory failed: %v", repo.FullName(), err)
 		}
 		if isDir {
 			numRepos++
 			if autofix {
-				if err := os.RemoveAll(p); err == nil {
+				err := gitrepo.RemoveRepoFileOrDir(ctx, repo, "archives")
+				if err == nil {
 					numReposUpdated++
 				} else {
-					log.Warn("remove %s failed: %v", p, err)
+					log.Warn("remove %s failed: %v", repo.FullName(), err)
 				}
 			}
 		}

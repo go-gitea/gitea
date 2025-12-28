@@ -495,7 +495,7 @@ func preparePullViewSigning(ctx *context.Context, issue *issues_model.Issue) {
 	pull := issue.PullRequest
 	ctx.Data["WillSign"] = false
 	if ctx.Doer != nil {
-		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitHeadRefName())
+		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo, pull.BaseBranch, pull.GetGitHeadRefName())
 		ctx.Data["WillSign"] = sign
 		ctx.Data["SigningKeyMergeDisplay"] = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {

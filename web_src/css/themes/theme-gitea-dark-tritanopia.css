@@ -1,0 +1,15 @@
+@import "./theme-gitea-dark-protanopia-deuteranopia.css";
+
+gitea-theme-meta-info {
+  --theme-display-name: "Dark";
+  --theme-colorblind-type: "blue-yellow";
+  --theme-color-scheme: "dark";
+}
+
+/* blue/yellow colorblind-friendly colors */
+/* from GitHub: blue yellow blindness is based on red green blindness, and --diffBlob-deletion-* restored to the normal theme color */
+:root {
+  --color-diff-removed-linenum-bg: #482121;
+  --color-diff-removed-row-bg: #301e1e;
+  --color-diff-removed-word-bg: #6f3333;
+}

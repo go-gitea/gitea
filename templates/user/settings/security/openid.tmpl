@@ -16,7 +16,6 @@
 				</div>
 				<div class="flex-item-trailing">
 					<form action="{{AppSubUrl}}/user/settings/security/openid/toggle_visibility" method="post">
-						{{$.CsrfTokenHtml}}
 						<input name="id" type="hidden" value="{{.ID}}">
 						{{if .Show}}
 							<button class="ui tiny button">
@@ -40,7 +39,6 @@
 </div>
 <div class="ui bottom attached segment">
 	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/openid" method="post">
-		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_OpenID}}error{{end}}">
 			<label for="openid">{{ctx.Locale.Tr "settings.add_new_openid"}}</label>
 			<input id="openid" name="openid" type="text" required>

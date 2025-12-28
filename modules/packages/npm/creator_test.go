@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParsePackage(t *testing.T) {
@@ -291,11 +292,36 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, packageDescription, p.Metadata.Readme)
 		assert.Equal(t, packageAuthor, p.Metadata.Author)
 		assert.Equal(t, packageBin, p.Metadata.Bin["bin"])
-		assert.Equal(t, "MIT", p.Metadata.License)
+		assert.Equal(t, "MIT", string(p.Metadata.License))
 		assert.Equal(t, "https://gitea.io/", p.Metadata.ProjectURL)
 		assert.Contains(t, p.Metadata.Dependencies, "package")
 		assert.Equal(t, "1.2.0", p.Metadata.Dependencies["package"])
 		assert.Equal(t, repository.Type, p.Metadata.Repository.Type)
 		assert.Equal(t, repository.URL, p.Metadata.Repository.URL)
+	})
+
+	t.Run("ValidLicenseMap", func(t *testing.T) {
+		packageJSON := `{
+  "versions": {
+		"0.1.1": {
+			"name": "dev-null",
+			"version": "0.1.1",
+			"license": {
+				"type": "MIT"
+			},
+			"dist": {
+				"integrity": "sha256-"
+			}
+		}
+	},
+	"_attachments": {
+		"foo": {
+			"data": "AAAA"
+		}
+	}
+}`
+		p, err := ParsePackage(strings.NewReader(packageJSON))
+		require.NoError(t, err)
+		require.Equal(t, "MIT", string(p.Metadata.License))
 	})
 }

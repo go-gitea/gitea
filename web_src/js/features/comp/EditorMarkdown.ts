@@ -4,14 +4,23 @@ export function triggerEditorContentChanged(target: HTMLElement) {
   target.dispatchEvent(new CustomEvent(EventEditorContentChanged, {bubbles: true}));
 }
 
-export function textareaInsertText(textarea: HTMLTextAreaElement, value: string) {
-  const startPos = textarea.selectionStart;
-  const endPos = textarea.selectionEnd;
-  textarea.value = textarea.value.substring(0, startPos) + value + textarea.value.substring(endPos);
-  textarea.selectionStart = startPos;
-  textarea.selectionEnd = startPos + value.length;
+/** replace selected text or insert text by creating a new edit history entry,
+ *  e.g. CTRL-Z works after this */
+export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: string) {
+  const before = textarea.value.slice(0, textarea.selectionStart);
+  const after = textarea.value.slice(textarea.selectionEnd);
+
   textarea.focus();
-  triggerEditorContentChanged(textarea);
+  let success = false;
+  try {
+    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
+  } catch {}
+
+  // fall back to regular replacement
+  if (!success) {
+    textarea.value = `${before}${text}${after}`;
+    triggerEditorContentChanged(textarea);
+  }
 }
 
 type TextareaValueSelection = {
@@ -45,7 +54,8 @@ function handleIndentSelection(textarea: HTMLTextAreaElement, e: KeyboardEvent) 
   }
 
   // re-calculating the selection range
-  let newSelStart, newSelEnd;
+  let newSelStart: number | null = null;
+  let newSelEnd: number | null = null;
   pos = 0;
   for (let i = 0; i < lines.length; i++) {
     if (i === selectedLines[0]) {
@@ -134,7 +144,7 @@ export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHa
 
   // parse the indention
   let lineContent = line;
-  const indention = /^\s*/.exec(lineContent)[0];
+  const indention = (/^\s*/.exec(lineContent) || [''])[0];
   lineContent = lineContent.slice(indention.length);
   if (linesBuf.inlinePos <= indention.length) return unhandled; // if cursor is at the indention, do nothing, let the browser handle it
 
@@ -175,13 +185,35 @@ export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHa
   return {handled: true, valueSelection: {value: linesBuf.lines.join('\n'), selStart: newPos, selEnd: newPos}};
 }
 
-function handleNewline(textarea: HTMLTextAreaElement, e: Event) {
+function handleNewline(textarea: HTMLTextAreaElement, e: KeyboardEvent) {
   const ret = markdownHandleIndention({value: textarea.value, selStart: textarea.selectionStart, selEnd: textarea.selectionEnd});
-  if (!ret.handled) return;
+  if (!ret.handled || !ret.valueSelection) return; // FIXME: the "handled" seems redundant, only valueSelection is enough (null for unhandled)
   e.preventDefault();
   textarea.value = ret.valueSelection.value;
   textarea.setSelectionRange(ret.valueSelection.selStart, ret.valueSelection.selEnd);
   triggerEditorContentChanged(textarea);
+}
+
+// Keys that act as dead keys will not work because the spec dictates that such keys are
+// emitted as `Dead` in e.key instead of the actual key.
+const pairs = new Map<string, string>([
+  ["'", "'"],
+  ['"', '"'],
+  ['`', '`'],
+  ['(', ')'],
+  ['[', ']'],
+  ['{', '}'],
+  ['<', '>'],
+]);
+
+function handlePairCharacter(textarea: HTMLTextAreaElement, e: KeyboardEvent): void {
+  const selStart = textarea.selectionStart;
+  const selEnd = textarea.selectionEnd;
+  if (selEnd === selStart) return; // do not process when no selection
+  e.preventDefault();
+  const inner = textarea.value.substring(selStart, selEnd);
+  replaceTextareaSelection(textarea, `${e.key}${inner}${pairs.get(e.key)}`);
+  textarea.setSelectionRange(selStart + 1, selEnd + 1);
 }
 
 function isTextExpanderShown(textarea: HTMLElement): boolean {
@@ -197,6 +229,8 @@ export function initTextareaMarkdown(textarea: HTMLTextAreaElement) {
     } else if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) {
       // use Enter to insert a new line with the same indention and prefix
       handleNewline(textarea, e);
+    } else if (pairs.has(e.key)) {
+      handlePairCharacter(textarea, e);
     }
   });
 }

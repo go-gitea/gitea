@@ -82,13 +82,33 @@ type DiffLine struct {
 
 // DiffLineSectionInfo represents diff line section meta data
 type DiffLineSectionInfo struct {
-	Path          string
-	LastLeftIdx   int
-	LastRightIdx  int
-	LeftIdx       int
-	RightIdx      int
+	Path string
+
+	// These line "idx" are 1-based line numbers
+	// Left/Right refer to the left/right side of the diff:
+	//
+	// LastLeftIdx | LastRightIdx
+	// [up/down expander] @@ hunk info @@
+	// LeftIdx     | RightIdx
+
+	LastLeftIdx  int
+	LastRightIdx int
+	LeftIdx      int
+	RightIdx     int
+
+	// Hunk sizes of the hidden lines
 	LeftHunkSize  int
 	RightHunkSize int
+
+	// For example:
+	// 17 | 31
+	// [up/down] @@ -40,23 +54,9 @@ ....
+	// 40 | 54
+	//
+	// In this case:
+	// LastLeftIdx = 17, LastRightIdx = 31
+	// LeftHunkSize = 23, RightHunkSize = 9
+	// LeftIdx = 40, RightIdx = 54
 
 	HiddenCommentIDs []int64 // IDs of hidden comments in this section
 }
@@ -158,13 +178,13 @@ func (d *DiffLine) getBlobExcerptQuery() string {
 	return query
 }
 
-func (d *DiffLine) getExpandDirection() string {
+func (d *DiffLine) GetExpandDirection() string {
 	if d.Type != DiffLineSection || d.SectionInfo == nil || d.SectionInfo.LeftIdx-d.SectionInfo.LastLeftIdx <= 1 || d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx <= 1 {
 		return ""
 	}
 	if d.SectionInfo.LastLeftIdx <= 0 && d.SectionInfo.LastRightIdx <= 0 {
 		return "up"
-	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
+	} else if d.SectionInfo.RightIdx-d.SectionInfo.LastRightIdx-1 > BlobExcerptChunkSize && d.SectionInfo.RightHunkSize > 0 {
 		return "updown"
 	} else if d.SectionInfo.LeftHunkSize <= 0 && d.SectionInfo.RightHunkSize <= 0 {
 		return "down"
@@ -202,12 +222,12 @@ func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobE
 		content += htmlutil.HTMLFormat(`<span class="code-comment-more" data-tooltip-content="%s">%d</span>`, tooltip, len(d.SectionInfo.HiddenCommentIDs))
 	}
 
-	expandDirection := d.getExpandDirection()
-	if expandDirection == "up" || expandDirection == "updown" {
-		content += makeButton("up", "octicon-fold-up")
-	}
+	expandDirection := d.GetExpandDirection()
 	if expandDirection == "updown" || expandDirection == "down" {
 		content += makeButton("down", "octicon-fold-down")
+	}
+	if expandDirection == "up" || expandDirection == "updown" {
+		content += makeButton("up", "octicon-fold-up")
 	}
 	if expandDirection == "single" {
 		content += makeButton("single", "octicon-fold")
@@ -520,10 +540,9 @@ func getCommitFileLineCountAndLimitedContent(commit *git.Commit, filePath string
 
 // Diff represents a difference between two git trees.
 type Diff struct {
-	Start, End     string
-	Files          []*DiffFile
-	IsIncomplete   bool
-	NumViewedFiles int // user-specific
+	Start, End   string
+	Files        []*DiffFile
+	IsIncomplete bool
 }
 
 // LoadComments loads comments into each line
@@ -816,11 +835,11 @@ parsingLoop:
 			if buffer.Len() == 0 {
 				continue
 			}
-			charsetLabel, err := charset.DetectEncoding(buffer.Bytes())
-			if charsetLabel != "UTF-8" && err == nil {
-				encoding, _ := stdcharset.Lookup(charsetLabel)
-				if encoding != nil {
-					diffLineTypeDecoders[lineType] = encoding.NewDecoder()
+			charsetLabel, _ := charset.DetectEncoding(buffer.Bytes())
+			if charsetLabel != "UTF-8" {
+				charsetEncoding, _ := stdcharset.Lookup(charsetLabel)
+				if charsetEncoding != nil {
+					diffLineTypeDecoders[lineType] = charsetEncoding.NewDecoder()
 				}
 			}
 		}
@@ -1206,8 +1225,9 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 	}
 
 	cmdDiff := gitcmd.NewCommand().
-		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
-		AddArguments(opts.WhitespaceBehavior...)
+		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/").
+		AddArguments(opts.WhitespaceBehavior...).
+		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold)
 
 	// In git 2.31, git diff learned --skip-to which we can use to shortcut skip to file
 	// so if we are using at least this version of git we don't have to tell ParsePatch to do
@@ -1306,10 +1326,10 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		shouldFullFileHighlight := !setting.Git.DisableDiffHighlight && attrDiff.Value() == ""
 		if shouldFullFileHighlight {
 			if limitedContent.LeftContent != nil && limitedContent.LeftContent.buf.Len() < MaxDiffHighlightEntireFileSize {
-				diffFile.highlightedLeftLines = highlightCodeLines(diffFile, true /* left */, limitedContent.LeftContent.buf.String())
+				diffFile.highlightedLeftLines = highlightCodeLines(diffFile, true /* left */, limitedContent.LeftContent.buf.Bytes())
 			}
 			if limitedContent.RightContent != nil && limitedContent.RightContent.buf.Len() < MaxDiffHighlightEntireFileSize {
-				diffFile.highlightedRightLines = highlightCodeLines(diffFile, false /* right */, limitedContent.RightContent.buf.String())
+				diffFile.highlightedRightLines = highlightCodeLines(diffFile, false /* right */, limitedContent.RightContent.buf.Bytes())
 			}
 		}
 	}
@@ -1317,10 +1337,11 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 	return diff, nil
 }
 
-func highlightCodeLines(diffFile *DiffFile, isLeft bool, content string) map[int]template.HTML {
+func highlightCodeLines(diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
+	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
 	highlightedNewContent, _ := highlight.Code(diffFile.Name, diffFile.Language, content)
-	splitLines := strings.Split(string(highlightedNewContent), "\n")
-	lines := make(map[int]template.HTML, len(splitLines))
+	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
+	lines := make(map[int]template.HTML, len(unsafeLines))
 	// only save the highlighted lines we need, but not the whole file, to save memory
 	for _, sec := range diffFile.Sections {
 		for _, ln := range sec.Lines {
@@ -1330,8 +1351,8 @@ func highlightCodeLines(diffFile *DiffFile, isLeft bool, content string) map[int
 			}
 			if lineIdx >= 1 {
 				idx := lineIdx - 1
-				if idx < len(splitLines) {
-					lines[idx] = template.HTML(splitLines[idx])
+				if idx < len(unsafeLines) {
+					lines[idx] = template.HTML(util.UnsafeBytesToString(unsafeLines[idx]))
 				}
 			}
 		}
@@ -1412,19 +1433,20 @@ outer:
 		// Check whether the file has already been viewed
 		if fileViewedState == pull_model.Viewed {
 			diffFile.IsViewed = true
-			diff.NumViewedFiles++
 		}
 	}
 
-	// Explicitly store files that have changed in the database, if any is present at all.
-	// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
-	// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
 	if len(filesChangedSinceLastDiff) > 0 {
-		err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
+		// Explicitly store files that have changed in the database, if any is present at all.
+		// This has the benefit that the "Has Changed" attribute will be present as long as the user does not explicitly mark this file as viewed, so it will even survive a page reload after marking another file as viewed.
+		// On the other hand, this means that even if a commit reverting an unseen change is committed, the file will still be seen as changed.
+		updatedReview, err := pull_model.UpdateReviewState(ctx, review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff)
 		if err != nil {
 			log.Warn("Could not update review for user %d, pull %d, commit %s and the changed files %v: %v", review.UserID, review.PullID, review.CommitSHA, filesChangedSinceLastDiff, err)
 			return nil, err
 		}
+		// Update the local review to reflect the changes immediately
+		review = updatedReview
 	}
 
 	return review, nil

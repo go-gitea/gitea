@@ -12,7 +12,7 @@ export type DiffTreeEntry = {
   DiffStatus: DiffStatus,
   EntryMode: string,
   IsViewed: boolean,
-  Children: DiffTreeEntry[],
+  Children: DiffTreeEntry[] | null,
   FileIcon: string,
   ParentEntry?: DiffTreeEntry,
 };
@@ -25,7 +25,7 @@ type DiffFileTree = {
   folderIcon: string;
   folderOpenIcon: string;
   diffFileTree: DiffFileTreeData;
-  fullNameMap?: Record<string, DiffTreeEntry>
+  fullNameMap: Record<string, DiffTreeEntry>
   fileTreeIsVisible: boolean;
   selectedItem: string;
 };

@@ -46,7 +46,10 @@ type ChangeRepoFile struct {
 	FromTreePath  string
 	ContentReader io.ReadSeeker
 	SHA           string
-	Options       *RepoFileOptions
+
+	DeleteRecursively bool // when deleting, work as `git rm -r ...`
+
+	Options *RepoFileOptions // FIXME: need to refactor, internal usage only
 }
 
 // ChangeRepoFilesOptions holds the repository files update options
@@ -67,26 +70,6 @@ type RepoFileOptions struct {
 	treePath     string
 	fromTreePath string
 	executable   bool
-}
-
-// ErrRepoFileDoesNotExist represents a "RepoFileDoesNotExist" kind of error.
-type ErrRepoFileDoesNotExist struct {
-	Path string
-	Name string
-}
-
-// IsErrRepoFileDoesNotExist checks if an error is a ErrRepoDoesNotExist.
-func IsErrRepoFileDoesNotExist(err error) bool {
-	_, ok := err.(ErrRepoFileDoesNotExist)
-	return ok
-}
-
-func (err ErrRepoFileDoesNotExist) Error() string {
-	return fmt.Sprintf("repository file does not exist [path: %s]", err.Path)
-}
-
-func (err ErrRepoFileDoesNotExist) Unwrap() error {
-	return util.ErrNotExist
 }
 
 type LazyReadSeeker interface {
@@ -184,7 +167,7 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 				}
 			}
 		}
-	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, treePaths); err != nil {
+	} else if err := VerifyBranchProtection(ctx, repo, gitRepo, doer, opts.OldBranch, treePaths); err != nil {
 		return nil, err
 	}
 
@@ -214,24 +197,6 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 	if hasOldBranch {
 		if err := t.SetDefaultIndex(ctx); err != nil {
 			return nil, err
-		}
-	}
-
-	for _, file := range opts.Files {
-		if file.Operation == "delete" {
-			// Get the files in the index
-			filesInIndex, err := t.LsFiles(ctx, file.TreePath)
-			if err != nil {
-				return nil, fmt.Errorf("DeleteRepoFile: %w", err)
-			}
-
-			// Find the file we want to delete in the index
-			inFilelist := slices.Contains(filesInIndex, file.TreePath)
-			if !inFilelist {
-				return nil, ErrRepoFileDoesNotExist{
-					Path: file.TreePath,
-				}
-			}
 		}
 	}
 
@@ -272,8 +237,14 @@ func ChangeRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *use
 				addedLfsPointers = append(addedLfsPointers, *addedLfsPointer)
 			}
 		case "delete":
-			if err = t.RemoveFilesFromIndex(ctx, file.TreePath); err != nil {
-				return nil, err
+			if file.DeleteRecursively {
+				if err = t.RemoveRecursivelyFromIndex(ctx, file.TreePath); err != nil {
+					return nil, err
+				}
+			} else {
+				if err = t.RemoveFilesFromIndex(ctx, file.TreePath); err != nil {
+					return nil, err
+				}
 			}
 		default:
 			return nil, fmt.Errorf("invalid file operation: %s %s, supported operations are create, update, delete", file.Operation, file.Options.treePath)
@@ -688,7 +659,7 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 }
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
-func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, branchName string, treePaths []string) error {
+func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, branchName string, treePaths []string) error {
 	protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
@@ -715,7 +686,7 @@ func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, do
 			}
 		}
 		if protectedBranch.RequireSignedCommits {
-			_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo.RepoPath(), doer, repo.RepoPath(), branchName)
+			_, _, _, err := asymkey_service.SignCRUDAction(ctx, doer, gitRepo, branchName)
 			if err != nil {
 				if !asymkey_service.IsErrWontSign(err) {
 					return err

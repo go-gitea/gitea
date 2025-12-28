@@ -153,7 +153,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 		log.Trace("Pushing %s mirror[%d] remote %s", storageRepo.RelativePath(), m.ID, m.RemoteName)
 
 		envs := proxy.EnvWithProxy(remoteURL.URL)
-		if err := gitrepo.Push(ctx, storageRepo, git.PushOptions{
+		if err := gitrepo.PushToExternal(ctx, storageRepo, git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,

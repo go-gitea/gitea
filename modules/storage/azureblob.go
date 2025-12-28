@@ -250,6 +250,7 @@ func (a *AzureBlobStorage) Delete(path string) error {
 func (a *AzureBlobStorage) URL(path, name, _ string, reqParams url.Values) (*url.URL, error) {
 	blobClient := a.getBlobClient(path)
 
+	// TODO: OBJECT-STORAGE-CONTENT-TYPE: "browser inline rendering images/PDF" needs proper Content-Type header from storage
 	startTime := time.Now()
 	u, err := blobClient.GetSASURL(sas.BlobPermissions{
 		Read: true,

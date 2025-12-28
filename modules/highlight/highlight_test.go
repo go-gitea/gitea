@@ -181,3 +181,21 @@ c=2`),
 		})
 	}
 }
+
+func TestUnsafeSplitHighlightedLines(t *testing.T) {
+	ret := UnsafeSplitHighlightedLines("")
+	assert.Empty(t, ret)
+
+	ret = UnsafeSplitHighlightedLines("a")
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "a", string(ret[0]))
+
+	ret = UnsafeSplitHighlightedLines("\n")
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "\n", string(ret[0]))
+
+	ret = UnsafeSplitHighlightedLines("<span>a</span>\n<span>b\n</span>")
+	assert.Len(t, ret, 2)
+	assert.Equal(t, "<span>a</span>\n", string(ret[0]))
+	assert.Equal(t, "<span>b\n</span>", string(ret[1]))
+}

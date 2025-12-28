@@ -5,6 +5,7 @@
 package gitdiff
 
 import (
+	"html/template"
 	"strconv"
 	"strings"
 	"testing"
@@ -982,4 +983,165 @@ func TestDiffLine_RenderBlobExcerptButtons(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestDiffLine_GetExpandDirection(t *testing.T) {
+	cases := []struct {
+		name      string
+		diffLine  *DiffLine
+		direction string
+	}{
+		{
+			name:      "NotSectionLine",
+			diffLine:  &DiffLine{Type: DiffLineAdd, SectionInfo: &DiffLineSectionInfo{}},
+			direction: "",
+		},
+		{
+			name:      "NilSectionInfo",
+			diffLine:  &DiffLine{Type: DiffLineSection, SectionInfo: nil},
+			direction: "",
+		},
+		{
+			name: "NoHiddenLines",
+			// last block stops at line 100, next block starts at line 101, so no hidden lines, no expansion.
+			diffLine: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx: 100,
+					LastLeftIdx:  100,
+					RightIdx:     101,
+					LeftIdx:      101,
+				},
+			},
+			direction: "",
+		},
+		{
+			name: "FileHead",
+			diffLine: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx: 0, // LastXxxIdx = 0 means this is the first section in the file.
+					LastLeftIdx:  0,
+					RightIdx:     1,
+					LeftIdx:      1,
+				},
+			},
+			direction: "",
+		},
+		{
+			name: "FileHeadHiddenLines",
+			diffLine: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx: 0,
+					LastLeftIdx:  0,
+					RightIdx:     101,
+					LeftIdx:      101,
+				},
+			},
+			direction: "up",
+		},
+		{
+			name: "HiddenSingleHunk",
+			diffLine: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx:  100,
+					LastLeftIdx:   100,
+					RightIdx:      102,
+					LeftIdx:       102,
+					RightHunkSize: 1234, // non-zero dummy value
+					LeftHunkSize:  5678, // non-zero dummy value
+				},
+			},
+			direction: "single",
+		},
+		{
+			name: "HiddenSingleFullHunk",
+			// the hidden lines can exactly fit into one hunk
+			diffLine: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx:  100,
+					LastLeftIdx:   100,
+					RightIdx:      100 + BlobExcerptChunkSize + 1,
+					LeftIdx:       100 + BlobExcerptChunkSize + 1,
+					RightHunkSize: 1234, // non-zero dummy value
+					LeftHunkSize:  5678, // non-zero dummy value
+				},
+			},
+			direction: "single",
+		},
+		{
+			name: "HiddenUpDownHunks",
+			diffLine: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx:  100,
+					LastLeftIdx:   100,
+					RightIdx:      100 + BlobExcerptChunkSize + 2,
+					LeftIdx:       100 + BlobExcerptChunkSize + 2,
+					RightHunkSize: 1234, // non-zero dummy value
+					LeftHunkSize:  5678, // non-zero dummy value
+				},
+			},
+			direction: "updown",
+		},
+		{
+			name: "FileTail",
+			diffLine: &DiffLine{
+				Type: DiffLineSection,
+				SectionInfo: &DiffLineSectionInfo{
+					LastRightIdx:  100,
+					LastLeftIdx:   100,
+					RightIdx:      102,
+					LeftIdx:       102,
+					RightHunkSize: 0,
+					LeftHunkSize:  0,
+				},
+			},
+			direction: "down",
+		},
+	}
+	for _, c := range cases {
+		assert.Equal(t, c.direction, c.diffLine.GetExpandDirection(), "case %s expected direction: %s", c.name, c.direction)
+	}
+}
+
+func TestHighlightCodeLines(t *testing.T) {
+	t.Run("CharsetDetecting", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name:     "a.c",
+			Language: "c",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{{LeftIdx: 1}},
+				},
+			},
+		}
+		ret := highlightCodeLines(diffFile, true, []byte("// abc\xcc def\xcd")) // ISO-8859-1 bytes
+		assert.Equal(t, "<span class=\"c1\">// abcÌ defÍ\n</span>", string(ret[0]))
+	})
+
+	t.Run("LeftLines", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name:     "a.c",
+			Language: "c",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{
+						{LeftIdx: 1},
+						{LeftIdx: 2},
+						{LeftIdx: 3},
+					},
+				},
+			},
+		}
+		const nl = "\n"
+		ret := highlightCodeLines(diffFile, true, []byte("a\nb\n"))
+		assert.Equal(t, map[int]template.HTML{
+			0: `<span class="n">a</span>` + nl,
+			1: `<span class="n">b</span>`,
+		}, ret)
+	})
 }

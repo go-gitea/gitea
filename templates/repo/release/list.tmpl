@@ -78,18 +78,6 @@
 								{{ctx.Locale.Tr "repo.release.downloads"}}
 							</summary>
 							<ul class="ui divided list attachment-list">
-								{{if and (not $.DisableDownloadSourceArchives) (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
-									<li class="item">
-										<a class="archive-link" download href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.zip" rel="nofollow">
-											<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "download-icon"}}{{ctx.Locale.Tr "repo.release.source_code"}} (ZIP)</strong>
-										</a>
-									</li>
-									<li class="item">
-										<a class="archive-link" download href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">
-											<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "download-icon"}}{{ctx.Locale.Tr "repo.release.source_code"}} (TAR.GZ)</strong>
-										</a>
-									</li>
-								{{end}}
 								{{range $att := $release.Attachments}}
 									<li class="item">
 										<a target="_blank" class="tw-flex-1 gt-ellipsis" rel="nofollow" download href="{{$att.DownloadURL}}">
@@ -103,6 +91,18 @@
 											<div class="tw-flex-1"></div>
 											{{DateUtils.TimeSince $att.CreatedUnix}}
 										</div>
+									</li>
+								{{end}}
+								{{if and (not $.DisableDownloadSourceArchives) (not $release.IsDraft) ($.Permission.CanRead ctx.Consts.RepoUnitTypeCode)}}
+									<li class="item">
+										<a class="archive-link" download href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.zip" rel="nofollow">
+											<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "download-icon"}}{{ctx.Locale.Tr "repo.release.source_code"}} (ZIP)</strong>
+										</a>
+									</li>
+									<li class="item">
+										<a class="archive-link" download href="{{$.RepoLink}}/archive/{{$release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">
+											<strong class="flex-text-inline">{{svg "octicon-file-zip" 16 "download-icon"}}{{ctx.Locale.Tr "repo.release.source_code"}} (TAR.GZ)</strong>
+										</a>
 									</li>
 								{{end}}
 							</ul>

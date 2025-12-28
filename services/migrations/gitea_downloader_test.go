@@ -27,6 +27,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't reach https://gitea.com, skipping %s", t.Name())
 	}
+	defer resp.Body.Close()
 	ctx := t.Context()
 	downloader, err := NewGiteaDownloader(ctx, "https://gitea.com", "gitea/test_repo", "", "", giteaToken)
 	require.NoError(t, err, "NewGiteaDownloader error occur")

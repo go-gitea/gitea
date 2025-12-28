@@ -83,8 +83,6 @@
 			<form class="content ui form" action="{{AppSubUrl}}/-/admin/emails/activate" method="post">
 				<p class="center">{{ctx.Locale.Tr "admin.emails.change_email_text"}}</p>
 
-				{{$.CsrfTokenHtml}}
-
 				<input type="hidden" name="sort" value="{{.SortType}}">
 				<input type="hidden" name="q" value="{{.Keyword}}">
 				<input type="hidden" name="is_primary" value="{{.IsPrimary}}">

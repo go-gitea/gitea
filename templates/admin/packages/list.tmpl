@@ -6,7 +6,6 @@
 			{{ctx.Locale.Tr "admin.packages.unreferenced_size" (FileSize .TotalUnreferencedBlobSize)}})
 			<div class="ui right">
 				<form method="post" action="{{AppSubUrl}}/-/admin/packages/cleanup">
-					{{.CsrfTokenHtml}}
 					<button class="ui primary tiny button">{{ctx.Locale.Tr "admin.packages.cleanup"}}</button>
 				</form>
 			</div>
@@ -90,7 +89,6 @@
 	</div>
 
 <form class="ui small modal form-fetch-action" method="post" id="admin-package-delete-modal">
-	{{.CsrfTokenHtml}}
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "packages.settings.delete"}}</div>
 	<div class="content">
 		{{ctx.Locale.Tr "packages.settings.delete.notice" (HTMLFormat `<span class="%s"></span>` "package-name") (HTMLFormat `<span class="%s"></span>` "package-version")}}

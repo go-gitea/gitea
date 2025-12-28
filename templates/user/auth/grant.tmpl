@@ -19,7 +19,6 @@
 		</div>
 		<div class="ui attached segment tw-text-center">
 			<form method="post" action="{{AppSubUrl}}/login/oauth/grant">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="client_id" value="{{.Application.ClientID}}">
 				<input type="hidden" name="state" value="{{.State}}">
 				<input type="hidden" name="scope" value="{{.Scope}}">

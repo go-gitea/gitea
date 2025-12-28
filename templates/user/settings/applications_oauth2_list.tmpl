@@ -51,7 +51,6 @@
 	<details {{if .application_name}}open{{end}}>
 		<summary><h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr "settings.create_oauth2_application"}}</h4></summary>
 		<form class="ui form ignore-dirty" action="{{.Link}}/oauth2" method="post">
-			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_AppName}}error{{end}}">
 				<label for="application-name">{{ctx.Locale.Tr "settings.oauth2_application_name"}}</label>
 				<input id="application-name" name="application_name" value="{{.application_name}}" required maxlength="255">

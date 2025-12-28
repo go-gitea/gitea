@@ -10,7 +10,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
@@ -60,12 +59,7 @@ func ListMilestones(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	state := api.StateType(ctx.FormString("state"))
-	var isClosed optional.Option[bool]
-	switch state {
-	case api.StateClosed, api.StateOpen:
-		isClosed = optional.Some(state == api.StateClosed)
-	}
+	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
 	milestones, total, err := db.FindAndCount[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		ListOptions: utils.GetListOptions(ctx),

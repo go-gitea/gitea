@@ -11,15 +11,17 @@ const props = defineProps<{
 }>();
 
 const loading = shallowRef(false);
-const issue = shallowRef<Issue>(null);
+const issue = shallowRef<Issue | null>(null);
 const renderedLabels = shallowRef('');
 const errorMessage = shallowRef('');
 
 const createdAt = computed(() => {
+  if (!issue?.value) return '';
   return new Date(issue.value.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
 });
 
 const body = computed(() => {
+  if (!issue?.value) return '';
   const body = issue.value.body.replace(/\n+/g, ' ');
   return body.length > 85 ? `${body.substring(0, 85)}…` : body;
 });

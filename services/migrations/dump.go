@@ -306,14 +306,15 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 						if err != nil {
 							return err
 						}
+						defer rc.Close()
 					} else {
 						resp, err := http.Get(*asset.DownloadURL)
 						if err != nil {
 							return err
 						}
+						defer resp.Body.Close()
 						rc = resp.Body
 					}
-					defer rc.Close()
 
 					fw, err := os.Create(attachPath)
 					if err != nil {
@@ -354,6 +355,11 @@ func (g *RepositoryDumper) CreateReleases(_ context.Context, releases ...*base.R
 
 // SyncTags syncs releases with tags in the database
 func (g *RepositoryDumper) SyncTags(ctx context.Context) error {
+	return nil
+}
+
+// SyncBranches syncs branches in the database
+func (g *RepositoryDumper) SyncBranches(ctx context.Context) error {
 	return nil
 }
 

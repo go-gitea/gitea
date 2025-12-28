@@ -12,7 +12,6 @@
 	<div class="ui attached segment">
 		{{if .EnablePasswordSignInForm}}
 		<form class="ui form" action="{{.SignInLink}}" method="post">
-			{{.CsrfTokenHtml}}
 			<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 				<label for="user_name">{{ctx.Locale.Tr "home.uname_holder"}}</label>
 				<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required tabindex="1">

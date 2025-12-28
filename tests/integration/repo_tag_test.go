@@ -149,12 +149,18 @@ func TestRepushTag(t *testing.T) {
 		// delete the tag
 		_, _, err = gitcmd.NewCommand("push", "origin", "--delete", "v2.0").WithDir(dstPath).RunStdString(t.Context())
 		assert.NoError(t, err)
-		// query the release by API and it should be a draft
+
+		// query the release by API with no auth and it should be 404
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0"))
+		MakeRequest(t, req, http.StatusNotFound)
+
+		// query the release by API and it should be a draft
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/releases/tags/%s", owner.Name, repo.Name, "v2.0")).AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
 		var respRelease *api.Release
 		DecodeJSON(t, resp, &respRelease)
 		assert.True(t, respRelease.IsDraft)
+
 		// re-push the tag
 		_, _, err = gitcmd.NewCommand("push", "origin", "--tags", "v2.0").WithDir(dstPath).RunStdString(t.Context())
 		assert.NoError(t, err)

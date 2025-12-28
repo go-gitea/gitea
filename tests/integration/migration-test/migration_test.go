@@ -4,6 +4,7 @@
 package migrations
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"database/sql"
@@ -21,7 +22,6 @@ import (
 	"code.gitea.io/gitea/models/migrations"
 	migrate_base "code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -108,11 +108,11 @@ func readSQLFromFile(version string) (string, error) {
 	}
 	defer gr.Close()
 
-	bytes, err := io.ReadAll(gr)
+	buf, err := io.ReadAll(gr)
 	if err != nil {
 		return "", err
 	}
-	return string(charset.MaybeRemoveBOM(bytes, charset.ConvertOpts{})), nil
+	return string(bytes.TrimPrefix(buf, []byte{'\xef', '\xbb', '\xbf'})), nil
 }
 
 func restoreOldDB(t *testing.T, version string) {

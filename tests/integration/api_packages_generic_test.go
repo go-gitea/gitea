@@ -163,6 +163,7 @@ func TestPackageGeneric(t *testing.T) {
 
 			resp2, err := (&http.Client{}).Get(location)
 			assert.NoError(t, err)
+			defer resp2.Body.Close()
 			assert.Equal(t, http.StatusOK, resp2.StatusCode, location)
 
 			body, err := io.ReadAll(resp2.Body)

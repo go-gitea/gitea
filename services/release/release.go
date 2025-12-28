@@ -148,7 +148,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.NumCommits, err = commit.CommitsCount()
+		rel.NumCommits, err = gitrepo.CommitsCountOfCommit(ctx, rel.Repo, commit.ID.String())
 		if err != nil {
 			return false, fmt.Errorf("CommitsCount: %w", err)
 		}
@@ -262,7 +262,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	if rel.ID == 0 {
 		return errors.New("UpdateRelease only accepts an exist release")
 	}
-	isTagCreated, err := createTag(gitRepo.Ctx, gitRepo, rel, "")
+	isTagCreated, err := createTag(ctx, gitRepo, rel, "")
 	if err != nil {
 		return err
 	}
@@ -361,7 +361,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 		if err != nil {
 			return fmt.Errorf("GetProtectedTags: %w", err)
 		}
-		isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, protectedTags, rel.TagName, rel.PublisherID)
+		isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, protectedTags, rel.TagName, doer.ID)
 		if err != nil {
 			return err
 		}

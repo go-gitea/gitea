@@ -92,8 +92,6 @@ func handleFileViewRenderMarkup(ctx *context.Context, filename string, sniffedTy
 		ctx.ServerError("Render", err)
 		return true
 	}
-	// to prevent iframe from loading third-party url
-	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
 	return true
 }
 
@@ -241,14 +239,17 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	// * IsRenderableXxx: some files are rendered by backend "markup" engine, some are rendered by frontend (pdf, 3d)
 	// * DefaultViewMode: when there is no "display" query parameter, which view mode should be used by default, source or rendered
 
-	utf8Reader := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
+	contentReader := io.MultiReader(bytes.NewReader(buf), dataRc)
+	if fInfo.st.IsRepresentableAsText() {
+		contentReader = charset.ToUTF8WithFallbackReader(contentReader, charset.ConvertOpts{})
+	}
 	switch {
 	case fInfo.blobOrLfsSize >= setting.UI.MaxDisplayFileSize:
 		ctx.Data["IsFileTooLarge"] = true
-	case handleFileViewRenderMarkup(ctx, entry.Name(), fInfo.st, buf, utf8Reader):
+	case handleFileViewRenderMarkup(ctx, entry.Name(), fInfo.st, buf, contentReader):
 		// it also sets ctx.Data["FileContent"] and more
 		ctx.Data["IsMarkup"] = true
-	case handleFileViewRenderSource(ctx, entry.Name(), attrs, fInfo, utf8Reader):
+	case handleFileViewRenderSource(ctx, entry.Name(), attrs, fInfo, contentReader):
 		// it also sets ctx.Data["FileContent"] and more
 		ctx.Data["IsDisplayingSource"] = true
 	case handleFileViewRenderImage(ctx, fInfo, buf):

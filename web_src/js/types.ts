@@ -13,7 +13,6 @@ export type Config = {
   assetUrlPrefix: string,
   runModeIsProd: boolean,
   customEmojis: Record<string, string>,
-  csrfToken: string,
   pageData: Record<string, any>,
   notificationSettings: Record<string, any>,
   enableTimeTracking: boolean,
@@ -41,7 +40,7 @@ export type IssuePathInfo = {
   ownerName: string,
   repoName: string,
   pathType: string,
-  indexString?: string,
+  indexString: string,
 };
 
 export type IssuePageInfo = {

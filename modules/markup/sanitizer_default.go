@@ -30,6 +30,9 @@ func (st *Sanitizer) createDefaultPolicy() *bluemonday.Policy {
 	// Chroma always uses 1-2 letters for style names, we could tolerate it at the moment
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^\w{0,2}$`)).OnElements("span")
 
+	// Line numbers on codepreview
+	policy.AllowAttrs("data-line-number").OnElements("span")
+
 	// Custom URL-Schemes
 	if len(setting.Markdown.CustomURLSchemes) > 0 {
 		policy.AllowURLSchemes(setting.Markdown.CustomURLSchemes...)

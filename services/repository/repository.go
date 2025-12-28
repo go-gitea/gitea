@@ -7,8 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -28,7 +26,6 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -251,9 +248,8 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 	}
 
 	// Create/Remove git-daemon-export-ok for git-daemon...
-	daemonExportFile := filepath.Join(repo.RepoPath(), `git-daemon-export-ok`)
-
-	isExist, err := util.IsExist(daemonExportFile)
+	daemonExportFile := `git-daemon-export-ok`
+	isExist, err := gitrepo.IsRepoFileExist(ctx, repo, daemonExportFile)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
 		return err
@@ -261,11 +257,11 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 
 	isPublic := !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic
 	if !isPublic && isExist {
-		if err = util.Remove(daemonExportFile); err != nil {
+		if err = gitrepo.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
 			log.Error("Failed to remove %s: %v", daemonExportFile, err)
 		}
 	} else if isPublic && !isExist {
-		if f, err := os.Create(daemonExportFile); err != nil {
+		if f, err := gitrepo.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
 			log.Error("Failed to create %s: %v", daemonExportFile, err)
 		} else {
 			f.Close()
@@ -344,4 +340,32 @@ func HasWiki(ctx context.Context, repo *repo_model.Repository) bool {
 		log.Error("gitrepo.IsRepositoryExist: %v", err)
 	}
 	return hasWiki && err == nil
+}
+
+// CheckCreateRepository check if doer could create a repository in new owner
+func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, name string, overwriteOrAdopt bool) error {
+	if !doer.CanCreateRepoIn(owner) {
+		return repo_model.ErrReachLimitOfRepo{Limit: owner.MaxRepoCreation}
+	}
+
+	if err := repo_model.IsUsableRepoName(name); err != nil {
+		return err
+	}
+
+	has, err := repo_model.IsRepositoryModelExist(ctx, owner, name)
+	if err != nil {
+		return err
+	} else if has {
+		return repo_model.ErrRepoAlreadyExist{Uname: owner.Name, Name: name}
+	}
+	repo := repo_model.StorageRepo(repo_model.RelativePath(owner.Name, name))
+	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repo.RelativePath(), err)
+		return err
+	}
+	if !overwriteOrAdopt && isExist {
+		return repo_model.ErrRepoFilesAlreadyExist{Uname: owner.Name, Name: name}
+	}
+	return nil
 }
