@@ -59,10 +59,76 @@ async function renderRawFileToContainer(container: HTMLElement, rawFileLink: str
   }
 }
 
+function updateTocPosition(elFileView: HTMLElement, tocSidebar: HTMLElement): void {
+  const fileHeader = elFileView.querySelector('.file-header');
+  if (!fileHeader) return;
+
+  const headerRect = fileHeader.getBoundingClientRect();
+  // Align TOC top with the file header top, with a minimum of 12px from viewport top
+  const topPos = Math.max(12, headerRect.top);
+  tocSidebar.style.top = `${topPos}px`;
+
+  // Position TOC right next to the content (works for both file view and home page)
+  const segment = elFileView.querySelector('.ui.segment');
+  if (segment) {
+    const segmentRect = segment.getBoundingClientRect();
+    const leftPos = segmentRect.right + 8; // 8px gap from content
+    tocSidebar.style.left = `${leftPos}px`;
+    tocSidebar.style.right = 'auto';
+  }
+
+  // Mark as positioned to show the TOC (prevents flicker)
+  tocSidebar.classList.add('toc-positioned');
+}
+
 function initTocToggle(elFileView: HTMLElement): void {
   const toggleBtn = elFileView.querySelector('#toggle-toc-btn');
-  const tocSidebar = elFileView.querySelector('.file-view-toc');
+  const tocSidebar = elFileView.querySelector<HTMLElement>('.file-view-toc');
   if (!toggleBtn || !tocSidebar) return;
+
+  // Check if we're in file view (not home page) - only file view needs margin adjustment
+  const repoViewContent = elFileView.closest('.repo-view-content');
+  const isFileView = Boolean(repoViewContent);
+
+  // Helper to update position
+  const updatePosition = () => {
+    if (!tocSidebar.classList.contains('toc-panel-hidden')) {
+      updateTocPosition(elFileView, tocSidebar);
+    }
+  };
+
+  // Helper to show TOC with proper positioning
+  const showToc = () => {
+    toggleBtn.classList.add('active');
+
+    // Wait for margin to take effect before showing and positioning TOC
+    const showAfterLayout = () => {
+      tocSidebar.classList.remove('toc-panel-hidden');
+      requestAnimationFrame(() => {
+        updateTocPosition(elFileView, tocSidebar);
+      });
+    };
+
+    // For file view, first add margin, wait for layout, then show TOC
+    if (isFileView) {
+      repoViewContent.classList.add('toc-visible');
+      // Wait for CSS transition to complete (200ms) before calculating position
+      setTimeout(showAfterLayout, 220);
+    } else {
+      // For home page (README), no margin needed, show with small delay
+      setTimeout(showAfterLayout, 10);
+    }
+  };
+
+  // Helper to hide TOC
+  const hideToc = () => {
+    tocSidebar.classList.add('toc-panel-hidden');
+    tocSidebar.classList.remove('toc-positioned');
+    toggleBtn.classList.remove('active');
+    if (isFileView) {
+      repoViewContent.classList.remove('toc-visible');
+    }
+  };
 
   // Restore saved state from localStorage (default to hidden)
   const savedState = localStorage.getItem('file-view-toc-visible');
@@ -70,24 +136,22 @@ function initTocToggle(elFileView: HTMLElement): void {
 
   // Apply initial state
   if (isVisible) {
-    tocSidebar.classList.remove('toc-panel-hidden');
-    toggleBtn.classList.add('active');
+    showToc();
   } else {
-    tocSidebar.classList.add('toc-panel-hidden');
-    toggleBtn.classList.remove('active');
+    hideToc();
   }
+
+  // Update TOC position on resize/scroll to keep aligned with file content
+  window.addEventListener('resize', updatePosition);
+  window.addEventListener('scroll', updatePosition);
 
   toggleBtn.addEventListener('click', () => {
     const isCurrentlyVisible = !tocSidebar.classList.contains('toc-panel-hidden');
     if (isCurrentlyVisible) {
-      // Hide TOC
-      tocSidebar.classList.add('toc-panel-hidden');
-      toggleBtn.classList.remove('active');
+      hideToc();
       localStorage.setItem('file-view-toc-visible', 'false');
     } else {
-      // Show TOC
-      tocSidebar.classList.remove('toc-panel-hidden');
-      toggleBtn.classList.add('active');
+      showToc();
       localStorage.setItem('file-view-toc-visible', 'true');
     }
   });

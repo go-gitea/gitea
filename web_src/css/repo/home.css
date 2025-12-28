@@ -76,6 +76,12 @@
 .repo-view-content {
   flex: 1;
   min-width: 0;
+  transition: margin-right 0.2s ease;
+}
+
+/* When TOC is visible, reserve space on the right (only for file view, not home page) */
+.repo-view-content.toc-visible {
+  margin-right: 270px;
 }
 
 .language-stats {
@@ -106,37 +112,31 @@
   text-decoration: none;
 }
 
-/* File view with TOC sidebar */
-.file-view-container {
-  position: relative;
-}
-
-.file-view-container .file-view {
-  width: 100%;
-}
-
-/* TOC as a floating sidebar panel */
+/* TOC as a fixed sidebar panel */
 .file-view-toc {
   position: fixed;
-  top: 60px;
-  right: 0;
-  width: 280px;
-  max-height: calc(100vh - 80px);
+  top: 120px; /* Will be adjusted by JS to align with file content */
+  right: 0.5rem;
+  width: 260px;
+  max-height: calc(100vh - 140px);
   overflow-y: auto;
-  padding: 1rem;
-  background: var(--color-body);
+  padding: 0.75rem;
+  background: var(--color-box-body);
   border: 1px solid var(--color-secondary);
-  border-right: none;
-  border-radius: var(--border-radius) 0 0 var(--border-radius);
-  box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
-  z-index: 100;
-  transform: translateX(0);
-  transition: transform 0.25s ease-in-out;
+  border-radius: var(--border-radius);
+  z-index: 50;
+  opacity: 0; /* Hidden until JS positions it */
+  transition: opacity 0.15s ease;
+}
+
+/* Show TOC after JS has positioned it */
+.file-view-toc.toc-positioned {
+  opacity: 1;
 }
 
 /* Hidden state - using custom class to avoid Tailwind conflicts */
 .file-view-toc.toc-panel-hidden {
-  transform: translateX(100%);
+  display: none;
 }
 
 .file-view-toc details {
@@ -180,17 +180,20 @@
 /* TOC toggle button active state - when TOC is visible */
 #toggle-toc-btn.active {
   color: var(--color-primary);
-  background: var(--color-hover);
 }
 
 /* Hide TOC sidebar on small screens */
-@media (max-width: 768px) {
+@media (max-width: 1400px) {
   .file-view-toc {
-    width: 100%;
-    max-width: 300px;
+    display: none !important;
   }
 
   #toggle-toc-btn {
     display: none;
+  }
+
+  /* Don't reserve space for TOC on small screens */
+  .repo-view-content.toc-visible {
+    margin-right: 0;
   }
 }
