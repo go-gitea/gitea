@@ -3067,6 +3067,7 @@
   "admin.auths.attribute_mail": "Email Attribute",
   "admin.auths.attribute_ssh_public_key": "Public SSH Key Attribute",
   "admin.auths.attribute_avatar": "Avatar Attribute",
+  "admin.auths.ssh_keys_are_verified": "SSH keys in LDAP are considered as verified",
   "admin.auths.attributes_in_bind": "Fetch Attributes in Bind DN Context",
   "admin.auths.allow_deactivate_all": "Allow an empty search result to deactivate all users",
   "admin.auths.use_paged_search": "Use Paged Search",
