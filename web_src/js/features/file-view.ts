@@ -142,8 +142,22 @@ function initTocToggle(elFileView: HTMLElement): void {
   }
 
   // Update TOC position on resize/scroll to keep aligned with file content
-  window.addEventListener('resize', updatePosition);
-  window.addEventListener('scroll', updatePosition);
+  const resizeObserver = new ResizeObserver(() => {
+    updatePosition();
+  });
+  resizeObserver.observe(document.body);
+
+  const fileHeader = elFileView.querySelector('.file-header');
+  if (fileHeader) {
+    const intersectionObserver = new IntersectionObserver(() => {
+      updatePosition();
+    }, {
+      root: null,
+      rootMargin: '0px',
+      threshold: [0, 0.25, 0.5, 0.75, 1.0],
+    });
+    intersectionObserver.observe(fileHeader);
+  }
 
   toggleBtn.addEventListener('click', () => {
     const isCurrentlyVisible = !tocSidebar.classList.contains('toc-panel-hidden');
