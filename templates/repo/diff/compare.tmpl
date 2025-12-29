@@ -5,8 +5,8 @@
 	<div class="ui container fluid padded">
 		<h2 class="ui header">
 			{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}
-				{{ctx.Locale.Tr "repo.pulls.compare_changes"}}
-				<div class="sub header">{{ctx.Locale.Tr "repo.pulls.compare_changes_desc"}}</div>
+				{{ctx.Locale.Tr "repo.compare.title"}}
+				<div class="sub header">{{ctx.Locale.Tr "repo.compare.description"}}</div>
 			{{else}}
 				{{ctx.Locale.Tr "action.compare_commits_general"}}
 			{{end}}
@@ -99,7 +99,7 @@
 				</div>
 			</div>
 
-			<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{.OtherCompareSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_comparison_type"}}">{{svg "octicon-arrow-left" 16}}<div class="compare-separator">{{.CompareSeparator}}</div></a>
+			<a href="{{.RepoLink}}/compare/{{PathEscapeSegments .BaseBranch}}{{$.CompareInfo.OtherSeparator}}{{if not $.PullRequestCtx.SameRepo}}{{PathEscape $.HeadUser.Name}}/{{PathEscape $.HeadRepo.Name}}:{{end}}{{PathEscapeSegments $.HeadBranch}}" title="{{ctx.Locale.Tr "repo.pulls.switch_comparison_type"}}">{{svg "octicon-arrow-left" 16}}<div class="compare-separator">{{.CompareSeparator}}</div></a>
 
 			<div class="ui dropdown jump select-branch">
 				<div class="ui basic small button">
@@ -173,12 +173,12 @@
 
 		{{$showDiffBox := and .CommitCount (not .IsNothingToCompare)}}
 		{{if and .IsSigned .PageIsComparePull}}
-			{{$allowCreatePR := or $.AllowEmptyPr (not .IsNothingToCompare)}}
+			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare))}}
 			{{if .IsNothingToCompare}}
 				<div class="ui segment">
 					{{if $allowCreatePR}}
 						{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}
-					{{else if and .HeadIsBranch .BaseIsBranch}}
+					{{else if and $.CompareInfo.BaseRef.IsBranch $.CompareInfo.HeadRef.IsBranch}}
 						{{ctx.Locale.Tr "repo.pulls.nothing_to_compare"}}
 					{{else}}
 						{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_have_tag"}}
@@ -205,8 +205,11 @@
 					{{end}}
 				</div>
 			{{else if $allowCreatePR}}
-				<div class="ui info message pullrequest-form-toggle {{if .ExpandNewPrForm}}tw-hidden{{end}}">
-					<button class="ui button primary show-panel toggle" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</button>
+				<div class="ui info message flex-text-block tw-justify-between pullrequest-form-toggle {{if .ExpandNewPrForm}}tw-hidden{{end}}">
+					<span class="issue-title tw-break-anywhere tw-text-left">
+						{{ctx.Locale.Tr "repo.pulls.new.description"}}
+					</span>
+					<a class="ui button primary show-panel toggle tw-text-right" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
 				</div>
 				<div class="pullrequest-form {{if not .ExpandNewPrForm}}tw-hidden{{end}}">
 					{{template "repo/issue/new_form" .}}

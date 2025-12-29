@@ -1,0 +1,10 @@
+{{- if .IsLikelyCommit -}}
+	{{ShortSha .ShortName}}
+{{- else -}}
+	{{- if .IsBranch -}}
+		{{svg "octicon-git-branch"}}
+	{{- else if .IsTag -}}
+		{{svg "octicon-tag"}}
+	{{- end -}}
+	{{.ShortName}}
+{{- end -}}
