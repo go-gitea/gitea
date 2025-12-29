@@ -6,10 +6,14 @@ package git
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/graceful"
+	logger "code.gitea.io/gitea/modules/log"
 )
 
 // CompareInfo represents needed information for comparing references.
@@ -37,29 +41,52 @@ func (ci *CompareInfo) IsSameRef() bool {
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
 func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseRef, headRef git.RefName, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
-	compareInfo := new(CompareInfo)
+	var tmpRemote string
+
+	// We don't need a temporary remote for same repository.
+	if baseRepo.ID != headRepo.ID {
+		// Add a temporary remote
+		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
+		if err = gitrepo.GitRemoteAdd(ctx, headRepo, tmpRemote, baseRepo.RepoPath()); err != nil {
+			return nil, fmt.Errorf("GitRemoteAdd: %w", err)
+		}
+		defer func() {
+			if err := gitrepo.GitRemoteRemove(graceful.GetManager().ShutdownContext(), headRepo, tmpRemote); err != nil {
+				logger.Error("GetPullRequestInfo: GitRemoteRemove: %v", err)
+			}
+		}()
+	}
+
+	compareInfo := &CompareInfo{
+		BaseRepo:         baseRepo,
+		BaseRef:          baseRef,
+		HeadRepo:         headRepo,
+		HeadGitRepo:      headGitRepo,
+		HeadRef:          headRef,
+		DirectComparison: directComparison,
+	}
 
 	compareInfo.HeadCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, headRef.String())
 	if err != nil {
 		compareInfo.HeadCommitID = headRef.String()
 	}
-	compareInfo.BaseCommitID, err = gitrepo.GetFullCommitID(ctx, baseRepo, baseRef.String())
-	if err != nil {
-		compareInfo.BaseCommitID = baseRef.String()
-	}
 
 	compareInfo.MergeBase, err = gitrepo.MergeBaseFromRemote(ctx, baseRepo, headRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
 	if err == nil {
+		compareInfo.BaseCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, headRef.String())
+		if err != nil {
+			compareInfo.BaseCommitID = headRef.String()
+		}
 		separator := "..."
-		startCommitID := compareInfo.MergeBase
+		baseCommitID := compareInfo.MergeBase
 		if directComparison {
 			separator = ".."
-			startCommitID = compareInfo.BaseCommitID
+			baseCommitID = compareInfo.BaseCommitID
 		}
 
 		// We have a common base - therefore we know that ... should work
 		if !fileOnly {
-			compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, startCommitID+separator+headRef.String())
+			compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, baseCommitID+separator+headRef.String())
 			if err != nil {
 				return nil, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
 			}
@@ -68,7 +95,11 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		}
 	} else {
 		compareInfo.Commits = []*git.Commit{}
-		compareInfo.MergeBase = compareInfo.BaseCommitID
+		compareInfo.MergeBase, err = gitrepo.GetFullCommitID(ctx, headRepo, headRef.String())
+		if err != nil {
+			compareInfo.MergeBase = headRef.String()
+		}
+		compareInfo.BaseCommitID = compareInfo.MergeBase
 	}
 
 	if baseRepo.ID != headRepo.ID {
