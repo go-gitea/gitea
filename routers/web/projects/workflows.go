@@ -4,6 +4,7 @@
 package projects
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -13,7 +14,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 	project_service "code.gitea.io/gitea/services/projects"
@@ -130,43 +130,24 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 	return actions
 }
 
-func WorkflowsEvents(ctx *context.Context) {
-	projectID := ctx.PathParamInt64("id")
-	p, err := project_model.GetProjectByID(ctx, projectID)
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
-		return
-	}
-	if p.Type == project_model.TypeRepository && p.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(nil)
-		return
-	}
-	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && p.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound(nil)
-		return
-	}
+type WorkflowConfig struct {
+	ID            int64                                   `json:"id"`
+	EventID       string                                  `json:"event_id"`
+	DisplayName   string                                  `json:"display_name"`
+	WorkflowEvent string                                  `json:"workflow_event"` // The workflow event
+	Capabilities  project_model.WorkflowEventCapabilities `json:"capabilities"`
+	Filters       []project_model.WorkflowFilter          `json:"filters"`
+	Actions       []project_model.WorkflowAction          `json:"actions"`
+	Summary       string                                  `json:"summary"` // Human readable filter description
+	Enabled       bool                                    `json:"enabled"`
+	IsConfigured  bool                                    `json:"isConfigured"` // Whether this workflow is configured/saved
+}
 
-	workflows, err := project_model.FindWorkflowsByProjectID(ctx, projectID)
+func WorkflowsEvents(ctx *context.Context, project *project_model.Project) {
+	workflows, err := project_model.FindWorkflowsByProjectID(ctx, project.ID)
 	if err != nil {
 		ctx.ServerError("FindWorkflowsByProjectID", err)
 		return
-	}
-
-	type WorkflowConfig struct {
-		ID            int64                                   `json:"id"`
-		EventID       string                                  `json:"event_id"`
-		DisplayName   string                                  `json:"display_name"`
-		WorkflowEvent string                                  `json:"workflow_event"` // The workflow event
-		Capabilities  project_model.WorkflowEventCapabilities `json:"capabilities"`
-		Filters       []project_model.WorkflowFilter          `json:"filters"`
-		Actions       []project_model.WorkflowAction          `json:"actions"`
-		Summary       string                                  `json:"summary"` // Human readable filter description
-		Enabled       bool                                    `json:"enabled"`
-		IsConfigured  bool                                    `json:"isConfigured"` // Whether this workflow is configured/saved
 	}
 
 	outputWorkflows := make([]*WorkflowConfig, 0)
@@ -216,27 +197,8 @@ func WorkflowsEvents(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, outputWorkflows)
 }
 
-func WorkflowsColumns(ctx *context.Context) {
-	projectID := ctx.PathParamInt64("id")
-	p, err := project_model.GetProjectByID(ctx, projectID)
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
-		return
-	}
-	if p.Type == project_model.TypeRepository && p.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(nil)
-		return
-	}
-	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && p.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound(nil)
-		return
-	}
-
-	columns, err := p.GetColumns(ctx)
+func WorkflowsColumns(ctx *context.Context, project *project_model.Project) {
+	columns, err := project.GetColumns(ctx)
 	if err != nil {
 		ctx.ServerError("GetProjectColumns", err)
 		return
@@ -259,34 +221,24 @@ func WorkflowsColumns(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, outputColumns)
 }
 
-func WorkflowsLabels(ctx *context.Context) {
-	projectID := ctx.PathParamInt64("id")
-	p, err := project_model.GetProjectByID(ctx, projectID)
+func WorkflowsLabels(ctx *context.Context, project *project_model.Project) {
+	var labels []*issues_model.Label
+
+	orgLabels, err := issues_model.GetLabelsByOrgID(ctx, project.OwnerID, "", db.ListOptionsAll)
 	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
+		ctx.ServerError("GetLabelsByOrgID", err)
+		return
+	}
+	labels = append(labels, orgLabels...)
+
+	if project.Type == project_model.TypeRepository {
+		// Get repository labels
+		repoLabels, err := issues_model.GetLabelsByRepoID(ctx, project.RepoID, "", db.ListOptionsAll)
+		if err != nil {
+			ctx.ServerError("GetLabelsByRepoID", err)
+			return
 		}
-		return
-	}
-
-	// Only repository projects have access to labels
-	if p.Type != project_model.TypeRepository {
-		ctx.JSON(http.StatusOK, []any{})
-		return
-	}
-
-	if p.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(nil)
-		return
-	}
-
-	// Get repository labels
-	labels, err := issues_model.GetLabelsByRepoID(ctx, p.RepoID, "", db.ListOptions{})
-	if err != nil {
-		ctx.ServerError("GetLabelsByRepoID", err)
-		return
+		labels = append(labels, repoLabels...)
 	}
 
 	type Label struct {
@@ -313,22 +265,6 @@ func WorkflowsLabels(ctx *context.Context) {
 }
 
 func Workflows(ctx *context.Context) {
-	workflowIDStr := ctx.PathParam("workflow_id")
-	if workflowIDStr == "events" {
-		WorkflowsEvents(ctx)
-		return
-	}
-	if workflowIDStr == "columns" {
-		WorkflowsColumns(ctx)
-		return
-	}
-	if workflowIDStr == "labels" {
-		WorkflowsLabels(ctx)
-		return
-	}
-
-	ctx.Data["WorkflowEvents"] = project_model.GetWorkflowEvents()
-
 	projectID := ctx.PathParamInt64("id")
 	p, err := project_model.GetProjectByID(ctx, projectID)
 	if err != nil {
@@ -347,6 +283,22 @@ func Workflows(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
+
+	workflowIDStr := ctx.PathParam("workflow_id")
+	if workflowIDStr == "events" {
+		WorkflowsEvents(ctx, p)
+		return
+	}
+	if workflowIDStr == "columns" {
+		WorkflowsColumns(ctx, p)
+		return
+	}
+	if workflowIDStr == "labels" {
+		WorkflowsLabels(ctx, p)
+		return
+	}
+
+	ctx.Data["WorkflowEvents"] = project_model.GetWorkflowEvents()
 
 	ctx.Data["Title"] = ctx.Tr("projects.workflows")
 	ctx.Data["IsProjectsPage"] = true
@@ -428,13 +380,12 @@ func WorkflowsPost(ctx *context.Context) {
 		return
 	}
 	defer ctx.Req.Body.Close()
-	log.Trace("get " + string(content))
 	if err := json.Unmarshal(content, &form); err != nil {
 		ctx.ServerError("DecodeWorkflowsPostForm", err)
 		return
 	}
 	if form.EventID == "" {
-		ctx.JSON(http.StatusBadRequest, map[string]any{"error": "InvalidEventID", "message": "EventID is required"})
+		ctx.JSONError("EventID is required")
 		return
 	}
 
@@ -444,18 +395,15 @@ func WorkflowsPost(ctx *context.Context) {
 
 	// Validate: at least one action must be configured
 	if len(actions) == 0 {
-		ctx.JSON(http.StatusBadRequest, map[string]any{
-			"error":   "NoActions",
-			"message": ctx.Tr("projects.workflows.error.at_least_one_action"),
-		})
+		ctx.JSONError(ctx.Tr("projects.workflows.error.at_least_one_action"))
 		return
 	}
 
 	eventID, _ := strconv.ParseInt(form.EventID, 10, 64)
 	if eventID == 0 {
-		// check if workflow event is valid
+		// if it's not a real database id, check if it's the event string
 		if !project_model.IsValidWorkflowEvent(form.EventID) {
-			ctx.JSON(http.StatusBadRequest, map[string]any{"error": "EventID is invalid"})
+			ctx.JSONError(fmt.Sprintf("EventID %s is invalid", form.EventID))
 			return
 		}
 
@@ -476,14 +424,14 @@ func WorkflowsPost(ctx *context.Context) {
 		workflowSummary := project_service.GetWorkflowSummary(ctx, wf)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"success": true,
-			"workflow": map[string]any{
-				"id":           wf.ID,
-				"event_id":     strconv.FormatInt(wf.ID, 10),
-				"display_name": string(ctx.Tr(wf.WorkflowEvent.LangKey())),
-				"filters":      wf.WorkflowFilters,
-				"actions":      wf.WorkflowActions,
-				"summary":      workflowSummary,
-				"enabled":      wf.Enabled,
+			"workflows": WorkflowConfig{
+				ID:          wf.ID,
+				EventID:     strconv.FormatInt(wf.ID, 10),
+				DisplayName: string(ctx.Tr(wf.WorkflowEvent.LangKey())),
+				Filters:     wf.WorkflowFilters,
+				Actions:     wf.WorkflowActions,
+				Summary:     workflowSummary,
+				Enabled:     wf.Enabled,
 			},
 		})
 	} else {
@@ -509,14 +457,14 @@ func WorkflowsPost(ctx *context.Context) {
 		workflowSummary := project_service.GetWorkflowSummary(ctx, wf)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"success": true,
-			"workflow": map[string]any{
-				"id":           wf.ID,
-				"event_id":     strconv.FormatInt(wf.ID, 10),
-				"display_name": string(ctx.Tr(wf.WorkflowEvent.LangKey())),
-				"filters":      wf.WorkflowFilters,
-				"actions":      wf.WorkflowActions,
-				"summary":      workflowSummary,
-				"enabled":      wf.Enabled,
+			"workflow": WorkflowConfig{
+				ID:          wf.ID,
+				EventID:     strconv.FormatInt(wf.ID, 10),
+				DisplayName: string(ctx.Tr(wf.WorkflowEvent.LangKey())),
+				Filters:     wf.WorkflowFilters,
+				Actions:     wf.WorkflowActions,
+				Summary:     workflowSummary,
+				Enabled:     wf.Enabled,
 			},
 		})
 	}
