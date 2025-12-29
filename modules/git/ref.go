@@ -208,7 +208,7 @@ func (ref RefName) RefType() RefType {
 	return ""
 }
 
-func (ref RefName) IsLikelyCommit() bool {
+func (ref RefName) IsCommit() bool {
 	return ref.RefType() == RefTypeCommit
 }
 

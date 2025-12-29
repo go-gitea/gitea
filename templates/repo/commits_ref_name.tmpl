@@ -1,4 +1,4 @@
-{{- if .IsLikelyCommit -}}
+{{- if .IsCommit -}}
 	{{ShortSha .ShortName}}
 {{- else -}}
 	{{- if .IsBranch -}}
