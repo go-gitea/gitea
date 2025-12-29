@@ -12,8 +12,8 @@ import (
 func AddProjectWorkflow(x *xorm.Engine) error {
 	type ProjectWorkflow struct {
 		ID              int64
-		ProjectID       int64              `xorm:"INDEX"`
-		WorkflowEvent   string             `xorm:"INDEX"`
+		ProjectID       int64 `xorm:"INDEX"`
+		WorkflowEvent   string
 		WorkflowFilters string             `xorm:"TEXT JSON"`
 		WorkflowActions string             `xorm:"TEXT JSON"`
 		Enabled         bool               `xorm:"DEFAULT true"`

@@ -158,9 +158,9 @@ func GetWorkflowEventCapabilities() map[WorkflowEvent]WorkflowEventCapabilities 
 
 type Workflow struct {
 	ID              int64
-	ProjectID       int64              `xorm:"INDEX"`
-	Project         *Project           `xorm:"-"`
-	WorkflowEvent   WorkflowEvent      `xorm:"INDEX"`
+	ProjectID       int64    `xorm:"INDEX"`
+	Project         *Project `xorm:"-"`
+	WorkflowEvent   WorkflowEvent
 	WorkflowFilters []WorkflowFilter   `xorm:"TEXT JSON"`
 	WorkflowActions []WorkflowAction   `xorm:"TEXT JSON"`
 	Enabled         bool               `xorm:"DEFAULT true"`
