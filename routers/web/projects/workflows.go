@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/templates"
@@ -222,23 +221,10 @@ func WorkflowsColumns(ctx *context.Context, project *project_model.Project) {
 }
 
 func WorkflowsLabels(ctx *context.Context, project *project_model.Project) {
-	var labels []*issues_model.Label
-
-	orgLabels, err := issues_model.GetLabelsByOrgID(ctx, project.OwnerID, "", db.ListOptionsAll)
+	labels, err := project_service.GetProjectLabels(ctx, project)
 	if err != nil {
-		ctx.ServerError("GetLabelsByOrgID", err)
+		ctx.ServerError("GetProjectLabels", err)
 		return
-	}
-	labels = append(labels, orgLabels...)
-
-	if project.Type == project_model.TypeRepository {
-		// Get repository labels
-		repoLabels, err := issues_model.GetLabelsByRepoID(ctx, project.RepoID, "", db.ListOptionsAll)
-		if err != nil {
-			ctx.ServerError("GetLabelsByRepoID", err)
-			return
-		}
-		labels = append(labels, repoLabels...)
 	}
 
 	type Label struct {

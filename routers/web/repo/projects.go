@@ -362,20 +362,10 @@ func ViewProject(ctx *context.Context) {
 	}
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 
-	labels, err := issues_model.GetLabelsByRepoID(ctx, project.RepoID, "", db.ListOptions{})
+	labels, err := project_service.GetProjectLabels(ctx, project)
 	if err != nil {
-		ctx.ServerError("GetLabelsByRepoID", err)
+		ctx.ServerError("GetProjectLabels", err)
 		return
-	}
-
-	if ctx.Repo.Owner.IsOrganization() {
-		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, "", db.ListOptions{})
-		if err != nil {
-			ctx.ServerError("GetLabelsByOrgID", err)
-			return
-		}
-
-		labels = append(labels, orgLabels...)
 	}
 
 	// Get the exclusive scope for every label ID
