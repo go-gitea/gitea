@@ -33,7 +33,7 @@
 }
 
 .ui.form textarea,
-.ui.form input {
+.ui.form input:not([type="checkbox"], [type="radio"]) {
   width: 100%;
   vertical-align: top;
 }
