@@ -84,7 +84,7 @@ func addKey(ctx context.Context, key *PublicKey) (err error) {
 }
 
 // AddPublicKey adds new public key to database and authorized_keys file.
-func AddPublicKey(ctx context.Context, ownerID int64, name, content string, authSourceID int64) (*PublicKey, error) {
+func AddPublicKey(ctx context.Context, ownerID int64, name, content string, authSourceID int64, verified bool) (*PublicKey, error) {
 	log.Trace(content)
 
 	fingerprint, err := CalcFingerprint(content)
@@ -115,6 +115,7 @@ func AddPublicKey(ctx context.Context, ownerID int64, name, content string, auth
 			Mode:          perm.AccessModeWrite,
 			Type:          KeyTypeUser,
 			LoginSourceID: authSourceID,
+			Verified:      verified,
 		}
 		if err = addKey(ctx, key); err != nil {
 			return nil, fmt.Errorf("addKey: %w", err)
@@ -298,7 +299,7 @@ func deleteKeysMarkedForDeletion(ctx context.Context, keys []string) (bool, erro
 }
 
 // AddPublicKeysBySource add a users public keys. Returns true if there are changes.
-func AddPublicKeysBySource(ctx context.Context, usr *user_model.User, s *auth.Source, sshPublicKeys []string) bool {
+func AddPublicKeysBySource(ctx context.Context, usr *user_model.User, s *auth.Source, sshPublicKeys []string, verified bool) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range sshPublicKeys {
 		var err error
@@ -317,7 +318,7 @@ func AddPublicKeysBySource(ctx context.Context, usr *user_model.User, s *auth.So
 			marshalled = marshalled[:len(marshalled)-1]
 			sshKeyName := fmt.Sprintf("%s-%s", s.Name, ssh.FingerprintSHA256(out))
 
-			if _, err := AddPublicKey(ctx, usr.ID, sshKeyName, marshalled, s.ID); err != nil {
+			if _, err := AddPublicKey(ctx, usr.ID, sshKeyName, marshalled, s.ID, verified); err != nil {
 				if IsErrKeyAlreadyExist(err) {
 					log.Trace("AddPublicKeysBySource[%s]: Public SSH Key %s already exists for user", sshKeyName, usr.Name)
 				} else {
@@ -336,7 +337,7 @@ func AddPublicKeysBySource(ctx context.Context, usr *user_model.User, s *auth.So
 }
 
 // SynchronizePublicKeys updates a user's public keys. Returns true if there are changes.
-func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth.Source, sshPublicKeys []string) bool {
+func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth.Source, sshPublicKeys []string, verified bool) bool {
 	var sshKeysNeedUpdate bool
 
 	log.Trace("synchronizePublicKeys[%s]: Handling Public SSH Key synchronization for user %s", s.Name, usr.Name)
@@ -381,7 +382,7 @@ func SynchronizePublicKeys(ctx context.Context, usr *user_model.User, s *auth.So
 			newKeys = append(newKeys, key)
 		}
 	}
-	if AddPublicKeysBySource(ctx, usr, s, newKeys) {
+	if AddPublicKeysBySource(ctx, usr, s, newKeys, verified) {
 		sshKeysNeedUpdate = true
 	}
 
