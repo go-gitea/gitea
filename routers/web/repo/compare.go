@@ -425,7 +425,11 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
-	ctx.Data["BeforeCommitID"] = compareInfo.BaseCommitID
+	if compareReq.DirectComparison() {
+		ctx.Data["BeforeCommitID"] = compareInfo.BaseCommitID
+	} else {
+		ctx.Data["BeforeCommitID"] = compareInfo.MergeBase
+	}
 
 	return compareInfo
 }
@@ -465,7 +469,10 @@ func PrepareCompareDiff(
 		return true
 	}
 
-	beforeCommitID := ci.BaseCommitID
+	beforeCommitID := ci.MergeBase
+	if ci.DirectComparison {
+		beforeCommitID = ci.BaseCommitID
+	}
 
 	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
