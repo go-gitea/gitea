@@ -92,7 +92,10 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		return false
 	}
 
-	_ = m.GetRepository(ctx)
+	if m.GetRepository(ctx) == nil {
+		log.Error("PushMirror[%d] repository does not exist", m.ID)
+		return false
+	}
 
 	m.LastError = ""
 
