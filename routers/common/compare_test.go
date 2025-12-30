@@ -22,76 +22,79 @@ func TestCompareRouterReq(t *testing.T) {
 			input: "v1.0...v1.1",
 			CompareRouterReq: &CompareRouterReq{
 				BaseOriRef:       "v1.0",
-				HeadOriRef:       "v1.1",
 				CompareSeparator: "...",
+				HeadOriRef:       "v1.1",
 			},
 		},
 		{
 			input: "main..develop",
 			CompareRouterReq: &CompareRouterReq{
 				BaseOriRef:       "main",
-				HeadOriRef:       "develop",
 				CompareSeparator: "..",
+				HeadOriRef:       "develop",
 			},
 		},
 		{
 			input: "main^...develop",
 			CompareRouterReq: &CompareRouterReq{
 				BaseOriRef:       "main",
+				BaseOriRefSuffix: "^",
+				CompareSeparator: "...",
 				HeadOriRef:       "develop",
-				CompareSeparator: "^...",
 			},
 		},
 		{
 			input: "main^^^^^...develop",
 			CompareRouterReq: &CompareRouterReq{
 				BaseOriRef:       "main",
+				BaseOriRefSuffix: "^^^^^",
+				CompareSeparator: "...",
 				HeadOriRef:       "develop",
-				CompareSeparator: "^^^^^...",
 			},
 		},
 		{
 			input: "develop",
 			CompareRouterReq: &CompareRouterReq{
-				HeadOriRef:       "develop",
 				CompareSeparator: "...",
+				HeadOriRef:       "develop",
 			},
 		},
 		{
 			input: "teabot:feature1",
 			CompareRouterReq: &CompareRouterReq{
+				CompareSeparator: "...",
 				HeadOwner:        "teabot",
 				HeadOriRef:       "feature1",
-				CompareSeparator: "...",
 			},
 		},
 		{
 			input: "lunny/forked_repo:develop",
 			CompareRouterReq: &CompareRouterReq{
+				CompareSeparator: "...",
 				HeadOwner:        "lunny",
 				HeadRepoName:     "forked_repo",
 				HeadOriRef:       "develop",
-				CompareSeparator: "...",
 			},
 		},
 		{
 			input: "main...lunny/forked_repo:develop",
 			CompareRouterReq: &CompareRouterReq{
 				BaseOriRef:       "main",
+				CompareSeparator: "...",
 				HeadOwner:        "lunny",
 				HeadRepoName:     "forked_repo",
 				HeadOriRef:       "develop",
-				CompareSeparator: "...",
 			},
 		},
 		{
 			input: "main^...lunny/forked_repo:develop",
 			CompareRouterReq: &CompareRouterReq{
 				BaseOriRef:       "main",
+				BaseOriRefSuffix: "^",
+				CompareSeparator: "...",
 				HeadOwner:        "lunny",
 				HeadRepoName:     "forked_repo",
 				HeadOriRef:       "develop",
-				CompareSeparator: "^...",
 			},
 		},
 	}

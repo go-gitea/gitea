@@ -9,25 +9,25 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 )
 
 type CompareRouterReq struct {
 	BaseOriRef       string
-	HeadOwner        string
-	HeadRepoName     string
-	HeadOriRef       string
+	BaseOriRefSuffix string
+
 	CompareSeparator string
+
+	HeadOwner    string
+	HeadRepoName string
+	HeadOriRef   string
 }
 
 func (cr *CompareRouterReq) DirectComparison() bool {
 	// FIXME: the design of "DirectComparison" is wrong, it loses the information of `^`
 	// To correctly handle the comparison, developers should use `ci.CompareSeparator` directly, all "DirectComparison" related code should be rewritten.
 	return cr.CompareSeparator == ".."
-}
-
-func (cr *CompareRouterReq) CaretTimes() int {
-	return strings.Count(cr.CompareSeparator, "^")
 }
 
 func parseHead(head string) (headOwnerName, headRepoName, headRef string) {
@@ -89,16 +89,10 @@ func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 		}
 	}
 
-	baseRef := strings.TrimRight(basePart, "^")
-	basePartCaret := strings.TrimPrefix(basePart, baseRef)
-	headOwnerName, headRepoName, headRef := parseHead(headPart)
-	return &CompareRouterReq{
-		BaseOriRef:       baseRef,
-		HeadOriRef:       headRef,
-		HeadOwner:        headOwnerName,
-		HeadRepoName:     headRepoName,
-		CompareSeparator: basePartCaret + sep,
-	}
+	ci := &CompareRouterReq{CompareSeparator: sep}
+	ci.BaseOriRef, ci.BaseOriRefSuffix = git.ParseRefSuffix(basePart)
+	ci.HeadOwner, ci.HeadRepoName, ci.HeadOriRef = parseHead(headPart)
+	return ci
 }
 
 // maxForkTraverseLevel defines the maximum levels to traverse when searching for the head repository.

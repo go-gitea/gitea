@@ -200,8 +200,8 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	compareReq := common.ParseCompareRouterParam(ctx.PathParam("*"))
 
 	// remove the check when we support compare with carets
-	if compareReq.CaretTimes() > 0 {
-		ctx.HTTPError(http.StatusBadRequest, "Unsupported compare syntax with carets")
+	if compareReq.BaseOriRefSuffix != "" {
+		ctx.HTTPError(http.StatusBadRequest, "Unsupported comparison syntax: ref with suffix")
 		return nil
 	}
 
