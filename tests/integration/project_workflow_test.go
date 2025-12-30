@@ -488,8 +488,7 @@ func TestProjectWorkflowValidation(t *testing.T) {
 		var result map[string]any
 		err = json.Unmarshal(resp.Body.Bytes(), &result)
 		assert.NoError(t, err)
-		assert.Equal(t, "NoActions", result["error"], "Error should be NoActions")
-		assert.NotEmpty(t, result["message"], "Error message should be provided")
+		assert.Equal(t, "At least one action must be configured", result["errorMessage"])
 	})
 
 	// Test 2: Try to update a workflow to have no actions (should fail)
@@ -546,8 +545,7 @@ func TestProjectWorkflowValidation(t *testing.T) {
 		var result map[string]any
 		err = json.Unmarshal(resp.Body.Bytes(), &result)
 		assert.NoError(t, err)
-		assert.Equal(t, "NoActions", result["error"], "Error should be NoActions")
-		assert.NotEmpty(t, result["message"], "Error message should be provided")
+		assert.Equal(t, "At least one action must be configured", result["errorMessage"])
 
 		// Verify the workflow was not changed
 		unchangedWorkflow, err := project_model.GetWorkflowByID(t.Context(), workflow.ID)

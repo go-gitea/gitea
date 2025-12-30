@@ -241,7 +241,7 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
       );
 
       if (!hasAtLeastOneAction) {
-        showErrorToast(props.locale.atLeastOneActionRequired || 'At least one action must be configured');
+        showErrorToast(props.locale.atLeastOneActionRequired);
         return;
       }
 
@@ -268,10 +268,8 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
           let errorMessage = `${props.locale.failedToSaveWorkflow}: ${response.status} ${response.statusText}`;
           try {
             const errorData = await response.json();
-            if (errorData.message) {
-              errorMessage = errorData.message;
-            } else if (errorData.error === 'NoActions') {
-              errorMessage = props.locale.atLeastOneActionRequired || 'At least one action must be configured';
+            if (errorData.errorMessage) {
+              errorMessage = errorData.errorMessage;
             }
           } catch {
             const errorText = await response.text();
