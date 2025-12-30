@@ -345,7 +345,7 @@ func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model
 }
 
 func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue) {
-	var toAddedLables, toRemovedLables []*issues_model.Label
+	var toAddedLabels, toRemovedLabels []*issues_model.Label
 
 	for _, action := range workflow.WorkflowActions {
 		switch action.Type {
@@ -375,7 +375,7 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 				log.Error("GetLabelByID: %v", err)
 				continue
 			}
-			toAddedLables = append(toAddedLables, label)
+			toAddedLabels = append(toAddedLabels, label)
 		case project_model.WorkflowActionTypeRemoveLabels:
 			labelID, _ := strconv.ParseInt(action.Value, 10, 64)
 			if labelID == 0 {
@@ -387,7 +387,7 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 				log.Error("GetLabelByID: %v", err)
 				continue
 			}
-			toRemovedLables = append(toRemovedLables, label)
+			toRemovedLabels = append(toRemovedLabels, label)
 		case project_model.WorkflowActionTypeIssueState:
 			if strings.EqualFold(action.Value, "reopen") {
 				if issue.IsClosed {
@@ -409,8 +409,8 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 		}
 	}
 
-	if len(toAddedLables)+len(toRemovedLables) > 0 {
-		if err := issue_service.AddRemoveLabels(ctx, issue, user_model.NewProjectWorkflowsUser(), toAddedLables, toRemovedLables); err != nil {
+	if len(toAddedLabels)+len(toRemovedLabels) > 0 {
+		if err := issue_service.AddRemoveLabels(ctx, issue, user_model.NewProjectWorkflowsUser(), toAddedLabels, toRemovedLabels); err != nil {
 			log.Error("AddRemoveLabels: %v", err)
 		}
 	}

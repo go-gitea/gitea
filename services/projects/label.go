@@ -40,3 +40,24 @@ func GetProjectLabels(ctx context.Context, project *project_model.Project) ([]*i
 	}
 	return labels, nil
 }
+
+func CanProjectAddLabel(ctx context.Context, project *project_model.Project, labelID int64) bool {
+	switch project.Type {
+	case project_model.TypeOrganization, project_model.TypeIndividual:
+		label, _ := issues_model.GetLabelInOrgByID(ctx, project.OwnerID, labelID)
+		return label != nil
+	case project_model.TypeRepository:
+		label, _ := issues_model.GetLabelInRepoByID(ctx, project.RepoID, labelID)
+		if label != nil {
+			return true
+		}
+
+		if err := project.LoadRepo(ctx); err != nil {
+			return false
+		}
+
+		label, _ = issues_model.GetLabelInOrgByID(ctx, project.Repo.OwnerID, labelID)
+		return label != nil
+	}
+	return false
+}

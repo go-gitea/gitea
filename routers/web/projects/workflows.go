@@ -4,6 +4,7 @@
 package projects
 
 import (
+	stdCtx "context"
 	"fmt"
 	"io"
 	"net/http"
@@ -24,21 +25,38 @@ var (
 )
 
 // convertFormToFilters converts form filters to WorkflowFilter objects
-func convertFormToFilters(formFilters map[string]any) []project_model.WorkflowFilter {
+func convertFormToFilters(ctx stdCtx.Context, project *project_model.Project, formFilters map[string]any) []project_model.WorkflowFilter {
 	filters := make([]project_model.WorkflowFilter, 0)
 
 	for key, value := range formFilters {
 		switch key {
-		case "labels":
+		case string(project_model.WorkflowFilterTypeLabels):
 			// Handle labels array
 			if labelInterfaces, ok := value.([]any); ok && len(labelInterfaces) > 0 {
 				for _, labelInterface := range labelInterfaces {
 					if label, ok := labelInterface.(string); ok && label != "" {
-						filters = append(filters, project_model.WorkflowFilter{
-							Type:  project_model.WorkflowFilterTypeLabels,
-							Value: label,
-						})
+						labelID, _ := strconv.ParseInt(label, 10, 64)
+						if project_service.CanProjectAddLabel(ctx, project, labelID) {
+							filters = append(filters, project_model.WorkflowFilter{
+								Type:  project_model.WorkflowFilterTypeLabels,
+								Value: label,
+							})
+						}
 					}
+				}
+			}
+		case string(project_model.WorkflowFilterTypeSourceColumn), string(project_model.WorkflowFilterTypeTargetColumn):
+			if strValue, ok := value.(string); ok && strValue != "" {
+				strValueInt, _ := strconv.ParseInt(strValue, 10, 64)
+				if strValueInt > 0 {
+					col, _ := project_model.GetColumnByProjectIDAndColumnID(ctx, project.ID, strValueInt)
+					if col == nil {
+						continue
+					}
+					filters = append(filters, project_model.WorkflowFilter{
+						Type:  project_model.WorkflowFilterType(key),
+						Value: strconv.FormatInt(strValueInt, 10),
+					})
 				}
 			}
 		default:
@@ -56,18 +74,22 @@ func convertFormToFilters(formFilters map[string]any) []project_model.WorkflowFi
 }
 
 // convertFormToActions converts form actions to WorkflowAction objects
-func convertFormToActions(formActions map[string]any) []project_model.WorkflowAction {
+func convertFormToActions(ctx stdCtx.Context, project *project_model.Project, formActions map[string]any) []project_model.WorkflowAction {
 	actions := make([]project_model.WorkflowAction, 0)
 
 	for key, value := range formActions {
 		switch key {
 		case string(project_model.WorkflowActionTypeColumn):
-			if floatValue, ok := value.(string); ok {
-				floatValueInt, _ := strconv.ParseInt(floatValue, 10, 64)
-				if floatValueInt > 0 {
+			if colValue, ok := value.(string); ok {
+				colValueInt, _ := strconv.ParseInt(colValue, 10, 64)
+				if colValueInt > 0 {
+					col, _ := project_model.GetColumnByProjectIDAndColumnID(ctx, project.ID, colValueInt)
+					if col == nil {
+						continue
+					}
 					actions = append(actions, project_model.WorkflowAction{
 						Type:  project_model.WorkflowActionTypeColumn,
-						Value: strconv.FormatInt(floatValueInt, 10),
+						Value: strconv.FormatInt(colValueInt, 10),
 					})
 				}
 			}
@@ -76,15 +98,22 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 			if labels, ok := value.([]string); ok && len(labels) > 0 {
 				for _, label := range labels {
 					if label != "" {
-						actions = append(actions, project_model.WorkflowAction{
-							Type:  project_model.WorkflowActionTypeAddLabels,
-							Value: label,
-						})
+						labelID, _ := strconv.ParseInt(label, 10, 64)
+						if project_service.CanProjectAddLabel(ctx, project, labelID) {
+							actions = append(actions, project_model.WorkflowAction{
+								Type:  project_model.WorkflowActionTypeAddLabels,
+								Value: label,
+							})
+						}
 					}
 				}
 			} else if labelInterfaces, ok := value.([]any); ok && len(labelInterfaces) > 0 {
 				for _, labelInterface := range labelInterfaces {
 					if label, ok := labelInterface.(string); ok && label != "" {
+						labelID, _ := strconv.ParseInt(label, 10, 64)
+						if !project_service.CanProjectAddLabel(ctx, project, labelID) {
+							continue
+						}
 						actions = append(actions, project_model.WorkflowAction{
 							Type:  project_model.WorkflowActionTypeAddLabels,
 							Value: label,
@@ -97,6 +126,10 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 			if labels, ok := value.([]string); ok && len(labels) > 0 {
 				for _, label := range labels {
 					if label != "" {
+						labelID, _ := strconv.ParseInt(label, 10, 64)
+						if !project_service.CanProjectAddLabel(ctx, project, labelID) {
+							continue
+						}
 						actions = append(actions, project_model.WorkflowAction{
 							Type:  project_model.WorkflowActionTypeRemoveLabels,
 							Value: label,
@@ -106,6 +139,10 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 			} else if labelInterfaces, ok := value.([]any); ok && len(labelInterfaces) > 0 {
 				for _, labelInterface := range labelInterfaces {
 					if label, ok := labelInterface.(string); ok && label != "" {
+						labelID, _ := strconv.ParseInt(label, 10, 64)
+						if !project_service.CanProjectAddLabel(ctx, project, labelID) {
+							continue
+						}
 						actions = append(actions, project_model.WorkflowAction{
 							Type:  project_model.WorkflowActionTypeRemoveLabels,
 							Value: label,
@@ -376,8 +413,8 @@ func WorkflowsPost(ctx *context.Context) {
 	}
 
 	// Convert form data to filters and actions
-	filters := convertFormToFilters(form.Filters)
-	actions := convertFormToActions(form.Actions)
+	filters := convertFormToFilters(ctx, p, form.Filters)
+	actions := convertFormToActions(ctx, p, form.Actions)
 
 	// Validate: at least one action must be configured
 	if len(actions) == 0 {
@@ -420,40 +457,41 @@ func WorkflowsPost(ctx *context.Context) {
 				Enabled:     wf.Enabled,
 			},
 		})
-	} else {
-		// Update an existing workflow
-		wf, err := project_model.GetWorkflowByID(ctx, eventID)
-		if err != nil {
-			ctx.ServerError("GetWorkflowByID", err)
-			return
-		}
-		if wf.ProjectID != projectID {
-			ctx.NotFound(nil)
-			return
-		}
-
-		wf.WorkflowFilters = filters
-		wf.WorkflowActions = actions
-		if err := project_model.UpdateWorkflow(ctx, wf); err != nil {
-			ctx.ServerError("UpdateWorkflow", err)
-			return
-		}
-
-		// Return the updated workflow with filter summary
-		workflowSummary := project_service.GetWorkflowSummary(ctx, wf)
-		ctx.JSON(http.StatusOK, map[string]any{
-			"success": true,
-			"workflow": WorkflowConfig{
-				ID:          wf.ID,
-				EventID:     strconv.FormatInt(wf.ID, 10),
-				DisplayName: string(ctx.Tr(wf.WorkflowEvent.LangKey())),
-				Filters:     wf.WorkflowFilters,
-				Actions:     wf.WorkflowActions,
-				Summary:     workflowSummary,
-				Enabled:     wf.Enabled,
-			},
-		})
+		return
 	}
+
+	// Update an existing workflow
+	wf, err := project_model.GetWorkflowByID(ctx, eventID)
+	if err != nil {
+		ctx.ServerError("GetWorkflowByID", err)
+		return
+	}
+	if wf.ProjectID != projectID {
+		ctx.NotFound(nil)
+		return
+	}
+
+	wf.WorkflowFilters = filters
+	wf.WorkflowActions = actions
+	if err := project_model.UpdateWorkflow(ctx, wf); err != nil {
+		ctx.ServerError("UpdateWorkflow", err)
+		return
+	}
+
+	// Return the updated workflow with filter summary
+	workflowSummary := project_service.GetWorkflowSummary(ctx, wf)
+	ctx.JSON(http.StatusOK, map[string]any{
+		"success": true,
+		"workflow": WorkflowConfig{
+			ID:          wf.ID,
+			EventID:     strconv.FormatInt(wf.ID, 10),
+			DisplayName: string(ctx.Tr(wf.WorkflowEvent.LangKey())),
+			Filters:     wf.WorkflowFilters,
+			Actions:     wf.WorkflowActions,
+			Summary:     workflowSummary,
+			Enabled:     wf.Enabled,
+		},
+	})
 }
 
 func WorkflowsStatus(ctx *context.Context) {
