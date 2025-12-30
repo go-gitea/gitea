@@ -206,10 +206,10 @@
 				</div>
 			{{else if $allowCreatePR}}
 				<div class="ui info message flex-text-block tw-justify-between pullrequest-form-toggle {{if .ExpandNewPrForm}}tw-hidden{{end}}">
-					<span class="issue-title tw-break-anywhere tw-text-left">
+					<span class="tw-break-anywhere">
 						{{ctx.Locale.Tr "repo.pulls.new.description"}}
 					</span>
-					<a class="ui button primary show-panel toggle tw-text-right" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
+					<a class="ui button primary show-panel toggle" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
 				</div>
 				<div class="pullrequest-form {{if not .ExpandNewPrForm}}tw-hidden{{end}}">
 					{{template "repo/issue/new_form" .}}

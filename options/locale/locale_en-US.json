@@ -1740,7 +1740,7 @@
   "repo.compare.description": "Choose two branches or tags to see what’s changed or to start a new pull request.",
   "repo.pulls.desc": "Enable pull requests and code reviews.",
   "repo.pulls.new": "New Pull Request",
-  "repo.pulls.new.description": "Discuss and review the changes in this comparison with others. ",
+  "repo.pulls.new.description": "Discuss and review the changes in this comparison with others.",
   "repo.pulls.new.blocked_user": "Cannot create pull request because you are blocked by the repository owner.",
   "repo.pulls.new.must_collaborator": "You must be a collaborator to create pull request.",
   "repo.pulls.new.already_existed": "A pull request between these branches already exists",
