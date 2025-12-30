@@ -61,7 +61,7 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 
 	for key, value := range formActions {
 		switch key {
-		case "column":
+		case string(project_model.WorkflowActionTypeColumn):
 			if floatValue, ok := value.(string); ok {
 				floatValueInt, _ := strconv.ParseInt(floatValue, 10, 64)
 				if floatValueInt > 0 {
@@ -71,7 +71,7 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 					})
 				}
 			}
-		case "add_labels":
+		case string(project_model.WorkflowActionTypeAddLabels):
 			// Handle both []string and []any from JSON unmarshaling
 			if labels, ok := value.([]string); ok && len(labels) > 0 {
 				for _, label := range labels {
@@ -92,7 +92,7 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 					}
 				}
 			}
-		case "remove_labels":
+		case string(project_model.WorkflowActionTypeRemoveLabels):
 			// Handle both []string and []any from JSON unmarshaling
 			if labels, ok := value.([]string); ok && len(labels) > 0 {
 				for _, label := range labels {
@@ -113,7 +113,7 @@ func convertFormToActions(formActions map[string]any) []project_model.WorkflowAc
 					}
 				}
 			}
-		case "issue_state":
+		case string(project_model.WorkflowActionTypeIssueState):
 			if strValue, ok := value.(string); ok {
 				v := strings.ToLower(strValue)
 				if v == "close" || v == "reopen" {
