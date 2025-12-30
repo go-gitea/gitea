@@ -2806,6 +2806,7 @@
   "org.teams.add_duplicate_users": "User is already a team member.",
   "org.teams.repos.none": "No repositories could be accessed by this team.",
   "org.teams.members.none": "No members on this team.",
+  "org.teams.no_teams": "No teams found.",
   "org.teams.members.blocked_user": "Cannot add the user because it is blocked by the organization.",
   "org.teams.specific_repositories": "Specific repositories",
   "org.teams.specific_repositories_helper": "Members will only have access to repositories explicitly added to the team. Selecting this <strong>will not</strong> automatically remove repositories already added with <i>All repositories</i>.",
