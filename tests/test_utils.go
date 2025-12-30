@@ -181,7 +181,7 @@ func PrepareAttachmentsStorage(t testing.TB) {
 }
 
 func PrepareGitRepoDirectory(t testing.TB) {
-	if !assert.NotEmpty(t, setting.RepoRootPath) {
+	if !assert.NoError(t, gitrepo.RepoStoreStat()) {
 		return
 	}
 	assert.NoError(t, gitrepo.SyncLocalToRepoStore(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta")))

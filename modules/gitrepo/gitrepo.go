@@ -127,34 +127,12 @@ func CreateRepoFile(repo Repository, relativeFilePath string) (io.WriteCloser, e
 	return os.Create(absoluteFilePath)
 }
 
-func SyncLocalToRepoStore(localDir string) error {
-	return util.SyncDirs(localDir, setting.RepoRootPath)
-}
-
-func RemoveRepoStore() error {
-	return util.RemoveAll(setting.RepoRootPath)
-}
-
-func RemoveRepoStoreDir(dirName string) error {
-	return util.RemoveAll(filepath.Join(setting.RepoRootPath, dirName))
-}
-
-func RenameRepoStoreDir(oldDirName, newDirName string) error {
-	oldPath := filepath.Join(setting.RepoRootPath, oldDirName)
-	newPath := filepath.Join(setting.RepoRootPath, newDirName)
-	return util.Rename(oldPath, newPath)
-}
-
-func WalkRepoStoreDirs(relativeDir string, fn fs.WalkDirFunc) error {
-	return filepath.WalkDir(filepath.Join(setting.RepoRootPath, relativeDir), func(path string, d os.DirEntry, err error) error {
-		p, err1 := filepath.Rel(relativeDir, path)
-		if err1 != nil {
-			return err1
-		}
-		return fn(p, d, err)
-	})
-}
-
 func CreateRepositoryDir(repo Repository) error {
 	return os.MkdirAll(repoPath(repo), os.ModePerm)
+}
+
+func CopyRepository(srcRepo, dstRepo Repository) error {
+	srcPath := repoPath(srcRepo)
+	dstPath := repoPath(dstRepo)
+	return util.SyncDirs(srcPath, dstPath)
 }

@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/migration"
 	mirror_service "code.gitea.io/gitea/services/mirror"
@@ -29,14 +30,19 @@ func TestMirrorPull(t *testing.T) {
 	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
+
+	tmpDir := t.TempDir()
+	err := gitrepo.CloneRepoToLocal(ctx, repo, tmpDir, git.CloneRepoOptions{
+		Mirror: true,
+	})
+	require.NoError(t, err)
 
 	opts := migration.MigrateOptions{
 		RepoName:    "test_mirror",
 		Description: "Test mirror",
 		Private:     false,
 		Mirror:      true,
-		CloneAddr:   repoPath,
+		CloneAddr:   tmpDir,
 		Wiki:        true,
 		Releases:    true,
 	}

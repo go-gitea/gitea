@@ -139,7 +139,7 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 		fatalTestError("storage.Init: %v\n", err)
 	}
 	if err = gitrepo.SyncLocalToRepoStore(filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")); err != nil {
-		fatalTestError("util.SyncDirs: %v\n", err)
+		fatalTestError("gitrepo.SyncLocalToRepoStore: %v\n", err)
 	}
 
 	if err = git.InitFull(); err != nil {

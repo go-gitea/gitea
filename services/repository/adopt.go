@@ -322,18 +322,17 @@ func ListUnadoptedRepositories(ctx context.Context, query string, opts *db.ListO
 	var userName string
 
 	// We're going to iterate by pagesize.
-	root := filepath.Clean(setting.RepoRootPath)
-	if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+	if err := gitrepo.WalkRepoStoreDirs("", func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() || path == root {
+		if !d.IsDir() || path == "" {
 			return nil
 		}
 
 		name := d.Name()
 
-		if !strings.ContainsRune(path[len(root)+1:], filepath.Separator) {
+		if !strings.ContainsRune(path, filepath.Separator) {
 			// Got a new user
 			if err = checkUnadoptedRepositories(ctx, userName, repoNamesToCheck, unadopted); err != nil {
 				return err

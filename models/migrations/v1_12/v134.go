@@ -12,30 +12,38 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
 
+type Repository2 struct {
+	ID        int64 `xorm:"pk autoincr"`
+	OwnerID   int64 `xorm:"UNIQUE(s) index"`
+	OwnerName string
+	LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Name      string `xorm:"INDEX NOT NULL"`
+}
+
+func (r *Repository2) TableName() string {
+	return "repository"
+}
+
+func (r *Repository2) RelativePath() string {
+	return filepath.Join(strings.ToLower(r.OwnerName), strings.ToLower(r.Name)+".git")
+}
+
 func RefixMergeBase(ctx context.Context, x *xorm.Engine) error {
-	type Repository struct {
-		ID        int64 `xorm:"pk autoincr"`
-		OwnerID   int64 `xorm:"UNIQUE(s) index"`
-		OwnerName string
-		LowerName string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Name      string `xorm:"INDEX NOT NULL"`
-	}
-
 	type PullRequest struct {
-		ID         int64 `xorm:"pk autoincr"`
-		Index      int64
-		HeadRepoID int64 `xorm:"INDEX"`
-		BaseRepoID int64 `xorm:"INDEX"`
-		HeadBranch string
-		BaseBranch string
-		MergeBase  string `xorm:"VARCHAR(40)"`
-
+		ID             int64 `xorm:"pk autoincr"`
+		Index          int64
+		HeadRepoID     int64 `xorm:"INDEX"`
+		BaseRepoID     int64 `xorm:"INDEX"`
+		HeadBranch     string
+		BaseBranch     string
+		MergeBase      string `xorm:"VARCHAR(40)"`
 		HasMerged      bool   `xorm:"INDEX"`
 		MergedCommitID string `xorm:"VARCHAR(40)"`
 	}
@@ -66,7 +74,7 @@ func RefixMergeBase(ctx context.Context, x *xorm.Engine) error {
 
 		start += 50
 		for _, pr := range prs {
-			baseRepo := &Repository{ID: pr.BaseRepoID}
+			baseRepo := &Repository2{ID: pr.BaseRepoID}
 			has, err := x.Table("repository").Get(baseRepo)
 			if err != nil {
 				return fmt.Errorf("Unable to get base repo %d %w", pr.BaseRepoID, err)
@@ -75,12 +83,10 @@ func RefixMergeBase(ctx context.Context, x *xorm.Engine) error {
 				log.Error("Missing base repo with id %d for PR ID %d", pr.BaseRepoID, pr.ID)
 				continue
 			}
-			userPath := filepath.Join(setting.RepoRootPath, strings.ToLower(baseRepo.OwnerName))
-			repoPath := filepath.Join(userPath, strings.ToLower(baseRepo.Name)+".git")
 
 			gitRefName := fmt.Sprintf("refs/pull/%d/head", pr.Index)
 
-			parentsString, _, err := gitcmd.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID).WithDir(repoPath).RunStdString(ctx)
+			parentsString, err := gitrepo.RunCmdString(ctx, baseRepo, gitcmd.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID))
 			if err != nil {
 				log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 				continue
@@ -94,8 +100,7 @@ func RefixMergeBase(ctx context.Context, x *xorm.Engine) error {
 			refs := append([]string{}, parents[1:]...)
 			refs = append(refs, gitRefName)
 			cmd := gitcmd.NewCommand("merge-base").AddDashesAndList(refs...)
-
-			pr.MergeBase, _, err = cmd.WithDir(repoPath).RunStdString(ctx)
+			pr.MergeBase, err = gitrepo.RunCmdString(ctx, baseRepo, cmd)
 			if err != nil {
 				log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 				continue

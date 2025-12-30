@@ -62,7 +62,7 @@ func setup(ctx context.Context, debug bool) {
 	}
 	setting.MustInstalled()
 
-	if err := gitrepo.RepositoryStoreStat(); err != nil {
+	if err := gitrepo.RepoStoreStat(); err != nil {
 		_ = fail(ctx, "Unable to access repository path", "Check repository store failed: %v", err)
 		return
 	}

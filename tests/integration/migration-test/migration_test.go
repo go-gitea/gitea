@@ -23,6 +23,7 @@ import (
 	migrate_base "code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
@@ -54,8 +55,8 @@ func initMigrationTest(t *testing.T) func() {
 
 	unittest.InitSettingsForTesting()
 
-	assert.NotEmpty(t, setting.RepoRootPath)
-	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, gitrepo.RepoStoreStat())
+	assert.NoError(t, gitrepo.SyncLocalToRepoStore(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta")))
 	assert.NoError(t, git.InitFull())
 	setting.LoadDBSetting()
 	setting.InitLoggersForTest()
