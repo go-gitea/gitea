@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -256,15 +257,15 @@ func Repos(ctx *context.Context) {
 		repoNames := make([]string, 0, setting.UI.Admin.UserPagingNum)
 		repos := map[string]*repo_model.Repository{}
 		// We're going to iterate by pagesize.
-		root := user_model.UserPath(ctxUser.Name)
-		if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+		dir := strings.ToLower(ctxUser.Name)
+		if err := gitrepo.WalkRepoStoreDirs(dir, func(relativePath string, d os.DirEntry, err error) error {
 			if err != nil {
 				if os.IsNotExist(err) {
 					return nil
 				}
 				return err
 			}
-			if !d.IsDir() || path == root {
+			if !d.IsDir() || relativePath == "" {
 				return nil
 			}
 			name := d.Name()

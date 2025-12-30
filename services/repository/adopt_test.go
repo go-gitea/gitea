@@ -13,8 +13,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -119,7 +119,7 @@ func TestAdoptRepository(t *testing.T) {
 
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: "test-adopt"})
 
-	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, "test-adopt"))
+	exist, err := gitrepo.IsRepositoryExist(repo_model.StorageRepo(repo_model.RelativePath(user2.Name, "test-adopt")))
 	assert.NoError(t, err)
 	assert.True(t, exist) // the repository should be still in the disk
 }

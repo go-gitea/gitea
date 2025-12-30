@@ -13,7 +13,6 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
@@ -514,18 +513,6 @@ func ModifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
 		return err
 	}
 	return nil
-}
-
-func removeAllWithRetry(dir string) error {
-	var err error
-	for range 20 {
-		err = os.RemoveAll(dir)
-		if err == nil {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	return err
 }
 
 func newXORMEngine() (*xorm.Engine, error) {

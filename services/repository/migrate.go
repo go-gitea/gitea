@@ -35,12 +35,12 @@ func cloneWiki(ctx context.Context, repo *repo_model.Repository, opts migration.
 
 	storageRepo := repo.WikiStorageRepo()
 
-	if err := gitrepo.DeleteRepository(ctx, storageRepo); err != nil {
+	if err := gitrepo.DeleteRepository(storageRepo); err != nil {
 		return "", fmt.Errorf("failed to remove existing wiki dir %q, err: %w", storageRepo.RelativePath(), err)
 	}
 
 	cleanIncompleteWikiPath := func() {
-		if err := gitrepo.DeleteRepository(ctx, storageRepo); err != nil {
+		if err := gitrepo.DeleteRepository(storageRepo); err != nil {
 			log.Error("Failed to remove incomplete wiki dir %q, err: %v", storageRepo.RelativePath(), err)
 		}
 	}
@@ -86,7 +86,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 	migrateTimeout := time.Duration(setting.Git.Timeout.Migrate) * time.Second
 
-	if err := gitrepo.DeleteRepository(ctx, repo); err != nil {
+	if err := gitrepo.DeleteRepository(repo); err != nil {
 		return repo, fmt.Errorf("failed to remove existing repo dir %q, err: %w", repo.FullName(), err)
 	}
 

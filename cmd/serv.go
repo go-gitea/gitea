@@ -21,6 +21,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfstransfer"
 	"code.gitea.io/gitea/modules/log"
@@ -60,8 +61,9 @@ func setup(ctx context.Context, debug bool) {
 		setupConsoleLogger(log.FATAL, false, os.Stderr)
 	}
 	setting.MustInstalled()
-	if _, err := os.Stat(setting.RepoRootPath); err != nil {
-		_ = fail(ctx, "Unable to access repository path", "Unable to access repository path %q, err: %v", setting.RepoRootPath, err)
+
+	if err := gitrepo.RepositoryStoreStat(); err != nil {
+		_ = fail(ctx, "Unable to access repository path", "Check repository store failed: %v", err)
 		return
 	}
 	if err := git.InitSimple(); err != nil {

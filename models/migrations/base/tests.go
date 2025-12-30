@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
 	"code.gitea.io/gitea/modules/test"
@@ -33,7 +34,7 @@ func PrepareTestEnv(t *testing.T, skip int, syncModels ...any) (*xorm.Engine, fu
 	ourSkip := 2
 	ourSkip += skip
 	deferFn := testlogger.PrintCurrentTest(t, ourSkip)
-	require.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	require.NoError(t, gitrepo.SyncLocalToRepoStore(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta")))
 
 	if err := deleteDB(); err != nil {
 		t.Fatalf("unable to reset database: %v", err)
@@ -142,8 +143,8 @@ func MainTest(m *testing.M) {
 
 	exitStatus := m.Run()
 
-	if err := removeAllWithRetry(setting.RepoRootPath); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
+	if err := gitrepo.RemoveRepoStore(); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "gitrepo.RemoveRepoStore: %v\n", err)
 	}
 	os.Exit(exitStatus)
 }

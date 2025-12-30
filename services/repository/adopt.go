@@ -109,7 +109,7 @@ func AdoptRepository(ctx context.Context, doer, owner *user_model.User, opts Cre
 }
 
 func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBranch string) (err error) {
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	isExist, err := gitrepo.IsRepositoryExist(repo)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return err
@@ -214,7 +214,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 	}
 
 	relativePath := repo_model.RelativePath(u.Name, repoName)
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(relativePath))
+	exist, err := gitrepo.IsRepositoryExist(repo_model.StorageRepo(relativePath))
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", relativePath, err)
 		return err
@@ -235,7 +235,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		}
 	}
 
-	return gitrepo.DeleteRepository(ctx, repo_model.StorageRepo(relativePath))
+	return gitrepo.DeleteRepository(repo_model.StorageRepo(relativePath))
 }
 
 type unadoptedRepositories struct {

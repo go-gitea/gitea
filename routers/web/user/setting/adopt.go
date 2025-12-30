@@ -32,7 +32,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		return
 	}
 
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, dir)))
+	exist, err := gitrepo.IsRepositoryExist(repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, dir)))
 	if err != nil {
 		ctx.ServerError("IsDir", err)
 		return
