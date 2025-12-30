@@ -54,16 +54,16 @@ type ChangeRepoFile struct {
 
 // ChangeRepoFilesOptions holds the repository files update options
 type ChangeRepoFilesOptions struct {
-	LastCommitID string
-	OldBranch    string
-	NewBranch    string
-	Message      string
-	Files        []*ChangeRepoFile
-	Author       *IdentityOptions
-	Committer    *IdentityOptions
-	Dates        *CommitDateOptions
-	Signoff      bool
-	ForcePush    bool
+	LastCommitID  string
+	OldBranch     string
+	NewBranch     string
+	Message       string
+	Files         []*ChangeRepoFile
+	Author        *IdentityOptions
+	Committer     *IdentityOptions
+	Dates         *CommitDateOptions
+	Signoff       bool
+	ForcePush     bool
 	ActionsTaskID int64
 }
 
