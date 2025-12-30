@@ -176,7 +176,7 @@ type WorkflowConfig struct {
 	Actions       []project_model.WorkflowAction          `json:"actions"`
 	Summary       string                                  `json:"summary"` // Human readable filter description
 	Enabled       bool                                    `json:"enabled"`
-	IsConfigured  bool                                    `json:"isConfigured"` // Whether this workflow is configured/saved
+	IsConfigured  bool                                    `json:"is_configured"` // Whether this workflow is configured/saved
 }
 
 func WorkflowsEvents(ctx *context.Context, project *project_model.Project) {
@@ -447,7 +447,7 @@ func WorkflowsPost(ctx *context.Context) {
 		workflowSummary := project_service.GetWorkflowSummary(ctx, wf)
 		ctx.JSON(http.StatusOK, map[string]any{
 			"success": true,
-			"workflows": WorkflowConfig{
+			"workflow": WorkflowConfig{
 				ID:          wf.ID,
 				EventID:     strconv.FormatInt(wf.ID, 10),
 				DisplayName: string(ctx.Tr(wf.WorkflowEvent.LangKey())),
