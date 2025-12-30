@@ -21,6 +21,8 @@ type CompareRouterReq struct {
 }
 
 func (cr *CompareRouterReq) DirectComparison() bool {
+	// FIXME: the design of "DirectComparison" is wrong, it loses the information of `^`
+	// To correctly handle the comparison, developers should use `ci.CompareSeparator` directly, all "DirectComparison" related code should be rewritten.
 	return cr.CompareSeparator == ".."
 }
 

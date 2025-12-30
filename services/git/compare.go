@@ -41,6 +41,8 @@ func (ci *CompareInfo) IsSameRef() bool {
 }
 
 func (ci *CompareInfo) DirectComparison() bool {
+	// FIXME: the design of "DirectComparison" is wrong, it loses the information of `^`
+	// To correctly handle the comparison, developers should use `ci.CompareSeparator` directly, all "DirectComparison" related code should be rewritten.
 	return ci.CompareSeparator == ".."
 }
 
