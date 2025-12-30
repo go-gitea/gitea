@@ -265,7 +265,7 @@ func Repos(ctx *context.Context) {
 				}
 				return err
 			}
-			if !d.IsDir() || relativePath == "" {
+			if !d.IsDir() || relativePath == dir {
 				return nil
 			}
 			name := d.Name()

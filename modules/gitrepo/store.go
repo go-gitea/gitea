@@ -42,7 +42,7 @@ func RenameRepoStoreDir(oldDirName, newDirName string) error {
 
 func WalkRepoStoreDirs(relativeDir string, fn fs.WalkDirFunc) error {
 	return filepath.WalkDir(filepath.Join(setting.RepoRootPath, relativeDir), func(path string, d os.DirEntry, err error) error {
-		p, err1 := filepath.Rel(relativeDir, path)
+		p, err1 := filepath.Rel(setting.RepoRootPath, path)
 		if err1 != nil {
 			return err1
 		}
