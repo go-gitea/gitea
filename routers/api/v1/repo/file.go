@@ -356,6 +356,12 @@ func ReqChangeRepoFileOptionsAndCheck(ctx *context.APIContext) {
 		OldBranch: commonOpts.BranchName,
 		NewBranch: commonOpts.NewBranchName,
 		ForcePush: commonOpts.ForcePush,
+		ActionsTaskID: func() int64 {
+			if ctx.Data["ActionsTaskID"] != nil {
+				return ctx.Data["ActionsTaskID"].(int64)
+			}
+			return 0
+		}(),
 		Committer: &files_service.IdentityOptions{
 			GitUserName:  commonOpts.Committer.Name,
 			GitUserEmail: commonOpts.Committer.Email,
