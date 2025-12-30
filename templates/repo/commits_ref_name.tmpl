@@ -1,10 +1,9 @@
-{{- if .IsCommit -}}
-	{{ShortSha .ShortName}}
+{{- /* Template Argument: git.RefName */ -}}
+{{- $refName := . -}}
+{{- if $refName.IsBranch -}}
+	{{svg "octicon-git-branch"}} {{$refName.ShortName}}
+{{- else if $refName.IsTag -}}
+	{{svg "octicon-tag"}} {{$refName.ShortName}}
 {{- else -}}
-	{{- if .IsBranch -}}
-		{{svg "octicon-git-branch"}}
-	{{- else if .IsTag -}}
-		{{svg "octicon-tag"}}
-	{{- end -}}
-	{{.ShortName}}
+	{{ShortSha $refName.ShortName}}
 {{- end -}}

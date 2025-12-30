@@ -208,10 +208,6 @@ func (ref RefName) RefType() RefType {
 	return ""
 }
 
-func (ref RefName) IsCommit() bool {
-	return ref.RefType() == RefTypeCommit
-}
-
 // RefWebLinkPath returns a path for the reference that can be used in a web link:
 // * "branch/<branch_name>"
 // * "tag/<tag_name>"
