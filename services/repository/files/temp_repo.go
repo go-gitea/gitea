@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -365,7 +366,7 @@ func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.U
 	// Because calls hooks we need to pass in the environment
 	env := repo_module.PushingEnvironment(doer, t.repo)
 	if t.ActionsTaskID > 0 {
-		env = append(env, repo_module.EnvActionsTaskID+"="+fmt.Sprintf("%d", t.ActionsTaskID))
+		env = append(env, repo_module.EnvActionsTaskID+"="+strconv.FormatInt(t.ActionsTaskID, 10))
 	}
 	if err := gitrepo.PushFromLocal(ctx, t.basePath, t.repo, git.PushOptions{
 		Branch: strings.TrimSpace(commitHash) + ":" + git.BranchPrefix + strings.TrimSpace(branch),
