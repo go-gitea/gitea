@@ -12,9 +12,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+var ErrRepoStoreConfig = util.NewInvalidArgumentErrorf("invalid repository store configuration")
+
 func RepoStoreStat() error {
 	if setting.RepoRootPath == "" {
-		return os.ErrNotExist
+		return ErrRepoStoreConfig
 	}
 	_, err := os.Stat(setting.RepoRootPath)
 	return err
