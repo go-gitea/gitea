@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"testing"
+	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -37,11 +38,34 @@ func TestActionsJobTokenAccess(t *testing.T) {
 func testActionsJobTokenAccess(u *url.URL, isFork bool) func(t *testing.T) {
 	return func(t *testing.T) {
 		task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 47})
+
+		// Ensure the Actions unit exists for the repository with default permissive mode
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: task.RepoID})
+		actionsUnit, err := repo.GetUnit(t.Context(), unit_model.TypeActions)
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			// Insert Actions unit if it doesn't exist
+			err = db.Insert(t.Context(), &repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypeActions,
+				Config: &repo_model.ActionsConfig{},
+			})
+			require.NoError(t, err)
+		} else {
+			require.NoError(t, err)
+			// Ensure permissive mode for this test
+			actionsCfg := actionsUnit.ActionsConfig()
+			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionModePermissive
+			actionsCfg.MaxTokenPermissions = nil
+			actionsUnit.Config = actionsCfg
+			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), actionsUnit))
+		}
+
 		require.NoError(t, task.GenerateToken())
 		task.Status = actions_model.StatusRunning
 		task.IsForkPullRequest = isFork
-		err := actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status", "is_fork_pull_request")
+		err = actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status", "is_fork_pull_request")
 		require.NoError(t, err)
+
 		session := emptyTestSession(t)
 		context := APITestContext{
 			Session:  session,
@@ -411,5 +435,82 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			writeReq.Header.Set("Authorization", "Bearer "+task.Token)
 			MakeRequest(t, writeReq, http.StatusUnauthorized)
 		})
+	})
+}
+
+func TestActionsTokenPermissionsWorkflowScenario(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		// Step 1: Create a new repository with Actions enabled
+		httpContext := NewAPITestContext(t, "user2", "repo-workflow-token-test", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+		t.Run("Create Repository and Test Token Permissions", doAPICreateRepository(httpContext, false, func(t *testing.T, repository structs.Repository) {
+			// Step 2: Enable Actions unit with Permissive mode (the mode the reviewer set)
+			err := db.Insert(t.Context(), &repo_model.RepoUnit{
+				RepoID: repository.ID,
+				Type:   unit_model.TypeActions,
+				Config: &repo_model.ActionsConfig{
+					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
+					// No MaxTokenPermissions - allows full write access
+				},
+			})
+			require.NoError(t, err)
+
+			// Step 3: Create an Actions task (simulates a running workflow)
+			task := &actions_model.ActionTask{
+				RepoID:            repository.ID,
+				Status:            actions_model.StatusRunning,
+				IsForkPullRequest: false,
+			}
+			require.NoError(t, task.GenerateToken())
+			require.NoError(t, db.Insert(t.Context(), task))
+
+			// Step 4: Use the GITEA_TOKEN to create a file via API (exactly as the reviewer's workflow did)
+			session := emptyTestSession(t)
+			testCtx := APITestContext{
+				Session:  session,
+				Token:    task.Token,
+				Username: "user2",
+				Reponame: "repo-workflow-token-test",
+			}
+
+			// The create file should succeed with permissive mode
+			testCtx.ExpectedCode = http.StatusCreated
+			t.Run("GITEA_TOKEN Create File (Permissive Mode)", doAPICreateFile(testCtx, fmt.Sprintf("test-file-%d.txt", time.Now().Unix()), &structs.CreateFileOptions{
+				FileOptions: structs.FileOptions{
+					BranchName: "master",
+					Message:    "test actions token",
+				},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Test Content")),
+			}))
+
+			// Verify that the API also works for reading (should always work)
+			testCtx.ExpectedCode = http.StatusOK
+			t.Run("GITEA_TOKEN Get Repository", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+				assert.Equal(t, "repo-workflow-token-test", r.Name)
+			}))
+
+			// Now test with Restricted mode - file creation should fail
+			repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repository.ID})
+			actionsUnit, err := repo.GetUnit(t.Context(), unit_model.TypeActions)
+			require.NoError(t, err)
+			actionsCfg := actionsUnit.ActionsConfig()
+			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionModeRestricted
+			actionsUnit.Config = actionsCfg
+			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), actionsUnit))
+
+			// Regenerate token to get fresh permissions
+			require.NoError(t, task.GenerateToken())
+			task.Status = actions_model.StatusRunning
+			require.NoError(t, actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status"))
+
+			testCtx.Token = task.Token
+			testCtx.ExpectedCode = http.StatusForbidden
+			t.Run("GITEA_TOKEN Create File (Restricted Mode - Should Fail)", doAPICreateFile(testCtx, "should-fail.txt", &structs.CreateFileOptions{
+				FileOptions: structs.FileOptions{
+					BranchName: "master",
+					Message:    "this should fail",
+				},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Should Not Be Created")),
+			}))
+		}))
 	})
 }
