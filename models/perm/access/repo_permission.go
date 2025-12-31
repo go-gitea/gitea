@@ -325,9 +325,25 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		return perm, nil
 	}
 
-	// Get effective token permissions from repository settings
-	effectivePerms := actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
-	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+	// Get effective token permissions
+	// First check if job has explicit permissions stored from workflow YAML
+	var effectivePerms repo_model.ActionsTokenPermissions
+	if err := task.LoadJob(ctx); err != nil {
+		return perm, err
+	}
+	if task.Job != nil && task.Job.TokenPermissions != "" {
+		// Use permissions parsed from workflow YAML (already clamped by repo max settings during insertion)
+		effectivePerms, err = repo_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
+		if err != nil {
+			// Fall back to repository settings if unmarshal fails
+			effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
+			effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+		}
+	} else {
+		// No workflow permissions, use repository settings
+		effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
+		effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+	}
 
 	// Set up per-unit access modes based on configured permissions
 	perm.units = repo.Units

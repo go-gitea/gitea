@@ -261,6 +261,25 @@ func ForkPullRequestPermissions() ActionsTokenPermissions {
 	}
 }
 
+// MarshalTokenPermissions serializes ActionsTokenPermissions to JSON
+func MarshalTokenPermissions(perms ActionsTokenPermissions) string {
+	data, err := json.Marshal(perms)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+// UnmarshalTokenPermissions deserializes JSON to ActionsTokenPermissions
+func UnmarshalTokenPermissions(data string) (ActionsTokenPermissions, error) {
+	var perms ActionsTokenPermissions
+	if data == "" {
+		return perms, nil
+	}
+	err := json.Unmarshal([]byte(data), &perms)
+	return perms, err
+}
+
 type ActionsConfig struct {
 	DisabledWorkflows []string
 	// CollaborativeOwnerIDs is a list of owner IDs used to share actions from private repos.

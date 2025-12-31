@@ -514,3 +514,99 @@ func TestActionsTokenPermissionsWorkflowScenario(t *testing.T) {
 		}))
 	})
 }
+
+// TestActionsWorkflowPermissionsKeyword tests that the `permissions:` keyword in a workflow YAML
+// restricts the token even when the repository is in permissive mode.
+// This is exactly what the reviewer reported: `permissions: read-all` should restrict write operations.
+func TestActionsWorkflowPermissionsKeyword(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		httpContext := NewAPITestContext(t, "user2", "repo-workflow-perms-kw", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+		t.Run("Workflow Permissions Keyword", doAPICreateRepository(httpContext, false, func(t *testing.T, repository structs.Repository) {
+			// Enable Actions unit with PERMISSIVE mode (default write access)
+			err := db.Insert(t.Context(), &repo_model.RepoUnit{
+				RepoID: repository.ID,
+				Type:   unit_model.TypeActions,
+				Config: &repo_model.ActionsConfig{
+					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
+				},
+			})
+			require.NoError(t, err)
+
+			// Create an Actions run job with TokenPermissions set (simulating a workflow with permissions: read-all)
+			// This is what the permission parser does when parsing the workflow YAML
+			readOnlyPerms := repo_model.ActionsTokenPermissions{
+				Contents:     perm.AccessModeRead,
+				Issues:       perm.AccessModeRead,
+				PullRequests: perm.AccessModeRead,
+				Packages:     perm.AccessModeRead,
+				Actions:      perm.AccessModeRead,
+				Wiki:         perm.AccessModeRead,
+			}
+			permsJSON := repo_model.MarshalTokenPermissions(readOnlyPerms)
+
+			// Create a run and job with explicit permissions
+			run := &actions_model.ActionRun{
+				RepoID:   repository.ID,
+				OwnerID:  repository.Owner.ID,
+				Title:    "Test workflow with read-all permissions",
+				Status:   actions_model.StatusRunning,
+				Ref:      "refs/heads/master",
+				CommitSHA: "abc123",
+			}
+			require.NoError(t, db.Insert(t.Context(), run))
+
+			job := &actions_model.ActionRunJob{
+				RunID:            run.ID,
+				RepoID:           repository.ID,
+				OwnerID:          repository.Owner.ID,
+				CommitSHA:        "abc123",
+				Name:             "test-job",
+				JobID:            "test-job",
+				Status:           actions_model.StatusRunning,
+				TokenPermissions: permsJSON, // This is the key - workflow-declared permissions
+			}
+			require.NoError(t, db.Insert(t.Context(), job))
+
+			// Create task linked to the job
+			task := &actions_model.ActionTask{
+				JobID:             job.ID,
+				RepoID:            repository.ID,
+				Status:            actions_model.StatusRunning,
+				IsForkPullRequest: false,
+			}
+			require.NoError(t, task.GenerateToken())
+			require.NoError(t, db.Insert(t.Context(), task))
+
+			// Update job with task ID
+			job.TaskID = task.ID
+			_, err = db.GetEngine(t.Context()).ID(job.ID).Cols("task_id").Update(job)
+			require.NoError(t, err)
+
+			// Test: Even though repo is in PERMISSIVE mode, the workflow has permissions: read-all
+			// So write operations should FAIL
+			session := emptyTestSession(t)
+			testCtx := APITestContext{
+				Session:  session,
+				Token:    task.Token,
+				Username: "user2",
+				Reponame: "repo-workflow-perms-kw",
+			}
+
+			// Read should work
+			testCtx.ExpectedCode = http.StatusOK
+			t.Run("GITEA_TOKEN Get Repository (Read OK)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+				assert.Equal(t, "repo-workflow-perms-kw", r.Name)
+			}))
+
+			// Write should FAIL due to workflow permissions: read-all
+			testCtx.ExpectedCode = http.StatusForbidden
+			t.Run("GITEA_TOKEN Create File (Write BLOCKED by workflow permissions)", doAPICreateFile(testCtx, "should-fail-due-to-workflow-perms.txt", &structs.CreateFileOptions{
+				FileOptions: structs.FileOptions{
+					BranchName: "master",
+					Message:    "this should fail due to workflow permissions",
+				},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Should Not Be Created")),
+			}))
+		}))
+	})
+}
