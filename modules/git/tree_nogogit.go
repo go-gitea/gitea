@@ -27,12 +27,14 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	if t.repo != nil {
-		wr, rd, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
+		batch, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
 		if err != nil {
 			return nil, err
 		}
 		defer cancel()
 
+		wr := batch.Writer()
+		rd := batch.Reader()
 		_, _ = wr.Write([]byte(t.ID.String() + "\n"))
 		_, typ, sz, err := ReadBatchLine(rd)
 		if err != nil {
