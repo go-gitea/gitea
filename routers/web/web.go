@@ -273,6 +273,7 @@ func Routes() *web.Router {
 	// GitVM proof spine endpoints
 	if setting.GitVM.Enabled {
 		routes.Get("/gitvm/root", gitvm_http.GetRoot)
+		routes.Get("/gitvm/root.txt", gitvm_http.GetRootPlainText)
 		routes.Get("/gitvm/receipts", gitvm_http.GetReceipts)
 	}
 
