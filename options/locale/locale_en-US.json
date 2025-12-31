@@ -1746,6 +1746,7 @@
   "repo.pulls.new.already_existed": "A pull request between these branches already exists",
   "repo.pulls.edit.already_changed": "Unable to save changes to the pull request. It appears the content has already been changed by another user. Please refresh the page and try editing again to avoid overwriting their changes.",
   "repo.pulls.view": "View Pull Request",
+  "repo.pulls.compare_changes": "New Pull Request",
   "repo.pulls.allow_edits_from_maintainers": "Allow edits from maintainers",
   "repo.pulls.allow_edits_from_maintainers_desc": "Users with write access to the base branch can also push to this branch",
   "repo.pulls.allow_edits_from_maintainers_err": "Updating failed",
