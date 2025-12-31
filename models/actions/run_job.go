@@ -303,6 +303,10 @@ func emitCIRunEndReceipt(ctx context.Context, run *ActionRun) {
 		RunID:      run.ID,
 		Status:     run.Status.String(),
 		DurationMs: durationMs,
+		CommitSHA:  run.CommitSHA,
+		WorkflowID: run.WorkflowID,
+		Ref:        run.Ref,
+		Event:      string(run.Event),
 	}
 
 	ts := int64(0)

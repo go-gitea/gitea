@@ -81,8 +81,12 @@ func buildCIRunEndReceipt(ctx context.Context, run *actions_model.ActionRun) (*g
 
 	payload := gitvm_ledger.CIRunEndPayload{
 		RunID:      run.ID,
-		Status:     run.Status.String(), // Status.String() returns status name
+		Status:     run.Status.String(),
 		DurationMs: durationMs,
+		CommitSHA:  run.CommitSHA,
+		WorkflowID: run.WorkflowID,
+		Ref:        run.Ref,
+		Event:      string(run.Event),
 	}
 
 	// Use stopped time as receipt timestamp

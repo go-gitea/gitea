@@ -71,4 +71,8 @@ type CIRunEndPayload struct {
 	RunID      int64  `json:"run_id"`
 	Status     string `json:"status"`      // success/failure/cancelled/skipped
 	DurationMs int64  `json:"duration_ms"` // run duration in milliseconds
+	CommitSHA  string `json:"commit_sha"`  // commit that was tested
+	WorkflowID string `json:"workflow_id"` // workflow filename
+	Ref        string `json:"ref"`         // branch/tag/pr ref
+	Event      string `json:"event"`       // push/pull_request/manual/...
 }

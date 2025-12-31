@@ -13,8 +13,26 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// GetRoot returns the current GitVM root hash
+// GetRoot returns the current GitVM root hash as JSON
 func GetRoot(w http.ResponseWriter, r *http.Request) {
+	l := ledger.New(setting.GitVM.Dir)
+	root, err := l.GetRoot()
+	if err != nil {
+		log.Error("GitVM: failed to get root: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if root == "" {
+		w.Write([]byte(`{"root":""}`))
+		return
+	}
+	w.Write([]byte(`{"root":"` + root + `"}`))
+}
+
+// GetRootPlainText returns the current GitVM root hash as plain text
+func GetRootPlainText(w http.ResponseWriter, r *http.Request) {
 	l := ledger.New(setting.GitVM.Dir)
 	root, err := l.GetRoot()
 	if err != nil {
