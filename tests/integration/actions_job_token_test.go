@@ -269,7 +269,7 @@ func TestActionsTokenPermissionsClamping(t *testing.T) {
 				Config: &repo_model.ActionsConfig{
 					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
 					MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
-						Contents: perm.AccessModeRead, // Max is Read - will clamp default Write to Read
+						Code: perm.AccessModeRead, // Max is Read - will clamp default Write to Read
 					},
 				},
 			})
@@ -535,7 +535,7 @@ func TestActionsWorkflowPermissionsKeyword(t *testing.T) {
 			// Create an Actions run job with TokenPermissions set (simulating a workflow with permissions: read-all)
 			// This is what the permission parser does when parsing the workflow YAML
 			readOnlyPerms := repo_model.ActionsTokenPermissions{
-				Contents:     perm.AccessModeRead,
+				Code:         perm.AccessModeRead,
 				Issues:       perm.AccessModeRead,
 				PullRequests: perm.AccessModeRead,
 				Packages:     perm.AccessModeRead,
@@ -607,6 +607,161 @@ func TestActionsWorkflowPermissionsKeyword(t *testing.T) {
 				},
 				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Should Not Be Created")),
 			}))
+
+			// Subtest: Verify that job-level overriding works
+			// Create another job with `permissions: contents: write` to override `read-all`
+			// Logic: Workflow read-all -> Code: Read. Job contents:write -> Code: Write.
+			// Repo is Permissive (Max: Write). So Result: Write.
+			overridePerms := repo_model.ActionsTokenPermissions{
+				Code:         perm.AccessModeWrite,
+				Issues:       perm.AccessModeRead,
+				PullRequests: perm.AccessModeRead,
+				Packages:     perm.AccessModeRead,
+				Actions:      perm.AccessModeRead,
+				Wiki:         perm.AccessModeRead,
+			}
+			overridePermsJSON := repo_model.MarshalTokenPermissions(overridePerms)
+
+			jobOverride := &actions_model.ActionRunJob{
+				RunID:            run.ID,
+				RepoID:           repository.ID,
+				OwnerID:          repository.Owner.ID,
+				CommitSHA:        "abc123",
+				Name:             "test-job-override",
+				JobID:            "test-job-override",
+				Status:           actions_model.StatusRunning,
+				TokenPermissions: overridePermsJSON,
+			}
+			require.NoError(t, db.Insert(t.Context(), jobOverride))
+
+			taskOverride := &actions_model.ActionTask{
+				JobID:             jobOverride.ID,
+				RepoID:            repository.ID,
+				Status:            actions_model.StatusRunning,
+				IsForkPullRequest: false,
+			}
+			require.NoError(t, taskOverride.GenerateToken())
+			require.NoError(t, db.Insert(t.Context(), taskOverride))
+			jobOverride.TaskID = taskOverride.ID
+			_, err = db.GetEngine(t.Context()).ID(jobOverride.ID).Cols("task_id").Update(jobOverride)
+			require.NoError(t, err)
+
+			testCtxOverride := APITestContext{
+				Session:  session,
+				Token:    taskOverride.Token,
+				Username: "user2",
+				Reponame: "repo-workflow-perms-kw",
+			}
+			testCtxOverride.ExpectedCode = http.StatusCreated
+			t.Run("GITEA_TOKEN Create File (Write ALLOWED by job override)", doAPICreateFile(testCtxOverride, "should-succeed-override.txt", &structs.CreateFileOptions{
+				FileOptions: structs.FileOptions{
+					BranchName: "master",
+					Message:    "this should succeed due to job permissions override",
+				},
+				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Should Be Created")),
+			}))
+		}))
+	})
+}
+
+func TestActionsRerunPermissions(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user2")
+		httpContext := NewAPITestContext(t, "user2", "repo-rerun-perms", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+
+		t.Run("Rerun Permissions", doAPICreateRepository(httpContext, false, func(t *testing.T, repository structs.Repository) {
+			// 1. Enable Actions with PERMISSIVE mode
+			err := db.Insert(t.Context(), &repo_model.RepoUnit{
+				RepoID: repository.ID,
+				Type:   unit_model.TypeActions,
+				Config: &repo_model.ActionsConfig{
+					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
+				},
+			})
+			require.NoError(t, err)
+
+			// 2. Create Run and Job with implicit permissions (no parsed perms stored yet)
+			// or with parsed perms that allow write (Permissive default)
+			workflowPayload := `
+name: Test Rerun
+on: workflow_dispatch
+jobs:
+  test-rerun:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hello
+`
+			run := &actions_model.ActionRun{
+				RepoID:        repository.ID,
+				OwnerID:       repository.Owner.ID,
+				Title:         "Test Rerun",
+				Status:        actions_model.StatusSuccess, // Run finished
+				Ref:           "refs/heads/master",
+				CommitSHA:     "abc123",
+				WorkflowID:    "test-rerun.yaml",
+				TriggerUserID: repository.Owner.ID,
+			}
+			require.NoError(t, db.Insert(t.Context(), run))
+
+			// Initial permissions: Permissive (Write)
+			initialPerms := repo_model.ActionsTokenPermissions{
+				Code: perm.AccessModeWrite,
+			}
+
+			job := &actions_model.ActionRunJob{
+				RunID:            run.ID,
+				RepoID:           repository.ID,
+				OwnerID:          repository.Owner.ID,
+				CommitSHA:        "abc123",
+				Name:             "test-rerun",
+				JobID:            "test-rerun",
+				Status:           actions_model.StatusSuccess, // Job finished
+				WorkflowPayload:  []byte(workflowPayload),
+				TokenPermissions: repo_model.MarshalTokenPermissions(initialPerms),
+			}
+			require.NoError(t, db.Insert(t.Context(), job))
+
+			// 3. Change Repo Settings to RESTRICTED
+			// We need to update the RepoUnit config
+			unitConfig := &repo_model.ActionsConfig{
+				TokenPermissionMode: repo_model.ActionsTokenPermissionModeRestricted,
+			}
+			// Update the specific unit
+			// Need to find the unit first
+			repo, err := repo_model.GetRepositoryByID(t.Context(), repository.ID)
+			require.NoError(t, err)
+			unit, err := repo.GetUnit(t.Context(), unit_model.TypeActions)
+			require.NoError(t, err)
+
+			unit.Config = unitConfig
+			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), unit))
+
+			// 4. Trigger Rerun via Web Handler
+			// POST /:username/:reponame/actions/runs/:index/rerun
+			// We need to know operation run index. Since it's the first run, it should be 1?
+			// ActionRun.Index is auto-increment but not set in my insert.
+			// Ideally we use CreateRun which handles index.
+			// Let's manually set index 1.
+			run.Index = 1
+			_, err = db.GetEngine(t.Context()).ID(run.ID).Cols("index").Update(run)
+			require.NoError(t, err)
+
+			req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/actions/runs/%d/rerun", "user2", "repo-rerun-perms", run.Index))
+			session.MakeRequest(t, req, http.StatusOK)
+
+			// 5. Verify TokenPermissions in DB are now Restricted (Read-only)
+			// Reload job
+			jobReload := new(actions_model.ActionRunJob)
+			has, err := db.GetEngine(t.Context()).ID(job.ID).Get(jobReload)
+			require.NoError(t, err)
+			assert.True(t, has)
+
+			// Check permissions
+			perms, err := repo_model.UnmarshalTokenPermissions(jobReload.TokenPermissions)
+			require.NoError(t, err)
+
+			// Should be restricted (Read)
+			assert.Equal(t, perm.AccessModeRead, perms.Code, "Permissions should be restricted to Read after rerun in restricted mode")
 		}))
 	})
 }

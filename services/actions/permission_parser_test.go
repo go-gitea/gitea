@@ -21,7 +21,7 @@ func TestParseRawPermissions_ReadAll(t *testing.T) {
 	defaultPerms := repo_model.DefaultActionsTokenPermissions(repo_model.ActionsTokenPermissionModePermissive)
 	result := parseRawPermissions(&rawPerms, defaultPerms)
 
-	assert.Equal(t, perm.AccessModeRead, result.Contents)
+	assert.Equal(t, perm.AccessModeRead, result.Code)
 	assert.Equal(t, perm.AccessModeRead, result.Issues)
 	assert.Equal(t, perm.AccessModeRead, result.PullRequests)
 	assert.Equal(t, perm.AccessModeRead, result.Packages)
@@ -37,7 +37,7 @@ func TestParseRawPermissions_WriteAll(t *testing.T) {
 	defaultPerms := repo_model.DefaultActionsTokenPermissions(repo_model.ActionsTokenPermissionModeRestricted)
 	result := parseRawPermissions(&rawPerms, defaultPerms)
 
-	assert.Equal(t, perm.AccessModeWrite, result.Contents)
+	assert.Equal(t, perm.AccessModeWrite, result.Code)
 	assert.Equal(t, perm.AccessModeWrite, result.Issues)
 	assert.Equal(t, perm.AccessModeWrite, result.PullRequests)
 	assert.Equal(t, perm.AccessModeWrite, result.Packages)
@@ -59,7 +59,7 @@ wiki: write
 	assert.NoError(t, err)
 
 	defaultPerms := repo_model.ActionsTokenPermissions{
-		Contents:     perm.AccessModeNone,
+		Code:         perm.AccessModeNone,
 		Issues:       perm.AccessModeNone,
 		PullRequests: perm.AccessModeNone,
 		Packages:     perm.AccessModeNone,
@@ -68,7 +68,7 @@ wiki: write
 	}
 	result := parseRawPermissions(&rawPerms, defaultPerms)
 
-	assert.Equal(t, perm.AccessModeWrite, result.Contents)
+	assert.Equal(t, perm.AccessModeWrite, result.Code)
 	assert.Equal(t, perm.AccessModeRead, result.Issues)
 	assert.Equal(t, perm.AccessModeNone, result.PullRequests)
 	assert.Equal(t, perm.AccessModeWrite, result.Packages)
@@ -90,7 +90,7 @@ issues: write
 	result := parseRawPermissions(&rawPerms, defaultPerms)
 
 	// Overridden scopes
-	assert.Equal(t, perm.AccessModeRead, result.Contents)
+	assert.Equal(t, perm.AccessModeRead, result.Code)
 	assert.Equal(t, perm.AccessModeWrite, result.Issues)
 	// Non-overridden scopes keep defaults
 	assert.Equal(t, perm.AccessModeWrite, result.PullRequests)
@@ -107,7 +107,7 @@ func TestParseRawPermissions_EmptyNode(t *testing.T) {
 	result := parseRawPermissions(&rawPerms, defaultPerms)
 
 	// Should return defaults
-	assert.Equal(t, defaultPerms.Contents, result.Contents)
+	assert.Equal(t, defaultPerms.Code, result.Code)
 	assert.Equal(t, defaultPerms.Issues, result.Issues)
 }
 
@@ -116,7 +116,7 @@ func TestParseRawPermissions_NilNode(t *testing.T) {
 	result := parseRawPermissions(nil, defaultPerms)
 
 	// Should return defaults
-	assert.Equal(t, defaultPerms.Contents, result.Contents)
+	assert.Equal(t, defaultPerms.Code, result.Code)
 	assert.Equal(t, defaultPerms.Issues, result.Issues)
 }
 
@@ -142,7 +142,7 @@ func TestParseAccessMode(t *testing.T) {
 
 func TestMarshalUnmarshalTokenPermissions(t *testing.T) {
 	original := repo_model.ActionsTokenPermissions{
-		Contents:     perm.AccessModeWrite,
+		Code:         perm.AccessModeWrite,
 		Issues:       perm.AccessModeRead,
 		PullRequests: perm.AccessModeNone,
 		Packages:     perm.AccessModeWrite,
@@ -164,6 +164,6 @@ func TestUnmarshalTokenPermissions_EmptyString(t *testing.T) {
 	result, err := repo_model.UnmarshalTokenPermissions("")
 	assert.NoError(t, err)
 	// Should return zero-value struct
-	assert.Equal(t, perm.AccessModeNone, result.Contents)
+	assert.Equal(t, perm.AccessModeNone, result.Code)
 	assert.Equal(t, perm.AccessModeNone, result.Issues)
 }

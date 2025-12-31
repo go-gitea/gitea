@@ -64,7 +64,7 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 		switch node.Value {
 		case "read-all":
 			return repo_model.ActionsTokenPermissions{
-				Contents:     perm.AccessModeRead,
+				Code:         perm.AccessModeRead,
 				Issues:       perm.AccessModeRead,
 				PullRequests: perm.AccessModeRead,
 				Packages:     perm.AccessModeRead,
@@ -73,7 +73,7 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 			}
 		case "write-all":
 			return repo_model.ActionsTokenPermissions{
-				Contents:     perm.AccessModeWrite,
+				Code:         perm.AccessModeWrite,
 				Issues:       perm.AccessModeWrite,
 				PullRequests: perm.AccessModeWrite,
 				Packages:     perm.AccessModeWrite,
@@ -106,7 +106,7 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 			// Map GitHub Actions scopes to Gitea units
 			switch scope {
 			case "contents":
-				result.Contents = accessMode
+				result.Code = accessMode
 			case "issues":
 				result.Issues = accessMode
 			case "pull-requests":

@@ -76,8 +76,7 @@ func ActionsGeneralPost(ctx *context.Context) {
 	}
 
 	actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
-		Actions:      parseMaxPerm("actions"),
-		Contents:     parseMaxPerm("contents"),
+		Code:         parseMaxPerm("contents"),
 		Issues:       parseMaxPerm("issues"),
 		Packages:     parseMaxPerm("packages"),
 		PullRequests: parseMaxPerm("pull_requests"),

@@ -182,8 +182,8 @@ const (
 
 // ActionsTokenPermissions defines the permissions for different repository units
 type ActionsTokenPermissions struct {
-	// Contents (repository code) - read/write/none
-	Contents perm.AccessMode `json:"contents"`
+	// Code (repository code) - read/write/none
+	Code perm.AccessMode `json:"contents"`
 	// Issues - read/write/none
 	Issues perm.AccessMode `json:"issues"`
 	// PullRequests - read/write/none
@@ -203,7 +203,7 @@ func (p ActionsTokenPermissions) HasAccess(scope string, required perm.AccessMod
 	case "actions":
 		mode = p.Actions
 	case "contents":
-		mode = p.Contents
+		mode = p.Code
 	case "issues":
 		mode = p.Issues
 	case "packages":
@@ -230,7 +230,7 @@ func (p ActionsTokenPermissions) HasWrite(scope string) bool {
 func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsTokenPermissions {
 	if mode == ActionsTokenPermissionModeRestricted {
 		return ActionsTokenPermissions{
-			Contents:     perm.AccessModeRead,
+			Code:         perm.AccessModeRead,
 			Issues:       perm.AccessModeRead,
 			PullRequests: perm.AccessModeRead,
 			Packages:     perm.AccessModeRead,
@@ -240,7 +240,7 @@ func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsToke
 	}
 	// Permissive mode (default)
 	return ActionsTokenPermissions{
-		Contents:     perm.AccessModeWrite,
+		Code:         perm.AccessModeWrite,
 		Issues:       perm.AccessModeWrite,
 		PullRequests: perm.AccessModeWrite,
 		Packages:     perm.AccessModeRead, // Packages read by default for security
@@ -252,7 +252,7 @@ func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsToke
 // ForkPullRequestPermissions returns the restricted permissions for fork pull requests
 func ForkPullRequestPermissions() ActionsTokenPermissions {
 	return ActionsTokenPermissions{
-		Contents:     perm.AccessModeRead,
+		Code:         perm.AccessModeRead,
 		Issues:       perm.AccessModeRead,
 		PullRequests: perm.AccessModeRead,
 		Packages:     perm.AccessModeRead,
@@ -364,7 +364,7 @@ func (cfg *ActionsConfig) GetMaxTokenPermissions() ActionsTokenPermissions {
 	}
 	// Default max is write for everything except packages
 	return ActionsTokenPermissions{
-		Contents:     perm.AccessModeWrite,
+		Code:         perm.AccessModeWrite,
 		Issues:       perm.AccessModeWrite,
 		PullRequests: perm.AccessModeWrite,
 		Packages:     perm.AccessModeWrite,
@@ -377,7 +377,7 @@ func (cfg *ActionsConfig) GetMaxTokenPermissions() ActionsTokenPermissions {
 func (cfg *ActionsConfig) ClampPermissions(perms ActionsTokenPermissions) ActionsTokenPermissions {
 	maxPerms := cfg.GetMaxTokenPermissions()
 	return ActionsTokenPermissions{
-		Contents:     min(perms.Contents, maxPerms.Contents),
+		Code:         min(perms.Code, maxPerms.Code),
 		Issues:       min(perms.Issues, maxPerms.Issues),
 		PullRequests: min(perms.PullRequests, maxPerms.PullRequests),
 		Packages:     min(perms.Packages, maxPerms.Packages),

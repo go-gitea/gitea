@@ -357,7 +357,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	// Set up per-unit access modes based on configured permissions
 	perm.units = repo.Units
 	perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
-	perm.unitsMode[unit.TypeCode] = effectivePerms.Contents
+	perm.unitsMode[unit.TypeCode] = effectivePerms.Code
 	perm.unitsMode[unit.TypeIssues] = effectivePerms.Issues
 	perm.unitsMode[unit.TypePullRequests] = effectivePerms.PullRequests
 	perm.unitsMode[unit.TypePackages] = effectivePerms.Packages

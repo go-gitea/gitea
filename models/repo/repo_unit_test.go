@@ -49,7 +49,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 			TokenPermissionMode: ActionsTokenPermissionModePermissive,
 		}
 		perms := cfg.GetEffectiveTokenPermissions(false)
-		assert.Equal(t, perm.AccessModeWrite, perms.Contents)
+		assert.Equal(t, perm.AccessModeWrite, perms.Code)
 		assert.Equal(t, perm.AccessModeWrite, perms.Issues)
 		assert.Equal(t, perm.AccessModeRead, perms.Packages) // Packages read by default for security
 	})
@@ -59,7 +59,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 			TokenPermissionMode: ActionsTokenPermissionModeRestricted,
 		}
 		perms := cfg.GetEffectiveTokenPermissions(false)
-		assert.Equal(t, perm.AccessModeRead, perms.Contents)
+		assert.Equal(t, perm.AccessModeRead, perms.Code)
 		assert.Equal(t, perm.AccessModeRead, perms.Issues)
 		assert.Equal(t, perm.AccessModeRead, perms.Packages)
 	})
@@ -70,7 +70,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 		}
 		// Even with permissive mode, fork PRs get read-only
 		perms := cfg.GetEffectiveTokenPermissions(true)
-		assert.Equal(t, perm.AccessModeRead, perms.Contents)
+		assert.Equal(t, perm.AccessModeRead, perms.Code)
 		assert.Equal(t, perm.AccessModeRead, perms.Issues)
 		assert.Equal(t, perm.AccessModeRead, perms.Packages)
 	})
@@ -78,7 +78,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 	t.Run("Clamp Permissions", func(t *testing.T) {
 		cfg := &ActionsConfig{
 			MaxTokenPermissions: &ActionsTokenPermissions{
-				Contents:     perm.AccessModeRead,
+				Code:         perm.AccessModeRead,
 				Issues:       perm.AccessModeWrite,
 				PullRequests: perm.AccessModeRead,
 				Packages:     perm.AccessModeRead,
@@ -87,7 +87,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 			},
 		}
 		input := ActionsTokenPermissions{
-			Contents:     perm.AccessModeWrite, // Should be clamped to Read
+			Code:         perm.AccessModeWrite, // Should be clamped to Read
 			Issues:       perm.AccessModeWrite, // Should stay Write
 			PullRequests: perm.AccessModeWrite, // Should be clamped to Read
 			Packages:     perm.AccessModeWrite, // Should be clamped to Read
@@ -95,7 +95,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 			Wiki:         perm.AccessModeRead,  // Should stay Read
 		}
 		clamped := cfg.ClampPermissions(input)
-		assert.Equal(t, perm.AccessModeRead, clamped.Contents)
+		assert.Equal(t, perm.AccessModeRead, clamped.Code)
 		assert.Equal(t, perm.AccessModeWrite, clamped.Issues)
 		assert.Equal(t, perm.AccessModeRead, clamped.PullRequests)
 		assert.Equal(t, perm.AccessModeRead, clamped.Packages)
