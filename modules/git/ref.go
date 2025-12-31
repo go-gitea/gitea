@@ -208,10 +208,6 @@ func (ref RefName) RefType() RefType {
 	return ""
 }
 
-func (ref RefName) IsCommit() bool {
-	return ref.RefType() == RefTypeCommit
-}
-
 // RefWebLinkPath returns a path for the reference that can be used in a web link:
 // * "branch/<branch_name>"
 // * "tag/<tag_name>"
@@ -223,4 +219,15 @@ func (ref RefName) RefWebLinkPath() string {
 		return ""
 	}
 	return string(refType) + "/" + util.PathEscapeSegments(ref.ShortName())
+}
+
+func ParseRefSuffix(ref string) (string, string) {
+	// Partially support https://git-scm.com/docs/gitrevisions
+	if idx := strings.Index(ref, "@{"); idx != -1 {
+		return ref[:idx], ref[idx:]
+	}
+	if idx := strings.Index(ref, "^"); idx != -1 {
+		return ref[:idx], ref[idx:]
+	}
+	return ref, ""
 }

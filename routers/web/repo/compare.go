@@ -197,18 +197,11 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	fileOnly := ctx.FormBool("file-only")
 
 	// 1 Parse compare router param
-	compareReq, err := common.ParseCompareRouterParam(ctx.PathParam("*"))
-	switch {
-	case errors.Is(err, util.ErrInvalidArgument):
-		ctx.HTTPError(http.StatusBadRequest, err.Error())
-		return nil
-	case err != nil:
-		ctx.ServerError("ParseCompareRouterParam", err)
-		return nil
-	}
+	compareReq := common.ParseCompareRouterParam(ctx.PathParam("*"))
+
 	// remove the check when we support compare with carets
-	if compareReq.CaretTimes > 0 {
-		ctx.HTTPError(http.StatusBadRequest, "Unsupported compare syntax with carets")
+	if compareReq.BaseOriRefSuffix != "" {
+		ctx.HTTPError(http.StatusBadRequest, "Unsupported comparison syntax: ref with suffix")
 		return nil
 	}
 
@@ -453,7 +446,7 @@ func PrepareCompareDiff(
 	ctx.Data["TitleQuery"] = newPrFormTitle
 	ctx.Data["BodyQuery"] = newPrFormBody
 
-	if (headCommitID == ci.MergeBase && !ci.DirectComparison) ||
+	if (headCommitID == ci.MergeBase && !ci.DirectComparison()) ||
 		headCommitID == ci.BaseCommitID {
 		ctx.Data["IsNothingToCompare"] = true
 		if unit, err := repo.GetUnit(ctx, unit.TypePullRequests); err == nil {
@@ -470,7 +463,7 @@ func PrepareCompareDiff(
 	}
 
 	beforeCommitID := ci.MergeBase
-	if ci.DirectComparison {
+	if ci.DirectComparison() {
 		beforeCommitID = ci.BaseCommitID
 	}
 
@@ -491,7 +484,7 @@ func PrepareCompareDiff(
 			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 			MaxFiles:           maxFiles,
 			WhitespaceBehavior: whitespaceBehavior,
-			DirectComparison:   ci.DirectComparison,
+			DirectComparison:   ci.DirectComparison(),
 		}, ctx.FormStrings("files")...)
 	if err != nil {
 		ctx.ServerError("GetDiff", err)
@@ -605,7 +598,6 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["CompareInfo"] = ci
-	ctx.Data["CompareSeparator"] = ci.Separator() // To keep for template compatibility, otherwise use CompareInfo.Separator directly
 
 	nothingToCompare := PrepareCompareDiff(ctx, ci, gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 	if ctx.Written() {
@@ -682,11 +674,7 @@ func CompareDiff(ctx *context.Context) {
 	beforeCommitID := ctx.Data["BeforeCommitID"].(string)
 	afterCommitID := ctx.Data["AfterCommitID"].(string)
 
-	separator := "..."
-	if ci.DirectComparison {
-		separator = ".."
-	}
-	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + separator + base.ShortSha(afterCommitID)
+	ctx.Data["Title"] = "Comparing " + base.ShortSha(beforeCommitID) + ci.CompareSeparator + base.ShortSha(afterCommitID)
 
 	ctx.Data["IsDiffCompare"] = true
 

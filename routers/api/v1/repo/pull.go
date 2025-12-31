@@ -1062,19 +1062,11 @@ func MergePullRequest(ctx *context.APIContext) {
 // parseCompareInfo returns non-nil if it succeeds, it always writes to the context and returns nil if it fails
 func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git_service.CompareInfo, closer func()) {
 	baseRepo := ctx.Repo.Repository
-	compareReq, err := common.ParseCompareRouterParam(compareParam)
-	switch {
-	case errors.Is(err, util.ErrInvalidArgument):
-		ctx.APIError(http.StatusBadRequest, err.Error())
-		return nil, nil
-	case err != nil:
-		ctx.APIErrorInternal(err)
-		return nil, nil
-	}
+	compareReq := common.ParseCompareRouterParam(compareParam)
 
 	// remove the check when we support compare with carets
-	if compareReq.CaretTimes > 0 {
-		ctx.APIError(http.StatusBadRequest, "Unsupported compare syntax with carets")
+	if compareReq.BaseOriRefSuffix != "" {
+		ctx.APIError(http.StatusBadRequest, "Unsupported comparison syntax: ref with suffix")
 		return nil, nil
 	}
 
