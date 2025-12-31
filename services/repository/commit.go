@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/util"
 	gitea_ctx "code.gitea.io/gitea/services/context"
 )
@@ -24,11 +25,11 @@ type namedLink struct { // TODO: better name?
 
 // LoadBranchesAndTags creates a new repository branch
 func LoadBranchesAndTags(ctx context.Context, baseRepo *gitea_ctx.Repository, commitSHA string) (*ContainedLinks, error) {
-	containedTags, err := baseRepo.GitRepo.ListOccurrences(ctx, "tag", commitSHA)
+	containedTags, err := gitrepo.ListOccurrences(ctx, baseRepo.Repository, "tag", commitSHA)
 	if err != nil {
 		return nil, fmt.Errorf("encountered a problem while querying %s: %w", "tags", err)
 	}
-	containedBranches, err := baseRepo.GitRepo.ListOccurrences(ctx, "branch", commitSHA)
+	containedBranches, err := gitrepo.ListOccurrences(ctx, baseRepo.Repository, "branch", commitSHA)
 	if err != nil {
 		return nil, fmt.Errorf("encountered a problem while querying %s: %w", "branches", err)
 	}

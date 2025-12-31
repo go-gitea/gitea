@@ -5,7 +5,6 @@ package git
 
 import (
 	"bytes"
-	"sort"
 
 	"code.gitea.io/gitea/modules/util"
 )
@@ -21,7 +20,7 @@ type Tag struct {
 	Signature *CommitSignature
 }
 
-func parsePayloadSignature(data []byte, messageStart int) (payload, msg, sign string) {
+func ParsePayloadSignature(data []byte, messageStart int) (payload, msg, sign string) {
 	pos := messageStart
 	signStart, signEnd := -1, -1
 	for {
@@ -82,34 +81,14 @@ func parseTagData(objectFormat ObjectFormat, data []byte) (*Tag, error) {
 		case "type":
 			tag.Type = string(val) // A commit can have one or more parents
 		case "tagger":
-			tag.Tagger = parseSignatureFromCommitLine(util.UnsafeBytesToString(val))
+			tag.Tagger = ParseSignatureFromCommitLine(util.UnsafeBytesToString(val))
 		}
 		pos += eol + 1
 	}
-	payload, msg, sign := parsePayloadSignature(data, pos)
+	payload, msg, sign := ParsePayloadSignature(data, pos)
 	tag.Message = msg
 	if len(sign) > 0 {
 		tag.Signature = &CommitSignature{Signature: sign, Payload: payload}
 	}
 	return tag, nil
-}
-
-type tagSorter []*Tag
-
-func (ts tagSorter) Len() int {
-	return len([]*Tag(ts))
-}
-
-func (ts tagSorter) Less(i, j int) bool {
-	return []*Tag(ts)[i].Tagger.When.After([]*Tag(ts)[j].Tagger.When)
-}
-
-func (ts tagSorter) Swap(i, j int) {
-	[]*Tag(ts)[i], []*Tag(ts)[j] = []*Tag(ts)[j], []*Tag(ts)[i]
-}
-
-// sortTagsByTime
-func sortTagsByTime(tags []*Tag) {
-	sorter := tagSorter(tags)
-	sort.Sort(sorter)
 }

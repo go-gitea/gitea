@@ -11,7 +11,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	repo_service "code.gitea.io/gitea/services/repository"
 
@@ -252,10 +251,6 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo.WikiStorageRepo())
-	require.NoError(t, err)
-
-	defer gitRepo.Close()
 
 	tests := []struct {
 		name      string
@@ -279,7 +274,7 @@ func TestPrepareWikiFileName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			webPath := UserTitleToWebPath("", tt.arg)
-			existence, newWikiPath, err := prepareGitPath(gitRepo, repo.DefaultWikiBranch, webPath)
+			existence, newWikiPath, err := prepareGitPath(t.Context(), repo, repo.DefaultWikiBranch, webPath)
 			if (err != nil) != tt.wantErr {
 				assert.NoError(t, err)
 				return
@@ -299,18 +294,16 @@ func TestPrepareWikiFileName(t *testing.T) {
 func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	// Now create a temporaryDirectory
-	tmpDir := t.TempDir()
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	err := git.InitRepository(t.Context(), tmpDir, true, git.Sha1ObjectFormat.Name())
+	// Now create a temporaryDirectory
+	repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user2, user2, repo_service.CreateRepoOptions{
+		Name:     "wiki-test",
+		AutoInit: false,
+	}, true)
 	assert.NoError(t, err)
 
-	gitRepo, err := git.OpenRepository(t.Context(), tmpDir)
-	require.NoError(t, err)
-
-	defer gitRepo.Close()
-
-	existence, newWikiPath, err := prepareGitPath(gitRepo, "master", "Home")
+	existence, newWikiPath, err := prepareGitPath(t.Context(), repo, "master", "Home")
 	assert.False(t, existence)
 	assert.NoError(t, err)
 	assert.Equal(t, "Home.md", newWikiPath)

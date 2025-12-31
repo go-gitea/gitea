@@ -50,7 +50,7 @@ func SyncRepoBranchesWithRepo(ctx context.Context, repo *repo_model.Repository, 
 
 	allBranches := container.Set[string]{}
 	{
-		branches, _, err := gitRepo.GetBranchNames(0, 0)
+		branches, _, err := gitrepo.GetBranchNames(ctx, repo, 0, 0)
 		if err != nil {
 			return 0, err
 		}

@@ -745,7 +745,7 @@ func AdjustPullsCausedByBranchDeleted(ctx context.Context, doer *user_model.User
 
 // CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but only whose base repo is not in the given repository
 func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *repo_model.Repository) error {
-	branches, _, err := gitrepo.GetBranchesByPath(ctx, repo, 0, 0)
+	branches, _, err := gitrepo.GetBranchNames(ctx, repo, 0, 0)
 	if err != nil {
 		return err
 	}

@@ -18,7 +18,7 @@ import (
 //
 // Haven't found the official reference for the standard format yet.
 // This function never fails, if the "line" can't be parsed, it returns a default Signature with "zero" time.
-func parseSignatureFromCommitLine(line string) *Signature {
+func ParseSignatureFromCommitLine(line string) *Signature {
 	sig := &Signature{}
 	s1, sx, ok1 := strings.Cut(line, " <")
 	s2, s3, ok2 := strings.Cut(sx, "> ")

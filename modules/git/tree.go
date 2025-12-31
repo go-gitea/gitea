@@ -5,10 +5,7 @@
 package git
 
 import (
-	"bytes"
 	"strings"
-
-	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 type TreeCommon struct {
@@ -56,33 +53,4 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 		p = g
 	}
 	return g, nil
-}
-
-// LsTree checks if the given filenames are in the tree
-func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error) {
-	cmd := gitcmd.NewCommand("ls-tree", "-z", "--name-only").
-		AddDashesAndList(append([]string{ref}, filenames...)...)
-
-	res, _, err := cmd.WithDir(repo.Path).RunStdBytes(repo.Ctx)
-	if err != nil {
-		return nil, err
-	}
-	filelist := make([]string, 0, len(filenames))
-	for line := range bytes.SplitSeq(res, []byte{'\000'}) {
-		filelist = append(filelist, string(line))
-	}
-
-	return filelist, err
-}
-
-// GetTreePathLatestCommit returns the latest commit of a tree path
-func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Commit, error) {
-	stdout, _, err := gitcmd.NewCommand("rev-list", "-1").
-		AddDynamicArguments(refName).AddDashesAndList(treePath).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
-	if err != nil {
-		return nil, err
-	}
-	return repo.GetCommit(strings.TrimSpace(stdout))
 }

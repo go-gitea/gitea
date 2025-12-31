@@ -180,7 +180,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	if _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, doer.ID); err != nil {
 		return nil, fmt.Errorf("SyncRepoBranchesWithRepo: %w", err)
 	}
-	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+	if err = repo_module.SyncReleasesWithTags(ctx, repo); err != nil {
 		return nil, fmt.Errorf("Sync releases from git tags failed: %v", err)
 	}
 
