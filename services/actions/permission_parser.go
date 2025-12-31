@@ -48,9 +48,20 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 		return defaultPerms
 	}
 
+	// Unwrap DocumentNode if present (yaml.Unmarshal wraps content in DocumentNode)
+	node := rawPerms
+	if node.Kind == yaml.DocumentNode && len(node.Content) > 0 {
+		node = node.Content[0]
+	}
+
+	// Check for empty node after unwrapping
+	if node == nil || (node.Kind == yaml.ScalarNode && node.Value == "") {
+		return defaultPerms
+	}
+
 	// Handle scalar values: "read-all" or "write-all"
-	if rawPerms.Kind == yaml.ScalarNode {
-		switch rawPerms.Value {
+	if node.Kind == yaml.ScalarNode {
+		switch node.Value {
 		case "read-all":
 			return repo_model.ActionsTokenPermissions{
 				Contents:     perm.AccessModeRead,
@@ -74,15 +85,15 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 	}
 
 	// Handle mapping: individual permission scopes
-	if rawPerms.Kind == yaml.MappingNode {
+	if node.Kind == yaml.MappingNode {
 		result := defaultPerms // Start with defaults
 
-		for i := 0; i < len(rawPerms.Content); i += 2 {
-			if i+1 >= len(rawPerms.Content) {
+		for i := 0; i < len(node.Content); i += 2 {
+			if i+1 >= len(node.Content) {
 				break
 			}
-			keyNode := rawPerms.Content[i]
-			valueNode := rawPerms.Content[i+1]
+			keyNode := node.Content[i]
+			valueNode := node.Content[i+1]
 
 			if keyNode.Kind != yaml.ScalarNode || valueNode.Kind != yaml.ScalarNode {
 				continue

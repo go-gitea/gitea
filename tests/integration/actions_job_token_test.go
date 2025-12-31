@@ -546,11 +546,11 @@ func TestActionsWorkflowPermissionsKeyword(t *testing.T) {
 
 			// Create a run and job with explicit permissions
 			run := &actions_model.ActionRun{
-				RepoID:   repository.ID,
-				OwnerID:  repository.Owner.ID,
-				Title:    "Test workflow with read-all permissions",
-				Status:   actions_model.StatusRunning,
-				Ref:      "refs/heads/master",
+				RepoID:    repository.ID,
+				OwnerID:   repository.Owner.ID,
+				Title:     "Test workflow with read-all permissions",
+				Status:    actions_model.StatusRunning,
+				Ref:       "refs/heads/master",
 				CommitSHA: "abc123",
 			}
 			require.NoError(t, db.Insert(t.Context(), run))

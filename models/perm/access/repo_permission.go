@@ -325,13 +325,22 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		return perm, nil
 	}
 
-	// Get effective token permissions
 	// First check if job has explicit permissions stored from workflow YAML
 	var effectivePerms repo_model.ActionsTokenPermissions
-	if err := task.LoadJob(ctx); err != nil {
-		return perm, err
+	var jobLoaded bool
+
+	// Only attempt to load job if JobID is set (non-zero)
+	if task.JobID != 0 {
+		if err := task.LoadJob(ctx); err == nil {
+			jobLoaded = true
+		} else {
+			// If loading job fails (e.g. resource doesn't exist), log it but fall back to repo permissions
+			// This prevents 500 errors if the task has a broken job link
+			log.Warn("GetActionsUserRepoPermission: failed to load job %d for task %d: %v", task.JobID, task.ID, err)
+		}
 	}
-	if task.Job != nil && task.Job.TokenPermissions != "" {
+
+	if jobLoaded && task.Job != nil && task.Job.TokenPermissions != "" {
 		// Use permissions parsed from workflow YAML (already clamped by repo max settings during insertion)
 		effectivePerms, err = repo_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
 		if err != nil {
@@ -340,7 +349,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
 		}
 	} else {
-		// No workflow permissions, use repository settings
+		// No workflow permissions or job not found, use repository settings
 		effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
 		effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
 	}
