@@ -275,6 +275,7 @@ func Routes() *web.Router {
 		routes.Get("/gitvm/root", gitvm_http.GetRoot)
 		routes.Get("/gitvm/root.txt", gitvm_http.GetRootPlainText)
 		routes.Get("/gitvm/receipts", gitvm_http.GetReceipts)
+		routes.Get("/gitvm/receipts.ndjson", gitvm_http.GetReceiptsNDJSON)
 	}
 
 	mid = append(mid, common.MustInitSessioner(), context.Contexter())
