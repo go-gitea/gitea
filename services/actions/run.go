@@ -93,6 +93,11 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 			return err
 		}
 
+		// GitVM: emit receipt for CI run start
+		if setting.GitVM.Enabled {
+			emitCIRunStartReceipt(ctx, run)
+		}
+
 		if err := run.LoadRepo(ctx); err != nil {
 			return err
 		}

@@ -11,6 +11,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	gitvm_ledger "code.gitea.io/gitea/modules/gitvm/ledger"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -194,6 +197,11 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
 			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
 		}
+
+		// GitVM: emit receipt for CI run end (if terminal state)
+		if setting.GitVM.Enabled && run.Status.IsDone() {
+			emitCIRunEndReceipt(ctx, run)
+		}
 	}
 
 	return affected, nil
@@ -266,4 +274,52 @@ func CancelPreviousJobsByJobConcurrency(ctx context.Context, job *ActionRunJob) 
 	}
 
 	return CancelJobs(ctx, jobsToCancel)
+}
+// emitCIRunEndReceipt emits a GitVM receipt for CI run end (helper to avoid import cycle)
+func emitCIRunEndReceipt(ctx context.Context, run *ActionRun) {
+	if !setting.GitVM.Enabled {
+		return
+	}
+
+	// Build receipt inline to avoid import cycle with services/actions
+	repoRef := gitvm_ledger.RepoRef{ID: run.RepoID}
+	actorRef := gitvm_ledger.ActorRef{ID: run.TriggerUserID}
+
+	// Best-effort lookups
+	if run.Repo != nil {
+		repoRef.Full = run.Repo.FullName()
+	}
+	if run.TriggerUser != nil {
+		actorRef.Username = run.TriggerUser.Name
+	}
+
+	// Compute duration
+	durationMs := int64(0)
+	if run.Started > 0 && run.Stopped > 0 && run.Stopped >= run.Started {
+		durationMs = (int64(run.Stopped) - int64(run.Started)) * 1000
+	}
+
+	payload := gitvm_ledger.CIRunEndPayload{
+		RunID:      run.ID,
+		Status:     run.Status.String(),
+		DurationMs: durationMs,
+	}
+
+	ts := int64(0)
+	if run.Stopped > 0 {
+		ts = int64(run.Stopped) * 1000
+	}
+
+	receipt := &gitvm_ledger.Receipt{
+		Type:     "ci.run.end",
+		Repo:     repoRef,
+		Actor:    actorRef,
+		Payload:  payload,
+		TsUnixMs: ts,
+	}
+
+	l := gitvm_ledger.New(setting.GitVM.Dir)
+	if err := l.Emit(receipt); err != nil {
+		log.Warn("GitVM: emit failed (ci.run.end) for run %d: %v", run.ID, err)
+	}
 }

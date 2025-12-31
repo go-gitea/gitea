@@ -56,3 +56,19 @@ type PermissionPayload struct {
 	SubjectID   int64  `json:"subject_id"`
 	Permission  string `json:"permission"` // "read" | "write" | "admin"
 }
+
+// CIRunStartPayload captures CI run start event
+type CIRunStartPayload struct {
+	RunID      int64  `json:"run_id"`
+	WorkflowID string `json:"workflow_id"` // workflow filename
+	CommitSHA  string `json:"commit_sha"`
+	Ref        string `json:"ref"`   // branch/tag/pr ref
+	Event      string `json:"event"` // push/pull_request/manual/...
+}
+
+// CIRunEndPayload captures CI run completion event
+type CIRunEndPayload struct {
+	RunID      int64  `json:"run_id"`
+	Status     string `json:"status"`      // success/failure/cancelled/skipped
+	DurationMs int64  `json:"duration_ms"` // run duration in milliseconds
+}
