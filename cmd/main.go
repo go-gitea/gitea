@@ -128,6 +128,7 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 		CmdDumpRepository,
 		CmdRestoreRepository,
 		CmdActions,
+		CmdGitVM,
 	}
 
 	// these sub-commands do not need the config file, and they do not depend on any path or environment variable.

@@ -11,6 +11,9 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	gitvm_ledger "code.gitea.io/gitea/modules/gitvm/ledger"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -153,6 +156,11 @@ func ChangeCollaborationAccessMode(ctx context.Context, repo *Repository, uid in
 			return fmt.Errorf("update access table: %w", err)
 		}
 
+		// GitVM: emit receipt for permission change event
+		if setting.GitVM.Enabled {
+			emitPermissionChangeReceipt(ctx, repo, uid, mode)
+		}
+
 		return nil
 	})
 }
@@ -175,4 +183,46 @@ func IsOwnerMemberCollaborator(ctx context.Context, repo *Repository, userID int
 	}
 
 	return db.GetEngine(ctx).Get(&Collaboration{RepoID: repo.ID, UserID: userID})
+}
+
+// emitPermissionChangeReceipt emits a GitVM receipt for a permission change event
+func emitPermissionChangeReceipt(ctx context.Context, repo *Repository, uid int64, mode perm.AccessMode) {
+	ledger := gitvm_ledger.New(setting.GitVM.Dir)
+	permStr := "none"
+	switch mode {
+	case perm.AccessModeRead:
+		permStr = "read"
+	case perm.AccessModeWrite:
+		permStr = "write"
+	case perm.AccessModeAdmin:
+		permStr = "admin"
+	case perm.AccessModeOwner:
+		permStr = "owner"
+	}
+
+	user, err := user_model.GetUserByID(ctx, uid)
+	if err != nil {
+		log.Error("GitVM: failed to get user %d for permission receipt: %v", uid, err)
+		return
+	}
+
+	receipt := &gitvm_ledger.Receipt{
+		Type: "perm.changed",
+		Repo: gitvm_ledger.RepoRef{
+			ID:   repo.ID,
+			Full: repo.FullName(),
+		},
+		Actor: gitvm_ledger.ActorRef{
+			ID:       user.ID,
+			Username: user.Name,
+		},
+		Payload: gitvm_ledger.PermissionPayload{
+			SubjectType: "user",
+			SubjectID:   uid,
+			Permission:  permStr,
+		},
+	}
+	if err := ledger.Emit(receipt); err != nil {
+		log.Error("GitVM: failed to emit permission change receipt for %s: %v", repo.FullName(), err)
+	}
 }

@@ -17,9 +17,11 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
+	gitvm_ledger "code.gitea.io/gitea/modules/gitvm/ledger"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -192,6 +194,11 @@ func CreateRelease(gitRepo *git.Repository, rel *repo_model.Release, attachmentU
 
 	if !rel.IsDraft {
 		notify_service.NewRelease(gitRepo.Ctx, rel)
+
+		// GitVM: emit receipt for release event
+		if setting.GitVM.Enabled {
+			emitReleaseReceipt(gitRepo.Ctx, rel)
+		}
 	}
 
 	return nil
@@ -425,4 +432,34 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 // Init start release service
 func Init() error {
 	return initTagSyncQueue(graceful.GetManager().ShutdownContext())
+}
+
+// emitReleaseReceipt emits a GitVM receipt for a release publish event
+func emitReleaseReceipt(ctx context.Context, rel *repo_model.Release) {
+	if rel.Repo == nil {
+		return
+	}
+	if rel.Publisher == nil {
+		return
+	}
+	ledger := gitvm_ledger.New(setting.GitVM.Dir)
+	receipt := &gitvm_ledger.Receipt{
+		Type: "release.published",
+		Repo: gitvm_ledger.RepoRef{
+			ID:   rel.Repo.ID,
+			Full: rel.Repo.FullName(),
+		},
+		Actor: gitvm_ledger.ActorRef{
+			ID:       rel.Publisher.ID,
+			Username: rel.Publisher.Name,
+		},
+		Payload: gitvm_ledger.ReleasePayload{
+			Tag:       rel.TagName,
+			ReleaseID: rel.ID,
+			// ArtifactsHash left empty for now, can be populated later
+		},
+	}
+	if err := ledger.Emit(receipt); err != nil {
+		log.Error("GitVM: failed to emit release receipt for %s/%s: %v", rel.Repo.FullName(), rel.TagName, err)
+	}
 }

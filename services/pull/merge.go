@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/globallock"
+	gitvm_ledger "code.gitea.io/gitea/modules/gitvm/ledger"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
@@ -291,6 +292,11 @@ func Merge(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.U
 		notify_service.AutoMergePullRequest(ctx, doer, pr)
 	} else {
 		notify_service.MergePullRequest(ctx, doer, pr)
+	}
+
+	// GitVM: emit receipt for PR merge event
+	if setting.GitVM.Enabled {
+		emitPRMergeReceipt(ctx, pr, doer)
 	}
 
 	// Reset cached commit count
@@ -755,4 +761,32 @@ func ShouldDeleteBranchAfterMerge(ctx context.Context, userOption *bool, repo *r
 		return false, err
 	}
 	return prUnit.PullRequestsConfig().DefaultDeleteBranchAfterMerge, nil
+}
+
+// emitPRMergeReceipt emits a GitVM receipt for a PR merge event
+func emitPRMergeReceipt(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) {
+	if pr.BaseRepo == nil {
+		return
+	}
+	ledger := gitvm_ledger.New(setting.GitVM.Dir)
+	receipt := &gitvm_ledger.Receipt{
+		Type: "pr.merged",
+		Repo: gitvm_ledger.RepoRef{
+			ID:   pr.BaseRepo.ID,
+			Full: pr.BaseRepo.FullName(),
+		},
+		Actor: gitvm_ledger.ActorRef{
+			ID:       doer.ID,
+			Username: doer.Name,
+		},
+		Payload: gitvm_ledger.PRMergedPayload{
+			PRID:        pr.ID,
+			Base:        pr.BaseBranch,
+			Head:        pr.HeadBranch,
+			MergeCommit: pr.MergedCommitID,
+		},
+	}
+	if err := ledger.Emit(receipt); err != nil {
+		log.Error("GitVM: failed to emit PR merge receipt for %s#%d: %v", pr.BaseRepo.FullName(), pr.Index, err)
+	}
 }

@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
+	gitvm_ledger "code.gitea.io/gitea/modules/gitvm/ledger"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -213,6 +214,11 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 
 				notify_service.PushCommits(ctx, pusher, repo, opts, commits)
+
+				// GitVM: emit receipt for push event
+				if setting.GitVM.Enabled {
+					emitPushReceipt(ctx, repo, pusher, opts)
+				}
 
 				// Cache for big repository
 				if err := CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
@@ -444,4 +450,28 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	}
 
 	return nil
+}
+
+// emitPushReceipt emits a GitVM receipt for a push event
+func emitPushReceipt(ctx context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions) {
+	ledger := gitvm_ledger.New(setting.GitVM.Dir)
+	receipt := &gitvm_ledger.Receipt{
+		Type: "git.push",
+		Repo: gitvm_ledger.RepoRef{
+			ID:   repo.ID,
+			Full: repo.FullName(),
+		},
+		Actor: gitvm_ledger.ActorRef{
+			ID:       pusher.ID,
+			Username: pusher.Name,
+		},
+		Payload: gitvm_ledger.PushPayload{
+			Ref:    opts.RefFullName.String(),
+			Before: opts.OldCommitID,
+			After:  opts.NewCommitID,
+		},
+	}
+	if err := ledger.Emit(receipt); err != nil {
+		log.Error("GitVM: failed to emit push receipt for %s: %v", repo.FullName(), err)
+	}
 }
