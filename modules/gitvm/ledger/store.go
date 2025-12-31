@@ -69,6 +69,7 @@ func (l *Ledger) ReadReceipts() ([]*Receipt, error) {
 type ReceiptSliceResult struct {
 	Lines      []string // raw JSONL lines
 	NextCursor int64    // byte offset for next page
+	FileSize   int64    // size of receipts.jsonl at request time (forensic anchor)
 }
 
 // ReceiptSliceOptions configures receipt slicing
@@ -76,16 +77,25 @@ type ReceiptSliceOptions struct {
 	Cursor    int64  // start reading from this byte offset
 	SinceTS   int64  // only include receipts with ts_unix_ms >= this (0 = no filter)
 	SinceRoot string // only include receipts after this root (exclusive, "" = no filter)
+	UntilTS   int64  // only include receipts with ts_unix_ms <= this (0 = no filter)
+	UntilRoot string // only include receipts until this root (exclusive, "" = no filter)
 	Limit     int    // max receipts to return (0 = unlimited)
 }
 
 // ReadReceiptSlice reads receipts from JSONL with cursor-based pagination and filtering
 func (l *Ledger) ReadReceiptSlice(opts ReceiptSliceOptions) (*ReceiptSliceResult, error) {
 	logPath := filepath.Join(l.Dir, "receipts.jsonl")
+
+	// Get file size for forensic anchor (before any reads)
+	var fileSize int64
+	if stat, err := os.Stat(logPath); err == nil {
+		fileSize = stat.Size()
+	}
+
 	f, err := os.Open(logPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return &ReceiptSliceResult{Lines: []string{}, NextCursor: 0}, nil
+			return &ReceiptSliceResult{Lines: []string{}, NextCursor: 0, FileSize: 0}, nil
 		}
 		return nil, err
 	}
@@ -98,7 +108,7 @@ func (l *Ledger) ReadReceiptSlice(opts ReceiptSliceOptions) (*ReceiptSliceResult
 		}
 	}
 
-	result := &ReceiptSliceResult{Lines: make([]string, 0)}
+	result := &ReceiptSliceResult{Lines: make([]string, 0), FileSize: fileSize}
 	scanner := bufio.NewScanner(f)
 	currentPos := opts.Cursor
 	foundSinceRoot := opts.SinceRoot == "" // if no root filter, start immediately
@@ -132,6 +142,16 @@ func (l *Ledger) ReadReceiptSlice(opts ReceiptSliceOptions) (*ReceiptSliceResult
 		if opts.SinceTS > 0 && r.TsUnixMs < opts.SinceTS {
 			currentPos += int64(lineBytes)
 			continue
+		}
+
+		// Apply until_ts filter (inclusive - stop when timestamp exceeds)
+		if opts.UntilTS > 0 && r.TsUnixMs > opts.UntilTS {
+			break
+		}
+
+		// Apply until_root filter (exclusive - stop when we see this root)
+		if opts.UntilRoot != "" && r.Root == opts.UntilRoot {
+			break
 		}
 
 		// Include this receipt

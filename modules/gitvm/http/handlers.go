@@ -102,6 +102,16 @@ func GetReceiptsNDJSON(w http.ResponseWriter, r *http.Request) {
 	// since_root (root hash, exclusive)
 	opts.SinceRoot = r.URL.Query().Get("since_root")
 
+	// until_ts (unix milliseconds, inclusive)
+	if untilTS := r.URL.Query().Get("until_ts"); untilTS != "" {
+		if ts, err := strconv.ParseInt(untilTS, 10, 64); err == nil && ts >= 0 {
+			opts.UntilTS = ts
+		}
+	}
+
+	// until_root (root hash, exclusive)
+	opts.UntilRoot = r.URL.Query().Get("until_root")
+
 	// limit (max receipts, default 1000, max 20000)
 	opts.Limit = 1000
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
@@ -130,10 +140,13 @@ func GetReceiptsNDJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set headers
+	// Set headers (forensic anchors)
 	w.Header().Set("Content-Type", "application/x-ndjson")
 	w.Header().Set("X-GitVM-Root", root)
 	w.Header().Set("X-GitVM-Cursor", strconv.FormatInt(result.NextCursor, 10))
+	w.Header().Set("X-GitVM-File-Size", strconv.FormatInt(result.FileSize, 10))
+	w.Header().Set("X-GitVM-From-Cursor", strconv.FormatInt(opts.Cursor, 10))
+	w.Header().Set("X-GitVM-To-Cursor", strconv.FormatInt(result.NextCursor, 10))
 
 	// Stream NDJSON lines
 	for _, line := range result.Lines {
