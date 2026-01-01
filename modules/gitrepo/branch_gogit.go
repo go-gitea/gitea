@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+
 	"github.com/go-git/go-git/v5/plumbing"
 )
 
