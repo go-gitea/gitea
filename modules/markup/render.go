@@ -37,6 +37,13 @@ var RenderBehaviorForTesting struct {
 	DisableAdditionalAttributes bool
 }
 
+// Header holds the data about a header for generating TOC
+type Header struct {
+	Level int
+	Text  string
+	ID    string
+}
+
 type RenderOptions struct {
 	UseAbsoluteLink bool
 
@@ -83,6 +90,8 @@ type RenderContext struct {
 
 	TocShowInSection TocShowInSectionType
 	TocHeadingItems  []*TocHeadingItem
+
+	SidebarTocHeaders []Header // Headers for generating sidebar TOC (used by README/file view)
 
 	RenderHelper   RenderHelper
 	RenderOptions  RenderOptions

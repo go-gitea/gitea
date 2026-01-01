@@ -84,6 +84,11 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			ctx.TocShowInSection = markup.TocShowInMain
 		case showTocInSidebar:
 			ctx.TocShowInSection = markup.TocShowInSidebar
+			// Also populate SidebarTocHeaders for README/file view (not used by Wiki)
+			ctx.SidebarTocHeaders = make([]markup.Header, len(tocList))
+			for i, h := range tocList {
+				ctx.SidebarTocHeaders[i] = markup.Header{Level: h.Level, Text: h.Text, ID: h.ID}
+			}
 		}
 	}
 

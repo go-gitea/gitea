@@ -87,7 +87,7 @@ func handleFileViewRenderMarkup(ctx *context.Context, prefetchBuf []byte, utf8Re
 		return true
 	}
 
-	ctx.Data["FileSidebarHTML"] = renderSidebarTocHTML(rctx)
+	ctx.Data["FileSidebarHTML"] = renderSidebarTocHTML(rctx, ctx.Locale.Language())
 	return true
 }
 

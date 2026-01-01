@@ -70,12 +70,52 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	w := &orgWriter{rctx: ctx, HTMLWriter: htmlWriter}
 	htmlWriter.ExtendingWriter = w
 
-	res, err := org.New().Silent().Parse(input, "").Write(w)
+	// Parse the document first to extract outline for TOC
+	doc := org.New().Silent().Parse(input, "")
+	if doc.Error != nil {
+		return fmt.Errorf("orgmode.Parse failed: %w", doc.Error)
+	}
+
+	// Extract headers from the document outline for sidebar TOC
+	ctx.SidebarTocHeaders = extractHeadersFromOutline(doc.Outline)
+
+	res, err := doc.Write(w)
 	if err != nil {
 		return fmt.Errorf("orgmode.Render failed: %w", err)
 	}
 	_, err = io.Copy(output, strings.NewReader(res))
 	return err
+}
+
+// extractHeadersFromOutline recursively extracts headers from org document outline
+func extractHeadersFromOutline(outline org.Outline) []markup.Header {
+	var headers []markup.Header
+	collectHeaders(outline.Section, &headers)
+	return headers
+}
+
+// collectHeaders recursively collects headers from sections
+func collectHeaders(section *org.Section, headers *[]markup.Header) {
+	if section == nil {
+		return
+	}
+
+	// Process current section's headline
+	if section.Headline != nil {
+		h := section.Headline
+		// Convert headline title nodes to plain text
+		titleText := org.String(h.Title...)
+		*headers = append(*headers, markup.Header{
+			Level: h.Lvl,
+			Text:  titleText,
+			ID:    h.ID(),
+		})
+	}
+
+	// Process child sections
+	for _, child := range section.Children {
+		collectHeaders(child, headers)
+	}
 }
 
 // RenderString renders orgmode string to HTML string
