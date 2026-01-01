@@ -203,7 +203,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 		msg.SetHeader("References", references...)
 		msg.SetHeader("List-Unsubscribe", listUnsubscribe...)
 
-		for key, value := range generateAdditionalHeadersForIssue(comment, actType, recipient) {
+		for key, value := range generateAdditionalHeadersForIssue(ctx, comment, actType, recipient) {
 			msg.SetHeader(key, value)
 		}
 
@@ -303,17 +303,17 @@ func generateMessageIDForIssue(issue *issues_model.Issue, comment *issues_model.
 	return fmt.Sprintf("<%s/%s/%d%s@%s>", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
 }
 
-func generateAdditionalHeadersForIssue(ctx *mailComment, reason string, recipient *user_model.User) map[string]string {
-	repo := ctx.Issue.Repo
+func generateAdditionalHeadersForIssue(ctx context.Context, comment *mailComment, reason string, recipient *user_model.User) map[string]string {
+	repo := comment.Issue.Repo
 
-	issueID := strconv.FormatInt(ctx.Issue.Index, 10)
+	issueID := strconv.FormatInt(comment.Issue.Index, 10)
 	headers := generateMetadataHeaders(repo)
 
-	maps.Copy(headers, generateSenderRecipientHeaders(ctx.Doer, recipient))
+	maps.Copy(headers, generateSenderRecipientHeaders(comment.Doer, recipient))
 	maps.Copy(headers, generateReasonHeaders(reason))
 
 	headers["X-Gitea-Issue-ID"] = issueID
-	headers["X-Gitea-Issue-Link"] = ctx.Issue.HTMLURL(context.TODO()) // FIXME: use proper context
+	headers["X-Gitea-Issue-Link"] = comment.Issue.HTMLURL(ctx)
 	headers["X-GitLab-Issue-IID"] = issueID
 
 	return headers
