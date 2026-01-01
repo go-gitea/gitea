@@ -68,27 +68,22 @@ function updateSidebarPosition(elFileView: HTMLElement, sidebar: HTMLElement): v
   const segmentRect = segment.getBoundingClientRect();
   const sidebarHeight = sidebar.offsetHeight;
 
-  // Calculate the maximum top position so sidebar doesn't exceed file content bottom
-  const maxTopPos = segmentRect.bottom - sidebarHeight;
+  // Calculate top position:
+  // - When file header is visible: align with file header top
+  // - When file header scrolls above viewport: stick to top (12px)
+  // - Limit so sidebar bottom doesn't go below segment bottom
+  const minTop = 12;
+  const maxTop = Math.max(minTop, segmentRect.bottom - sidebarHeight);
+  let topPos = Math.max(minTop, headerRect.top);
+  topPos = Math.min(topPos, maxTop);
 
-  // Align sidebar top with the file header top, with constraints:
-  // - minimum of 12px from viewport top
-  // - maximum so sidebar bottom doesn't exceed segment bottom
-  let topPos = Math.max(12, headerRect.top);
-  topPos = Math.min(topPos, maxTopPos);
+  sidebar.style.opacity = '';
+  sidebar.style.top = `${topPos}px`;
 
-  // Hide sidebar if file content is scrolled out of view
-  if (segmentRect.bottom < 50 || segmentRect.top > window.innerHeight) {
-    sidebar.style.opacity = '0';
-  } else {
-    sidebar.style.opacity = '';
-    sidebar.style.top = `${topPos}px`;
-
-    // Position sidebar right next to the content
-    const leftPos = segmentRect.right + 8; // 8px gap from content
-    sidebar.style.left = `${leftPos}px`;
-    sidebar.style.right = 'auto';
-  }
+  // Position sidebar right next to the content
+  const leftPos = segmentRect.right + 8; // 8px gap from content
+  sidebar.style.left = `${leftPos}px`;
+  sidebar.style.right = 'auto';
 
   // Mark as positioned to show the sidebar (prevents flicker)
   sidebar.classList.add('sidebar-positioned');
