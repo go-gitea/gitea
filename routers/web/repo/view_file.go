@@ -93,7 +93,7 @@ func handleFileViewRenderMarkup(ctx *context.Context, filename string, sniffedTy
 		return true
 	}
 
-	ctx.Data["FileTocHTML"] = renderSidebarTocHTML(rctx)
+	ctx.Data["FileSidebarHTML"] = renderSidebarTocHTML(rctx)
 	return true
 }
 
