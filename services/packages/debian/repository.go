@@ -68,6 +68,7 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 }
 
 func generateKeypair() (string, string, error) {
+	// Repository signing keys are long-lived and there is currently no rotation mechanism, choose stronger algorithms
 	cfg := &packet.Config{
 		RSABits:       4096,
 		DefaultHash:   crypto.SHA256,
