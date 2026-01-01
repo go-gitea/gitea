@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/routers/common"
@@ -36,6 +37,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 	"code.gitea.io/gitea/services/forms"
+	git_service "code.gitea.io/gitea/services/git"
 	"code.gitea.io/gitea/services/gitdiff"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
@@ -414,20 +416,20 @@ func CreatePullRequest(ctx *context.APIContext) {
 	)
 
 	// Get repo/branch information
-	compareResult, closer := parseCompareInfo(ctx, form)
+	compareResult, closer := parseCompareInfo(ctx, form.Base+".."+form.Head)
 	if ctx.Written() {
 		return
 	}
 	defer closer()
 
-	if !compareResult.baseRef.IsBranch() || !compareResult.headRef.IsBranch() {
+	if !compareResult.BaseRef.IsBranch() || !compareResult.HeadRef.IsBranch() {
 		ctx.APIError(http.StatusUnprocessableEntity, "Invalid PullRequest: base and head must be branches")
 		return
 	}
 
 	// Check if another PR exists with the same targets
-	existingPr, err := issues_model.GetUnmergedPullRequest(ctx, compareResult.headRepo.ID, ctx.Repo.Repository.ID,
-		compareResult.headRef.ShortName(), compareResult.baseRef.ShortName(),
+	existingPr, err := issues_model.GetUnmergedPullRequest(ctx, compareResult.HeadRepo.ID, ctx.Repo.Repository.ID,
+		compareResult.HeadRef.ShortName(), compareResult.BaseRef.ShortName(),
 		issues_model.PullRequestFlowGithub,
 	)
 	if err != nil {
@@ -505,13 +507,13 @@ func CreatePullRequest(ctx *context.APIContext) {
 		DeadlineUnix: deadlineUnix,
 	}
 	pr := &issues_model.PullRequest{
-		HeadRepoID: compareResult.headRepo.ID,
+		HeadRepoID: compareResult.HeadRepo.ID,
 		BaseRepoID: repo.ID,
-		HeadBranch: compareResult.headRef.ShortName(),
-		BaseBranch: compareResult.baseRef.ShortName(),
-		HeadRepo:   compareResult.headRepo,
+		HeadBranch: compareResult.HeadRef.ShortName(),
+		BaseBranch: compareResult.BaseRef.ShortName(),
+		HeadRepo:   compareResult.HeadRepo,
 		BaseRepo:   repo,
-		MergeBase:  compareResult.compareInfo.MergeBase,
+		MergeBase:  compareResult.MergeBase,
 		Type:       issues_model.PullRequestGitea,
 	}
 
@@ -1057,62 +1059,39 @@ func MergePullRequest(ctx *context.APIContext) {
 	ctx.Status(http.StatusOK)
 }
 
-type parseCompareInfoResult struct {
-	headRepo    *repo_model.Repository
-	headGitRepo *git.Repository
-	compareInfo *pull_service.CompareInfo
-	baseRef     git.RefName
-	headRef     git.RefName
-}
-
 // parseCompareInfo returns non-nil if it succeeds, it always writes to the context and returns nil if it fails
-func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (result *parseCompareInfoResult, closer func()) {
-	var err error
-	// Get compared branches information
-	// format: <base branch>...[<head repo>:]<head branch>
-	// base<-head: master...head:feature
-	// same repo: master...feature
+func parseCompareInfo(ctx *context.APIContext, compareParam string) (result *git_service.CompareInfo, closer func()) {
 	baseRepo := ctx.Repo.Repository
-	baseRefToGuess := form.Base
-
-	headUser := ctx.Repo.Owner
-	headRefToGuess := form.Head
-	if headInfos := strings.Split(form.Head, ":"); len(headInfos) == 1 {
-		// If there is no head repository, it means pull request between same repository.
-		// Do nothing here because the head variables have been assigned above.
-	} else if len(headInfos) == 2 {
-		// There is a head repository (the head repository could also be the same base repo)
-		headRefToGuess = headInfos[1]
-		headUser, err = user_model.GetUserOrOrgByName(ctx, headInfos[0])
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				ctx.APIErrorNotFound("GetUserByName")
-			} else {
-				ctx.APIErrorInternal(err)
-			}
-			return nil, nil
-		}
-	} else {
-		ctx.APIErrorNotFound()
+	compareReq, err := common.ParseCompareRouterParam(compareParam)
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.APIError(http.StatusBadRequest, err.Error())
+		return nil, nil
+	case err != nil:
+		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
 
-	isSameRepo := ctx.Repo.Owner.ID == headUser.ID
-
-	var headRepo *repo_model.Repository
-	if isSameRepo {
-		headRepo = baseRepo
-	} else {
-		headRepo, err = common.FindHeadRepo(ctx, baseRepo, headUser.ID)
-		if err != nil {
-			ctx.APIErrorInternal(err)
-			return nil, nil
-		}
-		if headRepo == nil {
-			ctx.APIErrorNotFound("head repository not found")
-			return nil, nil
-		}
+	// remove the check when we support compare with carets
+	if compareReq.CaretTimes > 0 {
+		ctx.APIError(http.StatusBadRequest, "Unsupported compare syntax with carets")
+		return nil, nil
 	}
+
+	_, headRepo, err := common.GetHeadOwnerAndRepo(ctx, baseRepo, compareReq)
+	switch {
+	case errors.Is(err, util.ErrInvalidArgument):
+		ctx.APIError(http.StatusBadRequest, err.Error())
+		return nil, nil
+	case errors.Is(err, util.ErrNotExist):
+		ctx.APIErrorNotFound()
+		return nil, nil
+	case err != nil:
+		ctx.APIErrorInternal(err)
+		return nil, nil
+	}
+
+	isSameRepo := baseRepo.ID == headRepo.ID
 
 	var headGitRepo *git.Repository
 	if isSameRepo {
@@ -1140,8 +1119,8 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	if !permBase.CanRead(unit.TypeCode) {
-		log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
-		ctx.APIErrorNotFound("Can't read pulls or can't read UnitTypeCode")
+		log.Trace("Permission Denied: User %-v cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v", ctx.Doer, baseRepo, permBase)
+		ctx.APIErrorNotFound("can't read baseRepo UnitTypeCode")
 		return nil, nil
 	}
 
@@ -1158,10 +1137,10 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefToGuess)
-	headRef := headGitRepo.UnstableGuessRefByShortName(headRefToGuess)
+	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(util.IfZero(compareReq.BaseOriRef, baseRepo.DefaultBranch))
+	headRef := headGitRepo.UnstableGuessRefByShortName(util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch))
 
-	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), baseRefToGuess, baseRef, headRefToGuess, headRef)
+	log.Trace("Repo path: %q, base ref: %q->%q, head ref: %q->%q", ctx.Repo.Repository.RelativePath(), compareReq.BaseOriRef, baseRef, compareReq.HeadOriRef, headRef)
 
 	baseRefValid := baseRef.IsBranch() || baseRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(ctx.Repo.Repository.ObjectFormatName), baseRef.ShortName())
 	headRefValid := headRef.IsBranch() || headRef.IsTag() || git.IsStringLikelyCommitID(git.ObjectFormatFromName(headRepo.ObjectFormatName), headRef.ShortName())
@@ -1171,14 +1150,13 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil
 	}
 
-	compareInfo, err := pull_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef.ShortName(), headRef.ShortName(), false, false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, baseRepo, headRepo, headGitRepo, baseRef, headRef, compareReq.DirectComparison(), false)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return nil, nil
 	}
 
-	result = &parseCompareInfoResult{headRepo: headRepo, headGitRepo: headGitRepo, compareInfo: compareInfo, baseRef: baseRef, headRef: headRef}
-	return result, closer
+	return compareInfo, closer
 }
 
 // UpdatePullRequest merge PR's baseBranch into headBranch
@@ -1422,7 +1400,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		return
 	}
 
-	var prInfo *pull_service.CompareInfo
+	var compareInfo *git_service.CompareInfo
 	baseGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1431,19 +1409,18 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	defer closer.Close()
 
 	if pr.HasMerged {
-		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), false, false)
+		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
 	} else {
-		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), false, false)
+		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), false, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	commits := prInfo.Commits
 
 	listOptions := utils.GetListOptions(ctx)
 
-	totalNumberOfCommits := len(commits)
+	totalNumberOfCommits := len(compareInfo.Commits)
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfCommits) / float64(listOptions.PageSize)))
 
 	userCache := make(map[string]*user_model.User)
@@ -1458,7 +1435,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	apiCommits := make([]*api.Commit, 0, limit)
 	for i := start; i < start+limit; i++ {
-		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, commits[i], userCache,
+		apiCommit, err := convert.ToCommit(ctx, ctx.Repo.Repository, baseGitRepo, compareInfo.Commits[i], userCache,
 			convert.ToCommitOptions{
 				Stat:         true,
 				Verification: verification,
@@ -1552,11 +1529,11 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	baseGitRepo := ctx.Repo.GitRepo
 
-	var prInfo *pull_service.CompareInfo
+	var compareInfo *git_service.CompareInfo
 	if pr.HasMerged {
-		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), true, false)
+		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), true, false)
 	} else {
-		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), true, false)
+		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), true, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -1569,7 +1546,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
-	startCommitID := prInfo.MergeBase
+	startCommitID := compareInfo.MergeBase
 	endCommitID := headCommitID
 
 	maxLines := setting.Git.MaxGitDiffLines
