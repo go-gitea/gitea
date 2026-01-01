@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	logger "code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // CompareInfo represents needed information for comparing references.
@@ -25,7 +26,7 @@ type CompareInfo struct {
 	HeadGitRepo      *git.Repository
 	HeadRef          git.RefName
 	HeadCommitID     string
-	DirectComparison bool
+	CompareSeparator string
 	MergeBase        string
 	Commits          []*git.Commit
 	NumFiles         int
@@ -37,6 +38,12 @@ func (ci *CompareInfo) IsSameRepository() bool {
 
 func (ci *CompareInfo) IsSameRef() bool {
 	return ci.IsSameRepository() && ci.BaseRef == ci.HeadRef
+}
+
+func (ci *CompareInfo) DirectComparison() bool {
+	// FIXME: the design of "DirectComparison" is wrong, it loses the information of `^`
+	// To correctly handle the comparison, developers should use `ci.CompareSeparator` directly, all "DirectComparison" related code should be rewritten.
+	return ci.CompareSeparator == ".."
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
@@ -66,7 +73,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		HeadRepo:         headRepo,
 		HeadGitRepo:      headGitRepo,
 		HeadRef:          headRef,
-		DirectComparison: directComparison,
+		CompareSeparator: util.Iif(directComparison, "..", "..."),
 	}
 
 	compareInfo.HeadCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, headRef.String())

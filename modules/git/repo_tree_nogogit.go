@@ -10,12 +10,14 @@ import (
 )
 
 func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
-	wr, rd, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
+	wr := batch.Writer()
+	rd := batch.Reader()
 	_, _ = wr.Write([]byte(id.String() + "\n"))
 
 	// ignore the SHA
@@ -39,7 +41,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		if _, err := wr.Write([]byte(tag.Object.String() + "\n")); err != nil {
 			return nil, err
 		}
-		commit, err := repo.getCommitFromBatchReader(wr, rd, tag.Object)
+		commit, err := repo.getCommitFromBatchReader(batch, tag.Object)
 		if err != nil {
 			return nil, err
 		}
