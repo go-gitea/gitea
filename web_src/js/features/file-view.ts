@@ -61,17 +61,30 @@ async function renderRawFileToContainer(container: HTMLElement, rawFileLink: str
 
 function updateSidebarPosition(elFileView: HTMLElement, sidebar: HTMLElement): void {
   const fileHeader = elFileView.querySelector('.file-header');
-  if (!fileHeader) return;
+  const segment = elFileView.querySelector('.ui.segment');
+  if (!fileHeader || !segment) return;
 
   const headerRect = fileHeader.getBoundingClientRect();
-  // Align sidebar top with the file header top, with a minimum of 12px from viewport top
-  const topPos = Math.max(12, headerRect.top);
-  sidebar.style.top = `${topPos}px`;
+  const segmentRect = segment.getBoundingClientRect();
+  const sidebarHeight = sidebar.offsetHeight;
 
-  // Position sidebar right next to the content (works for both file view and home page)
-  const segment = elFileView.querySelector('.ui.segment');
-  if (segment) {
-    const segmentRect = segment.getBoundingClientRect();
+  // Calculate the maximum top position so sidebar doesn't exceed file content bottom
+  const maxTopPos = segmentRect.bottom - sidebarHeight;
+
+  // Align sidebar top with the file header top, with constraints:
+  // - minimum of 12px from viewport top
+  // - maximum so sidebar bottom doesn't exceed segment bottom
+  let topPos = Math.max(12, headerRect.top);
+  topPos = Math.min(topPos, maxTopPos);
+
+  // Hide sidebar if file content is scrolled out of view
+  if (segmentRect.bottom < 50 || segmentRect.top > window.innerHeight) {
+    sidebar.style.opacity = '0';
+  } else {
+    sidebar.style.opacity = '';
+    sidebar.style.top = `${topPos}px`;
+
+    // Position sidebar right next to the content
     const leftPos = segmentRect.right + 8; // 8px gap from content
     sidebar.style.left = `${leftPos}px`;
     sidebar.style.right = 'auto';
@@ -147,17 +160,8 @@ function initSidebarToggle(elFileView: HTMLElement): void {
   });
   resizeObserver.observe(document.body);
 
-  const fileHeader = elFileView.querySelector('.file-header');
-  if (fileHeader) {
-    const intersectionObserver = new IntersectionObserver(() => {
-      updatePosition();
-    }, {
-      root: null,
-      rootMargin: '0px',
-      threshold: [0, 0.25, 0.5, 0.75, 1.0],
-    });
-    intersectionObserver.observe(fileHeader);
-  }
+  // Update position on scroll
+  window.addEventListener('scroll', updatePosition, {passive: true});
 
   toggleBtn.addEventListener('click', () => {
     const isCurrentlyVisible = !sidebar.classList.contains('sidebar-panel-hidden');
