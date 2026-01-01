@@ -79,13 +79,13 @@ func TestListUnadoptedRepositories_ListOptions(t *testing.T) {
 	repoNames, count, err := ListUnadoptedRepositories(t.Context(), "", &opts)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, count)
-	assert.Equal(t, unadoptedList[0], repoNames[0])
+	assert.Equal(t, unadoptedList[0].RelativePath(), repoNames[0]+".git")
 
 	opts = db.ListOptions{Page: 2, PageSize: 1}
 	repoNames, count, err = ListUnadoptedRepositories(t.Context(), "", &opts)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, count)
-	assert.Equal(t, unadoptedList[1], repoNames[0])
+	assert.Equal(t, unadoptedList[1].RelativePath(), repoNames[0]+".git")
 }
 
 func TestAdoptRepository(t *testing.T) {
@@ -113,9 +113,9 @@ func TestAdoptRepository(t *testing.T) {
 	_ = gitrepo.RemoveRepoFileOrDir(destRepo, "hooks/update.d")
 	f, err := gitrepo.CreateRepoFile(destRepo, "hooks/update.d")
 	assert.NoError(t, err)
-	assert.NoError(t, f.Close())
 	_, err = f.Write([]byte("tests"))
 	assert.NoError(t, err)
+	assert.NoError(t, f.Close())
 
 	adoptedRepo, err = AdoptRepository(t.Context(), user2, user2, CreateRepoOptions{Name: "test-adopt"})
 	assert.Error(t, err)
