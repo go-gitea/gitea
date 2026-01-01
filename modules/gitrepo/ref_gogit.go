@@ -21,7 +21,7 @@ func GetRefsBySha(ctx context.Context, repo Repository, sha, prefix string) ([]s
 	}
 	defer closer.Close()
 
-	iter, err := gitRepo.GogitRepo().References()
+	iter, err := gitRepo.GoGitRepo().References()
 	if err != nil {
 		return nil, err
 	}
