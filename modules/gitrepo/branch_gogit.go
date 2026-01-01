@@ -32,14 +32,14 @@ func GetBranchNames(ctx context.Context, repo Repository, skip, limit int) ([]st
 	}
 	defer closer.Close()
 
-	branchIter, err := gitRepo.GogitRepo().Branches()
+	branchIter, err := gitRepo.GoGitRepo().Branches()
 	if err != nil {
 		return nil, 0, err
 	}
 	defer branchIter.Close()
 
 	_ = branchIter.ForEach(func(branch *plumbing.Reference) error {
-		obj, err := gitRepo.GogitRepo().CommitObject(branch.Hash())
+		obj, err := gitRepo.GoGitRepo().CommitObject(branch.Hash())
 		if err != nil {
 			// skip branch if can't find commit
 			return nil
