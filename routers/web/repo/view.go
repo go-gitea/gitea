@@ -180,7 +180,12 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 	return escaped, output, err
 }
 
-func renderSidebarTocHTML(rctx *markup.RenderContext) template.HTML {
+func renderSidebarTocHTML(rctx *markup.RenderContext, lang string) template.HTML {
+	// Prefer the new generic SidebarTocHeaders
+	if len(rctx.SidebarTocHeaders) > 0 {
+		return markup.RenderSidebarTocHTML(rctx.SidebarTocHeaders, lang)
+	}
+	// Fallback to legacy SidebarTocNode for backward compatibility
 	if rctx.SidebarTocNode == nil {
 		return ""
 	}

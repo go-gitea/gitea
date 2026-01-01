@@ -36,6 +36,13 @@ var RenderBehaviorForTesting struct {
 	DisableAdditionalAttributes bool
 }
 
+// Header holds the data about a header for generating TOC
+type Header struct {
+	Level int
+	Text  string
+	ID    string
+}
+
 type RenderOptions struct {
 	UseAbsoluteLink bool
 
@@ -63,7 +70,8 @@ type RenderContext struct {
 	// the context might be used by the "render" function, but it might also be used by "postProcess" function
 	usedByRender bool
 
-	SidebarTocNode ast.Node
+	SidebarTocNode    ast.Node  // Deprecated: use SidebarTocHeaders instead, keep for compatibility
+	SidebarTocHeaders []Header  // Headers for generating sidebar TOC
 
 	RenderHelper   RenderHelper
 	RenderOptions  RenderOptions
