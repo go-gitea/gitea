@@ -59,32 +59,32 @@ async function renderRawFileToContainer(container: HTMLElement, rawFileLink: str
   }
 }
 
-function updateTocPosition(elFileView: HTMLElement, tocSidebar: HTMLElement): void {
+function updateSidebarPosition(elFileView: HTMLElement, sidebar: HTMLElement): void {
   const fileHeader = elFileView.querySelector('.file-header');
   if (!fileHeader) return;
 
   const headerRect = fileHeader.getBoundingClientRect();
-  // Align TOC top with the file header top, with a minimum of 12px from viewport top
+  // Align sidebar top with the file header top, with a minimum of 12px from viewport top
   const topPos = Math.max(12, headerRect.top);
-  tocSidebar.style.top = `${topPos}px`;
+  sidebar.style.top = `${topPos}px`;
 
-  // Position TOC right next to the content (works for both file view and home page)
+  // Position sidebar right next to the content (works for both file view and home page)
   const segment = elFileView.querySelector('.ui.segment');
   if (segment) {
     const segmentRect = segment.getBoundingClientRect();
     const leftPos = segmentRect.right + 8; // 8px gap from content
-    tocSidebar.style.left = `${leftPos}px`;
-    tocSidebar.style.right = 'auto';
+    sidebar.style.left = `${leftPos}px`;
+    sidebar.style.right = 'auto';
   }
 
-  // Mark as positioned to show the TOC (prevents flicker)
-  tocSidebar.classList.add('toc-positioned');
+  // Mark as positioned to show the sidebar (prevents flicker)
+  sidebar.classList.add('sidebar-positioned');
 }
 
-function initTocToggle(elFileView: HTMLElement): void {
-  const toggleBtn = elFileView.querySelector('#toggle-toc-btn');
-  const tocSidebar = elFileView.querySelector<HTMLElement>('.file-view-toc');
-  if (!toggleBtn || !tocSidebar) return;
+function initSidebarToggle(elFileView: HTMLElement): void {
+  const toggleBtn = elFileView.querySelector('#toggle-sidebar-btn');
+  const sidebar = elFileView.querySelector<HTMLElement>('.file-view-sidebar');
+  if (!toggleBtn || !sidebar) return;
 
   // Check if we're in file view (not home page) - only file view needs margin adjustment
   const repoViewContent = elFileView.closest('.repo-view-content');
@@ -92,26 +92,26 @@ function initTocToggle(elFileView: HTMLElement): void {
 
   // Helper to update position
   const updatePosition = () => {
-    if (!tocSidebar.classList.contains('toc-panel-hidden')) {
-      updateTocPosition(elFileView, tocSidebar);
+    if (!sidebar.classList.contains('sidebar-panel-hidden')) {
+      updateSidebarPosition(elFileView, sidebar);
     }
   };
 
-  // Helper to show TOC with proper positioning
-  const showToc = () => {
+  // Helper to show sidebar with proper positioning
+  const showSidebar = () => {
     toggleBtn.classList.add('active');
 
-    // Wait for margin to take effect before showing and positioning TOC
+    // Wait for margin to take effect before showing and positioning sidebar
     const showAfterLayout = () => {
-      tocSidebar.classList.remove('toc-panel-hidden');
+      sidebar.classList.remove('sidebar-panel-hidden');
       requestAnimationFrame(() => {
-        updateTocPosition(elFileView, tocSidebar);
+        updateSidebarPosition(elFileView, sidebar);
       });
     };
 
-    // For file view, first add margin, wait for layout, then show TOC
-    if (isFileView) {
-      repoViewContent.classList.add('toc-visible');
+    // For file view, first add margin, wait for layout, then show sidebar
+    if (isFileView && repoViewContent) {
+      repoViewContent.classList.add('sidebar-visible');
       // Wait for CSS transition to complete (200ms) before calculating position
       setTimeout(showAfterLayout, 220);
     } else {
@@ -120,28 +120,28 @@ function initTocToggle(elFileView: HTMLElement): void {
     }
   };
 
-  // Helper to hide TOC
-  const hideToc = () => {
-    tocSidebar.classList.add('toc-panel-hidden');
-    tocSidebar.classList.remove('toc-positioned');
+  // Helper to hide sidebar
+  const hideSidebar = () => {
+    sidebar.classList.add('sidebar-panel-hidden');
+    sidebar.classList.remove('sidebar-positioned');
     toggleBtn.classList.remove('active');
-    if (isFileView) {
-      repoViewContent.classList.remove('toc-visible');
+    if (isFileView && repoViewContent) {
+      repoViewContent.classList.remove('sidebar-visible');
     }
   };
 
   // Restore saved state from localStorage (default to hidden)
-  const savedState = localStorage.getItem('file-view-toc-visible');
+  const savedState = localStorage.getItem('file-view-sidebar-visible');
   const isVisible = savedState === 'true'; // default to hidden
 
   // Apply initial state
   if (isVisible) {
-    showToc();
+    showSidebar();
   } else {
-    hideToc();
+    hideSidebar();
   }
 
-  // Update TOC position on resize/scroll to keep aligned with file content
+  // Update sidebar position on resize/scroll to keep aligned with file content
   const resizeObserver = new ResizeObserver(() => {
     updatePosition();
   });
@@ -160,13 +160,13 @@ function initTocToggle(elFileView: HTMLElement): void {
   }
 
   toggleBtn.addEventListener('click', () => {
-    const isCurrentlyVisible = !tocSidebar.classList.contains('toc-panel-hidden');
+    const isCurrentlyVisible = !sidebar.classList.contains('sidebar-panel-hidden');
     if (isCurrentlyVisible) {
-      hideToc();
-      localStorage.setItem('file-view-toc-visible', 'false');
+      hideSidebar();
+      localStorage.setItem('file-view-sidebar-visible', 'false');
     } else {
-      showToc();
-      localStorage.setItem('file-view-toc-visible', 'true');
+      showSidebar();
+      localStorage.setItem('file-view-sidebar-visible', 'true');
     }
   });
 }
@@ -175,8 +175,8 @@ export function initRepoFileView(): void {
   registerGlobalInitFunc('initRepoFileView', async (elFileView: HTMLElement) => {
     initPluginsOnce();
 
-    // Initialize TOC toggle functionality
-    initTocToggle(elFileView);
+    // Initialize sidebar toggle functionality (e.g., TOC for markdown files)
+    initSidebarToggle(elFileView);
 
     const rawFileLink = elFileView.getAttribute('data-raw-file-link')!;
     const mimeType = elFileView.getAttribute('data-mime-type') || ''; // not used yet

@@ -79,8 +79,8 @@
   transition: margin-right 0.2s ease;
 }
 
-/* When TOC is visible, reserve space on the right (only for file view, not home page) */
-.repo-view-content.toc-visible {
+/* When sidebar is visible, reserve space on the right (only for file view, not home page) */
+.repo-view-content.sidebar-visible {
   margin-right: 270px;
 }
 
@@ -112,8 +112,8 @@
   text-decoration: none;
 }
 
-/* TOC as a fixed sidebar panel */
-.file-view-toc {
+/* File view sidebar panel (e.g., TOC for markdown files) */
+.file-view-sidebar {
   position: fixed;
   top: 120px; /* Will be adjusted by JS to align with file content */
   right: 0.5rem;
@@ -129,21 +129,21 @@
   transition: opacity 0.15s ease;
 }
 
-/* Show TOC after JS has positioned it */
-.file-view-toc.toc-positioned {
+/* Show sidebar after JS has positioned it */
+.file-view-sidebar.sidebar-positioned {
   opacity: 1;
 }
 
 /* Hidden state - using custom class to avoid Tailwind conflicts */
-.file-view-toc.toc-panel-hidden {
+.file-view-sidebar.sidebar-panel-hidden {
   display: none;
 }
 
-.file-view-toc details {
+.file-view-sidebar details {
   font-size: 13px;
 }
 
-.file-view-toc summary {
+.file-view-sidebar summary {
   font-weight: var(--font-weight-semibold);
   cursor: pointer;
   padding: 8px 0;
@@ -152,17 +152,17 @@
   margin-bottom: 8px;
 }
 
-.file-view-toc ul {
+.file-view-sidebar ul {
   margin: 0;
   list-style: none;
   padding: 5px 0 5px 1em;
 }
 
-.file-view-toc ul ul {
+.file-view-sidebar ul ul {
   border-left: 1px dashed var(--color-secondary);
 }
 
-.file-view-toc a {
+.file-view-sidebar a {
   display: block;
   padding: 6px 10px;
   color: var(--color-text);
@@ -172,28 +172,28 @@
   border-radius: var(--border-radius);
 }
 
-.file-view-toc a:hover {
+.file-view-sidebar a:hover {
   color: var(--color-primary);
   background: var(--color-hover);
 }
 
-/* TOC toggle button active state - when TOC is visible */
-#toggle-toc-btn.active {
+/* Sidebar toggle button active state - when sidebar is visible */
+#toggle-sidebar-btn.active {
   color: var(--color-primary);
 }
 
-/* Hide TOC sidebar on small screens */
+/* Hide sidebar on small screens */
 @media (max-width: 1400px) {
-  .file-view-toc {
+  .file-view-sidebar {
     display: none !important;
   }
 
-  #toggle-toc-btn {
+  #toggle-sidebar-btn {
     display: none;
   }
 
-  /* Don't reserve space for TOC on small screens */
-  .repo-view-content.toc-visible {
+  /* Don't reserve space for sidebar on small screens */
+  .repo-view-content.sidebar-visible {
     margin-right: 0;
   }
 }

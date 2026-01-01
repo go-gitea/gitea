@@ -203,7 +203,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 			delete(ctx.Data, "IsMarkup")
 		}
 
-		ctx.Data["ReadmeTocHTML"] = renderSidebarTocHTML(rctx)
+		ctx.Data["FileSidebarHTML"] = renderSidebarTocHTML(rctx)
 	}
 
 	if ctx.Data["IsMarkup"] != true {

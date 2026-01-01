@@ -35,11 +35,13 @@
 			{{end}}
 		</div>
 		<div class="file-header-right file-actions flex-text-block tw-flex-wrap">
-			{{if or .ReadmeTocHTML .FileTocHTML}}
-			<button class="btn-octicon" id="toggle-toc-btn" data-tooltip-content="{{ctx.Locale.Tr "toc"}}">
-				{{svg "octicon-list-unordered" 16}}
+		{{if .FileSidebarHTML}}
+		<div class="ui compact icon buttons">
+			<button class="ui mini basic button" id="toggle-sidebar-btn" data-tooltip-content="{{ctx.Locale.Tr "toc"}}">
+				{{svg "octicon-list-unordered" 15}}
 			</button>
-			{{end}}
+		</div>
+		{{end}}
 			{{/* this componment is also controlled by frontend plugin renders */}}
 			<div class="ui compact icon buttons file-view-toggle-buttons {{Iif .HasSourceRenderedToggle "" "tw-hidden"}}">
 				{{if .IsRepresentableAsText}}
@@ -144,9 +146,9 @@
 				</div>
 			{{end}}
 		</div>
-		{{if or .ReadmeTocHTML .FileTocHTML}}
-		<div class="file-view-toc markup toc-panel-hidden">
-			{{or .ReadmeTocHTML .FileTocHTML}}
+		{{if .FileSidebarHTML}}
+		<div class="file-view-sidebar markup sidebar-panel-hidden">
+			{{.FileSidebarHTML}}
 		</div>
 		{{end}}
 
