@@ -547,11 +547,12 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	prOpts := &pull_service.NewPullRequestOptions{
-		Repo:        repo,
-		Issue:       prIssue,
-		LabelIDs:    labelIDs,
-		PullRequest: pr,
-		AssigneeIDs: assigneeIDs,
+		Repo:                repo,
+		Issue:               prIssue,
+		LabelIDs:            labelIDs,
+		PullRequest:         pr,
+		AssigneeIDs:         assigneeIDs,
+		AllowMaintainerEdit: form.AllowMaintainerEdit,
 	}
 	prOpts.Reviewers, prOpts.TeamReviewers = parseReviewersByNames(ctx, form.Reviewers, form.TeamReviewers)
 	if ctx.Written() {
