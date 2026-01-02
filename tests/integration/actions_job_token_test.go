@@ -13,6 +13,7 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	actions_service "code.gitea.io/gitea/services/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/nektos/act/pkg/jobparser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -515,9 +517,9 @@ func TestActionsTokenPermissionsWorkflowScenario(t *testing.T) {
 	})
 }
 
+
 // TestActionsWorkflowPermissionsKeyword tests that the `permissions:` keyword in a workflow YAML
 // restricts the token even when the repository is in permissive mode.
-// This is exactly what the reviewer reported: `permissions: read-all` should restrict write operations.
 func TestActionsWorkflowPermissionsKeyword(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		httpContext := NewAPITestContext(t, "user2", "repo-workflow-perms-kw", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
@@ -532,134 +534,123 @@ func TestActionsWorkflowPermissionsKeyword(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			// Create an Actions run job with TokenPermissions set (simulating a workflow with permissions: read-all)
-			// This is what the permission parser does when parsing the workflow YAML
-			readOnlyPerms := repo_model.ActionsTokenPermissions{
-				Code:         perm.AccessModeRead,
-				Issues:       perm.AccessModeRead,
-				PullRequests: perm.AccessModeRead,
-				Packages:     perm.AccessModeRead,
-				Actions:      perm.AccessModeRead,
-				Wiki:         perm.AccessModeRead,
-			}
-			permsJSON := repo_model.MarshalTokenPermissions(readOnlyPerms)
+			// Define Workflow YAML with two jobs:
+			// 1. job-read-only: Inherits `permissions: read-all` (write should fail)
+			// 2. job-override: Overrides with `permissions: contents: write` (write should succeed)
+			workflowYAML := `
+name: Test Permissions
+on: workflow_dispatch
+permissions: read-all
 
-			// Create a run and job with explicit permissions
-			run := &actions_model.ActionRun{
-				RepoID:    repository.ID,
-				OwnerID:   repository.Owner.ID,
-				Title:     "Test workflow with read-all permissions",
-				Status:    actions_model.StatusRunning,
-				Ref:       "refs/heads/master",
-				CommitSHA: "abc123",
-			}
-			require.NoError(t, db.Insert(t.Context(), run))
+jobs:
+  job-read-only:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Full read-only"
 
-			job := &actions_model.ActionRunJob{
-				RunID:            run.ID,
-				RepoID:           repository.ID,
-				OwnerID:          repository.Owner.ID,
-				CommitSHA:        "abc123",
-				Name:             "test-job",
-				JobID:            "test-job",
-				Status:           actions_model.StatusRunning,
-				TokenPermissions: permsJSON, // This is the key - workflow-declared permissions
-			}
-			require.NoError(t, db.Insert(t.Context(), job))
-
-			// Create task linked to the job
-			task := &actions_model.ActionTask{
-				JobID:             job.ID,
-				RepoID:            repository.ID,
-				Status:            actions_model.StatusRunning,
-				IsForkPullRequest: false,
-			}
-			require.NoError(t, task.GenerateToken())
-			require.NoError(t, db.Insert(t.Context(), task))
-
-			// Update job with task ID
-			job.TaskID = task.ID
-			_, err = db.GetEngine(t.Context()).ID(job.ID).Cols("task_id").Update(job)
+  job-override:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - run: echo "Override to write"
+`
+			// Parse the workflow using the actual parsing logic (this verifies the parser works as expected)
+			singleWorkflows, err := jobparser.Parse([]byte(workflowYAML))
 			require.NoError(t, err)
+			require.Len(t, singleWorkflows, 1)
+			workflow := singleWorkflows[0]
 
-			// Test: Even though repo is in PERMISSIVE mode, the workflow has permissions: read-all
-			// So write operations should FAIL
-			session := emptyTestSession(t)
-			testCtx := APITestContext{
-				Session:  session,
-				Token:    task.Token,
-				Username: "user2",
-				Reponame: "repo-workflow-perms-kw",
-			}
-
-			// Read should work
-			testCtx.ExpectedCode = http.StatusOK
-			t.Run("GITEA_TOKEN Get Repository (Read OK)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-				assert.Equal(t, "repo-workflow-perms-kw", r.Name)
-			}))
-
-			// Write should FAIL due to workflow permissions: read-all
-			testCtx.ExpectedCode = http.StatusForbidden
-			t.Run("GITEA_TOKEN Create File (Write BLOCKED by workflow permissions)", doAPICreateFile(testCtx, "should-fail-due-to-workflow-perms.txt", &structs.CreateFileOptions{
-				FileOptions: structs.FileOptions{
-					BranchName: "master",
-					Message:    "this should fail due to workflow permissions",
-				},
-				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Should Not Be Created")),
-			}))
-
-			// Subtest: Verify that job-level overriding works
-			// Create another job with `permissions: contents: write` to override `read-all`
-			// Logic: Workflow read-all -> Code: Read. Job contents:write -> Code: Write.
-			// Repo is Permissive (Max: Write). So Result: Write.
-			overridePerms := repo_model.ActionsTokenPermissions{
-				Code:         perm.AccessModeWrite,
-				Issues:       perm.AccessModeRead,
-				PullRequests: perm.AccessModeRead,
-				Packages:     perm.AccessModeRead,
-				Actions:      perm.AccessModeRead,
-				Wiki:         perm.AccessModeRead,
-			}
-			overridePermsJSON := repo_model.MarshalTokenPermissions(overridePerms)
-
-			jobOverride := &actions_model.ActionRunJob{
-				RunID:            run.ID,
-				RepoID:           repository.ID,
-				OwnerID:          repository.Owner.ID,
-				CommitSHA:        "abc123",
-				Name:             "test-job-override",
-				JobID:            "test-job-override",
-				Status:           actions_model.StatusRunning,
-				TokenPermissions: overridePermsJSON,
-			}
-			require.NoError(t, db.Insert(t.Context(), jobOverride))
-
-			taskOverride := &actions_model.ActionTask{
-				JobID:             jobOverride.ID,
-				RepoID:            repository.ID,
-				Status:            actions_model.StatusRunning,
-				IsForkPullRequest: false,
-			}
-			require.NoError(t, taskOverride.GenerateToken())
-			require.NoError(t, db.Insert(t.Context(), taskOverride))
-			jobOverride.TaskID = taskOverride.ID
-			_, err = db.GetEngine(t.Context()).ID(jobOverride.ID).Cols("task_id").Update(jobOverride)
+			// Get default permissions for the repo (Permissive)
+			actionsUnit, err := repo_model.GetUnit(t.Context(), repository.ID, unit_model.TypeActions)
 			require.NoError(t, err)
+			cfg := actionsUnit.ActionsConfig()
+			defaultPerms := cfg.GetEffectiveTokenPermissions(false)
 
-			testCtxOverride := APITestContext{
-				Session:  session,
-				Token:    taskOverride.Token,
-				Username: "user2",
-				Reponame: "repo-workflow-perms-kw",
+			// Parse workflow-level permissions
+			workflowPerms := actions_service.ParseWorkflowPermissions(workflow, defaultPerms)
+
+			// Iterate over jobs and create them matching the parser logic
+			for _, jobDef := range workflow.Jobs {
+				jobID := jobDef.ID
+				jobName := jobDef.Name
+
+				// Parse job-level permissions
+				jobPerms := actions_service.ParseJobPermissions(jobDef, workflowPerms)
+				finalPerms := cfg.ClampPermissions(jobPerms)
+				permsJSON := repo_model.MarshalTokenPermissions(finalPerms)
+
+				// Create Run (shared)
+				run := &actions_model.ActionRun{
+					RepoID:        repository.ID,
+					OwnerID:       repository.Owner.ID,
+					Title:         "Test workflow permissions",
+					Status:        actions_model.StatusRunning,
+					Ref:           "refs/heads/master",
+					CommitSHA:     "abc123456",
+					TriggerUserID: repository.Owner.ID,
+				}
+
+				require.NoError(t, db.Insert(t.Context(), run))
+
+				job := &actions_model.ActionRunJob{
+					RunID:            run.ID,
+					RepoID:           repository.ID,
+					OwnerID:          repository.Owner.ID,
+					CommitSHA:        "abc123456",
+					Name:             jobName,
+					JobID:            jobID,
+					Status:           actions_model.StatusRunning,
+					TokenPermissions: permsJSON,
+				}
+				require.NoError(t, db.Insert(t.Context(), job))
+
+				task := &actions_model.ActionTask{
+					JobID:             job.ID,
+					RepoID:            repository.ID,
+					Status:            actions_model.StatusRunning,
+					IsForkPullRequest: false,
+				}
+				require.NoError(t, task.GenerateToken())
+				require.NoError(t, db.Insert(t.Context(), task))
+
+				// Link task to job
+				job.TaskID = task.ID
+				_, err = db.GetEngine(t.Context()).ID(job.ID).Cols("task_id").Update(job)
+				require.NoError(t, err)
+
+				// Test API Access
+				session := emptyTestSession(t)
+				testCtx := APITestContext{
+					Session:  session,
+					Token:    task.Token,
+					Username: "user2",
+					Reponame: "repo-workflow-perms-kw",
+				}
+
+				if jobID == "job-read-only" {
+					// Should match 'read-all' -> Write Forbidden
+					testCtx.ExpectedCode = http.StatusForbidden
+					t.Run("Job [read-only] Create File (Should Fail)", doAPICreateFile(testCtx, "fail-readonly.txt", &structs.CreateFileOptions{
+						ContentBase64: base64.StdEncoding.EncodeToString([]byte("fail")),
+					}))
+					
+					testCtx.ExpectedCode = http.StatusOK
+					t.Run("Job [read-only] Get Repo (Should Succeed)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+						assert.Equal(t, repository.Name, r.Name)
+					}))
+				} else if jobID == "job-override" {
+					// Should have 'contents: write' -> Write Created
+					testCtx.ExpectedCode = http.StatusCreated
+					t.Run("Job [override] Create File (Should Succeed)", doAPICreateFile(testCtx, "succeed-override.txt", &structs.CreateFileOptions{
+						FileOptions: structs.FileOptions{
+							BranchName: "master",
+							Message:    "override success",
+						},
+						ContentBase64: base64.StdEncoding.EncodeToString([]byte("success")),
+					}))
+				}
 			}
-			testCtxOverride.ExpectedCode = http.StatusCreated
-			t.Run("GITEA_TOKEN Create File (Write ALLOWED by job override)", doAPICreateFile(testCtxOverride, "should-succeed-override.txt", &structs.CreateFileOptions{
-				FileOptions: structs.FileOptions{
-					BranchName: "master",
-					Message:    "this should succeed due to job permissions override",
-				},
-				ContentBase64: base64.StdEncoding.EncodeToString([]byte("Should Be Created")),
-			}))
 		}))
 	})
 }
