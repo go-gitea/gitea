@@ -13,7 +13,6 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
-	actions_service "code.gitea.io/gitea/services/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -24,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	actions_service "code.gitea.io/gitea/services/actions"
 
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/stretchr/testify/assert"
@@ -562,7 +562,9 @@ jobs:
 			workflow := singleWorkflows[0]
 
 			// Get default permissions for the repo (Permissive)
-			actionsUnit, err := repo_model.GetUnit(t.Context(), repository.ID, unit_model.TypeActions)
+			repo, err := repo_model.GetRepositoryByID(t.Context(), repository.ID)
+			require.NoError(t, err)
+			actionsUnit, err := repo.GetUnit(t.Context(), unit_model.TypeActions)
 			require.NoError(t, err)
 			cfg := actionsUnit.ActionsConfig()
 			defaultPerms := cfg.GetEffectiveTokenPermissions(false)
@@ -571,8 +573,16 @@ jobs:
 			workflowPerms := actions_service.ParseWorkflowPermissions(workflow, defaultPerms)
 
 			// Iterate over jobs and create them matching the parser logic
-			for _, jobDef := range workflow.Jobs {
-				jobID := jobDef.ID
+			// SingleWorkflow.Jobs is not directly accessible, iterate over flows instead (simplification for test)
+			// Wait, jobparser.Parse returns []*SingleWorkflow. In the loop above...
+			// jobparser.Parse(content) returns []SingleWorkflow. 
+			// Actually, let's use the loop structure from view.go:rerunJob
+			// for _, flow := range singleWorkflow { wfJobID, wfJob := flow.Job() ... }
+			
+			// We already have `workflow` (SingleWorkflow). It represents one job in the matrix/list.
+			// Actually `jobparser.Parse` returns a slice of SingleWorkflow, one for each job.
+			for _, flow := range singleWorkflows {
+				jobID, jobDef := flow.Job()
 				jobName := jobDef.Name
 
 				// Parse job-level permissions
@@ -590,7 +600,6 @@ jobs:
 					CommitSHA:     "abc123456",
 					TriggerUserID: repository.Owner.ID,
 				}
-
 				require.NoError(t, db.Insert(t.Context(), run))
 
 				job := &actions_model.ActionRunJob{
