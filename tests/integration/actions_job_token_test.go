@@ -558,8 +558,7 @@ jobs:
 			// Parse the workflow using the actual parsing logic (this verifies the parser works as expected)
 			singleWorkflows, err := jobparser.Parse([]byte(workflowYAML))
 			require.NoError(t, err)
-			require.Len(t, singleWorkflows, 1)
-			workflow := singleWorkflows[0]
+			// jobparser.Parse returns one SingleWorkflow per job
 
 			// Get default permissions for the repo (Permissive)
 			repo, err := repo_model.GetRepositoryByID(t.Context(), repository.ID)
@@ -569,23 +568,15 @@ jobs:
 			cfg := actionsUnit.ActionsConfig()
 			defaultPerms := cfg.GetEffectiveTokenPermissions(false)
 
-			// Parse workflow-level permissions
-			workflowPerms := actions_service.ParseWorkflowPermissions(workflow, defaultPerms)
-
 			// Iterate over jobs and create them matching the parser logic
-			// SingleWorkflow.Jobs is not directly accessible, iterate over flows instead (simplification for test)
-			// Wait, jobparser.Parse returns []*SingleWorkflow. In the loop above...
-			// jobparser.Parse(content) returns []SingleWorkflow. 
-			// Actually, let's use the loop structure from view.go:rerunJob
-			// for _, flow := range singleWorkflow { wfJobID, wfJob := flow.Job() ... }
-			
-			// We already have `workflow` (SingleWorkflow). It represents one job in the matrix/list.
-			// Actually `jobparser.Parse` returns a slice of SingleWorkflow, one for each job.
 			for _, flow := range singleWorkflows {
 				jobID, jobDef := flow.Job()
 				jobName := jobDef.Name
 
-				// Parse job-level permissions
+				// Parse workflow-level permissions from the flow
+				workflowPerms := actions_service.ParseWorkflowPermissions(flow, defaultPerms)
+
+				// Parse job-level permissions(jobDef, workflowPerms)
 				jobPerms := actions_service.ParseJobPermissions(jobDef, workflowPerms)
 				finalPerms := cfg.ClampPermissions(jobPerms)
 				permsJSON := repo_model.MarshalTokenPermissions(finalPerms)
