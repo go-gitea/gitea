@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
 )
@@ -20,6 +21,7 @@ func (g *ASTTransformer) transformHeading(_ *markup.RenderContext, v *ast.Headin
 		}
 	}
 	txt := v.Text(reader.Source()) //nolint:staticcheck // Text is deprecated
+	txt = bluemonday.StrictPolicy().SanitizeBytes(txt)
 	header := Header{
 		Text:  util.UnsafeBytesToString(txt),
 		Level: v.Level,

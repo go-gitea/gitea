@@ -547,3 +547,56 @@ func TestMarkdownLink(t *testing.T) {
 <a href="#user-content-foo" rel="nofollow">link3</a></p>
 `, string(result))
 }
+
+func TestToCWithHTML(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
+
+	t.Run("anchor tag", func(t *testing.T) {
+		input := `---
+include_toc: true
+---
+
+## <a name="anchor"></a>Heading with HTML`
+
+		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
+		assert.NoError(t, err)
+		resultStr := string(result)
+
+		// The ToC link text should not contain HTML tags
+		assert.Contains(t, resultStr, ">Heading with HTML</a>", "ToC link text should be plain text without HTML tags")
+		// Verify the raw HTML tag string does not appear in the ToC link text
+		assert.NotContains(t, resultStr, `>&#60;a name=&#34;anchor&#34;&#62;&#60;/a&#62;Heading with HTML</a>`, "ToC should not contain escaped HTML")
+		assert.NotContains(t, resultStr, `><a name="anchor"></a>Heading with HTML</a>`, "ToC should not contain raw HTML tags")
+	})
+
+	t.Run("mixed a and b tags", func(t *testing.T) {
+		input := `---
+include_toc: true
+---
+
+## <a href="link">Click</a> and <b>Bold</b>`
+
+		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
+		assert.NoError(t, err)
+		resultStr := string(result)
+
+		// The ToC should show text content from both tags
+		assert.Contains(t, resultStr, ">Click and Bold</a>", "ToC should preserve text content from HTML tags")
+	})
+
+	t.Run("code spans preserve angle brackets", func(t *testing.T) {
+		input := `---
+include_toc: true
+---
+
+## Compare ` + "`<a>`" + ` and ` + "`<b>`" + ` tags`
+
+		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
+		assert.NoError(t, err)
+		resultStr := string(result)
+
+		// Code spans should preserve their content in ToC
+		assert.Contains(t, resultStr, "Compare", "ToC should contain heading text")
+		assert.Contains(t, resultStr, "tags", "ToC should contain heading text")
+	})
+}
