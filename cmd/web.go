@@ -233,7 +233,6 @@ func serveInstalled(c *cli.Command) error {
 }
 
 func servePprof() {
-	// FIXME: it should use a proper context
 	mux := http.NewServeMux()
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
 	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
@@ -241,6 +240,7 @@ func servePprof() {
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 	mux.Handle("/debug/fgprof", fgprof.Handler())
+	// FIXME: it should use a proper context
 	_, _, finished := process.GetManager().AddTypedContext(context.TODO(), "Web: PProf Server", process.SystemProcessType, true)
 	// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment, it's not worth introducing a configurable option for it.
 	log.Info("Starting pprof server on localhost:6060")
