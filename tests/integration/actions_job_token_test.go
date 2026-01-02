@@ -568,6 +568,18 @@ jobs:
 			cfg := actionsUnit.ActionsConfig()
 			defaultPerms := cfg.GetEffectiveTokenPermissions(false)
 
+			// Create Run (shared)
+			run := &actions_model.ActionRun{
+				RepoID:        repository.ID,
+				OwnerID:       repository.Owner.ID,
+				Title:         "Test workflow permissions",
+				Status:        actions_model.StatusRunning,
+				Ref:           "refs/heads/master",
+				CommitSHA:     "abc123456",
+				TriggerUserID: repository.Owner.ID,
+			}
+			require.NoError(t, db.Insert(t.Context(), run))
+
 			// Iterate over jobs and create them matching the parser logic
 			for _, flow := range singleWorkflows {
 				jobID, jobDef := flow.Job()
@@ -580,18 +592,6 @@ jobs:
 				jobPerms := actions_service.ParseJobPermissions(jobDef, workflowPerms)
 				finalPerms := cfg.ClampPermissions(jobPerms)
 				permsJSON := repo_model.MarshalTokenPermissions(finalPerms)
-
-				// Create Run (shared)
-				run := &actions_model.ActionRun{
-					RepoID:        repository.ID,
-					OwnerID:       repository.Owner.ID,
-					Title:         "Test workflow permissions",
-					Status:        actions_model.StatusRunning,
-					Ref:           "refs/heads/master",
-					CommitSHA:     "abc123456",
-					TriggerUserID: repository.Owner.ID,
-				}
-				require.NoError(t, db.Insert(t.Context(), run))
 
 				job := &actions_model.ActionRunJob{
 					RunID:            run.ID,
