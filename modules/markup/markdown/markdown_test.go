@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -566,9 +567,15 @@ include_toc: true
 	resultHTML, err := markdown.RenderString(markup.NewTestRenderContext(), input)
 	assert.NoError(t, err)
 	result := string(resultHTML)
+
 	pos1, pos2 := strings.Index(result, `<ul>`), strings.Index(result, `</ul>`)
+	require.Positive(t, pos1)
+	require.Positive(t, pos2)
 	partToc, partContent := result[pos1:pos2+5], result[pos2+5:]
-	partContent = partContent[strings.Index(partContent, "<h1"):]
+	pos3 := strings.Index(partContent, "<h1")
+	require.Positive(t, pos3)
+	partContent = partContent[pos3:]
+
 	assert.Equal(t, `<ul>
 <li>
 <a href="#user-content-user-content-tag-a-hreflinklinka-and-bboldb" rel="nofollow">tag link and Bold</a></li>
@@ -577,6 +584,7 @@ include_toc: true
 <li>
 <a href="#user-content-user-content-markdown-bold" rel="nofollow">markdown bold</a></li>
 </ul>`, partToc)
+
 	assert.Equal(t, `<h1 id="user-content-tag-a-hreflinklinka-and-bboldb">tag <a href="/link" rel="nofollow">link</a> and <b>Bold</b></h1>
 <h1 id="user-content-code-block-a">code block <code>&lt;a&gt;</code></h1>
 <h1 id="user-content-markdown-bold">markdown <strong>bold</strong></h1>
