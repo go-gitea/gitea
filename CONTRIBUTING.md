@@ -82,7 +82,6 @@ Please follow the guidelines described in [How to Report Bugs Effectively](http:
 
 Please be kind—remember that Gitea comes at no cost to you, and you're getting free help.
 
-
 ### Types of issues
 
 Typically, issues fall in one of the following categories:
