@@ -22,7 +22,7 @@ type CompareInfo struct {
 	HeadGitRepo      *git.Repository
 	HeadRef          git.RefName
 	HeadCommitID     string
-	DirectComparison bool
+	CompareSeparator string
 	MergeBase        string
 	Commits          []*git.Commit
 	NumFiles         int
@@ -36,6 +36,12 @@ func (ci *CompareInfo) IsSameRef() bool {
 	return ci.IsSameRepository() && ci.BaseRef == ci.HeadRef
 }
 
+func (ci *CompareInfo) DirectComparison() bool {
+	// FIXME: the design of "DirectComparison" is wrong, it loses the information of `^`
+	// To correctly handle the comparison, developers should use `ci.CompareSeparator` directly, all "DirectComparison" related code should be rewritten.
+	return ci.CompareSeparator == ".."
+}
+
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
 func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseRef, headRef git.RefName, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
 	compareInfo := &CompareInfo{
@@ -44,7 +50,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		HeadRepo:         headRepo,
 		HeadGitRepo:      headGitRepo,
 		HeadRef:          headRef,
-		DirectComparison: directComparison,
+		CompareSeparator: util.Iif(directComparison, "..", "..."),
 	}
 
 	compareInfo.BaseCommitID, err = gitrepo.GetFullCommitID(ctx, baseRepo, baseRef.String())
@@ -75,8 +81,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 
 	// We have a common base - therefore we know that ... should work
 	if !fileOnly {
-		separator := util.Iif(directComparison, "..", "...")
-		compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.BaseCommitID+separator+compareInfo.HeadCommitID)
+		compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.BaseCommitID+compareInfo.CompareSeparator+compareInfo.HeadCommitID)
 		if err != nil {
 			return nil, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
 		}
