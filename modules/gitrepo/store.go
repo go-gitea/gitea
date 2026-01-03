@@ -14,6 +14,10 @@ import (
 
 var ErrRepoStoreConfig = util.NewInvalidArgumentErrorf("invalid repository store configuration")
 
+func IsRepoStoreConfigured() bool {
+	return setting.RepoRootPath != ""
+}
+
 func RepoStoreStat() error {
 	if setting.RepoRootPath == "" {
 		return ErrRepoStoreConfig
