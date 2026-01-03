@@ -551,52 +551,34 @@ func TestMarkdownLink(t *testing.T) {
 func TestToCWithHTML(t *testing.T) {
 	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 
-	t.Run("anchor tag", func(t *testing.T) {
-		input := `---
+	t1 := `tag <a href="link">link</a> and <b>Bold</b>`
+	t2 := "code block `<a>`"
+	t3 := "markdown **bold**"
+	input := `---
 include_toc: true
 ---
 
-## <a name="anchor"></a>Heading with HTML`
+# ` + t1 + `
+# ` + t2 + `
+# ` + t3 + `
+`
 
-		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
-		assert.NoError(t, err)
-		resultStr := string(result)
-
-		// The ToC link text should not contain HTML tags
-		assert.Contains(t, resultStr, ">Heading with HTML</a>", "ToC link text should be plain text without HTML tags")
-		// Verify the raw HTML tag string does not appear in the ToC link text
-		assert.NotContains(t, resultStr, `>&#60;a name=&#34;anchor&#34;&#62;&#60;/a&#62;Heading with HTML</a>`, "ToC should not contain escaped HTML")
-		assert.NotContains(t, resultStr, `><a name="anchor"></a>Heading with HTML</a>`, "ToC should not contain raw HTML tags")
-	})
-
-	t.Run("mixed a and b tags", func(t *testing.T) {
-		input := `---
-include_toc: true
----
-
-## <a href="link">Click</a> and <b>Bold</b>`
-
-		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
-		assert.NoError(t, err)
-		resultStr := string(result)
-
-		// The ToC should show text content from both tags
-		assert.Contains(t, resultStr, ">Click and Bold</a>", "ToC should preserve text content from HTML tags")
-	})
-
-	t.Run("code spans preserve angle brackets", func(t *testing.T) {
-		input := `---
-include_toc: true
----
-
-## Compare ` + "`<a>`" + ` and ` + "`<b>`" + ` tags`
-
-		result, err := markdown.RenderString(markup.NewTestRenderContext(), input)
-		assert.NoError(t, err)
-		resultStr := string(result)
-
-		// Code spans should preserve their content in ToC
-		assert.Contains(t, resultStr, "Compare", "ToC should contain heading text")
-		assert.Contains(t, resultStr, "tags", "ToC should contain heading text")
-	})
+	resultHTML, err := markdown.RenderString(markup.NewTestRenderContext(), input)
+	assert.NoError(t, err)
+	result := string(resultHTML)
+	pos1, pos2 := strings.Index(result, `<ul>`), strings.Index(result, `</ul>`)
+	partToc, partContent := result[pos1:pos2+5], result[pos2+5:]
+	partContent = partContent[strings.Index(partContent, "<h1"):]
+	assert.Equal(t, `<ul>
+<li>
+<a href="#user-content-user-content-tag-a-hreflinklinka-and-bboldb" rel="nofollow">tag link and Bold</a></li>
+<li>
+<a href="#user-content-user-content-code-block-a" rel="nofollow">code block </a></li>
+<li>
+<a href="#user-content-user-content-markdown-bold" rel="nofollow">markdown bold</a></li>
+</ul>`, partToc)
+	assert.Equal(t, `<h1 id="user-content-tag-a-hreflinklinka-and-bboldb">tag <a href="/link" rel="nofollow">link</a> and <b>Bold</b></h1>
+<h1 id="user-content-code-block-a">code block <code>&lt;a&gt;</code></h1>
+<h1 id="user-content-markdown-bold">markdown <strong>bold</strong></h1>
+`, partContent)
 }
