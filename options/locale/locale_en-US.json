@@ -643,6 +643,7 @@
   "user.block.note.edit": "Edit note",
   "user.block.list": "Blocked users",
   "user.block.list.none": "You have not blocked any users.",
+  "settings.general": "General",
   "settings.profile": "Profile",
   "settings.account": "Account",
   "settings.appearance": "Appearance",
