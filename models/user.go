@@ -404,7 +404,6 @@ func (u *User) SizedRelAvatarLink(size int) string {
 //
 // This function make take time to return when federated avatars
 // are in use, due to a DNS lookup need
-//
 func (u *User) RealSizedAvatarLink(size int) string {
 	if u.ID == -1 {
 		return base.DefaultAvatarLink()
@@ -1192,8 +1191,11 @@ func deleteUser(e *xorm.Session, u *User) error {
 		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", RepoWatchModeDont).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
-	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
-		return fmt.Errorf("decrease repository num_watches: %v", err)
+	if len(watchedRepoIDs) > 0 {
+
+		if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
+			return fmt.Errorf("decrease repository num_watches: %v", err)
+		}
 	}
 	// ***** END: Watch *****
 
