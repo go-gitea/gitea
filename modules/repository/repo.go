@@ -233,7 +233,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 		}
-		added, deleted, updated = len(inserts), len(deletes), len(updates)
+		added, deleted, updated = len(deletes), len(updates), len(inserts)
 		return nil
 	})
 	if err != nil {
@@ -251,9 +251,7 @@ func calcSync(destTags []*git.Tag, dbTags []*shortRelease) ([]*git.Tag, []int64,
 	}
 	dbTagMap := make(map[string]*shortRelease)
 	for _, rel := range dbTags {
-		if rel.IsTag {
-			dbTagMap[rel.TagName] = rel
-		}
+		dbTagMap[rel.TagName] = rel
 	}
 
 	inserted := make([]*git.Tag, 0, 10)
@@ -268,10 +266,7 @@ func calcSync(destTags []*git.Tag, dbTags []*shortRelease) ([]*git.Tag, []int64,
 	}
 	deleted := make([]int64, 0, 10)
 	for _, tag := range dbTags {
-		if !tag.IsTag {
-			continue
-		}
-		if destTagMap[tag.TagName] == nil {
+		if destTagMap[tag.TagName] == nil && tag.IsTag {
 			deleted = append(deleted, tag.ID)
 		}
 	}
