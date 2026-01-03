@@ -517,7 +517,6 @@ func TestActionsTokenPermissionsWorkflowScenario(t *testing.T) {
 	})
 }
 
-
 // TestActionsWorkflowPermissionsKeyword tests that the `permissions:` keyword in a workflow YAML
 // restricts the token even when the repository is in permissive mode.
 func TestActionsWorkflowPermissionsKeyword(t *testing.T) {
@@ -634,7 +633,7 @@ jobs:
 					t.Run("Job [read-only] Create File (Should Fail)", doAPICreateFile(testCtx, "fail-readonly.txt", &structs.CreateFileOptions{
 						ContentBase64: base64.StdEncoding.EncodeToString([]byte("fail")),
 					}))
-					
+
 					testCtx.ExpectedCode = http.StatusOK
 					t.Run("Job [read-only] Get Repo (Should Succeed)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
 						assert.Equal(t, repository.Name, r.Name)
