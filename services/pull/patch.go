@@ -35,20 +35,15 @@ func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io
 		return err
 	}
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
-	if err != nil {
-		return fmt.Errorf("OpenRepository: %w", err)
-	}
-	defer closer.Close()
-
+	var err error
 	compareArg := pr.MergeBase + "..." + pr.GetGitHeadRefName()
 	switch {
 	case patch:
-		err = gitRepo.GetPatch(compareArg, w)
+		err = gitrepo.GetPatch(ctx, pr.BaseRepo, compareArg, w)
 	case binary:
-		err = gitRepo.GetDiffBinary(compareArg, w)
+		err = gitrepo.GetDiffBinary(ctx, pr.BaseRepo, compareArg, w)
 	default:
-		err = gitRepo.GetDiff(compareArg, w)
+		err = gitrepo.GetDiff(ctx, pr.BaseRepo, compareArg, w)
 	}
 
 	if err != nil {

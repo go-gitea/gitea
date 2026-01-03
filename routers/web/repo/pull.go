@@ -786,7 +786,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	var reviewState *pull_model.ReviewState
 	var numViewedFiles int
 	if ctx.IsSigned && isShowAllCommits {
-		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions)
+		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, diff, diffOptions)
 		if err != nil {
 			ctx.ServerError("SyncUserSpecificDiff", err)
 			return

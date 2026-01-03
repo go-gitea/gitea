@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package gitrepo
 
 import (
 	"bufio"
@@ -36,15 +36,13 @@ type CodeActivityAuthor struct {
 }
 
 // GetCodeActivityStats returns code statistics for activity page
-func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) (*CodeActivityStats, error) {
+func GetCodeActivityStats(ctx context.Context, repo Repository, fromTime time.Time, branch string) (*CodeActivityStats, error) {
 	stats := &CodeActivityStats{}
 
 	since := fromTime.Format(time.RFC3339)
 
-	stdout, _, runErr := gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
-		AddOptionFormat("--since=%s", since).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
+	stdout, runErr := RunCmdString(ctx, repo, gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
+		AddOptionFormat("--since=%s", since))
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -73,8 +71,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 
 	stderr := new(strings.Builder)
-	err = gitCmd.
-		WithDir(repo.Path).
+	err = RunCmd(ctx, repo, gitCmd.
 		WithStdout(stdoutWriter).
 		WithStderr(stderr).
 		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
@@ -145,8 +142,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			stats.Authors = a
 			_ = stdoutReader.Close()
 			return nil
-		}).
-		Run(repo.Ctx)
+		}))
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}
