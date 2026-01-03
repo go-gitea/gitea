@@ -43,3 +43,44 @@ func TestGetLatestCommitTime(t *testing.T) {
 	// ce064814f4a0d337b333e646ece456cd39fab612 (refs/heads/master)
 	assert.EqualValues(t, 1668354014, lct.Unix())
 }
+
+func TestHasPreviousCommitSha256(t *testing.T) {
+	repo := &mockRepository{path: "repo1_bare_sha256"}
+	newCommitID := "f004f41359117d319dedd0eaab8c5259ee2263da839dcba33637997458627fdc"
+
+	parentSHA := "b0ec7af4547047f12d5093e37ef8f1b3b5415ed8ee17894d43a34d7d34212e9c"
+	notParentSHA := "42e334efd04cd36eea6da0599913333c26116e1a537ca76e5b6e4af4dda00236"
+
+	haz, err := HasPreviousCommit(t.Context(), repo, newCommitID, parentSHA)
+	assert.NoError(t, err)
+	assert.True(t, haz)
+
+	hazNot, err := HasPreviousCommit(t.Context(), repo, newCommitID, notParentSHA)
+	assert.NoError(t, err)
+	assert.False(t, hazNot)
+
+	selfNot, err := HasPreviousCommit(t.Context(), repo, newCommitID, newCommitID)
+	assert.NoError(t, err)
+	assert.False(t, selfNot)
+}
+
+func TestHasPreviousCommit(t *testing.T) {
+	repo := &mockRepository{path: "repo1_bare"}
+
+	newCommitID := "8006ff9adbf0cb94da7dad9e537e53817f9fa5c0"
+
+	parentSHA := "8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2"
+	notParentSHA := "2839944139e0de9737a044f78b0e4b40d989a9e3"
+
+	haz, err := HasPreviousCommit(t.Context(), repo, newCommitID, parentSHA)
+	assert.NoError(t, err)
+	assert.True(t, haz)
+
+	hazNot, err := HasPreviousCommit(t.Context(), repo, newCommitID, notParentSHA)
+	assert.NoError(t, err)
+	assert.False(t, hazNot)
+
+	selfNot, err := HasPreviousCommit(t.Context(), repo, newCommitID, newCommitID)
+	assert.NoError(t, err)
+	assert.False(t, selfNot)
+}

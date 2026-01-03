@@ -5,6 +5,8 @@ package gitrepo
 
 import (
 	"context"
+	"errors"
+	"os/exec"
 	"strconv"
 	"strings"
 	"time"
@@ -109,4 +111,55 @@ func GetLatestCommitTime(ctx context.Context, repo Repository) (time.Time, error
 	}
 	commitTime := strings.TrimSpace(stdout)
 	return time.Parse("Mon Jan _2 15:04:05 2006 -0700", commitTime)
+}
+
+// IsForcePush returns true if a push from oldCommitHash to this is a force push
+func IsCommitForcePush(ctx context.Context, repo Repository, newCommitID, oldCommitID string) (bool, error) {
+	if oldCommitID == git.Sha1ObjectFormat.EmptyObjectID().String() || oldCommitID == git.Sha256ObjectFormat.EmptyObjectID().String() {
+		return false, nil
+	}
+
+	hasPreviousCommit, err := HasPreviousCommit(ctx, repo, newCommitID, oldCommitID)
+	return !hasPreviousCommit, err
+}
+
+// HasPreviousCommit returns true if a given commitHash is contained in commit's parents
+func HasPreviousCommit(ctx context.Context, repo Repository, newCommitID, oldCommitID string) (bool, error) {
+	if newCommitID == oldCommitID {
+		return false, nil
+	}
+
+	_, err := RunCmdString(ctx, repo, gitcmd.NewCommand("merge-base", "--is-ancestor").
+		AddDynamicArguments(oldCommitID, newCommitID))
+	if err == nil {
+		return true, nil
+	}
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
+			return false, nil
+		}
+	}
+	return false, err
+}
+
+// GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
+func GetCommitBranchName(ctx context.Context, repo Repository, commitID string) (string, error) {
+	cmd := gitcmd.NewCommand("name-rev")
+	if git.DefaultFeatures().CheckVersionAtLeast("2.13.0") {
+		cmd.AddArguments("--exclude", "refs/tags/*")
+	}
+	cmd.AddArguments("--name-only", "--no-undefined").AddDynamicArguments(commitID)
+	data, err := RunCmdString(ctx, repo, cmd)
+	if err != nil {
+		// handle special case where git can not describe commit
+		if strings.Contains(err.Error(), "cannot describe") {
+			return "", nil
+		}
+
+		return "", err
+	}
+
+	// name-rev commitID output will be "master" or "master~12"
+	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }

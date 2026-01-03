@@ -296,7 +296,7 @@ func pushNewBranch(ctx context.Context, repo *repo_model.Repository, pusher *use
 	return l, nil
 }
 
-func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
+func pushUpdateBranch(ctx context.Context, repo *repo_model.Repository, pusher *user_model.User, opts *repo_module.PushUpdateOptions, newCommit *git.Commit) ([]*git.Commit, error) {
 	l, err := newCommit.CommitsBeforeUntil(opts.OldCommitID)
 	if err != nil {
 		return nil, fmt.Errorf("newCommit.CommitsBeforeUntil: %w", err)
@@ -304,7 +304,7 @@ func pushUpdateBranch(_ context.Context, repo *repo_model.Repository, pusher *us
 
 	branch := opts.RefFullName.BranchName()
 
-	isForcePush, err := newCommit.IsForcePush(opts.OldCommitID)
+	isForcePush, err := gitrepo.IsCommitForcePush(ctx, repo, newCommit.ID.String(), opts.OldCommitID)
 	if err != nil {
 		log.Error("IsForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 	}

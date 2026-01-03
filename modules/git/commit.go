@@ -6,9 +6,7 @@ package git
 
 import (
 	"context"
-	"errors"
 	"io"
-	"os/exec"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -136,49 +134,6 @@ func (c *Commit) CommitsBefore() ([]*Commit, error) {
 	return c.repo.getCommitsBefore(c.ID)
 }
 
-// HasPreviousCommit returns true if a given commitHash is contained in commit's parents
-func (c *Commit) HasPreviousCommit(objectID ObjectID) (bool, error) {
-	this := c.ID.String()
-	that := objectID.String()
-
-	if this == that {
-		return false, nil
-	}
-
-	_, _, err := gitcmd.NewCommand("merge-base", "--is-ancestor").
-		AddDynamicArguments(that, this).
-		WithDir(c.repo.Path).
-		RunStdString(c.repo.Ctx)
-	if err == nil {
-		return true, nil
-	}
-	var exitError *exec.ExitError
-	if errors.As(err, &exitError) {
-		if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
-			return false, nil
-		}
-	}
-	return false, err
-}
-
-// IsForcePush returns true if a push from oldCommitHash to this is a force push
-func (c *Commit) IsForcePush(oldCommitID string) (bool, error) {
-	objectFormat, err := c.repo.GetObjectFormat()
-	if err != nil {
-		return false, err
-	}
-	if oldCommitID == objectFormat.EmptyObjectID().String() {
-		return false, nil
-	}
-
-	oldCommit, err := c.repo.GetCommit(oldCommitID)
-	if err != nil {
-		return false, err
-	}
-	hasPreviousCommit, err := c.HasPreviousCommit(oldCommit.ID)
-	return !hasPreviousCommit, err
-}
-
 // CommitsBeforeLimit returns num commits before current revision
 func (c *Commit) CommitsBeforeLimit(num int) ([]*Commit, error) {
 	return c.repo.getCommitsBeforeLimit(c.ID, num)
@@ -280,27 +235,6 @@ func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
 		return "", err
 	}
 	return string(bytes), nil
-}
-
-// GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
-func (c *Commit) GetBranchName() (string, error) {
-	cmd := gitcmd.NewCommand("name-rev")
-	if DefaultFeatures().CheckVersionAtLeast("2.13.0") {
-		cmd.AddArguments("--exclude", "refs/tags/*")
-	}
-	cmd.AddArguments("--name-only", "--no-undefined").AddDynamicArguments(c.ID.String())
-	data, _, err := cmd.WithDir(c.repo.Path).RunStdString(c.repo.Ctx)
-	if err != nil {
-		// handle special case where git can not describe commit
-		if strings.Contains(err.Error(), "cannot describe") {
-			return "", nil
-		}
-
-		return "", err
-	}
-
-	// name-rev commitID output will be "master" or "master~12"
-	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
 
 // GetFullCommitID returns full length (40) of commit ID by given short SHA in a repository.

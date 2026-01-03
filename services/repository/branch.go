@@ -517,7 +517,7 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		return nil
 	}
 
-	isForcePush, err := newCommit.IsForcePush(branch.CommitID)
+	isForcePush, err := gitrepo.IsCommitForcePush(ctx, repo, newCommit.ID.String(), branch.CommitID)
 	if err != nil {
 		return err
 	}
@@ -788,7 +788,7 @@ func GetBranchDivergingInfo(ctx reqctx.RequestContext, baseRepo *repo_model.Repo
 		if err != nil {
 			return nil, err
 		}
-		hasPreviousCommit, _ := headCommit.HasPreviousCommit(baseCommitID)
+		hasPreviousCommit, _ := gitrepo.HasPreviousCommit(ctx, headRepo, headCommit.ID.String(), baseCommitID.String())
 		info.BaseHasNewCommits = !hasPreviousCommit
 		return info, nil
 	}
