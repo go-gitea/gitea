@@ -163,3 +163,13 @@ func GetCommitBranchName(ctx context.Context, repo Repository, commitID string) 
 	// name-rev commitID output will be "master" or "master~12"
 	return strings.SplitN(strings.TrimSpace(data), "~", 2)[0], nil
 }
+
+// IsCommitInBranch check if the commit is on the branch
+func IsCommitInBranch(ctx context.Context, repo Repository, commitID, branch string) (r bool, err error) {
+	stdout, err := RunCmdString(ctx, repo, gitcmd.NewCommand("branch", "--contains").
+		AddDynamicArguments(commitID, branch))
+	if err != nil {
+		return false, err
+	}
+	return len(stdout) > 0, err
+}

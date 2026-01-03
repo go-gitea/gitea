@@ -84,3 +84,15 @@ func TestHasPreviousCommit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, selfNot)
 }
+
+func TestIsCommitInBranch(t *testing.T) {
+	repo := &mockRepository{path: "repo1_bare"}
+
+	result, err := IsCommitInBranch(t.Context(), repo, "2839944139e0de9737a044f78b0e4b40d989a9e3", "branch1")
+	assert.NoError(t, err)
+	assert.True(t, result)
+
+	result, err = IsCommitInBranch(t.Context(), repo, "2839944139e0de9737a044f78b0e4b40d989a9e3", "branch2")
+	assert.NoError(t, err)
+	assert.False(t, result)
+}

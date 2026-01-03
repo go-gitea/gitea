@@ -212,7 +212,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		commitTreeOpts.Parents = []string{"HEAD"}
 	}
 
-	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), committer, tree, commitTreeOpts)
+	commitHash, err := git.CommitTree(ctx, basePath, doer.NewGitSig(), committer, tree, commitTreeOpts)
 	if err != nil {
 		log.Error("CommitTree failed: %v", err)
 		return err
@@ -337,12 +337,12 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		commitTreeOpts.NoGPGSign = true
 	}
 
-	commitHash, err := gitRepo.CommitTree(doer.NewGitSig(), committer, tree, commitTreeOpts)
+	commitHash, err := git.CommitTree(ctx, basePath, doer.NewGitSig(), committer, tree, commitTreeOpts)
 	if err != nil {
 		return err
 	}
 
-	if err := gitrepo.PushFromLocal(gitRepo.Ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
+	if err := gitrepo.PushFromLocal(ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, repo.DefaultWikiBranch),
 		Env: repo_module.FullPushingEnvironment(
 			doer,
