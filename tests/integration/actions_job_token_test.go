@@ -712,7 +712,6 @@ jobs:
 			require.NoError(t, db.Insert(t.Context(), job))
 
 			// 3. Change Repo Settings to RESTRICTED
-			// We need to update the RepoUnit config
 			unitConfig := &repo_model.ActionsConfig{
 				TokenPermissionMode: repo_model.ActionsTokenPermissionModeRestricted,
 			}
@@ -727,11 +726,6 @@ jobs:
 			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), unit))
 
 			// 4. Trigger Rerun via Web Handler
-			// POST /:username/:reponame/actions/runs/:index/rerun
-			// We need to know operation run index. Since it's the first run, it should be 1?
-			// ActionRun.Index is auto-increment but not set in my insert.
-			// Ideally we use CreateRun which handles index.
-			// Let's manually set index 1.
 			run.Index = 1
 			_, err = db.GetEngine(t.Context()).ID(run.ID).Cols("index").Update(run)
 			require.NoError(t, err)
