@@ -126,8 +126,3 @@ func CreateRepoFile(ctx context.Context, repo Repository, relativeFilePath strin
 	}
 	return os.Create(absoluteFilePath)
 }
-
-func MkRepoDir(ctx context.Context, repo Repository, relativeDirPath string) error {
-	absoluteDirPath := filepath.Join(repoPath(repo), relativeDirPath)
-	return os.MkdirAll(absoluteDirPath, os.ModePerm)
-}
