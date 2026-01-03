@@ -274,7 +274,7 @@ func TestPrepareWikiFileName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			webPath := UserTitleToWebPath("", tt.arg)
-			existence, newWikiPath, err := prepareGitPath(t.Context(), repo, repo.DefaultWikiBranch, webPath)
+			existence, newWikiPath, err := prepareGitPath(t.Context(), repo.WikiStorageRepo(), repo.DefaultWikiBranch, webPath)
 			if (err != nil) != tt.wantErr {
 				assert.NoError(t, err)
 				return
@@ -303,7 +303,10 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	}, true)
 	assert.NoError(t, err)
 
-	existence, newWikiPath, err := prepareGitPath(t.Context(), repo, "master", "Home")
+	err = gitrepo.InitRepository(t.Context(), repo.WikiStorageRepo(), repo.ObjectFormatName)
+	assert.NoError(t, err)
+
+	existence, newWikiPath, err := prepareGitPath(t.Context(), repo.WikiStorageRepo(), "master", "Home")
 	assert.False(t, existence)
 	assert.NoError(t, err)
 	assert.Equal(t, "Home.md", newWikiPath)
