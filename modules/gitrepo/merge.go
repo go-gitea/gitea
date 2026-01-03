@@ -20,15 +20,3 @@ func MergeBase(ctx context.Context, repo Repository, baseCommitID, headCommitID 
 	}
 	return strings.TrimSpace(mergeBase), nil
 }
-
-// MergeBaseFromRemote checks and returns merge base of two commits from different repositories.
-func MergeBaseFromRemote(ctx context.Context, baseRepo, headRepo Repository, baseCommitID, headCommitID string) (string, error) {
-	// fetch head commit id into the current repository if the repositories are different
-	if baseRepo.RelativePath() != headRepo.RelativePath() {
-		if err := FetchRemoteCommit(ctx, baseRepo, headRepo, headCommitID); err != nil {
-			return "", fmt.Errorf("FetchRemoteCommit: %w", err)
-		}
-	}
-
-	return MergeBase(ctx, baseRepo, baseCommitID, headCommitID)
-}

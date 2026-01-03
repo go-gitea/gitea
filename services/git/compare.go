@@ -6,14 +6,11 @@ package git
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/graceful"
-	logger "code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // CompareInfo represents needed information for comparing references.
@@ -41,22 +38,6 @@ func (ci *CompareInfo) IsSameRef() bool {
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
 func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseRef, headRef git.RefName, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
-	var tmpRemote string
-
-	// We don't need a temporary remote for same repository.
-	if baseRepo.ID != headRepo.ID {
-		// Add a temporary remote
-		tmpRemote = strconv.FormatInt(time.Now().UnixNano(), 10)
-		if err = gitrepo.GitRemoteAdd(ctx, headRepo, tmpRemote, baseRepo.RepoPath()); err != nil {
-			return nil, fmt.Errorf("GitRemoteAdd: %w", err)
-		}
-		defer func() {
-			if err := gitrepo.GitRemoteRemove(graceful.GetManager().ShutdownContext(), headRepo, tmpRemote); err != nil {
-				logger.Error("GetPullRequestInfo: GitRemoteRemove: %v", err)
-			}
-		}()
-	}
-
 	compareInfo := &CompareInfo{
 		BaseRepo:         baseRepo,
 		BaseRef:          baseRef,
@@ -66,46 +47,41 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		DirectComparison: directComparison,
 	}
 
+	compareInfo.BaseCommitID, err = gitrepo.GetFullCommitID(ctx, baseRepo, baseRef.String())
+	if err != nil {
+		return nil, err
+	}
 	compareInfo.HeadCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, headRef.String())
 	if err != nil {
-		compareInfo.HeadCommitID = headRef.String()
+		return nil, err
 	}
 
-	compareInfo.MergeBase, err = gitrepo.MergeBaseFromRemote(ctx, baseRepo, headRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
-	if err == nil {
-		compareInfo.BaseCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, headRef.String())
-		if err != nil {
-			compareInfo.BaseCommitID = headRef.String()
-		}
-		separator := "..."
-		baseCommitID := compareInfo.MergeBase
-		if directComparison {
-			separator = ".."
-			baseCommitID = compareInfo.BaseCommitID
-		}
-
-		// We have a common base - therefore we know that ... should work
-		if !fileOnly {
-			compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, baseCommitID+separator+headRef.String())
-			if err != nil {
-				return nil, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
-			}
-		} else {
-			compareInfo.Commits = []*git.Commit{}
-		}
-	} else {
-		compareInfo.Commits = []*git.Commit{}
-		compareInfo.MergeBase, err = gitrepo.GetFullCommitID(ctx, headRepo, headRef.String())
-		if err != nil {
-			compareInfo.MergeBase = headRef.String()
-		}
-		compareInfo.BaseCommitID = compareInfo.MergeBase
-	}
-
+	// if they are not the same repository, then we need to fetch the base commit into the head repository
+	// because we will use headGitRepo in the following code
 	if baseRepo.ID != headRepo.ID {
 		if err := gitrepo.FetchRemoteCommit(ctx, headRepo, baseRepo, compareInfo.BaseCommitID); err != nil {
 			return nil, fmt.Errorf("FetchRemoteCommit: %w", err)
 		}
+	}
+
+	if !directComparison {
+		compareInfo.MergeBase, err = gitrepo.MergeBase(ctx, headRepo, compareInfo.BaseCommitID, compareInfo.HeadCommitID)
+		if err != nil {
+			return nil, fmt.Errorf("MergeBase: %w", err)
+		}
+	} else {
+		compareInfo.MergeBase = compareInfo.BaseCommitID
+	}
+
+	// We have a common base - therefore we know that ... should work
+	if !fileOnly {
+		separator := util.Iif(directComparison, "..", "...")
+		compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, compareInfo.BaseCommitID+separator+compareInfo.HeadCommitID)
+		if err != nil {
+			return nil, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
+		}
+	} else {
+		compareInfo.Commits = []*git.Commit{}
 	}
 
 	// Count number of changed files.

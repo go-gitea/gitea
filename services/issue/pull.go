@@ -81,7 +81,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 
 	// get the mergebase
 	if pr.MergeBase == "" {
-		mergeBase, err := gitrepo.MergeBaseFromRemote(ctx, pr.BaseRepo, pr.HeadRepo, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
+		mergeBase, err := gitrepo.MergeBase(ctx, pr.BaseRepo, git.BranchPrefix+pr.BaseBranch, pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, err
 		}

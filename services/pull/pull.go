@@ -511,7 +511,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 	defer cancel()
 
-	mergeBase, err = gitrepo.MergeBaseFromRemote(ctx, pr.BaseRepo, pr.HeadRepo, pr.BaseBranch, pr.HeadBranch)
+	mergeBase, err = gitrepo.MergeBase(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
 		return false, "", fmt.Errorf("GetMergeBase: %w", err)
 	}
