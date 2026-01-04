@@ -208,7 +208,6 @@ func createDescriptionLink(href, content string) *html.Node {
 		Attr: []html.Attribute{
 			{Key: "href", Val: href},
 			{Key: "target", Val: "_blank"},
-			{Key: "rel", Val: "noopener noreferrer"},
 		},
 	}
 	textNode.Parent = linkNode
