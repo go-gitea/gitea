@@ -44,16 +44,15 @@ func getPullWorkingLockKey(prID int64) string {
 }
 
 type NewPullRequestOptions struct {
-	Repo                *repo_model.Repository
-	Issue               *issues_model.Issue
-	LabelIDs            []int64
-	AttachmentUUIDs     []string
-	PullRequest         *issues_model.PullRequest
-	AssigneeIDs         []int64
-	Reviewers           []*user_model.User
-	TeamReviewers       []*organization.Team
-	ProjectID           int64
-	AllowMaintainerEdit bool
+	Repo            *repo_model.Repository
+	Issue           *issues_model.Issue
+	LabelIDs        []int64
+	AttachmentUUIDs []string
+	PullRequest     *issues_model.PullRequest
+	AssigneeIDs     []int64
+	Reviewers       []*user_model.User
+	TeamReviewers   []*organization.Team
+	ProjectID       int64
 }
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -130,9 +129,6 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 
 		pr.Issue = issue
 		issue.PullRequest = pr
-
-		pr.AllowMaintainerEdit = opts.AllowMaintainerEdit
-		issues_model.UpdateAllowEdits(ctx, pr)
 
 		if pr.Flow == issues_model.PullRequestFlowGithub {
 			err = PushToBaseRepo(ctx, pr)

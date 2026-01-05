@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -496,6 +497,11 @@ func CreatePullRequest(ctx *context.APIContext) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
+	unitPullRequest, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+	}
+
 	prIssue := &issues_model.Issue{
 		RepoID:       repo.ID,
 		Title:        form.Title,
@@ -516,6 +522,8 @@ func CreatePullRequest(ctx *context.APIContext) {
 		MergeBase:  compareResult.MergeBase,
 		Type:       issues_model.PullRequestGitea,
 	}
+
+	pr.AllowMaintainerEdit = optional.FromPtr(form.AllowMaintainerEdit).ValueOrDefault(unitPullRequest.PullRequestsConfig().DefaultAllowMaintainerEdit)
 
 	// Get all assignee IDs
 	assigneeIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(ctx, form.Assignee, form.Assignees)
@@ -547,12 +555,11 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	prOpts := &pull_service.NewPullRequestOptions{
-		Repo:                repo,
-		Issue:               prIssue,
-		LabelIDs:            labelIDs,
-		PullRequest:         pr,
-		AssigneeIDs:         assigneeIDs,
-		AllowMaintainerEdit: form.AllowMaintainerEdit,
+		Repo:        repo,
+		Issue:       prIssue,
+		LabelIDs:    labelIDs,
+		PullRequest: pr,
+		AssigneeIDs: assigneeIDs,
 	}
 	prOpts.Reviewers, prOpts.TeamReviewers = parseReviewersByNames(ctx, form.Reviewers, form.TeamReviewers)
 	if ctx.Written() {
