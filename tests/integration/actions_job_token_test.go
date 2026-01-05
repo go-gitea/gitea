@@ -15,7 +15,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/db"
+
 	org_model "code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
