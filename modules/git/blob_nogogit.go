@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"io"
 
+	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -31,13 +32,15 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	object, err := objectPool.Object(b.repo.Ctx, b.ID.String())
+	object, rd, err := objectPool.Object(b.ID.String())
 	if err != nil {
 		cancel()
+		if catfile.IsErrObjectNotFound(err) {
+			return nil, ErrNotExist{ID: b.ID.String()}
+		}
 		return nil, err
 	}
 
-	rd := object.Reader
 	b.gotSize = true
 	b.size = object.Size
 
@@ -70,7 +73,7 @@ func (b *Blob) Size() int64 {
 		return 0
 	}
 	defer cancel()
-	objInfo, err := objInfoPool.ObjectInfo(b.repo.Ctx, b.ID.String())
+	objInfo, err := objInfoPool.ObjectInfo(b.ID.String())
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0

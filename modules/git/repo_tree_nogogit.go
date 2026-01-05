@@ -7,6 +7,8 @@ package git
 
 import (
 	"io"
+
+	"code.gitea.io/gitea/modules/git/catfile"
 )
 
 func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
@@ -16,12 +18,15 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 	}
 	defer cancel()
 
-	object, err := objectPool.Object(repo.Ctx, id.String())
+	object, rd, err := objectPool.Object(id.String())
 	if err != nil {
+		if catfile.IsErrObjectNotFound(err) {
+			return nil, ErrNotExist{
+				ID: id.String(),
+			}
+		}
 		return nil, err
 	}
-
-	rd := object.Reader
 
 	switch object.Type {
 	case "tag":

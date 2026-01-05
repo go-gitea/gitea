@@ -28,7 +28,7 @@ func NewObjectInfoPool(ctx context.Context, repoPath string) (ObjectInfoPool, er
 	return &check, nil
 }
 
-func (b *batchCheck) ObjectInfo(ctx context.Context, refName string) (*ObjectInfo, error) {
+func (b *batchCheck) ObjectInfo(refName string) (*ObjectInfo, error) {
 	_, err := b.writer.Write([]byte(refName + "\n"))
 	if err != nil {
 		return nil, err
@@ -74,22 +74,21 @@ func NewObjectPool(ctx context.Context, repoPath string) (ObjectPool, error) {
 	return &batch, nil
 }
 
-func (b *batch) Object(ctx context.Context, refName string) (*Object, error) {
+func (b *batch) Object(refName string) (*ObjectInfo, *bufio.Reader, error) {
 	_, err := b.writer.Write([]byte(refName + "\n"))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var obj Object
+	var obj ObjectInfo
 	var oid []byte
 	oid, obj.Type, obj.Size, err = ReadBatchLine(b.reader)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	obj.ID = string(oid)
-	obj.Reader = b.reader
 
-	return &obj, nil
+	return &obj, b.reader, nil
 }
 
 func (b *batch) Close() {

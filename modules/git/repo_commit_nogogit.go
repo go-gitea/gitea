@@ -43,9 +43,9 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	}
 	defer cancel()
 
-	objInfo, err := objInfoPool.ObjectInfo(repo.Ctx, name)
+	objInfo, err := objInfoPool.ObjectInfo(name)
 	if err != nil {
-		if IsErrNotExist(err) {
+		if catfile.IsErrObjectNotFound(err) {
 			return "", ErrNotExist{name, ""}
 		}
 		return "", err
@@ -77,15 +77,13 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 }
 
 func (repo *Repository) getCommitFromBatchReader(objectPool catfile.ObjectPool, id ObjectID) (*Commit, error) {
-	object, err := objectPool.Object(repo.Ctx, id.String())
+	object, rd, err := objectPool.Object(id.String())
 	if err != nil {
-		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
+		if errors.Is(err, io.EOF) || catfile.IsErrObjectNotFound(err) {
 			return nil, ErrNotExist{ID: id.String()}
 		}
 		return nil, err
 	}
-
-	rd := object.Reader
 
 	switch object.Type {
 	case "missing":
@@ -153,9 +151,9 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 	}
 	defer cancel()
 
-	objInfo, err := objInfoPool.ObjectInfo(repo.Ctx, commitID)
+	objInfo, err := objInfoPool.ObjectInfo(commitID)
 	if err != nil {
-		if IsErrNotExist(err) {
+		if catfile.IsErrObjectNotFound(err) {
 			return nil, ErrNotExist{commitID, ""}
 		}
 		return nil, err

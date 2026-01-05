@@ -5,7 +5,6 @@ package catfile
 
 import (
 	"bufio"
-	"context"
 )
 
 type ObjectInfo struct {
@@ -15,16 +14,11 @@ type ObjectInfo struct {
 }
 
 type ObjectInfoPool interface {
-	ObjectInfo(ctx context.Context, sha string) (*ObjectInfo, error)
+	ObjectInfo(refName string) (*ObjectInfo, error)
 	Close()
 }
 
-type Object struct {
-	ObjectInfo
-	Reader *bufio.Reader
-}
-
 type ObjectPool interface {
-	Object(ctx context.Context, sha string) (*Object, error)
+	Object(refName string) (*ObjectInfo, *bufio.Reader, error)
 	Close()
 }

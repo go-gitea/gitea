@@ -10,6 +10,7 @@ import (
 	"errors"
 	"io"
 
+	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -29,9 +30,9 @@ func (repo *Repository) GetTagType(id ObjectID) (string, error) {
 		return "", err
 	}
 	defer cancel()
-	objInfo, err := objInfoPool.ObjectInfo(repo.Ctx, id.String())
+	objInfo, err := objInfoPool.ObjectInfo(id.String())
 	if err != nil {
-		if IsErrNotExist(err) {
+		if catfile.IsErrObjectNotFound(err) {
 			return "", ErrNotExist{ID: id.String()}
 		}
 		return "", err
@@ -90,15 +91,14 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	}
 	defer cancel()
 
-	object, err := objectPool.Object(repo.Ctx, tagID.String())
+	object, rd, err := objectPool.Object(tagID.String())
 	if err != nil {
-		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
+		if errors.Is(err, io.EOF) || catfile.IsErrObjectNotFound(err) {
 			return nil, ErrNotExist{ID: tagID.String()}
 		}
 		return nil, err
 	}
 
-	rd := object.Reader
 	if object.Type != "tag" {
 		if err := DiscardFull(rd, object.Size+1); err != nil {
 			return nil, err

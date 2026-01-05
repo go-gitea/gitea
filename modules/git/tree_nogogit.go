@@ -9,6 +9,7 @@ import (
 	"io"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
@@ -33,20 +34,28 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 		defer cancel()
 
-		object, err := objectPool.Object(t.repo.Ctx, t.ID.String())
+		object, rd, err := objectPool.Object(t.ID.String())
 		if err != nil {
+			if catfile.IsErrObjectNotFound(err) {
+				return nil, ErrNotExist{
+					ID: t.ID.String(),
+				}
+			}
 			return nil, err
 		}
-
-		rd := object.Reader
 
 		if object.Type == "commit" {
 			treeID, err := ReadTreeID(rd, object.Size)
 			if err != nil && err != io.EOF {
 				return nil, err
 			}
-			object, err = objectPool.Object(t.repo.Ctx, treeID)
+			object, rd, err = objectPool.Object(treeID)
 			if err != nil {
+				if catfile.IsErrObjectNotFound(err) {
+					return nil, ErrNotExist{
+						ID: treeID,
+					}
+				}
 				return nil, err
 			}
 		}

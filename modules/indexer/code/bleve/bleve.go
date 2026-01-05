@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -176,12 +177,15 @@ func (b *Indexer) addUpdate(ctx context.Context, objectPool catfile.ObjectPool, 
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	object, err := objectPool.Object(ctx, update.BlobSha)
+	object, batchReader, err := objectPool.Object(update.BlobSha)
 	if err != nil {
+		if catfile.IsErrObjectNotFound(err) {
+			return git.ErrNotExist{ID: update.BlobSha}
+		}
 		return err
 	}
 
-	batchReader := object.Reader
+	size = object.Size
 
 	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {

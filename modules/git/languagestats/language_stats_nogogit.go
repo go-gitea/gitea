@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
+	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 
@@ -28,16 +29,17 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 	}
 	defer cancel()
 
-	object, err := objectPool.Object(repo.Ctx, commitID)
+	object, batchReader, err := objectPool.Object(commitID)
 	if err != nil {
+		if catfile.IsErrObjectNotFound(err) {
+			return nil, git.ErrNotExist{ID: commitID}
+		}
 		return nil, err
 	}
 	if object.Type != "commit" {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, git.ErrNotExist{ID: commitID}
 	}
-
-	batchReader := object.Reader
 
 	sha, err := git.NewIDFromString(object.ID)
 	if err != nil {
@@ -141,12 +143,14 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		// If content can not be read or file is too big just do detection by filename
 
 		if f.Size() <= bigFileSize {
-			object, err := objectPool.Object(repo.Ctx, f.ID.String())
+			object, batchReader, err := objectPool.Object(f.ID.String())
 			if err != nil {
+				if catfile.IsErrObjectNotFound(err) {
+					return nil, git.ErrNotExist{ID: f.ID.String()}
+				}
 				log.Debug("Error reading blob: %s Err: %v", f.ID.String(), err)
 				return nil, err
 			}
-			batchReader := object.Reader
 
 			sizeToRead := object.Size
 			discard := int64(1)

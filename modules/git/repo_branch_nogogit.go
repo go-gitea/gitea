@@ -28,7 +28,7 @@ func (repo *Repository) IsObjectExist(name string) bool {
 		return false
 	}
 	defer cancel()
-	objInfo, err := objInfoPool.ObjectInfo(repo.Ctx, name)
+	objInfo, err := objInfoPool.ObjectInfo(name)
 	if err != nil {
 		log.Debug("Error writing to ObjectInfo %v", err)
 		return false
@@ -49,7 +49,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 	}
 	defer cancel()
 
-	_, err = objInfoPool.ObjectInfo(repo.Ctx, name)
+	_, err = objInfoPool.ObjectInfo(name)
 	return err == nil
 }
 
