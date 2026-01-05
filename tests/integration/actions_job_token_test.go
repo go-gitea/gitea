@@ -806,9 +806,9 @@ jobs:
 		require.Equal(t, repo.ID, task.RepoID)
 		require.False(t, task.IsForkPullRequest)
 		require.Equal(t, actions_model.StatusRunning, task.Status)
-		// check the token's permissions
 		actionsPerm, err := access_model.GetActionsUserRepoPermission(t.Context(), repo, user_model.NewActionsUser(), task.ID)
 		require.NoError(t, err)
+		require.NoError(t, task.LoadJob(t.Context()))
 		t.Logf("TokenPermissions: %s", task.Job.TokenPermissions)
 		t.Logf("Computed Units Mode: %+v", actionsPerm)
 		require.True(t, actionsPerm.CanWrite(unit_model.TypeCode), "Should have write access to Code. Got: %v", actionsPerm.AccessMode) // the token should have the "write" permission on "Code" unit
