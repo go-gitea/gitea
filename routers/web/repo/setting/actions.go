@@ -164,24 +164,28 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	}
 
 	// Update Maximum Permissions (radio buttons: none/read/write)
-	parseMaxPerm := func(name string) perm.AccessMode {
-		value := ctx.FormString("max_" + name)
-		switch value {
-		case "write":
-			return perm.AccessModeWrite
-		case "read":
-			return perm.AccessModeRead
-		default:
-			return perm.AccessModeNone
+	if actionsCfg.TokenPermissionMode == repo_model.ActionsTokenPermissionModeCustom {
+		parseMaxPerm := func(name string) perm.AccessMode {
+			value := ctx.FormString("max_" + name)
+			switch value {
+			case "write":
+				return perm.AccessModeWrite
+			case "read":
+				return perm.AccessModeRead
+			default:
+				return perm.AccessModeNone
+			}
 		}
-	}
 
-	actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
-		Code:         parseMaxPerm("contents"),
-		Issues:       parseMaxPerm("issues"),
-		Packages:     parseMaxPerm("packages"),
-		PullRequests: parseMaxPerm("pull_requests"),
-		Wiki:         parseMaxPerm("wiki"),
+		actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
+			Code:         parseMaxPerm("contents"),
+			Issues:       parseMaxPerm("issues"),
+			Packages:     parseMaxPerm("packages"),
+			PullRequests: parseMaxPerm("pull_requests"),
+			Wiki:         parseMaxPerm("wiki"),
+		}
+	} else {
+		actionsCfg.MaxTokenPermissions = nil
 	}
 
 	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
