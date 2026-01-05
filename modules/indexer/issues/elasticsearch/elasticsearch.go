@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 2
+	issueIndexerLatestVersion = 3
 	// multi-match-types, currently only 2 types are used
 	// Reference: https://www.elastic.co/guide/en/elasticsearch/reference/7.0/query-dsl-multi-match-query.html#multi-match-types
 	esMultiMatchTypeBestFields   = "best_fields"
@@ -71,7 +71,7 @@ const (
 			"project_id": { "type": "integer", "index": true },
 			"project_board_id": { "type": "integer", "index": true },
 			"poster_id": { "type": "integer", "index": true },
-			"assignee_id": { "type": "integer", "index": true },
+			"assignee_ids": { "type": "integer", "index": true },
 			"mention_ids": { "type": "integer", "index": true },
 			"reviewed_ids": { "type": "integer", "index": true },
 			"review_requested_ids": { "type": "integer", "index": true },
@@ -219,13 +219,13 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	if options.AssigneeID != "" {
 		if options.AssigneeID == "(any)" {
-			q := elastic.NewRangeQuery("assignee_id")
+			q := elastic.NewRangeQuery("assignee_ids")
 			q.Gte(1)
 			query.Must(q)
 		} else {
 			// "(none)" becomes 0, it means no assignee
 			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
-			query.Must(elastic.NewTermQuery("assignee_id", assigneeIDInt64))
+			query.Must(elastic.NewTermQuery("assignee_ids", assigneeIDInt64))
 		}
 	}
 

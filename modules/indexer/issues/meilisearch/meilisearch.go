@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	issueIndexerLatestVersion = 4
+	issueIndexerLatestVersion = 5
 
 	// TODO: make this configurable if necessary
 	maxTotalHits = 10000
@@ -74,7 +74,7 @@ func NewIndexer(url, apiKey, indexerName string) *Indexer {
 			"project_id",
 			"project_board_id",
 			"poster_id",
-			"assignee_id",
+			"assignee_ids",
 			"mention_ids",
 			"reviewed_ids",
 			"review_requested_ids",
@@ -197,11 +197,11 @@ func (b *Indexer) Search(ctx context.Context, options *internal.SearchOptions) (
 
 	if options.AssigneeID != "" {
 		if options.AssigneeID == "(any)" {
-			query.And(inner_meilisearch.NewFilterGte("assignee_id", 1))
+			query.And(inner_meilisearch.NewFilterGte("assignee_ids", 1))
 		} else {
 			// "(none)" becomes 0, it means no assignee
 			assigneeIDInt64, _ := strconv.ParseInt(options.AssigneeID, 10, 64)
-			query.And(inner_meilisearch.NewFilterEq("assignee_id", assigneeIDInt64))
+			query.And(inner_meilisearch.NewFilterEq("assignee_ids", assigneeIDInt64))
 		}
 	}
 
