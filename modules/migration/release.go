@@ -12,7 +12,6 @@ import (
 type ReleaseAsset struct {
 	ID            int64
 	Name          string
-	ContentType   *string `yaml:"content_type"`
 	Size          *int
 	DownloadCount *int `yaml:"download_count"`
 	Created       time.Time

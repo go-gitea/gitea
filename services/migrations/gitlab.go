@@ -321,7 +321,6 @@ func (g *GitlabDownloader) convertGitlabRelease(ctx context.Context, rel *gitlab
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            int64(asset.ID),
 			Name:          asset.Name,
-			ContentType:   nil, // GitLab Links don't provide content type
 			Size:          &zero,
 			DownloadCount: &zero,
 			DownloadFunc: func() (io.ReadCloser, error) {

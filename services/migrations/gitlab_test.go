@@ -677,7 +677,6 @@ func TestConvertGitlabRelease(t *testing.T) {
 		assert.Equal(t, "Release 1.0.0", result.Name)
 		assert.Len(t, result.Assets, 5) // Should have 5 assets from Links
 		assert.Equal(t, "app-linux-amd64", result.Assets[0].Name)
-		assert.Nil(t, result.Assets[0].ContentType) // ContentType should be nil
 	})
 
 	// Test case: Release with no links
