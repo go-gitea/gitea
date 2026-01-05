@@ -15,7 +15,6 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-
 	org_model "code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
@@ -810,7 +809,9 @@ jobs:
 		// check the token's permissions
 		actionsPerm, err := access_model.GetActionsUserRepoPermission(t.Context(), repo, user_model.NewActionsUser(), task.ID)
 		require.NoError(t, err)
-		require.True(t, actionsPerm.CanWrite(unit_model.TypeCode)) // the token should have the "write" permission on "Code" unit
+		t.Logf("TokenPermissions: %s", task.Job.TokenPermissions)
+		t.Logf("Computed Units Mode: %+v", actionsPerm)
+		require.True(t, actionsPerm.CanWrite(unit_model.TypeCode), "Should have write access to Code. Got: %v", actionsPerm.AccessMode) // the token should have the "write" permission on "Code" unit
 		// test creating a file with the token
 		actionsTokenContext := APITestContext{
 			Session:      emptyTestSession(t),
