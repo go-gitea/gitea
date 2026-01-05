@@ -22,6 +22,7 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
 
@@ -746,6 +747,83 @@ jobs:
 
 			// Should be restricted (Read)
 			assert.Equal(t, perm.AccessModeRead, perms.Code, "Permissions should be restricted to Read after rerun in restricted mode")
+		}))
+	})
+}
+
+func TestActionsPermission(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		// create a new repo
+		apiRepo := createActionsTestRepo(t, token, "actions-permission", false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		defer doAPIDeleteRepository(httpContext)(t)
+
+		// create a mock runner
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		// set actions token permission mode to "permissive"
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
+			"token_permission_mode": "permissive",
+		})
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
+		require.Equal(t, fmt.Sprintf("/%s/%s/settings/actions/general", repo.OwnerName, repo.Name), test.RedirectURL(resp))
+
+		// create a workflow file with "permission" keyword
+		wfTreePath := ".gitea/workflows/test_permissions.yml"
+		wfFileContent := `name: Test Permissions
+on:
+  push:
+    paths:
+      - '.gitea/workflows/test_permissions.yml'
+
+permissions: read-all
+
+jobs:
+  job-override:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - run: echo "Override to write"
+`
+		opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wfTreePath, wfFileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, opts)
+
+		// fetch a task(*runnerv1.Task) and get its token
+		runnerTask := runner.fetchTask(t)
+		taskToken := runnerTask.Secrets["GITEA_TOKEN"]
+		require.NotEmpty(t, taskToken)
+		// get the task(*actions_model.ActionTask) by token
+		task, err := actions_model.GetRunningTaskByToken(t.Context(), taskToken)
+		require.NoError(t, err)
+		require.Equal(t, repo.ID, task.RepoID)
+		require.False(t, task.IsForkPullRequest)
+		require.Equal(t, actions_model.StatusRunning, task.Status)
+		// check the token's permissions
+		actionsPerm, err := access_model.GetActionsUserRepoPermission(t.Context(), repo, user_model.NewActionsUser(), task.ID)
+		require.NoError(t, err)
+		require.True(t, actionsPerm.CanWrite(unit_model.TypeCode)) // the token should have the "write" permission on "Code" unit
+		// test creating a file with the token
+		actionsTokenContext := APITestContext{
+			Session:      emptyTestSession(t),
+			Token:        taskToken,
+			Username:     repo.OwnerName,
+			Reponame:     repo.Name,
+			ExpectedCode: 0,
+		}
+		t.Run("API Create File", doAPICreateFile(actionsTokenContext, "test-permissions.txt", &structs.CreateFileOptions{
+			FileOptions: structs.FileOptions{
+				BranchName: repo.DefaultBranch,
+				Message:    "Create File",
+			},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte(`This is a test file for permissions.`)),
+		}, func(t *testing.T, resp structs.FileResponse) {
+			require.NotEmpty(t, resp.Content.SHA)
 		}))
 	})
 }
