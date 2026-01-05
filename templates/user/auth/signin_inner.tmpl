@@ -28,8 +28,8 @@
 			{{if not .LinkAccountMode}}
 			<div class="inline field">
 				<div class="ui checkbox">
-					<label>{{ctx.Locale.Tr "auth.remember_me"}}</label>
-					<input name="remember" type="checkbox" tabindex="5">
+					<label for="remember_me">{{ctx.Locale.Tr "auth.remember_me"}}</label>
+					<input id="remember_me" name="remember" type="checkbox" tabindex="5">
 				</div>
 			</div>
 			{{end}}
