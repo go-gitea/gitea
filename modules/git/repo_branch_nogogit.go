@@ -8,7 +8,6 @@ package git
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"io"
 	"strings"
@@ -23,19 +22,18 @@ func (repo *Repository) IsObjectExist(name string) bool {
 		return false
 	}
 
-	batch, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	objInfoPool, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
 	}
 	defer cancel()
-	_, err = batch.Writer().Write([]byte(name + "\n"))
+	objInfo, err := objInfoPool.ObjectInfo(repo.Ctx, name)
 	if err != nil {
-		log.Debug("Error writing to CatFileBatchCheck %v", err)
+		log.Debug("Error writing to ObjectInfo %v", err)
 		return false
 	}
-	sha, _, _, err := ReadBatchLine(batch.Reader())
-	return err == nil && bytes.HasPrefix(sha, []byte(strings.TrimSpace(name)))
+	return strings.HasPrefix(objInfo.ID, strings.TrimSpace(name))
 }
 
 // IsReferenceExist returns true if given reference exists in the repository.
@@ -44,18 +42,14 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 		return false
 	}
 
-	batch, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	objInfoPool, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
 	if err != nil {
 		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
 	}
 	defer cancel()
-	_, err = batch.Writer().Write([]byte(name + "\n"))
-	if err != nil {
-		log.Debug("Error writing to CatFileBatchCheck %v", err)
-		return false
-	}
-	_, _, _, err = ReadBatchLine(batch.Reader())
+
+	_, err = objInfoPool.ObjectInfo(repo.Ctx, name)
 	return err == nil
 }
 

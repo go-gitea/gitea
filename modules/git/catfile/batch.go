@@ -21,63 +21,6 @@ type WriteCloserError interface {
 	CloseWithError(err error) error
 }
 
-type Batch interface {
-	Writer() WriteCloserError
-	Reader() *bufio.Reader
-	Close()
-}
-
-// batch represents an active `git cat-file --batch` or `--batch-check` invocation
-// paired with the pipes that feed/read from it. Call Close to release resources.
-type batch struct {
-	cancel context.CancelFunc
-	reader *bufio.Reader
-	writer WriteCloserError
-}
-
-// NewBatch creates a new cat-file --batch process for the provided repository path.
-// The returned Batch must be closed once the caller has finished with it.
-func NewBatch(ctx context.Context, repoPath string) (Batch, error) {
-	if err := EnsureValidGitRepository(ctx, repoPath); err != nil {
-		return nil, err
-	}
-
-	var batch batch
-	batch.writer, batch.reader, batch.cancel = catFileBatch(ctx, repoPath)
-	return &batch, nil
-}
-
-// NewBatchCheck creates a cat-file --batch-check process for the provided repository path.
-// The returned Batch must be closed once the caller has finished with it.
-func NewBatchCheck(ctx context.Context, repoPath string) (Batch, error) {
-	if err := EnsureValidGitRepository(ctx, repoPath); err != nil {
-		return nil, err
-	}
-
-	var check batch
-	check.writer, check.reader, check.cancel = catFileBatchCheck(ctx, repoPath)
-	return &check, nil
-}
-
-func (b *batch) Writer() WriteCloserError {
-	return b.writer
-}
-
-func (b *batch) Reader() *bufio.Reader {
-	return b.reader
-}
-
-// Close stops the underlying git cat-file process and releases held resources.
-func (b *batch) Close() {
-	if b == nil || b.cancel == nil {
-		return
-	}
-	b.cancel()
-	b.reader = nil
-	b.writer = nil
-	b.cancel = nil
-}
-
 // EnsureValidGitRepository runs `git rev-parse` in the repository path to make sure
 // the directory is a valid git repository. This avoids git cat-file hanging indefinitely
 // when invoked in invalid paths.

@@ -26,27 +26,23 @@ type Blob struct {
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
 func (b *Blob) DataAsync() (io.ReadCloser, error) {
-	batch, cancel, err := b.repo.CatFileBatch(b.repo.Ctx)
+	objectPool, cancel, err := b.repo.CatFileBatch(b.repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	rd := batch.Reader()
-	_, err = batch.Writer().Write([]byte(b.ID.String() + "\n"))
+	object, err := objectPool.Object(b.repo.Ctx, b.ID.String())
 	if err != nil {
 		cancel()
 		return nil, err
 	}
-	_, _, size, err := ReadBatchLine(rd)
-	if err != nil {
-		cancel()
-		return nil, err
-	}
+
+	rd := object.Reader
 	b.gotSize = true
-	b.size = size
+	b.size = object.Size
 
-	if size < 4096 {
-		bs, err := io.ReadAll(io.LimitReader(rd, size))
+	if b.size < 4096 {
+		bs, err := io.ReadAll(io.LimitReader(rd, b.size))
 		defer cancel()
 		if err != nil {
 			return nil, err
@@ -57,7 +53,7 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 
 	return &blobReader{
 		rd:     rd,
-		n:      size,
+		n:      b.size,
 		cancel: cancel,
 	}, nil
 }
@@ -68,25 +64,20 @@ func (b *Blob) Size() int64 {
 		return b.size
 	}
 
-	batch, cancel, err := b.repo.CatFileBatchCheck(b.repo.Ctx)
+	objInfoPool, cancel, err := b.repo.CatFileBatchCheck(b.repo.Ctx)
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0
 	}
 	defer cancel()
-	_, err = batch.Writer().Write([]byte(b.ID.String() + "\n"))
-	if err != nil {
-		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
-		return 0
-	}
-	_, _, b.size, err = ReadBatchLine(batch.Reader())
+	objInfo, err := objInfoPool.ObjectInfo(b.repo.Ctx, b.ID.String())
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0
 	}
 
+	b.size = objInfo.Size
 	b.gotSize = true
-
 	return b.size
 }
 

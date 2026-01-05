@@ -27,32 +27,31 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	if t.repo != nil {
-		batch, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
+		objectPool, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
 		if err != nil {
 			return nil, err
 		}
 		defer cancel()
 
-		wr := batch.Writer()
-		rd := batch.Reader()
-		_, _ = wr.Write([]byte(t.ID.String() + "\n"))
-		_, typ, sz, err := ReadBatchLine(rd)
+		object, err := objectPool.Object(t.repo.Ctx, t.ID.String())
 		if err != nil {
 			return nil, err
 		}
-		if typ == "commit" {
-			treeID, err := ReadTreeID(rd, sz)
+
+		rd := object.Reader
+
+		if object.Type == "commit" {
+			treeID, err := ReadTreeID(rd, object.Size)
 			if err != nil && err != io.EOF {
 				return nil, err
 			}
-			_, _ = wr.Write([]byte(treeID + "\n"))
-			_, typ, sz, err = ReadBatchLine(rd)
+			object, err = objectPool.Object(t.repo.Ctx, treeID)
 			if err != nil {
 				return nil, err
 			}
 		}
-		if typ == "tree" {
-			t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, sz)
+		if object.Type == "tree" {
+			t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, object.Size)
 			if err != nil {
 				return nil, err
 			}
@@ -61,7 +60,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 
 		// Not a tree just use ls-tree instead
-		if err := DiscardFull(rd, sz+1); err != nil {
+		if err := DiscardFull(rd, object.Size+1); err != nil {
 			return nil, err
 		}
 	}

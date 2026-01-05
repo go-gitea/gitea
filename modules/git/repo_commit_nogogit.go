@@ -37,21 +37,20 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	batch, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	objInfoPool, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
 	if err != nil {
 		return "", err
 	}
 	defer cancel()
-	_, err = batch.Writer().Write([]byte(name + "\n"))
+
+	objInfo, err := objInfoPool.ObjectInfo(repo.Ctx, name)
 	if err != nil {
+		if IsErrNotExist(err) {
+			return "", ErrNotExist{name, ""}
+		}
 		return "", err
 	}
-	shaBs, _, _, err := ReadBatchLine(batch.Reader())
-	if IsErrNotExist(err) {
-		return "", ErrNotExist{name, ""}
-	}
-
-	return string(shaBs), nil
+	return objInfo.ID, nil
 }
 
 // IsCommitExist returns true if given commit exists in current repository.
@@ -68,20 +67,17 @@ func (repo *Repository) IsCommitExist(name string) bool {
 }
 
 func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	objectPool, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	_, _ = batch.Writer().Write([]byte(id.String() + "\n"))
-
-	return repo.getCommitFromBatchReader(batch, id)
+	return repo.getCommitFromBatchReader(objectPool, id)
 }
 
-func (repo *Repository) getCommitFromBatchReader(batch catfile.Batch, id ObjectID) (*Commit, error) {
-	rd := batch.Reader()
-	_, typ, size, err := ReadBatchLine(rd)
+func (repo *Repository) getCommitFromBatchReader(objectPool catfile.ObjectPool, id ObjectID) (*Commit, error) {
+	object, err := objectPool.Object(repo.Ctx, id.String())
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
 			return nil, ErrNotExist{ID: id.String()}
@@ -89,13 +85,15 @@ func (repo *Repository) getCommitFromBatchReader(batch catfile.Batch, id ObjectI
 		return nil, err
 	}
 
-	switch typ {
+	rd := object.Reader
+
+	switch object.Type {
 	case "missing":
 		return nil, ErrNotExist{ID: id.String()}
 	case "tag":
 		// then we need to parse the tag
 		// and load the commit
-		data, err := io.ReadAll(io.LimitReader(rd, size))
+		data, err := io.ReadAll(io.LimitReader(rd, object.Size))
 		if err != nil {
 			return nil, err
 		}
@@ -108,18 +106,14 @@ func (repo *Repository) getCommitFromBatchReader(batch catfile.Batch, id ObjectI
 			return nil, err
 		}
 
-		if _, err := batch.Writer().Write([]byte(tag.Object.String() + "\n")); err != nil {
-			return nil, err
-		}
-
-		commit, err := repo.getCommitFromBatchReader(batch, tag.Object)
+		commit, err := repo.getCommitFromBatchReader(objectPool, tag.Object)
 		if err != nil {
 			return nil, err
 		}
 
 		return commit, nil
 	case "commit":
-		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, size))
+		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, object.Size))
 		if err != nil {
 			return nil, err
 		}
@@ -130,8 +124,8 @@ func (repo *Repository) getCommitFromBatchReader(batch catfile.Batch, id ObjectI
 
 		return commit, nil
 	default:
-		log.Debug("Unknown typ: %s", typ)
-		if err := DiscardFull(rd, size+1); err != nil {
+		log.Debug("Unknown typ: %s", object.Type)
+		if err := DiscardFull(rd, object.Size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{
@@ -153,22 +147,18 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	batch, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	objInfoPool, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
-	_, err = batch.Writer().Write([]byte(commitID + "\n"))
-	if err != nil {
-		return nil, err
-	}
-	sha, _, _, err := ReadBatchLine(batch.Reader())
+
+	objInfo, err := objInfoPool.ObjectInfo(repo.Ctx, commitID)
 	if err != nil {
 		if IsErrNotExist(err) {
 			return nil, ErrNotExist{commitID, ""}
 		}
 		return nil, err
 	}
-
-	return MustIDFromString(string(sha)), nil
+	return MustIDFromString(objInfo.ID), nil
 }

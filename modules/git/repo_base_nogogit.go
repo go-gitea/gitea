@@ -24,10 +24,10 @@ type Repository struct {
 	tagCache *ObjectCache[*Tag]
 
 	batchInUse bool
-	batch      catfile.Batch
+	batch      catfile.ObjectPool
 
 	checkInUse bool
-	check      catfile.Batch
+	check      catfile.ObjectInfoPool
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
@@ -57,10 +57,10 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 }
 
 // CatFileBatch obtains a CatFileBatch for this repository
-func (repo *Repository) CatFileBatch(ctx context.Context) (catfile.Batch, func(), error) {
+func (repo *Repository) CatFileBatch(ctx context.Context) (catfile.ObjectPool, func(), error) {
 	if repo.batch == nil {
 		var err error
-		repo.batch, err = catfile.NewBatch(ctx, repo.Path)
+		repo.batch, err = catfile.NewObjectPool(ctx, repo.Path)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -74,7 +74,7 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (catfile.Batch, func()
 	}
 
 	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
-	tempBatch, err := catfile.NewBatch(ctx, repo.Path)
+	tempBatch, err := catfile.NewObjectPool(ctx, repo.Path)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -82,10 +82,10 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (catfile.Batch, func()
 }
 
 // CatFileBatchCheck obtains a CatFileBatchCheck for this repository
-func (repo *Repository) CatFileBatchCheck(ctx context.Context) (catfile.Batch, func(), error) {
+func (repo *Repository) CatFileBatchCheck(ctx context.Context) (catfile.ObjectInfoPool, func(), error) {
 	if repo.check == nil {
 		var err error
-		repo.check, err = catfile.NewBatchCheck(ctx, repo.Path)
+		repo.check, err = catfile.NewObjectInfoPool(ctx, repo.Path)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -99,7 +99,7 @@ func (repo *Repository) CatFileBatchCheck(ctx context.Context) (catfile.Batch, f
 	}
 
 	log.Debug("Opening temporary cat file batch-check for: %s", repo.Path)
-	tempBatchCheck, err := catfile.NewBatchCheck(ctx, repo.Path)
+	tempBatchCheck, err := catfile.NewObjectInfoPool(ctx, repo.Path)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -24,23 +24,19 @@ func (repo *Repository) IsTagExist(name string) bool {
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id ObjectID) (string, error) {
-	batch, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	objInfoPool, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
 	if err != nil {
 		return "", err
 	}
 	defer cancel()
-	_, err = batch.Writer().Write([]byte(id.String() + "\n"))
-	if err != nil {
-		return "", err
-	}
-	_, typ, _, err := ReadBatchLine(batch.Reader())
+	objInfo, err := objInfoPool.ObjectInfo(repo.Ctx, id.String())
 	if err != nil {
 		if IsErrNotExist(err) {
 			return "", ErrNotExist{ID: id.String()}
 		}
 		return "", err
 	}
-	return typ, nil
+	return objInfo.Type, nil
 }
 
 func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
@@ -88,25 +84,23 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	}
 
 	// The tag is an annotated tag with a message.
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	objectPool, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	rd := batch.Reader()
-	if _, err := batch.Writer().Write([]byte(tagID.String() + "\n")); err != nil {
-		return nil, err
-	}
-	_, typ, size, err := ReadBatchLine(rd)
+	object, err := objectPool.Object(repo.Ctx, tagID.String())
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
 			return nil, ErrNotExist{ID: tagID.String()}
 		}
 		return nil, err
 	}
-	if typ != "tag" {
-		if err := DiscardFull(rd, size+1); err != nil {
+
+	rd := object.Reader
+	if object.Type != "tag" {
+		if err := DiscardFull(rd, object.Size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{ID: tagID.String()}
@@ -114,7 +108,7 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 
 	// then we need to parse the tag
 	// and load the commit
-	data, err := io.ReadAll(io.LimitReader(rd, size))
+	data, err := io.ReadAll(io.LimitReader(rd, object.Size))
 	if err != nil {
 		return nil, err
 	}

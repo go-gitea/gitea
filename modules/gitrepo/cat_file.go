@@ -9,6 +9,6 @@ import (
 	"code.gitea.io/gitea/modules/git/catfile"
 )
 
-func NewBatch(ctx context.Context, repo Repository) (catfile.Batch, error) {
-	return catfile.NewBatch(ctx, repoPath(repo))
+func NewObjectPool(ctx context.Context, repo Repository) (catfile.ObjectPool, error) {
+	return catfile.NewObjectPool(ctx, repoPath(repo))
 }

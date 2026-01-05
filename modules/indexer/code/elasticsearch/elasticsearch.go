@@ -13,7 +13,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -139,7 +138,7 @@ const (
 	}`
 )
 
-func (b *Indexer) addUpdate(ctx context.Context, batch catfile.Batch, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *Indexer) addUpdate(ctx context.Context, objectPool catfile.ObjectPool, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -162,15 +161,13 @@ func (b *Indexer) addUpdate(ctx context.Context, batch catfile.Batch, sha string
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
-	if _, err := batch.Writer().Write([]byte(update.BlobSha + "\n")); err != nil {
-		return nil, err
-	}
-
-	batchReader := batch.Reader()
-	_, _, size, err = git.ReadBatchLine(batchReader)
+	object, err := objectPool.Object(ctx, update.BlobSha)
 	if err != nil {
 		return nil, err
 	}
+	size = object.Size
+
+	batchReader := object.Reader
 
 	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
@@ -211,14 +208,13 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository) elasti
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
-		batch, err := gitrepo.NewBatch(ctx, repo)
+		objectPool, err := gitrepo.NewObjectPool(ctx, repo)
 		if err != nil {
 			return err
 		}
-		defer batch.Close()
-
+		defer objectPool.Close()
 		for _, update := range changes.Updates {
-			updateReqs, err := b.addUpdate(ctx, batch, sha, update, repo)
+			updateReqs, err := b.addUpdate(ctx, objectPool, sha, update, repo)
 			if err != nil {
 				return err
 			}
@@ -226,7 +222,7 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 				reqs = append(reqs, updateReqs...)
 			}
 		}
-		batch.Close()
+		objectPool.Close()
 	}
 
 	for _, filename := range changes.RemovedFilenames {

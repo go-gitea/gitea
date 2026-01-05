@@ -22,34 +22,30 @@ import (
 func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	objectPool, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
 	defer cancel()
 
-	writeID := func(id string) error {
-		_, err := batch.Writer().Write([]byte(id + "\n"))
-		return err
-	}
-
-	if err := writeID(commitID); err != nil {
+	object, err := objectPool.Object(repo.Ctx, commitID)
+	if err != nil {
 		return nil, err
 	}
-	batchReader := batch.Reader()
-	shaBytes, typ, size, err := git.ReadBatchLine(batchReader)
-	if typ != "commit" {
+	if object.Type != "commit" {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, git.ErrNotExist{ID: commitID}
 	}
 
-	sha, err := git.NewIDFromString(string(shaBytes))
+	batchReader := object.Reader
+
+	sha, err := git.NewIDFromString(object.ID)
 	if err != nil {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, git.ErrNotExist{ID: commitID}
 	}
 
-	commit, err := git.CommitFromReader(repo, sha, io.LimitReader(batchReader, size))
+	commit, err := git.CommitFromReader(repo, sha, io.LimitReader(batchReader, object.Size))
 	if err != nil {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, err
@@ -145,20 +141,18 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		// If content can not be read or file is too big just do detection by filename
 
 		if f.Size() <= bigFileSize {
-			if err := writeID(f.ID.String()); err != nil {
-				return nil, err
-			}
-			_, _, size, err := git.ReadBatchLine(batchReader)
+			object, err := objectPool.Object(repo.Ctx, f.ID.String())
 			if err != nil {
 				log.Debug("Error reading blob: %s Err: %v", f.ID.String(), err)
 				return nil, err
 			}
+			batchReader := object.Reader
 
-			sizeToRead := size
+			sizeToRead := object.Size
 			discard := int64(1)
-			if size > fileSizeLimit {
+			if object.Size > fileSizeLimit {
 				sizeToRead = fileSizeLimit
-				discard = size - fileSizeLimit + 1
+				discard = object.Size - fileSizeLimit + 1
 			}
 
 			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))

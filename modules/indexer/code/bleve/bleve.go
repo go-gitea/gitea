@@ -14,7 +14,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -151,7 +150,7 @@ func NewIndexer(indexDir string) *Indexer {
 	}
 }
 
-func (b *Indexer) addUpdate(ctx context.Context, catfileBatch catfile.Batch, commitSha string,
+func (b *Indexer) addUpdate(ctx context.Context, objectPool catfile.ObjectPool, commitSha string,
 	update internal.FileUpdate, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch,
 ) error {
 	// Ignore vendored files in code search
@@ -177,15 +176,12 @@ func (b *Indexer) addUpdate(ctx context.Context, catfileBatch catfile.Batch, com
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	if _, err := catfileBatch.Writer().Write([]byte(update.BlobSha + "\n")); err != nil {
-		return err
-	}
-
-	batchReader := catfileBatch.Reader()
-	_, _, size, err = git.ReadBatchLine(batchReader)
+	object, err := objectPool.Object(ctx, update.BlobSha)
 	if err != nil {
 		return err
 	}
+
+	batchReader := object.Reader
 
 	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
@@ -219,18 +215,18 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch 
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-		catfileBatch, err := gitrepo.NewBatch(ctx, repo)
+		objectPool, err := gitrepo.NewObjectPool(ctx, repo)
 		if err != nil {
 			return err
 		}
-		defer catfileBatch.Close()
+		defer objectPool.Close()
 
 		for _, update := range changes.Updates {
-			if err := b.addUpdate(ctx, catfileBatch, sha, update, repo, batch); err != nil {
+			if err := b.addUpdate(ctx, objectPool, sha, update, repo, batch); err != nil {
 				return err
 			}
 		}
-		catfileBatch.Close()
+		objectPool.Close()
 	}
 	for _, filename := range changes.RemovedFilenames {
 		if err := b.addDelete(filename, repo, batch); err != nil {
