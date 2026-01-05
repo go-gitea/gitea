@@ -45,7 +45,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 
 		if object.Type == "commit" {
-			treeID, err := ReadTreeID(rd, object.Size)
+			treeID, err := catfile.ReadTreeID(rd, object.Size)
 			if err != nil && err != io.EOF {
 				return nil, err
 			}

@@ -83,7 +83,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 			switch object.Type {
 			case "tag":
 				// This shouldn't happen but if it does well just get the commit and try again
-				id, err := git.ReadTagObjectID(batchReader, object.Size)
+				id, err := catfile.ReadTagObjectID(batchReader, object.Size)
 				if err != nil {
 					return nil, err
 				}
@@ -120,7 +120,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 						resultsMap[curCommit.ID.String()+":"+curPath+string(fname)] = &result
 					} else if string(mode) == git.EntryModeTree.String() {
 						hexObjectID := make([]byte, objectID.Type().FullLength())
-						git.BinToHex(objectID.Type(), binObjectID, hexObjectID)
+						catfile.BinToHex(objectID.Type(), binObjectID, hexObjectID)
 						trees = append(trees, hexObjectID)
 						paths = append(paths, curPath+string(fname)+"/")
 					}
