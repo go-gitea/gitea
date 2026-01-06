@@ -38,14 +38,14 @@ function getDefaultSvgBoundsIfUndefined(text: string, src: string) {
   return null;
 }
 
-function createContext(imageAfter: HTMLImageElement, imageBefore: HTMLImageElement) {
+function createContext(imageAfter: HTMLImageElement, imageBefore: HTMLImageElement, svgBoundsInfo: any) {
   const sizeAfter = {
-    width: imageAfter?.width || 0,
-    height: imageAfter?.height || 0,
+    width: svgBoundsInfo.after?.width || imageAfter?.width || 0,
+    height: svgBoundsInfo.after?.height || imageAfter?.height || 0,
   };
   const sizeBefore = {
-    width: imageBefore?.width || 0,
-    height: imageBefore?.height || 0,
+    width: svgBoundsInfo.before?.width || imageBefore?.width || 0,
+    height: svgBoundsInfo.before?.height || imageBefore?.height || 0,
   };
   const maxSize = {
     width: Math.max(sizeBefore.width, sizeAfter.width),
@@ -92,7 +92,8 @@ class ImageDiff {
       boundsInfo: containerEl.querySelector('.bounds-info-before'),
     }];
 
-    await Promise.all(imageInfos.map(async (info) => {
+    const svgBoundsInfo: any = {before: null, after: null};
+    await Promise.all(imageInfos.map(async (info, index) => {
       const [success] = await Promise.all(Array.from(info.images, (img) => {
         return loadElem(img, info.path);
       }));
@@ -102,11 +103,8 @@ class ImageDiff {
         const resp = await GET(info.path);
         const text = await resp.text();
         const bounds = getDefaultSvgBoundsIfUndefined(text, info.path);
+        svgBoundsInfo[index === 0 ? 'after' : 'before'] = bounds;
         if (bounds) {
-          for (const el of info.images) {
-            el.setAttribute('width', String(bounds.width));
-            el.setAttribute('height', String(bounds.height));
-          }
           hideElem(info.boundsInfo);
         }
       }
@@ -115,10 +113,10 @@ class ImageDiff {
     const imagesAfter = imageInfos[0].images;
     const imagesBefore = imageInfos[1].images;
 
-    this.initSideBySide(createContext(imagesAfter[0], imagesBefore[0]));
+    this.initSideBySide(createContext(imagesAfter[0], imagesBefore[0], svgBoundsInfo));
     if (imagesAfter.length > 0 && imagesBefore.length > 0) {
-      this.initSwipe(createContext(imagesAfter[1], imagesBefore[1]));
-      this.initOverlay(createContext(imagesAfter[2], imagesBefore[2]));
+      this.initSwipe(createContext(imagesAfter[1], imagesBefore[1], svgBoundsInfo));
+      this.initOverlay(createContext(imagesAfter[2], imagesBefore[2], svgBoundsInfo));
     }
     queryElemChildren(containerEl, '.image-diff-tabs', (el) => el.classList.remove('is-loading'));
   }

@@ -5,6 +5,7 @@
 package gitdiff
 
 import (
+	"html/template"
 	"strconv"
 	"strings"
 	"testing"
@@ -639,4 +640,42 @@ func TestNoCrashes(t *testing.T) {
 		// It shouldn't crash, so don't care about the output.
 		ParsePatch(t.Context(), setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff), "")
 	}
+}
+
+func TestHighlightCodeLines(t *testing.T) {
+	t.Run("CharsetDetecting", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name:     "a.c",
+			Language: "c",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{{LeftIdx: 1}},
+				},
+			},
+		}
+		ret := highlightCodeLines(diffFile, true, []byte("// abc\xcc def\xcd")) // ISO-8859-1 bytes
+		assert.Equal(t, "<span class=\"c1\">// abcÌ defÍ\n</span>", string(ret[0]))
+	})
+
+	t.Run("LeftLines", func(t *testing.T) {
+		diffFile := &DiffFile{
+			Name:     "a.c",
+			Language: "c",
+			Sections: []*DiffSection{
+				{
+					Lines: []*DiffLine{
+						{LeftIdx: 1},
+						{LeftIdx: 2},
+						{LeftIdx: 3},
+					},
+				},
+			},
+		}
+		const nl = "\n"
+		ret := highlightCodeLines(diffFile, true, []byte("a\nb\n"))
+		assert.Equal(t, map[int]template.HTML{
+			0: `<span class="n">a</span>` + nl,
+			1: `<span class="n">b</span>`,
+		}, ret)
+	})
 }
