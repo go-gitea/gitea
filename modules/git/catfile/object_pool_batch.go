@@ -37,8 +37,8 @@ type batchObjectPool struct {
 	batchChecks []*batch
 }
 
-// NewBatch creates a new cat-file --batch process for the provided repository path.
-// The returned Batch must be closed once the caller has finished with it.
+// NewBatchObjectPool creates a new ObjectPool that uses git cat-file --batch and --batch-check
+// to read objects from the repository at repoPath.
 func NewBatchObjectPool(ctx context.Context, repoPath string) (ObjectPool, error) {
 	if err := EnsureValidGitRepository(ctx, repoPath); err != nil {
 		return nil, err
@@ -66,16 +66,12 @@ func (b *batchObjectPool) getBatch() *batch {
 	return newBatch
 }
 
+// newBatch creates a new cat-file --batch process for the provided repository path.
+// The returned Batch must be closed when objectPool closed.
 func (b *batchObjectPool) newBatch() *batch {
 	var batch batch
 	batch.writer, batch.reader, batch.cancel = catFileBatch(b.ctx, b.repoPath)
 	return &batch
-}
-
-func (b *batchObjectPool) closeBatch(batch *batch) {
-	if batch != nil {
-		batch.inUse = false
-	}
 }
 
 func (b *batchObjectPool) getBatchCheck() *batch {
@@ -94,13 +90,15 @@ func (b *batchObjectPool) getBatchCheck() *batch {
 	return newBatch
 }
 
+// newBatchCheck creates a new cat-file --batch-check process for the provided repository path.
+// The returned Batch must be closed when objectPool closed.
 func (b *batchObjectPool) newBatchCheck() *batch {
 	var check batch
 	check.writer, check.reader, check.cancel = catFileBatchCheck(b.ctx, b.repoPath)
 	return &check
 }
 
-func (b *batchObjectPool) closeBatchCheck(batch *batch) {
+func releaseBatchCheck(batch *batch) {
 	if batch != nil {
 		batch.inUse = false
 	}
@@ -108,7 +106,7 @@ func (b *batchObjectPool) closeBatchCheck(batch *batch) {
 
 func (b *batchObjectPool) ObjectInfo(refName string) (*ObjectInfo, error) {
 	batch := b.getBatchCheck()
-	defer b.closeBatchCheck(batch)
+	defer releaseBatchCheck(batch)
 
 	_, err := batch.writer.Write([]byte(refName + "\n"))
 	if err != nil {
@@ -137,7 +135,6 @@ func (rc *readCloser) Close() error {
 
 func (b *batchObjectPool) Object(refName string) (*ObjectInfo, ReadCloseDiscarder, error) {
 	batch := b.getBatch()
-	defer b.closeBatch(batch)
 
 	_, err := batch.writer.Write([]byte(refName + "\n"))
 	if err != nil {
