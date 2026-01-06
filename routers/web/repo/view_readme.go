@@ -93,9 +93,9 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 			if subTreeEntry == nil {
 				continue
 			}
-			subTree := subTreeEntry.Tree()
-			if subTree == nil {
-				// this should be impossible; if subTreeEntry exists so should this.
+			subTree, err := subTreeEntry.Tree()
+			if err != nil { // this should be impossible; if subTreeEntry exists so should this.
+				log.Error("Unable to get tree for %s: %v", subTreeEntry.Name(), err)
 				continue
 			}
 			childEntries, err := subTree.ListEntries()

@@ -207,7 +207,11 @@ func listTreeNodes(ctx context.Context, repoLink string, renderedIconPool *filei
 			if subTreePath[0] == '/' {
 				subTreePath = subTreePath[1:]
 			}
-			subNodes, err := listTreeNodes(ctx, repoLink, renderedIconPool, commit, entry.Tree(), subTreePath, subPathRemaining)
+			tree, err := entry.Tree()
+			if err != nil {
+				return nil, err
+			}
+			subNodes, err := listTreeNodes(ctx, repoLink, renderedIconPool, commit, tree, subTreePath, subPathRemaining)
 			if err != nil {
 				log.Error("listTreeNodes: %v", err)
 			} else {
@@ -224,5 +228,9 @@ func GetTreeViewNodes(ctx context.Context, repoLink string, renderedIconPool *fi
 	if err != nil {
 		return nil, err
 	}
-	return listTreeNodes(ctx, repoLink, renderedIconPool, commit, entry.Tree(), treePath, subPath)
+	tree, err := entry.Tree()
+	if err != nil {
+		return nil, err
+	}
+	return listTreeNodes(ctx, repoLink, renderedIconPool, commit, tree, treePath, subPath)
 }

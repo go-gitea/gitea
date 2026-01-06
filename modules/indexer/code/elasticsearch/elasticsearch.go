@@ -162,18 +162,18 @@ func (b *Indexer) addUpdate(ctx context.Context, objectPool catfile.ObjectPool, 
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
-	object, batchReader, err := objectPool.Object(update.BlobSha)
+	object, contentReader, err := objectPool.Object(update.BlobSha)
 	if err != nil {
 		if catfile.IsErrObjectNotFound(err) {
 			return nil, git.ErrNotExist{ID: update.BlobSha}
 		}
 		return nil, err
 	}
-	defer batchReader.Close()
+	defer contentReader.Close()
 
 	size = object.Size
 
-	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
+	fileContents, err := io.ReadAll(io.LimitReader(contentReader, size))
 	if err != nil {
 		return nil, err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
@@ -181,7 +181,7 @@ func (b *Indexer) addUpdate(ctx context.Context, objectPool catfile.ObjectPool, 
 		return nil, nil
 	}
 
-	if _, err = batchReader.Discard(1); err != nil {
+	if _, err = contentReader.Discard(1); err != nil {
 		return nil, err
 	}
 	id := internal.FilenameIndexerID(repo.ID, update.Filename)

@@ -177,18 +177,18 @@ func (b *Indexer) addUpdate(ctx context.Context, objectPool catfile.ObjectPool, 
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	object, batchReader, err := objectPool.Object(update.BlobSha)
+	objectInfo, contentReader, err := objectPool.Object(update.BlobSha)
 	if err != nil {
 		if catfile.IsErrObjectNotFound(err) {
 			return git.ErrNotExist{ID: update.BlobSha}
 		}
 		return err
 	}
-	defer batchReader.Close()
+	defer contentReader.Close()
 
-	size = object.Size
+	size = objectInfo.Size
 
-	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
+	fileContents, err := io.ReadAll(io.LimitReader(contentReader, size))
 	if err != nil {
 		return err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
@@ -197,7 +197,7 @@ func (b *Indexer) addUpdate(ctx context.Context, objectPool catfile.ObjectPool, 
 		fileContents = nil
 	}
 
-	if _, err = batchReader.Discard(1); err != nil {
+	if _, err = contentReader.Discard(1); err != nil {
 		return err
 	}
 	id := internal.FilenameIndexerID(repo.ID, update.Filename)

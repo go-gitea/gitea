@@ -26,7 +26,7 @@ type Blob struct {
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
 func (b *Blob) DataAsync() (io.ReadCloser, error) {
-	object, rd, err := b.repo.objectPool.Object(b.ID.String())
+	objectInfo, contentReader, err := b.repo.objectPool.Object(b.ID.String())
 	if err != nil {
 		if catfile.IsErrObjectNotFound(err) {
 			return nil, ErrNotExist{ID: b.ID.String()}
@@ -35,20 +35,20 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 	}
 
 	b.gotSize = true
-	b.size = object.Size
+	b.size = objectInfo.Size
 
 	if b.size < 4096 {
-		defer rd.Close()
-		bs, err := io.ReadAll(io.LimitReader(rd, b.size))
+		defer contentReader.Close()
+		bs, err := io.ReadAll(io.LimitReader(contentReader, b.size))
 		if err != nil {
 			return nil, err
 		}
-		_, err = rd.Discard(1)
+		_, err = contentReader.Discard(1)
 		return io.NopCloser(bytes.NewReader(bs)), err
 	}
 
 	return &blobReader{
-		rd: rd,
+		rd: contentReader,
 		n:  b.size,
 	}, nil
 }

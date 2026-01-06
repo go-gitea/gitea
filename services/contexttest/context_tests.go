@@ -130,7 +130,7 @@ func LoadRepo(t *testing.T, ctx gocontext.Context, repoID int64) {
 }
 
 // LoadRepoCommit loads a repo's commit into a test context.
-func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
+func LoadRepoCommit(t *testing.T, ctx gocontext.Context) func() {
 	var repo *context.Repository
 	switch ctx := ctx.(type) {
 	case *context.Context:
@@ -143,7 +143,12 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo.Repository)
 	require.NoError(t, err)
-	defer gitRepo.Close()
+	// we can't close gitrepo here because it will be stored in Commit and be used by other places
+	cancel := func() {
+		if gitRepo != nil {
+			gitRepo.Close()
+		}
+	}
 
 	if repo.RefFullName == "" {
 		repo.RefFullName = git_module.RefNameFromBranch(repo.Repository.DefaultBranch)
@@ -153,6 +158,7 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 	}
 	repo.Commit, err = gitRepo.GetCommit(repo.RefFullName.String())
 	require.NoError(t, err)
+	return cancel
 }
 
 // LoadUser load a user into a test context

@@ -113,7 +113,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 
 		// If content can not be read or file is too big just do detection by filename
 		if f.Size() <= bigFileSize {
-			object, batchReader, err := repo.ObjectPool().Object(f.ID.String())
+			objectInfo, contentReader, err := repo.ObjectPool().Object(f.ID.String())
 			if err != nil {
 				if catfile.IsErrObjectNotFound(err) {
 					return nil, git.ErrNotExist{ID: f.ID.String()}
@@ -121,21 +121,21 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 				log.Debug("Error reading blob: %s Err: %v", f.ID.String(), err)
 				return nil, err
 			}
-			defer batchReader.Close()
+			defer contentReader.Close()
 
-			sizeToRead := object.Size
+			sizeToRead := objectInfo.Size
 			discard := int64(1)
-			if object.Size > fileSizeLimit {
+			if objectInfo.Size > fileSizeLimit {
 				sizeToRead = fileSizeLimit
-				discard = object.Size - fileSizeLimit + 1
+				discard = objectInfo.Size - fileSizeLimit + 1
 			}
 
-			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))
+			_, err = contentBuf.ReadFrom(io.LimitReader(contentReader, sizeToRead))
 			if err != nil {
 				return nil, err
 			}
 			content = contentBuf.Bytes()
-			if err := catfile.DiscardFull(batchReader, discard); err != nil {
+			if err := catfile.DiscardFull(contentReader, discard); err != nil {
 				return nil, err
 			}
 		}

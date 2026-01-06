@@ -61,7 +61,7 @@ func (repo *Repository) IsCommitExist(name string) bool {
 }
 
 func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	object, rd, err := repo.objectPool.Object(id.String())
+	objectInfo, contentReader, err := repo.objectPool.Object(id.String())
 	if err != nil {
 		if errors.Is(err, io.EOF) || catfile.IsErrObjectNotFound(err) {
 			return nil, ErrNotExist{ID: id.String()}
@@ -69,24 +69,24 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 		return nil, err
 	}
 
-	switch object.Type {
+	switch objectInfo.Type {
 	case "missing":
-		rd.Close()
+		contentReader.Close()
 		return nil, ErrNotExist{ID: id.String()}
 	case "tag":
 		// then we need to parse the tag
 		// and load the commit
-		data, err := io.ReadAll(io.LimitReader(rd, object.Size))
+		data, err := io.ReadAll(io.LimitReader(contentReader, objectInfo.Size))
 		if err != nil {
-			rd.Close()
+			contentReader.Close()
 			return nil, err
 		}
-		_, err = rd.Discard(1)
+		_, err = contentReader.Discard(1)
 		if err != nil {
-			rd.Close()
+			contentReader.Close()
 			return nil, err
 		}
-		rd.Close()
+		contentReader.Close()
 
 		tag, err := parseTagData(id.Type(), data)
 		if err != nil {
@@ -100,21 +100,21 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 
 		return commit, nil
 	case "commit":
-		defer rd.Close()
-		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, object.Size))
+		defer contentReader.Close()
+		commit, err := CommitFromReader(repo, id, io.LimitReader(contentReader, objectInfo.Size))
 		if err != nil {
 			return nil, err
 		}
-		_, err = rd.Discard(1)
+		_, err = contentReader.Discard(1)
 		if err != nil {
 			return nil, err
 		}
 
 		return commit, nil
 	default:
-		defer rd.Close()
-		log.Debug("Unknown typ: %s", object.Type)
-		if err := catfile.DiscardFull(rd, object.Size+1); err != nil {
+		defer contentReader.Close()
+		log.Debug("Unknown typ: %s", objectInfo.Type)
+		if err := catfile.DiscardFull(contentReader, objectInfo.Size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{

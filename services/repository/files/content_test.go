@@ -25,7 +25,8 @@ func TestGetContents(t *testing.T) {
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
 	ctx.SetPathParam("id", "1")
 	contexttest.LoadRepo(t, ctx, 1)
-	contexttest.LoadRepoCommit(t, ctx)
+	cancel := contexttest.LoadRepoCommit(t, ctx)
+	defer cancel()
 	contexttest.LoadUser(t, ctx, 2)
 	contexttest.LoadGitRepo(t, ctx)
 

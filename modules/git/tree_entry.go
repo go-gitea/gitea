@@ -126,13 +126,13 @@ func EntryFollowLinks(commit *Commit, firstFullPath string, firstTreeEntry *Tree
 }
 
 // returns the Tree pointed to by this TreeEntry, or nil if this is not a tree
-func (te *TreeEntry) Tree() *Tree {
+func (te *TreeEntry) Tree() (*Tree, error) {
 	t, err := te.ptree.repo.getTree(te.ID)
 	if err != nil {
-		return nil
+		return nil, err
 	}
 	t.ptree = te.ptree
-	return t
+	return t, nil
 }
 
 // GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )

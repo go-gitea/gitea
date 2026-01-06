@@ -79,17 +79,17 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 		return tag, nil
 	}
 
-	object, rd, err := repo.objectPool.Object(tagID.String())
+	objectInfo, contentReader, err := repo.objectPool.Object(tagID.String())
 	if err != nil {
 		if errors.Is(err, io.EOF) || catfile.IsErrObjectNotFound(err) {
 			return nil, ErrNotExist{ID: tagID.String()}
 		}
 		return nil, err
 	}
-	defer rd.Close()
+	defer contentReader.Close()
 
-	if object.Type != "tag" {
-		if err := catfile.DiscardFull(rd, object.Size+1); err != nil {
+	if objectInfo.Type != "tag" {
+		if err := catfile.DiscardFull(contentReader, objectInfo.Size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{ID: tagID.String()}
@@ -97,11 +97,11 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 
 	// then we need to parse the tag
 	// and load the commit
-	data, err := io.ReadAll(io.LimitReader(rd, object.Size))
+	data, err := io.ReadAll(io.LimitReader(contentReader, objectInfo.Size))
 	if err != nil {
 		return nil, err
 	}
-	_, err = rd.Discard(1)
+	_, err = contentReader.Discard(1)
 	if err != nil {
 		return nil, err
 	}

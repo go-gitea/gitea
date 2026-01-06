@@ -20,7 +20,8 @@ func TestTestHookValidation(t *testing.T) {
 	t.Run("Test Validation", func(t *testing.T) {
 		ctx, _ := contexttest.MockAPIContext(t, "user2/repo1/hooks")
 		contexttest.LoadRepo(t, ctx, 1)
-		contexttest.LoadRepoCommit(t, ctx)
+		cancel := contexttest.LoadRepoCommit(t, ctx)
+		defer cancel()
 		contexttest.LoadUser(t, ctx, 2)
 
 		checkCreateHookOption(ctx, &structs.CreateHookOption{
@@ -36,7 +37,8 @@ func TestTestHookValidation(t *testing.T) {
 	t.Run("Test Validation with invalid URL", func(t *testing.T) {
 		ctx, _ := contexttest.MockAPIContext(t, "user2/repo1/hooks")
 		contexttest.LoadRepo(t, ctx, 1)
-		contexttest.LoadRepoCommit(t, ctx)
+		cancel := contexttest.LoadRepoCommit(t, ctx)
+		defer cancel()
 		contexttest.LoadUser(t, ctx, 2)
 
 		checkCreateHookOption(ctx, &structs.CreateHookOption{
@@ -52,7 +54,8 @@ func TestTestHookValidation(t *testing.T) {
 	t.Run("Test Validation with invalid webhook type", func(t *testing.T) {
 		ctx, _ := contexttest.MockAPIContext(t, "user2/repo1/hooks")
 		contexttest.LoadRepo(t, ctx, 1)
-		contexttest.LoadRepoCommit(t, ctx)
+		cancel := contexttest.LoadRepoCommit(t, ctx)
+		defer cancel()
 		contexttest.LoadUser(t, ctx, 2)
 
 		checkCreateHookOption(ctx, &structs.CreateHookOption{
@@ -68,7 +71,8 @@ func TestTestHookValidation(t *testing.T) {
 	t.Run("Test Validation with empty content type", func(t *testing.T) {
 		ctx, _ := contexttest.MockAPIContext(t, "user2/repo1/hooks")
 		contexttest.LoadRepo(t, ctx, 1)
-		contexttest.LoadRepoCommit(t, ctx)
+		cancel := contexttest.LoadRepoCommit(t, ctx)
+		defer cancel()
 		contexttest.LoadUser(t, ctx, 2)
 
 		checkCreateHookOption(ctx, &structs.CreateHookOption{
