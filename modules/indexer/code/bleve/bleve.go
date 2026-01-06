@@ -184,6 +184,7 @@ func (b *Indexer) addUpdate(ctx context.Context, objectPool catfile.ObjectPool, 
 		}
 		return err
 	}
+	defer batchReader.Close()
 
 	size = object.Size
 

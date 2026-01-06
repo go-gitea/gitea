@@ -38,6 +38,7 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 	b.size = object.Size
 
 	if b.size < 4096 {
+		defer rd.Close()
 		bs, err := io.ReadAll(io.LimitReader(rd, b.size))
 		if err != nil {
 			return nil, err

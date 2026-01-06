@@ -55,28 +55,12 @@ func (b *batchObjectPool) getBatch() *batch {
 			return batch
 		}
 	}
-	if len(b.batches) > 1 {
-		log.Debug("Opening temporary cat file batch for: %s", b.repoPath)
+	if len(b.batches) >= 1 {
+		log.Warn("Opening temporary cat file batch for: %s", b.repoPath)
 	}
 	newBatch := b.newBatch()
 	newBatch.inUse = true
 	b.batches = append(b.batches, newBatch)
-	return newBatch
-}
-
-func (b *batchObjectPool) getBatchCheck() *batch {
-	for _, batch := range b.batchChecks {
-		if !batch.inUse {
-			batch.inUse = true
-			return batch
-		}
-	}
-	if len(b.batchChecks) > 1 {
-		log.Debug("Opening temporary cat file batch-check for: %s", b.repoPath)
-	}
-	newBatch := b.newBatchCheck()
-	newBatch.inUse = true
-	b.batchChecks = append(b.batchChecks, newBatch)
 	return newBatch
 }
 
@@ -86,6 +70,28 @@ func (b *batchObjectPool) newBatch() *batch {
 	return &batch
 }
 
+func (b *batchObjectPool) closeBatch(batch *batch) {
+	if batch != nil {
+		batch.inUse = false
+	}
+}
+
+func (b *batchObjectPool) getBatchCheck() *batch {
+	for _, batch := range b.batchChecks {
+		if !batch.inUse {
+			batch.inUse = true
+			return batch
+		}
+	}
+	if len(b.batchChecks) >= 1 {
+		log.Warn("Opening temporary cat file batch-check for: %s", b.repoPath)
+	}
+	newBatch := b.newBatchCheck()
+	newBatch.inUse = true
+	b.batchChecks = append(b.batchChecks, newBatch)
+	return newBatch
+}
+
 func (b *batchObjectPool) newBatchCheck() *batch {
 	var check batch
 	check.writer, check.reader, check.cancel = catFileBatchCheck(b.ctx, b.repoPath)
@@ -93,12 +99,6 @@ func (b *batchObjectPool) newBatchCheck() *batch {
 }
 
 func (b *batchObjectPool) closeBatchCheck(batch *batch) {
-	if batch != nil {
-		batch.inUse = false
-	}
-}
-
-func (b *batchObjectPool) closeBatch(batch *batch) {
 	if batch != nil {
 		batch.inUse = false
 	}

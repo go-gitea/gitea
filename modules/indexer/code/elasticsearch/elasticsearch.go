@@ -169,6 +169,8 @@ func (b *Indexer) addUpdate(ctx context.Context, objectPool catfile.ObjectPool, 
 		}
 		return nil, err
 	}
+	defer batchReader.Close()
+
 	size = object.Size
 
 	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))

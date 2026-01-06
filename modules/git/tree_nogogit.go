@@ -37,14 +37,13 @@ func (t *Tree) ListEntries() (Entries, error) {
 			}
 			return nil, err
 		}
-		defer rd.Close()
 
 		if object.Type == "commit" {
 			treeID, err := catfile.ReadTreeID(rd, object.Size)
+			rd.Close()
 			if err != nil && err != io.EOF {
 				return nil, err
 			}
-			rd.Close()
 			object, rd, err = t.repo.objectPool.Object(treeID)
 			if err != nil {
 				if catfile.IsErrObjectNotFound(err) {

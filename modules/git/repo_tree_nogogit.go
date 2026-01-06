@@ -21,17 +21,18 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		}
 		return nil, err
 	}
-	defer rd.Close()
 
 	switch object.Type {
 	case "tag":
 		resolvedID := id
 		data, err := io.ReadAll(io.LimitReader(rd, object.Size))
 		if err != nil {
+			rd.Close()
 			return nil, err
 		}
 		tag, err := parseTagData(id.Type(), data)
 		if err != nil {
+			rd.Close()
 			return nil, err
 		}
 		rd.Close() // close reader to avoid leaks
@@ -43,6 +44,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		commit.Tree.ResolvedID = resolvedID
 		return &commit.Tree, nil
 	case "commit":
+		defer rd.Close()
 		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, object.Size))
 		if err != nil {
 			return nil, err
@@ -53,6 +55,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		commit.Tree.ResolvedID = commit.ID
 		return &commit.Tree, nil
 	case "tree":
+		defer rd.Close()
 		tree := NewTree(repo, id)
 		tree.ResolvedID = id
 		objectFormat, err := repo.GetObjectFormat()
@@ -66,6 +69,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		tree.entriesParsed = true
 		return tree, nil
 	default:
+		defer rd.Close()
 		if err := catfile.DiscardFull(rd, object.Size+1); err != nil {
 			return nil, err
 		}

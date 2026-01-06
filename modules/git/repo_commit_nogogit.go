@@ -68,22 +68,26 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 		}
 		return nil, err
 	}
-	defer rd.Close()
 
 	switch object.Type {
 	case "missing":
+		rd.Close()
 		return nil, ErrNotExist{ID: id.String()}
 	case "tag":
 		// then we need to parse the tag
 		// and load the commit
 		data, err := io.ReadAll(io.LimitReader(rd, object.Size))
 		if err != nil {
+			rd.Close()
 			return nil, err
 		}
 		_, err = rd.Discard(1)
 		if err != nil {
+			rd.Close()
 			return nil, err
 		}
+		rd.Close()
+
 		tag, err := parseTagData(id.Type(), data)
 		if err != nil {
 			return nil, err
@@ -96,6 +100,7 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 
 		return commit, nil
 	case "commit":
+		defer rd.Close()
 		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, object.Size))
 		if err != nil {
 			return nil, err
@@ -107,6 +112,7 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 
 		return commit, nil
 	default:
+		defer rd.Close()
 		log.Debug("Unknown typ: %s", object.Type)
 		if err := catfile.DiscardFull(rd, object.Size+1); err != nil {
 			return nil, err

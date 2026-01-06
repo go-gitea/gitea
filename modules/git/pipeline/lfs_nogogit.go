@@ -83,7 +83,6 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					return nil, err
 				}
 				commitID = id
-				continue
 			case "commit":
 				// Read in the commit to get its tree and in case this is one of the last used commits
 				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(commitID), io.LimitReader(batchReader, object.Size))
@@ -133,6 +132,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					trees = trees[:len(trees)-1]
 					paths = paths[:len(paths)-1]
 				} else {
+					batchReader.Close()
 					break commitReadingLoop
 				}
 			default:
