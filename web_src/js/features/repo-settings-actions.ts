@@ -52,9 +52,7 @@ export function initActionsPermissionsTable(): void {
     function updateCrossRepoState(): void {
       const selectedMode = document.querySelector<HTMLInputElement>('input[name="cross_repo_mode"]:checked');
       const isSelected = selectedMode?.value === 'selected';
-      if (allowedReposSection) {
-        allowedReposSection.style.display = isSelected ? '' : 'none';
-      }
+      allowedReposSection!.style.display = isSelected ? '' : 'none';
     }
 
     for (const radio of crossRepoRadios) {
