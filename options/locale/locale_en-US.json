@@ -3741,7 +3741,7 @@
   "actions.general.token_permissions.access_none": "None",
   "actions.general.token_permissions.access_read": "Read",
   "actions.general.token_permissions.access_write": "Write",
-  "actions.general.token_permissions.contents": "Contents",
+  "actions.general.token_permissions.contents": "Code",
   "actions.general.token_permissions.contents.description": "Repository contents, commits, branches, downloads, releases, and merges.",
   "actions.general.token_permissions.issues": "Issues",
   "actions.general.token_permissions.issues.description": "Issues and related comments, assignees, labels, and milestones.",
@@ -3773,6 +3773,8 @@
   "actions.general.token_permissions.add_repo": "Add Repository",
   "actions.general.token_permissions.follow_org": "Follow organization-level configuration",
   "actions.general.token_permissions.follow_org_desc": "Use the Actions settings configured at the organization level instead of repository-specific settings.",
+  "settings.confirm_password": "Confirm Password",
+  "settings.disabled": "Disabled",
   "all_repositories": "All Repositories",
   "specific_repositories": "Specific Repositories"
 }

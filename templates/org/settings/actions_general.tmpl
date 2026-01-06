@@ -39,28 +39,45 @@
 				<h5 class="ui header">
 					{{ctx.Locale.Tr "actions.general.token_permissions.allowed_repos"}}
 				</h5>
-				<div class="ui middle aligned divided list">
-					{{range .AllowedRepos}}
-						<div class="item">
-							<div class="right floated content">
-								<button class="ui red tiny button" formmethod="post" formaction="{{$.Link}}/allowed_repos/remove?repo_id={{.ID}}">{{ctx.Locale.Tr "remove"}}</button>
+				<div class="ui attached segment">
+					<div class="flex-list">
+						{{range .AllowedRepos}}
+							<div class="flex-item tw-items-center">
+								<div class="flex-item-leading">
+									{{template "repo/icon" .}}
+								</div>
+								<div class="flex-item-main">
+									<a class="flex-item-title text primary" href="{{.Link}}">
+										{{.FullName}}
+									</a>
+								</div>
+								<div class="flex-item-trailing">
+									<form method="post" action="{{$.Link}}/allowed_repos/remove?repo_id={{.ID}}">
+										{{$.CsrfTokenHtml}}
+										<button type="submit" class="ui red small button">{{ctx.Locale.Tr "remove"}}</button>
+									</form>
+								</div>
 							</div>
-							<div class="content">
-								<a href="{{.Link}}">{{.Name}}</a>
+						{{else}}
+							<div class="flex-item">
+								<span class="text grey tw-italic">{{ctx.Locale.Tr "org.repos.none"}}</span>
 							</div>
-						</div>
-					{{else}}
-						<div class="item text empty">{{ctx.Locale.Tr "org.repos.none"}}</div>
-					{{end}}
+						{{end}}
+					</div>
 				</div>
 
 				<h5 class="ui header">
 					{{ctx.Locale.Tr "actions.general.token_permissions.add_repo"}}
 				</h5>
-				<div class="ui action input">
-					<input name="repo_name" placeholder="{{ctx.Locale.Tr "search.search_repo"}}">
-					<button class="ui green button" formmethod="post" formaction="{{$.Link}}/allowed_repos/add">{{ctx.Locale.Tr "add"}}</button>
-				</div>
+				<form class="ui form tw-flex" action="{{$.Link}}/allowed_repos/add" method="post">
+					{{.CsrfTokenHtml}}
+					<div data-global-init="initSearchRepoBox" data-uid="{{.Org.AsUser.ID}}" class="ui search tw-flex-1">
+						<div class="ui input">
+							<input class="prompt" name="repo_name" placeholder="{{ctx.Locale.Tr "search.search_repo"}}" autocomplete="off" required>
+						</div>
+					</div>
+					<button class="ui green button tw-ml-2">{{ctx.Locale.Tr "add"}}</button>
+				</form>
 			</div>
 
 			<div class="divider"></div>
@@ -253,6 +270,56 @@
 						<td style="text-align: center">
 							<div class="ui radio checkbox">
 								<input type="radio" name="max_actions" value="write" {{if $.MaxTokenPermissions.HasWrite "actions"}}checked{{end}}>
+								<label></label>
+							</div>
+						</td>
+					</tr>
+					<!-- Releases -->
+					<tr>
+						<td>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.releases"}}</strong>
+							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.releases.description"}}</p>
+						</td>
+						<td style="text-align: center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_releases" value="none" {{if not ($.MaxTokenPermissions.HasRead "releases")}}checked{{end}}>
+								<label></label>
+							</div>
+						</td>
+						<td style="text-align: center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_releases" value="read" {{if and ($.MaxTokenPermissions.HasRead "releases") (not ($.MaxTokenPermissions.HasWrite "releases"))}}checked{{end}}>
+								<label></label>
+							</div>
+						</td>
+						<td style="text-align: center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_releases" value="write" {{if $.MaxTokenPermissions.HasWrite "releases"}}checked{{end}}>
+								<label></label>
+							</div>
+						</td>
+					</tr>
+					<!-- Projects -->
+					<tr>
+						<td>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.projects"}}</strong>
+							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.projects.description"}}</p>
+						</td>
+						<td style="text-align: center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_projects" value="none" {{if not ($.MaxTokenPermissions.HasRead "projects")}}checked{{end}}>
+								<label></label>
+							</div>
+						</td>
+						<td style="text-align: center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_projects" value="read" {{if and ($.MaxTokenPermissions.HasRead "projects") (not ($.MaxTokenPermissions.HasWrite "projects"))}}checked{{end}}>
+								<label></label>
+							</div>
+						</td>
+						<td style="text-align: center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_projects" value="write" {{if $.MaxTokenPermissions.HasWrite "projects"}}checked{{end}}>
 								<label></label>
 							</div>
 						</td>
