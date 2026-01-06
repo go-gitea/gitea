@@ -9,9 +9,15 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
-// FetchRemoteCommit fetches a specific commit and related commits from a remote repository into the managed repository
-// it will be checked in 2 weeks by default from git if the pull request created failure.
-// It's enough for a temporary fetch to get the merge base.
+// FetchRemoteCommit fetches a specific commit and its related objects from a remote
+// repository into the managed repository.
+//
+// If no reference (branch, tag, or other ref) points to the fetched commit, it will
+// be treated as unreachable and cleaned up by `git gc` after the default prune
+// expiration period (2 weeks). Ref: https://www.kernel.org/pub/software/scm/git/docs/git-gc.html
+//
+// This behavior is sufficient for temporary operations, such as determining the
+// merge base between commits.
 func FetchRemoteCommit(ctx context.Context, repo, remoteRepo Repository, commitID string) error {
 	return RunCmd(ctx, repo, gitcmd.NewCommand("fetch", "--no-tags").
 		AddDynamicArguments(repoPath(remoteRepo)).
