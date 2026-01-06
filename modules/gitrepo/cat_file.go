@@ -10,5 +10,5 @@ import (
 )
 
 func NewObjectPool(ctx context.Context, repo Repository) (catfile.ObjectPool, error) {
-	return catfile.NewObjectPool(ctx, repoPath(repo))
+	return catfile.NewBatchObjectPool(ctx, repoPath(repo))
 }

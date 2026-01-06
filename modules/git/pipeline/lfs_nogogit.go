@@ -48,12 +48,6 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	objectPool, cancel, err := repo.CatFileBatch(repo.Ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer cancel()
-
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
 	scan := bufio.NewScanner(revListReader)
 	trees := [][]byte{}
@@ -72,7 +66,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	commitReadingLoop:
 		for {
-			object, batchReader, err := objectPool.Object(commitID)
+			object, batchReader, err := repo.ObjectPool().Object(commitID)
 			if err != nil {
 				if catfile.IsErrObjectNotFound(err) {
 					return nil, git.ErrNotExist{ID: commitID}
@@ -85,6 +79,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 				// This shouldn't happen but if it does well just get the commit and try again
 				id, err := catfile.ReadTagObjectID(batchReader, object.Size)
 				if err != nil {
+					batchReader.Close()
 					return nil, err
 				}
 				commitID = id
@@ -93,9 +88,11 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 				// Read in the commit to get its tree and in case this is one of the last used commits
 				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(commitID), io.LimitReader(batchReader, object.Size))
 				if err != nil {
+					batchReader.Close()
 					return nil, err
 				}
 				if _, err := batchReader.Discard(1); err != nil {
+					batchReader.Close()
 					return nil, err
 				}
 
@@ -106,6 +103,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 				for n < object.Size {
 					mode, fname, binObjectID, count, err := git.ParseCatFileTreeLine(objectID.Type(), batchReader, modeBuf, fnameBuf, workingShaBuf)
 					if err != nil {
+						batchReader.Close()
 						return nil, err
 					}
 					n += int64(count)
@@ -126,6 +124,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					}
 				}
 				if _, err := batchReader.Discard(1); err != nil {
+					batchReader.Close()
 					return nil, err
 				}
 				if len(trees) > 0 {
@@ -137,10 +136,12 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					break commitReadingLoop
 				}
 			default:
-				if err := git.DiscardFull(batchReader, object.Size+1); err != nil {
+				if err := catfile.DiscardFull(batchReader, object.Size+1); err != nil {
+					batchReader.Close()
 					return nil, err
 				}
 			}
+			batchReader.Close()
 		}
 	}
 

@@ -6,7 +6,6 @@
 package git
 
 import (
-	"bufio"
 	"bytes"
 	"io"
 
@@ -27,14 +26,8 @@ type Blob struct {
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
 func (b *Blob) DataAsync() (io.ReadCloser, error) {
-	objectPool, cancel, err := b.repo.CatFileBatch(b.repo.Ctx)
+	object, rd, err := b.repo.objectPool.Object(b.ID.String())
 	if err != nil {
-		return nil, err
-	}
-
-	object, rd, err := objectPool.Object(b.ID.String())
-	if err != nil {
-		cancel()
 		if catfile.IsErrObjectNotFound(err) {
 			return nil, ErrNotExist{ID: b.ID.String()}
 		}
@@ -46,7 +39,6 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 
 	if b.size < 4096 {
 		bs, err := io.ReadAll(io.LimitReader(rd, b.size))
-		defer cancel()
 		if err != nil {
 			return nil, err
 		}
@@ -55,9 +47,8 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 	}
 
 	return &blobReader{
-		rd:     rd,
-		n:      b.size,
-		cancel: cancel,
+		rd: rd,
+		n:  b.size,
 	}, nil
 }
 
@@ -67,13 +58,7 @@ func (b *Blob) Size() int64 {
 		return b.size
 	}
 
-	objInfoPool, cancel, err := b.repo.CatFileBatchCheck(b.repo.Ctx)
-	if err != nil {
-		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
-		return 0
-	}
-	defer cancel()
-	objInfo, err := objInfoPool.ObjectInfo(b.ID.String())
+	objInfo, err := b.repo.objectPool.ObjectInfo(b.ID.String())
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0
@@ -85,9 +70,8 @@ func (b *Blob) Size() int64 {
 }
 
 type blobReader struct {
-	rd     *bufio.Reader
-	n      int64
-	cancel func()
+	rd catfile.ReadCloseDiscarder
+	n  int64
 }
 
 func (b *blobReader) Read(p []byte) (n int, err error) {
@@ -107,13 +91,11 @@ func (b *blobReader) Close() error {
 	if b.rd == nil {
 		return nil
 	}
-
-	defer b.cancel()
-
-	if err := DiscardFull(b.rd, b.n+1); err != nil {
+	if err := catfile.DiscardFull(b.rd, b.n+1); err != nil {
 		return err
 	}
 
+	b.rd.Close()
 	b.rd = nil
 
 	return nil

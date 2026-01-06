@@ -28,13 +28,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	if t.repo != nil {
-		objectPool, cancel, err := t.repo.CatFileBatch(t.repo.Ctx)
-		if err != nil {
-			return nil, err
-		}
-		defer cancel()
-
-		object, rd, err := objectPool.Object(t.ID.String())
+		object, rd, err := t.repo.objectPool.Object(t.ID.String())
 		if err != nil {
 			if catfile.IsErrObjectNotFound(err) {
 				return nil, ErrNotExist{
@@ -43,13 +37,15 @@ func (t *Tree) ListEntries() (Entries, error) {
 			}
 			return nil, err
 		}
+		defer rd.Close()
 
 		if object.Type == "commit" {
 			treeID, err := catfile.ReadTreeID(rd, object.Size)
 			if err != nil && err != io.EOF {
 				return nil, err
 			}
-			object, rd, err = objectPool.Object(treeID)
+			rd.Close()
+			object, rd, err = t.repo.objectPool.Object(treeID)
 			if err != nil {
 				if catfile.IsErrObjectNotFound(err) {
 					return nil, ErrNotExist{
@@ -58,6 +54,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 				}
 				return nil, err
 			}
+			defer rd.Close()
 		}
 		if object.Type == "tree" {
 			t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, object.Size)
@@ -69,7 +66,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 
 		// Not a tree just use ls-tree instead
-		if err := DiscardFull(rd, object.Size+1); err != nil {
+		if err := catfile.DiscardFull(rd, object.Size+1); err != nil {
 			return nil, err
 		}
 	}

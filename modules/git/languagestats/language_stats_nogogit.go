@@ -23,19 +23,15 @@ import (
 func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	objectPool, cancel, err := repo.CatFileBatch(repo.Ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer cancel()
-
-	object, batchReader, err := objectPool.Object(commitID)
+	object, batchReader, err := repo.ObjectPool().Object(commitID)
 	if err != nil {
 		if catfile.IsErrObjectNotFound(err) {
 			return nil, git.ErrNotExist{ID: commitID}
 		}
 		return nil, err
 	}
+	defer batchReader.Close()
+
 	if object.Type != "commit" {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, git.ErrNotExist{ID: commitID}
@@ -143,7 +139,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		// If content can not be read or file is too big just do detection by filename
 
 		if f.Size() <= bigFileSize {
-			object, batchReader, err := objectPool.Object(f.ID.String())
+			object, batchReader, err := repo.ObjectPool().Object(f.ID.String())
 			if err != nil {
 				if catfile.IsErrObjectNotFound(err) {
 					return nil, git.ErrNotExist{ID: f.ID.String()}
@@ -151,6 +147,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 				log.Debug("Error reading blob: %s Err: %v", f.ID.String(), err)
 				return nil, err
 			}
+			defer batchReader.Close()
 
 			sizeToRead := object.Size
 			discard := int64(1)
@@ -164,7 +161,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 				return nil, err
 			}
 			content = contentBuf.Bytes()
-			if err := git.DiscardFull(batchReader, discard); err != nil {
+			if err := catfile.DiscardFull(batchReader, discard); err != nil {
 				return nil, err
 			}
 		}

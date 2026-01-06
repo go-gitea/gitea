@@ -69,7 +69,7 @@ func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err er
 }
 
 // ReadTagObjectID reads a tag object ID hash from a cat-file --batch stream, throwing away the rest.
-func ReadTagObjectID(rd *bufio.Reader, size int64) (string, error) {
+func ReadTagObjectID(rd ReadCloseDiscarder, size int64) (string, error) {
 	var id string
 	var n int64
 headerLoop:
@@ -94,7 +94,7 @@ headerLoop:
 }
 
 // ReadTreeID reads a tree ID from a cat-file --batch stream, throwing away the rest of the commit content.
-func ReadTreeID(rd *bufio.Reader, size int64) (string, error) {
+func ReadTreeID(rd ReadCloseDiscarder, size int64) (string, error) {
 	var id string
 	var n int64
 headerLoop:
@@ -136,7 +136,7 @@ func BinToHex(objectFormat ObjectFormat, sha, out []byte) []byte {
 // ParseCatFileTreeLine reads an entry from a tree in a cat-file --batch stream and avoids allocations
 // where possible. Each line is composed of:
 // <mode-in-ascii> SP <fname> NUL <binary HASH>
-func ParseCatFileTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
+func ParseCatFileTreeLine(objectFormat ObjectFormat, rd ReadCloseDiscarder, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
 	var readBytes []byte
 
 	readBytes, err = rd.ReadSlice('\x00')
@@ -192,7 +192,7 @@ func ParseCatFileTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, 
 }
 
 // DiscardFull discards the requested amount of bytes from the buffered reader regardless of its internal limit.
-func DiscardFull(rd *bufio.Reader, discard int64) error {
+func DiscardFull(rd ReadCloseDiscarder, discard int64) error {
 	if discard > math.MaxInt32 {
 		n, err := rd.Discard(math.MaxInt32)
 		discard -= int64(n)

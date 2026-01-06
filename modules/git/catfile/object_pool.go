@@ -1,10 +1,10 @@
-// Copyright 2024 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package catfile
 
 import (
-	"bufio"
+	"io"
 )
 
 type ObjectInfo struct {
@@ -13,12 +13,19 @@ type ObjectInfo struct {
 	Size int64
 }
 
-type ObjectInfoPool interface {
-	ObjectInfo(refName string) (*ObjectInfo, error)
-	Close()
+type Discarder interface {
+	Discard(n int) (int, error)
+}
+
+type ReadCloseDiscarder interface {
+	io.ReadCloser
+	Discarder
+	ReadBytes(delim byte) ([]byte, error)
+	ReadSlice(delim byte) (line []byte, err error)
 }
 
 type ObjectPool interface {
-	Object(refName string) (*ObjectInfo, *bufio.Reader, error)
+	ObjectInfo(refName string) (*ObjectInfo, error)
+	Object(refName string) (*ObjectInfo, ReadCloseDiscarder, error)
 	Close()
 }

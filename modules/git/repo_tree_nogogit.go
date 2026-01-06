@@ -12,13 +12,7 @@ import (
 )
 
 func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
-	objectPool, cancel, err := repo.CatFileBatch(repo.Ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer cancel()
-
-	object, rd, err := objectPool.Object(id.String())
+	object, rd, err := repo.objectPool.Object(id.String())
 	if err != nil {
 		if catfile.IsErrObjectNotFound(err) {
 			return nil, ErrNotExist{
@@ -27,6 +21,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		}
 		return nil, err
 	}
+	defer rd.Close()
 
 	switch object.Type {
 	case "tag":
@@ -39,8 +34,9 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		if err != nil {
 			return nil, err
 		}
+		rd.Close() // close reader to avoid leaks
 
-		commit, err := repo.getCommitFromBatchReader(objectPool, tag.Object)
+		commit, err := repo.getCommit(tag.Object)
 		if err != nil {
 			return nil, err
 		}
@@ -70,7 +66,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		tree.entriesParsed = true
 		return tree, nil
 	default:
-		if err := DiscardFull(rd, object.Size+1); err != nil {
+		if err := catfile.DiscardFull(rd, object.Size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{

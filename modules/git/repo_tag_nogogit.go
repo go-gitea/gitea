@@ -25,12 +25,7 @@ func (repo *Repository) IsTagExist(name string) bool {
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id ObjectID) (string, error) {
-	objInfoPool, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
-	if err != nil {
-		return "", err
-	}
-	defer cancel()
-	objInfo, err := objInfoPool.ObjectInfo(id.String())
+	objInfo, err := repo.objectPool.ObjectInfo(id.String())
 	if err != nil {
 		if catfile.IsErrObjectNotFound(err) {
 			return "", ErrNotExist{ID: id.String()}
@@ -84,23 +79,17 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 		return tag, nil
 	}
 
-	// The tag is an annotated tag with a message.
-	objectPool, cancel, err := repo.CatFileBatch(repo.Ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer cancel()
-
-	object, rd, err := objectPool.Object(tagID.String())
+	object, rd, err := repo.objectPool.Object(tagID.String())
 	if err != nil {
 		if errors.Is(err, io.EOF) || catfile.IsErrObjectNotFound(err) {
 			return nil, ErrNotExist{ID: tagID.String()}
 		}
 		return nil, err
 	}
+	defer rd.Close()
 
 	if object.Type != "tag" {
-		if err := DiscardFull(rd, object.Size+1); err != nil {
+		if err := catfile.DiscardFull(rd, object.Size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{ID: tagID.String()}

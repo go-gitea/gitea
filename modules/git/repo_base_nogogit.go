@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/git/catfile"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -23,11 +22,7 @@ type Repository struct {
 
 	tagCache *ObjectCache[*Tag]
 
-	batchInUse bool
-	batch      catfile.ObjectPool
-
-	checkInUse bool
-	check      catfile.ObjectInfoPool
+	objectPool catfile.ObjectPool
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
@@ -49,76 +44,29 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 
+	objectPool, err := catfile.NewBatchObjectPool(ctx, repoPath)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Repository{
-		Path:     repoPath,
-		tagCache: newObjectCache[*Tag](),
-		Ctx:      ctx,
+		Path:       repoPath,
+		tagCache:   newObjectCache[*Tag](),
+		objectPool: objectPool,
+		Ctx:        ctx,
 	}, nil
 }
 
-// CatFileBatch obtains a CatFileBatch for this repository
-func (repo *Repository) CatFileBatch(ctx context.Context) (catfile.ObjectPool, func(), error) {
-	if repo.batch == nil {
-		var err error
-		repo.batch, err = catfile.NewObjectPool(ctx, repo.Path)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	if !repo.batchInUse {
-		repo.batchInUse = true
-		return repo.batch, func() {
-			repo.batchInUse = false
-		}, nil
-	}
-
-	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
-	tempBatch, err := catfile.NewObjectPool(ctx, repo.Path)
-	if err != nil {
-		return nil, nil, err
-	}
-	return tempBatch, tempBatch.Close, nil
-}
-
-// CatFileBatchCheck obtains a CatFileBatchCheck for this repository
-func (repo *Repository) CatFileBatchCheck(ctx context.Context) (catfile.ObjectInfoPool, func(), error) {
-	if repo.check == nil {
-		var err error
-		repo.check, err = catfile.NewObjectInfoPool(ctx, repo.Path)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	if !repo.checkInUse {
-		repo.checkInUse = true
-		return repo.check, func() {
-			repo.checkInUse = false
-		}, nil
-	}
-
-	log.Debug("Opening temporary cat file batch-check for: %s", repo.Path)
-	tempBatchCheck, err := catfile.NewObjectInfoPool(ctx, repo.Path)
-	if err != nil {
-		return nil, nil, err
-	}
-	return tempBatchCheck, tempBatchCheck.Close, nil
+func (repo *Repository) ObjectPool() catfile.ObjectPool {
+	return repo.objectPool
 }
 
 func (repo *Repository) Close() error {
 	if repo == nil {
 		return nil
 	}
-	if repo.batch != nil {
-		repo.batch.Close()
-		repo.batch = nil
-		repo.batchInUse = false
-	}
-	if repo.check != nil {
-		repo.check.Close()
-		repo.check = nil
-		repo.checkInUse = false
+	if repo.objectPool != nil {
+		repo.objectPool.Close()
 	}
 	repo.LastCommitCache = nil
 	repo.tagCache = nil

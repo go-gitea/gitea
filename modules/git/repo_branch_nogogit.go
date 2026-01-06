@@ -22,13 +22,7 @@ func (repo *Repository) IsObjectExist(name string) bool {
 		return false
 	}
 
-	objInfoPool, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
-	if err != nil {
-		log.Debug("Error writing to CatFileBatchCheck %v", err)
-		return false
-	}
-	defer cancel()
-	objInfo, err := objInfoPool.ObjectInfo(name)
+	objInfo, err := repo.objectPool.ObjectInfo(name)
 	if err != nil {
 		log.Debug("Error writing to ObjectInfo %v", err)
 		return false
@@ -42,14 +36,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 		return false
 	}
 
-	objInfoPool, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
-	if err != nil {
-		log.Debug("Error writing to CatFileBatchCheck %v", err)
-		return false
-	}
-	defer cancel()
-
-	_, err = objInfoPool.ObjectInfo(name)
+	_, err := repo.objectPool.ObjectInfo(name)
 	return err == nil
 }
 

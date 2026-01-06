@@ -37,13 +37,7 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	objInfoPool, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
-	if err != nil {
-		return "", err
-	}
-	defer cancel()
-
-	objInfo, err := objInfoPool.ObjectInfo(name)
+	objInfo, err := repo.objectPool.ObjectInfo(name)
 	if err != nil {
 		if catfile.IsErrObjectNotFound(err) {
 			return "", ErrNotExist{name, ""}
@@ -67,23 +61,14 @@ func (repo *Repository) IsCommitExist(name string) bool {
 }
 
 func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	objectPool, cancel, err := repo.CatFileBatch(repo.Ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer cancel()
-
-	return repo.getCommitFromBatchReader(objectPool, id)
-}
-
-func (repo *Repository) getCommitFromBatchReader(objectPool catfile.ObjectPool, id ObjectID) (*Commit, error) {
-	object, rd, err := objectPool.Object(id.String())
+	object, rd, err := repo.objectPool.Object(id.String())
 	if err != nil {
 		if errors.Is(err, io.EOF) || catfile.IsErrObjectNotFound(err) {
 			return nil, ErrNotExist{ID: id.String()}
 		}
 		return nil, err
 	}
+	defer rd.Close()
 
 	switch object.Type {
 	case "missing":
@@ -104,7 +89,7 @@ func (repo *Repository) getCommitFromBatchReader(objectPool catfile.ObjectPool, 
 			return nil, err
 		}
 
-		commit, err := repo.getCommitFromBatchReader(objectPool, tag.Object)
+		commit, err := repo.getCommit(tag.Object)
 		if err != nil {
 			return nil, err
 		}
@@ -123,7 +108,7 @@ func (repo *Repository) getCommitFromBatchReader(objectPool catfile.ObjectPool, 
 		return commit, nil
 	default:
 		log.Debug("Unknown typ: %s", object.Type)
-		if err := DiscardFull(rd, object.Size+1); err != nil {
+		if err := catfile.DiscardFull(rd, object.Size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{
@@ -145,13 +130,7 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	objInfoPool, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer cancel()
-
-	objInfo, err := objInfoPool.ObjectInfo(commitID)
+	objInfo, err := repo.objectPool.ObjectInfo(commitID)
 	if err != nil {
 		if catfile.IsErrObjectNotFound(err) {
 			return nil, ErrNotExist{commitID, ""}

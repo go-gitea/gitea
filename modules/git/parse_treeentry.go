@@ -4,11 +4,11 @@
 package git
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
 
+	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -47,7 +47,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	return entries, nil
 }
 
-func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd *bufio.Reader, sz int64) ([]*TreeEntry, error) {
+func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd catfile.ReadCloseDiscarder, sz int64) ([]*TreeEntry, error) {
 	fnameBuf := make([]byte, 4096)
 	modeBuf := make([]byte, 40)
 	shaBuf := make([]byte, objectFormat.FullLength())
