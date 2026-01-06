@@ -92,12 +92,9 @@ func (b *blobReader) Close() error {
 	if b.rd == nil {
 		return nil
 	}
-	if err := catfile.DiscardFull(b.rd, b.n+1); err != nil {
-		return err
-	}
 
+	err := catfile.DiscardFull(b.rd, b.n+1)
 	b.rd.Close()
 	b.rd = nil
-
-	return nil
+	return err
 }
