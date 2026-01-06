@@ -5,6 +5,7 @@ package setting
 
 import (
 	"net/http"
+	"slices"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/perm"
@@ -151,11 +152,10 @@ func ActionsAllowedReposAdd(ctx *context.Context) {
 	}
 
 	// Check if already exists
-	for _, id := range actionsCfg.AllowedCrossRepoIDs {
-		if id == repo.ID {
-			ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
-			return
-		}
+	// Check if already exists
+	if slices.Contains(actionsCfg.AllowedCrossRepoIDs, repo.ID) {
+		ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+		return
 	}
 
 	actionsCfg.AllowedCrossRepoIDs = append(actionsCfg.AllowedCrossRepoIDs, repo.ID)
