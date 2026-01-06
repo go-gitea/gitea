@@ -182,7 +182,7 @@ async function webauthnRegistered(newCredential: any) { // TODO: Credential type
 }
 
 function webAuthnError(errorType: ErrorType, message:string = '') {
-  const elErrorMsg = document.querySelector(`#webauthn-error-msg`)!;
+  const elErrorMsg = document.querySelector(`#webauthn-error-msg`);
 
   if (errorType === 'general') {
     elErrorMsg.textContent = message || 'unknown error';
