@@ -7,7 +7,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/theme" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="field">
 					{{ctx.Locale.Tr "settings.theme_desc"}}
 					<a class="muted" target="_blank" href="https://github.com/go-gitea/gitea/blob/main/web_src/css/themes/" data-tooltip-content="{{ctx.Locale.Tr "settings.theme_colorblindness_prompt"}}">
@@ -42,7 +41,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/language" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="field">
 					<div class="ui language selection dropdown" id="language">
 						<input name="language" type="hidden" value="{{.SignedUser.Language}}">
@@ -70,7 +68,6 @@
 				{{ctx.Locale.Tr "settings.hidden_comment_types_description"}}
 			</p>
 			<form class="ui form" action="{{.Link}}/hidden_comments" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="inline field">
 					<div class="ui checkbox" data-tooltip-content="{{ctx.Locale.Tr "settings.hidden_comment_types.ref_tooltip"}}">
 						<input name="reference" type="checkbox" {{if(call .IsCommentTypeGroupChecked "reference")}}checked{{end}}>

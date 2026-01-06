@@ -23420,6 +23420,11 @@
       "description": "CreatePullRequestOption options when creating a pull request",
       "type": "object",
       "properties": {
+        "allow_maintainer_edit": {
+          "description": "Whether maintainers can edit the pull request",
+          "type": "boolean",
+          "x-go-name": "AllowMaintainerEdit"
+        },
         "assignee": {
           "description": "The primary assignee username",
           "type": "string",

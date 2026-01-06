@@ -95,6 +95,10 @@ func commonLdapCLIFlags() []cli.Flag {
 			Usage: "The attribute of the user’s LDAP record containing the user’s public ssh key.",
 		},
 		&cli.BoolFlag{
+			Name:  "ssh-keys-are-verified",
+			Usage: "Set to true to automatically flag SSH keys in LDAP as verified.",
+		},
+		&cli.BoolFlag{
 			Name:  "skip-local-2fa",
 			Usage: "Set to true to skip local 2fa for users authenticated by this source",
 		},
@@ -293,6 +297,9 @@ func parseLdapConfig(c *cli.Command, config *ldap.Source) error {
 	}
 	if c.IsSet("public-ssh-key-attribute") {
 		config.AttributeSSHPublicKey = c.String("public-ssh-key-attribute")
+	}
+	if c.IsSet("ssh-keys-are-verified") {
+		config.SSHKeysAreVerified = c.Bool("ssh-keys-are-verified")
 	}
 	if c.IsSet("avatar-attribute") {
 		config.AttributeAvatar = c.String("avatar-attribute")

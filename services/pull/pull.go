@@ -34,6 +34,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	git_service "code.gitea.io/gitea/services/git"
 	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -51,6 +52,7 @@ type NewPullRequestOptions struct {
 	AssigneeIDs     []int64
 	Reviewers       []*user_model.User
 	TeamReviewers   []*organization.Team
+	ProjectID       int64
 }
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -66,11 +68,13 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 
 	// user should be a collaborator or a member of the organization for base repo
 	canCreate := issue.Poster.IsAdmin || pr.Flow == issues_model.PullRequestFlowAGit
+	canAssignProject := canCreate
 	if !canCreate {
 		canCreate, err := repo_model.IsOwnerMemberCollaborator(ctx, repo, issue.Poster.ID)
 		if err != nil {
 			return err
 		}
+		canAssignProject = canCreate
 
 		if !canCreate {
 			// or user should have write permission in the head repo
@@ -84,6 +88,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			if !perm.CanWrite(unit.TypeCode) {
 				return issues_model.ErrMustCollaborator
 			}
+			canAssignProject = perm.CanWrite(unit.TypeProjects)
 		}
 	}
 
@@ -114,6 +119,12 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 				return err
 			}
 			assigneeCommentMap[assigneeID] = comment
+		}
+
+		if opts.ProjectID > 0 && canAssignProject {
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectID, 0); err != nil {
+				return err
+			}
 		}
 
 		pr.Issue = issue
@@ -1066,14 +1077,14 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 	if pull.HasMerged {
 		baseBranch = pull.MergeBase
 	}
-	prInfo, err := GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, baseBranch, pull.GetGitHeadRefName(), true, false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, git.RefNameFromBranch(baseBranch), git.RefName(pull.GetGitHeadRefName()), true, false)
 	if err != nil {
 		return nil, "", err
 	}
 
-	commits := make([]CommitInfo, 0, len(prInfo.Commits))
+	commits := make([]CommitInfo, 0, len(compareInfo.Commits))
 
-	for _, commit := range prInfo.Commits {
+	for _, commit := range compareInfo.Commits {
 		var committerOrAuthorName string
 		var commitTime time.Time
 		if commit.Author != nil {

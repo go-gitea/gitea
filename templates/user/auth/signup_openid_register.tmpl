@@ -11,7 +11,6 @@
 						{{ctx.Locale.Tr "auth.openid_register_desc"}}
 					</p>
 					<form class="ui form" action="{{.Link}}" method="post">
-					{{.CsrfTokenHtml}}
 					<div class="required field {{if .Err_UserName}}error{{end}}">
 						<label for="user_name">{{ctx.Locale.Tr "username"}}</label>
 						<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
