@@ -22,9 +22,11 @@ type batch struct {
 func (b *batch) Close() {
 	if b.cancel != nil {
 		b.cancel()
+		b.cancel = nil
 	}
 	if b.writer != nil {
 		_ = b.writer.Close()
+		b.writer = nil
 	}
 }
 
@@ -157,7 +159,9 @@ func (b *batchObjectPool) Close() {
 	for _, batch := range b.batches {
 		batch.Close()
 	}
+	b.batches = nil
 	for _, batchCheck := range b.batchChecks {
 		batchCheck.Close()
 	}
+	b.batchChecks = nil
 }
