@@ -28,11 +28,11 @@ export function initActionsPermissionsTable(): void {
       for (const input of inputs) {
         input.disabled = tableDisabled;
       }
-      permTable.style.opacity = tableDisabled ? '0.5' : '1';
+      permTable.style.display = tableDisabled ? 'none' : '';
     }
 
     if (tableSection) {
-      tableSection.style.opacity = tableDisabled ? '0.5' : '1';
+      tableSection.style.display = tableDisabled ? 'none' : '';
     }
   }
 
@@ -43,4 +43,23 @@ export function initActionsPermissionsTable(): void {
   followOrgCheckbox?.addEventListener('change', updateTableState);
 
   updateTableState();
+
+  // Cross-Repo Access Table Toggle
+  const crossRepoRadios = document.querySelectorAll<HTMLInputElement>('.js-cross-repo-mode');
+  const allowedReposSection = document.querySelector<HTMLElement>('#allowed-repos-section');
+
+  if (crossRepoRadios.length && allowedReposSection) {
+    function updateCrossRepoState(): void {
+      const selectedMode = document.querySelector<HTMLInputElement>('input[name="cross_repo_mode"]:checked');
+      const isSelected = selectedMode?.value === 'selected';
+      if (allowedReposSection) {
+        allowedReposSection.style.display = isSelected ? '' : 'none';
+      }
+    }
+
+    for (const radio of crossRepoRadios) {
+      radio.addEventListener('change', updateCrossRepoState);
+    }
+    updateCrossRepoState();
+  }
 }

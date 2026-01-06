@@ -39,6 +39,25 @@ func ActionsGeneral(ctx *context.Context) {
 	ctx.Data["AllowCrossRepoAccess"] = actionsCfg.AllowCrossRepoAccess
 	ctx.Data["HasSelectedRepos"] = len(actionsCfg.AllowedCrossRepoIDs) > 0
 
+	// Load Allowed Repositories
+	var allowedRepos []*repo_model.Repository
+	if len(actionsCfg.AllowedCrossRepoIDs) > 0 {
+		// Since the list shouldn't be too long, we can loop. 
+		// Ideally use GetRepositoriesByIDs but simple loop is fine for now.
+		for _, id := range actionsCfg.AllowedCrossRepoIDs {
+			repo, err := repo_model.GetRepositoryByID(ctx, id)
+			if err != nil {
+				if repo_model.IsErrRepoNotExist(err) {
+					continue
+				}
+				ctx.ServerError("GetRepositoryByID", err)
+				return
+			}
+			allowedRepos = append(allowedRepos, repo)
+		}
+	}
+	ctx.Data["AllowedRepos"] = allowedRepos
+
 	ctx.HTML(http.StatusOK, tplSettingsActionsGeneral)
 }
 
@@ -103,5 +122,85 @@ func ActionsGeneralPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("org.settings.update_setting_success"))
+	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+}
+
+// ActionsAllowedReposAdd adds a repository to the allowed list for cross-repo access
+func ActionsAllowedReposAdd(ctx *context.Context) {
+	repoName := ctx.FormString("repo_name")
+	if repoName == "" {
+		ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+		return
+	}
+
+	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Organization.ID, repoName)
+	if err != nil {
+		if repo_model.IsErrRepoNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("repo.not_exist"))
+			ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+			return
+		}
+		ctx.ServerError("GetRepositoryByName", err)
+		return
+	}
+
+	actionsCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID)
+	if err != nil {
+		ctx.ServerError("GetOrgActionsConfig", err)
+		return
+	}
+
+	// Check if already exists
+	for _, id := range actionsCfg.AllowedCrossRepoIDs {
+		if id == repo.ID {
+			ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+			return
+		}
+	}
+
+	actionsCfg.AllowedCrossRepoIDs = append(actionsCfg.AllowedCrossRepoIDs, repo.ID)
+	// Ensure mode is set to selected if we are adding specific repos?
+	// Logic: If user adds a repo, they probably want it enabled.
+	// But let's respect the current mode toggle. If "all" or "none" is set, adding a repo updates the list but might not activate "selected" mode unless user explicitly chose "selected".
+	// However, if "selected" is active, this adds to it.
+
+	if err := actions_model.SetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID, actionsCfg); err != nil {
+		ctx.ServerError("SetOrgActionsConfig", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+}
+
+// ActionsAllowedReposRemove removes a repository from the allowed list
+func ActionsAllowedReposRemove(ctx *context.Context) {
+	repoID := ctx.FormInt64("repo_id")
+	if repoID == 0 {
+		ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+		return
+	}
+
+	actionsCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID)
+	if err != nil {
+		ctx.ServerError("GetOrgActionsConfig", err)
+		return
+	}
+
+	// Filter out the ID
+	newIDs := make([]int64, 0, len(actionsCfg.AllowedCrossRepoIDs))
+	for _, id := range actionsCfg.AllowedCrossRepoIDs {
+		if id != repoID {
+			newIDs = append(newIDs, id)
+		}
+	}
+	actionsCfg.AllowedCrossRepoIDs = newIDs
+
+	if err := actions_model.SetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID, actionsCfg); err != nil {
+		ctx.ServerError("SetOrgActionsConfig", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
 }

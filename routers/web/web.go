@@ -961,6 +961,10 @@ func registerWebRoutes(m *web.Router) {
 				m.Group("/actions", func() {
 					m.Get("", org_setting.ActionsGeneral)
 					m.Post("", org_setting.ActionsGeneralPost)
+					m.Group("/allowed_repos", func() {
+						m.Post("/add", org_setting.ActionsAllowedReposAdd)
+						m.Post("/remove", org_setting.ActionsAllowedReposRemove)
+					})
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()

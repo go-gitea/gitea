@@ -183,6 +183,9 @@ func UpdateTokenPermissions(ctx *context.Context) {
 			Packages:     parseMaxPerm("packages"),
 			PullRequests: parseMaxPerm("pull_requests"),
 			Wiki:         parseMaxPerm("wiki"),
+			Actions:      parseMaxPerm("actions"),
+			Releases:     parseMaxPerm("releases"),
+			Projects:     parseMaxPerm("projects"),
 		}
 	} else {
 		actionsCfg.MaxTokenPermissions = nil

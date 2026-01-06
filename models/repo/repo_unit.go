@@ -194,6 +194,10 @@ type ActionsTokenPermissions struct {
 	Actions perm.AccessMode `json:"actions"`
 	// Wiki - read/write/none
 	Wiki perm.AccessMode `json:"wiki"`
+	// Releases - read/write/none
+	Releases perm.AccessMode `json:"releases"`
+	// Projects - read/write/none
+	Projects perm.AccessMode `json:"projects"`
 }
 
 // HasAccess checks if the permission meets the required access level for the given scope
@@ -212,6 +216,10 @@ func (p ActionsTokenPermissions) HasAccess(scope string, required perm.AccessMod
 		mode = p.PullRequests
 	case "wiki":
 		mode = p.Wiki
+	case "releases":
+		mode = p.Releases
+	case "projects":
+		mode = p.Projects
 	}
 	return mode >= required
 }
@@ -236,6 +244,8 @@ func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsToke
 			Packages:     perm.AccessModeRead,
 			Actions:      perm.AccessModeRead,
 			Wiki:         perm.AccessModeRead,
+			Releases:     perm.AccessModeRead,
+			Projects:     perm.AccessModeRead,
 		}
 	}
 	// Permissive mode (default)
@@ -246,6 +256,8 @@ func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsToke
 		Packages:     perm.AccessModeRead, // Packages read by default for security
 		Actions:      perm.AccessModeWrite,
 		Wiki:         perm.AccessModeWrite,
+		Releases:     perm.AccessModeWrite,
+		Projects:     perm.AccessModeWrite,
 	}
 }
 
@@ -258,6 +270,8 @@ func ForkPullRequestPermissions() ActionsTokenPermissions {
 		Packages:     perm.AccessModeRead,
 		Actions:      perm.AccessModeRead,
 		Wiki:         perm.AccessModeRead,
+		Releases:     perm.AccessModeRead,
+		Projects:     perm.AccessModeRead,
 	}
 }
 
@@ -370,6 +384,8 @@ func (cfg *ActionsConfig) GetMaxTokenPermissions() ActionsTokenPermissions {
 		Packages:     perm.AccessModeWrite,
 		Actions:      perm.AccessModeWrite,
 		Wiki:         perm.AccessModeWrite,
+		Releases:     perm.AccessModeWrite,
+		Projects:     perm.AccessModeWrite,
 	}
 }
 
@@ -383,6 +399,8 @@ func (cfg *ActionsConfig) ClampPermissions(perms ActionsTokenPermissions) Action
 		Packages:     min(perms.Packages, maxPerms.Packages),
 		Actions:      min(perms.Actions, maxPerms.Actions),
 		Wiki:         min(perms.Wiki, maxPerms.Wiki),
+		Releases:     min(perms.Releases, maxPerms.Releases),
+		Projects:     min(perms.Projects, maxPerms.Projects),
 	}
 }
 

@@ -70,6 +70,8 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 				Packages:     perm.AccessModeRead,
 				Actions:      perm.AccessModeRead,
 				Wiki:         perm.AccessModeRead,
+				Releases:     perm.AccessModeRead,
+				Projects:     perm.AccessModeRead,
 			}
 		case "write-all":
 			return repo_model.ActionsTokenPermissions{
@@ -79,6 +81,8 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 				Packages:     perm.AccessModeWrite,
 				Actions:      perm.AccessModeWrite,
 				Wiki:         perm.AccessModeWrite,
+				Releases:     perm.AccessModeWrite,
+				Projects:     perm.AccessModeWrite,
 			}
 		}
 		return defaultPerms
@@ -117,6 +121,10 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 				result.Actions = accessMode
 			case "wiki":
 				result.Wiki = accessMode
+			case "releases":
+				result.Releases = accessMode
+			case "projects":
+				result.Projects = accessMode
 				// Additional GitHub scopes we don't explicitly handle yet:
 				// These fall through to defaults
 				// - deployments, environments, id-token, pages, repository-projects, security-events, statuses

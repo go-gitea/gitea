@@ -16,21 +16,50 @@
 			<div class="grouped fields">
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="cross_repo_mode" value="none" {{if not .AllowCrossRepoAccess}}checked{{end}}>
+						<input type="radio" name="cross_repo_mode" value="none" {{if not .AllowCrossRepoAccess}}checked{{end}} class="js-cross-repo-mode">
 						<label>{{ctx.Locale.Tr "settings.disabled"}}</label>
 					</div>
 				</div>
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="cross_repo_mode" value="all" {{if and .AllowCrossRepoAccess (not .HasSelectedRepos)}}checked{{end}}>
+						<input type="radio" name="cross_repo_mode" value="all" {{if and .AllowCrossRepoAccess (not .HasSelectedRepos)}}checked{{end}} class="js-cross-repo-mode">
 						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_all"}}</label>
 					</div>
 				</div>
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="cross_repo_mode" value="selected" {{if and .AllowCrossRepoAccess .HasSelectedRepos}}checked{{end}}>
+						<input type="radio" name="cross_repo_mode" value="selected" {{if and .AllowCrossRepoAccess .HasSelectedRepos}}checked{{end}} class="js-cross-repo-mode">
 						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_selected"}}</label>
 					</div>
+				</div>
+			</div>
+
+			<!-- Allowed Repositories List -->
+			<div id="allowed-repos-section" class="field">
+				<h5 class="ui header">
+					{{ctx.Locale.Tr "actions.general.token_permissions.allowed_repos"}}
+				</h5>
+				<div class="ui middle aligned divided list">
+					{{range .AllowedRepos}}
+						<div class="item">
+							<div class="right floated content">
+								<button class="ui red tiny button" formmethod="post" formaction="{{$.Link}}/allowed_repos/remove?repo_id={{.ID}}">{{ctx.Locale.Tr "remove"}}</button>
+							</div>
+							<div class="content">
+								<a href="{{.Link}}">{{.Name}}</a>
+							</div>
+						</div>
+					{{else}}
+						<div class="item text empty">{{ctx.Locale.Tr "org.repos.none"}}</div>
+					{{end}}
+				</div>
+
+				<h5 class="ui header">
+					{{ctx.Locale.Tr "actions.general.token_permissions.add_repo"}}
+				</h5>
+				<div class="ui action input">
+					<input name="repo_name" placeholder="{{ctx.Locale.Tr "search.search_repo"}}">
+					<button class="ui green button" formmethod="post" formaction="{{$.Link}}/allowed_repos/add">{{ctx.Locale.Tr "add"}}</button>
 				</div>
 			</div>
 
