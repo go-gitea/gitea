@@ -92,6 +92,8 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 	if node.Kind == yaml.MappingNode {
 		result := defaultPerms // Start with defaults
 
+		// Collect all scopes into a map first to handle priority
+		scopes := make(map[string]perm.AccessMode)
 		for i := 0; i < len(node.Content); i += 2 {
 			if i+1 >= len(node.Content) {
 				break
@@ -103,34 +105,36 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 				continue
 			}
 
-			scope := keyNode.Value
-			accessStr := valueNode.Value
-			accessMode := parseAccessMode(accessStr)
+			scopes[keyNode.Value] = parseAccessMode(valueNode.Value)
+		}
 
-			// Map GitHub Actions scopes to Gitea units
+		// 1. Apply 'contents' first (lower priority)
+		if mode, ok := scopes["contents"]; ok {
+			result.Code = mode
+			result.Releases = mode
+		}
+
+		// 2. Apply all other scopes (overwrites contents if specified)
+		for scope, mode := range scopes {
 			switch scope {
 			case "contents":
-				result.Code = accessMode
-				result.Releases = accessMode
+				// already handled
 			case "code":
-				result.Code = accessMode
+				result.Code = mode
 			case "issues":
-				result.Issues = accessMode
+				result.Issues = mode
 			case "pull-requests":
-				result.PullRequests = accessMode
+				result.PullRequests = mode
 			case "packages":
-				result.Packages = accessMode
+				result.Packages = mode
 			case "actions":
-				result.Actions = accessMode
+				result.Actions = mode
 			case "wiki":
-				result.Wiki = accessMode
+				result.Wiki = mode
 			case "releases":
-				result.Releases = accessMode
+				result.Releases = mode
 			case "projects":
-				result.Projects = accessMode
-				// Additional GitHub scopes we don't explicitly handle yet:
-				// These fall through to defaults
-				// - deployments, environments, id-token, pages, repository-projects, security-events, statuses
+				result.Projects = mode
 			}
 		}
 

@@ -99,6 +99,44 @@ issues: write
 	assert.Equal(t, perm.AccessModeWrite, result.Wiki)
 }
 
+func TestParseRawPermissions_Priority(t *testing.T) {
+	t.Run("granular-wins-over-contents", func(t *testing.T) {
+		yamlContent := `
+contents: read
+code: write
+releases: none
+`
+		var rawPerms yaml.Node
+		err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
+		assert.NoError(t, err)
+
+		defaultPerms := repo_model.ActionsTokenPermissions{}
+		result := parseRawPermissions(&rawPerms, defaultPerms)
+
+		assert.Equal(t, perm.AccessModeWrite, result.Code)
+		assert.Equal(t, perm.AccessModeNone, result.Releases)
+	})
+
+	t.Run("contents-applied-first", func(t *testing.T) {
+		yamlContent := `
+code: none
+releases: write
+contents: read
+`
+		var rawPerms yaml.Node
+		err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
+		assert.NoError(t, err)
+
+		defaultPerms := repo_model.ActionsTokenPermissions{}
+		result := parseRawPermissions(&rawPerms, defaultPerms)
+
+		// code: none should win over contents: read
+		assert.Equal(t, perm.AccessModeNone, result.Code)
+		// releases: write should win over contents: read
+		assert.Equal(t, perm.AccessModeWrite, result.Releases)
+	})
+}
+
 func TestParseRawPermissions_EmptyNode(t *testing.T) {
 	var rawPerms yaml.Node
 	// Empty node
