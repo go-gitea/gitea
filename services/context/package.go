@@ -101,7 +101,7 @@ func determineAccessMode(ctx *Base, pkg *Package, doer *user_model.User) (perm.A
 		return perm.AccessModeNone, nil
 	}
 
-	// TODO: ActionUser permission check
+	// ActionUser permission check is handled in reqPackageAccess to allow for repo-specific checks
 	accessMode := perm.AccessModeNone
 	if pkg.Owner.IsOrganization() {
 		org := organization.OrgFromUser(pkg.Owner)

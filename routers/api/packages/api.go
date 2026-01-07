@@ -136,6 +136,11 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 						return
 					}
 				}
+
+				// If we have passed all checks, grant the requested access to the context
+				if ctx.Package.AccessMode < accessMode {
+					ctx.Package.AccessMode = accessMode
+				}
 			}
 		}
 
