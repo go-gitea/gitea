@@ -205,6 +205,25 @@ func ChangeProjectStatus(ctx *context.Context) {
 	}
 	id := ctx.PathParamInt64("id")
 
+	project, err := project_model.GetProjectByID(ctx, id)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+
+	if project.OwnerID != ctx.ContextUser.ID {
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+			"message": fmt.Sprintf("Project[%d] is not in Owner[%d] as expected", project.ID, ctx.ContextUser.ID),
+		})
+		return
+	}
+	if project.Type != project_model.TypeOrganization && project.Type != project_model.TypeIndividual {
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+			"message": fmt.Sprintf("Project[%d] is not of a type that supports by this endpoint", project.ID),
+		})
+		return
+	}
+
 	if err := project_model.ChangeProjectStatusByRepoIDAndID(ctx, 0, id, toClose); err != nil {
 		ctx.NotFoundOrServerError("ChangeProjectStatusByRepoIDAndID", project_model.IsErrProjectNotExist, err)
 		return
@@ -495,6 +514,19 @@ func AddColumnToProjectPost(ctx *context.Context) {
 	project, err := project_model.GetProjectByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetProjectByID", project_model.IsErrProjectNotExist, err)
+		return
+	}
+
+	if project.OwnerID != ctx.ContextUser.ID {
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+			"message": fmt.Sprintf("Project[%d] is not in Owner[%d] as expected", project.ID, ctx.ContextUser.ID),
+		})
+		return
+	}
+	if project.Type != project_model.TypeOrganization && project.Type != project_model.TypeIndividual {
+		ctx.JSON(http.StatusUnprocessableEntity, map[string]string{
+			"message": fmt.Sprintf("Project[%d] is not of a type that supported by this endpoint", project.ID),
+		})
 		return
 	}
 
