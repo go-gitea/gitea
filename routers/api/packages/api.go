@@ -143,7 +143,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 					}
 				}
 
-				grantedMode := perm.AccessModeNone
+				var grantedMode perm.AccessMode
 				if task.RepoID == packageRepoID {
 					// Same-repository access: use the token's configured package permission
 					if err := task.LoadJob(ctx); err == nil && task.Job != nil {
