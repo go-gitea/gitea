@@ -8,8 +8,10 @@ import (
 	"context"
 	"fmt"
 
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -42,6 +44,21 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 	if err != nil {
 		log.Error("user_model.GetMailableUsersByIDs: %v", err)
 		return
+	}
+
+	if err := rel.LoadRepo(ctx); err != nil {
+		log.Error("rel.LoadRepo: %v", err)
+		return
+	}
+
+	for i := 0; i < len(recipients); {
+		// test if this user is allowed to see the issue/pull
+		// release publisher should also get the email?
+		if recipients[i].ID != rel.PublisherID && !access_model.CheckRepoUnitUser(ctx, rel.Repo, recipients[i], unit.TypeReleases) {
+			recipients = append(recipients[:i], recipients[i+1:]...)
+			continue
+		}
+		i++
 	}
 
 	langMap := make(map[string][]*user_model.User)
