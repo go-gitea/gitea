@@ -9,6 +9,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	packages_model "code.gitea.io/gitea/models/packages"
+	repo_perm_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -83,10 +84,10 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 		}
 
 		isActionsToken, _ := ctx.Data["IsActionsToken"].(bool)
-		if isActionsToken && ctx.Package != nil && ctx.Package.Owner != nil && ctx.Package.Owner.IsOrganization() {
+		if isActionsToken && ctx.Package != nil && ctx.Package.Owner != nil {
 			// Actions rules:
-			// 1. If the package key matches the task repo, allow.
-			// 2. If not, check cross-repo policy.
+			// 1. If the package is linked to the task repo, allow.
+			// 2. If not, check cross-repo policy (currently only for Orgs).
 
 			taskID, ok := ctx.Data["ActionsTaskID"].(int64)
 			if ok && taskID > 0 {
@@ -123,7 +124,12 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				}
 
 				if task.RepoID != packageRepoID {
-					// Cross-repository access - check org policy
+					// Cross-repository access - only allowed for Orgs with explicit policy
+					if !ctx.Package.Owner.IsOrganization() {
+						ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is only allowed for organizations")
+						return
+					}
+
 					cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
 					if err != nil {
 						log.Error("GetOrgActionsConfig: %v", err)
@@ -137,9 +143,25 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 					}
 				}
 
-				// If we have passed all checks, grant the requested access to the context
-				if ctx.Package.AccessMode < accessMode {
-					ctx.Package.AccessMode = accessMode
+				grantedMode := perm.AccessModeNone
+				if task.RepoID == packageRepoID {
+					// Same-repository access: use the token's configured package permission
+					if err := task.LoadJob(ctx); err == nil && task.Job != nil {
+						perms, _ := repo_perm_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
+						grantedMode = perms.Packages
+					} else {
+						// Fallback if job cannot be loaded
+						grantedMode = perm.AccessModeRead
+					}
+				} else {
+					// Cross-repository access: strictly Read-only even if token/policy allow more
+					grantedMode = perm.AccessModeRead
+				}
+
+				// If all security checks pass, ensure the context has at least the granted permission.
+				// This effectively "boosts" the Actions token's permissions for the targeted package.
+				if ctx.Package.AccessMode < grantedMode {
+					ctx.Package.AccessMode = grantedMode
 				}
 			}
 		}
