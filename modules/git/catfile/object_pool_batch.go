@@ -153,6 +153,7 @@ func (b *batchObjectPool) Object(refName string) (*ObjectInfo, ReadCloseDiscarde
 
 	_, err = batch.writer.Write([]byte(refName + "\n"))
 	if err != nil {
+		batch.inUse = false
 		return nil, nil, err
 	}
 
@@ -160,6 +161,7 @@ func (b *batchObjectPool) Object(refName string) (*ObjectInfo, ReadCloseDiscarde
 	var oid []byte
 	oid, obj.Type, obj.Size, err = ReadBatchLine(batch.reader)
 	if err != nil {
+		batch.inUse = false
 		return nil, nil, err
 	}
 	obj.ID = string(oid)
