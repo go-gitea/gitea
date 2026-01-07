@@ -6,6 +6,8 @@ package markup
 import (
 	"strings"
 
+	"code.gitea.io/gitea/modules/markup/common"
+
 	"golang.org/x/net/html"
 )
 
@@ -23,13 +25,54 @@ func isAnchorHrefFootnote(s string) bool {
 	return strings.HasPrefix(s, "#fnref:user-content-") || strings.HasPrefix(s, "#fn:user-content-")
 }
 
-func processNodeAttrID(node *html.Node) {
+// isHeadingTag returns true if the node is a heading tag (h1-h6)
+func isHeadingTag(node *html.Node) bool {
+	return node.Type == html.ElementNode &&
+		len(node.Data) == 2 &&
+		node.Data[0] == 'h' &&
+		node.Data[1] >= '1' && node.Data[1] <= '6'
+}
+
+// getNodeText extracts the text content from a node and its children
+func getNodeText(node *html.Node) string {
+	var text strings.Builder
+	var extractText func(*html.Node)
+	extractText = func(n *html.Node) {
+		if n.Type == html.TextNode {
+			text.WriteString(n.Data)
+		}
+		for c := n.FirstChild; c != nil; c = c.NextSibling {
+			extractText(c)
+		}
+	}
+	extractText(node)
+	return text.String()
+}
+
+func processNodeAttrID(ctx *RenderContext, node *html.Node) {
 	// Add user-content- to IDs and "#" links if they don't already have them,
 	// and convert the link href to a relative link to the host root
+	hasID := false
 	for idx, attr := range node.Attr {
 		if attr.Key == "id" {
+			hasID = true
 			if !isAnchorIDUserContent(attr.Val) {
 				node.Attr[idx].Val = "user-content-" + attr.Val
+			}
+		}
+	}
+
+	// For heading tags (h1-h6) without an id attribute, generate one from the text content.
+	// This ensures HTML headings like <h1>Title</h1> get proper permalink anchors
+	// matching the behavior of Markdown headings.
+	// Only enabled for repository files and wiki pages via EnableHeadingIDGeneration option.
+	if !hasID && isHeadingTag(node) && ctx.RenderOptions.EnableHeadingIDGeneration {
+		text := getNodeText(node)
+		if text != "" {
+			// Use the same CleanValue function used by Markdown heading ID generation
+			cleanedID := string(common.CleanValue([]byte(text)))
+			if cleanedID != "" {
+				node.Attr = append(node.Attr, html.Attribute{Key: "id", Val: "user-content-" + cleanedID})
 			}
 		}
 	}

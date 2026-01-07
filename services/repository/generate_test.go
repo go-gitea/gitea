@@ -4,6 +4,7 @@
 package repository
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
 	"testing"
@@ -53,19 +54,24 @@ text/*.txt
 }
 
 func TestFilePathSanitize(t *testing.T) {
-	assert.Equal(t, "test_CON", filePathSanitize("test_CON"))
-	assert.Equal(t, "test CON", filePathSanitize("test CON "))
-	assert.Equal(t, "__/traverse/__", filePathSanitize(".. /traverse/ .."))
-	assert.Equal(t, "./__/a/_git/b_", filePathSanitize("./../a/.git/ b: "))
+	// path clean
+	assert.Equal(t, "a", filePathSanitize("//a/"))
+	assert.Equal(t, "_a", filePathSanitize(`\a`))
+	assert.Equal(t, "__/a/__", filePathSanitize(".. /a/ .."))
+	assert.Equal(t, "__/a/_git/b_", filePathSanitize("./../a/.git/ b: "))
+
+	// Windows reserved names
 	assert.Equal(t, "_", filePathSanitize("CoN"))
 	assert.Equal(t, "_", filePathSanitize("LpT1"))
 	assert.Equal(t, "_", filePathSanitize("CoM1"))
+	assert.Equal(t, "test_CON", filePathSanitize("test_CON"))
+	assert.Equal(t, "test CON", filePathSanitize("test CON "))
+
+	// special chars
 	assert.Equal(t, "_", filePathSanitize("\u0000"))
-	assert.Equal(t, "目标", filePathSanitize("目标"))
-	// unlike filepath.Clean, it only sanitizes, doesn't change the separator layout
-	assert.Equal(t, "", filePathSanitize("")) //nolint:testifylint // for easy reading
+	assert.Equal(t, ".", filePathSanitize(""))
 	assert.Equal(t, ".", filePathSanitize("."))
-	assert.Equal(t, "/", filePathSanitize("/"))
+	assert.Equal(t, ".", filePathSanitize("/"))
 }
 
 func TestProcessGiteaTemplateFile(t *testing.T) {
@@ -174,6 +180,31 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 		assertSymLink("subst-TemplateRepoName-to-link", tmpDir+"/sub/link-target")
 		// subst from a link, skip, and the target is unchanged
 		assertSymLink("subst-${TEMPLATE_NAME}-from-link", tmpDir+"/sub/link-target")
+	}
+
+	{
+		templateFilePath := tmpDir + "/.gitea/template"
+
+		_ = os.Remove(templateFilePath)
+		_, err := os.Lstat(templateFilePath)
+		require.ErrorIs(t, err, fs.ErrNotExist)
+		_, err = readGiteaTemplateFile(tmpDir) // no template file
+		require.ErrorIs(t, err, fs.ErrNotExist)
+
+		_ = os.WriteFile(templateFilePath+".target", []byte("test-data-target"), 0o644)
+		_ = os.Symlink(templateFilePath+".target", templateFilePath)
+		content, _ := os.ReadFile(templateFilePath)
+		require.Equal(t, "test-data-target", string(content))
+		_, err = readGiteaTemplateFile(tmpDir) // symlinked template file
+		require.ErrorIs(t, err, fs.ErrNotExist)
+
+		_ = os.Remove(templateFilePath)
+		_ = os.WriteFile(templateFilePath, []byte("test-data-regular"), 0o644)
+		content, _ = os.ReadFile(templateFilePath)
+		require.Equal(t, "test-data-regular", string(content))
+		fm, err := readGiteaTemplateFile(tmpDir) // regular template file
+		require.NoError(t, err)
+		assert.Len(t, fm.globs, 1)
 	}
 }
 

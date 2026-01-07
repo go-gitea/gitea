@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer"
@@ -181,6 +182,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 		return err
 	}
 
+	batchReader := catfileBatch.Reader()
 	_, _, size, err = git.ReadBatchLine(batchReader)
 	if err != nil {
 		return err
@@ -203,7 +205,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 		RepoID:    repo.ID,
 		CommitID:  commitSha,
 		Filename:  update.Filename,
-		Content:   string(charset.ToUTF8DropErrors(fileContents, charset.ConvertOpts{})),
+		Content:   string(charset.ToUTF8DropErrors(fileContents)),
 		Language:  analyze.GetCodeLanguage(update.Filename, fileContents),
 		UpdatedAt: time.Now().UTC(),
 	})
@@ -218,11 +220,11 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch 
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-		gitBatch, err := git.NewBatch(ctx, repo.RepoPath())
+		catfileBatch, err := gitrepo.NewBatch(ctx, repo)
 		if err != nil {
 			return err
 		}
-		defer gitBatch.Close()
+		defer catfileBatch.Close()
 
 		for _, update := range changes.Updates {
 			if err := b.addUpdate(ctx, gitBatch, sha, update, repo, batch); err != nil {

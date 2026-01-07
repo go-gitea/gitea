@@ -3,6 +3,7 @@ import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
 import {getIssueColor, getIssueIcon} from '../features/issue.ts';
 import {computed, onMounted, shallowRef} from 'vue';
+import type {Issue} from '../types.ts';
 
 const props = defineProps<{
   repoLink: string,
@@ -10,22 +11,24 @@ const props = defineProps<{
 }>();
 
 const loading = shallowRef(false);
-const issue = shallowRef(null);
+const issue = shallowRef<Issue | null>(null);
 const renderedLabels = shallowRef('');
-const errorMessage = shallowRef(null);
+const errorMessage = shallowRef('');
 
 const createdAt = computed(() => {
+  if (!issue?.value) return '';
   return new Date(issue.value.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
 });
 
 const body = computed(() => {
+  if (!issue?.value) return '';
   const body = issue.value.body.replace(/\n+/g, ' ');
   return body.length > 85 ? `${body.substring(0, 85)}…` : body;
 });
 
 onMounted(async () => {
   loading.value = true;
-  errorMessage.value = null;
+  errorMessage.value = '';
   try {
     const resp = await GET(props.loadIssueInfoUrl);
     if (!resp.ok) {

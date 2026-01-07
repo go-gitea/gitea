@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -44,6 +45,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
+	git_service "code.gitea.io/gitea/services/git"
 	"code.gitea.io/gitea/services/gitdiff"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -256,7 +258,7 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 	return baseCommit
 }
 
-func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_service.CompareInfo {
+func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_service.CompareInfo {
 	if !issue.IsPull {
 		return nil
 	}
@@ -267,7 +269,7 @@ func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *p
 }
 
 // prepareMergedViewPullInfo show meta information for a merged pull request view page
-func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_service.CompareInfo {
+func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_service.CompareInfo {
 	pull := issue.PullRequest
 
 	setMergeTarget(ctx, pull)
@@ -275,8 +277,8 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 
 	baseCommit := GetMergedBaseCommitID(ctx, issue)
 
-	compareInfo, err := pull_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo,
-		baseCommit, pull.GetGitHeadRefName(), false, false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, ctx.Repo.Repository, ctx.Repo.Repository, ctx.Repo.GitRepo,
+		git.RefName(baseCommit), git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -321,7 +323,7 @@ type pullCommitStatusCheckData struct {
 }
 
 // prepareViewPullInfo show meta information for a pull request preview page
-func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_service.CompareInfo {
+func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_service.CompareInfo {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 
 	repo := ctx.Repo.Repository
@@ -383,8 +385,8 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 			ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
 		}
 
-		compareInfo, err := pull_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
-			pull.MergeBase, pull.GetGitHeadRefName(), false, false)
+		compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
+			git.RefName(pull.MergeBase), git.RefName(pull.GetGitHeadRefName()), false, false)
 		if err != nil {
 			if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 				ctx.Data["IsPullRequestBroken"] = true
@@ -550,8 +552,8 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *pull_
 		}
 	}
 
-	compareInfo, err := pull_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
-		git.BranchPrefix+pull.BaseBranch, pull.GetGitHeadRefName(), false, false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
+		git.RefNameFromBranch(pull.BaseBranch), git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -782,11 +784,15 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	// as the viewed information is designed to be loaded only on latest PR
 	// diff and if you're signed in.
 	var reviewState *pull_model.ReviewState
+	var numViewedFiles int
 	if ctx.IsSigned && isShowAllCommits {
 		reviewState, err = gitdiff.SyncUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diff, diffOptions)
 		if err != nil {
 			ctx.ServerError("SyncUserSpecificDiff", err)
 			return
+		}
+		if reviewState != nil {
+			numViewedFiles = reviewState.GetViewedFileCount()
 		}
 	}
 
@@ -796,10 +802,11 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 		return
 	}
 	ctx.Data["DiffShortStat"] = diffShortStat
+	ctx.Data["NumViewedFiles"] = numViewedFiles
 
 	ctx.PageData["prReview"] = map[string]any{
 		"numberOfFiles":       diffShortStat.NumFiles,
-		"numberOfViewedFiles": diff.NumViewedFiles,
+		"numberOfViewedFiles": numViewedFiles,
 	}
 
 	if err = diff.LoadComments(ctx, issue, ctx.Doer, ctx.Data["ShowOutdatedComments"].(bool)); err != nil {
@@ -1130,11 +1137,9 @@ func MergePullRequest(ctx *context.Context) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
-	deleteBranchAfterMerge, err := pull_service.ShouldDeleteBranchAfterMerge(ctx, form.DeleteBranchAfterMerge, ctx.Repo.Repository, pr)
-	if err != nil {
-		ctx.ServerError("ShouldDeleteBranchAfterMerge", err)
-		return
-	}
+	// There is always a checkbox on the UI (the DeleteBranchAfterMerge is nil if the checkbox is not checked),
+	// just use the user's choice, don't use pull_service.ShouldDeleteBranchAfterMerge to decide
+	deleteBranchAfterMerge := optional.FromPtr(form.DeleteBranchAfterMerge).Value()
 
 	if form.MergeWhenChecksSucceed {
 		// delete all scheduled auto merges
@@ -1152,7 +1157,7 @@ func MergePullRequest(ctx *context.Context) {
 		}
 	}
 
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, repo_model.MergeStyle(form.Do), form.HeadCommitID, message, false); err != nil {
 		if pull_service.IsErrInvalidMergeStyle(err) {
 			ctx.JSONError(ctx.Tr("repo.pulls.invalid_merge_option"))
 		} else if pull_service.IsErrMergeConflicts(err) {
@@ -1238,7 +1243,11 @@ func MergePullRequest(ctx *context.Context) {
 func deleteBranchAfterMergeAndFlashMessage(ctx *context.Context, prID int64) {
 	var fullBranchName string
 	err := repo_service.DeleteBranchAfterMerge(ctx, ctx.Doer, prID, &fullBranchName)
-	if errTr := util.ErrorAsTranslatable(err); errTr != nil {
+	if errors.Is(err, util.ErrPermissionDenied) || errors.Is(err, util.ErrNotExist) {
+		// no need to show error to end users if no permission or branch not exist
+		log.Debug("DeleteBranchAfterMerge (ignore unnecessary error): %v", err)
+		return
+	} else if errTr := util.ErrorAsTranslatable(err); errTr != nil {
 		ctx.Flash.Error(errTr.Translate(ctx.Locale))
 		return
 	} else if err == nil {
@@ -1331,6 +1340,17 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
+	// Check if a pull request already exists with the same head and base branch.
+	pr, err := issues_model.GetUnmergedPullRequest(ctx, ci.HeadRepo.ID, repo.ID, ci.HeadRef.ShortName(), ci.BaseRef.ShortName(), issues_model.PullRequestFlowGithub)
+	if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
+		ctx.ServerError("GetUnmergedPullRequest", err)
+		return
+	}
+	if pr != nil {
+		ctx.JSONError(ctx.Tr("repo.pulls.new.already_existed"))
+		return
+	}
+
 	content := form.Content
 	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
 		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
@@ -1351,11 +1371,11 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	pullRequest := &issues_model.PullRequest{
 		HeadRepoID:          ci.HeadRepo.ID,
 		BaseRepoID:          repo.ID,
-		HeadBranch:          ci.HeadBranch,
-		BaseBranch:          ci.BaseBranch,
+		HeadBranch:          ci.HeadRef.ShortName(),
+		BaseBranch:          ci.BaseRef.ShortName(),
 		HeadRepo:            ci.HeadRepo,
 		BaseRepo:            repo,
-		MergeBase:           ci.CompareInfo.MergeBase,
+		MergeBase:           ci.MergeBase,
 		Type:                issues_model.PullRequestGitea,
 		AllowMaintainerEdit: form.AllowMaintainerEdit,
 	}
@@ -1370,6 +1390,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		AssigneeIDs:     assigneeIDs,
 		Reviewers:       validateRet.Reviewers,
 		TeamReviewers:   validateRet.TeamReviewers,
+		ProjectID:       projectID,
 	}
 	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 		switch {
@@ -1419,15 +1440,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			ctx.ServerError("CompareAndPullRequest", err)
 		}
 		return
-	}
-
-	if projectID > 0 && ctx.Repo.CanWrite(unit.TypeProjects) {
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, pullIssue, ctx.Doer, projectID, 0); err != nil {
-			if !errors.Is(err, util.ErrPermissionDenied) {
-				ctx.ServerError("IssueAssignOrRemoveProject", err)
-				return
-			}
-		}
 	}
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)

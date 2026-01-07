@@ -5,12 +5,7 @@ package git
 
 import (
 	"bufio"
-	"bytes"
-	"context"
-	"io"
-	"math"
-	"strconv"
-	"strings"
+	"errors"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
@@ -205,13 +200,7 @@ const hextable = "0123456789abcdef"
 // same byte slice to support in place conversion without allocations.
 // This is at least 100x quicker that hex.EncodeToString
 func BinToHex(objectFormat ObjectFormat, sha, out []byte) []byte {
-	for i := objectFormat.FullLength()/2 - 1; i >= 0; i-- {
-		v := sha[i]
-		vhi, vlo := v>>4, v&0x0f
-		shi, slo := hextable[vhi], hextable[vlo]
-		out[i*2], out[i*2+1] = shi, slo
-	}
-	return out
+	return catfile.BinToHex(objectFormat, sha, out)
 }
 
 // ParseCatFileTreeLine reads an entry from a tree in a cat-file --batch stream

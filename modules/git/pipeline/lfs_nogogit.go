@@ -53,6 +53,9 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 	}
 	defer cancel()
 
+	batchStdinWriter := batch.Writer()
+	batchReader := batch.Reader()
+
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
 	scan := bufio.NewScanner(revListReader)
 	trees := [][]byte{}

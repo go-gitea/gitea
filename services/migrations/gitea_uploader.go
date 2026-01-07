@@ -8,8 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -303,7 +301,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 					return fmt.Errorf("GetTagCommit[%v]: %w", rel.TagName, err)
 				}
 				rel.Sha1 = commit.ID.String()
-				rel.NumCommits, err = commit.CommitsCount()
+				rel.NumCommits, err = gitrepo.CommitsCountOfCommit(ctx, g.repo, commit.ID.String())
 				if err != nil {
 					return fmt.Errorf("CommitsCount: %w", err)
 				}
@@ -366,6 +364,11 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 // SyncTags syncs releases with tags in the database
 func (g *GiteaLocalUploader) SyncTags(ctx context.Context) error {
 	return repo_module.SyncReleasesWithTags(ctx, g.repo, g.gitRepo)
+}
+
+func (g *GiteaLocalUploader) SyncBranches(ctx context.Context) error {
+	_, err := repo_module.SyncRepoBranchesWithRepo(ctx, g.repo, g.gitRepo, g.doer.ID)
+	return err
 }
 
 // CreateIssues creates issues
@@ -584,12 +587,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		}
 		defer ret.Close()
 
-		pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
-		if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
-			return err
-		}
-
-		f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
+		f, err := gitrepo.CreateRepoFile(ctx, g.repo, fmt.Sprintf("pulls/%d.patch", pr.Number))
 		if err != nil {
 			return err
 		}

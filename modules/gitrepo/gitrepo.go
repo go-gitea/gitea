@@ -80,7 +80,12 @@ func DeleteRepository(ctx context.Context, repo Repository) error {
 
 // RenameRepository renames a repository's name on disk
 func RenameRepository(ctx context.Context, repo, newRepo Repository) error {
-	if err := util.Rename(repoPath(repo), repoPath(newRepo)); err != nil {
+	dstDir := repoPath(newRepo)
+	if err := os.MkdirAll(filepath.Dir(dstDir), os.ModePerm); err != nil {
+		return fmt.Errorf("Failed to create dir %s: %w", filepath.Dir(dstDir), err)
+	}
+
+	if err := util.Rename(repoPath(repo), dstDir); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	return nil
@@ -97,4 +102,27 @@ func UpdateServerInfo(ctx context.Context, repo Repository) error {
 
 func GetRepoFS(repo Repository) fs.FS {
 	return os.DirFS(repoPath(repo))
+}
+
+func IsRepoFileExist(ctx context.Context, repo Repository, relativeFilePath string) (bool, error) {
+	absoluteFilePath := filepath.Join(repoPath(repo), relativeFilePath)
+	return util.IsExist(absoluteFilePath)
+}
+
+func IsRepoDirExist(ctx context.Context, repo Repository, relativeDirPath string) (bool, error) {
+	absoluteDirPath := filepath.Join(repoPath(repo), relativeDirPath)
+	return util.IsDir(absoluteDirPath)
+}
+
+func RemoveRepoFileOrDir(ctx context.Context, repo Repository, relativeFileOrDirPath string) error {
+	absoluteFilePath := filepath.Join(repoPath(repo), relativeFileOrDirPath)
+	return util.Remove(absoluteFilePath)
+}
+
+func CreateRepoFile(ctx context.Context, repo Repository, relativeFilePath string) (io.WriteCloser, error) {
+	absoluteFilePath := filepath.Join(repoPath(repo), relativeFilePath)
+	if err := os.MkdirAll(filepath.Dir(absoluteFilePath), os.ModePerm); err != nil {
+		return nil, err
+	}
+	return os.Create(absoluteFilePath)
 }
