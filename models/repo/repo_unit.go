@@ -206,7 +206,7 @@ func (p ActionsTokenPermissions) HasAccess(scope string, required perm.AccessMod
 	switch scope {
 	case "actions":
 		mode = p.Actions
-	case "code":
+	case "code", "contents":
 		mode = p.Code
 	case "issues":
 		mode = p.Issues
