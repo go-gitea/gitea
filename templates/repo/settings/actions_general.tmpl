@@ -97,26 +97,25 @@
 				</thead>
 				<tbody>
 					<!-- Code -->
-					<tr>
 						<td>
-							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.contents"}}</strong>
-							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.contents.description"}}</p>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.code"}}</strong>
+							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.code.description"}}</p>
 						</td>
 						<td style="text-align: center">
 							<div class="ui radio checkbox">
-								<input type="radio" name="max_contents" value="none" {{if not ($.MaxTokenPermissions.HasRead "contents")}}checked{{end}}>
+								<input type="radio" name="max_code" value="none" {{if not ($.MaxTokenPermissions.HasRead "code")}}checked{{end}}>
 								<label></label>
 							</div>
 						</td>
 						<td style="text-align: center">
 							<div class="ui radio checkbox">
-								<input type="radio" name="max_contents" value="read" {{if and ($.MaxTokenPermissions.HasRead "contents") (not ($.MaxTokenPermissions.HasWrite "contents"))}}checked{{end}}>
+								<input type="radio" name="max_code" value="read" {{if and ($.MaxTokenPermissions.HasRead "code") (not ($.MaxTokenPermissions.HasWrite "code"))}}checked{{end}}>
 								<label></label>
 							</div>
 						</td>
 						<td style="text-align: center">
 							<div class="ui radio checkbox">
-								<input type="radio" name="max_contents" value="write" {{if $.MaxTokenPermissions.HasWrite "contents"}}checked{{end}}>
+								<input type="radio" name="max_code" value="write" {{if $.MaxTokenPermissions.HasWrite "code"}}checked{{end}}>
 								<label></label>
 							</div>
 						</td>

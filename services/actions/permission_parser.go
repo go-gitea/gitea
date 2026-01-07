@@ -109,7 +109,7 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 
 			// Map GitHub Actions scopes to Gitea units
 			switch scope {
-			case "contents":
+			case "code":
 				result.Code = accessMode
 			case "issues":
 				result.Issues = accessMode

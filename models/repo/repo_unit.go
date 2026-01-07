@@ -183,7 +183,7 @@ const (
 // ActionsTokenPermissions defines the permissions for different repository units
 type ActionsTokenPermissions struct {
 	// Code (repository code) - read/write/none
-	Code perm.AccessMode `json:"contents"`
+	Code perm.AccessMode `json:"code"`
 	// Issues - read/write/none
 	Issues perm.AccessMode `json:"issues"`
 	// PullRequests - read/write/none
@@ -206,7 +206,7 @@ func (p ActionsTokenPermissions) HasAccess(scope string, required perm.AccessMod
 	switch scope {
 	case "actions":
 		mode = p.Actions
-	case "contents":
+	case "code":
 		mode = p.Code
 	case "issues":
 		mode = p.Issues

@@ -178,7 +178,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 		}
 
 		actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
-			Code:         parseMaxPerm("contents"),
+			Code:         parseMaxPerm("code"),
 			Issues:       parseMaxPerm("issues"),
 			Packages:     parseMaxPerm("packages"),
 			PullRequests: parseMaxPerm("pull_requests"),

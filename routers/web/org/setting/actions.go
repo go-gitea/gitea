@@ -18,8 +18,8 @@ const (
 	tplSettingsActionsGeneral templates.TplName = "org/settings/actions_general"
 )
 
-// ActionsGeneral renders the actions general settings page
-func ActionsGeneral(ctx *context.Context) {
+// ActionsGeneralSettings renders the actions general settings page
+func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsActionsGeneral"] = true
@@ -58,12 +58,13 @@ func ActionsGeneral(ctx *context.Context) {
 		}
 	}
 	ctx.Data["AllowedRepos"] = allowedRepos
+	ctx.Data["Link"] = ctx.Org.OrgLink + "/settings/actions/general"
 
 	ctx.HTML(http.StatusOK, tplSettingsActionsGeneral)
 }
 
-// ActionsGeneralPost responses for actions general settings page
-func ActionsGeneralPost(ctx *context.Context) {
+// UpdateTokenPermissions responses for actions general settings page
+func UpdateTokenPermissions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsActions"] = true
@@ -97,7 +98,7 @@ func ActionsGeneralPost(ctx *context.Context) {
 		}
 
 		actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
-			Code:         parseMaxPerm("contents"),
+			Code:         parseMaxPerm("code"),
 			Issues:       parseMaxPerm("issues"),
 			Packages:     parseMaxPerm("packages"),
 			PullRequests: parseMaxPerm("pull_requests"),
@@ -130,7 +131,7 @@ func ActionsGeneralPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("org.settings.update_setting_success"))
-	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/general")
 }
 
 // ActionsAllowedReposAdd adds a repository to the allowed list for cross-repo access
@@ -177,7 +178,7 @@ func ActionsAllowedReposAdd(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/general")
 }
 
 // ActionsAllowedReposRemove removes a repository from the allowed list
