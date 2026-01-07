@@ -46,7 +46,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 
 	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
-		log.Debug("Error writing to CatFileBatchCheck %v", err)
+		log.Error("Error opening CatFileBatch %v", err)
 		return false
 	}
 	defer cancel()

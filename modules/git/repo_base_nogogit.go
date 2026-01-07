@@ -54,27 +54,15 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	}, nil
 }
 
-// FIXME: for debugging purpose only
-// At the moment, the old logic (debugTestAlwaysNewBatch=false: reuse the existing batch if not in use)
-// causes random test failures: it makes the `t.Context()` occasionally canceled with unknown reasons.
-// In theory, the `t.Context()` should never be affected by testing code and can never be canceled, but it does happen.
-// The stranger thing is that the failure tests are almost around TestAPIPullUpdateByRebase,
-// it almost are during MSSQL testing, sometimes PGSQL, never others.
-var debugTestAlwaysNewBatch = false
-
 // CatFileBatch obtains a CatFileBatch for this repository
 func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, closeFunc func(), err error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()
 
-	if debugTestAlwaysNewBatch {
-		b, err := NewBatch(ctx, repo.Path)
-		return b, b.Close, err
-	}
-
 	if repo.catFileBatchCloser == nil {
 		repo.catFileBatchCloser, err = NewBatch(ctx, repo.Path)
 		if err != nil {
+			repo.catFileBatchCloser = nil // otherwise it is "interface(nil)" and will cause wrong logic
 			return nil, nil, err
 		}
 	}
@@ -100,6 +88,8 @@ func (repo *Repository) Close() error {
 	if repo == nil {
 		return nil
 	}
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
 	if repo.catFileBatchCloser != nil {
 		repo.catFileBatchCloser.Close()
 		repo.catFileBatchCloser = nil
