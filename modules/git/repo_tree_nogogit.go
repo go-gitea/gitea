@@ -35,7 +35,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 			contentReader.Close()
 			return nil, err
 		}
-		contentReader.Close() // close reader to avoid leaks
+		contentReader.Close() // close reader to avoid open a new process in the same goroutine
 
 		commit, err := repo.getCommit(tag.Object)
 		if err != nil {

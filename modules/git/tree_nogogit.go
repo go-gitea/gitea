@@ -40,7 +40,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 
 		if objectInfo.Type == "commit" {
 			treeID, err := catfile.ReadTreeID(contentReader, objectInfo.Size)
-			contentReader.Close()
+			contentReader.Close() // close reader to avoid open a new process in the same goroutine
 			if err != nil && err != io.EOF {
 				return nil, err
 			}

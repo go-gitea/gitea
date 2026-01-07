@@ -40,62 +40,71 @@ type batchObjectPool struct {
 // NewBatchObjectPool creates a new ObjectPool that uses git cat-file --batch and --batch-check
 // to read objects from the repository at repoPath.
 func NewBatchObjectPool(ctx context.Context, repoPath string) (ObjectPool, error) {
-	if err := EnsureValidGitRepository(ctx, repoPath); err != nil {
-		return nil, err
-	}
-
 	return &batchObjectPool{
 		ctx:      ctx,
 		repoPath: repoPath,
 	}, nil
 }
 
-func (b *batchObjectPool) getBatch() *batch {
+func (b *batchObjectPool) getBatch() (*batch, error) {
 	for _, batch := range b.batches {
 		if !batch.inUse {
 			batch.inUse = true
-			return batch
+			return batch, nil
 		}
 	}
 	if len(b.batches) >= 1 {
-		log.Warn("Opening temporary cat file batch for: %s", b.repoPath)
+		log.Warn("Opening more than one cat file batch in the same goroutine for: %s", b.repoPath)
 	}
-	newBatch := b.newBatch()
+	newBatch, err := b.newBatch()
+	if err != nil {
+		return nil, err
+	}
 	newBatch.inUse = true
 	b.batches = append(b.batches, newBatch)
-	return newBatch
+	return newBatch, nil
 }
 
 // newBatch creates a new cat-file --batch process for the provided repository path.
 // The returned Batch must be closed when objectPool closed.
-func (b *batchObjectPool) newBatch() *batch {
+func (b *batchObjectPool) newBatch() (*batch, error) {
+	if err := EnsureValidGitRepository(b.ctx, b.repoPath); err != nil {
+		return nil, err
+	}
 	var batch batch
 	batch.writer, batch.reader, batch.cancel = catFileBatch(b.ctx, b.repoPath)
-	return &batch
+	return &batch, nil
 }
 
-func (b *batchObjectPool) getBatchCheck() *batch {
+func (b *batchObjectPool) getBatchCheck() (*batch, error) {
 	for _, batch := range b.batchChecks {
 		if !batch.inUse {
 			batch.inUse = true
-			return batch
+			return batch, nil
 		}
 	}
 	if len(b.batchChecks) >= 1 {
-		log.Warn("Opening temporary cat file batch-check for: %s", b.repoPath)
+		log.Warn("Opening more than one cat file batch-check in the same goroutine for: %s", b.repoPath)
 	}
-	newBatch := b.newBatchCheck()
+	newBatch, err := b.newBatchCheck()
+	if err != nil {
+		return nil, err
+	}
 	newBatch.inUse = true
 	b.batchChecks = append(b.batchChecks, newBatch)
-	return newBatch
+	return newBatch, nil
 }
 
 // newBatchCheck creates a new cat-file --batch-check process for the provided repository path.
 // The returned Batch must be closed when objectPool closed.
-func (b *batchObjectPool) newBatchCheck() *batch {
+func (b *batchObjectPool) newBatchCheck() (*batch, error) {
+	if err := EnsureValidGitRepository(b.ctx, b.repoPath); err != nil {
+		return nil, err
+	}
+
 	var check batch
 	check.writer, check.reader, check.cancel = catFileBatchCheck(b.ctx, b.repoPath)
-	return &check
+	return &check, nil
 }
 
 func releaseBatchCheck(batch *batch) {
@@ -105,10 +114,13 @@ func releaseBatchCheck(batch *batch) {
 }
 
 func (b *batchObjectPool) ObjectInfo(refName string) (*ObjectInfo, error) {
-	batch := b.getBatchCheck()
+	batch, err := b.getBatchCheck()
+	if err != nil {
+		return nil, err
+	}
 	defer releaseBatchCheck(batch)
 
-	_, err := batch.writer.Write([]byte(refName + "\n"))
+	_, err = batch.writer.Write([]byte(refName + "\n"))
 	if err != nil {
 		return nil, err
 	}
@@ -134,9 +146,12 @@ func (rc *readCloser) Close() error {
 }
 
 func (b *batchObjectPool) Object(refName string) (*ObjectInfo, ReadCloseDiscarder, error) {
-	batch := b.getBatch()
+	batch, err := b.getBatch()
+	if err != nil {
+		return nil, nil, err
+	}
 
-	_, err := batch.writer.Write([]byte(refName + "\n"))
+	_, err = batch.writer.Write([]byte(refName + "\n"))
 	if err != nil {
 		return nil, nil, err
 	}
