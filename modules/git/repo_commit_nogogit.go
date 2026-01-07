@@ -10,7 +10,6 @@ import (
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -46,7 +45,7 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	shaBs, _, _, err := ReadBatchLine(batch.Reader())
+	shaBs, _, _, err := ReadBatchLine(rd)
 	if IsErrNotExist(err) {
 		return "", ErrNotExist{name, ""}
 	}
@@ -56,7 +55,7 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 
 // IsCommitExist returns true if given commit exists in current repository.
 func (repo *Repository) IsCommitExist(name string) bool {
-	if err := catfile.EnsureValidGitRepository(repo.Ctx, repo.Path); err != nil {
+	if err := ensureValidGitRepository(repo.Ctx, repo.Path); err != nil {
 		log.Error("IsCommitExist: %v", err)
 		return false
 	}
@@ -161,7 +160,7 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 	if err != nil {
 		return nil, err
 	}
-	sha, _, _, err := ReadBatchLine(batch.Reader())
+	sha, _, _, err := ReadBatchLine(rd)
 	if err != nil {
 		if IsErrNotExist(err) {
 			return nil, ErrNotExist{commitID, ""}

@@ -32,7 +32,6 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 	if err != nil {
 		return nil, err
 	}
-	batchReader := batch.Reader()
 	shaBytes, typ, size, err := git.ReadBatchLine(batchReader)
 	if typ != "commit" {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)

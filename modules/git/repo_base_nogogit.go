@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"sync"
 
-	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -23,8 +22,6 @@ type Repository struct {
 	Path string
 
 	tagCache *ObjectCache[*Tag]
-
-	gpgSettings *GPGSettings
 
 	mu                 sync.Mutex
 	catFileBatchCloser CatFileBatchCloser
@@ -92,7 +89,7 @@ func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, close
 	}
 
 	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
-	tempBatch, err := catfile.NewBatch(ctx, repo.Path)
+	tempBatch, err := NewBatch(ctx, repo.Path)
 	if err != nil {
 		return nil, nil, err
 	}

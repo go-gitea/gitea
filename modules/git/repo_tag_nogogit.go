@@ -33,7 +33,7 @@ func (repo *Repository) GetTagType(id ObjectID) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	_, typ, _, err := ReadBatchLine(batch.Reader())
+	_, typ, _, err := ReadBatchLine(rd)
 	if err != nil {
 		if IsErrNotExist(err) {
 			return "", ErrNotExist{ID: id.String()}

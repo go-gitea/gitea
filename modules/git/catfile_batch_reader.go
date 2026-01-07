@@ -5,7 +5,12 @@ package git
 
 import (
 	"bufio"
-	"errors"
+	"bytes"
+	"context"
+	"io"
+	"math"
+	"strconv"
+	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
@@ -193,14 +198,19 @@ headerLoop:
 // Unfortunately this 20-byte notation is somewhat in conflict to all other git tools
 // Therefore we need some method to convert these binary hashes to hex hashes
 
-// constant hextable to help quickly convert between binary and hex representation
+// hextable helps quickly convert between binary and hex representation
 const hextable = "0123456789abcdef"
 
-// BinToHex converts a binary Hash into a hex encoded one. Input and output can be the
-// same byte slice to support in place conversion without allocations.
-// This is at least 100x quicker that hex.EncodeToString
+// BinToHex converts a binary hash into a hex encoded one. Input and output can be the
+// same byte slice to support in-place conversion without allocations.
 func BinToHex(objectFormat ObjectFormat, sha, out []byte) []byte {
-	return catfile.BinToHex(objectFormat, sha, out)
+	for i := objectFormat.FullLength()/2 - 1; i >= 0; i-- {
+		v := sha[i]
+		vhi, vlo := v>>4, v&0x0f
+		shi, slo := hextable[vhi], hextable[vlo]
+		out[i*2], out[i*2+1] = shi, slo
+	}
+	return out
 }
 
 // ParseCatFileTreeLine reads an entry from a tree in a cat-file --batch stream
