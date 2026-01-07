@@ -134,6 +134,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 			Printf("+++ %s ... still flushing after %v ...\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestSlowFlush)
 		})
 		if err := queue.GetManager().FlushAll(t.Context(), -1); err != nil {
+			// if panic occurs, then the t.Context() is also cancelled ahead, so here it shows "context canceled" error.
 			t.Errorf("Flushing queues failed with error %q, cause %q", err, context.Cause(t.Context()))
 		}
 		slowFlushChecker.Stop()
