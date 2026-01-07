@@ -363,6 +363,8 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	perm.unitsMode[unit.TypePackages] = effectivePerms.Packages
 	perm.unitsMode[unit.TypeActions] = effectivePerms.Actions
 	perm.unitsMode[unit.TypeWiki] = effectivePerms.Wiki
+	perm.unitsMode[unit.TypeReleases] = effectivePerms.Releases
+	perm.unitsMode[unit.TypeProjects] = effectivePerms.Projects
 
 	// Set base access mode to the maximum of all unit permissions
 	maxMode := perm_model.AccessModeNone
