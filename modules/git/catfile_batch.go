@@ -37,5 +37,8 @@ type CatFileBatchCloser interface {
 }
 
 func NewBatch(ctx context.Context, repoPath string) (CatFileBatchCloser, error) {
+	if false && DefaultFeatures().SupportCatFileBatchCommand {
+		return newCatFileBatchCommand(ctx, repoPath)
+	}
 	return newCatFileBatchLegacy(ctx, repoPath)
 }

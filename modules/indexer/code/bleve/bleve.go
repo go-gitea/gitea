@@ -180,7 +180,10 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 	if err != nil {
 		return err
 	}
-
+	_, _, size, err = git.ReadBatchLine(batchReader)
+	if err != nil {
+		return err
+	}
 	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
 		return err
