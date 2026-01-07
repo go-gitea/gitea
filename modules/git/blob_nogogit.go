@@ -34,19 +34,15 @@ func (b *Blob) DataAsync() (_ io.ReadCloser, retErr error) {
 		}
 	}()
 
-	rd, err := batch.QueryContent(b.ID.String())
-	if err != nil {
-		return nil, err
-	}
-	_, _, size, err := ReadBatchLine(rd)
+	info, contentReader, err := batch.QueryContent(b.ID.String())
 	if err != nil {
 		return nil, err
 	}
 	b.gotSize = true
-	b.size = size
+	b.size = info.Size
 	return &blobReader{
-		rd:     rd,
-		n:      size,
+		rd:     contentReader,
+		n:      info.Size,
 		cancel: cancel,
 	}, nil
 }
@@ -63,18 +59,13 @@ func (b *Blob) Size() int64 {
 		return 0
 	}
 	defer cancel()
-	rd, err := batch.QueryInfo(b.ID.String())
+	info, err := batch.QueryInfo(b.ID.String())
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0
 	}
-	_, _, b.size, err = ReadBatchLine(rd)
-	if err != nil {
-		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
-		return 0
-	}
-
 	b.gotSize = true
+	b.size = info.Size
 	return b.size
 }
 

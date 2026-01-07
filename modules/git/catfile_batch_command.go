@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package git
@@ -38,14 +38,24 @@ func (b *catFileBatchCommand) getBatch() *catFileBatchCommunicator {
 	return b.batch
 }
 
-func (b *catFileBatchCommand) QueryContent(obj string) (BufferedReader, error) {
+func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
 	_, err := b.getBatch().writer.Write([]byte("contents " + obj + "\n"))
-	return b.getBatch().reader, err
+	if err != nil {
+		return nil, nil, err
+	}
+	info, err := catFileBatchParseInfoLine(b.getBatch().reader)
+	if err != nil {
+		return nil, nil, err
+	}
+	return info, b.getBatch().reader, nil
 }
 
-func (b *catFileBatchCommand) QueryInfo(obj string) (BufferedReader, error) {
+func (b *catFileBatchCommand) QueryInfo(obj string) (*CatFileObject, error) {
 	_, err := b.getBatch().writer.Write([]byte("info " + obj + "\n"))
-	return b.getBatch().reader, err
+	if err != nil {
+		return nil, err
+	}
+	return catFileBatchParseInfoLine(b.getBatch().reader)
 }
 
 func (b *catFileBatchCommand) Close() {

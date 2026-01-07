@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package git
@@ -34,27 +34,21 @@ func testCatFileBatch(t *testing.T) {
 	defer batch.Close()
 
 	t.Run("QueryInfo", func(t *testing.T) {
-		rd, err := batch.QueryInfo("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
+		info, err := batch.QueryInfo("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
 		require.NoError(t, err)
-
-		sha, typ, sz, err := ReadBatchLine(rd)
-		require.NoError(t, err)
-		assert.Equal(t, "e2129701f1a4d54dc44f03c93bca0a2aec7c5449", string(sha))
-		assert.Equal(t, "blob", typ)
-		assert.EqualValues(t, 6, sz)
+		assert.Equal(t, "e2129701f1a4d54dc44f03c93bca0a2aec7c5449", info.ID)
+		assert.Equal(t, "blob", info.Type)
+		assert.EqualValues(t, 6, info.Size)
 	})
 
 	t.Run("QueryContent", func(t *testing.T) {
-		rd, err := batch.QueryContent("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
+		info, rd, err := batch.QueryContent("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
 		require.NoError(t, err)
+		assert.Equal(t, "e2129701f1a4d54dc44f03c93bca0a2aec7c5449", info.ID)
+		assert.Equal(t, "blob", info.Type)
+		assert.EqualValues(t, 6, info.Size)
 
-		sha, typ, sz, err := ReadBatchLine(rd)
-		require.NoError(t, err)
-		assert.Equal(t, "e2129701f1a4d54dc44f03c93bca0a2aec7c5449", string(sha))
-		assert.Equal(t, "blob", typ)
-		assert.EqualValues(t, 6, sz)
-
-		content, err := io.ReadAll(io.LimitReader(rd, sz))
+		content, err := io.ReadAll(io.LimitReader(rd, info.Size))
 		require.NoError(t, err)
 		require.Equal(t, "file1\n", string(content))
 	})

@@ -176,15 +176,11 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	batchReader, err := catFileBatch.QueryContent(update.BlobSha)
+	info, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
 	if err != nil {
 		return err
 	}
-	_, _, size, err = git.ReadBatchLine(batchReader)
-	if err != nil {
-		return err
-	}
-	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
+	fileContents, err := io.ReadAll(io.LimitReader(batchReader, info.Size))
 	if err != nil {
 		return err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {

@@ -8,7 +8,6 @@ package git
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"io"
 	"strings"
@@ -18,6 +17,7 @@ import (
 )
 
 // IsObjectExist returns true if the given object exists in the repository.
+// FIXME: this function doesn't seem right, it is only used by GarbageCollectLFSMetaObjectsForRepo
 func (repo *Repository) IsObjectExist(name string) bool {
 	if name == "" {
 		return false
@@ -25,17 +25,16 @@ func (repo *Repository) IsObjectExist(name string) bool {
 
 	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
-		log.Debug("Error writing to CatFileBatchCheck %v", err)
+		log.Debug("Error opening CatFileBatch %v", err)
 		return false
 	}
 	defer cancel()
-	rd, err := batch.QueryInfo(name)
+	info, err := batch.QueryInfo(name)
 	if err != nil {
-		log.Debug("Error writing to CatFileBatchCheck %v", err)
+		log.Debug("Error checking object info %v", err)
 		return false
 	}
-	sha, _, _, err := ReadBatchLine(rd)
-	return err == nil && bytes.HasPrefix(sha, []byte(strings.TrimSpace(name)))
+	return strings.HasPrefix(info.ID, name) // FIXME: this logic doesn't seem right, why "HasPrefix"
 }
 
 // IsReferenceExist returns true if given reference exists in the repository.
@@ -50,12 +49,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 		return false
 	}
 	defer cancel()
-	rd, err := batch.QueryInfo(name)
-	if err != nil {
-		log.Debug("Error writing to CatFileBatchCheck %v", err)
-		return false
-	}
-	_, _, _, err = ReadBatchLine(rd)
+	_, err = batch.QueryInfo(name)
 	return err == nil
 }
 

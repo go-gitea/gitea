@@ -16,21 +16,15 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 	}
 	defer cancel()
 
-	rd, err := batch.QueryContent(id.String())
+	info, rd, err := batch.QueryContent(id.String())
 	if err != nil {
 		return nil, err
 	}
 
-	// ignore the SHA
-	_, typ, size, err := ReadBatchLine(rd)
-	if err != nil {
-		return nil, err
-	}
-
-	switch typ {
+	switch info.Type {
 	case "tag":
 		resolvedID := id
-		data, err := io.ReadAll(io.LimitReader(rd, size))
+		data, err := io.ReadAll(io.LimitReader(rd, info.Size))
 		if err != nil {
 			return nil, err
 		}
@@ -39,17 +33,14 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 			return nil, err
 		}
 
-		if _, err := batch.QueryContent(tag.Object.String()); err != nil {
-			return nil, err
-		}
-		commit, err := repo.getCommitFromBatchReader(batch, rd, tag.Object)
+		commit, err := repo.getCommitWithBatch(batch, tag.Object)
 		if err != nil {
 			return nil, err
 		}
 		commit.Tree.ResolvedID = resolvedID
 		return &commit.Tree, nil
 	case "commit":
-		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, size))
+		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, info.Size))
 		if err != nil {
 			return nil, err
 		}
@@ -65,14 +56,14 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		tree.entries, err = catBatchParseTreeEntries(objectFormat, tree, rd, size)
+		tree.entries, err = catBatchParseTreeEntries(objectFormat, tree, rd, info.Size)
 		if err != nil {
 			return nil, err
 		}
 		tree.entriesParsed = true
 		return tree, nil
 	default:
-		if err := DiscardFull(rd, size+1); err != nil {
+		if err := DiscardFull(rd, info.Size+1); err != nil {
 			return nil, err
 		}
 		return nil, ErrNotExist{

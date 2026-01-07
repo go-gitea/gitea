@@ -29,18 +29,14 @@ func (repo *Repository) GetTagType(id ObjectID) (string, error) {
 		return "", err
 	}
 	defer cancel()
-	rd, err := batch.QueryInfo(id.String())
-	if err != nil {
-		return "", err
-	}
-	_, typ, _, err := ReadBatchLine(rd)
+	info, err := batch.QueryInfo(id.String())
 	if err != nil {
 		if IsErrNotExist(err) {
 			return "", ErrNotExist{ID: id.String()}
 		}
 		return "", err
 	}
-	return typ, nil
+	return info.Type, nil
 }
 
 func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
@@ -94,17 +90,14 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	}
 	defer cancel()
 
-	rd, err := batch.QueryContent(tagID.String())
-	if err != nil {
-		return nil, err
-	}
-	_, typ, size, err := ReadBatchLine(rd)
+	info, rd, err := batch.QueryContent(tagID.String())
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
 			return nil, ErrNotExist{ID: tagID.String()}
 		}
 		return nil, err
 	}
+	typ, size := info.Type, info.Size
 	if typ != "tag" {
 		if err := DiscardFull(rd, size+1); err != nil {
 			return nil, err
