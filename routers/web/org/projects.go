@@ -341,12 +341,22 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 	assigneeID := ctx.FormString("assignee")
+	milestoneID := ctx.FormInt64("milestone")
+
+	// Prepare milestone IDs for filtering
+	var milestoneIDs []int64
+	if milestoneID > 0 {
+		milestoneIDs = []int64{milestoneID}
+	} else if milestoneID == -1 {
+		milestoneIDs = []int64{db.NoConditionID}
+	}
 
 	opts := issues_model.IssuesOptions{
-		LabelIDs:   preparedLabelFilter.SelectedLabelIDs,
-		AssigneeID: assigneeID,
-		Owner:      project.Owner,
-		Doer:       ctx.Doer,
+		LabelIDs:     preparedLabelFilter.SelectedLabelIDs,
+		AssigneeID:   assigneeID,
+		MilestoneIDs: milestoneIDs,
+		Owner:        project.Owner,
+		Doer:         ctx.Doer,
 	}
 
 	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &opts)
@@ -419,6 +429,59 @@ func ViewProject(ctx *context.Context) {
 	}
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
+
+	// Get milestones for filtering
+	// For organization projects, we need to get milestones from all repos the user has access to
+	var milestones []*issues_model.Milestone
+	if project.RepoID > 0 {
+		// Repo-specific project
+		milestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+			RepoID: project.RepoID,
+		})
+		if err != nil {
+			ctx.ServerError("GetRepoMilestones", err)
+			return
+		}
+	} else {
+		// Organization-wide project - get milestones from all organization repos
+		// Get repos owned by the organization
+		repos, _, err := attachment_model.GetUserRepositories(ctx, attachment_model.SearchRepoOptions{
+			Actor:   project.Owner,
+			Private: true,
+			OwnerID: project.OwnerID,
+		})
+		if err != nil {
+			ctx.ServerError("GetUserRepositories", err)
+			return
+		}
+
+		repoIDs := make([]int64, 0, len(repos))
+		for _, repo := range repos {
+			repoIDs = append(repoIDs, repo.ID)
+		}
+
+		if len(repoIDs) > 0 {
+			milestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+				RepoIDs: repoIDs,
+			})
+			if err != nil {
+				ctx.ServerError("GetOrgMilestones", err)
+				return
+			}
+		}
+	}
+
+	openMilestones, closedMilestones := issues_model.MilestoneList{}, issues_model.MilestoneList{}
+	for _, milestone := range milestones {
+		if milestone.IsClosed {
+			closedMilestones = append(closedMilestones, milestone)
+		} else {
+			openMilestones = append(openMilestones, milestone)
+		}
+	}
+	ctx.Data["OpenMilestones"] = openMilestones
+	ctx.Data["ClosedMilestones"] = closedMilestones
+	ctx.Data["MilestoneID"] = milestoneID
 
 	// Get assignees.
 	assigneeUsers, err := org_model.GetOrgAssignees(ctx, project.OwnerID)
