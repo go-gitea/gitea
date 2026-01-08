@@ -1,4 +1,4 @@
-import {isElemVisible, onInputDebounce, submitEventSubmitter, toggleElem} from '../utils/dom.ts';
+import {isElemVisible, onInputDebounce, toggleElem} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
@@ -31,32 +31,46 @@ export function initCommonIssueListQuickGoto() {
   const goto = document.querySelector<HTMLElement>('#issue-list-quick-goto');
   if (!goto) return;
 
+  let lastErrorValue: number;
+
   const form = goto.closest('form')!;
   const input = form.querySelector<HTMLInputElement>('input[name=q]')!;
   const repoLink = goto.getAttribute('data-repo-link')!;
 
-  form.addEventListener('submit', (e) => {
-    // if there is no goto button, or the form is submitted by non-quick-goto elements, submit the form directly
-    let doQuickGoto = isElemVisible(goto);
-    const submitter = submitEventSubmitter(e);
-    if (submitter !== form && submitter !== input && submitter !== goto) doQuickGoto = false;
-    if (!doQuickGoto) return;
+  // select to end
+  input.setSelectionRange(input.value.length, input.value.length);
 
-    // if there is a goto button, use its link
-    e.preventDefault();
-    const link = goto.getAttribute('data-issue-goto-link');
+  const gotoLink = (link: string) => {
     if (link) {
       window.location.href = link;
     }
+  };
+
+  form.addEventListener('submit', (e) => {
+    // if there is no goto button, or the form is submitted by non-quick-goto elements, submit the form directly
+    if (!isElemVisible(goto) || reIssueIndex.test(input.value)) return;
+
+    // if there is a goto button, use its link
+    e.preventDefault();
+    gotoLink(goto.getAttribute('data-issue-goto-link') || '');
   });
 
   const onInput = async () => {
     const searchText = input.value;
     // try to check whether the parsed goto link is valid
     let targetUrl = parseIssueListQuickGotoLink(repoLink, searchText);
+
+    const currentSearchText = parseInt(searchText.replace('#', ''));
+    if (!currentSearchText || currentSearchText >= lastErrorValue) {
+      return;
+    }
+
     if (targetUrl) {
       const res = await GET(`${targetUrl}/info`); // backend: GetIssueInfo, it only checks whether the issue exists by status code
-      if (res.status !== 200) targetUrl = '';
+      if (res.status !== 200) {
+        targetUrl = '';
+        lastErrorValue = currentSearchText;
+      }
     }
     // if the input value has changed, then ignore the result
     if (input.value !== searchText) return;
@@ -66,5 +80,5 @@ export function initCommonIssueListQuickGoto() {
   };
 
   input.addEventListener('input', onInputDebounce(onInput));
-  onInput();
+  goto.addEventListener('click', () => gotoLink(goto.getAttribute('data-issue-goto-link') || ''), {once: true});
 }
