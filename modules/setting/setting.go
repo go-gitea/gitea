@@ -203,6 +203,7 @@ func LoadSettings() {
 
 	loadDBSetting(CfgProvider)
 	loadServiceFrom(CfgProvider)
+	loadRestrictedUserFrom(CfgProvider)
 	loadOAuth2ClientFrom(CfgProvider)
 	loadCacheFrom(CfgProvider)
 	loadSessionFrom(CfgProvider)
