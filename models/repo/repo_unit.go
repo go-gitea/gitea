@@ -301,11 +301,13 @@ type ActionsConfig struct {
 	// CollaborativeOwnerIDs is a list of owner IDs used to share actions from private repos.
 	// Only workflows from the private repos whose owners are in CollaborativeOwnerIDs can access the current repo's actions.
 	CollaborativeOwnerIDs []int64
-	// TokenPermissionMode defines the default permission mode (permissive or restricted)
+	// TokenPermissionMode defines the default permission mode (permissive, restricted, or custom)
 	TokenPermissionMode ActionsTokenPermissionMode `json:"token_permission_mode,omitempty"`
-	// DefaultTokenPermissions defines the default permissions for workflow tokens
+	// DefaultTokenPermissions defines the specific permissions for workflow tokens when TokenPermissionMode is set to "custom"
+	// and no "permissions" keyword is defined in the workflow YAML.
 	DefaultTokenPermissions *ActionsTokenPermissions `json:"default_token_permissions,omitempty"`
-	// MaxTokenPermissions defines the maximum permissions (cannot be exceeded by workflow permissions keyword)
+	// MaxTokenPermissions defines the absolute maximum permissions any token can have in this context.
+	// Workflow YAML "permissions" keywords can reduce permissions but never exceed this ceiling.
 	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions,omitempty"`
 	// AllowCrossRepoAccess indicates if actions in this repo/org can access other repos in the same org
 	AllowCrossRepoAccess bool `json:"allow_cross_repo_access,omitempty"`
