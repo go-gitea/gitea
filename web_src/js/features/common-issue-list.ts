@@ -31,9 +31,6 @@ export function initCommonIssueListQuickGoto() {
   const goto = document.querySelector<HTMLElement>('#issue-list-quick-goto');
   if (!goto) return;
 
-  const totalIssueCountElement = document.querySelector<HTMLInputElement>('#totalcount');
-  const totalIssueCount = totalIssueCountElement ? parseInt(totalIssueCountElement.value) : 0;
-
   const form = goto.closest('form')!;
   const input = form.querySelector<HTMLInputElement>('input[name=q]')!;
   const repoLink = goto.getAttribute('data-repo-link')!;
@@ -55,9 +52,6 @@ export function initCommonIssueListQuickGoto() {
     const searchText = input.value;
     // try to check whether the parsed goto link is valid
     let targetUrl = parseIssueListQuickGotoLink(repoLink, searchText);
-
-    const matchIssueID = reIssueIndex.exec(searchText) || reIssueSharpIndex.exec(searchText);
-    if (matchIssueID === null || Number(matchIssueID[1]) > totalIssueCount) targetUrl = '';
     if (targetUrl) {
       const res = await GET(`${targetUrl}/info`); // backend: GetIssueInfo, it only checks whether the issue exists by status code
       if (res.status !== 200) targetUrl = '';
