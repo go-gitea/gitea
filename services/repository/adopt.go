@@ -151,7 +151,7 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 		return fmt.Errorf("SyncRepoBranchesWithRepo: %w", err)
 	}
 
-	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+	if err = repo_module.SyncReleasesWithTags(ctx, repo); err != nil {
 		return fmt.Errorf("SyncReleasesWithTags: %w", err)
 	}
 

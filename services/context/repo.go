@@ -859,7 +859,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 		if reqPath == "" {
 			refShortName = ctx.Repo.Repository.DefaultBranch
 			if !gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, refShortName) {
-				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 1)
+				brs, _, err := gitrepo.GetBranchNames(ctx, ctx.Repo.Repository, 0, 1)
 				if err == nil && len(brs) != 0 {
 					refShortName = brs[0]
 				} else if len(brs) == 0 {

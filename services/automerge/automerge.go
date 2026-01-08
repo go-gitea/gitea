@@ -104,13 +104,7 @@ func StartPRCheckAndAutoMergeBySHA(ctx context.Context, sha string, repo *repo_m
 }
 
 func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
-	if err != nil {
-		return nil, err
-	}
-	defer gitRepo.Close()
-
-	refs, err := gitRepo.GetRefsBySha(sha, "")
+	refs, err := gitrepo.GetRefsBySha(ctx, repo, sha, "")
 	if err != nil {
 		return nil, err
 	}

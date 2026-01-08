@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -55,7 +56,8 @@ func ListTags(ctx *context.APIContext) {
 
 	listOpts := utils.GetListOptions(ctx)
 
-	tags, total, err := ctx.Repo.GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
+	// TODO: get tags from database directly
+	tags, total, err := gitrepo.GetTagInfos(ctx, ctx.Repo.Repository, listOpts.Page, listOpts.PageSize)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
