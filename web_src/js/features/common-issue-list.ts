@@ -60,7 +60,7 @@ export function initCommonIssueListQuickGoto() {
     let targetUrl = parseIssueListQuickGotoLink(repoLink, searchText);
 
     const matchIssueID = reIssueIndex.exec(searchText) || reIssueSharpIndex.exec(searchText);
-    if (matchIssueID === null || Number(matchIssueID[1]) >= totalIssueCount) targetUrl = '';
+    if (matchIssueID === null || Number(matchIssueID[1]) > totalIssueCount) targetUrl = '';
     if (targetUrl) {
       const res = await GET(`${targetUrl}/info`); // backend: GetIssueInfo, it only checks whether the issue exists by status code
       if (res.status !== 200) targetUrl = '';
