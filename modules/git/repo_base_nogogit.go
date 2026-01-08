@@ -54,7 +54,8 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	}, nil
 }
 
-// CatFileBatch obtains a CatFileBatch for this repository
+// CatFileBatch obtains a "batch object provider" for this repository.
+// It reuses an existing one if available, otherwise creates a new one.
 func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, closeFunc func(), err error) {
 	repo.mu.Lock()
 	defer repo.mu.Unlock()

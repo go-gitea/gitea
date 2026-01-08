@@ -24,10 +24,7 @@ func newCatFileBatchCommand(ctx context.Context, repoPath string) (*catFileBatch
 	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
 		return nil, err
 	}
-	return &catFileBatchCommand{
-		ctx:      ctx,
-		repoPath: repoPath,
-	}, nil
+	return &catFileBatchCommand{ctx: ctx, repoPath: repoPath}, nil
 }
 
 func (b *catFileBatchCommand) getBatch() *catFileBatchCommunicator {
@@ -38,8 +35,6 @@ func (b *catFileBatchCommand) getBatch() *catFileBatchCommunicator {
 	return b.batch
 }
 
-// QueryContent sends a "contents <obj>" command to the cat-file --batch-command process
-// it actually can receive a reference name, revspec, or object ID
 func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
 	_, err := b.getBatch().writer.Write([]byte("contents " + obj + "\n"))
 	if err != nil {
@@ -52,8 +47,6 @@ func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, Buffered
 	return info, b.getBatch().reader, nil
 }
 
-// QueryContent sends a "info <obj>" command to the cat-file --batch-command process
-// it actually can receive a reference name, revspec, or object ID
 func (b *catFileBatchCommand) QueryInfo(obj string) (*CatFileObject, error) {
 	_, err := b.getBatch().writer.Write([]byte("info " + obj + "\n"))
 	if err != nil {

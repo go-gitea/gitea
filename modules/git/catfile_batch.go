@@ -24,20 +24,17 @@ type CatFileObject struct {
 	Size int64
 }
 
-type CatFileBatchContent interface {
-	// QueryContent queries the object info with content from the git repository
-	// FIXME: this design still follows the old pattern: the returned BufferedReader is very fragile, callers should carefully maintain its lifecycle and discard all unread data
-	// It needs to refactor to a fully managed Reader stream in the future
-	QueryContent(obj string) (*CatFileObject, BufferedReader, error)
-}
-
-type CatFileBatchInfo interface {
-	QueryInfo(obj string) (*CatFileObject, error)
-}
-
 type CatFileBatch interface {
-	CatFileBatchInfo
-	CatFileBatchContent
+	// QueryInfo queries the object info from the git repository by its object name using "git cat-file --batch" family commands.
+	// "git cat-file" accepts "<rev>" for the object name, it can be a ref name, object id, etc. https://git-scm.com/docs/gitrevisions
+	// In Gitea, we only use the simple ref name or object id, no other complex rev syntax like "suffix" or "git describe" although they are supported by git.
+	QueryInfo(obj string) (*CatFileObject, error)
+
+	// QueryContent is similar to QueryInfo, it queries the object info and additionally returns a reader for its content.
+	// FIXME: this design still follows the old pattern: the returned BufferedReader is very fragile,
+	// callers should carefully maintain its lifecycle and discard all unread data.
+	// TODO: It needs to be refactored to a fully managed Reader stream in the future, don't let callers manually Close or Discard
+	QueryContent(obj string) (*CatFileObject, BufferedReader, error)
 }
 
 type CatFileBatchCloser interface {
@@ -45,6 +42,8 @@ type CatFileBatchCloser interface {
 	Close()
 }
 
+// NewBatch creates a "batch object provider (CatFileBatch)" for the given repository path to retrieve object info and content efficiently.
+// The CatFileBatch and the readers create by it should only be used in the same goroutine.
 func NewBatch(ctx context.Context, repoPath string) (CatFileBatchCloser, error) {
 	if DefaultFeatures().SupportCatFileBatchCommand {
 		return newCatFileBatchCommand(ctx, repoPath)

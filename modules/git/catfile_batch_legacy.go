@@ -23,16 +23,11 @@ type catFileBatchLegacy struct {
 
 var _ CatFileBatchCloser = (*catFileBatchLegacy)(nil)
 
-// newCatFileBatchLegacy creates a new batch and a new batch check for the given repository, the Close must be invoked before release the batch
 func newCatFileBatchLegacy(ctx context.Context, repoPath string) (*catFileBatchLegacy, error) {
 	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
 		return nil, err
 	}
-
-	return &catFileBatchLegacy{
-		ctx:      ctx,
-		repoPath: repoPath,
-	}, nil
+	return &catFileBatchLegacy{ctx: ctx, repoPath: repoPath}, nil
 }
 
 func (b *catFileBatchLegacy) getBatchContent() *catFileBatchCommunicator {
@@ -51,8 +46,6 @@ func (b *catFileBatchLegacy) getBatchCheck() *catFileBatchCommunicator {
 	return b.batchCheck
 }
 
-// QueryContent sends a "<obj>" command to the cat-file --batch process
-// it actually can receive a reference name, revspec, or object ID
 func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
 	_, err := io.WriteString(b.getBatchContent().writer, obj+"\n")
 	if err != nil {
@@ -65,8 +58,6 @@ func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedR
 	return info, b.getBatchContent().reader, nil
 }
 
-// QueryInfo sends a "<obj>" command to the cat-file --batch-check process
-// it actually can receive a reference name, revspec, or object ID
 func (b *catFileBatchLegacy) QueryInfo(obj string) (*CatFileObject, error) {
 	_, err := io.WriteString(b.getBatchCheck().writer, obj+"\n")
 	if err != nil {
