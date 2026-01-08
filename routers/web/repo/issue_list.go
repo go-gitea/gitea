@@ -714,6 +714,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["OpenCount"] = issueStats.OpenCount
 	ctx.Data["ClosedCount"] = issueStats.ClosedCount
+	ctx.Data["TotalCount"] = total
 	ctx.Data["SelLabelIDs"] = preparedLabelFilter.SelectedLabelIDs
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType

@@ -7,6 +7,7 @@
 {{end}}
 {{$openLink = QueryBuild $allStatesLink "state" "open"}}
 {{$closedLink = QueryBuild $allStatesLink "state" "closed"}}
+<input type="hidden" id="totalcount" value="{{.TotalCount}}">
 <div class="small-menu-items ui compact tiny menu">
 	<a class="{{if eq .State "open"}}active {{end}}item flex-text-inline" href="{{if eq .State "open"}}{{$allStatesLink}}{{else}}{{$openLink}}{{end}}">
 		{{if .PageIsMilestones}}

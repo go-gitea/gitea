@@ -31,7 +31,8 @@ export function initCommonIssueListQuickGoto() {
   const goto = document.querySelector<HTMLElement>('#issue-list-quick-goto');
   if (!goto) return;
 
-  let lastErrorValue: number;
+  const totalIssueCountElement = document.querySelector<HTMLInputElement>('#totalcount');
+  const totalIssueCount = totalIssueCountElement ? parseInt(totalIssueCountElement.value) : 0;
 
   const form = goto.closest('form')!;
   const input = form.querySelector<HTMLInputElement>('input[name=q]')!;
@@ -41,7 +42,7 @@ export function initCommonIssueListQuickGoto() {
   input.setSelectionRange(input.value.length, input.value.length);
 
   const gotoLink = (link: string) => {
-    if (link) {
+    if (link !== '') {
       window.location.href = link;
     }
   };
@@ -60,17 +61,11 @@ export function initCommonIssueListQuickGoto() {
     // try to check whether the parsed goto link is valid
     let targetUrl = parseIssueListQuickGotoLink(repoLink, searchText);
 
-    const currentSearchText = parseInt(searchText.replace('#', ''));
-    if (!currentSearchText || currentSearchText >= lastErrorValue) {
-      return;
-    }
-
+    const matchIssueID = reIssueIndex.exec(searchText) || reIssueSharpIndex.exec(searchText);
+    if (matchIssueID === null || Number(matchIssueID[1]) >= totalIssueCount) targetUrl = '';
     if (targetUrl) {
       const res = await GET(`${targetUrl}/info`); // backend: GetIssueInfo, it only checks whether the issue exists by status code
-      if (res.status !== 200) {
-        targetUrl = '';
-        lastErrorValue = currentSearchText;
-      }
+      if (res.status !== 200) targetUrl = '';
     }
     // if the input value has changed, then ignore the result
     if (input.value !== searchText) return;
