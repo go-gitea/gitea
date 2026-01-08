@@ -38,6 +38,8 @@ func (b *catFileBatchCommand) getBatch() *catFileBatchCommunicator {
 	return b.batch
 }
 
+// QueryContent sends a "contents <obj>" command to the cat-file --batch-command process
+// it actaully can receive a reference name, revspec, or object ID
 func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
 	_, err := b.getBatch().writer.Write([]byte("contents " + obj + "\n"))
 	if err != nil {
@@ -50,6 +52,8 @@ func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, Buffered
 	return info, b.getBatch().reader, nil
 }
 
+// QueryContent sends a "info <obj>" command to the cat-file --batch-command process
+// it actaully can receive a reference name, revspec, or object ID
 func (b *catFileBatchCommand) QueryInfo(obj string) (*CatFileObject, error) {
 	_, err := b.getBatch().writer.Write([]byte("info " + obj + "\n"))
 	if err != nil {

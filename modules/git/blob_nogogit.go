@@ -29,6 +29,8 @@ func (b *Blob) DataAsync() (_ io.ReadCloser, retErr error) {
 		return nil, err
 	}
 	defer func() {
+		// if there was an error, cancel the batch right away,
+		// otherwise let the caller close it
 		if retErr != nil {
 			cancel()
 		}
