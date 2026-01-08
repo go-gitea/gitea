@@ -41,10 +41,8 @@ export function initCommonIssueListQuickGoto() {
   // select to end
   input.setSelectionRange(input.value.length, input.value.length);
 
-  const gotoLink = (link: string) => {
-    if (link !== '') {
-      window.location.href = link;
-    }
+  const redirectIfValid = (link: string) => {
+    if (link) window.location.href = link;
   };
 
   form.addEventListener('submit', (e) => {
@@ -53,7 +51,7 @@ export function initCommonIssueListQuickGoto() {
 
     // if there is a goto button, use its link
     e.preventDefault();
-    gotoLink(goto.getAttribute('data-issue-goto-link') || '');
+    redirectIfValid(goto.getAttribute('data-issue-goto-link') || '');
   });
 
   const onInput = async () => {
@@ -75,5 +73,5 @@ export function initCommonIssueListQuickGoto() {
   };
 
   input.addEventListener('input', onInputDebounce(onInput));
-  goto.addEventListener('click', () => gotoLink(goto.getAttribute('data-issue-goto-link') || ''), {once: true});
+  goto.addEventListener('click', () => redirectIfValid(goto.getAttribute('data-issue-goto-link') || ''), {once: true});
 }
