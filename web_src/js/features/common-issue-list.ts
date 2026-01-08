@@ -35,7 +35,7 @@ export function initCommonIssueListQuickGoto() {
   const input = form.querySelector<HTMLInputElement>('input[name=q]')!;
   const repoLink = goto.getAttribute('data-repo-link')!;
 
-  const redirectIfValid = (link: string) => {
+  const redirectToIssuesLink = (link: string) => {
     if (link) window.location.href = link;
   };
 
@@ -45,7 +45,7 @@ export function initCommonIssueListQuickGoto() {
 
     // if there is a goto button, use its link
     e.preventDefault();
-    redirectIfValid(goto.getAttribute('data-issue-goto-link') || '');
+    redirectToIssuesLink(goto.getAttribute('data-issue-goto-link') || '');
   });
 
   const onInput = async () => {
@@ -64,5 +64,5 @@ export function initCommonIssueListQuickGoto() {
   };
 
   input.addEventListener('input', onInputDebounce(onInput));
-  goto.addEventListener('click', () => redirectIfValid(goto.getAttribute('data-issue-goto-link') || ''), {once: true});
+  goto.addEventListener('click', () => redirectToIssuesLink(goto.getAttribute('data-issue-goto-link') || ''), {once: true});
 }
