@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer"
@@ -151,7 +150,7 @@ func NewIndexer(indexDir string) *Indexer {
 	}
 }
 
-func (b *Indexer) addUpdate(ctx context.Context, catfileBatch catfile.Batch, commitSha string,
+func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, commitSha string,
 	update internal.FileUpdate, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch,
 ) error {
 	// Ignore vendored files in code search
@@ -177,17 +176,11 @@ func (b *Indexer) addUpdate(ctx context.Context, catfileBatch catfile.Batch, com
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	if _, err := catfileBatch.Writer().Write([]byte(update.BlobSha + "\n")); err != nil {
-		return err
-	}
-
-	batchReader := catfileBatch.Reader()
-	_, _, size, err = git.ReadBatchLine(batchReader)
+	info, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
 	if err != nil {
 		return err
 	}
-
-	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
+	fileContents, err := io.ReadAll(io.LimitReader(batchReader, info.Size))
 	if err != nil {
 		return err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
@@ -230,7 +223,6 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 				return err
 			}
 		}
-		catfileBatch.Close()
 	}
 	for _, filename := range changes.RemovedFilenames {
 		if err := b.addDelete(filename, repo, batch); err != nil {
