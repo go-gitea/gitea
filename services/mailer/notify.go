@@ -13,8 +13,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
-	issue_service "code.gitea.io/gitea/services/issue"
 	notify_service "code.gitea.io/gitea/services/notify"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 type mailNotifier struct {
@@ -173,7 +173,7 @@ func (m *mailNotifier) PullRequestPushCommits(ctx context.Context, doer *user_mo
 		log.Error("comment.Issue.PullRequest.LoadBaseRepo: %v", err)
 		return
 	}
-	if err := issue_service.LoadCommentPushCommits(ctx, comment); err != nil {
+	if err := pull_service.LoadCommentPushCommits(ctx, comment); err != nil {
 		log.Error("comment.LoadPushCommits: %v", err)
 	}
 	m.CreateIssueComment(ctx, doer, comment.Issue.Repo, comment.Issue, comment, nil)
