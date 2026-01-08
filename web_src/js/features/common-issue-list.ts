@@ -38,9 +38,6 @@ export function initCommonIssueListQuickGoto() {
   const input = form.querySelector<HTMLInputElement>('input[name=q]')!;
   const repoLink = goto.getAttribute('data-repo-link')!;
 
-  // select to end
-  input.setSelectionRange(input.value.length, input.value.length);
-
   const redirectIfValid = (link: string) => {
     if (link) window.location.href = link;
   };
