@@ -22,12 +22,15 @@ import (
 	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/tests/env"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func InitTest(requireGitea bool) {
 	testlogger.Init()
+
+	env.Filter([]string{"GITEA_TEST_", "GITEA_UNIT_TESTS_", "GITEA_ROOT=", "GITEA_CONF="}, []string{"GITEA_"})
 
 	giteaRoot := test.SetupGiteaRoot()
 

@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
+	"code.gitea.io/gitea/tests/env"
 
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
@@ -36,6 +37,7 @@ func testRun(m *testing.M) error {
 }
 
 func TestMain(m *testing.M) {
+	env.Filter([]string{"GITEA_TEST_", "GITEA_UNIT_TESTS_"}, []string{"GITEA_"})
 	if err := testRun(m); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Test failed: %v", err)
 		os.Exit(1)
