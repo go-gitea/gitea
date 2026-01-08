@@ -34,3 +34,7 @@ test.db.sql
 .idea/
 
 *coverage.out
+test.db
+integrations/*.sql
+integrations/test_sqlite*
+cover.out

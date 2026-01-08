@@ -404,7 +404,6 @@ func (u *User) SizedRelAvatarLink(size int) string {
 //
 // This function make take time to return when federated avatars
 // are in use, due to a DNS lookup need
-//
 func (u *User) RealSizedAvatarLink(size int) string {
 	if u.ID == -1 {
 		return base.DefaultAvatarLink()
@@ -1192,8 +1191,11 @@ func deleteUser(e *xorm.Session, u *User) error {
 		Where("watch.user_id = ?", u.ID).And("watch.mode <>?", RepoWatchModeDont).Find(&watchedRepoIDs); err != nil {
 		return fmt.Errorf("get all watches: %v", err)
 	}
-	if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
-		return fmt.Errorf("decrease repository num_watches: %v", err)
+	if len(watchedRepoIDs) > 0 {
+
+		if _, err = e.Decr("num_watches").In("id", watchedRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
+			return fmt.Errorf("decrease repository num_watches: %v", err)
+		}
 	}
 	// ***** END: Watch *****
 
@@ -1202,8 +1204,11 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if err = e.Table("star").Cols("star.repo_id").
 		Where("star.uid = ?", u.ID).Find(&starredRepoIDs); err != nil {
 		return fmt.Errorf("get all stars: %v", err)
-	} else if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
-		return fmt.Errorf("decrease repository num_stars: %v", err)
+	}
+	if len(starredRepoIDs) > 0 {
+		if _, err = e.Decr("num_stars").In("id", starredRepoIDs).NoAutoTime().Update(new(Repository)); err != nil {
+			return fmt.Errorf("decrease repository num_stars: %v", err)
+		}
 	}
 	// ***** END: Star *****
 
@@ -1212,16 +1217,22 @@ func deleteUser(e *xorm.Session, u *User) error {
 	if err = e.Table("follow").Cols("follow.follow_id").
 		Where("follow.user_id = ?", u.ID).Find(&followeeIDs); err != nil {
 		return fmt.Errorf("get all followees: %v", err)
-	} else if _, err = e.Decr("num_followers").In("id", followeeIDs).Update(new(User)); err != nil {
-		return fmt.Errorf("decrease user num_followers: %v", err)
+	}
+	if len(followeeIDs) > 0 {
+		if _, err = e.Decr("num_followers").In("id", followeeIDs).Update(new(User)); err != nil {
+			return fmt.Errorf("decrease user num_followers: %v", err)
+		}
 	}
 
 	followerIDs := make([]int64, 0, 10)
 	if err = e.Table("follow").Cols("follow.user_id").
 		Where("follow.follow_id = ?", u.ID).Find(&followerIDs); err != nil {
 		return fmt.Errorf("get all followers: %v", err)
-	} else if _, err = e.Decr("num_following").In("id", followerIDs).Update(new(User)); err != nil {
-		return fmt.Errorf("decrease user num_following: %v", err)
+	}
+	if len(followerIDs) > 0 {
+		if _, err = e.Decr("num_following").In("id", followerIDs).Update(new(User)); err != nil {
+			return fmt.Errorf("decrease user num_following: %v", err)
+		}
 	}
 	// ***** END: Follow *****
 

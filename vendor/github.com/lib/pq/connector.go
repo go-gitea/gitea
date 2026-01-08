@@ -106,5 +106,10 @@ func NewConnector(dsn string) (*Connector, error) {
 		o["user"] = u
 	}
 
+	// SSL is not necessary or supported over UNIX domain sockets
+	if network, _ := network(o); network == "unix" {
+		o["sslmode"] = "disable"
+	}
+
 	return &Connector{opts: o, dialer: defaultDialer{}}, nil
 }

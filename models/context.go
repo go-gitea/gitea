@@ -27,6 +27,21 @@ type Committer interface {
 }
 
 // TxDBContext represents a transaction DBContext
+type sessionCommitter struct {
+	sess interface {
+		Commit() error
+		Close() error
+	}
+}
+
+func (sc sessionCommitter) Commit() error {
+	return sc.sess.Commit()
+}
+
+func (sc sessionCommitter) Close() {
+	_ = sc.sess.Close()
+}
+
 func TxDBContext() (DBContext, Committer, error) {
 	sess := x.NewSession()
 	if err := sess.Begin(); err != nil {
@@ -34,7 +49,7 @@ func TxDBContext() (DBContext, Committer, error) {
 		return DBContext{}, nil, err
 	}
 
-	return DBContext{sess}, sess, nil
+	return DBContext{sess}, sessionCommitter{sess: sess}, nil
 }
 
 // WithContext represents executing database operations

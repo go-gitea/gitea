@@ -88,6 +88,9 @@ func (statement *Statement) BuildUpdates(tableValue reflect.Value,
 		if err != nil {
 			return nil, nil, err
 		}
+		if fieldValuePtr == nil {
+			continue
+		}
 
 		fieldValue := *fieldValuePtr
 		fieldType := reflect.TypeOf(fieldValue.Interface())
@@ -130,7 +133,7 @@ func (statement *Statement) BuildUpdates(tableValue reflect.Value,
 			}
 		}
 
-		if structConvert, ok := fieldValue.Interface().(convert.Conversion); ok {
+		if structConvert, ok := fieldValue.Interface().(convert.Conversion); ok && !fieldValue.IsNil() {
 			data, err := structConvert.ToDB()
 			if err != nil {
 				return nil, nil, err
@@ -190,8 +193,7 @@ func (statement *Statement) BuildUpdates(tableValue reflect.Value,
 			if !requiredField && fieldValue.Uint() == 0 {
 				continue
 			}
-			t := int64(fieldValue.Uint())
-			val = reflect.ValueOf(&t).Interface()
+			val = fieldValue.Interface()
 		case reflect.Struct:
 			if fieldType.ConvertibleTo(schemas.TimeType) {
 				t := fieldValue.Convert(schemas.TimeType).Interface().(time.Time)
@@ -205,7 +207,7 @@ func (statement *Statement) BuildUpdates(tableValue reflect.Value,
 					continue
 				}
 			} else {
-				if !col.SQLType.IsJson() {
+				if !col.IsJSON {
 					table, err := statement.tagParser.ParseWithCache(fieldValue)
 					if err != nil {
 						val = fieldValue.Interface()

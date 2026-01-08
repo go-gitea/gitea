@@ -3,6 +3,118 @@
 This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log.
 
+## [1.1.2](https://gitea.com/xorm/xorm/releases/tag/1.1.2) - 2021-07-04
+
+* BUILD
+  * Add release tag (#1966)
+
+## [1.1.1](https://gitea.com/xorm/xorm/releases/tag/1.1.1) - 2021-07-03
+
+* BUGFIXES
+  * Ignore comments when deciding when to replace question marks. #1954 (#1955)
+  * Fix bug didn't reset statement on update (#1939)
+  * Fix create table with struct missing columns (#1938)
+  * Fix #929 (#1936)
+  * Fix exist (#1921)
+* ENHANCEMENTS
+  * Improve get field value of bean (#1961)
+  * refactor splitTag function (#1960)
+  * Fix #1663 (#1952)
+  * fix pg GetColumns missing comment (#1949)
+  * Support build flag jsoniter to replace default json (#1916)
+  * refactor exprParam (#1825)
+  * Add DBVersion (#1723)
+* TESTING
+  * Add test to confirm #1247 resolved (#1951)
+  * Add test for dump table with default value (#1950)
+  * Test for #1486 (#1942)
+  * Add sync tests to confirm #539 is gone (#1937)
+  * test for unsigned int32 (#1923)
+  * Add tests for array store (#1922)
+* BUILD
+  * Remove mymysql from ci (#1928)
+* MISC
+  * fix lint (#1953)
+  * Compitable with cockroach (#1930)
+  * Replace goracle  with godror (#1914)
+
+## [1.1.0](https://gitea.com/xorm/xorm/releases/tag/1.1.0) - 2021-05-14
+
+* FEATURES
+  * Unsigned Support for mysql (#1889)
+  * Support modernc.org/sqlite (#1850)
+* TESTING
+  * More tests (#1890)
+* MISC
+  * Byte strings in postgres aren't 0x... (#1906)
+  * Fix another bug with #1872 (#1905)
+  * Fix two issues with dumptables (#1903)
+  * Fix comments (#1896)
+  * Fix comments (#1893)
+  * MariaDB 10.5 adds a suffix on old datatypes (#1885)
+
+## [1.0.7](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1336) - 2021-01-21
+
+* BUGFIXES
+  * Fix bug for mssql (#1854)
+* MISC
+  * fix_bugs_for_mssql (#1852)
+
+## [1.0.6](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1308) - 2021-01-05
+
+* BUGFIXES
+  * Fix bug when modify column on mssql (#1849)
+  * Fix find and count bug with cols (#1826)
+  * Fix update bug (#1823)
+  * Fix json tag with other type (#1822)
+* ENHANCEMENTS
+  * prevent panic when struct with unexport field (#1839)
+  * Automatically convert datetime to int64 (#1715)
+* MISC
+  * Fix index (#1841)
+  * Performance improvement for columnsbyName (#1788)
+
+## [1.0.5](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1299) - 2020-09-08
+
+* BUGFIXES
+  * Fix bug of ToDB when update on a nil pointer (#1786)
+  * Fix warnings with schema Sync2 with default varchar as NVARCHAR (#1783)
+  * Do not ever quote asterisk symbol. Fixes #1780 (#1781)
+  * Fix bug on get columns for postgres (#1779)
+
+## [1.0.4](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1286) - 2020-09-02
+
+* FEATURES
+  * Add params for mssql to allow redefine varchar as nvarchar or char as nchar (#1741)
+* BUGFIXES
+  * Fix mysql dialect error from invalid db identifier in orderby clause (#1743) (#1751)
+* ENHANCEMENTS
+  * Support get dataSourceName on ContextHook for  monitor which DB executed SQL (#1740)
+* MISC
+  * Correct default detection in MariaDB >= 10.2.7 (#1778)
+
+## [1.0.3](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1281) - 2020-07-10
+
+* BUGFIXES
+  * Fix dump of sqlite (#1639)
+* ENHANCEMENTS
+  * Fix index name parsing in SQLite dialect (#1737)
+  * add hooks for Commit and Rollback (#1733)
+
+## [1.0.2](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1261) - 2020-06-16
+
+* FEATURES
+  * Add Hook (#1644)
+* BUGFIXES
+  * Fix bug when ID used but no reference table given (#1709)
+  * Fix find and count bug (#1651)
+* ENHANCEMENTS
+  * chore: improve snakeCasedName performance (#1688)
+  * Fix find with another struct (#1666)
+  * fix GetColumns missing ordinal position (#1660)
+* MISC
+  * chore: improve titleCasedName performance (#1691)
+
 ## [1.0.1](https://gitea.com/xorm/xorm/pulls?q=&type=all&state=closed&milestone=1253) - 2020-03-25
 
 * BUGFIXES
