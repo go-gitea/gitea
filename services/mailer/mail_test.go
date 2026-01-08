@@ -304,7 +304,7 @@ func TestGenerateAdditionalHeadersForIssue(t *testing.T) {
 	comment := &mailComment{Issue: issue, Doer: doer}
 	recipient := &user_model.User{Name: "test", Email: "test@gitea.com"}
 
-	headers := generateAdditionalHeadersForIssue(comment, "dummy-reason", recipient)
+	headers := generateAdditionalHeadersForIssue(t.Context(), comment, "dummy-reason", recipient)
 
 	expected := map[string]string{
 		"List-ID":                   "user2/repo1 <repo1.user2.localhost>",

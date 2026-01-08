@@ -187,7 +187,7 @@ func KeysPost(ctx *context.Context) {
 			return
 		}
 
-		if _, err = asymkey_model.AddPublicKey(ctx, ctx.Doer.ID, form.Title, content, 0); err != nil {
+		if _, err = asymkey_model.AddPublicKey(ctx, ctx.Doer.ID, form.Title, content, 0, false); err != nil {
 			ctx.Data["HasSSHError"] = true
 			switch {
 			case asymkey_model.IsErrKeyAlreadyExist(err):
@@ -325,7 +325,7 @@ func loadKeysData(ctx *context.Context) {
 	ctx.Data["GPGKeys"] = gpgkeys
 	tokenToSign := asymkey_model.VerificationToken(ctx.Doer, 1)
 
-	// generate a new aes cipher using the csrfToken
+	// generate a new aes cipher using the token
 	ctx.Data["TokenToSign"] = tokenToSign
 
 	principals, err := db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{

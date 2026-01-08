@@ -1384,19 +1384,19 @@ func Routes() *web.Router {
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
-				m.Group("/statuses", func() {
+				m.Group("/statuses", func() { // "/statuses/{sha}" only accepts commit ID
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
 						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)
-					m.Group("/{ref}", func() {
-						m.Get("/status", repo.GetCombinedCommitStatusByRef)
-						m.Get("/statuses", repo.GetCommitStatusesByRef)
-					}, context.ReferencesGitRepo())
-					m.Group("/{sha}", func() {
-						m.Get("/pull", repo.GetCommitPullRequest)
-					}, context.ReferencesGitRepo())
+					m.PathGroup("/*", func(g *web.RouterPathGroup) {
+						// Mis-configured reverse proxy might decode the `%2F` to slash ahead, so we need to support both formats (escaped, unescaped) here.
+						// It also matches GitHub's behavior
+						g.MatchPath("GET", "/<ref:*>/status", repo.GetCombinedCommitStatusByRef)
+						g.MatchPath("GET", "/<ref:*>/statuses", repo.GetCommitStatusesByRef)
+						g.MatchPath("GET", "/<sha>/pull", repo.GetCommitPullRequest)
+					})
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {

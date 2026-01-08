@@ -1,7 +1,7 @@
 // Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package pull
+package git
 
 import (
 	"context"
@@ -14,19 +14,40 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	logger "code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // CompareInfo represents needed information for comparing references.
 type CompareInfo struct {
-	MergeBase    string
-	BaseCommitID string
-	HeadCommitID string
-	Commits      []*git.Commit
-	NumFiles     int
+	BaseRepo         *repo_model.Repository
+	BaseRef          git.RefName
+	BaseCommitID     string
+	HeadRepo         *repo_model.Repository
+	HeadGitRepo      *git.Repository
+	HeadRef          git.RefName
+	HeadCommitID     string
+	CompareSeparator string
+	MergeBase        string
+	Commits          []*git.Commit
+	NumFiles         int
+}
+
+func (ci *CompareInfo) IsSameRepository() bool {
+	return ci.BaseRepo.ID == ci.HeadRepo.ID
+}
+
+func (ci *CompareInfo) IsSameRef() bool {
+	return ci.IsSameRepository() && ci.BaseRef == ci.HeadRef
+}
+
+func (ci *CompareInfo) DirectComparison() bool {
+	// FIXME: the design of "DirectComparison" is wrong, it loses the information of `^`
+	// To correctly handle the comparison, developers should use `ci.CompareSeparator` directly, all "DirectComparison" related code should be rewritten.
+	return ci.CompareSeparator == ".."
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
-func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseBranch, headBranch string, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
+func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Repository, headGitRepo *git.Repository, baseRef, headRef git.RefName, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
 	var (
 		remoteBranch string
 		tmpRemote    string
@@ -46,14 +67,22 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 		}()
 	}
 
-	compareInfo := new(CompareInfo)
-
-	compareInfo.HeadCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, headBranch)
-	if err != nil {
-		compareInfo.HeadCommitID = headBranch
+	compareInfo := &CompareInfo{
+		BaseRepo:         baseRepo,
+		BaseRef:          baseRef,
+		HeadRepo:         headRepo,
+		HeadGitRepo:      headGitRepo,
+		HeadRef:          headRef,
+		CompareSeparator: util.Iif(directComparison, "..", "..."),
 	}
 
-	compareInfo.MergeBase, remoteBranch, err = headGitRepo.GetMergeBase(tmpRemote, baseBranch, headBranch)
+	compareInfo.HeadCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, headRef.String())
+	if err != nil {
+		compareInfo.HeadCommitID = headRef.String()
+	}
+
+	// FIXME: It seems we don't need mergebase if it's a direct comparison?
+	compareInfo.MergeBase, remoteBranch, err = headGitRepo.GetMergeBase(tmpRemote, baseRef.String(), headRef.String())
 	if err == nil {
 		compareInfo.BaseCommitID, err = gitrepo.GetFullCommitID(ctx, headRepo, remoteBranch)
 		if err != nil {
@@ -68,7 +97,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 
 		// We have a common base - therefore we know that ... should work
 		if !fileOnly {
-			compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, baseCommitID+separator+headBranch)
+			compareInfo.Commits, err = headGitRepo.ShowPrettyFormatLogToList(ctx, baseCommitID+separator+headRef.String())
 			if err != nil {
 				return nil, fmt.Errorf("ShowPrettyFormatLogToList: %w", err)
 			}
@@ -87,7 +116,7 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	// Count number of changed files.
 	// This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(remoteBranch, headBranch, directComparison)
+	compareInfo.NumFiles, err = headGitRepo.GetDiffNumChangedFiles(remoteBranch, headRef.String(), directComparison)
 	if err != nil {
 		return nil, err
 	}
