@@ -52,7 +52,7 @@ func (b *catFileBatchLegacy) getBatchCheck() *catFileBatchCommunicator {
 }
 
 // QueryContent sends a "<obj>" command to the cat-file --batch process
-// it actaully can receive a reference name, revspec, or object ID
+// it actually can receive a reference name, revspec, or object ID
 func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
 	_, err := io.WriteString(b.getBatchContent().writer, obj+"\n")
 	if err != nil {
@@ -66,7 +66,7 @@ func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedR
 }
 
 // QueryInfo sends a "<obj>" command to the cat-file --batch-check process
-// it actaully can receive a reference name, revspec, or object ID
+// it actually can receive a reference name, revspec, or object ID
 func (b *catFileBatchLegacy) QueryInfo(obj string) (*CatFileObject, error) {
 	_, err := io.WriteString(b.getBatchCheck().writer, obj+"\n")
 	if err != nil {
