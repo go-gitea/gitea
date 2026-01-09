@@ -126,7 +126,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		config := unit.ProjectsConfig()
 		projectsMode = config.ProjectsMode
 	}
-	
+
 	hasCode := repo.UnitEnabled(ctx, unit_model.TypeCode)
 	hasReleases := repo.UnitEnabled(ctx, unit_model.TypeReleases)
 	hasPackages := repo.UnitEnabled(ctx, unit_model.TypePackages)
