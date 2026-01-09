@@ -82,6 +82,11 @@ func DeleteAttachment(ctx *context.Context) {
 		return
 	}
 
+	if attach.RepoID != ctx.Repo.Repository.ID {
+		ctx.HTTPError(http.StatusBadRequest, "attachment does not belong to this repository")
+		return
+	}
+
 	if ctx.Doer.ID != attach.UploaderID {
 		if attach.IssueID > 0 {
 			issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
@@ -104,11 +109,6 @@ func DeleteAttachment(ctx *context.Context) {
 				return
 			}
 		}
-	}
-
-	if attach.RepoID != ctx.Repo.Repository.ID {
-		ctx.HTTPError(http.StatusBadRequest, "attachment does not belong to this repository")
-		return
 	}
 
 	err = repo_model.DeleteAttachment(ctx, attach, true)
