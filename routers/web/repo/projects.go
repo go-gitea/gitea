@@ -315,7 +315,6 @@ func ViewProject(ctx *context.Context) {
 	assigneeID := ctx.FormString("assignee")
 	milestoneID := ctx.FormInt64("milestone")
 
-	// Prepare milestone IDs for filtering
 	var milestoneIDs []int64
 	if milestoneID > 0 {
 		milestoneIDs = []int64{milestoneID}
@@ -418,12 +417,12 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 	ctx.Data["AssigneeID"] = assigneeID
 
-	// Get milestones for filtering
+	// Get milestones
 	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
-		ctx.ServerError("GetAllRepoMilestones", err)
+		ctx.ServerError("GetMilestones", err)
 		return
 	}
 
