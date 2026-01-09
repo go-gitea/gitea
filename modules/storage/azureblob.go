@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
+	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/blob"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob/bloberror"
@@ -94,12 +95,11 @@ func (a *azureBlobObject) Stat() (os.FileInfo, error) {
 
 var _ ObjectStorage = &AzureBlobStorage{}
 
-// AzureStorage returns a azure blob storage
+// AzureBlobStorage returns a azure blob storage
 type AzureBlobStorage struct {
-	cfg        *setting.AzureBlobStorageConfig
-	ctx        context.Context
-	credential *azblob.SharedKeyCredential
-	client     *azblob.Client
+	cfg    *setting.AzureBlobStorageConfig
+	ctx    context.Context
+	client *azblob.Client
 }
 
 func convertAzureBlobErr(err error) error {
@@ -117,34 +117,52 @@ func convertAzureBlobErr(err error) error {
 	return fmt.Errorf("%s", respErr.ErrorCode)
 }
 
+func newAzureBlobClient(config *setting.AzureBlobStorageConfig) (*azblob.Client, error) {
+	if config.AccountName != "" && config.AccountKey != "" {
+		log.Info("Creating Azure Blob storage at %s:%s with base path %s using shared key authentication",
+			config.Endpoint, config.Container, config.BasePath)
+
+		cred, err := azblob.NewSharedKeyCredential(config.AccountName, config.AccountKey)
+		if err != nil {
+			return nil, convertAzureBlobErr(err)
+		}
+		return azblob.NewClientWithSharedKeyCredential(config.Endpoint, cred, &azblob.ClientOptions{})
+	}
+
+	log.Info("Creating Azure Blob storage at %s:%s with base path %s using DefaultAzureCredential",
+		config.Endpoint, config.Container, config.BasePath)
+
+	opts := &azidentity.DefaultAzureCredentialOptions{}
+	if config.TenantID != "" {
+		opts.TenantID = config.TenantID
+	}
+
+	cred, err := azidentity.NewDefaultAzureCredential(opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create DefaultAzureCredential: %w", err)
+	}
+	return azblob.NewClient(config.Endpoint, cred, &azblob.ClientOptions{})
+}
+
 // NewAzureBlobStorage returns a azure blob storage
 func NewAzureBlobStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, error) {
 	config := cfg.AzureBlobConfig
 
-	log.Info("Creating Azure Blob storage at %s:%s with base path %s", config.Endpoint, config.Container, config.BasePath)
-
-	cred, err := azblob.NewSharedKeyCredential(config.AccountName, config.AccountKey)
-	if err != nil {
-		return nil, convertAzureBlobErr(err)
-	}
-	client, err := azblob.NewClientWithSharedKeyCredential(config.Endpoint, cred, &azblob.ClientOptions{})
+	client, err := newAzureBlobClient(&config)
 	if err != nil {
 		return nil, convertAzureBlobErr(err)
 	}
 
-	_, err = client.CreateContainer(ctx, config.Container, &container.CreateOptions{})
-	if err != nil {
-		// Check to see if we already own this container (which happens if you run this twice)
+	if _, err = client.CreateContainer(ctx, config.Container, &container.CreateOptions{}); err != nil {
 		if !bloberror.HasCode(err, bloberror.ContainerAlreadyExists) {
-			return nil, convertMinioErr(err)
+			return nil, convertAzureBlobErr(err)
 		}
 	}
 
 	return &AzureBlobStorage{
-		cfg:        &config,
-		ctx:        ctx,
-		credential: cred,
-		client:     client,
+		cfg:    &config,
+		ctx:    ctx,
+		client: client,
 	}, nil
 }
 
