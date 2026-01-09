@@ -4,42 +4,14 @@
 package git
 
 import (
-	"fmt"
-	"os"
 	"testing"
-
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/tempdir"
 
 	"github.com/hashicorp/go-version"
 	"github.com/stretchr/testify/assert"
 )
 
-func testRun(m *testing.M) error {
-	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
-	if err != nil {
-		return fmt.Errorf("unable to create temp dir: %w", err)
-	}
-	defer cleanup()
-
-	setting.Git.HomePath = gitHomePath
-
-	if err = InitFull(); err != nil {
-		return fmt.Errorf("failed to call Init: %w", err)
-	}
-
-	exitCode := m.Run()
-	if exitCode != 0 {
-		return fmt.Errorf("run test failed, ExitCode=%d", exitCode)
-	}
-	return nil
-}
-
 func TestMain(m *testing.M) {
-	if err := testRun(m); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "Test failed: %v", err)
-		os.Exit(1)
-	}
+	RunGitTests(m)
 }
 
 func TestParseGitVersion(t *testing.T) {

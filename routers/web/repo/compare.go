@@ -149,9 +149,9 @@ func setCsvCompareContext(ctx *context.Context) {
 			if err != nil {
 				return nil, nil, err
 			}
-
+			var closer io.Closer = reader
 			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}))
-			return csvReader, reader, err
+			return csvReader, closer, err
 		}
 
 		baseReader, baseBlobCloser, err := csvReaderFromCommit(markup.NewRenderContext(ctx).WithRelativePath(diffFile.OldName), baseBlob)
@@ -499,7 +499,7 @@ func PrepareCompareDiff(
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
 		BaseLink:      ci.HeadRepo.Link() + "/blob_excerpt",
-		DiffStyle:     ctx.FormString("style"),
+		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: headCommitID,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
@@ -756,7 +756,7 @@ func ExcerptBlob(ctx *context.Context) {
 
 	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
 		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
-		DiffStyle:     ctx.FormString("style"),
+		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
 	}
 
