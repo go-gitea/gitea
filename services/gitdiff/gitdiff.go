@@ -200,6 +200,11 @@ type DiffBlobExcerptData struct {
 	AfterCommitID  string
 }
 
+const (
+	DiffStyleSplit   = "split"
+	DiffStyleUnified = "unified"
+)
+
 func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
 	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
 	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
