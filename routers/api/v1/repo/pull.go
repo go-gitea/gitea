@@ -500,6 +500,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	unitPullRequest, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		ctx.APIErrorInternal(err)
+		return
 	}
 
 	prIssue := &issues_model.Issue{
