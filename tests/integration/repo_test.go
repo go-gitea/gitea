@@ -6,7 +6,6 @@ package integration
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"path"
 	"strconv"
 	"strings"
@@ -17,9 +16,9 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
@@ -531,7 +530,7 @@ func TestGenerateRepository(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, generatedRepo)
 
-	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name))
+	exist, err := gitrepo.IsRepositoryExist(generatedRepo)
 	assert.NoError(t, err)
 	assert.True(t, exist)
 
@@ -542,7 +541,7 @@ func TestGenerateRepository(t *testing.T) {
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
-	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "generated-from-template-44"), os.ModePerm))
+	assert.NoError(t, gitrepo.CreateRepositoryDir(repo_model.StorageRepo(repo_model.RelativePath(user2.Name, "generated-from-template-44"))))
 
 	generatedRepo2, err := repo_service.GenerateRepository(t.Context(), user2, user2, repo44, repo_service.GenerateRepoOptions{
 		Name:       "generated-from-template-44",
@@ -554,7 +553,7 @@ func TestGenerateRepository(t *testing.T) {
 	// assert the cleanup is successful
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: generatedRepo.Name})
 
-	exist, err = util.IsExist(repo_model.RepoPath(user2.Name, generatedRepo.Name))
+	exist, err = gitrepo.IsRepositoryExist(generatedRepo)
 	assert.NoError(t, err)
 	assert.False(t, exist)
 }

@@ -1,14 +1,12 @@
 // Copyright 2022 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package unittest
+package util
 
 import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 // SyncFile synchronizes the two files. This is skipped if both files
@@ -17,7 +15,7 @@ func SyncFile(srcPath, destPath string) error {
 	dest, err := os.Stat(destPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return util.CopyFile(srcPath, destPath)
+			return CopyFile(srcPath, destPath)
 		}
 		return err
 	}
@@ -33,7 +31,7 @@ func SyncFile(srcPath, destPath string) error {
 		return nil
 	}
 
-	return util.CopyFile(srcPath, destPath)
+	return CopyFile(srcPath, destPath)
 }
 
 // SyncDirs synchronizes files recursively from source to target directory.
@@ -49,7 +47,7 @@ func SyncDirs(srcPath, destPath string) error {
 	const keepFile = ".keep"
 
 	// find and delete all untracked files
-	destFiles, err := util.ListDirRecursively(destPath, &util.ListDirOptions{IncludeDir: true})
+	destFiles, err := ListDirRecursively(destPath, &ListDirOptions{IncludeDir: true})
 	if err != nil {
 		return err
 	}
@@ -72,13 +70,13 @@ func SyncDirs(srcPath, destPath string) error {
 	}
 
 	// sync src files to dest
-	srcFiles, err := util.ListDirRecursively(srcPath, &util.ListDirOptions{IncludeDir: true})
+	srcFiles, err := ListDirRecursively(srcPath, &ListDirOptions{IncludeDir: true})
 	if err != nil {
 		return err
 	}
 	for _, srcFile := range srcFiles {
 		destFilePath := filepath.Join(destPath, srcFile)
-		// util.ListDirRecursively appends a slash to the directory name
+		// ListDirRecursively appends a slash to the directory name
 		if strings.HasSuffix(srcFile, "/") {
 			err = os.MkdirAll(destFilePath, os.ModePerm)
 		} else if filepath.Base(destFilePath) != keepFile {

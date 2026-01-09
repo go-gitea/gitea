@@ -277,7 +277,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 
 	// 2 - check whether the repository with the same storage exists
 	var isExist bool
-	isExist, err = gitrepo.IsRepositoryExist(ctx, repo)
+	isExist, err = gitrepo.IsRepositoryExist(repo)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return nil, err
