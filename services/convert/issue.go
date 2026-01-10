@@ -169,6 +169,7 @@ func ToStopWatches(ctx context.Context, doer *user_model.User, sws []*issues_mod
 
 	issueCache := make(map[int64]*issues_model.Issue)
 	repoCache := make(map[int64]*repo_model.Repository)
+	permCache := make(map[int64]access_model.Permission)
 	var (
 		issue *issues_model.Issue
 		repo  *repo_model.Repository
@@ -183,20 +184,30 @@ func ToStopWatches(ctx context.Context, doer *user_model.User, sws []*issues_mod
 			if err != nil {
 				return nil, err
 			}
+			issueCache[sw.IssueID] = issue
 		}
 		repo, ok = repoCache[issue.RepoID]
 		if !ok {
 			repo, err = repo_model.GetRepositoryByID(ctx, issue.RepoID)
 			if err != nil {
-				return nil, err
+				log.Error("GetRepositoryByID(%d): %v", issue.RepoID, err)
+				continue
 			}
-			perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+			repoCache[issue.RepoID] = repo
+		}
+
+		// ADD: Check user permissions
+		perm, ok := permCache[repo.ID]
+		if !ok {
+			perm, err = access_model.GetUserRepoPermission(ctx, repo, doer)
 			if err != nil {
 				continue
 			}
-			if !perm.CanReadIssuesOrPulls(issue.IsPull) {
-				continue
-			}
+			permCache[repo.ID] = perm
+		}
+
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+			continue
 		}
 
 		result = append(result, api.StopWatch{
