@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/label"
@@ -163,7 +164,7 @@ func ToTrackedTime(ctx context.Context, doer *user_model.User, t *issues_model.T
 }
 
 // ToStopWatches convert Stopwatch list to api.StopWatches
-func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.StopWatches, error) {
+func ToStopWatches(ctx context.Context, doer *user_model.User, sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
 
 	issueCache := make(map[int64]*issues_model.Issue)
@@ -188,6 +189,13 @@ func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.Stop
 			repo, err = repo_model.GetRepositoryByID(ctx, issue.RepoID)
 			if err != nil {
 				return nil, err
+			}
+			perm, err := access_model.GetUserRepoPermission(ctx, repo, doer)
+			if err != nil {
+				continue
+			}
+			if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+				continue
 			}
 		}
 
