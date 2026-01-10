@@ -52,7 +52,7 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 	}
 
 	for i := 0; i < len(recipients); {
-		// test if this user is allowed to see the issue/pull
+		// test if this user is allowed to see the release
 		// release publisher should also get the email?
 		if recipients[i].ID != rel.PublisherID && !access_model.CheckRepoUnitUser(ctx, rel.Repo, recipients[i], unit.TypeReleases) {
 			recipients = append(recipients[:i], recipients[i+1:]...)
