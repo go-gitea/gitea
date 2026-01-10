@@ -1276,9 +1276,9 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 	}
 
 	if ctx.Doer.ID != autoMerge.DoerID {
-		allowed, err := access_model.IsUserRepoAdmin(ctx, ctx.Repo.Repository, ctx.Doer)
+		allowed, err := pull_service.IsUserAllowedToMerge(ctx, issue.PullRequest, ctx.Repo.Permission, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("GetScheduledMergeByPullID", err)
+			ctx.ServerError("IsUserAllowedToMerge", err)
 			return
 		}
 		if !allowed {
