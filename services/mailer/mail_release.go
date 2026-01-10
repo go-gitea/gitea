@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/renderhelper"
@@ -51,15 +52,10 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		return
 	}
 
-	for i := 0; i < len(recipients); {
-		// test if this user is allowed to see the release
-		// release publisher should also get the email?
-		if recipients[i].ID != rel.PublisherID && !access_model.CheckRepoUnitUser(ctx, rel.Repo, recipients[i], unit.TypeReleases) {
-			recipients = append(recipients[:i], recipients[i+1:]...)
-			continue
-		}
-		i++
-	}
+	// delete publisher or any users with no permission
+	recipients = slices.DeleteFunc(recipients, func(u *user_model.User) bool {
+		return u.ID == rel.PublisherID || !access_model.CheckRepoUnitUser(ctx, rel.Repo, u, unit.TypeReleases)
+	})
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range recipients {
