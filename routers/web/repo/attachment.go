@@ -4,7 +4,6 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -42,7 +41,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 
 	file, header, err := ctx.Req.FormFile("file")
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("FormFile: %v", err))
+		ctx.ServerError("FormFile", err)
 		return
 	}
 	defer file.Close()
@@ -58,7 +57,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
 			return
 		}
-		ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("NewAttachment: %v", err))
+		ctx.ServerError("UploadAttachmentGeneralSizeLimit", err)
 		return
 	}
 
@@ -91,7 +90,7 @@ func DeleteAttachment(ctx *context.Context) {
 		if attach.IssueID > 0 {
 			issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
 			if err != nil {
-				ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("GetIssueByID: %v", err))
+				ctx.ServerError("GetIssueByID", err)
 				return
 			}
 			if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
@@ -113,7 +112,7 @@ func DeleteAttachment(ctx *context.Context) {
 
 	err = repo_model.DeleteAttachment(ctx, attach, true)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
+		ctx.ServerError("DeleteAttachment", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]string{
@@ -147,7 +146,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	} else { // If we have the repository we check access
 		perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
+			ctx.ServerError("GetUserRepoPermission", err)
 			return
 		}
 		if !perm.CanRead(unitType) {
