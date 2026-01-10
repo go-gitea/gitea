@@ -398,7 +398,6 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
 
 	if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
 		ctx.APIErrorInternal(err)
