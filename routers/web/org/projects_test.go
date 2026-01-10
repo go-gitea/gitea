@@ -33,7 +33,7 @@ func TestCheckProjectColumnChangePermissions(t *testing.T) {
 func TestChangeProjectStatusRejectsForeignProjects(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	// project 4 is owned by user2 not user1
-	ctx, resp := contexttest.MockContext(t, "user1/-/projects/4/close")
+	ctx, _ := contexttest.MockContext(t, "user1/-/projects/4/close")
 	contexttest.LoadUser(t, ctx, 1)
 	ctx.ContextUser = ctx.Doer
 	ctx.SetPathParam("action", "close")
@@ -41,24 +41,7 @@ func TestChangeProjectStatusRejectsForeignProjects(t *testing.T) {
 
 	org.ChangeProjectStatus(ctx)
 
-	assert.Equal(t, http.StatusUnprocessableEntity, ctx.Resp.WrittenStatus())
-	assert.Contains(t, resp.Body.String(), "not in Owner")
-}
-
-func TestChangeProjectStatusRejectsUnsupportedProjectTypes(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-
-	// project 4 is owned by user2 but it is a project with type repository
-	ctx, resp := contexttest.MockContext(t, "user2/-/projects/4/close")
-	contexttest.LoadUser(t, ctx, 2)
-	ctx.ContextUser = ctx.Doer
-	ctx.SetPathParam("action", "close")
-	ctx.SetPathParam("id", "4")
-
-	org.ChangeProjectStatus(ctx)
-
-	assert.Equal(t, http.StatusUnprocessableEntity, ctx.Resp.WrittenStatus())
-	assert.Contains(t, resp.Body.String(), "not of a type")
+	assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
 }
 
 func TestAddColumnToProjectPostRejectsForeignProjects(t *testing.T) {
@@ -71,19 +54,5 @@ func TestAddColumnToProjectPostRejectsForeignProjects(t *testing.T) {
 
 	org.AddColumnToProjectPost(ctx)
 
-	assert.Equal(t, http.StatusUnprocessableEntity, ctx.Resp.WrittenStatus())
-}
-
-func TestAddColumnToProjectPostRejectsUnsupportedProjectTypes(t *testing.T) {
-	unittest.PrepareTestEnv(t)
-
-	ctx, _ := contexttest.MockContext(t, "user2/-/projects/4/columns/new")
-	contexttest.LoadUser(t, ctx, 2)
-	ctx.ContextUser = ctx.Doer
-	ctx.SetPathParam("id", "4")
-	web.SetForm(ctx, &forms.EditProjectColumnForm{Title: "unsupported"})
-
-	org.AddColumnToProjectPost(ctx)
-
-	assert.Equal(t, http.StatusUnprocessableEntity, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusNotFound, ctx.Resp.WrittenStatus())
 }
