@@ -180,10 +180,6 @@ func WatchIfAuto(ctx context.Context, userID, repoID int64, isWrite bool) error 
 // ClearRepoWatches clears all watches for a repository and from the user that watched it.
 // Used when a repository is set to private.
 func ClearRepoWatches(ctx context.Context, repoID int64) error {
-	if _, err := db.Exec(ctx, "UPDATE `user` SET num_watches=num_watches-1 WHERE id IN (SELECT `user_id` FROM `watch` WHERE repo_id = ?)", repoID); err != nil {
-		return err
-	}
-
 	if _, err := db.Exec(ctx, "UPDATE `repository` SET num_watches = 0 WHERE id = ?", repoID); err != nil {
 		return err
 	}
