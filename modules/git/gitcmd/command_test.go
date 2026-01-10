@@ -15,6 +15,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	// FIXME: GIT-PACKAGE-DEPENDENCY: the dependency is not right.
+	// "setting.Git.HomePath" is initialized in "git" package but really used in "gitcmd" package
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "unable to create temp dir: %v", err)
