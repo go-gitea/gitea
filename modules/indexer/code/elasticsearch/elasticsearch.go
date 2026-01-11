@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer"
@@ -139,7 +138,7 @@ const (
 	}`
 )
 
-func (b *Indexer) addUpdate(ctx context.Context, batch catfile.Batch, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
+func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, sha string, update internal.FileUpdate, repo *repo_model.Repository) ([]elastic.BulkableRequest, error) {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil, nil
@@ -162,17 +161,12 @@ func (b *Indexer) addUpdate(ctx context.Context, batch catfile.Batch, sha string
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
-	if _, err := batch.Writer().Write([]byte(update.BlobSha + "\n")); err != nil {
-		return nil, err
-	}
-
-	batchReader := batch.Reader()
-	_, _, size, err = git.ReadBatchLine(batchReader)
+	info, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
 	if err != nil {
 		return nil, err
 	}
 
-	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
+	fileContents, err := io.ReadAll(io.LimitReader(batchReader, info.Size))
 	if err != nil {
 		return nil, err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {
@@ -226,7 +220,6 @@ func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha st
 				reqs = append(reqs, updateReqs...)
 			}
 		}
-		batch.Close()
 	}
 
 	for _, filename := range changes.RemovedFilenames {

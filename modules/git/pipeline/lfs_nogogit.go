@@ -8,6 +8,7 @@ package pipeline
 import (
 	"bufio"
 	"bytes"
+	"encoding/hex"
 	"io"
 	"sort"
 	"strings"
@@ -53,12 +54,9 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 	}
 	defer cancel()
 
-	batchStdinWriter := batch.Writer()
-	batchReader := batch.Reader()
-
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
 	scan := bufio.NewScanner(revListReader)
-	trees := [][]byte{}
+	trees := []string{}
 	paths := []string{}
 
 	fnameBuf := make([]byte, 4096)
@@ -67,14 +65,10 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	for scan.Scan() {
 		// Get the next commit ID
-		commitID := scan.Bytes()
+		commitID := scan.Text()
 
 		// push the commit to the cat-file --batch process
-		_, err := batchStdinWriter.Write(commitID)
-		if err != nil {
-			return nil, err
-		}
-		_, err = batchStdinWriter.Write([]byte{'\n'})
+		info, batchReader, err := batch.QueryContent(commitID)
 		if err != nil {
 			return nil, err
 		}
@@ -84,26 +78,20 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 
 	commitReadingLoop:
 		for {
-			_, typ, size, err := git.ReadBatchLine(batchReader)
-			if err != nil {
-				return nil, err
-			}
-
-			switch typ {
+			switch info.Type {
 			case "tag":
 				// This shouldn't happen but if it does well just get the commit and try again
-				id, err := git.ReadTagObjectID(batchReader, size)
+				id, err := git.ReadTagObjectID(batchReader, info.Size)
 				if err != nil {
 					return nil, err
 				}
-				_, err = batchStdinWriter.Write([]byte(id + "\n"))
-				if err != nil {
+				if info, batchReader, err = batch.QueryContent(id); err != nil {
 					return nil, err
 				}
 				continue
 			case "commit":
 				// Read in the commit to get its tree and in case this is one of the last used commits
-				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(string(commitID)), io.LimitReader(batchReader, size))
+				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(commitID), io.LimitReader(batchReader, info.Size))
 				if err != nil {
 					return nil, err
 				}
@@ -111,13 +99,13 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					return nil, err
 				}
 
-				if _, err := batchStdinWriter.Write([]byte(curCommit.Tree.ID.String() + "\n")); err != nil {
+				if info, _, err = batch.QueryContent(curCommit.Tree.ID.String()); err != nil {
 					return nil, err
 				}
 				curPath = ""
 			case "tree":
 				var n int64
-				for n < size {
+				for n < info.Size {
 					mode, fname, binObjectID, count, err := git.ParseCatFileTreeLine(objectID.Type(), batchReader, modeBuf, fnameBuf, workingShaBuf)
 					if err != nil {
 						return nil, err
@@ -133,9 +121,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 						}
 						resultsMap[curCommit.ID.String()+":"+curPath+string(fname)] = &result
 					} else if string(mode) == git.EntryModeTree.String() {
-						hexObjectID := make([]byte, objectID.Type().FullLength())
-						git.BinToHex(objectID.Type(), binObjectID, hexObjectID)
-						trees = append(trees, hexObjectID)
+						trees = append(trees, hex.EncodeToString(binObjectID))
 						paths = append(paths, curPath+string(fname)+"/")
 					}
 				}
@@ -143,11 +129,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					return nil, err
 				}
 				if len(trees) > 0 {
-					_, err := batchStdinWriter.Write(trees[len(trees)-1])
-					if err != nil {
-						return nil, err
-					}
-					_, err = batchStdinWriter.Write([]byte("\n"))
+					info, _, err = batch.QueryContent(trees[len(trees)-1])
 					if err != nil {
 						return nil, err
 					}
@@ -158,7 +140,7 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 					break commitReadingLoop
 				}
 			default:
-				if err := git.DiscardFull(batchReader, size+1); err != nil {
+				if err := git.DiscardFull(batchReader, info.Size+1); err != nil {
 					return nil, err
 				}
 			}
