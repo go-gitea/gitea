@@ -1,4 +1,4 @@
-import {isElemVisible, onInputDebounce, submitEventSubmitter, toggleElem} from '../utils/dom.ts';
+import {isElemVisible, onInputDebounce, toggleElem} from '../utils/dom.ts';
 import {GET} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
@@ -35,19 +35,17 @@ export function initCommonIssueListQuickGoto() {
   const input = form.querySelector<HTMLInputElement>('input[name=q]')!;
   const repoLink = goto.getAttribute('data-repo-link')!;
 
+  const redirectToIssuesLink = (link: string) => {
+    if (link) window.location.href = link;
+  };
+
   form.addEventListener('submit', (e) => {
     // if there is no goto button, or the form is submitted by non-quick-goto elements, submit the form directly
-    let doQuickGoto = isElemVisible(goto);
-    const submitter = submitEventSubmitter(e);
-    if (submitter !== form && submitter !== input && submitter !== goto) doQuickGoto = false;
-    if (!doQuickGoto) return;
+    if (!isElemVisible(goto) || reIssueIndex.test(input.value)) return;
 
     // if there is a goto button, use its link
     e.preventDefault();
-    const link = goto.getAttribute('data-issue-goto-link');
-    if (link) {
-      window.location.href = link;
-    }
+    redirectToIssuesLink(goto.getAttribute('data-issue-goto-link') || '');
   });
 
   const onInput = async () => {
@@ -66,5 +64,5 @@ export function initCommonIssueListQuickGoto() {
   };
 
   input.addEventListener('input', onInputDebounce(onInput));
-  onInput();
+  goto.addEventListener('click', () => redirectToIssuesLink(goto.getAttribute('data-issue-goto-link') || ''), {once: true});
 }
