@@ -147,9 +147,13 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return false
 	}
 
+	// Use ghost user as doer for CODEOWNERS-triggered review requests
+	// to correctly attribute the action to the system rather than the PR author
+	codeOwnersDoer := user_model.NewGhostUser()
+
 	for _, u := range uniqUsers {
 		if u.ID != issue.Poster.ID && !contain(latestReivews, u) {
-			comment, err := issues_model.AddReviewRequest(ctx, issue, u, issue.Poster)
+			comment, err := issues_model.AddReviewRequest(ctx, issue, u, codeOwnersDoer)
 			if err != nil {
 				log.Warn("Failed add assignee user: %s to PR review: %s#%d, error: %s", u.Name, pr.BaseRepo.Name, pr.ID, err)
 				return nil, err
@@ -166,7 +170,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	for _, t := range uniqTeams {
-		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, issue.Poster)
+		comment, err := issues_model.AddTeamReviewRequest(ctx, issue, t, codeOwnersDoer)
 		if err != nil {
 			log.Warn("Failed add assignee team: %s to PR review: %s#%d, error: %s", t.Name, pr.BaseRepo.Name, pr.ID, err)
 			return nil, err
