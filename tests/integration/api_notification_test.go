@@ -10,7 +10,9 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -92,6 +94,21 @@ func TestAPINotification(t *testing.T) {
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d", 1)).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
+
+	// disable issue unit on thread5's repository to simulate missing permissions
+	repoUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: thread5.RepoID, Type: unit.TypeIssues})
+	_, err := db.DeleteByID[repo_model.RepoUnit](t.Context(), repoUnit.ID)
+	assert.NoError(t, err)
+
+	// accessing a notification whose repository disables issues is forbidden
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d", thread5.ID)).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusForbidden)
+
+	// restore the issues unit so the rest of the flow can continue unchanged
+	repoUnit.ID = 0
+	err = db.Insert(t.Context(), repoUnit)
+	assert.NoError(t, err)
 
 	// get own
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d", thread5.ID)).

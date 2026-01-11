@@ -10,6 +10,8 @@ import (
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 )
@@ -114,5 +116,32 @@ func getThread(ctx *context.APIContext) *activities_model.Notification {
 		ctx.APIError(http.StatusForbidden, fmt.Errorf("only user itself and admin are allowed to read/change this thread %d", n.ID))
 		return nil
 	}
+
+	// Check if the user has access to the repository/unit
+	if n.UserID == ctx.Doer.ID {
+		if _, err := n.GetRepo(ctx); err != nil {
+			ctx.APIErrorInternal(err)
+			return nil
+		}
+
+		switch n.Source {
+		case activities_model.NotificationSourceIssue:
+			if !access_model.CheckRepoUnitUser(ctx, n.Repository, ctx.Doer, unit.TypeIssues) {
+				ctx.APIError(http.StatusForbidden, "no permission to access issues")
+				return nil
+			}
+		case activities_model.NotificationSourcePullRequest:
+			if !access_model.CheckRepoUnitUser(ctx, n.Repository, ctx.Doer, unit.TypePullRequests) {
+				ctx.APIError(http.StatusForbidden, "no permission to access pull requests")
+				return nil
+			}
+		case activities_model.NotificationSourceCommit, activities_model.NotificationSourceRepository:
+			if !access_model.CheckRepoUnitUser(ctx, n.Repository, ctx.Doer, unit.TypeCode) {
+				ctx.APIError(http.StatusForbidden, "no permission to access code")
+				return nil
+			}
+		}
+	}
+
 	return n
 }
