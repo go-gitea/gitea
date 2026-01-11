@@ -224,6 +224,9 @@ func LinkedRepository(ctx context.Context, a *repo_model.Attachment) (*repo_mode
 		if err != nil {
 			return nil, unit.TypeIssues, err
 		}
+		if iss.RepoID != a.RepoID {
+			return nil, -1, errors.New("attachment and issue belong to different repositories")
+		}
 		repo, err := repo_model.GetRepositoryByID(ctx, iss.RepoID)
 		unitType := unit.TypeIssues
 		if iss.IsPull {
@@ -235,7 +238,10 @@ func LinkedRepository(ctx context.Context, a *repo_model.Attachment) (*repo_mode
 		if err != nil {
 			return nil, unit.TypeReleases, err
 		}
-		repo, err := repo_model.GetRepositoryByID(ctx, rel.RepoID)
+		if rel.RepoID != a.RepoID {
+			return nil, -1, errors.New("attachment and release belong to different repositories")
+		}
+		repo, err := repo_model.GetRepositoryByID(ctx, a.RepoID)
 		return repo, unit.TypeReleases, err
 	}
 	return nil, -1, nil

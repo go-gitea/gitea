@@ -168,6 +168,11 @@ func UpdateReleaseNumCommits(ctx context.Context, rel *Release) error {
 
 // AddReleaseAttachments adds a release attachments
 func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs []string) (err error) {
+	rel, err := GetReleaseByID(ctx, releaseID)
+	if err != nil {
+		return err
+	}
+
 	// Check attachments
 	attachments, err := GetAttachmentsByUUIDs(ctx, attachmentUUIDs)
 	if err != nil {
@@ -175,6 +180,10 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 	}
 
 	for i := range attachments {
+		if attachments[i].RepoID != rel.RepoID {
+			return util.NewPermissionDeniedErrorf("attachment belongs to different repository")
+		}
+
 		if attachments[i].ReleaseID != 0 {
 			return util.NewPermissionDeniedErrorf("release permission denied")
 		}
