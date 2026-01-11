@@ -90,7 +90,7 @@ func GetListLockHandler(ctx *context.Context) {
 			})
 			return
 		}
-		lock, err := git_model.GetLFSLockByID(ctx, v)
+		lock, err := git_model.GetLFSLockByIDAndRepo(ctx, v, repository.ID)
 		if err != nil && !git_model.IsErrLFSLockNotExist(err) {
 			log.Error("Unable to get lock with ID[%s]: Error: %v", v, err)
 		}
