@@ -35,6 +35,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
@@ -177,6 +178,18 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 	_ = markupWr.CloseWithError(err)
 	<-done
 	return escaped, output, err
+}
+
+func renderSidebarTocHTML(rctx *markup.RenderContext) template.HTML {
+	if rctx.SidebarTocNode == nil {
+		return ""
+	}
+	sb := &strings.Builder{}
+	if err := markdown.SpecializedMarkdown(rctx).Renderer().Render(sb, nil, rctx.SidebarTocNode); err != nil {
+		log.Error("Failed to render sidebar TOC: %v", err)
+		return ""
+	}
+	return templates.SanitizeHTML(sb.String())
 }
 
 func checkHomeCodeViewable(ctx *context.Context) {
