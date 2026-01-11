@@ -238,7 +238,7 @@ func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer 
 	}
 	defer closer.Close()
 
-	sign, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo, pr.BaseBranch, pr.GetGitHeadRefName())
+	sign, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo)
 
 	return sign, err
 }
