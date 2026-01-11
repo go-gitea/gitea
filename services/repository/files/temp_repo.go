@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -33,6 +34,8 @@ type TemporaryUploadRepository struct {
 	gitRepo  *git.Repository
 	basePath string
 	cleanup  func()
+
+	ActionsTaskID int64
 }
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
@@ -362,6 +365,9 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.User, commitHash, branch string, force bool) error {
 	// Because calls hooks we need to pass in the environment
 	env := repo_module.PushingEnvironment(doer, t.repo)
+	if t.ActionsTaskID > 0 {
+		env = append(env, repo_module.EnvActionsTaskID+"="+strconv.FormatInt(t.ActionsTaskID, 10))
+	}
 	if err := gitrepo.PushFromLocal(ctx, t.basePath, t.repo, git.PushOptions{
 		Branch: strings.TrimSpace(commitHash) + ":" + git.BranchPrefix + strings.TrimSpace(branch),
 		Env:    env,

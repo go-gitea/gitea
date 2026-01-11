@@ -168,11 +168,153 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 	return MergeStyleMerge
 }
 
+// ActionsTokenPermissionMode defines the default permission mode for Actions tokens
+type ActionsTokenPermissionMode string
+
+const (
+	// ActionsTokenPermissionModePermissive - write access by default (current behavior, backwards compatible)
+	ActionsTokenPermissionModePermissive ActionsTokenPermissionMode = "permissive"
+	// ActionsTokenPermissionModeRestricted - read access by default
+	ActionsTokenPermissionModeRestricted ActionsTokenPermissionMode = "restricted"
+	// ActionsTokenPermissionModeCustom - custom permissions defined by MaxTokenPermissions
+	ActionsTokenPermissionModeCustom ActionsTokenPermissionMode = "custom"
+)
+
+// ActionsTokenPermissions defines the permissions for different repository units
+type ActionsTokenPermissions struct {
+	// Code (repository code) - read/write/none
+	Code perm.AccessMode `json:"code"`
+	// Issues - read/write/none
+	Issues perm.AccessMode `json:"issues"`
+	// PullRequests - read/write/none
+	PullRequests perm.AccessMode `json:"pull_requests"`
+	// Packages - read/write/none
+	Packages perm.AccessMode `json:"packages"`
+	// Actions - read/write/none
+	Actions perm.AccessMode `json:"actions"`
+	// Wiki - read/write/none
+	Wiki perm.AccessMode `json:"wiki"`
+	// Releases - read/write/none
+	Releases perm.AccessMode `json:"releases"`
+	// Projects - read/write/none
+	Projects perm.AccessMode `json:"projects"`
+}
+
+// HasAccess checks if the permission meets the required access level for the given scope
+func (p ActionsTokenPermissions) HasAccess(scope string, required perm.AccessMode) bool {
+	var mode perm.AccessMode
+	switch scope {
+	case "actions":
+		mode = p.Actions
+	case "contents":
+		mode = min(p.Code, p.Releases)
+	case "code":
+		mode = p.Code
+	case "issues":
+		mode = p.Issues
+	case "packages":
+		mode = p.Packages
+	case "pull_requests":
+		mode = p.PullRequests
+	case "wiki":
+		mode = p.Wiki
+	case "releases":
+		mode = p.Releases
+	case "projects":
+		mode = p.Projects
+	}
+	return mode >= required
+}
+
+// HasRead checks if the permission has read access for the given scope (convenience wrapper for templates)
+func (p ActionsTokenPermissions) HasRead(scope string) bool {
+	return p.HasAccess(scope, perm.AccessModeRead)
+}
+
+// HasWrite checks if the permission has write access for the given scope (convenience wrapper for templates)
+func (p ActionsTokenPermissions) HasWrite(scope string) bool {
+	return p.HasAccess(scope, perm.AccessModeWrite)
+}
+
+// DefaultActionsTokenPermissions returns the default permissions for permissive mode
+func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsTokenPermissions {
+	if mode == ActionsTokenPermissionModeRestricted {
+		return ActionsTokenPermissions{
+			Code:         perm.AccessModeRead,
+			Issues:       perm.AccessModeRead,
+			PullRequests: perm.AccessModeRead,
+			Packages:     perm.AccessModeRead,
+			Actions:      perm.AccessModeRead,
+			Wiki:         perm.AccessModeRead,
+			Releases:     perm.AccessModeRead,
+			Projects:     perm.AccessModeRead,
+		}
+	}
+	// Permissive mode (default)
+	return ActionsTokenPermissions{
+		Code:         perm.AccessModeWrite,
+		Issues:       perm.AccessModeWrite,
+		PullRequests: perm.AccessModeWrite,
+		Packages:     perm.AccessModeRead, // Packages read by default for security
+		Actions:      perm.AccessModeWrite,
+		Wiki:         perm.AccessModeWrite,
+		Releases:     perm.AccessModeWrite,
+		Projects:     perm.AccessModeWrite,
+	}
+}
+
+// ForkPullRequestPermissions returns the restricted permissions for fork pull requests
+func ForkPullRequestPermissions() ActionsTokenPermissions {
+	return ActionsTokenPermissions{
+		Code:         perm.AccessModeRead,
+		Issues:       perm.AccessModeRead,
+		PullRequests: perm.AccessModeRead,
+		Packages:     perm.AccessModeRead,
+		Actions:      perm.AccessModeRead,
+		Wiki:         perm.AccessModeRead,
+		Releases:     perm.AccessModeRead,
+		Projects:     perm.AccessModeRead,
+	}
+}
+
+// MarshalTokenPermissions serializes ActionsTokenPermissions to JSON
+func MarshalTokenPermissions(perms ActionsTokenPermissions) string {
+	data, err := json.Marshal(perms)
+	if err != nil {
+		return ""
+	}
+	return string(data)
+}
+
+// UnmarshalTokenPermissions deserializes JSON to ActionsTokenPermissions
+func UnmarshalTokenPermissions(data string) (ActionsTokenPermissions, error) {
+	var perms ActionsTokenPermissions
+	if data == "" {
+		return perms, nil
+	}
+	err := json.Unmarshal([]byte(data), &perms)
+	return perms, err
+}
+
 type ActionsConfig struct {
 	DisabledWorkflows []string
 	// CollaborativeOwnerIDs is a list of owner IDs used to share actions from private repos.
 	// Only workflows from the private repos whose owners are in CollaborativeOwnerIDs can access the current repo's actions.
 	CollaborativeOwnerIDs []int64
+	// TokenPermissionMode defines the default permission mode (permissive, restricted, or custom)
+	TokenPermissionMode ActionsTokenPermissionMode `json:"token_permission_mode,omitempty"`
+	// DefaultTokenPermissions defines the specific permissions for workflow tokens when TokenPermissionMode is set to "custom"
+	// and no "permissions" keyword is defined in the workflow YAML.
+	DefaultTokenPermissions *ActionsTokenPermissions `json:"default_token_permissions,omitempty"`
+	// MaxTokenPermissions defines the absolute maximum permissions any token can have in this context.
+	// Workflow YAML "permissions" keywords can reduce permissions but never exceed this ceiling.
+	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions,omitempty"`
+	// AllowCrossRepoAccess indicates if actions in this repo/org can access other repos in the same org
+	AllowCrossRepoAccess bool `json:"allow_cross_repo_access,omitempty"`
+	// AllowedCrossRepoIDs is a list of specific repo IDs that can be accessed cross-repo (empty means all if AllowCrossRepoAccess is true)
+	AllowedCrossRepoIDs []int64 `json:"allowed_cross_repo_ids,omitempty"`
+	// FollowOrgConfig indicates if this repository should follow the organization-level configuration
+	FollowOrgConfig bool `json:"follow_org_config,omitempty"`
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
@@ -207,6 +349,77 @@ func (cfg *ActionsConfig) RemoveCollaborativeOwner(ownerID int64) {
 
 func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
 	return slices.Contains(cfg.CollaborativeOwnerIDs, ownerID)
+}
+
+// GetTokenPermissionMode returns the token permission mode (defaults to permissive for backwards compatibility)
+func (cfg *ActionsConfig) GetTokenPermissionMode() ActionsTokenPermissionMode {
+	if cfg.TokenPermissionMode == "" {
+		return ActionsTokenPermissionModePermissive
+	}
+	return cfg.TokenPermissionMode
+}
+
+// GetEffectiveTokenPermissions returns the effective token permissions based on settings and context
+func (cfg *ActionsConfig) GetEffectiveTokenPermissions(isForkPullRequest bool) ActionsTokenPermissions {
+	// Fork pull requests always get restricted read-only access for security
+	if isForkPullRequest {
+		return ForkPullRequestPermissions()
+	}
+
+	// Use custom default permissions if set
+	if cfg.DefaultTokenPermissions != nil {
+		return *cfg.DefaultTokenPermissions
+	}
+
+	// Otherwise use mode-based defaults
+	return DefaultActionsTokenPermissions(cfg.GetTokenPermissionMode())
+}
+
+// GetMaxTokenPermissions returns the maximum allowed permissions
+func (cfg *ActionsConfig) GetMaxTokenPermissions() ActionsTokenPermissions {
+	if cfg.MaxTokenPermissions != nil {
+		return *cfg.MaxTokenPermissions
+	}
+	// Default max is write for everything except packages
+	return ActionsTokenPermissions{
+		Code:         perm.AccessModeWrite,
+		Issues:       perm.AccessModeWrite,
+		PullRequests: perm.AccessModeWrite,
+		Packages:     perm.AccessModeWrite,
+		Actions:      perm.AccessModeWrite,
+		Wiki:         perm.AccessModeWrite,
+		Releases:     perm.AccessModeWrite,
+		Projects:     perm.AccessModeWrite,
+	}
+}
+
+// ClampPermissions ensures that the given permissions don't exceed the maximum
+func (cfg *ActionsConfig) ClampPermissions(perms ActionsTokenPermissions) ActionsTokenPermissions {
+	maxPerms := cfg.GetMaxTokenPermissions()
+	return ActionsTokenPermissions{
+		Code:         min(perms.Code, maxPerms.Code),
+		Issues:       min(perms.Issues, maxPerms.Issues),
+		PullRequests: min(perms.PullRequests, maxPerms.PullRequests),
+		Packages:     min(perms.Packages, maxPerms.Packages),
+		Actions:      min(perms.Actions, maxPerms.Actions),
+		Wiki:         min(perms.Wiki, maxPerms.Wiki),
+		Releases:     min(perms.Releases, maxPerms.Releases),
+		Projects:     min(perms.Projects, maxPerms.Projects),
+	}
+}
+
+// IsRepoAllowedCrossAccess checks if a specific repo is allowed for cross-repo access
+// Returns true if AllowCrossRepoAccess is enabled AND (AllowedCrossRepoIDs is empty OR repoID is in the list)
+func (cfg *ActionsConfig) IsRepoAllowedCrossAccess(repoID int64) bool {
+	if !cfg.AllowCrossRepoAccess {
+		return false
+	}
+	// If no specific repos are configured, allow all
+	if len(cfg.AllowedCrossRepoIDs) == 0 {
+		return true
+	}
+	// Check if repo is in the allowed list
+	return slices.Contains(cfg.AllowedCrossRepoIDs, repoID)
 }
 
 // FromDB fills up a ActionsConfig from serialized format.
