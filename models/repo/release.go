@@ -93,15 +93,21 @@ func init() {
 	db.RegisterModel(new(Release))
 }
 
-// LoadAttributes load repo and publisher attributes for a release
-func (r *Release) LoadAttributes(ctx context.Context) error {
-	var err error
-	if r.Repo == nil {
-		r.Repo, err = GetRepositoryByID(ctx, r.RepoID)
-		if err != nil {
-			return err
-		}
+func (r *Release) LoadRepo(ctx context.Context) (err error) {
+	if r.Repo != nil {
+		return nil
 	}
+
+	r.Repo, err = GetRepositoryByID(ctx, r.RepoID)
+	return err
+}
+
+// LoadAttributes load repo and publisher attributes for a release
+func (r *Release) LoadAttributes(ctx context.Context) (err error) {
+	if err := r.LoadRepo(ctx); err != nil {
+		return err
+	}
+
 	if r.Publisher == nil {
 		r.Publisher, err = user_model.GetUserByID(ctx, r.PublisherID)
 		if err != nil {

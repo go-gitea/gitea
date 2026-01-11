@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLinkedRepository(t *testing.T) {
@@ -69,4 +70,25 @@ func TestRepository_HasWiki(t *testing.T) {
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.False(t, HasWiki(t.Context(), repo2))
+}
+
+func TestMakeRepoPrivateClearsWatches(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	repo.IsPrivate = false
+
+	watchers, err := repo_model.GetRepoWatchersIDs(t.Context(), repo.ID)
+	require.NoError(t, err)
+	require.NotEmpty(t, watchers)
+
+	assert.NoError(t, MakeRepoPrivate(t.Context(), repo))
+
+	watchers, err = repo_model.GetRepoWatchersIDs(t.Context(), repo.ID)
+	assert.NoError(t, err)
+	assert.Empty(t, watchers)
+
+	updatedRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID})
+	assert.True(t, updatedRepo.IsPrivate)
+	assert.Zero(t, updatedRepo.NumWatches)
 }

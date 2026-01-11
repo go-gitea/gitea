@@ -176,3 +176,13 @@ func WatchIfAuto(ctx context.Context, userID, repoID int64, isWrite bool) error 
 	}
 	return watchRepoMode(ctx, watch, WatchModeAuto)
 }
+
+// ClearRepoWatches clears all watches for a repository and from the user that watched it.
+// Used when a repository is set to private.
+func ClearRepoWatches(ctx context.Context, repoID int64) error {
+	if _, err := db.Exec(ctx, "UPDATE `repository` SET num_watches = 0 WHERE id = ?", repoID); err != nil {
+		return err
+	}
+
+	return db.DeleteBeans(ctx, Watch{RepoID: repoID})
+}
