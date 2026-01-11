@@ -25,6 +25,13 @@ func TestSystemUser(t *testing.T) {
 	assert.True(t, u.IsGiteaActions())
 	assert.True(t, IsGiteaActionsUserName("Gitea-actionS"))
 
-	_, err = GetPossibleUserByID(t.Context(), -3)
+	u, err = GetPossibleUserByID(t.Context(), -3)
+	require.NoError(t, err)
+	assert.Equal(t, "project-workflows", u.Name)
+	assert.Equal(t, "project-workflows", u.LowerName)
+	assert.True(t, u.IsProjectWorkflows())
+	assert.True(t, IsProjectWorkflowsUserName("Project-Workflows"))
+
+	_, err = GetPossibleUserByID(t.Context(), -4)
 	require.Error(t, err)
 }
