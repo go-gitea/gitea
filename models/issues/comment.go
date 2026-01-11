@@ -235,9 +235,10 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
-	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
-	ProjectColumnTitle string `json:"project_column_title,omitempty"`
-	ProjectTitle       string `json:"project_title,omitempty"`
+	ProjectColumnID           int64  `json:"project_column_id,omitempty"`
+	ProjectColumnTitle        string `json:"project_column_title,omitempty"`
+	ProjectTitle              string `json:"project_title,omitempty"`
+	IsCodeOwnersReviewRequest bool   `json:"is_code_owners_review_request,omitempty"`
 }
 
 // Comment represents a comment in commit and issue page.
@@ -773,11 +774,12 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		}
 
 		var commentMetaData *CommentMetaData
-		if opts.ProjectColumnTitle != "" {
+		if opts.ProjectColumnTitle != "" || opts.IsCodeOwnersReviewRequest {
 			commentMetaData = &CommentMetaData{
-				ProjectColumnID:    opts.ProjectColumnID,
-				ProjectColumnTitle: opts.ProjectColumnTitle,
-				ProjectTitle:       opts.ProjectTitle,
+				ProjectColumnID:           opts.ProjectColumnID,
+				ProjectColumnTitle:        opts.ProjectColumnTitle,
+				ProjectTitle:              opts.ProjectTitle,
+				IsCodeOwnersReviewRequest: opts.IsCodeOwnersReviewRequest,
 			}
 		}
 
@@ -945,37 +947,38 @@ type CreateCommentOptions struct {
 	Issue *Issue
 	Label *Label
 
-	DependentIssueID   int64
-	OldMilestoneID     int64
-	MilestoneID        int64
-	OldProjectID       int64
-	ProjectID          int64
-	ProjectTitle       string
-	ProjectColumnID    int64
-	ProjectColumnTitle string
-	TimeID             int64
-	AssigneeID         int64
-	AssigneeTeamID     int64
-	RemovedAssignee    bool
-	OldTitle           string
-	NewTitle           string
-	OldRef             string
-	NewRef             string
-	CommitID           int64
-	CommitSHA          string
-	Patch              string
-	LineNum            int64
-	TreePath           string
-	ReviewID           int64
-	Content            string
-	Attachments        []string // UUIDs of attachments
-	RefRepoID          int64
-	RefIssueID         int64
-	RefCommentID       int64
-	RefAction          references.XRefAction
-	RefIsPull          bool
-	IsForcePush        bool
-	Invalidated        bool
+	DependentIssueID          int64
+	OldMilestoneID            int64
+	MilestoneID               int64
+	OldProjectID              int64
+	ProjectID                 int64
+	ProjectTitle              string
+	ProjectColumnID           int64
+	ProjectColumnTitle        string
+	TimeID                    int64
+	AssigneeID                int64
+	AssigneeTeamID            int64
+	RemovedAssignee           bool
+	OldTitle                  string
+	NewTitle                  string
+	OldRef                    string
+	NewRef                    string
+	CommitID                  int64
+	CommitSHA                 string
+	Patch                     string
+	LineNum                   int64
+	TreePath                  string
+	ReviewID                  int64
+	Content                   string
+	Attachments               []string // UUIDs of attachments
+	RefRepoID                 int64
+	RefIssueID                int64
+	RefCommentID              int64
+	RefAction                 references.XRefAction
+	RefIsPull                 bool
+	IsForcePush               bool
+	Invalidated               bool
+	IsCodeOwnersReviewRequest bool
 }
 
 // GetCommentByID returns the comment by given ID.
