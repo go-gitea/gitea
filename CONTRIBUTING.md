@@ -80,7 +80,7 @@ The more detailed and specific you are, the faster we can fix the issue. \
 It is really helpful if you can reproduce your problem on a site running on the latest commits, i.e. <https://demo.gitea.com>, as perhaps your problem has already been fixed on a current version. \
 Please follow the guidelines described in [How to Report Bugs Effectively](http://www.chiark.greenend.org.uk/~sgtatham/bugs.html) for your report.
 
-Please be kind, remember that Gitea comes at no cost to you, and you're getting free help.
+Please be kind—remember that Gitea comes at no cost to you, and you're getting free help.
 
 ### Types of issues
 
