@@ -1,0 +1,35 @@
+// Copyright 2025 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
+package gitrepo
+
+import (
+	"bytes"
+	"context"
+	"io"
+
+	"code.gitea.io/gitea/modules/git/gitcmd"
+)
+
+// GetDiff generates and returns patch data between given revisions, optimized for human readability
+func GetDiff(ctx context.Context, repo Repository, compareArg string, w io.Writer) error {
+	stderr := new(bytes.Buffer)
+	return RunCmd(ctx, repo, gitcmd.NewCommand("diff", "-p").AddDynamicArguments(compareArg).
+		WithStdout(w).
+		WithStderr(stderr))
+}
+
+// GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
+func GetDiffBinary(ctx context.Context, repo Repository, compareArg string, w io.Writer) error {
+	return RunCmd(ctx, repo, gitcmd.NewCommand("diff", "-p", "--binary", "--histogram").
+		AddDynamicArguments(compareArg).
+		WithStdout(w))
+}
+
+// GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
+func GetPatch(ctx context.Context, repo Repository, compareArg string, w io.Writer) error {
+	stderr := new(bytes.Buffer)
+	return RunCmd(ctx, repo, gitcmd.NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
+		WithStdout(w).
+		WithStderr(stderr))
+}

@@ -1,10 +1,9 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package gitrepo
 
 import (
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,15 +11,12 @@ import (
 )
 
 func TestRepository_GetCodeActivityStats(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(t.Context(), bareRepo1Path)
-	assert.NoError(t, err)
-	defer bareRepo1.Close()
+	repo := &mockRepository{path: "repo1_bare"}
 
 	timeFrom, err := time.Parse(time.RFC3339, "2016-01-01T00:00:00+00:00")
 	assert.NoError(t, err)
 
-	code, err := bareRepo1.GetCodeActivityStats(timeFrom, "")
+	code, err := GetCodeActivityStats(t.Context(), repo, timeFrom, "")
 	assert.NoError(t, err)
 	assert.NotNil(t, code)
 

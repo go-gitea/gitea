@@ -1,7 +1,7 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package gitrepo
 
 import (
 	"bufio"
@@ -41,7 +41,7 @@ type GrepOptions struct {
 	PathspecList      []string
 }
 
-func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepOptions) ([]*GrepResult, error) {
+func GrepSearch(ctx context.Context, repo Repository, search string, opts GrepOptions) ([]*GrepResult, error) {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return nil, fmt.Errorf("unable to create os pipe to grep: %w", err)
@@ -84,7 +84,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	cmd.AddDashesAndList(opts.PathspecList...)
 	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
 	stderr := bytes.Buffer{}
-	err = cmd.WithDir(repo.Path).
+	err = RunCmd(ctx, repo, cmd.
 		WithStdout(stdoutWriter).
 		WithStderr(&stderr).
 		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
@@ -132,8 +132,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 				}
 			}
 			return nil
-		}).
-		Run(ctx)
+		}))
 	// git grep exits by cancel (killed), usually it is caused by the limit of results
 	if gitcmd.IsErrorExitCode(err, -1) && stderr.Len() == 0 {
 		return results, nil
