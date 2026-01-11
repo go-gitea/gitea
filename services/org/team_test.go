@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -60,6 +61,36 @@ func TestTeam_RemoveMember(t *testing.T) {
 
 	err := RemoveTeamMember(t.Context(), team1, user2)
 	assert.True(t, organization.IsErrLastOrgOwner(err))
+}
+
+func TestRemoveTeamMemberRemovesSubscriptionsAndStopwatches(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID})
+
+	assert.NoError(t, repo_model.WatchRepo(ctx, user, repo, true))
+	assert.NoError(t, issues_model.CreateOrUpdateIssueWatch(ctx, user.ID, issue.ID, true))
+	ok, err := issues_model.CreateIssueStopwatch(ctx, user, issue)
+	assert.NoError(t, err)
+	assert.True(t, ok)
+
+	assert.NoError(t, RemoveTeamMember(ctx, team, user))
+
+	watch, err := repo_model.GetWatch(ctx, user.ID, repo.ID)
+	assert.NoError(t, err)
+	assert.False(t, repo_model.IsWatchMode(watch.Mode))
+
+	_, exists, err := issues_model.GetIssueWatch(ctx, user.ID, issue.ID)
+	assert.NoError(t, err)
+	assert.False(t, exists)
+
+	hasStopwatch, _, _, err := issues_model.HasUserStopwatch(ctx, user.ID)
+	assert.NoError(t, err)
+	assert.False(t, hasStopwatch)
 }
 
 func TestNewTeam(t *testing.T) {
