@@ -42,6 +42,25 @@ func TestLinkedRepository(t *testing.T) {
 	}
 }
 
+func TestLinkedRepositoryReleaseMismatchedRepo(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	attach, err := repo_model.GetAttachmentByID(t.Context(), 11)
+	assert.NoError(t, err)
+
+	originalRepoID := attach.RepoID
+	attach.RepoID = 1
+	_, err = db.GetEngine(t.Context()).ID(attach.ID).Cols("repo_id").Update(attach)
+	assert.NoError(t, err)
+	defer func() {
+		attach.RepoID = originalRepoID
+		_, _ = db.GetEngine(t.Context()).ID(attach.ID).Cols("repo_id").Update(attach)
+	}()
+
+	_, _, err = LinkedRepository(t.Context(), attach)
+	assert.EqualError(t, err, "attachment and release belong to different repositories")
+}
+
 func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
