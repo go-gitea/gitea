@@ -3724,8 +3724,8 @@
   "projects.exit_fullscreen": "Exit Fullscreen",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",
   "git.filemode.directory": "Directory",
-  "git.filemode.normal_file": "Normal file",
-  "git.filemode.executable_file": "Executable file",
-  "git.filemode.symbolic_link": "Symbolic link",
+  "git.filemode.normal_file": "Regular",
+  "git.filemode.executable_file": "Executable",
+  "git.filemode.symbolic_link": "Symlink",
   "git.filemode.submodule": "Submodule"
 }
