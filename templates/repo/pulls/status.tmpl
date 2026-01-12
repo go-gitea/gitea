@@ -14,6 +14,8 @@
 			{{ctx.Locale.Tr "repo.pulls.status_checks_success"}}
 		{{else if eq .CommitStatus.State "warning"}}
 			{{ctx.Locale.Tr "repo.pulls.status_checks_warning"}}
+		{{else if and $statusCheckData $statusCheckData.OnlyOptionalChecksFailed}}
+			{{ctx.Locale.Tr "repo.pulls.status_checks_failure_optional"}}
 		{{else if eq .CommitStatus.State "failure"}}
 			{{ctx.Locale.Tr "repo.pulls.status_checks_failure"}}
 		{{else if eq .CommitStatus.State "error"}}

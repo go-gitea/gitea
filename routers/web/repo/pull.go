@@ -315,11 +315,12 @@ func prepareMergedViewPullInfo(ctx *context.Context, issue *issues_model.Issue) 
 }
 
 type pullCommitStatusCheckData struct {
-	MissingRequiredChecks   []string          // list of missing required checks
-	IsContextRequired       func(string) bool // function to check whether a context is required
-	RequireApprovalRunCount int               // number of workflow runs that require approval
-	CanApprove              bool              // whether the user can approve workflow runs
-	ApproveLink             string            // link to approve all checks
+	MissingRequiredChecks    []string          // list of missing required checks
+	IsContextRequired        func(string) bool // function to check whether a context is required
+	RequireApprovalRunCount  int               // number of workflow runs that require approval
+	CanApprove               bool              // whether the user can approve workflow runs
+	ApproveLink              string            // link to approve all checks
+	OnlyOptionalChecksFailed bool              // whether only optional checks failed
 }
 
 // prepareViewPullInfo show meta information for a pull request preview page
@@ -534,7 +535,14 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 			}
 			return false
 		}
-		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pb.StatusCheckContexts)
+		requiredStatusCheckState := pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pb.StatusCheckContexts)
+		ctx.Data["RequiredStatusCheckState"] = requiredStatusCheckState
+
+		if overallStatus := ctx.Data["LatestCommitStatus"]; overallStatus != nil {
+			if combined := overallStatus.(*git_model.CommitStatus); combined.State.IsFailure() && requiredStatusCheckState.IsSuccess() {
+				statusCheckData.OnlyOptionalChecksFailed = true
+			}
+		}
 	}
 
 	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha
