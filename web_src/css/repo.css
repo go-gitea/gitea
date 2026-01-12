@@ -1688,12 +1688,15 @@ tbody.commit-list {
 
 .diff-file-header {
   padding: 5px 8px !important;
-  box-shadow: 0 -1px 0 1px var(--color-body); /* prevent borders being visible behind top corners when sticky and scrolled */
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.5em;
+
+  /* prevent borders from being visible behind top corners when sticky and scrolled,
+  this "shadow" is used to use body's color to cover the scrolled-up left and right borders at corners */
+  box-shadow: 0 -1px 0 1px var(--color-body);
 }
 
 .diff-file-box:target .diff-file-header {
