@@ -399,6 +399,7 @@ func prepareMigrationTasks() []*migration {
 
 		newMigration(323, "Add support for actions concurrency", v1_26.AddActionsConcurrency),
 		newMigration(324, "Fix closed milestone completeness for milestones with no issues", v1_26.FixClosedMilestoneCompleteness),
+		newMigration(325, "Add new table project_workflow", v1_26.AddProjectWorkflow),
 	}
 	return preparedMigrations
 }
