@@ -4236,13 +4236,6 @@
             "in": "query"
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "Repository ID to prioritize in the results",
-            "name": "priority_repo_id",
-            "in": "query"
-          },
-          {
             "enum": [
               "issues",
               "pulls"
@@ -23427,6 +23420,11 @@
       "description": "CreatePullRequestOption options when creating a pull request",
       "type": "object",
       "properties": {
+        "allow_maintainer_edit": {
+          "description": "Whether maintainers can edit the pull request",
+          "type": "boolean",
+          "x-go-name": "AllowMaintainerEdit"
+        },
         "assignee": {
           "description": "The primary assignee username",
           "type": "string",

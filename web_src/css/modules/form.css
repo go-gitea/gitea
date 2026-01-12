@@ -1,0 +1,497 @@
+.ui.form {
+  position: relative;
+  max-width: 100%;
+}
+
+.ui.form > p {
+  margin: 1em 0;
+}
+
+.ui.form .field {
+  clear: both;
+  margin: 0 0 1em;
+}
+
+.ui.form .fields .fields,
+.ui.form .field:last-child,
+.ui.form .fields:last-child .field {
+  margin-bottom: 0;
+}
+
+.ui.form .fields .field {
+  clear: both;
+  margin: 0;
+}
+
+.ui.form .field > label {
+  display: block;
+  margin: 0 0 0.28571429rem;
+  color: var(--color-text);
+  font-size: 0.92857143em;
+  font-weight: var(--font-weight-medium);
+  text-transform: none;
+}
+
+.ui.form textarea,
+.ui.form input:not([type="checkbox"], [type="radio"]) {
+  width: 100%;
+  vertical-align: top;
+}
+
+.ui.form ::-webkit-datetime-edit,
+.ui.form ::-webkit-inner-spin-button {
+  height: 1.21428571em;
+}
+
+.ui.form input,
+.ui.search > .prompt {
+  font-family: var(--fonts-regular);
+  margin: 0;
+  outline: none;
+  line-height: 1.21428571;
+  padding: 0.67857143em 1em;
+  font-size: 1em;
+  color: var(--color-text);
+  border-radius: 0.28571429rem;
+}
+
+.ui.input textarea,
+.ui.form textarea {
+  margin: 0;
+  padding: 0.78571429em 1em;
+  outline: none;
+  color: var(--color-text);
+  border-radius: 0.28571429rem;
+  font-size: 1em;
+  font-family: var(--fonts-regular);
+  line-height: 1.2857;
+  resize: vertical;
+}
+
+.ui.form textarea:not([rows]) {
+  height: var(--min-height-textarea);
+  min-height: var(--min-height-textarea);
+  max-height: 24em;
+}
+
+input,
+textarea,
+.ui.input > input,
+.ui.form input,
+.ui.form select,
+.ui.form textarea,
+.ui.selection.dropdown,
+.ui.search > .prompt {
+  background: var(--color-input-background);
+  border: 1px solid var(--color-input-border);
+  color: var(--color-input-text);
+}
+
+input:hover,
+textarea:hover,
+.ui.input input:hover,
+.ui.form input:hover,
+.ui.form select:hover,
+.ui.form textarea:hover,
+.ui.search > .prompt:hover {
+  background: var(--color-input-background);
+  border: 1px solid var(--color-input-border-hover);
+  color: var(--color-input-text);
+}
+
+input:focus,
+textarea:focus,
+.ui.input input:focus,
+.ui.form input:focus,
+.ui.form select:focus,
+.ui.form textarea:focus,
+.ui.search > .prompt:focus {
+  background: var(--color-input-background);
+  border-color: var(--color-primary);
+  color: var(--color-input-text);
+}
+
+.ui.input {
+  color: var(--color-input-text);
+}
+
+.ui.form textarea,
+.ui.form input[type="checkbox"] {
+  vertical-align: top;
+}
+
+.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) label + .ui.ui.checkbox {
+  margin-top: 0.7em;
+}
+.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) .ui.checkbox {
+  margin-top: 2.41428571em;
+}
+.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) .ui.toggle.checkbox {
+  margin-top: 2.21428571em;
+}
+.ui.form .fields:not(.grouped):not(.inline) .field:not(:only-child) .ui.slider.checkbox {
+  margin-top: 2.61428571em;
+}
+.ui.ui.form .field .fields .field:not(:only-child) .ui.checkbox {
+  margin-top: 0.6em;
+}
+.ui.ui.form .field .fields .field:not(:only-child) .ui.toggle.checkbox {
+  margin-top: 0.5em;
+}
+.ui.ui.form .field .fields .field:not(:only-child) .ui.slider.checkbox {
+  margin-top: 0.7em;
+}
+
+.ui.form select {
+  display: block;
+  height: auto;
+  width: 100%;
+  border-radius: 0.28571429rem;
+  padding: 0.62em 1em;
+}
+
+.ui.form .field > .selection.dropdown {
+  min-width: 14em; /* matches the default min width */
+  width: 100%;
+}
+.ui.form .field > .selection.dropdown > .dropdown.icon {
+  float: right;
+}
+
+.ui.form .inline.fields .field > .selection.dropdown,
+.ui.form .inline.field > .selection.dropdown {
+  width: auto;
+}
+.ui.form .inline.fields .field > .selection.dropdown > .dropdown.icon,
+.ui.form .inline.field > .selection.dropdown > .dropdown.icon {
+  float: none;
+}
+
+.ui.form .field .ui.input,
+.ui.form .fields .field .ui.input {
+  width: 100%;
+}
+
+.ui.form .inline.fields .field .ui.input,
+.ui.form .inline.field .ui.input {
+  width: auto;
+  vertical-align: middle;
+}
+
+.ui.form .fields .field .ui.input input,
+.ui.form .field .ui.input input {
+  width: auto;
+}
+
+.ui.form .error.message,
+.ui.form .error.message:empty {
+  display: none;
+}
+
+.ui.form .message:first-child {
+  margin-top: 0;
+}
+
+.ui.form .ui.action.input:not([class*="left action"]) input:focus {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.ui.form .ui[class*="left action"].input input {
+  border-bottom-left-radius: 0;
+  border-top-left-radius: 0;
+}
+
+.ui.form.error .error.message:not(:empty) {
+  display: block;
+}
+
+.ui.form .fields.error .error.message:not(:empty),
+.ui.form .field.error .error.message:not(:empty) {
+  display: block;
+}
+.ui.form .fields.error .field textarea,
+.ui.form .fields.error .field select,
+.ui.form .fields.error .field input,
+.ui.form .field.error textarea,
+.ui.form .field.error select,
+.ui.form .field.error input {
+  background-color: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error-text);
+  border-radius: 0;
+}
+.ui.form .field.error textarea:focus,
+.ui.form .field.error select:focus,
+.ui.form .field.error input:focus {
+  background-color: var(--color-error-bg);
+  border-color: var(--color-error-border);
+  color: var(--color-error-text);
+}
+
+.ui.form .field.error select {
+  appearance: menulist-button;
+}
+
+.ui.form .fields.error .field .ui.dropdown,
+.ui.form .field.error .ui.dropdown {
+  border-color: var(--color-error-border);
+}
+.ui.form .fields.error .field .ui.dropdown:hover,
+.ui.form .field.error .ui.dropdown:hover {
+  border-color: var(--color-error-border);
+}
+
+.ui.form .fields.error .field .ui.dropdown .menu .item:hover,
+.ui.form .field.error .ui.dropdown .menu .item:hover {
+  background-color: var(--color-error-bg-hover);
+}
+
+.ui.form .fields.error .field .ui.dropdown .menu .active.item,
+.ui.form .field.error .ui.dropdown .menu .active.item {
+  background-color: var(--color-error-bg-active) !important;
+}
+
+.ui.form .disabled.fields .field,
+.ui.form .disabled.field,
+.ui.form .field :disabled {
+  pointer-events: none;
+  opacity: var(--opacity-disabled);
+}
+.ui.form .field.disabled > label,
+.ui.form .fields.disabled > label {
+  opacity: var(--opacity-disabled);
+}
+.ui.form .field.disabled :disabled {
+  opacity: 1;
+}
+
+.ui.form .required.fields:not(.grouped) > .field > label::after,
+.ui.form .required.fields.grouped > label::after,
+.ui.form .required.field > label::after,
+.ui.form .required.fields:not(.grouped) > .field > .checkbox::after,
+.ui.form .required.field > .checkbox::after,
+.ui.form label.required::after {
+  margin: -0.2em 0 0 0.2em;
+  content: "*";
+  color: var(--color-red);
+}
+.ui.form .required.fields:not(.grouped) > .field > label::after,
+.ui.form .required.fields.grouped > label::after,
+.ui.form .required.field > label::after,
+.ui.form label.required::after {
+  display: inline-block;
+  vertical-align: top;
+}
+.ui.form .required.fields:not(.grouped) > .field > .checkbox::after,
+.ui.form .required.field > .checkbox::after {
+  position: absolute;
+  top: 0;
+  left: 100%;
+}
+
+.ui.form .grouped.fields {
+  display: block;
+  margin: 0 0 1em;
+}
+.ui.form .grouped.fields:last-child {
+  margin-bottom: 0;
+}
+.ui.form .grouped.fields > label {
+  margin: 0 0 0.28571429rem;
+  color: var(--color-text);
+  font-size: 0.92857143em;
+  font-weight: var(--font-weight-medium);
+  text-transform: none;
+}
+.ui.form .grouped.fields .field,
+.ui.form .grouped.inline.fields .field {
+  display: block;
+  margin: 0.5em 0;
+  padding: 0;
+}
+.ui.form .grouped.inline.fields .ui.checkbox {
+  margin-bottom: 0.4em;
+}
+
+.ui.form .fields {
+  display: flex;
+  flex-direction: row;
+  margin: 0 -0.5em 1em;
+}
+.ui.form .fields > .field {
+  flex: 0 1 auto;
+  padding-left: 0.5em;
+  padding-right: 0.5em;
+}
+.ui.form .fields > .field:first-child {
+  border-left: none;
+}
+
+@media only screen and (max-width: 767.98px) {
+  .ui.form .fields {
+    flex-wrap: wrap;
+    margin-bottom: 0;
+  }
+  .ui.form .fields > .fields,
+  .ui.form .fields > .field {
+    width: 100%;
+    margin: 0 0 1em;
+  }
+}
+
+.ui.form .inline.fields {
+  margin: 0 0 1em;
+  align-items: center;
+}
+.ui.form .inline.fields .field {
+  margin: 0;
+  padding: 0 1em 0 0;
+}
+
+.ui.form .inline.fields > label,
+.ui.form .inline.fields .field > label,
+.ui.form .inline.fields .field > p,
+.ui.form .inline.field > label,
+.ui.form .inline.field > p {
+  display: inline-block;
+  width: auto;
+  margin-top: 0;
+  margin-bottom: 0;
+  vertical-align: baseline;
+  font-size: 0.92857143em;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  text-transform: none;
+}
+
+.ui.form .inline.fields > label {
+  margin: 0.035714em 1em 0 0;
+}
+
+.ui.form .inline.fields .field > input,
+.ui.form .inline.fields .field > select,
+.ui.form .inline.field > input,
+.ui.form .inline.field > select {
+  display: inline-block;
+  width: auto;
+  margin-top: 0;
+  margin-bottom: 0;
+  vertical-align: middle;
+  font-size: 1em;
+}
+
+.ui.form .inline.fields .field > :first-child,
+.ui.form .inline.field > :first-child {
+  margin: 0 0.85714286em 0 0;
+}
+.ui.form .inline.fields .field > :only-child,
+.ui.form .inline.field > :only-child {
+  margin: 0;
+}
+
+.ui.form,
+.ui.form .field .dropdown,
+.ui.form .field .dropdown .menu > .item {
+  font-size: 1rem;
+}
+
+/* previously from web_src/css/form.css */
+
+.ui .form .autofill-dummy {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  z-index: -10000;
+}
+
+.ui .form .sub.field {
+  margin-left: 25px;
+}
+
+.ui.form .fields.error .field .ui.dropdown,
+.ui.form .field.error .ui.dropdown,
+.ui.form .fields.error .field .ui.dropdown:hover,
+.ui.form .field.error .ui.dropdown:hover {
+  border-color: var(--color-error-border) !important;
+}
+
+.ui.form .fields.error .dropdown .menu,
+.ui.form .field.error .dropdown .menu {
+  border-color: var(--color-error-border) !important;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: var(--color-text);
+  box-shadow: 0 0 0 100px var(--color-primary-light-6) inset !important;
+  border-color: var(--color-primary-light-4) !important;
+}
+
+.ui.form .field.muted {
+  opacity: var(--opacity-disabled);
+}
+
+.form .help {
+  color: var(--color-secondary-dark-5);
+  margin-top: 0.25em;
+  padding-bottom: 0.6em;
+  display: inline-block;
+  text-wrap: balance;
+}
+
+.form .help code {
+  color: var(--color-text-light-1);
+}
+
+.form .help pre.command-block {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0.25em 0 0.25em 1em;
+}
+
+.ui.form.left-right-form .inline.field > label {
+  text-align: right;
+  width: 250px;
+  margin-right: 10px;
+}
+
+.ui.form.left-right-form .inline.field > .help {
+  display: block;
+  margin-left: calc(250px + 15px);
+}
+
+.ui.form.left-right-form .inline.field input:not([type="checkbox"], [type="radio"]),
+.ui.form.left-right-form .inline.field .ui.dropdown,
+.ui.form.left-right-form .inline.field textarea {
+  width: 50%;
+}
+
+.ui.form.left-right-form .inline.field .ui.dropdown input.search {
+  width: 100%;
+}
+
+.ui.form.left-right-form .inline.field .inline-right {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.5em;
+}
+
+@media (max-width: 767.98px) {
+  .ui.form.left-right-form .inline.field > label {
+    width: 100%;
+    margin: 0;
+    text-align: left;
+  }
+  .ui.form.left-right-form .inline.field > .help {
+    margin: 0;
+  }
+  .ui.form.left-right-form .inline.field input:not([type="checkbox"], [type="radio"]),
+  .ui.form.left-right-form .inline.field .ui.dropdown,
+  .ui.form.left-right-form .inline.field textarea {
+    width: 100%;
+  }
+}
