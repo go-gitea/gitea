@@ -34,6 +34,14 @@ func testGeneratePngBytes() []byte {
 }
 
 func testCreateIssueAttachment(t *testing.T, session *TestSession, csrf, repoURL, filename string, content []byte, expectedStatus int) string {
+	return testCreateAttachment(t, session, csrf, repoURL, "issues", filename, content, expectedStatus)
+}
+
+func testCreateReleaseAttachment(t *testing.T, session *TestSession, csrf, repoURL, filename string, content []byte, expectedStatus int) string {
+	return testCreateAttachment(t, session, csrf, repoURL, "releases", filename, content, expectedStatus)
+}
+
+func testCreateAttachment(t *testing.T, session *TestSession, csrf, repoURL, issueOrRelease, filename string, content []byte, expectedStatus int) string {
 	body := &bytes.Buffer{}
 
 	// Setup multi-part
@@ -45,7 +53,7 @@ func testCreateIssueAttachment(t *testing.T, session *TestSession, csrf, repoURL
 	err = writer.Close()
 	assert.NoError(t, err)
 
-	req := NewRequestWithBody(t, "POST", repoURL+"/issues/attachments", body)
+	req := NewRequestWithBody(t, "POST", repoURL+"/"+issueOrRelease+"/attachments", body)
 	req.Header.Add("X-Csrf-Token", csrf)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	resp := session.MakeRequest(t, req, expectedStatus)
@@ -58,12 +66,25 @@ func testCreateIssueAttachment(t *testing.T, session *TestSession, csrf, repoURL
 	return obj["uuid"]
 }
 
+func testDeleteIssueAttachment(t *testing.T, session *TestSession, csrf, repoURL, uuid string, expectedStatus int) {
+	req := NewRequestWithValues(t, "POST", repoURL+"/issues/attachments/remove", map[string]string{"file": uuid})
+	req.Header.Add("X-Csrf-Token", csrf)
+	session.MakeRequest(t, req, expectedStatus)
+}
+
+func testDeleteReleaseAttachment(t *testing.T, session *TestSession, csrf, repoURL, uuid string, expectedStatus int) {
+	req := NewRequestWithValues(t, "POST", repoURL+"/releases/attachments/remove", map[string]string{"file": uuid})
+	req.Header.Add("X-Csrf-Token", csrf)
+	session.MakeRequest(t, req, expectedStatus)
+}
+
 func TestAttachments(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	t.Run("CreateAnonymousAttachment", testCreateAnonymousAttachment)
 	t.Run("CreateUser2IssueAttachment", testCreateUser2IssueAttachment)
 	t.Run("UploadAttachmentDeleteTemp", testUploadAttachmentDeleteTemp)
 	t.Run("GetAttachment", testGetAttachment)
+	t.Run("DeleteAttachmentPermissions", testDeleteAttachmentPermissions)
 }
 
 func testUploadAttachmentDeleteTemp(t *testing.T) {
@@ -158,4 +179,32 @@ func testGetAttachment(t *testing.T) {
 			tc.session.MakeRequest(t, req, tc.want)
 		})
 	}
+}
+
+func testDeleteAttachmentPermissions(t *testing.T) {
+	const repoURL = "user2/repo1"
+
+	ownerSession := loginUser(t, "user2")
+	readonlySession := loginUser(t, "user5")
+
+	ownerCSRF := GetUserCSRFToken(t, ownerSession)
+	readonlyCSRF := GetUserCSRFToken(t, readonlySession)
+
+	issueFromOwner := testCreateIssueAttachment(t, ownerSession, ownerCSRF, repoURL, "owner-issue.png", testGeneratePngBytes(), http.StatusOK)
+	testDeleteIssueAttachment(t, readonlySession, readonlyCSRF, repoURL, issueFromOwner, http.StatusForbidden)
+
+	issueFromReader := testCreateIssueAttachment(t, readonlySession, readonlyCSRF, repoURL, "reader-issue.png", testGeneratePngBytes(), http.StatusOK)
+	testDeleteIssueAttachment(t, ownerSession, ownerCSRF, repoURL, issueFromReader, http.StatusOK)
+
+	testCreateReleaseAttachment(t, readonlySession, readonlyCSRF, repoURL, "reader-release.png", testGeneratePngBytes(), http.StatusNotFound)
+
+	crossRepoUUID := testCreateIssueAttachment(t, ownerSession, ownerCSRF, repoURL, "cross-repo.png", testGeneratePngBytes(), http.StatusOK)
+	testDeleteIssueAttachment(t, ownerSession, ownerCSRF, "user2/repo2", crossRepoUUID, http.StatusBadRequest)
+	testDeleteIssueAttachment(t, ownerSession, ownerCSRF, repoURL, crossRepoUUID, http.StatusOK)
+
+	releaseUUID := testCreateReleaseAttachment(t, ownerSession, ownerCSRF, repoURL, "reader-release.png", testGeneratePngBytes(), http.StatusOK)
+	testDeleteReleaseAttachment(t, ownerSession, ownerCSRF, repoURL, releaseUUID, http.StatusOK)
+
+	// test deleting release attachment from another repo
+	testDeleteReleaseAttachment(t, ownerSession, ownerCSRF, "user2/repo2", crossRepoUUID, http.StatusBadRequest)
 }
