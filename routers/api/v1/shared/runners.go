@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
@@ -124,4 +125,27 @@ func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+// UpdateRunnerCapacity updates the capacity of a runner
+func UpdateRunnerCapacity(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
+	runner, ok := getRunnerByID(ctx, ownerID, repoID, runnerID)
+	if !ok {
+		return
+	}
+
+	form := web.GetForm(ctx).(*api.UpdateRunnerCapacityOption)
+
+	if form.Capacity < 0 {
+		ctx.APIError(http.StatusBadRequest, errors.New("capacity must be >= 0"))
+		return
+	}
+
+	runner.Capacity = form.Capacity
+	if err := actions_model.UpdateRunner(ctx, runner, "capacity"); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToActionRunner(ctx, runner))
 }

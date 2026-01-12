@@ -244,10 +244,26 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	var job *ActionRunJob
 	log.Trace("runner labels: %v", runner.AgentLabels)
 	for _, v := range jobs {
-		if runner.CanMatchLabels(v.RunsOn) {
-			job = v
-			break
+		if !runner.CanMatchLabels(v.RunsOn) {
+			continue
 		}
+
+		// Check max-parallel constraint for matrix jobs
+		if v.MaxParallel > 0 {
+			runningCount, err := CountRunningJobsByWorkflowAndRun(ctx, v.RunID, v.JobID)
+			if err != nil {
+				log.Error("Failed to count running jobs for max-parallel check: %v", err)
+				continue
+			}
+			if runningCount >= v.MaxParallel {
+				log.Debug("Job %s (run %d) skipped: %d/%d jobs already running (max-parallel)",
+					v.JobID, v.RunID, runningCount, v.MaxParallel)
+				continue
+			}
+		}
+
+		job = v
+		break
 	}
 	if job == nil {
 		return nil, false, nil
@@ -504,4 +520,24 @@ func getTaskIDFromCache(token string) int64 {
 		return 0
 	}
 	return t
+}
+
+// CountRunningTasksByRunner counts the number of running tasks assigned to a specific runner
+func CountRunningTasksByRunner(ctx context.Context, runnerID int64) (int, error) {
+	count, err := db.GetEngine(ctx).
+		Where("runner_id = ?", runnerID).
+		And("status = ?", StatusRunning).
+		Count(new(ActionTask))
+	return int(count), err
+}
+
+// CountRunningJobsByWorkflowAndRun counts running jobs for a specific workflow/run combo
+// Used to enforce max-parallel limits on matrix jobs
+func CountRunningJobsByWorkflowAndRun(ctx context.Context, runID int64, jobID string) (int, error) {
+	count, err := db.GetEngine(ctx).
+		Where("run_id = ?", runID).
+		And("job_id = ?", jobID).
+		And("status = ?", StatusRunning).
+		Count(new(ActionRunJob))
+	return int(count), err
 }
