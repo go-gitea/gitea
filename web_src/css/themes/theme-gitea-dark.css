@@ -158,6 +158,8 @@ gitea-theme-meta-info {
   --color-diff-removed-row-bg: #301e1e;
   --color-diff-removed-row-border: #634343;
   --color-diff-removed-word-bg: #6f3333;
+  --color-diff-prompt-add-fg: #87ab63;
+  --color-diff-prompt-del-fg: #cc4848;
   --color-diff-inactive: #22282d;
   --color-error-border: #a04141;
   --color-error-bg: #522;
