@@ -6,6 +6,7 @@ package actions
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -127,6 +128,14 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				RunsOn:            job.RunsOn(),
 				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
 			}
+
+			// Extract max-parallel from strategy if present
+			if job.Strategy.MaxParallelString != "" {
+				if maxParallel, err := strconv.Atoi(job.Strategy.MaxParallelString); err == nil && maxParallel > 0 {
+					runJob.MaxParallel = maxParallel
+				}
+			}
+
 			// check job concurrency
 			if job.RawConcurrency != nil {
 				rawConcurrency, err := yaml.Marshal(job.RawConcurrency)

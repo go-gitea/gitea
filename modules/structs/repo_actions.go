@@ -198,10 +198,16 @@ type ActionRunner struct {
 	Busy      bool                 `json:"busy"`
 	Ephemeral bool                 `json:"ephemeral"`
 	Labels    []*ActionRunnerLabel `json:"labels"`
+	Capacity  int                  `json:"capacity"` // Maximum parallel tasks (0 = unlimited)
 }
 
 // ActionRunnersResponse returns Runners
 type ActionRunnersResponse struct {
 	Entries    []*ActionRunner `json:"runners"`
 	TotalCount int64           `json:"total_count"`
+}
+
+// UpdateRunnerCapacityOption options for updating runner capacity
+type UpdateRunnerCapacityOption struct {
+	Capacity int `json:"capacity" binding:"Min(0)"`
 }
