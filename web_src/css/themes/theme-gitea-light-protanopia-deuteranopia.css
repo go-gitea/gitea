@@ -10,6 +10,7 @@ gitea-theme-meta-info {
 /* from GitHub: --diffBlob-addition-*, --diffBlob-deletion-*, etc */
 :root {
   --color-diff-added-linenum-bg: #54aeff4d;
+  --color-diff-added-prompt-fg: #2185d0;
   --color-diff-added-row-bg: #ddf4ff80;
   --color-diff-added-word-bg: #54aeff66;
   --color-diff-removed-linenum-bg: #ffb77c4d;
