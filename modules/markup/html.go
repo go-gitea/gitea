@@ -314,7 +314,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node) *html.Nod
 		return node.NextSibling
 	}
 
-	processNodeAttrID(node)
+	processNodeAttrID(ctx, node)
 	processFootnoteNode(ctx, node) // FIXME: the footnote processing should be done in the "footnote.go" renderer directly
 
 	if isEmojiNode(node) {

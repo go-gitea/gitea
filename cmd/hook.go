@@ -163,6 +163,14 @@ func (n *nilWriter) WriteString(s string) (int, error) {
 	return len(s), nil
 }
 
+func parseGitHookCommitRefLine(line string) (oldCommitID, newCommitID string, refFullName git.RefName, ok bool) {
+	fields := strings.Split(line, " ")
+	if len(fields) != 3 {
+		return "", "", "", false
+	}
+	return fields[0], fields[1], git.RefName(fields[2]), true
+}
+
 func runHookPreReceive(ctx context.Context, c *cli.Command) error {
 	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
@@ -228,14 +236,11 @@ Gitea or set your environment appropriately.`, "")
 			continue
 		}
 
-		fields := bytes.Fields(scanner.Bytes())
-		if len(fields) != 3 {
+		oldCommitID, newCommitID, refFullName, ok := parseGitHookCommitRefLine(scanner.Text())
+		if !ok {
 			continue
 		}
 
-		oldCommitID := string(fields[0])
-		newCommitID := string(fields[1])
-		refFullName := git.RefName(fields[2])
 		total++
 		lastline++
 
@@ -378,16 +383,13 @@ Gitea or set your environment appropriately.`, "")
 			continue
 		}
 
-		fields := bytes.Fields(scanner.Bytes())
-		if len(fields) != 3 {
+		var ok bool
+		oldCommitIDs[count], newCommitIDs[count], refFullNames[count], ok = parseGitHookCommitRefLine(scanner.Text())
+		if !ok {
 			continue
 		}
 
 		fmt.Fprintf(out, ".")
-		oldCommitIDs[count] = string(fields[0])
-		newCommitIDs[count] = string(fields[1])
-		refFullNames[count] = git.RefName(fields[2])
-
 		commitID, _ := git.NewIDFromString(newCommitIDs[count])
 		if refFullNames[count] == git.BranchPrefix+"master" && !commitID.IsZero() && count == total {
 			masterPushed = true

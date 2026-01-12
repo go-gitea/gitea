@@ -1,7 +1,7 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package languagestats
+package pipeline
 
 import (
 	"testing"
