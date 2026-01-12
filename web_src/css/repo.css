@@ -1703,10 +1703,6 @@ tbody.commit-list {
   box-shadow: unset; /* when targeted, still use the parent's box-shadow, remove the patched above */
 }
 
-.diff-file-header .file .ui.label {
-  flex-shrink: 0;
-}
-
 .diff-file-header .file-link {
   max-width: fit-content;
   display: -webkit-box;
