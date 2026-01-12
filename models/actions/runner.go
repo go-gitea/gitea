@@ -62,6 +62,8 @@ type ActionRunner struct {
 	AgentLabels []string `xorm:"TEXT"`
 	// Store if this is a runner that only ever get one single job assigned
 	Ephemeral bool `xorm:"ephemeral NOT NULL DEFAULT false"`
+	// Maximum number of parallel tasks this runner can execute (0 = unlimited, defaults to 1)
+	Capacity int `xorm:"NOT NULL DEFAULT 1"`
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
