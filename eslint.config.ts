@@ -1001,13 +1001,4 @@ export default defineConfig([
     files: ['web_src/**/*', 'docs/**/*'],
     languageOptions: {globals: globals.browser},
   },
-  {
-    files: ['web_src/**/*'],
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        __webpack_public_path__: true,
-      },
-    },
-  },
 ]);
