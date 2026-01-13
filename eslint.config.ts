@@ -359,7 +359,7 @@ export default defineConfig([
       'import-x/no-self-import': [2],
       'import-x/no-unassigned-import': [0],
       'import-x/no-unresolved': [2, {commonjs: true, ignore: ['\\?.+$']}],
-      // 'import-x/no-unused-modules': [2, {unusedExports: true}], // not compatible with eslint 9
+      'import-x/no-unused-modules': [0], // incompatible with eslint 9
       'import-x/no-useless-path-segments': [2, {commonjs: true}],
       'import-x/no-webpack-loader-syntax': [2],
       'import-x/order': [0],
@@ -987,23 +987,10 @@ export default defineConfig([
     },
   },
   {
-    files: ['web_src/js/types.ts'],
-    rules: {
-      'import-x/no-unused-modules': [0],
-    },
-  },
-  {
     files: ['**/*.d.ts'],
     rules: {
-      'import-x/no-unused-modules': [0],
       '@typescript-eslint/consistent-type-definitions': [0],
       '@typescript-eslint/consistent-type-imports': [0],
-    },
-  },
-  {
-    files: ['*.config.*'],
-    rules: {
-      'import-x/no-unused-modules': [0],
     },
   },
   {
