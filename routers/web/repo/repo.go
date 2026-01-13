@@ -388,7 +388,7 @@ func InitiateDownload(ctx *context.Context) {
 		})
 		return
 	}
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"), ctx.FormStrings("path"))
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"), ctx.FormStrings("paths"))
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, "invalid archive request")
 		return
