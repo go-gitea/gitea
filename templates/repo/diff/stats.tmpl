@@ -1,5 +1,17 @@
-{{Eval .file.Addition "+" .file.Deletion}}
-<span class="diff-stats-bar tw-mx-2" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.stats_desc_file" (Eval .file.Addition "+" .file.Deletion) .file.Addition .file.Deletion}}">
-	{{/* if the denominator is zero, then the float result is "width: NaNpx", as before, it just works */}}
-	<div class="diff-stats-add-bar" style="width: {{Eval 100 "*" .file.Addition "/" "(" .file.Addition "+" .file.Deletion "+" 0.0 ")"}}%"></div>
-</span>
+{{/* Template Attributes:
+* Addition: Number of additions
+* Deletion: Number of deletions
+* Classes: Additional classes for the root element
+*/}}
+{{if or .Addition .Deletion}}
+<div class="flex-text-block tw-flex-shrink-0 tw-text-[13px] {{if .Classes}}{{.Classes}}{{end}}">
+	<span>
+		{{if .Addition}}<span class="tw-text-diff-prompt-add-fg">+{{.Addition}}</span>{{end}}
+		{{if .Deletion}}<span class="tw-text-diff-prompt-del-fg">-{{.Deletion}}</span>{{end}}
+	</span>
+	<span class="diff-stats-bar" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.stats_desc_file" (Eval .Addition "+" .Deletion) .Addition .Deletion}}">
+		{{/* if the denominator is zero, then the float result is "width: NaNpx", as before, it just works */}}
+		<div class="diff-stats-add-bar" style="width: {{Eval 100 "*" .Addition "/" "(" .Addition "+" .Deletion "+" 0.0 ")"}}%"></div>
+	</span>
+</div>
+{{end}}
