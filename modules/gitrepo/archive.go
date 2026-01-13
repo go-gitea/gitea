@@ -16,7 +16,7 @@ import (
 )
 
 // CreateArchive create archive content to the target path
-func CreateArchive(ctx context.Context, repo Repository, format string, target io.Writer, usePrefix bool, commitID string) error {
+func CreateArchive(ctx context.Context, repo Repository, format string, target io.Writer, usePrefix bool, commitID string, paths []string) error {
 	if format == "unknown" {
 		return fmt.Errorf("unknown format: %v", format)
 	}
@@ -27,6 +27,9 @@ func CreateArchive(ctx context.Context, repo Repository, format string, target i
 	}
 	cmd.AddOptionFormat("--format=%s", format)
 	cmd.AddDynamicArguments(commitID)
+	if len(paths) > 0 {
+		cmd.AddDynamicArguments(paths...)
+	}
 
 	var stderr strings.Builder
 	if err := RunCmd(ctx, repo, cmd.WithStdout(target).WithStderr(&stderr)); err != nil {

@@ -100,6 +100,9 @@
 					<a class="item" data-clipboard-text="{{.Repository.Link}}/src/commit/{{.CommitID}}/{{PathEscapeSegments .TreePath}}" data-clipboard-text-type="url">
 						{{svg "octicon-link" 16}}{{ctx.Locale.Tr "repo.file_copy_permalink"}}
 					</a>
+					<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.zip?paths={{PathEscapeSegments .TreePath}}" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_zip"}}</a>
+					<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.tar.gz?paths={{PathEscapeSegments .TreePath}}" rel="nofollow">{{svg "octicon-file-zip"}} {{ctx.Locale.Tr "repo.download_tar"}}</a>
+					<a class="item muted archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefFullName.ShortName}}.bundle?paths={{PathEscapeSegments .TreePath}}" rel="nofollow">{{svg "octicon-package"}} {{ctx.Locale.Tr "repo.download_bundle"}}</a>
 					{{if and (.Permission.CanWrite ctx.Consts.RepoUnitTypeCode) (not .Repository.IsArchived) (not $isTreePathRoot)}}
 						<div class="divider"></div>
 						<a class="item tw-text-danger" href="{{.RepoLink}}/_delete/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">

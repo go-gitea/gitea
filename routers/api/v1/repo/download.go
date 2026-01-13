@@ -6,14 +6,15 @@ package repo
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/services/context"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
 
-func serveRepoArchive(ctx *context.APIContext, reqFileName string) {
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, reqFileName)
+func serveRepoArchive(ctx *context.APIContext, reqFileName string, path []string) {
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, reqFileName, path)
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.APIError(http.StatusBadRequest, err)
@@ -40,5 +41,9 @@ func DownloadArchive(ctx *context.APIContext) {
 		ctx.APIError(http.StatusBadRequest, "Unknown archive type: "+ballType)
 		return
 	}
-	serveRepoArchive(ctx, ctx.PathParam("*")+"."+tp.String())
+	var paths []string
+	if ctx.FormString("paths") != "" {
+		paths = strings.Split(ctx.FormString("paths"), ",")
+	}
+	serveRepoArchive(ctx, ctx.PathParam("*")+"."+tp.String(), paths)
 }

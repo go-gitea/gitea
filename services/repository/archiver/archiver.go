@@ -36,6 +36,7 @@ type ArchiveRequest struct {
 	Repo     *repo_model.Repository
 	Type     repo_model.ArchiveType
 	CommitID string
+	Paths    []string
 
 	archiveRefShortName string // the ref short name to download the archive, for example: "master", "v1.0.0", "commit id"
 }
@@ -74,7 +75,7 @@ func (e RepoRefNotFoundError) Is(err error) bool {
 // NewRequest creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to Await()
 // if it's determined that the request still needs to be satisfied.
-func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRefExt string) (*ArchiveRequest, error) {
+func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRefExt string, paths []string) (*ArchiveRequest, error) {
 	// here the archiveRefShortName is not a clear ref, it could be a tag, branch or commit id
 	archiveRefShortName, archiveType := repo_model.SplitArchiveNameType(archiveRefExt)
 	if archiveType == repo_model.ArchiveUnknown {
@@ -87,7 +88,7 @@ func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRef
 		return nil, RepoRefNotFoundError{RefShortName: archiveRefShortName}
 	}
 
-	r := &ArchiveRequest{Repo: repo, archiveRefShortName: archiveRefShortName, Type: archiveType}
+	r := &ArchiveRequest{Repo: repo, archiveRefShortName: archiveRefShortName, Type: archiveType, Paths: paths}
 	r.CommitID = commitID.String()
 	return r, nil
 }
@@ -159,6 +160,7 @@ func (aReq *ArchiveRequest) Stream(ctx context.Context, w io.Writer) error {
 		w,
 		setting.Repository.PrefixArchiveFiles,
 		aReq.CommitID,
+		aReq.Paths,
 	)
 }
 
