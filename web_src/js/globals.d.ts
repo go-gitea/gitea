@@ -69,3 +69,8 @@ interface Window {
 
   // do not add more properties here unless it is a must
 }
+
+// import.meta.env is supported in both webpack and vitest
+interface ImportMeta {
+  env: Record<string, string>,
+}

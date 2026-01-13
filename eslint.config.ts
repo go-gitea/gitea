@@ -32,10 +32,6 @@ export default defineConfig([
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
       parser: typescriptParser,
       parserOptions: {
         sourceType: 'module',
@@ -1011,6 +1007,10 @@ export default defineConfig([
     },
   },
   {
+    files: ['*', 'tools/**/*'],
+    languageOptions: {globals: globals.node},
+  },
+  {
     files: ['web_src/**/*', 'docs/**/*'],
     languageOptions: {globals: globals.browser},
   },
@@ -1020,7 +1020,6 @@ export default defineConfig([
       globals: {
         ...globals.browser,
         __webpack_public_path__: true,
-        process: false, // https://github.com/webpack/webpack/issues/15833
       },
     },
   },
