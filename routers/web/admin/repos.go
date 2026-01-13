@@ -33,9 +33,8 @@ func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
 	ctx.Data["PageIsAdminRepositories"] = true
 
-	ctx.Data["RepoSizeLimit"] = base.FileSize(setting.RepoSizeLimit)
-	ctx.Data["LFSSizeLimit"] = base.FileSize(setting.LFSSizeLimit)
-	ctx.Data["LFSSizeInRepoSize"] = setting.LFSSizeInRepoSize
+	ctx.Data["GitSizeMax"] = base.FileSize(setting.Repository.GitSizeMax)
+	ctx.Data["LFSSizeMax"] = base.FileSize(setting.Repository.LFSSizeMax)
 
 	explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
 		Private:          true,
@@ -46,28 +45,16 @@ func Repos(ctx *context.Context) {
 }
 
 func UpdateRepoPost(ctx *context.Context) {
-	temp := web.GetForm(ctx)
-	if temp == nil {
-		ctx.Data["Err_Repo_Size_Limit"] = ""
-		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
-			Private:          true,
-			PageSize:         setting.UI.Admin.RepoPagingNum,
-			TplName:          tplRepos,
-			OnlyShowRelevant: false,
-		})
-		return
-	}
-	form := temp.(*forms.UpdateGlobalRepoFrom)
+	form := web.GetForm(ctx).(*forms.UpdateGlobalRepoFrom)
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
 	ctx.Data["PageIsAdminRepositories"] = true
 
-	ctx.Data["RepoSizeLimit"] = form.RepoSizeLimit
-	ctx.Data["LFSSizeLimit"] = form.LFSSizeLimit
-	ctx.Data["LFSSizeInRepoSize"] = form.LFSSizeInRepoSize
+	ctx.Data["GitSizeMax"] = form.GitSizeMax
+	ctx.Data["LFSSizeMax"] = form.LFSSizeMax
 
-	repoSizeLimit, err := base.GetFileSize(form.RepoSizeLimit)
+	gitSizeMax, err := base.GetFileSize(form.GitSizeMax)
 	if err != nil {
-		ctx.Data["Err_Repo_Size_Limit"] = form.RepoSizeLimit
+		ctx.Data["Err_Git_Size_Max"] = form.GitSizeMax
 		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
 			Private:          true,
 			PageSize:         setting.UI.Admin.RepoPagingNum,
@@ -77,9 +64,9 @@ func UpdateRepoPost(ctx *context.Context) {
 		return
 	}
 
-	lfsSizeLimit, err := base.GetFileSize(form.LFSSizeLimit)
+	lfsSizeMax, err := base.GetFileSize(form.LFSSizeMax)
 	if err != nil {
-		ctx.Data["Err_LFS_Size_Limit"] = form.LFSSizeLimit
+		ctx.Data["Err_LFS_Size_Max"] = form.LFSSizeMax
 		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
 			Private:          true,
 			PageSize:         setting.UI.Admin.RepoPagingNum,
@@ -89,19 +76,9 @@ func UpdateRepoPost(ctx *context.Context) {
 		return
 	}
 
-	err = setting.SaveGlobalRepositorySetting(repoSizeLimit, lfsSizeLimit, form.LFSSizeInRepoSize)
-	if err != nil {
-		ctx.Data["Err_Repo_Size_Save"] = err.Error()
-		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
-			Private:          true,
-			PageSize:         setting.UI.Admin.RepoPagingNum,
-			TplName:          tplRepos,
-			OnlyShowRelevant: false,
-		})
-		return
-	}
+	setting.UpdateGlobalRepositoryLimit(gitSizeMax, lfsSizeMax)
 
-	ctx.Flash.Success(ctx.Tr("admin.config.repository_setting_success"))
+	ctx.Flash.Success(ctx.Tr("admin.repos.update_success"))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/repos")
 }
 

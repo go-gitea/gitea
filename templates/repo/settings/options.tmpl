@@ -15,32 +15,18 @@
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.repo_size"}}</label>
 					<span {{if .Err_RepoSize}}class="ui text red"{{end}} {{if not (eq .Repository.Size 0)}} data-tooltip-content="{{.Repository.SizeDetailsString}}"{{end}}>{{FileSize .Repository.Size}}
-						{{if and .ActualSizeLimit (or (gt .RepoSizeLimit -1) (gt .LFSSizeLimit -1))}}
-							/ {{FileSize .ActualSizeLimit}}
+						{{if gt .GitSizeMax -1}}
+							/ {{FileSize .GitSizeMax}}
 						{{end}}
 					</span>
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.lfs_size"}}</label>
 					<span>{{FileSize .Repository.LFSSize}}
-						{{if and .ActualLFSSizeLimit (or (gt .RepoSizeLimit -1) (gt .LFSSizeLimit -1))}}
-							/ {{FileSize .ActualLFSSizeLimit}}
+						{{if gt .LFSSizeMax -1}}
+							/ {{FileSize .LFSSizeMax}}
 						{{end}}
 					</span>
-				</div>
-				<div class="field {{if .Err_RepoSizeLimit}}error{{end}} {{if not .IsAdmin}}tw-hidden{{end}}">
-					<label for="repo_size_limit">{{ctx.Locale.Tr "repo.repo_size_limit"}}</label>
-					<input id="repo_size_limit" name="repo_size_limit"
-						{{if and (eq .RepoSizeLimit -1) (eq .LFSSizeLimit -1)}}class="ui text light grey"{{end}}
-						type="text" value="{{if .RepoSizeLimitText}}{{.RepoSizeLimitText}}{{else if .Repository.SizeLimit}}{{FileSize .Repository.SizeLimit}}{{end}}"
-						data-tooltip-content='{{ctx.Locale.Tr "repo.repo_size_limit_helper"}}'>
-				</div>
-				<div class="field {{if .Err_LFSSizeLimit}}error{{end}} {{if not .IsAdmin}}tw-hidden{{end}}">
-					<label for="lfs_size_limit">{{ctx.Locale.Tr "repo.lfs_size_limit"}}</label>
-					<input id="lfs_size_limit" name="lfs_size_limit"
-						{{if and (eq .RepoSizeLimit -1) (eq .LFSSizeLimit -1)}}class="ui text light grey"{{end}}
-						type="text" value="{{if .LFSSizeLimitText}}{{.LFSSizeLimitText}}{{else if .Repository.LFSSizeLimit}}{{FileSize .Repository.LFSSizeLimit}}{{end}}"
-						data-tooltip-content='{{ctx.Locale.Tr "repo.lfs_size_limit_helper"}}'>
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.template"}}</label>

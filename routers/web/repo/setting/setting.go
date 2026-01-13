@@ -15,7 +15,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer/code"
@@ -62,11 +61,8 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
 	ctx.Data["Err_RepoSize"] = ctx.Repo.Repository.IsRepoSizeOversized(ctx.Repo.Repository.GetActualSizeLimit() / 10) // less than 10% left
-	ctx.Data["ActualSizeLimit"] = ctx.Repo.Repository.GetActualSizeLimit()
-	ctx.Data["ActualLFSSizeLimit"] = ctx.Repo.Repository.GetActualLFSSizeLimit()
-	ctx.Data["RepoSizeLimit"] = setting.RepoSizeLimit
-	ctx.Data["LFSSizeLimit"] = setting.LFSSizeLimit
-	ctx.Data["LFSSizeInRepoSize"] = setting.LFSSizeInRepoSize
+	ctx.Data["GitSizeMax"] = ctx.Repo.Repository.GetActualSizeLimit()
+	ctx.Data["LFSSizeMax"] = ctx.Repo.Repository.GetActualLFSSizeLimit()
 
 	signing, _ := gitrepo.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
@@ -214,55 +210,8 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.Name = newRepoName
 	repo.LowerName = strings.ToLower(newRepoName)
 	repo.Description = form.Description
-	ctx.Data["RepoSizeLimitText"] = form.RepoSizeLimit
-	ctx.Data["LFSSizeLimitText"] = form.LFSSizeLimit
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
-
-	var repoSizeLimit int64
-	var err error
-	if form.RepoSizeLimit != "" {
-		repoSizeLimit, err = base.GetFileSize(form.RepoSizeLimit)
-		if err != nil {
-			ctx.Data["Err_RepoSizeLimit"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.form.invalid_repo_size_limit_repo"), tplSettingsOptions, &form)
-			return
-		}
-	}
-	if repoSizeLimit < 0 {
-		ctx.Data["Err_RepoSizeLimit"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.invalid_repo_size_limit_repo"), tplSettingsOptions, &form)
-		return
-	}
-
-	if !ctx.Doer.IsAdmin && repo.SizeLimit != repoSizeLimit {
-		ctx.Data["Err_RepoSizeLimit"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.repo_size_limit_only_by_admins"), tplSettingsOptions, &form)
-		return
-	}
-	repo.SizeLimit = repoSizeLimit
-
-	// Handle LFS size limit (admin-only)
-	var lfsSizeLimit int64
-	if form.LFSSizeLimit != "" {
-		lfsSizeLimit, err = base.GetFileSize(form.LFSSizeLimit)
-		if err != nil {
-			ctx.Data["Err_LFSSizeLimit"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.form.invalid_lfs_size_limit_repo"), tplSettingsOptions, &form)
-			return
-		}
-	}
-	if lfsSizeLimit < 0 {
-		ctx.Data["Err_LFSSizeLimit"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.invalid_lfs_size_limit_repo"), tplSettingsOptions, &form)
-		return
-	}
-	if !ctx.Doer.IsAdmin && repo.LFSSizeLimit != lfsSizeLimit {
-		ctx.Data["Err_LFSSizeLimit"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.lfs_size_limit_only_by_admins"), tplSettingsOptions, &form)
-		return
-	}
-	repo.LFSSizeLimit = lfsSizeLimit
 
 	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 		ctx.ServerError("UpdateRepository", err)
