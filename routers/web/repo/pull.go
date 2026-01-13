@@ -865,7 +865,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
 		BaseLink:       ctx.Repo.RepoLink + "/blob_excerpt",
 		PullIssueIndex: pull.Index,
-		DiffStyle:      ctx.FormString("style"),
+		DiffStyle:      GetDiffViewStyle(ctx),
 		AfterCommitID:  afterCommitID,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
@@ -1263,6 +1263,28 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 	issue, ok := getPullInfo(ctx)
 	if !ok {
 		return
+	}
+
+	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, issue.PullRequest.ID)
+	if err != nil {
+		ctx.ServerError("GetScheduledMergeByPullID", err)
+		return
+	}
+	if !exist {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if ctx.Doer.ID != autoMerge.DoerID {
+		allowed, err := pull_service.IsUserAllowedToMerge(ctx, issue.PullRequest, ctx.Repo.Permission, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("IsUserAllowedToMerge", err)
+			return
+		}
+		if !allowed {
+			ctx.HTTPError(http.StatusForbidden, "user has no permission to cancel the scheduled auto merge")
+			return
+		}
 	}
 
 	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, issue.PullRequest); err != nil {
