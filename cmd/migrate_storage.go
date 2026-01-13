@@ -125,6 +125,16 @@ var CmdMigrateStorage = &cli.Command{
 			Value: "",
 			Usage: "Azure Blob storage base path",
 		},
+		&cli.StringFlag{
+			Name:  "azure-client-id",
+			Value: "",
+			Usage: "Azure client ID for user-assigned identity or service principal",
+		},
+		&cli.StringFlag{
+			Name:  "azure-tenant-id",
+			Value: "",
+			Usage: "Azure tenant ID for service principal authentication",
+		},
 	},
 }
 
@@ -276,6 +286,8 @@ func runMigrateStorage(ctx context.Context, cmd *cli.Command) error {
 					AccountKey:  cmd.String("azureblob-account-key"),
 					Container:   cmd.String("azureblob-container"),
 					BasePath:    cmd.String("azureblob-base-path"),
+					ClientID:    cmd.String("azure-client-id"),
+					TenantID:    cmd.String("azure-tenant-id"),
 				},
 			})
 	default:
