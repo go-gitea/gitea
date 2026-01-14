@@ -8,7 +8,6 @@ import (
 	"net/url"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -25,11 +24,16 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 
 	// since user only get notifications when he has access to use minimal access mode
 	if n.Repository != nil {
-		result.Repository = ToRepo(ctx, n.Repository, access_model.Permission{AccessMode: perm.AccessModeRead})
-
-		// This permission is not correct and we should not be reporting it
-		for repository := result.Repository; repository != nil; repository = repository.Parent {
-			repository.Permissions = nil
+		perm, err := access_model.GetUserRepoPermission(ctx, n.Repository, n.User)
+		if err != nil {
+			return result
+		}
+		if perm.HasAnyUnitAccessOrPublicAccess() { // if user has been revoked access to repo, do not show repo info
+			result.Repository = ToRepo(ctx, n.Repository, perm)
+			// This permission is not correct and we should not be reporting it
+			for repository := result.Repository; repository != nil; repository = repository.Parent {
+				repository.Permissions = nil
+			}
 		}
 	}
 
