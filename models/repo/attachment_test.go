@@ -115,5 +115,5 @@ func TestGetUnlinkedAttachmentsByUserID(t *testing.T) {
 
 	attachments, err = repo_model.GetUnlinkedAttachmentsByUserID(t.Context(), 1)
 	assert.NoError(t, err)
-	assert.Len(t, attachments, 0)
+	assert.Empty(t, attachments)
 }

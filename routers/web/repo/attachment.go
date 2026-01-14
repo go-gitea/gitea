@@ -150,20 +150,22 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 			return
 		}
 	} else { // If we have the linked type, we need to check access
-		repo := ctx.Repo.Repository
-		if repo == nil {
-			repo, err = repo_model.GetRepositoryByID(ctx, attach.RepoID)
+		var perm access_model.Permission
+		if ctx.Repo.Repository == nil {
+			repo, err := repo_model.GetRepositoryByID(ctx, attach.RepoID)
 			if err != nil {
 				ctx.ServerError("GetRepositoryByID", err)
 				return
 			}
+			perm, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
+			}
+		} else {
+			perm = ctx.Repo.Permission
 		}
 
-		perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("GetUserRepoPermission", err)
-			return
-		}
 		if !perm.CanRead(unitType) {
 			ctx.NotFound(nil)
 			return
