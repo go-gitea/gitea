@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -55,6 +54,19 @@ func (err ErrUnknownArchiveFormat) Error() string {
 func (ErrUnknownArchiveFormat) Is(err error) bool {
 	_, ok := err.(ErrUnknownArchiveFormat)
 	return ok
+}
+
+type ErrBadPathSpec struct {
+	PathSpec string
+}
+
+func (err ErrBadPathSpec) Error() string {
+	return "path doesn't exist: " + err.PathSpec
+}
+
+func (ErrBadPathSpec) Is(err error) bool {
+	var errBadPathSpec ErrBadPathSpec
+	return errors.As(err, &errBadPathSpec)
 }
 
 // RepoRefNotFoundError is returned when a requested reference (commit, tag) was not found.
@@ -341,7 +353,7 @@ func DeleteRepositoryArchives(ctx context.Context) error {
 	return storage.Clean(storage.RepoArchives)
 }
 
-func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) {
+func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error {
 	// Add nix format link header so tarballs lock correctly:
 	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
 	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
@@ -353,19 +365,22 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) {
 	downloadName := archiveReq.Repo.Name + "-" + archiveReq.GetArchiveName()
 
 	if setting.Repository.StreamArchives {
+		// TODO: Having this header set breaks swagger-ui as it thinks there's a file, even if it's an error.
 		httplib.ServeSetHeaders(ctx.Resp, &httplib.ServeHeaderOptions{Filename: downloadName})
 		if err := archiveReq.Stream(ctx, ctx.Resp); err != nil && !ctx.Written() {
+			if strings.Contains(err.Error(), "fatal: pathspec") {
+				return ErrBadPathSpec{PathSpec: err.Error()[strings.Index(err.Error(), "'"):strings.LastIndex(err.Error(), "'")]}
+			}
 			log.Error("Archive %v streaming failed: %v", archiveReq, err)
-			ctx.HTTPError(http.StatusInternalServerError)
+			return err
 		}
-		return
+		return nil
 	}
 
 	archiver, err := archiveReq.Await(ctx)
 	if err != nil {
 		log.Error("Archive %v await failed: %v", archiveReq, err)
-		ctx.HTTPError(http.StatusInternalServerError)
-		return
+		return err
 	}
 
 	rPath := archiver.RelativePath()
@@ -374,15 +389,14 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) {
 		u, err := storage.RepoArchives.URL(rPath, downloadName, ctx.Req.Method, nil)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
-			return
+			return nil
 		}
 	}
 
 	fr, err := storage.RepoArchives.Open(rPath)
 	if err != nil {
 		log.Error("Archive %v open file failed: %v", archiveReq, err)
-		ctx.HTTPError(http.StatusInternalServerError)
-		return
+		return err
 	}
 	defer fr.Close()
 
@@ -390,4 +404,5 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) {
 		Filename:     downloadName,
 		LastModified: archiver.CreatedUnix.AsLocalTime(),
 	})
+	return nil
 }

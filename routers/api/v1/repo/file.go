@@ -279,16 +279,13 @@ func GetArchive(ctx *context.APIContext) {
 	//   items:
 	//     type: string
 	//   description: subpath of the repository to download
+	//   collectionFormat: multi
 	// responses:
 	//   200:
 	//     description: success
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	var paths []string
-	if ctx.FormString("paths") != "" {
-		paths = strings.Split(ctx.FormString("paths"), ",")
-	}
-	serveRepoArchive(ctx, ctx.PathParam("*"), paths)
+	serveRepoArchive(ctx, ctx.PathParam("*"), ctx.FormStrings("paths"))
 }
 
 // GetEditorconfig get editor config of a repository

@@ -6,7 +6,6 @@ package repo
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/services/context"
@@ -25,9 +24,17 @@ func serveRepoArchive(ctx *context.APIContext, reqFileName string, path []string
 		}
 		return
 	}
-	archiver_service.ServeRepoArchive(ctx.Base, aReq)
+	err = archiver_service.ServeRepoArchive(ctx.Base, aReq)
+	if err != nil {
+		if errors.Is(err, archiver_service.ErrBadPathSpec{}) {
+			ctx.APIError(http.StatusBadRequest, err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+	}
 }
 
+// TODO: Document this or explain why it's ommited from API despite being a part of it.
 func DownloadArchive(ctx *context.APIContext) {
 	var tp repo_model.ArchiveType
 	switch ballType := ctx.PathParam("ball_type"); ballType {
@@ -41,9 +48,5 @@ func DownloadArchive(ctx *context.APIContext) {
 		ctx.APIError(http.StatusBadRequest, "Unknown archive type: "+ballType)
 		return
 	}
-	var paths []string
-	if ctx.FormString("paths") != "" {
-		paths = strings.Split(ctx.FormString("paths"), ",")
-	}
-	serveRepoArchive(ctx, ctx.PathParam("*")+"."+tp.String(), paths)
+	serveRepoArchive(ctx, ctx.PathParam("*")+"."+tp.String(), ctx.FormStrings("paths"))
 }

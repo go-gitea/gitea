@@ -375,7 +375,14 @@ func Download(ctx *context.Context) {
 		}
 		return
 	}
-	archiver_service.ServeRepoArchive(ctx.Base, aReq)
+	err = archiver_service.ServeRepoArchive(ctx.Base, aReq)
+	if err != nil {
+		if errors.Is(err, archiver_service.ErrBadPathSpec{}) {
+			ctx.HTTPError(http.StatusBadRequest, err.Error())
+		} else {
+			ctx.HTTPError(http.StatusInternalServerError)
+		}
+	}
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
