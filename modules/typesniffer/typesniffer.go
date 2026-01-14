@@ -108,7 +108,7 @@ func detectFileTypeBox(data []byte) (brands []string, found bool) {
 }
 
 func isEmbeddedOpenType(data []byte) bool {
-	//https://www.w3.org/submissions/EOT
+	// https://www.w3.org/submissions/EOT
 	if len(data) < 80 {
 		return false
 	}
