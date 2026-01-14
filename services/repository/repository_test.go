@@ -25,13 +25,13 @@ func TestAttachLinkedType(t *testing.T) {
 		{"LinkedIssue", 1, unit.TypeIssues},
 		{"LinkedComment", 3, unit.TypePullRequests},
 		{"LinkedRelease", 9, unit.TypeReleases},
-		{"Notlinked", 10, -1},
+		{"Notlinked", 10, unit.TypeInvalid},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			attach, err := repo_model.GetAttachmentByID(t.Context(), tc.attachID)
 			assert.NoError(t, err)
-			unitType, err := AttachLinkedType(t.Context(), attach)
+			unitType, err := GetAttachmentLinkedType(t.Context(), attach)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedUnitType, unitType)
 		})

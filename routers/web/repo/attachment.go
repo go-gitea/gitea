@@ -125,7 +125,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	attach, err := repo_model.GetAttachmentByUUID(ctx, uuid)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
-			ctx.NotFound(nil)
+			ctx.HTTPError(http.StatusNotFound)
 		} else {
 			ctx.ServerError("GetAttachmentByUUID", err)
 		}
@@ -134,19 +134,19 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 
 	// prevent visiting attachment from other repository directly
 	if ctx.Repo.Repository != nil && ctx.Repo.Repository.ID != attach.RepoID {
-		ctx.NotFound(nil)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
-	unitType, err := repo_service.AttachLinkedType(ctx, attach)
+	unitType, err := repo_service.GetAttachmentLinkedType(ctx, attach)
 	if err != nil {
-		ctx.ServerError("AttachLinkedType", err)
+		ctx.ServerError("GetAttachmentLinkedType", err)
 		return
 	}
 
 	if unitType == -1 { // unlinked attachment can only be accessed by the uploader
 		if !(ctx.IsSigned && attach.UploaderID == ctx.Doer.ID) { // We block if not the uploader
-			ctx.NotFound(nil)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	} else { // If we have the linked type, we need to check access
@@ -167,7 +167,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		}
 
 		if !perm.CanRead(unitType) {
-			ctx.NotFound(nil)
+			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
 	}
