@@ -28,28 +28,22 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 	}
 	defer cancel()
 
-	writeID := func(id string) error {
-		_, err := batch.Writer().Write([]byte(id + "\n"))
-		return err
-	}
-
-	if err := writeID(commitID); err != nil {
+	commitInfo, batchReader, err := batch.QueryContent(commitID)
+	if err != nil {
 		return nil, err
 	}
-	batchReader := batch.Reader()
-	shaBytes, typ, size, err := git.ReadBatchLine(batchReader)
-	if typ != "commit" {
+	if commitInfo.Type != "commit" {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, git.ErrNotExist{ID: commitID}
 	}
 
-	sha, err := git.NewIDFromString(string(shaBytes))
+	sha, err := git.NewIDFromString(commitInfo.ID)
 	if err != nil {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, git.ErrNotExist{ID: commitID}
 	}
 
-	commit, err := git.CommitFromReader(repo, sha, io.LimitReader(batchReader, size))
+	commit, err := git.CommitFromReader(repo, sha, io.LimitReader(batchReader, commitInfo.Size))
 	if err != nil {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, err
@@ -145,20 +139,16 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		// If content can not be read or file is too big just do detection by filename
 
 		if f.Size() <= bigFileSize {
-			if err := writeID(f.ID.String()); err != nil {
-				return nil, err
-			}
-			_, _, size, err := git.ReadBatchLine(batchReader)
+			info, _, err := batch.QueryContent(f.ID.String())
 			if err != nil {
-				log.Debug("Error reading blob: %s Err: %v", f.ID.String(), err)
 				return nil, err
 			}
 
-			sizeToRead := size
+			sizeToRead := info.Size
 			discard := int64(1)
-			if size > fileSizeLimit {
+			if info.Size > fileSizeLimit {
 				sizeToRead = fileSizeLimit
-				discard = size - fileSizeLimit + 1
+				discard = info.Size - fileSizeLimit + 1
 			}
 
 			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))
