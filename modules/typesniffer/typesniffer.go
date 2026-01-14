@@ -121,7 +121,8 @@ func DetectContentType(data []byte) SniffedType {
 
 	const typeMsFontObject = "application/vnd.ms-fontobject"
 	if ct == typeMsFontObject && len(data) > 34 {
-		// Stupid Golang blindly detects any content with 34th-35th bytes being "LP" as font, here we try to detect it again by hiding the "LP"
+		// Stupid Golang blindly detects any content with 34th-35th bytes being "LP" as font,
+		// here we try to detect it again by hiding the "LP", see the test for more details.
 		data = slices.Clone(data)
 		data[34] = 'l'
 		ct = http.DetectContentType(data)
