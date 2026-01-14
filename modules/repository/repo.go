@@ -227,7 +227,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository) erro
 				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 		}
-		added, deleted, updated = len(deletes), len(updates), len(inserts)
+		added, deleted, updated = len(inserts), len(deletes), len(updates)
 		return nil
 	})
 	if err != nil {

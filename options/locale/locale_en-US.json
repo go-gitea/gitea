@@ -2542,8 +2542,8 @@
   "repo.diff.too_many_files": "Some files were not shown because too many files have changed in this diff",
   "repo.diff.show_more": "Show More",
   "repo.diff.load": "Load Diff",
-  "repo.diff.generated": "generated",
-  "repo.diff.vendored": "vendored",
+  "repo.diff.generated": "Generated",
+  "repo.diff.vendored": "Vendored",
   "repo.diff.comment.add_line_comment": "Add line comment",
   "repo.diff.comment.placeholder": "Leave a comment",
   "repo.diff.comment.add_single_comment": "Add single comment",
@@ -3724,8 +3724,8 @@
   "projects.exit_fullscreen": "Exit Fullscreen",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",
   "git.filemode.directory": "Directory",
-  "git.filemode.normal_file": "Normal file",
-  "git.filemode.executable_file": "Executable file",
-  "git.filemode.symbolic_link": "Symbolic link",
+  "git.filemode.normal_file": "Regular",
+  "git.filemode.executable_file": "Executable",
+  "git.filemode.symbolic_link": "Symlink",
   "git.filemode.submodule": "Submodule"
 }

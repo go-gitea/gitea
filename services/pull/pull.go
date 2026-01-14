@@ -52,6 +52,7 @@ type NewPullRequestOptions struct {
 	AssigneeIDs     []int64
 	Reviewers       []*user_model.User
 	TeamReviewers   []*organization.Team
+	ProjectID       int64
 }
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -67,11 +68,13 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 
 	// user should be a collaborator or a member of the organization for base repo
 	canCreate := issue.Poster.IsAdmin || pr.Flow == issues_model.PullRequestFlowAGit
+	canAssignProject := canCreate
 	if !canCreate {
 		canCreate, err := repo_model.IsOwnerMemberCollaborator(ctx, repo, issue.Poster.ID)
 		if err != nil {
 			return err
 		}
+		canAssignProject = canCreate
 
 		if !canCreate {
 			// or user should have write permission in the head repo
@@ -85,6 +88,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			if !perm.CanWrite(unit.TypeCode) {
 				return issues_model.ErrMustCollaborator
 			}
+			canAssignProject = perm.CanWrite(unit.TypeProjects)
 		}
 	}
 
@@ -115,6 +119,12 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 				return err
 			}
 			assigneeCommentMap[assigneeID] = comment
+		}
+
+		if opts.ProjectID > 0 && canAssignProject {
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectID, 0); err != nil {
+				return err
+			}
 		}
 
 		pr.Issue = issue
