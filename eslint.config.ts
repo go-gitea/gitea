@@ -233,7 +233,7 @@ export default defineConfig([
       '@typescript-eslint/no-unused-vars': [2, {vars: 'all', args: 'all', caughtErrors: 'all', ignoreRestSiblings: false, argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_'}],
       '@typescript-eslint/no-use-before-define': [2, {functions: false, classes: true, variables: true, allowNamedExports: true, typedefs: false, enums: false, ignoreTypeReferences: true}],
       '@typescript-eslint/no-useless-constructor': [0],
-      '@typescript-eslint/no-useless-default-assignment': [0], // https://github.com/typescript-eslint/typescript-eslint/issues/11847
+      '@typescript-eslint/no-useless-default-assignment': [2],
       '@typescript-eslint/no-useless-empty-export': [0],
       '@typescript-eslint/no-wrapper-object-types': [2],
       '@typescript-eslint/non-nullable-type-assertion-style': [0],
@@ -264,6 +264,7 @@ export default defineConfig([
       '@typescript-eslint/restrict-template-expressions': [0],
       '@typescript-eslint/return-await': [0],
       '@typescript-eslint/strict-boolean-expressions': [0],
+      '@typescript-eslint/strict-void-return': [0],
       '@typescript-eslint/switch-exhaustiveness-check': [0],
       '@typescript-eslint/triple-slash-reference': [2],
       '@typescript-eslint/typedef': [0],
