@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
 	"code.gitea.io/gitea/services/forms"
-	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -396,7 +395,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			_, err = issue_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
+			_, err = pull_service.TeamReviewRequest(ctx, issue, ctx.Doer, team, action == "attach")
 			if err != nil {
 				if issues_model.IsErrNotValidReviewRequest(err) {
 					log.Warn(
@@ -428,7 +427,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			return
 		}
 
-		_, err = issue_service.ReviewRequest(ctx, issue, ctx.Doer, &ctx.Repo.Permission, reviewer, action == "attach")
+		_, err = pull_service.ReviewRequest(ctx, issue, ctx.Doer, &ctx.Repo.Permission, reviewer, action == "attach")
 		if err != nil {
 			if issues_model.IsErrNotValidReviewRequest(err) {
 				log.Warn(

@@ -1,12 +1,11 @@
-// Copyright 2024 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package issue
+package pull
 
 import (
 	"context"
 	"fmt"
-	"slices"
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -36,20 +36,8 @@ func getMergeBase(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	return mergeBase, err
 }
 
-type ReviewRequestNotifier struct {
-	Comment    *issues_model.Comment
-	IsAdd      bool
-	Reviewer   *user_model.User
-	ReviewTeam *org_model.Team
-}
-
-var codeOwnerFiles = []string{"CODEOWNERS", "docs/CODEOWNERS", ".gitea/CODEOWNERS"}
-
-func IsCodeOwnerFile(f string) bool {
-	return slices.Contains(codeOwnerFiles, f)
-}
-
-func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
+// RequestCodeOwnersReview requests code owners review for a pull request and return notifiers
+func RequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullRequest) ([]*ReviewRequestNotifier, error) {
 	if err := pr.LoadIssue(ctx); err != nil {
 		return nil, err
 	}
@@ -81,7 +69,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	var data string
-	for _, file := range codeOwnerFiles {
+	for _, file := range repo_module.GetCodeOwnerFiles() {
 		if blob, err := commit.GetBlobByPath(file); err == nil {
 			data, err = blob.GetBlobContent(setting.UI.MaxDisplayFileSize)
 			if err == nil {
@@ -93,7 +81,7 @@ func PullRequestCodeOwnersReview(ctx context.Context, pr *issues_model.PullReque
 		return nil, nil
 	}
 
-	rules, _ := issues_model.GetCodeOwnersFromContent(ctx, data)
+	rules, _ := repo_module.GetCodeOwnersFromContent(ctx, data)
 	if len(rules) == 0 {
 		return nil, nil
 	}

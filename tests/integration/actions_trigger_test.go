@@ -663,12 +663,12 @@ jobs:
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// review_requested
-		_, err = issue_service.ReviewRequest(t.Context(), pullIssue, user2, nil, user4, true)
+		_, err = pull_service.ReviewRequest(t.Context(), pullIssue, user2, nil, user4, true)
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 
 		// review_request_removed
-		_, err = issue_service.ReviewRequest(t.Context(), pullIssue, user2, nil, user4, false)
+		_, err = pull_service.ReviewRequest(t.Context(), pullIssue, user2, nil, user4, false)
 		assert.NoError(t, err)
 		checkCommitStatusAndInsertFakeStatus(t, repo, sha)
 	})
