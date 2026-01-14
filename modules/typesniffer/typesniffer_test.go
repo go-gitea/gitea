@@ -6,6 +6,7 @@ package typesniffer
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -153,4 +154,20 @@ func TestDetectContentTypeAvif(t *testing.T) {
 	buf := []byte("\x00\x00\x00\x20ftypavif.......................")
 	st := DetectContentType(buf)
 	assert.Equal(t, MimeTypeImageAvif, st.contentType)
+}
+
+func TestDetectContentTypeIncorrectFont(t *testing.T) {
+	s := "Stupid Golang keep detecting 34th LP as font"
+	// They don't want to have any improvement to it: https://github.com/golang/go/issues/77172
+	golangDetected := http.DetectContentType([]byte(s))
+	assert.Equal(t, "application/vnd.ms-fontobject", golangDetected)
+	// We have to make our patch to make it work correctly
+	ourDetected := DetectContentType([]byte(s))
+	assert.Equal(t, "text/plain; charset=utf-8", ourDetected.contentType)
+
+	// For binary content, ensure it still detects as font
+	b := []byte(s)
+	b[0] = 0
+	assert.Equal(t, "application/vnd.ms-fontobject", http.DetectContentType(b))
+	assert.Equal(t, "application/vnd.ms-fontobject", DetectContentType(b).contentType)
 }

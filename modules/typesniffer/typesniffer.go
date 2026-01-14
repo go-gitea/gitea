@@ -119,6 +119,17 @@ func DetectContentType(data []byte) SniffedType {
 		data = data[:SniffContentSize]
 	}
 
+	const typeMsFontObject = "application/vnd.ms-fontobject"
+	if ct == typeMsFontObject && len(data) > 34 {
+		// Stupid Golang blindly detects any content with 34th-35th bytes being "LP" as font, here we try to detect it again by hiding the "LP"
+		data = slices.Clone(data)
+		data[34] = 'l'
+		ct = http.DetectContentType(data)
+		if ct == MimeTypeApplicationOctetStream {
+			return SniffedType{typeMsFontObject}
+		}
+	}
+
 	vars := globalVars()
 	// SVG is unsupported by http.DetectContentType, https://github.com/golang/go/issues/15888
 	detectByHTML := strings.Contains(ct, "text/plain") || strings.Contains(ct, "text/html")
