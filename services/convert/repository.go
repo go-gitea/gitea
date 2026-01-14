@@ -127,20 +127,10 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		projectsMode = config.ProjectsMode
 	}
 
-	hasReleases := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypeReleases); err == nil {
-		hasReleases = true
-	}
-
-	hasPackages := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypePackages); err == nil {
-		hasPackages = true
-	}
-
-	hasActions := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypeActions); err == nil {
-		hasActions = true
-	}
+	hasCode := repo.UnitEnabled(ctx, unit_model.TypeCode)
+	hasReleases := repo.UnitEnabled(ctx, unit_model.TypeReleases)
+	hasPackages := repo.UnitEnabled(ctx, unit_model.TypePackages)
+	hasActions := repo.UnitEnabled(ctx, unit_model.TypeActions)
 
 	if err := repo.LoadOwner(ctx); err != nil {
 		return nil
@@ -221,6 +211,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Updated:                       repo.UpdatedUnix.AsTime(),
 		ArchivedAt:                    repo.ArchivedUnix.AsTime(),
 		Permissions:                   permission,
+		HasCode:                       hasCode,
 		HasIssues:                     hasIssues,
 		ExternalTracker:               externalTracker,
 		InternalTracker:               internalTracker,
