@@ -194,6 +194,10 @@ func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err erro
 			return err
 		}
 
+		if err = repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
+			return err
+		}
+
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		if err := CheckDaemonExportOK(ctx, repo); err != nil {
 			return err
