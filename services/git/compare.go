@@ -65,8 +65,11 @@ func GetCompareInfo(ctx context.Context, baseRepo, headRepo *repo_model.Reposito
 	// if they are not the same repository, then we need to fetch the base commit into the head repository
 	// because we will use headGitRepo in the following code
 	if baseRepo.ID != headRepo.ID {
-		if err := gitrepo.FetchRemoteCommit(ctx, headRepo, baseRepo, compareInfo.BaseCommitID); err != nil {
-			return nil, fmt.Errorf("FetchRemoteCommit: %w", err)
+		exist := headGitRepo.IsCommitExist(compareInfo.BaseCommitID)
+		if !exist {
+			if err := gitrepo.FetchRemoteCommit(ctx, headRepo, baseRepo, compareInfo.BaseCommitID); err != nil {
+				return nil, fmt.Errorf("FetchRemoteCommit: %w", err)
+			}
 		}
 	}
 
