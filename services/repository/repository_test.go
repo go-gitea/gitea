@@ -15,50 +15,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLinkedRepository(t *testing.T) {
+func TestAttachLinkedType(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	testCases := []struct {
 		name             string
 		attachID         int64
-		expectedRepo     *repo_model.Repository
 		expectedUnitType unit.Type
 	}{
-		{"LinkedIssue", 1, &repo_model.Repository{ID: 1}, unit.TypeIssues},
-		{"LinkedComment", 3, &repo_model.Repository{ID: 1}, unit.TypePullRequests},
-		{"LinkedRelease", 9, &repo_model.Repository{ID: 1}, unit.TypeReleases},
-		{"Notlinked", 10, nil, -1},
+		{"LinkedIssue", 1, unit.TypeIssues},
+		{"LinkedComment", 3, unit.TypePullRequests},
+		{"LinkedRelease", 9, unit.TypeReleases},
+		{"Notlinked", 10, -1},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			attach, err := repo_model.GetAttachmentByID(t.Context(), tc.attachID)
 			assert.NoError(t, err)
-			repo, unitType, err := LinkedRepository(t.Context(), attach)
+			unitType, err := AttachLinkedType(t.Context(), attach)
 			assert.NoError(t, err)
-			if tc.expectedRepo != nil {
-				assert.Equal(t, tc.expectedRepo.ID, repo.ID)
-			}
 			assert.Equal(t, tc.expectedUnitType, unitType)
 		})
 	}
-}
-
-func TestLinkedRepositoryReleaseMismatchedRepo(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	attach, err := repo_model.GetAttachmentByID(t.Context(), 11)
-	assert.NoError(t, err)
-
-	originalRepoID := attach.RepoID
-	attach.RepoID = 1
-	_, err = db.GetEngine(t.Context()).ID(attach.ID).Cols("repo_id").Update(attach)
-	assert.NoError(t, err)
-	defer func() {
-		attach.RepoID = originalRepoID
-		_, _ = db.GetEngine(t.Context()).ID(attach.ID).Cols("repo_id").Update(attach)
-	}()
-
-	_, _, err = LinkedRepository(t.Context(), attach)
-	assert.EqualError(t, err, "attachment and release belong to different repositories")
 }
 
 func TestUpdateRepositoryVisibilityChanged(t *testing.T) {

@@ -93,32 +93,47 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	attach, err := repo_model.GetAttachmentByUUID(ctx, uuid)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
-			ctx.HTTPError(http.StatusNotFound)
+			ctx.NotFound(nil)
 		} else {
 			ctx.ServerError("GetAttachmentByUUID", err)
 		}
 		return
 	}
 
-	repository, unitType, err := repo_service.LinkedRepository(ctx, attach)
-	if err != nil {
-		ctx.ServerError("LinkedRepository", err)
+	// prevent visiting attachment from other repository directly
+	if ctx.Repo.Repository != nil && ctx.Repo.Repository.ID != attach.RepoID {
+		ctx.NotFound(nil)
 		return
 	}
 
-	if repository == nil { // If not linked
+	unitType, err := repo_service.AttachLinkedType(ctx, attach)
+	if err != nil {
+		ctx.ServerError("AttachLinkedType", err)
+		return
+	}
+
+	if unitType == -1 { // unlinked attachment can only be accessed by the uploader
 		if !(ctx.IsSigned && attach.UploaderID == ctx.Doer.ID) { // We block if not the uploader
-			ctx.HTTPError(http.StatusNotFound)
+			ctx.NotFound(nil)
 			return
 		}
-	} else { // If we have the repository we check access
-		perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
+	} else { // If we have the linked type, we need to check access
+		repo := ctx.Repo.Repository
+		if repo == nil {
+			repo, err = repo_model.GetRepositoryByID(ctx, attach.RepoID)
+			if err != nil {
+				ctx.ServerError("GetRepositoryByID", err)
+				return
+			}
+		}
+
+		perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
+			ctx.ServerError("GetUserRepoPermission", err)
 			return
 		}
 		if !perm.CanRead(unitType) {
-			ctx.HTTPError(http.StatusNotFound)
+			ctx.NotFound(nil)
 			return
 		}
 	}
