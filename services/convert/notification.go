@@ -9,6 +9,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -26,6 +27,7 @@ func ToNotificationThread(ctx context.Context, n *activities_model.Notification)
 	if n.Repository != nil {
 		perm, err := access_model.GetUserRepoPermission(ctx, n.Repository, n.User)
 		if err != nil {
+			log.Error("GetUserRepoPermission failed: %v", err)
 			return result
 		}
 		if perm.HasAnyUnitAccessOrPublicAccess() { // if user has been revoked access to repo, do not show repo info

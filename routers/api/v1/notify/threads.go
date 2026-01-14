@@ -114,6 +114,5 @@ func getThread(ctx *context.APIContext) *activities_model.Notification {
 		ctx.APIError(http.StatusForbidden, fmt.Errorf("only user itself and admin are allowed to read/change this thread %d", n.ID))
 		return nil
 	}
-
 	return n
 }

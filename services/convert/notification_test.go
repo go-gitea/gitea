@@ -1,4 +1,4 @@
-// Copyright 2024 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package convert
@@ -18,7 +18,7 @@ import (
 func TestToNotificationThreadIncludesRepoForAccessibleUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-    n := newRepoNotification(t, 1, 4)
+	n := newRepoNotification(t, 1, 4)
 	thread := ToNotificationThread(t.Context(), n)
 
 	if assert.NotNil(t, thread.Repository) {
@@ -30,7 +30,7 @@ func TestToNotificationThreadIncludesRepoForAccessibleUser(t *testing.T) {
 func TestToNotificationThreadOmitsRepoWhenAccessRevoked(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-    n := newRepoNotification(t, 2, 4)
+	n := newRepoNotification(t, 2, 4)
 	thread := ToNotificationThread(t.Context(), n)
 
 	assert.Nil(t, thread.Repository)
