@@ -233,10 +233,7 @@ func GetAttachmentLinkedType(ctx context.Context, a *repo_model.Attachment) (uni
 
 	if a.ReleaseID != 0 {
 		_, err := repo_model.GetReleaseByID(ctx, a.ReleaseID)
-		if err != nil {
-			return unit.TypeReleases, err
-		}
-		return unit.TypeReleases, nil
+		return unit.TypeReleases, err
 	}
 	return unit.TypeInvalid, nil
 }

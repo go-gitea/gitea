@@ -144,7 +144,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		return
 	}
 
-	if unitType == -1 { // unlinked attachment can only be accessed by the uploader
+	if unitType == unit.TypeInvalid { // unlinked attachment can only be accessed by the uploader
 		if !(ctx.IsSigned && attach.UploaderID == ctx.Doer.ID) { // We block if not the uploader
 			ctx.HTTPError(http.StatusNotFound)
 			return
