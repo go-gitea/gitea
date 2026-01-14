@@ -317,6 +317,10 @@ func TestAPILFSBatch(t *testing.T) {
 			ul := br.Objects[0].Actions["upload"]
 			assert.NotNil(t, ul)
 			assert.NotEmpty(t, ul.Href)
+			// Verify that Transfer-Encoding: chunked header is set for uploads
+			// This is required by git-lfs client to use chunked transfer encoding
+			assert.NotNil(t, ul.Header)
+			assert.Equal(t, "chunked", ul.Header["Transfer-Encoding"])
 			assert.Contains(t, br.Objects[0].Actions, "verify")
 			vl := br.Objects[0].Actions["verify"]
 			assert.NotNil(t, vl)

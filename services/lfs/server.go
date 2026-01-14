@@ -512,7 +512,13 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			rep.Actions["download"] = link
 		}
 		if upload {
-			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: header}
+			uploadHeader := make(map[string]string)
+			maps.Copy(uploadHeader, header)
+			// Set Transfer-Encoding header to enable chunked uploads
+			// This is required by git-lfs client to use chunked transfer encoding
+			// See: https://github.com/git-lfs/git-lfs/blob/main/tq/basic_upload.go#L58-59
+			uploadHeader["Transfer-Encoding"] = "chunked"
+			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: uploadHeader}
 
 			verifyHeader := make(map[string]string)
 			maps.Copy(verifyHeader, header)
