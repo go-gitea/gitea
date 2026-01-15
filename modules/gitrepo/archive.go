@@ -27,9 +27,7 @@ func CreateArchive(ctx context.Context, repo Repository, format string, target i
 	}
 	cmd.AddOptionFormat("--format=%s", format)
 	cmd.AddDynamicArguments(commitID)
-	if len(paths) > 0 {
-		cmd.AddDynamicArguments(paths...)
-	}
+	cmd.AddDynamicArguments(paths...)
 
 	var stderr strings.Builder
 	if err := RunCmd(ctx, repo, cmd.WithStdout(target).WithStderr(&stderr)); err != nil {

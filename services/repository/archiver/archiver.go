@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/httplib"
@@ -23,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	gitea_context "code.gitea.io/gitea/services/context"
 )
 
@@ -40,50 +42,6 @@ type ArchiveRequest struct {
 	archiveRefShortName string // the ref short name to download the archive, for example: "master", "v1.0.0", "commit id"
 }
 
-// ErrUnknownArchiveFormat request archive format is not supported
-type ErrUnknownArchiveFormat struct {
-	RequestNameType string
-}
-
-// Error implements error
-func (err ErrUnknownArchiveFormat) Error() string {
-	return "unknown format: " + err.RequestNameType
-}
-
-// Is implements error
-func (ErrUnknownArchiveFormat) Is(err error) bool {
-	_, ok := err.(ErrUnknownArchiveFormat)
-	return ok
-}
-
-type ErrBadPathSpec struct {
-	PathSpec string
-}
-
-func (err ErrBadPathSpec) Error() string {
-	return "path doesn't exist: " + err.PathSpec
-}
-
-func (ErrBadPathSpec) Is(err error) bool {
-	var errBadPathSpec ErrBadPathSpec
-	return errors.As(err, &errBadPathSpec)
-}
-
-// RepoRefNotFoundError is returned when a requested reference (commit, tag) was not found.
-type RepoRefNotFoundError struct {
-	RefShortName string
-}
-
-// Error implements error.
-func (e RepoRefNotFoundError) Error() string {
-	return "unrecognized repository reference: " + e.RefShortName
-}
-
-func (e RepoRefNotFoundError) Is(err error) bool {
-	_, ok := err.(RepoRefNotFoundError)
-	return ok
-}
-
 // NewRequest creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to Await()
 // if it's determined that the request still needs to be satisfied.
@@ -91,13 +49,13 @@ func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRef
 	// here the archiveRefShortName is not a clear ref, it could be a tag, branch or commit id
 	archiveRefShortName, archiveType := repo_model.SplitArchiveNameType(archiveRefExt)
 	if archiveType == repo_model.ArchiveUnknown {
-		return nil, ErrUnknownArchiveFormat{archiveRefExt}
+		return nil, util.NewInvalidArgumentErrorf("unknown format: %s", archiveRefExt)
 	}
 
 	// Get corresponding commit.
 	commitID, err := gitRepo.ConvertToGitID(archiveRefShortName)
 	if err != nil {
-		return nil, RepoRefNotFoundError{RefShortName: archiveRefShortName}
+		return nil, util.NewNotExistErrorf("unrecognized repository reference: %s", archiveRefShortName)
 	}
 
 	r := &ArchiveRequest{Repo: repo, archiveRefShortName: archiveRefShortName, Type: archiveType, Paths: paths}
@@ -364,23 +322,22 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error
 	))
 	downloadName := archiveReq.Repo.Name + "-" + archiveReq.GetArchiveName()
 
-	if setting.Repository.StreamArchives {
+	if setting.Repository.StreamArchives || len(archiveReq.Paths) > 0 {
 		// TODO: Having this header set breaks swagger-ui as it thinks there's a file, even if it's an error.
 		httplib.ServeSetHeaders(ctx.Resp, &httplib.ServeHeaderOptions{Filename: downloadName})
+		var gitErr gitcmd.RunStdError
 		if err := archiveReq.Stream(ctx, ctx.Resp); err != nil && !ctx.Written() {
-			if strings.Contains(err.Error(), "fatal: pathspec") {
-				return ErrBadPathSpec{PathSpec: err.Error()[strings.Index(err.Error(), "'"):strings.LastIndex(err.Error(), "'")]}
+			if errors.As(err, &gitErr); strings.HasPrefix(gitErr.Stderr(), "fatal: pathspec") {
+				return util.NewInvalidArgumentErrorf("path doesn't exist or is invalid")
 			}
-			log.Error("Archive %v streaming failed: %v", archiveReq, err)
-			return err
+			return fmt.Errorf("archive repo %s: failed to stream: %w", archiveReq.Repo.FullName(), err)
 		}
 		return nil
 	}
 
 	archiver, err := archiveReq.Await(ctx)
 	if err != nil {
-		log.Error("Archive %v await failed: %v", archiveReq, err)
-		return err
+		return fmt.Errorf("archive repo %s: failed to await: %w", archiveReq.Repo.FullName(), err)
 	}
 
 	rPath := archiver.RelativePath()
@@ -395,8 +352,7 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error
 
 	fr, err := storage.RepoArchives.Open(rPath)
 	if err != nil {
-		log.Error("Archive %v open file failed: %v", archiveReq, err)
-		return err
+		return fmt.Errorf("archive repo %s: failed to open archive file: %w", archiveReq.Repo.FullName(), err)
 	}
 	defer fr.Close()
 

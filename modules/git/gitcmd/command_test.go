@@ -11,7 +11,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -98,4 +100,15 @@ func TestCommandString(t *testing.T) {
 
 	cmd = NewCommand("url: https://a:b@c/", "/root/dir-a/dir-b")
 	assert.Equal(t, cmd.prog+` "url: https://sanitized-credential@c/" .../dir-a/dir-b`, cmd.LogString())
+}
+
+func TestRunStdError(t *testing.T) {
+	e := &runStdError{stderr: "some error"}
+	var err RunStdError = e
+
+	var asErr RunStdError
+	require.True(t, errors.As(err, &asErr))
+	require.Error(t, asErr)
+	require.Equal(t, asErr.Stderr(), "some error")
+	require.True(t, errors.As(fmt.Errorf("wrapped %w", err), &asErr))
 }

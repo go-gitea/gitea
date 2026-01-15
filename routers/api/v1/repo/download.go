@@ -8,16 +8,17 @@ import (
 	"net/http"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
 
-func serveRepoArchive(ctx *context.APIContext, reqFileName string, path []string) {
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, reqFileName, path)
+func serveRepoArchive(ctx *context.APIContext, reqFileName string, paths []string) {
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, reqFileName, paths)
 	if err != nil {
-		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)
-		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
+		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.APIError(http.StatusNotFound, err)
 		} else {
 			ctx.APIErrorInternal(err)
@@ -26,7 +27,7 @@ func serveRepoArchive(ctx *context.APIContext, reqFileName string, path []string
 	}
 	err = archiver_service.ServeRepoArchive(ctx.Base, aReq)
 	if err != nil {
-		if errors.Is(err, archiver_service.ErrBadPathSpec{}) {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.APIError(http.StatusBadRequest, err)
 		} else {
 			ctx.APIErrorInternal(err)
@@ -34,7 +35,8 @@ func serveRepoArchive(ctx *context.APIContext, reqFileName string, path []string
 	}
 }
 
-// TODO: Document this or explain why it's ommited from API despite being a part of it.
+// DownloadArchive is the GitHub-compatible endpoint to download repository archives
+// TODO: The API document is missing: Add github compatible tarball download API endpoints (#32572)
 func DownloadArchive(ctx *context.APIContext) {
 	var tp repo_model.ArchiveType
 	switch ballType := ctx.PathParam("ball_type"); ballType {
