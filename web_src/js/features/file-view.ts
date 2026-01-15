@@ -66,17 +66,27 @@ function updateSidebarPosition(elFileView: HTMLElement, sidebar: HTMLElement): v
 
   const headerRect = fileHeader.getBoundingClientRect();
   const segmentRect = segment.getBoundingClientRect();
-  const sidebarHeight = sidebar.offsetHeight;
 
   // Calculate top position:
   // - When file header is visible: align with file header top
   // - When file header scrolls above viewport: stick to top (12px)
-  // - Limit so sidebar bottom doesn't go below segment bottom
+  // - Ensure sidebar top doesn't go above segment top (when scrolling up)
   const minTop = 12;
-  const maxTop = Math.max(minTop, segmentRect.bottom - sidebarHeight);
   let topPos = Math.max(minTop, headerRect.top);
-  topPos = Math.min(topPos, maxTop);
+  topPos = Math.max(topPos, segmentRect.top); // Don't go above segment top
 
+  // Dynamically calculate max-height so sidebar doesn't extend below segment bottom
+  const availableHeight = Math.max(0, segmentRect.bottom - topPos);
+  const cssMaxHeight = window.innerHeight - 140; // Match CSS calc(100vh - 140px)
+  const maxHeight = Math.min(availableHeight, cssMaxHeight);
+
+  // Hide sidebar if available height is too small
+  if (maxHeight < 50) {
+    sidebar.style.opacity = '0';
+    return;
+  }
+
+  sidebar.style.maxHeight = `${maxHeight}px`;
   sidebar.style.opacity = '';
   sidebar.style.top = `${topPos}px`;
 
