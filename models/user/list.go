@@ -46,6 +46,33 @@ func (users UserList) GetTwoFaStatus(ctx context.Context) map[int64]bool {
 	return results
 }
 
+// GetTwoFaSkipStatus returns a map of users who skip local 2FA because of their auth source
+func (users UserList) GetTwoFaSkipStatus(ctx context.Context) map[int64]bool {
+	results := make(map[int64]bool, len(users))
+	sourceIDs := make([]int64, 0, len(users))
+	for _, user := range users {
+		results[user.ID] = false
+		if user.LoginSource != 0 {
+			sourceIDs = append(sourceIDs, user.LoginSource)
+		}
+	}
+
+	if len(sourceIDs) == 0 {
+		return results
+	}
+
+	sources := make(map[int64]*auth.Source)
+	if err := db.GetEngine(ctx).In("id", sourceIDs).Find(&sources); err == nil {
+		for _, user := range users {
+			if s, ok := sources[user.LoginSource]; ok && s.TwoFactorShouldSkip() {
+				results[user.ID] = true
+			}
+		}
+	}
+
+	return results
+}
+
 func (users UserList) loadTwoFactorStatus(ctx context.Context) (map[int64]*auth.TwoFactor, error) {
 	if len(users) == 0 {
 		return nil, nil

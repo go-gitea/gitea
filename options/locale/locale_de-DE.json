@@ -2611,6 +2611,7 @@
   "admin.users.purge_help": "Erzwinge das Löschen des Benutzers inklusive aller seiner Repositories, Organisationen, Pakete und Kommentare.",
   "admin.users.deletion_success": "Der Account wurde gelöscht.",
   "admin.users.reset_2fa": "2FA zurücksetzen",
+  "admin.users.2fa_skipped": "2FA wird durch den Authentifizierungsanbieter verwaltet",
   "admin.users.list_status_filter.is_active": "Aktiv",
   "admin.users.list_status_filter.not_active": "Inaktiv",
   "admin.users.list_status_filter.is_admin": "Administrator",

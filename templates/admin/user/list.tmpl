@@ -95,7 +95,12 @@
 							<td class="gt-ellipsis tw-max-w-48">{{.Email}}</td>
 							<td>{{svg (Iif .IsActive "octicon-check" "octicon-x")}}</td>
 							<td>{{svg (Iif .IsRestricted "octicon-check" "octicon-x")}}</td>
-							<td>{{svg (Iif (index $.UsersTwoFaStatus .ID) "octicon-check" "octicon-x")}}</td>
+							<td>
+								{{svg (Iif (index $.UsersTwoFaStatus .ID) "octicon-check" "octicon-x")}}
+								{{if index $.UsersTwoFaSkipStatus .ID}}
+									<span data-tooltip-content="{{ctx.Locale.Tr "admin.users.2fa_skipped"}}">{{svg "octicon-info"}}</span>
+								{{end}}
+							</td>
 							<td>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 							{{if .LastLoginUnix}}
 								<td>{{DateUtils.AbsoluteShort .LastLoginUnix}}</td>

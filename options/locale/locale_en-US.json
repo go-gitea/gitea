@@ -2949,6 +2949,7 @@
   "admin.users.bot": "Bot",
   "admin.users.remote": "Remote",
   "admin.users.2fa": "2FA",
+  "admin.users.2fa_skipped": "2FA is managed by the authentication provider",
   "admin.users.repos": "Repos",
   "admin.users.created": "Created",
   "admin.users.last_login": "Last Sign-In",

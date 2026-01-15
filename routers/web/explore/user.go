@@ -116,6 +116,7 @@ func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, t
 	ctx.Data["Total"] = count
 	ctx.Data["Users"] = users
 	ctx.Data["UsersTwoFaStatus"] = user_model.UserList(users).GetTwoFaStatus(ctx)
+	ctx.Data["UsersTwoFaSkipStatus"] = user_model.UserList(users).GetTwoFaSkipStatus(ctx)
 	ctx.Data["ShowUserEmail"] = setting.UI.ShowUserEmail
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
