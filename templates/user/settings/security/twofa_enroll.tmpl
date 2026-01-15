@@ -3,6 +3,13 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "settings.twofa_enroll"}}
 		</h4>
+		{{if .TwoFactorEnforced}}
+			<div class="ui attached segment">
+				<div class="ui negative message">
+					<p>{{ctx.Locale.Tr "auth.twofa_required"}}</p>
+				</div>
+			</div>
+		{{end}}
 		<div class="ui attached segment">
 			<p>{{ctx.Locale.Tr "settings.scan_this_image"}}</p>
 			<img src="{{.QrUri}}" alt="{{.TwofaSecret}}">

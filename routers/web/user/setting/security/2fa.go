@@ -165,6 +165,7 @@ func EnrollTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["ShowTwoFactorRequiredMessage"] = false
+	ctx.Data["TwoFactorEnforced"] = ctx.DoerNeedTwoFactorAuth()
 
 	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if t != nil {
@@ -197,6 +198,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["ShowTwoFactorRequiredMessage"] = false
+	ctx.Data["TwoFactorEnforced"] = ctx.DoerNeedTwoFactorAuth()
 
 	t, err := auth.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 	if t != nil {

@@ -66,6 +66,8 @@ func DeleteAccountLink(ctx *context.Context) {
 }
 
 func loadSecurityData(ctx *context.Context) {
+	ctx.Data["TwoFactorEnforced"] = ctx.DoerNeedTwoFactorAuth()
+
 	enrolled, err := auth_model.HasTwoFactorByUID(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("SettingsTwoFactor", err)

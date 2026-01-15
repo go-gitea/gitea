@@ -1,6 +1,11 @@
 {{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings security")}}
 	{{if not ($.UserDisabledFeatures.Contains "manage_mfa" "manage_credentials")}}
 	<div class="user-setting-content">
+		{{if .TwoFactorEnforced}}
+			<div class="ui negative message">
+				<p>{{ctx.Locale.Tr "auth.twofa_required"}}</p>
+			</div>
+		{{end}}
 		{{if not ($.UserDisabledFeatures.Contains "manage_mfa")}}
 		{{template "user/settings/security/twofa" .}}
 		{{template "user/settings/security/webauthn" .}}
