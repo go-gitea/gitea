@@ -4,6 +4,8 @@
 package integration
 
 import (
+	"fmt"
+	"hash/crc32"
 	"net/http"
 	"net/url"
 	"strings"
@@ -19,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/web/auth"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/tests"
 
@@ -198,4 +201,50 @@ func TestRequireSignInView(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusSeeOther)
 		assert.Equal(t, "/user/login?redirect_to=%2Fuser2%2Frepo1%2Fsrc%2Fbranch%2Fmaster", resp.Header().Get("Location"))
 	})
+}
+
+func TestLinkAccountSignupAppliesRestrictedClaim(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	authName := fmt.Sprintf("link-account-oidc-%s", t.Name())
+	addOAuth2Source(t, authName, oauth2.Source{
+		Provider:        "gitea",
+		GroupClaimName:  "groups",
+		RestrictedGroup: "link-account-restricted",
+	})
+
+	ctx := t.Context()
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(ctx, authName)
+	require.NoError(t, err)
+	suffix := crc32.ChecksumIEEE([]byte(t.Name()))
+	userName := fmt.Sprintf("linkclaim%x", suffix)
+	userEmail := fmt.Sprintf("%s@example.com", userName)
+	gothUser := goth.User{
+		Provider: authSource.Cfg.(*oauth2.Source).Provider,
+		UserID:   userName,
+		Email:    userEmail,
+		RawData: map[string]any{
+			"groups": []string{"link-account-restricted"},
+		},
+	}
+
+	defer web.RouteMockReset()
+	web.RouteMock(web.MockAfterMiddlewares, func(ctx *context.Context) {
+		_ = auth.Oauth2SetLinkAccountData(ctx, auth.LinkAccountData{
+			AuthSourceID: authSource.ID,
+			GothUser:     gothUser,
+		})
+	})
+
+	session := emptyTestSession(t)
+	req := NewRequestWithValues(t, "POST", "/user/link_account_signup", map[string]string{
+		"user_name": userName,
+		"email":     userEmail,
+		"password":  "pass123456",
+		"retype":    "pass123456",
+	})
+	session.MakeRequest(t, req, http.StatusSeeOther)
+
+	createdUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: userName})
+	assert.True(t, createdUser.IsRestricted)
 }

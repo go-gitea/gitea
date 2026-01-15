@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 var tplLinkAccount templates.TplName = "user/auth/link_account"
@@ -310,6 +312,19 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		return
 	}
 	source := authSource.Cfg.(*oauth2.Source)
+
+	isAdmin, isRestricted := getUserAdminAndRestrictedFromGroupClaims(source, &linkAccountData.GothUser)
+	if isAdmin.Has() || isRestricted.Has() {
+		opts := &user_service.UpdateOptions{
+			IsAdmin:      isAdmin,
+			IsRestricted: optional.Some(isRestricted.ValueOrDefault(setting.Service.DefaultUserIsRestricted)),
+		}
+		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
+			ctx.ServerError("UpdateUser", err)
+			return
+		}
+	}
+
 	if err := syncGroupsToTeams(ctx, source, &linkAccountData.GothUser, u); err != nil {
 		ctx.ServerError("SyncGroupsToTeams", err)
 		return
