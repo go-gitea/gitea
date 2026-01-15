@@ -1,4 +1,4 @@
-// TOOD: Move to .ts after https://github.com/stylelint/stylelint/issues/8893 is fixed
+// TODO: Move to .ts after https://github.com/stylelint/stylelint/issues/8893 is fixed
 import {fileURLToPath} from 'node:url';
 
 const cssVarFiles = [
