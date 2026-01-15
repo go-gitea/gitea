@@ -389,13 +389,14 @@ func Download(ctx *context.Context) {
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
-	if setting.Repository.StreamArchives {
+	paths := ctx.FormStrings("path")
+	if setting.Repository.StreamArchives || len(paths) > 0 {
 		ctx.JSON(http.StatusOK, map[string]any{
 			"complete": true,
 		})
 		return
 	}
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"), ctx.FormStrings("path"))
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"), paths)
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, "invalid archive request")
 		return
