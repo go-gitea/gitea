@@ -165,8 +165,15 @@ function initSidebarToggle(elFileView: HTMLElement): void {
   });
   resizeObserver.observe(document.body);
 
-  // Update position on scroll
-  window.addEventListener('scroll', updatePosition, {passive: true});
+  // Update position on scroll - use requestAnimationFrame for smooth updates
+  let scrollRafId: number | null = null;
+  window.addEventListener('scroll', () => {
+    if (scrollRafId !== null) return; // Already scheduled
+    scrollRafId = requestAnimationFrame(() => {
+      updatePosition();
+      scrollRafId = null;
+    });
+  }, {passive: true});
 
   toggleBtn.addEventListener('click', () => {
     const isCurrentlyVisible = !sidebar.classList.contains('sidebar-panel-hidden');
