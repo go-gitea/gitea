@@ -18,8 +18,6 @@ declare module '*.vue' {
   export function initRepositoryActionView(): void;
 }
 
-declare let __webpack_public_path__: string;
-
 declare module 'htmx.org/dist/htmx.esm.js' {
   const value = await import('htmx.org');
   export default value;
@@ -51,7 +49,6 @@ interface Element {
 }
 
 interface Window {
-  __webpack_public_path__: string;
   config: import('./web_src/js/types.ts').Config;
   $: typeof import('@types/jquery'),
   jQuery: typeof import('@types/jquery'),

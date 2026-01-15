@@ -44,6 +44,7 @@
     "stripInternal": true,
     "verbatimModuleSyntax": true,
     "types": [
+      "webpack/module",
       "vitest/globals",
       "./web_src/js/globals.d.ts",
       "./types.d.ts",
