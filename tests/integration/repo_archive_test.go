@@ -35,22 +35,24 @@ func TestRepoDownloadArchive(t *testing.T) {
 	})
 
 	t.Run("SubPath", func(t *testing.T) {
-		req := NewRequest(t, "GET", "/user2/glob/archive/master.tar.gz")
+		// When using "archiving and caching" approach, archiving with paths will always use streaming and never be cached
+		defer test.MockVariableValue(&setting.Repository.StreamArchives, false) // this can be removed if there is always streaming mode
+		req := NewRequest(t, "GET", "/user2/glob/archive/master.tar.gz?path=aaa.doc&path=x/y")
 		resp := MakeRequest(t, req, http.StatusOK)
 		content, err := test.ReadAllTarGzContent(resp.Body)
-		require.NoError(t, err)
-		assert.NotEmpty(t, content["glob/a.txt"])
-		assert.NotEmpty(t, content["glob/aaa.doc"])
-		assert.NotEmpty(t, content["glob/x/b.txt"])
-		assert.NotEmpty(t, content["glob/x/y/a.txt"])
-
-		req = NewRequest(t, "GET", "/user2/glob/archive/master.tar.gz?path=aaa.doc&path=x/y")
-		resp = MakeRequest(t, req, http.StatusOK)
-		content, err = test.ReadAllTarGzContent(resp.Body)
 		require.NoError(t, err)
 		assert.Empty(t, content["glob/a.txt"])
 		assert.NotEmpty(t, content["glob/aaa.doc"])
 		assert.Empty(t, content["glob/x/b.txt"])
+		assert.NotEmpty(t, content["glob/x/y/a.txt"])
+
+		req = NewRequest(t, "GET", "/user2/glob/archive/master.tar.gz")
+		resp = MakeRequest(t, req, http.StatusOK)
+		content, err = test.ReadAllTarGzContent(resp.Body)
+		require.NoError(t, err)
+		assert.NotEmpty(t, content["glob/a.txt"])
+		assert.NotEmpty(t, content["glob/aaa.doc"])
+		assert.NotEmpty(t, content["glob/x/b.txt"])
 		assert.NotEmpty(t, content["glob/x/y/a.txt"])
 	})
 }

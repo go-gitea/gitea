@@ -326,7 +326,8 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error
 	downloadName := archiveReq.Repo.Name + "-" + archiveReq.GetArchiveName()
 
 	if setting.Repository.StreamArchives || len(archiveReq.Paths) > 0 {
-		// TODO: Having this header set breaks swagger-ui as it thinks there's a file, even if it's an error.
+		// the header must be set before starting streaming even an error would occur,
+		// because errors may happen in git command and such cases aren't in our control.
 		httplib.ServeSetHeaders(ctx.Resp, &httplib.ServeHeaderOptions{Filename: downloadName})
 		var gitErr gitcmd.RunStdError
 		if err := archiveReq.Stream(ctx, ctx.Resp); err != nil && !ctx.Written() {
