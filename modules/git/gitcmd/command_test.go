@@ -109,6 +109,7 @@ func TestRunStdError(t *testing.T) {
 	var asErr RunStdError
 	require.True(t, errors.As(err, &asErr))
 	require.Error(t, asErr)
-	require.Equal(t, asErr.Stderr(), "some error")
+	require.Equal(t, "some error", asErr.Stderr())
+
 	require.True(t, errors.As(fmt.Errorf("wrapped %w", err), &asErr))
 }
