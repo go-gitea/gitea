@@ -70,8 +70,8 @@ type RenderContext struct {
 	// the context might be used by the "render" function, but it might also be used by "postProcess" function
 	usedByRender bool
 
-	SidebarTocNode    ast.Node  // Deprecated: use SidebarTocHeaders instead, keep for compatibility
-	SidebarTocHeaders []Header  // Headers for generating sidebar TOC
+	SidebarTocNode    ast.Node // Deprecated: use SidebarTocHeaders instead, keep for compatibility
+	SidebarTocHeaders []Header // Headers for generating sidebar TOC
 
 	RenderHelper   RenderHelper
 	RenderOptions  RenderOptions
