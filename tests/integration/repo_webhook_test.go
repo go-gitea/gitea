@@ -435,6 +435,119 @@ func Test_WebhookPushDevBranch(t *testing.T) {
 	})
 }
 
+func Test_WebhookPushBranchPatternGlob(t *testing.T) {
+	testCases := []struct {
+		name             string
+		branchFilter     string
+		matchBranch      string
+		nonMatchBranch   string
+		branchesToCreate []string
+		verifyCommits    bool
+	}{
+		{
+			name:             "PrefixWildcard",
+			branchFilter:     "feature/*",
+			matchBranch:      "feature/glob-branch",
+			nonMatchBranch:   "master",
+			branchesToCreate: []string{"feature/glob-branch"},
+			verifyCommits:    true,
+		},
+		{
+			name:             "NegatedCharacterClass",
+			branchFilter:     "feature/[!h]lob-branch",
+			matchBranch:      "feature/glob-branch",
+			nonMatchBranch:   "feature/hlob-branch",
+			branchesToCreate: []string{"feature/glob-branch", "feature/hlob-branch"},
+		},
+		{
+			name:             "DoubleStarFullRef",
+			branchFilter:     "refs/heads/release/**/rc",
+			matchBranch:      "release/v1/rc",
+			nonMatchBranch:   "release/v1/beta",
+			branchesToCreate: []string{"release/v1/rc", "release/v1/beta"},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			var payloads []api.PushPayload
+			var triggeredEvent string
+			provider := newMockWebhookProvider(func(r *http.Request) {
+				content, _ := io.ReadAll(r.Body)
+				var payload api.PushPayload
+				err := json.Unmarshal(content, &payload)
+				assert.NoError(t, err)
+				payloads = append(payloads, payload)
+				triggeredEvent = "push"
+			}, http.StatusOK)
+			defer provider.Close()
+
+			onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+				session := loginUser(t, "user2")
+				slug := strings.ToLower(tc.name)
+
+				for _, branch := range tc.branchesToCreate {
+					testAPICreateBranch(t, session, "user2", "repo1", "master", branch, http.StatusCreated)
+				}
+
+				testAPICreateWebhookForRepo(t, session, "user2", "repo1", provider.URL(), "push", tc.branchFilter)
+
+				if tc.nonMatchBranch != "" {
+					payloads = nil
+					triggeredEvent = ""
+					nonMatchFile := fmt.Sprintf("test_webhook_push_glob_%s_nonmatch.md", slug)
+					testCreateFile(t, session, "user2", "repo1", tc.nonMatchBranch, "", nonMatchFile, fmt.Sprintf("# push filtered by glob %s", tc.name))
+					assert.Empty(t, triggeredEvent)
+					assert.Empty(t, payloads)
+				}
+
+				payloads = nil
+				triggeredEvent = ""
+				matchFile := fmt.Sprintf("test_webhook_push_glob_%s_match.md", slug)
+
+				var (
+					gitRepo        *git.Repository
+					beforeCommitID string
+				)
+				if tc.verifyCommits {
+					repo1 := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 1})
+					var err error
+					gitRepo, err = gitrepo.OpenRepository(t.Context(), repo1)
+					assert.NoError(t, err)
+					defer gitRepo.Close()
+					beforeCommitID, err = gitRepo.GetBranchCommitID(tc.matchBranch)
+					assert.NoError(t, err)
+				}
+
+				testCreateFile(t, session, "user2", "repo1", tc.matchBranch, "", matchFile, fmt.Sprintf("# push allowed by glob %s", tc.name))
+
+				var afterCommitID string
+				if tc.verifyCommits {
+					var err error
+					afterCommitID, err = gitRepo.GetBranchCommitID(tc.matchBranch)
+					assert.NoError(t, err)
+				}
+
+				assert.Equal(t, "push", triggeredEvent)
+				require.Len(t, payloads, 1)
+				assert.Equal(t, "refs/heads/"+tc.matchBranch, payloads[0].Ref)
+				assert.Equal(t, tc.matchBranch, payloads[0].Branch())
+				assert.Equal(t, "repo1", payloads[0].Repo.Name)
+				assert.Equal(t, "user2/repo1", payloads[0].Repo.FullName)
+				require.Len(t, payloads[0].Commits, 1)
+				assert.Equal(t, []string{matchFile}, payloads[0].Commits[0].Added)
+
+				if tc.verifyCommits {
+					assert.Equal(t, beforeCommitID, payloads[0].Before)
+					assert.Equal(t, afterCommitID, payloads[0].After)
+					assert.Equal(t, setting.AppURL+"user2/repo1/compare/"+beforeCommitID+"..."+afterCommitID, payloads[0].CompareURL)
+				}
+			})
+		})
+	}
+}
+
 func Test_WebhookPushToNewBranch(t *testing.T) {
 	var payloads []api.PushPayload
 	var triggeredEvent string
