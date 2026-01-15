@@ -774,12 +774,16 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		}
 
 		var commentMetaData *CommentMetaData
-		if opts.ProjectColumnTitle != "" || opts.IsCodeOwnersReviewRequest {
+		if opts.ProjectColumnTitle != "" {
 			commentMetaData = &CommentMetaData{
-				ProjectColumnID:           opts.ProjectColumnID,
-				ProjectColumnTitle:        opts.ProjectColumnTitle,
-				ProjectTitle:              opts.ProjectTitle,
-				IsCodeOwnersReviewRequest: opts.IsCodeOwnersReviewRequest,
+				ProjectColumnID:    opts.ProjectColumnID,
+				ProjectColumnTitle: opts.ProjectColumnTitle,
+				ProjectTitle:       opts.ProjectTitle,
+			}
+		}
+		if opts.IsCodeOwnersReviewRequest {
+			commentMetaData = &CommentMetaData{
+				IsCodeOwnersReviewRequest: true,
 			}
 		}
 

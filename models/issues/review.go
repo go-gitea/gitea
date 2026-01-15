@@ -643,7 +643,7 @@ func InsertReviews(ctx context.Context, reviews []*Review) error {
 }
 
 // AddReviewRequest add a review request from one reviewer
-func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_model.User) (*Comment, error) {
+func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_model.User, isCodeOwners bool) (*Comment, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
 		sess := db.GetEngine(ctx)
 
@@ -695,13 +695,14 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 		}
 
 		comment, err := CreateComment(ctx, &CreateCommentOptions{
-			Type:            CommentTypeReviewRequest,
-			Doer:            doer,
-			Repo:            issue.Repo,
-			Issue:           issue,
-			RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
-			AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
-			ReviewID:        review.ID,
+			Type:                      CommentTypeReviewRequest,
+			Doer:                      doer,
+			Repo:                      issue.Repo,
+			Issue:                     issue,
+			RemovedAssignee:           false,       // Use RemovedAssignee as !isRequest
+			AssigneeID:                reviewer.ID, // Use AssigneeID as reviewer ID
+			ReviewID:                  review.ID,
+			IsCodeOwnersReviewRequest: isCodeOwners,
 		})
 		if err != nil {
 			return nil, err
@@ -767,7 +768,7 @@ func restoreLatestOfficialReview(ctx context.Context, issueID, reviewerID int64)
 }
 
 // AddTeamReviewRequest add a review request from one team
-func AddTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organization.Team, doer *user_model.User) (*Comment, error) {
+func AddTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organization.Team, doer *user_model.User, isCodeOwners bool) (*Comment, error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
 		review, err := GetTeamReviewerByIssueIDAndTeamID(ctx, issue.ID, reviewer.ID)
 		if err != nil && !IsErrReviewNotExist(err) {
@@ -805,13 +806,14 @@ func AddTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organizat
 		}
 
 		comment, err := CreateComment(ctx, &CreateCommentOptions{
-			Type:            CommentTypeReviewRequest,
-			Doer:            doer,
-			Repo:            issue.Repo,
-			Issue:           issue,
-			RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
-			AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
-			ReviewID:        review.ID,
+			Type:                      CommentTypeReviewRequest,
+			Doer:                      doer,
+			Repo:                      issue.Repo,
+			Issue:                     issue,
+			RemovedAssignee:           false,       // Use RemovedAssignee as !isRequest
+			AssigneeTeamID:            reviewer.ID, // Use AssigneeTeamID as reviewer team ID
+			ReviewID:                  review.ID,
+			IsCodeOwnersReviewRequest: isCodeOwners,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("CreateComment(): %w", err)
@@ -867,130 +869,6 @@ func RemoveTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organi
 			Issue:           issue,
 			RemovedAssignee: true,        // Use RemovedAssignee as !isRequest
 			AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
-		})
-		if err != nil {
-			return nil, fmt.Errorf("CreateComment(): %w", err)
-		}
-
-		return comment, nil
-	})
-}
-
-// AddCodeOwnersReviewRequest adds a review request from CODEOWNERS rules.
-// It works like AddReviewRequest but marks the comment as CODEOWNERS-triggered.
-func AddCodeOwnersReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_model.User) (*Comment, error) {
-	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
-		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
-		if err != nil && !IsErrReviewNotExist(err) {
-			return nil, err
-		}
-
-		if review != nil {
-			// skip it when reviewer has been request to review
-			if review.Type == ReviewTypeRequest {
-				return nil, nil
-			}
-
-			if issue.IsClosed {
-				return nil, ErrReviewRequestOnClosedPR{}
-			}
-
-			if issue.IsPull {
-				if err := issue.LoadPullRequest(ctx); err != nil {
-					return nil, err
-				}
-				if issue.PullRequest.HasMerged {
-					return nil, ErrReviewRequestOnClosedPR{}
-				}
-			}
-		}
-
-		official, err := IsOfficialReviewer(ctx, issue, reviewer)
-		if err != nil {
-			return nil, err
-		} else if official {
-			if _, err := db.GetEngine(ctx).Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, reviewer.ID); err != nil {
-				return nil, err
-			}
-		}
-
-		review, err = CreateReview(ctx, CreateReviewOptions{
-			Type:     ReviewTypeRequest,
-			Issue:    issue,
-			Reviewer: reviewer,
-			Official: official,
-			Stale:    false,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		comment, err := CreateComment(ctx, &CreateCommentOptions{
-			Type:                      CommentTypeReviewRequest,
-			Doer:                      doer,
-			Repo:                      issue.Repo,
-			Issue:                     issue,
-			RemovedAssignee:           false,
-			AssigneeID:                reviewer.ID,
-			ReviewID:                  review.ID,
-			IsCodeOwnersReviewRequest: true,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		comment.Review = review
-		return comment, nil
-	})
-}
-
-// AddCodeOwnersTeamReviewRequest adds a team review request from CODEOWNERS rules.
-// It works like AddTeamReviewRequest but marks the comment as CODEOWNERS-triggered.
-func AddCodeOwnersTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organization.Team, doer *user_model.User) (*Comment, error) {
-	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
-		review, err := GetTeamReviewerByIssueIDAndTeamID(ctx, issue.ID, reviewer.ID)
-		if err != nil && !IsErrReviewNotExist(err) {
-			return nil, err
-		}
-
-		if review != nil {
-			return nil, nil
-		}
-
-		official, err := IsOfficialReviewerTeam(ctx, issue, reviewer)
-		if err != nil {
-			return nil, fmt.Errorf("isOfficialReviewerTeam(): %w", err)
-		} else if !official {
-			if official, err = IsOfficialReviewer(ctx, issue, doer); err != nil {
-				return nil, fmt.Errorf("isOfficialReviewer(): %w", err)
-			}
-		}
-
-		if review, err = CreateReview(ctx, CreateReviewOptions{
-			Type:         ReviewTypeRequest,
-			Issue:        issue,
-			ReviewerTeam: reviewer,
-			Official:     official,
-			Stale:        false,
-		}); err != nil {
-			return nil, err
-		}
-
-		if official {
-			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_team_id=?", false, issue.ID, reviewer.ID); err != nil {
-				return nil, err
-			}
-		}
-
-		comment, err := CreateComment(ctx, &CreateCommentOptions{
-			Type:                      CommentTypeReviewRequest,
-			Doer:                      doer,
-			Repo:                      issue.Repo,
-			Issue:                     issue,
-			RemovedAssignee:           false,
-			AssigneeTeamID:            reviewer.ID,
-			ReviewID:                  review.ID,
-			IsCodeOwnersReviewRequest: true,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("CreateComment(): %w", err)

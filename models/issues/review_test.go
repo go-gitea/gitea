@@ -322,19 +322,19 @@ func TestAddReviewRequest(t *testing.T) {
 	pull.HasMerged = false
 	assert.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
 	issue.IsClosed = true
-	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{})
+	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{}, false)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
 
 	pull.HasMerged = true
 	assert.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
 	issue.IsClosed = false
-	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{})
+	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{}, false)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
 }
 
-func TestAddCodeOwnersReviewRequest(t *testing.T) {
+func TestAddReviewRequest_WithCodeOwners(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
@@ -342,11 +342,11 @@ func TestAddCodeOwnersReviewRequest(t *testing.T) {
 	issue := pull.Issue
 	assert.NoError(t, issue.LoadRepo(t.Context()))
 
-	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 7})
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	// Test: Add CODEOWNERS review request
-	comment, err := issues_model.AddCodeOwnersReviewRequest(t.Context(), issue, reviewer, doer)
+	// Test: Add review request with isCodeOwners=true
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 
@@ -370,7 +370,7 @@ func TestAddCodeOwnersReviewRequest(t *testing.T) {
 	assert.True(t, savedComment.CommentMetaData.IsCodeOwnersReviewRequest)
 }
 
-func TestAddCodeOwnersReviewRequest_SkipExisting(t *testing.T) {
+func TestAddReviewRequest_WithCodeOwners_SkipExisting(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
@@ -382,17 +382,17 @@ func TestAddCodeOwnersReviewRequest_SkipExisting(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	// Create first review request
-	comment1, err := issues_model.AddCodeOwnersReviewRequest(t.Context(), issue, reviewer, doer)
+	comment1, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, comment1)
 
 	// Try to create duplicate - should skip and return nil
-	comment2, err := issues_model.AddCodeOwnersReviewRequest(t.Context(), issue, reviewer, doer)
+	comment2, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, true)
 	assert.NoError(t, err)
 	assert.Nil(t, comment2)
 }
 
-func TestAddCodeOwnersReviewRequest_ClosedPR(t *testing.T) {
+func TestAddReviewRequest_WithCodeOwners_ClosedPR(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
@@ -414,14 +414,14 @@ func TestAddCodeOwnersReviewRequest_ClosedPR(t *testing.T) {
 	// Close the issue
 	issue.IsClosed = true
 
-	// Try to add CODEOWNERS request - should error
-	comment, err := issues_model.AddCodeOwnersReviewRequest(t.Context(), issue, reviewer, doer)
+	// Try to add review request - should error
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, true)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
 	assert.Nil(t, comment)
 }
 
-func TestAddCodeOwnersReviewRequest_MergedPR(t *testing.T) {
+func TestAddReviewRequest_WithCodeOwners_MergedPR(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
@@ -444,14 +444,14 @@ func TestAddCodeOwnersReviewRequest_MergedPR(t *testing.T) {
 	pull.HasMerged = true
 	assert.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
 
-	// Try to add CODEOWNERS request - should error
-	comment, err := issues_model.AddCodeOwnersReviewRequest(t.Context(), issue, reviewer, doer)
+	// Try to add review request - should error
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, true)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
 	assert.Nil(t, comment)
 }
 
-func TestAddCodeOwnersTeamReviewRequest(t *testing.T) {
+func TestAddTeamReviewRequest_WithCodeOwners(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
@@ -462,8 +462,8 @@ func TestAddCodeOwnersTeamReviewRequest(t *testing.T) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	// Test: Add CODEOWNERS team review request
-	comment, err := issues_model.AddCodeOwnersTeamReviewRequest(t.Context(), issue, team, doer)
+	// Test: Add team review request with isCodeOwners=true
+	comment, err := issues_model.AddTeamReviewRequest(t.Context(), issue, team, doer, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 
@@ -476,7 +476,7 @@ func TestAddCodeOwnersTeamReviewRequest(t *testing.T) {
 	assert.True(t, comment.CommentMetaData.IsCodeOwnersReviewRequest)
 }
 
-func TestAddCodeOwnersTeamReviewRequest_SkipExisting(t *testing.T) {
+func TestAddTeamReviewRequest_WithCodeOwners_SkipExisting(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
@@ -488,12 +488,12 @@ func TestAddCodeOwnersTeamReviewRequest_SkipExisting(t *testing.T) {
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	// Create first team review request
-	comment1, err := issues_model.AddCodeOwnersTeamReviewRequest(t.Context(), issue, team, doer)
+	comment1, err := issues_model.AddTeamReviewRequest(t.Context(), issue, team, doer, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, comment1)
 
 	// Try to create duplicate - should skip and return nil
-	comment2, err := issues_model.AddCodeOwnersTeamReviewRequest(t.Context(), issue, team, doer)
+	comment2, err := issues_model.AddTeamReviewRequest(t.Context(), issue, team, doer, true)
 	assert.NoError(t, err)
 	assert.Nil(t, comment2)
 }
