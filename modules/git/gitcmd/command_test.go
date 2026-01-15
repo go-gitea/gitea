@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
 
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -107,9 +106,8 @@ func TestRunStdError(t *testing.T) {
 	var err RunStdError = e
 
 	var asErr RunStdError
-	require.True(t, errors.As(err, &asErr))
-	require.Error(t, asErr)
+	require.ErrorAs(t, err, &asErr)
 	require.Equal(t, "some error", asErr.Stderr())
 
-	require.True(t, errors.As(fmt.Errorf("wrapped %w", err), &asErr))
+	require.ErrorAs(t, fmt.Errorf("wrapped %w", err), &asErr)
 }
