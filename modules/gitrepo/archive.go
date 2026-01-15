@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -27,6 +29,12 @@ func CreateArchive(ctx context.Context, repo Repository, format string, target i
 	}
 	cmd.AddOptionFormat("--format=%s", format)
 	cmd.AddDynamicArguments(commitID)
+
+	paths = slices.Clone(paths)
+	for i := range paths {
+		// although "git archive" already ensures the paths won't go outside the repo, we still clean them here for safety
+		paths[i] = path.Clean(paths[i])
+	}
 	cmd.AddDynamicArguments(paths...)
 
 	var stderr strings.Builder
