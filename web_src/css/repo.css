@@ -1752,13 +1752,13 @@ tbody.commit-list {
 
 .diff-stats-bar {
   display: inline-block;
-  background-color: var(--color-diff-prompt-del-fg); /* the background is used as "text foreground color" */
+  background-color: var(--color-diff-removed-fg); /* the background is used as "text foreground color" */
   height: 12px;
   width: 44px;
 }
 
 .diff-stats-bar .diff-stats-add-bar {
-  background-color: var(--color-diff-prompt-add-fg);
+  background-color: var(--color-diff-added-fg);
   height: 100%;
 }
 
