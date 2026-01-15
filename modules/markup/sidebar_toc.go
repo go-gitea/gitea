@@ -75,4 +75,3 @@ func RenderSidebarTocHTML(headers []Header, lang string) template.HTML {
 
 	return template.HTML(sb.String())
 }
-
