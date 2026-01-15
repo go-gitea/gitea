@@ -469,7 +469,6 @@ func Test_WebhookPushBranchPatternGlob(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			var payloads []api.PushPayload
 			var triggeredEvent string
@@ -497,7 +496,7 @@ func Test_WebhookPushBranchPatternGlob(t *testing.T) {
 					payloads = nil
 					triggeredEvent = ""
 					nonMatchFile := fmt.Sprintf("test_webhook_push_glob_%s_nonmatch.md", slug)
-					testCreateFile(t, session, "user2", "repo1", tc.nonMatchBranch, "", nonMatchFile, fmt.Sprintf("# push filtered by glob %s", tc.name))
+					testCreateFile(t, session, "user2", "repo1", tc.nonMatchBranch, "", nonMatchFile, "# push filtered by glob "+tc.name)
 					assert.Empty(t, triggeredEvent)
 					assert.Empty(t, payloads)
 				}
@@ -520,7 +519,7 @@ func Test_WebhookPushBranchPatternGlob(t *testing.T) {
 					assert.NoError(t, err)
 				}
 
-				testCreateFile(t, session, "user2", "repo1", tc.matchBranch, "", matchFile, fmt.Sprintf("# push allowed by glob %s", tc.name))
+				testCreateFile(t, session, "user2", "repo1", tc.matchBranch, "", matchFile, "# push allowed by glob "+tc.name)
 
 				var afterCommitID string
 				if tc.verifyCommits {
