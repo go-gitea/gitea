@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -197,9 +198,16 @@ func Contexter() func(next http.Handler) http.Handler {
 }
 
 func (ctx *Context) DoerNeedTwoFactorAuth() bool {
-	if !setting.TwoFactorAuthEnforced {
+	if ctx.Doer == nil || !setting.TwoFactorAuthEnforced {
 		return false
 	}
+
+	source, err := auth.GetSourceByID(ctx, ctx.Doer.LoginSource)
+	if err == nil && source.TwoFactorShouldSkip() {
+		return false
+	}
+
+	// How about SkipLocal2FA for Users from OICD?
 	return ctx.Session.Get(session.KeyUserHasTwoFactorAuth) == false
 }
 
