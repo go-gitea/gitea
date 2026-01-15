@@ -165,15 +165,19 @@ function initSidebarToggle(elFileView: HTMLElement): void {
   });
   resizeObserver.observe(document.body);
 
-  // Update position on scroll - use requestAnimationFrame for smooth updates
-  let scrollRafId: number | null = null;
-  window.addEventListener('scroll', () => {
-    if (scrollRafId !== null) return; // Already scheduled
-    scrollRafId = requestAnimationFrame(() => {
+  // Update position using IntersectionObserver instead of scroll event
+  // This provides better performance and avoids scroll event issues
+  const fileHeader = elFileView.querySelector('.file-header');
+  const segment = elFileView.querySelector('.ui.bottom.segment');
+  if (fileHeader && segment) {
+    // Use many thresholds to get fine-grained position updates during scroll
+    const thresholds = Array.from({length: 101}, (_, i) => i / 100);
+    const positionObserver = new IntersectionObserver(() => {
       updatePosition();
-      scrollRafId = null;
-    });
-  }, {passive: true});
+    }, {threshold: thresholds});
+    positionObserver.observe(segment);
+    positionObserver.observe(fileHeader);
+  }
 
   toggleBtn.addEventListener('click', () => {
     const isCurrentlyVisible = !sidebar.classList.contains('sidebar-panel-hidden');
