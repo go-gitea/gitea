@@ -182,8 +182,8 @@
   color: var(--color-primary);
 }
 
-/* Hide sidebar on small screens */
-@media (max-width: 1400px) {
+/* Hide sidebar on small screens (phones) */
+@media (max-width: 768px) {
   .file-view-sidebar {
     display: none !important;
   }
