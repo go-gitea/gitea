@@ -61,7 +61,7 @@ async function renderRawFileToContainer(container: HTMLElement, rawFileLink: str
 
 function updateSidebarPosition(elFileView: HTMLElement, sidebar: HTMLElement): void {
   const fileHeader = elFileView.querySelector('.file-header');
-  const segment = elFileView.querySelector('.ui.segment');
+  const segment = elFileView.querySelector('.ui.bottom.segment');
   if (!fileHeader || !segment) return;
 
   const headerRect = fileHeader.getBoundingClientRect();
