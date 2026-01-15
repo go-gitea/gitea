@@ -1548,9 +1548,9 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	var prInfo *pull_service.CompareInfo
 	if pr.HasMerged {
-		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), true, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.MergeBase, pr.GetGitHeadRefName(), false, false)
 	} else {
-		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), true, false)
+		prInfo, err = pull_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, pr.BaseBranch, pr.GetGitHeadRefName(), false, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
