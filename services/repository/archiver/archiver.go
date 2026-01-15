@@ -51,6 +51,9 @@ func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRef
 	if archiveType == repo_model.ArchiveUnknown {
 		return nil, util.NewInvalidArgumentErrorf("unknown format: %s", archiveRefExt)
 	}
+	if archiveType == repo_model.ArchiveBundle && len(paths) != 0 {
+		return nil, util.NewInvalidArgumentErrorf("cannot specify paths when requesting a bundle")
+	}
 
 	// Get corresponding commit.
 	commitID, err := gitRepo.ConvertToGitID(archiveRefShortName)

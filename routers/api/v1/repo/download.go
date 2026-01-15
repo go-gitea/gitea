@@ -50,5 +50,5 @@ func DownloadArchive(ctx *context.APIContext) {
 		ctx.APIError(http.StatusBadRequest, "Unknown archive type: "+ballType)
 		return
 	}
-	serveRepoArchive(ctx, ctx.PathParam("*")+"."+tp.String(), ctx.FormStrings("paths"))
+	serveRepoArchive(ctx, ctx.PathParam("*")+"."+tp.String(), ctx.FormStrings("path"))
 }
