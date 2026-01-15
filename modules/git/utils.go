@@ -6,8 +6,6 @@ package git
 import (
 	"crypto/sha1"
 	"encoding/hex"
-	"fmt"
-	"io"
 	"strconv"
 	"strings"
 	"sync"
@@ -42,14 +40,6 @@ func (oc *ObjectCache[T]) Get(id string) (T, bool) {
 	return obj, has
 }
 
-// ConcatenateError concatenats an error with stderr string
-func ConcatenateError(err error, stderr string) error {
-	if len(stderr) == 0 {
-		return err
-	}
-	return fmt.Errorf("%w - %s", err, stderr)
-}
-
 // ParseBool returns the boolean value represented by the string as per git's git_config_bool
 // true will be returned for the result if the string is empty, but valid will be false.
 // "true", "yes", "on" are all true, true
@@ -75,32 +65,6 @@ func ParseBool(value string) (result, valid bool) {
 		return false, false
 	}
 	return intValue != 0, true
-}
-
-// LimitedReaderCloser is a limited reader closer
-type LimitedReaderCloser struct {
-	R io.Reader
-	C io.Closer
-	N int64
-}
-
-// Read implements io.Reader
-func (l *LimitedReaderCloser) Read(p []byte) (n int, err error) {
-	if l.N <= 0 {
-		_ = l.C.Close()
-		return 0, io.EOF
-	}
-	if int64(len(p)) > l.N {
-		p = p[0:l.N]
-	}
-	n, err = l.R.Read(p)
-	l.N -= int64(n)
-	return n, err
-}
-
-// Close implements io.Closer
-func (l *LimitedReaderCloser) Close() error {
-	return l.C.Close()
 }
 
 func HashFilePathForWebUI(s string) string {

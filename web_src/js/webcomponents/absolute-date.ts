@@ -15,15 +15,17 @@ window.customElements.define('absolute-date', class extends HTMLElement {
   initialized = false;
 
   update = () => {
-    const opt: Record<string, string> = {};
+    const opts: Record<string, string> = {};
     for (const attr of ['year', 'month', 'weekday', 'day']) {
-      if (this.getAttribute(attr)) opt[attr] = this.getAttribute(attr);
+      if (this.getAttribute(attr)) {
+        opts[attr] = this.getAttribute(attr)!;
+      }
     }
     const lang = this.closest('[lang]')?.getAttribute('lang') ||
       this.ownerDocument.documentElement.getAttribute('lang') || '';
 
     if (!this.shadowRoot) this.attachShadow({mode: 'open'});
-    this.shadowRoot.textContent = toAbsoluteLocaleDate(this.getAttribute('date'), lang, opt);
+    this.shadowRoot!.textContent = toAbsoluteLocaleDate(this.getAttribute('date')!, lang, opts);
   };
 
   attributeChangedCallback(_name: string, oldValue: string | null, newValue: string | null) {

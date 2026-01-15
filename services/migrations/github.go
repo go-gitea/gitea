@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 
-	"github.com/google/go-github/v71/github"
+	"github.com/google/go-github/v74/github"
 	"golang.org/x/oauth2"
 )
 
@@ -329,7 +329,6 @@ func (g *GithubDownloaderV3) convertGithubRelease(ctx context.Context, rel *gith
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
 			ID:            asset.GetID(),
 			Name:          asset.GetName(),
-			ContentType:   asset.ContentType,
 			Size:          asset.Size,
 			DownloadCount: asset.DownloadCount,
 			Created:       asset.CreatedAt.Time,

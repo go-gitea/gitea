@@ -31,9 +31,9 @@ export function initCommonIssueListQuickGoto() {
   const goto = document.querySelector<HTMLElement>('#issue-list-quick-goto');
   if (!goto) return;
 
-  const form = goto.closest('form');
-  const input = form.querySelector<HTMLInputElement>('input[name=q]');
-  const repoLink = goto.getAttribute('data-repo-link');
+  const form = goto.closest('form')!;
+  const input = form.querySelector<HTMLInputElement>('input[name=q]')!;
+  const repoLink = goto.getAttribute('data-repo-link')!;
 
   form.addEventListener('submit', (e) => {
     // if there is no goto button, or the form is submitted by non-quick-goto elements, submit the form directly
@@ -44,7 +44,10 @@ export function initCommonIssueListQuickGoto() {
 
     // if there is a goto button, use its link
     e.preventDefault();
-    window.location.href = goto.getAttribute('data-issue-goto-link');
+    const link = goto.getAttribute('data-issue-goto-link');
+    if (link) {
+      window.location.href = link;
+    }
   });
 
   const onInput = async () => {

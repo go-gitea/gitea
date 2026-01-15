@@ -90,7 +90,7 @@ type swaggerParameterBodies struct {
 	// in:body
 	EditRepoOption api.EditRepoOption
 	// in:body
-	UpdateBranchRepoOption api.UpdateBranchRepoOption
+	RenameBranchRepoOption api.RenameBranchRepoOption
 	// in:body
 	TransferRepoOption api.TransferRepoOption
 	// in:body
@@ -122,6 +122,9 @@ type swaggerParameterBodies struct {
 	GetFilesOptions api.GetFilesOptions
 
 	// in:body
+	ApplyDiffPatchFileOptions api.ApplyDiffPatchFileOptions
+
+	// in:body
 	ChangeFilesOptions api.ChangeFilesOptions
 
 	// in:body
@@ -144,6 +147,8 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateBranchRepoOption api.CreateBranchRepoOption
+	// in:body
+	UpdateBranchRepoOption api.UpdateBranchRepoOption
 
 	// in:body
 	CreateBranchProtectionOption api.CreateBranchProtectionOption

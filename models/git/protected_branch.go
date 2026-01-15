@@ -5,7 +5,6 @@ package git
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -17,16 +16,15 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/gobwas/glob"
-	"github.com/gobwas/glob/syntax"
 	"xorm.io/builder"
 )
 
-var ErrBranchIsProtected = errors.New("branch is protected")
+var ErrBranchIsProtected = util.ErrorWrap(util.ErrPermissionDenied, "branch is protected")
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
@@ -77,7 +75,7 @@ func init() {
 // IsRuleNameSpecial return true if it contains special character
 func IsRuleNameSpecial(ruleName string) bool {
 	for i := 0; i < len(ruleName); i++ {
-		if syntax.Special(ruleName[i]) {
+		if glob.IsSpecialByte(ruleName[i]) {
 			return true
 		}
 	}
@@ -468,11 +466,13 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 		return currentWhitelist, nil
 	}
 
+	prUserIDs, err := access_model.GetUserIDsWithUnitAccess(ctx, repo, perm.AccessModeRead, unit.TypePullRequests)
+	if err != nil {
+		return nil, err
+	}
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		if reader, err := access_model.IsRepoReader(ctx, repo, userID); err != nil {
-			return nil, err
-		} else if !reader {
+		if !prUserIDs.Contains(userID) {
 			continue
 		}
 		whitelist = append(whitelist, userID)

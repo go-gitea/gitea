@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -133,8 +134,7 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	if err := git.Push(ctx, ctx.Repo.Repository.RepoPath(), git.PushOptions{
-		Remote: ctx.Repo.Repository.RepoPath(),
+	if err := gitrepo.Push(ctx, ctx.Repo.Repository, ctx.Repo.Repository, git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", deletedBranch.CommitID, git.BranchPrefix, deletedBranch.Name),
 		Env:    repo_module.PushingEnvironment(ctx.Doer, ctx.Repo.Repository),
 	}); err != nil {
@@ -194,9 +194,9 @@ func CreateBranch(ctx *context.Context) {
 		}
 		err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, target, form.NewBranchName, "")
 	} else if ctx.Repo.RefFullName.IsBranch() {
-		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
-		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.CommitID, form.NewBranchName)
+		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
 		if release_service.IsErrProtectedTagName(err) {

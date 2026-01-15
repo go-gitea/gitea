@@ -9,7 +9,7 @@ type ConfirmModalOptions = {
   header?: string;
   content?: string;
   confirmButtonColor?: 'primary' | 'red' | 'green' | 'blue';
-}
+};
 
 export function createConfirmModal({header = '', content = '', confirmButtonColor = 'primary'}:ConfirmModalOptions = {}): HTMLElement {
   const headerHtml = header ? html`<div class="header">${header}</div>` : '';

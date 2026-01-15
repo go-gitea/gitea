@@ -72,7 +72,7 @@ func newRequest(ctx context.Context, method, url string, body io.ReadCloser) (*h
 // Adding padding will make requests more secure, however is also slower
 // because artificial responses will be added to the response
 // For more information, see https://www.troyhunt.com/enhancing-pwned-passwords-privacy-with-padding/
-func (c *Client) CheckPassword(pw string, padding bool) (int, error) {
+func (c *Client) CheckPassword(pw string, padding bool) (int64, error) {
 	if pw == "" {
 		return -1, ErrEmptyPassword
 	}
@@ -111,7 +111,7 @@ func (c *Client) CheckPassword(pw string, padding bool) (int, error) {
 			if err != nil {
 				return -1, err
 			}
-			return int(count), nil
+			return count, nil
 		}
 	}
 	return 0, nil

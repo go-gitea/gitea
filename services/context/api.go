@@ -227,10 +227,9 @@ func APIContexter() func(http.Handler) http.Handler {
 
 			ctx.SetContextValue(apiContextKey, ctx)
 
-			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
+			// FIXME: GLOBAL-PARSE-FORM: see more details in another FIXME comment
 			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
-				if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
-					ctx.APIErrorInternal(err)
+				if !ctx.ParseMultipartForm() {
 					return
 				}
 			}

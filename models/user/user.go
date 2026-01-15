@@ -249,8 +249,13 @@ func (u *User) MaxCreationLimit() int {
 }
 
 // CanCreateRepoIn checks whether the doer(u) can create a repository in the owner
-// NOTE: functions calling this assume a failure due to repository count limit; it ONLY checks the repo number LIMIT, if new checks are added, those functions should be revised
+// NOTE: functions calling this assume a failure due to repository count limit, or the owner is not a real user.
+// It ONLY checks the repo number LIMIT or whether owner user is real. If new checks are added, those functions should be revised.
+// TODO: the callers can only return ErrReachLimitOfRepo, need to fine tune to support other error types in the future.
 func (u *User) CanCreateRepoIn(owner *User) bool {
+	if u.ID <= 0 || owner.ID <= 0 {
+		return false // fake user like Ghost or Actions user
+	}
 	if u.IsAdmin {
 		return true
 	}
@@ -716,90 +721,82 @@ func createUser(ctx context.Context, u *User, meta *Meta, createdByAdmin bool, o
 		}
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	isExist, err := IsUserExist(ctx, 0, u.Name)
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrUserAlreadyExist{u.Name}
-	}
-
-	isExist, err = IsEmailUsed(ctx, u.Email)
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrEmailAlreadyUsed{
-			Email: u.Email,
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		isExist, err := IsUserExist(ctx, 0, u.Name)
+		if err != nil {
+			return err
+		} else if isExist {
+			return ErrUserAlreadyExist{u.Name}
 		}
-	}
 
-	// prepare for database
+		isExist, err = IsEmailUsed(ctx, u.Email)
+		if err != nil {
+			return err
+		} else if isExist {
+			return ErrEmailAlreadyUsed{
+				Email: u.Email,
+			}
+		}
 
-	u.LowerName = strings.ToLower(u.Name)
-	u.AvatarEmail = u.Email
-	if u.Rands, err = GetUserSalt(); err != nil {
-		return err
-	}
-	if u.Passwd != "" {
-		if err = u.SetPassword(u.Passwd); err != nil {
+		// prepare for database
+
+		u.LowerName = strings.ToLower(u.Name)
+		u.AvatarEmail = u.Email
+		if u.Rands, err = GetUserSalt(); err != nil {
 			return err
 		}
-	} else {
-		u.Salt = ""
-		u.PasswdHashAlgo = ""
-	}
+		if u.Passwd != "" {
+			if err = u.SetPassword(u.Passwd); err != nil {
+				return err
+			}
+		} else {
+			u.Salt = ""
+			u.PasswdHashAlgo = ""
+		}
 
-	// save changes to database
+		// save changes to database
 
-	if err = DeleteUserRedirect(ctx, u.Name); err != nil {
-		return err
-	}
-
-	if u.CreatedUnix == 0 {
-		// Caller expects auto-time for creation & update timestamps.
-		err = db.Insert(ctx, u)
-	} else {
-		// Caller sets the timestamps themselves. They are responsible for ensuring
-		// both `CreatedUnix` and `UpdatedUnix` are set appropriately.
-		_, err = db.GetEngine(ctx).NoAutoTime().Insert(u)
-	}
-	if err != nil {
-		return err
-	}
-
-	if setting.RecordUserSignupMetadata {
-		// insert initial IP and UserAgent
-		if err = SetUserSetting(ctx, u.ID, SignupIP, meta.InitialIP); err != nil {
+		if err = DeleteUserRedirect(ctx, u.Name); err != nil {
 			return err
 		}
 
-		// trim user agent string to a reasonable length, if necessary
-		userAgent := strings.TrimSpace(meta.InitialUserAgent)
-		if len(userAgent) > 255 {
-			userAgent = userAgent[:255]
+		if u.CreatedUnix == 0 {
+			// Caller expects auto-time for creation & update timestamps.
+			err = db.Insert(ctx, u)
+		} else {
+			// Caller sets the timestamps themselves. They are responsible for ensuring
+			// both `CreatedUnix` and `UpdatedUnix` are set appropriately.
+			_, err = db.GetEngine(ctx).NoAutoTime().Insert(u)
 		}
-		if err = SetUserSetting(ctx, u.ID, SignupUserAgent, userAgent); err != nil {
+		if err != nil {
 			return err
 		}
-	}
 
-	// insert email address
-	if err := db.Insert(ctx, &EmailAddress{
-		UID:         u.ID,
-		Email:       u.Email,
-		LowerEmail:  strings.ToLower(u.Email),
-		IsActivated: u.IsActive,
-		IsPrimary:   true,
-	}); err != nil {
-		return err
-	}
+		if setting.RecordUserSignupMetadata {
+			// insert initial IP and UserAgent
+			if err = SetUserSetting(ctx, u.ID, SignupIP, meta.InitialIP); err != nil {
+				return err
+			}
 
-	return committer.Commit()
+			// trim user agent string to a reasonable length, if necessary
+			userAgent := strings.TrimSpace(meta.InitialUserAgent)
+			if len(userAgent) > 255 {
+				userAgent = userAgent[:255]
+			}
+			if err = SetUserSetting(ctx, u.ID, SignupUserAgent, userAgent); err != nil {
+				return err
+			}
+		}
+
+		// insert email address
+		return db.Insert(ctx, &EmailAddress{
+			UID:         u.ID,
+			Email:       u.Email,
+			LowerEmail:  strings.ToLower(u.Email),
+			IsActivated: u.IsActive,
+			IsPrimary:   true,
+		})
+	})
 }
 
 // ErrDeleteLastAdminUser represents a "DeleteLastAdminUser" kind of error.
@@ -988,7 +985,7 @@ func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, er
 
 // UserPath returns the path absolute path of user repositories.
 func UserPath(userName string) string { //revive:disable-line:exported
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
+	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)))
 }
 
 // GetUserByID returns the user object by given ID if exists.
@@ -1265,8 +1262,8 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Finally, if email address is the protected email address:
-	if strings.HasSuffix(email, "@"+setting.Service.NoReplyAddress) {
-		username := strings.TrimSuffix(email, "@"+setting.Service.NoReplyAddress)
+	if before, ok := strings.CutSuffix(email, "@"+setting.Service.NoReplyAddress); ok {
+		username := before
 		user := &User{}
 		has, err := db.GetEngine(ctx).Where("lower_name=?", username).Get(user)
 		if err != nil {
@@ -1451,4 +1448,28 @@ func DisabledFeaturesWithLoginType(user *User) *container.Set[string] {
 		return &setting.Admin.ExternalUserDisableFeatures
 	}
 	return &setting.Admin.UserDisabledFeatures
+}
+
+// GetUserOrOrgIDByName returns the id for a user or an org by name
+func GetUserOrOrgIDByName(ctx context.Context, name string) (int64, error) {
+	var id int64
+	has, err := db.GetEngine(ctx).Table("user").Where("name = ?", name).Cols("id").Get(&id)
+	if err != nil {
+		return 0, err
+	} else if !has {
+		return 0, fmt.Errorf("user or org with name %s: %w", name, util.ErrNotExist)
+	}
+	return id, nil
+}
+
+// GetUserOrOrgByName returns the user or org by name
+func GetUserOrOrgByName(ctx context.Context, name string) (*User, error) {
+	var u User
+	has, err := db.GetEngine(ctx).Where("lower_name = ?", strings.ToLower(name)).Get(&u)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrUserNotExist{Name: name}
+	}
+	return &u, nil
 }

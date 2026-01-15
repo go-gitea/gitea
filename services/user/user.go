@@ -31,17 +31,15 @@ import (
 )
 
 // RenameUser renames a user
-func RenameUser(ctx context.Context, u *user_model.User, newUserName string) error {
+func RenameUser(ctx context.Context, u *user_model.User, newUserName string, doer *user_model.User) error {
 	if newUserName == u.Name {
 		return nil
 	}
 
-	// Non-local users are not allowed to change their username.
-	if !u.IsOrganization() && !u.IsLocal() {
-		return user_model.ErrUserIsNotLocal{
-			UID:  u.ID,
-			Name: u.Name,
-		}
+	// Non-local users are not allowed to change their own username, but admins are
+	isExternalUser := !u.IsOrganization() && !u.IsLocal()
+	if isExternalUser && !doer.IsAdmin {
+		return user_model.ErrUserIsNotLocal{UID: u.ID, Name: u.Name}
 	}
 
 	if err := user_model.IsUsableUsername(newUserName); err != nil {
@@ -210,70 +208,82 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		// Note: A user owns any repository or belongs to any organization
+		//	cannot perform delete operation. This causes a race with the purge above
+		//  however consistency requires that we ensure that this is the case
+
+		// Check ownership of repository.
+		count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: u.ID})
+		if err != nil {
+			return fmt.Errorf("GetRepositoryCount: %w", err)
+		} else if count > 0 {
+			return repo_model.ErrUserOwnRepos{UID: u.ID}
+		}
+
+		// Check membership of organization.
+		count, err = organization.GetOrganizationCount(ctx, u)
+		if err != nil {
+			return fmt.Errorf("GetOrganizationCount: %w", err)
+		} else if count > 0 {
+			return organization.ErrUserHasOrgs{UID: u.ID}
+		}
+
+		// Check ownership of packages.
+		if ownsPackages, err := packages_model.HasOwnerPackages(ctx, u.ID); err != nil {
+			return fmt.Errorf("HasOwnerPackages: %w", err)
+		} else if ownsPackages {
+			return packages_model.ErrUserOwnPackages{UID: u.ID}
+		}
+
+		if err := deleteUser(ctx, u, purge); err != nil {
+			return fmt.Errorf("DeleteUser: %w", err)
+		}
+
+		// Finally delete any unlinked attachments, this will also delete the attached files
+		if err := deleteUserUnlinkedAttachments(ctx, u); err != nil {
+			return fmt.Errorf("deleteUserUnlinkedAttachments: %w", err)
+		}
+		return nil
+	}); err != nil {
 		return err
 	}
-	defer committer.Close()
 
-	// Note: A user owns any repository or belongs to any organization
-	//	cannot perform delete operation. This causes a race with the purge above
-	//  however consistency requires that we ensure that this is the case
-
-	// Check ownership of repository.
-	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: u.ID})
-	if err != nil {
-		return fmt.Errorf("GetRepositoryCount: %w", err)
-	} else if count > 0 {
-		return repo_model.ErrUserOwnRepos{UID: u.ID}
-	}
-
-	// Check membership of organization.
-	count, err = organization.GetOrganizationCount(ctx, u)
-	if err != nil {
-		return fmt.Errorf("GetOrganizationCount: %w", err)
-	} else if count > 0 {
-		return organization.ErrUserHasOrgs{UID: u.ID}
-	}
-
-	// Check ownership of packages.
-	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, u.ID); err != nil {
-		return fmt.Errorf("HasOwnerPackages: %w", err)
-	} else if ownsPackages {
-		return packages_model.ErrUserOwnPackages{UID: u.ID}
-	}
-
-	if err := deleteUser(ctx, u, purge); err != nil {
-		return fmt.Errorf("DeleteUser: %w", err)
-	}
-
-	if err := committer.Commit(); err != nil {
+	if err := asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
 		return err
 	}
-	_ = committer.Close()
-
-	if err = asymkey_service.RewriteAllPublicKeys(ctx); err != nil {
-		return err
-	}
-	if err = asymkey_service.RewriteAllPrincipalKeys(ctx); err != nil {
+	if err := asymkey_service.RewriteAllPrincipalKeys(ctx); err != nil {
 		return err
 	}
 
 	// Note: There are something just cannot be roll back, so just keep error logs of those operations.
 	path := user_model.UserPath(u.Name)
-	if err = util.RemoveAll(path); err != nil {
+	if err := util.RemoveAll(path); err != nil {
 		err = fmt.Errorf("failed to RemoveAll %s: %w", path, err)
 		_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 	}
 
 	if u.Avatar != "" {
 		avatarPath := u.CustomAvatarRelativePath()
-		if err = storage.Avatars.Delete(avatarPath); err != nil {
+		if err := storage.Avatars.Delete(avatarPath); err != nil {
 			err = fmt.Errorf("failed to remove %s: %w", avatarPath, err)
 			_ = system_model.CreateNotice(ctx, system_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 		}
 	}
 
+	return nil
+}
+
+func deleteUserUnlinkedAttachments(ctx context.Context, u *user_model.User) error {
+	attachments, err := repo_model.GetUnlinkedAttachmentsByUserID(ctx, u.ID)
+	if err != nil {
+		return fmt.Errorf("GetUnlinkedAttachmentsByUserID: %w", err)
+	}
+	for _, attach := range attachments {
+		if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
+			return fmt.Errorf("DeleteAttachment ID[%d]: %w", attach.ID, err)
+		}
+	}
 	return nil
 }
 

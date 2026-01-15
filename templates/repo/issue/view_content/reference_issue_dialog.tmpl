@@ -4,7 +4,6 @@
 	</div>
 	<div class="content">
 		<form class="ui form form-fetch-action" action="{{.Repository.Link}}/issues/new" method="post">
-			{{.CsrfTokenHtml}}
 			<div class="field">
 				<label><strong>{{ctx.Locale.Tr "repository"}}</strong></label>
 				<div class="ui search selection dropdown issue_reference_repository_search ellipsis-text-items">

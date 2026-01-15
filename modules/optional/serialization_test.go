@@ -15,12 +15,17 @@ import (
 )
 
 type testSerializationStruct struct {
-	NormalString string                  `json:"normal_string" yaml:"normal_string"`
-	NormalBool   bool                    `json:"normal_bool" yaml:"normal_bool"`
-	OptBool      optional.Option[bool]   `json:"optional_bool,omitempty" yaml:"optional_bool,omitempty"`
-	OptString    optional.Option[string] `json:"optional_string,omitempty" yaml:"optional_string,omitempty"`
+	NormalString string                `json:"normal_string" yaml:"normal_string"`
+	NormalBool   bool                  `json:"normal_bool" yaml:"normal_bool"`
+	OptBool      optional.Option[bool] `json:"optional_bool,omitempty" yaml:"optional_bool,omitempty"`
+
+	// It causes an undefined behavior: should the "omitempty" tag only omit "null", or also the empty string?
+	// The behavior is inconsistent between json and v2 packages, and there is no such use case in Gitea.
+	// If anyone really needs it, they can use json.MarshalKeepOptionalEmpty to revert the v1 behavior
+	OptString optional.Option[string] `json:"optional_string,omitempty" yaml:"optional_string,omitempty"`
+
 	OptTwoBool   optional.Option[bool]   `json:"optional_two_bool" yaml:"optional_two_bool"`
-	OptTwoString optional.Option[string] `json:"optional_twostring" yaml:"optional_two_string"`
+	OptTwoString optional.Option[string] `json:"optional_two_string" yaml:"optional_two_string"`
 }
 
 func TestOptionalToJson(t *testing.T) {
@@ -32,7 +37,7 @@ func TestOptionalToJson(t *testing.T) {
 		{
 			name: "empty",
 			obj:  new(testSerializationStruct),
-			want: `{"normal_string":"","normal_bool":false,"optional_two_bool":null,"optional_twostring":null}`,
+			want: `{"normal_string":"","normal_bool":false,"optional_two_bool":null,"optional_two_string":null}`,
 		},
 		{
 			name: "some",
@@ -44,12 +49,12 @@ func TestOptionalToJson(t *testing.T) {
 				OptTwoBool:   optional.None[bool](),
 				OptTwoString: optional.None[string](),
 			},
-			want: `{"normal_string":"a string","normal_bool":true,"optional_bool":false,"optional_string":"","optional_two_bool":null,"optional_twostring":null}`,
+			want: `{"normal_string":"a string","normal_bool":true,"optional_bool":false,"optional_string":"","optional_two_bool":null,"optional_two_string":null}`,
 		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			b, err := json.Marshal(tc.obj)
+			b, err := json.MarshalKeepOptionalEmpty(tc.obj)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.want, string(b), "gitea json module returned unexpected")
 
@@ -75,7 +80,7 @@ func TestOptionalFromJson(t *testing.T) {
 		},
 		{
 			name: "some",
-			data: `{"normal_string":"a string","normal_bool":true,"optional_bool":false,"optional_string":"","optional_two_bool":null,"optional_twostring":null}`,
+			data: `{"normal_string":"a string","normal_bool":true,"optional_bool":false,"optional_string":"","optional_two_bool":null,"optional_two_string":null}`,
 			want: testSerializationStruct{
 				NormalString: "a string",
 				NormalBool:   true,
@@ -169,7 +174,7 @@ normal_bool: true
 optional_bool: false
 optional_string: ""
 optional_two_bool: null
-optional_twostring: null
+optional_two_string: null
 `,
 			want: testSerializationStruct{
 				NormalString: "a string",

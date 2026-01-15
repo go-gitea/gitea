@@ -279,8 +279,8 @@ type Comment struct {
 	DependentIssue   *Issue `xorm:"-"`
 
 	CommitID        int64
-	Line            int64 // - previous line / + proposed line
-	TreePath        string
+	Line            int64         // - previous line / + proposed line
+	TreePath        string        `xorm:"VARCHAR(4000)"` // SQLServer only supports up to 4000
 	Content         string        `xorm:"LONGTEXT"`
 	ContentVersion  int           `xorm:"NOT NULL DEFAULT 0"`
 	RenderedContent template.HTML `xorm:"-"`
@@ -862,10 +862,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		if err = UpdateCommentAttachments(ctx, comment, opts.Attachments); err != nil {
 			return err
 		}
-	case CommentTypeReopen, CommentTypeClose:
-		if err = repo_model.UpdateRepoIssueNumbers(ctx, opts.Issue.RepoID, opts.Issue.IsPull, true); err != nil {
-			return err
-		}
+		// comment type reopen and close event have their own logic to update numbers but not here
 	}
 	// update the issue's updated_unix column
 	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")

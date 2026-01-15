@@ -39,6 +39,8 @@
 
   --gap-inline: 0.25rem; /* gap for inline texts and elements, for example: the spaces for sentence with labels, button text, etc */
   --gap-block: 0.5rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
+
+  --background-view-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAG0lEQVQYlWN4+vTpf3SMDTAMBYXYBLFpHgoKAeiOf0SGE9kbAAAAAElFTkSuQmCC") right bottom var(--color-primary-light-7);
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
@@ -99,6 +101,15 @@ kbd,
 samp,
 .tw-font-mono {
   font-size: 0.95em; /* compensate for monospace fonts being usually slightly larger */
+}
+
+/* there are many <code> blocks in non-markup(.markup code) / non-code-diff(code.code-inner) containers (for example: translation strings, etc),
+so we need to make <code> have default global styles, ".markup code" has its own styles and doesn't conflict, but `.code-inner` is special.
+TODO: in the future, we should use `div` instead of `code` for `.code-inner` because it is a container for highlighted code line */
+code:not(.code-inner) {
+  padding: 1px 4px;
+  border-radius: var(--border-radius);
+  background-color: var(--color-label-bg);
 }
 
 b,
@@ -175,6 +186,11 @@ p:last-child {
 
 table {
   border-collapse: collapse;
+}
+
+ul {
+  margin: 0.5em 0;
+  padding: 0 0 0 1.5em;
 }
 
 button {
@@ -603,11 +619,6 @@ img.ui.avatar,
   text-align: center;
 }
 
-.ui .message > ul {
-  margin: 0;
-  padding: 0 1em;
-}
-
 .ui .header > i + .content {
   padding-left: 0.75rem;
   vertical-align: middle;
@@ -617,7 +628,6 @@ img.ui.avatar,
   font-family: var(--fonts-monospace);
   font-size: 13px;
   font-weight: var(--font-weight-normal);
-  padding: 3px 5px;
   flex-shrink: 0;
 }
 
@@ -909,7 +919,7 @@ overflow-menu .ui.label {
 .blame-avatar {
   display: flex;
   align-items: center;
-  margin-right: 4px;
+  margin-right: 6px;
 }
 
 tr.top-line-blame {
@@ -1095,6 +1105,7 @@ table th[data-sortt-desc] .svg {
 }
 
 .ui.list.flex-items-block > .item,
+.ui.vertical.menu.flex-items-block > .item,
 .ui.form .field > label.flex-text-block, /* override fomantic "block" style */
 .flex-items-block > .item,
 .flex-text-block {

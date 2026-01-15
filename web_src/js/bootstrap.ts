@@ -6,7 +6,7 @@ import {html} from './utils/html.ts';
 
 // This sets up the URL prefix used in webpack's chunk loading.
 // This file must be imported before any lazy-loading is being attempted.
-__webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
+window.__webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
 
 function shouldIgnoreError(err: Error) {
   const ignorePatterns = [
@@ -35,13 +35,13 @@ export function showGlobalErrorMessage(msg: string, msgType: Intent = 'error') {
   const msgCount = Number(msgDiv.getAttribute(`data-global-error-msg-count`)) + 1;
   msgDiv.setAttribute(`data-global-error-msg-compact`, msgCompact);
   msgDiv.setAttribute(`data-global-error-msg-count`, msgCount.toString());
-  msgDiv.querySelector('.ui.message').textContent = msg + (msgCount > 1 ? ` (${msgCount})` : '');
+  msgDiv.querySelector('.ui.message')!.textContent = msg + (msgCount > 1 ? ` (${msgCount})` : '');
   msgContainer.prepend(msgDiv);
 }
 
 function processWindowErrorEvent({error, reason, message, type, filename, lineno, colno}: ErrorEvent & PromiseRejectionEvent) {
   const err = error ?? reason;
-  const assetBaseUrl = String(new URL(__webpack_public_path__, window.location.origin));
+  const assetBaseUrl = String(new URL(window.__webpack_public_path__, window.location.origin));
   const {runModeIsProd} = window.config ?? {};
 
   // `error` and `reason` are not guaranteed to be errors. If the value is falsy, it is likely a

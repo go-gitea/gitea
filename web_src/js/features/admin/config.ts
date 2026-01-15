@@ -11,7 +11,7 @@ export function initAdminConfigs(): void {
     el.addEventListener('change', async () => {
       try {
         const resp = await POST(`${appSubUrl}/-/admin/config`, {
-          data: new URLSearchParams({key: el.getAttribute('data-config-dyn-key'), value: String(el.checked)}),
+          data: new URLSearchParams({key: el.getAttribute('data-config-dyn-key')!, value: String(el.checked)}),
         });
         const json: Record<string, any> = await resp.json();
         if (json.errorMessage) throw new Error(json.errorMessage);

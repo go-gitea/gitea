@@ -131,24 +131,74 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	done := make(chan struct{}, 1)
+	version2Body := `{
+  "body": "[[test/repo](http://localhost:3000/test/repo)] user1 pushed 2 commits to [test](http://localhost:3000/test/repo/src/branch/test):\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778): commit message - user1\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778): commit message - user1",
+  "msgtype": "",
+  "format": "org.matrix.custom.html",
+  "formatted_body": "[<a href=\"http://localhost:3000/test/repo\">test/repo</a>] user1 pushed 2 commits to <a href=\"http://localhost:3000/test/repo/src/branch/test\">test</a>:<br><a href=\"http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778\">2020558</a>: commit message - user1<br><a href=\"http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778\">2020558</a>: commit message - user1",
+  "io.gitea.commits": [
+    {
+      "id": "2020558fe2e34debb818a514715839cabd25e778",
+      "message": "commit message",
+      "url": "http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778",
+      "author": {
+        "name": "user1",
+        "email": "user1@localhost",
+        "username": "user1"
+      },
+      "committer": {
+        "name": "user1",
+        "email": "user1@localhost",
+        "username": "user1"
+      },
+      "verification": null,
+      "timestamp": "0001-01-01T00:00:00Z",
+      "added": null,
+      "removed": null,
+      "modified": null
+    },
+    {
+      "id": "2020558fe2e34debb818a514715839cabd25e778",
+      "message": "commit message",
+      "url": "http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778",
+      "author": {
+        "name": "user1",
+        "email": "user1@localhost",
+        "username": "user1"
+      },
+      "committer": {
+        "name": "user1",
+        "email": "user1@localhost",
+        "username": "user1"
+      },
+      "verification": null,
+      "timestamp": "0001-01-01T00:00:00Z",
+      "added": null,
+      "removed": null,
+      "modified": null
+    }
+  ]
+}`
+
+	testVersion := 0
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "PUT", r.Method)
-		switch r.URL.Path {
-		case "/webhook/66d222a5d6349e1311f551e50722d837e30fce98":
-			// Version 1
+		assert.True(t, strings.HasPrefix(r.URL.Path, "/webhook/"))
+		assert.Len(t, r.URL.Path, len("/webhook/")+40) // +40 for txnID, a unique ID from payload's sha1 hash
+		switch testVersion {
+		case 1: // Version 1
 			assert.Equal(t, "push", r.Header.Get("X-GitHub-Event"))
 			assert.Empty(t, r.Header.Get("Content-Type"))
 			body, err := io.ReadAll(r.Body)
 			assert.NoError(t, err)
 			assert.Equal(t, `{"data": 42}`, string(body))
 
-		case "/webhook/6db5dc1e282529a8c162c7fe93dd2667494eeb51":
-			// Version 2
+		case 2: // Version 2
 			assert.Equal(t, "push", r.Header.Get("X-GitHub-Event"))
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 			body, err := io.ReadAll(r.Body)
 			assert.NoError(t, err)
-			assert.Len(t, body, 2147)
+			assert.JSONEq(t, version2Body, string(body))
 
 		default:
 			w.WriteHeader(http.StatusNotFound)
@@ -172,6 +222,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 	assert.NoError(t, webhook_model.CreateWebhook(t.Context(), hook))
 
 	t.Run("Version 1", func(t *testing.T) {
+		testVersion = 1
 		hookTask := &webhook_model.HookTask{
 			HookID:         hook.ID,
 			EventType:      webhook_module.HookEventPush,
@@ -198,6 +249,7 @@ func TestWebhookDeliverHookTask(t *testing.T) {
 		data, err := p.JSONPayload()
 		assert.NoError(t, err)
 
+		testVersion = 2
 		hookTask := &webhook_model.HookTask{
 			HookID:         hook.ID,
 			EventType:      webhook_module.HookEventPush,

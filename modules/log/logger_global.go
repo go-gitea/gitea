@@ -18,6 +18,7 @@ func GetLevel() Level {
 }
 
 func Log(skip int, level Level, format string, v ...any) {
+	// codeql[disable-next-line=go/clear-text-logging]
 	GetLogger(DEFAULT).Log(skip+1, &Event{Level: level}, format, v...)
 }
 

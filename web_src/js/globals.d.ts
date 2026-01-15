@@ -12,13 +12,11 @@ declare module '*.vue' {
   import type {DefineComponent} from 'vue';
   const component: DefineComponent<unknown, unknown, any>;
   export default component;
-  // List of named exports from vue components, used to make `tsc` output clean.
-  // To actually lint .vue files, `vue-tsc` is used because `tsc` can not parse them.
+  // Here we declare all exports from vue files so `tsc` or `tsgo` can work for
+  // non-vue files. To lint .vue files, `vue-tsc` must be used.
   export function initDashboardRepoList(): void;
   export function initRepositoryActionView(): void;
 }
-
-declare let __webpack_public_path__: string;
 
 declare module 'htmx.org/dist/htmx.esm.js' {
   const value = await import('htmx.org');
@@ -51,7 +49,6 @@ interface Element {
 }
 
 interface Window {
-  __webpack_public_path__: string;
   config: import('./web_src/js/types.ts').Config;
   $: typeof import('@types/jquery'),
   jQuery: typeof import('@types/jquery'),

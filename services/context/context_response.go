@@ -20,15 +20,27 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
 // RedirectToUser redirect to a differently-named user
-func RedirectToUser(ctx *Base, userName string, redirectUserID int64) {
+func RedirectToUser(ctx *Base, doer *user_model.User, userName string, redirectUserID int64) {
 	user, err := user_model.GetUserByID(ctx, redirectUserID)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "unable to get user")
+		if user_model.IsErrUserNotExist(err) {
+			ctx.HTTPError(http.StatusNotFound, "user does not exist")
+		} else {
+			ctx.HTTPError(http.StatusInternalServerError, "unable to get user")
+		}
+		return
+	}
+
+	// Handle Visibility
+	if user.Visibility != structs.VisibleTypePublic && doer == nil {
+		// We must be signed in to see limited or private organizations
+		ctx.HTTPError(http.StatusNotFound, "user does not exist")
 		return
 	}
 

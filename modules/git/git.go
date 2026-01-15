@@ -9,14 +9,15 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/tempdir"
 
 	"github.com/hashicorp/go-version"
 )
@@ -26,17 +27,15 @@ const RequiredVersion = "2.0.0" // the minimum Git version required
 type Features struct {
 	gitVersion *version.Version
 
-	UsingGogit             bool
-	SupportProcReceive     bool           // >= 2.29
-	SupportHashSha256      bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
-	SupportedObjectFormats []ObjectFormat // sha1, sha256
-	SupportCheckAttrOnBare bool           // >= 2.40
+	UsingGogit                 bool
+	SupportProcReceive         bool           // >= 2.29
+	SupportHashSha256          bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
+	SupportedObjectFormats     []ObjectFormat // sha1, sha256
+	SupportCheckAttrOnBare     bool           // >= 2.40
+	SupportCatFileBatchCommand bool           // >= 2.36, support `git cat-file --batch-command`
 }
 
-var (
-	GitExecutable   = "git" // the command name of git, will be updated to an absolute path during initialization
-	defaultFeatures *Features
-)
+var defaultFeatures *Features
 
 func (f *Features) CheckVersionAtLeast(atLeast string) bool {
 	return f.gitVersion.Compare(version.Must(version.NewVersion(atLeast))) >= 0
@@ -60,7 +59,7 @@ func DefaultFeatures() *Features {
 }
 
 func loadGitVersionFeatures() (*Features, error) {
-	stdout, _, runErr := NewCommand("version").RunStdString(context.Background(), nil)
+	stdout, _, runErr := gitcmd.NewCommand("version").RunStdString(context.Background())
 	if runErr != nil {
 		return nil, runErr
 	}
@@ -78,6 +77,7 @@ func loadGitVersionFeatures() (*Features, error) {
 		features.SupportedObjectFormats = append(features.SupportedObjectFormats, Sha256ObjectFormat)
 	}
 	features.SupportCheckAttrOnBare = features.CheckVersionAtLeast("2.40")
+	features.SupportCatFileBatchCommand = features.CheckVersionAtLeast("2.36")
 	return features, nil
 }
 
@@ -129,32 +129,6 @@ func ensureGitVersion() error {
 	return nil
 }
 
-// SetExecutablePath changes the path of git executable and checks the file permission and version.
-func SetExecutablePath(path string) error {
-	// If path is empty, we use the default value of GitExecutable "git" to search for the location of git.
-	if path != "" {
-		GitExecutable = path
-	}
-	absPath, err := exec.LookPath(GitExecutable)
-	if err != nil {
-		return fmt.Errorf("git not found: %w", err)
-	}
-	GitExecutable = absPath
-	return nil
-}
-
-// HomeDir is the home dir for git to store the global config file used by Gitea internally
-func HomeDir() string {
-	if setting.Git.HomePath == "" {
-		// strict check, make sure the git module is initialized correctly.
-		// attention: when the git module is called in gitea sub-command (serv/hook), the log module might not obviously show messages to users/developers.
-		// for example: if there is gitea git hook code calling git.NewCommand before git.InitXxx, the integration test won't show the real failure reasons.
-		log.Fatal("Unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
-		return ""
-	}
-	return setting.Git.HomePath
-}
-
 // InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
 // This method doesn't change anything to filesystem. At the moment, it is only used by some Gitea sub-commands.
 func InitSimple() error {
@@ -167,10 +141,10 @@ func InitSimple() error {
 	}
 
 	if setting.Git.Timeout.Default > 0 {
-		defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
+		gitcmd.SetDefaultCommandExecutionTimeout(time.Duration(setting.Git.Timeout.Default) * time.Second)
 	}
 
-	if err := SetExecutablePath(setting.Git.Path); err != nil {
+	if err := gitcmd.SetExecutablePath(setting.Git.Path); err != nil {
 		return err
 	}
 
@@ -185,7 +159,7 @@ func InitSimple() error {
 
 	// when git works with gnupg (commit signing), there should be a stable home for gnupg commands
 	if _, ok := os.LookupEnv("GNUPGHOME"); !ok {
-		_ = os.Setenv("GNUPGHOME", filepath.Join(HomeDir(), ".gnupg"))
+		_ = os.Setenv("GNUPGHOME", filepath.Join(gitcmd.HomeDir(), ".gnupg"))
 	}
 	return nil
 }
@@ -204,4 +178,26 @@ func InitFull() (err error) {
 	}
 
 	return syncGitConfig(context.Background())
+}
+
+// RunGitTests helps to init the git module and run tests.
+// FIXME: GIT-PACKAGE-DEPENDENCY: the dependency is not right, setting.Git.HomePath is initialized in this package but used in gitcmd package
+func RunGitTests(m interface{ Run() int }) {
+	fatalf := func(exitCode int, format string, args ...any) {
+		_, _ = fmt.Fprintf(os.Stderr, format, args...)
+		os.Exit(exitCode)
+	}
+	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
+	if err != nil {
+		fatalf(1, "unable to create temp dir: %s", err.Error())
+	}
+	defer cleanup()
+
+	setting.Git.HomePath = gitHomePath
+	if err = InitFull(); err != nil {
+		fatalf(1, "failed to call Init: %s", err.Error())
+	}
+	if exitCode := m.Run(); exitCode != 0 {
+		fatalf(exitCode, "run test failed, ExitCode=%d", exitCode)
+	}
 }

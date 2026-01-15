@@ -27,7 +27,7 @@ import (
 
 const (
 	tplConfig         templates.TplName = "admin/config"
-	tplConfigSettings templates.TplName = "admin/config_settings"
+	tplConfigSettings templates.TplName = "admin/config_settings/config_settings"
 )
 
 // SendTestMail send test mail to confirm mail service is OK

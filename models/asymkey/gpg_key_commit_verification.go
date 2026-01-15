@@ -25,7 +25,7 @@ type CommitVerification struct {
 	SigningUser    *user_model.User // if Verified, then SigningUser is non-nil
 	CommittingUser *user_model.User // if Verified, then CommittingUser is non-nil
 	SigningEmail   string
-	SigningKey     *GPGKey
+	SigningKey     *GPGKey // FIXME: need to refactor it to a new name like "SigningGPGKey", it is also used in some templates
 	SigningSSHKey  *PublicKey
 	TrustStatus    string
 }

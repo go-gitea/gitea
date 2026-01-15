@@ -8,13 +8,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
-
-	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
@@ -156,7 +155,6 @@ func serveInstall(cmd *cli.Command) error {
 	case <-graceful.GetManager().IsShutdown():
 		<-graceful.GetManager().Done()
 		log.Info("PID: %d Gitea Web Finished", os.Getpid())
-		log.GetManager().Close()
 		return err
 	default:
 	}
@@ -231,17 +229,22 @@ func serveInstalled(c *cli.Command) error {
 	err := listen(webRoutes, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
-	log.GetManager().Close()
 	return err
 }
 
 func servePprof() {
-	// FIXME: it shouldn't use the global DefaultServeMux, and it should use a proper context
-	http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	mux.Handle("/debug/fgprof", fgprof.Handler())
+	// FIXME: it should use a proper context
 	_, _, finished := process.GetManager().AddTypedContext(context.TODO(), "Web: PProf Server", process.SystemProcessType, true)
 	// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment, it's not worth introducing a configurable option for it.
 	log.Info("Starting pprof server on localhost:6060")
-	log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", nil))
+	log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", mux))
 	finished()
 }
 

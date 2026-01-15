@@ -7,8 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"strings"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -20,6 +18,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/log"
@@ -27,7 +26,6 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
@@ -196,6 +194,10 @@ func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err erro
 			return err
 		}
 
+		if err = repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
+			return err
+		}
+
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		if err := CheckDaemonExportOK(ctx, repo); err != nil {
 			return err
@@ -219,28 +221,25 @@ func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err erro
 	})
 }
 
-// LinkedRepository returns the linked repo if any
-func LinkedRepository(ctx context.Context, a *repo_model.Attachment) (*repo_model.Repository, unit.Type, error) {
+// GetAttachmentLinkedType returns the linked type of attachment if any
+func GetAttachmentLinkedType(ctx context.Context, a *repo_model.Attachment) (unit.Type, error) {
 	if a.IssueID != 0 {
 		iss, err := issues_model.GetIssueByID(ctx, a.IssueID)
 		if err != nil {
-			return nil, unit.TypeIssues, err
+			return unit.TypeIssues, err
 		}
-		repo, err := repo_model.GetRepositoryByID(ctx, iss.RepoID)
 		unitType := unit.TypeIssues
 		if iss.IsPull {
 			unitType = unit.TypePullRequests
 		}
-		return repo, unitType, err
-	} else if a.ReleaseID != 0 {
-		rel, err := repo_model.GetReleaseByID(ctx, a.ReleaseID)
-		if err != nil {
-			return nil, unit.TypeReleases, err
-		}
-		repo, err := repo_model.GetRepositoryByID(ctx, rel.RepoID)
-		return repo, unit.TypeReleases, err
+		return unitType, nil
 	}
-	return nil, -1, nil
+
+	if a.ReleaseID != 0 {
+		_, err := repo_model.GetReleaseByID(ctx, a.ReleaseID)
+		return unit.TypeReleases, err
+	}
+	return unit.TypeInvalid, nil
 }
 
 // CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
@@ -250,9 +249,8 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 	}
 
 	// Create/Remove git-daemon-export-ok for git-daemon...
-	daemonExportFile := filepath.Join(repo.RepoPath(), `git-daemon-export-ok`)
-
-	isExist, err := util.IsExist(daemonExportFile)
+	daemonExportFile := `git-daemon-export-ok`
+	isExist, err := gitrepo.IsRepoFileExist(ctx, repo, daemonExportFile)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
 		return err
@@ -260,11 +258,11 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 
 	isPublic := !repo.IsPrivate && repo.Owner.Visibility == structs.VisibleTypePublic
 	if !isPublic && isExist {
-		if err = util.Remove(daemonExportFile); err != nil {
+		if err = gitrepo.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
 			log.Error("Failed to remove %s: %v", daemonExportFile, err)
 		}
 	} else if isPublic && !isExist {
-		if f, err := os.Create(daemonExportFile); err != nil {
+		if f, err := gitrepo.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
 			log.Error("Failed to create %s: %v", daemonExportFile, err)
 		} else {
 			f.Close()
@@ -334,5 +332,41 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 		issue_indexer.UpdateRepoIndexer(ctx, repo.ID)
 	}
 
+	return nil
+}
+
+func HasWiki(ctx context.Context, repo *repo_model.Repository) bool {
+	hasWiki, err := gitrepo.IsRepositoryExist(ctx, repo.WikiStorageRepo())
+	if err != nil {
+		log.Error("gitrepo.IsRepositoryExist: %v", err)
+	}
+	return hasWiki && err == nil
+}
+
+// CheckCreateRepository check if doer could create a repository in new owner
+func CheckCreateRepository(ctx context.Context, doer, owner *user_model.User, name string, overwriteOrAdopt bool) error {
+	if !doer.CanCreateRepoIn(owner) {
+		return repo_model.ErrReachLimitOfRepo{Limit: owner.MaxRepoCreation}
+	}
+
+	if err := repo_model.IsUsableRepoName(name); err != nil {
+		return err
+	}
+
+	has, err := repo_model.IsRepositoryModelExist(ctx, owner, name)
+	if err != nil {
+		return err
+	} else if has {
+		return repo_model.ErrRepoAlreadyExist{Uname: owner.Name, Name: name}
+	}
+	repo := repo_model.StorageRepo(repo_model.RelativePath(owner.Name, name))
+	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repo.RelativePath(), err)
+		return err
+	}
+	if !overwriteOrAdopt && isExist {
+		return repo_model.ErrRepoFilesAlreadyExist{Uname: owner.Name, Name: name}
+	}
 	return nil
 }

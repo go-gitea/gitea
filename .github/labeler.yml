@@ -46,12 +46,11 @@ modifies/internal:
           - ".gitpod.yml"
           - ".markdownlint.yaml"
           - ".spectral.yaml"
-          - "stylelint.config.js"
+          - "stylelint.config.ts"
           - ".yamllint.yaml"
           - ".github/**"
           - ".gitea/**"
           - ".devcontainer/**"
-          - "build.go"
           - "build/**"
           - "contrib/**"
 
@@ -59,7 +58,7 @@ modifies/dependencies:
   - changed-files:
       - any-glob-to-any-file:
           - "package.json"
-          - "package-lock.json"
+          - "pnpm-lock.yaml"
           - "pyproject.toml"
           - "uv.lock"
           - "go.mod"
@@ -90,4 +89,4 @@ topic/code-linting:
           - ".markdownlint.yaml"
           - ".spectral.yaml"
           - ".yamllint.yaml"
-          - "stylelint.config.js"
+          - "stylelint.config.ts"

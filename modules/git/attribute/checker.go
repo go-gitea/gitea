@@ -11,12 +11,13 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
-func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attributes []string) (*git.Command, []string, func(), error) {
+func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attributes []string) (*gitcmd.Command, []string, func(), error) {
 	cancel := func() {}
 	envs := []string{"GIT_FLUSH=1"}
-	cmd := git.NewCommand("check-attr", "-z")
+	cmd := gitcmd.NewCommand("check-attr", "-z")
 	if len(attributes) == 0 {
 		cmd.AddArguments("--all")
 	}
@@ -70,12 +71,11 @@ func CheckAttributes(ctx context.Context, gitRepo *git.Repository, treeish strin
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	if err := cmd.Run(ctx, &git.RunOpts{
-		Env:    append(os.Environ(), envs...),
-		Dir:    gitRepo.Path,
-		Stdout: stdOut,
-		Stderr: stdErr,
-	}); err != nil {
+	if err := cmd.WithEnv(append(os.Environ(), envs...)).
+		WithDir(gitRepo.Path).
+		WithStdout(stdOut).
+		WithStderr(stdErr).
+		Run(ctx); err != nil {
 		return nil, fmt.Errorf("failed to run check-attr: %w\n%s\n%s", err, stdOut.String(), stdErr.String())
 	}
 

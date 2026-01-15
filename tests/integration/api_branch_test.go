@@ -4,6 +4,8 @@
 package integration
 
 import (
+	"encoding/base64"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -187,26 +189,26 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 	return resp.Result().StatusCode == status
 }
 
-func TestAPIUpdateBranch(t *testing.T) {
+func TestAPIRenameBranch(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
-		t.Run("UpdateBranchWithEmptyRepo", func(t *testing.T) {
-			testAPIUpdateBranch(t, "user10", "user10", "repo6", "master", "test", http.StatusNotFound)
+		t.Run("RenameBranchWithEmptyRepo", func(t *testing.T) {
+			testAPIRenameBranch(t, "user10", "user10", "repo6", "master", "test", http.StatusNotFound)
 		})
-		t.Run("UpdateBranchWithSameBranchNames", func(t *testing.T) {
-			resp := testAPIUpdateBranch(t, "user2", "user2", "repo1", "master", "master", http.StatusUnprocessableEntity)
+		t.Run("RenameBranchWithSameBranchNames", func(t *testing.T) {
+			resp := testAPIRenameBranch(t, "user2", "user2", "repo1", "master", "master", http.StatusUnprocessableEntity)
 			assert.Contains(t, resp.Body.String(), "Cannot rename a branch using the same name or rename to a branch that already exists.")
 		})
-		t.Run("UpdateBranchThatAlreadyExists", func(t *testing.T) {
-			resp := testAPIUpdateBranch(t, "user2", "user2", "repo1", "master", "branch2", http.StatusUnprocessableEntity)
+		t.Run("RenameBranchThatAlreadyExists", func(t *testing.T) {
+			resp := testAPIRenameBranch(t, "user2", "user2", "repo1", "master", "branch2", http.StatusUnprocessableEntity)
 			assert.Contains(t, resp.Body.String(), "Cannot rename a branch using the same name or rename to a branch that already exists.")
 		})
-		t.Run("UpdateBranchWithNonExistentBranch", func(t *testing.T) {
-			resp := testAPIUpdateBranch(t, "user2", "user2", "repo1", "i-dont-exist", "new-branch-name", http.StatusNotFound)
+		t.Run("RenameBranchWithNonExistentBranch", func(t *testing.T) {
+			resp := testAPIRenameBranch(t, "user2", "user2", "repo1", "i-dont-exist", "new-branch-name", http.StatusNotFound)
 			assert.Contains(t, resp.Body.String(), "Branch doesn't exist.")
 		})
-		t.Run("UpdateBranchWithNonAdminDoer", func(t *testing.T) {
+		t.Run("RenameBranchWithNonAdminDoer", func(t *testing.T) {
 			// don't allow default branch renaming
-			resp := testAPIUpdateBranch(t, "user40", "user2", "repo1", "master", "new-branch-name", http.StatusForbidden)
+			resp := testAPIRenameBranch(t, "user40", "user2", "repo1", "master", "new-branch-name", http.StatusForbidden)
 			assert.Contains(t, resp.Body.String(), "User must be a repo or site admin to rename default or protected branches.")
 
 			// don't allow protected branch renaming
@@ -216,10 +218,10 @@ func TestAPIUpdateBranch(t *testing.T) {
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusCreated)
 			testAPICreateBranchProtection(t, "protected-branch", 1, http.StatusCreated)
-			resp = testAPIUpdateBranch(t, "user40", "user2", "repo1", "protected-branch", "new-branch-name", http.StatusForbidden)
+			resp = testAPIRenameBranch(t, "user40", "user2", "repo1", "protected-branch", "new-branch-name", http.StatusForbidden)
 			assert.Contains(t, resp.Body.String(), "User must be a repo or site admin to rename default or protected branches.")
 		})
-		t.Run("UpdateBranchWithGlobedBasedProtectionRulesAndAdminAccess", func(t *testing.T) {
+		t.Run("RenameBranchWithGlobedBasedProtectionRulesAndAdminAccess", func(t *testing.T) {
 			// don't allow branch that falls under glob-based protection rules to be renamed
 			token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
 			req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/branch_protections", &api.BranchProtection{
@@ -234,18 +236,91 @@ func TestAPIUpdateBranch(t *testing.T) {
 			}).AddTokenAuth(token)
 			MakeRequest(t, req, http.StatusCreated)
 
-			resp := testAPIUpdateBranch(t, "user2", "user2", "repo1", from, "new-branch-name", http.StatusForbidden)
+			resp := testAPIRenameBranch(t, "user2", "user2", "repo1", from, "new-branch-name", http.StatusForbidden)
 			assert.Contains(t, resp.Body.String(), "Branch is protected by glob-based protection rules.")
 		})
-		t.Run("UpdateBranchNormalScenario", func(t *testing.T) {
-			testAPIUpdateBranch(t, "user2", "user2", "repo1", "branch2", "new-branch-name", http.StatusNoContent)
+		t.Run("RenameBranchNormalScenario", func(t *testing.T) {
+			testAPIRenameBranch(t, "user2", "user2", "repo1", "branch2", "new-branch-name", http.StatusNoContent)
 		})
 	})
 }
 
-func testAPIUpdateBranch(t *testing.T, doerName, ownerName, repoName, from, to string, expectedHTTPStatus int) *httptest.ResponseRecorder {
+func TestAPIUpdateBranchReference(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+		ctx := NewAPITestContext(t, "user2", "update-branch", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+		giteaURL.Path = ctx.GitPath()
+
+		var defaultBranch string
+		t.Run("CreateRepo", doAPICreateRepository(ctx, false, func(t *testing.T, repo api.Repository) {
+			defaultBranch = repo.DefaultBranch
+		}))
+
+		createBranchReq := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/branches", ctx.Username, ctx.Reponame), &api.CreateBranchRepoOption{
+			BranchName: "feature",
+			OldRefName: defaultBranch,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, createBranchReq, http.StatusCreated)
+
+		var featureInitialCommit string
+		t.Run("LoadFeatureBranch", doAPIGetBranch(ctx, "feature", func(t *testing.T, branch api.Branch) {
+			featureInitialCommit = branch.Commit.ID
+			assert.NotEmpty(t, featureInitialCommit)
+		}))
+
+		content := base64.StdEncoding.EncodeToString([]byte("branch update test"))
+		var newCommit string
+		doAPICreateFile(ctx, "docs/update.txt", &api.CreateFileOptions{
+			FileOptions: api.FileOptions{
+				BranchName:    defaultBranch,
+				NewBranchName: defaultBranch,
+				Message:       "add docs/update.txt",
+			},
+			ContentBase64: content,
+		}, func(t *testing.T, resp api.FileResponse) {
+			newCommit = resp.Commit.SHA
+			assert.NotEmpty(t, newCommit)
+		})(t)
+
+		updateReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: newCommit,
+			OldCommitID: featureInitialCommit,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, updateReq, http.StatusNoContent)
+
+		t.Run("FastForwardApplied", doAPIGetBranch(ctx, "feature", func(t *testing.T, branch api.Branch) {
+			assert.Equal(t, newCommit, branch.Commit.ID)
+		}))
+
+		staleReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: newCommit,
+			OldCommitID: featureInitialCommit,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, staleReq, http.StatusUnprocessableEntity)
+
+		nonFFReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: featureInitialCommit,
+			OldCommitID: newCommit,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, nonFFReq, http.StatusUnprocessableEntity)
+
+		forceReq := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/branches/%s", ctx.Username, ctx.Reponame, "feature"), &api.UpdateBranchRepoOption{
+			NewCommitID: featureInitialCommit,
+			OldCommitID: newCommit,
+			Force:       true,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, forceReq, http.StatusNoContent)
+
+		t.Run("ForceApplied", doAPIGetBranch(ctx, "feature", func(t *testing.T, branch api.Branch) {
+			assert.Equal(t, featureInitialCommit, branch.Commit.ID)
+		}))
+	})
+}
+
+func testAPIRenameBranch(t *testing.T, doerName, ownerName, repoName, from, to string, expectedHTTPStatus int) *httptest.ResponseRecorder {
 	token := getUserToken(t, doerName, auth_model.AccessTokenScopeWriteRepository)
-	req := NewRequestWithJSON(t, "PATCH", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from, &api.UpdateBranchRepoOption{
+	req := NewRequestWithJSON(t, "PATCH", "api/v1/repos/"+ownerName+"/"+repoName+"/branches/"+from, &api.RenameBranchRepoOption{
 		Name: to,
 	}).AddTokenAuth(token)
 	return MakeRequest(t, req, expectedHTTPStatus)
@@ -303,7 +378,7 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, branches, 6)
+	assert.Len(t, branches, 8)
 
 	// make a broke repository with no branch on database
 	_, err = db.DeleteByBean(t.Context(), git_model.Branch{RepoID: 1})
@@ -320,7 +395,7 @@ func TestAPICreateBranchWithSyncBranches(t *testing.T) {
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, branches, 7)
+	assert.Len(t, branches, 9)
 
 	branches, err = db.Find[git_model.Branch](t.Context(), git_model.FindBranchOptions{
 		RepoID:  1,
