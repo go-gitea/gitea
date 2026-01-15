@@ -36,7 +36,7 @@
 		</div>
 		<div class="file-header-right file-actions flex-text-block tw-flex-wrap">
 		{{if .FileSidebarHTML}}
-			<button class="btn-octicon" id="toggle-sidebar-btn" data-tooltip-content="{{ctx.Locale.Tr "toc"}}">{{svg "octicon-list-unordered"}}</button>
+			<button class="btn-octicon" id="toggle-sidebar-btn" data-tooltip-content="{{ctx.Locale.Tr "toc"}}">{{svg "octicon-list-unordered" 15}}</button>
 		{{end}}
 			{{/* this componment is also controlled by frontend plugin renders */}}
 			<div class="ui compact icon buttons file-view-toggle-buttons {{Iif .HasSourceRenderedToggle "" "tw-hidden"}}">
