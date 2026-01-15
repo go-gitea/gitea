@@ -177,9 +177,20 @@
   background: var(--color-hover);
 }
 
+/* Sidebar toggle button styling for file view (not readme) - add border to match other buttons */
+.file-header-right #toggle-sidebar-btn {
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+}
+
+.file-header-right #toggle-sidebar-btn:hover {
+  border-color: var(--color-primary);
+}
+
 /* Sidebar toggle button active state - when sidebar is visible */
 #toggle-sidebar-btn.active {
   color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 /* Hide sidebar on small screens (phones) */
