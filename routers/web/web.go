@@ -168,6 +168,24 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 				ctx.Redirect(setting.AppSubURL + "/")
 				return
 			}
+
+			if ctx.DoerNeedTwoFactorAuth() {
+				path := ctx.Req.URL.Path
+				isAuthPage := strings.HasPrefix(path, "/user/settings/security") || path == "/user/logout"
+
+				if !isAuthPage {
+					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
+						ctx.HTTPError(http.StatusUnauthorized, "Two-factor authentication is required.")
+						return
+					}
+					if ctx.Req.Method == http.MethodPost {
+						ctx.HTTPError(http.StatusForbidden, "Two-factor authentication is required.")
+						return
+					}
+					ctx.Redirect(setting.AppSubURL + "/user/settings/security/two_factor/enroll")
+					return
+				}
+			}
 		}
 
 		// When a signed-in user visits a page that requires sign-out (e.g.: "/user/login"), redirect to home (or alternate location)
