@@ -387,6 +387,9 @@ func prepareGitCmdWithAllowedService(service string) (*gitcmd.Command, error) {
 	if service == ServiceTypeUploadPack {
 		return gitcmd.NewCommand(ServiceTypeUploadPack), nil
 	}
+	if service == ServiceTypeUploadArchive {
+		return gitcmd.NewCommand(ServiceTypeUploadArchive), nil
+	}
 	return nil, fmt.Errorf("service %q is not allowed", service)
 }
 
@@ -435,7 +438,10 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	if err := gitrepo.RunCmd(ctx, h.getStorageRepo(), cmd.AddArguments("--stateless-rpc", ".").
+	if service != ServiceTypeUploadArchive {
+		cmd.AddArguments("--stateless-rpc")
+	}
+	if err := gitrepo.RunCmd(ctx, h.getStorageRepo(), cmd.AddArguments(".").
 		WithEnv(append(os.Environ(), h.environ...)).
 		WithStderr(&stderr).
 		WithStdin(reqBody).
@@ -444,13 +450,13 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		if !git.IsErrCanceledOrKilled(err) {
 			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getStorageRepo().RelativePath(), err, stderr.String())
 		}
-		return
 	}
 }
 
 const (
-	ServiceTypeUploadPack  = "upload-pack"
-	ServiceTypeReceivePack = "receive-pack"
+	ServiceTypeUploadPack    = "upload-pack"
+	ServiceTypeReceivePack   = "receive-pack"
+	ServiceTypeUploadArchive = "upload-archive"
 )
 
 // ServiceUploadPack implements Git Smart HTTP protocol
@@ -458,6 +464,13 @@ func ServiceUploadPack(ctx *context.Context) {
 	h := httpBase(ctx)
 	if h != nil {
 		serviceRPC(ctx, h, ServiceTypeUploadPack)
+	}
+}
+
+func ServiceUploadArchive(ctx *context.Context) {
+	h := httpBase(ctx)
+	if h != nil {
+		serviceRPC(ctx, h, ServiceTypeUploadArchive)
 	}
 }
 
@@ -475,6 +488,8 @@ func getServiceType(ctx *context.Context) string {
 		return ServiceTypeUploadPack
 	case "git-" + ServiceTypeReceivePack:
 		return ServiceTypeReceivePack
+	case "git-" + ServiceTypeUploadArchive:
+		return ServiceTypeUploadArchive
 	}
 	return ""
 }
