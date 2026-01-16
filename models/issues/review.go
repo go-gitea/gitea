@@ -694,15 +694,19 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 			return nil, err
 		}
 
+		var specialDoerName string
+		if isCodeOwners {
+			specialDoerName = "CODEOWNERS"
+		}
 		comment, err := CreateComment(ctx, &CreateCommentOptions{
-			Type:                      CommentTypeReviewRequest,
-			Doer:                      doer,
-			Repo:                      issue.Repo,
-			Issue:                     issue,
-			RemovedAssignee:           false,       // Use RemovedAssignee as !isRequest
-			AssigneeID:                reviewer.ID, // Use AssigneeID as reviewer ID
-			ReviewID:                  review.ID,
-			IsCodeOwnersReviewRequest: isCodeOwners,
+			Type:            CommentTypeReviewRequest,
+			Doer:            doer,
+			Repo:            issue.Repo,
+			Issue:           issue,
+			RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
+			AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
+			ReviewID:        review.ID,
+			SpecialDoerName: specialDoerName,
 		})
 		if err != nil {
 			return nil, err
@@ -805,15 +809,19 @@ func AddTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organizat
 			}
 		}
 
+		var specialDoerName string
+		if isCodeOwners {
+			specialDoerName = "CODEOWNERS"
+		}
 		comment, err := CreateComment(ctx, &CreateCommentOptions{
-			Type:                      CommentTypeReviewRequest,
-			Doer:                      doer,
-			Repo:                      issue.Repo,
-			Issue:                     issue,
-			RemovedAssignee:           false,       // Use RemovedAssignee as !isRequest
-			AssigneeTeamID:            reviewer.ID, // Use AssigneeTeamID as reviewer team ID
-			ReviewID:                  review.ID,
-			IsCodeOwnersReviewRequest: isCodeOwners,
+			Type:            CommentTypeReviewRequest,
+			Doer:            doer,
+			Repo:            issue.Repo,
+			Issue:           issue,
+			RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
+			AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
+			ReviewID:        review.ID,
+			SpecialDoerName: specialDoerName,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("CreateComment(): %w", err)

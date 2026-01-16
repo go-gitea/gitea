@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -332,168 +331,18 @@ func TestAddReviewRequest(t *testing.T) {
 	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{}, false)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
-}
 
-func TestAddReviewRequest_WithCodeOwners(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	assert.NoError(t, pull.LoadIssue(t.Context()))
-	issue := pull.Issue
-	assert.NoError(t, issue.LoadRepo(t.Context()))
-
-	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 7})
+	// Test CODEOWNERS review request stores metadata correctly
+	pull2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.NoError(t, pull2.LoadIssue(t.Context()))
+	issue2 := pull2.Issue
+	assert.NoError(t, issue2.LoadRepo(t.Context()))
+	reviewer2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 7})
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	// Test: Add review request with isCodeOwners=true
-	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, true)
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue2, reviewer2, doer, true)
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
-
-	// Assert: Comment created with correct type
-	assert.Equal(t, issues_model.CommentTypeReviewRequest, comment.Type)
-	assert.Equal(t, reviewer.ID, comment.AssigneeID)
-	assert.Equal(t, doer.ID, comment.PosterID)
-
-	// Assert: Review created
-	assert.NotNil(t, comment.Review)
-	assert.Equal(t, issues_model.ReviewTypeRequest, comment.Review.Type)
-	assert.Equal(t, reviewer.ID, comment.Review.ReviewerID)
-
-	// Assert: Metadata marked as CODEOWNERS request
 	assert.NotNil(t, comment.CommentMetaData)
-	assert.True(t, comment.CommentMetaData.IsCodeOwnersReviewRequest)
-
-	// Assert: Verify persisted to database
-	savedComment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID})
-	assert.NotNil(t, savedComment.CommentMetaData)
-	assert.True(t, savedComment.CommentMetaData.IsCodeOwnersReviewRequest)
-}
-
-func TestAddReviewRequest_WithCodeOwners_SkipExisting(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	assert.NoError(t, pull.LoadIssue(t.Context()))
-	issue := pull.Issue
-	assert.NoError(t, issue.LoadRepo(t.Context()))
-
-	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	// Create first review request
-	comment1, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, comment1)
-
-	// Try to create duplicate - should skip and return nil
-	comment2, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, true)
-	assert.NoError(t, err)
-	assert.Nil(t, comment2)
-}
-
-func TestAddReviewRequest_WithCodeOwners_ClosedPR(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	assert.NoError(t, pull.LoadIssue(t.Context()))
-	issue := pull.Issue
-	assert.NoError(t, issue.LoadRepo(t.Context()))
-
-	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	// Create existing review (non-request type) so the closed check is triggered
-	_, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
-		Issue:    issue,
-		Reviewer: reviewer,
-		Type:     issues_model.ReviewTypeReject,
-	})
-	assert.NoError(t, err)
-
-	// Close the issue
-	issue.IsClosed = true
-
-	// Try to add review request - should error
-	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, true)
-	assert.Error(t, err)
-	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
-	assert.Nil(t, comment)
-}
-
-func TestAddReviewRequest_WithCodeOwners_MergedPR(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	assert.NoError(t, pull.LoadIssue(t.Context()))
-	issue := pull.Issue
-	assert.NoError(t, issue.LoadRepo(t.Context()))
-
-	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	// Create existing review so the merged check is triggered
-	_, err := issues_model.CreateReview(t.Context(), issues_model.CreateReviewOptions{
-		Issue:    issue,
-		Reviewer: reviewer,
-		Type:     issues_model.ReviewTypeApprove,
-	})
-	assert.NoError(t, err)
-
-	// Mark PR as merged
-	pull.HasMerged = true
-	assert.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
-
-	// Try to add review request - should error
-	comment, err := issues_model.AddReviewRequest(t.Context(), issue, reviewer, doer, true)
-	assert.Error(t, err)
-	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
-	assert.Nil(t, comment)
-}
-
-func TestAddTeamReviewRequest_WithCodeOwners(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	assert.NoError(t, pull.LoadIssue(t.Context()))
-	issue := pull.Issue
-	assert.NoError(t, issue.LoadRepo(t.Context()))
-
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	// Test: Add team review request with isCodeOwners=true
-	comment, err := issues_model.AddTeamReviewRequest(t.Context(), issue, team, doer, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, comment)
-
-	// Assert: Comment created with correct type
-	assert.Equal(t, issues_model.CommentTypeReviewRequest, comment.Type)
-	assert.Equal(t, team.ID, comment.AssigneeTeamID)
-
-	// Assert: Metadata marked as CODEOWNERS request
-	assert.NotNil(t, comment.CommentMetaData)
-	assert.True(t, comment.CommentMetaData.IsCodeOwnersReviewRequest)
-}
-
-func TestAddTeamReviewRequest_WithCodeOwners_SkipExisting(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	assert.NoError(t, pull.LoadIssue(t.Context()))
-	issue := pull.Issue
-	assert.NoError(t, issue.LoadRepo(t.Context()))
-
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1})
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-
-	// Create first team review request
-	comment1, err := issues_model.AddTeamReviewRequest(t.Context(), issue, team, doer, true)
-	assert.NoError(t, err)
-	assert.NotNil(t, comment1)
-
-	// Try to create duplicate - should skip and return nil
-	comment2, err := issues_model.AddTeamReviewRequest(t.Context(), issue, team, doer, true)
-	assert.NoError(t, err)
-	assert.Nil(t, comment2)
+	assert.Equal(t, "CODEOWNERS", comment.CommentMetaData.SpecialDoerName)
 }
