@@ -1703,6 +1703,7 @@
   "repo.issues.review.content.empty": "You need to leave a comment indicating the requested change(s).",
   "repo.issues.review.reject": "requested changes %s",
   "repo.issues.review.wait": "was requested for review %s",
+  "repo.issues.review.codeowners_rules": "CODEOWNERS rules",
   "repo.issues.review.add_review_request": "requested review from %s %s",
   "repo.issues.review.remove_review_request": "removed review request for %s %s",
   "repo.issues.review.remove_review_request_self": "declined to review %s",
