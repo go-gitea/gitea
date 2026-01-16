@@ -71,6 +71,10 @@ func testPullRequestBranchMergeable(pr *issues_model.PullRequest) error {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("testPullRequestBranchMergeable: %s", pr))
 	defer finished()
 
+	if shouldUseMergeTree(pr) {
+		return testPullRequestMergeTree(ctx, pr)
+	}
+
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
 		if !git_model.IsErrBranchNotExist(err) {
