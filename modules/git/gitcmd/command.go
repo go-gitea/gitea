@@ -426,7 +426,7 @@ type RunStdError interface {
 }
 
 type runStdError struct {
-	err    error  // usually the low-level error like exec.ExitError
+	err    error  // usually the low-level error like `*exec.ExitError`
 	stderr string // git command's stderr output
 	errMsg string // the cached error message for Error() method
 }
