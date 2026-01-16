@@ -426,9 +426,9 @@ type RunStdError interface {
 }
 
 type runStdError struct {
-	err    error
-	stderr string
-	errMsg string
+	err    error  // usually the low-level error like `*exec.ExitError`
+	stderr string // git command's stderr output
+	errMsg string // the cached error message for Error() method
 }
 
 func (r *runStdError) Error() string {
@@ -446,6 +446,22 @@ func (r *runStdError) Unwrap() error {
 
 func (r *runStdError) Stderr() string {
 	return r.stderr
+}
+
+func ErrorAsStderr(err error) (string, bool) {
+	var runErr RunStdError
+	if errors.As(err, &runErr) {
+		return runErr.Stderr(), true
+	}
+	return "", false
+}
+
+func StderrHasPrefix(err error, prefix string) bool {
+	stderr, ok := ErrorAsStderr(err)
+	if !ok {
+		return false
+	}
+	return strings.HasPrefix(stderr, prefix)
 }
 
 func IsErrorExitCode(err error, code int) bool {
