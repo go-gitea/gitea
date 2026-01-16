@@ -514,46 +514,18 @@
 		{{else if eq .Type 27}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-eye"}}</span>
-				{{if and .CommentMetaData .CommentMetaData.IsCodeOwnersReviewRequest}}
-					{{/* CODEOWNERS-triggered review request - show different message */}}
-					<span class="badge tw-bg-transparent">{{svg "octicon-file-code" 16}}</span>
+				{{$specialDoerHtml := .MetaSpecialDoerTr ctx.Locale}}
+				{{$timelineRequestedReviewHtml := .TimelineRequestedReviewTr ctx.Locale $createdStr}}
+				{{if $specialDoerHtml}}
 					<span class="comment-text-line">
-						{{if (gt .AssigneeID 0)}}
-							{{ctx.Locale.Tr "repo.issues.review.add_review_request_codeowners" .Assignee.GetDisplayName $createdStr}}
-						{{else}}
-							{{$teamName := "Ghost Team"}}
-							{{if .AssigneeTeam}}
-								{{$teamName = .AssigneeTeam.Name}}
-							{{end}}
-							{{ctx.Locale.Tr "repo.issues.review.add_review_request_codeowners" $teamName $createdStr}}
-						{{end}}
+						{{$specialDoerHtml}}
+						{{$timelineRequestedReviewHtml}}
 					</span>
 				{{else}}
 					{{template "shared/user/avatarlink" dict "user" .Poster}}
 					<span class="comment-text-line">
 						{{template "shared/user/authorlink" .Poster}}
-						{{if (gt .AssigneeID 0)}}
-							{{if .RemovedAssignee}}
-								{{if eq .PosterID .AssigneeID}}
-									{{ctx.Locale.Tr "repo.issues.review.remove_review_request_self" $createdStr}}
-								{{else}}
-									{{ctx.Locale.Tr "repo.issues.review.remove_review_request" .Assignee.GetDisplayName $createdStr}}
-								{{end}}
-							{{else}}
-								{{ctx.Locale.Tr "repo.issues.review.add_review_request" .Assignee.GetDisplayName $createdStr}}
-							{{end}}
-						{{else}}
-							<!-- If the assigned team is deleted, just displaying "Ghost Team" in the comment -->
-							{{$teamName := "Ghost Team"}}
-							{{if .AssigneeTeam}}
-								{{$teamName = .AssigneeTeam.Name}}
-							{{end}}
-							{{if .RemovedAssignee}}
-								{{ctx.Locale.Tr "repo.issues.review.remove_review_request" $teamName $createdStr}}
-							{{else}}
-								{{ctx.Locale.Tr "repo.issues.review.add_review_request" $teamName $createdStr}}
-							{{end}}
-						{{end}}
+						{{$timelineRequestedReviewHtml}}
 					</span>
 				{{end}}
 			</div>

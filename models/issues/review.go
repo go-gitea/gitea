@@ -694,10 +694,6 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 			return nil, err
 		}
 
-		var specialDoerName string
-		if isCodeOwners {
-			specialDoerName = "CODEOWNERS"
-		}
 		comment, err := CreateComment(ctx, &CreateCommentOptions{
 			Type:            CommentTypeReviewRequest,
 			Doer:            doer,
@@ -706,7 +702,7 @@ func AddReviewRequest(ctx context.Context, issue *Issue, reviewer, doer *user_mo
 			RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 			AssigneeID:      reviewer.ID, // Use AssigneeID as reviewer ID
 			ReviewID:        review.ID,
-			SpecialDoerName: specialDoerName,
+			SpecialDoerName: util.Iif(isCodeOwners, SpecialDoerNameCodeOwners, ""),
 		})
 		if err != nil {
 			return nil, err
@@ -809,10 +805,6 @@ func AddTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organizat
 			}
 		}
 
-		var specialDoerName string
-		if isCodeOwners {
-			specialDoerName = "CODEOWNERS"
-		}
 		comment, err := CreateComment(ctx, &CreateCommentOptions{
 			Type:            CommentTypeReviewRequest,
 			Doer:            doer,
@@ -821,7 +813,7 @@ func AddTeamReviewRequest(ctx context.Context, issue *Issue, reviewer *organizat
 			RemovedAssignee: false,       // Use RemovedAssignee as !isRequest
 			AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
 			ReviewID:        review.ID,
-			SpecialDoerName: specialDoerName,
+			SpecialDoerName: util.Iif(isCodeOwners, SpecialDoerNameCodeOwners, ""),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("CreateComment(): %w", err)

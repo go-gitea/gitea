@@ -344,5 +344,5 @@ func TestAddReviewRequest(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, comment)
 	assert.NotNil(t, comment.CommentMetaData)
-	assert.Equal(t, "CODEOWNERS", comment.CommentMetaData.SpecialDoerName)
+	assert.Equal(t, issues_model.SpecialDoerNameCodeOwners, comment.CommentMetaData.SpecialDoerName)
 }

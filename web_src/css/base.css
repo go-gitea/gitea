@@ -469,19 +469,6 @@ a.label,
   box-shadow: 1px 1px 0 0 var(--color-secondary);
 }
 
-.ui.comments .comment .text {
-  margin: 0;
-}
-
-.ui.comments .comment .text,
-.ui.comments .comment .author {
-  color: var(--color-text);
-}
-
-.ui.comments .comment a.author:hover {
-  color: var(--color-primary);
-}
-
 .ui.comments .comment .metadata {
   color: var(--color-text-light-2);
 }
@@ -562,6 +549,7 @@ img.ui.avatar,
   color: var(--color-purple) !important;
 }
 
+/* it is different from tw-text-black: this one changes in dark theme */
 .text.black {
   color: var(--color-text) !important;
 }
