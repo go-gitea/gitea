@@ -783,6 +783,7 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 
 func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr template.HTML) template.HTML {
 	if c.AssigneeID > 0 {
+		// it guarantees LoadAssigneeUserAndTeam has been called, and c.Assignee is Ghost user but not nil
 		if c.RemovedAssignee {
 			if c.PosterID == c.AssigneeID {
 				return locale.Tr("repo.issues.review.remove_review_request_self", createdStr)
@@ -791,9 +792,9 @@ func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdSt
 		}
 		return locale.Tr("repo.issues.review.add_review_request", c.Assignee.GetDisplayName(), createdStr)
 	}
-	teamName := locale.Tr("repo.issues.guest_team")
+	teamName := locale.TrString("repo.issues.guest_team")
 	if c.AssigneeTeam != nil {
-		teamName = htmlutil.HTMLFormat("%s", c.AssigneeTeam.Name)
+		teamName = c.AssigneeTeam.Name
 	}
 	if c.RemovedAssignee {
 		return locale.Tr("repo.issues.review.remove_review_request", teamName, createdStr)
