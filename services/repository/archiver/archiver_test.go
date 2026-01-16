@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/contexttest"
 
 	_ "code.gitea.io/gitea/models/actions"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -124,4 +126,13 @@ func TestArchive_Basic(t *testing.T) {
 	// Ideally, the extension would match what we originally requested.
 	assert.NotEqual(t, zipReq.GetArchiveName(), tgzReq.GetArchiveName())
 	assert.NotEqual(t, zipReq.GetArchiveName(), secondReq.GetArchiveName())
+
+	t.Run("BadPath", func(t *testing.T) {
+		badRequest, err := NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, firstCommit+".tar.gz", []string{"not-a-path"})
+		require.NoError(t, err)
+		err = ServeRepoArchive(ctx.Base, badRequest)
+		require.Error(t, err)
+		assert.ErrorIs(t, err, util.ErrInvalidArgument)
+		assert.ErrorContains(t, err, "path doesn't exist or is invalid")
+	})
 }

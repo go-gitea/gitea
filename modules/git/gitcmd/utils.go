@@ -3,12 +3,16 @@
 
 package gitcmd
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
-// ConcatenateError concatenats an error with stderr string
+// ConcatenateError concatenates an error with stderr string
+// FIXME: use RunStdError instead
 func ConcatenateError(err error, stderr string) error {
 	if len(stderr) == 0 {
 		return err
 	}
-	return fmt.Errorf("%w - %s", err, stderr)
+	return errors.Join(fmt.Errorf("%w - %s", err, stderr), &runStdError{err: err, stderr: stderr})
 }

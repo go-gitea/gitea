@@ -329,9 +329,8 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error
 		// the header must be set before starting streaming even an error would occur,
 		// because errors may happen in git command and such cases aren't in our control.
 		httplib.ServeSetHeaders(ctx.Resp, &httplib.ServeHeaderOptions{Filename: downloadName})
-		var gitErr gitcmd.RunStdError
 		if err := archiveReq.Stream(ctx, ctx.Resp); err != nil && !ctx.Written() {
-			if errors.As(err, &gitErr); strings.HasPrefix(gitErr.Stderr(), "fatal: pathspec") {
+			if gitcmd.StderrHasPrefix(err, "fatal: pathspec") {
 				return util.NewInvalidArgumentErrorf("path doesn't exist or is invalid")
 			}
 			return fmt.Errorf("archive repo %s: failed to stream: %w", archiveReq.Repo.FullName(), err)
