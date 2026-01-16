@@ -24,6 +24,7 @@ import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
 import {createTippy} from '../../modules/tippy.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
 import type EasyMDE from 'easymde';
+import {addLocalStorageChangeListener, getLocalStorageSetting, setLocalStorageSetting} from '../../modules/storage.ts';
 
 /**
  * validate if the given textarea is non-empty.
@@ -45,6 +46,21 @@ export function validateTextareaNonEmpty(textarea: HTMLTextAreaElement) {
     return false;
   }
   return true;
+}
+
+/** Returns whether the user currently has the monospace font setting enabled */
+function isMonospaceEnabled() {
+  return getLocalStorageSetting('markdown-editor-monospace') === 'true';
+}
+
+/** Apply font to the provided or all textareas on the page and optionally save on localStorage */
+function applyMonospace(enabled: boolean, {textarea, save}: {textarea?: HTMLTextAreaElement, save?: boolean}) {
+  for (const el of textarea ? [textarea] : document.querySelectorAll('.markdown-text-editor')) {
+    el.classList.toggle('tw-font-mono', enabled);
+  }
+  if (save) {
+    setLocalStorageSetting('markdown-editor-monospace', String(enabled));
+  }
 }
 
 type Heights = {
@@ -141,18 +157,23 @@ export class ComboMarkdownEditor {
     }
 
     const monospaceButton = this.container.querySelector('.markdown-switch-monospace')!;
-    const monospaceEnabled = localStorage?.getItem('markdown-editor-monospace') === 'true';
+    const monospaceEnabled = isMonospaceEnabled();
+    applyMonospace(monospaceEnabled, {textarea: this.textarea, save: false});
     const monospaceText = monospaceButton.getAttribute(monospaceEnabled ? 'data-disable-text' : 'data-enable-text')!;
     monospaceButton.setAttribute('data-tooltip-content', monospaceText);
     monospaceButton.setAttribute('aria-checked', String(monospaceEnabled));
     monospaceButton.addEventListener('click', (e) => {
       e.preventDefault();
-      const enabled = localStorage?.getItem('markdown-editor-monospace') !== 'true';
-      localStorage.setItem('markdown-editor-monospace', String(enabled));
-      this.textarea.classList.toggle('tw-font-mono', enabled);
+      const enabled = !isMonospaceEnabled();
+      applyMonospace(enabled, {save: true});
       const text = monospaceButton.getAttribute(enabled ? 'data-disable-text' : 'data-enable-text')!;
       monospaceButton.setAttribute('data-tooltip-content', text);
       monospaceButton.setAttribute('aria-checked', String(enabled));
+    });
+
+    // apply setting when it was changed in another tab
+    addLocalStorageChangeListener('markdown-editor-monospace', () => {
+      applyMonospace(isMonospaceEnabled(), {save: false});
     });
 
     if (this.supportEasyMDE) {
@@ -403,10 +424,10 @@ export class ComboMarkdownEditor {
   }
 
   get userPreferredEditor(): string {
-    return window.localStorage.getItem(`markdown-editor-${this.previewMode ?? 'default'}`) || '';
+    return getLocalStorageSetting(`markdown-editor-${this.previewMode ?? 'default'}`) || '';
   }
   set userPreferredEditor(s: string) {
-    window.localStorage.setItem(`markdown-editor-${this.previewMode ?? 'default'}`, s);
+    setLocalStorageSetting(`markdown-editor-${this.previewMode ?? 'default'}`, s);
   }
 }
 

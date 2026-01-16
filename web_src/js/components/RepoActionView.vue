@@ -8,6 +8,7 @@ import {renderAnsi} from '../render/ansi.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
+import {getLocalStorageSetting, setLocalStorageSetting} from '../modules/storage.ts';
 
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
@@ -73,7 +74,7 @@ type LocaleStorageOptions = {
 
 function getLocaleStorageOptions(): LocaleStorageOptions {
   try {
-    const optsJson = localStorage.getItem('actions-view-options');
+    const optsJson = getLocalStorageSetting('actions-view-options');
     if (optsJson) return JSON.parse(optsJson);
   } catch {}
   // if no options in localStorage, or failed to parse, return default options
@@ -224,7 +225,7 @@ export default defineComponent({
   methods: {
     saveLocaleStorageOptions() {
       const opts: LocaleStorageOptions = {autoScroll: this.optionAlwaysAutoScroll, expandRunning: this.optionAlwaysExpandRunning};
-      localStorage.setItem('actions-view-options', JSON.stringify(opts));
+      setLocalStorageSetting('actions-view-options', JSON.stringify(opts));
     },
 
     // get the job step logs container ('.job-step-logs')
