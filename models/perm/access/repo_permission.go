@@ -320,7 +320,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			// If allowed, we grant Read Access (consistent with old behavior and package access).
 			// If NOT allowed (checked above for sameOrg), we fall through to here.
 
-			if !isSameOrg {
+			if !isSameOrg && repo.IsPrivate {
 				return perm, nil
 			}
 		}
