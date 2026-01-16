@@ -642,3 +642,22 @@ type WorkflowJobPayload struct {
 func (p *WorkflowJobPayload) JSONPayload() ([]byte, error) {
 	return json.MarshalIndent(p, "", "  ")
 }
+
+// WorkflowCallPayload represents a workflow_call payload
+type WorkflowCallPayload struct {
+	// The name or path of the workflow file
+	Workflow string `json:"workflow"`
+	// The git reference (branch, tag, or commit SHA) to run the workflow on
+	Ref string `json:"ref"`
+	// Input parameters for the workflow_call event
+	Inputs map[string]any `json:"inputs"`
+	// The repository containing the workflow
+	Repository *Repository `json:"repository"`
+	// The user who triggered the workflow
+	Sender *User `json:"sender"`
+}
+
+// JSONPayload implements Payload
+func (p *WorkflowCallPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", "  ")
+}

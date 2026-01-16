@@ -52,6 +52,12 @@ type ActionRun struct {
 	RawConcurrency    string                       // raw concurrency
 	ConcurrencyGroup  string                       `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"`
 	ConcurrencyCancel bool                         `xorm:"NOT NULL DEFAULT FALSE"`
+
+	// ParentJobID == 0: it's a regular ActionRun without a parent job.
+	// ParentJobID > 0: it's a child ActionRun and the ParentJobID identifies the parent job's ID.
+	ParentJobID int64         `xorm:"index"`
+	ParentJob   *ActionRunJob `xorm:"-"`
+
 	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
@@ -136,6 +142,10 @@ func (run *ActionRun) LoadAttributes(ctx context.Context) error {
 		run.TriggerUser = u
 	}
 
+	if err := run.LoadParentJob(ctx); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -149,6 +159,19 @@ func (run *ActionRun) LoadRepo(ctx context.Context) error {
 		return err
 	}
 	run.Repo = repo
+	return nil
+}
+
+func (run *ActionRun) LoadParentJob(ctx context.Context) error {
+	if run.ParentJobID == 0 || run.ParentJob != nil {
+		return nil
+	}
+
+	parentJob, err := GetRunJobByID(ctx, run.ParentJobID)
+	if err != nil {
+		return err
+	}
+	run.ParentJob = parentJob
 	return nil
 }
 
@@ -291,6 +314,15 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 			}
 
 			cancelledJobs = append(cancelledJobs, job)
+
+			if job.ChildRunID > 0 {
+				cancelledChildRunJobs, err := cancelChildRun(ctx, job)
+				if err != nil {
+					return cancelledJobs, fmt.Errorf("cancelChildRun: %w", err)
+				}
+				cancelledJobs = append(cancelledJobs, cancelledChildRunJobs...)
+			}
+
 			// Continue with the next job.
 			continue
 		}
@@ -308,6 +340,22 @@ func CancelJobs(ctx context.Context, jobs []*ActionRunJob) ([]*ActionRunJob, err
 
 	// Return nil to indicate successful cancellation of all running and waiting jobs.
 	return cancelledJobs, nil
+}
+
+func cancelChildRun(ctx context.Context, parentJob *ActionRunJob) ([]*ActionRunJob, error) {
+	if !parentJob.Status.IsCancelled() {
+		return nil, fmt.Errorf("parent job status should be cancelled, but got %s", parentJob.Status.String())
+	}
+	if parentJob.ChildRunID <= 0 {
+		return nil, errors.New("no child run")
+	}
+
+	childRunJobs, err := GetRunJobsByRunID(ctx, parentJob.ChildRunID)
+	if err != nil {
+		return nil, err
+	}
+
+	return CancelJobs(ctx, childRunJobs)
 }
 
 func GetRunByRepoAndID(ctx context.Context, repoID, runID int64) (*ActionRun, error) {

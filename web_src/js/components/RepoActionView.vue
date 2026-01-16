@@ -33,6 +33,7 @@ type Job = {
   status: RunStatus;
   canRerun: boolean;
   duration: string;
+  link: string;
 }
 
 type Step = {
@@ -507,7 +508,7 @@ export default defineComponent({
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
+            <a class="job-brief-item" :href="job.link || run.link + '/jobs/' + index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
