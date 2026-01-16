@@ -51,6 +51,12 @@ type ActionRunJob struct {
 	ConcurrencyGroup  string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"` // evaluated concurrency.group
 	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`                      // evaluated concurrency.cancel-in-progress
 
+	// ChildRunID is the ID of a reusable workflow run.
+	// 0 - normal job, no child run;
+	// -1 - child run is being created;
+	// >0 - the child run ID.
+	ChildRunID int64 `xorm:"index"`
+
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`

@@ -302,6 +302,41 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	return perm, nil
 }
 
+// GetActionsUserRepoPermissionByRepoID returns the actions user permissions to the repository
+func GetActionsUserRepoPermissionByRepoID(ctx context.Context, repo *repo_model.Repository, actionsUser *user_model.User, sourceRepoID int64, isForkPullRequest bool) (perm Permission, err error) {
+	if actionsUser.ID != user_model.ActionsUserID {
+		return perm, errors.New("api GetActionsUserRepoPermissionByRepoID can only be called by the actions user")
+	}
+
+	var accessMode perm_model.AccessMode
+	if sourceRepoID != repo.ID {
+		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, sourceRepoID)
+		if err != nil || !exist {
+			return perm, err
+		}
+		actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
+		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
+			perm, err = GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
+			if err != nil {
+				return perm, err
+			}
+			perm.AccessMode = min(perm.AccessMode, perm_model.AccessModeRead)
+			return perm, nil
+		}
+		accessMode = perm_model.AccessModeRead
+	} else if isForkPullRequest {
+		accessMode = perm_model.AccessModeRead
+	} else {
+		accessMode = perm_model.AccessModeWrite
+	}
+
+	if err := repo.LoadUnits(ctx); err != nil {
+		return perm, err
+	}
+	perm.SetUnitsWithDefaultAccessMode(repo.Units, accessMode)
+	return perm, nil
+}
+
 // GetUserRepoPermission returns the user permissions to the repository
 func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (perm Permission, err error) {
 	defer func() {

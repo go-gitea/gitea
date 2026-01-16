@@ -9,6 +9,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
@@ -75,7 +76,9 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
 func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string) error {
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	var readyUsesJobs []*actions_model.ActionRunJob // jobs that have "uses" and  are ready to run
+
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
 			return err
@@ -153,7 +156,14 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				}
 			}
 
-			hasWaitingJobs = hasWaitingJobs || runJob.Status == actions_model.StatusWaiting
+			if job.Uses != "" {
+				runJob.ChildRunID = -1
+				if runJob.Status == actions_model.StatusWaiting {
+					readyUsesJobs = append(readyUsesJobs, runJob)
+				}
+			} else {
+				hasWaitingJobs = hasWaitingJobs || runJob.Status == actions_model.StatusWaiting
+			}
 			if err := db.Insert(ctx, runJob); err != nil {
 				return err
 			}
@@ -174,5 +184,14 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		}
 
 		return nil
-	})
+	}); err != nil {
+		return err
+	}
+
+	if err := expandReusableWorkflows(ctx, run, readyUsesJobs, vars); err != nil {
+		// TODO: need to rollback and show an error message to the user
+		log.Error("expandReusableWorkflows for run %d: %v", run.ID, err)
+	}
+
+	return nil
 }
