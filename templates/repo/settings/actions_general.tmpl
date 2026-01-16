@@ -33,13 +33,13 @@
 			{{.CsrfTokenHtml}}
 
 			{{if .IsInOrg}}
-			<!-- Follow Organization Configuration -->
+			<!-- Override Organization Configuration -->
 			<div class="field">
 				<div class="ui checkbox">
-					<input type="checkbox" name="follow_org_config" id="follow-org-config" {{if .FollowOrgConfig}}checked{{end}} class="js-follow-org-config">
-					<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions.follow_org"}}</strong></label>
+					<input type="checkbox" name="override_org_config" id="override-org-config" {{if .OverrideOrgConfig}}checked{{end}} class="js-follow-org-config">
+					<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions.override_org"}}</strong></label>
 				</div>
-				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.follow_org_desc"}}</p>
+				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.override_org_desc"}}</p>
 			</div>
 
 			<div class="divider"></div>

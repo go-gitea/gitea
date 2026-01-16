@@ -310,8 +310,8 @@ type ActionsConfig struct {
 	AllowCrossRepoAccess bool `json:"allow_cross_repo_access,omitempty"`
 	// AllowedCrossRepoIDs is a list of specific repo IDs that can be accessed cross-repo (empty means all if AllowCrossRepoAccess is true)
 	AllowedCrossRepoIDs []int64 `json:"allowed_cross_repo_ids,omitempty"`
-	// FollowOrgConfig indicates if this repository should follow the organization-level configuration
-	FollowOrgConfig bool `json:"follow_org_config,omitempty"`
+	// OverrideOrgConfig indicates if this repository should override the organization-level configuration
+	OverrideOrgConfig bool `json:"override_org_config,omitempty"`
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {

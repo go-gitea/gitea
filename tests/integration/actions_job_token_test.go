@@ -177,7 +177,7 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 			require.NoError(t, err, "Actions unit should exist for repo4")
 			actionsCfg := actionsUnit.ActionsConfig()
 			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionMode(mode)
-			actionsCfg.MaxTokenPermissions = nil     // Ensure no max permissions interfere
+			actionsCfg.MaxTokenPermissions = nil // Ensure no max permissions interfere
 			// Update the config
 			actionsUnit.Config = actionsCfg
 			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), actionsUnit))
@@ -343,11 +343,12 @@ func TestActionsTokenPackagePermission(t *testing.T) {
 		runner := newMockRunner()
 		runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
-		// Set Config: Custom Mode, Max Packages = Write
-		// This should implied Default Packages = Write (because Custom defaults to Max)
+		// Set Config: Custom Mode, Max Packages = Write, Max Code = Read
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
+			"override_org_config":   "true",
 			"token_permission_mode": "custom",
 			"max_packages":          "write",
+			"max_code":              "read", // Ensure repo read access if needed
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
@@ -375,7 +376,7 @@ jobs:
 		writePackageURL := fmt.Sprintf("/api/packages/%s/generic/%s/%s/test.bin", user2.Name, packageName, packageVersion)
 		uploadReq := NewRequestWithBody(t, "PUT", writePackageURL, bytes.NewReader([]byte{1, 2, 3})).
 			AddTokenAuth(taskToken)
-		
+
 		// Should Succeed (201)
 		MakeRequest(t, uploadReq, http.StatusCreated)
 	})
@@ -441,26 +442,26 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			Reponame: "repo-B",
 		}
 
-		// Case A: Default (AllowCrossRepoAccess = false/unset) -> Should Fail (404 Not Found)
-		// API returns 404 for private repos you can't access, not 403, to avoid leaking existence.
-		testCtx.ExpectedCode = http.StatusNotFound
-		t.Run("Cross-Repo Access Denied (Default)", doAPIGetRepository(testCtx, nil))
+		// Case A: Default (AllowCrossRepoAccess = true by default now) -> Should Succeed (200) Read-Only
+		// API returns 404 if denied (hidden), 200 if allowed.
+		testCtx.ExpectedCode = http.StatusOK
+		t.Run("Cross-Repo Access Allowed (Default)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+			assert.Equal(t, "repo-B", r.Name)
+		}))
 
-		// Case B: Enable AllowCrossRepoAccess
+		// Case B: Explicitly Disable AllowCrossRepoAccess
 		org, err := org_model.GetOrgByName(t.Context(), orgName)
 		require.NoError(t, err)
 
 		cfg := &repo_model.ActionsConfig{
-			AllowCrossRepoAccess: true,
+			AllowCrossRepoAccess: false,
 		}
 		err = actions_model.SetOrgActionsConfig(t.Context(), org.ID, cfg)
 		require.NoError(t, err)
 
-		// Retry -> Should Succeed (200) - Read Only
-		testCtx.ExpectedCode = http.StatusOK
-		t.Run("Cross-Repo Access Allowed", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-			assert.Equal(t, "repo-B", r.Name)
-		}))
+		// Retry -> Should Fail (404 Not Found)
+		testCtx.ExpectedCode = http.StatusNotFound
+		t.Run("Cross-Repo Access Denied (Disabled)", doAPIGetRepository(testCtx, nil))
 
 		// 6. Test Cross-Repo Package Access
 		t.Run("Cross-Repo Package Access", func(t *testing.T) {

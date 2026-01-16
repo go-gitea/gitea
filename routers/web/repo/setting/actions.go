@@ -46,7 +46,7 @@ func ActionsGeneralSettings(ctx *context.Context) {
 
 	// Follow org config (only for repos in orgs)
 	ctx.Data["IsInOrg"] = ctx.Repo.Repository.Owner.IsOrganization()
-	ctx.Data["FollowOrgConfig"] = actionsCfg.FollowOrgConfig
+	ctx.Data["OverrideOrgConfig"] = actionsCfg.OverrideOrgConfig
 
 	if ctx.Repo.Repository.IsPrivate {
 		collaborativeOwnerIDs := actionsCfg.CollaborativeOwnerIDs
@@ -146,11 +146,12 @@ func UpdateTokenPermissions(ctx *context.Context) {
 
 	actionsCfg := actionsUnit.ActionsConfig()
 
-	// Update Follow Org Config (for repos in orgs)
-	actionsCfg.FollowOrgConfig = ctx.FormBool("follow_org_config")
+	// Update Override Org Config (for repos in orgs)
+	// If checked, it means we WANT to override (opt-out of following)
+	actionsCfg.OverrideOrgConfig = ctx.FormBool("override_org_config")
 
-	// Update permission mode (only if not following org config)
-	if !actionsCfg.FollowOrgConfig {
+	// Update permission mode (only if overriding org config)
+	if actionsCfg.OverrideOrgConfig {
 		permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
 		if permissionMode == repo_model.ActionsTokenPermissionModeRestricted ||
 			permissionMode == repo_model.ActionsTokenPermissionModePermissive ||
@@ -164,7 +165,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	}
 
 	// Update Maximum Permissions (radio buttons: none/read/write)
-	if actionsCfg.TokenPermissionMode == repo_model.ActionsTokenPermissionModeCustom {
+	if actionsCfg.OverrideOrgConfig && actionsCfg.TokenPermissionMode == repo_model.ActionsTokenPermissionModeCustom {
 		parseMaxPerm := func(name string) perm.AccessMode {
 			value := ctx.FormString("max_" + name)
 			switch value {

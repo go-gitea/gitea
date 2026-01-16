@@ -346,13 +346,37 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		effectivePerms, err = repo_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
 		if err != nil {
 			// Fall back to repository settings if unmarshal fails
-			effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
-			effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+			// If following org config, we need to load it
+			if !actionsCfg.OverrideOrgConfig && repo.Owner.IsOrganization() {
+				orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
+				if err != nil {
+					log.Error("GetOrgActionsConfig: %v", err)
+					effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest) // Fallback to repo config on error
+				} else {
+					effectivePerms = orgCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
+					effectivePerms = orgCfg.ClampPermissions(effectivePerms)
+				}
+			} else {
+				effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
+				effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+			}
 		}
 	} else {
 		// No workflow permissions or job not found, use repository settings
-		effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
-		effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+		if !actionsCfg.OverrideOrgConfig && repo.Owner.IsOrganization() {
+			orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
+			if err != nil {
+				log.Error("GetOrgActionsConfig: %v", err)
+				effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest) // Fallback to repo config on error
+				effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+			} else {
+				effectivePerms = orgCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
+				effectivePerms = orgCfg.ClampPermissions(effectivePerms)
+			}
+		} else {
+			effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
+			effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+		}
 	}
 
 	// Set up per-unit access modes based on configured permissions
