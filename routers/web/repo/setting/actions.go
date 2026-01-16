@@ -150,8 +150,11 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	// If checked, it means we WANT to override (opt-out of following)
 	actionsCfg.OverrideOrgConfig = ctx.FormBool("override_org_config")
 
-	// Update permission mode (only if overriding org config)
-	if actionsCfg.OverrideOrgConfig {
+	// Update permission mode (only if overriding org config OR not in an org)
+	isOrg := ctx.Repo.Repository.Owner.IsOrganization()
+	shouldUpdate := !isOrg || actionsCfg.OverrideOrgConfig
+
+	if shouldUpdate {
 		permissionMode := repo_model.ActionsTokenPermissionMode(ctx.FormString("token_permission_mode"))
 		if permissionMode == repo_model.ActionsTokenPermissionModeRestricted ||
 			permissionMode == repo_model.ActionsTokenPermissionModePermissive ||
@@ -165,7 +168,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	}
 
 	// Update Maximum Permissions (radio buttons: none/read/write)
-	if actionsCfg.OverrideOrgConfig && actionsCfg.TokenPermissionMode == repo_model.ActionsTokenPermissionModeCustom {
+	if shouldUpdate && actionsCfg.TokenPermissionMode == repo_model.ActionsTokenPermissionModeCustom {
 		parseMaxPerm := func(name string) perm.AccessMode {
 			value := ctx.FormString("max_" + name)
 			switch value {
