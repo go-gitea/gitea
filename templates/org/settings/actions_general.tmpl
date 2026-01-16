@@ -52,10 +52,7 @@
 									</a>
 								</div>
 								<div class="flex-item-trailing">
-									<form method="post" action="{{$.Link}}/allowed_repos/remove?repo_id={{.ID}}">
-										{{$.CsrfTokenHtml}}
-										<button type="submit" class="ui red small button">{{ctx.Locale.Tr "remove"}}</button>
-									</form>
+									<button class="ui red small button" type="submit" formaction="{{$.Link}}/allowed_repos/remove?repo_id={{.ID}}">{{ctx.Locale.Tr "remove"}}</button>
 								</div>
 							</div>
 						{{else}}
@@ -69,15 +66,14 @@
 				<h5 class="ui header">
 					{{ctx.Locale.Tr "actions.general.token_permissions.add_repo"}}
 				</h5>
-				<form class="ui form tw-flex" action="{{$.Link}}/allowed_repos/add" method="post">
-					{{.CsrfTokenHtml}}
+				<div class="ui form tw-flex">
 					<div data-global-init="initSearchRepoBox" data-uid="{{.Org.AsUser.ID}}" class="ui search tw-flex-1">
 						<div class="ui input">
 							<input class="prompt" name="repo_name" placeholder="{{ctx.Locale.Tr "search.search_repo"}}" autocomplete="off" required>
 						</div>
 					</div>
-					<button class="ui green button tw-ml-2">{{ctx.Locale.Tr "add"}}</button>
-				</form>
+					<button class="ui green button tw-ml-2" type="submit" formaction="{{$.Link}}/allowed_repos/add">{{ctx.Locale.Tr "add"}}</button>
+				</div>
 			</div>
 
 			<div class="divider"></div>

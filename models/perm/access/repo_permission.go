@@ -311,15 +311,16 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			// The task repo can access the current repo only if the task repo is private and
 			// the owner of the task repo is a collaborative owner of the current repo.
 			// FIXME should owner's visibility also be considered here?
+			//
+			// If not, we check if they are in the same org and cross-repo access is allowed.
+			// If allowed, we grant Read Access (consistent with old behavior and package access).
+			// If NOT allowed (checked above for sameOrg), we fall through to here.
 
-			// check permission like simple user but limit to read-only
-			perm, err = GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
-			if err != nil {
-				return perm, err
+			if !isSameOrg {
+				return perm, nil
 			}
-			perm.AccessMode = min(perm.AccessMode, perm_model.AccessModeRead)
-			return perm, nil
 		}
+
 		// Cross-repo access is always read-only
 		perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
 		return perm, nil

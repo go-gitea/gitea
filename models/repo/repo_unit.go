@@ -303,9 +303,6 @@ type ActionsConfig struct {
 	CollaborativeOwnerIDs []int64
 	// TokenPermissionMode defines the default permission mode (permissive, restricted, or custom)
 	TokenPermissionMode ActionsTokenPermissionMode `json:"token_permission_mode,omitempty"`
-	// DefaultTokenPermissions defines the specific permissions for workflow tokens when TokenPermissionMode is set to "custom"
-	// and no "permissions" keyword is defined in the workflow YAML.
-	DefaultTokenPermissions *ActionsTokenPermissions `json:"default_token_permissions,omitempty"`
 	// MaxTokenPermissions defines the absolute maximum permissions any token can have in this context.
 	// Workflow YAML "permissions" keywords can reduce permissions but never exceed this ceiling.
 	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions,omitempty"`
@@ -366,9 +363,8 @@ func (cfg *ActionsConfig) GetEffectiveTokenPermissions(isForkPullRequest bool) A
 		return ForkPullRequestPermissions()
 	}
 
-	// Use custom default permissions if set
-	if cfg.DefaultTokenPermissions != nil {
-		return *cfg.DefaultTokenPermissions
+	if cfg.GetTokenPermissionMode() == ActionsTokenPermissionModeCustom {
+		return cfg.GetMaxTokenPermissions()
 	}
 
 	// Otherwise use mode-based defaults

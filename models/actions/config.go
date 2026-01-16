@@ -22,6 +22,7 @@ func GetOrgActionsConfig(ctx context.Context, orgID int64) (*repo_model.ActionsC
 	cfg := &repo_model.ActionsConfig{}
 	if val == "" {
 		// Return defaults if no config exists
+		cfg.AllowCrossRepoAccess = true
 		return cfg, nil
 	}
 

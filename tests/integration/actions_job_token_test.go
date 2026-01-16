@@ -177,7 +177,6 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 			require.NoError(t, err, "Actions unit should exist for repo4")
 			actionsCfg := actionsUnit.ActionsConfig()
 			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionMode(mode)
-			actionsCfg.DefaultTokenPermissions = nil // Ensure no custom permissions override the mode
 			actionsCfg.MaxTokenPermissions = nil     // Ensure no max permissions interfere
 			// Update the config
 			actionsUnit.Config = actionsCfg
@@ -265,51 +264,120 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 
 func TestActionsTokenPermissionsClamping(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		httpContext := NewAPITestContext(t, "user2", "repo-clamping", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
-		t.Run("Create Repository", doAPICreateRepository(httpContext, false, func(t *testing.T, repository structs.Repository) {
-			// Enable Actions unit with Clamping Config
-			err := db.Insert(t.Context(), &repo_model.RepoUnit{
-				RepoID: repository.ID,
-				Type:   unit_model.TypeActions,
-				Config: &repo_model.ActionsConfig{
-					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
-					MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
-						Code: perm.AccessModeRead, // Max is Read - will clamp default Write to Read
-					},
-				},
-			})
-			require.NoError(t, err)
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
-			// Create Task and Token
-			task := &actions_model.ActionTask{
-				RepoID:            repository.ID,
-				Status:            actions_model.StatusRunning,
-				IsForkPullRequest: false,
-			}
-			require.NoError(t, task.GenerateToken())
-			require.NoError(t, db.Insert(t.Context(), task))
+		// Create Repo
+		apiRepo := createActionsTestRepo(t, token, "repo-clamping", false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		defer doAPIDeleteRepository(httpContext)(t)
 
-			// Verify Token Permissions
-			session := emptyTestSession(t)
-			testCtx := APITestContext{
-				Session:  session,
-				Token:    task.Token,
-				Username: "user2",
-				Reponame: "repo-clamping",
-			}
+		// Mock Runner
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
-			// 1. Try to Write (Create File) - Should Fail (403) because Max is Read
-			testCtx.ExpectedCode = http.StatusForbidden
-			t.Run("Fail to Create File (Max Clamping)", doAPICreateFile(testCtx, "clamping.txt", &structs.CreateFileOptions{
-				ContentBase64: base64.StdEncoding.EncodeToString([]byte("test")),
-			}))
+		// Set Clamping Config: Custom Mode (Default=Max), Max Code = Read
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
+			"token_permission_mode": "custom",
+			"max_code":              "read",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
-			// 2. Try to Read (Get Repository) - Should Succeed (200)
-			testCtx.ExpectedCode = http.StatusOK
-			t.Run("Get Repository (Read Allowed)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-				assert.Equal(t, "repo-clamping", r.Name)
-			}))
+		// Create workflow requesting Write
+		wfTreePath := ".gitea/workflows/clamping.yml"
+		wfFileContent := `name: Clamping
+on: [push]
+permissions:
+  contents: write
+jobs:
+  job-clamping:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo test
+`
+		opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wfTreePath, wfFileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, opts)
+
+		// Fetch task
+		runnerTask := runner.fetchTask(t)
+		taskToken := runnerTask.Secrets["GITEA_TOKEN"]
+		require.NotEmpty(t, taskToken)
+
+		// Verify Permissions
+		testCtx := APITestContext{
+			Session:  emptyTestSession(t),
+			Token:    taskToken,
+			Username: user2.Name,
+			Reponame: repo.Name,
+		}
+
+		// 1. Try to Write (Create File) - Should Fail (403) because Max is Read
+		testCtx.ExpectedCode = http.StatusForbidden
+		t.Run("Fail to Create File (Max Clamping)", doAPICreateFile(testCtx, "clamping.txt", &structs.CreateFileOptions{
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("test")),
 		}))
+
+		// 2. Try to Read (Get Repository) - Should Succeed (200)
+		testCtx.ExpectedCode = http.StatusOK
+		t.Run("Get Repository (Read Allowed)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+			assert.Equal(t, repo.Name, r.Name)
+		}))
+	})
+}
+
+func TestActionsTokenPackagePermission(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		// Create Repo
+		apiRepo := createActionsTestRepo(t, token, "repo-package-perm", false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
+		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		defer doAPIDeleteRepository(httpContext)(t)
+
+		// Mock Runner
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		// Set Config: Custom Mode, Max Packages = Write
+		// This should implied Default Packages = Write (because Custom defaults to Max)
+		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
+			"token_permission_mode": "custom",
+			"max_packages":          "write",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		// Create workflow with NO explicit permissions (inherits Default)
+		wfTreePath := ".gitea/workflows/package.yml"
+		wfFileContent := `name: Package
+on: [push]
+jobs:
+  job-package:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo test
+`
+		opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wfTreePath, wfFileContent)
+		createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, opts)
+
+		// Fetch task
+		runnerTask := runner.fetchTask(t)
+		taskToken := runnerTask.Secrets["GITEA_TOKEN"]
+		require.NotEmpty(t, taskToken)
+
+		// Verify Package Upload Access
+		packageName := "test-pkg"
+		packageVersion := "1.0.0"
+		writePackageURL := fmt.Sprintf("/api/packages/%s/generic/%s/%s/test.bin", user2.Name, packageName, packageVersion)
+		uploadReq := NewRequestWithBody(t, "PUT", writePackageURL, bytes.NewReader([]byte{1, 2, 3})).
+			AddTokenAuth(taskToken)
+		
+		// Should Succeed (201)
+		MakeRequest(t, uploadReq, http.StatusCreated)
 	})
 }
 
