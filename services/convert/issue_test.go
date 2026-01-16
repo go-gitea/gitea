@@ -8,9 +8,11 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -54,4 +56,30 @@ func TestMilestone_APIFormat(t *testing.T) {
 		Updated:      milestone.UpdatedUnix.AsTimePtr(),
 		Deadline:     milestone.DeadlineUnix.AsTimePtr(),
 	}, *ToAPIMilestone(milestone))
+}
+
+func TestToStopWatchesRespectsPermissions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	publicSW := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{ID: 1})
+	privateIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 3})
+	privateSW := &issues_model.Stopwatch{IssueID: privateIssue.ID, UserID: 5}
+	assert.NoError(t, db.Insert(ctx, privateSW))
+	assert.NotZero(t, privateSW.ID)
+
+	regularUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	sws := []*issues_model.Stopwatch{publicSW, privateSW}
+
+	visible, err := ToStopWatches(ctx, regularUser, sws)
+	assert.NoError(t, err)
+	assert.Len(t, visible, 1)
+	assert.Equal(t, "repo1", visible[0].RepoName)
+
+	visibleAdmin, err := ToStopWatches(ctx, adminUser, sws)
+	assert.NoError(t, err)
+	assert.Len(t, visibleAdmin, 2)
+	assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{visibleAdmin[0].RepoName, visibleAdmin[1].RepoName})
 }
