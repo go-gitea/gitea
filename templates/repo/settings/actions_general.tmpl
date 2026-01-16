@@ -36,7 +36,7 @@
 			<!-- Override Organization Configuration -->
 			<div class="field">
 				<div class="ui checkbox">
-					<input type="checkbox" name="override_org_config" id="override-org-config" {{if .OverrideOrgConfig}}checked{{end}} class="js-follow-org-config">
+					<input type="checkbox" name="override_org_config" id="override-org-config" {{if .OverrideOrgConfig}}checked{{end}} class="js-override-org-config">
 					<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions.override_org"}}</strong></label>
 				</div>
 				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.override_org_desc"}}</p>
