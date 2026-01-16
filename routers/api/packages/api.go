@@ -90,6 +90,8 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 			// 2. If not, check cross-repo policy (currently only for Orgs).
 
 			taskID, ok := ctx.Data["ActionsTaskID"].(int64)
+			log.Error("DEBUG: reqPackageAccess: isActionsToken=%v, TaskID=%d", isActionsToken, taskID)
+
 			if ok && taskID > 0 {
 				task, err := actions_model.GetTaskByID(ctx, taskID)
 				if err != nil {
@@ -117,6 +119,8 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 						}
 					}
 				}
+
+				log.Error("DEBUG: packageRepoID=%d, task.RepoID=%d", packageRepoID, task.RepoID)
 
 				if packageRepoID == 0 {
 					ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "Actions tokens cannot access packages not linked to a repository")
@@ -157,6 +161,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 					// Cross-repository access: strictly Read-only even if token/policy allow more
 					grantedMode = perm.AccessModeRead
 				}
+				log.Error("DEBUG: grantedMode=%d, accessMode=%d", grantedMode, accessMode)
 
 				// If all security checks pass, ensure the context has at least the granted permission.
 				// This effectively "boosts" the Actions token's permissions for the targeted package.
