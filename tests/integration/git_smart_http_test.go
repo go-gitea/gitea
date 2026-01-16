@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,6 +20,7 @@ func TestGitSmartHTTP(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		testGitSmartHTTP(t, u)
 		testRenamedRepoRedirect(t)
+		testGitArchiveRemote(t, u)
 	})
 }
 
@@ -95,4 +95,11 @@ func testRenamedRepoRedirect(t *testing.T) {
 	req = NewRequest(t, "GET", redirect).AddBasicAuth("user2")
 	resp = MakeRequest(t, req, http.StatusOK)
 	assert.Contains(t, resp.Body.String(), "65f1bf27bc3bf70f64657658635e66094edbcb4d\trefs/tags/v1.1")
+}
+
+func testGitArchiveRemote(t *testing.T, u *url.URL) {
+	u = u.JoinPath("user27/repo49.git")
+	t.Run("Fetch HEAD archive", doGitRemoteArchive(u.String(), "HEAD"))
+	t.Run("Fetch HEAD archive subpath", doGitRemoteArchive(u.String(), "HEAD", "test"))
+	t.Run("list compression options", doGitRemoteArchive(u.String(), "--list"))
 }
