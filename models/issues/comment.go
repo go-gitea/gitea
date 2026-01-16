@@ -792,7 +792,7 @@ func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdSt
 		}
 		return locale.Tr("repo.issues.review.add_review_request", c.Assignee.GetDisplayName(), createdStr)
 	}
-	teamName := locale.TrString("repo.issues.guest_team")
+	teamName := "Ghost Team"
 	if c.AssigneeTeam != nil {
 		teamName = c.AssigneeTeam.Name
 	}
