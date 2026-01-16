@@ -267,15 +267,25 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	if err != nil {
 		return perm, err
 	}
+	if err := task.LoadAttributes(ctx); err != nil {
+		return perm, err
+	}
+
+	return GetActionsUserRepoPermissionByActionRun(ctx, repo, actionsUser, task.Job.Run)
+}
+
+func GetActionsUserRepoPermissionByActionRun(ctx context.Context, repo *repo_model.Repository, actionsUser *user_model.User, run *actions_model.ActionRun) (perm Permission, err error) {
+	if actionsUser.ID != user_model.ActionsUserID {
+		return perm, errors.New("api GetActionsUserRepoPermissionByActionRun can only be called by the actions user")
+	}
 
 	var accessMode perm_model.AccessMode
-	if task.RepoID != repo.ID {
-		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
-		if err != nil || !exist {
+	if run.RepoID != repo.ID {
+		if err := run.LoadRepo(ctx); err != nil {
 			return perm, err
 		}
 		actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
+		if !actionsCfg.IsCollaborativeOwner(run.Repo.OwnerID) || !run.Repo.IsPrivate {
 			// The task repo can access the current repo only if the task repo is private and
 			// the owner of the task repo is a collaborative owner of the current repo.
 			// FIXME should owner's visibility also be considered here?
@@ -289,42 +299,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			return perm, nil
 		}
 		accessMode = perm_model.AccessModeRead
-	} else if task.IsForkPullRequest {
-		accessMode = perm_model.AccessModeRead
-	} else {
-		accessMode = perm_model.AccessModeWrite
-	}
-
-	if err := repo.LoadUnits(ctx); err != nil {
-		return perm, err
-	}
-	perm.SetUnitsWithDefaultAccessMode(repo.Units, accessMode)
-	return perm, nil
-}
-
-// GetActionsUserRepoPermissionByRepoID returns the actions user permissions to the repository
-func GetActionsUserRepoPermissionByRepoID(ctx context.Context, repo *repo_model.Repository, actionsUser *user_model.User, sourceRepoID int64, isForkPullRequest bool) (perm Permission, err error) {
-	if actionsUser.ID != user_model.ActionsUserID {
-		return perm, errors.New("api GetActionsUserRepoPermissionByRepoID can only be called by the actions user")
-	}
-
-	var accessMode perm_model.AccessMode
-	if sourceRepoID != repo.ID {
-		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, sourceRepoID)
-		if err != nil || !exist {
-			return perm, err
-		}
-		actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
-			perm, err = GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
-			if err != nil {
-				return perm, err
-			}
-			perm.AccessMode = min(perm.AccessMode, perm_model.AccessModeRead)
-			return perm, nil
-		}
-		accessMode = perm_model.AccessModeRead
-	} else if isForkPullRequest {
+	} else if run.IsForkPullRequest {
 		accessMode = perm_model.AccessModeRead
 	} else {
 		accessMode = perm_model.AccessModeWrite

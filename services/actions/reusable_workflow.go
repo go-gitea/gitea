@@ -11,13 +11,15 @@ import (
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/jobparser"
 	actmodel "github.com/nektos/act/pkg/model"
@@ -40,7 +42,7 @@ func expandReusableWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 		if err != nil {
 			return err
 		}
-		if err := createChildRunFromReusableWorkflow(ctx, run, job, workflowJob, ref, vars); err != nil {
+		if err := createChildRunFromReusableWorkflow(ctx, job, workflowJob, ref, vars); err != nil {
 			return err
 		}
 	}
@@ -67,47 +69,68 @@ func expandReusableWorkflow(ctx context.Context, parentJob *actions_model.Action
 	if err != nil {
 		return err
 	}
-	if err := createChildRunFromReusableWorkflow(ctx, parentJob.Run, parentJob, workflowJob, ref, vars); err != nil {
+	if err := createChildRunFromReusableWorkflow(ctx, parentJob, workflowJob, ref, vars); err != nil {
 		return err
 	}
 	return nil
 }
 
-func createChildRunFromReusableWorkflow(ctx context.Context, run *actions_model.ActionRun, parentJob *actions_model.ActionRunJob, workflowJob *jobparser.Job, ref *act_runner_pkg.ReusableWorkflowRef, vars map[string]string) error {
-	content, err := loadReusableWorkflowContent(ctx, run, ref)
+func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_model.ActionRunJob, workflowJob *jobparser.Job, ref *act_runner_pkg.ReusableWorkflowRef, vars map[string]string) error {
+	if err := parentJob.LoadAttributes(ctx); err != nil {
+		return err
+	}
+	parentRun := parentJob.Run
+
+	content, err := loadReusableWorkflowContent(ctx, parentRun, ref)
 	if err != nil {
 		return err
 	}
 
-	inputsWithDefaults, err := buildWorkflowCallInputs(ctx, run, parentJob, workflowJob, content, vars)
+	inputsWithDefaults, err := buildWorkflowCallInputs(ctx, parentJob, workflowJob, content, vars)
 	if err != nil {
 		return err
 	}
 
-	eventPayload, err := json.Marshal(map[string]any{
-		"inputs": inputsWithDefaults,
-	})
+	workflowCallPayload := &api.WorkflowCallPayload{
+		Workflow:   parentRun.WorkflowID,
+		Ref:        parentRun.Ref,
+		Repository: convert.ToRepo(ctx, parentRun.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Sender:     convert.ToUserWithAccessMode(ctx, parentRun.TriggerUser, perm.AccessModeNone),
+		Inputs:     inputsWithDefaults,
+	}
+
+	giteaCtx := GenerateGiteaContext(parentJob.Run, parentJob)
+
+	jobs, err := jobparser.Parse(content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputsWithDefaults))
 	if err != nil {
-		return err
+		return fmt.Errorf("parse workflow: %w", err)
+	}
+	childRunName := ref.WorkflowPath
+	if len(jobs) > 0 && jobs[0].RunName != "" {
+		childRunName = jobs[0].RunName
+	}
+
+	var eventPayload []byte
+	if eventPayload, err = workflowCallPayload.JSONPayload(); err != nil {
+		return fmt.Errorf("JSONPayload: %w", err)
 	}
 
 	childRun := &actions_model.ActionRun{
-		Title:             run.Title,
-		RepoID:            run.RepoID,
-		Repo:              run.Repo,
-		OwnerID:           run.OwnerID,
+		Title:             fmt.Sprintf("%s / %s", parentRun.Title, childRunName),
+		RepoID:            parentRun.RepoID,
+		OwnerID:           parentRun.OwnerID,
 		ParentJobID:       parentJob.ID,
 		WorkflowID:        ref.WorkflowPath,
-		TriggerUserID:     run.TriggerUserID,
-		TriggerUser:       run.TriggerUser,
-		Ref:               run.Ref,
-		CommitSHA:         run.CommitSHA,
-		IsForkPullRequest: run.IsForkPullRequest,
+		TriggerUserID:     parentRun.TriggerUserID,
+		TriggerUser:       parentRun.TriggerUser,
+		Ref:               parentRun.Ref,
+		CommitSHA:         parentRun.CommitSHA,
+		IsForkPullRequest: parentRun.IsForkPullRequest,
 		Event:             "workflow_call",
 		TriggerEvent:      "workflow_call",
 		EventPayload:      string(eventPayload),
 		Status:            actions_model.StatusWaiting,
-		NeedApproval:      run.NeedApproval,
+		NeedApproval:      parentRun.NeedApproval,
 	}
 
 	if err := PrepareRunAndInsert(ctx, content, childRun, inputsWithDefaults); err != nil {
@@ -120,7 +143,7 @@ func createChildRunFromReusableWorkflow(ctx context.Context, run *actions_model.
 	return nil
 }
 
-func buildWorkflowCallInputs(ctx context.Context, run *actions_model.ActionRun, parentJob *actions_model.ActionRunJob, workflowJob *jobparser.Job, content []byte, vars map[string]string) (map[string]any, error) {
+func buildWorkflowCallInputs(ctx context.Context, parentJob *actions_model.ActionRunJob, workflowJob *jobparser.Job, content []byte, vars map[string]string) (map[string]any, error) {
 	singleWorkflow := &jobparser.SingleWorkflow{}
 	if err := yaml.Unmarshal(content, singleWorkflow); err != nil {
 		return nil, fmt.Errorf("unmarshal workflow: %w", err)
@@ -130,8 +153,9 @@ func buildWorkflowCallInputs(ctx context.Context, run *actions_model.ActionRun, 
 		RawOn: singleWorkflow.RawOn,
 	}
 
-	giteaCtx := GenerateGiteaContext(run, parentJob)
-	inputs, err := getInputsFromRun(run)
+	giteaCtx := GenerateGiteaContext(parentJob.Run, parentJob)
+
+	inputs, err := getInputsFromRun(parentJob.Run)
 	if err != nil {
 		return nil, fmt.Errorf("get inputs: %w", err)
 	}
@@ -144,21 +168,21 @@ func buildWorkflowCallInputs(ctx context.Context, run *actions_model.ActionRun, 
 	return jobparser.EvaluateWorkflowCallInputs(workflow, parentJob.JobID, workflowJob, giteaCtx, results, vars, inputs)
 }
 
-func loadReusableWorkflowContent(ctx context.Context, run *actions_model.ActionRun, ref *act_runner_pkg.ReusableWorkflowRef) ([]byte, error) {
-	if ref.Kind == act_runner_pkg.ReusableWorkflowKindLocal {
-		if err := run.LoadRepo(ctx); err != nil {
+func loadReusableWorkflowContent(ctx context.Context, parentRun *actions_model.ActionRun, ref *act_runner_pkg.ReusableWorkflowRef) ([]byte, error) {
+	if ref.Kind == act_runner_pkg.ReusableWorkflowKindLocalSameRepo {
+		if err := parentRun.LoadRepo(ctx); err != nil {
 			return nil, err
 		}
-		return readWorkflowContentFromRepo(ctx, run.Repo, run.Ref, ref.WorkflowPath)
+		return readWorkflowContentFromRepo(ctx, parentRun.Repo, parentRun.Ref, ref.WorkflowPath)
 	}
 
-	if ref.Kind == act_runner_pkg.ReusableWorkflowKindOtherRepo || isSameInstanceHost(ref.Host) {
+	if ref.Kind == act_runner_pkg.ReusableWorkflowKindLocalOtherRepo || isSameInstanceHost(ref.Host) {
 		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Repo)
 		if err != nil {
 			return nil, err
 		}
 		if repo.IsPrivate {
-			perm, err := access_model.GetActionsUserRepoPermissionByRepoID(ctx, repo, user_model.NewActionsUser(), run.RepoID, run.IsForkPullRequest)
+			perm, err := access_model.GetActionsUserRepoPermissionByActionRun(ctx, repo, user_model.NewActionsUser(), parentRun)
 			if err != nil {
 				return nil, err
 			}
