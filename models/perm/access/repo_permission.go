@@ -404,6 +404,15 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	}
 	perm.AccessMode = maxMode
 
+	log.Error("DEBUG: GetActionsUserRepoPermission: RepoID=%d, TaskID=%d, PermissionMode=%s, Override=%v", repo.ID, taskID, actionsCfg.TokenPermissionMode, actionsCfg.OverrideOrgConfig)
+	if actionsCfg.MaxTokenPermissions != nil {
+		log.Error("DEBUG: MaxPerms: Code=%d, Packages=%d", actionsCfg.MaxTokenPermissions.Code, actionsCfg.MaxTokenPermissions.Packages)
+	} else {
+		log.Error("DEBUG: MaxPerms: nil")
+	}
+	log.Error("DEBUG: EffectivePerms: Code=%d, Packages=%d", effectivePerms.Code, effectivePerms.Packages)
+	log.Error("DEBUG: Final Perm: PackageMode=%d, AccessMode=%d", perm.UnitAccessMode(unit.TypePackages), perm.AccessMode)
+
 	return perm, nil
 }
 
