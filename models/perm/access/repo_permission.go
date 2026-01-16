@@ -273,6 +273,10 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		return perm, err
 	}
 
+	if err := repo.LoadOwner(ctx); err != nil {
+		return perm, err
+	}
+
 	actionsUnit, err := repo.GetUnit(ctx, unit.TypeActions)
 	if err != nil {
 		// If Actions unit doesn't exist, return empty permission

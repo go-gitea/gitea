@@ -280,6 +280,7 @@ func TestActionsTokenPermissionsClamping(t *testing.T) {
 
 		// Set Clamping Config: Custom Mode (Default=Max), Max Code = Read
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
+			"override_org_config":   "true",
 			"token_permission_mode": "custom",
 			"max_code":              "read",
 		})
