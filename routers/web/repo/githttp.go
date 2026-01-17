@@ -438,7 +438,8 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	if service != ServiceTypeUploadArchive {
+	// git upload-archive does not have a -- stateless-rpc option
+	if service == ServiceTypeUploadArchive || service == ServiceTypeReceivePack {
 		cmd.AddArguments("--stateless-rpc")
 	}
 	if err := gitrepo.RunCmd(ctx, h.getStorageRepo(), cmd.AddArguments(".").
@@ -510,6 +511,10 @@ func GetInfoRefs(ctx *context.Context) {
 	}
 	setHeaderNoCache(ctx)
 	service := getServiceType(ctx)
+	if !(service == ServiceTypeUploadPack || service == ServiceTypeReceivePack) {
+		ctx.Resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	cmd, err := prepareGitCmdWithAllowedService(service)
 	if err == nil {
 		if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
