@@ -12,36 +12,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
-
-// GetMergeBase checks and returns merge base of two branches and the reference used as base.
-func (repo *Repository) GetMergeBase(tmpRemote, base, head string) (string, string, error) {
-	if tmpRemote == "" {
-		tmpRemote = "origin"
-	}
-
-	if tmpRemote != "origin" {
-		tmpBaseName := RemotePrefix + tmpRemote + "/tmp_" + base
-		// Fetch commit into a temporary branch in order to be able to handle commits and tags
-		_, _, err := gitcmd.NewCommand("fetch", "--no-tags").
-			AddDynamicArguments(tmpRemote).
-			AddDashesAndList(base + ":" + tmpBaseName).
-			WithDir(repo.Path).
-			RunStdString(repo.Ctx)
-		if err == nil {
-			base = tmpBaseName
-		}
-	}
-
-	stdout, _, err := gitcmd.NewCommand("merge-base").
-		AddDashesAndList(base, head).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
-	return strings.TrimSpace(stdout), base, err
-}
 
 var patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
 

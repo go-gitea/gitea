@@ -32,10 +32,6 @@ export default defineConfig([
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
       parser: typescriptParser,
       parserOptions: {
         sourceType: 'module',
@@ -233,7 +229,7 @@ export default defineConfig([
       '@typescript-eslint/no-unused-vars': [2, {vars: 'all', args: 'all', caughtErrors: 'all', ignoreRestSiblings: false, argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_'}],
       '@typescript-eslint/no-use-before-define': [2, {functions: false, classes: true, variables: true, allowNamedExports: true, typedefs: false, enums: false, ignoreTypeReferences: true}],
       '@typescript-eslint/no-useless-constructor': [0],
-      '@typescript-eslint/no-useless-default-assignment': [0], // https://github.com/typescript-eslint/typescript-eslint/issues/11847
+      '@typescript-eslint/no-useless-default-assignment': [2],
       '@typescript-eslint/no-useless-empty-export': [0],
       '@typescript-eslint/no-wrapper-object-types': [2],
       '@typescript-eslint/non-nullable-type-assertion-style': [0],
@@ -264,6 +260,7 @@ export default defineConfig([
       '@typescript-eslint/restrict-template-expressions': [0],
       '@typescript-eslint/return-await': [0],
       '@typescript-eslint/strict-boolean-expressions': [0],
+      '@typescript-eslint/strict-void-return': [0],
       '@typescript-eslint/switch-exhaustiveness-check': [0],
       '@typescript-eslint/triple-slash-reference': [2],
       '@typescript-eslint/typedef': [0],
@@ -362,7 +359,7 @@ export default defineConfig([
       'import-x/no-self-import': [2],
       'import-x/no-unassigned-import': [0],
       'import-x/no-unresolved': [2, {commonjs: true, ignore: ['\\?.+$']}],
-      // 'import-x/no-unused-modules': [2, {unusedExports: true}], // not compatible with eslint 9
+      'import-x/no-unused-modules': [0], // incompatible with eslint 9
       'import-x/no-useless-path-segments': [2, {commonjs: true}],
       'import-x/no-webpack-loader-syntax': [2],
       'import-x/order': [0],
@@ -990,37 +987,18 @@ export default defineConfig([
     },
   },
   {
-    files: ['web_src/js/types.ts'],
-    rules: {
-      'import-x/no-unused-modules': [0],
-    },
-  },
-  {
     files: ['**/*.d.ts'],
     rules: {
-      'import-x/no-unused-modules': [0],
       '@typescript-eslint/consistent-type-definitions': [0],
       '@typescript-eslint/consistent-type-imports': [0],
     },
   },
   {
-    files: ['*.config.*'],
-    rules: {
-      'import-x/no-unused-modules': [0],
-    },
+    files: ['*', 'tools/**/*'],
+    languageOptions: {globals: globals.node},
   },
   {
     files: ['web_src/**/*', 'docs/**/*'],
     languageOptions: {globals: globals.browser},
-  },
-  {
-    files: ['web_src/**/*'],
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        __webpack_public_path__: true,
-        process: false, // https://github.com/webpack/webpack/issues/15833
-      },
-    },
   },
 ]);

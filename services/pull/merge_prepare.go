@@ -19,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
@@ -105,7 +106,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	mergeCtx.sig = doer.NewGitSig()
 	mergeCtx.committer = mergeCtx.sig
 
-	gitRepo, err := git.OpenRepository(ctx, mergeCtx.tmpBasePath)
+	gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		defer cancel()
 		return nil, nil, fmt.Errorf("failed to open temp git repo for pr[%d]: %w", mergeCtx.pr.ID, err)
@@ -113,7 +114,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	defer gitRepo.Close()
 
 	// Determine if we should sign
-	sign, key, signer, _ := asymkey_service.SignMerge(ctx, mergeCtx.pr, mergeCtx.doer, gitRepo, "HEAD", trackingBranch)
+	sign, key, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, gitRepo)
 	if sign {
 		mergeCtx.signKey = key
 		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {

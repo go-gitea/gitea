@@ -23,6 +23,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
@@ -35,6 +36,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -320,6 +322,26 @@ type pullCommitStatusCheckData struct {
 	RequireApprovalRunCount int               // number of workflow runs that require approval
 	CanApprove              bool              // whether the user can approve workflow runs
 	ApproveLink             string            // link to approve all checks
+	RequiredChecksState     commitstatus.CommitStatusState
+	LatestCommitStatus      *git_model.CommitStatus
+}
+
+func (d *pullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.Locale) string {
+	if d.RequiredChecksState.IsPending() || len(d.MissingRequiredChecks) > 0 {
+		return locale.TrString("repo.pulls.status_checking")
+	} else if d.RequiredChecksState.IsSuccess() {
+		if d.LatestCommitStatus != nil && d.LatestCommitStatus.State.IsFailure() {
+			return locale.TrString("repo.pulls.status_checks_failure_optional")
+		}
+		return locale.TrString("repo.pulls.status_checks_success")
+	} else if d.RequiredChecksState.IsWarning() {
+		return locale.TrString("repo.pulls.status_checks_warning")
+	} else if d.RequiredChecksState.IsFailure() {
+		return locale.TrString("repo.pulls.status_checks_failure_required")
+	} else if d.RequiredChecksState.IsError() {
+		return locale.TrString("repo.pulls.status_checks_error")
+	}
+	return locale.TrString("repo.pulls.status_checking")
 }
 
 // prepareViewPullInfo show meta information for a pull request preview page
@@ -360,6 +382,8 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		defer baseGitRepo.Close()
 	}
 
+	statusCheckData := &pullCommitStatusCheckData{}
+
 	if exist, _ := git_model.IsBranchExist(ctx, pull.BaseRepo.ID, pull.BaseBranch); !exist {
 		ctx.Data["BaseBranchNotExist"] = true
 		ctx.Data["IsPullRequestBroken"] = true
@@ -380,9 +404,10 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
 		}
 
+		statusCheckData.LatestCommitStatus = git_model.CalcCommitStatus(commitStatuses)
 		if len(commitStatuses) > 0 {
 			ctx.Data["LatestCommitStatuses"] = commitStatuses
-			ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
+			ctx.Data["LatestCommitStatus"] = statusCheckData.LatestCommitStatus
 		}
 
 		compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
@@ -467,10 +492,8 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		return nil
 	}
 
-	statusCheckData := &pullCommitStatusCheckData{
-		ApproveLink: fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", repo.Link(), sha),
-	}
 	ctx.Data["StatusCheckData"] = statusCheckData
+	statusCheckData.ApproveLink = fmt.Sprintf("%s/actions/approve-all-checks?commit_id=%s", repo.Link(), sha)
 
 	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptionsAll)
 	if err != nil {
@@ -495,9 +518,10 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		statusCheckData.CanApprove = ctx.Repo.CanWrite(unit.TypeActions)
 	}
 
+	statusCheckData.LatestCommitStatus = git_model.CalcCommitStatus(commitStatuses)
 	if len(commitStatuses) > 0 {
 		ctx.Data["LatestCommitStatuses"] = commitStatuses
-		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(commitStatuses)
+		ctx.Data["LatestCommitStatus"] = statusCheckData.LatestCommitStatus
 	}
 
 	if pb != nil && pb.EnableStatusCheck {
@@ -534,7 +558,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 			}
 			return false
 		}
-		ctx.Data["RequiredStatusCheckState"] = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pb.StatusCheckContexts)
+		statusCheckData.RequiredChecksState = pull_service.MergeRequiredContextsCommitStatus(commitStatuses, pb.StatusCheckContexts)
 	}
 
 	ctx.Data["HeadBranchMovedOn"] = headBranchSha != sha
@@ -865,7 +889,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
 		BaseLink:       ctx.Repo.RepoLink + "/blob_excerpt",
 		PullIssueIndex: pull.Index,
-		DiffStyle:      ctx.FormString("style"),
+		DiffStyle:      GetDiffViewStyle(ctx),
 		AfterCommitID:  afterCommitID,
 	}
 	ctx.Data["DiffNotAvailable"] = diffShortStat.NumFiles == 0
@@ -1265,6 +1289,28 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 		return
 	}
 
+	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, issue.PullRequest.ID)
+	if err != nil {
+		ctx.ServerError("GetScheduledMergeByPullID", err)
+		return
+	}
+	if !exist {
+		ctx.NotFound(nil)
+		return
+	}
+
+	if ctx.Doer.ID != autoMerge.DoerID {
+		allowed, err := pull_service.IsUserAllowedToMerge(ctx, issue.PullRequest, ctx.Repo.Permission, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("IsUserAllowedToMerge", err)
+			return
+		}
+		if !allowed {
+			ctx.HTTPError(http.StatusForbidden, "user has no permission to cancel the scheduled auto merge")
+			return
+		}
+	}
+
 	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, issue.PullRequest); err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.auto_merge_not_scheduled"))
@@ -1390,6 +1436,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		AssigneeIDs:     assigneeIDs,
 		Reviewers:       validateRet.Reviewers,
 		TeamReviewers:   validateRet.TeamReviewers,
+		ProjectID:       projectID,
 	}
 	if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 		switch {
@@ -1439,15 +1486,6 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			ctx.ServerError("CompareAndPullRequest", err)
 		}
 		return
-	}
-
-	if projectID > 0 && ctx.Repo.CanWrite(unit.TypeProjects) {
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, pullIssue, ctx.Doer, projectID, 0); err != nil {
-			if !errors.Is(err, util.ErrPermissionDenied) {
-				ctx.ServerError("IssueAssignOrRemoveProject", err)
-				return
-			}
-		}
 	}
 
 	log.Trace("Pull request created: %d/%d", repo.ID, pullIssue.ID)

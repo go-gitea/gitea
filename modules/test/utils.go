@@ -4,6 +4,9 @@
 package test
 
 import (
+	"archive/tar"
+	"compress/gzip"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -70,4 +73,32 @@ func SetupGiteaRoot() string {
 	}
 	_ = os.Setenv("GITEA_ROOT", giteaRoot)
 	return giteaRoot
+}
+
+func ReadAllTarGzContent(r io.Reader) (map[string]string, error) {
+	gzr, err := gzip.NewReader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	content := make(map[string]string)
+
+	tr := tar.NewReader(gzr)
+	for {
+		hd, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		buf, err := io.ReadAll(tr)
+		if err != nil {
+			return nil, err
+		}
+
+		content[hd.Name] = string(buf)
+	}
+	return content, nil
 }
