@@ -24,23 +24,19 @@ func (repo *Repository) IsTagExist(name string) bool {
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id ObjectID) (string, error) {
-	batch, cancel, err := repo.CatFileBatchCheck(repo.Ctx)
+	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
 		return "", err
 	}
 	defer cancel()
-	_, err = batch.Writer().Write([]byte(id.String() + "\n"))
-	if err != nil {
-		return "", err
-	}
-	_, typ, _, err := ReadBatchLine(batch.Reader())
+	info, err := batch.QueryInfo(id.String())
 	if err != nil {
 		if IsErrNotExist(err) {
 			return "", ErrNotExist{ID: id.String()}
 		}
 		return "", err
 	}
-	return typ, nil
+	return info.Type, nil
 }
 
 func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
@@ -94,17 +90,14 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	}
 	defer cancel()
 
-	rd := batch.Reader()
-	if _, err := batch.Writer().Write([]byte(tagID.String() + "\n")); err != nil {
-		return nil, err
-	}
-	_, typ, size, err := ReadBatchLine(rd)
+	info, rd, err := batch.QueryContent(tagID.String())
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
 			return nil, ErrNotExist{ID: tagID.String()}
 		}
 		return nil, err
 	}
+	typ, size := info.Type, info.Size
 	if typ != "tag" {
 		if err := DiscardFull(rd, size+1); err != nil {
 			return nil, err

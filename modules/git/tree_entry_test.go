@@ -27,3 +27,30 @@ func TestEntriesCustomSort(t *testing.T) {
 	entries.CustomSort(strings.Compare)
 	assert.Equal(t, expected, entries)
 }
+
+func TestParseEntryMode(t *testing.T) {
+	tests := []struct {
+		modeStr   string
+		expectMod EntryMode
+	}{
+		{"000000", EntryModeNoEntry},
+		{"000755", EntryModeNoEntry},
+
+		{"100644", EntryModeBlob},
+		{"100755", EntryModeExec},
+
+		{"120000", EntryModeSymlink},
+		{"120755", EntryModeSymlink},
+		{"160000", EntryModeCommit},
+		{"160755", EntryModeCommit},
+
+		{"040000", EntryModeTree},
+		{"040755", EntryModeTree},
+
+		{"777777", EntryModeNoEntry}, // invalid mode
+	}
+	for _, test := range tests {
+		mod := ParseEntryMode(test.modeStr)
+		assert.Equal(t, test.expectMod, mod, "modeStr: %s", test.modeStr)
+	}
+}

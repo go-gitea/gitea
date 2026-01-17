@@ -12,9 +12,12 @@ import (
 	"code.gitea.io/gitea/modules/tempdir"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
+	// FIXME: GIT-PACKAGE-DEPENDENCY: the dependency is not right.
+	// "setting.Git.HomePath" is initialized in "git" package but really used in "gitcmd" package
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "unable to create temp dir: %v", err)
@@ -96,4 +99,15 @@ func TestCommandString(t *testing.T) {
 
 	cmd = NewCommand("url: https://a:b@c/", "/root/dir-a/dir-b")
 	assert.Equal(t, cmd.prog+` "url: https://sanitized-credential@c/" .../dir-a/dir-b`, cmd.LogString())
+}
+
+func TestRunStdError(t *testing.T) {
+	e := &runStdError{stderr: "some error"}
+	var err RunStdError = e
+
+	var asErr RunStdError
+	require.ErrorAs(t, err, &asErr)
+	require.Equal(t, "some error", asErr.Stderr())
+
+	require.ErrorAs(t, fmt.Errorf("wrapped %w", err), &asErr)
 }
