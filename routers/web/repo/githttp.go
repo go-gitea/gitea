@@ -274,7 +274,6 @@ func httpBase(ctx *context.Context) *serviceHandler {
 				ctx.PlainText(http.StatusForbidden, "repository wiki is disabled")
 				return nil
 			}
-			log.Error("Failed to get the wiki unit in %-v Error: %v", repo, err)
 			ctx.ServerError("GetUnit(UnitTypeWiki) for "+repo.FullName(), err)
 			return nil
 		}
@@ -364,7 +363,7 @@ func isSlashRune(r rune) bool { return r == '/' || r == '\\' }
 
 func (h *serviceHandler) sendFile(ctx *context.Context, contentType, file string) {
 	if containsParentDirectorySeparator(file) {
-		log.Error("request file path contains invalid path: %v", file)
+		log.Debug("request file path contains invalid path: %v", file)
 		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -398,7 +397,7 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 
 	expectedContentType := fmt.Sprintf("application/x-git-%s-request", service)
 	if ctx.Req.Header.Get("Content-Type") != expectedContentType {
-		log.Error("Content-Type (%q) doesn't match expected: %q", ctx.Req.Header.Get("Content-Type"), expectedContentType)
+		log.Debug("Content-Type (%q) doesn't match expected: %q", ctx.Req.Header.Get("Content-Type"), expectedContentType)
 		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -512,10 +511,11 @@ func GetInfoRefs(ctx *context.Context) {
 		}
 		h.environ = append(os.Environ(), h.environ...)
 
-		refs, _, err := gitrepo.RunCmdBytes(ctx, h.getStorageRepo(), cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").
-			WithEnv(h.environ))
+		cmd = cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").WithEnv(h.environ)
+		refs, _, err := gitrepo.RunCmdBytes(ctx, h.getStorageRepo(), cmd)
 		if err != nil {
-			log.Error(fmt.Sprintf("%v - %s", err, string(refs)))
+			ctx.ServerError("RunGitServiceAdvertiseRefs", err)
+			return
 		}
 
 		ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", service))
@@ -525,7 +525,8 @@ func GetInfoRefs(ctx *context.Context) {
 		_, _ = ctx.Resp.Write(refs)
 	} else if service == "" {
 		if err := gitrepo.UpdateServerInfo(ctx, h.getStorageRepo()); err != nil {
-			log.Error("Failed to update server info: %v", err)
+			ctx.ServerError("UpdateServerInfo", err)
+			return
 		}
 		h.sendFile(ctx, "text/plain; charset=utf-8", "info/refs")
 	} else {
