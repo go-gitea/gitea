@@ -50,15 +50,6 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	return info.ID, nil
 }
 
-// IsCommitExist returns true if given commit exists in current repository.
-func (repo *Repository) IsCommitExist(name string) bool {
-	_, _, err := gitcmd.NewCommand("cat-file", "-e").
-		AddDynamicArguments(name).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
-	return err == nil
-}
-
 func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
 	if err != nil {
