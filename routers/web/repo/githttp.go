@@ -411,6 +411,10 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 		ctx.Resp.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	// git upload-archive does not have a "--stateless-rpc" option
+	if service == ServiceTypeUploadPack || service == ServiceTypeReceivePack {
+		cmd.AddArguments("--stateless-rpc")
+	}
 
 	ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", service))
 
@@ -434,10 +438,6 @@ func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
 	}
 
 	var stderr bytes.Buffer
-	// git upload-archive does not have a "--stateless-rpc" option
-	if service == ServiceTypeUploadArchive || service == ServiceTypeReceivePack {
-		cmd.AddArguments("--stateless-rpc")
-	}
 	if err := gitrepo.RunCmd(ctx, h.getStorageRepo(), cmd.AddArguments(".").
 		WithEnv(append(os.Environ(), h.environ...)).
 		WithStderr(&stderr).
