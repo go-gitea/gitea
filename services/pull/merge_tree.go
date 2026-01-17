@@ -1,5 +1,4 @@
-// Copyright 2025 The Gitea Authors.
-// All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package pull
@@ -16,10 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
-
-func shouldUseMergeTree(pr *issues_model.PullRequest) bool {
-	return pr.Flow == issues_model.PullRequestFlowGithub && git.DefaultFeatures().SupportGitMergeTree
-}
 
 // checkConflictsMergeTree uses git merge-tree to check for conflicts and if none are found checks if the patch is empty
 // return true if there is conflicts otherwise return false
