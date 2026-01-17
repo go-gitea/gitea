@@ -280,8 +280,9 @@ func TestActionsTokenPermissionsClamping(t *testing.T) {
 
 		// Set Clamping Config: Custom Mode (Default=Max), Max Code = Read
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
-			"token_permission_mode": "custom",
-			"max_code":              "read",
+			"token_permission_mode":  "custom",
+			"enable_max_permissions": "true",
+			"max_code":               "read",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
@@ -345,9 +346,10 @@ func TestActionsTokenPackagePermission(t *testing.T) {
 
 		// Set Config: Custom Mode, Max Packages = Write, Max Code = Read
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
-			"token_permission_mode": "custom",
-			"max_packages":          "write",
-			"max_code":              "read", // Ensure repo read access if needed
+			"token_permission_mode":  "custom",
+			"enable_max_permissions": "true",
+			"max_packages":           "write",
+			"max_code":               "read", // Ensure repo read access if needed
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
