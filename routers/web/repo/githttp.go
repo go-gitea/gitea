@@ -65,16 +65,20 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		return nil
 	}
 
+	var serviceType string
 	var isPull, receivePack bool
 	gitService := ctx.FormString("service", ctx.PathParam("preset-git-service"))
-	if gitService == "git-receive-pack" {
-		isPull = false
+	switch gitService {
+	case "git-receive-pack":
+		serviceType = ServiceTypeReceivePack
 		receivePack = true
-	} else if gitService == "git-upload-pack" {
+	case "git-upload-pack":
+		serviceType = ServiceTypeUploadPack
 		isPull = true
-	} else if gitService == "git-upload-archive" {
+	case "git-upload-archive":
+		serviceType = ServiceTypeUploadArchive
 		isPull = true
-	} else {
+	default:
 		isPull = ctx.Req.Method == http.MethodHead || ctx.Req.Method == http.MethodGet
 	}
 
@@ -281,9 +285,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 
 	environ = append(environ, repo_module.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
 
-	ctx.Req.URL.Path = strings.ToLower(ctx.Req.URL.Path) // blue: In case some repo name has upper case name
-
-	return &serviceHandler{repo, isWiki, environ}
+	return &serviceHandler{serviceType, repo, isWiki, environ}
 }
 
 var (
@@ -326,6 +328,8 @@ func dummyInfoRefs(ctx *context.Context) {
 }
 
 type serviceHandler struct {
+	serviceType string
+
 	repo    *repo_model.Repository
 	isWiki  bool
 	environ []string
@@ -460,13 +464,6 @@ func ServiceUploadPack(ctx *context.Context) {
 	}
 }
 
-func ServiceUploadArchive(ctx *context.Context) {
-	h := httpBase(ctx)
-	if h != nil {
-		serviceRPC(ctx, h, ServiceTypeUploadArchive)
-	}
-}
-
 // ServiceReceivePack implements Git Smart HTTP protocol
 func ServiceReceivePack(ctx *context.Context) {
 	h := httpBase(ctx)
@@ -475,17 +472,11 @@ func ServiceReceivePack(ctx *context.Context) {
 	}
 }
 
-func getServiceType(ctx *context.Context) string {
-	gitService := ctx.Req.FormValue("service")
-	switch gitService {
-	case "git-" + ServiceTypeUploadPack:
-		return ServiceTypeUploadPack
-	case "git-" + ServiceTypeReceivePack:
-		return ServiceTypeReceivePack
-	case "git-" + ServiceTypeUploadArchive:
-		return ServiceTypeUploadArchive
+func ServiceUploadArchive(ctx *context.Context) {
+	h := httpBase(ctx)
+	if h != nil {
+		serviceRPC(ctx, h, ServiceTypeUploadArchive)
 	}
-	return ""
 }
 
 func packetWrite(str string) []byte {
@@ -503,35 +494,40 @@ func GetInfoRefs(ctx *context.Context) {
 		return
 	}
 	setHeaderNoCache(ctx)
-	service := getServiceType(ctx)
-	cmd := prepareGitCmdWithAllowedService(service, []string{ServiceTypeUploadPack, ServiceTypeReceivePack})
-	if cmd != nil {
-		if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
-			h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
-		}
-		h.environ = append(os.Environ(), h.environ...)
-
-		cmd = cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").WithEnv(h.environ)
-		refs, _, err := gitrepo.RunCmdBytes(ctx, h.getStorageRepo(), cmd)
-		if err != nil {
-			ctx.ServerError("RunGitServiceAdvertiseRefs", err)
-			return
-		}
-
-		ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", service))
-		ctx.Resp.WriteHeader(http.StatusOK)
-		_, _ = ctx.Resp.Write(packetWrite("# service=git-" + service + "\n"))
-		_, _ = ctx.Resp.Write([]byte("0000"))
-		_, _ = ctx.Resp.Write(refs)
-	} else if service == "" {
+	if h.serviceType == "" {
+		// it's said that some legacy git clients will send requests to "/info/refs" without "service" parameter,
+		// although there should be no such case client in the modern days. TODO: not quite sure why we need this UpdateServerInfo logic
 		if err := gitrepo.UpdateServerInfo(ctx, h.getStorageRepo()); err != nil {
 			ctx.ServerError("UpdateServerInfo", err)
 			return
 		}
 		h.sendFile(ctx, "text/plain; charset=utf-8", "info/refs")
-	} else {
-		ctx.Resp.WriteHeader(http.StatusBadRequest)
+		return
 	}
+
+	cmd := prepareGitCmdWithAllowedService(h.serviceType, []string{ServiceTypeUploadPack, ServiceTypeReceivePack})
+	if cmd == nil {
+		ctx.Resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if protocol := ctx.Req.Header.Get("Git-Protocol"); protocol != "" && safeGitProtocolHeader.MatchString(protocol) {
+		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
+	}
+	h.environ = append(os.Environ(), h.environ...)
+
+	cmd = cmd.AddArguments("--stateless-rpc", "--advertise-refs", ".").WithEnv(h.environ)
+	refs, _, err := gitrepo.RunCmdBytes(ctx, h.getStorageRepo(), cmd)
+	if err != nil {
+		ctx.ServerError("RunGitServiceAdvertiseRefs", err)
+		return
+	}
+
+	ctx.Resp.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-advertisement", h.serviceType))
+	ctx.Resp.WriteHeader(http.StatusOK)
+	_, _ = ctx.Resp.Write(packetWrite("# service=git-" + h.serviceType + "\n"))
+	_, _ = ctx.Resp.Write([]byte("0000"))
+	_, _ = ctx.Resp.Write(refs)
 }
 
 // GetTextFile implements Git dumb HTTP
