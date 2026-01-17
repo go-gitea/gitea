@@ -27,7 +27,7 @@ export function initActionsPermissionsTable(): void {
     }
 
     if (tableSection) {
-        tableSection.style.opacity = shouldDisable ? '0.5' : '1';
+      tableSection.style.opacity = shouldDisable ? '0.5' : '1';
     }
 
     // Disable table if layout is disabled OR max permissions not enabled
@@ -41,14 +41,14 @@ export function initActionsPermissionsTable(): void {
       }
       permTable.style.display = isMaxEnabled ? '' : 'none';
       if (shouldDisable) {
-          permTable.style.opacity = '0.5';
-          // If disabled, we might want to hide it or just show disabled state?
-          // If following Org config, the Org might have max permissions set.
-          // But here we are configuring the REPO overrides.
-          // If not overriding, we show nothing (or disabled state).
-          // Current logic dims everything.
+        permTable.style.opacity = '0.5';
+        // If disabled, we might want to hide it or just show disabled state?
+        // If following Org config, the Org might have max permissions set.
+        // But here we are configuring the REPO overrides.
+        // If not overriding, we show nothing (or disabled state).
+        // Current logic dims everything.
       } else {
-          permTable.style.opacity = '1';
+        permTable.style.opacity = '1';
       }
     }
   }
