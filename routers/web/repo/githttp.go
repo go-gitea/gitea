@@ -30,6 +30,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 
@@ -55,8 +56,9 @@ func CorsHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-// httpBase implementation git smart HTTP protocol
-func httpBase(ctx *context.Context) *serviceHandler {
+// httpBase does the common work for git http services,
+// including early response, authentication, repository lookup and permission check.
+func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 	username := ctx.PathParam("username")
 	reponame := strings.TrimSuffix(ctx.PathParam("reponame"), ".git")
 
@@ -67,8 +69,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 
 	var serviceType string
 	var isPull, receivePack bool
-	gitService := ctx.FormString("service", ctx.PathParam("preset-git-service"))
-	switch gitService {
+	switch util.OptionalArg(optGitService) {
 	case "git-receive-pack":
 		serviceType = ServiceTypeReceivePack
 		receivePack = true
@@ -78,8 +79,11 @@ func httpBase(ctx *context.Context) *serviceHandler {
 	case "git-upload-archive":
 		serviceType = ServiceTypeUploadArchive
 		isPull = true
-	default:
+	case "":
 		isPull = ctx.Req.Method == http.MethodHead || ctx.Req.Method == http.MethodGet
+	default: // unknown service
+		ctx.Resp.WriteHeader(http.StatusBadRequest)
+		return nil
 	}
 
 	var accessMode perm.AccessMode
@@ -396,8 +400,12 @@ func prepareGitCmdWithAllowedService(service string, allowedServices []string) *
 	}
 }
 
-func serviceRPC(ctx *context.Context, h *serviceHandler, service string) {
+func serviceRPC(ctx *context.Context, service string) {
 	defer ctx.Req.Body.Close()
+	h := httpBase(ctx, "git-"+service)
+	if h == nil {
+		return
+	}
 
 	expectedContentType := fmt.Sprintf("application/x-git-%s-request", service)
 	if ctx.Req.Header.Get("Content-Type") != expectedContentType {
@@ -458,25 +466,16 @@ const (
 
 // ServiceUploadPack implements Git Smart HTTP protocol
 func ServiceUploadPack(ctx *context.Context) {
-	h := httpBase(ctx)
-	if h != nil {
-		serviceRPC(ctx, h, ServiceTypeUploadPack)
-	}
+	serviceRPC(ctx, ServiceTypeUploadPack)
 }
 
 // ServiceReceivePack implements Git Smart HTTP protocol
 func ServiceReceivePack(ctx *context.Context) {
-	h := httpBase(ctx)
-	if h != nil {
-		serviceRPC(ctx, h, ServiceTypeReceivePack)
-	}
+	serviceRPC(ctx, ServiceTypeReceivePack)
 }
 
 func ServiceUploadArchive(ctx *context.Context) {
-	h := httpBase(ctx)
-	if h != nil {
-		serviceRPC(ctx, h, ServiceTypeUploadArchive)
-	}
+	serviceRPC(ctx, ServiceTypeUploadArchive)
 }
 
 func packetWrite(str string) []byte {
@@ -489,7 +488,7 @@ func packetWrite(str string) []byte {
 
 // GetInfoRefs implements Git dumb HTTP
 func GetInfoRefs(ctx *context.Context) {
-	h := httpBase(ctx)
+	h := httpBase(ctx, ctx.FormString("service")) // git http protocol: "?service=git-<service>"
 	if h == nil {
 		return
 	}
