@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/httpauth"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
@@ -52,61 +53,6 @@ const (
 	lfsRefContextKey = "LFSRefName"
 	lfsRefQueryKey   = "lfs-ref"
 )
-
-func normalizeLFSRefName(raw string) string {
-	ref := strings.TrimSpace(raw)
-	if ref == "" {
-		return ""
-	}
-	prefixes := []string{"refs/heads/", "refs/remotes/", "refs/"}
-	for _, prefix := range prefixes {
-		if trimmed, ok := strings.CutPrefix(ref, prefix); ok {
-			ref = trimmed
-			break
-		}
-	}
-	return ref
-}
-
-func refNameFromBatchRequest(br *lfs_module.BatchRequest) string {
-	if br == nil || br.Ref == nil {
-		return ""
-	}
-	return normalizeLFSRefName(br.Ref.Name)
-}
-
-func setLFSRefInContext(ctx *context.Context, ref string) {
-	ref = normalizeLFSRefName(ref)
-	if ref == "" {
-		return
-	}
-	if ctx.Data == nil {
-		ctx.Data = make(map[string]any)
-	}
-	ctx.Data[lfsRefContextKey] = ref
-}
-
-func getLFSRefFromContext(ctx *context.Context) string {
-	if ctx.Data == nil {
-		return ""
-	}
-	if ref, ok := ctx.Data[lfsRefContextKey].(string); ok {
-		return ref
-	}
-	return ""
-}
-
-func setLFSRefFromQuery(ctx *context.Context) {
-	ref := ctx.Req.URL.Query().Get(lfsRefQueryKey)
-	setLFSRefInContext(ctx, ref)
-}
-
-func appendRefQuery(baseURL, ref string) string {
-	if ref == "" {
-		return baseURL
-	}
-	return baseURL + "?" + lfsRefQueryKey + "=" + url.QueryEscape(ref)
-}
 
 // Claims is a JWT Token Claims
 type Claims struct {
@@ -148,6 +94,13 @@ func (rc *requestContext) DownloadLink(p lfs_module.Pointer) string {
 	return rc.RepoGitURL + "/info/lfs/objects/" + url.PathEscape(p.Oid)
 }
 
+func appendRefQuery(baseURL, ref string) string {
+	if ref == "" {
+		return baseURL
+	}
+	return baseURL + "?" + lfsRefQueryKey + "=" + url.QueryEscape(ref)
+}
+
 // UploadLink builds a URL to upload the object.
 func (rc *requestContext) UploadLink(p lfs_module.Pointer, ref string) string {
 	base := rc.RepoGitURL + "/info/lfs/objects/" + url.PathEscape(p.Oid) + "/" + strconv.FormatInt(p.Size, 10)
@@ -173,7 +126,6 @@ func CheckAcceptMediaType(ctx *context.Context) {
 var rangeHeaderRegexp = regexp.MustCompile(`bytes=(\d+)-(\d*).*`)
 
 // DownloadHandler gets the content from the content store
-
 func DownloadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
 	p := lfs_module.Pointer{Oid: ctx.PathParam("oid")}
@@ -248,6 +200,32 @@ func DownloadHandler(ctx *context.Context) {
 	}
 }
 
+func refNameFromBatchRequest(br *lfs_module.BatchRequest) string {
+	if br.Ref == nil {
+		return ""
+	}
+	return br.Ref.Name
+}
+
+func setLFSRefInContext(ctx *context.Context, ref string) {
+	if ref == "" {
+		return
+	}
+	ctx.Data[lfsRefContextKey] = ref
+}
+
+func getLFSRefFromContext(ctx *context.Context) string {
+	if ref, ok := ctx.Data[lfsRefContextKey].(string); ok {
+		return ref
+	}
+	return ""
+}
+
+func setLFSRefFromQuery(ctx *context.Context) {
+	ref := ctx.Req.URL.Query().Get(lfsRefQueryKey)
+	setLFSRefInContext(ctx, ref)
+}
+
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
 	var br lfs_module.BatchRequest
@@ -271,9 +249,7 @@ func BatchHandler(ctx *context.Context) {
 
 	rc := getRequestContext(ctx)
 	refName := refNameFromBatchRequest(&br)
-	if refName != "" {
-		setLFSRefInContext(ctx, refName)
-	}
+	setLFSRefInContext(ctx, refName)
 
 	repository := getAuthenticatedRepository(ctx, rc, isUpload)
 	if repository == nil {
@@ -611,15 +587,15 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 	}
 }
 
-func maintainerHasLFSAccess(ctx *context.Context, perm access_model.Permission, user *user_model.User) bool {
+func canMaintainerWriteLFS(ctx *context.Context, perm access_model.Permission, user *user_model.User) bool {
 	if user == nil {
 		return false
 	}
-	branch := getLFSRefFromContext(ctx)
-	if branch == "" {
+	ref := git.RefName(getLFSRefFromContext(ctx))
+	if ref == "" || !ref.IsBranch() {
 		return false
 	}
-	return issues_model.CanMaintainerWriteToBranch(ctx, perm, branch, user)
+	return issues_model.CanMaintainerWriteToBranch(ctx, perm, ref.BranchName(), user)
 }
 
 // authenticate uses the authorization string to determine whether
@@ -648,7 +624,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	}
 
 	canAccess := perm.CanAccess(accessMode, unit.TypeCode)
-	if requireWrite && !canAccess && maintainerHasLFSAccess(ctx, perm, ctx.Doer) {
+	if requireWrite && !canAccess && canMaintainerWriteLFS(ctx, perm, ctx.Doer) {
 		canAccess = true
 	}
 	// if it doesn't require sign-in and anonymous user has access, return true
@@ -679,7 +655,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	}
 
 	canAccess = perm.CanAccess(accessMode, unit.TypeCode)
-	if !canAccess && maintainerHasLFSAccess(ctx, perm, ctx.Doer) {
+	if !canAccess && canMaintainerWriteLFS(ctx, perm, ctx.Doer) {
 		canAccess = true
 	}
 	if canAccess {
