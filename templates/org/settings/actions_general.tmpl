@@ -16,19 +16,19 @@
 			<div class="grouped fields">
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="cross_repo_mode" value="none" {{if not .AllowCrossRepoAccess}}checked{{end}} class="js-cross-repo-mode">
+						<input type="radio" name="cross_repo_mode" value="none" {{if eq .CrossRepoMode .ActionsCrossRepoModeNone}}checked{{end}} class="js-cross-repo-mode">
 						<label>{{ctx.Locale.Tr "settings.disabled"}}</label>
 					</div>
 				</div>
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="cross_repo_mode" value="all" {{if and .AllowCrossRepoAccess (not .HasSelectedRepos)}}checked{{end}} class="js-cross-repo-mode">
+						<input type="radio" name="cross_repo_mode" value="all" {{if eq .CrossRepoMode .ActionsCrossRepoModeAll}}checked{{end}} class="js-cross-repo-mode">
 						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_all"}}</label>
 					</div>
 				</div>
 				<div class="field">
 					<div class="ui radio checkbox">
-						<input type="radio" name="cross_repo_mode" value="selected" {{if and .AllowCrossRepoAccess .HasSelectedRepos}}checked{{end}} class="js-cross-repo-mode">
+						<input type="radio" name="cross_repo_mode" value="selected" {{if eq .CrossRepoMode .ActionsCrossRepoModeSelected}}checked{{end}} class="js-cross-repo-mode">
 						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_selected"}}</label>
 					</div>
 				</div>

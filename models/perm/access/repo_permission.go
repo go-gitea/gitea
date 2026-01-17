@@ -305,8 +305,8 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			if err != nil {
 				return perm, err
 			}
-			if !orgCfg.AllowCrossRepoAccess {
-				// Deny access if cross-repo is disabled in Org
+			if !orgCfg.IsRepoAllowedCrossAccess(repo.ID) {
+				// Deny access if cross-repo is disabled or not allowed for this specific repo
 				return perm, nil
 			}
 		}

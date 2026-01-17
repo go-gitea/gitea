@@ -180,6 +180,18 @@ const (
 	ActionsTokenPermissionModeCustom ActionsTokenPermissionMode = "custom"
 )
 
+// ActionsCrossRepoMode defines the mode for cross-repository access
+type ActionsCrossRepoMode string
+
+const (
+	// ActionsCrossRepoModeNone - no cross-repository access allowed
+	ActionsCrossRepoModeNone ActionsCrossRepoMode = "none"
+	// ActionsCrossRepoModeAll - access allowed to all repositories in the organization
+	ActionsCrossRepoModeAll ActionsCrossRepoMode = "all"
+	// ActionsCrossRepoModeSelected - access allowed only to selected repositories
+	ActionsCrossRepoModeSelected ActionsCrossRepoMode = "selected"
+)
+
 // ActionsTokenPermissions defines the permissions for different repository units
 type ActionsTokenPermissions struct {
 	// Code (repository code) - read/write/none
@@ -306,8 +318,8 @@ type ActionsConfig struct {
 	// MaxTokenPermissions defines the absolute maximum permissions any token can have in this context.
 	// Workflow YAML "permissions" keywords can reduce permissions but never exceed this ceiling.
 	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions,omitempty"`
-	// AllowCrossRepoAccess indicates if actions in this repo/org can access other repos in the same org
-	AllowCrossRepoAccess bool `json:"allow_cross_repo_access,omitempty"`
+	// CrossRepoMode indicates which repos in the org can be accessed (none, all, or selected)
+	CrossRepoMode ActionsCrossRepoMode `json:"cross_repo_mode,omitempty"`
 	// AllowedCrossRepoIDs is a list of specific repo IDs that can be accessed cross-repo (empty means all if AllowCrossRepoAccess is true)
 	AllowedCrossRepoIDs []int64 `json:"allowed_cross_repo_ids,omitempty"`
 	// OverrideOrgConfig indicates if this repository should override the organization-level configuration
@@ -405,17 +417,15 @@ func (cfg *ActionsConfig) ClampPermissions(perms ActionsTokenPermissions) Action
 }
 
 // IsRepoAllowedCrossAccess checks if a specific repo is allowed for cross-repo access
-// Returns true if AllowCrossRepoAccess is enabled AND (AllowedCrossRepoIDs is empty OR repoID is in the list)
 func (cfg *ActionsConfig) IsRepoAllowedCrossAccess(repoID int64) bool {
-	if !cfg.AllowCrossRepoAccess {
+	switch cfg.CrossRepoMode {
+	case ActionsCrossRepoModeAll:
+		return true
+	case ActionsCrossRepoModeSelected:
+		return slices.Contains(cfg.AllowedCrossRepoIDs, repoID)
+	default: // ActionsCrossRepoModeNone or invalid
 		return false
 	}
-	// If no specific repos are configured, allow all
-	if len(cfg.AllowedCrossRepoIDs) == 0 {
-		return true
-	}
-	// Check if repo is in the allowed list
-	return slices.Contains(cfg.AllowedCrossRepoIDs, repoID)
 }
 
 // FromDB fills up a ActionsConfig from serialized format.

@@ -455,7 +455,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		require.NoError(t, err)
 
 		cfg := &repo_model.ActionsConfig{
-			AllowCrossRepoAccess: false,
+			CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
 		}
 		err = actions_model.SetOrgActionsConfig(t.Context(), org.ID, cfg)
 		require.NoError(t, err)
@@ -484,7 +484,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			// By default, cross-repo is disabled
 			// Explicitly set it to false to ensure test determinism (in case defaults change)
 			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
-				AllowCrossRepoAccess: false,
+				CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
 			}))
 
 			// Try to download with cross-repo disabled - should fail
@@ -494,7 +494,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 
 			// Enable cross-repo access
 			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
-				AllowCrossRepoAccess: true,
+				CrossRepoMode: repo_model.ActionsCrossRepoModeAll,
 			}))
 
 			// Try to download with cross-repo enabled - should succeed

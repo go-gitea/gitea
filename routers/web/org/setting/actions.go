@@ -37,8 +37,10 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["TokenPermissionModeCustom"] = repo_model.ActionsTokenPermissionModeCustom
 	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
 
-	ctx.Data["AllowCrossRepoAccess"] = actionsCfg.AllowCrossRepoAccess
-	ctx.Data["HasSelectedRepos"] = len(actionsCfg.AllowedCrossRepoIDs) > 0
+	ctx.Data["CrossRepoMode"] = actionsCfg.CrossRepoMode
+	ctx.Data["ActionsCrossRepoModeNone"] = repo_model.ActionsCrossRepoModeNone
+	ctx.Data["ActionsCrossRepoModeAll"] = repo_model.ActionsCrossRepoModeAll
+	ctx.Data["ActionsCrossRepoModeSelected"] = repo_model.ActionsCrossRepoModeSelected
 
 	// Load Allowed Repositories
 	var allowedRepos []*repo_model.Repository
@@ -116,14 +118,17 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	crossRepoMode := ctx.FormString("cross_repo_mode")
 	switch crossRepoMode {
 	case "none":
-		actionsCfg.AllowCrossRepoAccess = false
+		actionsCfg.CrossRepoMode = repo_model.ActionsCrossRepoModeNone
 		actionsCfg.AllowedCrossRepoIDs = nil
 	case "all":
-		actionsCfg.AllowCrossRepoAccess = true
+		actionsCfg.CrossRepoMode = repo_model.ActionsCrossRepoModeAll
 		actionsCfg.AllowedCrossRepoIDs = nil
 	case "selected":
-		actionsCfg.AllowCrossRepoAccess = true
+		actionsCfg.CrossRepoMode = repo_model.ActionsCrossRepoModeSelected
 		// Keep existing AllowedCrossRepoIDs, will be updated by separate API
+	default:
+		// Default to none if invalid
+		actionsCfg.CrossRepoMode = repo_model.ActionsCrossRepoModeNone
 	}
 
 	if err := actions_model.SetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID, actionsCfg); err != nil {
