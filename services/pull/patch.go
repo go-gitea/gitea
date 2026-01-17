@@ -71,7 +71,7 @@ func testPullRequestBranchMergeable(pr *issues_model.PullRequest) error {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("testPullRequestBranchMergeable: %s", pr))
 	defer finished()
 
-	if shouldUseMergeTree(pr) {
+	if git.DefaultFeatures().SupportGitMergeTree {
 		return testPullRequestMergeTree(ctx, pr)
 	}
 
