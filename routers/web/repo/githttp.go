@@ -189,7 +189,7 @@ func httpBase(ctx *context.Context) *serviceHandler {
 		}
 
 		if repoExist {
-			// Because of special ref "refs/for" .. , need delay write permission check
+			// Because of special ref "refs/for" (agit) , need delay write permission check
 			if git.DefaultFeatures().SupportProcReceive {
 				accessMode = perm.AccessModeRead
 			}
@@ -350,7 +350,7 @@ func setHeaderNoCache(ctx *context.Context) {
 
 func setHeaderCacheForever(ctx *context.Context) {
 	now := time.Now().Unix()
-	expires := now + 31536000
+	expires := now + 365*86400 // 365 days
 	ctx.Resp.Header().Set("Date", strconv.FormatInt(now, 10))
 	ctx.Resp.Header().Set("Expires", strconv.FormatInt(expires, 10))
 	ctx.Resp.Header().Set("Cache-Control", "public, max-age=31536000")

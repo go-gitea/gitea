@@ -13,6 +13,8 @@ func addOwnerRepoGitHTTPRouters(m *web.Router) {
 	presetGitService := func(service string) func(ctx *context.Context) {
 		return func(ctx *context.Context) { ctx.SetPathParam("preset-git-service", service) }
 	}
+	// Some users want to use "web-based git client" to access Gitea's repositories,
+	// so the CORS handler and OPTIONS method are used.
 	m.Group("/{username}/{reponame}", func() {
 		m.Methods("POST,OPTIONS", "/git-upload-pack", presetGitService("git-upload-pack"), repo.ServiceUploadPack)
 		m.Methods("POST,OPTIONS", "/git-receive-pack", presetGitService("git-receive-pack"), repo.ServiceReceivePack)
