@@ -6,8 +6,11 @@ package git
 import (
 	"context"
 	"io"
+	"os"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // catFileBatchLegacy implements the CatFileBatch interface using the "cat-file --batch" command and "cat-file --batch-check" command
@@ -24,8 +27,8 @@ type catFileBatchLegacy struct {
 var _ CatFileBatchCloser = (*catFileBatchLegacy)(nil)
 
 func newCatFileBatchLegacy(ctx context.Context, repoPath string) (*catFileBatchLegacy, error) {
-	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
-		return nil, err
+	if _, err := os.Stat(repoPath); err != nil {
+		return nil, util.NewNotExistErrorf("repo %q doesn't exist", filepath.Base(repoPath))
 	}
 	return &catFileBatchLegacy{ctx: ctx, repoPath: repoPath}, nil
 }
