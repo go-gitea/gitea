@@ -320,7 +320,7 @@ type ActionsConfig struct {
 	MaxTokenPermissions *ActionsTokenPermissions `json:"max_token_permissions,omitempty"`
 	// CrossRepoMode indicates which repos in the org can be accessed (none, all, or selected)
 	CrossRepoMode ActionsCrossRepoMode `json:"cross_repo_mode,omitempty"`
-	// AllowedCrossRepoIDs is a list of specific repo IDs that can be accessed cross-repo (empty means all if AllowCrossRepoAccess is true)
+	// AllowedCrossRepoIDs is a list of specific repo IDs that can be accessed cross-repo (only used if CrossRepoMode is ActionsCrossRepoModeSelected)
 	AllowedCrossRepoIDs []int64 `json:"allowed_cross_repo_ids,omitempty"`
 	// OverrideOrgConfig indicates if this repository should override the organization-level configuration
 	OverrideOrgConfig bool `json:"override_org_config,omitempty"`

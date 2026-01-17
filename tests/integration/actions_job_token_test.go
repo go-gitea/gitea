@@ -510,6 +510,32 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			writeReq.Header.Set("Authorization", "Bearer "+task.Token)
 			MakeRequest(t, writeReq, http.StatusUnauthorized)
 		})
+
+		// 7. Test Cross-Repo Access - Specific Repositories
+		t.Run("Cross-Repo Access - Specific Repositories", func(t *testing.T) {
+			// Set mode to Selected with ONLY repo-B
+			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
+				CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+				AllowedCrossRepoIDs: []int64{repoBID},
+			}))
+
+			// Access to repo-B should succeed
+			testCtx.Reponame = "repo-B"
+			testCtx.ExpectedCode = http.StatusOK
+			doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+				assert.Equal(t, "repo-B", r.Name)
+			})(t)
+
+			// Remove repo-B from allowed list
+			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
+				CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+				AllowedCrossRepoIDs: []int64{}, // Empty list
+			}))
+
+			// Access to repo-B should fail (404)
+			testCtx.ExpectedCode = http.StatusNotFound
+			doAPIGetRepository(testCtx, nil)(t)
+		})
 	})
 }
 
