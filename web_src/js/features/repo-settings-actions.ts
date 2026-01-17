@@ -4,6 +4,7 @@ export function initActionsPermissionsTable(): void {
   const tableSection = document.querySelector<HTMLElement>('#max-permissions-section');
   const overrideOrgCheckbox = document.querySelector<HTMLInputElement>('.js-override-org-config');
   const modeSection = document.querySelector<HTMLElement>('.js-permission-mode-section');
+  const enableMaxCheckbox = document.querySelector<HTMLInputElement>('.js-enable-max-permissions');
 
   if (!modeRadios.length) return;
 
@@ -11,9 +12,6 @@ export function initActionsPermissionsTable(): void {
     // If the checkbox exists (Repo settings), we are disabled if it is NOT checked (Follow mode).
     // If the checkbox does not exist (Org settings), we are never disabled by this rule.
     const shouldDisable = overrideOrgCheckbox ? !overrideOrgCheckbox.checked : false;
-
-    const selectedMode = document.querySelector<HTMLInputElement>('input[name="token_permission_mode"]:checked');
-    const isCustom = selectedMode?.value === 'custom';
 
     // Disable entire form when following org config (Override unchecked)
     for (const radio of modeRadios) {
@@ -24,18 +22,34 @@ export function initActionsPermissionsTable(): void {
       modeSection.style.opacity = shouldDisable ? '0.5' : '1';
     }
 
-    // Disable table if layout is disabled OR mode is not custom
-    const tableDisabled = shouldDisable || !isCustom;
+    if (enableMaxCheckbox) {
+      enableMaxCheckbox.disabled = shouldDisable;
+    }
+
+    if (tableSection) {
+        tableSection.style.opacity = shouldDisable ? '0.5' : '1';
+    }
+
+    // Disable table if layout is disabled OR max permissions not enabled
+    const isMaxEnabled = enableMaxCheckbox ? enableMaxCheckbox.checked : false;
+    const tableDisabled = shouldDisable || !isMaxEnabled;
+
     if (permTable) {
       const inputs = permTable.querySelectorAll<HTMLInputElement>('input[type="radio"]');
       for (const input of inputs) {
         input.disabled = tableDisabled;
       }
-      permTable.style.display = tableDisabled ? 'none' : '';
-    }
-
-    if (tableSection) {
-      tableSection.style.display = tableDisabled ? 'none' : '';
+      permTable.style.display = isMaxEnabled ? '' : 'none';
+      if (shouldDisable) {
+          permTable.style.opacity = '0.5';
+          // If disabled, we might want to hide it or just show disabled state?
+          // If following Org config, the Org might have max permissions set.
+          // But here we are configuring the REPO overrides.
+          // If not overriding, we show nothing (or disabled state).
+          // Current logic dims everything.
+      } else {
+          permTable.style.opacity = '1';
+      }
     }
   }
 
@@ -44,6 +58,7 @@ export function initActionsPermissionsTable(): void {
   }
 
   overrideOrgCheckbox?.addEventListener('change', updateTableState);
+  enableMaxCheckbox?.addEventListener('change', updateTableState);
 
   updateTableState();
 

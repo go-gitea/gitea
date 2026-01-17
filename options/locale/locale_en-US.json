@@ -3763,6 +3763,7 @@
   "actions.general.token_permissions.actions_scope.description": "Interact with workflow runs.",
   "actions.general.token_permissions.maximum": "Maximum Token Permissions",
   "actions.general.token_permissions.maximum.description": "The maximum permissions tokens are allowed to have. Workflow-specified permissions cannot exceed these limits.",
+  "actions.general.token_permissions.customize_max_permissions": "Customize maximum permissions",
   "actions.general.token_permissions.fork_pr_note": "Note: Pull requests from forks always have read-only permissions.",
   "actions.general.token_permissions.max_permissions": "Maximum Permissions",
   "actions.general.token_permissions.max_permissions.desc": "Configure better restrictions for the GITEA_TOKEN running in this repository.",

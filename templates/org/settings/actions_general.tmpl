@@ -97,13 +97,6 @@
 					</div>
 					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted.desc"}}</p>
 				</div>
-				<div class="field">
-					<div class="ui radio checkbox">
-						<input type="radio" name="token_permission_mode" value="custom" {{if eq .TokenPermissionMode .TokenPermissionModeCustom}}checked{{end}} class="js-permission-mode-radio">
-						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.custom"}}</label>
-					</div>
-					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.custom.desc"}}</p>
-				</div>
 			</div>
 
 			<div class="divider"></div>
@@ -114,6 +107,13 @@
 					{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions"}}
 				</h5>
 				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions.desc"}}</p>
+
+				<div class="field">
+					<div class="ui checkbox">
+						<input type="checkbox" name="enable_max_permissions" class="js-enable-max-permissions" {{if .MaxTokenPermissions}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
+					</div>
+				</div>
 			</div>
 
 			<table class="ui celled table js-permissions-table">

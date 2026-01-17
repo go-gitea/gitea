@@ -83,8 +83,9 @@ func UpdateTokenPermissions(ctx *context.Context) {
 		actionsCfg.TokenPermissionMode = permissionMode
 	}
 
+	enableMaxPermissions := ctx.FormBool("enable_max_permissions")
 	// Update Maximum Permissions (radio buttons: none/read/write)
-	if actionsCfg.TokenPermissionMode == repo_model.ActionsTokenPermissionModeCustom {
+	if enableMaxPermissions {
 		parseMaxPerm := func(name string) perm.AccessMode {
 			value := ctx.FormString("max_" + name)
 			switch value {
