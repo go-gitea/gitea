@@ -404,8 +404,6 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	}
 	perm.AccessMode = maxMode
 
-
-
 	return perm, nil
 }
 
