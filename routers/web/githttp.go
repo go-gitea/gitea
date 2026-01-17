@@ -10,10 +10,13 @@ import (
 )
 
 func addOwnerRepoGitHTTPRouters(m *web.Router) {
+	presetGitService := func(service string) func(ctx *context.Context) {
+		return func(ctx *context.Context) { ctx.SetPathParam("preset-git-service", service) }
+	}
 	m.Group("/{username}/{reponame}", func() {
-		m.Methods("POST,OPTIONS", "/git-upload-pack", repo.ServiceUploadPack)
-		m.Methods("POST,OPTIONS", "/git-receive-pack", repo.ServiceReceivePack)
-		m.Methods("POST,OPTIONS", "/git-upload-archive", repo.ServiceUploadArchive)
+		m.Methods("POST,OPTIONS", "/git-upload-pack", presetGitService("git-upload-pack"), repo.ServiceUploadPack)
+		m.Methods("POST,OPTIONS", "/git-receive-pack", presetGitService("git-receive-pack"), repo.ServiceReceivePack)
+		m.Methods("POST,OPTIONS", "/git-upload-archive", presetGitService("git-upload-archive"), repo.ServiceUploadArchive)
 		m.Methods("GET,OPTIONS", "/info/refs", repo.GetInfoRefs)
 		m.Methods("GET,OPTIONS", "/HEAD", repo.GetTextFile("HEAD"))
 		m.Methods("GET,OPTIONS", "/objects/info/alternates", repo.GetTextFile("objects/info/alternates"))
