@@ -77,7 +77,7 @@ func TestAddReleaseAttachmentsRejectsRecentZeroRepoID(t *testing.T) {
 		ReleaseID:   0,
 		CommentID:   0,
 		Name:        "recent-zero",
-		CreatedUnix: legacyAttachmentMissingRepoIDCutoff + 1,
+		CreatedUnix: LegacyAttachmentMissingRepoIDCutoff + 1,
 	}
 	assert.NoError(t, db.Insert(t.Context(), attachment))
 

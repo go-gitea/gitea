@@ -93,9 +93,9 @@ func init() {
 	db.RegisterModel(new(Release))
 }
 
-// legacyAttachmentMissingRepoIDCutoff marks the date when repo_id started to be written during uploads
+// LegacyAttachmentMissingRepoIDCutoff marks the date when repo_id started to be written during uploads
 // (2026-01-16T00:00:00Z). Older rows might have repo_id=0 and should be tolerated once.
-const legacyAttachmentMissingRepoIDCutoff timeutil.TimeStamp = 1768521600
+const LegacyAttachmentMissingRepoIDCutoff timeutil.TimeStamp = 1768521600
 
 func (r *Release) LoadRepo(ctx context.Context) (err error) {
 	if r.Repo != nil {
@@ -190,7 +190,7 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 	}
 
 	for i := range attachments {
-		if attachments[i].RepoID == 0 && attachments[i].CreatedUnix < legacyAttachmentMissingRepoIDCutoff {
+		if attachments[i].RepoID == 0 && attachments[i].CreatedUnix < LegacyAttachmentMissingRepoIDCutoff {
 			attachments[i].RepoID = rel.RepoID
 			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Cols("repo_id").Update(attachments[i]); err != nil {
 				return fmt.Errorf("update attachment repo_id [%d]: %w", attachments[i].ID, err)
