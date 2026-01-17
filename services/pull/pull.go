@@ -521,14 +521,7 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 	defer cancel()
 
-	tmpRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
-	if err != nil {
-		return false, "", fmt.Errorf("OpenRepository: %w", err)
-	}
-	defer tmpRepo.Close()
-
-	// Find the merge-base
-	mergeBase, _, err = tmpRepo.GetMergeBase("", "base", "tracking")
+	mergeBase, err = gitrepo.MergeBase(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
 		return false, "", fmt.Errorf("GetMergeBase: %w", err)
 	}
@@ -1077,7 +1070,7 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 	if pull.HasMerged {
 		baseBranch = pull.MergeBase
 	}
-	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, git.RefNameFromBranch(baseBranch), git.RefName(pull.GetGitHeadRefName()), true, false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, git.RefNameFromBranch(baseBranch), git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
 		return nil, "", err
 	}
