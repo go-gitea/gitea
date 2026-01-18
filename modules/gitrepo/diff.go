@@ -4,7 +4,6 @@
 package gitrepo
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -22,7 +21,7 @@ func GetDiffShortStatByCmdArgs(ctx context.Context, repo Repository, trustedArgs
 	// we get:
 	// " 9902 files changed, 2034198 insertions(+), 298800 deletions(-)\n"
 	cmd := gitcmd.NewCommand("diff", "--shortstat").AddArguments(trustedArgs...).AddDynamicArguments(dynamicArgs...)
-	stdout, err := RunCmdString(ctx, repo, cmd)
+	stdout, _, err := RunCmdString(ctx, repo, cmd)
 	if err != nil {
 		return 0, 0, 0, err
 	}
@@ -65,12 +64,8 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
 func GetReverseRawDiff(ctx context.Context, repo Repository, commitID string, writer io.Writer) error {
-	stderr := new(bytes.Buffer)
-	if err := RunCmd(ctx, repo, gitcmd.NewCommand("show", "--pretty=format:revert %H%n", "-R").
+	return RunCmdWithStderr(ctx, repo, gitcmd.NewCommand("show", "--pretty=format:revert %H%n", "-R").
 		AddDynamicArguments(commitID).
-		WithStdout(writer).
-		WithStderr(stderr)); err != nil {
-		return fmt.Errorf("GetReverseRawDiff: %w - %s", err, stderr)
-	}
-	return nil
+		WithStdout(writer),
+	)
 }

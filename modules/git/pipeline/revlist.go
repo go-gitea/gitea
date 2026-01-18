@@ -5,7 +5,6 @@ package pipeline
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -13,7 +12,6 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
 )
 
 // RevListAllObjects runs rev-list --objects --all and writes to a pipewriter
@@ -21,16 +19,11 @@ func RevListAllObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sy
 	defer wg.Done()
 	defer revListWriter.Close()
 
-	stderr := new(bytes.Buffer)
-	var errbuf strings.Builder
 	cmd := gitcmd.NewCommand("rev-list", "--objects", "--all")
 	if err := cmd.WithDir(basePath).
 		WithStdout(revListWriter).
-		WithStderr(stderr).
-		Run(ctx); err != nil {
-		log.Error("git rev-list --objects --all [%s]: %v - %s", basePath, err, errbuf.String())
-		err = fmt.Errorf("git rev-list --objects --all [%s]: %w - %s", basePath, err, errbuf.String())
-		_ = revListWriter.CloseWithError(err)
+		RunWithStderr(ctx); err != nil {
+		_ = revListWriter.CloseWithError(fmt.Errorf("git rev-list --objects --all [%s]: %w", basePath, err))
 		errChan <- err
 	}
 }
@@ -39,18 +32,15 @@ func RevListAllObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sy
 func RevListObjects(ctx context.Context, revListWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath, headSHA, baseSHA string, errChan chan<- error) {
 	defer wg.Done()
 	defer revListWriter.Close()
-	stderr := new(bytes.Buffer)
-	var errbuf strings.Builder
+
 	cmd := gitcmd.NewCommand("rev-list", "--objects").AddDynamicArguments(headSHA)
 	if baseSHA != "" {
 		cmd = cmd.AddArguments("--not").AddDynamicArguments(baseSHA)
 	}
 	if err := cmd.WithDir(tmpBasePath).
 		WithStdout(revListWriter).
-		WithStderr(stderr).
-		Run(ctx); err != nil {
-		log.Error("git rev-list [%s]: %v - %s", tmpBasePath, err, errbuf.String())
-		errChan <- fmt.Errorf("git rev-list [%s]: %w - %s", tmpBasePath, err, errbuf.String())
+		RunWithStderr(ctx); err != nil {
+		errChan <- fmt.Errorf("git rev-list [%s]: %w", tmpBasePath, err)
 	}
 }
 
