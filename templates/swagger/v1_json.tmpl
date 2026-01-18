@@ -6256,6 +6256,16 @@
             "name": "archive",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "subpath of the repository to download",
+            "name": "path",
+            "in": "query"
           }
         ],
         "responses": {
