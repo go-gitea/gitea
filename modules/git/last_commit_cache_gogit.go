@@ -40,8 +40,8 @@ func (c *Commit) recursiveCache(ctx context.Context, index cgobject.CommitNode, 
 	entryPaths := make([]string, len(entries))
 	entryMap := make(map[string]*TreeEntry)
 	for i, entry := range entries {
-		entryPaths[i] = entry.Name()
-		entryMap[entry.Name()] = entry
+		entryPaths[i] = entry.Name
+		entryMap[entry.Name] = entry
 	}
 
 	commits, err := GetLastCommitForPaths(ctx, c.repo.LastCommitCache, index, treePath, entryPaths)

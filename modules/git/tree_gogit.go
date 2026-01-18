@@ -41,7 +41,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 	for i, gogitTreeEntry := range gogitTree.Entries {
 		entries[i] = &TreeEntry{
 			ID:        ParseGogitHash(gogitTreeEntry.Hash),
-			name:      gogitTreeEntry.Name,
+			Name:      gogitTreeEntry.Name,
 			EntryMode: gogitFileModeToEntryMode(gogitTreeEntry.Mode),
 		}
 	}
@@ -66,7 +66,7 @@ func (t *Tree) ListEntriesRecursiveWithSize() (entries Entries, _ error) {
 		}
 		convertedEntry := &TreeEntry{
 			ID:        ParseGogitHash(gogitTreeEntry.Hash),
-			name:      fullName, // FIXME: the "name" field is abused, here it is a full path
+			Name:      fullName, // FIXME: the "name" field is abused, here it is a full path
 			EntryMode: gogitFileModeToEntryMode(gogitTreeEntry.Mode),
 		}
 		entries = append(entries, convertedEntry)
@@ -84,7 +84,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 	if len(relpath) == 0 {
 		return &TreeEntry{
 			ID:        t.ID,
-			name:      "",
+			Name:      "",
 			EntryMode: EntryModeTree,
 		}, nil
 	}
@@ -107,7 +107,7 @@ func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 
 	return &TreeEntry{
 		ID:        ParseGogitHash(e.Hash),
-		name:      path.Base(relpath),
+		Name:      path.Base(relpath),
 		EntryMode: EntryMode(e.Mode),
 	}, nil
 }

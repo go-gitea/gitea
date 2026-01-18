@@ -99,7 +99,7 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 		tree.Entries[i].Path = entries[e].Name
 		tree.Entries[i].Mode = fmt.Sprintf("%06o", entries[e].Mode())
 		tree.Entries[i].Type = entries[e].Type()
-		tree.Entries[i].Size = entries[e].Size.Value()
+		tree.Entries[i].Size = entries[e].GetSize(gitRepo)
 		tree.Entries[i].SHA = entries[e].ID.String()
 
 		if entries[e].IsDir() {

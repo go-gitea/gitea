@@ -127,7 +127,7 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 				continue
 			}
 			assert.Equal(t, expectedInfo.CommitID, commit.ID.String())
-			assert.Equal(t, expectedInfo.Size, entry.Size.Value(), entry.Name)
+			assert.Equal(t, expectedInfo.Size, entry.GetSize(repo1), entry.Name)
 		}
 	}
 }

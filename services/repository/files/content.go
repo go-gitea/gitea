@@ -154,7 +154,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 		Name: entry.Name,
 		Path: opts.TreePath,
 		SHA:  entry.ID.String(),
-		Size: entry.Size.Value(),
+		Size: entry.GetSize(gitRepo),
 		URL:  &selfURLString,
 		Links: &api.FileLinksResponse{
 			Self: &selfURLString,

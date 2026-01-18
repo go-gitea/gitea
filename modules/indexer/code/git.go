@@ -76,8 +76,8 @@ func parseGitLsTreeOutput(stdout []byte) ([]internal.FileUpdate, error) {
 			updates[idxCount] = internal.FileUpdate{
 				Filename: entry.Name,
 				BlobSha:  entry.ID.String(),
-				Size:     entry.Size.Value(),
-				Sized:    true,
+				Size:     entry.Size,
+				Sized:    entry.Sized,
 			}
 			idxCount++
 		}

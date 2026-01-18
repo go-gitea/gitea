@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"code.gitea.io/gitea/modules/optional"
 )
 
 var sepSpace = []byte{' '}
@@ -36,7 +34,8 @@ func parseTreeEntry(line []byte) (*TreeEntry, error) {
 	if len(entryAttrs) > 0 {
 		entrySize := entryAttrs // the last field is the space-padded-size
 		size, _ := strconv.ParseInt(strings.TrimSpace(string(entrySize)), 10, 64)
-		entry.Size = optional.Some(size)
+		entry.Size = size
+		entry.Sized = true
 	}
 
 	entry.EntryMode = ParseEntryMode(string(entryMode))

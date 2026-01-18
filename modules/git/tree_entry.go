@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strings"
 
-	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -18,7 +17,8 @@ type TreeEntry struct {
 	ID        ObjectID
 	EntryMode EntryMode
 	Name      string // FIXME: the definition is not clear, it is just the base name of the entry or the full path?
-	Size      optional.Option[int64]
+	Size      int64
+	Sized     bool
 }
 
 // Mode returns the mode of the entry
