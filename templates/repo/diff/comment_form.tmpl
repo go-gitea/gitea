@@ -1,4 +1,4 @@
-{{if and $.root.SignedUserID (not $.Repository.IsArchived)}}
+{{if and $.root.SignedUserID (not $.Repository.IsArchived) (or $.root.PageIsPullFiles $.root.CommitID)}}
 	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{if $.root.PageIsPullFiles}}{{$.root.Issue.Link}}/files/reviews/comments{{else if $.root.CommitID}}{{$.root.RepoLink}}/commit/{{$.root.CommitID}}/files/reviews/comments{{end}}" method="post">
 		<input type="hidden" name="origin" value="{{if or $.root.PageIsPullFiles $.root.CommitID}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}">
