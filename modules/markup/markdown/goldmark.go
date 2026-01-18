@@ -86,9 +86,6 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			tocNode := createTOCNode(tocList, rc.Lang, nil)
 			node.InsertBefore(node, firstChild, tocNode)
 		} else {
-			tocNode := createTOCNode(tocList, rc.Lang, map[string]string{"open": "open"})
-			ctx.SidebarTocNode = tocNode
-			// Also set the generic SidebarTocHeaders for the new abstraction
 			ctx.SidebarTocHeaders = make([]markup.Header, len(tocList))
 			for i, h := range tocList {
 				ctx.SidebarTocHeaders[i] = markup.Header{Level: h.Level, Text: h.Text, ID: h.ID}

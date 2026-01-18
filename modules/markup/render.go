@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/yuin/goldmark/ast"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -70,7 +69,6 @@ type RenderContext struct {
 	// the context might be used by the "render" function, but it might also be used by "postProcess" function
 	usedByRender bool
 
-	SidebarTocNode    ast.Node // Deprecated: use SidebarTocHeaders instead, keep for compatibility
 	SidebarTocHeaders []Header // Headers for generating sidebar TOC
 
 	RenderHelper   RenderHelper
