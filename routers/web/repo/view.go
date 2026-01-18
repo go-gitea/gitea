@@ -35,7 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
@@ -176,20 +175,10 @@ func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, r
 }
 
 func renderSidebarTocHTML(rctx *markup.RenderContext, lang string) template.HTML {
-	// Prefer the new generic SidebarTocHeaders
 	if len(rctx.SidebarTocHeaders) > 0 {
 		return markup.RenderSidebarTocHTML(rctx.SidebarTocHeaders, lang)
 	}
-	// Fallback to legacy SidebarTocNode for backward compatibility
-	if rctx.SidebarTocNode == nil {
-		return ""
-	}
-	sb := &strings.Builder{}
-	if err := markdown.SpecializedMarkdown(rctx).Renderer().Render(sb, nil, rctx.SidebarTocNode); err != nil {
-		log.Error("Failed to render sidebar TOC: %v", err)
-		return ""
-	}
-	return templates.SanitizeHTML(sb.String())
+	return ""
 }
 
 func checkHomeCodeViewable(ctx *context.Context) {
