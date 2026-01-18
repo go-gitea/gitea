@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"path"
-	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	renderhelper "code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/modules/log"
