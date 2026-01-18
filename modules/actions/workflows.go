@@ -72,8 +72,8 @@ func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
 	return rpath, ret, nil
 }
 
-func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
-	f, err := entry.Blob().DataAsync()
+func GetContentFromEntry(gitRepo *git.Repository, entry *git.TreeEntry) ([]byte, error) {
+	f, err := entry.Blob().DataAsync(gitRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func DetectWorkflows(
 	workflows := make([]*DetectedWorkflow, 0, len(entries))
 	schedules := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
-		content, err := GetContentFromEntry(entry)
+		content, err := GetContentFromEntry(gitRepo, entry)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -121,11 +121,11 @@ func DetectWorkflows(
 		// one workflow may have multiple events
 		events, err := GetEventsFromContent(content)
 		if err != nil {
-			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
+			log.Warn("ignore invalid workflow %q: %v", entry.Name, err)
 			continue
 		}
 		for _, evt := range events {
-			log.Trace("detect workflow %q for event %#v matching %q", entry.Name(), evt, triggedEvent)
+			log.Trace("detect workflow %q for event %#v matching %q", entry.Name, evt, triggedEvent)
 			if evt.IsSchedule() {
 				if detectSchedule {
 					dwf := &DetectedWorkflow{
@@ -157,7 +157,7 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 
 	wfs := make([]*DetectedWorkflow, 0, len(entries))
 	for _, entry := range entries {
-		content, err := GetContentFromEntry(entry)
+		content, err := GetContentFromEntry(gitRepo, entry)
 		if err != nil {
 			return nil, err
 		}
@@ -165,12 +165,12 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 		// one workflow may have multiple events
 		events, err := GetEventsFromContent(content)
 		if err != nil {
-			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
+			log.Warn("ignore invalid workflow %q: %v", entry.Name, err)
 			continue
 		}
 		for _, evt := range events {
 			if evt.IsSchedule() {
-				log.Trace("detect scheduled workflow: %q", entry.Name())
+				log.Trace("detect scheduled workflow: %q", entry.Name)
 				dwf := &DetectedWorkflow{
 					EntryName:    entry.Name(),
 					TriggerEvent: evt,

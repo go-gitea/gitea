@@ -54,7 +54,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		if ok, _ := commit.HasFile(filename); !ok {
 			continue
 		}
-		template, err := issue_template.UnmarshalFromCommit(commit, filename)
+		template, err := issue_template.UnmarshalFromCommit(ctx.Repo.GitRepo, commit, filename)
 		if err != nil {
 			templateErrs[filename] = err
 			continue

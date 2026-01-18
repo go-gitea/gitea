@@ -29,28 +29,6 @@ func (te *TreeEntry) toGogitTreeEntry() *object.TreeEntry {
 	}
 }
 
-// Size returns the size of the entry
-func (te *TreeEntry) Size() int64 {
-	if te.IsDir() {
-		return 0
-	} else if te.sized {
-		return te.size
-	}
-
-	ptreeGogitTree, err := te.ptree.gogitTreeObject()
-	if err != nil {
-		return 0
-	}
-	file, err := ptreeGogitTree.TreeEntryFile(te.toGogitTreeEntry())
-	if err != nil {
-		return 0
-	}
-
-	te.sized = true
-	te.size = file.Size
-	return te.size
-}
-
 // Blob returns the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
 	return &Blob{

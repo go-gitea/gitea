@@ -19,12 +19,12 @@ import (
 )
 
 // ServeBlob download a git.Blob
-func ServeBlob(ctx *context.Base, repo *repo_model.Repository, filePath string, blob *git.Blob, lastModified *time.Time) error {
+func ServeBlob(ctx *context.Base, repo *repo_model.Repository, gitRepo *git.Repository, filePath string, blob *git.Blob, lastModified *time.Time) error {
 	if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 		return nil
 	}
 
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(gitRepo)
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func ServeBlob(ctx *context.Base, repo *repo_model.Repository, filePath string, 
 	}()
 
 	_ = repo.LoadOwner(ctx)
-	httplib.ServeContentByReader(ctx.Req, ctx.Resp, blob.Size(), dataRc, &httplib.ServeHeaderOptions{
+	httplib.ServeContentByReader(ctx.Req, ctx.Resp, blob.Size(gitRepo), dataRc, &httplib.ServeHeaderOptions{
 		Filename:      path.Base(filePath),
 		CacheIsPublic: !repo.IsPrivate && repo.Owner != nil && repo.Owner.Visibility == structs.VisibleTypePublic,
 		CacheDuration: setting.StaticCacheTime,

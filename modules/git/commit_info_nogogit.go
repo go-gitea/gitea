@@ -59,7 +59,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 		if entryCommit, ok := revs[entry.Name()]; ok {
 			commitsInfo[i].Commit = entryCommit
 		} else {
-			log.Debug("missing commit for %s", entry.Name())
+			log.Debug("missing commit for %s", entry.Name)
 		}
 
 		// If the entry is a submodule, add a submodule file for this

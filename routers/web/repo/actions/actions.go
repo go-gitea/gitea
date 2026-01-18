@@ -140,7 +140,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 	workflows = make([]WorkflowInfo, 0, len(entries))
 	for _, entry := range entries {
 		workflow := WorkflowInfo{Entry: *entry}
-		content, err := actions.GetContentFromEntry(entry)
+		content, err := actions.GetContentFromEntry(ctx.Repo.GitRepo, entry)
 		if err != nil {
 			ctx.ServerError("GetContentFromEntry", err)
 			return nil, ""

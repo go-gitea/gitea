@@ -28,7 +28,7 @@
 					{{end}}
 				{{else}}
 					{{if $entry.IsDir}}
-						{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
+						{{$subJumpablePathName := $.Repo.GetSubJumpablePathName $entry}}
 						<a class="entry-name" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 							{{$subJumpablePathFields := StringUtils.Split $subJumpablePathName "/"}}
 							{{$subJumpablePathFieldLast := (Eval (len $subJumpablePathFields) "-" 1)}}

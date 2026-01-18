@@ -69,8 +69,8 @@ func (fi *fileInfo) isLFSFile() bool {
 	return fi.lfsMeta != nil && fi.lfsMeta.Oid != ""
 }
 
-func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []byte, dataRc io.ReadCloser, fi *fileInfo, err error) {
-	dataRc, err = blob.DataAsync()
+func getFileReader(ctx gocontext.Context, repoID int64, gitRepo *git.Repository, blob *git.Blob) (buf []byte, dataRc io.ReadCloser, fi *fileInfo, err error) {
+	dataRc, err = blob.DataAsync(gitRepo)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -81,7 +81,7 @@ func getFileReader(ctx gocontext.Context, repoID int64, blob *git.Blob) (buf []b
 	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
-	fi = &fileInfo{blobOrLfsSize: blob.Size(), st: typesniffer.DetectContentType(buf)}
+	fi = &fileInfo{blobOrLfsSize: blob.Size(gitRepo), st: typesniffer.DetectContentType(buf)}
 
 	// FIXME: what happens when README file is an image?
 	if !fi.st.IsText() || !setting.LFS.StartServer {
@@ -330,6 +330,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	}
 
 	ctx.Data["Files"] = files
+	ctx.Data["Repo"] = ctx.Repo.GitRepo
 	prepareDirectoryFileIcons(ctx, files)
 	for _, f := range files {
 		if f.Commit == nil {

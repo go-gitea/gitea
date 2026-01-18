@@ -6,41 +6,29 @@
 package git
 
 import (
-	"path"
-	"strings"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // GetTreeEntryByPath get the tree entries according the sub dir
 func (t *Tree) GetTreeEntryByPath(relpath string) (_ *TreeEntry, err error) {
 	if len(relpath) == 0 {
 		return &TreeEntry{
-			ptree:     t,
 			ID:        t.ID,
 			name:      "",
-			entryMode: EntryModeTree,
+			EntryMode: EntryModeTree,
 		}, nil
 	}
 
-	relpath = path.Clean(relpath)
-	parts := strings.Split(relpath, "/")
-
-	tree := t
-	for _, name := range parts[:len(parts)-1] {
-		tree, err = tree.SubTree(name)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	name := parts[len(parts)-1]
-	entries, err := tree.ListEntries()
+	output, _, err := gitcmd.NewCommand("ls-tree", "-l").
+		AddDynamicArguments(t.ID.String()).
+		WithDir(t.repo.Path).
+		AddDashesAndList(relpath).RunStdBytes(t.repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
-	for _, v := range entries {
-		if v.Name() == name {
-			return v, nil
-		}
+	if string(output) == "" {
+		return nil, ErrNotExist{"", relpath}
 	}
-	return nil, ErrNotExist{"", relpath}
+
+	return parseTreeEntry(output)
 }

@@ -93,7 +93,7 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 			if subTreeEntry == nil {
 				continue
 			}
-			subTree := subTreeEntry.Tree()
+			subTree, _ := ctx.Repo.GitRepo.GetTree(subTreeEntry.ID.String())
 			if subTree == nil {
 				// this should be impossible; if subTreeEntry exists so should this.
 				continue
@@ -161,7 +161,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	ctx.Data["ReadmeExist"] = true
 	ctx.Data["FileIsSymlink"] = readmeFile.IsLink()
 
-	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, readmeTargetEntry.Blob())
+	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, readmeTargetEntry.Blob())
 	if err != nil {
 		ctx.ServerError("getFileReader", err)
 		return

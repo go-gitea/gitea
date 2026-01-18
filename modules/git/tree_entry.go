@@ -9,55 +9,51 @@ import (
 	"slices"
 	"strings"
 
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/util"
 )
 
 // TreeEntry the leaf in the git tree
 type TreeEntry struct {
-	ID ObjectID
-
-	name  string
-	ptree *Tree
-
-	entryMode EntryMode
-
-	size  int64
-	sized bool
+	ID        ObjectID
+	EntryMode EntryMode
+	name      string
+	Size      optional.Option[int64]
 }
 
-// Name returns the name of the entry (base name)
+// Name returns the name of the entry
 func (te *TreeEntry) Name() string {
 	return te.name
 }
 
 // Mode returns the mode of the entry
 func (te *TreeEntry) Mode() EntryMode {
-	return te.entryMode
+	return te.EntryMode
 }
 
 // IsSubModule if the entry is a submodule
 func (te *TreeEntry) IsSubModule() bool {
-	return te.entryMode.IsSubModule()
+	return te.EntryMode.IsSubModule()
 }
 
 // IsDir if the entry is a sub dir
 func (te *TreeEntry) IsDir() bool {
-	return te.entryMode.IsDir()
+	return te.EntryMode.IsDir()
 }
 
 // IsLink if the entry is a symlink
 func (te *TreeEntry) IsLink() bool {
-	return te.entryMode.IsLink()
+	return te.EntryMode.IsLink()
 }
 
 // IsRegular if the entry is a regular file
 func (te *TreeEntry) IsRegular() bool {
-	return te.entryMode.IsRegular()
+	return te.EntryMode.IsRegular()
 }
 
 // IsExecutable if the entry is an executable file (not necessarily binary)
 func (te *TreeEntry) IsExecutable() bool {
-	return te.entryMode.IsExecutable()
+	return te.EntryMode.IsExecutable()
 }
 
 // Type returns the type of the entry (commit, tree, blob)
@@ -85,11 +81,11 @@ func EntryFollowLink(commit *Commit, fullPath string, te *TreeEntry) (*EntryFoll
 
 	// git's filename max length is 4096, hopefully a link won't be longer than multiple of that
 	const maxSymlinkSize = 20 * 4096
-	if te.Blob().Size() > maxSymlinkSize {
+	if te.Blob().Size(commit.repo) > maxSymlinkSize {
 		return nil, util.ErrorWrap(util.ErrUnprocessableContent, "%q content exceeds symlink limit", fullPath)
 	}
 
-	link, err := te.Blob().GetBlobContent(maxSymlinkSize)
+	link, err := te.Blob().GetBlobContent(commit.repo, maxSymlinkSize)
 	if err != nil {
 		return nil, err
 	}
@@ -125,28 +121,18 @@ func EntryFollowLinks(commit *Commit, firstFullPath string, firstTreeEntry *Tree
 	return res, nil
 }
 
-// returns the Tree pointed to by this TreeEntry, or nil if this is not a tree
-func (te *TreeEntry) Tree() *Tree {
-	t, err := te.ptree.repo.getTree(te.ID)
-	if err != nil {
-		return nil
-	}
-	t.ptree = te.ptree
-	return t
-}
-
 // GetSubJumpablePathName return the full path of subdirectory jumpable ( contains only one directory )
-func (te *TreeEntry) GetSubJumpablePathName() string {
+func (repo *Repository) GetSubJumpablePathName(te *TreeEntry) string {
 	if te.IsSubModule() || !te.IsDir() {
 		return ""
 	}
-	tree, err := te.ptree.SubTree(te.Name())
+	tree, err := repo.GetTree(te.ID.String())
 	if err != nil {
 		return te.Name()
 	}
 	entries, _ := tree.ListEntries()
 	if len(entries) == 1 && entries[0].IsDir() {
-		name := entries[0].GetSubJumpablePathName()
+		name := repo.GetSubJumpablePathName(entries[0])
 		if name != "" {
 			return te.Name() + "/" + name
 		}

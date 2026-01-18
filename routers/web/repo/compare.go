@@ -76,7 +76,7 @@ func setCompareContext(ctx *context.Context, before, head *git.Commit, headOwner
 			return st
 		}
 
-		st, err := blob.GuessContentType()
+		st, err := blob.GuessContentType(ctx.Repo.GitRepo)
 		if err != nil {
 			log.Error("GuessContentType failed: %v", err)
 			return st
@@ -135,22 +135,22 @@ func setCsvCompareContext(ctx *context.Context) {
 
 		errTooLarge := errors.New(ctx.Locale.TrString("repo.error.csv.too_large"))
 
-		csvReaderFromCommit := func(ctx *markup.RenderContext, blob *git.Blob) (*csv.Reader, io.Closer, error) {
+		csvReaderFromCommit := func(renderCtx *markup.RenderContext, blob *git.Blob) (*csv.Reader, io.Closer, error) {
 			if blob == nil {
 				// It's ok for blob to be nil (file added or deleted)
 				return nil, nil, nil
 			}
 
-			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size() {
+			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size(ctx.Repo.GitRepo) {
 				return nil, nil, errTooLarge
 			}
 
-			reader, err := blob.DataAsync()
+			reader, err := blob.DataAsync(ctx.Repo.GitRepo)
 			if err != nil {
 				return nil, nil, err
 			}
 			var closer io.Closer = reader
-			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}))
+			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(renderCtx, charset.ToUTF8WithFallbackReader(reader, charset.ConvertOpts{}))
 			return csvReader, closer, err
 		}
 
@@ -784,9 +784,9 @@ func ExcerptBlob(ctx *context.Context) {
 		idxRight -= chunkSize
 		leftHunkSize += chunkSize
 		rightHunkSize += chunkSize
-		section.Lines, err = getExcerptLines(commit, filePath, idxLeft-1, idxRight-1, chunkSize)
+		section.Lines, err = getExcerptLines(gitRepo, commit, filePath, idxLeft-1, idxRight-1, chunkSize)
 	} else if direction == "down" && (idxLeft-lastLeft) > chunkSize {
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, chunkSize)
+		section.Lines, err = getExcerptLines(gitRepo, commit, filePath, lastLeft, lastRight, chunkSize)
 		lastLeft += chunkSize
 		lastRight += chunkSize
 	} else {
@@ -794,7 +794,7 @@ func ExcerptBlob(ctx *context.Context) {
 		if direction == "down" {
 			offset = 0
 		}
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight+offset)
+		section.Lines, err = getExcerptLines(gitRepo, commit, filePath, lastLeft, lastRight, idxRight-lastRight+offset)
 		leftHunkSize = 0
 		rightHunkSize = 0
 		idxLeft = lastLeft
@@ -866,12 +866,12 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
 }
 
-func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chunkSize int) ([]*gitdiff.DiffLine, error) {
+func getExcerptLines(gitRepo *git.Repository, commit *git.Commit, filePath string, idxLeft, idxRight, chunkSize int) ([]*gitdiff.DiffLine, error) {
 	blob, err := commit.Tree.GetBlobByPath(filePath)
 	if err != nil {
 		return nil, err
 	}
-	reader, err := blob.DataAsync()
+	reader, err := blob.DataAsync(gitRepo)
 	if err != nil {
 		return nil, err
 	}

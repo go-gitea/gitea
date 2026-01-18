@@ -87,7 +87,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
 
-		if f.Size() == 0 {
+		if !f.Size.Has() || f.Size.Value() == 0 {
 			continue
 		}
 
@@ -124,7 +124,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 				}
 
 				// this language will always be added to the size
-				sizes[language] += f.Size()
+				sizes[language] += f.Size.Value()
 				continue
 			}
 		}
@@ -138,7 +138,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 
 		// If content can not be read or file is too big just do detection by filename
 
-		if f.Size() <= bigFileSize {
+		if f.Size.Value() <= bigFileSize {
 			info, _, err := batch.QueryContent(f.ID.String())
 			if err != nil {
 				return nil, err
@@ -192,10 +192,10 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 			includedLanguage[language] = included
 		}
 		if included || isDetectable.ValueOrDefault(false) {
-			sizes[language] += f.Size()
+			sizes[language] += f.Size.Value()
 		} else if len(sizes) == 0 && (firstExcludedLanguage == "" || firstExcludedLanguage == language) {
 			firstExcludedLanguage = language
-			firstExcludedLanguageSize += f.Size()
+			firstExcludedLanguageSize += f.Size.Value()
 		}
 	}
 

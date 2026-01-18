@@ -84,7 +84,7 @@ func repoLicenseUpdater(items ...*LicenseUpdaterOptions) []*LicenseUpdaterOption
 			log.Error("repoLicenseUpdater [%d] failed: GetBranchCommit: %v", opts.RepoID, err)
 			continue
 		}
-		if err = UpdateRepoLicenses(ctx, repo, commit); err != nil {
+		if err = UpdateRepoLicenses(ctx, repo, gitRepo, commit); err != nil {
 			log.Error("repoLicenseUpdater [%d] failed: updateRepoLicenses: %v", opts.RepoID, err)
 		}
 	}
@@ -115,7 +115,7 @@ func SyncRepoLicenses(ctx context.Context) error {
 }
 
 // UpdateRepoLicenses will update repository licenses col if license file exists
-func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit *git.Commit) error {
+func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit) error {
 	if commit == nil {
 		return nil
 	}
@@ -131,7 +131,7 @@ func UpdateRepoLicenses(ctx context.Context, repo *repo_model.Repository, commit
 
 	licenses := make([]string, 0)
 	if b != nil {
-		r, err := b.DataAsync()
+		r, err := b.DataAsync(gitRepo)
 		if err != nil {
 			return err
 		}

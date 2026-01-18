@@ -57,7 +57,7 @@ func RefBlame(ctx *context.Context) {
 	}
 
 	blob := entry.Blob()
-	fileSize := blob.Size()
+	fileSize := blob.Size(ctx.Repo.GitRepo)
 	ctx.Data["FileSize"] = fileSize
 	ctx.Data["FileTreePath"] = ctx.Repo.TreePath
 
@@ -73,7 +73,7 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["NumLines"], err = blob.GetBlobLineCount(nil)
+	ctx.Data["NumLines"], err = blob.GetBlobLineCount(ctx.Repo.GitRepo, nil)
 	if err != nil {
 		ctx.NotFound(err)
 		return
@@ -108,7 +108,7 @@ type blameResult struct {
 func performBlame(ctx *context.Context, repo *repo_model.Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (*blameResult, error) {
 	objectFormat := ctx.Repo.GetObjectFormat()
 
-	blameReader, err := gitrepo.CreateBlameReader(ctx, objectFormat, repo, commit, file, bypassBlameIgnore)
+	blameReader, err := gitrepo.CreateBlameReader(ctx, objectFormat, repo, ctx.Repo.GitRepo, commit, file, bypassBlameIgnore)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func performBlame(ctx *context.Context, repo *repo_model.Repository, commit *git
 		if len(r.Parts) == 0 && r.UsesIgnoreRevs {
 			// try again without ignored revs
 
-			blameReader, err = gitrepo.CreateBlameReader(ctx, objectFormat, repo, commit, file, true)
+			blameReader, err = gitrepo.CreateBlameReader(ctx, objectFormat, repo, ctx.Repo.GitRepo, commit, file, true)
 			if err != nil {
 				return nil, err
 			}

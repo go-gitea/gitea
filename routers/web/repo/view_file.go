@@ -189,7 +189,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["FileError"] = strings.TrimSpace(issueConfigErr.Error())
 		}
 	} else if actions.IsWorkflow(ctx.Repo.TreePath) {
-		content, err := actions.GetContentFromEntry(entry)
+		content, err := actions.GetContentFromEntry(ctx.Repo.GitRepo, entry)
 		if err != nil {
 			log.Error("actions.GetContentFromEntry: %v", err)
 		}
@@ -198,7 +198,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 			ctx.Data["FileError"] = ctx.Locale.Tr("actions.runs.invalid_workflow_helper", workFlowErr.Error())
 		}
 	} else if issue_service.IsCodeOwnerFile(ctx.Repo.TreePath) {
-		if data, err := blob.GetBlobContent(setting.UI.MaxDisplayFileSize); err == nil {
+		if data, err := blob.GetBlobContent(ctx.Repo.GitRepo, setting.UI.MaxDisplayFileSize); err == nil {
 			_, warnings := issue_model.GetCodeOwnersFromContent(ctx, data)
 			if len(warnings) > 0 {
 				ctx.Data["FileWarning"] = strings.Join(warnings, "\n")
@@ -208,7 +208,7 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 
 	// Don't call any other repository functions depends on git.Repository until the dataRc closed to
 	// avoid creating an unnecessary temporary cat file.
-	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
+	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, blob)
 	if err != nil {
 		ctx.ServerError("getFileReader", err)
 		return

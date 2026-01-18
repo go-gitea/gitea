@@ -67,11 +67,11 @@ func renderRepoFileCodePreview(ctx context.Context, opts markup.RenderCodePrevie
 		return "", err
 	}
 
-	if blob.Size() > setting.UI.MaxDisplayFileSize {
+	if blob.Size(gitRepo) > setting.UI.MaxDisplayFileSize {
 		return "", errors.New("file is too large")
 	}
 
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(gitRepo)
 	if err != nil {
 		return "", err
 	}

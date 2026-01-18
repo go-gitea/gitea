@@ -35,13 +35,13 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 
 			scanner := bufio.NewScanner(stdoutReader)
 			for scanner.Scan() {
-				entry, err := parseLsTreeLine(scanner.Bytes())
+				entry, err := parseTreeEntry(scanner.Bytes())
 				if err != nil {
 					cancel()
 					return err
 				}
 				if entry.EntryMode == EntryModeCommit {
-					submoduleCommits = append(submoduleCommits, TemplateSubmoduleCommit{Path: entry.Name, Commit: entry.ID.String()})
+					submoduleCommits = append(submoduleCommits, TemplateSubmoduleCommit{Path: entry.Name(), Commit: entry.ID.String()})
 				}
 			}
 			return scanner.Err()

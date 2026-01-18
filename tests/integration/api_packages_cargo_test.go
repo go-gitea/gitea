@@ -86,7 +86,7 @@ func testPackageCargo(t *testing.T, _ *neturl.URL) {
 		blob, err := commit.GetBlobByPath(path)
 		assert.NoError(t, err)
 
-		content, err := blob.GetBlobContent(1024)
+		content, err := blob.GetBlobContent(gitRepo, 1024)
 		assert.NoError(t, err)
 
 		return content

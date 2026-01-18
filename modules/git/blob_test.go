@@ -23,7 +23,7 @@ func TestBlob_Data(t *testing.T) {
 	testBlob, err := repo.GetBlob("6c493ff740f9380390d5c9ddef4af18697ac9375")
 	assert.NoError(t, err)
 
-	r, err := testBlob.DataAsync()
+	r, err := testBlob.DataAsync(repo)
 	assert.NoError(t, err)
 	require.NotNil(t, r)
 
@@ -48,7 +48,7 @@ func Benchmark_Blob_Data(b *testing.B) {
 	}
 
 	for b.Loop() {
-		r, err := testBlob.DataAsync()
+		r, err := testBlob.DataAsync(repo)
 		if err != nil {
 			b.Fatal(err)
 		}

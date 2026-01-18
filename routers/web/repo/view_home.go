@@ -115,7 +115,7 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 		for _, entry := range allEntries {
 			if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
 				// Read Citation file contents
-				if content, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+				if content, err := entry.Blob().GetBlobContent(ctx.Repo.GitRepo, setting.UI.MaxDisplayFileSize); err != nil {
 					log.Error("checkCitationFile: GetBlobContent: %v", err)
 				} else {
 					ctx.Data["CitiationExist"] = true

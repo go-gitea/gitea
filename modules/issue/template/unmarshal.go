@@ -41,17 +41,17 @@ func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 }
 
 // UnmarshalFromEntry parses out a valid template from the blob in entry
-func UnmarshalFromEntry(entry *git.TreeEntry, dir string) (*api.IssueTemplate, error) {
-	return unmarshalFromEntry(entry, path.Join(dir, entry.Name())) // Filepaths in Git are ALWAYS '/' separated do not use filepath here
+func UnmarshalFromEntry(repo *git.Repository, entry *git.TreeEntry, dir string) (*api.IssueTemplate, error) {
+	return unmarshalFromEntry(repo, entry, path.Join(dir, entry.Name())) // Filepaths in Git are ALWAYS '/' separated do not use filepath here
 }
 
 // UnmarshalFromCommit parses out a valid template from the commit
-func UnmarshalFromCommit(commit *git.Commit, filename string) (*api.IssueTemplate, error) {
+func UnmarshalFromCommit(repo *git.Repository, commit *git.Commit, filename string) (*api.IssueTemplate, error) {
 	entry, err := commit.GetTreeEntryByPath(filename)
 	if err != nil {
 		return nil, fmt.Errorf("get entry for %q: %w", filename, err)
 	}
-	return unmarshalFromEntry(entry, filename)
+	return unmarshalFromEntry(repo, entry, filename)
 }
 
 // UnmarshalFromRepo parses out a valid template from the head commit of the branch
@@ -61,15 +61,15 @@ func UnmarshalFromRepo(repo *git.Repository, branch, filename string) (*api.Issu
 		return nil, fmt.Errorf("get commit on branch %q: %w", branch, err)
 	}
 
-	return UnmarshalFromCommit(commit, filename)
+	return UnmarshalFromCommit(repo, commit, filename)
 }
 
-func unmarshalFromEntry(entry *git.TreeEntry, filename string) (*api.IssueTemplate, error) {
-	if size := entry.Blob().Size(); size > setting.UI.MaxDisplayFileSize {
+func unmarshalFromEntry(repo *git.Repository, entry *git.TreeEntry, filename string) (*api.IssueTemplate, error) {
+	if size := entry.Blob().Size(repo); size > setting.UI.MaxDisplayFileSize {
 		return nil, fmt.Errorf("too large: %v > MaxDisplayFileSize", size)
 	}
 
-	r, err := entry.Blob().DataAsync()
+	r, err := entry.Blob().DataAsync(repo)
 	if err != nil {
 		return nil, fmt.Errorf("data async: %w", err)
 	}

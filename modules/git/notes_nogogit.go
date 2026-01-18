@@ -54,7 +54,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 	}
 
 	blob := entry.Blob()
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(repo)
 	if err != nil {
 		log.Error("Unable to read blob with ID %q. Error: %v", blob.ID, err)
 		return err

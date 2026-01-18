@@ -265,7 +265,7 @@ func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
 		return "", err
 	}
 
-	r, err := entry.Blob().DataAsync()
+	r, err := entry.Blob().DataAsync(c.repo)
 	if err != nil {
 		return "", err
 	}

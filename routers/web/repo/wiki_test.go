@@ -44,12 +44,12 @@ func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.
 	return nil
 }
 
-func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) string {
+func wikiContent(t *testing.T, repo *repo_model.Repository, gitRepo *git.Repository, wikiName wiki_service.WebPath) string {
 	entry := wikiEntry(t, repo, wikiName)
 	if !assert.NotNil(t, entry) {
 		return ""
 	}
-	reader, err := entry.Blob().DataAsync()
+	reader, err := entry.Blob().DataAsync(gitRepo)
 	assert.NoError(t, err)
 	defer reader.Close()
 	bytes, err := io.ReadAll(reader)
@@ -133,7 +133,7 @@ func TestNewWikiPost(t *testing.T) {
 		NewWikiPost(ctx)
 		assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title))
-		assert.Equal(t, content, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)))
+		assert.Equal(t, content, wikiContent(t, ctx.Repo.Repository, ctx.Repo.GitRepo, wiki_service.UserTitleToWebPath("", title)))
 	}
 }
 
@@ -164,7 +164,7 @@ func TestEditWiki(t *testing.T) {
 	EditWiki(ctx)
 	assert.Equal(t, http.StatusOK, ctx.Resp.WrittenStatus())
 	assert.EqualValues(t, "Home", ctx.Data["Title"])
-	assert.Equal(t, wikiContent(t, ctx.Repo.Repository, "Home"), ctx.Data["WikiEditContent"])
+	assert.Equal(t, wikiContent(t, ctx.Repo.Repository, ctx.Repo.GitRepo, "Home"), ctx.Data["WikiEditContent"])
 
 	ctx, _ = contexttest.MockContext(t, "user2/repo1/wiki/jpeg.jpg?action=_edit")
 	ctx.SetPathParam("*", "jpeg.jpg")
@@ -192,7 +192,7 @@ func TestEditWikiPost(t *testing.T) {
 		EditWikiPost(ctx)
 		assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 		assertWikiExists(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title))
-		assert.Equal(t, content, wikiContent(t, ctx.Repo.Repository, wiki_service.UserTitleToWebPath("", title)))
+		assert.Equal(t, content, wikiContent(t, ctx.Repo.Repository, ctx.Repo.GitRepo, wiki_service.UserTitleToWebPath("", title)))
 		if title != "Home" {
 			assertWikiNotExists(t, ctx.Repo.Repository, "Home")
 		}
