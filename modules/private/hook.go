@@ -38,6 +38,7 @@ type HookOptions struct {
 	DeployKeyID                     int64 // if the pusher is a DeployKey, then UserID is the repo's org user.
 	IsWiki                          bool
 	ActionPerm                      int
+	ActionsTaskID                   int64 // if the pusher is an Actions user, the task ID
 }
 
 // SSHLogOption ssh log options
