@@ -107,3 +107,27 @@ func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
 func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
 	return t.listEntriesRecursive(gitcmd.TrustedCmdArgs{"--long"})
 }
+
+// GetTreeEntryByPath get the tree entries according the sub dir
+func (t *Tree) GetTreeEntryByPath(relpath string) (_ *TreeEntry, err error) {
+	if len(relpath) == 0 {
+		return &TreeEntry{
+			ID:        t.ID,
+			Name:      "",
+			EntryMode: EntryModeTree,
+		}, nil
+	}
+
+	output, _, err := gitcmd.NewCommand("ls-tree", "-l").
+		AddDynamicArguments(t.ID.String()).
+		WithDir(t.repo.Path).
+		AddDashesAndList(relpath).RunStdBytes(t.repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
+	if string(output) == "" {
+		return nil, ErrNotExist{"", relpath}
+	}
+
+	return parseTreeEntry(output)
+}

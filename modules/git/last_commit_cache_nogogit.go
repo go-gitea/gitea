@@ -29,7 +29,7 @@ func (c *Commit) recursiveCache(ctx context.Context, tree *Tree, treePath string
 
 	entryPaths := make([]string, len(entries))
 	for i, entry := range entries {
-		entryPaths[i] = entry.Name()
+		entryPaths[i] = entry.Name
 	}
 
 	_, err = WalkGitLog(ctx, c.repo, c, treePath, entryPaths...)
@@ -40,11 +40,11 @@ func (c *Commit) recursiveCache(ctx context.Context, tree *Tree, treePath string
 	for _, treeEntry := range entries {
 		// entryMap won't contain "" therefore skip this.
 		if treeEntry.IsDir() {
-			subTree, err := tree.SubTree(treeEntry.Name())
+			subTree, err := tree.SubTree(treeEntry.Name)
 			if err != nil {
 				return err
 			}
-			if err := c.recursiveCache(ctx, subTree, treeEntry.Name(), level-1); err != nil {
+			if err := c.recursiveCache(ctx, subTree, treeEntry.Name, level-1); err != nil {
 				return err
 			}
 		}

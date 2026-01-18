@@ -317,12 +317,12 @@ func ListWikiPages(ctx *context.APIContext) {
 		if i < skip || i >= maxNum || !entry.IsRegular() {
 			continue
 		}
-		c, err := wikiRepo.GetCommitByPath(entry.Name())
+		c, err := wikiRepo.GetCommitByPath(entry.Name)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
+		wikiName, err := wiki_service.GitPathToWebPath(entry.Name)
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue

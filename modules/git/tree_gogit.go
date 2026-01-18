@@ -8,6 +8,7 @@ package git
 
 import (
 	"io"
+	"path"
 
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
@@ -40,9 +41,8 @@ func (t *Tree) ListEntries() (Entries, error) {
 	for i, gogitTreeEntry := range gogitTree.Entries {
 		entries[i] = &TreeEntry{
 			ID:        ParseGogitHash(gogitTreeEntry.Hash),
-			ptree:     t,
 			name:      gogitTreeEntry.Name,
-			entryMode: gogitFileModeToEntryMode(gogitTreeEntry.Mode),
+			EntryMode: gogitFileModeToEntryMode(gogitTreeEntry.Mode),
 		}
 	}
 
@@ -67,8 +67,7 @@ func (t *Tree) ListEntriesRecursiveWithSize() (entries Entries, _ error) {
 		convertedEntry := &TreeEntry{
 			ID:        ParseGogitHash(gogitTreeEntry.Hash),
 			name:      fullName, // FIXME: the "name" field is abused, here it is a full path
-			ptree:     t,        // FIXME: this ptree is not right, fortunately it isn't really used
-			entryMode: gogitFileModeToEntryMode(gogitTreeEntry.Mode),
+			EntryMode: gogitFileModeToEntryMode(gogitTreeEntry.Mode),
 		}
 		entries = append(entries, convertedEntry)
 	}
@@ -78,4 +77,37 @@ func (t *Tree) ListEntriesRecursiveWithSize() (entries Entries, _ error) {
 // ListEntriesRecursiveFast is the alias of ListEntriesRecursiveWithSize for the gogit version
 func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
 	return t.ListEntriesRecursiveWithSize()
+}
+
+// GetTreeEntryByPath get the tree entries according the sub dir
+func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
+	if len(relpath) == 0 {
+		return &TreeEntry{
+			ID:        t.ID,
+			name:      "",
+			EntryMode: EntryModeTree,
+		}, nil
+	}
+
+	gogitTree, err := t.gogitTreeObject()
+	if err != nil {
+		return nil, err
+	}
+
+	relpath = path.Clean(relpath)
+	e, err := gogitTree.FindEntry(relpath)
+	if err != nil {
+		if err == plumbing.ErrObjectNotFound {
+			return nil, ErrNotExist{
+				RelPath: relpath,
+			}
+		}
+		return nil, err
+	}
+
+	return &TreeEntry{
+		ID:        ParseGogitHash(e.Hash),
+		name:      path.Base(relpath),
+		EntryMode: EntryMode(e.Mode),
+	}, nil
 }

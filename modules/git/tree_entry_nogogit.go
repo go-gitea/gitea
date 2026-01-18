@@ -9,7 +9,7 @@ package git
 func (te *TreeEntry) Blob() *Blob {
 	return &Blob{
 		ID:      te.ID,
-		name:    te.Name(),
+		name:    te.Name,
 		size:    te.Size.Value(),
 		gotSize: te.Size.Has(),
 	}

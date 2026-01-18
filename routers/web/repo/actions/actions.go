@@ -193,7 +193,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 
 	var curWorkflow *act_model.Workflow
 	for _, workflowInfo := range workflowInfos {
-		if workflowInfo.Entry.Name() == curWorkflowID {
+		if workflowInfo.Entry.Name == curWorkflowID {
 			if workflowInfo.Workflow == nil {
 				log.Debug("CurWorkflowID %s is found but its workflowInfo.Workflow is nil", curWorkflowID)
 				return

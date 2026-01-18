@@ -122,12 +122,12 @@ func testGetCommitsInfo(t *testing.T, repo1 *Repository) {
 		for _, commitInfo := range commitsInfo {
 			entry := commitInfo.Entry
 			commit := commitInfo.Commit
-			expectedInfo, ok := testCase.ExpectedIDs[entry.Name()]
+			expectedInfo, ok := testCase.ExpectedIDs[entry.Name]
 			if !assert.True(t, ok) {
 				continue
 			}
 			assert.Equal(t, expectedInfo.CommitID, commit.ID.String())
-			assert.Equal(t, expectedInfo.Size, entry.Size.Value(), entry.Name())
+			assert.Equal(t, expectedInfo.Size, entry.Size.Value(), entry.Name)
 		}
 	}
 }

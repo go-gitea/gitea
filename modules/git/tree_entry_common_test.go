@@ -30,7 +30,7 @@ func TestFollowLink(t *testing.T) {
 		// should be able to dereference to target
 		res, err := EntryFollowLink(commit, lnkFullPath, lnk)
 		require.NoError(t, err)
-		assert.Equal(t, "hello", res.TargetEntry.Name())
+		assert.Equal(t, "hello", res.TargetEntry.Name)
 		assert.Equal(t, "foo/nar/hello", res.TargetFullPath)
 		assert.False(t, res.TargetEntry.IsLink())
 		assert.Equal(t, "b14df6442ea5a1b382985a6549b85d435376c351", res.TargetEntry.ID.String())

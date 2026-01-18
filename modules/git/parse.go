@@ -50,12 +50,12 @@ func parseTreeEntry(line []byte) (*TreeEntry, error) {
 	}
 
 	if len(entryName) > 0 && entryName[0] == '"' {
-		entry.name, err = strconv.Unquote(string(entryName))
+		entry.Name, err = strconv.Unquote(string(entryName))
 		if err != nil {
 			return nil, fmt.Errorf("invalid ls-tree output (invalid name): %q, err: %w", line, err)
 		}
 	} else {
-		entry.name = string(entryName)
+		entry.Name = string(entryName)
 	}
 	return entry, nil
 }

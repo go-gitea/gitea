@@ -42,7 +42,7 @@ func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 
 // UnmarshalFromEntry parses out a valid template from the blob in entry
 func UnmarshalFromEntry(repo *git.Repository, entry *git.TreeEntry, dir string) (*api.IssueTemplate, error) {
-	return unmarshalFromEntry(repo, entry, path.Join(dir, entry.Name())) // Filepaths in Git are ALWAYS '/' separated do not use filepath here
+	return unmarshalFromEntry(repo, entry, path.Join(dir, entry.Name)) // Filepaths in Git are ALWAYS '/' separated do not use filepath here
 }
 
 // UnmarshalFromCommit parses out a valid template from the commit

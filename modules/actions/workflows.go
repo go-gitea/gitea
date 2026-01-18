@@ -65,7 +65,7 @@ func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
 
 	ret := make(git.Entries, 0, len(entries))
 	for _, entry := range entries {
-		if strings.HasSuffix(entry.Name(), ".yml") || strings.HasSuffix(entry.Name(), ".yaml") {
+		if strings.HasSuffix(entry.Name, ".yml") || strings.HasSuffix(entry.Name, ".yaml") {
 			ret = append(ret, entry)
 		}
 	}
@@ -129,7 +129,7 @@ func DetectWorkflows(
 			if evt.IsSchedule() {
 				if detectSchedule {
 					dwf := &DetectedWorkflow{
-						EntryName:    entry.Name(),
+						EntryName:    entry.Name,
 						TriggerEvent: evt,
 						Content:      content,
 					}
@@ -137,7 +137,7 @@ func DetectWorkflows(
 				}
 			} else if detectMatched(gitRepo, commit, triggedEvent, payload, evt) {
 				dwf := &DetectedWorkflow{
-					EntryName:    entry.Name(),
+					EntryName:    entry.Name,
 					TriggerEvent: evt,
 					Content:      content,
 				}
@@ -172,7 +172,7 @@ func DetectScheduledWorkflows(gitRepo *git.Repository, commit *git.Commit) ([]*D
 			if evt.IsSchedule() {
 				log.Trace("detect scheduled workflow: %q", entry.Name)
 				dwf := &DetectedWorkflow{
-					EntryName:    entry.Name(),
+					EntryName:    entry.Name,
 					TriggerEvent: evt,
 					Content:      content,
 				}

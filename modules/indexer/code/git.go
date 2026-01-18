@@ -49,7 +49,7 @@ func isIndexable(entry *git.TreeEntry) bool {
 	if !entry.IsRegular() && !entry.IsExecutable() {
 		return false
 	}
-	name := strings.ToLower(entry.Name())
+	name := strings.ToLower(entry.Name)
 	for _, g := range setting.Indexer.ExcludePatterns {
 		if g.Match(name) {
 			return false
@@ -74,7 +74,7 @@ func parseGitLsTreeOutput(stdout []byte) ([]internal.FileUpdate, error) {
 	for _, entry := range entries {
 		if isIndexable(entry) {
 			updates[idxCount] = internal.FileUpdate{
-				Filename: entry.Name(),
+				Filename: entry.Name,
 				BlobSha:  entry.ID.String(),
 				Size:     entry.Size.Value(),
 				Sized:    true,

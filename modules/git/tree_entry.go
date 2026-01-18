@@ -17,13 +17,8 @@ import (
 type TreeEntry struct {
 	ID        ObjectID
 	EntryMode EntryMode
-	name      string
+	Name      string // FIXME: the definition is not clear, it is just the base name of the entry or the full path?
 	Size      optional.Option[int64]
-}
-
-// Name returns the name of the entry
-func (te *TreeEntry) Name() string {
-	return te.name
 }
 
 // Mode returns the mode of the entry
@@ -128,16 +123,16 @@ func (repo *Repository) GetSubJumpablePathName(te *TreeEntry) string {
 	}
 	tree, err := repo.GetTree(te.ID.String())
 	if err != nil {
-		return te.Name()
+		return te.Name
 	}
 	entries, _ := tree.ListEntries()
 	if len(entries) == 1 && entries[0].IsDir() {
 		name := repo.GetSubJumpablePathName(entries[0])
 		if name != "" {
-			return te.Name() + "/" + name
+			return te.Name + "/" + name
 		}
 	}
-	return te.Name()
+	return te.Name
 }
 
 // Entries a list of entry
@@ -153,6 +148,6 @@ func (tes Entries) CustomSort(cmp func(s1, s2 string) int) {
 			}
 			return 1
 		}
-		return cmp(a.Name(), b.Name())
+		return cmp(a.Name, b.Name)
 	})
 }

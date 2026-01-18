@@ -38,7 +38,7 @@ func TreeList(ctx *context.Context) {
 	files := make([]string, 0, len(entries))
 	for _, entry := range entries {
 		if !isExcludedEntry(entry) {
-			files = append(files, entry.Name())
+			files = append(files, entry.Name)
 		}
 	}
 	ctx.JSON(http.StatusOK, files)
@@ -53,7 +53,7 @@ func isExcludedEntry(entry *git.TreeEntry) bool {
 		return true
 	}
 
-	if enry.IsVendor(entry.Name()) {
+	if enry.IsVendor(entry.Name) {
 		return true
 	}
 

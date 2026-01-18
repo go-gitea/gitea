@@ -312,7 +312,7 @@ func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath st
 		paths = make([]string, 0, len(entries)+1)
 		paths = append(paths, "")
 		for _, entry := range entries {
-			paths = append(paths, entry.Name())
+			paths = append(paths, entry.Name)
 		}
 	} else {
 		sort.Strings(paths)

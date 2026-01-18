@@ -41,7 +41,7 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 					return err
 				}
 				if entry.EntryMode == EntryModeCommit {
-					submoduleCommits = append(submoduleCommits, TemplateSubmoduleCommit{Path: entry.Name(), Commit: entry.ID.String()})
+					submoduleCommits = append(submoduleCommits, TemplateSubmoduleCommit{Path: entry.Name, Commit: entry.ID.String()})
 				}
 			}
 			return scanner.Err()

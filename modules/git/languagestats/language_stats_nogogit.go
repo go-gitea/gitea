@@ -95,7 +95,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		isDocumentation := optional.None[bool]()
 		isDetectable := optional.None[bool]()
 
-		attrs, err := checker.CheckPath(f.Name())
+		attrs, err := checker.CheckPath(f.Name)
 		attrLinguistGenerated := optional.None[bool]()
 		if err == nil {
 			if isVendored = attrs.GetVendored(); isVendored.ValueOrDefault(false) {
@@ -129,10 +129,10 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 			}
 		}
 
-		if (!isVendored.Has() && analyze.IsVendor(f.Name())) ||
-			enry.IsDotFile(f.Name()) ||
-			(!isDocumentation.Has() && enry.IsDocumentation(f.Name())) ||
-			enry.IsConfiguration(f.Name()) {
+		if (!isVendored.Has() && analyze.IsVendor(f.Name)) ||
+			enry.IsDotFile(f.Name) ||
+			(!isDocumentation.Has() && enry.IsDocumentation(f.Name)) ||
+			enry.IsConfiguration(f.Name) {
 			continue
 		}
 
@@ -166,7 +166,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		if attrLinguistGenerated.Has() {
 			isGenerated = attrLinguistGenerated.Value()
 		} else {
-			isGenerated = enry.IsGenerated(f.Name(), content)
+			isGenerated = enry.IsGenerated(f.Name, content)
 		}
 		if isGenerated {
 			continue
@@ -174,7 +174,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 
 		// FIXME: Why can't we split this and the IsGenerated tests to avoid reading the blob unless absolutely necessary?
 		// - eg. do the all the detection tests using filename first before reading content.
-		language := analyze.GetCodeLanguage(f.Name(), content)
+		language := analyze.GetCodeLanguage(f.Name, content)
 		if language == "" {
 			continue
 		}

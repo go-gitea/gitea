@@ -74,7 +74,7 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, gitRepo
 	ret.DirContents = make([]*api.ContentsResponse, 0, len(entries))
 	for _, e := range entries {
 		subOpts := opts
-		subOpts.TreePath = path.Join(opts.TreePath, e.Name())
+		subOpts.TreePath = path.Join(opts.TreePath, e.Name)
 		subOpts.IncludeSingleFileContent = false // never include file content when listing a directory
 		fileContentResponse, err := GetFileContents(ctx, repo, gitRepo, refCommit, subOpts)
 		if err != nil {
@@ -151,7 +151,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 
 	// All content types have these fields in populated
 	contentsResponse := &api.ContentsResponse{
-		Name: entry.Name(),
+		Name: entry.Name,
 		Path: opts.TreePath,
 		SHA:  entry.ID.String(),
 		Size: entry.Size.Value(),

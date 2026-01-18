@@ -14,12 +14,12 @@ import (
 
 func TestEntriesCustomSort(t *testing.T) {
 	entries := Entries{
-		&TreeEntry{name: "a-dir", EntryMode: EntryModeTree},
-		&TreeEntry{name: "a-submodule", EntryMode: EntryModeCommit},
-		&TreeEntry{name: "b-dir", EntryMode: EntryModeTree},
-		&TreeEntry{name: "b-submodule", EntryMode: EntryModeCommit},
-		&TreeEntry{name: "a-file", EntryMode: EntryModeBlob},
-		&TreeEntry{name: "b-file", EntryMode: EntryModeBlob},
+		&TreeEntry{Name: "a-dir", EntryMode: EntryModeTree},
+		&TreeEntry{Name: "a-submodule", EntryMode: EntryModeCommit},
+		&TreeEntry{Name: "b-dir", EntryMode: EntryModeTree},
+		&TreeEntry{Name: "b-submodule", EntryMode: EntryModeCommit},
+		&TreeEntry{Name: "a-file", EntryMode: EntryModeBlob},
+		&TreeEntry{Name: "b-file", EntryMode: EntryModeBlob},
 	}
 	expected := slices.Clone(entries)
 	rand.Shuffle(len(entries), func(i, j int) { entries[i], entries[j] = entries[j], entries[i] })

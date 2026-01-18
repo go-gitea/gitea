@@ -396,9 +396,9 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gi
 
 	defaultBranch, _ := commit.GetBranchName()
 
-	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", repo.APIURL(), util.PathEscapeSegments(entry.Name()))
-	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), util.PathEscapeSegments(entry.Name()))
-	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", repo.HTMLURL(ctx), util.PathEscapeSegments(entry.Name()), url.QueryEscape(repo.DefaultBranch))
+	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", repo.APIURL(), util.PathEscapeSegments(entry.Name))
+	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), util.PathEscapeSegments(entry.Name))
+	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", repo.HTMLURL(ctx), util.PathEscapeSegments(entry.Name), url.QueryEscape(repo.DefaultBranch))
 
 	// See https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#get-a-workflow
 	// State types:
@@ -408,7 +408,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gi
 	// - disabled_inactivity
 	// - disabled_manually
 	state := "active"
-	if cfg.IsWorkflowDisabled(entry.Name()) {
+	if cfg.IsWorkflowDisabled(entry.Name) {
 		state = "disabled_manually"
 	}
 
@@ -421,7 +421,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gi
 	updatedAt := commit.Author.When
 
 	content, err := actions.GetContentFromEntry(gitRepo, entry)
-	name := entry.Name()
+	name := entry.Name
 	if err == nil {
 		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
 		if err == nil {
@@ -437,9 +437,9 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gi
 	}
 
 	return &api.ActionWorkflow{
-		ID:        entry.Name(),
+		ID:        entry.Name,
 		Name:      name,
-		Path:      path.Join(folder, entry.Name()),
+		Path:      path.Join(folder, entry.Name),
 		State:     state,
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,

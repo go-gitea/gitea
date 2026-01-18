@@ -246,10 +246,10 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	switch {
 	case fInfo.blobOrLfsSize >= setting.UI.MaxDisplayFileSize:
 		ctx.Data["IsFileTooLarge"] = true
-	case handleFileViewRenderMarkup(ctx, entry.Name(), fInfo.st, buf, contentReader):
+	case handleFileViewRenderMarkup(ctx, entry.Name, fInfo.st, buf, contentReader):
 		// it also sets ctx.Data["FileContent"] and more
 		ctx.Data["IsMarkup"] = true
-	case handleFileViewRenderSource(ctx, entry.Name(), attrs, fInfo, contentReader):
+	case handleFileViewRenderSource(ctx, entry.Name, attrs, fInfo, contentReader):
 		// it also sets ctx.Data["FileContent"] and more
 		ctx.Data["IsDisplayingSource"] = true
 	case handleFileViewRenderImage(ctx, fInfo, buf):

@@ -136,10 +136,10 @@ func ParseTemplatesFromDefaultBranch(repo *repo.Repository, gitRepo *git.Reposit
 			return ret
 		}
 		for _, entry := range entries {
-			if !template.CouldBe(entry.Name()) {
+			if !template.CouldBe(entry.Name) {
 				continue
 			}
-			fullName := path.Join(dirName, entry.Name())
+			fullName := path.Join(dirName, entry.Name)
 			if it, err := template.UnmarshalFromEntry(gitRepo, entry, dirName); err != nil {
 				ret.TemplateErrors[fullName] = err
 			} else {

@@ -176,7 +176,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			gitPath := WebPathToGitPath(webPath)
 			entry, err := masterTree.GetTreeEntryByPath(gitPath)
 			assert.NoError(t, err)
-			assert.Equal(t, gitPath, entry.Name(), "%s not added correctly", userTitle)
+			assert.Equal(t, gitPath, entry.Name, "%s not added correctly", userTitle)
 		})
 	}
 
@@ -221,7 +221,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		gitPath := WebPathToGitPath(webPath)
 		entry, err := masterTree.GetTreeEntryByPath(gitPath)
 		assert.NoError(t, err)
-		assert.Equal(t, gitPath, entry.Name(), "%s not edited correctly", newWikiName)
+		assert.Equal(t, gitPath, entry.Name, "%s not edited correctly", newWikiName)
 
 		if newWikiName != "Home" {
 			_, err := masterTree.GetTreeEntryByPath("Home.md")

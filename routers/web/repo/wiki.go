@@ -198,7 +198,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		if !entry.IsRegular() {
 			continue
 		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
+		wikiName, err := wiki_service.GitPathToWebPath(entry.Name)
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
@@ -212,7 +212,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		pages = append(pages, PageMeta{
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Name(),
+			GitEntryName: entry.Name,
 		})
 	}
 	ctx.Data["Pages"] = pages
@@ -491,7 +491,7 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	wikiPath := entry.Name()
+	wikiPath := entry.Name
 	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
 		ext := strings.ToUpper(filepath.Ext(wikiPath))
 		ctx.Data["FormatWarning"] = ext + " rendering is not supported at the moment. Rendered as Markdown."
@@ -528,7 +528,7 @@ func WikiRevision(ctx *context.Context) {
 	}
 
 	// Get last change information.
-	wikiPath := entry.Name()
+	wikiPath := entry.Name
 	lastCommit, err := wikiGitRepo.GetCommitByPath(wikiPath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
@@ -580,7 +580,7 @@ func WikiPages(ctx *context.Context) {
 		if !entry.Entry.IsRegular() {
 			continue
 		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Entry.Name())
+		wikiName, err := wiki_service.GitPathToWebPath(entry.Entry.Name)
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
@@ -592,7 +592,7 @@ func WikiPages(ctx *context.Context) {
 		pages = append(pages, PageMeta{
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Entry.Name(),
+			GitEntryName: entry.Entry.Name,
 			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Author.When.Unix()),
 		})
 	}

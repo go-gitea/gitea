@@ -69,7 +69,7 @@ loop:
 		}
 
 		entry.ID = objectFormat.MustID(sha)
-		entry.name = string(fname)
+		entry.Name = string(fname)
 		entries = append(entries, entry)
 	}
 	if _, err := rd.Discard(1); err != nil {

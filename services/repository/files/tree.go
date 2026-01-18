@@ -96,7 +96,7 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	for e := rangeStart; e < rangeEnd; e++ {
 		i := e - rangeStart
 
-		tree.Entries[i].Path = entries[e].Name()
+		tree.Entries[i].Path = entries[e].Name
 		tree.Entries[i].Mode = fmt.Sprintf("%06o", entries[e].Mode())
 		tree.Entries[i].Type = entries[e].Type()
 		tree.Entries[i].Size = entries[e].Size.Value()
@@ -153,9 +153,9 @@ func (node *TreeViewNode) sortLevel() int {
 
 func newTreeViewNodeFromEntry(ctx context.Context, repoLink string, renderedIconPool *fileicon.RenderedIconPool, commit *git.Commit, parentDir string, entry *git.TreeEntry) *TreeViewNode {
 	node := &TreeViewNode{
-		EntryName: entry.Name(),
+		EntryName: entry.Name,
 		EntryMode: entryModeString(entry.Mode()),
-		FullPath:  path.Join(parentDir, entry.Name()),
+		FullPath:  path.Join(parentDir, entry.Name),
 	}
 
 	entryInfo := fileicon.EntryInfoFromGitTreeEntry(commit, node.FullPath, entry)
@@ -202,7 +202,7 @@ func listTreeNodes(ctx context.Context, gitRepo *git.Repository, repoLink string
 	for _, entry := range entries {
 		node := newTreeViewNodeFromEntry(ctx, repoLink, renderedIconPool, commit, treePath, entry)
 		nodes = append(nodes, node)
-		if entry.IsDir() && subPathDirName == entry.Name() {
+		if entry.IsDir() && subPathDirName == entry.Name {
 			subTreePath := treePath + "/" + node.EntryName
 			if subTreePath[0] == '/' {
 				subTreePath = subTreePath[1:]

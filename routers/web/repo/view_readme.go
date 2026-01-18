@@ -39,18 +39,18 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 			// as a special case for the top-level repo introduction README,
 			// fall back to subfolders, looking for e.g. docs/README.md, .gitea/README.zh-CN.txt, .github/README.txt, ...
 			// (note that docsEntries is ignored unless we are at the root)
-			lowerName := strings.ToLower(entry.Name())
+			lowerName := strings.ToLower(entry.Name)
 			switch lowerName {
 			case "docs":
-				if entry.Name() == "docs" || docsEntries[0] == nil {
+				if entry.Name == "docs" || docsEntries[0] == nil {
 					docsEntries[0] = entry
 				}
 			case ".gitea":
-				if entry.Name() == ".gitea" || docsEntries[1] == nil {
+				if entry.Name == ".gitea" || docsEntries[1] == nil {
 					docsEntries[1] = entry
 				}
 			case ".github":
-				if entry.Name() == ".github" || docsEntries[2] == nil {
+				if entry.Name == ".github" || docsEntries[2] == nil {
 					docsEntries[2] = entry
 				}
 			}
@@ -65,9 +65,9 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 	extCount := len(exts)
 	readmeFiles := make([]*git.TreeEntry, extCount+1)
 	for _, entry := range entries {
-		if i, ok := util.IsReadmeFileExtension(entry.Name(), exts...); ok {
-			fullPath := path.Join(parentDir, entry.Name())
-			if readmeFiles[i] == nil || base.NaturalSortCompare(readmeFiles[i].Name(), entry.Blob().Name()) < 0 {
+		if i, ok := util.IsReadmeFileExtension(entry.Name, exts...); ok {
+			fullPath := path.Join(parentDir, entry.Name)
+			if readmeFiles[i] == nil || base.NaturalSortCompare(readmeFiles[i].Name, entry.Blob().Name()) < 0 {
 				if entry.IsLink() {
 					res, err := git.EntryFollowLinks(ctx.Repo.Commit, fullPath, entry)
 					if err == nil && (res.TargetEntry.IsExecutable() || res.TargetEntry.IsRegular()) {
@@ -108,7 +108,7 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 				return "", nil, err
 			}
 			if readmeFile != nil {
-				return path.Join(subTreeEntry.Name(), subfolder), readmeFile, nil
+				return path.Join(subTreeEntry.Name, subfolder), readmeFile, nil
 			}
 		}
 	}
@@ -143,7 +143,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 		return
 	}
 
-	readmeFullPath := path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name())
+	readmeFullPath := path.Join(ctx.Repo.TreePath, subfolder, readmeFile.Name)
 	readmeTargetEntry := readmeFile
 	if readmeFile.IsLink() {
 		if res, err := git.EntryFollowLinks(ctx.Repo.Commit, readmeFullPath, readmeFile); err == nil {
@@ -157,7 +157,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	}
 
 	ctx.Data["RawFileLink"] = ""
-	ctx.Data["ReadmeInList"] = path.Join(subfolder, readmeFile.Name()) // the relative path to the readme file to the current tree path
+	ctx.Data["ReadmeInList"] = path.Join(subfolder, readmeFile.Name) // the relative path to the readme file to the current tree path
 	ctx.Data["ReadmeExist"] = true
 	ctx.Data["FileIsSymlink"] = readmeFile.IsLink()
 
@@ -174,7 +174,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	ctx.Data["IsLFSFile"] = fInfo.isLFSFile()
 
 	if fInfo.isLFSFile() {
-		filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.Name()))
+		filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.Name))
 		ctx.Data["RawFileLink"] = fmt.Sprintf("%s.git/info/lfs/objects/%s/%s", ctx.Repo.Repository.Link(), url.PathEscape(fInfo.lfsMeta.Oid), url.PathEscape(filenameBase64))
 	}
 
@@ -190,7 +190,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 
 	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc), charset.ConvertOpts{})
 
-	if markupType := markup.DetectMarkupTypeByFileName(readmeFile.Name()); markupType != "" {
+	if markupType := markup.DetectMarkupTypeByFileName(readmeFile.Name); markupType != "" {
 		ctx.Data["IsMarkup"] = true
 		ctx.Data["MarkupType"] = markupType
 
@@ -203,7 +203,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 
 		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, rctx, rd)
 		if err != nil {
-			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
+			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name, ctx.Repo.Repository, err)
 			delete(ctx.Data, "IsMarkup")
 		}
 	}
