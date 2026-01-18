@@ -237,7 +237,32 @@ func TestAPIRenameBranch(t *testing.T) {
 			MakeRequest(t, req, http.StatusCreated)
 
 			resp := testAPIRenameBranch(t, "user2", "user2", "repo1", from, "new-branch-name", http.StatusForbidden)
-			assert.Contains(t, resp.Body.String(), "Branch is protected by glob-based protection rules.")
+			assert.Contains(t, resp.Body.String(), "Failed to rename branch due to branch protection rules.")
+		})
+		t.Run("RenameBranchToMatchProtectionRulesWithAdminDoer", func(t *testing.T) {
+			// allow an admin (the owner in this case) to rename non-protected branch to one that matches a protected branch rule
+			repoName := "repo1"
+			ownerName := "user2"
+			from := "regular-branch-1"
+			ctx := NewAPITestContext(t, ownerName, repoName, auth_model.AccessTokenScopeWriteRepository)
+			testAPICreateBranch(t, ctx.Session, ownerName, repoName, "", from, http.StatusCreated)
+
+			// NOTE: The protected/** branch protection rule was created in a previous test.
+			testAPIRenameBranch(t, ownerName, ownerName, repoName, from, "protected/2", http.StatusNoContent)
+		})
+		t.Run("RenameBranchToMatchProtectionRulesWithNonAdminDoer", func(t *testing.T) {
+			// don't allow a non-admin to rename non-protected branch to one that matches a protected branch rule
+			repoName := "repo1"
+			ownerName := "user2"
+			from := "regular-branch-2"
+			ctx := NewAPITestContext(t, ownerName, repoName, auth_model.AccessTokenScopeWriteRepository)
+			testAPICreateBranch(t, ctx.Session, ownerName, repoName, "", from, http.StatusCreated)
+
+			// NOTE: The protected/** branch protection rule was created in a previous test.
+			unprivilegedUser := "user40"
+			resp := testAPIRenameBranch(t, unprivilegedUser, ownerName, repoName, from, "protected/3", http.StatusForbidden)
+
+			assert.Contains(t, resp.Body.String(), "Failed to rename branch due to branch protection rules.")
 		})
 		t.Run("RenameBranchNormalScenario", func(t *testing.T) {
 			testAPIRenameBranch(t, "user2", "user2", "repo1", "branch2", "new-branch-name", http.StatusNoContent)

@@ -443,6 +443,15 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		}
 	}
 
+	// We also need to check if "to" matches with a protected branch rule.
+	isToBranchProtected, err := git_model.IsBranchProtected(ctx, repo.ID, to)
+	if err != nil {
+		return "", err
+	}
+	if isToBranchProtected && !perm.IsAdmin() {
+		return "", git_model.ErrBranchIsProtected
+	}
+
 	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
 		err2 := gitrepo.RenameBranch(ctx, repo, from, to)
 		if err2 != nil {
