@@ -42,7 +42,7 @@ func TestActionsTokenPermissionsPersistence(t *testing.T) {
 		require.NoError(t, err)
 		cfg := unit.ActionsConfig()
 		require.NotNil(t, cfg.MaxTokenPermissions, "MaxTokenPermissions should NOT be nil")
-		assert.Equal(t, "read", cfg.MaxTokenPermissions.Code.String())
+		assert.Equal(t, "read", cfg.MaxTokenPermissions.Code.ToString())
 
 		// 2. Disable Max Permissions
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
