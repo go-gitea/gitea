@@ -116,19 +116,6 @@ func ChangeCommitCommentReaction(ctx *context.Context) {
 	switch ctx.PathParam("action") {
 	case "react":
 		if _, err := git_model.CreateCommitCommentReaction(ctx, ctx.Doer, cc.ID, form.Content); err != nil {
-			// If the reactions table wasn't present (older DB), try creating it on-the-fly and retry once.
-			if strings.Contains(err.Error(), "Table not found") || strings.Contains(err.Error(), "no such table") {
-				log.Warn("Commit comment reactions table missing; attempting to create table and retry: %s", err)
-				if err := db.GetEngine(ctx).Sync(new(git_model.CommitCommentReaction)); err != nil {
-					log.Error("Failed to create commit_comment_reaction table: %v", err)
-					break
-				}
-				if _, err2 := git_model.CreateCommitCommentReaction(ctx, ctx.Doer, cc.ID, form.Content); err2 != nil {
-					log.Info("CreateCommitCommentReaction retry failed: %s", err2)
-					break
-				}
-				break
-			}
 			// log and continue; forbidden reaction returns error
 			log.Info("CreateCommitCommentReaction: %s", err)
 			break
