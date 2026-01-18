@@ -51,7 +51,11 @@
 					{{end}}
 				{{end}}
 				{{if not $.root.Repository.IsArchived}}
-					{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
+					{{if $.root.CommitID}}
+						{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/commit/%s/comments/%d/reactions" $.root.RepoLink $.root.CommitID .ID)}}
+					{{else}}
+						{{template "repo/issue/view_content/add_reaction" dict "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
+					{{end}}
 				{{end}}
 				{{template "repo/issue/view_content/context_menu" dict "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
 			</div>
@@ -65,14 +69,18 @@
 			{{end}}
 			</div>
 			<div id="issuecomment-{{.ID}}-raw" class="raw-content tw-hidden">{{.Content}}</div>
-			<div class="edit-content-zone tw-hidden" data-update-url="{{$.root.RepoLink}}/comments/{{.ID}}" data-content-version="{{.ContentVersion}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{$.root.RepoLink}}/comments/{{.ID}}/attachments"></div>
+			<div class="edit-content-zone tw-hidden" data-update-url="{{if $.root.CommitID}}{{printf "%s/commit/%s/comments/%d" $.root.RepoLink $.root.CommitID .ID}}{{else}}{{$.root.RepoLink}}/comments/{{.ID}}{{end}}" data-content-version="{{.ContentVersion}}" data-context="{{$.root.RepoLink}}" data-attachment-url="{{if $.root.CommitID}}{{printf "%s/commit/%s/comments/%d/attachments" $.root.RepoLink $.root.CommitID .ID}}{{else}}{{$.root.RepoLink}}/comments/{{.ID}}/attachments{{end}}"></div>
 			{{if .Attachments}}
 				{{template "repo/issue/view_content/attachments" dict "Attachments" .Attachments "RenderedContent" .RenderedContent}}
 			{{end}}
 		</div>
 		{{$reactions := .Reactions.GroupByType}}
 		{{if $reactions}}
-			{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
+			{{if $.root.CommitID}}
+				{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/commit/%s/comments/%d/reactions" $.root.RepoLink $.root.CommitID .ID) "Reactions" $reactions}}
+			{{else}}
+				{{template "repo/issue/view_content/reactions" dict "ActionURL" (printf "%s/comments/%d/reactions" $.root.RepoLink .ID) "Reactions" $reactions}}
+			{{end}}
 		{{end}}
 	</div>
 </div>

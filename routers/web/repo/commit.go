@@ -27,15 +27,20 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/context/upload"
+	"code.gitea.io/gitea/services/forms"
 	git_service "code.gitea.io/gitea/services/git"
 	"code.gitea.io/gitea/services/gitdiff"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/repository/gitgraph"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -350,6 +355,23 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Username"] = userName
 	ctx.Data["Reponame"] = repoName
 
+	// Load commit comments into diff so inline conversations are visible
+	if diff != nil {
+		// Ensure ShowOutdatedComments is a boolean (middleware may not have run for commit routes)
+		showOutdated := false
+		if v, ok := ctx.Data["ShowOutdatedComments"].(bool); ok {
+			showOutdated = v
+		} else {
+			showOutdated = ctx.FormBool("show-outdated")
+			ctx.Data["ShowOutdatedComments"] = showOutdated
+		}
+
+		if err := diff.LoadCommitComments(ctx, ctx.Repo.Repository, ctx.Doer, commitID, showOutdated); err != nil {
+			ctx.ServerError("LoadCommitComments", err)
+			return
+		}
+	}
+
 	var parentCommit *git.Commit
 	var parentCommitID string
 	if commit.ParentCount() > 0 {
@@ -365,6 +387,12 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
+
+	// Provide root and helper functions expected by diff/issue templates
+	ctx.Data["root"] = ctx.Data
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
 
 	if !fileOnly {
 		diffTree, err := gitdiff.GetDiffTree(ctx, gitRepo, false, parentCommitID, commitID)
@@ -425,6 +453,121 @@ func Diff(ctx *context.Context) {
 	}
 
 	ctx.HTML(http.StatusOK, tplCommitPage)
+}
+
+// RenderNewCommitCommentForm renders the form for creating a new commit comment
+func RenderNewCommitCommentForm(ctx *context.Context) {
+	if ctx.Written() {
+		return
+	}
+	if !ctx.IsSigned || !ctx.Repo.CanWrite(unit_model.TypeCode) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+	sha := ctx.PathParam("sha")
+	commit, err := ctx.Repo.GitRepo.GetCommit(sha)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(err)
+			return
+		}
+		ctx.ServerError("Repo.GitRepo.GetCommit", err)
+		return
+	}
+	sha = commit.ID.String()
+	ctx.Data["CommitID"] = sha
+	ctx.Data["AfterCommitID"] = sha
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	upload.AddUploadContext(ctx, "comment")
+	ctx.HTML(http.StatusOK, tplNewComment)
+}
+
+// CreateCommitCodeComment creates a code comment on a commit
+func CreateCommitCodeComment(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.CodeCommentForm)
+	sha := ctx.PathParam("sha")
+	if ctx.Written() {
+		return
+	}
+	if !ctx.IsSigned || !ctx.Repo.CanWrite(unit_model.TypeCode) {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+	if ctx.HasError() {
+		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
+		ctx.Redirect(fmt.Sprintf("%s/commit/%s", ctx.Repo.RepoLink, sha))
+		return
+	}
+	// Validate the commit SHA exists in the repository to avoid storing invalid commit SHAs
+	commit, err := ctx.Repo.GitRepo.GetCommit(sha)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(err)
+			return
+		}
+		ctx.ServerError("Repo.GitRepo.GetCommit", err)
+		return
+	}
+	// Normalize to full-length SHA
+	sha = commit.ID.String()
+
+	signedLine := form.Line
+	if form.Side == "previous" {
+		signedLine *= -1
+	}
+
+	comment := &git_model.CommitComment{
+		RepoID:    ctx.Repo.Repository.ID,
+		CommitSHA: sha,
+		PosterID:  ctx.Doer.ID,
+		Path:      form.TreePath,
+		Line:      int64(signedLine),
+		Content:   form.Content,
+	}
+	if err := git_model.CreateCommitComment(ctx, comment); err != nil {
+		ctx.ServerError("CreateCommitComment", err)
+		return
+	}
+
+	if err := comment.LoadPoster(ctx); err != nil {
+		ctx.ServerError("LoadPoster", err)
+		return
+	}
+
+	// Render content for this and all comments on the same line/path
+	comments, err := git_model.ListCommitCommentsByLine(ctx, ctx.Repo.Repository.ID, sha, form.TreePath, int64(signedLine))
+	if err != nil {
+		ctx.ServerError("ListCommitCommentsByLine", err)
+		return
+	}
+
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{CurrentRefPath: path.Join("commit", util.PathEscapeSegments(sha))})
+	for _, cc := range comments {
+		if err := cc.LoadPoster(ctx); err != nil {
+			ctx.ServerError("LoadPoster", err)
+			return
+		}
+		renderedHTML, err := markdown.RenderString(rctx, cc.Content)
+		if err != nil {
+			ctx.ServerError("RenderString", err)
+			return
+		}
+		cc.RenderedContent = renderedHTML
+	}
+
+	// Prepare data compatible with the PR conversation templates
+	ctx.Data["comments"] = comments
+	ctx.Data["root"] = ctx.Data
+	ctx.Data["AfterCommitID"] = sha
+	ctx.Data["CommitID"] = sha
+	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
+	ctx.Data["CanMarkConversation"] = false
+	// Helper expected by PR templates
+	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+	}
+
+	ctx.HTML(http.StatusOK, tplDiffConversation)
 }
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer

@@ -1027,6 +1027,16 @@ td .commit-summary {
   scroll-margin-top: 47px; /* match .repository .diff-detail-box */
 }
 
+.repository.diff .comment {
+  scroll-margin-top: 99px;
+}
+
+@media (max-width: 991.98px) {
+  .repository.diff .comment {
+    scroll-margin-top: 130px;
+  }
+}
+
 .file.editor .diff-file-box {
   border: none;
 }
