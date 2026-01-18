@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
@@ -195,6 +196,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	} else if shouldUpdate {
 		actionsCfg.MaxTokenPermissions = nil
 	}
+	log.Error("DEBUG: UpdateTokenPermissions Repo: EnableMax=%v, MaxPerms=%v", enableMaxPermissions, actionsCfg.MaxTokenPermissions)
 
 	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
 		ctx.ServerError("UpdateRepoUnit", err)

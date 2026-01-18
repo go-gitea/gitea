@@ -10,6 +10,7 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
@@ -113,6 +114,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	} else {
 		actionsCfg.MaxTokenPermissions = nil
 	}
+	log.Error("DEBUG: UpdateTokenPermissions Org: EnableMax=%v, MaxPerms=%v", enableMaxPermissions, actionsCfg.MaxTokenPermissions)
 
 	// Update Cross-Repo Access Mode
 	crossRepoMode := ctx.FormString("cross_repo_mode")

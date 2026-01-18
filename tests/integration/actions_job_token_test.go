@@ -278,9 +278,10 @@ func TestActionsTokenPermissionsClamping(t *testing.T) {
 		runner := newMockRunner()
 		runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
-		// Set Clamping Config: Custom Mode (Default=Max), Max Code = Read
+
+		// Set Clamping Config: Permissive Mode, Max Code = Read
 		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
-			"token_permission_mode":  "custom",
+			"token_permission_mode":  "permissive",
 			"enable_max_permissions": "true",
 			"max_code":               "read",
 		})
