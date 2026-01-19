@@ -32,7 +32,7 @@ func ListOccurrences(ctx context.Context, repo Repository, refType, commitSHA st
 	default:
 		return nil, util.NewInvalidArgumentErrorf(`can only use "branch" or "tag" for refType, but got %q`, refType)
 	}
-	stdout, err := RunCmdString(ctx, repo, cmd.AddArguments("--no-color", "--sort=-creatordate", "--contains").
+	stdout, _, err := RunCmdString(ctx, repo, cmd.AddArguments("--no-color", "--sort=-creatordate", "--contains").
 		AddDynamicArguments(commitSHA))
 	if err != nil {
 		return nil, err

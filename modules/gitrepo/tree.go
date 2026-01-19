@@ -28,7 +28,7 @@ func LsTree(ctx context.Context, repo Repository, ref string, filenames ...strin
 
 // GetTreePathLatestCommitID returns the latest commit of a tree path
 func GetTreePathLatestCommitID(ctx context.Context, repo Repository, refName, treePath string) (string, error) {
-	stdout, err := RunCmdString(ctx, repo, gitcmd.NewCommand("rev-list", "-1").
+	stdout, _, err := RunCmdString(ctx, repo, gitcmd.NewCommand("rev-list", "-1").
 		AddDynamicArguments(refName).AddDashesAndList(treePath))
 	if err != nil {
 		return "", err

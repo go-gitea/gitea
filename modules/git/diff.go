@@ -5,7 +5,6 @@ package git
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -80,14 +79,9 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 		return fmt.Errorf("invalid diffType: %s", diffType)
 	}
 
-	stderr := new(bytes.Buffer)
-	if err = cmd.WithDir(repo.Path).
+	return cmd.WithDir(repo.Path).
 		WithStdout(writer).
-		WithStderr(stderr).
-		Run(repo.Ctx); err != nil {
-		return fmt.Errorf("Run: %w - %s", err, stderr)
-	}
-	return nil
+		RunWithStderr(repo.Ctx)
 }
 
 // ParseDiffHunkString parse the diff hunk content and return

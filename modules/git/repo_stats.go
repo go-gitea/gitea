@@ -72,11 +72,9 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		gitCmd.AddArguments("--first-parent").AddDynamicArguments(branch)
 	}
 
-	stderr := new(strings.Builder)
 	err = gitCmd.
 		WithDir(repo.Path).
 		WithStdout(stdoutWriter).
-		WithStderr(stderr).
 		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			scanner := bufio.NewScanner(stdoutReader)
@@ -146,9 +144,9 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			_ = stdoutReader.Close()
 			return nil
 		}).
-		Run(repo.Ctx)
+		RunWithStderr(repo.Ctx)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
+		return nil, fmt.Errorf("GetCodeActivityStats: %w", err)
 	}
 
 	return stats, nil

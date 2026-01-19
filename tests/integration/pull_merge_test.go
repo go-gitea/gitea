@@ -1020,20 +1020,16 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		})
 		assert.NoError(t, err)
 
-		stderrBuf := &bytes.Buffer{}
-
-		err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
+		_, stderr, err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
 			AddDynamicArguments(`topic=test/head2`).
 			AddArguments("-o").
 			AddDynamicArguments(`title="create a test pull request with agit"`).
 			AddArguments("-o").
 			AddDynamicArguments(`description="This PR is a test pull request which created with agit"`).
 			WithDir(dstPath).
-			WithStderr(stderrBuf).
-			Run(t.Context())
+			RunStdString(t.Context())
 		assert.NoError(t, err)
-
-		assert.Contains(t, stderrBuf.String(), setting.AppURL+"user2/repo1/pulls/6")
+		assert.Contains(t, stderr, setting.AppURL+"user2/repo1/pulls/6")
 
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{

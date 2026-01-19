@@ -8,19 +8,7 @@
 {{if .CommitStatus}}
 <div class="commit-status-panel">
 	<div class="ui top attached header commit-status-header">
-		{{if or (eq .CommitStatus.State "pending") (.MissingRequiredChecks)}}
-			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
-		{{else if eq .CommitStatus.State "success"}}
-			{{ctx.Locale.Tr "repo.pulls.status_checks_success"}}
-		{{else if eq .CommitStatus.State "warning"}}
-			{{ctx.Locale.Tr "repo.pulls.status_checks_warning"}}
-		{{else if eq .CommitStatus.State "failure"}}
-			{{ctx.Locale.Tr "repo.pulls.status_checks_failure"}}
-		{{else if eq .CommitStatus.State "error"}}
-			{{ctx.Locale.Tr "repo.pulls.status_checks_error"}}
-		{{else}}
-			{{ctx.Locale.Tr "repo.pulls.status_checking"}}
-		{{end}}
+		{{$statusCheckData.CommitStatusCheckPrompt ctx.Locale}}
 
 		{{if .ShowHideChecks}}
 		<div class="ui right">

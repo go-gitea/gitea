@@ -30,19 +30,13 @@ func GetTagInfos(ctx context.Context, repo Repository, page, pageSize int) ([]*g
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer stdoutReader.Close()
 	defer stdoutWriter.Close()
-	stderr := strings.Builder{}
 
 	go func() {
-		err := RunCmd(ctx, repo, gitcmd.NewCommand("for-each-ref").
+		err := RunCmdWithStderr(ctx, repo, gitcmd.NewCommand("for-each-ref").
 			AddOptionFormat("--format=%s", forEachRefFmt.Flag()).
 			AddArguments("--sort", "-*creatordate", "refs/tags").
-			WithStdout(stdoutWriter).
-			WithStderr(&stderr))
-		if err != nil {
-			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, stderr.String()))
-		} else {
-			_ = stdoutWriter.Close()
-		}
+			WithStdout(stdoutWriter))
+		_ = stdoutWriter.CloseWithError(err)
 	}()
 
 	var tags []*git.Tag

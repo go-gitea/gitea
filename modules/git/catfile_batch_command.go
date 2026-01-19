@@ -5,8 +5,11 @@ package git
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // catFileBatchCommand implements the CatFileBatch interface using the "cat-file --batch-command" command
@@ -21,8 +24,8 @@ type catFileBatchCommand struct {
 var _ CatFileBatch = (*catFileBatchCommand)(nil)
 
 func newCatFileBatchCommand(ctx context.Context, repoPath string) (*catFileBatchCommand, error) {
-	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
-		return nil, err
+	if _, err := os.Stat(repoPath); err != nil {
+		return nil, util.NewNotExistErrorf("repo %q doesn't exist", filepath.Base(repoPath))
 	}
 	return &catFileBatchCommand{ctx: ctx, repoPath: repoPath}, nil
 }
