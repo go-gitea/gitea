@@ -444,11 +444,11 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	}
 
 	// We also need to check if "to" matches with a protected branch rule.
-	isToBranchProtected, err := git_model.IsBranchProtected(ctx, repo.ID, to)
+	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, to)
 	if err != nil {
 		return "", err
 	}
-	if isToBranchProtected && !perm.IsAdmin() {
+	if rule != nil && !rule.CanUserPush(ctx, doer) {
 		return "", git_model.ErrBranchIsProtected
 	}
 

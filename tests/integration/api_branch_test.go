@@ -239,28 +239,36 @@ func TestAPIRenameBranch(t *testing.T) {
 			resp := testAPIRenameBranch(t, "user2", "user2", "repo1", from, "new-branch-name", http.StatusForbidden)
 			assert.Contains(t, resp.Body.String(), "Failed to rename branch due to branch protection rules.")
 		})
-		t.Run("RenameBranchToMatchProtectionRulesWithAdminDoer", func(t *testing.T) {
-			// allow an admin (the owner in this case) to rename non-protected branch to one that matches a protected branch rule
+		t.Run("RenameBranchToMatchProtectionRulesWithAllowedUser", func(t *testing.T) {
+			// allow an admin (the owner in this case) to rename a non-protected branch to one that matches a protected branch rule
 			repoName := "repo1"
 			ownerName := "user2"
 			from := "regular-branch-1"
 			ctx := NewAPITestContext(t, ownerName, repoName, auth_model.AccessTokenScopeWriteRepository)
 			testAPICreateBranch(t, ctx.Session, ownerName, repoName, "", from, http.StatusCreated)
 
-			// NOTE: The protected/** branch protection rule was created in a previous test.
+			// NOTE: The protected/** branch protection rule was created in a previous test, with push enabled.
 			testAPIRenameBranch(t, ownerName, ownerName, repoName, from, "protected/2", http.StatusNoContent)
 		})
-		t.Run("RenameBranchToMatchProtectionRulesWithNonAdminDoer", func(t *testing.T) {
-			// don't allow a non-admin to rename non-protected branch to one that matches a protected branch rule
+		t.Run("RenameBranchToMatchProtectionRulesWithUserWithUnauthorizedUser", func(t *testing.T) {
+			// don't allow an user not in the push whitelist to rename a non-protected branch to one that matches a protected branch rule
 			repoName := "repo1"
 			ownerName := "user2"
+			pushWhitelist := []string{ownerName}
+			token := getUserToken(t, "user2", auth_model.AccessTokenScopeWriteRepository)
+			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/branch_protections", ownerName, repoName),
+				&api.BranchProtection{
+					RuleName:               "owner-protected/**",
+					PushWhitelistUsernames: pushWhitelist,
+				}).AddTokenAuth(token)
+
+			MakeRequest(t, req, http.StatusCreated)
 			from := "regular-branch-2"
 			ctx := NewAPITestContext(t, ownerName, repoName, auth_model.AccessTokenScopeWriteRepository)
 			testAPICreateBranch(t, ctx.Session, ownerName, repoName, "", from, http.StatusCreated)
 
-			// NOTE: The protected/** branch protection rule was created in a previous test.
 			unprivilegedUser := "user40"
-			resp := testAPIRenameBranch(t, unprivilegedUser, ownerName, repoName, from, "protected/3", http.StatusForbidden)
+			resp := testAPIRenameBranch(t, unprivilegedUser, ownerName, repoName, from, "owner-protected/1", http.StatusForbidden)
 
 			assert.Contains(t, resp.Body.String(), "Failed to rename branch due to branch protection rules.")
 		})
