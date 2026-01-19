@@ -12,18 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
-// GetBranchesByPath returns a branch by its path
-// if limit = 0 it will not limit
-func GetBranchesByPath(ctx context.Context, repo Repository, skip, limit int) ([]string, int, error) {
-	gitRepo, err := OpenRepository(ctx, repo)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer gitRepo.Close()
-
-	return gitRepo.GetBranchNames(skip, limit)
-}
-
 func GetBranchCommitID(ctx context.Context, repo Repository, branch string) (string, error) {
 	gitRepo, err := OpenRepository(ctx, repo)
 	if err != nil {

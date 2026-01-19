@@ -8,31 +8,9 @@ package git
 import (
 	"errors"
 	"io"
-	"strings"
 
-	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 )
-
-// ResolveReference resolves a name to a reference
-func (repo *Repository) ResolveReference(name string) (string, error) {
-	stdout, _, err := gitcmd.NewCommand("show-ref", "--hash").
-		AddDynamicArguments(name).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
-	if err != nil {
-		if strings.Contains(err.Error(), "not a valid ref") {
-			return "", ErrNotExist{name, ""}
-		}
-		return "", err
-	}
-	stdout = strings.TrimSpace(stdout)
-	if stdout == "" {
-		return "", ErrNotExist{name, ""}
-	}
-
-	return stdout, nil
-}
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {

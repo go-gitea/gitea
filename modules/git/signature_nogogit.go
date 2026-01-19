@@ -26,5 +26,5 @@ func (s *Signature) String() string {
 
 // Decode decodes a byte array representing a signature to signature
 func (s *Signature) Decode(b []byte) {
-	*s = *parseSignatureFromCommitLine(util.UnsafeBytesToString(b))
+	*s = *ParseSignatureFromCommitLine(util.UnsafeBytesToString(b))
 }
