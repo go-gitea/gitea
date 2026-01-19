@@ -17,7 +17,7 @@
 			{{if not ctx.RootData.Repository.IsArchived}}
 				{{$needDivider = true}}
 				<div class="item context js-aria-clickable quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.quote_reply"}}</div>
-			{{if and ctx.RootData.PageIsPullFiles (not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled)}}
+			{{if not ctx.Consts.RepoUnitTypeIssues.UnitGlobalDisabled}}
 					<div class="item context js-aria-clickable reference-issue" data-target="{{.item.HashTag}}-raw" data-modal="#reference-issue-modal" data-poster="{{.item.Poster.GetDisplayName}}" data-poster-username="{{.item.Poster.Name}}" data-reference="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.reference_issue"}}</div>
 				{{end}}
 				{{if or ctx.RootData.Permission.IsAdmin .IsCommentPoster ctx.RootData.HasIssuesOrPullsWritePermission}}
