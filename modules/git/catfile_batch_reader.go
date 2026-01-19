@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/git/objectpool"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -85,7 +86,7 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 // catFileBatchParseInfoLine reads the header line from cat-file --batch
 // We expect: <oid> SP <type> SP <size> LF
 // then leaving the rest of the stream "<contents> LF" to be read
-func catFileBatchParseInfoLine(rd BufferedReader) (*CatFileObject, error) {
+func catFileBatchParseInfoLine(rd objectpool.BufferedReader) (*objectpool.Object, error) {
 	typ, err := rd.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -112,11 +113,11 @@ func catFileBatchParseInfoLine(rd BufferedReader) (*CatFileObject, error) {
 	typ = typ[:idx]
 
 	size, err := strconv.ParseInt(sizeStr, 10, 64)
-	return &CatFileObject{ID: sha, Type: typ, Size: size}, err
+	return &objectpool.Object{ID: sha, Type: typ, Size: size}, err
 }
 
 // ReadTagObjectID reads a tag object ID hash from a cat-file --batch stream, throwing away the rest of the stream.
-func ReadTagObjectID(rd BufferedReader, size int64) (string, error) {
+func ReadTagObjectID(rd objectpool.BufferedReader, size int64) (string, error) {
 	var id string
 	var n int64
 headerLoop:
@@ -142,7 +143,7 @@ headerLoop:
 }
 
 // ReadTreeID reads a tree ID from a cat-file --batch stream, throwing away the rest of the stream.
-func ReadTreeID(rd BufferedReader, size int64) (string, error) {
+func ReadTreeID(rd objectpool.BufferedReader, size int64) (string, error) {
 	var id string
 	var n int64
 headerLoop:
@@ -181,7 +182,7 @@ headerLoop:
 // <mode-in-ascii-dropping-initial-zeros> SP <fname> NUL <binary HASH>
 //
 // We don't attempt to convert the raw HASH to save a lot of time
-func ParseCatFileTreeLine(objectFormat ObjectFormat, rd BufferedReader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
+func ParseCatFileTreeLine(objectFormat ObjectFormat, rd objectpool.BufferedReader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
 	var readBytes []byte
 
 	// Read the Mode & fname
@@ -240,7 +241,7 @@ func ParseCatFileTreeLine(objectFormat ObjectFormat, rd BufferedReader, modeBuf,
 	return mode, fname, sha, n, err
 }
 
-func DiscardFull(rd BufferedReader, discard int64) error {
+func DiscardFull(rd objectpool.BufferedReader, discard int64) error {
 	if discard > math.MaxInt32 {
 		n, err := rd.Discard(math.MaxInt32)
 		discard -= int64(n)

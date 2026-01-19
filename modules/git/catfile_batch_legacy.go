@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/git/objectpool"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -24,7 +25,7 @@ type catFileBatchLegacy struct {
 	batchCheck   *catFileBatchCommunicator
 }
 
-var _ CatFileBatchCloser = (*catFileBatchLegacy)(nil)
+var _ objectpool.ObjectPool = (*catFileBatchLegacy)(nil)
 
 func newCatFileBatchLegacy(ctx context.Context, repoPath string) (*catFileBatchLegacy, error) {
 	if _, err := os.Stat(repoPath); err != nil {
@@ -49,7 +50,7 @@ func (b *catFileBatchLegacy) getBatchCheck() *catFileBatchCommunicator {
 	return b.batchCheck
 }
 
-func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
+func (b *catFileBatchLegacy) QueryContent(obj string) (*objectpool.Object, objectpool.BufferedReader, error) {
 	_, err := io.WriteString(b.getBatchContent().writer, obj+"\n")
 	if err != nil {
 		return nil, nil, err
@@ -61,7 +62,7 @@ func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedR
 	return info, b.getBatchContent().reader, nil
 }
 
-func (b *catFileBatchLegacy) QueryInfo(obj string) (*CatFileObject, error) {
+func (b *catFileBatchLegacy) QueryInfo(obj string) (*objectpool.Object, error) {
 	_, err := io.WriteString(b.getBatchCheck().writer, obj+"\n")
 	if err != nil {
 		return nil, err

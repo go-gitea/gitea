@@ -14,8 +14,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/git/objectpool"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer"
 	path_filter "code.gitea.io/gitea/modules/indexer/code/bleve/token/path"
@@ -150,7 +150,7 @@ func NewIndexer(indexDir string) *Indexer {
 	}
 }
 
-func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, commitSha string,
+func (b *Indexer) addUpdate(ctx context.Context, pool objectpool.ObjectPool, commitSha string,
 	update internal.FileUpdate, repo *repo_model.Repository, batch *inner_bleve.FlushingBatch,
 ) error {
 	// Ignore vendored files in code search
@@ -176,7 +176,7 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	info, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
+	info, batchReader, err := pool.QueryContent(update.BlobSha)
 	if err != nil {
 		return err
 	}
@@ -212,14 +212,17 @@ func (b *Indexer) addDelete(filename string, repo *repo_model.Repository, batch 
 func (b *Indexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *internal.RepoChanges) error {
 	batch := inner_bleve.NewFlushingBatch(b.inner.Indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-		catfileBatch, err := gitrepo.NewBatch(ctx, repo)
+		provider := gitrepo.GetObjectPoolProvider(repo)
+		defer provider.Close()
+
+		pool, cancel, err := provider.GetObjectPool(ctx)
 		if err != nil {
 			return err
 		}
-		defer catfileBatch.Close()
+		defer cancel()
 
 		for _, update := range changes.Updates {
-			if err := b.addUpdate(ctx, catfileBatch, sha, update, repo, batch); err != nil {
+			if err := b.addUpdate(ctx, pool, sha, update, repo, batch); err != nil {
 				return err
 			}
 		}

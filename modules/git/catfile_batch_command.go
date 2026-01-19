@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/git/objectpool"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -21,7 +22,7 @@ type catFileBatchCommand struct {
 	batch    *catFileBatchCommunicator
 }
 
-var _ CatFileBatch = (*catFileBatchCommand)(nil)
+var _ objectpool.ObjectPool = (*catFileBatchCommand)(nil)
 
 func newCatFileBatchCommand(ctx context.Context, repoPath string) (*catFileBatchCommand, error) {
 	if _, err := os.Stat(repoPath); err != nil {
@@ -38,7 +39,7 @@ func (b *catFileBatchCommand) getBatch() *catFileBatchCommunicator {
 	return b.batch
 }
 
-func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
+func (b *catFileBatchCommand) QueryContent(obj string) (*objectpool.Object, objectpool.BufferedReader, error) {
 	_, err := b.getBatch().writer.Write([]byte("contents " + obj + "\n"))
 	if err != nil {
 		return nil, nil, err
@@ -50,7 +51,7 @@ func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, Buffered
 	return info, b.getBatch().reader, nil
 }
 
-func (b *catFileBatchCommand) QueryInfo(obj string) (*CatFileObject, error) {
+func (b *catFileBatchCommand) QueryInfo(obj string) (*objectpool.Object, error) {
 	_, err := b.getBatch().writer.Write([]byte("info " + obj + "\n"))
 	if err != nil {
 		return nil, err

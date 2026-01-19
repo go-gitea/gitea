@@ -4,11 +4,10 @@
 package gitrepo
 
 import (
-	"context"
-
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/objectpool"
 )
 
-func NewBatch(ctx context.Context, repo Repository) (git.CatFileBatchCloser, error) {
-	return git.NewBatch(ctx, repoPath(repo))
+func GetObjectPoolProvider(repo Repository) objectpool.Provider {
+	return git.NewObjectPoolProvider(repoPath(repo))
 }
