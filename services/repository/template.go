@@ -106,7 +106,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	}()
 
 	// 2 - check whether the repository with the same storage exists
-	isExist, err := gitrepo.IsRepositoryExist(ctx, generateRepo)
+	isExist, err := gitrepo.IsRepositoryExist(generateRepo)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", generateRepo.FullName(), err)
 		return nil, err

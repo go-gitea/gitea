@@ -122,7 +122,7 @@ func gatherMissingRepoRecords(ctx context.Context) (repo_model.RepositoryList, e
 				return db.ErrCancelledf("during gathering missing repo records before checking %s", repo.FullName())
 			default:
 			}
-			exist, err := gitrepo.IsRepositoryExist(ctx, repo)
+			exist, err := gitrepo.IsRepositoryExist(repo)
 			if err != nil {
 				return fmt.Errorf("Unable to check dir for %s. %w", repo.FullName(), err)
 			}

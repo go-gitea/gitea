@@ -64,7 +64,7 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	// so use "/" for AlternatesFS, I guess it is the same behavior as current nogogit (no limitation or check for the "objects/info/alternates" paths), trust the "clone" command executed by the server.
 	var altFs billy.Filesystem
 	if setting.IsWindows {
-		altFs = osfs.New(filepath.VolumeName(setting.RepoRootPath) + "\\") // TODO: does it really work for Windows? Need some time to check.
+		altFs = osfs.New(filepath.VolumeName(repoPath) + "\\") // TODO: does it really work for Windows? Need some time to check.
 	} else {
 		altFs = osfs.New("/")
 	}

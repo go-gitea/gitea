@@ -6,6 +6,7 @@ package org
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -16,10 +17,10 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	secret_model "code.gitea.io/gitea/models/secret"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -86,9 +87,8 @@ func DeleteOrganization(ctx context.Context, org *org_model.Organization, purge 
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := user_model.UserPath(org.Name)
-
-	if err := util.RemoveAll(path); err != nil {
+	path := strings.ToLower(org.Name)
+	if err := gitrepo.RemoveRepoStoreDir(path); err != nil {
 		return fmt.Errorf("failed to RemoveAll %s: %w", path, err)
 	}
 

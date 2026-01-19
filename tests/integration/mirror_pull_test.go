@@ -29,14 +29,13 @@ func TestMirrorPull(t *testing.T) {
 	ctx := t.Context()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
 	opts := migration.MigrateOptions{
 		RepoName:    "test_mirror",
 		Description: "Test mirror",
 		Private:     false,
 		Mirror:      true,
-		CloneAddr:   repoPath,
+		CloneAddr:   repo.RepoPath(),
 		Wiki:        true,
 		Releases:    true,
 	}
