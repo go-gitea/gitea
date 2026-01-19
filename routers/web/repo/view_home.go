@@ -99,7 +99,7 @@ func prepareOpenWithEditorApps(ctx *context.Context) {
 
 func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Context) {
 	return func(ctx *context.Context) {
-		if entry.Name() != "" {
+		if entry.Name != "" {
 			return
 		}
 		tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
@@ -113,9 +113,9 @@ func prepareHomeSidebarCitationFile(entry *git.TreeEntry) func(ctx *context.Cont
 			return
 		}
 		for _, entry := range allEntries {
-			if entry.Name() == "CITATION.cff" || entry.Name() == "CITATION.bib" {
+			if entry.Name == "CITATION.cff" || entry.Name == "CITATION.bib" {
 				// Read Citation file contents
-				if content, err := entry.Blob().GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+				if content, err := entry.Blob().GetBlobContent(ctx.Repo.GitRepo, setting.UI.MaxDisplayFileSize); err != nil {
 					log.Error("checkCitationFile: GetBlobContent: %v", err)
 				} else {
 					ctx.Data["CitiationExist"] = true

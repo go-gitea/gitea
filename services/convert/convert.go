@@ -390,15 +390,15 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 	}, nil
 }
 
-func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
+func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, folder string, entry *git.TreeEntry) *api.ActionWorkflow {
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 
 	defaultBranch, _ := commit.GetBranchName()
 
-	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", repo.APIURL(), util.PathEscapeSegments(entry.Name()))
-	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), util.PathEscapeSegments(entry.Name()))
-	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", repo.HTMLURL(ctx), util.PathEscapeSegments(entry.Name()), url.QueryEscape(repo.DefaultBranch))
+	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", repo.APIURL(), util.PathEscapeSegments(entry.Name))
+	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), util.PathEscapeSegments(entry.Name))
+	badgeURL := fmt.Sprintf("%s/actions/workflows/%s/badge.svg?branch=%s", repo.HTMLURL(ctx), util.PathEscapeSegments(entry.Name), url.QueryEscape(repo.DefaultBranch))
 
 	// See https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#get-a-workflow
 	// State types:
@@ -408,7 +408,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 	// - disabled_inactivity
 	// - disabled_manually
 	state := "active"
-	if cfg.IsWorkflowDisabled(entry.Name()) {
+	if cfg.IsWorkflowDisabled(entry.Name) {
 		state = "disabled_manually"
 	}
 
@@ -420,8 +420,8 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 	createdAt := commit.Author.When
 	updatedAt := commit.Author.When
 
-	content, err := actions.GetContentFromEntry(entry)
-	name := entry.Name()
+	content, err := actions.GetContentFromEntry(gitRepo, entry)
+	name := entry.Name
 	if err == nil {
 		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
 		if err == nil {
@@ -437,9 +437,9 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 	}
 
 	return &api.ActionWorkflow{
-		ID:        entry.Name(),
+		ID:        entry.Name,
 		Name:      name,
-		Path:      path.Join(folder, entry.Name()),
+		Path:      path.Join(folder, entry.Name),
 		State:     state,
 		CreatedAt: createdAt,
 		UpdatedAt: updatedAt,
@@ -449,8 +449,8 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 	}
 }
 
-func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository) ([]*api.ActionWorkflow, error) {
-	defaultBranchCommit, err := gitrepo.GetBranchCommit(repo.DefaultBranch)
+func ListActionWorkflows(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository) ([]*api.ActionWorkflow, error) {
+	defaultBranchCommit, err := gitRepo.GetBranchCommit(repo.DefaultBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -462,14 +462,14 @@ func ListActionWorkflows(ctx context.Context, gitrepo *git.Repository, repo *rep
 
 	workflows := make([]*api.ActionWorkflow, len(entries))
 	for i, entry := range entries {
-		workflows[i] = getActionWorkflowEntry(ctx, repo, defaultBranchCommit, folder, entry)
+		workflows[i] = getActionWorkflowEntry(ctx, repo, gitRepo, defaultBranchCommit, folder, entry)
 	}
 
 	return workflows, nil
 }
 
-func GetActionWorkflow(ctx context.Context, gitrepo *git.Repository, repo *repo_model.Repository, workflowID string) (*api.ActionWorkflow, error) {
-	entries, err := ListActionWorkflows(ctx, gitrepo, repo)
+func GetActionWorkflow(ctx context.Context, gitRepo *git.Repository, repo *repo_model.Repository, workflowID string) (*api.ActionWorkflow, error) {
+	entries, err := ListActionWorkflows(ctx, gitRepo, repo)
 	if err != nil {
 		return nil, err
 	}

@@ -239,7 +239,7 @@ func editFileOpenExisting(ctx *context.Context) (prefetch []byte, dataRc io.Read
 	}
 
 	blob := entry.Blob()
-	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, blob)
+	buf, dataRc, fInfo, err := getFileReader(ctx, ctx.Repo.Repository.ID, ctx.Repo.GitRepo, blob)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)

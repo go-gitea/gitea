@@ -30,7 +30,7 @@ func TestRepository_GetBlob_Found(t *testing.T) {
 		blob, err := r.GetBlob(testCase.OID)
 		assert.NoError(t, err)
 
-		dataReader, err := blob.DataAsync()
+		dataReader, err := blob.DataAsync(r)
 		assert.NoError(t, err)
 
 		data, err := io.ReadAll(dataReader)

@@ -49,7 +49,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 			}
 		}
 		if info.Type == "tree" {
-			t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, info.Size)
+			t.entries, err = catBatchParseTreeEntries(t.ID.Type(), rd, info.Size)
 			if err != nil {
 				return nil, err
 			}
@@ -74,7 +74,7 @@ func (t *Tree) ListEntries() (Entries, error) {
 	}
 
 	var err error
-	t.entries, err = parseTreeEntries(stdout, t)
+	t.entries, err = ParseTreeEntries(stdout)
 	if err == nil {
 		t.entriesParsed = true
 	}
@@ -95,8 +95,7 @@ func (t *Tree) listEntriesRecursive(extraArgs gitcmd.TrustedCmdArgs) (Entries, e
 	}
 
 	// FIXME: the "name" field is abused, here it is a full path
-	// FIXME: this ptree is not right, fortunately it isn't really used
-	return parseTreeEntries(stdout, t)
+	return ParseTreeEntries(stdout)
 }
 
 // ListEntriesRecursiveFast returns all entries of current tree recursively including all subtrees, no size
@@ -107,4 +106,28 @@ func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
 // ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees, with size
 func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
 	return t.listEntriesRecursive(gitcmd.TrustedCmdArgs{"--long"})
+}
+
+// GetTreeEntryByPath get the tree entries according the sub dir
+func (t *Tree) GetTreeEntryByPath(relpath string) (_ *TreeEntry, err error) {
+	if len(relpath) == 0 {
+		return &TreeEntry{
+			ID:        t.ID,
+			Name:      "",
+			EntryMode: EntryModeTree,
+		}, nil
+	}
+
+	output, _, err := gitcmd.NewCommand("ls-tree", "-l").
+		AddDynamicArguments(t.ID.String()).
+		WithDir(t.repo.Path).
+		AddDashesAndList(relpath).RunStdBytes(t.repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
+	if string(output) == "" {
+		return nil, ErrNotExist{"", relpath}
+	}
+
+	return parseTreeEntry(output)
 }

@@ -87,7 +87,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
 
-		if f.Size() == 0 {
+		if f.GetSize(repo) == 0 {
 			continue
 		}
 
@@ -95,7 +95,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		isDocumentation := optional.None[bool]()
 		isDetectable := optional.None[bool]()
 
-		attrs, err := checker.CheckPath(f.Name())
+		attrs, err := checker.CheckPath(f.Name)
 		attrLinguistGenerated := optional.None[bool]()
 		if err == nil {
 			if isVendored = attrs.GetVendored(); isVendored.ValueOrDefault(false) {
@@ -124,21 +124,21 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 				}
 
 				// this language will always be added to the size
-				sizes[language] += f.Size()
+				sizes[language] += f.GetSize(repo)
 				continue
 			}
 		}
 
-		if (!isVendored.Has() && analyze.IsVendor(f.Name())) ||
-			enry.IsDotFile(f.Name()) ||
-			(!isDocumentation.Has() && enry.IsDocumentation(f.Name())) ||
-			enry.IsConfiguration(f.Name()) {
+		if (!isVendored.Has() && analyze.IsVendor(f.Name)) ||
+			enry.IsDotFile(f.Name) ||
+			(!isDocumentation.Has() && enry.IsDocumentation(f.Name)) ||
+			enry.IsConfiguration(f.Name) {
 			continue
 		}
 
 		// If content can not be read or file is too big just do detection by filename
 
-		if f.Size() <= bigFileSize {
+		if f.GetSize(repo) <= bigFileSize {
 			info, _, err := batch.QueryContent(f.ID.String())
 			if err != nil {
 				return nil, err
@@ -166,7 +166,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		if attrLinguistGenerated.Has() {
 			isGenerated = attrLinguistGenerated.Value()
 		} else {
-			isGenerated = enry.IsGenerated(f.Name(), content)
+			isGenerated = enry.IsGenerated(f.Name, content)
 		}
 		if isGenerated {
 			continue
@@ -174,7 +174,7 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 
 		// FIXME: Why can't we split this and the IsGenerated tests to avoid reading the blob unless absolutely necessary?
 		// - eg. do the all the detection tests using filename first before reading content.
-		language := analyze.GetCodeLanguage(f.Name(), content)
+		language := analyze.GetCodeLanguage(f.Name, content)
 		if language == "" {
 			continue
 		}
@@ -192,10 +192,10 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 			includedLanguage[language] = included
 		}
 		if included || isDetectable.ValueOrDefault(false) {
-			sizes[language] += f.Size()
+			sizes[language] += f.GetSize(repo)
 		} else if len(sizes) == 0 && (firstExcludedLanguage == "" || firstExcludedLanguage == language) {
 			firstExcludedLanguage = language
-			firstExcludedLanguageSize += f.Size()
+			firstExcludedLanguageSize += f.GetSize(repo)
 		}
 	}
 

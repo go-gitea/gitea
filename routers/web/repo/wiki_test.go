@@ -28,7 +28,7 @@ const (
 	message = "Wiki commit message for unit tests"
 )
 
-func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) *git.TreeEntry {
+func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) (*git.Repository, *git.TreeEntry) {
 	wikiRepo, err := gitrepo.OpenRepository(t.Context(), repo.WikiStorageRepo())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
@@ -37,19 +37,19 @@ func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.
 	entries, err := commit.ListEntries()
 	assert.NoError(t, err)
 	for _, entry := range entries {
-		if entry.Name() == wiki_service.WebPathToGitPath(wikiName) {
-			return entry
+		if entry.Name == wiki_service.WebPathToGitPath(wikiName) {
+			return wikiRepo, entry
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) string {
-	entry := wikiEntry(t, repo, wikiName)
+	wikiRepo, entry := wikiEntry(t, repo, wikiName)
 	if !assert.NotNil(t, entry) {
 		return ""
 	}
-	reader, err := entry.Blob().DataAsync()
+	reader, err := entry.Blob().DataAsync(wikiRepo)
 	assert.NoError(t, err)
 	defer reader.Close()
 	bytes, err := io.ReadAll(reader)
@@ -58,11 +58,15 @@ func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName wiki_servic
 }
 
 func assertWikiExists(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) {
-	assert.NotNil(t, wikiEntry(t, repo, wikiName))
+	wikiRepo, entry := wikiEntry(t, repo, wikiName)
+	assert.NotNil(t, wikiRepo)
+	assert.NotNil(t, entry)
 }
 
 func assertWikiNotExists(t *testing.T, repo *repo_model.Repository, wikiName wiki_service.WebPath) {
-	assert.Nil(t, wikiEntry(t, repo, wikiName))
+	wikiRepo, entry := wikiEntry(t, repo, wikiName)
+	assert.Nil(t, wikiRepo)
+	assert.Nil(t, entry)
 }
 
 func assertPagesMetas(t *testing.T, expectedNames []string, metas any) {

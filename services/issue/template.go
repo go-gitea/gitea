@@ -57,7 +57,7 @@ func GetTemplateConfig(gitRepo *git.Repository, path string, commit *git.Commit)
 		return GetDefaultTemplateConfig(), err
 	}
 
-	reader, err := treeEntry.Blob().DataAsync()
+	reader, err := treeEntry.Blob().DataAsync(gitRepo)
 	if err != nil {
 		log.Debug("DataAsync: %v", err)
 		return GetDefaultTemplateConfig(), nil
@@ -136,11 +136,11 @@ func ParseTemplatesFromDefaultBranch(repo *repo.Repository, gitRepo *git.Reposit
 			return ret
 		}
 		for _, entry := range entries {
-			if !template.CouldBe(entry.Name()) {
+			if !template.CouldBe(entry.Name) {
 				continue
 			}
-			fullName := path.Join(dirName, entry.Name())
-			if it, err := template.UnmarshalFromEntry(entry, dirName); err != nil {
+			fullName := path.Join(dirName, entry.Name)
+			if it, err := template.UnmarshalFromEntry(gitRepo, entry, dirName); err != nil {
 				ret.TemplateErrors[fullName] = err
 			} else {
 				if !strings.HasPrefix(it.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>

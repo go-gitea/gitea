@@ -86,3 +86,17 @@ func (repo *Repository) GetTreePathLatestCommit(refName, treePath string) (*Comm
 	}
 	return repo.GetCommit(strings.TrimSpace(stdout))
 }
+
+// GetBlobByPath get the blob object according the path
+func (t *Tree) GetBlobByPath(relpath string) (*Blob, error) {
+	entry, err := t.GetTreeEntryByPath(relpath)
+	if err != nil {
+		return nil, err
+	}
+
+	if !entry.IsDir() && !entry.IsSubModule() {
+		return entry.Blob(), nil
+	}
+
+	return nil, ErrNotExist{"", relpath}
+}

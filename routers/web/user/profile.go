@@ -63,9 +63,9 @@ func userProfile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
 
-	profileDbRepo, profileReadmeBlob := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
+	profileDbRepo, profileGitRepo, profileReadmeBlob := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
 
-	prepareUserProfileTabData(ctx, profileDbRepo, profileReadmeBlob)
+	prepareUserProfileTabData(ctx, profileDbRepo, profileGitRepo, profileReadmeBlob)
 
 	// prepare the user nav header data after "prepareUserProfileTabData" to avoid re-querying the NumFollowers & NumFollowing
 	// because ctx.Data["NumFollowers"] and "NumFollowing" logic duplicates in both of them
@@ -78,7 +78,7 @@ func userProfile(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplProfile)
 }
 
-func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.Repository, profileReadme *git.Blob) {
+func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.Repository, profileGitRepo *git.Repository, profileReadme *git.Blob) {
 	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
 	// if there is not a profile readme, the overview tab should be treated as the repositories tab
 	tab := ctx.FormString("tab")
@@ -252,7 +252,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 
 		total = int(count)
 	case "overview":
-		if bytes, err := profileReadme.GetBlobContent(setting.UI.MaxDisplayFileSize); err != nil {
+		if bytes, err := profileReadme.GetBlobContent(profileGitRepo, setting.UI.MaxDisplayFileSize); err != nil {
 			log.Error("failed to GetBlobContent: %v", err)
 		} else {
 			rctx := renderhelper.NewRenderContextRepoFile(ctx, profileDbRepo, renderhelper.RepoFileOptions{

@@ -21,7 +21,7 @@ func (c *Commit) GetSubModules() (*ObjectCache[*SubModule], error) {
 		return nil, err
 	}
 
-	rd, err := entry.Blob().DataAsync()
+	rd, err := entry.Blob().DataAsync(c.repo)
 	if err != nil {
 		return nil, err
 	}

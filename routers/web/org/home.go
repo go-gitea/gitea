@@ -153,19 +153,20 @@ func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.Pr
 	viewAsMember := viewAs == "member"
 
 	var profileRepo *repo_model.Repository
+	var profileGitRepo *git.Repository
 	var readmeBlob *git.Blob
 	if viewAsMember {
 		if prepareResult.ProfilePrivateReadmeBlob != nil {
-			profileRepo, readmeBlob = prepareResult.ProfilePrivateRepo, prepareResult.ProfilePrivateReadmeBlob
+			profileRepo, profileGitRepo, readmeBlob = prepareResult.ProfilePrivateRepo, prepareResult.ProfilePrivateGitRepo, prepareResult.ProfilePrivateReadmeBlob
 		} else {
-			profileRepo, readmeBlob = prepareResult.ProfilePublicRepo, prepareResult.ProfilePublicReadmeBlob
+			profileRepo, profileGitRepo, readmeBlob = prepareResult.ProfilePublicRepo, prepareResult.ProfilePublicGitRepo, prepareResult.ProfilePublicReadmeBlob
 			viewAsMember = false
 		}
 	} else {
 		if prepareResult.ProfilePublicReadmeBlob != nil {
-			profileRepo, readmeBlob = prepareResult.ProfilePublicRepo, prepareResult.ProfilePublicReadmeBlob
+			profileRepo, profileGitRepo, readmeBlob = prepareResult.ProfilePublicRepo, prepareResult.ProfilePublicGitRepo, prepareResult.ProfilePublicReadmeBlob
 		} else {
-			profileRepo, readmeBlob = prepareResult.ProfilePrivateRepo, prepareResult.ProfilePrivateReadmeBlob
+			profileRepo, profileGitRepo, readmeBlob = prepareResult.ProfilePrivateRepo, prepareResult.ProfilePrivateGitRepo, prepareResult.ProfilePrivateReadmeBlob
 			viewAsMember = true
 		}
 	}
@@ -173,7 +174,7 @@ func prepareOrgProfileReadme(ctx *context.Context, prepareResult *shared_user.Pr
 		return false
 	}
 
-	readmeBytes, err := readmeBlob.GetBlobContent(setting.UI.MaxDisplayFileSize)
+	readmeBytes, err := readmeBlob.GetBlobContent(profileGitRepo, setting.UI.MaxDisplayFileSize)
 	if err != nil {
 		log.Error("failed to GetBlobContent for profile %q (view as %q) readme: %v", profileRepo.FullName(), viewAs, err)
 		return false

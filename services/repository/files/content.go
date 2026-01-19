@@ -74,7 +74,7 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, gitRepo
 	ret.DirContents = make([]*api.ContentsResponse, 0, len(entries))
 	for _, e := range entries {
 		subOpts := opts
-		subOpts.TreePath = path.Join(opts.TreePath, e.Name())
+		subOpts.TreePath = path.Join(opts.TreePath, e.Name)
 		subOpts.IncludeSingleFileContent = false // never include file content when listing a directory
 		fileContentResponse, err := GetFileContents(ctx, repo, gitRepo, refCommit, subOpts)
 		if err != nil {
@@ -151,10 +151,10 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 
 	// All content types have these fields in populated
 	contentsResponse := &api.ContentsResponse{
-		Name: entry.Name(),
+		Name: entry.Name,
 		Path: opts.TreePath,
 		SHA:  entry.ID.String(),
-		Size: entry.Size(),
+		Size: entry.GetSize(gitRepo),
 		URL:  &selfURLString,
 		Links: &api.FileLinksResponse{
 			Self: &selfURLString,
@@ -210,7 +210,7 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 	} else if entry.IsLink() {
 		contentsResponse.Type = string(ContentTypeLink)
 		// The target of a symlink file is the content of the file
-		targetFromContent, err := entry.Blob().GetBlobContent(1024)
+		targetFromContent, err := entry.Blob().GetBlobContent(gitRepo, 1024)
 		if err != nil {
 			return nil, err
 		}
@@ -263,10 +263,10 @@ func GetBlobBySHA(repo *repo_model.Repository, gitRepo *git.Repository, sha stri
 	ret := &api.GitBlobResponse{
 		SHA:  gitBlob.ID.String(),
 		URL:  repo.APIURL() + "/git/blobs/" + url.PathEscape(gitBlob.ID.String()),
-		Size: gitBlob.Size(),
+		Size: gitBlob.Size(gitRepo),
 	}
 
-	blobSize := gitBlob.Size()
+	blobSize := gitBlob.Size(gitRepo)
 	if blobSize > setting.API.DefaultMaxBlobSize {
 		return ret, nil
 	}
@@ -276,7 +276,7 @@ func GetBlobBySHA(repo *repo_model.Repository, gitRepo *git.Repository, sha stri
 		originContent = &strings.Builder{}
 	}
 
-	content, err := gitBlob.GetBlobContentBase64(originContent)
+	content, err := gitBlob.GetBlobContentBase64(gitRepo, originContent)
 	if err != nil {
 		return nil, err
 	}
@@ -301,10 +301,10 @@ func parsePossibleLfsPointerBlob(gitRepo *git.Repository, sha string) (*string, 
 	if err != nil {
 		return nil, nil, err
 	}
-	if gitBlob.Size() > lfs.MetaFileMaxSize {
+	if gitBlob.Size(gitRepo) > lfs.MetaFileMaxSize {
 		return nil, nil, nil // not a LFS pointer
 	}
-	buf, err := gitBlob.GetBlobContent(lfs.MetaFileMaxSize)
+	buf, err := gitBlob.GetBlobContent(gitRepo, lfs.MetaFileMaxSize)
 	if err != nil {
 		return nil, nil, err
 	}

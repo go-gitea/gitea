@@ -35,7 +35,7 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 
 			scanner := bufio.NewScanner(stdoutReader)
 			for scanner.Scan() {
-				entry, err := parseLsTreeLine(scanner.Bytes())
+				entry, err := parseTreeEntry(scanner.Bytes())
 				if err != nil {
 					cancel()
 					return err
