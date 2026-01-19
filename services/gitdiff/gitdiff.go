@@ -22,6 +22,8 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
+	renderhelper "code.gitea.io/gitea/models/renderhelper"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/base"
@@ -34,6 +36,7 @@ import (
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -586,6 +589,115 @@ func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, c
 					})
 					// Mark expand buttons that have comments in hidden lines
 					FillHiddenCommentIDsForDiffLine(line, lineCommits)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// LoadCommitComments loads commit comments into each line similar to PR code comments
+func (diff *Diff) LoadCommitComments(ctx context.Context, repo *repo_model.Repository, currentUser *user_model.User, commitSHA string, showOutdatedComments bool) error {
+	cs, err := git_model.ListCommitComments(ctx, repo.ID, commitSHA)
+	if err != nil {
+		return err
+	}
+	// Preload reactions for all commit comments
+	reactionsByComment := make(map[int64]issues_model.ReactionList)
+	if len(cs) > 0 {
+		commentIDs := make([]int64, 0, len(cs))
+		for _, cc := range cs {
+			commentIDs = append(commentIDs, cc.ID)
+		}
+		commitReactions := make([]*git_model.CommitCommentReaction, 0, len(cs))
+		if err := db.GetEngine(ctx).In("commit_comment_id", commentIDs).Asc("created_unix").Find(&commitReactions); err != nil {
+			return err
+		}
+		userIDs := make([]int64, 0, len(commitReactions))
+		for _, cr := range commitReactions {
+			react := &issues_model.Reaction{
+				Type:             cr.Type,
+				IssueID:          0,
+				CommentID:        cr.CommitCommentID,
+				UserID:           cr.UserID,
+				OriginalAuthorID: cr.OriginalAuthorID,
+				OriginalAuthor:   cr.OriginalAuthor,
+				CreatedUnix:      cr.CreatedUnix,
+			}
+			reactionsByComment[cr.CommitCommentID] = append(reactionsByComment[cr.CommitCommentID], react)
+			if cr.OriginalAuthor == "" && cr.UserID > 0 {
+				userIDs = append(userIDs, cr.UserID)
+			}
+		}
+
+		userMap := make(map[int64]*user_model.User)
+		if len(userIDs) > 0 {
+			if err := db.GetEngine(ctx).In("id", userIDs).Find(&userMap); err != nil {
+				return err
+			}
+		}
+		for _, list := range reactionsByComment {
+			for _, reaction := range list {
+				if reaction.OriginalAuthor != "" {
+					name := fmt.Sprintf("%s(%s)", reaction.OriginalAuthor, repo.OriginalServiceType.Name())
+					reaction.User = &user_model.User{ID: 0, Name: name, LowerName: strings.ToLower(name)}
+					continue
+				}
+				if u, ok := userMap[reaction.UserID]; ok {
+					reaction.User = u
+				} else {
+					reaction.User = user_model.NewGhostUser()
+				}
+			}
+		}
+	}
+	// Build map[string]map[int64][]*issues_model.Comment
+	lineCommits := make(map[string]map[int64][]*issues_model.Comment)
+	for _, cc := range cs {
+		if err := cc.LoadPoster(ctx); err != nil {
+			return err
+		}
+		c := &issues_model.Comment{
+			ID:             cc.ID,
+			Type:           issues_model.CommentTypeCode,
+			PosterID:       cc.PosterID,
+			Poster:         cc.Poster,
+			OriginalAuthor: "",
+			IssueID:        0,
+			Content:        cc.Content,
+			CreatedUnix:    cc.CreatedUnix,
+			Line:           cc.Line,
+			TreePath:       cc.Path,
+			Reactions:      reactionsByComment[cc.ID],
+		}
+		// Render content for this comment
+		rctx := renderhelper.NewRenderContextRepoComment(ctx, repo, renderhelper.RepoCommentOptions{CurrentRefPath: path.Join("commit", util.PathEscapeSegments(commitSHA))})
+		renderedHTML, err := markdown.RenderString(rctx, cc.Content)
+		if err != nil {
+			return err
+		}
+		c.RenderedContent = renderedHTML
+
+		if lineCommits[c.TreePath] == nil {
+			lineCommits[c.TreePath] = make(map[int64][]*issues_model.Comment)
+		}
+		lineCommits[c.TreePath][c.Line] = append(lineCommits[c.TreePath][c.Line], c)
+	}
+
+	for _, file := range diff.Files {
+		if lineCommitsForFile, ok := lineCommits[file.Name]; ok {
+			for _, section := range file.Sections {
+				for _, line := range section.Lines {
+					if comments, ok := lineCommitsForFile[int64(line.LeftIdx*-1)]; ok {
+						line.Comments = append(line.Comments, comments...)
+					}
+					if comments, ok := lineCommitsForFile[int64(line.RightIdx)]; ok {
+						line.Comments = append(line.Comments, comments...)
+					}
+					sort.SliceStable(line.Comments, func(i, j int) bool {
+						return line.Comments[i].CreatedUnix < line.Comments[j].CreatedUnix
+					})
+					FillHiddenCommentIDsForDiffLine(line, lineCommitsForFile)
 				}
 			}
 		}
