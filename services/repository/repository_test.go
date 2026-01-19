@@ -22,7 +22,7 @@ func TestAttachLinkedTypeAndRepoID(t *testing.T) {
 		name             string
 		attachID         int64
 		expectedUnitType unit.Type
-		expectedRepoID   uint64
+		expectedRepoID   int64
 	}{
 		{"LinkedIssue", 1, unit.TypeIssues, 1},
 		{"LinkedComment", 3, unit.TypePullRequests, 1},
