@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 
@@ -60,25 +59,11 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 		close(outputChan)
 	}()
 
-	lsFilesReader, lsFilesWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to open stderr pipe: %v", err)
-		outputChan <- &lsFileLine{err: fmt.Errorf("unable to open stderr pipe: %w", err)}
-		return
-	}
-	defer func() {
-		_ = lsFilesWriter.Close()
-		_ = lsFilesReader.Close()
-	}()
-
-	err = gitcmd.NewCommand("ls-files", "-u", "-z").
+	var lsFilesReader io.ReadCloser
+	err := gitcmd.NewCommand("ls-files", "-u", "-z").
 		WithDir(tmpBasePath).
-		WithStdout(lsFilesWriter).
-		WithPipelineFunc(func(_ context.Context, _ context.CancelFunc) error {
-			_ = lsFilesWriter.Close()
-			defer func() {
-				_ = lsFilesReader.Close()
-			}()
+		WithStdoutReader(&lsFilesReader).
+		WithPipelineFunc(func(_ gitcmd.Context) error {
 			bufferedReader := bufio.NewReader(lsFilesReader)
 
 			for {

@@ -16,7 +16,6 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -1271,10 +1270,10 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 	}()
 
 	go func() {
-		if err := cmdDiff.WithTimeout(time.Duration(setting.Git.Timeout.Default) * time.Second).
+		if err := cmdDiff.
 			WithDir(repoPath).
 			WithStdout(writer).
-			RunWithStderr(cmdCtx); err != nil && !git.IsErrCanceledOrKilled(err) {
+			RunWithStderr(cmdCtx); err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
 			log.Error("error during GetDiff(git diff dir: %s): %v", repoPath, err)
 		}
 
