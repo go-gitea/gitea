@@ -45,9 +45,10 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	}
 
 	return &Repository{
-		Path:     repoPath,
-		tagCache: newObjectCache[*Tag](),
-		Ctx:      ctx,
+		Path:            repoPath,
+		tagCache:        newObjectCache[*Tag](),
+		objPoolProvider: NewObjectPoolProvider(repoPath),
+		Ctx:             ctx,
 	}, nil
 }
 
