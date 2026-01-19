@@ -90,7 +90,7 @@ func AllCommitsCount(ctx context.Context, repo Repository, hidePRRefs bool, file
 		cmd.AddDashesAndList(files...)
 	}
 
-	stdout, err := RunCmdString(ctx, repo, cmd)
+	stdout, _, err := RunCmdString(ctx, repo, cmd)
 	if err != nil {
 		return 0, err
 	}
@@ -104,7 +104,7 @@ func GetFullCommitID(ctx context.Context, repo Repository, shortID string) (stri
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(ctx context.Context, repo Repository) (time.Time, error) {
-	stdout, err := RunCmdString(ctx, repo,
+	stdout, _, err := RunCmdString(ctx, repo,
 		gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", git.BranchPrefix, "--count", "1", "--format=%(committerdate)"))
 	if err != nil {
 		return time.Time{}, err
@@ -129,7 +129,7 @@ func HasPreviousCommit(ctx context.Context, repo Repository, newCommitID, oldCom
 		return false, nil
 	}
 
-	_, err := RunCmdString(ctx, repo, gitcmd.NewCommand("merge-base", "--is-ancestor").
+	_, _, err := RunCmdString(ctx, repo, gitcmd.NewCommand("merge-base", "--is-ancestor").
 		AddDynamicArguments(oldCommitID, newCommitID))
 	if err == nil {
 		return true, nil
@@ -150,7 +150,7 @@ func GetCommitBranchName(ctx context.Context, repo Repository, commitID string) 
 		cmd.AddArguments("--exclude", "refs/tags/*")
 	}
 	cmd.AddArguments("--name-only", "--no-undefined").AddDynamicArguments(commitID)
-	data, err := RunCmdString(ctx, repo, cmd)
+	data, _, err := RunCmdString(ctx, repo, cmd)
 	if err != nil {
 		// handle special case where git can not describe commit
 		if strings.Contains(err.Error(), "cannot describe") {
@@ -166,7 +166,7 @@ func GetCommitBranchName(ctx context.Context, repo Repository, commitID string) 
 
 // IsCommitInBranch check if the commit is on the branch
 func IsCommitInBranch(ctx context.Context, repo Repository, commitID, branch string) (r bool, err error) {
-	stdout, err := RunCmdString(ctx, repo, gitcmd.NewCommand("branch", "--contains").
+	stdout, _, err := RunCmdString(ctx, repo, gitcmd.NewCommand("branch", "--contains").
 		AddDynamicArguments(commitID, branch))
 	if err != nil {
 		return false, err

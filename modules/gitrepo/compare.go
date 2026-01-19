@@ -24,7 +24,7 @@ type DivergeObject struct {
 func GetDivergingCommits(ctx context.Context, repo Repository, baseBranch, targetBranch string) (*DivergeObject, error) {
 	cmd := gitcmd.NewCommand("rev-list", "--count", "--left-right").
 		AddDynamicArguments(baseBranch + "..." + targetBranch).AddArguments("--")
-	stdout, err1 := RunCmdString(ctx, repo, cmd)
+	stdout, _, err1 := RunCmdString(ctx, repo, cmd)
 	if err1 != nil {
 		return nil, err1
 	}
@@ -61,7 +61,6 @@ func (l *lineCountWriter) Write(p []byte) (n int, err error) {
 func GetDiffNumChangedFiles(ctx context.Context, repo Repository, base, head string, directComparison bool) (int, error) {
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 	w := &lineCountWriter{}
-	stderr := new(bytes.Buffer)
 
 	separator := "..."
 	if directComparison {
@@ -69,25 +68,22 @@ func GetDiffNumChangedFiles(ctx context.Context, repo Repository, base, head str
 	}
 
 	// avoid: ambiguous argument 'refs/a...refs/b': unknown revision or path not in the working tree. Use '--': 'git <command> [<revision>...] -- [<file>...]'
-	if err := RunCmd(ctx, repo, gitcmd.NewCommand("diff", "-z", "--name-only").
+	if err := RunCmdWithStderr(ctx, repo, gitcmd.NewCommand("diff", "-z", "--name-only").
 		AddDynamicArguments(base+separator+head).
 		AddArguments("--").
-		WithStdout(w).
-		WithStderr(stderr)); err != nil {
-		if strings.Contains(stderr.String(), "no merge base") {
+		WithStdout(w)); err != nil {
+		if strings.Contains(err.Stderr(), "no merge base") {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
 			w = &lineCountWriter{}
-			stderr.Reset()
-			if err = RunCmd(ctx, repo, gitcmd.NewCommand("diff", "-z", "--name-only").
+			if err = RunCmdWithStderr(ctx, repo, gitcmd.NewCommand("diff", "-z", "--name-only").
 				AddDynamicArguments(base, head).
 				AddArguments("--").
-				WithStdout(w).
-				WithStderr(stderr)); err == nil {
+				WithStdout(w)); err == nil {
 				return w.numLines, nil
 			}
 		}
-		return 0, fmt.Errorf("%w: Stderr: %s", err, stderr)
+		return 0, err
 	}
 	return w.numLines, nil
 }
@@ -102,7 +98,7 @@ func GetFilesChangedBetween(ctx context.Context, repo Repository, base, head str
 	} else {
 		cmd.AddDynamicArguments(base, head)
 	}
-	stdout, err := RunCmdString(ctx, repo, cmd)
+	stdout, _, err := RunCmdString(ctx, repo, cmd)
 	if err != nil {
 		return nil, err
 	}

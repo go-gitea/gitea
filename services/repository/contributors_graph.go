@@ -131,10 +131,8 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
 	var extendedCommitStats []*ExtendedCommitStats
-	stderr := new(strings.Builder)
 	err = gitCmd.WithDir(repo.Path).
 		WithStdout(stdoutWriter).
-		WithStderr(stderr).
 		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			scanner := bufio.NewScanner(stdoutReader)
@@ -191,9 +189,9 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 			_ = stdoutReader.Close()
 			return nil
 		}).
-		Run(repo.Ctx)
+		RunWithStderr(repo.Ctx)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get ContributorsCommitStats for repository.\nError: %w\nStderr: %s", err, stderr)
+		return nil, fmt.Errorf("ContributorsCommitStats: %w", err)
 	}
 
 	return extendedCommitStats, nil

@@ -41,7 +41,7 @@ func GetCodeActivityStats(ctx context.Context, repo Repository, fromTime time.Ti
 
 	since := fromTime.Format(time.RFC3339)
 
-	stdout, runErr := RunCmdString(ctx, repo, gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
+	stdout, _, runErr := RunCmdString(ctx, repo, gitcmd.NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso").
 		AddOptionFormat("--since=%s", since))
 	if runErr != nil {
 		return nil, runErr
@@ -70,10 +70,8 @@ func GetCodeActivityStats(ctx context.Context, repo Repository, fromTime time.Ti
 		gitCmd.AddArguments("--first-parent").AddDynamicArguments(branch)
 	}
 
-	stderr := new(strings.Builder)
-	err = RunCmd(ctx, repo, gitCmd.
+	err = RunCmdWithStderr(ctx, repo, gitCmd.
 		WithStdout(stdoutWriter).
-		WithStderr(stderr).
 		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			scanner := bufio.NewScanner(stdoutReader)
@@ -144,7 +142,7 @@ func GetCodeActivityStats(ctx context.Context, repo Repository, fromTime time.Ti
 			return nil
 		}))
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
+		return nil, fmt.Errorf("GetCodeActivityStats: %w", err)
 	}
 
 	return stats, nil

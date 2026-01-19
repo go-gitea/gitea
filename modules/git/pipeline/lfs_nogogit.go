@@ -33,17 +33,11 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 	}()
 
 	go func() {
-		stderr := strings.Builder{}
 		err := gitcmd.NewCommand("rev-list", "--all").
 			WithDir(repo.Path).
 			WithStdout(revListWriter).
-			WithStderr(&stderr).
-			Run(repo.Ctx)
-		if err != nil {
-			_ = revListWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = revListWriter.Close()
-		}
+			RunWithStderr(repo.Ctx)
+		_ = revListWriter.CloseWithError(err)
 	}()
 
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.

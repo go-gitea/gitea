@@ -232,7 +232,6 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		_ = stdoutWriter.Close()
 	}()
 	go func() {
-		stderr := strings.Builder{}
 		gitCmd := gitcmd.NewCommand("rev-list").
 			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
 			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
@@ -251,13 +250,8 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 		gitCmd.AddDashesAndList(opts.File)
 		err := gitCmd.WithDir(repo.Path).
 			WithStdout(stdoutWriter).
-			WithStderr(&stderr).
-			Run(repo.Ctx)
-		if err != nil {
-			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = stdoutWriter.Close()
-		}
+			RunWithStderr(repo.Ctx)
+		_ = stdoutWriter.CloseWithError(err)
 	}()
 
 	objectFormat, err := repo.GetObjectFormat()

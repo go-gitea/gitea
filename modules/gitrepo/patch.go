@@ -4,7 +4,6 @@
 package gitrepo
 
 import (
-	"bytes"
 	"context"
 	"io"
 
@@ -13,10 +12,8 @@ import (
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
 func GetDiff(ctx context.Context, repo Repository, compareArg string, w io.Writer) error {
-	stderr := new(bytes.Buffer)
-	return RunCmd(ctx, repo, gitcmd.NewCommand("diff", "-p").AddDynamicArguments(compareArg).
-		WithStdout(w).
-		WithStderr(stderr))
+	return RunCmdWithStderr(ctx, repo, gitcmd.NewCommand("diff", "-p").AddDynamicArguments(compareArg).
+		WithStdout(w))
 }
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
@@ -28,8 +25,6 @@ func GetDiffBinary(ctx context.Context, repo Repository, compareArg string, w io
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
 func GetPatch(ctx context.Context, repo Repository, compareArg string, w io.Writer) error {
-	stderr := new(bytes.Buffer)
-	return RunCmd(ctx, repo, gitcmd.NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
-		WithStdout(w).
-		WithStderr(stderr))
+	return RunCmdWithStderr(ctx, repo, gitcmd.NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
+		WithStdout(w))
 }

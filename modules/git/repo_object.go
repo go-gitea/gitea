@@ -5,7 +5,6 @@
 package git
 
 import (
-	"bytes"
 	"io"
 	"strings"
 
@@ -74,16 +73,12 @@ func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) 
 	} else {
 		cmd = gitcmd.NewCommand("hash-object", "--stdin")
 	}
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	err := cmd.
+	stdout, _, err := cmd.
 		WithDir(repo.Path).
 		WithStdin(reader).
-		WithStdout(stdout).
-		WithStderr(stderr).
-		Run(repo.Ctx)
+		RunStdString(repo.Ctx)
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(stdout.String()), nil
+	return strings.TrimSpace(stdout), nil
 }
