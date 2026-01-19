@@ -77,5 +77,8 @@ ENV HOME="/var/lib/gitea/git"
 VOLUME ["/var/lib/gitea", "/etc/gitea"]
 WORKDIR /var/lib/gitea
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --start-interval=5s --retries=3 \
+    CMD curl -fSs http://127.0.0.1:3000/api/healthz || exit 1
+
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD []

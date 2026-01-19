@@ -76,5 +76,8 @@ ENV GITEA_CUSTOM=/data/gitea
 
 VOLUME ["/data"]
 
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --start-interval=5s --retries=3 \
+    CMD curl -fSs http://127.0.0.1:3000/api/healthz || exit 1
+
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/usr/bin/s6-svscan", "/etc/s6"]
