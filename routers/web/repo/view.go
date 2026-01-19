@@ -179,6 +179,13 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 	return escaped, output, err
 }
 
+func renderSidebarTocHTML(rctx *markup.RenderContext, lang string) template.HTML {
+	if len(rctx.SidebarTocHeaders) > 0 {
+		return markup.RenderSidebarTocHTML(rctx.SidebarTocHeaders, lang)
+	}
+	return ""
+}
+
 func checkHomeCodeViewable(ctx *context.Context) {
 	if ctx.Repo.HasUnits() {
 		if ctx.Repo.Repository.IsBeingCreated() {

@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/yuin/goldmark/ast"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -34,6 +33,13 @@ var RenderBehaviorForTesting struct {
 	// Gitea will emit some additional attributes for various purposes, these attributes don't affect rendering.
 	// But there are too many hard-coded test cases, to avoid changing all of them again and again, we can disable emitting these internal attributes.
 	DisableAdditionalAttributes bool
+}
+
+// Header holds the data about a header for generating TOC
+type Header struct {
+	Level int
+	Text  string
+	ID    string
 }
 
 type RenderOptions struct {
@@ -67,7 +73,7 @@ type RenderContext struct {
 	// the context might be used by the "render" function, but it might also be used by "postProcess" function
 	usedByRender bool
 
-	SidebarTocNode ast.Node
+	SidebarTocHeaders []Header // Headers for generating sidebar TOC
 
 	RenderHelper   RenderHelper
 	RenderOptions  RenderOptions
