@@ -38,7 +38,7 @@ func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, 
 		AddDynamicArguments(treeHash, pr.MergeBase))
 
 	switch {
-	case gitcmd.IsErrorExitCode(gitErr, 0):
+	case gitcmd.IsErrorExitCode(gitErr, 0) || gitErr == nil:
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
 		pr.Status = issues_model.PullRequestStatusEmpty
 	case gitcmd.IsErrorExitCode(gitErr, 1):
