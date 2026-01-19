@@ -16,25 +16,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAttachLinkedType(t *testing.T) {
+func TestAttachLinkedTypeAndRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	testCases := []struct {
 		name             string
 		attachID         int64
 		expectedUnitType unit.Type
+		expectedRepoID   int64
 	}{
-		{"LinkedIssue", 1, unit.TypeIssues},
-		{"LinkedComment", 3, unit.TypePullRequests},
-		{"LinkedRelease", 9, unit.TypeReleases},
-		{"Notlinked", 10, unit.TypeInvalid},
+		{"LinkedIssue", 1, unit.TypeIssues, 1},
+		{"LinkedComment", 3, unit.TypePullRequests, 1},
+		{"LinkedRelease", 9, unit.TypeReleases, 1},
+		{"Notlinked", 10, unit.TypeInvalid, 0},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			attach, err := repo_model.GetAttachmentByID(t.Context(), tc.attachID)
 			assert.NoError(t, err)
-			unitType, err := GetAttachmentLinkedType(t.Context(), attach)
+			unitType, repoID, err := GetAttachmentLinkedTypeAndRepoID(t.Context(), attach)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedUnitType, unitType)
+			assert.Equal(t, tc.expectedRepoID, repoID)
 		})
 	}
 }

@@ -133,14 +133,15 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	}
 
 	// prevent visiting attachment from other repository directly
-	if ctx.Repo.Repository != nil && ctx.Repo.Repository.ID != attach.RepoID {
+	// The check will be ignored before this code merged.
+	if attach.CreatedUnix > repo_model.LegacyAttachmentMissingRepoIDCutoff && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID != attach.RepoID {
 		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
-	unitType, err := repo_service.GetAttachmentLinkedType(ctx, attach)
+	unitType, repoID, err := repo_service.GetAttachmentLinkedTypeAndRepoID(ctx, attach)
 	if err != nil {
-		ctx.ServerError("GetAttachmentLinkedType", err)
+		ctx.ServerError("GetAttachmentLinkedTypeAndRepoID", err)
 		return
 	}
 
@@ -152,7 +153,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	} else { // If we have the linked type, we need to check access
 		var perm access_model.Permission
 		if ctx.Repo.Repository == nil {
-			repo, err := repo_model.GetRepositoryByID(ctx, attach.RepoID)
+			repo, err := repo_model.GetRepositoryByID(ctx, repoID)
 			if err != nil {
 				ctx.ServerError("GetRepositoryByID", err)
 				return
