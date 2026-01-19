@@ -53,8 +53,9 @@ func parseTreeEntry(line []byte) (*TreeEntry, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid ls-tree output (invalid name): %q, err: %w", line, err)
 		}
+		entry.Name = strings.TrimSpace(entry.Name)
 	} else {
-		entry.Name = string(entryName)
+		entry.Name = strings.TrimSpace(string(entryName))
 	}
 	return entry, nil
 }
