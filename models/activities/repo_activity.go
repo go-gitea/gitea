@@ -13,7 +13,6 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 
 	"xorm.io/builder"
@@ -43,12 +42,12 @@ type ActivityStats struct {
 	UnresolvedIssues            issues_model.IssueList
 	PublishedReleases           []*repo_model.Release
 	PublishedReleaseAuthorCount int64
-	Code                        *git.CodeActivityStats
+	Code                        *gitrepo.CodeActivityStats
 }
 
 // GetActivityStats return stats for repository at given time range
 func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
-	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
+	stats := &ActivityStats{Code: &gitrepo.CodeActivityStats{}}
 	if releases {
 		if err := stats.FillReleases(ctx, repo.ID, timeFrom); err != nil {
 			return nil, fmt.Errorf("FillReleases: %w", err)
@@ -68,13 +67,7 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 		return nil, fmt.Errorf("FillUnresolvedIssues: %w", err)
 	}
 	if code {
-		gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
-		if err != nil {
-			return nil, fmt.Errorf("OpenRepository: %w", err)
-		}
-		defer closer.Close()
-
-		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
+		code, err := gitrepo.GetCodeActivityStats(ctx, repo, timeFrom, repo.DefaultBranch)
 		if err != nil {
 			return nil, fmt.Errorf("FillFromGit: %w", err)
 		}
@@ -85,13 +78,7 @@ func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
 func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
-	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %w", err)
-	}
-	defer closer.Close()
-
-	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
+	code, err := gitrepo.GetCodeActivityStats(ctx, repo, timeFrom, "")
 	if err != nil {
 		return nil, fmt.Errorf("FillFromGit: %w", err)
 	}

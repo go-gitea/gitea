@@ -1,7 +1,7 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package gitrepo
 
 import (
 	"bufio"
@@ -40,7 +40,7 @@ type GrepOptions struct {
 	PathspecList      []string
 }
 
-func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepOptions) ([]*GrepResult, error) {
+func GrepSearch(ctx context.Context, repo Repository, search string, opts GrepOptions) ([]*GrepResult, error) {
 	/*
 	 The output is like this ( "^@" means \x00):
 
@@ -75,7 +75,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
 
 	var stdoutReader io.ReadCloser
-	err := cmd.WithDir(repo.Path).
+	err := RunCmdWithStderr(ctx, repo, cmd.
 		WithStdoutReader(&stdoutReader).
 		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			defer stdoutReader.Close()
@@ -121,8 +121,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 				}
 			}
 			return nil
-		}).
-		RunWithStderr(ctx)
+		}))
 	// git grep exits by cancel (killed), usually it is caused by the limit of results
 	if gitcmd.IsErrorExitCode(err, -1) && err.Stderr() == "" {
 		return results, nil

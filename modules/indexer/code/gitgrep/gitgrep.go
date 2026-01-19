@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/indexer"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
@@ -24,15 +26,15 @@ func indexSettingToGitGrepPathspecList() (list []string) {
 	return list
 }
 
-func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Repository, ref git.RefName, keyword string, searchMode indexer.SearchModeType) (searchResults []*code_indexer.Result, total int, err error) {
-	grepMode := git.GrepModeWords
+func PerformSearch(ctx context.Context, page int, repo *repo_model.Repository, gitRepo *git.Repository, ref git.RefName, keyword string, searchMode indexer.SearchModeType) (searchResults []*code_indexer.Result, total int, err error) {
+	grepMode := gitrepo.GrepModeWords
 	switch searchMode {
 	case indexer.SearchModeExact:
-		grepMode = git.GrepModeExact
+		grepMode = gitrepo.GrepModeExact
 	case indexer.SearchModeRegexp:
-		grepMode = git.GrepModeRegexp
+		grepMode = gitrepo.GrepModeRegexp
 	}
-	res, err := git.GrepSearch(ctx, gitRepo, keyword, git.GrepOptions{
+	res, err := gitrepo.GrepSearch(ctx, repo, keyword, gitrepo.GrepOptions{
 		ContextLineNumber: 1,
 		GrepMode:          grepMode,
 		RefName:           ref.String(),
@@ -53,7 +55,7 @@ func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Rep
 	res = res[pageStart:pageEnd]
 	for _, r := range res {
 		searchResults = append(searchResults, &code_indexer.Result{
-			RepoID:   repoID,
+			RepoID:   repo.ID,
 			Filename: r.Filename,
 			CommitID: commitID,
 			// UpdatedUnix: not supported yet

@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/actions"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -394,7 +395,7 @@ func getActionWorkflowEntry(ctx context.Context, repo *repo_model.Repository, co
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 
-	defaultBranch, _ := commit.GetBranchName()
+	defaultBranch, _ := gitrepo.GetCommitBranchName(ctx, repo, commit.ID.String())
 
 	workflowURL := fmt.Sprintf("%s/actions/workflows/%s", repo.APIURL(), util.PathEscapeSegments(entry.Name()))
 	workflowRepoURL := fmt.Sprintf("%s/src/branch/%s/%s/%s", repo.HTMLURL(ctx), util.PathEscapeSegments(defaultBranch), util.PathEscapeSegments(folder), util.PathEscapeSegments(entry.Name()))

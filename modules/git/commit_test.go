@@ -159,32 +159,6 @@ ISO-8859-1`, commitFromReader.Signature.Payload)
 	assert.Equal(t, commitFromReader, commitFromReader2)
 }
 
-func TestHasPreviousCommit(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-
-	repo, err := OpenRepository(t.Context(), bareRepo1Path)
-	assert.NoError(t, err)
-	defer repo.Close()
-
-	commit, err := repo.GetCommit("8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
-	assert.NoError(t, err)
-
-	parentSHA := MustIDFromString("8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2")
-	notParentSHA := MustIDFromString("2839944139e0de9737a044f78b0e4b40d989a9e3")
-
-	haz, err := commit.HasPreviousCommit(parentSHA)
-	assert.NoError(t, err)
-	assert.True(t, haz)
-
-	hazNot, err := commit.HasPreviousCommit(notParentSHA)
-	assert.NoError(t, err)
-	assert.False(t, hazNot)
-
-	selfNot, err := commit.HasPreviousCommit(commit.ID)
-	assert.NoError(t, err)
-	assert.False(t, selfNot)
-}
-
 func Test_GetCommitBranchStart(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 	repo, err := OpenRepository(t.Context(), bareRepo1Path)

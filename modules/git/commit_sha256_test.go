@@ -99,34 +99,3 @@ signed commit`, commitFromReader.Signature.Payload)
 	commitFromReader.Signature.Payload += "\n\n"
 	assert.Equal(t, commitFromReader, commitFromReader2)
 }
-
-func TestHasPreviousCommitSha256(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare_sha256")
-
-	repo, err := OpenRepository(t.Context(), bareRepo1Path)
-	assert.NoError(t, err)
-	defer repo.Close()
-
-	commit, err := repo.GetCommit("f004f41359117d319dedd0eaab8c5259ee2263da839dcba33637997458627fdc")
-	assert.NoError(t, err)
-
-	objectFormat, err := repo.GetObjectFormat()
-	assert.NoError(t, err)
-
-	parentSHA := MustIDFromString("b0ec7af4547047f12d5093e37ef8f1b3b5415ed8ee17894d43a34d7d34212e9c")
-	notParentSHA := MustIDFromString("42e334efd04cd36eea6da0599913333c26116e1a537ca76e5b6e4af4dda00236")
-	assert.Equal(t, objectFormat, parentSHA.Type())
-	assert.Equal(t, "sha256", objectFormat.Name())
-
-	haz, err := commit.HasPreviousCommit(parentSHA)
-	assert.NoError(t, err)
-	assert.True(t, haz)
-
-	hazNot, err := commit.HasPreviousCommit(notParentSHA)
-	assert.NoError(t, err)
-	assert.False(t, hazNot)
-
-	selfNot, err := commit.HasPreviousCommit(commit.ID)
-	assert.NoError(t, err)
-	assert.False(t, selfNot)
-}
