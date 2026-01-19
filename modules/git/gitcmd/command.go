@@ -432,37 +432,31 @@ func (c *Command) Wait() error {
 
 	if c.opts.PipelineFunc != nil {
 		errCallback := c.opts.PipelineFunc(&cmdContext{Context: c.cmdCtx, cmd: c})
+		// after the pipeline function returns, we can safely cancel the command context and close the stdio pipes
 		c.cmdCancel(errCallback)
 		c.closeStdioPipes()
 		errWait := c.cmd.Wait()
-		// the pipeline function should be able to know whether it succeeds or fails,
-		if errCallback == nil && (errWait == nil || IsErrorCanceledOrKilled(errWait)) {
+		errCause := context.Cause(c.cmdCtx)
+		// the pipeline function should be able to know whether it succeeds or fails
+		if errCallback == nil && (errCause == nil || errors.Is(errCause, context.Canceled)) {
 			return nil
 		}
-		return errors.Join(errCallback, errWait)
+		return errors.Join(errCallback, errCause, errWait)
 	}
 
+	// there might be other goroutines using the context or pipes, so we just wait for the command to finish
 	errWait := c.cmd.Wait()
 	elapsed := time.Since(c.cmdStartTime)
 	if elapsed > time.Second {
-		log.Debug("slow git.Command.Run: %s (%s)", c, elapsed)
+		log.Debug("slow git.Command.Run: %s (%s)", c, elapsed) // TODO: no need to log this for long-running commands
 	}
 
-	// here the logic is different from "PipelineFunc" case,
-	// because PipelineFunc can return error if it fails, it knows whether it succeeds or fails
-	// but in normal case, the caller just runs the git command, the command's exit code is the source of truth.
+	// Here the logic is different from "PipelineFunc" case,
+	// because PipelineFunc can return error if it fails, it knows whether it succeeds or fails.
+	// But in normal case, the caller just runs the git command, the command's exit code is the source of truth.
+	// If the caller need to know whether the command error is caused by cancellation, it should check the "err" by itself.
 	errCause := context.Cause(c.cmdCtx)
-	if errors.Is(errCause, context.Canceled) {
-		// if the ctx is canceled without other error, it must be caused by normal cancellation
-		return errCause
-	}
-	if errWait != nil {
-		// no matter whether there is other cause error, if "Wait" also has error,
-		// it's likely the error is caused by Wait error (from git command), let the caller handle it,
-		// and the caller can still get the cause error from the context if needed.
-		return errWait
-	}
-	return errCause
+	return errors.Join(errCause, errWait)
 }
 
 func (c *Command) StartWithStderr(ctx context.Context) RunStdError {

@@ -64,16 +64,15 @@ func IsErrorExitCode(err error, code int) bool {
 	return false
 }
 
+func IsErrorSignalKilled(err error) bool {
+	var exitError *exec.ExitError
+	return errors.As(err, &exitError) && exitError.String() == "signal: killed"
+}
+
 func IsErrorCanceledOrKilled(err error) bool {
 	// When "cancel()" a git command's context, the returned error of "Run()" could be one of them:
 	// - context.Canceled
 	// - *exec.ExitError: "signal: killed"
-	if err == nil {
-		return false
-	}
-	if errors.Is(err, context.Canceled) {
-		return true
-	}
-	var exitError *exec.ExitError
-	return errors.As(err, &exitError) && exitError.String() == "signal: killed"
+	// TODO: in the future, we need to use unified error type from gitcmd.Run to check whether it is manually canceled
+	return errors.Is(err, context.Canceled) || IsErrorSignalKilled(err)
 }
