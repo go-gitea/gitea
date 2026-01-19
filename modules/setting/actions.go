@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
-	"code.gitea.io/gitea/modules/log"
 )
 
 // Actions settings
@@ -41,8 +39,7 @@ func (url defaultActionsURL) URL() string {
 	case defaultActionsURLSelf:
 		return strings.TrimSuffix(AppURL, "/")
 	default:
-		// This should never happen, but just in case, use GitHub as fallback
-		return "https://github.com"
+		return strings.Split(string(url), ",")[0]
 	}
 }
 
@@ -79,11 +76,9 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	if urls := string(Actions.DefaultActionsURL); urls != defaultActionsURLGitHub && urls != defaultActionsURLSelf {
 		url := strings.Split(urls, ",")[0]
 		if strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://") {
-			log.Error("[actions] DEFAULT_ACTIONS_URL does not support %q as custom URL any longer, fallback to %q",
-				urls,
-				defaultActionsURLGitHub,
-			)
-			Actions.DefaultActionsURL = defaultActionsURLGitHub
+			// Users may want to define their own default actions URL, e.g. "https://github.com" or a self-hosted mirror.
+			// So we should not force the fallback to "github" (defaultActionsURLGitHub) here.
+			// The user should ensure the URL is valid and accessible.
 		} else {
 			return fmt.Errorf("unsupported [actions] DEFAULT_ACTIONS_URL: %q", urls)
 		}

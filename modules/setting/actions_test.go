@@ -146,7 +146,7 @@ DEFAULT_ACTIONS_URL = self
 DEFAULT_ACTIONS_URL = https://gitea.com
 `,
 			wantErr: assert.NoError,
-			wantURL: "https://github.com",
+			wantURL: "https://gitea.com",
 		},
 		{
 			name: "custom urls",
@@ -155,7 +155,7 @@ DEFAULT_ACTIONS_URL = https://gitea.com
 DEFAULT_ACTIONS_URL = https://gitea.com,https://github.com
 `,
 			wantErr: assert.NoError,
-			wantURL: "https://github.com",
+			wantURL: "https://gitea.com",
 		},
 		{
 			name: "invalid",
@@ -164,7 +164,7 @@ DEFAULT_ACTIONS_URL = https://gitea.com,https://github.com
 DEFAULT_ACTIONS_URL = gitea
 `,
 			wantErr: assert.Error,
-			wantURL: "https://github.com",
+			wantURL: "gitea",
 		},
 	}
 
