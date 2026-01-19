@@ -14,7 +14,7 @@ import (
 type catFileObjectPoolProvider struct {
 	repoPath  string
 	mu        sync.Mutex
-	pool      CatFileBatchCloser
+	pool      catFileBatchCloser
 	poolInUse bool
 }
 
@@ -56,12 +56,12 @@ func (p *catFileObjectPoolProvider) GetObjectPool(ctx context.Context) (objectpo
 	return tempBatch, tempBatch.Close, nil
 }
 
-type CatFileBatchCloser interface {
+type catFileBatchCloser interface {
 	objectpool.ObjectPool
 	Close()
 }
 
-func newObjectPool(ctx context.Context, repoPath string) (CatFileBatchCloser, error) {
+func newObjectPool(ctx context.Context, repoPath string) (catFileBatchCloser, error) {
 	if DefaultFeatures().SupportCatFileBatchCommand {
 		return newCatFileBatchCommand(ctx, repoPath)
 	}

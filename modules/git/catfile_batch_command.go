@@ -22,7 +22,7 @@ type catFileBatchCommand struct {
 	batch    *catFileBatchCommunicator
 }
 
-var _ objectpool.ObjectPool = (*catFileBatchCommand)(nil)
+var _ catFileBatchCloser = (*catFileBatchCommand)(nil)
 
 func newCatFileBatchCommand(ctx context.Context, repoPath string) (*catFileBatchCommand, error) {
 	if _, err := os.Stat(repoPath); err != nil {

@@ -25,7 +25,7 @@ type catFileBatchLegacy struct {
 	batchCheck   *catFileBatchCommunicator
 }
 
-var _ objectpool.ObjectPool = (*catFileBatchLegacy)(nil)
+var _ catFileBatchCloser = (*catFileBatchLegacy)(nil)
 
 func newCatFileBatchLegacy(ctx context.Context, repoPath string) (*catFileBatchLegacy, error) {
 	if _, err := os.Stat(repoPath); err != nil {
