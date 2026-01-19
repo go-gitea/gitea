@@ -358,7 +358,7 @@ func Diff(ctx *context.Context) {
 	// Load commit comments into diff so inline conversations are visible
 	if diff != nil {
 		// Ensure ShowOutdatedComments is a boolean (middleware may not have run for commit routes)
-		showOutdated := false
+		var showOutdated bool
 		if v, ok := ctx.Data["ShowOutdatedComments"].(bool); ok {
 			showOutdated = v
 		} else {
@@ -521,7 +521,7 @@ func CreateCommitCodeComment(ctx *context.Context) {
 		CommitSHA: sha,
 		PosterID:  ctx.Doer.ID,
 		Path:      form.TreePath,
-		Line:      int64(signedLine),
+		Line:      signedLine,
 		Content:   form.Content,
 	}
 	if err := git_model.CreateCommitComment(ctx, comment); err != nil {
@@ -535,7 +535,7 @@ func CreateCommitCodeComment(ctx *context.Context) {
 	}
 
 	// Render content for this and all comments on the same line/path
-	comments, err := git_model.ListCommitCommentsByLine(ctx, ctx.Repo.Repository.ID, sha, form.TreePath, int64(signedLine))
+	comments, err := git_model.ListCommitCommentsByLine(ctx, ctx.Repo.Repository.ID, sha, form.TreePath, signedLine)
 	if err != nil {
 		ctx.ServerError("ListCommitCommentsByLine", err)
 		return
@@ -562,6 +562,7 @@ func CreateCommitCodeComment(ctx *context.Context) {
 	ctx.Data["CommitID"] = sha
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	ctx.Data["CanMarkConversation"] = false
+	upload.AddUploadContext(ctx, "comment")
 	// Helper expected by PR templates
 	ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
 		return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)

@@ -1,4 +1,6 @@
+// Copyright 2026 The Gitea Authors.
 // SPDX-License-Identifier: MIT
+
 package repo
 
 import (

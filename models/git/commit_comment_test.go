@@ -77,7 +77,7 @@ func TestListUpdateDeleteCommitComment(t *testing.T) {
 	// ensure deleted not listed
 	list2, err := git_model.ListCommitComments(t.Context(), repo.ID, "deadbeef")
 	assert.NoError(t, err)
-	assert.Len(t, list2, 0)
+	assert.Empty(t, list2)
 
 	// ensure DB consistency
 	unittest.CheckConsistencyFor(t, &git_model.CommitComment{})

@@ -5,6 +5,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"strings"
@@ -37,7 +38,7 @@ func init() {
 // CreateCommitComment inserts a new commit comment
 func CreateCommitComment(ctx context.Context, c *CommitComment) error {
 	if c == nil {
-		return fmt.Errorf("nil commit comment")
+		return errors.New("nil commit comment")
 	}
 	if _, err := db.GetEngine(ctx).Insert(c); err != nil {
 		return fmt.Errorf("Insert CommitComment: %w", err)
@@ -84,7 +85,7 @@ func ListCommitCommentsByLine(ctx context.Context, repoID int64, commitSHA, path
 // UpdateCommitComment updates an existing commit comment
 func UpdateCommitComment(ctx context.Context, c *CommitComment) error {
 	if c == nil || c.ID == 0 {
-		return fmt.Errorf("invalid commit comment")
+		return errors.New("invalid commit comment")
 	}
 	if _, err := db.GetEngine(ctx).ID(c.ID).Cols("content", "path", "line", "updated_unix").Update(c); err != nil {
 		return fmt.Errorf("Update CommitComment: %w", err)
@@ -105,7 +106,7 @@ func DeleteCommitComment(ctx context.Context, id int64) error {
 // LoadPoster loads the poster user for the comment
 func (c *CommitComment) LoadPoster(ctx context.Context) error {
 	if c == nil {
-		return fmt.Errorf("nil commit comment")
+		return errors.New("nil commit comment")
 	}
 	if c.Poster != nil {
 		return nil
@@ -126,7 +127,7 @@ func (c *CommitComment) LoadPoster(ctx context.Context) error {
 
 // HashTag returns an id that can be used as a DOM anchor similar to issue comments
 func (c *CommitComment) HashTag() string {
-	return fmt.Sprintf("commitcomment-%d", c.ID)
+	return fmt.Sprintf("issuecomment-%d", c.ID)
 }
 
 // UnsignedLine returns absolute line index for use in templates
