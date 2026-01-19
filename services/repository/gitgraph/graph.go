@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"os"
-	"strings"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -45,7 +44,6 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 	}
 	graph := NewGraph()
 
-	stderr := new(strings.Builder)
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		return nil, err
@@ -57,7 +55,6 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 	if err := graphCmd.
 		WithDir(r.Path).
 		WithStdout(stdoutWriter).
-		WithStderr(stderr).
 		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 			defer stdoutReader.Close()
@@ -110,7 +107,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 			}
 			return scanner.Err()
 		}).
-		Run(r.Ctx); err != nil {
+		RunWithStderr(r.Ctx); err != nil {
 		return graph, err
 	}
 	return graph, nil

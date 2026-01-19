@@ -101,21 +101,17 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 		return err
 	}
 	cmd := gitcmd.NewCommand("update-index", "--remove", "-z", "--index-info")
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	buffer := new(bytes.Buffer)
+	input := new(bytes.Buffer)
 	for _, file := range filenames {
 		if file != "" {
 			// using format: mode SP type SP sha1 TAB path
-			buffer.WriteString("0 blob " + objectFormat.EmptyObjectID().String() + "\t" + file + "\000")
+			input.WriteString("0 blob " + objectFormat.EmptyObjectID().String() + "\t" + file + "\000")
 		}
 	}
 	return cmd.
 		WithDir(repo.Path).
-		WithStdin(bytes.NewReader(buffer.Bytes())).
-		WithStdout(stdout).
-		WithStderr(stderr).
-		Run(repo.Ctx)
+		WithStdin(bytes.NewReader(input.Bytes())).
+		RunWithStderr(repo.Ctx)
 }
 
 type IndexObjectInfo struct {
@@ -127,19 +123,15 @@ type IndexObjectInfo struct {
 // AddObjectsToIndex adds the provided object hashes to the index at the provided filenames
 func (repo *Repository) AddObjectsToIndex(objects ...IndexObjectInfo) error {
 	cmd := gitcmd.NewCommand("update-index", "--add", "--replace", "-z", "--index-info")
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	buffer := new(bytes.Buffer)
+	input := new(bytes.Buffer)
 	for _, object := range objects {
 		// using format: mode SP type SP sha1 TAB path
-		buffer.WriteString(object.Mode + " blob " + object.Object.String() + "\t" + object.Filename + "\000")
+		input.WriteString(object.Mode + " blob " + object.Object.String() + "\t" + object.Filename + "\000")
 	}
 	return cmd.
 		WithDir(repo.Path).
-		WithStdin(bytes.NewReader(buffer.Bytes())).
-		WithStdout(stdout).
-		WithStderr(stderr).
-		Run(repo.Ctx)
+		WithStdin(bytes.NewReader(input.Bytes())).
+		RunWithStderr(repo.Ctx)
 }
 
 // AddObjectToIndex adds the provided object hash to the index at the provided filename

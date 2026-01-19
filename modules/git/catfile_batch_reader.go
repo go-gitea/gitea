@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"math"
 	"strconv"
@@ -40,15 +41,13 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 
 	var batchStdinWriter io.WriteCloser
 	var batchStdoutReader io.ReadCloser
-	stderr := strings.Builder{}
 	cmdCatFile = cmdCatFile.
 		WithDir(repoPath).
 		WithStdinWriter(&batchStdinWriter).
 		WithStdoutReader(&batchStdoutReader).
-		WithStderr(&stderr).
 		WithUseContextTimeout(true)
 
-	err := cmdCatFile.Start(ctx)
+	err := cmdCatFile.StartWithStderr(ctx)
 	if err != nil {
 		log.Error("Unable to start git command %v: %v", cmdCatFile.LogString(), err)
 		// ideally here it should return the error, but it would require refactoring all callers
@@ -63,9 +62,9 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 	}
 
 	go func() {
-		err := cmdCatFile.Wait()
-		if err != nil {
-			log.Error("cat-file --batch command failed in repo %s: %v - stderr: %s", repoPath, err, stderr.String())
+		err := cmdCatFile.WaitWithStderr()
+		if err != nil && !errors.Is(err, context.Canceled) {
+			log.Error("cat-file --batch command failed in repo %s, error: %v", repoPath, err)
 		}
 		ctxCancel(err)
 	}()
