@@ -92,8 +92,10 @@ func testPullRequestMergeTree(ctx context.Context, pr *issues_model.PullRequest)
 	// 4. fetch head commit id into the current repository
 	// it will be checked in 2 weeks by default from git if the pull request created failure.
 	if !pr.IsSameRepo() {
-		if err := gitrepo.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
-			return fmt.Errorf("FetchRemoteCommit: %w", err)
+		if !baseGitRepo.IsReferenceExist(pr.HeadCommitID) {
+			if err := gitrepo.FetchRemoteCommit(ctx, pr.BaseRepo, pr.HeadRepo, pr.HeadCommitID); err != nil {
+				return fmt.Errorf("FetchRemoteCommit: %w", err)
+			}
 		}
 	}
 

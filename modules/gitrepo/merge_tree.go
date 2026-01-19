@@ -49,7 +49,7 @@ func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase
 	// A merge can have conflicts without having individual files conflict
 	// https://git-scm.com/docs/git-merge-tree/2.38.0#_mistakes_to_avoid
 	switch {
-	case gitcmd.IsErrorExitCode(gitErr, 0):
+	case gitcmd.IsErrorExitCode(gitErr, 0) || gitErr == nil:
 		return strings.TrimSpace(stdout.String()), false, nil, nil
 	case gitcmd.IsErrorExitCode(gitErr, 1):
 		treeID, conflictedFiles, err := parseMergeTreeOutput(stdout.String())
