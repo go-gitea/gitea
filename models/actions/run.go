@@ -52,6 +52,12 @@ type ActionRun struct {
 	RawConcurrency    string                       // raw concurrency
 	ConcurrencyGroup  string                       `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"`
 	ConcurrencyCancel bool                         `xorm:"NOT NULL DEFAULT FALSE"`
+
+	// ParentJobID is the ID of the parent job if the run is a reusable workflow.
+	// 0 - normal run, no parent job;
+	// >0 - the parent job ID.
+	ParentJobID int64 `xorm:"index"`
+
 	// Started and Stopped is used for recording last run time, if rerun happened, they will be reset to 0
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp

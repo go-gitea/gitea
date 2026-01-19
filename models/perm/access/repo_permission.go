@@ -267,15 +267,25 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	if err != nil {
 		return perm, err
 	}
+	if err := task.LoadAttributes(ctx); err != nil {
+		return perm, err
+	}
+
+	return GetActionsUserRepoPermissionByActionRun(ctx, repo, actionsUser, task.Job.Run)
+}
+
+func GetActionsUserRepoPermissionByActionRun(ctx context.Context, repo *repo_model.Repository, actionsUser *user_model.User, run *actions_model.ActionRun) (perm Permission, err error) {
+	if actionsUser.ID != user_model.ActionsUserID {
+		return perm, errors.New("api GetActionsUserRepoPermissionByActionRun can only be called by the actions user")
+	}
 
 	var accessMode perm_model.AccessMode
-	if task.RepoID != repo.ID {
-		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
-		if err != nil || !exist {
+	if run.RepoID != repo.ID {
+		if err := run.LoadRepo(ctx); err != nil {
 			return perm, err
 		}
 		actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
+		if !actionsCfg.IsCollaborativeOwner(run.Repo.OwnerID) || !run.Repo.IsPrivate {
 			// The task repo can access the current repo only if the task repo is private and
 			// the owner of the task repo is a collaborative owner of the current repo.
 			// FIXME should owner's visibility also be considered here?
@@ -289,7 +299,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			return perm, nil
 		}
 		accessMode = perm_model.AccessModeRead
-	} else if task.IsForkPullRequest {
+	} else if run.IsForkPullRequest {
 		accessMode = perm_model.AccessModeRead
 	} else {
 		accessMode = perm_model.AccessModeWrite

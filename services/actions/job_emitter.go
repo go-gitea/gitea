@@ -93,6 +93,12 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 	for _, job := range updatedJobs {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+
+		if job.ChildRunID == -1 && job.Status == actions_model.StatusWaiting {
+			if err := expandReusableWorkflow(ctx, job); err != nil {
+				log.Error("ensure reusable workflow child run for job %d: %v", job.ID, err)
+			}
+		}
 	}
 	runJobs := make(map[int64][]*actions_model.ActionRunJob)
 	for _, job := range jobs {
@@ -239,6 +245,41 @@ func NotifyWorkflowRunStatusUpdateWithReload(ctx context.Context, job *actions_m
 		return
 	}
 	notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
+	updateParentJobFromChildRun(ctx, job.Run)
+}
+
+func updateParentJobFromChildRun(ctx context.Context, run *actions_model.ActionRun) {
+	if run.ParentJobID == 0 || !run.Status.IsDone() {
+		return
+	}
+
+	parentJob, exist, err := db.GetByID[actions_model.ActionRunJob](ctx, run.ParentJobID)
+	if err != nil {
+		log.Error("Get parent job %d: %v", run.ParentJobID, err)
+		return
+	}
+	if !exist {
+		return
+	}
+
+	parentJob.Status = run.Status
+	parentJob.Stopped = run.Stopped
+	if _, err := actions_model.UpdateRunJob(ctx, parentJob, nil, "status", "stopped"); err != nil {
+		log.Error("Update parent job %d: %v", parentJob.ID, err)
+		return
+	}
+
+	parentRun, exist, err := db.GetByID[actions_model.ActionRun](ctx, parentJob.RunID)
+	if err != nil {
+		log.Error("Get parent run %d: %v", parentJob.RunID, err)
+		return
+	}
+	if exist {
+		CreateCommitStatusForRunJobs(ctx, parentRun, parentJob)
+		if err := EmitJobsIfReadyByRun(parentJob.RunID); err != nil {
+			log.Error("EmitJobsIfReadyByRun for parent run %d: %v", parentJob.RunID, err)
+		}
+	}
 }
 
 type jobStatusResolver struct {
