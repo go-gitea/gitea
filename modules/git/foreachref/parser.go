@@ -31,7 +31,7 @@ func NewParser(r io.Reader, format Format) *Parser {
 	scanner := bufio.NewScanner(r)
 
 	// default MaxScanTokenSize = 64 kiB may be too small for some references,
-	// so allow the buffer to grow up to 4x if needed
+	// so allow the buffer to grow up to 16x if needed
 	scanner.Buffer(nil, 16*bufio.MaxScanTokenSize)
 
 	// in addition to the reference delimiter we specified in the --format,
