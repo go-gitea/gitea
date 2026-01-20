@@ -383,7 +383,7 @@ func (bitmap accessTokenScopeBitmap) toScope() AccessTokenScope {
 	scope := AccessTokenScope(strings.Join(scopes, ","))
 	scope = AccessTokenScope(strings.ReplaceAll(
 		string(scope),
-		"write:activitypub,write:admin,write:misc,write:notification,write:organization,write:package,write:issue,write:repository,write:user,write:commitstatus",
+		"write:activitypub,write:admin,write:misc,write:notification,write:organization,write:package,write:issue,write:repository,write:user",
 		"all",
 	))
 	return scope
