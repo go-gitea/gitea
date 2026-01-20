@@ -224,25 +224,28 @@ func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err erro
 	})
 }
 
-// GetAttachmentLinkedType returns the linked type of attachment if any
-func GetAttachmentLinkedType(ctx context.Context, a *repo_model.Attachment) (unit.Type, error) {
+// GetAttachmentLinkedTypeAndRepoID returns the linked type and repository id of attachment if any
+func GetAttachmentLinkedTypeAndRepoID(ctx context.Context, a *repo_model.Attachment) (unit.Type, int64, error) {
 	if a.IssueID != 0 {
 		iss, err := issues_model.GetIssueByID(ctx, a.IssueID)
 		if err != nil {
-			return unit.TypeIssues, err
+			return unit.TypeIssues, 0, err
 		}
 		unitType := unit.TypeIssues
 		if iss.IsPull {
 			unitType = unit.TypePullRequests
 		}
-		return unitType, nil
+		return unitType, iss.RepoID, nil
 	}
 
 	if a.ReleaseID != 0 {
-		_, err := repo_model.GetReleaseByID(ctx, a.ReleaseID)
-		return unit.TypeReleases, err
+		rel, err := repo_model.GetReleaseByID(ctx, a.ReleaseID)
+		if err != nil {
+			return unit.TypeReleases, 0, err
+		}
+		return unit.TypeReleases, rel.RepoID, nil
 	}
-	return unit.TypeInvalid, nil
+	return unit.TypeInvalid, 0, nil
 }
 
 // CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
