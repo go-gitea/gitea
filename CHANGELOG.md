@@ -23,7 +23,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix missing repository id when migrating release attachments (#36389)
   * Fix bug when compare in the pull request (#36363) (#36372)
   * Fix incorrect text content detection (#36364) (#36369)
-  * fill missing `has_code` in repository api (#36338) (#36359)
+  * Fill missing `has_code` in repository api (#36338) (#36359)
   * Fix notifications pagination query parameters (#36351) (#36358)
   * Fix some trivial problems (#36336) (#36337)
   * Prevent panic when GitLab release has more links than sources (#36295) (#36305)
