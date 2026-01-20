@@ -15,10 +15,12 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix cancel auto merge bug (#36341) (#36356)
   * Fix delete attachment check (#36320) (#36355)
   * LFS locks must belong to the intended repo (#36344) (#36349)
+  * Fix bug on notification read (#36339) #36387
 * ENHANCEMENTS
   * Add more routes to the "expensive" list (#36290)
   * Make "commit statuses" API accept slashes in "ref" (#36264) (#36275)
 * BUGFIXES
+  * Fix missing repository id when migrating release attachments (#36389)
   * Fix bug when compare in the pull request (#36363) (#36372)
   * Fix incorrect text content detection (#36364) (#36369)
   * fill missing `has_code` in repository api (#36338) (#36359)
