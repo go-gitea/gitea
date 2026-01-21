@@ -253,8 +253,8 @@ func BatchHandler(ctx *context.Context) {
 		repository.ID,
 		base.FileSize(repository.GitSize),
 		base.FileSize(repository.LFSSize),
-		base.FileSize(repository.GetActualSizeLimit()),
-		base.FileSize(repository.GetActualLFSSizeLimit()),
+		setting.FormatRepositorySizeLimit(repository.GetActualSizeLimit()),
+		setting.FormatRepositorySizeLimit(repository.GetActualLFSSizeLimit()),
 	)
 
 	// Check LFS size limits for upload operations
@@ -280,11 +280,11 @@ func BatchHandler(ctx *context.Context) {
 		if predictedLFS > repository.GetActualLFSSizeLimit() && predictedLFS > repository.LFSSize {
 			traceBatchDecision(rc, br.Operation,
 				"req=%s DECISION=FORBID reason=LFS_LIMIT predictedLFS=%s limit=%s (NewObjects=%d ObjectsPresentInStore=%d MetaPresent=%d StoreExists=%d Invalid=%d)",
-				reqID, base.FileSize(predictedLFS), base.FileSize(repository.GetActualLFSSizeLimit()),
+				reqID, base.FileSize(predictedLFS), setting.FormatRepositorySizeLimit(repository.GetActualLFSSizeLimit()),
 			)
 			writeStatusMessage(ctx, http.StatusForbidden,
 				fmt.Sprintf("LFS size %s would exceed limit %s",
-					base.FileSize(predictedLFS), base.FileSize(repository.GetActualLFSSizeLimit())))
+					base.FileSize(predictedLFS), setting.FormatRepositorySizeLimit(repository.GetActualLFSSizeLimit())))
 			return
 		}
 

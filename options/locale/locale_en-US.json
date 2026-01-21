@@ -3067,6 +3067,7 @@
     "repos.git_size_max_helper": "Maximum Git size allowed for a single repository. Set to -1 for unlimited.",
     "repos.lfs_size_max": "Max LFS Size (Global)",
     "repos.lfs_size_max_helper": "Maximum LFS size allowed for a single repository. Set to -1 for unlimited.",
+    "repos.update_settings": "Update Settings",
     "repos.update_success": "Global repository limits have been updated.",
     "packages.package_manage_panel": "Package Management",
     "packages.total_size": "Total Size: %s",

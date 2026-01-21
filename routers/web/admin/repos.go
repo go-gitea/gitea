@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -33,8 +32,11 @@ func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
 	ctx.Data["PageIsAdminRepositories"] = true
 
-	ctx.Data["GitSizeMax"] = base.FileSize(setting.Repository.GitSizeMax)
-	ctx.Data["LFSSizeMax"] = base.FileSize(setting.Repository.LFSSizeMax)
+	gitSizeStr := setting.FormatRepositorySizeLimit(setting.Repository.GitSizeMax)
+	lfsSizeStr := setting.FormatRepositorySizeLimit(setting.Repository.LFSSizeMax)
+	log.Trace("Repos: GitSizeMax=%d -> %s, LFSSizeMax=%d -> %s", setting.Repository.GitSizeMax, gitSizeStr, setting.Repository.LFSSizeMax, lfsSizeStr)
+	ctx.Data["GitSizeMax"] = gitSizeStr
+	ctx.Data["LFSSizeMax"] = lfsSizeStr
 
 	explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
 		Private:          true,
@@ -52,7 +54,7 @@ func UpdateRepoPost(ctx *context.Context) {
 	ctx.Data["GitSizeMax"] = form.GitSizeMax
 	ctx.Data["LFSSizeMax"] = form.LFSSizeMax
 
-	gitSizeMax, err := base.GetFileSize(form.GitSizeMax)
+	gitSizeMax, err := setting.ParseRepositorySizeLimit(form.GitSizeMax)
 	if err != nil {
 		ctx.Data["Err_Git_Size_Max"] = form.GitSizeMax
 		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
@@ -64,7 +66,7 @@ func UpdateRepoPost(ctx *context.Context) {
 		return
 	}
 
-	lfsSizeMax, err := base.GetFileSize(form.LFSSizeMax)
+	lfsSizeMax, err := setting.ParseRepositorySizeLimit(form.LFSSizeMax)
 	if err != nil {
 		ctx.Data["Err_LFS_Size_Max"] = form.LFSSizeMax
 		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
@@ -77,6 +79,7 @@ func UpdateRepoPost(ctx *context.Context) {
 	}
 
 	setting.UpdateGlobalRepositoryLimit(gitSizeMax, lfsSizeMax)
+	log.Trace("UpdateRepoPost: After update, setting.Repository.GitSizeMax=%d, LFSSizeMax=%d", setting.Repository.GitSizeMax, setting.Repository.LFSSizeMax)
 
 	ctx.Flash.Success(ctx.Tr("admin.repos.update_success"))
 	ctx.Redirect(setting.AppSubURL + "/-/admin/repos")

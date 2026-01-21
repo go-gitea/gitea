@@ -46,8 +46,8 @@ type CreateRepoForm struct {
 }
 
 type UpdateGlobalRepoFrom struct {
-	GitSizeMax string
-	LFSSizeMax string
+	GitSizeMax string `form:"GitSizeMax"`
+	LFSSizeMax string `form:"LFSSizeMax"`
 }
 
 // Validate validates the fields

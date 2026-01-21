@@ -2,12 +2,22 @@
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.repositories"}}
-			<div class="ui right">
-				<span class="ui small label">{{ctx.Locale.Tr "repo.repo_size"}} Max: {{.GitSizeMax}}</span>
-				<span class="ui small label">{{ctx.Locale.Tr "repo.lfs_size"}} Max: {{.LFSSizeMax}}</span>
-			</div>
 		</h4>
-		<h4 class="ui attached header">
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="field {{if .Err_Git_Size_Max}}error{{end}}">
+					<label>{{ctx.Locale.Tr "admin.repos.git_size_max"}}</label>
+					<input name="GitSizeMax" value="{{if .Err_Git_Size_Max}}{{.Err_Git_Size_Max}}{{else}}{{.GitSizeMax}}{{end}}" data-tooltip-content="{{ctx.Locale.Tr "admin.repos.git_size_max_helper"}}">
+				</div>
+				<div class="field {{if .Err_LFS_Size_Max}}error{{end}}">
+					<label>{{ctx.Locale.Tr "admin.repos.lfs_size_max"}}</label>
+					<input name="LFSSizeMax" value="{{if .Err_LFS_Size_Max}}{{.Err_LFS_Size_Max}}{{else}}{{.LFSSizeMax}}{{end}}" data-tooltip-content="{{ctx.Locale.Tr "admin.repos.lfs_size_max_helper"}}">
+				</div>
+				<button class="ui green button">{{ctx.Locale.Tr "admin.repos.update_settings"}}</button>
+			</form>
+		</div>
+		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.repos.repo_manage_panel"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 			<div class="ui right">
 				<a class="ui primary tiny button" href="{{AppSubUrl}}/-/admin/repos/unadopted">{{ctx.Locale.Tr "admin.repos.unadopted"}}</a>
@@ -107,28 +117,6 @@
 
 		{{template "base/paginate" .}}
 	</div>
-
-<div class="ui container">
-	<h4 class="ui top attached header">
-		{{ctx.Locale.Tr "admin.repos.settings"}}
-	</h4>
-	<div class="ui attached segment">
-		<form class="ui form" action="{{$.Link}}" method="post">
-			{{$.CsrfTokenHtml}}
-			<div class="field {{if .Err_Git_Size_Max}}error{{end}}">
-				<label>{{ctx.Locale.Tr "admin.repos.git_size_max"}}</label>
-				<input name="GitSizeMax" value="{{if .Err_Git_Size_Max}}{{.Err_Git_Size_Max}}{{else}}{{.GitSizeMax}}{{end}}">
-				<p class="help">{{ctx.Locale.Tr "admin.repos.git_size_max_helper"}}</p>
-			</div>
-			<div class="field {{if .Err_LFS_Size_Max}}error{{end}}">
-				<label>{{ctx.Locale.Tr "admin.repos.lfs_size_max"}}</label>
-				<input name="LFSSizeMax" value="{{if .Err_LFS_Size_Max}}{{.Err_LFS_Size_Max}}{{else}}{{.LFSSizeMax}}{{end}}">
-				<p class="help">{{ctx.Locale.Tr "admin.repos.lfs_size_max_helper"}}</p>
-			</div>
-			<button class="ui green button">{{ctx.Locale.Tr "settings.update_settings"}}</button>
-		</form>
-	</div>
-</div>
 
 <form class="ui small modal form-fetch-action" id="admin-repo-delete-modal" method="post">
 	{{.CsrfTokenHtml}}

@@ -6,6 +6,7 @@ package setting
 import (
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -282,6 +283,32 @@ var (
 func UpdateGlobalRepositoryLimit(gitSizeMax, lfsSizeMax int64) {
 	Repository.GitSizeMax = gitSizeMax
 	Repository.LFSSizeMax = lfsSizeMax
+}
+
+// FormatRepositorySizeLimit formats a repository size limit for display.
+// Returns "-1" for disabled limits (when sizeInBytes is -1),
+// otherwise returns human-readable size using base.FileSize.
+func FormatRepositorySizeLimit(sizeInBytes int64) string {
+	if sizeInBytes == -1 {
+		return "-1"
+	}
+	return humanize.IBytes(uint64(sizeInBytes))
+}
+
+// ParseRepositorySizeLimit parses a repository size limit string.
+// Accepts "-1" to disable the limit, otherwise parses as a byte size.
+// Returns the size in bytes or an error if parsing fails.
+func ParseRepositorySizeLimit(s string) (int64, error) {
+	s = strings.TrimSpace(s)
+	if s == "-1" {
+		return -1, nil
+	}
+	// default to bytes if no unit is provided
+	if _, err := strconv.ParseInt(s, 10, 64); err == nil {
+		s += " B"
+	}
+	v, err := humanize.ParseBytes(s)
+	return int64(v), err
 }
 
 func parseSize(sec ConfigSection, key string, def int64) int64 {

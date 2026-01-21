@@ -835,8 +835,8 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			repo.OwnerName, repo.Name,
 			base.FileSize(predictedGitAfter), base.FileSize(currentGit), base.FileSize(gitDelta),
 			base.FileSize(predictedLFSAfter), base.FileSize(currentLFS), base.FileSize(lfsDelta),
-			base.FileSize(setting.Repository.GitSizeMax),
-			base.FileSize(setting.Repository.LFSSizeMax),
+			setting.FormatRepositorySizeLimit(setting.Repository.GitSizeMax),
+			setting.FormatRepositorySizeLimit(setting.Repository.LFSSizeMax),
 		)
 	}
 
