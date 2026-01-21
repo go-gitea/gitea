@@ -522,15 +522,6 @@ func getTaskIDFromCache(token string) int64 {
 	return t
 }
 
-// CountRunningTasksByRunner counts the number of running tasks assigned to a specific runner
-func CountRunningTasksByRunner(ctx context.Context, runnerID int64) (int, error) {
-	count, err := db.GetEngine(ctx).
-		Where("runner_id = ?", runnerID).
-		And("status = ?", StatusRunning).
-		Count(new(ActionTask))
-	return int(count), err
-}
-
 // CountRunningJobsByWorkflowAndRun counts running jobs for a specific workflow/run combo
 // Used to enforce max-parallel limits on matrix jobs
 func CountRunningJobsByWorkflowAndRun(ctx context.Context, runID int64, jobID string) (int, error) {

@@ -198,7 +198,6 @@ type ActionRunner struct {
 	Busy      bool                 `json:"busy"`
 	Ephemeral bool                 `json:"ephemeral"`
 	Labels    []*ActionRunnerLabel `json:"labels"`
-	Capacity  int                  `json:"capacity"` // Maximum parallel tasks (0 = unlimited)
 }
 
 // ActionRunnersResponse returns Runners

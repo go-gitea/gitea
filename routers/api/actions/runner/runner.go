@@ -156,22 +156,6 @@ func (s *Service) FetchTask(
 	}
 
 	if tasksVersion != latestVersion {
-		// Check if runner has capacity before assigning a new task
-		if runner.Capacity > 0 {
-			runningCount, err := actions_model.CountRunningTasksByRunner(ctx, runner.ID)
-			if err != nil {
-				log.Error("count running tasks failed: %v", err)
-				return nil, status.Errorf(codes.Internal, "count running tasks: %v", err)
-			}
-			if runningCount >= runner.Capacity {
-				log.Debug("Runner %s at capacity: %d/%d tasks running", runner.Name, runningCount, runner.Capacity)
-				// Return empty response - no task assigned
-				return connect.NewResponse(&runnerv1.FetchTaskResponse{
-					Task:         nil,
-					TasksVersion: latestVersion,
-				}), nil
-			}
-		}
 
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks that haven't been assigned.
