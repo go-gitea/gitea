@@ -52,8 +52,7 @@ type ActionRunJob struct {
 	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`                      // evaluated concurrency.cancel-in-progress
 
 	// Matrix job support
-	MatrixID    string `xorm:"VARCHAR(255) index"` // Unique identifier for matrix combination (e.g., "os:ubuntu,node:16")
-	MaxParallel int    // Max parallel jobs from strategy.max-parallel (0 = unlimited)
+	MaxParallel int // Max parallel jobs from strategy.max-parallel (0 = unlimited)
 
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
