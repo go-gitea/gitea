@@ -22,17 +22,11 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 	}()
 
 	go func() {
-		stderrBuilder := &strings.Builder{}
 		err := gitcmd.NewCommand("for-each-ref").
 			WithDir(repo.Path).
 			WithStdout(stdoutWriter).
-			WithStderr(stderrBuilder).
 			Run(repo.Ctx)
-		if err != nil {
-			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, stderrBuilder.String()))
-		} else {
-			_ = stdoutWriter.Close()
-		}
+		_ = stdoutWriter.CloseWithError(err)
 	}()
 
 	refs := make([]*Reference, 0)

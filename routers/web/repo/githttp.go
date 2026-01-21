@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"bytes"
 	"compress/gzip"
 	"fmt"
 	"net/http"
@@ -445,15 +444,13 @@ func serviceRPC(ctx *context.Context, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	var stderr bytes.Buffer
-	if err := gitrepo.RunCmd(ctx, h.getStorageRepo(), cmd.AddArguments(".").
+	if err := gitrepo.RunCmdWithStderr(ctx, h.getStorageRepo(), cmd.AddArguments(".").
 		WithEnv(append(os.Environ(), h.environ...)).
-		WithStderr(&stderr).
 		WithStdin(reqBody).
-		WithStdout(ctx.Resp).
-		WithUseContextTimeout(true)); err != nil {
-		if !git.IsErrCanceledOrKilled(err) {
-			log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.getStorageRepo().RelativePath(), err, stderr.String())
+		WithStdout(ctx.Resp),
+	); err != nil {
+		if !gitcmd.IsErrorCanceledOrKilled(err) {
+			log.Error("Fail to serve RPC(%s) in %s: %v", service, h.getStorageRepo().RelativePath(), err)
 		}
 	}
 }

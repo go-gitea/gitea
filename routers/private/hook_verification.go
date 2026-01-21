@@ -5,9 +5,7 @@ package private
 
 import (
 	"bufio"
-	"context"
 	"io"
-	"os"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -18,16 +16,6 @@ import (
 // This file contains commit verification functions for refs passed across in hooks
 
 func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []string) error {
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repo.Path)
-		return err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
-
 	var command *gitcmd.Command
 	objectFormat, _ := repo.GetObjectFormat()
 	if oldCommitID == objectFormat.EmptyObjectID().String() {
@@ -39,18 +27,13 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 		command = gitcmd.NewCommand("rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID)
 	}
 	// This is safe as force pushes are already forbidden
-	err = command.WithEnv(env).
+	var stdoutReader io.ReadCloser
+	err := command.WithEnv(env).
 		WithDir(repo.Path).
-		WithStdout(stdoutWriter).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
+		WithStdoutReader(&stdoutReader).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
-			if err != nil {
-				log.Error("readAndVerifyCommitsFromShaReader failed: %v", err)
-				cancel()
-			}
-			_ = stdoutReader.Close()
-			return err
+			return ctx.CancelWithCause(err)
 		}).
 		Run(repo.Ctx)
 	if err != nil && !isErrUnverifiedCommit(err) {
@@ -72,34 +55,20 @@ func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository
 }
 
 func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to create pipe for %s: %v", repo.Path, err)
-		return err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
-
 	commitID := git.MustIDFromString(sha)
-
+	var stdoutReader io.ReadCloser
 	return gitcmd.NewCommand("cat-file", "commit").AddDynamicArguments(sha).
 		WithEnv(env).
 		WithDir(repo.Path).
-		WithStdout(stdoutWriter).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
+		WithStdoutReader(&stdoutReader).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			commit, err := git.CommitFromReader(repo, commitID, stdoutReader)
 			if err != nil {
 				return err
 			}
 			verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
-				cancel()
-				return &errUnverifiedCommit{
-					commit.ID.String(),
-				}
+				return ctx.CancelWithCause(&errUnverifiedCommit{commit.ID.String()})
 			}
 			return nil
 		}).

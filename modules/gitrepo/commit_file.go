@@ -5,7 +5,6 @@ package gitrepo
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"io"
 
@@ -76,16 +75,14 @@ func GetCommitFileStatus(ctx context.Context, repo Repository, commitID string) 
 		close(done)
 	}()
 
-	stderr := new(bytes.Buffer)
 	err := gitcmd.NewCommand("log", "--name-status", "-m", "--pretty=format:", "--first-parent", "--no-renames", "-z", "-1").
 		AddDynamicArguments(commitID).
 		WithDir(repoPath(repo)).
 		WithStdout(w).
-		WithStderr(stderr).
-		Run(ctx)
-	w.Close() // Close writer to exit parsing goroutine
+		RunWithStderr(ctx)
+	_ = w.Close() // Close writer to exit parsing goroutine
 	if err != nil {
-		return nil, gitcmd.ConcatenateError(err, stderr.String())
+		return nil, err
 	}
 
 	<-done

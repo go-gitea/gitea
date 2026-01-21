@@ -28,33 +28,29 @@ import (
 // In most cases, it shouldn't be used. Use AddXxx function instead
 type TrustedCmdArgs []internal.CmdArg
 
-// defaultCommandExecutionTimeout default command execution timeout duration
-var defaultCommandExecutionTimeout = 360 * time.Second
-
-func SetDefaultCommandExecutionTimeout(timeout time.Duration) {
-	defaultCommandExecutionTimeout = timeout
-}
-
 // DefaultLocale is the default LC_ALL to run git commands in.
 const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
+	callerInfo string
 	prog       string
 	args       []string
 	preErrors  []error
-	cmd        *exec.Cmd // for debug purpose only
 	configArgs []string
 	opts       runOpts
 
+	cmd *exec.Cmd
+
 	cmdCtx       context.Context
-	cmdCancel    context.CancelFunc
-	cmdFinished  context.CancelFunc
+	cmdCancel    process.CancelCauseFunc
+	cmdFinished  process.FinishedFunc
 	cmdStartTime time.Time
 
-	cmdStdinWriter  *io.WriteCloser
-	cmdStdoutReader *io.ReadCloser
-	cmdStderrReader *io.ReadCloser
+	cmdStdinWriter   *io.WriteCloser
+	cmdStdoutReader  *io.ReadCloser
+	cmdStderrReader  *io.ReadCloser
+	cmdManagedStderr *bytes.Buffer
 }
 
 func logArgSanitize(arg string) string {
@@ -207,11 +203,9 @@ func ToTrustedCmdArgs(args []string) TrustedCmdArgs {
 	return ret
 }
 
-// runOpts represents parameters to run the command. If UseContextTimeout is specified, then Timeout is ignored.
 type runOpts struct {
-	Env               []string
-	Timeout           time.Duration
-	UseContextTimeout bool
+	Env     []string
+	Timeout time.Duration
 
 	// Dir is the working dir for the git command, however:
 	// FIXME: this could be incorrect in many cases, for example:
@@ -221,7 +215,7 @@ type runOpts struct {
 	// The correct approach is to use `--git-dir" global argument
 	Dir string
 
-	Stdout, Stderr io.Writer
+	Stdout io.Writer
 
 	// Stdin is used for passing input to the command
 	// The caller must make sure the Stdin writer is closed properly to finish the Run function.
@@ -234,9 +228,7 @@ type runOpts struct {
 	// Use new functions like WithStdinWriter to avoid such problems.
 	Stdin io.Reader
 
-	PipelineFunc func(context.Context, context.CancelFunc) error
-
-	callerInfo string
+	PipelineFunc func(Context) error
 }
 
 func commonBaseEnvs() []string {
@@ -310,12 +302,6 @@ func (c *Command) WithStderrReader(r *io.ReadCloser) *Command {
 	return c
 }
 
-// WithStderr is deprecated, use WithStderrReader instead
-func (c *Command) WithStderr(stderr io.Writer) *Command {
-	c.opts.Stderr = stderr
-	return c
-}
-
 func (c *Command) WithStdinWriter(w *io.WriteCloser) *Command {
 	c.cmdStdinWriter = w
 	return c
@@ -327,13 +313,8 @@ func (c *Command) WithStdin(stdin io.Reader) *Command {
 	return c
 }
 
-func (c *Command) WithPipelineFunc(f func(context.Context, context.CancelFunc) error) *Command {
+func (c *Command) WithPipelineFunc(f func(Context) error) *Command {
 	c.opts.PipelineFunc = f
-	return c
-}
-
-func (c *Command) WithUseContextTimeout(useContextTimeout bool) *Command {
-	c.opts.UseContextTimeout = useContextTimeout
 	return c
 }
 
@@ -343,11 +324,11 @@ func (c *Command) WithUseContextTimeout(useContextTimeout bool) *Command {
 // then you can to call this function in GeneralWrapperFunc to set the caller info of FeatureFunc.
 // The caller info can only be set once.
 func (c *Command) WithParentCallerInfo(optInfo ...string) *Command {
-	if c.opts.callerInfo != "" {
+	if c.callerInfo != "" {
 		return c
 	}
 	if len(optInfo) > 0 {
-		c.opts.callerInfo = optInfo[0]
+		c.callerInfo = optInfo[0]
 		return c
 	}
 	skip := 1 /*parent "wrap/run" functions*/ + 1 /*this function*/
@@ -356,7 +337,7 @@ func (c *Command) WithParentCallerInfo(optInfo ...string) *Command {
 	if pos := strings.LastIndex(callerInfo, "/"); pos >= 0 {
 		callerInfo = callerInfo[pos+1:]
 	}
-	c.opts.callerInfo = callerInfo
+	c.callerInfo = callerInfo
 	return c
 }
 
@@ -369,10 +350,8 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 	defer func() {
 		if retErr != nil {
 			// release the pipes to avoid resource leak
-			safeClosePtrCloser(c.cmdStdoutReader)
-			safeClosePtrCloser(c.cmdStderrReader)
-			safeClosePtrCloser(c.cmdStdinWriter)
-			// if no error, cmdFinished will be called in "Wait" function
+			c.closeStdioPipes()
+			// if error occurs, we must also finish the task, otherwise, cmdFinished will be called in "Wait" function
 			if c.cmdFinished != nil {
 				c.cmdFinished()
 			}
@@ -386,90 +365,126 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 		return err
 	}
 
-	// We must not change the provided options
-	timeout := c.opts.Timeout
-	if timeout <= 0 {
-		timeout = defaultCommandExecutionTimeout
-	}
-
 	cmdLogString := c.LogString()
-	if c.opts.callerInfo == "" {
+	if c.callerInfo == "" {
 		c.WithParentCallerInfo()
 	}
 	// these logs are for debugging purposes only, so no guarantee of correctness or stability
-	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", c.opts.callerInfo, logArgSanitize(c.opts.Dir), cmdLogString)
+	desc := fmt.Sprintf("git.Run(by:%s, repo:%s): %s", c.callerInfo, logArgSanitize(c.opts.Dir), cmdLogString)
 	log.Debug("git.Command: %s", desc)
 
 	_, span := gtprof.GetTracer().Start(ctx, gtprof.TraceSpanGitRun)
 	defer span.End()
-	span.SetAttributeString(gtprof.TraceAttrFuncCaller, c.opts.callerInfo)
+	span.SetAttributeString(gtprof.TraceAttrFuncCaller, c.callerInfo)
 	span.SetAttributeString(gtprof.TraceAttrGitCommand, cmdLogString)
 
-	if c.opts.UseContextTimeout {
+	if c.opts.Timeout <= 0 {
 		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContext(ctx, desc)
 	} else {
-		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContextTimeout(ctx, timeout, desc)
+		c.cmdCtx, c.cmdCancel, c.cmdFinished = process.GetManager().AddContextTimeout(ctx, c.opts.Timeout, desc)
 	}
 
 	c.cmdStartTime = time.Now()
 
-	cmd := exec.CommandContext(ctx, c.prog, append(c.configArgs, c.args...)...)
-	c.cmd = cmd // for debug purpose only
+	c.cmd = exec.CommandContext(ctx, c.prog, append(c.configArgs, c.args...)...)
 	if c.opts.Env == nil {
-		cmd.Env = os.Environ()
+		c.cmd.Env = os.Environ()
 	} else {
-		cmd.Env = c.opts.Env
+		c.cmd.Env = c.opts.Env
 	}
 
-	process.SetSysProcAttribute(cmd)
-	cmd.Env = append(cmd.Env, CommonGitCmdEnvs()...)
-	cmd.Dir = c.opts.Dir
-	cmd.Stdout = c.opts.Stdout
-	cmd.Stderr = c.opts.Stderr
-	cmd.Stdin = c.opts.Stdin
+	process.SetSysProcAttribute(c.cmd)
+	c.cmd.Env = append(c.cmd.Env, CommonGitCmdEnvs()...)
+	c.cmd.Dir = c.opts.Dir
+	c.cmd.Stdout = c.opts.Stdout
+	c.cmd.Stdin = c.opts.Stdin
 
-	if _, err := safeAssignPipe(c.cmdStdinWriter, cmd.StdinPipe); err != nil {
+	if _, err := safeAssignPipe(c.cmdStdinWriter, c.cmd.StdinPipe); err != nil {
 		return err
 	}
-	if _, err := safeAssignPipe(c.cmdStdoutReader, cmd.StdoutPipe); err != nil {
+	if _, err := safeAssignPipe(c.cmdStdoutReader, c.cmd.StdoutPipe); err != nil {
 		return err
 	}
-	if _, err := safeAssignPipe(c.cmdStderrReader, cmd.StderrPipe); err != nil {
+	if _, err := safeAssignPipe(c.cmdStderrReader, c.cmd.StderrPipe); err != nil {
 		return err
 	}
-	return cmd.Start()
+
+	if c.cmdManagedStderr != nil {
+		if c.cmd.Stderr != nil {
+			panic("CombineStderr needs managed (but not caller-provided) stderr pipe")
+		}
+		c.cmd.Stderr = c.cmdManagedStderr
+	}
+	return c.cmd.Start()
+}
+
+func (c *Command) closeStdioPipes() {
+	safeClosePtrCloser(c.cmdStdoutReader)
+	safeClosePtrCloser(c.cmdStderrReader)
+	safeClosePtrCloser(c.cmdStdinWriter)
 }
 
 func (c *Command) Wait() error {
-	defer c.cmdFinished()
-	cmd, ctx, cancel := c.cmd, c.cmdCtx, c.cmdCancel
+	defer func() {
+		c.closeStdioPipes()
+		c.cmdFinished()
+	}()
 
 	if c.opts.PipelineFunc != nil {
-		err := c.opts.PipelineFunc(ctx, cancel)
-		if err != nil {
-			cancel()
-			_ = cmd.Wait()
-			return err
+		errCallback := c.opts.PipelineFunc(&cmdContext{Context: c.cmdCtx, cmd: c})
+		// after the pipeline function returns, we can safely cancel the command context and close the stdio pipes
+		c.cmdCancel(errCallback)
+		c.closeStdioPipes()
+		errWait := c.cmd.Wait()
+		errCause := context.Cause(c.cmdCtx)
+		// the pipeline function should be able to know whether it succeeds or fails
+		if errCallback == nil && (errCause == nil || errors.Is(errCause, context.Canceled)) {
+			return nil
 		}
+		return errors.Join(errCallback, errCause, errWait)
 	}
 
-	errWait := cmd.Wait()
+	// there might be other goroutines using the context or pipes, so we just wait for the command to finish
+	errWait := c.cmd.Wait()
 	elapsed := time.Since(c.cmdStartTime)
 	if elapsed > time.Second {
-		log.Debug("slow git.Command.Run: %s (%s)", c, elapsed)
+		log.Debug("slow git.Command.Run: %s (%s)", c, elapsed) // TODO: no need to log this for long-running commands
 	}
 
+	// Here the logic is different from "PipelineFunc" case,
+	// because PipelineFunc can return error if it fails, it knows whether it succeeds or fails.
+	// But in normal case, the caller just runs the git command, the command's exit code is the source of truth.
+	// If the caller need to know whether the command error is caused by cancellation, it should check the "err" by itself.
 	errCause := context.Cause(c.cmdCtx)
-	if errors.Is(errCause, context.Canceled) {
-		// if the ctx is canceled without other error, it must be caused by normal cancellation
-		return errCause
+	return errors.Join(errCause, errWait)
+}
+
+func (c *Command) StartWithStderr(ctx context.Context) RunStdError {
+	c.cmdManagedStderr = &bytes.Buffer{}
+	err := c.Start(ctx)
+	if err != nil {
+		return &runStdError{err: err}
 	}
-	if errWait != nil {
-		// no matter whether there is other cause error, if "Wait" also has error,
-		// it's likely the error is caused by Wait error (from git command)
-		return errWait
+	return nil
+}
+
+func (c *Command) WaitWithStderr() RunStdError {
+	if c.cmdManagedStderr == nil {
+		panic("CombineStderr needs managed (but not caller-provided) stderr pipe")
 	}
-	return errCause
+	errWait := c.Wait()
+	if errWait == nil {
+		// if no exec error but only stderr output, the stderr output is still saved in "c.cmdManagedStderr" and can be read later
+		return nil
+	}
+	return &runStdError{err: errWait, stderr: util.UnsafeBytesToString(c.cmdManagedStderr.Bytes())}
+}
+
+func (c *Command) RunWithStderr(ctx context.Context) RunStdError {
+	if err := c.StartWithStderr(ctx); err != nil {
+		return &runStdError{err: err}
+	}
+	return c.WaitWithStderr()
 }
 
 func (c *Command) Run(ctx context.Context) (err error) {
@@ -477,59 +492,6 @@ func (c *Command) Run(ctx context.Context) (err error) {
 		return err
 	}
 	return c.Wait()
-}
-
-type RunStdError interface {
-	error
-	Unwrap() error
-	Stderr() string
-}
-
-type runStdError struct {
-	err    error  // usually the low-level error like `*exec.ExitError`
-	stderr string // git command's stderr output
-	errMsg string // the cached error message for Error() method
-}
-
-func (r *runStdError) Error() string {
-	// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
-	// But a lof of code only checks `strings.Contains(err.Error(), "git error")`
-	if r.errMsg == "" {
-		r.errMsg = ConcatenateError(r.err, r.stderr).Error()
-	}
-	return r.errMsg
-}
-
-func (r *runStdError) Unwrap() error {
-	return r.err
-}
-
-func (r *runStdError) Stderr() string {
-	return r.stderr
-}
-
-func ErrorAsStderr(err error) (string, bool) {
-	var runErr RunStdError
-	if errors.As(err, &runErr) {
-		return runErr.Stderr(), true
-	}
-	return "", false
-}
-
-func StderrHasPrefix(err error, prefix string) bool {
-	stderr, ok := ErrorAsStderr(err)
-	if !ok {
-		return false
-	}
-	return strings.HasPrefix(stderr, prefix)
-}
-
-func IsErrorExitCode(err error, code int) bool {
-	var exitError *exec.ExitError
-	if errors.As(err, &exitError) {
-		return exitError.ExitCode() == code
-	}
-	return false
 }
 
 // RunStdString runs the command and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
@@ -543,24 +505,16 @@ func (c *Command) RunStdBytes(ctx context.Context) (stdout, stderr []byte, runEr
 	return c.WithParentCallerInfo().runStdBytes(ctx)
 }
 
-func (c *Command) runStdBytes(ctx context.Context) ( /*stdout*/ []byte /*stderr*/, []byte /*runErr*/, RunStdError) {
-	if c.opts.Stdout != nil || c.opts.Stderr != nil {
+func (c *Command) runStdBytes(ctx context.Context) ([]byte, []byte, RunStdError) {
+	if c.opts.Stdout != nil || c.cmdStdoutReader != nil || c.cmdStderrReader != nil {
 		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
 		panic("stdout and stderr field must be nil when using RunStdBytes")
 	}
 	stdoutBuf := &bytes.Buffer{}
-	stderrBuf := &bytes.Buffer{}
 	err := c.WithParentCallerInfo().
 		WithStdout(stdoutBuf).
-		WithStderr(stderrBuf).
-		Run(ctx)
-	if err != nil {
-		// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
-		// But a lot of code depends on it, so we have to keep this behavior
-		return nil, stderrBuf.Bytes(), &runStdError{err: err, stderr: util.UnsafeBytesToString(stderrBuf.Bytes())}
-	}
-	// even if there is no err, there could still be some stderr output
-	return stdoutBuf.Bytes(), stderrBuf.Bytes(), nil
+		RunWithStderr(ctx)
+	return stdoutBuf.Bytes(), c.cmdManagedStderr.Bytes(), err
 }
 
 func (c *Command) DebugKill() {

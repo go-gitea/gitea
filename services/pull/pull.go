@@ -4,12 +4,10 @@
 package pull
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -527,27 +525,17 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 
 	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, mergeBase)
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return false, mergeBase, fmt.Errorf("unable to open pipe for to run diff: %w", err)
-	}
 
-	stderr := new(bytes.Buffer)
+	var stdoutReader io.ReadCloser
 	if err := cmd.WithDir(prCtx.tmpBasePath).
-		WithStdout(stdoutWriter).
-		WithStderr(stderr).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
-			defer func() {
-				_ = stdoutReader.Close()
-			}()
+		WithStdoutReader(&stdoutReader).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			return util.IsEmptyReader(stdoutReader)
 		}).
-		Run(ctx); err != nil {
-		if err == util.ErrNotEmpty {
+		RunWithStderr(ctx); err != nil {
+		if errors.Is(err, util.ErrNotEmpty) {
 			return true, mergeBase, nil
 		}
-		err = gitcmd.ConcatenateError(err, stderr.String())
 
 		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
 			newCommitID, oldCommitID, mergeBase,

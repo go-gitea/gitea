@@ -34,7 +34,6 @@ func (l *lineCountWriter) Write(p []byte) (n int, err error) {
 func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparison bool) (int, error) {
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 	w := &lineCountWriter{}
-	stderr := new(bytes.Buffer)
 
 	separator := "..."
 	if directComparison {
@@ -47,24 +46,21 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 		AddArguments("--").
 		WithDir(repo.Path).
 		WithStdout(w).
-		WithStderr(stderr).
-		Run(repo.Ctx); err != nil {
-		if strings.Contains(stderr.String(), "no merge base") {
+		RunWithStderr(repo.Ctx); err != nil {
+		if strings.Contains(err.Stderr(), "no merge base") {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
 			w = &lineCountWriter{}
-			stderr.Reset()
 			if err = gitcmd.NewCommand("diff", "-z", "--name-only").
 				AddDynamicArguments(base, head).
 				AddArguments("--").
 				WithDir(repo.Path).
 				WithStdout(w).
-				WithStderr(stderr).
-				Run(repo.Ctx); err == nil {
+				RunWithStderr(repo.Ctx); err == nil {
 				return w.numLines, nil
 			}
 		}
-		return 0, fmt.Errorf("%w: Stderr: %s", err, stderr)
+		return 0, err
 	}
 	return w.numLines, nil
 }
@@ -73,11 +69,9 @@ var patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
 
 // GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
-	stderr := new(bytes.Buffer)
 	return gitcmd.NewCommand("diff", "-p").AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
 		WithStdout(w).
-		WithStderr(stderr).
 		Run(repo.Ctx)
 }
 
@@ -92,11 +86,9 @@ func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
 
 // GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
 func (repo *Repository) GetPatch(compareArg string, w io.Writer) error {
-	stderr := new(bytes.Buffer)
 	return gitcmd.NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
 		WithStdout(w).
-		WithStderr(stderr).
 		Run(repo.Ctx)
 }
 

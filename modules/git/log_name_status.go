@@ -64,20 +64,12 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 	cmd.AddDashesAndList(files...)
 
 	go func() {
-		stderr := strings.Builder{}
 		err := cmd.WithDir(repository).
 			WithStdout(stdoutWriter).
-			WithStderr(&stderr).
-			Run(ctx)
-		if err != nil {
-			_ = stdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
-			return
-		}
-
-		_ = stdoutWriter.Close()
+			RunWithStderr(ctx)
+		_ = stdoutWriter.CloseWithError(err)
 	}()
 
-	// For simplicities sake we'll us a buffered reader to read from the cat-file --batch
 	bufReader := bufio.NewReaderSize(stdoutReader, 32*1024)
 
 	return bufReader, cancel
