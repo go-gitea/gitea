@@ -822,7 +822,7 @@ func ChangeIssueTimeEstimate(ctx context.Context, issue *Issue, doer *user_model
 }
 
 func GetIssueMaxIndex(ctx context.Context, repoID int64) (int64, error) {
-	var maxID int64
-	_, err := db.GetEngine(ctx).Table("issue").Select("MAX(index)").Where("repo_id=?", repoID).Get(&maxID)
-	return maxID, err
+	var maxIndex int64
+	_, err := db.GetEngine(ctx).Table("issue").Select("MAX(index)").Where("repo_id=?", repoID).Get(&maxIndex)
+	return maxIndex, err
 }
