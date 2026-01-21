@@ -176,6 +176,7 @@ export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHa
 }
 
 function handleNewline(textarea: HTMLTextAreaElement, e: Event) {
+  if ((e as KeyboardEvent).isComposing) return;
   const ret = markdownHandleIndention({value: textarea.value, selStart: textarea.selectionStart, selEnd: textarea.selectionEnd});
   if (!ret.handled) return;
   e.preventDefault();
