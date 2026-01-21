@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync/atomic"
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
@@ -57,6 +58,14 @@ func MockVariableValue[T any](p *T, v ...T) (reset func()) {
 		*p = v[0]
 	}
 	return func() { *p = old }
+}
+
+func MockVariableAtomicBool(p *atomic.Bool, v ...bool) (reset func()) {
+	old := (*p).Load()
+	if len(v) > 0 {
+		(*p).Store(v[0])
+	}
+	return func() { (*p).Store(old) }
 }
 
 // SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value

@@ -344,12 +344,12 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 }
 
 func TestCantMergeConflict_MergeTree(t *testing.T) {
-	defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+	defer test.MockVariableAtomicBool(&git.DefaultFeatures().SupportGitMergeTree, true)()
 	testCantMergeConflict(t)
 }
 
 func TestCantMergeConflict_TmpRepo(t *testing.T) {
-	defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+	defer test.MockVariableAtomicBool(&git.DefaultFeatures().SupportGitMergeTree, false)()
 	testCantMergeConflict(t)
 }
 
@@ -565,12 +565,12 @@ func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 }
 
 func TestConflictChecking_MergeTree(t *testing.T) {
-	defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+	defer test.MockVariableAtomicBool(&git.DefaultFeatures().SupportGitMergeTree, true)()
 	testConflictChecking(t)
 }
 
 func TestConflictChecking_TmpRepo(t *testing.T) {
-	defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+	defer test.MockVariableAtomicBool(&git.DefaultFeatures().SupportGitMergeTree, false)()
 	testConflictChecking(t)
 }
 

@@ -105,12 +105,12 @@ func TestPullComment_MergeTree(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 
 		t.Run("RebaseComment_MergeTree", func(t *testing.T) {
-			defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+			defer test.MockVariableAtomicBool(&git.DefaultFeatures().SupportGitMergeTree, true)()
 			testPullCommentRebase(t, u, session)
 		})
 
 		t.Run("RetargetComment_MergeTree", func(t *testing.T) {
-			defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
+			defer test.MockVariableAtomicBool(&git.DefaultFeatures().SupportGitMergeTree, true)()
 			testPullCommentRetarget(t, u, session)
 		})
 	})
@@ -124,12 +124,12 @@ func TestPullComment_TmpRepo(t *testing.T) {
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 
 		t.Run("RebaseComment_TmpRepo", func(t *testing.T) {
-			defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+			defer test.MockVariableAtomicBool(&git.DefaultFeatures().SupportGitMergeTree, false)()
 			testPullCommentRebase(t, u, session)
 		})
 
 		t.Run("RetargetComment_TmpRepo", func(t *testing.T) {
-			defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
+			defer test.MockVariableAtomicBool(&git.DefaultFeatures().SupportGitMergeTree, false)()
 			testPullCommentRetarget(t, u, session)
 		})
 	})
