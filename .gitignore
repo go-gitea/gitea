@@ -93,6 +93,8 @@ cpu.out
 
 # Files and folders that were previously generated
 /public/assets/img/webpack
+/public/assets/img/svg
+/options/fileicon
 
 # Snapcraft
 /gitea_a*.txt

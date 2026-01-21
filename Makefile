@@ -146,7 +146,7 @@ BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* mo
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
-SVG_DEST_DIR := public/assets/img/svg
+SVG_DEST_DIRS := public/assets/img/svg options/fileicon
 
 AIR_TMP_DIR := .air
 
@@ -314,7 +314,7 @@ swagger-validate: ## check if the swagger spec is valid
 checks: checks-frontend checks-backend ## run various consistency checks
 
 .PHONY: checks-frontend
-checks-frontend: lockfile-check svg-check ## check frontend files
+checks-frontend: lockfile-check ## check frontend files
 
 .PHONY: checks-backend
 checks-backend: tidy-check swagger-check fmt-check swagger-validate security-check ## check backend files
@@ -426,7 +426,7 @@ watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
+watch-frontend: node-check node_modules $(SVG_DEST_DIRS) ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
 
@@ -878,7 +878,7 @@ update-py: node-check | node_modules ## update py dependencies
 .PHONY: webpack
 webpack: $(WEBPACK_DEST) ## build webpack files
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) $(SVG_DEST_DIRS) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@echo "Running webpack..."
@@ -886,19 +886,12 @@ $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
-svg: node-check | node_modules ## build svg files
-	rm -rf $(SVG_DEST_DIR)
-	node tools/generate-svg.ts
+svg: $(SVG_DEST_DIRS) ## build svg files
 
-.PHONY: svg-check
-svg-check: svg
-	@git add $(SVG_DEST_DIR)
-	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
-	if [ -n "$$diff" ]; then \
-		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
-		printf "%s" "$${diff}"; \
-		exit 1; \
-	fi
+$(SVG_DEST_DIRS): node_modules
+	rm -rf $(SVG_DEST_DIRS)
+	node tools/generate-svg.ts
+	@touch $(SVG_DEST_DIRS)
 
 .PHONY: lockfile-check
 lockfile-check:

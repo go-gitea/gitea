@@ -113,6 +113,7 @@ async function processMaterialFileIcons() {
 }
 
 async function main() {
+  await mkdir(fileURLToPath(new URL('../options/fileicon', import.meta.url)), {recursive: true});
   await mkdir(fileURLToPath(new URL('../public/assets/img/svg', import.meta.url)), {recursive: true});
   await Promise.all([
     ...processAssetsSvgFiles('node_modules/@primer/octicons/build/svg/*-16.svg', {prefix: 'octicon'}),
