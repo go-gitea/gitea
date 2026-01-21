@@ -76,7 +76,6 @@ cpu.out
 /yarn-error.log
 /npm-debug.log*
 /.pnpm-store
-
 /vendor
 /VERSION
 /.air
