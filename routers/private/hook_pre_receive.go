@@ -198,7 +198,7 @@ func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env,
 		log.Trace("GIT_QUARANTINE_PATH not found in the environment variables. Will read the pack files from main repo instead")
 		packPath = filepath.Join(ctx.Repo.Repository.RepoPath(), "./objects/")
 	}
-	log.Warn("packPath: %s", packPath)
+	log.Trace("packPath: %s", packPath)
 
 	// Find all pack files *.idx in the quarantine directory
 	packFiles, err := filepath.Glob(filepath.Join(packPath, "./pack/*.idx"))
@@ -331,11 +331,9 @@ func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, dir string, e
 	return errExec
 }
 
-// loadObjectsSizesViaBatch uses hashes from objectIDs and uses pre-opened `git cat-file --batch-check` command to slice and return each object sizes
+// loadObjectsSizesViaBatch uses hashes from objectIDs and uses `git cat-file --batch` command to retrieve object sizes
 // This function can't be used for new commit objects.
 func loadObjectsSizesViaBatch(ctx *gitea_context.PrivateContext, repoPath string, objectIDs []string, objectsSizes map[string]int64) error {
-	var i int32
-
 	reducedObjectIDs := make([]string, 0, len(objectIDs))
 	for _, objectID := range objectIDs {
 		_, exists := objectsSizes[objectID]
@@ -344,44 +342,20 @@ func loadObjectsSizesViaBatch(ctx *gitea_context.PrivateContext, repoPath string
 		}
 	}
 
-	batch, err := git.NewBatchCheck(ctx, repoPath)
+	batch, err := git.NewBatch(ctx, repoPath)
 	if err != nil {
-		log.Error("Unable to create CatFileBatchCheck in %s Error: %v", repoPath, err)
-		return fmt.Errorf("Fail to create CatFileBatchCheck: %v", err)
+		log.Error("Unable to create CatFileBatch in %s Error: %v", repoPath, err)
+		return fmt.Errorf("Fail to create CatFileBatch: %v", err)
 	}
 	defer batch.Close()
-	wr := batch.Writer
-	rd := batch.Reader
 
-	for _, commitID := range reducedObjectIDs {
-		_, err := wr.Write([]byte(commitID + "\n"))
+	for _, objectID := range reducedObjectIDs {
+		info, err := batch.QueryInfo(objectID)
 		if err != nil {
-			return err
-		}
-		i++
-		line, err := rd.ReadString('\n')
-		if err != nil {
-			return err
-		}
-		if len(line) == 1 {
-			line, err = rd.ReadString('\n')
-			if err != nil {
-				return err
-			}
-		}
-		fields := strings.Fields(line)
-		objectID := fields[0]
-		if len(fields) < 3 || len(fields) > 3 {
-			log.Trace("String '%s' does not contain size ignored %s: %v", line, objectID, err)
+			log.Trace("Failed to query info for object %s: %v", objectID, err)
 			continue
 		}
-		sizeStr := fields[2]
-		size, err := parseSize(sizeStr)
-		if err != nil {
-			log.Trace("String '%s' Failed to parse size for object %s: %v", line, objectID, err)
-			continue
-		}
-		objectsSizes[objectID] = size
+		objectsSizes[objectID] = info.Size
 	}
 
 	return nil
@@ -610,8 +584,8 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		}
 
 		isRepoOversized = repo.IsRepoSizeOversized(pushSize.Size + pushSize.SizePack)
-		log.Warn("Push counts %+v", pushSize)
-		log.Warn("Repo counts %+v", repoSize)
+		log.Trace("Push counts %+v", pushSize)
+		log.Trace("Repo counts %+v", repoSize)
 	}
 
 	for i := range opts.OldCommitIDs {
@@ -967,7 +941,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 	isForcePush := false
 
 	if oldCommitID != objectFormat.EmptyObjectID().String() {
-		output, err := gitrepo.RunCmdString(ctx,
+		output, _, err := gitrepo.RunCmdString(ctx,
 			repo,
 			gitcmd.NewCommand("rev-list", "--max-count=1").
 				AddDynamicArguments(oldCommitID, "^"+newCommitID).

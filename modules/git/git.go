@@ -12,11 +12,11 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/tempdir"
 
 	"github.com/hashicorp/go-version"
 )
@@ -26,11 +26,12 @@ const RequiredVersion = "2.0.0" // the minimum Git version required
 type Features struct {
 	gitVersion *version.Version
 
-	UsingGogit             bool
-	SupportProcReceive     bool           // >= 2.29
-	SupportHashSha256      bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
-	SupportedObjectFormats []ObjectFormat // sha1, sha256
-	SupportCheckAttrOnBare bool           // >= 2.40
+	UsingGogit                 bool
+	SupportProcReceive         bool           // >= 2.29
+	SupportHashSha256          bool           // >= 2.42, SHA-256 repositories no longer an ‘experimental curiosity’
+	SupportedObjectFormats     []ObjectFormat // sha1, sha256
+	SupportCheckAttrOnBare     bool           // >= 2.40
+	SupportCatFileBatchCommand bool           // >= 2.36, support `git cat-file --batch-command`
 }
 
 var defaultFeatures *Features
@@ -75,6 +76,7 @@ func loadGitVersionFeatures() (*Features, error) {
 		features.SupportedObjectFormats = append(features.SupportedObjectFormats, Sha256ObjectFormat)
 	}
 	features.SupportCheckAttrOnBare = features.CheckVersionAtLeast("2.40")
+	features.SupportCatFileBatchCommand = features.CheckVersionAtLeast("2.36")
 	return features, nil
 }
 
@@ -137,10 +139,6 @@ func InitSimple() error {
 		log.Warn("git module has been initialized already, duplicate init may work but it's better to fix it")
 	}
 
-	if setting.Git.Timeout.Default > 0 {
-		gitcmd.SetDefaultCommandExecutionTimeout(time.Duration(setting.Git.Timeout.Default) * time.Second)
-	}
-
 	if err := gitcmd.SetExecutablePath(setting.Git.Path); err != nil {
 		return err
 	}
@@ -175,4 +173,26 @@ func InitFull() (err error) {
 	}
 
 	return syncGitConfig(context.Background())
+}
+
+// RunGitTests helps to init the git module and run tests.
+// FIXME: GIT-PACKAGE-DEPENDENCY: the dependency is not right, setting.Git.HomePath is initialized in this package but used in gitcmd package
+func RunGitTests(m interface{ Run() int }) {
+	fatalf := func(exitCode int, format string, args ...any) {
+		_, _ = fmt.Fprintf(os.Stderr, format, args...)
+		os.Exit(exitCode)
+	}
+	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
+	if err != nil {
+		fatalf(1, "unable to create temp dir: %s", err.Error())
+	}
+	defer cleanup()
+
+	setting.Git.HomePath = gitHomePath
+	if err = InitFull(); err != nil {
+		fatalf(1, "failed to call Init: %s", err.Error())
+	}
+	if exitCode := m.Run(); exitCode != 0 {
+		fatalf(exitCode, "run test failed, ExitCode=%d", exitCode)
+	}
 }

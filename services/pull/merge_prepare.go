@@ -19,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
@@ -37,12 +38,10 @@ type mergeContext struct {
 // Do NOT use it with gitcmd.RunStd*() functions, otherwise it will panic
 func (ctx *mergeContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
-	ctx.errbuf.Reset()
 	return cmd.WithEnv(ctx.env).
 		WithDir(ctx.tmpBasePath).
 		WithParentCallerInfo().
-		WithStdout(ctx.outbuf).
-		WithStderr(ctx.errbuf)
+		WithStdout(ctx.outbuf)
 }
 
 // ErrSHADoesNotMatch represents a "SHADoesNotMatch" kind of error.
@@ -96,7 +95,6 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	}
 
 	mergeCtx.outbuf.Reset()
-	mergeCtx.errbuf.Reset()
 	if err := prepareTemporaryRepoForMerge(mergeCtx); err != nil {
 		defer cancel()
 		return nil, nil, err
@@ -105,7 +103,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	mergeCtx.sig = doer.NewGitSig()
 	mergeCtx.committer = mergeCtx.sig
 
-	gitRepo, err := git.OpenRepository(ctx, mergeCtx.tmpBasePath)
+	gitRepo, err := gitrepo.OpenRepository(ctx, pr.BaseRepo)
 	if err != nil {
 		defer cancel()
 		return nil, nil, fmt.Errorf("failed to open temp git repo for pr[%d]: %w", mergeCtx.pr.ID, err)
@@ -113,7 +111,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 	defer gitRepo.Close()
 
 	// Determine if we should sign
-	sign, key, signer, _ := asymkey_service.SignMerge(ctx, mergeCtx.pr, mergeCtx.doer, gitRepo, "HEAD", trackingBranch)
+	sign, key, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, gitRepo)
 	if sign {
 		mergeCtx.signKey = key
 		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -166,13 +164,11 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 
 	setConfig := func(key, value string) error {
 		if err := ctx.PrepareGitCmd(gitcmd.NewCommand("config", "--local").AddDynamicArguments(key, value)).
-			Run(ctx); err != nil {
-			log.Error("git config [%s -> %q]: %v\n%s\n%s", key, value, err, ctx.outbuf.String(), ctx.errbuf.String())
-			return fmt.Errorf("git config [%s -> %q]: %w\n%s\n%s", key, value, err, ctx.outbuf.String(), ctx.errbuf.String())
+			RunWithStderr(ctx); err != nil {
+			log.Error("git config [%s -> %q]: %v\n%s\n%s", key, value, err, ctx.outbuf.String(), err.Stderr())
+			return fmt.Errorf("git config [%s -> %q]: %w\n%s\n%s", key, value, err, ctx.outbuf.String(), err.Stderr())
 		}
 		ctx.outbuf.Reset()
-		ctx.errbuf.Reset()
-
 		return nil
 	}
 
@@ -199,29 +195,17 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 
 	// Read base branch index
 	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("read-tree", "HEAD")).
-		Run(ctx); err != nil {
-		log.Error("git read-tree HEAD: %v\n%s\n%s", err, ctx.outbuf.String(), ctx.errbuf.String())
-		return fmt.Errorf("Unable to read base branch in to the index: %w\n%s\n%s", err, ctx.outbuf.String(), ctx.errbuf.String())
+		RunWithStderr(ctx); err != nil {
+		log.Error("git read-tree HEAD: %v\n%s\n%s", err, ctx.outbuf.String(), err.Stderr())
+		return fmt.Errorf("Unable to read base branch in to the index: %w\n%s\n%s", err, ctx.outbuf.String(), err.Stderr())
 	}
 	ctx.outbuf.Reset()
-	ctx.errbuf.Reset()
-
 	return nil
 }
 
 // getDiffTree returns a string containing all the files that were changed between headBranch and baseBranch
 // the filenames are escaped so as to fit the format required for .git/info/sparse-checkout
 func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, out io.Writer) error {
-	diffOutReader, diffOutWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repoPath)
-		return err
-	}
-	defer func() {
-		_ = diffOutReader.Close()
-		_ = diffOutWriter.Close()
-	}()
-
 	scanNullTerminatedStrings := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF && len(data) == 0 {
 			return 0, nil, nil
@@ -235,27 +219,23 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, o
 		return 0, nil, nil
 	}
 
-	err = gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root").
+	var diffOutReader io.ReadCloser
+	err := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root").
 		AddDynamicArguments(baseBranch, headBranch).
 		WithDir(repoPath).
-		WithStdout(diffOutWriter).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			// Close the writer end of the pipe to begin processing
-			_ = diffOutWriter.Close()
-			defer func() {
-				// Close the reader on return to terminate the git command if necessary
-				_ = diffOutReader.Close()
-			}()
-
+		WithStdoutReader(&diffOutReader).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(diffOutReader)
 			scanner.Split(scanNullTerminatedStrings)
 			for scanner.Scan() {
-				filepath := scanner.Text()
+				treePath := scanner.Text()
 				// escape '*', '?', '[', spaces and '!' prefix
-				filepath = escapedSymbols.ReplaceAllString(filepath, `\$1`)
+				treePath = escapedSymbols.ReplaceAllString(treePath, `\$1`)
 				// no necessary to escape the first '#' symbol because the first symbol is '/'
-				fmt.Fprintf(out, "/%s\n", filepath)
+				if _, err := fmt.Fprintf(out, "/%s\n", treePath); err != nil {
+					return err
+				}
 			}
 			return scanner.Err()
 		}).
@@ -287,15 +267,14 @@ func (err ErrRebaseConflicts) Error() string {
 func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle) error {
 	// Checkout head branch
 	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(stagingBranch, trackingBranch)).
-		Run(ctx); err != nil {
-		return fmt.Errorf("unable to git checkout tracking as staging in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+		RunWithStderr(ctx); err != nil {
+		return fmt.Errorf("unable to git checkout tracking as staging in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
 	}
 	ctx.outbuf.Reset()
-	ctx.errbuf.Reset()
 
 	// Rebase before merging
 	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("rebase").AddDynamicArguments(baseBranch)).
-		Run(ctx); err != nil {
+		RunWithStderr(ctx); err != nil {
 		// Rebase will leave a REBASE_HEAD file in .git if there is a conflict
 		if _, statErr := os.Stat(filepath.Join(ctx.tmpBasePath, ".git", "REBASE_HEAD")); statErr == nil {
 			var commitSha string
@@ -309,7 +288,7 @@ func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle)
 					commitShaBytes, readErr := os.ReadFile(failingCommitPath)
 					if readErr != nil {
 						// Abandon this attempt to handle the error
-						return fmt.Errorf("unable to git rebase staging on to base in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+						return fmt.Errorf("unable to git rebase staging on to base in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
 					}
 					commitSha = strings.TrimSpace(string(commitShaBytes))
 					ok = true
@@ -318,20 +297,19 @@ func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle)
 			}
 			if !ok {
 				log.Error("Unable to determine failing commit sha for failing rebase in temp repo for %-v. Cannot cast as ErrRebaseConflicts.", ctx.pr)
-				return fmt.Errorf("unable to git rebase staging on to base in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+				return fmt.Errorf("unable to git rebase staging on to base in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
 			}
-			log.Debug("Conflict when rebasing staging on to base in %-v at %s: %v\n%s\n%s", ctx.pr, commitSha, err, ctx.outbuf.String(), ctx.errbuf.String())
+			log.Debug("Conflict when rebasing staging on to base in %-v at %s: %v\n%s\n%s", ctx.pr, commitSha, err, ctx.outbuf.String(), err.Stderr())
 			return ErrRebaseConflicts{
 				CommitSHA: commitSha,
 				Style:     mergeStyle,
 				StdOut:    ctx.outbuf.String(),
-				StdErr:    ctx.errbuf.String(),
+				StdErr:    err.Stderr(),
 				Err:       err,
 			}
 		}
-		return fmt.Errorf("unable to git rebase staging on to base in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+		return fmt.Errorf("unable to git rebase staging on to base in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
 	}
 	ctx.outbuf.Reset()
-	ctx.errbuf.Reset()
 	return nil
 }

@@ -12,16 +12,16 @@ import (
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 func LineBlame(ctx context.Context, repo Repository, revision, file string, line uint) (string, error) {
-	return RunCmdString(ctx, repo,
+	stdout, _, err := RunCmdString(ctx, repo,
 		gitcmd.NewCommand("blame").
 			AddOptionFormat("-L %d,%d", line, line).
 			AddOptionValues("-p", revision).
 			AddDashesAndList(file))
+	return stdout, err
 }
 
 // BlamePart represents block of blame - continuous lines with one sha
@@ -173,17 +173,10 @@ func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo 
 		return nil, err
 	}
 	go func() {
-		stderr := bytes.Buffer{}
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
-		err := RunCmd(ctx, repo, cmd.WithUseContextTimeout(true).
-			WithStdout(stdout).
-			WithStderr(&stderr),
-		)
+		err := RunCmdWithStderr(ctx, repo, cmd.WithStdout(stdout))
 		done <- err
 		_ = stdout.Close()
-		if err != nil {
-			log.Error("Error running git blame (dir: %v): %v, stderr: %v", repoPath, err, stderr.String())
-		}
 	}()
 
 	bufferedReader := bufio.NewReader(reader)
