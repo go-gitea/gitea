@@ -248,9 +248,9 @@ func getActionIssues(ctx *context.Context) issues_model.IssueList {
 // GetIssueInfo get an issue of a repository
 func GetIssueInfo(ctx *context.Context) {
 	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
+	maxIndex, _ := issues_model.GetIssueMaxIndex(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			maxIndex, _ := issues_model.GetIssueMaxIndex(ctx, ctx.Repo.Repository.ID)
 			ctx.JSON(http.StatusNotFound, map[string]any{
 				"maxIndex": maxIndex,
 			})
@@ -277,6 +277,7 @@ func GetIssueInfo(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]any{
 		"convertedIssue": convert.ToIssue(ctx, ctx.Doer, issue),
 		"renderedLabels": templates.NewRenderUtils(ctx).RenderLabels(issue.Labels, ctx.Repo.RepoLink, issue),
+		"maxIndex":       maxIndex,
 	})
 }
 
