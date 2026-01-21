@@ -23,21 +23,21 @@ func entryModeToGogitFileMode(mode EntryMode) filemode.FileMode {
 
 func (te *TreeEntry) toGogitTreeEntry() *object.TreeEntry {
 	return &object.TreeEntry{
-		Name: te.name,
-		Mode: entryModeToGogitFileMode(te.entryMode),
+		Name: te.Name,
+		Mode: entryModeToGogitFileMode(te.EntryMode),
 		Hash: plumbing.Hash(te.ID.RawValue()),
 	}
 }
 
-// Size returns the size of the entry
-func (te *TreeEntry) Size() int64 {
+// GetSize returns the size of the entry
+func (te *TreeEntry) GetSize(repo *Repository) int64 {
 	if te.IsDir() {
 		return 0
-	} else if te.sized {
-		return te.size
+	} else if te.Sized {
+		return te.Size
 	}
 
-	ptreeGogitTree, err := te.ptree.gogitTreeObject()
+	ptreeGogitTree, err := repo.gogitRepo.TreeObject(plumbing.Hash(te.ID.RawValue()))
 	if err != nil {
 		return 0
 	}
@@ -46,16 +46,15 @@ func (te *TreeEntry) Size() int64 {
 		return 0
 	}
 
-	te.sized = true
-	te.size = file.Size
-	return te.size
+	te.Sized = true
+	te.Size = file.Size
+	return te.Size
 }
 
 // Blob returns the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
 	return &Blob{
 		ID:   te.ID,
-		repo: te.ptree.repo,
-		name: te.Name(),
+		name: te.Name,
 	}
 }

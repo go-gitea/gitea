@@ -21,7 +21,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
 	for i, entry := range tes {
-		entryPaths[i+1] = entry.Name()
+		entryPaths[i+1] = entry.Name
 	}
 
 	commitNodeIndex, commitGraphFile := commit.repo.CommitNodeIndex()
@@ -67,13 +67,13 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, repoLink string, commit *
 		}
 
 		// Check if we have found a commit for this entry in time
-		if entryCommit, ok := revs[entry.Name()]; ok {
+		if entryCommit, ok := revs[entry.Name]; ok {
 			commitsInfo[i].Commit = entryCommit
 		}
 
 		// If the entry is a submodule, add a submodule file for this
 		if entry.IsSubModule() {
-			commitsInfo[i].SubmoduleFile, err = GetCommitInfoSubmoduleFile(repoLink, path.Join(treePath, entry.Name()), commit, entry.ID)
+			commitsInfo[i].SubmoduleFile, err = GetCommitInfoSubmoduleFile(repoLink, path.Join(treePath, entry.Name), commit, entry.ID)
 			if err != nil {
 				return nil, nil, err
 			}

@@ -13,7 +13,6 @@ func (repo *Repository) GetBlob(idStr string) (*Blob, error) {
 		return nil, ErrNotExist{id.String(), ""}
 	}
 	return &Blob{
-		ID:   id,
-		repo: repo,
+		ID: id,
 	}, nil
 }

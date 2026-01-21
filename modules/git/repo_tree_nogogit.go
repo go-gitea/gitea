@@ -56,7 +56,7 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 		if err != nil {
 			return nil, err
 		}
-		tree.entries, err = catBatchParseTreeEntries(objectFormat, tree, rd, info.Size)
+		tree.entries, err = catBatchParseTreeEntries(objectFormat, rd, info.Size)
 		if err != nil {
 			return nil, err
 		}

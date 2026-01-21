@@ -54,10 +54,10 @@ func TestDataAsyncDoubleRead_Issue29101(t *testing.T) {
 		assert.NoError(t, err)
 
 		b := entry.Blob()
-		r1, err := b.DataAsync()
+		r1, err := b.DataAsync(gitRepo)
 		assert.NoError(t, err)
 		defer r1.Close()
-		r2, err := b.DataAsync()
+		r2, err := b.DataAsync(gitRepo)
 		assert.NoError(t, err)
 		defer r2.Close()
 

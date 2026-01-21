@@ -82,7 +82,7 @@ func GetRawFile(ctx *context.APIContext) {
 
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
-	if err := common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified); err != nil {
+	if err := common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.TreePath, blob, lastModified); err != nil {
 		ctx.APIErrorInternal(err)
 	}
 }
@@ -136,14 +136,14 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
-	if blob.Size() > lfs.MetaFileMaxSize {
+	if blob.Size(ctx.Repo.GitRepo) > lfs.MetaFileMaxSize {
 		// First handle caching for the blob
 		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
 		}
 
 		// If not cached - serve!
-		if err := common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, blob, lastModified); err != nil {
+		if err := common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Repo.TreePath, blob, lastModified); err != nil {
 			ctx.APIErrorInternal(err)
 		}
 		return
@@ -151,7 +151,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 
 	// OK, now the blob is known to have at most 1024 (lfs pointer max size) bytes,
 	// we can simply read this in one go (This saves reading it twice)
-	dataRc, err := blob.DataAsync()
+	dataRc, err := blob.DataAsync(ctx.Repo.GitRepo)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -179,7 +179,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 
 		// If not cached - serve!
-		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
+		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(ctx.Repo.GitRepo), bytes.NewReader(buf))
 		return
 	}
 
@@ -193,7 +193,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 			return
 		}
 
-		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf))
+		common.ServeContentByReader(ctx.Base, ctx.Repo.TreePath, blob.Size(ctx.Repo.GitRepo), bytes.NewReader(buf))
 		return
 	} else if err != nil {
 		ctx.APIErrorInternal(err)

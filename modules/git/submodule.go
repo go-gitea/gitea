@@ -28,7 +28,7 @@ func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submodul
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 			for scanner.Scan() {
-				entry, err := parseLsTreeLine(scanner.Bytes())
+				entry, err := parseTreeEntry(scanner.Bytes())
 				if err != nil {
 					return err
 				}

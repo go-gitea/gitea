@@ -17,18 +17,17 @@ import (
 // Blob represents a Git object.
 type Blob struct {
 	ID   ObjectID
-	repo *Repository
 	name string
 }
 
-func (b *Blob) gogitEncodedObj() (plumbing.EncodedObject, error) {
-	return b.repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, plumbing.Hash(b.ID.RawValue()))
+func (b *Blob) gogitEncodedObj(repo *Repository) (plumbing.EncodedObject, error) {
+	return repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, plumbing.Hash(b.ID.RawValue()))
 }
 
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
-func (b *Blob) DataAsync() (io.ReadCloser, error) {
-	obj, err := b.gogitEncodedObj()
+func (b *Blob) DataAsync(repo *Repository) (io.ReadCloser, error) {
+	obj, err := b.gogitEncodedObj(repo)
 	if err != nil {
 		return nil, err
 	}
@@ -36,8 +35,8 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 }
 
 // Size returns the uncompressed size of the blob
-func (b *Blob) Size() int64 {
-	obj, err := b.gogitEncodedObj()
+func (b *Blob) Size(repo *Repository) int64 {
+	obj, err := b.gogitEncodedObj(repo)
 	if err != nil {
 		log.Error("Error getting gogit encoded object for blob %s(%s): %v", b.name, b.ID.String(), err)
 		return 0

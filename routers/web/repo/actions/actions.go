@@ -140,7 +140,7 @@ func prepareWorkflowTemplate(ctx *context.Context, commit *git.Commit) (workflow
 	workflows = make([]WorkflowInfo, 0, len(entries))
 	for _, entry := range entries {
 		workflow := WorkflowInfo{Entry: *entry}
-		content, err := actions.GetContentFromEntry(entry)
+		content, err := actions.GetContentFromEntry(ctx.Repo.GitRepo, entry)
 		if err != nil {
 			ctx.ServerError("GetContentFromEntry", err)
 			return nil, ""
@@ -193,7 +193,7 @@ func prepareWorkflowDispatchTemplate(ctx *context.Context, workflowInfos []Workf
 
 	var curWorkflow *act_model.Workflow
 	for _, workflowInfo := range workflowInfos {
-		if workflowInfo.Entry.Name() == curWorkflowID {
+		if workflowInfo.Entry.Name == curWorkflowID {
 			if workflowInfo.Workflow == nil {
 				log.Debug("CurWorkflowID %s is found but its workflowInfo.Workflow is nil", curWorkflowID)
 				return

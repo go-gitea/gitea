@@ -114,7 +114,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	for _, e := range entries {
-		if e.Name() != workflowID {
+		if e.Name != workflowID {
 			continue
 		}
 		entry = e
@@ -128,7 +128,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		)
 	}
 
-	content, err := actions.GetContentFromEntry(entry)
+	content, err := actions.GetContentFromEntry(gitRepo, entry)
 	if err != nil {
 		return err
 	}

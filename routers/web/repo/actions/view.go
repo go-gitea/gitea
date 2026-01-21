@@ -86,7 +86,7 @@ func ViewWorkflowFile(ctx *context_module.Context) {
 		return
 	}
 	for _, entry := range entries {
-		if entry.Name() == run.WorkflowID {
+		if entry.Name == run.WorkflowID {
 			ctx.Redirect(fmt.Sprintf("%s/src/commit/%s/%s/%s", ctx.Repo.RepoLink, url.PathEscape(run.CommitSHA), util.PathEscapeSegments(rpath), util.PathEscapeSegments(run.WorkflowID)))
 			return
 		}

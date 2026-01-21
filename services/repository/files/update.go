@@ -619,7 +619,7 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 	}
 
 	oldEntryBlobPointerBy := func(f func(r io.Reader) (lfs.Pointer, error)) (lfsPointer lfs.Pointer, err error) {
-		r, err := oldEntry.Blob().DataAsync()
+		r, err := oldEntry.Blob().DataAsync(t.gitRepo)
 		if err != nil {
 			return lfsPointer, err
 		}
@@ -645,7 +645,7 @@ func writeRepoObjectForRename(ctx context.Context, t *TemporaryUploadRepository,
 		if err != nil {
 			return nil, err
 		}
-		ret.LfsContent, err = oldEntry.Blob().DataAsync()
+		ret.LfsContent, err = oldEntry.Blob().DataAsync(t.gitRepo)
 		if err != nil {
 			return nil, err
 		}

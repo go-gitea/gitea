@@ -126,8 +126,8 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 
 // wikiContentsByEntry returns the contents of the wiki page referenced by the
 // given tree entry. Writes to ctx if an error occurs.
-func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
-	reader, err := entry.Blob().DataAsync()
+func wikiContentsByEntry(ctx *context.Context, gitRepo *git.Repository, entry *git.TreeEntry) []byte {
+	reader, err := entry.Blob().DataAsync(gitRepo)
 	if err != nil {
 		ctx.ServerError("Blob.Data", err)
 		return nil
@@ -170,12 +170,12 @@ func wikiEntryByName(ctx *context.Context, commit *git.Commit, wikiName wiki_ser
 
 // wikiContentsByName returns the contents of a wiki page, along with a boolean
 // indicating whether the page exists. Writes to ctx if an error occurs.
-func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName wiki_service.WebPath) ([]byte, *git.TreeEntry, string, bool) {
+func wikiContentsByName(ctx *context.Context, wikiGitRepo *git.Repository, commit *git.Commit, wikiName wiki_service.WebPath) ([]byte, *git.TreeEntry, string, bool) {
 	entry, gitFilename, noEntry, _ := wikiEntryByName(ctx, commit, wikiName)
 	if entry == nil {
 		return nil, nil, "", true
 	}
-	return wikiContentsByEntry(ctx, entry), entry, gitFilename, noEntry
+	return wikiContentsByEntry(ctx, wikiGitRepo, entry), entry, gitFilename, noEntry
 }
 
 func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
@@ -198,7 +198,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		if !entry.IsRegular() {
 			continue
 		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Name())
+		wikiName, err := wiki_service.GitPathToWebPath(entry.Name)
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
@@ -212,7 +212,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		pages = append(pages, PageMeta{
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Name(),
+			GitEntryName: entry.Name,
 		})
 	}
 	ctx.Data["Pages"] = pages
@@ -245,7 +245,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	// get page content
-	data := wikiContentsByEntry(ctx, entry)
+	data := wikiContentsByEntry(ctx, wikiGitRepo, entry)
 	if ctx.Written() {
 		return nil, nil
 	}
@@ -286,7 +286,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	if !isSideBar {
-		sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar")
+		sidebarContent, _, _, _ := wikiContentsByName(ctx, wikiGitRepo, commit, "_Sidebar")
 		if ctx.Written() {
 			return nil, nil
 		}
@@ -298,7 +298,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	if !isFooter {
-		footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer")
+		footerContent, _, _, _ := wikiContentsByName(ctx, wikiGitRepo, commit, "_Footer")
 		if ctx.Written() {
 			return nil, nil
 		}
@@ -341,7 +341,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
 	// lookup filename in wiki - get page content, gitTree entry , real filename
-	_, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
+	_, entry, pageFilename, noEntry := wikiContentsByName(ctx, wikiGitRepo, commit, pageName)
 	if noEntry {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki/?action=_pages")
 	}
@@ -381,7 +381,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 }
 
 func renderEditPage(ctx *context.Context) {
-	_, commit, err := findWikiRepoCommit(ctx)
+	wikiGitRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if !git.IsErrNotExist(err) {
 			ctx.ServerError("GetBranchCommit", err)
@@ -414,7 +414,7 @@ func renderEditPage(ctx *context.Context) {
 	}
 
 	// get wiki page content
-	data := wikiContentsByEntry(ctx, entry)
+	data := wikiContentsByEntry(ctx, wikiGitRepo, entry)
 	if ctx.Written() {
 		return
 	}
@@ -491,7 +491,7 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	wikiPath := entry.Name()
+	wikiPath := entry.Name
 	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
 		ext := strings.ToUpper(filepath.Ext(wikiPath))
 		ctx.Data["FormatWarning"] = ext + " rendering is not supported at the moment. Rendered as Markdown."
@@ -528,7 +528,7 @@ func WikiRevision(ctx *context.Context) {
 	}
 
 	// Get last change information.
-	wikiPath := entry.Name()
+	wikiPath := entry.Name
 	lastCommit, err := wikiGitRepo.GetCommitByPath(wikiPath)
 	if err != nil {
 		ctx.ServerError("GetCommitByPath", err)
@@ -580,7 +580,7 @@ func WikiPages(ctx *context.Context) {
 		if !entry.Entry.IsRegular() {
 			continue
 		}
-		wikiName, err := wiki_service.GitPathToWebPath(entry.Entry.Name())
+		wikiName, err := wiki_service.GitPathToWebPath(entry.Entry.Name)
 		if err != nil {
 			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
@@ -592,7 +592,7 @@ func WikiPages(ctx *context.Context) {
 		pages = append(pages, PageMeta{
 			Name:         displayName,
 			SubURL:       wiki_service.WebPathToURLPath(wikiName),
-			GitEntryName: entry.Entry.Name(),
+			GitEntryName: entry.Entry.Name,
 			UpdatedUnix:  timeutil.TimeStamp(entry.Commit.Author.When.Unix()),
 		})
 	}
@@ -603,7 +603,7 @@ func WikiPages(ctx *context.Context) {
 
 // WikiRaw outputs raw blob requested by user (image for example)
 func WikiRaw(ctx *context.Context) {
-	_, commit, err := findWikiRepoCommit(ctx)
+	wikiGitRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(nil)
@@ -636,7 +636,7 @@ func WikiRaw(ctx *context.Context) {
 	}
 
 	if entry != nil {
-		if err = common.ServeBlob(ctx.Base, ctx.Repo.Repository, ctx.Repo.TreePath, entry.Blob(), nil); err != nil {
+		if err = common.ServeBlob(ctx.Base, ctx.Repo.Repository, wikiGitRepo, ctx.Repo.TreePath, entry.Blob(), nil); err != nil {
 			ctx.ServerError("ServeBlob", err)
 		}
 		return
