@@ -31,7 +31,7 @@ func SearchPointerBlobs(ctx context.Context, repo *git.Repository, pointerChan c
 	cmd3BatchContentIn, cmd3BatchContentOut, cmd3BatchContentClose := cmd3BatchContent.MakeStdinStdoutPipe()
 	defer cmd3BatchContentClose()
 
-	// Create the go-routines in reverse order.
+	// Create the go-routines in reverse order (update: the order is not needed any more, the pipes are properly prepared)
 	wg := errgroup.Group{}
 	// 4. Take the output of cat-file --batch and check if each file in turn
 	// to see if they're pointers to files in the LFS store

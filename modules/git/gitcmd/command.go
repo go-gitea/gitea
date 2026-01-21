@@ -287,7 +287,9 @@ func (c *Command) makeStdoutStderr(w *io.Writer) (PipeReader, func()) {
 	return &pipeReader{f: pr}, func() { pr.Close() }
 }
 
-func (c *Command) MakeStdinPipe() (PipeWriter, func()) {
+// MakeStdinPipe creates a writer for the command's stdin.
+// The returned closer function must be called by the caller to close the pipe.
+func (c *Command) MakeStdinPipe() (writer PipeWriter, closer func()) {
 	pr, pw, err := os.Pipe()
 	if err != nil {
 		c.preErrors = append(c.preErrors, err)
@@ -299,15 +301,19 @@ func (c *Command) MakeStdinPipe() (PipeWriter, func()) {
 	return &pipeWriter{pw}, func() { pw.Close() }
 }
 
-func (c *Command) MakeStdoutPipe() (PipeReader, func()) {
+// MakeStdoutPipe creates a reader for the command's stdout.
+// The returned closer function must be called by the caller to close the pipe.
+// After the pipe reader is closed, the unread data will be discarded.
+func (c *Command) MakeStdoutPipe() (reader PipeReader, closer func()) {
 	return c.makeStdoutStderr(&c.cmdStdout)
 }
 
-func (c *Command) MakeStderrPipe() (PipeReader, func()) {
+// MakeStderrPipe is like MakeStdoutPipe, but for stderr.
+func (c *Command) MakeStderrPipe() (reader PipeReader, closer func()) {
 	return c.makeStdoutStderr(&c.cmdStderr)
 }
 
-func (c *Command) MakeStdinStdoutPipe() (PipeWriter, PipeReader, func()) {
+func (c *Command) MakeStdinStdoutPipe() (stdin PipeWriter, stdout PipeReader, closer func()) {
 	stdin, stdinClose := c.MakeStdinPipe()
 	stdout, stdoutClose := c.MakeStdoutPipe()
 	return stdin, stdout, func() {
@@ -316,13 +322,13 @@ func (c *Command) MakeStdinStdoutPipe() (PipeWriter, PipeReader, func()) {
 	}
 }
 
-func (c *Command) WithStdoutBuffer(w PipeBufferWriter) *Command {
-	c.cmdStdout = w
+func (c *Command) WithStdinBytes(stdin []byte) *Command {
+	c.cmdStdin = bytes.NewReader(stdin)
 	return c
 }
 
-func (c *Command) WithStdinBytes(stdin []byte) *Command {
-	c.cmdStdin = bytes.NewReader(stdin)
+func (c *Command) WithStdoutBuffer(w PipeBufferWriter) *Command {
+	c.cmdStdout = w
 	return c
 }
 

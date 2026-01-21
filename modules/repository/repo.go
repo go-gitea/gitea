@@ -152,13 +152,12 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 		}
 	}
 
-	err, has := <-errChan
-	if has {
+	err := <-errChan
+	if err != nil {
 		log.Error("Repo[%-v]: Error enumerating LFS objects for repository: %v", repo, err)
-		return err
 	}
 
-	return nil
+	return err
 }
 
 // shortRelease to reduce load memory, this struct can replace repo_model.Release

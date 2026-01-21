@@ -41,7 +41,7 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 	cmd5BatchContentIn, cmd5BatchContentOut, cmd5BatchContentClose := cmd5BatchContent.MakeStdinStdoutPipe()
 	defer cmd5BatchContentClose()
 
-	// Create the go-routines in reverse order.
+	// Create the go-routines in reverse order (update: the order is not needed any more, the pipes are properly prepared)
 	wg := &errgroup.Group{}
 
 	// 6. Take the output of cat-file --batch and check if each file in turn
