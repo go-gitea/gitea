@@ -74,6 +74,7 @@ export function initRepository() {
     initRepoIssueCommentEdit();
     initRepoIssueCommentDelete();
     initRepoIssueCodeCommentCancel();
+    initRepoIssueReferenceIssue();
     initCompReactionSelector();
   }
 
