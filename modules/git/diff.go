@@ -78,7 +78,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	}
 
 	return cmd.WithDir(repo.Path).
-		WithStdoutLegacy(writer).
+		WithStdoutCopy(writer).
 		RunWithStderr(repo.Ctx)
 }
 

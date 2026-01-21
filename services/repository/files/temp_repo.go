@@ -168,7 +168,7 @@ func (t *TemporaryUploadRepository) HashObjectAndWrite(ctx context.Context, cont
 	if err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
 		WithDir(t.basePath).
 		WithStdoutBuffer(stdOut).
-		WithStdinLegacy(content).
+		WithStdinCopy(content).
 		RunWithStderr(ctx); err != nil {
 		return "", fmt.Errorf("unable to hash-object to temporary repo: %s, error: %w", t.repo.FullName(), err)
 	}

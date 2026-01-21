@@ -332,17 +332,18 @@ func (c *Command) WithStdoutBuffer(w PipeBufferWriter) *Command {
 	return c
 }
 
-// WithStdinLegacy and WithStdoutLegacy are legacy functions that accept io.Reader/io.Writer.
+// WithStdinCopy and WithStdoutCopy are general functions that accept any io.Reader / io.Writer.
 // In this case, Golang exec.Cmd will start new internal goroutines to do io.Copy between pipes and provided Reader/Writer.
 // If the reader or writer is blocked and never returns, then the io.Copy won't finish, then exec.Cmd.Wait won't return, which may cause deadlocks.
-// A typical example is:
+// A typical deadlock example is:
 // * `r,w:=io.Pipe(); cmd.Stdin=r; defer w.Close(); cmd.Run()`: the Run() will never return because stdin reader is blocked forever and w.Close() will never be called.
-func (c *Command) WithStdinLegacy(w io.Reader) *Command {
+// If the reader/writer won't block forever (for example: read from a file or buffer), then these functions are safe to use.
+func (c *Command) WithStdinCopy(w io.Reader) *Command {
 	c.cmdStdin = w
 	return c
 }
 
-func (c *Command) WithStdoutLegacy(w io.Writer) *Command {
+func (c *Command) WithStdoutCopy(w io.Writer) *Command {
 	c.cmdStdout = w
 	return c
 }

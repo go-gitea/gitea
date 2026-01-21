@@ -70,7 +70,7 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 
 	cmd.WithEnv(envs).
 		WithDir(repo.Path).
-		WithStdoutLegacy(lw)
+		WithStdoutCopy(lw)
 
 	go func() {
 		defer stdinWriterClose()
