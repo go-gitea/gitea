@@ -422,7 +422,7 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 
 	c.cmdStartTime = time.Now()
 
-	c.cmd = exec.CommandContext(ctx, c.prog, append(c.configArgs, c.args...)...)
+	c.cmd = exec.CommandContext(c.cmdCtx, c.prog, append(c.configArgs, c.args...)...)
 	if c.opts.Env == nil {
 		c.cmd.Env = os.Environ()
 	} else {
@@ -482,6 +482,9 @@ func (c *Command) Wait() error {
 }
 
 func (c *Command) StartWithStderr(ctx context.Context) RunStdError {
+	if c.cmdStderr != nil {
+		panic("caller-provided stderr receiver doesn't work with managed stderr buffer")
+	}
 	c.cmdManagedStderr = &bytes.Buffer{}
 	c.cmdStderr = c.cmdManagedStderr
 	err := c.Start(ctx)
@@ -493,7 +496,7 @@ func (c *Command) StartWithStderr(ctx context.Context) RunStdError {
 
 func (c *Command) WaitWithStderr() RunStdError {
 	if c.cmdManagedStderr == nil {
-		panic("CombineStderr needs managed (but not caller-provided) stderr pipe")
+		panic("managed stderr buffer is not initialized")
 	}
 	errWait := c.Wait()
 	if errWait == nil {
