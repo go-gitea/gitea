@@ -141,9 +141,9 @@ func (c *CommitComment) UnsignedLine() int64 {
 // DiffSide returns which side the comment belongs to
 func (c *CommitComment) DiffSide() string {
 	if c.Line < 0 {
-		return "left"
+		return "previous"
 	}
-	return "right"
+	return "proposed"
 }
 
 // TreePath exposes Path in a field-name compatible way with issue comment templates
