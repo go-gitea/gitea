@@ -112,6 +112,10 @@ func testPullRequestMergeTree(ctx context.Context, pr *issues_model.PullRequest)
 		return nil
 	}
 
+	// reset conflicted files and changed protected files
+	pr.ConflictedFiles = nil
+	pr.ChangedProtectedFiles = nil
+
 	// 6. if base == head, then it's an ancestor
 	if pr.HeadCommitID == pr.MergeBase {
 		pr.Status = issues_model.PullRequestStatusAncestor
@@ -132,10 +136,5 @@ func testPullRequestMergeTree(ctx context.Context, pr *issues_model.PullRequest)
 	if err = checkPullFilesProtection(ctx, pr, baseGitRepo); err != nil {
 		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
-	if len(pr.ChangedProtectedFiles) > 0 {
-		log.Trace("Found %d protected files changed", len(pr.ChangedProtectedFiles))
-	}
-
-	pr.Status = issues_model.PullRequestStatusMergeable
 	return nil
 }

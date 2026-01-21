@@ -123,10 +123,6 @@ func testPullRequestTmpRepoBranchMergeable(ctx context.Context, prCtx *prTmpRepo
 		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
 
-	if len(pr.ChangedProtectedFiles) > 0 {
-		log.Trace("Found %d protected files changed", len(pr.ChangedProtectedFiles))
-	}
-
 	pr.Status = issues_model.PullRequestStatusMergeable
 
 	return nil
@@ -598,6 +594,9 @@ func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest,
 	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.HeadBranch, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
 	if err != nil && !IsErrFilePathProtected(err) {
 		return err
+	}
+	if len(pr.ChangedProtectedFiles) > 0 {
+		log.Trace("Found %d protected files changed in PR %s#%d", len(pr.ChangedProtectedFiles), pr.BaseRepo.FullName(), pr.Index)
 	}
 	return nil
 }
