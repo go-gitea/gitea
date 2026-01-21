@@ -53,7 +53,7 @@ export function initCommonIssueListQuickGoto() {
     const searchText = input.value;
     // try to check whether the parsed goto link is valid
     let targetUrl = (maxIssueIndex === 0 || Number(searchText) <= maxIssueIndex) && parseIssueListQuickGotoLink(repoLink, searchText) || '';
-    if (targetUrl && maxIssueIndex === 0) {
+    if (targetUrl) {
       const res = await GET(`${targetUrl}/info`); // backend: GetIssueInfo, it only checks whether the issue exists by status code
       if (res.status !== 200) {
         targetUrl = '';
