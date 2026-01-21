@@ -250,7 +250,10 @@ func GetIssueInfo(ctx *context.Context) {
 	issue, err := issues_model.GetIssueWithAttrsByIndex(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("index"))
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			ctx.HTTPError(http.StatusNotFound)
+			maxIndex, _ := issues_model.GetIssueMaxIndex(ctx, ctx.Repo.Repository.ID)
+			ctx.JSON(http.StatusNotFound, map[string]any{
+				"maxIndex": maxIndex,
+			})
 		} else {
 			ctx.HTTPError(http.StatusInternalServerError, "GetIssueByIndex", err.Error())
 		}

@@ -242,7 +242,7 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
 }
 
 export function onInputDebounce(fn: () => Promisable<any>) {
-  return debounce(600, fn);
+  return debounce(300, fn);
 }
 
 type LoadableElement = HTMLEmbedElement | HTMLIFrameElement | HTMLImageElement | HTMLScriptElement | HTMLTrackElement;
