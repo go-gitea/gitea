@@ -51,25 +51,6 @@ func TestActionRunJob_MaxParallel(t *testing.T) {
 		assert.Equal(t, 3, retrieved.MaxParallel)
 	})
 
-	t.Run("MatrixID", func(t *testing.T) {
-		job := &ActionRunJob{
-			RunID:       1,
-			RepoID:      1,
-			OwnerID:     1,
-			JobID:       "test-job-3",
-			Name:        "Matrix Job with ID",
-			Status:      StatusWaiting,
-			MaxParallel: 2,
-			MatrixID:    "os:ubuntu,node:16",
-		}
-		assert.NoError(t, db.Insert(ctx, job))
-
-		retrieved, err := GetRunJobByID(ctx, job.ID)
-		assert.NoError(t, err)
-		assert.Equal(t, 2, retrieved.MaxParallel)
-		assert.Equal(t, "os:ubuntu,node:16", retrieved.MatrixID)
-	})
-
 	t.Run("UpdateMaxParallel", func(t *testing.T) {
 		// Create ActionRun first
 		run := &ActionRun{
@@ -124,10 +105,10 @@ func TestActionRunJob_MaxParallelEnforcement(t *testing.T) {
 
 		// Create jobs simulating matrix execution
 		jobs := []*ActionRunJob{
-			{RunID: runID, RepoID: 1, OwnerID: 1, JobID: jobID, Name: "Job 1", Status: StatusRunning, MaxParallel: maxParallel, MatrixID: "version:1"},
-			{RunID: runID, RepoID: 1, OwnerID: 1, JobID: jobID, Name: "Job 2", Status: StatusRunning, MaxParallel: maxParallel, MatrixID: "version:2"},
-			{RunID: runID, RepoID: 1, OwnerID: 1, JobID: jobID, Name: "Job 3", Status: StatusWaiting, MaxParallel: maxParallel, MatrixID: "version:3"},
-			{RunID: runID, RepoID: 1, OwnerID: 1, JobID: jobID, Name: "Job 4", Status: StatusWaiting, MaxParallel: maxParallel, MatrixID: "version:4"},
+			{RunID: runID, RepoID: 1, OwnerID: 1, JobID: jobID, Name: "Job 1", Status: StatusRunning, MaxParallel: maxParallel},
+			{RunID: runID, RepoID: 1, OwnerID: 1, JobID: jobID, Name: "Job 2", Status: StatusRunning, MaxParallel: maxParallel},
+			{RunID: runID, RepoID: 1, OwnerID: 1, JobID: jobID, Name: "Job 3", Status: StatusWaiting, MaxParallel: maxParallel},
+			{RunID: runID, RepoID: 1, OwnerID: 1, JobID: jobID, Name: "Job 4", Status: StatusWaiting, MaxParallel: maxParallel},
 		}
 
 		for _, job := range jobs {
