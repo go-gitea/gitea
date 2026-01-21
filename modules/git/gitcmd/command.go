@@ -386,7 +386,7 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 
 	c.cmdStartTime = time.Now()
 
-	c.cmd = exec.CommandContext(ctx, c.prog, append(c.configArgs, c.args...)...)
+	c.cmd = exec.CommandContext(c.cmdCtx, c.prog, append(c.configArgs, c.args...)...)
 	if c.opts.Env == nil {
 		c.cmd.Env = os.Environ()
 	} else {
@@ -425,6 +425,17 @@ func (c *Command) closeStdioPipes() {
 }
 
 func (c *Command) Wait() error {
+	done := make(chan struct{})
+	defer close(done)
+	if c.cmd != nil && c.cmd.Process != nil && c.cmdCtx != nil {
+		go func() {
+			select {
+			case <-c.cmdCtx.Done():
+				_ = c.cmd.Process.Kill()
+			case <-done:
+			}
+		}()
+	}
 	defer func() {
 		c.closeStdioPipes()
 		c.cmdFinished()

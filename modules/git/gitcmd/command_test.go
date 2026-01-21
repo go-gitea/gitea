@@ -6,6 +6,7 @@ package gitcmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"testing"
 	"time"
@@ -121,7 +122,17 @@ func TestRunWithContextTimeout(t *testing.T) {
 		require.NoError(t, err)
 	})
 	t.Run("WithTimeout", func(t *testing.T) {
-		err := NewCommand("hash-object", "--stdin").WithTimeout(1 * time.Millisecond).Run(t.Context())
+		pr, pw := io.Pipe()
+		defer pw.Close()
+		time.AfterFunc(200*time.Millisecond, func() { _ = pw.Close() })
+		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
+		defer cancel()
+		start := time.Now()
+		err := NewCommand("cat-file", "--batch").
+			WithStdin(pr).
+			WithTimeout(50 * time.Millisecond).
+			Run(ctx)
 		require.ErrorIs(t, err, context.DeadlineExceeded)
+		require.Less(t, time.Since(start), time.Second)
 	})
 }
