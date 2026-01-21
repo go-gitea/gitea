@@ -76,3 +76,22 @@ func IsErrorCanceledOrKilled(err error) bool {
 	// TODO: in the future, we need to use unified error type from gitcmd.Run to check whether it is manually canceled
 	return errors.Is(err, context.Canceled) || IsErrorSignalKilled(err)
 }
+
+type pipelineError struct {
+	error
+}
+
+func wrapPipelineError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return pipelineError{err}
+}
+
+func ErrorAsPipeline(err error) (error, bool) {
+	var pipelineErr pipelineError
+	if errors.As(err, &pipelineErr) {
+		return pipelineErr.error, true
+	}
+	return nil, false
+}

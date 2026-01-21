@@ -7,6 +7,7 @@ package pull
 import (
 	"bufio"
 	"context"
+	"errors"
 	"io"
 	"strconv"
 
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -87,7 +89,7 @@ func createLFSMetaObjectsFromCatFileBatch(ctx context.Context, catFileBatchReade
 		// File descriptor line: sha
 		_, err := bufferedReader.ReadString(' ')
 		if err != nil {
-			return err
+			return util.Iif(errors.Is(err, io.EOF), nil, err)
 		}
 		// Throw away the blob
 		if _, err := bufferedReader.ReadString(' '); err != nil {

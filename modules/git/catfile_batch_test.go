@@ -66,10 +66,10 @@ func testCatFileBatch(t *testing.T) {
 		switch b := batch.(type) {
 		case *catFileBatchLegacy:
 			c = b.batchCheck
-			_, _ = c.writer.Write([]byte("in-complete-line-"))
+			_, _ = c.reqWriter.Write([]byte("in-complete-line-"))
 		case *catFileBatchCommand:
 			c = b.batch
-			_, _ = c.writer.Write([]byte("info"))
+			_, _ = c.reqWriter.Write([]byte("info"))
 		default:
 			t.FailNow()
 			return
@@ -78,8 +78,8 @@ func testCatFileBatch(t *testing.T) {
 		wg := sync.WaitGroup{}
 		wg.Go(func() {
 			buf := make([]byte, 100)
-			_, _ = c.reader.Read(buf)
-			n, errRead := c.reader.Read(buf)
+			_, _ = c.respReader.Read(buf)
+			n, errRead := c.respReader.Read(buf)
 			assert.Zero(t, n)
 			assert.ErrorIs(t, errRead, io.EOF) // the pipe is closed due to command being killed
 		})

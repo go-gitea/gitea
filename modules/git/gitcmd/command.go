@@ -281,11 +281,10 @@ func (c *Command) makeStdoutStderr(w *io.Writer) (PipeReader, func()) {
 		c.preErrors = append(c.preErrors, err)
 		return &pipeNull{err}, func() {}
 	}
-	*w = pw
 	c.childrenPipeFiles = append(c.childrenPipeFiles, pw)
 	c.parentPipeFiles = append(c.parentPipeFiles, pr)
-	parentReader := &pipeReader{f: pr}
-	return parentReader, func() { pw.Close() }
+	*w /* stdout, stderr */ = pw
+	return &pipeReader{f: pr}, func() { pr.Close() }
 }
 
 func (c *Command) MakeStdinPipe() (PipeWriter, func()) {
@@ -297,11 +296,15 @@ func (c *Command) MakeStdinPipe() (PipeWriter, func()) {
 	c.childrenPipeFiles = append(c.childrenPipeFiles, pr)
 	c.parentPipeFiles = append(c.parentPipeFiles, pw)
 	c.cmdStdin = pr
-	return &pipeWriter{pw}, func() { pr.Close() }
+	return &pipeWriter{pw}, func() { pw.Close() }
 }
 
 func (c *Command) MakeStdoutPipe() (PipeReader, func()) {
 	return c.makeStdoutStderr(&c.cmdStdout)
+}
+
+func (c *Command) MakeStderrPipe() (PipeReader, func()) {
+	return c.makeStdoutStderr(&c.cmdStderr)
 }
 
 func (c *Command) MakeStdinStdoutPipe() (PipeWriter, PipeReader, func()) {
@@ -434,24 +437,24 @@ func (c *Command) closePipeFiles(files []*os.File) {
 
 func (c *Command) Wait() error {
 	defer func() {
-		// The reader in another gotourine might be still reading the stdout, so we shouldn't close the pipes here
+		// The reader in another goroutine might be still reading the stdout, so we shouldn't close the pipes here
 		// MakeStdoutPipe returns a closer function to force callers to close the pipe correctly
 		// Here we only need to mark the command as finished
 		c.cmdFinished()
 	}()
 
 	if c.opts.PipelineFunc != nil {
-		errCallback := c.opts.PipelineFunc(&cmdContext{Context: c.cmdCtx, cmd: c})
+		errPipeline := c.opts.PipelineFunc(&cmdContext{Context: c.cmdCtx, cmd: c})
 		// after the pipeline function returns, we can safely cancel the command context and close the pipes, the data in pipes should have been consumed
-		c.cmdCancel(errCallback)
+		c.cmdCancel(errPipeline)
 		c.closePipeFiles(c.parentPipeFiles)
 		errWait := c.cmd.Wait()
 		errCause := context.Cause(c.cmdCtx)
 		// the pipeline function should be able to know whether it succeeds or fails
-		if errCallback == nil && (errCause == nil || errors.Is(errCause, context.Canceled)) {
+		if errPipeline == nil && (errCause == nil || errors.Is(errCause, context.Canceled)) {
 			return nil
 		}
-		return errors.Join(errCause, errWait)
+		return errors.Join(wrapPipelineError(errPipeline), errCause, errWait)
 	}
 
 	// there might be other goroutines using the context or pipes, so we just wait for the command to finish

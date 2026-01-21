@@ -18,25 +18,17 @@ import (
 )
 
 type catFileBatchCommunicator struct {
-	cancel     context.CancelFunc
-	reader     *bufio.Reader
-	pipeReader gitcmd.PipeReader
-	writer     io.Writer
-
-	readerClose func()
-	writerClose func()
-
+	cancel      context.CancelFunc
+	reqWriter   io.Writer
+	respReader  *bufio.Reader
 	debugGitCmd *gitcmd.Command
 }
 
 func (b *catFileBatchCommunicator) Close() {
-	if b.cancel == nil {
-		return
+	if b.cancel != nil {
+		b.cancel()
+		b.cancel = nil
 	}
-	b.cancel()
-	b.cancel = nil
-	b.readerClose()
-	b.writerClose()
 }
 
 // newCatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
@@ -44,14 +36,13 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 	ctx, ctxCancel := context.WithCancelCause(ctx)
 
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and subtrees as necessary.
+	stdinWriter, stdoutReader, pipeClose := cmdCatFile.MakeStdinStdoutPipe()
 	ret = &catFileBatchCommunicator{
-		cancel:      func() { ctxCancel(nil) },
 		debugGitCmd: cmdCatFile,
+		cancel:      func() { ctxCancel(nil) },
+		reqWriter:   stdinWriter,
+		respReader:  bufio.NewReaderSize(stdoutReader, 32*1024), // use a buffered reader for rich operations
 	}
-	ret.writer, ret.writerClose = cmdCatFile.MakeStdinPipe()
-	ret.pipeReader, ret.readerClose = cmdCatFile.MakeStdoutPipe()
-	// use a buffered reader to read from the cat-file --batch (StringReader.ReadString)
-	ret.reader = bufio.NewReaderSize(ret.pipeReader, 32*1024)
 
 	err := cmdCatFile.WithDir(repoPath).StartWithStderr(ctx)
 	if err != nil {
@@ -59,6 +50,7 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 		// ideally here it should return the error, but it would require refactoring all callers
 		// so just return a dummy communicator that does nothing, almost the same behavior as before, not bad
 		ctxCancel(err)
+		pipeClose()
 		return ret
 	}
 
@@ -68,6 +60,7 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 			log.Error("cat-file --batch command failed in repo %s, error: %v", repoPath, err)
 		}
 		ctxCancel(err)
+		pipeClose()
 	}()
 
 	return ret

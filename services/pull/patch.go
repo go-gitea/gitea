@@ -414,7 +414,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	//   - alternatively we can do the equivalent of:
 	//  `git apply --check ... | grep ...`
 	//     meaning we don't store all the conflicts unnecessarily.
-	stderrReader, stderrReaderClose := cmdApply.MakeStdoutPipe()
+	stderrReader, stderrReaderClose := cmdApply.MakeStderrPipe()
 	defer stderrReaderClose()
 
 	// 8. Run the check command
