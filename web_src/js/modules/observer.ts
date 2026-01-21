@@ -64,6 +64,34 @@ function attachGlobalEvents() {
     if (!func) throw new Error(`Global event function "click:${funcName}" not found`);
     func(elem, e);
   });
+
+  // add global "[data-global-keyboard-shortcut]" event handler
+  // Elements declare their keyboard shortcuts via data-global-keyboard-shortcut attribute.
+  // When a matching key is pressed, the element is focused (for inputs) or clicked (for buttons/links).
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    // Don't trigger shortcuts when typing in input fields
+    const target = e.target as HTMLElement;
+    if (target.matches('input, textarea, select, [contenteditable="true"]')) {
+      return;
+    }
+
+    // Don't trigger shortcuts when modifier keys are pressed
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      return;
+    }
+
+    // Find element with matching shortcut (case-insensitive)
+    const key = e.key.toLowerCase();
+    const elem = document.querySelector<HTMLElement>(`[data-global-keyboard-shortcut="${key}"]`);
+    if (!elem) return;
+
+    e.preventDefault();
+    if (elem.matches('input, textarea, select')) {
+      elem.focus();
+    } else {
+      elem.click();
+    }
+  });
 }
 
 export function initGlobalSelectorObserver(perfTracer: InitPerformanceTracer | null): void {

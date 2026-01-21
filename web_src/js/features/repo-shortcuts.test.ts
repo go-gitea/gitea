@@ -1,95 +1,32 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-import {initRepoShortcuts} from './repo-shortcuts.ts';
+import {initRepoCodeSearchShortcut} from './repo-shortcuts.ts';
 
-describe('Repository Keyboard Shortcuts', () => {
-  let fileSearchInput: HTMLInputElement;
+describe('Repository Code Search Shortcut Hint', () => {
   let codeSearchInput: HTMLInputElement;
   let codeSearchHint: HTMLElement;
 
   beforeEach(() => {
-    // Set up DOM structure
+    // Set up DOM structure for code search
     document.body.innerHTML = `
-      <div class="repo-file-search-container">
-        <div class="repo-file-search-input-wrapper">
-          <input type="text" placeholder="Go to file">
-          <kbd class="repo-search-shortcut-hint">T</kbd>
-        </div>
-      </div>
       <div class="repo-home-sidebar-top">
         <div class="repo-code-search-input-wrapper">
-          <input name="q" class="code-search-input" placeholder="Search code">
+          <input name="q" class="code-search-input" placeholder="Search code" data-global-keyboard-shortcut="s" data-global-init="initRepoCodeSearchShortcut">
           <kbd class="repo-search-shortcut-hint">S</kbd>
         </div>
       </div>
     `;
 
-    fileSearchInput = document.querySelector('.repo-file-search-container input')!;
     codeSearchInput = document.querySelector('.code-search-input')!;
     codeSearchHint = document.querySelector('.repo-code-search-input-wrapper .repo-search-shortcut-hint')!;
 
-    initRepoShortcuts();
+    // Initialize the shortcut hint functionality directly
+    initRepoCodeSearchShortcut(codeSearchInput);
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
-  });
-
-  test('T key focuses file search input', () => {
-    const event = new KeyboardEvent('keydown', {key: 't', bubbles: true});
-    document.dispatchEvent(event);
-
-    expect(document.activeElement).toBe(fileSearchInput);
-  });
-
-  test('Shift+T (uppercase T) focuses file search input', () => {
-    const event = new KeyboardEvent('keydown', {key: 'T', bubbles: true});
-    document.dispatchEvent(event);
-
-    expect(document.activeElement).toBe(fileSearchInput);
-  });
-
-  test('S key focuses code search input', () => {
-    const event = new KeyboardEvent('keydown', {key: 's', bubbles: true});
-    document.dispatchEvent(event);
-
-    expect(document.activeElement).toBe(codeSearchInput);
-  });
-
-  test('Shortcuts do not trigger when typing in input', () => {
-    // Focus on an input field first
-    const otherInput = document.createElement('input');
-    document.body.append(otherInput);
-    otherInput.focus();
-
-    const event = new KeyboardEvent('keydown', {key: 't', bubbles: true});
-    Object.defineProperty(event, 'target', {value: otherInput});
-    document.dispatchEvent(event);
-
-    // File search should not be focused because we're already in an input
-    expect(document.activeElement).toBe(otherInput);
-  });
-
-  test('Shortcuts do not trigger with Ctrl modifier', () => {
-    const event = new KeyboardEvent('keydown', {key: 't', ctrlKey: true, bubbles: true});
-    document.dispatchEvent(event);
-
-    expect(document.activeElement).not.toBe(fileSearchInput);
-  });
-
-  test('Shortcuts do not trigger with Meta modifier', () => {
-    const event = new KeyboardEvent('keydown', {key: 's', metaKey: true, bubbles: true});
-    document.dispatchEvent(event);
-
-    expect(document.activeElement).not.toBe(codeSearchInput);
-  });
-
-  test('Shortcuts do not trigger with Alt modifier', () => {
-    const event = new KeyboardEvent('keydown', {key: 't', altKey: true, bubbles: true});
-    document.dispatchEvent(event);
-
-    expect(document.activeElement).not.toBe(fileSearchInput);
   });
 
   test('Code search hint hides when input has value', () => {
@@ -118,16 +55,20 @@ describe('Repository Keyboard Shortcuts', () => {
     expect(codeSearchHint.style.display).toBe('');
   });
 
-  test('Escape key blurs code search input', () => {
-    // Focus the code search input first
+  test('Escape key clears and blurs code search input', () => {
+    // Set a value and focus the input
+    codeSearchInput.value = 'test';
+    codeSearchInput.dispatchEvent(new Event('input'));
     codeSearchInput.focus();
     expect(document.activeElement).toBe(codeSearchInput);
+    expect(codeSearchInput.value).toBe('test');
 
-    // Press Escape directly on the input (the input has its own keydown handler)
+    // Press Escape directly on the input
     const event = new KeyboardEvent('keydown', {key: 'Escape', bubbles: true});
     codeSearchInput.dispatchEvent(event);
 
-    // Should no longer be focused
+    // Value should be cleared and input should be blurred
+    expect(codeSearchInput.value).toBe('');
     expect(document.activeElement).not.toBe(codeSearchInput);
   });
 
@@ -148,5 +89,17 @@ describe('Repository Keyboard Shortcuts', () => {
 
     // Should be visible again
     expect(codeSearchHint.style.display).toBe('');
+  });
+
+  test('Change event also updates hint visibility', () => {
+    // Initially visible
+    expect(codeSearchHint.style.display).toBe('');
+
+    // Set value via change event (e.g., browser autofill)
+    codeSearchInput.value = 'autofilled';
+    codeSearchInput.dispatchEvent(new Event('change'));
+
+    // Should be hidden
+    expect(codeSearchHint.style.display).toBe('none');
   });
 });

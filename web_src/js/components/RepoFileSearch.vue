@@ -150,6 +150,7 @@ watch([searchQuery, filteredFiles], async () => {
       <input
         ref="searchInput" :placeholder="placeholder" autocomplete="off"
         role="combobox" aria-autocomplete="list" :aria-expanded="searchQuery ? 'true' : 'false'"
+        data-global-keyboard-shortcut="t"
         @input="handleSearchInput" @keydown="handleKeyDown"
         @focus="isInputFocused = true" @blur="isInputFocused = false"
       >
