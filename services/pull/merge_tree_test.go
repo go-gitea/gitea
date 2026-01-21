@@ -28,6 +28,6 @@ func Test_testPullRequestMergeTree(t *testing.T) {
 	err := testPullRequestMergeTree(t.Context(), pull)
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusMergeable, pull.Status)
-	assert.Equal(t, 0, len(pull.ConflictedFiles))
-	assert.Equal(t, 0, len(pull.ChangedProtectedFiles))
+	assert.Empty(t, pull.ConflictedFiles)
+	assert.Empty(t, pull.ChangedProtectedFiles)
 }

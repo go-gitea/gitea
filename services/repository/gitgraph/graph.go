@@ -6,8 +6,7 @@ package gitgraph
 import (
 	"bufio"
 	"bytes"
-	"context"
-	"os"
+	"io"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -44,20 +43,14 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 	}
 	graph := NewGraph()
 
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
 	commitsToSkip := setting.UI.GraphMaxCommitNum * (page - 1)
 
-	scanner := bufio.NewScanner(stdoutReader)
-
+	var stdoutReader io.ReadCloser
 	if err := graphCmd.
 		WithDir(r.Path).
-		WithStdout(stdoutWriter).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
-			defer stdoutReader.Close()
+		WithStdoutReader(&stdoutReader).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
+			scanner := bufio.NewScanner(stdoutReader)
 			parser := &Parser{}
 			parser.firstInUse = -1
 			parser.maxAllowedColors = maxAllowedColors
@@ -89,8 +82,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 				line := scanner.Bytes()
 				if bytes.IndexByte(line, '*') >= 0 {
 					if err := parser.AddLineToGraph(graph, row, line); err != nil {
-						cancel()
-						return err
+						return ctx.CancelWithCause(err)
 					}
 					break
 				}
@@ -101,8 +93,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 				row++
 				line := scanner.Bytes()
 				if err := parser.AddLineToGraph(graph, row, line); err != nil {
-					cancel()
-					return err
+					return ctx.CancelWithCause(err)
 				}
 			}
 			return scanner.Err()

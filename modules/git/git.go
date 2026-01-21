@@ -13,7 +13,6 @@ import (
 	"runtime"
 	"strings"
 	"sync/atomic"
-	"time"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
@@ -141,10 +140,6 @@ func InitSimple() error {
 
 	if defaultFeatures != nil && (!setting.IsProd || setting.IsInTesting) {
 		log.Warn("git module has been initialized already, duplicate init may work but it's better to fix it")
-	}
-
-	if setting.Git.Timeout.Default > 0 {
-		gitcmd.SetDefaultCommandExecutionTimeout(time.Duration(setting.Git.Timeout.Default) * time.Second)
 	}
 
 	if err := gitcmd.SetExecutablePath(setting.Git.Path); err != nil {

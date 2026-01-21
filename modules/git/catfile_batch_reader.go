@@ -44,8 +44,7 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 	cmdCatFile = cmdCatFile.
 		WithDir(repoPath).
 		WithStdinWriter(&batchStdinWriter).
-		WithStdoutReader(&batchStdoutReader).
-		WithUseContextTimeout(true)
+		WithStdoutReader(&batchStdoutReader)
 
 	err := cmdCatFile.StartWithStderr(ctx)
 	if err != nil {
