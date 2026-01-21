@@ -78,7 +78,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	}
 
 	return cmd.WithDir(repo.Path).
-		WithStdout(writer).
+		WithStdoutLegacy(writer).
 		RunWithStderr(repo.Ctx)
 }
 
@@ -286,11 +286,12 @@ func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID str
 	affectedFiles := make([]string, 0, 32)
 
 	// Run `git diff --name-only` to get the names of the changed files
-	var stdoutReader io.ReadCloser
-	err := gitcmd.NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
+	cmd := gitcmd.NewCommand("diff", "--name-only")
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	err := cmd.AddDynamicArguments(oldCommitID, newCommitID).
 		WithEnv(env).
 		WithDir(repo.Path).
-		WithStdoutReader(&stdoutReader).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(stdoutReader)

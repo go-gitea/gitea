@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"os"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -34,7 +33,6 @@ type BlamePart struct {
 
 // BlameReader returns part of file blame one by one
 type BlameReader struct {
-	output         io.WriteCloser
 	reader         io.ReadCloser
 	bufferedReader *bufio.Reader
 	done           chan error
@@ -132,7 +130,6 @@ func (r *BlameReader) Close() error {
 	err := <-r.done
 	r.bufferedReader = nil
 	_ = r.reader.Close()
-	_ = r.output.Close()
 	for _, cleanup := range r.cleanupFuncs {
 		if cleanup != nil {
 			cleanup()
@@ -168,21 +165,16 @@ func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo 
 	cmd.AddDynamicArguments(commit.ID.String()).AddDashesAndList(file)
 
 	done := make(chan error, 1)
-	reader, stdout, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
+	sdtoutReader, sdtoutReaderClose := cmd.MakeStdoutPipe()
 	go func() {
+		defer sdtoutReaderClose()
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
-		err := RunCmdWithStderr(ctx, repo, cmd.WithStdout(stdout))
-		done <- err
-		_ = stdout.Close()
+		done <- RunCmdWithStderr(ctx, repo, cmd)
 	}()
 
-	bufferedReader := bufio.NewReader(reader)
+	bufferedReader := bufio.NewReader(sdtoutReader)
 	return &BlameReader{
-		output:         stdout,
-		reader:         reader,
+		reader:         sdtoutReader,
 		bufferedReader: bufferedReader,
 		done:           done,
 		ignoreRevsFile: ignoreRevsFileName,

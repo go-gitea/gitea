@@ -27,10 +27,11 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 		command = gitcmd.NewCommand("rev-list").AddDynamicArguments(oldCommitID + "..." + newCommitID)
 	}
 	// This is safe as force pushes are already forbidden
-	var stdoutReader io.ReadCloser
+	stdoutReader, stdoutReaderClose := command.MakeStdoutPipe()
+	defer stdoutReaderClose()
+
 	err := command.WithEnv(env).
 		WithDir(repo.Path).
-		WithStdoutReader(&stdoutReader).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
 			return ctx.CancelWithCause(err)
@@ -56,11 +57,12 @@ func readAndVerifyCommitsFromShaReader(input io.ReadCloser, repo *git.Repository
 
 func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	commitID := git.MustIDFromString(sha)
-	var stdoutReader io.ReadCloser
-	return gitcmd.NewCommand("cat-file", "commit").AddDynamicArguments(sha).
-		WithEnv(env).
+	cmd := gitcmd.NewCommand("cat-file", "commit").AddDynamicArguments(sha)
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+
+	return cmd.WithEnv(env).
 		WithDir(repo.Path).
-		WithStdoutReader(&stdoutReader).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			commit, err := git.CommitFromReader(repo, commitID, stdoutReader)
 			if err != nil {

@@ -12,34 +12,27 @@ import (
 	"io"
 	"sort"
 	"strings"
-	"sync"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
 // FindLFSFile finds commits that contain a provided pointer file hash
-func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, error) {
+func FindLFSFile(repo *git.Repository, objectID git.ObjectID) (results []*LFSResult, _ error) {
+	cmd := gitcmd.NewCommand("rev-list", "--all")
+	revListReader, revListReaderClose := cmd.MakeStdoutPipe()
+	defer revListReaderClose()
+	err := cmd.WithDir(repo.Path).
+		WithPipelineFunc(func(context gitcmd.Context) (err error) {
+			results, err = findLFSFileFunc(repo, objectID, revListReader)
+			return err
+		}).RunWithStderr(repo.Ctx)
+	return results, err
+}
+
+func findLFSFileFunc(repo *git.Repository, objectID git.ObjectID, revListReader io.Reader) ([]*LFSResult, error) {
 	resultsMap := map[string]*LFSResult{}
 	results := make([]*LFSResult, 0)
-
-	basePath := repo.Path
-
-	// Use rev-list to provide us with all commits in order
-	revListReader, revListWriter := io.Pipe()
-	defer func() {
-		_ = revListWriter.Close()
-		_ = revListReader.Close()
-	}()
-
-	go func() {
-		err := gitcmd.NewCommand("rev-list", "--all").
-			WithDir(repo.Path).
-			WithStdout(revListWriter).
-			RunWithStderr(repo.Ctx)
-		_ = revListWriter.CloseWithError(err)
-	}()
-
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
 	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
@@ -158,56 +151,6 @@ func FindLFSFile(repo *git.Repository, objectID git.ObjectID) ([]*LFSResult, err
 	}
 
 	sort.Sort(lfsResultSlice(results))
-
-	// Should really use a go-git function here but name-rev is not completed and recapitulating it is not simple
-	shasToNameReader, shasToNameWriter := io.Pipe()
-	nameRevStdinReader, nameRevStdinWriter := io.Pipe()
-	errChan := make(chan error, 1)
-	wg := sync.WaitGroup{}
-	wg.Add(3)
-
-	go func() {
-		defer wg.Done()
-		scanner := bufio.NewScanner(nameRevStdinReader)
-		i := 0
-		for scanner.Scan() {
-			line := scanner.Text()
-			if len(line) == 0 {
-				continue
-			}
-			result := results[i]
-			result.FullCommitName = line
-			result.BranchName = strings.Split(line, "~")[0]
-			i++
-		}
-	}()
-	go NameRevStdin(repo.Ctx, shasToNameReader, nameRevStdinWriter, &wg, basePath)
-	go func() {
-		defer wg.Done()
-		defer shasToNameWriter.Close()
-		for _, result := range results {
-			_, err := shasToNameWriter.Write([]byte(result.SHA))
-			if err != nil {
-				errChan <- err
-				break
-			}
-			_, err = shasToNameWriter.Write([]byte{'\n'})
-			if err != nil {
-				errChan <- err
-				break
-			}
-		}
-	}()
-
-	wg.Wait()
-
-	select {
-	case err, has := <-errChan:
-		if has {
-			return nil, lfsError("unable to obtain name for LFS files", err)
-		}
-	default:
-	}
-
-	return results, nil
+	err = fillResultNameRev(repo.Ctx, repo.Path, results)
+	return results, err
 }

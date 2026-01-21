@@ -6,7 +6,6 @@ package git
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -62,10 +61,10 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		gitCmd.AddArguments("--first-parent").AddDynamicArguments(branch)
 	}
 
-	var stdoutReader io.ReadCloser
+	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
 	err = gitCmd.
 		WithDir(repo.Path).
-		WithStdoutReader(&stdoutReader).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 			scanner.Split(bufio.ScanLines)
@@ -117,7 +116,6 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 				}
 			}
 			if err = scanner.Err(); err != nil {
-				_ = stdoutReader.Close()
 				return fmt.Errorf("GetCodeActivityStats scan: %w", err)
 			}
 			a := make([]*CodeActivityAuthor, 0, len(authors))
@@ -131,7 +129,6 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			stats.AuthorCount = int64(len(authors))
 			stats.ChangedFiles = int64(len(files))
 			stats.Authors = a
-			_ = stdoutReader.Close()
 			return nil
 		}).
 		RunWithStderr(repo.Ctx)

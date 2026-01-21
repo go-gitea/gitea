@@ -18,46 +18,48 @@ import (
 )
 
 type catFileBatchCommunicator struct {
-	cancel context.CancelFunc
-	reader *bufio.Reader
-	writer io.Writer
+	cancel     context.CancelFunc
+	reader     *bufio.Reader
+	pipeReader gitcmd.PipeReader
+	writer     io.Writer
+
+	readerClose func()
+	writerClose func()
 
 	debugGitCmd *gitcmd.Command
 }
 
 func (b *catFileBatchCommunicator) Close() {
-	if b.cancel != nil {
-		b.cancel()
-		b.reader = nil
-		b.writer = nil
-		b.cancel = nil
+	if b.cancel == nil {
+		return
 	}
+	b.cancel()
+	b.cancel = nil
+	b.readerClose()
+	b.writerClose()
 }
 
 // newCatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command) *catFileBatchCommunicator {
-	// We often want to feed the commits in order into cat-file --batch, followed by their trees and subtrees as necessary.
+func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command) (ret *catFileBatchCommunicator) {
 	ctx, ctxCancel := context.WithCancelCause(ctx)
 
-	var batchStdinWriter io.WriteCloser
-	var batchStdoutReader io.ReadCloser
-	cmdCatFile = cmdCatFile.
-		WithDir(repoPath).
-		WithStdinWriter(&batchStdinWriter).
-		WithStdoutReader(&batchStdoutReader)
+	// We often want to feed the commits in order into cat-file --batch, followed by their trees and subtrees as necessary.
+	ret = &catFileBatchCommunicator{
+		cancel:      func() { ctxCancel(nil) },
+		debugGitCmd: cmdCatFile,
+	}
+	ret.writer, ret.writerClose = cmdCatFile.MakeStdinPipe()
+	ret.pipeReader, ret.readerClose = cmdCatFile.MakeStdoutPipe()
+	// use a buffered reader to read from the cat-file --batch (StringReader.ReadString)
+	ret.reader = bufio.NewReaderSize(ret.pipeReader, 32*1024)
 
-	err := cmdCatFile.StartWithStderr(ctx)
+	err := cmdCatFile.WithDir(repoPath).StartWithStderr(ctx)
 	if err != nil {
 		log.Error("Unable to start git command %v: %v", cmdCatFile.LogString(), err)
 		// ideally here it should return the error, but it would require refactoring all callers
 		// so just return a dummy communicator that does nothing, almost the same behavior as before, not bad
-		return &catFileBatchCommunicator{
-			writer: io.Discard,
-			reader: bufio.NewReader(bytes.NewReader(nil)),
-			cancel: func() {
-				ctxCancel(err)
-			},
-		}
+		ctxCancel(err)
+		return ret
 	}
 
 	go func() {
@@ -68,17 +70,7 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 		ctxCancel(err)
 	}()
 
-	// use a buffered reader to read from the cat-file --batch (StringReader.ReadString)
-	batchReader := bufio.NewReaderSize(batchStdoutReader, 32*1024)
-
-	return &catFileBatchCommunicator{
-		writer: batchStdinWriter,
-		reader: batchReader,
-		cancel: func() {
-			ctxCancel(nil)
-		},
-		debugGitCmd: cmdCatFile,
-	}
+	return ret
 }
 
 // catFileBatchParseInfoLine reads the header line from cat-file --batch

@@ -82,7 +82,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 			pr.Index,
 		)).
 		WithDir(mergeCtx.tmpBasePath).
-		WithStdout(mergeCtx.outbuf).
+		WithStdoutBuffer(mergeCtx.outbuf).
 		RunWithStderr(ctx); err != nil {
 		if strings.Contains(err.Stderr(), "non-fast-forward") {
 			return &git.ErrPushOutOfDate{

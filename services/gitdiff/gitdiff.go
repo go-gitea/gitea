@@ -1263,21 +1263,14 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 	cmdCtx, cmdCancel := context.WithCancel(ctx)
 	defer cmdCancel()
 
-	reader, writer := io.Pipe()
-	defer func() {
-		_ = reader.Close()
-		_ = writer.Close()
-	}()
-
+	reader, readerClose := cmdDiff.MakeStdoutPipe()
+	defer readerClose()
 	go func() {
 		if err := cmdDiff.
 			WithDir(repoPath).
-			WithStdout(writer).
 			RunWithStderr(cmdCtx); err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
 			log.Error("error during GetDiff(git diff dir: %s): %v", repoPath, err)
 		}
-
-		_ = writer.Close()
 	}()
 
 	diff, err := ParsePatch(cmdCtx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
