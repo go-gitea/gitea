@@ -248,7 +248,7 @@ func commonBaseEnvs() []string {
 // CommonGitCmdEnvs returns the common environment variables for a "git" command.
 func CommonGitCmdEnvs() []string {
 	return append(commonBaseEnvs(), []string{
-		"LC_ALL=C",
+		"LC_ALL=C",              // ensure git output is in English, error messages are parsed in English
 		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git v2.3
 	}...)
 }
@@ -329,6 +329,8 @@ func (c *Command) WithStdinBytes(stdin []byte) *Command {
 // WithStdinLegacy and WithStdoutLegacy are legacy functions that accept io.Reader/io.Writer.
 // In this case, Golang exec.Cmd will start new internal goroutines to do io.Copy between pipes and provided Reader/Writer.
 // If the reader or writer is blocked and never returns, then the io.Copy won't finish, then exec.Cmd.Wait won't return, which may cause deadlocks.
+// A typical example is:
+// * `r,w:=io.Pipe(); cmd.Stdin=r; defer w.Close(); cmd.Run()`: the Run() will never return because stdin reader is blocked forever and w.Close() will never be called.
 func (c *Command) WithStdinLegacy(w io.Reader) *Command {
 	c.cmdStdin = w
 	return c
@@ -386,7 +388,7 @@ func (c *Command) Start(ctx context.Context) (retErr error) {
 	}()
 
 	if len(c.preErrors) != 0 {
-		// In most cases, such error shouldn't happen. If it happens, it must be a programming error, so we log it as error level with more details
+		// In most cases, such error shouldn't happen. If it happens, log it as error level with more details
 		err := errors.Join(c.preErrors...)
 		log.Error("git command: %s, error: %s", c.LogString(), err)
 		return err

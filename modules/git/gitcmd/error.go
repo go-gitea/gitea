@@ -81,6 +81,10 @@ type pipelineError struct {
 	error
 }
 
+func (e pipelineError) Unwrap() error {
+	return e.error
+}
+
 func wrapPipelineError(err error) error {
 	if err == nil {
 		return nil
@@ -88,10 +92,10 @@ func wrapPipelineError(err error) error {
 	return pipelineError{err}
 }
 
-func ErrorAsPipeline(err error) (error, bool) {
+func ErrorAsPipeline(err error) error {
 	var pipelineErr pipelineError
 	if errors.As(err, &pipelineErr) {
-		return pipelineErr.error, true
+		return pipelineErr.error
 	}
-	return nil, false
+	return nil
 }

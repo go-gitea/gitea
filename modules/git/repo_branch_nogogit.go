@@ -165,7 +165,7 @@ func WalkShowRef(ctx context.Context, repoPath string, extraArgs gitcmd.TrustedC
 			return nil
 		})
 	err = cmd.Run(ctx)
-	if errPipeline, ok := gitcmd.ErrorAsPipeline(err); ok {
+	if errPipeline := gitcmd.ErrorAsPipeline(err); errPipeline != nil {
 		return i, errPipeline // keep the old behavior: return pipeline error directly
 	}
 	return i, err

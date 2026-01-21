@@ -60,13 +60,13 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 		},
 	}
 
+	stdinWriter, stdinWriterClose := cmd.MakeStdinPipe()
+	checker.stdinWriter = stdinWriter
+
 	lw := new(nulSeparatedAttributeWriter)
 	lw.attributes = make(chan attributeTriple, len(attributes))
 	lw.closed = make(chan struct{})
 	checker.stdOut = lw
-
-	stdinWriter, stdinWriterClose := cmd.MakeStdinPipe()
-	checker.stdinWriter = stdinWriter
 
 	cmd.WithEnv(envs).
 		WithDir(repo.Path).
