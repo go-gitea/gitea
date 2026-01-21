@@ -490,7 +490,8 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 		opts.CommitAfterUnix = time.Now().Add(-time.Hour * 2).Unix()
 	}
 
-	baseBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
+	baseBranchName := opts.BaseRepo.GetDefaultPRBaseBranch(ctx)
+	baseBranch, err := GetBranch(ctx, opts.BaseRepo.ID, baseBranchName)
 	if err != nil {
 		return nil, err
 	}
@@ -555,7 +556,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 				BranchDisplayName: branchDisplayName,
 				BranchName:        branch.Name,
 				BranchLink:        fmt.Sprintf("%s/src/branch/%s", branch.Repo.Link(), util.PathEscapeSegments(branch.Name)),
-				BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
+				BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(ctx, opts.BaseRepo, branch.Name),
 				CommitTime:        branch.CommitTime,
 			})
 		}

@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
+	repo_router "code.gitea.io/gitea/routers/web/repo"
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -88,6 +89,11 @@ func SettingsCtxData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PushMirrors"] = pushMirrors
+
+	repo_router.PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 }
 
 // Settings show a repository's settings page
@@ -552,6 +558,21 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			log.Error("ChangeDefaultWikiBranch failed, err: %v", err)
 			ctx.Flash.Warning(ctx.Tr("repo.settings.failed_to_change_default_wiki_branch"))
 		}
+	}
+
+	defaultPRBaseBranch := strings.TrimSpace(form.DefaultPRBaseBranch)
+	if err := repo.ValidateDefaultPRBaseBranch(ctx, defaultPRBaseBranch); err != nil {
+		if repo_model.IsErrDefaultPRBaseBranchNotExist(err) {
+			ctx.Flash.Error(ctx.Tr("repo.settings.pulls.default_pr_base_branch_invalid"))
+			ctx.Redirect(repo.Link() + "/settings")
+			return
+		}
+		ctx.ServerError("ValidateDefaultPRBaseBranch", err)
+		return
+	}
+	if repo.DefaultPRBaseBranch != defaultPRBaseBranch {
+		repo.DefaultPRBaseBranch = defaultPRBaseBranch
+		repoChanged = true
 	}
 
 	if form.EnableIssues && form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {

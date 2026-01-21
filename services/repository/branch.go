@@ -842,6 +842,12 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 	if exist {
 		return errFailedToDelete(util.ErrUnprocessableContent)
 	}
+	if pr.HeadRepoID == pr.BaseRepoID {
+		preferred := strings.TrimSpace(pr.BaseRepo.DefaultPRBaseBranch)
+		if preferred != "" && pr.HeadBranch == preferred {
+			return errFailedToDelete(util.ErrPermissionDenied)
+		}
+	}
 
 	if err := CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, doer); err != nil {
 		if errors.Is(err, util.ErrPermissionDenied) {
