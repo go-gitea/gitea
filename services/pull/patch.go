@@ -421,12 +421,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	err = cmdApply.
 		WithDir(tmpBasePath).
 		WithStderrReader(&stderrReader).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			defer func() {
-				// Close the reader on return to terminate the git command if necessary
-				_ = stderrReader.Close()
-			}()
-
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			const prefix = "error: patch failed:"
 			const errorPrefix = "error: "
 			const threewayFailed = "Failed to perform three-way merge..."

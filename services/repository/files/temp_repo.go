@@ -362,25 +362,15 @@ func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.U
 
 // DiffIndex returns a Diff of the current index to the head
 func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context) (*gitdiff.Diff, error) {
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, fmt.Errorf("unable to open stdout pipe: %w", err)
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
 	var diff *gitdiff.Diff
-	err = gitcmd.NewCommand("diff-index", "--src-prefix=\\a/", "--dst-prefix=\\b/", "--cached", "-p", "HEAD").
+	var stdoutReader io.ReadCloser
+	err := gitcmd.NewCommand("diff-index", "--src-prefix=\\a/", "--dst-prefix=\\b/", "--cached", "-p", "HEAD").
 		WithTimeout(30 * time.Second).
 		WithDir(t.basePath).
-		WithStdout(stdoutWriter).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
-			defer cancel()
+		WithStdoutReader(&stdoutReader).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			var diffErr error
 			diff, diffErr = gitdiff.ParsePatch(ctx, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
-			_ = stdoutReader.Close()
 			if diffErr != nil {
 				// if the diffErr is not nil, it will be returned as the error of "Run()"
 				return fmt.Errorf("ParsePatch: %w", diffErr)
@@ -388,7 +378,7 @@ func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context) (*gitdiff.Dif
 			return nil
 		}).
 		RunWithStderr(ctx)
-	if err != nil && !git.IsErrCanceledOrKilled(err) {
+	if err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
 		return nil, fmt.Errorf("unable to run diff-index pipeline in temporary repo: %w", err)
 	}
 

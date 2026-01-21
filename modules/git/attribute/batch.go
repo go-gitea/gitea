@@ -82,7 +82,7 @@ func NewBatchChecker(repo *git.Repository, treeish string, attributes []string) 
 			WithStdout(lw).
 			RunWithStderr(ctx)
 
-		if err != nil && !git.IsErrCanceledOrKilled(err) {
+		if err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
 			log.Error("Attribute checker for commit %s exits with error: %v", treeish, err)
 		}
 		checker.cancel()
