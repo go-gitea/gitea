@@ -1082,7 +1082,6 @@
   "repo.form.name_reserved": "The repository name \"%s\" is reserved.",
   "repo.form.name_pattern_not_allowed": "The pattern \"%s\" is not allowed in a repository name.",
   "repo.need_auth": "Authorization",
-  "repo.lfs_size": "LFS Size",
   "repo.migrate_options": "Migration Options",
   "repo.migrate_service": "Migration Service",
   "repo.migrate_options_mirror_helper": "This repository will be a mirror",
