@@ -205,8 +205,3 @@ type ActionRunnersResponse struct {
 	Entries    []*ActionRunner `json:"runners"`
 	TotalCount int64           `json:"total_count"`
 }
-
-// UpdateRunnerCapacityOption options for updating runner capacity
-type UpdateRunnerCapacityOption struct {
-	Capacity int `json:"capacity" binding:"Min(0)"`
-}

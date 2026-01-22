@@ -156,7 +156,6 @@ func (s *Service) FetchTask(
 	}
 
 	if tasksVersion != latestVersion {
-
 		// if the task version in request is not equal to the version in db,
 		// it means there may still be some tasks that haven't been assigned.
 		// try to pick a task for the runner that send the request.
