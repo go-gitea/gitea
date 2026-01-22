@@ -445,17 +445,6 @@ func (c *Command) closePipeFiles(files []*os.File) {
 }
 
 func (c *Command) Wait() error {
-	done := make(chan struct{})
-	defer close(done)
-	if c.cmd != nil && c.cmd.Process != nil && c.cmdCtx != nil {
-		go func() {
-			select {
-			case <-c.cmdCtx.Done():
-				_ = c.cmd.Process.Kill()
-			case <-done:
-			}
-		}()
-	}
 	defer func() {
 		// The reader in another goroutine might be still reading the stdout, so we shouldn't close the pipes here
 		// MakeStdoutPipe returns a closer function to force callers to close the pipe correctly
