@@ -20,14 +20,6 @@
 					</span>
 				</div>
 				<div class="inline field">
-					<label>{{ctx.Locale.Tr "repo.lfs_size"}}</label>
-					<span>{{FileSize .Repository.LFSSize}}
-						{{if gt .LFSSizeMax -1}}
-							/ {{FileSize .LFSSizeMax}}
-						{{end}}
-					</span>
-				</div>
-				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.template"}}</label>
 					<div class="ui checkbox">
 						<input name="template" type="checkbox" {{if .Repository.IsTemplate}}checked{{end}}>

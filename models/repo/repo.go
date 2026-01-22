@@ -252,8 +252,8 @@ func (repo *Repository) SanitizedOriginalURL() string {
 
 // text representations to be returned in SizeDetail.Name
 const (
-	SizeDetailNameGit = "git"
-	SizeDetailNameLFS = "lfs"
+	SizeDetailNameGit = "Git"
+	SizeDetailNameLFS = "LFS"
 )
 
 type SizeDetail struct {
