@@ -87,17 +87,17 @@ func FixMergeBase(ctx context.Context, x *xorm.Engine) error {
 
 			if !pr.HasMerged {
 				var err error
-				pr.MergeBase, err = gitrepo.RunCmdString(ctx, baseRepo, gitcmd.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, gitRefName))
+				pr.MergeBase, _, err = gitrepo.RunCmdString(ctx, baseRepo, gitcmd.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, gitRefName))
 				if err != nil {
 					var err2 error
-					pr.MergeBase, err2 = gitrepo.RunCmdString(ctx, baseRepo, gitcmd.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix+pr.BaseBranch))
+					pr.MergeBase, _, err2 = gitrepo.RunCmdString(ctx, baseRepo, gitcmd.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix+pr.BaseBranch))
 					if err2 != nil {
 						log.Error("Unable to get merge base for PR ID %d, Index %d in %s/%s. Error: %v & %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err, err2)
 						continue
 					}
 				}
 			} else {
-				parentsString, err := gitrepo.RunCmdString(ctx, baseRepo, gitcmd.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID))
+				parentsString, _, err := gitrepo.RunCmdString(ctx, baseRepo, gitcmd.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID))
 				if err != nil {
 					log.Error("Unable to get parents for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 					continue
@@ -110,7 +110,7 @@ func FixMergeBase(ctx context.Context, x *xorm.Engine) error {
 				refs := append([]string{}, parents[1:]...)
 				refs = append(refs, gitRefName)
 				cmd := gitcmd.NewCommand("merge-base").AddDashesAndList(refs...)
-				pr.MergeBase, err = gitrepo.RunCmdString(ctx, baseRepo, cmd)
+				pr.MergeBase, _, err = gitrepo.RunCmdString(ctx, baseRepo, cmd)
 				if err != nil {
 					log.Error("Unable to get merge base for merged PR ID %d, Index %d in %s/%s. Error: %v", pr.ID, pr.Index, baseRepo.OwnerName, baseRepo.Name, err)
 					continue

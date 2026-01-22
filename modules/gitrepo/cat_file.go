@@ -6,9 +6,9 @@ package gitrepo
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/git/catfile"
+	"code.gitea.io/gitea/modules/git"
 )
 
-func NewBatch(ctx context.Context, repo Repository) (catfile.Batch, error) {
-	return catfile.NewBatch(ctx, repoPath(repo))
+func NewBatch(ctx context.Context, repo Repository) (git.CatFileBatchCloser, error) {
+	return git.NewBatch(ctx, repoPath(repo))
 }

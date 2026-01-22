@@ -194,6 +194,10 @@ func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err erro
 			return err
 		}
 
+		if err = repo_model.ClearRepoWatches(ctx, repo.ID); err != nil {
+			return err
+		}
+
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		if err := CheckDaemonExportOK(ctx, repo); err != nil {
 			return err
@@ -217,28 +221,28 @@ func MakeRepoPrivate(ctx context.Context, repo *repo_model.Repository) (err erro
 	})
 }
 
-// LinkedRepository returns the linked repo if any
-func LinkedRepository(ctx context.Context, a *repo_model.Attachment) (*repo_model.Repository, unit.Type, error) {
+// GetAttachmentLinkedTypeAndRepoID returns the linked type and repository id of attachment if any
+func GetAttachmentLinkedTypeAndRepoID(ctx context.Context, a *repo_model.Attachment) (unit.Type, int64, error) {
 	if a.IssueID != 0 {
 		iss, err := issues_model.GetIssueByID(ctx, a.IssueID)
 		if err != nil {
-			return nil, unit.TypeIssues, err
+			return unit.TypeIssues, 0, err
 		}
-		repo, err := repo_model.GetRepositoryByID(ctx, iss.RepoID)
 		unitType := unit.TypeIssues
 		if iss.IsPull {
 			unitType = unit.TypePullRequests
 		}
-		return repo, unitType, err
-	} else if a.ReleaseID != 0 {
+		return unitType, iss.RepoID, nil
+	}
+
+	if a.ReleaseID != 0 {
 		rel, err := repo_model.GetReleaseByID(ctx, a.ReleaseID)
 		if err != nil {
-			return nil, unit.TypeReleases, err
+			return unit.TypeReleases, 0, err
 		}
-		repo, err := repo_model.GetRepositoryByID(ctx, rel.RepoID)
-		return repo, unit.TypeReleases, err
+		return unit.TypeReleases, rel.RepoID, nil
 	}
-	return nil, -1, nil
+	return unit.TypeInvalid, 0, nil
 }
 
 // CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...

@@ -279,7 +279,7 @@ func Diff(ctx *context.Context) {
 
 	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
 		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
-		DiffStyle:     ctx.FormString("style"),
+		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
 	}
 	gitRepo := ctx.Repo.GitRepo

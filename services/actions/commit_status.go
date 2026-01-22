@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"path"
 	"strconv"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -129,6 +130,7 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		runName = wfs[0].Name
 	}
 	ctxName := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
+	ctxName = strings.TrimSpace(ctxName) // git_model.NewCommitStatus also trims spaces
 	state := toCommitStatus(job.Status)
 	if statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll); err == nil {
 		for _, v := range statuses {

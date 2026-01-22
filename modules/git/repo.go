@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/url"
 	"os"
 	"path"
@@ -83,22 +82,19 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
-	var errbuf, output strings.Builder
-	if err := gitcmd.NewCommand().
+	stdout, _, err := gitcmd.NewCommand().
 		AddOptionFormat("--git-dir=%s", repo.Path).
 		AddArguments("rev-list", "-n", "1", "--all").
 		WithDir(repo.Path).
-		WithStdout(&output).
-		WithStderr(&errbuf).
-		Run(repo.Ctx); err != nil {
-		if (err.Error() == "exit status 1" && strings.TrimSpace(errbuf.String()) == "") || err.Error() == "exit status 129" {
+		RunStdString(repo.Ctx)
+	if err != nil {
+		if (gitcmd.IsErrorExitCode(err, 1) && err.Stderr() == "") || gitcmd.IsErrorExitCode(err, 129) {
 			// git 2.11 exits with 129 if the repo is empty
 			return true, nil
 		}
-		return true, fmt.Errorf("check empty: %w - %s", err, errbuf.String())
+		return true, fmt.Errorf("check empty: %w", err)
 	}
-
-	return strings.TrimSpace(output.String()) == "", nil
+	return strings.TrimSpace(stdout) == "", nil
 }
 
 // CloneRepoOptions options when clone a repository
@@ -171,16 +167,10 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 		}
 	}
 
-	stderr := new(bytes.Buffer)
-	if err := cmd.
+	return cmd.
 		WithTimeout(opts.Timeout).
 		WithEnv(envs).
-		WithStdout(io.Discard).
-		WithStderr(stderr).
-		Run(ctx); err != nil {
-		return gitcmd.ConcatenateError(err, stderr.String())
-	}
-	return nil
+		RunWithStderr(ctx)
 }
 
 // PushOptions options when push to remote
