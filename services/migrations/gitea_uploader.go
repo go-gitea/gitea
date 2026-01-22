@@ -320,6 +320,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 			}
 			attach := repo_model.Attachment{
 				UUID:          uuid.New().String(),
+				RepoID:        g.repo.ID,
 				Name:          asset.Name,
 				DownloadCount: int64(*asset.DownloadCount),
 				Size:          int64(*asset.Size),
