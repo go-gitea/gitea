@@ -1,28 +1,20 @@
 {{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin")}}
 	<div class="admin-setting-content">
 		<h4 class="ui top attached header">
-			{{ctx.Locale.Tr "admin.config.global_repo_size_limit_manage_panel"}}
+			{{ctx.Locale.Tr "admin.repos.settings"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
-				<div class="inline field {{if .Err_Repo_Size_Limit}}error{{end}}">
-					<label for="repo_size_limit">{{ctx.Locale.Tr "admin.config.repo_size_limit"}}</label>
-					<input id="repo_size_limit" name="repo_size_limit" value="{{.RepoSizeLimit}}" data-tooltip-content='{{ctx.Locale.Tr "admin.config.repo_size_limit.desc"}}'>
+				<div class="field {{if .Err_Git_Size_Max}}error{{end}}">
+					<label>{{ctx.Locale.Tr "admin.repos.git_size_max"}}</label>
+					<input name="GitSizeMax" value="{{if .Err_Git_Size_Max}}{{.Err_Git_Size_Max}}{{else}}{{.GitSizeMax}}{{end}}" data-tooltip-content="{{ctx.Locale.Tr "admin.repos.git_size_max_helper"}}">
 				</div>
-				<div class="inline field {{if .Err_LFS_Size_Limit}}error{{end}}">
-					<label for="lfs_size_limit">{{ctx.Locale.Tr "admin.config.lfs_size_limit"}}</label>
-					<input id="lfs_size_limit" name="lfs_size_limit" value="{{.LFSSizeLimit}}" data-tooltip-content='{{ctx.Locale.Tr "admin.config.lfs_size_limit.desc"}}'>
+				<div class="field {{if .Err_LFS_Size_Max}}error{{end}}">
+					<label>{{ctx.Locale.Tr "admin.repos.lfs_size_max"}}</label>
+					<input name="LFSSizeMax" value="{{if .Err_LFS_Size_Max}}{{.Err_LFS_Size_Max}}{{else}}{{.LFSSizeMax}}{{end}}" data-tooltip-content="{{ctx.Locale.Tr "admin.repos.lfs_size_max_helper"}}">
 				</div>
-				<div class="inline field">
-					<label>{{ctx.Locale.Tr "admin.config.lfs_size_in_repo_size"}}</label>
-					<div class="ui checkbox">
-						<input name="lfs_size_in_repo_size" type="checkbox" {{if .LFSSizeInRepoSize}}checked{{end}} data-tooltip-content='{{ctx.Locale.Tr "admin.config.lfs_size_in_repo_size.desc"}}'>
-					</div>
-				</div>
-				<div class="field">
-					<button class="ui green button">{{ctx.Locale.Tr "admin.config.update_settings"}}</button>
-				</div>
+				<button class="ui green button">{{ctx.Locale.Tr "admin.repos.update_settings"}}</button>
 			</form>
 		</div>
 		<h4 class="ui top attached header">

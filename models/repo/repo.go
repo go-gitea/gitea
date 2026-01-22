@@ -201,11 +201,9 @@ type Repository struct {
 	BaseRepo                        *Repository        `xorm:"-"`
 	IsTemplate                      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	TemplateID                      int64              `xorm:"INDEX"`
-	SizeLimit                       int64              `xorm:"NOT NULL DEFAULT 0"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
 	GitSize                         int64              `xorm:"NOT NULL DEFAULT 0"`
 	LFSSize                         int64              `xorm:"NOT NULL DEFAULT 0"`
-	LFSSizeLimit                    int64              `xorm:"NOT NULL DEFAULT 0"`
 	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
 	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
 	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
@@ -633,58 +631,43 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 }
 
 // GetActualSizeLimit returns repository size limit in bytes
-// or global repository limit setting if per repository size limit is not set
 func (repo *Repository) GetActualSizeLimit() int64 {
-	sizeLimit := repo.SizeLimit
-	if setting.RepoSizeLimit > 0 && sizeLimit == 0 {
-		sizeLimit = setting.RepoSizeLimit
-	}
-	return sizeLimit
+	return setting.Repository.GitSizeMax
 }
 
 // RepoSizeIsOversized return true if is over size limitation
 func (repo *Repository) IsRepoSizeOversized(additionalSize int64) bool {
-	return repo.ShouldCheckRepoSize() && repo.GitSize+additionalSize > repo.GetActualSizeLimit()
+	limit := repo.GetActualSizeLimit()
+	if limit < 0 {
+		return false
+	}
+	newSize := repo.GitSize + additionalSize
+	return newSize > limit && newSize > repo.GitSize
 }
 
-// ShouldCheckRepoSize returns true if size limit checking is enabled and limit is non zero for this specific repository
-// this is used to enable size checking during pre-receive hook
+// ShouldCheckRepoSize returns true if size limit checking is enabled
 func (repo *Repository) ShouldCheckRepoSize() bool {
-	return setting.RepoSizeLimit > -1 && repo.GetActualSizeLimit() > 0
+	return setting.Repository.GitSizeMax > -1
 }
 
 // GetActualLFSSizeLimit returns repository LFS size limit in bytes
-// or global LFS size limit setting if per repository LFS size limit is not set
 func (repo *Repository) GetActualLFSSizeLimit() int64 {
-	lfsSizeLimit := repo.LFSSizeLimit
-	if setting.LFSSizeLimit > 0 && lfsSizeLimit == 0 {
-		lfsSizeLimit = setting.LFSSizeLimit
-	}
-	return lfsSizeLimit
+	return setting.Repository.LFSSizeMax
 }
 
-// ShouldCheckLFSSize returns true if LFS size limit checking is enabled for this repository
+// ShouldCheckLFSSize returns true if LFS size limit checking is enabled
 func (repo *Repository) ShouldCheckLFSSize() bool {
-	return setting.LFSSizeLimit > -1 && repo.GetActualLFSSizeLimit() > 0
+	return setting.Repository.LFSSizeMax > -1
 }
 
 // IsLFSSizeOversized returns true if adding additionalSize would exceed the LFS size limit
 func (repo *Repository) IsLFSSizeOversized(additionalSize int64) bool {
-	return repo.ShouldCheckLFSSize() &&
-		repo.LFSSize+additionalSize > repo.GetActualLFSSizeLimit()
-}
-
-// IsRepoAndLFSSizeOversized checks if combined repo + LFS size exceeds repo size limit
-// This is used when LFS_SIZE_IN_REPO_SIZE is enabled
-func (repo *Repository) IsRepoAndLFSSizeOversized(additionalGitSize, additionalLFSSize int64) bool {
-	if !setting.LFSSizeInRepoSize || setting.RepoSizeLimit == -1 {
+	limit := repo.GetActualLFSSizeLimit()
+	if limit < 0 {
 		return false
 	}
-	limit := repo.GetActualSizeLimit()
-	if limit == 0 {
-		return false
-	}
-	return (repo.GitSize+additionalGitSize)+(repo.LFSSize+additionalLFSSize) > limit
+	newSize := repo.LFSSize + additionalSize
+	return newSize > limit && newSize > repo.LFSSize
 }
 
 // CanCreateBranch returns true if repository meets the requirements for creating new branches.

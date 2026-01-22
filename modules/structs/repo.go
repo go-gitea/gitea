@@ -153,10 +153,6 @@ type CreateRepoOption struct {
 	// ObjectFormatName of the underlying git repository
 	// enum: sha1,sha256
 	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
-	// SizeLimit of the repository
-	SizeLimit int64 `json:"size_limit"`
-	// LFSSizeLimit of the repository
-	LFSSizeLimit int64 `json:"lfs_size_limit"`
 }
 
 // EditRepoOption options when editing a repository's properties
@@ -227,11 +223,7 @@ type EditRepoOption struct {
 	DefaultAllowMaintainerEdit *bool `json:"default_allow_maintainer_edit,omitempty"`
 	// set to `true` to archive this repository.
 	Archived *bool `json:"archived,omitempty"`
-	// SizeLimit of the repository.
-	SizeLimit *int64 `json:"size_limit,omitempty"`
-	// LFSSizeLimit of the repository.
-	LFSSizeLimit *int64 `json:"lfs_size_limit,omitempty"`
-	// set to a string like `8h30m0s` to set the mirror interval time
+	// set a string like `8h30m0s` to set the mirror interval time
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
 	// enable prune - remove obsolete remote-tracking references when mirroring
 	EnablePrune *bool `json:"enable_prune,omitempty"`

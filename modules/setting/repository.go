@@ -56,6 +56,8 @@ var (
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
 		AllowForkIntoSameOwner                  bool
+		GitSizeMax                              int64 `ini:"GIT_SIZE_MAX"`
+		LFSSizeMax                              int64 `ini:"LFS_SIZE_MAX"`
 
 		// StreamArchives makes Gitea stream git archive files to the client directly instead of creating an archive first.
 		// Ideally all users should use this streaming method. However, at the moment we don't know whether there are
@@ -276,36 +278,33 @@ var (
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
-
-	// Repository size limits
-	RepoSizeLimit     int64 = -1
-	LFSSizeLimit      int64 = -1
-	LFSSizeInRepoSize bool
 )
 
-func SaveGlobalRepositorySetting(repoSizeLimit, lfsSizeLimit int64, lfsSizeInRepoSize bool) error {
-	RepoSizeLimit = repoSizeLimit
-	LFSSizeLimit = lfsSizeLimit
-	LFSSizeInRepoSize = lfsSizeInRepoSize
+func UpdateGlobalRepositoryLimit(gitSizeMax, lfsSizeMax int64) {
+	Repository.GitSizeMax = gitSizeMax
+	Repository.LFSSizeMax = lfsSizeMax
+}
 
-	cfg, err := CfgProvider.PrepareSaving()
-	if err != nil {
-		return err
+// FormatRepositorySizeLimit returns "-1" for disabled limits, otherwise returns human-readable size.
+func FormatRepositorySizeLimit(sizeInBytes int64) string {
+	if sizeInBytes == -1 {
+		return "-1"
 	}
+	return humanize.IBytes(uint64(sizeInBytes))
+}
 
-	sec := cfg.Section("repository")
-	if RepoSizeLimit == -1 {
-		sec.Key("REPO_SIZE_LIMIT").SetValue("-1")
-	} else {
-		sec.Key("REPO_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(RepoSizeLimit)))
+// ParseRepositorySizeLimit accepts "-1" to disable the limit, otherwise parses as a byte size.
+func ParseRepositorySizeLimit(s string) (int64, error) {
+	s = strings.TrimSpace(s)
+	if s == "-1" {
+		return -1, nil
 	}
-	if LFSSizeLimit == -1 {
-		sec.Key("LFS_SIZE_LIMIT").SetValue("-1")
-	} else {
-		sec.Key("LFS_SIZE_LIMIT").SetValue(humanize.Bytes(uint64(LFSSizeLimit)))
+	// default to bytes if no unit is provided
+	if _, err := strconv.ParseInt(s, 10, 64); err == nil {
+		s += " B"
 	}
-	sec.Key("LFS_SIZE_IN_REPO_SIZE").SetValue(strconv.FormatBool(LFSSizeInRepoSize))
-	return cfg.Save()
+	v, err := humanize.ParseBytes(s)
+	return int64(v), err
 }
 
 func parseSize(sec ConfigSection, key string, def int64) int64 {
@@ -328,9 +327,8 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 
 	// Determine and create root git repository path.
 	sec := rootCfg.Section("repository")
-	RepoSizeLimit = parseSize(sec, "REPO_SIZE_LIMIT", -1)
-	LFSSizeLimit = parseSize(sec, "LFS_SIZE_LIMIT", -1)
-	LFSSizeInRepoSize = sec.Key("LFS_SIZE_IN_REPO_SIZE").MustBool(false)
+	Repository.GitSizeMax = parseSize(sec, "GIT_SIZE_MAX", -1)
+	Repository.LFSSizeMax = parseSize(sec, "LFS_SIZE_MAX", -1)
 
 	Repository.DisableHTTPGit = sec.Key("DISABLE_HTTP_GIT").MustBool()
 	Repository.UseCompatSSHURI = sec.Key("USE_COMPAT_SSH_URI").MustBool()

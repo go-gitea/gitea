@@ -398,8 +398,6 @@ func sumLFSSizes(m map[string]int64) int64 {
 
 // scanLFSPointersFromObjectIDs finds LFS pointer blobs among objectIDs and returns map[oid]size.
 // It only reads small blobs via cat-file, so it stays bounded.
-// scanLFSPointersFromObjectIDs finds LFS pointer blobs among objectIDs and returns map[oid]size.
-// It only reads small blobs via cat-file, so it stays bounded.
 func scanLFSPointersFromObjectIDs(ctx *gitea_context.PrivateContext, repoPath string, env, objectIDs []string, maxBlobSize int64) (map[string]int64, error) {
 	out := make(map[string]int64)
 	if len(objectIDs) == 0 {
@@ -524,13 +522,6 @@ func scanLFSPointersFromObjectIDs(ctx *gitea_context.PrivateContext, repoPath st
 	return out, nil
 }
 
-func maxInt64(a, b int64) int64 {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 // HookPreReceive checks whether a individual commit is acceptable
 func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	startTime := time.Now()
@@ -561,7 +552,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	var duration time.Duration
 
 	needGitDelta := repo.ShouldCheckRepoSize()
-	needLFSDelta := repo.ShouldCheckLFSSize() || setting.LFSSizeInRepoSize
+	needLFSDelta := repo.ShouldCheckLFSSize()
 
 	// Only do CountObjects (push/repo) when we're doing the repo-size limit at all
 	if needGitDelta {
@@ -801,7 +792,6 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 
 	currentGit := repo.GitSize
 	currentLFS := repo.LFSSize
-	currentCombined := currentGit + currentLFS
 
 	gitDelta := addedSize - removedSize
 	predictedGitAfter := currentGit + gitDelta
@@ -809,44 +799,30 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 	lfsDelta := incomingNewToRepoLFS - removedLFSSize
 	predictedLFSAfter := currentLFS + lfsDelta
 
-	predictedCombinedAfter := predictedGitAfter
-	if setting.LFSSizeInRepoSize {
-		predictedCombinedAfter = predictedGitAfter + predictedLFSAfter
-	}
-
-	// Avoid nil panic when repo-size check is disabled but LFS delta is enabled (combined mode / LFS limit)
-	pushBytes := int64(0)
-	if pushSize != nil {
-		pushBytes = maxInt64(0, pushSize.Size+pushSize.SizePack)
-	}
-
 	// One summary line (time included here only)
 	if repo.ShouldCheckRepoSize() || repo.ShouldCheckLFSSize() {
 		log.Warn(
-			"SizeCheck summary: took=%s repo=%s/%s git(pred=%s cur=%s delta=%s) lfs(pred=%s cur=%s delta=%s) combined(pred=%s) limits(repo=%s lfs=%s) LFSSizeInRepoSize=%v push=%s",
+			"SizeCheck summary: took=%s repo=%s/%s git(pred=%s cur=%s delta=%s) lfs(pred=%s cur=%s delta=%s) limits(git=%s lfs=%s)",
 			duration,
 			repo.OwnerName, repo.Name,
 			base.FileSize(predictedGitAfter), base.FileSize(currentGit), base.FileSize(gitDelta),
 			base.FileSize(predictedLFSAfter), base.FileSize(currentLFS), base.FileSize(lfsDelta),
-			base.FileSize(predictedCombinedAfter),
-			base.FileSize(repo.GetActualSizeLimit()),
-			base.FileSize(repo.GetActualLFSSizeLimit()),
-			setting.LFSSizeInRepoSize,
-			base.FileSize(pushBytes),
+			setting.FormatRepositorySizeLimit(setting.Repository.GitSizeMax),
+			setting.FormatRepositorySizeLimit(setting.Repository.LFSSizeMax),
 		)
 	}
 
-	// 1) LFS-only limit: compare against predicted LFS after push
+	// 1) LFS size limit: compare against predicted LFS after push
 	if repo.ShouldCheckLFSSize() {
 		lfsLimit := repo.GetActualLFSSizeLimit()
-		if lfsLimit > 0 && predictedLFSAfter > lfsLimit && predictedLFSAfter > currentLFS {
-			log.Warn("Forbidden: LFS limit exceeded: %s > %s for repo %-v",
+		if lfsLimit >= 0 && predictedLFSAfter > lfsLimit && predictedLFSAfter > currentLFS {
+			log.Warn("Forbidden: LFS size limit exceeded: %s > %s for repo %-v",
 				base.FileSize(predictedLFSAfter),
 				base.FileSize(lfsLimit),
 				repo,
 			)
 			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: fmt.Sprintf("LFS size limit exceeded: %s > then limit of %s",
+				UserMsg: fmt.Sprintf("LFS size limit exceeded: %s > than limit of %s",
 					base.FileSize(predictedLFSAfter),
 					base.FileSize(lfsLimit),
 				),
@@ -855,37 +831,18 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
-	// 2) Repo (git) size limit when NOT counting LFS into repo size
-	if repo.ShouldCheckRepoSize() && !setting.LFSSizeInRepoSize {
+	// 2) Git size limit
+	if repo.ShouldCheckRepoSize() {
 		limit := repo.GetActualSizeLimit()
-		if limit > 0 && predictedGitAfter > limit && predictedGitAfter > currentGit {
-			log.Warn("Forbidden: repository size limit exceeded: %s > %s for repo %-v",
+		if limit >= 0 && predictedGitAfter > limit && predictedGitAfter > currentGit {
+			log.Warn("Forbidden: Repository git size limit exceeded: %s > %s for repo %-v",
 				base.FileSize(predictedGitAfter),
 				base.FileSize(limit),
 				repo,
 			)
 			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: fmt.Sprintf("Repository size limit exceeded: %s > then limit of %s",
+				UserMsg: fmt.Sprintf("Repository git size limit exceeded: %s > then limit of %s",
 					base.FileSize(predictedGitAfter),
-					base.FileSize(limit),
-				),
-			})
-			return
-		}
-	}
-
-	// 3) Combined limit when LFS is counted in repo size
-	if setting.LFSSizeInRepoSize && repo.ShouldCheckRepoSize() {
-		limit := repo.GetActualSizeLimit()
-		if limit > 0 && predictedCombinedAfter > limit && predictedCombinedAfter > currentCombined {
-			log.Warn("Forbidden: combined repo and LFS size limit exceeded: %s > %s for repo %-v",
-				base.FileSize(predictedCombinedAfter),
-				base.FileSize(limit),
-				repo,
-			)
-			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: fmt.Sprintf("Combined repository+LFS size limit exceeded: %s > then limit of %s",
-					base.FileSize(predictedCombinedAfter),
 					base.FileSize(limit),
 				),
 			})

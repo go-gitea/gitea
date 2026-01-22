@@ -18,13 +18,6 @@ import (
 	"gitea.com/go-chi/binding"
 )
 
-// UpdateGlobalRepoFrom for updating global repository setting
-type UpdateGlobalRepoFrom struct {
-	RepoSizeLimit     string
-	LFSSizeLimit      string
-	LFSSizeInRepoSize bool
-}
-
 // CreateRepoForm form for creating repository
 type CreateRepoForm struct {
 	UID           int64  `binding:"Required"`
@@ -50,7 +43,11 @@ type CreateRepoForm struct {
 
 	ForkSingleBranch string
 	ObjectFormatName string
-	SizeLimit        int64
+}
+
+type UpdateGlobalRepoFrom struct {
+	GitSizeMax string `form:"GitSizeMax"`
+	LFSSizeMax string `form:"LFSSizeMax"`
 }
 
 // Validate validates the fields
@@ -114,8 +111,6 @@ type RepoSettingForm struct {
 	PushMirrorInterval     string
 	Template               bool
 	EnablePrune            bool
-	RepoSizeLimit          string
-	LFSSizeLimit           string
 
 	// Advanced settings
 	EnableCode bool
