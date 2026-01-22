@@ -20,6 +20,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Add more routes to the "expensive" list (#36290)
   * Make "commit statuses" API accept slashes in "ref" (#36264) (#36275)
 * BUGFIXES
+  * Fix git http service handling #36396
   * Fix markdown newline handling during IME composition (#36421) #36424
   * Fix missing repository id when migrating release attachments (#36389)
   * Fix bug when compare in the pull request (#36363) (#36372)
