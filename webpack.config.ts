@@ -93,7 +93,8 @@ export default {
   devtool: false,
   output: {
     path: fileURLToPath(new URL('public/assets', import.meta.url)),
-    filename: () => 'js/[name].js',
+    filename: 'js/[name].js',
+    chunkFilename: 'js/[id].js',
   },
   optimization: {
     minimize: isProduction,
