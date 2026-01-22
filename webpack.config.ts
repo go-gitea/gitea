@@ -106,9 +106,6 @@ export default {
         legalComments: 'none',
       }),
     ],
-    splitChunks: {
-      chunks: 'async',
-    },
     moduleIds: 'named',
     chunkIds: 'named',
   },
