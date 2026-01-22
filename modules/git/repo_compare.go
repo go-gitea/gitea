@@ -45,7 +45,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 		AddDynamicArguments(base + separator + head).
 		AddArguments("--").
 		WithDir(repo.Path).
-		WithStdout(w).
+		WithStdoutCopy(w).
 		RunWithStderr(repo.Ctx); err != nil {
 		if strings.Contains(err.Stderr(), "no merge base") {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
@@ -55,7 +55,7 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 				AddDynamicArguments(base, head).
 				AddArguments("--").
 				WithDir(repo.Path).
-				WithStdout(w).
+				WithStdoutCopy(w).
 				RunWithStderr(repo.Ctx); err == nil {
 				return w.numLines, nil
 			}
@@ -71,7 +71,7 @@ var patchCommits = regexp.MustCompile(`^From\s(\w+)\s`)
 func (repo *Repository) GetDiff(compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("diff", "-p").AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
-		WithStdout(w).
+		WithStdoutCopy(w).
 		Run(repo.Ctx)
 }
 
@@ -80,7 +80,7 @@ func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("diff", "-p", "--binary", "--histogram").
 		AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
-		WithStdout(w).
+		WithStdoutCopy(w).
 		Run(repo.Ctx)
 }
 
@@ -88,7 +88,7 @@ func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
 func (repo *Repository) GetPatch(compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("format-patch", "--binary", "--stdout").AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
-		WithStdout(w).
+		WithStdoutCopy(w).
 		Run(repo.Ctx)
 }
 

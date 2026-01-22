@@ -896,7 +896,7 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			comment.TreePath = util.PathJoinRel(comment.TreePath)
 
 			var patch string
-			reader, writer := io.Pipe()
+			reader, writer := io.Pipe() // FIXME: use os.Pipe to avoid deadlock
 			defer func() {
 				_ = reader.Close()
 				_ = writer.Close()

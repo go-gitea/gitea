@@ -407,7 +407,9 @@ func LFSPointerFiles(ctx *context.Context) {
 	err = func() error {
 		pointerChan := make(chan lfs.PointerBlob)
 		errChan := make(chan error, 1)
-		go lfs.SearchPointerBlobs(ctx, ctx.Repo.GitRepo, pointerChan, errChan)
+		go func() {
+			errChan <- lfs.SearchPointerBlobs(ctx, ctx.Repo.GitRepo, pointerChan)
+		}()
 
 		numPointers := 0
 		var numAssociated, numNoExist, numAssociatable int
@@ -483,11 +485,6 @@ func LFSPointerFiles(ctx *context.Context) {
 			results = append(results, result)
 		}
 
-		err, has := <-errChan
-		if has {
-			return err
-		}
-
 		ctx.Data["Pointers"] = results
 		ctx.Data["NumPointers"] = numPointers
 		ctx.Data["NumAssociated"] = numAssociated
@@ -495,7 +492,8 @@ func LFSPointerFiles(ctx *context.Context) {
 		ctx.Data["NumNoExist"] = numNoExist
 		ctx.Data["NumNotAssociated"] = numPointers - numAssociated
 
-		return nil
+		err := <-errChan
+		return err
 	}()
 	if err != nil {
 		ctx.ServerError("LFSPointerFiles", err)
