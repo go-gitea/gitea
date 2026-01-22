@@ -136,23 +136,6 @@ func doAPIForkRepository(ctx APITestContext, username string, callback ...func(*
 	}
 }
 
-func doAPIGetRepositorySize(ctx APITestContext, owner, repo string) func(*testing.T) int64 {
-	return func(t *testing.T) int64 {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s", ctx.Username, ctx.Reponame)
-
-		req := NewRequest(t, "GET", urlStr).
-			AddTokenAuth(ctx.Token)
-		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
-		}
-		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
-
-		var repository api.Repository
-		DecodeJSON(t, resp, &repository)
-		return int64(repository.Size)
-	}
-}
-
 func doAPIGetRepository(ctx APITestContext, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
 	return func(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s", ctx.Username, ctx.Reponame)).

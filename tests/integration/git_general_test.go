@@ -320,50 +320,6 @@ func lockFileTest(t *testing.T, filename, repoPath string) {
 	assert.NoError(t, err)
 }
 
-func doGetRemoteRepoSizeViaAPI(t *testing.T, ctx APITestContext) int64 {
-	return doAPIGetRepositorySize(ctx, ctx.Username, ctx.Reponame)(t)
-}
-
-func doDeleteAndPush(t *testing.T, repoPath, filename string) {
-	_, _, err := gitcmd.NewCommand("rm").AddDashesAndList(filename).WithDir(repoPath).RunStdString(t.Context()) // Delete
-	assert.NoError(t, err)
-	signature := git.Signature{
-		Email: "user2@example.com",
-		Name:  "User Two",
-		When:  time.Now(),
-	}
-	_, _, err = gitcmd.NewCommand("status").WithDir(repoPath).RunStdString(t.Context())
-	assert.NoError(t, err)
-	err2 := git.CommitChanges(t.Context(), repoPath, git.CommitChangesOptions{ // Commit
-		Committer: &signature,
-		Author:    &signature,
-		Message:   "Delete Commit",
-	})
-	assert.NoError(t, err2)
-	_, _, err = gitcmd.NewCommand("status").WithDir(repoPath).RunStdString(t.Context())
-	assert.NoError(t, err)
-	_, _, err = gitcmd.NewCommand("push", "origin", "master").WithDir(repoPath).RunStdString(t.Context()) // Push
-	assert.NoError(t, err)
-}
-
-func doGetAddCommitID(t *testing.T, repoPath, filename string) string {
-	output, _, err := gitcmd.NewCommand("log", "origin", "master").WithDir(repoPath).RunStdString(t.Context()) // Push
-	assert.NoError(t, err)
-	list := strings.Fields(output)
-	assert.LessOrEqual(t, 2, len(list))
-	return list[1]
-}
-
-func doRebaseCommitAndPush(t *testing.T, repoPath, commitID string) {
-	command := gitcmd.NewCommand("rebase", "--interactive").AddDashesAndList(commitID)
-	env := os.Environ()
-	env = append(env, "GIT_SEQUENCE_EDITOR=true")
-	_, _, err := command.WithDir(repoPath).WithEnv(env).RunStdString(t.Context()) // Push
-	assert.NoError(t, err)
-	_, _, err = gitcmd.NewCommand("push", "origin", "master", "-f").WithDir(repoPath).RunStdString(t.Context()) // Push
-	assert.NoError(t, err)
-}
-
 func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 	name, err := generateCommitWithNewData(t.Context(), size, repoPath, "user2@example.com", "User Two", prefix)
 	assert.NoError(t, err)

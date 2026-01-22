@@ -361,15 +361,6 @@ func loadObjectsSizesViaBatch(ctx *gitea_context.PrivateContext, repoPath string
 	return nil
 }
 
-// parseSize parses the object size from a string
-func parseSize(sizeStr string) (int64, error) {
-	size, err := strconv.ParseInt(sizeStr, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse object size: %w", err)
-	}
-	return size, nil
-}
-
 /*
 LFS pointer scanning (fast-ish, bounded)
 
