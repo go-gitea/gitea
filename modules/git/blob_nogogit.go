@@ -8,6 +8,7 @@ package git
 import (
 	"io"
 
+	"code.gitea.io/gitea/modules/git/objectpool"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -24,7 +25,7 @@ type Blob struct {
 // DataAsync gets a ReadCloser for the contents of a blob without reading it all.
 // Calling the Close function on the result will discard all unread output.
 func (b *Blob) DataAsync() (_ io.ReadCloser, retErr error) {
-	batch, cancel, err := b.repo.CatFileBatch(b.repo.Ctx)
+	batch, cancel, err := b.repo.GetObjectPool(b.repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +56,7 @@ func (b *Blob) Size() int64 {
 		return b.size
 	}
 
-	batch, cancel, err := b.repo.CatFileBatch(b.repo.Ctx)
+	batch, cancel, err := b.repo.GetObjectPool(b.repo.Ctx)
 	if err != nil {
 		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0
@@ -72,7 +73,7 @@ func (b *Blob) Size() int64 {
 }
 
 type blobReader struct {
-	rd     BufferedReader
+	rd     objectpool.BufferedReader
 	n      int64
 	cancel func()
 }

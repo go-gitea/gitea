@@ -10,7 +10,7 @@ import (
 )
 
 func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.GetObjectPool(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}

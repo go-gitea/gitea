@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 
+	"code.gitea.io/gitea/modules/git/objectpool"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -46,7 +47,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	return entries, nil
 }
 
-func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd BufferedReader, sz int64) ([]*TreeEntry, error) {
+func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd objectpool.BufferedReader, sz int64) ([]*TreeEntry, error) {
 	fnameBuf := make([]byte, 4096)
 	modeBuf := make([]byte, 40)
 	shaBuf := make([]byte, objectFormat.FullLength())

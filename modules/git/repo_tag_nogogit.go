@@ -24,7 +24,7 @@ func (repo *Repository) IsTagExist(name string) bool {
 
 // GetTagType gets the type of the tag, either commit (simple) or tag (annotated)
 func (repo *Repository) GetTagType(id ObjectID) (string, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.GetObjectPool(repo.Ctx)
 	if err != nil {
 		return "", err
 	}
@@ -84,7 +84,7 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	}
 
 	// The tag is an annotated tag with a message.
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.GetObjectPool(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}

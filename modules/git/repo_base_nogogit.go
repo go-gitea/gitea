@@ -9,9 +9,8 @@ package git
 import (
 	"context"
 	"path/filepath"
-	"sync"
 
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/git/objectpool"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -23,9 +22,7 @@ type Repository struct {
 
 	tagCache *ObjectCache[*Tag]
 
-	mu                 sync.Mutex
-	catFileBatchCloser CatFileBatchCloser
-	catFileBatchInUse  bool
+	objPoolProvider objectpool.Provider
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
@@ -48,53 +45,26 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	}
 
 	return &Repository{
-		Path:     repoPath,
-		tagCache: newObjectCache[*Tag](),
-		Ctx:      ctx,
+		Path:            repoPath,
+		tagCache:        newObjectCache[*Tag](),
+		objPoolProvider: NewObjectPoolProvider(repoPath),
+		Ctx:             ctx,
 	}, nil
 }
 
-// CatFileBatch obtains a "batch object provider" for this repository.
+// GetObjectPool obtains a "batch object provider" for this repository.
 // It reuses an existing one if available, otherwise creates a new one.
-func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, closeFunc func(), err error) {
-	repo.mu.Lock()
-	defer repo.mu.Unlock()
-
-	if repo.catFileBatchCloser == nil {
-		repo.catFileBatchCloser, err = NewBatch(ctx, repo.Path)
-		if err != nil {
-			repo.catFileBatchCloser = nil // otherwise it is "interface(nil)" and will cause wrong logic
-			return nil, nil, err
-		}
-	}
-
-	if !repo.catFileBatchInUse {
-		repo.catFileBatchInUse = true
-		return CatFileBatch(repo.catFileBatchCloser), func() {
-			repo.mu.Lock()
-			defer repo.mu.Unlock()
-			repo.catFileBatchInUse = false
-		}, nil
-	}
-
-	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
-	tempBatch, err := NewBatch(ctx, repo.Path)
-	if err != nil {
-		return nil, nil, err
-	}
-	return tempBatch, tempBatch.Close, nil
+func (repo *Repository) GetObjectPool(ctx context.Context) (_ objectpool.ObjectPool, closeFunc func(), err error) {
+	return repo.objPoolProvider.GetObjectPool(ctx)
 }
 
 func (repo *Repository) Close() error {
 	if repo == nil {
 		return nil
 	}
-	repo.mu.Lock()
-	defer repo.mu.Unlock()
-	if repo.catFileBatchCloser != nil {
-		repo.catFileBatchCloser.Close()
-		repo.catFileBatchCloser = nil
-		repo.catFileBatchInUse = false
+	if repo.objPoolProvider != nil {
+		repo.objPoolProvider.Close()
+		repo.objPoolProvider = nil
 	}
 	repo.LastCommitCache = nil
 	repo.tagCache = nil

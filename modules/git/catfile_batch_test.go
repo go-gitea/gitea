@@ -26,7 +26,7 @@ func TestCatFileBatch(t *testing.T) {
 func testCatFileBatch(t *testing.T) {
 	t.Run("CorruptedGitRepo", func(t *testing.T) {
 		tmpDir := t.TempDir()
-		batch, err := NewBatch(t.Context(), tmpDir)
+		batch, err := newObjectPool(t.Context(), tmpDir)
 		// as long as the directory exists, no error, because we can't really know whether the git repo is valid until we run commands
 		require.NoError(t, err)
 		defer batch.Close()
@@ -37,7 +37,7 @@ func testCatFileBatch(t *testing.T) {
 		require.Error(t, err)
 	})
 
-	batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
+	batch, err := newObjectPool(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer batch.Close()
 

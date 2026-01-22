@@ -23,7 +23,7 @@ func (repo *Repository) IsObjectExist(name string) bool {
 		return false
 	}
 
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.GetObjectPool(repo.Ctx)
 	if err != nil {
 		log.Debug("Error opening CatFileBatch %v", err)
 		return false
@@ -43,7 +43,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 		return false
 	}
 
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.GetObjectPool(repo.Ctx)
 	if err != nil {
 		log.Error("Error opening CatFileBatch %v", err)
 		return false

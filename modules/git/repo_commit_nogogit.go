@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/git/objectpool"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -36,7 +37,7 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.GetObjectPool(repo.Ctx)
 	if err != nil {
 		return "", err
 	}
@@ -51,7 +52,7 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 }
 
 func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.GetObjectPool(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +60,7 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 	return repo.getCommitWithBatch(batch, id)
 }
 
-func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Commit, error) {
+func (repo *Repository) getCommitWithBatch(batch objectpool.ObjectPool, id ObjectID) (*Commit, error) {
 	info, rd, err := batch.QueryContent(id.String())
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
@@ -122,7 +123,7 @@ func (repo *Repository) ConvertToGitID(commitID string) (ObjectID, error) {
 		}
 	}
 
-	batch, cancel, err := repo.CatFileBatch(repo.Ctx)
+	batch, cancel, err := repo.GetObjectPool(repo.Ctx)
 	if err != nil {
 		return nil, err
 	}

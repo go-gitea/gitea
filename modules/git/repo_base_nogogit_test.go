@@ -17,7 +17,7 @@ func TestRepoCatFileBatch(t *testing.T) {
 		repo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 		require.NoError(t, err)
 		repo.Path = "/no-such" // when the repo is missing (it usually occurs during testing because the fixtures are synced frequently)
-		_, _, err = repo.CatFileBatch(t.Context())
+		_, _, err = repo.GetObjectPool(t.Context())
 		require.Error(t, err)
 		require.NoError(t, repo.Close()) // shouldn't panic
 	})
