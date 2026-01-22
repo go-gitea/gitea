@@ -146,7 +146,7 @@ BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* mo
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
-SVG_DEST_DIRS := public/assets/img/svg options/fileicon
+SVG_DEST := public/assets/img/svg options/fileicon
 
 AIR_TMP_DIR := .air
 
@@ -338,12 +338,12 @@ lint-backend: lint-go lint-go-gitea-vet lint-editorconfig ## lint backend files
 lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backend files and fix issues
 
 .PHONY: lint-js
-lint-js: node_modules $(SVG_DEST_DIRS) ## lint js files
+lint-js: node_modules $(SVG_DEST) ## lint js files
 	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES)
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
-lint-js-fix: node_modules $(SVG_DEST_DIRS) ## lint js files and fix issues
+lint-js-fix: node_modules $(SVG_DEST) ## lint js files and fix issues
 	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES) --fix
 	$(NODE_VARS) pnpm exec vue-tsc
 
@@ -426,7 +426,7 @@ watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node-check node_modules $(SVG_DEST_DIRS) ## watch frontend files and continuously rebuild
+watch-frontend: node-check node_modules $(SVG_DEST) ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
 
@@ -878,7 +878,7 @@ update-py: node-check | node_modules ## update py dependencies
 .PHONY: webpack
 webpack: $(WEBPACK_DEST) ## build webpack files
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) $(SVG_DEST_DIRS) pnpm-lock.yaml
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) $(SVG_DEST) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@echo "Running webpack..."
@@ -886,12 +886,12 @@ $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) $(SVG_DEST_DIRS) pnpm-loc
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
-svg: $(SVG_DEST_DIRS) ## build svg files
+svg: $(SVG_DEST) ## build svg files
 
-$(SVG_DEST_DIRS): node_modules
-	rm -rf $(SVG_DEST_DIRS)
+$(SVG_DEST): node_modules
+	rm -rf $(SVG_DEST)
 	$(NODE_VARS) node tools/generate-svg.ts
-	@touch $(SVG_DEST_DIRS)
+	@touch $(SVG_DEST)
 
 .PHONY: lockfile-check
 lockfile-check:
