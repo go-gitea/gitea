@@ -459,8 +459,8 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 						conflicts.Add(filepath)
 					}
 				}
-				// only list 10 conflicted files
-				if len(conflicts) >= 10 {
+				// only list part of conflicted files
+				if len(conflicts) >= gitrepo.MaxConflictedDetectFiles {
 					break
 				}
 			}

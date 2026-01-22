@@ -64,6 +64,8 @@ func parseMergeTreeOutput(output io.Reader, maxListFiles int) (treeID string, co
 	return treeID, conflictedFiles, nil
 }
 
+const MaxConflictedDetectFiles = 10
+
 // MergeTree performs a merge between two commits (baseRef and headRef) with an optional merge base.
 // It returns the resulting tree hash, a list of conflicted files (if any), and an error if the operation fails.
 // If there are no conflicts, the list of conflicted files will be nil.
@@ -82,7 +84,7 @@ func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase
 	case gitcmd.IsErrorExitCode(gitErr, 0) || gitErr == nil:
 		return strings.TrimSpace(strings.TrimSuffix(stdout.String(), "\x00")), false, nil, nil
 	case gitcmd.IsErrorExitCode(gitErr, 1):
-		treeID, conflictedFiles, err := parseMergeTreeOutput(stdout, 10)
+		treeID, conflictedFiles, err := parseMergeTreeOutput(stdout, MaxConflictedDetectFiles)
 		if err != nil {
 			return "", false, nil, fmt.Errorf("parse merge-tree output failed: %w", err)
 		}
