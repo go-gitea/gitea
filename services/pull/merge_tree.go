@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // checkConflictsMergeTree uses git merge-tree to check for conflicts and if none are found checks if the patch is empty
@@ -26,7 +25,9 @@ func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 	if conflict {
 		pr.Status = issues_model.PullRequestStatusConflict
-		pr.ConflictedFiles = util.Iif(len(conflictFiles) > 0, conflictFiles, []string{"(no files listed)"})
+		// sometimes git merge-tree will detect conflicts but not list any conflicted files
+		// so that pr.ConflictedFiles will be empty
+		pr.ConflictedFiles = conflictFiles
 
 		log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
 		return true, nil
@@ -36,7 +37,6 @@ func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, 
 	// it will return exit code 0 if there's no diff and exit code 1 if there's a diff.
 	gitErr := gitrepo.RunCmd(ctx, pr.BaseRepo, gitcmd.NewCommand("diff-tree", "-r", "--quiet").
 		AddDynamicArguments(treeHash, pr.MergeBase))
-
 	switch {
 	case gitcmd.IsErrorExitCode(gitErr, 0) || gitErr == nil:
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
