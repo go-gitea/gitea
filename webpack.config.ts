@@ -111,7 +111,6 @@ export default {
     ],
     splitChunks: {
       chunks: 'async',
-      name: (_, chunks) => chunks.map((item) => item.name).join('-'),
     },
     moduleIds: 'named',
     chunkIds: 'named',
