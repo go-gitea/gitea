@@ -226,60 +226,55 @@ type CommitsByFileAndRangeOptions struct {
 
 // CommitsByFileAndRange return the commits according revision file and the page
 func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions) ([]*Commit, error) {
-	stdoutReader, stdoutWriter := io.Pipe()
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
-	go func() {
-		gitCmd := gitcmd.NewCommand("rev-list").
-			AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
-			AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
-		gitCmd.AddDynamicArguments(opts.Revision)
+	gitCmd := gitcmd.NewCommand("rev-list").
+		AddOptionFormat("--max-count=%d", setting.Git.CommitsRangeSize).
+		AddOptionFormat("--skip=%d", (opts.Page-1)*setting.Git.CommitsRangeSize)
+	gitCmd.AddDynamicArguments(opts.Revision)
 
-		if opts.Not != "" {
-			gitCmd.AddOptionValues("--not", opts.Not)
-		}
-		if opts.Since != "" {
-			gitCmd.AddOptionFormat("--since=%s", opts.Since)
-		}
-		if opts.Until != "" {
-			gitCmd.AddOptionFormat("--until=%s", opts.Until)
-		}
-
-		gitCmd.AddDashesAndList(opts.File)
-		err := gitCmd.WithDir(repo.Path).
-			WithStdout(stdoutWriter).
-			RunWithStderr(repo.Ctx)
-		_ = stdoutWriter.CloseWithError(err)
-	}()
-
-	objectFormat, err := repo.GetObjectFormat()
-	if err != nil {
-		return nil, err
+	if opts.Not != "" {
+		gitCmd.AddOptionValues("--not", opts.Not)
 	}
+	if opts.Since != "" {
+		gitCmd.AddOptionFormat("--since=%s", opts.Since)
+	}
+	if opts.Until != "" {
+		gitCmd.AddOptionFormat("--until=%s", opts.Until)
+	}
+	gitCmd.AddDashesAndList(opts.File)
 
-	length := objectFormat.FullLength()
-	commits := []*Commit{}
-	shaline := make([]byte, length+1)
-	for {
-		n, err := io.ReadFull(stdoutReader, shaline)
-		if err != nil || n < length {
-			if err == io.EOF {
-				err = nil
+	var commits []*Commit
+	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	err := gitCmd.WithDir(repo.Path).
+		WithPipelineFunc(func(context gitcmd.Context) error {
+			objectFormat, err := repo.GetObjectFormat()
+			if err != nil {
+				return err
 			}
-			return commits, err
-		}
-		objectID, err := NewIDFromString(string(shaline[0:length]))
-		if err != nil {
-			return nil, err
-		}
-		commit, err := repo.getCommit(objectID)
-		if err != nil {
-			return nil, err
-		}
-		commits = append(commits, commit)
-	}
+
+			length := objectFormat.FullLength()
+			shaline := make([]byte, length+1)
+			for {
+				n, err := io.ReadFull(stdoutReader, shaline)
+				if err != nil || n < length {
+					if err == io.EOF {
+						err = nil
+					}
+					return err
+				}
+				objectID, err := NewIDFromString(string(shaline[0:length]))
+				if err != nil {
+					return err
+				}
+				commit, err := repo.getCommit(objectID)
+				if err != nil {
+					return err
+				}
+				commits = append(commits, commit)
+			}
+		}).
+		RunWithStderr(repo.Ctx)
+	return commits, err
 }
 
 // FilesCountBetween return the number of files changed between two commits
