@@ -102,36 +102,3 @@ func DeleteRunner(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
 }
-
-// UpdateRunnerCapacity updates the capacity of a runner
-func UpdateRunnerCapacity(ctx *context.APIContext) {
-	// swagger:operation PATCH /admin/actions/runners/{runner_id}/capacity admin updateAdminRunnerCapacity
-	// ---
-	// summary: Update runner capacity
-	// consumes:
-	// - application/json
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: runner_id
-	//   in: path
-	//   description: id of the runner
-	//   type: string
-	//   required: true
-	// - name: body
-	//   in: body
-	//   schema:
-	//     type: object
-	//     properties:
-	//       capacity:
-	//         type: integer
-	//         description: Maximum number of parallel tasks (0 = unlimited)
-	// responses:
-	//   "200":
-	//     "$ref": "#/definitions/ActionRunner"
-	//   "400":
-	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	shared.UpdateRunnerCapacity(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
-}

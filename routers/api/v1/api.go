@@ -1740,7 +1740,6 @@ func Routes() *web.Router {
 					m.Post("/registration-token", admin.CreateRegistrationToken)
 					m.Get("/{runner_id}", admin.GetRunner)
 					m.Delete("/{runner_id}", admin.DeleteRunner)
-					m.Patch("/{runner_id}/capacity", bind(api.UpdateRunnerCapacityOption{}), admin.UpdateRunnerCapacity)
 				})
 				m.Get("/runs", admin.ListWorkflowRuns)
 				m.Get("/jobs", admin.ListWorkflowJobs)
