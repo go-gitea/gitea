@@ -405,11 +405,11 @@ func scanLFSPointersFromObjectIDs(ctx *gitea_context.PrivateContext, repoPath st
 		input.WriteByte('\n')
 	}
 
-	// Feed stdin via WithStdin, RunStdBytes takes only context.Context in your version
+	// Use batch-check to get object type and size for each object ID
 	checkCmd := gitcmd.NewCommand("cat-file", "--batch-check=%(objectname) %(objecttype) %(objectsize)").
 		WithDir(repoPath).
 		WithEnv(env).
-		WithStdin(bytes.NewReader(input.Bytes()))
+		WithStdinCopy(bytes.NewReader(input.Bytes()))
 
 	checkBytes, _, err := checkCmd.RunStdBytes(ctx)
 	if err != nil {
@@ -449,7 +449,7 @@ func scanLFSPointersFromObjectIDs(ctx *gitea_context.PrivateContext, repoPath st
 	catCmd := gitcmd.NewCommand("cat-file", "--batch").
 		WithDir(repoPath).
 		WithEnv(env).
-		WithStdin(bytes.NewReader(input2.Bytes()))
+		WithStdinCopy(bytes.NewReader(input2.Bytes()))
 
 	catBytes, _, err := catCmd.RunStdBytes(ctx)
 	if err != nil {
