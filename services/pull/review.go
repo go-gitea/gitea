@@ -274,7 +274,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		if len(commitID) == 0 {
 			commitID = headCommitID
 		}
-		reader, writer := io.Pipe()
+		reader, writer := io.Pipe() // FIXME: use os.Pipe to avoid deadlock
 		defer func() {
 			_ = reader.Close()
 			_ = writer.Close()

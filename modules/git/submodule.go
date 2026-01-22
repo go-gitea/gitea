@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"context"
 	"fmt"
-	"io"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
@@ -21,10 +20,10 @@ type TemplateSubmoduleCommit struct {
 // GetTemplateSubmoduleCommits returns a list of submodules paths and their commits from a repository
 // This function is only for generating new repos based on existing template, the template couldn't be too large.
 func GetTemplateSubmoduleCommits(ctx context.Context, repoPath string) (submoduleCommits []TemplateSubmoduleCommit, _ error) {
-	var stdoutReader io.ReadCloser
-	err := gitcmd.NewCommand("ls-tree", "-r", "--", "HEAD").
-		WithDir(repoPath).
-		WithStdoutReader(&stdoutReader).
+	cmd := gitcmd.NewCommand("ls-tree", "-r", "--", "HEAD")
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	err := cmd.WithDir(repoPath).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 			for scanner.Scan() {

@@ -94,84 +94,81 @@ func callShowRef(ctx context.Context, repoPath, trimPrefix string, extraArgs git
 }
 
 func WalkShowRef(ctx context.Context, repoPath string, extraArgs gitcmd.TrustedCmdArgs, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {
-	stdoutReader, stdoutWriter := io.Pipe()
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
-
-	go func() {
-		args := gitcmd.TrustedCmdArgs{"for-each-ref", "--format=%(objectname) %(refname)"}
-		args = append(args, extraArgs...)
-		err := gitcmd.NewCommand(args...).
-			WithDir(repoPath).
-			WithStdout(stdoutWriter).
-			RunWithStderr(ctx)
-		_ = stdoutWriter.CloseWithError(err)
-	}()
-
 	i := 0
-	bufReader := bufio.NewReader(stdoutReader)
-	for i < skip {
-		_, isPrefix, err := bufReader.ReadLine()
-		if err == io.EOF {
-			return i, nil
-		}
-		if err != nil {
-			return 0, err
-		}
-		if !isPrefix {
-			i++
-		}
+	args := gitcmd.TrustedCmdArgs{"for-each-ref", "--format=%(objectname) %(refname)"}
+	args = append(args, extraArgs...)
+	cmd := gitcmd.NewCommand(args...)
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	cmd.WithDir(repoPath).
+		WithPipelineFunc(func(c gitcmd.Context) error {
+			bufReader := bufio.NewReader(stdoutReader)
+			for i < skip {
+				_, isPrefix, err := bufReader.ReadLine()
+				if err == io.EOF {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+				if !isPrefix {
+					i++
+				}
+			}
+			for limit == 0 || i < skip+limit {
+				// The output of show-ref is simply a list:
+				// <sha> SP <ref> LF
+				sha, err := bufReader.ReadString(' ')
+				if err == io.EOF {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+
+				branchName, err := bufReader.ReadString('\n')
+				if err == io.EOF {
+					// This shouldn't happen... but we'll tolerate it for the sake of peace
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+
+				if len(branchName) > 0 {
+					branchName = branchName[:len(branchName)-1]
+				}
+
+				if len(sha) > 0 {
+					sha = sha[:len(sha)-1]
+				}
+
+				err = walkfn(sha, branchName)
+				if err != nil {
+					return err
+				}
+				i++
+			}
+			// count all refs
+			for limit != 0 {
+				_, isPrefix, err := bufReader.ReadLine()
+				if err == io.EOF {
+					return nil
+				}
+				if err != nil {
+					return err
+				}
+				if !isPrefix {
+					i++
+				}
+			}
+			return nil
+		})
+	err = cmd.RunWithStderr(ctx)
+	if errPipeline := gitcmd.ErrorAsPipeline(err); errPipeline != nil {
+		return i, errPipeline // keep the old behavior: return pipeline error directly
 	}
-	for limit == 0 || i < skip+limit {
-		// The output of show-ref is simply a list:
-		// <sha> SP <ref> LF
-		sha, err := bufReader.ReadString(' ')
-		if err == io.EOF {
-			return i, nil
-		}
-		if err != nil {
-			return 0, err
-		}
-
-		branchName, err := bufReader.ReadString('\n')
-		if err == io.EOF {
-			// This shouldn't happen... but we'll tolerate it for the sake of peace
-			return i, nil
-		}
-		if err != nil {
-			return i, err
-		}
-
-		if len(branchName) > 0 {
-			branchName = branchName[:len(branchName)-1]
-		}
-
-		if len(sha) > 0 {
-			sha = sha[:len(sha)-1]
-		}
-
-		err = walkfn(sha, branchName)
-		if err != nil {
-			return i, err
-		}
-		i++
-	}
-	// count all refs
-	for limit != 0 {
-		_, isPrefix, err := bufReader.ReadLine()
-		if err == io.EOF {
-			return i, nil
-		}
-		if err != nil {
-			return 0, err
-		}
-		if !isPrefix {
-			i++
-		}
-	}
-	return i, nil
+	return i, err
 }
 
 // GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash

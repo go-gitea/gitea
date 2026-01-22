@@ -414,13 +414,13 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	//   - alternatively we can do the equivalent of:
 	//  `git apply --check ... | grep ...`
 	//     meaning we don't store all the conflicts unnecessarily.
-	var stderrReader io.ReadCloser
+	stderrReader, stderrReaderClose := cmdApply.MakeStderrPipe()
+	defer stderrReaderClose()
 
 	// 8. Run the check command
 	conflict = false
 	err = cmdApply.
 		WithDir(tmpBasePath).
-		WithStderrReader(&stderrReader).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			const prefix = "error: patch failed:"
 			const errorPrefix = "error: "
