@@ -146,7 +146,7 @@ BINDATA_DEST_WILDCARD := modules/migration/bindata.* modules/public/bindata.* mo
 
 GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
 
-SVG_DEST_DIR := public/assets/img/svg
+SVG_DEST := public/assets/img/svg options/fileicon
 
 AIR_TMP_DIR := .air
 
@@ -314,7 +314,7 @@ swagger-validate: ## check if the swagger spec is valid
 checks: checks-frontend checks-backend ## run various consistency checks
 
 .PHONY: checks-frontend
-checks-frontend: lockfile-check svg-check ## check frontend files
+checks-frontend: lockfile-check ## check frontend files
 
 .PHONY: checks-backend
 checks-backend: tidy-check swagger-check fmt-check swagger-validate security-check ## check backend files
@@ -338,12 +338,12 @@ lint-backend: lint-go lint-go-gitea-vet lint-editorconfig ## lint backend files
 lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backend files and fix issues
 
 .PHONY: lint-js
-lint-js: node_modules ## lint js files
+lint-js: node_modules $(SVG_DEST) ## lint js files
 	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES)
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
-lint-js-fix: node_modules ## lint js files and fix issues
+lint-js-fix: node_modules $(SVG_DEST) ## lint js files and fix issues
 	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES) --fix
 	$(NODE_VARS) pnpm exec vue-tsc
 
@@ -406,7 +406,7 @@ lint-actions: ## lint action workflow files
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
-	@node tools/lint-templates-svg.ts
+	@$(NODE_VARS) node tools/lint-templates-svg.ts
 	@uv run --frozen djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: lint-yaml
@@ -426,7 +426,7 @@ watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
+watch-frontend: node-check node_modules $(SVG_DEST) ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
 
@@ -510,11 +510,11 @@ generate-ini-sqlite:
 			tests/sqlite.ini.tmpl > tests/sqlite.ini
 
 .PHONY: test-sqlite
-test-sqlite: integrations.sqlite.test generate-ini-sqlite
+test-sqlite: integrations.sqlite.test generate-ini-sqlite $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./integrations.sqlite.test
 
 .PHONY: test-sqlite\#%
-test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite
+test-sqlite\#%: integrations.sqlite.test generate-ini-sqlite $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./integrations.sqlite.test -test.run $(subst .,/,$*)
 
 .PHONY: test-sqlite-migration
@@ -531,11 +531,11 @@ generate-ini-mysql:
 			tests/mysql.ini.tmpl > tests/mysql.ini
 
 .PHONY: test-mysql
-test-mysql: integrations.mysql.test generate-ini-mysql
+test-mysql: integrations.mysql.test generate-ini-mysql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./integrations.mysql.test
 
 .PHONY: test-mysql\#%
-test-mysql\#%: integrations.mysql.test generate-ini-mysql
+test-mysql\#%: integrations.mysql.test generate-ini-mysql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./integrations.mysql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-mysql-migration
@@ -554,11 +554,11 @@ generate-ini-pgsql:
 			tests/pgsql.ini.tmpl > tests/pgsql.ini
 
 .PHONY: test-pgsql
-test-pgsql: integrations.pgsql.test generate-ini-pgsql
+test-pgsql: integrations.pgsql.test generate-ini-pgsql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./integrations.pgsql.test
 
 .PHONY: test-pgsql\#%
-test-pgsql\#%: integrations.pgsql.test generate-ini-pgsql
+test-pgsql\#%: integrations.pgsql.test generate-ini-pgsql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./integrations.pgsql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-pgsql-migration
@@ -575,11 +575,11 @@ generate-ini-mssql:
 			tests/mssql.ini.tmpl > tests/mssql.ini
 
 .PHONY: test-mssql
-test-mssql: integrations.mssql.test generate-ini-mssql
+test-mssql: integrations.mssql.test generate-ini-mssql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./integrations.mssql.test
 
 .PHONY: test-mssql\#%
-test-mssql\#%: integrations.mssql.test generate-ini-mssql
+test-mssql\#%: integrations.mssql.test generate-ini-mssql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./integrations.mssql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-mssql-migration
@@ -595,144 +595,144 @@ test-e2e%: TEST_TYPE ?= e2e
 	DISPLAY=
 
 .PHONY: test-e2e
-test-e2e: test-e2e-sqlite
+test-e2e: test-e2e-sqlite $(SVG_DEST)
 
 .PHONY: test-e2e-sqlite
-test-e2e-sqlite: playwright e2e.sqlite.test generate-ini-sqlite
+test-e2e-sqlite: playwright e2e.sqlite.test generate-ini-sqlite $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./e2e.sqlite.test
 
 .PHONY: test-e2e-sqlite\#%
-test-e2e-sqlite\#%: playwright e2e.sqlite.test generate-ini-sqlite
+test-e2e-sqlite\#%: playwright e2e.sqlite.test generate-ini-sqlite $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./e2e.sqlite.test -test.run TestE2e/$*
 
 .PHONY: test-e2e-mysql
-test-e2e-mysql: playwright e2e.mysql.test generate-ini-mysql
+test-e2e-mysql: playwright e2e.mysql.test generate-ini-mysql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./e2e.mysql.test
 
 .PHONY: test-e2e-mysql\#%
-test-e2e-mysql\#%: playwright e2e.mysql.test generate-ini-mysql
+test-e2e-mysql\#%: playwright e2e.mysql.test generate-ini-mysql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./e2e.mysql.test -test.run TestE2e/$*
 
 .PHONY: test-e2e-pgsql
-test-e2e-pgsql: playwright e2e.pgsql.test generate-ini-pgsql
+test-e2e-pgsql: playwright e2e.pgsql.test generate-ini-pgsql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./e2e.pgsql.test
 
 .PHONY: test-e2e-pgsql\#%
-test-e2e-pgsql\#%: playwright e2e.pgsql.test generate-ini-pgsql
+test-e2e-pgsql\#%: playwright e2e.pgsql.test generate-ini-pgsql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./e2e.pgsql.test -test.run TestE2e/$*
 
 .PHONY: test-e2e-mssql
-test-e2e-mssql: playwright e2e.mssql.test generate-ini-mssql
+test-e2e-mssql: playwright e2e.mssql.test generate-ini-mssql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./e2e.mssql.test
 
 .PHONY: test-e2e-mssql\#%
-test-e2e-mssql\#%: playwright e2e.mssql.test generate-ini-mssql
+test-e2e-mssql\#%: playwright e2e.mssql.test generate-ini-mssql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./e2e.mssql.test -test.run TestE2e/$*
 
 .PHONY: bench-sqlite
-bench-sqlite: integrations.sqlite.test generate-ini-sqlite
+bench-sqlite: integrations.sqlite.test generate-ini-sqlite $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./integrations.sqlite.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: bench-mysql
-bench-mysql: integrations.mysql.test generate-ini-mysql
+bench-mysql: integrations.mysql.test generate-ini-mysql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./integrations.mysql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: bench-mssql
-bench-mssql: integrations.mssql.test generate-ini-mssql
+bench-mssql: integrations.mssql.test generate-ini-mssql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./integrations.mssql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: bench-pgsql
-bench-pgsql: integrations.pgsql.test generate-ini-pgsql
+bench-pgsql: integrations.pgsql.test generate-ini-pgsql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./integrations.pgsql.test -test.cpuprofile=cpu.out -test.run DontRunTests -test.bench .
 
 .PHONY: integration-test-coverage
-integration-test-coverage: integrations.cover.test generate-ini-mysql
+integration-test-coverage: integrations.cover.test generate-ini-mysql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./integrations.cover.test -test.coverprofile=integration.coverage.out
 
 .PHONY: integration-test-coverage-sqlite
-integration-test-coverage-sqlite: integrations.cover.sqlite.test generate-ini-sqlite
+integration-test-coverage-sqlite: integrations.cover.sqlite.test generate-ini-sqlite $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./integrations.cover.sqlite.test -test.coverprofile=integration.coverage.out
 
-integrations.mysql.test: git-check $(GO_SOURCES)
+integrations.mysql.test: git-check $(GO_SOURCES) $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.mysql.test
 
-integrations.pgsql.test: git-check $(GO_SOURCES)
+integrations.pgsql.test: git-check $(GO_SOURCES) $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.pgsql.test
 
-integrations.mssql.test: git-check $(GO_SOURCES)
+integrations.mssql.test: git-check $(GO_SOURCES) $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.mssql.test
 
-integrations.sqlite.test: git-check $(GO_SOURCES)
+integrations.sqlite.test: git-check $(GO_SOURCES) $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -o integrations.sqlite.test -tags '$(TEST_TAGS)'
 
-integrations.cover.test: git-check $(GO_SOURCES)
+integrations.cover.test: git-check $(GO_SOURCES) $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -o integrations.cover.test
 
-integrations.cover.sqlite.test: git-check $(GO_SOURCES)
+integrations.cover.sqlite.test: git-check $(GO_SOURCES) $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration -coverpkg $(shell echo $(GO_TEST_PACKAGES) | tr ' ' ',') -o integrations.cover.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: migrations.mysql.test
-migrations.mysql.test: $(GO_SOURCES) generate-ini-mysql
+migrations.mysql.test: $(GO_SOURCES) generate-ini-mysql $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.mysql.test
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./migrations.mysql.test
 
 .PHONY: migrations.pgsql.test
-migrations.pgsql.test: $(GO_SOURCES) generate-ini-pgsql
+migrations.pgsql.test: $(GO_SOURCES) generate-ini-pgsql $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.pgsql.test
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./migrations.pgsql.test
 
 .PHONY: migrations.mssql.test
-migrations.mssql.test: $(GO_SOURCES) generate-ini-mssql
+migrations.mssql.test: $(GO_SOURCES) generate-ini-mssql $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.mssql.test
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./migrations.mssql.test
 
 .PHONY: migrations.sqlite.test
-migrations.sqlite.test: $(GO_SOURCES) generate-ini-sqlite
+migrations.sqlite.test: $(GO_SOURCES) generate-ini-sqlite $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/integration/migration-test -o migrations.sqlite.test -tags '$(TEST_TAGS)'
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./migrations.sqlite.test
 
 .PHONY: migrations.individual.mysql.test
-migrations.individual.mysql.test: $(GO_SOURCES)
+migrations.individual.mysql.test: $(GO_SOURCES) $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
 
 .PHONY: migrations.individual.sqlite.test\#%
-migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
+migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
 
 .PHONY: migrations.individual.pgsql.test
-migrations.individual.pgsql.test: $(GO_SOURCES)
+migrations.individual.pgsql.test: $(GO_SOURCES) $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
 
 .PHONY: migrations.individual.pgsql.test\#%
-migrations.individual.pgsql.test\#%: $(GO_SOURCES) generate-ini-pgsql
+migrations.individual.pgsql.test\#%: $(GO_SOURCES) generate-ini-pgsql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
 
 .PHONY: migrations.individual.mssql.test
-migrations.individual.mssql.test: $(GO_SOURCES) generate-ini-mssql
+migrations.individual.mssql.test: $(GO_SOURCES) generate-ini-mssql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
 
 .PHONY: migrations.individual.mssql.test\#%
-migrations.individual.mssql.test\#%: $(GO_SOURCES) generate-ini-mssql
+migrations.individual.mssql.test\#%: $(GO_SOURCES) generate-ini-mssql $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
 
 .PHONY: migrations.individual.sqlite.test
-migrations.individual.sqlite.test: $(GO_SOURCES) generate-ini-sqlite
+migrations.individual.sqlite.test: $(GO_SOURCES) generate-ini-sqlite $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
 
 .PHONY: migrations.individual.sqlite.test\#%
-migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
+migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite $(SVG_DEST)
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
 
-e2e.mysql.test: $(GO_SOURCES)
+e2e.mysql.test: $(GO_SOURCES) $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mysql.test
 
-e2e.pgsql.test: $(GO_SOURCES)
+e2e.pgsql.test: $(GO_SOURCES) $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.pgsql.test
 
-e2e.mssql.test: $(GO_SOURCES)
+e2e.mssql.test: $(GO_SOURCES) $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mssql.test
 
-e2e.sqlite.test: $(GO_SOURCES)
+e2e.sqlite.test: $(GO_SOURCES) $(SVG_DEST)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: check
@@ -878,7 +878,7 @@ update-py: node-check | node_modules ## update py dependencies
 .PHONY: webpack
 webpack: $(WEBPACK_DEST) ## build webpack files
 
-$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
+$(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) $(SVG_DEST) pnpm-lock.yaml
 	@$(MAKE) -s node-check node_modules
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@echo "Running webpack..."
@@ -886,19 +886,12 @@ $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
-svg: node-check | node_modules ## build svg files
-	rm -rf $(SVG_DEST_DIR)
-	node tools/generate-svg.ts
+svg: $(SVG_DEST) ## build svg files
 
-.PHONY: svg-check
-svg-check: svg
-	@git add $(SVG_DEST_DIR)
-	@diff=$$(git diff --color=always --cached $(SVG_DEST_DIR)); \
-	if [ -n "$$diff" ]; then \
-		echo "Please run 'make svg' and 'git add $(SVG_DEST_DIR)' and commit the result:"; \
-		printf "%s" "$${diff}"; \
-		exit 1; \
-	fi
+$(SVG_DEST): node_modules
+	@rm -rf $(SVG_DEST)
+	$(NODE_VARS) node tools/generate-svg.ts
+	@touch $(SVG_DEST)
 
 .PHONY: lockfile-check
 lockfile-check:
@@ -917,7 +910,7 @@ generate-gitignore: ## update gitignore files
 
 .PHONY: generate-images
 generate-images: | node_modules ## generate images
-	cd tools && node generate-images.ts $(TAGS)
+	cd tools && $(NODE_VARS) node generate-images.ts $(TAGS)
 
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage

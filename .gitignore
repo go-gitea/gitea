@@ -45,11 +45,6 @@ _testmain.go
 coverage.all
 cpu.out
 
-/modules/migration/bindata.*
-/modules/options/bindata.*
-/modules/public/bindata.*
-/modules/templates/bindata.*
-
 *.db
 *.log
 *.log.*.gz
@@ -66,7 +61,6 @@ cpu.out
 /data
 /indexers
 /log
-/public/assets/img/avatar
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
 /tests/e2e/gitea-e2e-*
@@ -82,17 +76,23 @@ cpu.out
 /yarn-error.log
 /npm-debug.log*
 /.pnpm-store
-/public/assets/js
-/public/assets/css
-/public/assets/fonts
-/public/assets/licenses.txt
 /vendor
 /VERSION
 /.air
 /.go-licenses
 
-# Files and folders that were previously generated
+# Generated assets
+/modules/migration/bindata.*
+/modules/options/bindata.*
+/modules/public/bindata.*
+/modules/templates/bindata.*
+/public/assets/js
+/public/assets/css
+/public/assets/fonts
+/public/assets/licenses.txt
 /public/assets/img/webpack
+/public/assets/img/svg
+/options/fileicon
 
 # Snapcraft
 /gitea_a*.txt
