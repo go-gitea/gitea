@@ -6,7 +6,6 @@ package git
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"regexp"
@@ -43,6 +42,7 @@ func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer 
 	return err
 }
 
+// GetFileDiffCutAroundLine cuts the old or new part of the diff of a file around a specific line number
 func GetFileDiffCutAroundLine(
 	repo *Repository, startCommit, endCommit, treePath string,
 	line int64, old bool, numbersOfLine int,
@@ -253,7 +253,7 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 			}
 		}
 	}
-	if err := scanner.Err(); err != nil && !errors.Is(err, io.EOF) {
+	if err := scanner.Err(); err != nil {
 		return "", err
 	}
 
