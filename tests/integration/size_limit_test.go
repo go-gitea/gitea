@@ -163,7 +163,10 @@ func testLFSSizeLimitInternal(t *testing.T, u *url.URL) {
 
 	// Helper to track LFS
 	setupLFS := func(t *testing.T, dstPath string) {
-		err := os.WriteFile(path.Join(dstPath, ".gitattributes"), []byte("*.dat filter=lfs diff=lfs merge=lfs -text\n"), 0o644)
+		// Initialize git-lfs in the repository
+		err := gitcmd.NewCommand("lfs", "install", "--local").WithDir(dstPath).Run(t.Context())
+		assert.NoError(t, err)
+		err = os.WriteFile(path.Join(dstPath, ".gitattributes"), []byte("*.dat filter=lfs diff=lfs merge=lfs -text\n"), 0o644)
 		assert.NoError(t, err)
 		err = gitcmd.NewCommand("add", ".gitattributes").WithDir(dstPath).Run(t.Context())
 		assert.NoError(t, err)
