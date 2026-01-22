@@ -100,7 +100,12 @@ GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
 # Enable typescript support in Node.js before 22.18
 # TODO: Remove this once we can raise the minimum Node.js version to 22.18 (alpine >= 3.23)
-NODE_VARS := NODE_OPTIONS="--experimental-strip-types"
+NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v 2>/dev/null | cut -c2- | sed 's/-.*//' | tr '.' ' '))
+ifeq ($(shell test "$(NODE_VERSION)" -lt "022018000"; echo $$?),0)
+	NODE_VARS := NODE_OPTIONS="--experimental-strip-types"
+else
+	NODE_VARS :=
+endif
 
 ifneq ($(GITHUB_REF_TYPE),branch)
 	VERSION ?= $(subst v,,$(GITHUB_REF_NAME))
