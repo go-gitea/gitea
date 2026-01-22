@@ -248,26 +248,11 @@ const (
 	statSizeGarbage  = "size-garbage: "
 )
 
-// CountObjects returns the results of git count-objects on the repoPath
-func CountObjects(ctx context.Context, repoPath string) (*CountObject, error) {
-	return CountObjectsWithEnv(ctx, repoPath, nil)
-}
-
-// CountObjectsWithEnv returns the results of git count-objects on the repoPath with custom env setup
-func CountObjectsWithEnv(ctx context.Context, repoPath string, env []string) (*CountObject, error) {
-	cmd := gitcmd.NewCommand("count-objects", "-v")
-	stdout, _, err := cmd.WithDir(repoPath).WithEnv(env).RunStdString(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return parseSize(stdout), nil
-}
-
-// parseSize parses the output from count-objects and return a CountObject
-func parseSize(objects string) *CountObject {
+// ParseCountObjectsResult parses the output from git count-objects -v
+// and returns a CountObject struct with the parsed values
+func ParseCountObjectsResult(output string) *CountObject {
 	repoSize := new(CountObject)
-	for line := range strings.SplitSeq(objects, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		switch {
 		case strings.HasPrefix(line, statCount):
 			repoSize.Count, _ = strconv.ParseInt(line[7:], 10, 64)

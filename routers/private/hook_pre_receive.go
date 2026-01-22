@@ -547,7 +547,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 
 	// Only do CountObjects (push/repo) when we're doing the repo-size limit at all
 	if needGitDelta {
-		repoSize, err = git.CountObjects(ctx, repo.RepoPath())
+		repoSize, err = gitrepo.CountObjects(ctx, repo)
 		if err != nil {
 			log.Error("Unable to get repository size with env %v: %s Error: %v", repo.RepoPath(), ourCtx.env, err)
 			ctx.JSON(http.StatusInternalServerError, map[string]any{
@@ -556,7 +556,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			return
 		}
 
-		pushSize, err = git.CountObjectsWithEnv(ctx, repo.RepoPath(), ourCtx.env)
+		pushSize, err = gitrepo.CountObjectsWithEnv(ctx, repo, ourCtx.env)
 		if err != nil {
 			log.Error("Unable to get push size with env %v: %s Error: %v", repo.RepoPath(), ourCtx.env, err)
 			ctx.JSON(http.StatusInternalServerError, map[string]any{
