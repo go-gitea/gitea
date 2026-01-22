@@ -446,8 +446,8 @@ func serviceRPC(ctx *context.Context, service string) {
 
 	if err := gitrepo.RunCmdWithStderr(ctx, h.getStorageRepo(), cmd.AddArguments(".").
 		WithEnv(append(os.Environ(), h.environ...)).
-		WithStdin(reqBody).
-		WithStdout(ctx.Resp),
+		WithStdinCopy(reqBody).
+		WithStdoutCopy(ctx.Resp),
 	); err != nil {
 		if !gitcmd.IsErrorCanceledOrKilled(err) {
 			log.Error("Fail to serve RPC(%s) in %s: %v", service, h.getStorageRepo().RelativePath(), err)

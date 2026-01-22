@@ -4,25 +4,54 @@
 package pipeline
 
 import (
+	"bufio"
 	"context"
-	"fmt"
-	"io"
-	"sync"
+	"errors"
+	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+
+	"golang.org/x/sync/errgroup"
 )
 
-// NameRevStdin runs name-rev --stdin
-func NameRevStdin(ctx context.Context, shasToNameReader *io.PipeReader, nameRevStdinWriter *io.PipeWriter, wg *sync.WaitGroup, tmpBasePath string) {
-	defer wg.Done()
-	defer shasToNameReader.Close()
-	defer nameRevStdinWriter.Close()
+func fillResultNameRev(ctx context.Context, basePath string, results []*LFSResult) error {
+	// Should really use a go-git function here but name-rev is not completed and recapitulating it is not simple
+	wg := errgroup.Group{}
+	cmd := gitcmd.NewCommand("name-rev", "--stdin", "--name-only", "--always").WithDir(basePath)
+	stdin, stdinClose := cmd.MakeStdinPipe()
+	stdout, stdoutClose := cmd.MakeStdoutPipe()
+	defer stdinClose()
+	defer stdoutClose()
 
-	if err := gitcmd.NewCommand("name-rev", "--stdin", "--name-only", "--always").
-		WithDir(tmpBasePath).
-		WithStdin(shasToNameReader).
-		WithStdout(nameRevStdinWriter).
-		RunWithStderr(ctx); err != nil {
-		_ = shasToNameReader.CloseWithError(fmt.Errorf("git name-rev [%s]: %w", tmpBasePath, err))
-	}
+	wg.Go(func() error {
+		scanner := bufio.NewScanner(stdout)
+		i := 0
+		for scanner.Scan() {
+			line := scanner.Text()
+			if len(line) == 0 {
+				continue
+			}
+			result := results[i]
+			result.FullCommitName = line
+			result.BranchName = strings.Split(line, "~")[0]
+			i++
+		}
+		return scanner.Err()
+	})
+	wg.Go(func() error {
+		defer stdinClose()
+		for _, result := range results {
+			_, err := stdin.Write([]byte(result.SHA))
+			if err != nil {
+				return err
+			}
+			_, err = stdin.Write([]byte{'\n'})
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	err := cmd.RunWithStderr(ctx)
+	return errors.Join(err, wg.Wait())
 }

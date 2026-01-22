@@ -68,15 +68,14 @@ func CheckAttributes(ctx context.Context, gitRepo *git.Repository, treeish strin
 	}
 	defer cancel()
 
-	stdOut := new(bytes.Buffer)
-	if err := cmd.WithEnv(append(os.Environ(), envs...)).
+	stdout, _, err := cmd.WithEnv(append(os.Environ(), envs...)).
 		WithDir(gitRepo.Path).
-		WithStdout(stdOut).
-		RunWithStderr(ctx); err != nil {
+		RunStdBytes(ctx)
+	if err != nil {
 		return nil, fmt.Errorf("failed to run check-attr: %w", err)
 	}
 
-	fields := bytes.Split(stdOut.Bytes(), []byte{'\000'})
+	fields := bytes.Split(stdout, []byte{'\000'})
 	if len(fields)%3 != 1 {
 		return nil, errors.New("wrong number of fields in return from check-attr")
 	}

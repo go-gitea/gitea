@@ -6,7 +6,6 @@ package gitgraph
 import (
 	"bufio"
 	"bytes"
-	"io"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -45,10 +44,10 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 
 	commitsToSkip := setting.UI.GraphMaxCommitNum * (page - 1)
 
-	var stdoutReader io.ReadCloser
+	stdoutReader, stdoutReaderClose := graphCmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
 	if err := graphCmd.
 		WithDir(r.Path).
-		WithStdoutReader(&stdoutReader).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 			parser := &Parser{}
