@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -32,10 +33,24 @@ func (err ErrDefaultPRBaseBranchNotExist) Unwrap() error {
 	return util.ErrNotExist
 }
 
+// GetDefaultPRBaseBranchSetting returns the configured base branch for new pull requests.
+// It returns an empty string when unset or pull requests are disabled.
+func (repo *Repository) GetDefaultPRBaseBranchSetting(ctx context.Context) string {
+	prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
+	if err != nil {
+		return ""
+	}
+	cfg := prUnit.PullRequestsConfig()
+	if cfg == nil {
+		return ""
+	}
+	return strings.TrimSpace(cfg.DefaultPRBaseBranch)
+}
+
 // GetDefaultPRBaseBranch returns the preferred base branch for new pull requests.
 // It falls back to the repository default branch when unset or invalid.
 func (repo *Repository) GetDefaultPRBaseBranch(ctx context.Context) string {
-	preferred := strings.TrimSpace(repo.DefaultPRBaseBranch)
+	preferred := repo.GetDefaultPRBaseBranchSetting(ctx)
 	if preferred != "" {
 		exists, err := isBranchNameExists(ctx, repo.ID, preferred)
 		if err == nil && exists {

@@ -6,6 +6,7 @@ package repo
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -19,9 +20,16 @@ func TestDefaultPRBaseBranchSelection(t *testing.T) {
 
 	assert.Equal(t, repo.DefaultBranch, repo.GetDefaultPRBaseBranch(ctx))
 
-	repo.DefaultPRBaseBranch = "branch2"
+	repo.Units = nil
+	prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
+	assert.NoError(t, err)
+	prConfig := prUnit.PullRequestsConfig()
+	prConfig.DefaultPRBaseBranch = "branch2"
+	prUnit.Config = prConfig
+	assert.NoError(t, UpdateRepoUnit(ctx, prUnit))
+	repo.Units = nil
 	assert.Equal(t, "branch2", repo.GetDefaultPRBaseBranch(ctx))
 
-	err := repo.ValidateDefaultPRBaseBranch(ctx, "does-not-exist")
+	err = repo.ValidateDefaultPRBaseBranch(ctx, "does-not-exist")
 	assert.True(t, IsErrDefaultPRBaseBranchNotExist(err))
 }

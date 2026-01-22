@@ -570,10 +570,6 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		ctx.ServerError("ValidateDefaultPRBaseBranch", err)
 		return
 	}
-	if repo.DefaultPRBaseBranch != defaultPRBaseBranch {
-		repo.DefaultPRBaseBranch = defaultPRBaseBranch
-		repoChanged = true
-	}
 
 	if form.EnableIssues && form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 		if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
@@ -643,6 +639,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
+			DefaultPRBaseBranch:           defaultPRBaseBranch,
 		}))
 	} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)

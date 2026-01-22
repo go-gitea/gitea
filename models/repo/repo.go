@@ -164,7 +164,6 @@ type Repository struct {
 	OriginalURL         string             `xorm:"VARCHAR(2048)"`
 	DefaultBranch       string
 	DefaultWikiBranch   string
-	DefaultPRBaseBranch string
 
 	NumWatches          int
 	NumStars            int
