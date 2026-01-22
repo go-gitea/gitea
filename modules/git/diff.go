@@ -59,7 +59,7 @@ func GetFileDiffCutAroundLine(
 	return patch, diffFinish()
 }
 
-// getRepoRawDiffForFile dumps diff results of file in given commit ID to io.Writer according given repository
+// getRepoRawDiffForFile returns an io.Reader for the diff results of file in given commit ID and a cleanup function that must be called to release resources according given repository
 func getRepoRawDiffForFile(ctx context.Context, repo *Repository, startCommit, endCommit string, diffType RawDiffType, file string) (io.Reader, func() error, error) {
 	commit, err := repo.GetCommit(endCommit)
 	if err != nil {
