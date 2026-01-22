@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -16,7 +18,7 @@ import (
 )
 
 // CreateArchive create archive content to the target path
-func CreateArchive(ctx context.Context, repo Repository, format string, target io.Writer, usePrefix bool, commitID string) error {
+func CreateArchive(ctx context.Context, repo Repository, format string, target io.Writer, usePrefix bool, commitID string, paths []string) error {
 	if format == "unknown" {
 		return fmt.Errorf("unknown format: %v", format)
 	}
@@ -28,11 +30,13 @@ func CreateArchive(ctx context.Context, repo Repository, format string, target i
 	cmd.AddOptionFormat("--format=%s", format)
 	cmd.AddDynamicArguments(commitID)
 
-	var stderr strings.Builder
-	if err := RunCmd(ctx, repo, cmd.WithStdout(target).WithStderr(&stderr)); err != nil {
-		return gitcmd.ConcatenateError(err, stderr.String())
+	paths = slices.Clone(paths)
+	for i := range paths {
+		// although "git archive" already ensures the paths won't go outside the repo, we still clean them here for safety
+		paths[i] = path.Clean(paths[i])
 	}
-	return nil
+	cmd.AddDynamicArguments(paths...)
+	return RunCmdWithStderr(ctx, repo, cmd.WithStdout(target))
 }
 
 // CreateBundle create bundle content to the target path

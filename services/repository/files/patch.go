@@ -164,20 +164,15 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		}
 	}
 
-	stdout := &strings.Builder{}
-	stderr := &strings.Builder{}
-
 	cmdApply := gitcmd.NewCommand("apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary")
 	if git.DefaultFeatures().CheckVersionAtLeast("2.32") {
 		cmdApply.AddArguments("-3")
 	}
 
 	if err := cmdApply.WithDir(t.basePath).
-		WithStdout(stdout).
-		WithStderr(stderr).
 		WithStdin(strings.NewReader(opts.Content)).
-		Run(ctx); err != nil {
-		return nil, fmt.Errorf("Error: Stdout: %s\nStderr: %s\nErr: %w", stdout.String(), stderr.String(), err)
+		RunWithStderr(ctx); err != nil {
+		return nil, fmt.Errorf("git apply error: %w", err)
 	}
 
 	// Now write the tree

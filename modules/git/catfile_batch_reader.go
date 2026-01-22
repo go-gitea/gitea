@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"math"
 	"strconv"
@@ -16,16 +17,12 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// writeCloserError wraps an io.WriteCloser with an additional CloseWithError function (for nio.Pipe)
-type writeCloserError interface {
-	io.WriteCloser
-	CloseWithError(err error) error
-}
-
 type catFileBatchCommunicator struct {
 	cancel context.CancelFunc
 	reader *bufio.Reader
-	writer writeCloserError
+	writer io.Writer
+
+	debugGitCmd *gitcmd.Command
 }
 
 func (b *catFileBatchCommunicator) Close() {
@@ -37,63 +34,38 @@ func (b *catFileBatchCommunicator) Close() {
 	}
 }
 
-// ensureValidGitRepository runs git rev-parse in the repository path - thus ensuring that the repository is a valid repository.
-// Run before opening git cat-file.
-// This is needed otherwise the git cat-file will hang for invalid repositories.
-// FIXME: the comment is from https://github.com/go-gitea/gitea/pull/17991 but it doesn't seem to be true.
-// The real problem is that Golang's Cmd.Wait hangs because it waits for the pipes to be closed, but we can't close the pipes before Wait returns
-// Need to refactor to use StdinPipe and StdoutPipe
-func ensureValidGitRepository(ctx context.Context, repoPath string) error {
-	stderr := strings.Builder{}
-	err := gitcmd.NewCommand("rev-parse").
-		WithDir(repoPath).
-		WithStderr(&stderr).
-		Run(ctx)
-	if err != nil {
-		return gitcmd.ConcatenateError(err, (&stderr).String())
-	}
-	return nil
-}
-
 // newCatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
 func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Command) *catFileBatchCommunicator {
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and subtrees as necessary.
+	ctx, ctxCancel := context.WithCancelCause(ctx)
 
-	// so let's create a batch stdin and stdout
-	batchStdinReader, batchStdinWriter := io.Pipe()
-	batchStdoutReader, batchStdoutWriter := io.Pipe()
-	ctx, ctxCancel := context.WithCancel(ctx)
-	closed := make(chan struct{})
-	cancel := func() {
-		ctxCancel()
-		_ = batchStdinWriter.Close()
-		_ = batchStdoutReader.Close()
-		<-closed
+	var batchStdinWriter io.WriteCloser
+	var batchStdoutReader io.ReadCloser
+	cmdCatFile = cmdCatFile.
+		WithDir(repoPath).
+		WithStdinWriter(&batchStdinWriter).
+		WithStdoutReader(&batchStdoutReader)
+
+	err := cmdCatFile.StartWithStderr(ctx)
+	if err != nil {
+		log.Error("Unable to start git command %v: %v", cmdCatFile.LogString(), err)
+		// ideally here it should return the error, but it would require refactoring all callers
+		// so just return a dummy communicator that does nothing, almost the same behavior as before, not bad
+		return &catFileBatchCommunicator{
+			writer: io.Discard,
+			reader: bufio.NewReader(bytes.NewReader(nil)),
+			cancel: func() {
+				ctxCancel(err)
+			},
+		}
 	}
 
-	// Ensure cancel is called as soon as the provided context is cancelled
 	go func() {
-		<-ctx.Done()
-		cancel()
-	}()
-
-	go func() {
-		stderr := strings.Builder{}
-		err := cmdCatFile.
-			WithDir(repoPath).
-			WithStdin(batchStdinReader).
-			WithStdout(batchStdoutWriter).
-			WithStderr(&stderr).
-			WithUseContextTimeout(true).
-			Run(ctx)
-		if err != nil {
-			_ = batchStdoutWriter.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
-			_ = batchStdinReader.CloseWithError(gitcmd.ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = batchStdoutWriter.Close()
-			_ = batchStdinReader.Close()
+		err := cmdCatFile.WaitWithStderr()
+		if err != nil && !errors.Is(err, context.Canceled) {
+			log.Error("cat-file --batch command failed in repo %s, error: %v", repoPath, err)
 		}
-		close(closed)
+		ctxCancel(err)
 	}()
 
 	// use a buffered reader to read from the cat-file --batch (StringReader.ReadString)
@@ -102,7 +74,10 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 	return &catFileBatchCommunicator{
 		writer: batchStdinWriter,
 		reader: batchReader,
-		cancel: cancel,
+		cancel: func() {
+			ctxCancel(nil)
+		},
+		debugGitCmd: cmdCatFile,
 	}
 }
 

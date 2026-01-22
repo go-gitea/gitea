@@ -318,6 +318,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 			}
 			attach := repo_model.Attachment{
 				UUID:          uuid.New().String(),
+				RepoID:        g.repo.ID,
 				Name:          asset.Name,
 				DownloadCount: int64(*asset.DownloadCount),
 				Size:          int64(*asset.Size),
@@ -661,7 +662,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 				fetchArg = git.BranchPrefix + fetchArg
 			}
 
-			_, err = gitrepo.RunCmdString(ctx, g.repo, gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg))
+			_, _, err = gitrepo.RunCmdString(ctx, g.repo, gitcmd.NewCommand("fetch", "--no-tags").AddDashesAndList(remote, fetchArg))
 			if err != nil {
 				log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 				return head, nil
@@ -696,7 +697,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		// The SHA is empty
 		log.Warn("Empty reference, no pull head for PR #%d in %s/%s", pr.Number, g.repoOwner, g.repoName)
 	} else {
-		_, err = gitrepo.RunCmdString(ctx, g.repo, gitcmd.NewCommand("rev-list", "--quiet", "-1").AddDynamicArguments(pr.Head.SHA))
+		_, _, err = gitrepo.RunCmdString(ctx, g.repo, gitcmd.NewCommand("rev-list", "--quiet", "-1").AddDynamicArguments(pr.Head.SHA))
 		if err != nil {
 			// Git update-ref remove bad references with a relative path
 			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitHeadRefName())
@@ -732,7 +733,7 @@ func (g *GiteaLocalUploader) newPullRequest(ctx context.Context, pr *base.PullRe
 		if pr.Base.Ref != "" && pr.Head.SHA != "" {
 			// A PR against a tag base does not make sense - therefore pr.Base.Ref must be a branch
 			// TODO: should we be checking for the refs/heads/ prefix on the pr.Base.Ref? (i.e. are these actually branches or refs)
-			pr.Base.SHA, _, err = g.gitRepo.GetMergeBase("", git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
+			pr.Base.SHA, err = gitrepo.MergeBase(ctx, g.repo, git.BranchPrefix+pr.Base.Ref, pr.Head.SHA)
 			if err != nil {
 				log.Error("Cannot determine the merge base for PR #%d in %s/%s. Error: %v", pr.Number, g.repoOwner, g.repoName, err)
 			}

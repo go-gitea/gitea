@@ -4,14 +4,17 @@
 package gitcmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMain(m *testing.M) {
@@ -44,7 +47,7 @@ func TestRunWithContextStd(t *testing.T) {
 			assert.Equal(t, stderr, err.Stderr())
 			assert.Equal(t, "fatal: Not a valid object name no-such\n", err.Stderr())
 			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
-			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such\n", err.Error())
+			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such", err.Error())
 			assert.Empty(t, stdout)
 		}
 	}
@@ -56,7 +59,7 @@ func TestRunWithContextStd(t *testing.T) {
 			assert.Equal(t, string(stderr), err.Stderr())
 			assert.Equal(t, "fatal: Not a valid object name no-such\n", err.Stderr())
 			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
-			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such\n", err.Error())
+			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such", err.Error())
 			assert.Empty(t, stdout)
 		}
 	}
@@ -98,4 +101,27 @@ func TestCommandString(t *testing.T) {
 
 	cmd = NewCommand("url: https://a:b@c/", "/root/dir-a/dir-b")
 	assert.Equal(t, cmd.prog+` "url: https://sanitized-credential@c/" .../dir-a/dir-b`, cmd.LogString())
+}
+
+func TestRunStdError(t *testing.T) {
+	e := &runStdError{stderr: "some error"}
+	var err RunStdError = e
+
+	var asErr RunStdError
+	require.ErrorAs(t, err, &asErr)
+	require.Equal(t, "some error", asErr.Stderr())
+
+	require.ErrorAs(t, fmt.Errorf("wrapped %w", err), &asErr)
+}
+
+func TestRunWithContextTimeout(t *testing.T) {
+	t.Run("NoTimeout", func(t *testing.T) {
+		// 'git --version' does not block so it must be finished before the timeout triggered.
+		err := NewCommand("--version").Run(t.Context())
+		require.NoError(t, err)
+	})
+	t.Run("WithTimeout", func(t *testing.T) {
+		err := NewCommand("hash-object", "--stdin").WithTimeout(1 * time.Millisecond).Run(t.Context())
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+	})
 }

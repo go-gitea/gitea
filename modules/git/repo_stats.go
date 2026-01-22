@@ -5,9 +5,8 @@ package git
 
 import (
 	"bufio"
-	"context"
 	"fmt"
-	"os"
+	"io"
 	"sort"
 	"strconv"
 	"strings"
@@ -55,15 +54,6 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 	stats.CommitCountInAllBranches = c
 
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
-
 	gitCmd := gitcmd.NewCommand("log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso").
 		AddOptionFormat("--since=%s", since)
 	if len(branch) == 0 {
@@ -72,13 +62,11 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		gitCmd.AddArguments("--first-parent").AddDynamicArguments(branch)
 	}
 
-	stderr := new(strings.Builder)
+	var stdoutReader io.ReadCloser
 	err = gitCmd.
 		WithDir(repo.Path).
-		WithStdout(stdoutWriter).
-		WithStderr(stderr).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
+		WithStdoutReader(&stdoutReader).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 			scanner.Split(bufio.ScanLines)
 			stats.CommitCount = 0
@@ -146,9 +134,9 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			_ = stdoutReader.Close()
 			return nil
 		}).
-		Run(repo.Ctx)
+		RunWithStderr(repo.Ctx)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
+		return nil, fmt.Errorf("GetCodeActivityStats: %w", err)
 	}
 
 	return stats, nil

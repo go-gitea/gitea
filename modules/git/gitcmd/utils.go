@@ -3,12 +3,33 @@
 
 package gitcmd
 
-import "fmt"
+import (
+	"io"
+)
 
-// ConcatenateError concatenats an error with stderr string
-func ConcatenateError(err error, stderr string) error {
-	if len(stderr) == 0 {
-		return err
+func safeClosePtrCloser[T *io.ReadCloser | *io.WriteCloser](c T) {
+	switch v := any(c).(type) {
+	case *io.ReadCloser:
+		if v != nil && *v != nil {
+			_ = (*v).Close()
+		}
+	case *io.WriteCloser:
+		if v != nil && *v != nil {
+			_ = (*v).Close()
+		}
+	default:
+		panic("unsupported type")
 	}
-	return fmt.Errorf("%w - %s", err, stderr)
+}
+
+func safeAssignPipe[T any](p *T, fn func() (T, error)) (bool, error) {
+	if p == nil {
+		return false, nil
+	}
+	v, err := fn()
+	if err != nil {
+		return false, err
+	}
+	*p = v
+	return true, nil
 }

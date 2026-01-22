@@ -71,7 +71,6 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	// TODO: this cause an api call to "/api/internal/hook/post-receive/...",
 	//       that prevents us from doint the whole merge in one db transaction
 	mergeCtx.outbuf.Reset()
-	mergeCtx.errbuf.Reset()
 
 	if err := pushCmd.
 		WithEnv(repo_module.FullPushingEnvironment(
@@ -84,27 +83,24 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		)).
 		WithDir(mergeCtx.tmpBasePath).
 		WithStdout(mergeCtx.outbuf).
-		WithStderr(mergeCtx.errbuf).
-		Run(ctx); err != nil {
-		if strings.Contains(mergeCtx.errbuf.String(), "non-fast-forward") {
+		RunWithStderr(ctx); err != nil {
+		if strings.Contains(err.Stderr(), "non-fast-forward") {
 			return &git.ErrPushOutOfDate{
 				StdOut: mergeCtx.outbuf.String(),
-				StdErr: mergeCtx.errbuf.String(),
+				StdErr: err.Stderr(),
 				Err:    err,
 			}
-		} else if strings.Contains(mergeCtx.errbuf.String(), "! [remote rejected]") {
+		} else if strings.Contains(err.Stderr(), "! [remote rejected]") {
 			err := &git.ErrPushRejected{
 				StdOut: mergeCtx.outbuf.String(),
-				StdErr: mergeCtx.errbuf.String(),
+				StdErr: err.Stderr(),
 				Err:    err,
 			}
 			err.GenerateMessage()
 			return err
 		}
-		return fmt.Errorf("git push: %s", mergeCtx.errbuf.String())
+		return fmt.Errorf("git push: %s", err.Stderr())
 	}
 	mergeCtx.outbuf.Reset()
-	mergeCtx.errbuf.Reset()
-
 	return nil
 }

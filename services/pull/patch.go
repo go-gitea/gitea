@@ -249,7 +249,7 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	defer cancel()
 
 	// First we use read-tree to do a simple three-way merge
-	if _, _, err := gitcmd.NewCommand("read-tree", "-m").AddDynamicArguments(base, ours, theirs).WithDir(gitPath).RunStdString(ctx); err != nil {
+	if err := gitcmd.NewCommand("read-tree", "-m").AddDynamicArguments(base, ours, theirs).WithDir(gitPath).RunWithStderr(ctx); err != nil {
 		log.Error("Unable to run read-tree -m! Error: %v", err)
 		return false, nil, fmt.Errorf("unable to run read-tree -m! Error: %w", err)
 	}
@@ -413,30 +413,15 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	//     in memory - which is very wasteful.
 	//   - alternatively we can do the equivalent of:
 	//  `git apply --check ... | grep ...`
-	//     meaning we don't store all of the conflicts unnecessarily.
-	stderrReader, stderrWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to open stderr pipe: %v", err)
-		return false, fmt.Errorf("unable to open stderr pipe: %w", err)
-	}
-	defer func() {
-		_ = stderrReader.Close()
-		_ = stderrWriter.Close()
-	}()
+	//     meaning we don't store all the conflicts unnecessarily.
+	var stderrReader io.ReadCloser
 
 	// 8. Run the check command
 	conflict = false
 	err = cmdApply.
 		WithDir(tmpBasePath).
-		WithStderr(stderrWriter).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			// Close the writer end of the pipe to begin processing
-			_ = stderrWriter.Close()
-			defer func() {
-				// Close the reader on return to terminate the git command if necessary
-				_ = stderrReader.Close()
-			}()
-
+		WithStderrReader(&stderrReader).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			const prefix = "error: patch failed:"
 			const errorPrefix = "error: "
 			const threewayFailed = "Failed to perform three-way merge..."
@@ -491,7 +476,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		}).
 		Run(gitRepo.Ctx)
 
-	// 9. Check if the found conflictedfiles is non-zero, "err" could be non-nil, so we should ignore it if we found conflicts.
+	// 9. Check if the found conflicted files is non-zero, "err" could be non-nil, so we should ignore it if we found conflicts.
 	// Note: `"err" could be non-nil` is due that if enable 3-way merge, it doesn't return any error on found conflicts.
 	if len(pr.ConflictedFiles) > 0 {
 		if conflict {
