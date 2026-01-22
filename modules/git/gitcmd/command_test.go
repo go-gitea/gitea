@@ -4,9 +4,11 @@
 package gitcmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
@@ -110,4 +112,19 @@ func TestRunStdError(t *testing.T) {
 	require.Equal(t, "some error", asErr.Stderr())
 
 	require.ErrorAs(t, fmt.Errorf("wrapped %w", err), &asErr)
+}
+
+func TestRunWithContextTimeout(t *testing.T) {
+	t.Run("NoTimeout", func(t *testing.T) {
+		// 'git --version' does not block so it must be finished before the timeout triggered.
+		err := NewCommand("--version").Run(t.Context())
+		require.NoError(t, err)
+	})
+	t.Run("WithTimeout", func(t *testing.T) {
+		cmd := NewCommand("hash-object", "--stdin")
+		_, _, pipeClose := cmd.MakeStdinStdoutPipe()
+		defer pipeClose()
+		err := cmd.WithTimeout(1 * time.Millisecond).Run(t.Context())
+		require.ErrorIs(t, err, context.DeadlineExceeded)
+	})
 }

@@ -71,7 +71,7 @@ func GetDiffNumChangedFiles(ctx context.Context, repo Repository, base, head str
 	if err := RunCmdWithStderr(ctx, repo, gitcmd.NewCommand("diff", "-z", "--name-only").
 		AddDynamicArguments(base+separator+head).
 		AddArguments("--").
-		WithStdout(w)); err != nil {
+		WithStdoutCopy(w)); err != nil {
 		if strings.Contains(err.Stderr(), "no merge base") {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
 			// previously it would return the results of git diff -z --name-only base head so let's try that...
@@ -79,7 +79,7 @@ func GetDiffNumChangedFiles(ctx context.Context, repo Repository, base, head str
 			if err = RunCmdWithStderr(ctx, repo, gitcmd.NewCommand("diff", "-z", "--name-only").
 				AddDynamicArguments(base, head).
 				AddArguments("--").
-				WithStdout(w)); err == nil {
+				WithStdoutCopy(w)); err == nil {
 				return w.numLines, nil
 			}
 		}

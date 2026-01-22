@@ -23,7 +23,7 @@ func (repo *Repository) GetDiffBinary(compareArg string, w io.Writer) error {
 	return gitcmd.NewCommand("diff", "-p", "--binary", "--histogram").
 		AddDynamicArguments(compareArg).
 		WithDir(repo.Path).
-		WithStdout(w).
+		WithStdoutCopy(w).
 		Run(repo.Ctx)
 }
 

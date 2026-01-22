@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"slices"
 	"strconv"
 	"strings"
@@ -74,12 +73,10 @@ func GrepSearch(ctx context.Context, repo Repository, search string, opts GrepOp
 	cmd.AddDashesAndList(opts.PathspecList...)
 	opts.MaxResultLimit = util.IfZero(opts.MaxResultLimit, 50)
 
-	var stdoutReader io.ReadCloser
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
 	err := RunCmdWithStderr(ctx, repo, cmd.
-		WithStdoutReader(&stdoutReader).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			defer stdoutReader.Close()
-
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			isInBlock := false
 			rd := bufio.NewReaderSize(stdoutReader, util.IfZero(opts.MaxLineLength, 16*1024))
 			var res *GrepResult
@@ -105,8 +102,7 @@ func GrepSearch(ctx context.Context, repo Repository, search string, opts GrepOp
 				}
 				if line == "" {
 					if len(results) >= opts.MaxResultLimit {
-						cancel()
-						break
+						return ctx.CancelWithCause(nil)
 					}
 					isInBlock = false
 					continue

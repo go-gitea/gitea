@@ -264,12 +264,12 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 			return git_model.ErrBranchAlreadyExists{
 				BranchName: name,
 			}
-		// If branchRefName like a/b but we want to create a branch named a then we have a conflict
+		// If branchRefName like "a/b" but we want to create a branch named a then we have a conflict
 		case strings.HasPrefix(branchRefName, name+"/"):
 			return git_model.ErrBranchNameConflict{
 				BranchName: branchRefName,
 			}
-			// Conversely if branchRefName like a but we want to create a branch named a/b then we also have a conflict
+			// Conversely if branchRefName like "a" but we want to create a branch named "a/b" then we also have a conflict
 		case strings.HasPrefix(name, branchRefName+"/"):
 			return git_model.ErrBranchNameConflict{
 				BranchName: branchRefName,
@@ -281,7 +281,6 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 		}
 		return nil
 	})
-
 	return err
 }
 

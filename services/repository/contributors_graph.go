@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -117,24 +116,17 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 	if err != nil {
 		return nil, err
 	}
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
 
 	gitCmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
 	// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
+	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+
 	var extendedCommitStats []*ExtendedCommitStats
 	err = gitCmd.WithDir(repo.Path).
-		WithStdout(stdoutWriter).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 
 			for scanner.Scan() {
@@ -186,7 +178,6 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 				}
 				extendedCommitStats = append(extendedCommitStats, res)
 			}
-			_ = stdoutReader.Close()
 			return nil
 		}).
 		RunWithStderr(repo.Ctx)

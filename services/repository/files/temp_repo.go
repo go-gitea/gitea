@@ -117,7 +117,7 @@ func (t *TemporaryUploadRepository) LsFiles(ctx context.Context, filenames ...st
 	stdOut := new(bytes.Buffer)
 	if err := gitcmd.NewCommand("ls-files", "-z").AddDashesAndList(filenames...).
 		WithDir(t.basePath).
-		WithStdout(stdOut).
+		WithStdoutBuffer(stdOut).
 		RunWithStderr(ctx); err != nil {
 		return nil, fmt.Errorf("unable to run git ls-files for temporary repo of: %s, error: %w", t.repo.FullName(), err)
 	}
@@ -155,7 +155,7 @@ func (t *TemporaryUploadRepository) RemoveFilesFromIndex(ctx context.Context, fi
 
 	if err := gitcmd.NewCommand("update-index", "--remove", "-z", "--index-info").
 		WithDir(t.basePath).
-		WithStdin(stdIn).
+		WithStdinBytes(stdIn.Bytes()).
 		RunWithStderr(ctx); err != nil {
 		return fmt.Errorf("unable to update-index for temporary repo: %q, error: %w", t.repo.FullName(), err)
 	}
@@ -167,8 +167,8 @@ func (t *TemporaryUploadRepository) HashObjectAndWrite(ctx context.Context, cont
 	stdOut := new(bytes.Buffer)
 	if err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
 		WithDir(t.basePath).
-		WithStdout(stdOut).
-		WithStdin(content).
+		WithStdoutBuffer(stdOut).
+		WithStdinCopy(content).
 		RunWithStderr(ctx); err != nil {
 		return "", fmt.Errorf("unable to hash-object to temporary repo: %s, error: %w", t.repo.FullName(), err)
 	}
@@ -330,8 +330,8 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	if err := cmdCommitTree.
 		WithEnv(env).
 		WithDir(t.basePath).
-		WithStdout(stdout).
-		WithStdin(messageBytes).
+		WithStdoutBuffer(stdout).
+		WithStdinBytes(messageBytes.Bytes()).
 		RunWithStderr(ctx); err != nil {
 		return "", fmt.Errorf("unable to commit-tree in temporary repo: %s Error: %w", t.repo.FullName(), err)
 	}
@@ -362,25 +362,16 @@ func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.U
 
 // DiffIndex returns a Diff of the current index to the head
 func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context) (*gitdiff.Diff, error) {
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, fmt.Errorf("unable to open stdout pipe: %w", err)
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
 	var diff *gitdiff.Diff
-	err = gitcmd.NewCommand("diff-index", "--src-prefix=\\a/", "--dst-prefix=\\b/", "--cached", "-p", "HEAD").
-		WithTimeout(30 * time.Second).
+	cmd := gitcmd.NewCommand("diff-index", "--src-prefix=\\a/", "--dst-prefix=\\b/", "--cached", "-p", "HEAD")
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+
+	err := cmd.WithTimeout(30 * time.Second).
 		WithDir(t.basePath).
-		WithStdout(stdoutWriter).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
-			defer cancel()
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			var diffErr error
 			diff, diffErr = gitdiff.ParsePatch(ctx, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, stdoutReader, "")
-			_ = stdoutReader.Close()
 			if diffErr != nil {
 				// if the diffErr is not nil, it will be returned as the error of "Run()"
 				return fmt.Errorf("ParsePatch: %w", diffErr)
@@ -388,7 +379,7 @@ func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context) (*gitdiff.Dif
 			return nil
 		}).
 		RunWithStderr(ctx)
-	if err != nil && !git.IsErrCanceledOrKilled(err) {
+	if err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
 		return nil, fmt.Errorf("unable to run diff-index pipeline in temporary repo: %w", err)
 	}
 

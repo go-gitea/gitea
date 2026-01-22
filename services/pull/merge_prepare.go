@@ -41,7 +41,7 @@ func (ctx *mergeContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	return cmd.WithEnv(ctx.env).
 		WithDir(ctx.tmpBasePath).
 		WithParentCallerInfo().
-		WithStdout(ctx.outbuf)
+		WithStdoutBuffer(ctx.outbuf)
 }
 
 // ErrSHADoesNotMatch represents a "SHADoesNotMatch" kind of error.
@@ -206,16 +206,6 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 // getDiffTree returns a string containing all the files that were changed between headBranch and baseBranch
 // the filenames are escaped so as to fit the format required for .git/info/sparse-checkout
 func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, out io.Writer) error {
-	diffOutReader, diffOutWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repoPath)
-		return err
-	}
-	defer func() {
-		_ = diffOutReader.Close()
-		_ = diffOutWriter.Close()
-	}()
-
 	scanNullTerminatedStrings := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF && len(data) == 0 {
 			return 0, nil, nil
@@ -229,27 +219,23 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, o
 		return 0, nil, nil
 	}
 
-	err = gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root").
-		AddDynamicArguments(baseBranch, headBranch).
+	cmd := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root")
+	diffOutReader, diffOutReaderClose := cmd.MakeStdoutPipe()
+	defer diffOutReaderClose()
+	err := cmd.AddDynamicArguments(baseBranch, headBranch).
 		WithDir(repoPath).
-		WithStdout(diffOutWriter).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			// Close the writer end of the pipe to begin processing
-			_ = diffOutWriter.Close()
-			defer func() {
-				// Close the reader on return to terminate the git command if necessary
-				_ = diffOutReader.Close()
-			}()
-
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(diffOutReader)
 			scanner.Split(scanNullTerminatedStrings)
 			for scanner.Scan() {
-				filepath := scanner.Text()
+				treePath := scanner.Text()
 				// escape '*', '?', '[', spaces and '!' prefix
-				filepath = escapedSymbols.ReplaceAllString(filepath, `\$1`)
+				treePath = escapedSymbols.ReplaceAllString(treePath, `\$1`)
 				// no necessary to escape the first '#' symbol because the first symbol is '/'
-				fmt.Fprintf(out, "/%s\n", filepath)
+				if _, err := fmt.Fprintf(out, "/%s\n", treePath); err != nil {
+					return err
+				}
 			}
 			return scanner.Err()
 		}).

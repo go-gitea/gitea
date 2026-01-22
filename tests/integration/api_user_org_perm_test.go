@@ -129,22 +129,22 @@ func TestUnknowUser(t *testing.T) {
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
 
-	req := NewRequest(t, "GET", "/api/v1/users/unknow/orgs/org25/permissions").
+	req := NewRequest(t, "GET", "/api/v1/users/unknown/orgs/org25/permissions").
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusNotFound)
 
 	var apiError api.APIError
 	DecodeJSON(t, resp, &apiError)
-	assert.Equal(t, "user redirect does not exist [name: unknow]", apiError.Message)
+	assert.Equal(t, "user redirect does not exist [name: unknown]", apiError.Message)
 }
 
-func TestUnknowOrganization(t *testing.T) {
+func TestUnknownOrganization(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadUser, auth_model.AccessTokenScopeReadOrganization)
 
-	req := NewRequest(t, "GET", "/api/v1/users/user1/orgs/unknow/permissions").
+	req := NewRequest(t, "GET", "/api/v1/users/user1/orgs/unknown/permissions").
 		AddTokenAuth(token)
 	resp := MakeRequest(t, req, http.StatusNotFound)
 	var apiError api.APIError

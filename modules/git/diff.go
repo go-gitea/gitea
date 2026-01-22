@@ -5,10 +5,8 @@ package git
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -80,7 +78,7 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 	}
 
 	return cmd.WithDir(repo.Path).
-		WithStdout(writer).
+		WithStdoutCopy(writer).
 		RunWithStderr(repo.Ctx)
 }
 
@@ -284,30 +282,15 @@ func GetAffectedFiles(repo *Repository, branchName, oldCommitID, newCommitID str
 		}
 		oldCommitID = startCommitID
 	}
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repo.Path)
-		return nil, err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
 
 	affectedFiles := make([]string, 0, 32)
 
 	// Run `git diff --name-only` to get the names of the changed files
-	err = gitcmd.NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID).
-		WithEnv(env).
-		WithDir(repo.Path).
-		WithStdout(stdoutWriter).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			// Close the writer end of the pipe to begin processing
-			_ = stdoutWriter.Close()
-			defer func() {
-				// Close the reader on return to terminate the git command if necessary
-				_ = stdoutReader.Close()
-			}()
+	cmd := gitcmd.NewCommand("diff", "--name-only").AddDynamicArguments(oldCommitID, newCommitID)
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	err := cmd.WithEnv(env).WithDir(repo.Path).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(stdoutReader)
 			for scanner.Scan() {
