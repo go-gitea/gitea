@@ -94,7 +94,7 @@ export default {
   output: {
     path: fileURLToPath(new URL('public/assets', import.meta.url)),
     filename: 'js/[name].js',
-    chunkFilename: 'js/[id].js',
+    chunkFilename: 'js/[name].[contenthash:8].js',
   },
   optimization: {
     minimize: isProduction,
