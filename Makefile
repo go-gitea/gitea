@@ -406,7 +406,7 @@ lint-actions: ## lint action workflow files
 
 .PHONY: lint-templates
 lint-templates: .venv node_modules ## lint template files
-	@node tools/lint-templates-svg.ts
+	@$(NODE_VARS) node tools/lint-templates-svg.ts
 	@uv run --frozen djlint $(shell find templates -type f -iname '*.tmpl')
 
 .PHONY: lint-yaml
@@ -890,7 +890,7 @@ svg: $(SVG_DEST_DIRS) ## build svg files
 
 $(SVG_DEST_DIRS): node_modules
 	rm -rf $(SVG_DEST_DIRS)
-	node tools/generate-svg.ts
+	$(NODE_VARS) node tools/generate-svg.ts
 	@touch $(SVG_DEST_DIRS)
 
 .PHONY: lockfile-check
@@ -910,7 +910,7 @@ generate-gitignore: ## update gitignore files
 
 .PHONY: generate-images
 generate-images: | node_modules ## generate images
-	cd tools && node generate-images.ts $(TAGS)
+	cd tools && $(NODE_VARS) node generate-images.ts $(TAGS)
 
 .PHONY: generate-manpage
 generate-manpage: ## generate manpage
