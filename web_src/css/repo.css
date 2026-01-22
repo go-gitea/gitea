@@ -95,8 +95,9 @@
   }
 }
 
-/* make all issue filter dropdown menus popup leftward, to avoid go out the viewport (right side) */
-.repository .filter.menu .ui.dropdown .menu {
+/* make all issue filter dropdown (user dashboard, repo issue list) menus popup leftward, to avoid go out the viewport (right side) */
+.list-header-filters .ui.dropdown .menu,
+.issue-list-toolbar .ui.dropdown .menu {
   max-height: 500px;
   max-width: 300px;
   overflow-x: hidden;
@@ -105,7 +106,8 @@
 }
 
 /* the label-filter is the first dropdown, it shouldn't be shown leftward, otherwise it may go out the viewport (left side) */
-.repository .filter.menu .ui.dropdown.label-filter .menu {
+.list-header-filters .ui.dropdown.label-filter .menu,
+.issue-list-toolbar .ui.dropdown.label-filter .menu {
   min-width: max-content;
   right: unset;
   left: 0;

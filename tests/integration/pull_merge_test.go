@@ -405,16 +405,13 @@ func TestCantMergeUnrelated(t *testing.T) {
 		err := gitcmd.NewCommand("read-tree", "--empty").WithDir(path).Run(t.Context())
 		assert.NoError(t, err)
 
-		stdin := strings.NewReader("Unrelated File")
-		var stdout strings.Builder
-		err = gitcmd.NewCommand("hash-object", "-w", "--stdin").
+		stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
 			WithDir(path).
-			WithStdin(stdin).
-			WithStdout(&stdout).
-			Run(t.Context())
+			WithStdinBytes([]byte("Unrelated File")).
+			RunStdString(t.Context())
 
 		assert.NoError(t, err)
-		sha := strings.TrimSpace(stdout.String())
+		sha := strings.TrimSpace(stdout)
 
 		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
 			AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").
@@ -441,15 +438,13 @@ func TestCantMergeUnrelated(t *testing.T) {
 		_, _ = messageBytes.WriteString("Unrelated")
 		_, _ = messageBytes.WriteString("\n")
 
-		stdout.Reset()
-		err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
+		stdout, _, err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
 			WithEnv(env).
 			WithDir(path).
-			WithStdin(messageBytes).
-			WithStdout(&stdout).
-			Run(t.Context())
+			WithStdinBytes(messageBytes.Bytes()).
+			RunStdString(t.Context())
 		assert.NoError(t, err)
-		commitSha := strings.TrimSpace(stdout.String())
+		commitSha := strings.TrimSpace(stdout)
 
 		_, _, err = gitcmd.NewCommand("branch", "unrelated").
 			AddDynamicArguments(commitSha).

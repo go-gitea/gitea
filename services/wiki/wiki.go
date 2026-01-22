@@ -170,7 +170,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
 
-	objectHash, err := gitRepo.HashObject(strings.NewReader(content))
+	objectHash, err := gitRepo.HashObjectBytes([]byte(content))
 	if err != nil {
 		log.Error("HashObject failed: %v", err)
 		return err
