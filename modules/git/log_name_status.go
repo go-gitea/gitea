@@ -15,25 +15,12 @@ import (
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git/gitcmd"
-
-	"github.com/djherbis/buffer"
-	"github.com/djherbis/nio/v3"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // LogNameStatusRepo opens git log --raw in the provided repo and returns a stdin pipe, a stdout reader and cancel function
 func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, paths ...string) (*bufio.Reader, func()) {
-	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
-	// so let's create a batch stdin and stdout
-	stdoutReader, stdoutWriter := nio.Pipe(buffer.New(32 * 1024))
-
 	// Lets also create a context so that we can absolutely ensure that the command should die when we're done
-	ctx, ctxCancel := context.WithCancel(ctx)
-
-	cancel := func() {
-		ctxCancel()
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}
 
 	cmd := gitcmd.NewCommand()
 	cmd.AddArguments("log", "--name-status", "-c", "--format=commit%x00%H %P%x00", "--parents", "--no-renames", "-t", "-z").AddDynamicArguments(head)
@@ -63,16 +50,21 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 	}
 	cmd.AddDashesAndList(files...)
 
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	ctx, ctxCancel := context.WithCancel(ctx)
 	go func() {
-		err := cmd.WithDir(repository).
-			WithStdout(stdoutWriter).
-			RunWithStderr(ctx)
-		_ = stdoutWriter.CloseWithError(err)
+		err := cmd.WithDir(repository).RunWithStderr(ctx)
+		if err != nil && !errors.Is(err, context.Canceled) {
+			log.Error("Unable to run git command %v: %v", cmd.LogString(), err)
+		}
 	}()
 
 	bufReader := bufio.NewReaderSize(stdoutReader, 32*1024)
 
-	return bufReader, cancel
+	return bufReader, func() {
+		ctxCancel()
+		stdoutReaderClose()
+	}
 }
 
 // LogNameStatusRepoParser parses a git log raw output from LogRawRepo

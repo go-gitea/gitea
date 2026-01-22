@@ -3284,8 +3284,6 @@
   "admin.config.git_gc_args": "Arguments de GC",
   "admin.config.git_migrate_timeout": "Délai imparti pour une migration",
   "admin.config.git_mirror_timeout": "Délai imparti pour mettre à jour le miroir",
-  "admin.config.git_clone_timeout": "Délai imparti pour l'opération \"Clone\"",
-  "admin.config.git_pull_timeout": "Délai imparti pour l'opération \"Pull\"",
   "admin.config.git_gc_timeout": "Délai imparti pour l'opération \"GC\"",
   "admin.config.log_config": "Configuration du journal",
   "admin.config.logger_name_fmt": "Journal : %s",
