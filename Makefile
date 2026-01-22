@@ -889,7 +889,7 @@ $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) $(SVG_DEST) pnpm-lock.yam
 svg: $(SVG_DEST) ## build svg files
 
 $(SVG_DEST): node_modules
-	rm -rf $(SVG_DEST)
+	@rm -rf $(SVG_DEST)
 	$(NODE_VARS) node tools/generate-svg.ts
 	@touch $(SVG_DEST)
 
