@@ -101,3 +101,19 @@ func TestGetAttachmentsByUUIDs(t *testing.T) {
 	assert.Equal(t, int64(1), attachList[0].IssueID)
 	assert.Equal(t, int64(5), attachList[1].IssueID)
 }
+
+func TestGetUnlinkedAttachmentsByUserID(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	attachments, err := repo_model.GetUnlinkedAttachmentsByUserID(t.Context(), 8)
+	assert.NoError(t, err)
+	assert.Len(t, attachments, 1)
+	assert.Equal(t, int64(10), attachments[0].ID)
+	assert.Zero(t, attachments[0].IssueID)
+	assert.Zero(t, attachments[0].ReleaseID)
+	assert.Zero(t, attachments[0].CommentID)
+
+	attachments, err = repo_model.GetUnlinkedAttachmentsByUserID(t.Context(), 1)
+	assert.NoError(t, err)
+	assert.Empty(t, attachments)
+}

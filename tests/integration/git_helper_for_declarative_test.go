@@ -229,3 +229,15 @@ func doGitPull(dstPath string, args ...string) func(*testing.T) {
 		assert.NoError(t, err)
 	}
 }
+
+// doGitRemoteArchive runs a git archive command requesting an archive from remote
+// and verifies that the command did not error out and returned only normal output
+func doGitRemoteArchive(remote string, args ...string) func(*testing.T) {
+	return func(t *testing.T) {
+		stdout, stderr, err := gitcmd.NewCommand("archive").AddOptionValues("--remote", remote).AddArguments(gitcmd.ToTrustedCmdArgs(args)...).
+			RunStdString(t.Context())
+		require.NoError(t, err)
+		assert.Empty(t, stderr)
+		assert.NotEmpty(t, stdout)
+	}
+}

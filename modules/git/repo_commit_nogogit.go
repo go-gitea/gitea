@@ -44,21 +44,10 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 	info, err := batch.QueryInfo(name)
 	if IsErrNotExist(err) {
 		return "", ErrNotExist{name, ""}
+	} else if err != nil {
+		return "", err
 	}
 	return info.ID, nil
-}
-
-// IsCommitExist returns true if given commit exists in current repository.
-func (repo *Repository) IsCommitExist(name string) bool {
-	if err := ensureValidGitRepository(repo.Ctx, repo.Path); err != nil {
-		log.Error("IsCommitExist: %v", err)
-		return false
-	}
-	_, _, err := gitcmd.NewCommand("cat-file", "-e").
-		AddDynamicArguments(name).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
-	return err == nil
 }
 
 func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {

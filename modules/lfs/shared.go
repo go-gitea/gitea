@@ -66,6 +66,21 @@ type Link struct {
 	ExpiresAt *time.Time        `json:"expires_at,omitempty"`
 }
 
+func NewLink(href string) *Link {
+	return &Link{Href: href}
+}
+
+func (l *Link) WithHeader(k, v string) *Link {
+	if v == "" {
+		return l
+	}
+	if l.Header == nil {
+		l.Header = make(map[string]string)
+	}
+	l.Header[k] = v
+	return l
+}
+
 // ObjectError defines the JSON structure returned to the client in case of an error.
 type ObjectError struct {
 	Code    int    `json:"code"`

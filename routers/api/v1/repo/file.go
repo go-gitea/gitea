@@ -273,13 +273,19 @@ func GetArchive(ctx *context.APIContext) {
 	//   description: the git reference for download with attached archive format (e.g. master.zip)
 	//   type: string
 	//   required: true
+	// - name: path
+	//   in: query
+	//   type: array
+	//   items:
+	//     type: string
+	//   description: subpath of the repository to download
+	//   collectionFormat: multi
 	// responses:
 	//   200:
 	//     description: success
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
-	serveRepoArchive(ctx, ctx.PathParam("*"))
+	serveRepoArchive(ctx, ctx.PathParam("*"), ctx.FormStrings("path"))
 }
 
 // GetEditorconfig get editor config of a repository

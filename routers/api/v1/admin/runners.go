@@ -14,7 +14,7 @@ import (
 func GetRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation GET /admin/runners/registration-token admin adminGetRunnerRegistrationToken
 	// ---
-	// summary: Get an global actions runner registration token
+	// summary: Get a global actions runner registration token
 	// produces:
 	// - application/json
 	// parameters:
@@ -29,7 +29,7 @@ func GetRegistrationToken(ctx *context.APIContext) {
 func CreateRegistrationToken(ctx *context.APIContext) {
 	// swagger:operation POST /admin/actions/runners/registration-token admin adminCreateRunnerRegistrationToken
 	// ---
-	// summary: Get an global actions runner registration token
+	// summary: Get a global actions runner registration token
 	// produces:
 	// - application/json
 	// parameters:
@@ -57,11 +57,11 @@ func ListRunners(ctx *context.APIContext) {
 	shared.ListRunners(ctx, 0, 0)
 }
 
-// GetRunner get an global runner
+// GetRunner get a global runner
 func GetRunner(ctx *context.APIContext) {
 	// swagger:operation GET /admin/actions/runners/{runner_id} admin getAdminRunner
 	// ---
-	// summary: Get an global runner
+	// summary: Get a global runner
 	// produces:
 	// - application/json
 	// parameters:
@@ -80,11 +80,11 @@ func GetRunner(ctx *context.APIContext) {
 	shared.GetRunner(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
 }
 
-// DeleteRunner delete an global runner
+// DeleteRunner delete a global runner
 func DeleteRunner(ctx *context.APIContext) {
 	// swagger:operation DELETE /admin/actions/runners/{runner_id} admin deleteAdminRunner
 	// ---
-	// summary: Delete an global runner
+	// summary: Delete a global runner
 	// produces:
 	// - application/json
 	// parameters:

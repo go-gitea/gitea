@@ -7,9 +7,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"slices"
 
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/renderhelper"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -43,6 +46,16 @@ func MailNewRelease(ctx context.Context, rel *repo_model.Release) {
 		log.Error("user_model.GetMailableUsersByIDs: %v", err)
 		return
 	}
+
+	if err := rel.LoadRepo(ctx); err != nil {
+		log.Error("rel.LoadRepo: %v", err)
+		return
+	}
+
+	// delete publisher or any users with no permission
+	recipients = slices.DeleteFunc(recipients, func(u *user_model.User) bool {
+		return u.ID == rel.PublisherID || !access_model.CheckRepoUnitUser(ctx, rel.Repo, u, unit.TypeReleases)
+	})
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range recipients {

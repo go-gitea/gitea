@@ -10,9 +10,12 @@ import (
 )
 
 func addOwnerRepoGitHTTPRouters(m *web.Router) {
+	// Some users want to use "web-based git client" to access Gitea's repositories,
+	// so the CORS handler and OPTIONS method are used.
 	m.Group("/{username}/{reponame}", func() {
 		m.Methods("POST,OPTIONS", "/git-upload-pack", repo.ServiceUploadPack)
 		m.Methods("POST,OPTIONS", "/git-receive-pack", repo.ServiceReceivePack)
+		m.Methods("POST,OPTIONS", "/git-upload-archive", repo.ServiceUploadArchive)
 		m.Methods("GET,OPTIONS", "/info/refs", repo.GetInfoRefs)
 		m.Methods("GET,OPTIONS", "/HEAD", repo.GetTextFile("HEAD"))
 		m.Methods("GET,OPTIONS", "/objects/info/alternates", repo.GetTextFile("objects/info/alternates"))

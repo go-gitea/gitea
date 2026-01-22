@@ -6,8 +6,11 @@ package git
 import (
 	"context"
 	"io"
+	"os"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // catFileBatchLegacy implements the CatFileBatch interface using the "cat-file --batch" command and "cat-file --batch-check" command
@@ -24,8 +27,8 @@ type catFileBatchLegacy struct {
 var _ CatFileBatchCloser = (*catFileBatchLegacy)(nil)
 
 func newCatFileBatchLegacy(ctx context.Context, repoPath string) (*catFileBatchLegacy, error) {
-	if err := ensureValidGitRepository(ctx, repoPath); err != nil {
-		return nil, err
+	if _, err := os.Stat(repoPath); err != nil {
+		return nil, util.NewNotExistErrorf("repo %q doesn't exist", filepath.Base(repoPath))
 	}
 	return &catFileBatchLegacy{ctx: ctx, repoPath: repoPath}, nil
 }
@@ -47,23 +50,23 @@ func (b *catFileBatchLegacy) getBatchCheck() *catFileBatchCommunicator {
 }
 
 func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
-	_, err := io.WriteString(b.getBatchContent().writer, obj+"\n")
+	_, err := io.WriteString(b.getBatchContent().reqWriter, obj+"\n")
 	if err != nil {
 		return nil, nil, err
 	}
-	info, err := catFileBatchParseInfoLine(b.getBatchContent().reader)
+	info, err := catFileBatchParseInfoLine(b.getBatchContent().respReader)
 	if err != nil {
 		return nil, nil, err
 	}
-	return info, b.getBatchContent().reader, nil
+	return info, b.getBatchContent().respReader, nil
 }
 
 func (b *catFileBatchLegacy) QueryInfo(obj string) (*CatFileObject, error) {
-	_, err := io.WriteString(b.getBatchCheck().writer, obj+"\n")
+	_, err := io.WriteString(b.getBatchCheck().reqWriter, obj+"\n")
 	if err != nil {
 		return nil, err
 	}
-	return catFileBatchParseInfoLine(b.getBatchCheck().reader)
+	return catFileBatchParseInfoLine(b.getBatchCheck().respReader)
 }
 
 func (b *catFileBatchLegacy) Close() {

@@ -100,7 +100,7 @@ GITHUB_REF_NAME ?= $(shell git rev-parse --abbrev-ref HEAD)
 
 # Enable typescript support in Node.js before 22.18
 # TODO: Remove this once we can raise the minimum Node.js version to 22.18 (alpine >= 3.23)
-NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v 2>/dev/null | cut -c2- | tr '.' ' '))
+NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell node -v 2>/dev/null | cut -c2- | sed 's/-.*//' | tr '.' ' '))
 ifeq ($(shell test "$(NODE_VERSION)" -lt "022018000"; echo $$?),0)
 	NODE_VARS := NODE_OPTIONS="--experimental-strip-types"
 else
@@ -211,34 +211,10 @@ help: Makefile ## print Makefile help information.
 	@printf "  \033[36m%-46s\033[0m %s\n" "test[#TestSpecificName]" "run unit test"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-sqlite[#TestSpecificName]" "run integration test for sqlite"
 
-.PHONY: go-check
-go-check:
-	$(eval MIN_GO_VERSION_STR := $(shell grep -Eo '^go\s+[0-9]+\.[0-9]+' go.mod | cut -d' ' -f2))
-	$(eval MIN_GO_VERSION := $(shell printf "%03d%03d" $(shell echo '$(MIN_GO_VERSION_STR)' | tr '.' ' ')))
-	$(eval GO_VERSION := $(shell printf "%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9]+' | tr '.' ' ');))
-	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
-		echo "Gitea requires Go $(MIN_GO_VERSION_STR) or greater to build. You can get it at https://go.dev/dl/"; \
-		exit 1; \
-	fi
-
 .PHONY: git-check
 git-check:
 	@if git lfs >/dev/null 2>&1 ; then : ; else \
 		echo "Gitea requires git with lfs support to run tests." ; \
-		exit 1; \
-	fi
-
-.PHONY: node-check
-node-check:
-	$(eval MIN_NODE_VERSION_STR := $(shell grep -Eo '"node":.*[0-9.]+"' package.json | sed -n 's/.*[^0-9.]\([0-9.]*\)"/\1/p'))
-	$(eval MIN_NODE_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_NODE_VERSION_STR)' | tr '.' ' ')))
-	$(eval PNPM_MISSING := $(shell hash pnpm > /dev/null 2>&1 || echo 1))
-	@if [ "$(NODE_VERSION)" -lt "$(MIN_NODE_VERSION)" ]; then \
-		echo "Gitea requires Node.js $(MIN_NODE_VERSION_STR) or greater to build. You can get it at https://nodejs.org/en/download/"; \
-		exit 1; \
-	fi
-	@if [ "$(PNPM_MISSING)" = "1" ]; then \
-		echo "Gitea requires pnpm to build. You can install it at https://pnpm.io/installation"; \
 		exit 1; \
 	fi
 
@@ -426,12 +402,12 @@ watch: ## watch everything and continuously rebuild
 	@bash tools/watch.sh
 
 .PHONY: watch-frontend
-watch-frontend: node-check node_modules ## watch frontend files and continuously rebuild
+watch-frontend: node_modules ## watch frontend files and continuously rebuild
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	NODE_ENV=development $(NODE_VARS) pnpm exec webpack --watch --progress --disable-interpret
 
 .PHONY: watch-backend
-watch-backend: go-check ## watch backend files and continuously rebuild
+watch-backend: ## watch backend files and continuously rebuild
 	GITEA_RUN_MODE=dev $(GO) run $(AIR_PACKAGE) -c .air.toml
 
 .PHONY: test
@@ -749,7 +725,7 @@ build: frontend backend ## build everything
 frontend: $(WEBPACK_DEST) ## build frontend files
 
 .PHONY: backend
-backend: go-check generate-backend $(EXECUTABLE) ## build backend files
+backend: generate-backend $(EXECUTABLE) ## build backend files
 
 # We generate the backend before the frontend in case we in future we want to generate things in the frontend from generated files in backend
 .PHONY: generate
@@ -860,7 +836,7 @@ node_modules: pnpm-lock.yaml
 update: update-js update-py ## update js and py dependencies
 
 .PHONY: update-js
-update-js: node-check | node_modules ## update js dependencies
+update-js: node_modules ## update js dependencies
 	$(NODE_VARS) pnpm exec updates -u -f package.json
 	rm -rf node_modules pnpm-lock.yaml
 	$(NODE_VARS) pnpm install
@@ -869,7 +845,7 @@ update-js: node-check | node_modules ## update js dependencies
 	@touch node_modules
 
 .PHONY: update-py
-update-py: node-check | node_modules ## update py dependencies
+update-py: node_modules ## update py dependencies
 	$(NODE_VARS) pnpm exec updates -u -f pyproject.toml
 	rm -rf .venv uv.lock
 	uv sync
@@ -879,14 +855,14 @@ update-py: node-check | node_modules ## update py dependencies
 webpack: $(WEBPACK_DEST) ## build webpack files
 
 $(WEBPACK_DEST): $(WEBPACK_SOURCES) $(WEBPACK_CONFIGS) pnpm-lock.yaml
-	@$(MAKE) -s node-check node_modules
+	@$(MAKE) -s node_modules
 	@rm -rf $(WEBPACK_DEST_ENTRIES)
 	@echo "Running webpack..."
 	@BROWSERSLIST_IGNORE_OLD_DATA=true $(NODE_VARS) pnpm exec webpack --disable-interpret
 	@touch $(WEBPACK_DEST)
 
 .PHONY: svg
-svg: node-check | node_modules ## build svg files
+svg: node_modules ## build svg files
 	rm -rf $(SVG_DEST_DIR)
 	node tools/generate-svg.ts
 

@@ -107,6 +107,17 @@ func detectFileTypeBox(data []byte) (brands []string, found bool) {
 	return brands, true
 }
 
+func isEmbeddedOpenType(data []byte) bool {
+	// https://www.w3.org/submissions/EOT
+	if len(data) < 80 {
+		return false
+	}
+	version := binary.LittleEndian.Uint32(data[8:])  // Actually this standard is abandoned (for IE6-IE11 only), there are only 3 versions defined
+	magic := binary.LittleEndian.Uint16(data[34:36]) // MagicNumber: 0x504C ("LP")
+	reserved := data[64:80]                          // Reserved 1-4 (each: unsigned long)
+	return (version == 0x00010000 || version == 0x00020001 || version == 0x00020002) && magic == 0x504C && bytes.Count(reserved, []byte{0}) == len(reserved)
+}
+
 // DetectContentType extends http.DetectContentType with more content types. Defaults to text/plain if input is empty.
 func DetectContentType(data []byte) SniffedType {
 	if len(data) == 0 {
@@ -117,6 +128,18 @@ func DetectContentType(data []byte) SniffedType {
 
 	if len(data) > SniffContentSize {
 		data = data[:SniffContentSize]
+	}
+
+	const typeMsFontObject = "application/vnd.ms-fontobject"
+	if ct == typeMsFontObject {
+		// Stupid Golang blindly detects any content with 34th-35th bytes being "LP" as font.
+		// If it is not really for ".eot" content, we try to detect it again by hiding the "LP", see the test for more details.
+		if isEmbeddedOpenType(data) {
+			return SniffedType{typeMsFontObject}
+		}
+		data = slices.Clone(data)
+		data[34] = 'l'
+		ct = http.DetectContentType(data)
 	}
 
 	vars := globalVars()

@@ -4,7 +4,6 @@
 package pipeline
 
 import (
-	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
@@ -26,7 +25,3 @@ type lfsResultSlice []*LFSResult
 func (a lfsResultSlice) Len() int           { return len(a) }
 func (a lfsResultSlice) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a lfsResultSlice) Less(i, j int) bool { return a[j].When.After(a[i].When) }
-
-func lfsError(msg string, err error) error {
-	return fmt.Errorf("LFS error occurred, %s: err: %w", msg, err)
-}

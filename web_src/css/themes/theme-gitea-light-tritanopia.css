@@ -1,4 +1,4 @@
-@import "./theme-gitea-light-protanopia-deuteranopia.css";
+@import "./theme-gitea-light.css";
 
 gitea-theme-meta-info {
   --theme-display-name: "Light";
@@ -7,9 +7,9 @@ gitea-theme-meta-info {
 }
 
 /* blue/yellow colorblind-friendly colors */
-/* from GitHub: blue yellow blindness is based on red green blindness, and --diffBlob-deletion-* restored to the normal theme color */
 :root {
-  --color-diff-removed-linenum-bg: #ffcecb;
-  --color-diff-removed-row-bg: #ffeef0;
-  --color-diff-removed-word-bg: #fdb8c0;
+  --color-diff-added-fg: #2185d0;
+  --color-diff-added-linenum-bg: #b6e3ff;
+  --color-diff-added-row-bg: #ddf4ff;
+  --color-diff-added-word-bg: #b6e3ff;
 }
