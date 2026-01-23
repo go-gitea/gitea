@@ -547,4 +547,10 @@ func TestMarkdownLink(t *testing.T) {
 <a href="/base/foo" rel="nofollow">link2</a>
 <a href="#user-content-foo" rel="nofollow">link3</a></p>
 `, string(result))
+
+	input = "https://example.com/__init__.py"
+	result, err = markdown.RenderString(markup.NewTestRenderContext("/base", localMetas), input)
+	assert.NoError(t, err)
+	assert.Equal(t, `<p><a href="https://example.com/__init__.py" rel="nofollow">https://example.com/__init__.py</a></p>
+`, string(result))
 }

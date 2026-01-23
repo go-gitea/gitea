@@ -67,7 +67,7 @@ func HTMLPrint(w io.Writer, s template.HTML) (int, error) {
 }
 
 func HTMLPrintTag(w io.Writer, tag template.HTML, attrs map[string]string) (written int, err error) {
-	n, err := fmt.Fprintf(w, "<%s", tag)
+	n, err := io.WriteString(w, "<"+string(tag))
 	written += n
 	if err != nil {
 		return written, err
@@ -79,7 +79,7 @@ func HTMLPrintTag(w io.Writer, tag template.HTML, attrs map[string]string) (writ
 			return written, err
 		}
 	}
-	n, err = fmt.Fprintf(w, ">")
+	n, err = io.WriteString(w, ">")
 	written += n
 	return written, err
 }
