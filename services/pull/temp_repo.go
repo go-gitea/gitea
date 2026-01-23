@@ -5,11 +5,11 @@
 package pull
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -32,7 +32,7 @@ type prTmpRepoContext struct {
 	context.Context
 	tmpBasePath string
 	pr          *issues_model.PullRequest
-	outbuf      *strings.Builder // we keep these around to help reduce needless buffer recreation, any use should be preceded by a Reset and preferably after use
+	outbuf      *bytes.Buffer // we keep these around to help reduce needless buffer recreation, any use should be preceded by a Reset and preferably after use
 }
 
 // PrepareGitCmd prepares a git command with the correct directory, environment, and output buffers
@@ -40,7 +40,7 @@ type prTmpRepoContext struct {
 // Do NOT use it with gitcmd.RunStd*() functions, otherwise it will panic
 func (ctx *prTmpRepoContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	ctx.outbuf.Reset()
-	return cmd.WithDir(ctx.tmpBasePath).WithStdout(ctx.outbuf)
+	return cmd.WithDir(ctx.tmpBasePath).WithStdoutBuffer(ctx.outbuf)
 }
 
 // createTemporaryRepoForPR creates a temporary repo with "base" for pr.BaseBranch and "tracking" for  pr.HeadBranch
@@ -82,7 +82,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		Context:     ctx,
 		tmpBasePath: tmpBasePath,
 		pr:          pr,
-		outbuf:      &strings.Builder{},
+		outbuf:      &bytes.Buffer{},
 	}
 
 	baseRepoPath := pr.BaseRepo.RepoPath()

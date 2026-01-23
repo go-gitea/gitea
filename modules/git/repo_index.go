@@ -110,7 +110,7 @@ func (repo *Repository) RemoveFilesFromIndex(filenames ...string) error {
 	}
 	return cmd.
 		WithDir(repo.Path).
-		WithStdin(bytes.NewReader(input.Bytes())).
+		WithStdinBytes(input.Bytes()).
 		RunWithStderr(repo.Ctx)
 }
 
@@ -130,7 +130,7 @@ func (repo *Repository) AddObjectsToIndex(objects ...IndexObjectInfo) error {
 	}
 	return cmd.
 		WithDir(repo.Path).
-		WithStdin(bytes.NewReader(input.Bytes())).
+		WithStdinBytes(input.Bytes()).
 		RunWithStderr(repo.Ctx)
 }
 
