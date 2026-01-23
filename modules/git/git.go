@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync/atomic"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/log"
@@ -33,7 +32,7 @@ type Features struct {
 	SupportedObjectFormats     []ObjectFormat // sha1, sha256
 	SupportCheckAttrOnBare     bool           // >= 2.40
 	SupportCatFileBatchCommand bool           // >= 2.36, support `git cat-file --batch-command`
-	SupportGitMergeTree        atomic.Bool    // >= 2.38 use atomic bool because testing will change it when backend goroutines may read it
+	SupportGitMergeTree        bool           // >= 2.38
 }
 
 var defaultFeatures *Features
@@ -79,7 +78,7 @@ func loadGitVersionFeatures() (*Features, error) {
 	}
 	features.SupportCheckAttrOnBare = features.CheckVersionAtLeast("2.40")
 	features.SupportCatFileBatchCommand = features.CheckVersionAtLeast("2.36")
-	features.SupportGitMergeTree.Store(features.CheckVersionAtLeast("2.38"))
+	features.SupportGitMergeTree = features.CheckVersionAtLeast("2.38")
 	return features, nil
 }
 
