@@ -39,23 +39,23 @@ func (b *catFileBatchCommand) getBatch() *catFileBatchCommunicator {
 }
 
 func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
-	_, err := b.getBatch().writer.Write([]byte("contents " + obj + "\n"))
+	_, err := b.getBatch().reqWriter.Write([]byte("contents " + obj + "\n"))
 	if err != nil {
 		return nil, nil, err
 	}
-	info, err := catFileBatchParseInfoLine(b.getBatch().reader)
+	info, err := catFileBatchParseInfoLine(b.getBatch().respReader)
 	if err != nil {
 		return nil, nil, err
 	}
-	return info, b.getBatch().reader, nil
+	return info, b.getBatch().respReader, nil
 }
 
 func (b *catFileBatchCommand) QueryInfo(obj string) (*CatFileObject, error) {
-	_, err := b.getBatch().writer.Write([]byte("info " + obj + "\n"))
+	_, err := b.getBatch().reqWriter.Write([]byte("info " + obj + "\n"))
 	if err != nil {
 		return nil, err
 	}
-	return catFileBatchParseInfoLine(b.getBatch().reader)
+	return catFileBatchParseInfoLine(b.getBatch().respReader)
 }
 
 func (b *catFileBatchCommand) Close() {

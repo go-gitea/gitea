@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 	"sync"
@@ -122,10 +121,11 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 	// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
-	var stdoutReader io.ReadCloser
+	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+
 	var extendedCommitStats []*ExtendedCommitStats
 	err = gitCmd.WithDir(repo.Path).
-		WithStdoutReader(&stdoutReader).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 

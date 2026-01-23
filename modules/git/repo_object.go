@@ -5,7 +5,6 @@
 package git
 
 import (
-	"io"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
@@ -32,18 +31,12 @@ func (o ObjectType) Bytes() []byte {
 	return []byte(o)
 }
 
-type EmptyReader struct{}
-
-func (EmptyReader) Read(p []byte) (int, error) {
-	return 0, io.EOF
-}
-
 func (repo *Repository) GetObjectFormat() (ObjectFormat, error) {
 	if repo != nil && repo.objectFormat != nil {
 		return repo.objectFormat, nil
 	}
 
-	str, err := repo.hashObject(EmptyReader{}, false)
+	str, err := repo.hashObjectBytes(nil, false)
 	if err != nil {
 		return nil, err
 	}
@@ -57,16 +50,16 @@ func (repo *Repository) GetObjectFormat() (ObjectFormat, error) {
 	return repo.objectFormat, nil
 }
 
-// HashObject takes a reader and returns hash for that reader
-func (repo *Repository) HashObject(reader io.Reader) (ObjectID, error) {
-	idStr, err := repo.hashObject(reader, true)
+// HashObjectBytes returns hash for the content
+func (repo *Repository) HashObjectBytes(buf []byte) (ObjectID, error) {
+	idStr, err := repo.hashObjectBytes(buf, true)
 	if err != nil {
 		return nil, err
 	}
 	return NewIDFromString(idStr)
 }
 
-func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) {
+func (repo *Repository) hashObjectBytes(buf []byte, save bool) (string, error) {
 	var cmd *gitcmd.Command
 	if save {
 		cmd = gitcmd.NewCommand("hash-object", "-w", "--stdin")
@@ -75,7 +68,7 @@ func (repo *Repository) hashObject(reader io.Reader, save bool) (string, error) 
 	}
 	stdout, _, err := cmd.
 		WithDir(repo.Path).
-		WithStdin(reader).
+		WithStdinBytes(buf).
 		RunStdString(repo.Ctx)
 	if err != nil {
 		return "", err

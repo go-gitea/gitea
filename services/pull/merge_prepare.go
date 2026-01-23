@@ -41,7 +41,7 @@ func (ctx *mergeContext) PrepareGitCmd(cmd *gitcmd.Command) *gitcmd.Command {
 	return cmd.WithEnv(ctx.env).
 		WithDir(ctx.tmpBasePath).
 		WithParentCallerInfo().
-		WithStdout(ctx.outbuf)
+		WithStdoutBuffer(ctx.outbuf)
 }
 
 // ErrSHADoesNotMatch represents a "SHADoesNotMatch" kind of error.
@@ -219,11 +219,11 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, o
 		return 0, nil, nil
 	}
 
-	var diffOutReader io.ReadCloser
-	err := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root").
-		AddDynamicArguments(baseBranch, headBranch).
+	cmd := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root")
+	diffOutReader, diffOutReaderClose := cmd.MakeStdoutPipe()
+	defer diffOutReaderClose()
+	err := cmd.AddDynamicArguments(baseBranch, headBranch).
 		WithDir(repoPath).
-		WithStdoutReader(&diffOutReader).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(diffOutReader)

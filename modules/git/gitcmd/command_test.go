@@ -121,7 +121,10 @@ func TestRunWithContextTimeout(t *testing.T) {
 		require.NoError(t, err)
 	})
 	t.Run("WithTimeout", func(t *testing.T) {
-		err := NewCommand("hash-object", "--stdin").WithTimeout(1 * time.Millisecond).Run(t.Context())
+		cmd := NewCommand("hash-object", "--stdin")
+		_, _, pipeClose := cmd.MakeStdinStdoutPipe()
+		defer pipeClose()
+		err := cmd.WithTimeout(1 * time.Millisecond).Run(t.Context())
 		require.ErrorIs(t, err, context.DeadlineExceeded)
 	})
 }
