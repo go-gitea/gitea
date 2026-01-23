@@ -3284,8 +3284,6 @@
   "admin.config.git_gc_args": "GC Arguments",
   "admin.config.git_migrate_timeout": "Migration Timeout",
   "admin.config.git_mirror_timeout": "Mirror Update Timeout",
-  "admin.config.git_clone_timeout": "Clone Operation Timeout",
-  "admin.config.git_pull_timeout": "Pull Operation Timeout",
   "admin.config.git_gc_timeout": "GC Operation Timeout",
   "admin.config.log_config": "Log Configuration",
   "admin.config.logger_name_fmt": "Logger: %s",

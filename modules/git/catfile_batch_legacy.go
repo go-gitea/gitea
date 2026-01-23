@@ -50,23 +50,23 @@ func (b *catFileBatchLegacy) getBatchCheck() *catFileBatchCommunicator {
 }
 
 func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
-	_, err := io.WriteString(b.getBatchContent().writer, obj+"\n")
+	_, err := io.WriteString(b.getBatchContent().reqWriter, obj+"\n")
 	if err != nil {
 		return nil, nil, err
 	}
-	info, err := catFileBatchParseInfoLine(b.getBatchContent().reader)
+	info, err := catFileBatchParseInfoLine(b.getBatchContent().respReader)
 	if err != nil {
 		return nil, nil, err
 	}
-	return info, b.getBatchContent().reader, nil
+	return info, b.getBatchContent().respReader, nil
 }
 
 func (b *catFileBatchLegacy) QueryInfo(obj string) (*CatFileObject, error) {
-	_, err := io.WriteString(b.getBatchCheck().writer, obj+"\n")
+	_, err := io.WriteString(b.getBatchCheck().reqWriter, obj+"\n")
 	if err != nil {
 		return nil, err
 	}
-	return catFileBatchParseInfoLine(b.getBatchCheck().reader)
+	return catFileBatchParseInfoLine(b.getBatchCheck().respReader)
 }
 
 func (b *catFileBatchLegacy) Close() {

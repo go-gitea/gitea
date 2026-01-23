@@ -66,6 +66,6 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 func GetReverseRawDiff(ctx context.Context, repo Repository, commitID string, writer io.Writer) error {
 	return RunCmdWithStderr(ctx, repo, gitcmd.NewCommand("show", "--pretty=format:revert %H%n", "-R").
 		AddDynamicArguments(commitID).
-		WithStdout(writer),
+		WithStdoutCopy(writer),
 	)
 }

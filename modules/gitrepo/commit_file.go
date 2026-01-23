@@ -67,20 +67,18 @@ func parseCommitFileStatus(fileStatus *CommitFileStatus, stdout io.Reader) {
 
 // GetCommitFileStatus returns file status of commit in given repository.
 func GetCommitFileStatus(ctx context.Context, repo Repository, commitID string) (*CommitFileStatus, error) {
-	stdout, w := io.Pipe()
+	cmd := gitcmd.NewCommand("log", "--name-status", "-m", "--pretty=format:", "--first-parent", "--no-renames", "-z", "-1")
+	stdout, stdoutClose := cmd.MakeStdoutPipe()
+	defer stdoutClose()
 	done := make(chan struct{})
 	fileStatus := NewCommitFileStatus()
 	go func() {
 		parseCommitFileStatus(fileStatus, stdout)
 		close(done)
 	}()
-
-	err := gitcmd.NewCommand("log", "--name-status", "-m", "--pretty=format:", "--first-parent", "--no-renames", "-z", "-1").
-		AddDynamicArguments(commitID).
+	err := cmd.AddDynamicArguments(commitID).
 		WithDir(repoPath(repo)).
-		WithStdout(w).
 		RunWithStderr(ctx)
-	_ = w.Close() // Close writer to exit parsing goroutine
 	if err != nil {
 		return nil, err
 	}

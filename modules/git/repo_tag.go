@@ -6,7 +6,6 @@ package git
 
 import (
 	"fmt"
-	"io"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/foreachref"
@@ -115,45 +114,42 @@ func (repo *Repository) GetTagInfos(page, pageSize int) ([]*Tag, int, error) {
 	// https://git-scm.com/docs/git-for-each-ref#Documentation/git-for-each-ref.txt-refname
 	forEachRefFmt := foreachref.NewFormat("objecttype", "refname:lstrip=2", "object", "objectname", "creator", "contents", "contents:signature")
 
-	stdoutReader, stdoutWriter := io.Pipe()
-	defer stdoutReader.Close()
-	defer stdoutWriter.Close()
-
-	go func() {
-		err := gitcmd.NewCommand("for-each-ref").
-			AddOptionFormat("--format=%s", forEachRefFmt.Flag()).
-			AddArguments("--sort", "-*creatordate", "refs/tags").
-			WithDir(repo.Path).
-			WithStdout(stdoutWriter).
-			RunWithStderr(repo.Ctx)
-		_ = stdoutWriter.CloseWithError(err)
-	}()
-
 	var tags []*Tag
-	parser := forEachRefFmt.Parser(stdoutReader)
-	for {
-		ref := parser.Next()
-		if ref == nil {
-			break
-		}
+	var tagsTotal int
+	cmd := gitcmd.NewCommand("for-each-ref")
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+	err := cmd.AddOptionFormat("--format=%s", forEachRefFmt.Flag()).
+		AddArguments("--sort", "-*creatordate", "refs/tags").
+		WithDir(repo.Path).
+		WithPipelineFunc(func(context gitcmd.Context) error {
+			parser := forEachRefFmt.Parser(stdoutReader)
+			for {
+				ref := parser.Next()
+				if ref == nil {
+					break
+				}
 
-		tag, err := parseTagRef(ref)
-		if err != nil {
-			return nil, 0, fmt.Errorf("GetTagInfos: parse tag: %w", err)
-		}
-		tags = append(tags, tag)
-	}
-	if err := parser.Err(); err != nil {
-		return nil, 0, fmt.Errorf("GetTagInfos: parse output: %w", err)
-	}
+				tag, err := parseTagRef(ref)
+				if err != nil {
+					return fmt.Errorf("GetTagInfos: parse tag: %w", err)
+				}
+				tags = append(tags, tag)
+			}
+			if err := parser.Err(); err != nil {
+				return fmt.Errorf("GetTagInfos: parse output: %w", err)
+			}
 
-	sortTagsByTime(tags)
-	tagsTotal := len(tags)
-	if page != 0 {
-		tags = util.PaginateSlice(tags, page, pageSize).([]*Tag)
-	}
+			sortTagsByTime(tags)
+			tagsTotal = len(tags)
+			if page != 0 {
+				tags = util.PaginateSlice(tags, page, pageSize).([]*Tag)
+			}
+			return nil
+		}).
+		RunWithStderr(repo.Ctx)
 
-	return tags, tagsTotal, nil
+	return tags, tagsTotal, err
 }
 
 // parseTagRef parses a tag from a 'git for-each-ref'-produced reference.

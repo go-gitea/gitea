@@ -318,6 +318,7 @@ func (g *GiteaLocalUploader) CreateReleases(ctx context.Context, releases ...*ba
 			}
 			attach := repo_model.Attachment{
 				UUID:          uuid.New().String(),
+				RepoID:        g.repo.ID,
 				Name:          asset.Name,
 				DownloadCount: int64(*asset.DownloadCount),
 				Size:          int64(*asset.Size),
@@ -894,21 +895,10 @@ func (g *GiteaLocalUploader) CreateReviews(ctx context.Context, reviews ...*base
 			// SECURITY: The TreePath must be cleaned! use relative path
 			comment.TreePath = util.PathJoinRel(comment.TreePath)
 
-			var patch string
-			reader, writer := io.Pipe()
-			defer func() {
-				_ = reader.Close()
-				_ = writer.Close()
-			}()
-			go func(comment *base.ReviewComment) {
-				if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
-					// We should ignore the error since the commit maybe removed when force push to the pull request
-					log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
-				}
-				_ = writer.Close()
-			}(comment)
-
-			patch, _ = git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+			patch, _ := git.GetFileDiffCutAroundLine(
+				g.gitRepo, pr.MergeBase, headCommitID, comment.TreePath,
+				int64((&issues_model.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
+			)
 
 			if comment.CreatedAt.IsZero() {
 				comment.CreatedAt = review.CreatedAt
