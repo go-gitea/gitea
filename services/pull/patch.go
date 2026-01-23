@@ -119,7 +119,7 @@ func testPullRequestTmpRepoBranchMergeable(ctx context.Context, prCtx *prTmpRepo
 	}
 
 	// 3. Check for protected files changes
-	if err = checkPullFilesProtection(ctx, pr, gitRepo); err != nil {
+	if err = checkPullFilesProtection(ctx, pr, gitRepo, "tracking"); err != nil {
 		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
 
@@ -570,7 +570,7 @@ func CheckUnprotectedFiles(repo *git.Repository, branchName, oldCommitID, newCom
 }
 
 // checkPullFilesProtection check if pr changed protected files and save results
-func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository) error {
+func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository, headRef string) error {
 	if pr.Status == issues_model.PullRequestStatusEmpty {
 		pr.ChangedProtectedFiles = nil
 		return nil
@@ -586,7 +586,7 @@ func checkPullFilesProtection(ctx context.Context, pr *issues_model.PullRequest,
 		return nil
 	}
 
-	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.HeadBranch, pr.MergeBase, "tracking", pb.GetProtectedFilePatterns(), 10, os.Environ())
+	pr.ChangedProtectedFiles, err = CheckFileProtection(gitRepo, pr.HeadBranch, pr.MergeBase, headRef, pb.GetProtectedFilePatterns(), 10, os.Environ())
 	if err != nil && !IsErrFilePathProtected(err) {
 		return err
 	}

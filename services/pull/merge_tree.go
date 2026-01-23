@@ -133,7 +133,7 @@ func testPullRequestMergeTree(ctx context.Context, pr *issues_model.PullRequest)
 	}
 
 	// 7. Check for protected files changes
-	if err = checkPullFilesProtection(ctx, pr, baseGitRepo); err != nil {
+	if err = checkPullFilesProtection(ctx, pr, baseGitRepo, pr.HeadCommitID); err != nil {
 		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
 	return nil
