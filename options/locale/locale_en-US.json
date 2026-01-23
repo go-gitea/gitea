@@ -2667,7 +2667,7 @@
   "repo.branch.new_branch_from": "Create new branch from \"%s\"",
   "repo.branch.renamed": "Branch %s was renamed to %s.",
   "repo.branch.rename_default_or_protected_branch_error": "Only admins can rename default or protected branches.",
-  "repo.branch.rename_protected_branch_failed": "This branch is protected by glob-based protection rules.",
+  "repo.branch.rename_protected_branch_failed": "Failed to rename branch due to branch protection rules.",
   "repo.branch.commits_divergence_from": "Commit divergence: %[1]d behind and %[2]d ahead of %[3]s",
   "repo.branch.commits_no_divergence": "The same as branch %[1]s",
   "repo.tag.create_tag": "Create tag %s",
