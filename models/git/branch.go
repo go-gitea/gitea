@@ -556,7 +556,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 				BranchDisplayName: branchDisplayName,
 				BranchName:        branch.Name,
 				BranchLink:        fmt.Sprintf("%s/src/branch/%s", branch.Repo.Link(), util.PathEscapeSegments(branch.Name)),
-				BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(ctx, opts.BaseRepo, branch.Name),
+				BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, baseBranchName, branch.Name),
 				CommitTime:        branch.CommitTime,
 			})
 		}

@@ -562,7 +562,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 
 	defaultPRBaseBranch := strings.TrimSpace(form.DefaultPRBaseBranch)
 	if err := repo.ValidateDefaultPRBaseBranch(ctx, defaultPRBaseBranch); err != nil {
-		if repo_model.IsErrDefaultPRBaseBranchNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.pulls.default_pr_base_branch_invalid"))
 			ctx.Redirect(repo.Link() + "/settings")
 			return
@@ -639,7 +639,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
-			DefaultPRBaseBranch:           defaultPRBaseBranch,
+			DefaultBaseBranch:             defaultPRBaseBranch,
 		}))
 	} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)

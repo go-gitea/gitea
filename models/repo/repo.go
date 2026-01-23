@@ -613,11 +613,13 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 	return fmt.Sprintf("%s/%s/compare/%s...%s", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), util.PathEscapeSegments(oldCommitID), util.PathEscapeSegments(newCommitID))
 }
 
-func (repo *Repository) ComposeBranchCompareURL(ctx context.Context, baseRepo *Repository, branchName string) string {
+func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, baseBranch, branchName string) string {
 	if baseRepo == nil {
 		baseRepo = repo
 	}
-	baseBranch := baseRepo.GetDefaultPRBaseBranch(ctx)
+	if baseBranch == "" {
+		baseBranch = baseRepo.DefaultBranch
+	}
 	var cmpBranchEscaped string
 	if repo.ID != baseRepo.ID {
 		cmpBranchEscaped = fmt.Sprintf("%s/%s:", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name))
