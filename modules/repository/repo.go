@@ -62,7 +62,9 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 	pointerChan := make(chan lfs.PointerBlob)
 	errChan := make(chan error, 1)
-	go lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan, errChan)
+	go func() {
+		errChan <- lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan)
+	}()
 
 	downloadObjects := func(pointers []lfs.Pointer) error {
 		err := lfsClient.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
@@ -150,13 +152,12 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 		}
 	}
 
-	err, has := <-errChan
-	if has {
+	err := <-errChan
+	if err != nil {
 		log.Error("Repo[%-v]: Error enumerating LFS objects for repository: %v", repo, err)
-		return err
 	}
 
-	return nil
+	return err
 }
 
 // shortRelease to reduce load memory, this struct can replace repo_model.Release
@@ -233,7 +234,7 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 		}
-		added, deleted, updated = len(deletes), len(updates), len(inserts)
+		added, deleted, updated = len(inserts), len(deletes), len(updates)
 		return nil
 	})
 	if err != nil {

@@ -9,8 +9,8 @@ package git
 import (
 	"context"
 	"path/filepath"
+	"sync"
 
-	"code.gitea.io/gitea/modules/git/catfile"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -23,11 +23,9 @@ type Repository struct {
 
 	tagCache *ObjectCache[*Tag]
 
-	batchInUse bool
-	batch      catfile.Batch
-
-	checkInUse bool
-	check      catfile.Batch
+	mu                 sync.Mutex
+	catFileBatchCloser CatFileBatchCloser
+	catFileBatchInUse  bool
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
@@ -56,69 +54,47 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	}, nil
 }
 
-// CatFileBatch obtains a CatFileBatch for this repository
-func (repo *Repository) CatFileBatch(ctx context.Context) (catfile.Batch, func(), error) {
-	if repo.batch == nil {
-		var err error
-		repo.batch, err = catfile.NewBatch(ctx, repo.Path)
+// CatFileBatch obtains a "batch object provider" for this repository.
+// It reuses an existing one if available, otherwise creates a new one.
+func (repo *Repository) CatFileBatch(ctx context.Context) (_ CatFileBatch, closeFunc func(), err error) {
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+
+	if repo.catFileBatchCloser == nil {
+		repo.catFileBatchCloser, err = NewBatch(ctx, repo.Path)
 		if err != nil {
+			repo.catFileBatchCloser = nil // otherwise it is "interface(nil)" and will cause wrong logic
 			return nil, nil, err
 		}
 	}
 
-	if !repo.batchInUse {
-		repo.batchInUse = true
-		return repo.batch, func() {
-			repo.batchInUse = false
+	if !repo.catFileBatchInUse {
+		repo.catFileBatchInUse = true
+		return CatFileBatch(repo.catFileBatchCloser), func() {
+			repo.mu.Lock()
+			defer repo.mu.Unlock()
+			repo.catFileBatchInUse = false
 		}, nil
 	}
 
 	log.Debug("Opening temporary cat file batch for: %s", repo.Path)
-	tempBatch, err := catfile.NewBatch(ctx, repo.Path)
+	tempBatch, err := NewBatch(ctx, repo.Path)
 	if err != nil {
 		return nil, nil, err
 	}
 	return tempBatch, tempBatch.Close, nil
 }
 
-// CatFileBatchCheck obtains a CatFileBatchCheck for this repository
-func (repo *Repository) CatFileBatchCheck(ctx context.Context) (catfile.Batch, func(), error) {
-	if repo.check == nil {
-		var err error
-		repo.check, err = catfile.NewBatchCheck(ctx, repo.Path)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	if !repo.checkInUse {
-		repo.checkInUse = true
-		return repo.check, func() {
-			repo.checkInUse = false
-		}, nil
-	}
-
-	log.Debug("Opening temporary cat file batch-check for: %s", repo.Path)
-	tempBatchCheck, err := catfile.NewBatchCheck(ctx, repo.Path)
-	if err != nil {
-		return nil, nil, err
-	}
-	return tempBatchCheck, tempBatchCheck.Close, nil
-}
-
 func (repo *Repository) Close() error {
 	if repo == nil {
 		return nil
 	}
-	if repo.batch != nil {
-		repo.batch.Close()
-		repo.batch = nil
-		repo.batchInUse = false
-	}
-	if repo.check != nil {
-		repo.check.Close()
-		repo.check = nil
-		repo.checkInUse = false
+	repo.mu.Lock()
+	defer repo.mu.Unlock()
+	if repo.catFileBatchCloser != nil {
+		repo.catFileBatchCloser.Close()
+		repo.catFileBatchCloser = nil
+		repo.catFileBatchInUse = false
 	}
 	repo.LastCommitCache = nil
 	repo.tagCache = nil

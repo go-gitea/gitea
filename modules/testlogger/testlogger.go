@@ -4,6 +4,7 @@
 package testlogger
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"runtime"
@@ -108,30 +109,33 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	actualSkip := util.OptionalArg(skip) + 1
 	_, filename, line, _ := runtime.Caller(actualSkip)
 
+	getRuntimeStackAll := func() string {
+		stack := make([]byte, 1024*1024)
+		n := runtime.Stack(stack, true)
+		return util.UnsafeBytesToString(stack[:n])
+	}
+
+	deferHasRun := false
+	t.Cleanup(func() {
+		if !deferHasRun {
+			Printf("!!! defer function hasn't been run but Cleanup is called\n%s", getRuntimeStackAll())
+		}
+	})
 	Printf("=== %s (%s:%d)\n", log.NewColoredValue(t.Name()), strings.TrimPrefix(filename, prefix), line)
 
 	WriterCloser.pushT(t)
 	timeoutChecker := time.AfterFunc(TestTimeout, func() {
-		l := 128 * 1024
-		var stack []byte
-		for {
-			stack = make([]byte, l)
-			n := runtime.Stack(stack, true)
-			if n <= l {
-				stack = stack[:n]
-				break
-			}
-			l = n
-		}
-		Printf("!!! %s ... timeout: %v ... stacktrace:\n%s\n\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestTimeout, string(stack))
+		Printf("!!! %s ... timeout: %v ... stacktrace:\n%s\n\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestTimeout, getRuntimeStackAll())
 	})
 	return func() {
+		deferHasRun = true
 		flushStart := time.Now()
 		slowFlushChecker := time.AfterFunc(TestSlowFlush, func() {
 			Printf("+++ %s ... still flushing after %v ...\n", log.NewColoredValue(t.Name(), log.Bold, log.FgRed), TestSlowFlush)
 		})
 		if err := queue.GetManager().FlushAll(t.Context(), -1); err != nil {
-			t.Errorf("Flushing queues failed with error %v", err)
+			// if panic occurs, then the t.Context() is also cancelled ahead, so here it shows "context canceled" error.
+			t.Errorf("Flushing queues failed with error %q, cause %q", err, context.Cause(t.Context()))
 		}
 		slowFlushChecker.Stop()
 		timeoutChecker.Stop()
