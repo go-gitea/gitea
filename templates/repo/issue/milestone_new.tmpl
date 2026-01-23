@@ -22,7 +22,6 @@
 		</h2>
 		{{template "base/alert" .}}
 		<form class="ui form" action="{{.Link}}" method="post">
-			{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_Title}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.milestones.title"}}</label>
 					<input name="title" placeholder="{{ctx.Locale.Tr "repo.milestones.title"}}" value="{{.title}}" autofocus required maxlength="50">

@@ -869,16 +869,6 @@ func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repos
 	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
 }
 
-// IsRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
-func IsRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
-	has, err := IsRepositoryModelExist(ctx, u, repoName)
-	if err != nil {
-		return false, err
-	}
-	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
-	return has || isDir, err
-}
-
 func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
 	return db.GetEngine(ctx).Get(&Repository{
 		OwnerID:   u.ID,

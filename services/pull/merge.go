@@ -412,27 +412,25 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	// Push back to upstream.
 	// This cause an api call to "/api/internal/hook/post-receive/...",
 	// If it's merge, all db transaction and operations should be there but not here to prevent deadlock.
-	if err := mergeCtx.PrepareGitCmd(pushCmd).Run(ctx); err != nil {
-		if strings.Contains(mergeCtx.errbuf.String(), "non-fast-forward") {
+	if err := mergeCtx.PrepareGitCmd(pushCmd).RunWithStderr(ctx); err != nil {
+		if strings.Contains(err.Stderr(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
 				StdOut: mergeCtx.outbuf.String(),
-				StdErr: mergeCtx.errbuf.String(),
+				StdErr: err.Stderr(),
 				Err:    err,
 			}
-		} else if strings.Contains(mergeCtx.errbuf.String(), "! [remote rejected]") {
+		} else if strings.Contains(err.Stderr(), "! [remote rejected]") {
 			err := &git.ErrPushRejected{
 				StdOut: mergeCtx.outbuf.String(),
-				StdErr: mergeCtx.errbuf.String(),
+				StdErr: err.Stderr(),
 				Err:    err,
 			}
 			err.GenerateMessage()
 			return "", err
 		}
-		return "", fmt.Errorf("git push: %s", mergeCtx.errbuf.String())
+		return "", fmt.Errorf("git push: %s", err.Stderr())
 	}
 	mergeCtx.outbuf.Reset()
-	mergeCtx.errbuf.Reset()
-
 	return mergeCommitID, nil
 }
 
@@ -446,9 +444,8 @@ func commitAndSignNoAuthor(ctx *mergeContext, message string) error {
 		}
 		cmdCommit.AddOptionFormat("-S%s", ctx.signKey.KeyID)
 	}
-	if err := ctx.PrepareGitCmd(cmdCommit).Run(ctx); err != nil {
-		log.Error("git commit %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-		return fmt.Errorf("git commit %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+	if err := ctx.PrepareGitCmd(cmdCommit).RunWithStderr(ctx); err != nil {
+		return fmt.Errorf("git commit %v: %w\n%s", ctx.pr, err, ctx.outbuf.String())
 	}
 	return nil
 }
@@ -507,39 +504,37 @@ func (err ErrMergeDivergingFastForwardOnly) Error() string {
 }
 
 func runMergeCommand(ctx *mergeContext, mergeStyle repo_model.MergeStyle, cmd *gitcmd.Command) error {
-	if err := ctx.PrepareGitCmd(cmd).Run(ctx); err != nil {
+	if err := ctx.PrepareGitCmd(cmd).RunWithStderr(ctx); err != nil {
 		// Merge will leave a MERGE_HEAD file in the .git folder if there is a conflict
 		if _, statErr := os.Stat(filepath.Join(ctx.tmpBasePath, ".git", "MERGE_HEAD")); statErr == nil {
 			// We have a merge conflict error
-			log.Debug("MergeConflict %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+			log.Debug("MergeConflict %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
 			return ErrMergeConflicts{
 				Style:  mergeStyle,
 				StdOut: ctx.outbuf.String(),
-				StdErr: ctx.errbuf.String(),
+				StdErr: err.Stderr(),
 				Err:    err,
 			}
-		} else if strings.Contains(ctx.errbuf.String(), "refusing to merge unrelated histories") {
-			log.Debug("MergeUnrelatedHistories %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+		} else if strings.Contains(err.Stderr(), "refusing to merge unrelated histories") {
+			log.Debug("MergeUnrelatedHistories %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
 			return ErrMergeUnrelatedHistories{
 				Style:  mergeStyle,
 				StdOut: ctx.outbuf.String(),
-				StdErr: ctx.errbuf.String(),
+				StdErr: err.Stderr(),
 				Err:    err,
 			}
-		} else if mergeStyle == repo_model.MergeStyleFastForwardOnly && strings.Contains(ctx.errbuf.String(), "Not possible to fast-forward, aborting") {
-			log.Debug("MergeDivergingFastForwardOnly %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+		} else if mergeStyle == repo_model.MergeStyleFastForwardOnly && strings.Contains(err.Stderr(), "Not possible to fast-forward, aborting") {
+			log.Debug("MergeDivergingFastForwardOnly %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
 			return ErrMergeDivergingFastForwardOnly{
 				StdOut: ctx.outbuf.String(),
-				StdErr: ctx.errbuf.String(),
+				StdErr: err.Stderr(),
 				Err:    err,
 			}
 		}
-		log.Error("git merge %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-		return fmt.Errorf("git merge %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+		log.Error("git merge %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
+		return fmt.Errorf("git merge %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
 	}
 	ctx.outbuf.Reset()
-	ctx.errbuf.Reset()
-
 	return nil
 }
 

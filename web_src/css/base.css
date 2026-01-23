@@ -39,6 +39,8 @@
 
   --gap-inline: 0.25rem; /* gap for inline texts and elements, for example: the spaces for sentence with labels, button text, etc */
   --gap-block: 0.5rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
+
+  --background-view-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAG0lEQVQYlWN4+vTpf3SMDTAMBYXYBLFpHgoKAeiOf0SGE9kbAAAAAElFTkSuQmCC") right bottom var(--color-primary-light-7);
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
@@ -467,19 +469,6 @@ a.label,
   box-shadow: 1px 1px 0 0 var(--color-secondary);
 }
 
-.ui.comments .comment .text {
-  margin: 0;
-}
-
-.ui.comments .comment .text,
-.ui.comments .comment .author {
-  color: var(--color-text);
-}
-
-.ui.comments .comment a.author:hover {
-  color: var(--color-primary);
-}
-
 .ui.comments .comment .metadata {
   color: var(--color-text-light-2);
 }
@@ -560,6 +549,7 @@ img.ui.avatar,
   color: var(--color-purple) !important;
 }
 
+/* it is different from tw-text-black: this one changes in dark theme */
 .text.black {
   color: var(--color-text) !important;
 }
@@ -917,7 +907,7 @@ overflow-menu .ui.label {
 .blame-avatar {
   display: flex;
   align-items: center;
-  margin-right: 4px;
+  margin-right: 6px;
 }
 
 tr.top-line-blame {

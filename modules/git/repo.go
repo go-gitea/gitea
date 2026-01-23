@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/url"
 	"os"
 	"path"
@@ -19,16 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/proxy"
 )
-
-// GPGSettings represents the default GPG settings for this repository
-type GPGSettings struct {
-	Sign             bool
-	KeyID            string
-	Email            string
-	Name             string
-	PublicKeyContent string
-	Format           string
-}
 
 const prettyLogFormat = `--pretty=format:%H`
 
@@ -93,22 +82,19 @@ func InitRepository(ctx context.Context, repoPath string, bare bool, objectForma
 
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
-	var errbuf, output strings.Builder
-	if err := gitcmd.NewCommand().
+	stdout, _, err := gitcmd.NewCommand().
 		AddOptionFormat("--git-dir=%s", repo.Path).
 		AddArguments("rev-list", "-n", "1", "--all").
 		WithDir(repo.Path).
-		WithStdout(&output).
-		WithStderr(&errbuf).
-		Run(repo.Ctx); err != nil {
-		if (err.Error() == "exit status 1" && strings.TrimSpace(errbuf.String()) == "") || err.Error() == "exit status 129" {
+		RunStdString(repo.Ctx)
+	if err != nil {
+		if (gitcmd.IsErrorExitCode(err, 1) && err.Stderr() == "") || gitcmd.IsErrorExitCode(err, 129) {
 			// git 2.11 exits with 129 if the repo is empty
 			return true, nil
 		}
-		return true, fmt.Errorf("check empty: %w - %s", err, errbuf.String())
+		return true, fmt.Errorf("check empty: %w", err)
 	}
-
-	return strings.TrimSpace(output.String()) == "", nil
+	return strings.TrimSpace(stdout) == "", nil
 }
 
 // CloneRepoOptions options when clone a repository
@@ -123,6 +109,8 @@ type CloneRepoOptions struct {
 	Depth         int
 	Filter        string
 	SkipTLSVerify bool
+	SingleBranch  bool
+	Env           []string
 }
 
 // Clone clones original repository to target path.
@@ -157,6 +145,9 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	if opts.Filter != "" {
 		cmd.AddArguments("--filter").AddDynamicArguments(opts.Filter)
 	}
+	if opts.SingleBranch {
+		cmd.AddArguments("--single-branch")
+	}
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments("-b").AddDynamicArguments(opts.Branch)
 	}
@@ -167,37 +158,39 @@ func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	}
 
 	envs := os.Environ()
-	u, err := url.Parse(from)
-	if err == nil {
-		envs = proxy.EnvWithProxy(u)
+	if opts.Env != nil {
+		envs = opts.Env
+	} else {
+		u, err := url.Parse(from)
+		if err == nil {
+			envs = proxy.EnvWithProxy(u)
+		}
 	}
 
-	stderr := new(bytes.Buffer)
-	if err = cmd.
+	return cmd.
 		WithTimeout(opts.Timeout).
 		WithEnv(envs).
-		WithStdout(io.Discard).
-		WithStderr(stderr).
-		Run(ctx); err != nil {
-		return gitcmd.ConcatenateError(err, stderr.String())
-	}
-	return nil
+		RunWithStderr(ctx)
 }
 
 // PushOptions options when push to remote
 type PushOptions struct {
-	Remote  string
-	Branch  string
-	Force   bool
-	Mirror  bool
-	Env     []string
-	Timeout time.Duration
+	Remote         string
+	LocalRefName   string
+	Branch         string
+	Force          bool
+	ForceWithLease string
+	Mirror         bool
+	Env            []string
+	Timeout        time.Duration
 }
 
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	cmd := gitcmd.NewCommand("push")
-	if opts.Force {
+	if opts.ForceWithLease != "" {
+		cmd.AddOptionFormat("--force-with-lease=%s", opts.ForceWithLease)
+	} else if opts.Force {
 		cmd.AddArguments("-f")
 	}
 	if opts.Mirror {
@@ -205,7 +198,13 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 	remoteBranchArgs := []string{opts.Remote}
 	if len(opts.Branch) > 0 {
-		remoteBranchArgs = append(remoteBranchArgs, opts.Branch)
+		var refspec string
+		if opts.LocalRefName != "" {
+			refspec = fmt.Sprintf("%s:%s", opts.LocalRefName, opts.Branch)
+		} else {
+			refspec = opts.Branch
+		}
+		remoteBranchArgs = append(remoteBranchArgs, refspec)
 	}
 	cmd.AddDashesAndList(remoteBranchArgs...)
 
@@ -224,15 +223,4 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	}
 
 	return nil
-}
-
-// GetLatestCommitTime returns time for latest commit in repository (across all branches)
-func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error) {
-	cmd := gitcmd.NewCommand("for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
-	stdout, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
-	if err != nil {
-		return time.Time{}, err
-	}
-	commitTime := strings.TrimSpace(stdout)
-	return time.Parse("Mon Jan _2 15:04:05 2006 -0700", commitTime)
 }

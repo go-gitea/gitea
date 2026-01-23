@@ -54,19 +54,24 @@ text/*.txt
 }
 
 func TestFilePathSanitize(t *testing.T) {
-	assert.Equal(t, "test_CON", filePathSanitize("test_CON"))
-	assert.Equal(t, "test CON", filePathSanitize("test CON "))
-	assert.Equal(t, "__/traverse/__", filePathSanitize(".. /traverse/ .."))
-	assert.Equal(t, "./__/a/_git/b_", filePathSanitize("./../a/.git/ b: "))
+	// path clean
+	assert.Equal(t, "a", filePathSanitize("//a/"))
+	assert.Equal(t, "_a", filePathSanitize(`\a`))
+	assert.Equal(t, "__/a/__", filePathSanitize(".. /a/ .."))
+	assert.Equal(t, "__/a/_git/b_", filePathSanitize("./../a/.git/ b: "))
+
+	// Windows reserved names
 	assert.Equal(t, "_", filePathSanitize("CoN"))
 	assert.Equal(t, "_", filePathSanitize("LpT1"))
 	assert.Equal(t, "_", filePathSanitize("CoM1"))
+	assert.Equal(t, "test_CON", filePathSanitize("test_CON"))
+	assert.Equal(t, "test CON", filePathSanitize("test CON "))
+
+	// special chars
 	assert.Equal(t, "_", filePathSanitize("\u0000"))
-	assert.Equal(t, "目标", filePathSanitize("目标"))
-	// unlike filepath.Clean, it only sanitizes, doesn't change the separator layout
-	assert.Equal(t, "", filePathSanitize("")) //nolint:testifylint // for easy reading
+	assert.Equal(t, ".", filePathSanitize(""))
 	assert.Equal(t, ".", filePathSanitize("."))
-	assert.Equal(t, "/", filePathSanitize("/"))
+	assert.Equal(t, ".", filePathSanitize("/"))
 }
 
 func TestProcessGiteaTemplateFile(t *testing.T) {

@@ -110,13 +110,11 @@ func doMergeStyleRebase(ctx *mergeContext, mergeStyle repo_model.MergeStyle, mes
 
 	// Checkout base branch again
 	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("checkout").AddDynamicArguments(baseBranch)).
-		Run(ctx); err != nil {
-		log.Error("git checkout base prior to merge post staging rebase %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
-		return fmt.Errorf("git checkout base prior to merge post staging rebase  %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), ctx.errbuf.String())
+		RunWithStderr(ctx); err != nil {
+		log.Error("git checkout base prior to merge post staging rebase %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
+		return fmt.Errorf("git checkout base prior to merge post staging rebase  %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
 	}
 	ctx.outbuf.Reset()
-	ctx.errbuf.Reset()
-
 	if mergeStyle == repo_model.MergeStyleRebase {
 		return doMergeRebaseFastForward(ctx)
 	}

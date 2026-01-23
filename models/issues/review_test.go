@@ -321,14 +321,28 @@ func TestAddReviewRequest(t *testing.T) {
 	pull.HasMerged = false
 	assert.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
 	issue.IsClosed = true
-	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{})
+	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{}, false)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
 
 	pull.HasMerged = true
 	assert.NoError(t, pull.UpdateCols(t.Context(), "has_merged"))
 	issue.IsClosed = false
-	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{})
+	_, err = issues_model.AddReviewRequest(t.Context(), issue, reviewer, &user_model.User{}, false)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewRequestOnClosedPR(err))
+
+	// Test CODEOWNERS review request stores metadata correctly
+	pull2 := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	assert.NoError(t, pull2.LoadIssue(t.Context()))
+	issue2 := pull2.Issue
+	assert.NoError(t, issue2.LoadRepo(t.Context()))
+	reviewer2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 7})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	comment, err := issues_model.AddReviewRequest(t.Context(), issue2, reviewer2, doer, true)
+	assert.NoError(t, err)
+	assert.NotNil(t, comment)
+	assert.NotNil(t, comment.CommentMetaData)
+	assert.Equal(t, issues_model.SpecialDoerNameCodeOwners, comment.CommentMetaData.SpecialDoerName)
 }

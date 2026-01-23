@@ -41,7 +41,7 @@
 			{{if .Release.Attachments}}
 				{{range .Release.Attachments}}
 					<li>
-						<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+						<a target="_blank" href="{{.DownloadURL}}">
 							<strong>{{.Name}} ({{.Size | FileSize}})</strong>
 						</a>
 					</li>

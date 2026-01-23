@@ -27,14 +27,9 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 
 	// get branch setting page
 	session := loginUser(t, "user2")
-	req := NewRequest(t, "GET", "/user2/repo1/branches")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-
-	req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/rename", map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-		"from":  "master",
-		"to":    "main",
+	req := NewRequestWithValues(t, "POST", "/user2/repo1/branches/rename", map[string]string{
+		"from": "master",
+		"to":   "main",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
@@ -44,7 +39,7 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 
 	// check old branch link
 	req = NewRequestWithValues(t, "GET", "/user2/repo1/src/branch/master/README.md", nil)
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 	location := resp.Header().Get("Location")
 	assert.Equal(t, "/user2/repo1/src/branch/main/README.md", location)
 
@@ -53,10 +48,7 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 	assert.Equal(t, "main", repo1.DefaultBranch)
 
 	// create branch1
-	csrf := GetUserCSRFToken(t, session)
-
 	req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/_new/branch/main", map[string]string{
-		"_csrf":           csrf,
 		"new_branch_name": "branch1",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
@@ -66,7 +58,6 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 
 	// create branch2
 	req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/_new/branch/main", map[string]string{
-		"_csrf":           csrf,
 		"new_branch_name": "branch2",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
@@ -76,9 +67,8 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 
 	// rename branch2 to branch1
 	req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/rename", map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-		"from":  "branch2",
-		"to":    "branch1",
+		"from": "branch2",
+		"to":   "branch1",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 	flashMsg := session.GetCookieFlashMessage()
@@ -91,8 +81,7 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 
 	// delete branch1
 	req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/delete", map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-		"name":  "branch1",
+		"name": "branch1",
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 	branch2 = unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "branch2"})
@@ -102,9 +91,8 @@ func testRenameBranch(t *testing.T, u *url.URL) {
 
 	// rename branch2 to branch1 again
 	req = NewRequestWithValues(t, "POST", "/user2/repo1/branches/rename", map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-		"from":  "branch2",
-		"to":    "branch1",
+		"from": "branch2",
+		"to":   "branch1",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 

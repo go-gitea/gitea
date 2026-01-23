@@ -120,7 +120,7 @@ func CommitChanges(ctx context.Context, repoPath string, opts CommitChangesOptio
 
 	_, _, err := cmd.WithDir(repoPath).RunStdString(ctx)
 	// No stderr but exit status 1 means nothing to commit.
-	if err != nil && err.Error() == "exit status 1" {
+	if gitcmd.IsErrorExitCode(err, 1) {
 		return nil
 	}
 	return err
@@ -315,20 +315,12 @@ func GetFullCommitID(ctx context.Context, repoPath, shortID string) (string, err
 		WithDir(repoPath).
 		RunStdString(ctx)
 	if err != nil {
-		if strings.Contains(err.Error(), "exit status 128") {
+		if gitcmd.IsErrorExitCode(err, 128) {
 			return "", ErrNotExist{shortID, ""}
 		}
 		return "", err
 	}
 	return strings.TrimSpace(commitID), nil
-}
-
-// GetRepositoryDefaultPublicGPGKey returns the default public key for this commit
-func (c *Commit) GetRepositoryDefaultPublicGPGKey(forceUpdate bool) (*GPGSettings, error) {
-	if c.repo == nil {
-		return nil, nil
-	}
-	return c.repo.GetDefaultPublicGPGKey(forceUpdate)
 }
 
 func IsStringLikelyCommitID(objFmt ObjectFormat, s string, minLength ...int) bool {

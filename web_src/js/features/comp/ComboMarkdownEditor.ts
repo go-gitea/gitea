@@ -17,7 +17,7 @@ import {POST} from '../../modules/fetch.ts';
 import {
   EventEditorContentChanged,
   initTextareaMarkdown,
-  textareaInsertText,
+  replaceTextareaSelection,
   triggerEditorContentChanged,
 } from './EditorMarkdown.ts';
 import {DropzoneCustomEventReloadFiles, initDropzone} from '../dropzone.ts';
@@ -273,7 +273,7 @@ export class ComboMarkdownEditor {
       let cols = parseInt(addTablePanel.querySelector<HTMLInputElement>('[name=cols]')!.value);
       rows = Math.max(1, Math.min(100, rows));
       cols = Math.max(1, Math.min(100, cols));
-      textareaInsertText(this.textarea, `\n${this.generateMarkdownTable(rows, cols)}\n\n`);
+      replaceTextareaSelection(this.textarea, `\n${this.generateMarkdownTable(rows, cols)}\n\n`);
       addTablePanelTippy.hide();
     });
   }
@@ -369,7 +369,7 @@ export class ComboMarkdownEditor {
     hideElem(this.textareaMarkdownToolbar);
   }
 
-  value(v: any = undefined) {
+  value(v?: any) {
     if (v === undefined) {
       if (this.easyMDE) {
         return this.easyMDE.value();
@@ -410,7 +410,7 @@ export class ComboMarkdownEditor {
   }
 }
 
-export function getComboMarkdownEditor(el: any) {
+export function getComboMarkdownEditor(el: any): ComboMarkdownEditor | null {
   if (!el) return null;
   if (el.length) el = el[0];
   return el._giteaComboMarkdownEditor;
