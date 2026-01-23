@@ -57,7 +57,7 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 
 // newParserContext creates a parser.Context with the render context set
 func newParserContext(ctx *markup.RenderContext) parser.Context {
-	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
+	pc := parser.NewContext()
 	pc.Set(renderContextKey, ctx)
 	return pc
 }
@@ -131,7 +131,6 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 		),
 		goldmark.WithParserOptions(
 			parser.WithAttribute(),
-			parser.WithAutoHeadingID(),
 			parser.WithASTTransformers(util.Prioritized(NewASTTransformer(&ctx.RenderInternal), 10000)),
 		),
 		goldmark.WithRendererOptions(html.WithUnsafe()),
