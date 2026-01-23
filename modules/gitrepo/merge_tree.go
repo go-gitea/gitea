@@ -16,8 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
-// scanLine is a split function for a Scanner that returns each line of git output
-func scanLine(data []byte, atEOF bool) (advance int, token []byte, err error) {
+func ScanNullTerminatedStrings(data []byte, atEOF bool) (advance int, token []byte, err error) {
 	if atEOF && len(data) == 0 {
 		return 0, nil, nil
 	}
@@ -41,7 +40,7 @@ func scanLine(data []byte, atEOF bool) (advance int, token []byte, err error) {
 func parseMergeTreeOutput(output io.Reader, maxListFiles int) (treeID string, conflictedFiles []string, err error) {
 	scanner := bufio.NewScanner(output)
 
-	scanner.Split(scanLine)
+	scanner.Split(ScanNullTerminatedStrings)
 	var lineCount int
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -61,7 +60,7 @@ func parseMergeTreeOutput(output io.Reader, maxListFiles int) (treeID string, co
 	if treeID == "" {
 		return "", nil, errors.New("unexpected empty output")
 	}
-	return treeID, conflictedFiles, nil
+	return treeID, conflictedFiles, scanner.Err()
 }
 
 const MaxConflictedDetectFiles = 10
@@ -81,7 +80,7 @@ func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase
 	// A merge can have conflicts without having individual files conflict
 	// https://git-scm.com/docs/git-merge-tree/2.38.0#_mistakes_to_avoid
 	switch {
-	case gitcmd.IsErrorExitCode(gitErr, 0) || gitErr == nil:
+	case gitErr == nil:
 		return strings.TrimSpace(strings.TrimSuffix(stdout.String(), "\x00")), false, nil, nil
 	case gitcmd.IsErrorExitCode(gitErr, 1):
 		treeID, conflictedFiles, err := parseMergeTreeOutput(stdout, MaxConflictedDetectFiles)

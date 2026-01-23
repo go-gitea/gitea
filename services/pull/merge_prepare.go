@@ -5,7 +5,6 @@ package pull
 
 import (
 	"bufio"
-	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -206,19 +205,6 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 // getDiffTree returns a string containing all the files that were changed between headBranch and baseBranch
 // the filenames are escaped so as to fit the format required for .git/info/sparse-checkout
 func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, out io.Writer) error {
-	scanNullTerminatedStrings := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
-		if atEOF && len(data) == 0 {
-			return 0, nil, nil
-		}
-		if i := bytes.IndexByte(data, '\x00'); i >= 0 {
-			return i + 1, data[0:i], nil
-		}
-		if atEOF {
-			return len(data), data, nil
-		}
-		return 0, nil, nil
-	}
-
 	cmd := gitcmd.NewCommand("diff-tree", "--no-commit-id", "--name-only", "-r", "-r", "-z", "--root")
 	diffOutReader, diffOutReaderClose := cmd.MakeStdoutPipe()
 	defer diffOutReaderClose()
@@ -227,7 +213,7 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, o
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(diffOutReader)
-			scanner.Split(scanNullTerminatedStrings)
+			scanner.Split(gitrepo.ScanNullTerminatedStrings)
 			for scanner.Scan() {
 				treePath := scanner.Text()
 				// escape '*', '?', '[', spaces and '!' prefix
