@@ -92,32 +92,52 @@ func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, d
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, comment := range comments {
-				apiComment := &api.PullReviewComment{
-					ID:           comment.ID,
-					Body:         comment.Content,
-					Poster:       ToUser(ctx, comment.Poster, doer),
-					Resolver:     ToUser(ctx, comment.ResolveDoer, doer),
-					ReviewID:     review.ID,
-					Created:      comment.CreatedUnix.AsTime(),
-					Updated:      comment.UpdatedUnix.AsTime(),
-					Path:         comment.TreePath,
-					CommitID:     comment.CommitSHA,
-					OrigCommitID: comment.OldRef,
-					DiffHunk:     patch2diff(comment.Patch),
-					HTMLURL:      comment.HTMLURL(ctx),
-					HTMLPullURL:  review.Issue.HTMLURL(ctx),
+				apiComment := ToPullReviewComment(ctx, comment, review.Issue, doer)
+				if apiComment != nil {
+					apiComments = append(apiComments, apiComment)
 				}
-
-				if comment.Line < 0 {
-					apiComment.OldLineNum = comment.UnsignedLine()
-				} else {
-					apiComment.LineNum = comment.UnsignedLine()
-				}
-				apiComments = append(apiComments, apiComment)
 			}
 		}
 	}
 	return apiComments, nil
+}
+
+// ToPullReviewComment convert a single code review comment to api format
+func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, issue *issues_model.Issue, doer *user_model.User) *api.PullReviewComment {
+	if comment == nil {
+		return nil
+	}
+
+	if issue == nil {
+		issue = comment.Issue
+	}
+
+	apiComment := &api.PullReviewComment{
+		ID:           comment.ID,
+		Body:         comment.Content,
+		Poster:       ToUser(ctx, comment.Poster, doer),
+		Resolver:     ToUser(ctx, comment.ResolveDoer, doer),
+		ReviewID:     comment.ReviewID,
+		Created:      comment.CreatedUnix.AsTime(),
+		Updated:      comment.UpdatedUnix.AsTime(),
+		Path:         comment.TreePath,
+		CommitID:     comment.CommitSHA,
+		OrigCommitID: comment.OldRef,
+		DiffHunk:     patch2diff(comment.Patch),
+		HTMLURL:      comment.HTMLURL(ctx),
+	}
+
+	if issue != nil {
+		apiComment.HTMLPullURL = issue.HTMLURL(ctx)
+	}
+
+	if comment.Line < 0 {
+		apiComment.OldLineNum = comment.UnsignedLine()
+	} else {
+		apiComment.LineNum = comment.UnsignedLine()
+	}
+
+	return apiComment
 }
 
 func patch2diff(patch string) string {

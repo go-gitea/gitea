@@ -208,6 +208,168 @@ func GetPullReviewComments(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiComments)
 }
 
+// ResolvePullReviewComment resolves a review comment in a pull request
+func ResolvePullReviewComment(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/comments/{id}/resolve repository repoResolvePullReviewComment
+	// ---
+	// summary: Resolve a pull review comment
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review comment
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReviewComment"
+	//   "400":
+	//     "$ref": "#/responses/validationError"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	updatePullReviewCommentResolve(ctx, true)
+}
+
+// UnresolvePullReviewComment unresolves a review comment in a pull request
+func UnresolvePullReviewComment(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/comments/{id}/unresolve repository repoUnresolvePullReviewComment
+	// ---
+	// summary: Unresolve a pull review comment
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the review comment
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullReviewComment"
+	//   "400":
+	//     "$ref": "#/responses/validationError"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	updatePullReviewCommentResolve(ctx, false)
+}
+
+func updatePullReviewCommentResolve(ctx *context.APIContext, isResolve bool) {
+	commentID := ctx.PathParamInt64("id")
+	comment, err := issues_model.GetCommentByID(ctx, commentID)
+	if err != nil {
+		if issues_model.IsErrCommentNotExist(err) {
+			ctx.APIErrorNotFound("GetCommentByID", err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	if err = comment.LoadIssue(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIErrorNotFound("CommentNotInRepo")
+		return
+	}
+
+	if !comment.Issue.IsPull {
+		ctx.APIError(http.StatusBadRequest, "comment does not belong to a pull request")
+		return
+	}
+
+	if comment.Issue.Index != ctx.PathParamInt64("index") {
+		ctx.APIErrorNotFound("CommentNotInPullRequest")
+		return
+	}
+
+	if comment.Type != issues_model.CommentTypeCode {
+		ctx.APIError(http.StatusBadRequest, "comment is not a review comment")
+		return
+	}
+
+	permResult, err := issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if !permResult {
+		ctx.APIError(http.StatusForbidden, "user should have permission to resolve comment")
+		return
+	}
+
+	wasResolved := comment.ResolveDoerID != 0
+	if err = issues_model.MarkConversation(ctx, comment, ctx.Doer, isResolve); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if isResolve {
+		if !wasResolved {
+			comment.ResolveDoerID = ctx.Doer.ID
+		}
+	} else {
+		if wasResolved {
+			comment.ResolveDoerID = 0
+		}
+		comment.ResolveDoer = nil
+	}
+
+	if err = comment.LoadPoster(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if err = comment.LoadResolveDoer(ctx); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	comment.Issue.Repo = ctx.Repo.Repository
+	ctx.JSON(http.StatusOK, convert.ToPullReviewComment(ctx, comment, comment.Issue, ctx.Doer))
+}
+
 // DeletePullReview delete a specific review from a pull request
 func DeletePullReview(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/reviews/{id} repository repoDeletePullReview
