@@ -44,7 +44,7 @@ func (h *tmplRender) recompileTemplates(dummyFuncMap template.FuncMap) error {
 	tmpls.Funcs(dummyFuncMap)
 	names, err := h.collectTemplateNames()
 	if err != nil {
-		return nil
+		return err
 	}
 	for _, name := range names {
 		tmpl := tmpls.New(filepath.ToSlash(name))
