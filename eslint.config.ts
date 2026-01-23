@@ -995,7 +995,7 @@ export default defineConfig([
   },
   {
     files: ['*', 'tools/**/*'],
-    languageOptions: {globals: globals.node},
+    languageOptions: {globals: globals.nodeBuiltin},
   },
   {
     files: ['web_src/**/*'],
