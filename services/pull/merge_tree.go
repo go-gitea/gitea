@@ -16,7 +16,7 @@ import (
 )
 
 // checkConflictsMergeTree uses git merge-tree to check for conflicts and if none are found checks if the patch is empty
-// return true if there is conflicts otherwise return false
+// return true if there are conflicts otherwise return false
 // pr.Status and pr.ConflictedFiles will be updated as necessary
 func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, baseCommitID string) (bool, error) {
 	treeHash, conflict, conflictFiles, err := gitrepo.MergeTree(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID, pr.MergeBase)
@@ -33,8 +33,9 @@ func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, 
 		return true, nil
 	}
 
-	// Detecting whether the pull request has difference via git diff-tree
-	// it will return exit code 0 if there's no diff and exit code 1 if there's a diff.
+	// Detect whether the pull request introduces changes by comparing the merged tree (treeHash)
+	// against the merge base (pr.MergeBase) using `git diff-tree`. The command returns exit code 0
+	// if there is no diff between these trees (empty patch) and exit code 1 if there is a diff.
 	gitErr := gitrepo.RunCmd(ctx, pr.BaseRepo, gitcmd.NewCommand("diff-tree", "-r", "--quiet").
 		AddDynamicArguments(treeHash, pr.MergeBase))
 	switch {
@@ -60,7 +61,7 @@ func testPullRequestMergeTree(ctx context.Context, pr *issues_model.PullRequest)
 	}
 	defer headGitRepo.Close()
 
-	// 2. Get base commit id
+	// 2. Get/open base repository
 	var baseGitRepo *git.Repository
 	if pr.IsSameRepo() {
 		baseGitRepo = headGitRepo
@@ -126,13 +127,14 @@ func testPullRequestMergeTree(ctx context.Context, pr *issues_model.PullRequest)
 	conflicted, err := checkConflictsMergeTree(ctx, pr, baseCommitID)
 	if err != nil {
 		log.Error("checkConflictsMergeTree: %v", err)
-		pr.Status = issues_model.PullRequestStatusEmpty // if there is no merge base, then it's empty but we still need to allow the pull request created
+		pr.Status = issues_model.PullRequestStatusError
+		return fmt.Errorf("checkConflictsMergeTree: %w", err)
 	}
 	if conflicted || pr.Status == issues_model.PullRequestStatusEmpty {
 		return nil
 	}
 
-	// 7. Check for protected files changes
+	// 8. Check for protected files changes
 	if err = checkPullFilesProtection(ctx, pr, baseGitRepo); err != nil {
 		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
