@@ -69,7 +69,7 @@
     "@eslint/json": "0.14.0",
     "@playwright/test": "1.57.0",
     "@stylistic/eslint-plugin": "5.7.0",
-    "@stylistic/stylelint-plugin": "5.0.0",
+    "@stylistic/stylelint-plugin": "5.0.1",
     "@types/codemirror": "5.60.17",
     "@types/dropzone": "5.7.9",
     "@types/jquery": "3.5.33",
@@ -89,14 +89,14 @@
     "eslint-plugin-github": "6.0.0",
     "eslint-plugin-import-x": "4.16.1",
     "eslint-plugin-playwright": "2.5.0",
-    "eslint-plugin-regexp": "2.10.0",
+    "eslint-plugin-regexp": "3.0.0",
     "eslint-plugin-sonarjs": "3.0.5",
     "eslint-plugin-unicorn": "62.0.0",
     "eslint-plugin-vue": "10.7.0",
     "eslint-plugin-vue-scoped-css": "2.12.0",
     "eslint-plugin-wc": "3.0.2",
-    "globals": "17.0.0",
-    "happy-dom": "20.3.4",
+    "globals": "17.1.0",
+    "happy-dom": "20.3.7",
     "jiti": "2.6.1",
     "markdownlint-cli": "0.47.0",
     "material-icon-theme": "5.31.0",
@@ -113,8 +113,8 @@
     "typescript-eslint": "8.53.1",
     "updates": "17.0.8",
     "vite-string-plugin": "1.4.9",
-    "vitest": "4.0.17",
-    "vue-tsc": "3.2.2"
+    "vitest": "4.0.18",
+    "vue-tsc": "3.2.3"
   },
   "browserslist": [
     "defaults"

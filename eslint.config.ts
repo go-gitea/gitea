@@ -998,7 +998,7 @@ export default defineConfig([
     languageOptions: {globals: globals.node},
   },
   {
-    files: ['web_src/**/*', 'docs/**/*'],
-    languageOptions: {globals: globals.browser},
+    files: ['web_src/**/*'],
+    languageOptions: {globals: {...globals.browser, ...globals.webpack}},
   },
 ]);
