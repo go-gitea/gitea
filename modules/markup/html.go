@@ -267,11 +267,14 @@ func RenderTocHeadingItems(ctx *RenderContext, nodeDetailsAttrs map[string]strin
 			_, _ = htmlutil.HTMLPrint(out, "</ul>\n")
 			currentLevel--
 		}
-		if currentLevel != header.HeadingLevel {
-			continue
-		}
 		_, _ = out.Write(indent)
 		_, _ = htmlutil.HTMLPrintf(out, "<li><a href=\"#%s\">%s</a></li>\n", header.AnchorID, header.InnerText)
+	}
+	for currentLevel > baseLevel {
+		indent = indent[:len(indent)-2]
+		_, _ = out.Write(indent)
+		_, _ = htmlutil.HTMLPrint(out, "</ul>\n")
+		currentLevel--
 	}
 	_, _ = htmlutil.HTMLPrint(out, "</ul>\n</details>\n")
 }

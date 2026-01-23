@@ -27,7 +27,7 @@ include_toc: true
 # ` + t1 + `
 ## ` + t2 + `
 #### ` + t3 + `
-# last
+## last
 `
 
 	renderCtx := markup.NewTestRenderContext().WithEnableHeadingIDGeneration(true)
@@ -46,15 +46,15 @@ include_toc: true
         <li><a href="#user-content-markdown-bold" rel="nofollow">markdown bold</a></li>
       </ul>
     </ul>
+    <li><a href="#user-content-last" rel="nofollow">last</a></li>
   </ul>
-  <li><a href="#user-content-last" rel="nofollow">last</a></li>
 </ul>
 </details>
 
 <h1 id="user-content-tag-link-and-bold">tag <a href="/link" rel="nofollow">link</a> and <b>Bold</b></h1>
 <h2 id="user-content-code-block-a">code block <code>&lt;a&gt;</code></h2>
 <h4 id="user-content-markdown-bold">markdown <strong>bold</strong></h4>
-<h1 id="user-content-last">last</h1>
+<h2 id="user-content-last">last</h2>
 `
 	assert.Equal(t, expected, result)
 }
