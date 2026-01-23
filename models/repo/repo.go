@@ -635,7 +635,7 @@ func (repo *Repository) GetActualSizeLimit() int64 {
 	return setting.Repository.GitSizeMax
 }
 
-// RepoSizeIsOversized return true if is over size limitation
+// IsRepoSizeOversized return true if is over size limitation
 func (repo *Repository) IsRepoSizeOversized(additionalSize int64) bool {
 	limit := repo.GetActualSizeLimit()
 	if limit < 0 {
