@@ -33,11 +33,8 @@ var Git = struct {
 	DisablePartialClone           bool
 	DiffRenameSimilarityThreshold string
 	Timeout                       struct {
-		Default int
 		Migrate int
 		Mirror  int
-		Clone   int
-		Pull    int
 		GC      int `ini:"GC"`
 	} `ini:"git.timeout"`
 }{
@@ -56,18 +53,12 @@ var Git = struct {
 	DisablePartialClone:           false,
 	DiffRenameSimilarityThreshold: "50%",
 	Timeout: struct {
-		Default int
 		Migrate int
 		Mirror  int
-		Clone   int
-		Pull    int
 		GC      int `ini:"GC"`
 	}{
-		Default: 360,
 		Migrate: 600,
 		Mirror:  300,
-		Clone:   300,
-		Pull:    300,
 		GC:      60,
 	},
 }

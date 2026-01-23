@@ -120,6 +120,11 @@ func ReconsiderWatches(ctx context.Context, repo *repo_model.Repository, user *u
 		return err
 	}
 
+	// Remove all stopwatches a user has running in the repository
+	if err := issues_model.RemoveStopwatchesByRepoID(ctx, user.ID, repo.ID); err != nil {
+		return err
+	}
+
 	// Remove all IssueWatches a user has subscribed to in the repository
 	return issues_model.RemoveIssueWatchersByRepoID(ctx, user.ID, repo.ID)
 }
