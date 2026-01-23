@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
-	giteacontext "code.gitea.io/gitea/services/context"
 
 	"github.com/bohde/codel"
 	"github.com/go-chi/chi/v5"
@@ -119,27 +118,6 @@ func requestPriority(ctx context.Context) Priority {
 // renderServiceUnavailable will render an HTTP 503 Service
 // Unavailable page, providing HTML if the client accepts it.
 func renderServiceUnavailable(w http.ResponseWriter, req *http.Request) {
-	acceptsHTML := false
-	for _, part := range req.Header["Accept"] {
-		if strings.Contains(part, "text/html") {
-			acceptsHTML = true
-			break
-		}
-	}
-
-	// If the client doesn't accept HTML, then render a plain text response
-	if !acceptsHTML {
-		http.Error(w, "503 Service Unavailable", http.StatusServiceUnavailable)
-		return
-	}
-
-	tmplCtx := giteacontext.NewTemplateContext(req.Context(), req)
-	tmplCtx["Locale"] = middleware.Locale(w, req)
 	ctxData := middleware.GetContextData(req.Context())
-	err := templates.HTMLRenderer().HTML(w, http.StatusServiceUnavailable, tplStatus503, ctxData, tmplCtx)
-	if err != nil {
-		log.Error("Error occurs again when rendering service unavailable page: %v", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		_, _ = w.Write([]byte("Internal server error, please collect error logs and report to Gitea issue tracker"))
-	}
+	renderServerErrorPage(w, req, http.StatusServiceUnavailable, tplStatus503, ctxData, "Service Unavailable")
 }
