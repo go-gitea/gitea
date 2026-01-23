@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -274,22 +273,12 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		if len(commitID) == 0 {
 			commitID = headCommitID
 		}
-		reader, writer := io.Pipe() // FIXME: use os.Pipe to avoid deadlock
-		defer func() {
-			_ = reader.Close()
-			_ = writer.Close()
-		}()
-		go func() {
-			if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, writer); err != nil {
-				_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %w", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err))
-				return
-			}
-			_ = writer.Close()
-		}()
 
-		patch, err = git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		patch, err = git.GetFileDiffCutAroundLine(
+			gitRepo, pr.MergeBase, headCommitID, treePath,
+			int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
+		)
 		if err != nil {
-			log.Error("Error whilst generating patch: %v", err)
 			return nil, err
 		}
 
