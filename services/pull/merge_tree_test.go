@@ -20,7 +20,7 @@ func Test_testPullRequestMergeTree(t *testing.T) {
 	assert.NoError(t, pull.LoadBaseRepo(t.Context()))
 	assert.NoError(t, pull.LoadHeadRepo(t.Context()))
 
-	// pull 1 is mergeable, set to conflicted to see if the function updates it correctly
+	// pull 2 is mergeable, set to conflicted to see if the function updates it correctly
 	pull.Status = issues_model.PullRequestStatusConflict
 	pull.ConflictedFiles = []string{"old_file.go"}
 	pull.ChangedProtectedFiles = []string{"protected_file.go"}
