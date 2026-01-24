@@ -1,6 +1,7 @@
 import {svg} from '../svg.ts';
 
-// Rendered content from users have ids prefixed with `user-content-` to avoid conflicts with other ids on the page.
+// Rendered content from users have IDs prefixed with `user-content-` to avoid conflicts with other IDs on the page.
+// - security concern: elements with IDs can affect frontend logic, for example: sending requests.
 // To make end users have better experience, the prefixes are stripped from the href attributes of links.
 // The same as GitHub: backend generates anchor `id="user-content-faq"` but the link shown to users is `href="#faq"`.
 //
@@ -8,7 +9,7 @@ import {svg} from '../svg.ts';
 // - backend adds `user-content-` prefix for elements like `<h1 id>` and `<a href>`
 // - js strips the prefix from the `href` so users get nice prefix-less links
 // - js intercepts the hash navigation on page load and whenever a link is clicked
-//   to add the prefix so the correct prefixed `id` element is scrolled into view
+//   to add the prefix so the correct prefixed `id`/`name` element is scrolled into view
 //
 // TODO: ideally, backend should be able to generate elements with necessary anchors,
 // backend doesn't need to add the prefix to `href`,
