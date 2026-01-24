@@ -1,6 +1,5 @@
 import {svg} from '../svg.ts';
 
-
 // Rendered content from users have ids prefixed with `user-content-` to avoid conflicts with other ids on the page.
 // To make end users have better experience, the prefixes are stripped from the href attributes of links.
 // The same as GitHub: backend generates anchor `id="user-content-faq"` but the link shown to users is `href="#faq"`.
