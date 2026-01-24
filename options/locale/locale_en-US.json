@@ -1490,7 +1490,7 @@
   "repo.issues.filter_sort.feweststars": "Fewest stars",
   "repo.issues.filter_sort.mostforks": "Most forks",
   "repo.issues.filter_sort.fewestforks": "Fewest forks",
-  "repo.issues.quick_goto": "Goto issue",
+  "repo.issues.quick_goto": "Go to issue",
   "repo.issues.action_open": "Open",
   "repo.issues.action_close": "Close",
   "repo.issues.action_label": "Label",
