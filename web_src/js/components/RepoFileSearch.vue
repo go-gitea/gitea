@@ -150,11 +150,11 @@ watch([searchQuery, filteredFiles], async () => {
       <input
         ref="searchInput" :placeholder="placeholder" autocomplete="off"
         role="combobox" aria-autocomplete="list" :aria-expanded="searchQuery ? 'true' : 'false'"
-        data-global-keyboard-shortcut="t"
+        data-global-keyboard-shortcut="t" aria-keyshortcuts="t"
         @input="handleSearchInput" @keydown="handleKeyDown"
         @focus="isInputFocused = true" @blur="isInputFocused = false"
       >
-      <kbd v-show="!searchQuery && !isInputFocused" class="repo-file-search-shortcut-hint">T</kbd>
+      <kbd v-show="!searchQuery && !isInputFocused" class="repo-file-search-shortcut-hint" aria-hidden="true">T</kbd>
     </div>
 
     <Teleport to="body">
