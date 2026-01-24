@@ -3,8 +3,8 @@ import type {KnipConfig} from 'knip';
 export default {
   entry: [
     '*.ts',
-    'tools/*.ts',
-    'tests/e2e/*.ts',
+    'tools/**/*.ts',
+    'tests/e2e/**/*.ts',
   ],
   ignoreDependencies: [
     // dependencies used in Makefile or tools
