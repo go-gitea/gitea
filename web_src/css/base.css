@@ -106,7 +106,7 @@ samp,
 /* there are many <code> blocks in non-markup(.markup code) / non-code-diff(code.code-inner) containers, for example: translation strings, etc,
 so we need to make <code> have default global styles, ".markup code" has its own styles and these styles sometimes conflict.
 TODO: in the future, we should use `div` instead of `code` for `.code-inner` because it is a container for highlighted code line, then drop this ":not" patch */
-code:not(.code-inner) {
+code:where(:not(.code-inner)) {
   padding: 1px 4px;
   border-radius: var(--border-radius);
   background-color: var(--color-markup-code-inline);
