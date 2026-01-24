@@ -62,7 +62,7 @@
 						)}}
 					</form>
 
-					<div class="list-header-filters">
+					<div class="list-header-filters ui secondary menu tw-m-0">
 						{{if $.Labels}}
 							{{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLinkWithFilter "SupportArchivedLabel" true}}
 						{{end}}

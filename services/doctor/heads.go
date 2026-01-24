@@ -20,10 +20,10 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 	numReposUpdated := 0
 	err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
-		_, defaultBranchErr := gitrepo.RunCmdString(ctx, repo,
+		_, _, defaultBranchErr := gitrepo.RunCmdString(ctx, repo,
 			gitcmd.NewCommand("rev-parse").AddDashesAndList(repo.DefaultBranch))
 
-		head, headErr := gitrepo.RunCmdString(ctx, repo,
+		head, _, headErr := gitrepo.RunCmdString(ctx, repo,
 			gitcmd.NewCommand("symbolic-ref", "--short", "HEAD"))
 
 		// what we expect: default branch is valid, and HEAD points to it
