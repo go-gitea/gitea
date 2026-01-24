@@ -49,7 +49,20 @@ interface Element {
 }
 
 interface Window {
-  config: import('./web_src/js/types.ts').Config;
+  config: {
+    appUrl: string,
+    appSubUrl: string,
+    assetVersionEncoded: string,
+    assetUrlPrefix: string,
+    runModeIsProd: boolean,
+    customEmojis: Record<string, string>,
+    pageData: Record<string, any>,
+    notificationSettings: Record<string, any>,
+    enableTimeTracking: boolean,
+    mentionValues?: MentionValue[],
+    mermaidMaxSourceCharacters: number,
+    i18n: Record<string, string>,
+  },
   $: typeof import('@types/jquery'),
   jQuery: typeof import('@types/jquery'),
   htmx: typeof import('htmx.org').default,

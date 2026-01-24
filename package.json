@@ -98,6 +98,7 @@
     "globals": "17.0.0",
     "happy-dom": "20.3.0",
     "jiti": "2.6.1",
+    "knip": "5.82.1",
     "markdownlint-cli": "0.47.0",
     "material-icon-theme": "5.31.0",
     "nolyfill": "1.0.44",

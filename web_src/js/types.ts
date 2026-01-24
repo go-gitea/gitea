@@ -1,24 +1,9 @@
-export type MentionValue = {
+type MentionValue = {
   key: string,
   value: string,
   name: string,
   fullname: string,
   avatar: string,
-};
-
-export type Config = {
-  appUrl: string,
-  appSubUrl: string,
-  assetVersionEncoded: string,
-  assetUrlPrefix: string,
-  runModeIsProd: boolean,
-  customEmojis: Record<string, string>,
-  pageData: Record<string, any>,
-  notificationSettings: Record<string, any>,
-  enableTimeTracking: boolean,
-  mentionValues?: MentionValue[],
-  mermaidMaxSourceCharacters: number,
-  i18n: Record<string, string>,
 };
 
 export type IntervalId = ReturnType<typeof setInterval>;
