@@ -10,6 +10,9 @@ import {svg} from '../svg.ts';
 // - js strips the prefix from the `href` so users get nice prefix-less links
 // - js intercepts the hash navigation on page load and whenever a link is clicked
 //   to add the prefix so the correct prefixed `id` element is focused
+//
+// TODO: ideally, backend doesn't need to add the prefix to `href`,
+// then frontend doesn't need to spend time on removing them.
 
 const addPrefix = (str: string): string => `user-content-${str}`;
 const removePrefix = (str: string): string => str.replace(/^user-content-/, '');
