@@ -270,6 +270,7 @@ func runWeb(ctx context.Context, cmd *cli.Command) error {
 	}
 
 	// init the HTML renderer and load templates, if error happens, it will report the error immediately and exit with error log
+	// in dev mode, it won't exit, but watch the template files for changes
 	_ = templates.PageRenderer()
 
 	if !setting.InstallLock {

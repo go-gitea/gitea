@@ -186,6 +186,7 @@ func MailRenderer() *MailRender {
 			r, err := newMailRenderer()
 			if err != nil {
 				log.Error("Mail template error: %v", err)
+				return
 			}
 			globalMailRenderer = r
 		})
