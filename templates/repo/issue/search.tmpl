@@ -12,7 +12,7 @@
 		{{end}}
 		{{template "shared/search/input" dict "Value" .Keyword}}
 		{{if .PageIsIssueList}}
-			<button id="issue-list-quick-goto" class="ui small icon button tw-hidden" data-tooltip-content="{{ctx.Locale.Tr "explore.go_to"}}" data-repo-link="{{.RepoLink}}">{{svg "octicon-hash"}}</button>
+			<button id="issue-list-quick-goto" type="button" class="ui small icon button tw-hidden tw-mr-[-1px]" data-repo-link="{{.RepoLink}}">{{svg "octicon-hash" 12}} {{ctx.Locale.Tr "repo.issues.quick_goto"}}</button>
 		{{end}}
 		{{template "shared/search/button"}}
 	</div>

@@ -109,7 +109,7 @@ TODO: in the future, we should use `div` instead of `code` for `.code-inner` bec
 code:not(.code-inner) {
   padding: 1px 4px;
   border-radius: var(--border-radius);
-  background-color: var(--color-label-bg);
+  background-color: var(--color-markup-code-inline);
 }
 
 b,
