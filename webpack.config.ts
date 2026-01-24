@@ -93,11 +93,8 @@ export default {
   devtool: false,
   output: {
     path: fileURLToPath(new URL('public/assets', import.meta.url)),
-    filename: () => 'js/[name].js',
-    chunkFilename: ({chunk}) => {
-      const language = (/monaco.*languages?_.+?_(.+?)_/.exec(String(chunk?.id)) || [])[1];
-      return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
-    },
+    filename: 'js/[name].js',
+    chunkFilename: 'js/[name].[contenthash:8].js',
   },
   optimization: {
     minimize: isProduction,
@@ -109,10 +106,6 @@ export default {
         legalComments: 'none',
       }),
     ],
-    splitChunks: {
-      chunks: 'async',
-      name: (_, chunks) => chunks.map((item) => item.name).join('-'),
-    },
     moduleIds: 'named',
     chunkIds: 'named',
   },
@@ -267,10 +260,6 @@ export default {
     chunksSort: 'name',
     colors: true,
     entrypoints: false,
-    excludeAssets: [
-      /^js\/monaco-language-.+\.js$/,
-      !isProduction && /^licenses.txt$/,
-    ].filter(Boolean as unknown as <T>(x: T | boolean) => x is T),
     groupAssetsByChunk: false,
     groupAssetsByEmitStatus: false,
     groupAssetsByInfo: false,
