@@ -4,9 +4,7 @@ export default {
   entry: [
     '*.ts',
     'tools/*.ts',
-  ],
-  project: [
-    'web_src/**/*.{ts,vue}',
+    'tests/e2e/*.ts',
   ],
   ignoreDependencies: [
     // dependencies used in Makefile or tools
