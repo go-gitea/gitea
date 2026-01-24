@@ -34,5 +34,6 @@ jobs:
         with:
           context: .
           push: false
+          platforms: linux/amd64,linux/arm64,linux/riscv64
           file: Dockerfile.rootless
           tags: gitea/gitea:linux-amd64
