@@ -340,8 +340,8 @@ importers:
         specifier: 17.0.8
         version: 17.0.8
       vite-string-plugin:
-        specifier: 1.4.9
-        version: 1.4.9
+        specifier: 1.5.0
+        version: 1.5.0(vite@7.3.1(@types/node@25.0.10)(jiti@2.6.1)(stylus@0.57.0)(terser@5.46.0)(yaml@2.8.2))
       vitest:
         specifier: 4.0.18
         version: 4.0.18(@types/node@25.0.10)(happy-dom@20.3.7)(jiti@2.6.1)(stylus@0.57.0)(terser@5.46.0)(yaml@2.8.2)
@@ -4083,8 +4083,10 @@ packages:
   vanilla-colorful@0.7.2:
     resolution: {integrity: sha512-z2YZusTFC6KnLERx1cgoIRX2CjPRP0W75N+3CC6gbvdX5Ch47rZkEMGO2Xnf+IEmi3RiFLxS18gayMA27iU7Kg==}
 
-  vite-string-plugin@1.4.9:
-    resolution: {integrity: sha512-mO7PVkMs8+FuTK9ZjBBCRSjabC9cobvUEbN2EjWtGJo6nu35SbW99bYesOh5Ho39ug/KSbT4VwM4GPC26Xk/mQ==}
+  vite-string-plugin@1.5.0:
+    resolution: {integrity: sha512-Ne+67igo8iNoM7N1/59EhQxS1QYvFE3xMK2BEzVKj6QdBRxpOIfG8Y7Uvyv7aDWK+HneU9iwqS1nlaKwtC9OTQ==}
+    peerDependencies:
+      vite: '*'
 
   vite@7.3.1:
     resolution: {integrity: sha512-w+N7Hifpc3gRjZ63vYBXA56dvvRlNWRczTdmCBBa+CotUzAPf5b7YMdMR/8CQoeYE5LX3W4wj6RYTgonm1b9DA==}
@@ -8191,7 +8193,9 @@ snapshots:
 
   vanilla-colorful@0.7.2: {}
 
-  vite-string-plugin@1.4.9: {}
+  vite-string-plugin@1.5.0(vite@7.3.1(@types/node@25.0.10)(jiti@2.6.1)(stylus@0.57.0)(terser@5.46.0)(yaml@2.8.2)):
+    dependencies:
+      vite: 7.3.1(@types/node@25.0.10)(jiti@2.6.1)(stylus@0.57.0)(terser@5.46.0)(yaml@2.8.2)
 
   vite@7.3.1(@types/node@25.0.10)(jiti@2.6.1)(stylus@0.57.0)(terser@5.46.0)(yaml@2.8.2):
     dependencies:

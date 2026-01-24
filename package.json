@@ -112,7 +112,7 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.53.1",
     "updates": "17.0.8",
-    "vite-string-plugin": "1.4.9",
+    "vite-string-plugin": "1.5.0",
     "vitest": "4.0.18",
     "vue-tsc": "3.2.3"
   },
