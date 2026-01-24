@@ -995,10 +995,10 @@ export default defineConfig([
   },
   {
     files: ['*', 'tools/**/*'],
-    languageOptions: {globals: globals.node},
+    languageOptions: {globals: globals.nodeBuiltin},
   },
   {
-    files: ['web_src/**/*', 'docs/**/*'],
-    languageOptions: {globals: globals.browser},
+    files: ['web_src/**/*'],
+    languageOptions: {globals: {...globals.browser, ...globals.webpack}},
   },
 ]);
