@@ -7,13 +7,13 @@ import {svg} from '../svg.ts';
 //
 // At the moment, the anchor processing works like this:
 // - backend adds `user-content-` prefix for elements like `<h1 id>` and `<a href>`
-// - js strips the prefix from the `href` so users get nice prefix-less links
+// - js adds the `user-content-` prefix to user-generated `<a name>` targets
 // - js intercepts the hash navigation on page load and whenever a link is clicked
-//   to add the prefix so the correct prefixed `id`/`name` element is scrolled into view
+//   to add the prefix so the correct prefixed `id`/`name` element is focused
 //
 // TODO: ideally, backend should be able to generate elements with necessary anchors,
-// backend doesn't need to add the prefix to `href`,
-// then frontend doesn't need to spend time on adding new elements or removing the prefixes.
+// backend doesn't need to add the prefix to `href`, then frontend doesn't need to spend
+// time on adding new elements or removing the prefixes.
 
 const addPrefix = (str: string): string => `user-content-${str}`;
 const removePrefix = (str: string): string => str.replace(/^user-content-/, '');
