@@ -1,8 +1,8 @@
 <div class="repo-home-sidebar-top">
 	<form class="ignore-dirty tw-flex tw-flex-1" action="{{.RepoLink}}/search" method="get">
 		<div class="ui small action input tw-flex-1 repo-code-search-input-wrapper">
-			<input name="q" size="10" placeholder="{{ctx.Locale.Tr "search.code_kind"}}" class="code-search-input" data-global-keyboard-shortcut="s" data-global-init="initRepoCodeSearchShortcut">
-			<kbd class="repo-search-shortcut-hint">S</kbd>
+			<input name="q" size="10" placeholder="{{ctx.Locale.Tr "search.code_kind"}}" class="code-search-input" data-global-keyboard-shortcut="s" data-global-init="initRepoCodeSearchShortcut" aria-keyshortcuts="s">
+			<kbd class="repo-search-shortcut-hint" aria-hidden="true">S</kbd>
 			{{template "shared/search/button"}}
 		</div>
 	</form>
