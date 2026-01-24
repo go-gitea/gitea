@@ -219,8 +219,8 @@ func portOnly(hostport string) string {
 	if !ok {
 		return ""
 	}
-	if i := strings.Index(hostport, "]:"); i != -1 {
-		return hostport[i+len("]:"):]
+	if _, after0, ok0 := strings.Cut(hostport, "]:"); ok0 {
+		return after0
 	}
 	if strings.Contains(hostport, "]") {
 		return ""
