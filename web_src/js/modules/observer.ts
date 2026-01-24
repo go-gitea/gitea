@@ -69,9 +69,9 @@ function attachGlobalEvents() {
   // Elements declare their keyboard shortcuts via data-global-keyboard-shortcut attribute.
   // When a matching key is pressed, the element is focused (for inputs) or clicked (for buttons/links).
   document.addEventListener('keydown', (e: KeyboardEvent) => {
-    // Don't trigger shortcuts when typing in input fields
+    // Don't trigger shortcuts when typing in input fields or contenteditable areas
     const target = e.target as HTMLElement;
-    if (target.matches('input, textarea, select, [contenteditable="true"]')) {
+    if (target.matches('input, textarea, select') || target.isContentEditable) {
       return;
     }
 
@@ -82,7 +82,8 @@ function attachGlobalEvents() {
 
     // Find element with matching shortcut (case-insensitive)
     const key = e.key.toLowerCase();
-    const elem = document.querySelector<HTMLElement>(`[data-global-keyboard-shortcut="${key}"]`);
+    const escapedKey = CSS.escape(key);
+    const elem = document.querySelector<HTMLElement>(`[data-global-keyboard-shortcut="${escapedKey}"]`);
     if (!elem) return;
 
     e.preventDefault();

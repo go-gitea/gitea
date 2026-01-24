@@ -154,7 +154,7 @@ watch([searchQuery, filteredFiles], async () => {
         @input="handleSearchInput" @keydown="handleKeyDown"
         @focus="isInputFocused = true" @blur="isInputFocused = false"
       >
-      <kbd v-show="!searchQuery && !isInputFocused" class="repo-search-shortcut-hint">T</kbd>
+      <kbd v-show="!searchQuery && !isInputFocused" class="repo-file-search-shortcut-hint">T</kbd>
     </div>
 
     <Teleport to="body">
@@ -202,7 +202,7 @@ watch([searchQuery, filteredFiles], async () => {
   border-color: var(--color-primary) !important;
 }
 
-.repo-search-shortcut-hint {
+.repo-file-search-shortcut-hint {
   position: absolute;
   right: 10px;
   top: 50%;
@@ -219,7 +219,7 @@ watch([searchQuery, filteredFiles], async () => {
 }
 
 /* Hide kbd when input is focused so it doesn't interfere with focus border */
-.repo-file-search-input-wrapper input:focus + .repo-search-shortcut-hint {
+.repo-file-search-input-wrapper input:focus + .repo-file-search-shortcut-hint {
   display: none;
 }
 
