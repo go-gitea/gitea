@@ -4,7 +4,7 @@ import {svg} from '../svg.ts';
 // - backend adds a prefix to guarantee unique `id`s on the page
 // - js strips the prefix so users get nice prefix-less links
 // - js intercepts the hash navigation on page load and whenever a link is clicked
-//   to add the prefix so the correct prefixed id element is focused
+//   to add the prefix so the correct prefixed `id` element is focused
 
 const addPrefix = (str: string): string => `user-content-${str}`;
 const removePrefix = (str: string): string => str.replace(/^user-content-/, '');
