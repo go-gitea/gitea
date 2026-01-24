@@ -2,7 +2,7 @@ import {svg} from '../svg.ts';
 
 // Markdown anchor post-processing, which works like this:
 // - backend adds a prefix to guarantee unique `id`s on the page.
-// - js strips the prefix so users gets nice prefix-less links.
+// - js strips the prefix so users get nice prefix-less links.
 // - js intercepts the hash navigation on page load and whenever a link is clicked
 //   to add the prefix so the correct prefixed id element is focused.
 
