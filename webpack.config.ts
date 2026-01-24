@@ -4,7 +4,7 @@ import LicenseCheckerWebpackPlugin from '@techknowlogick/license-checker-webpack
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import {VueLoaderPlugin} from 'vue-loader';
-import EsBuildLoader from 'esbuild-loader';
+import {EsbuildPlugin} from 'esbuild-loader';
 import {parse} from 'node:path';
 import webpack, {type Configuration, type EntryObject} from 'webpack';
 import {fileURLToPath} from 'node:url';
@@ -13,7 +13,6 @@ import {env} from 'node:process';
 import tailwindcss from 'tailwindcss';
 import tailwindConfig from './tailwind.config.ts';
 
-const {EsbuildPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin, DefinePlugin, EnvironmentPlugin} = webpack;
 const formatLicenseText = (licenseText: string) => wrapAnsi(licenseText || '', 80).trim();
 
