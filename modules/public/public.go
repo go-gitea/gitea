@@ -36,7 +36,7 @@ func FileHandlerFunc() http.HandlerFunc {
 			resp.WriteHeader(http.StatusMethodNotAllowed)
 			return
 		}
-		handleRequest(resp, req, assetFS, req.URL.Path)
+		handleRequest(resp, req, http.FS(assetFS), req.URL.Path)
 	}
 }
 
