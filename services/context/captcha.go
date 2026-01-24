@@ -33,7 +33,6 @@ func GetImageCaptcha() *captcha.Captcha {
 			// Use a color palette with high contrast colors suitable for both light and dark modes
 			// These colors provide good visibility and readability in both themes
 			ColorPalette: color.Palette{
-				color.RGBA{R: 46, G: 64, B: 87, A: 255},   // Dark blue-gray
 				color.RGBA{R: 234, G: 67, B: 53, A: 255},  // Bright red
 				color.RGBA{R: 66, G: 133, B: 244, A: 255}, // Medium blue
 				color.RGBA{R: 52, G: 168, B: 83, A: 255},  // Green
