@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/yuin/goldmark/ast"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -60,6 +59,19 @@ type RenderOptions struct {
 	EnableHeadingIDGeneration bool
 }
 
+type TocShowInSectionType string
+
+const (
+	TocShowInSidebar TocShowInSectionType = "sidebar"
+	TocShowInMain    TocShowInSectionType = "main"
+)
+
+type TocHeadingItem struct {
+	HeadingLevel int
+	AnchorID     string
+	InnerText    string
+}
+
 // RenderContext represents a render context
 type RenderContext struct {
 	ctx context.Context
@@ -67,7 +79,8 @@ type RenderContext struct {
 	// the context might be used by the "render" function, but it might also be used by "postProcess" function
 	usedByRender bool
 
-	SidebarTocNode ast.Node
+	TocShowInSection TocShowInSectionType
+	TocHeadingItems  []*TocHeadingItem
 
 	RenderHelper   RenderHelper
 	RenderOptions  RenderOptions

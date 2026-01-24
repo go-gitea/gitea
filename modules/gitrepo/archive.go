@@ -36,12 +36,7 @@ func CreateArchive(ctx context.Context, repo Repository, format string, target i
 		paths[i] = path.Clean(paths[i])
 	}
 	cmd.AddDynamicArguments(paths...)
-
-	var stderr strings.Builder
-	if err := RunCmd(ctx, repo, cmd.WithStdout(target).WithStderr(&stderr)); err != nil {
-		return gitcmd.ConcatenateError(err, stderr.String())
-	}
-	return nil
+	return RunCmdWithStderr(ctx, repo, cmd.WithStdoutCopy(target))
 }
 
 // CreateBundle create bundle content to the target path

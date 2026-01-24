@@ -191,7 +191,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID string, r
 
 	// 2. Disallow force pushes to protected branches
 	if oldCommitID != objectFormat.EmptyObjectID().String() {
-		output, err := gitrepo.RunCmdString(ctx,
+		output, _, err := gitrepo.RunCmdString(ctx,
 			repo,
 			gitcmd.NewCommand("rev-list", "--max-count=1").
 				AddDynamicArguments(oldCommitID, "^"+newCommitID).
