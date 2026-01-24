@@ -247,7 +247,7 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	}
 
 	// 4 get base and head refs
-	baseRefName := util.IfZero(compareReq.BaseOriRef, baseRepo.GetDefaultPRBaseBranch(ctx))
+	baseRefName := util.IfZero(compareReq.BaseOriRef, baseRepo.GetDefaultTargetBranch(ctx))
 	headRefName := util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch)
 
 	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefName)

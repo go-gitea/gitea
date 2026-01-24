@@ -595,14 +595,14 @@
 							</div>
 						</div>
 						<div class="field">
-							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_pr_base_branch"}}</label>
-							<select class="ui dropdown" name="default_pr_base_branch">
-								<option value="" {{if eq $prUnit.PullRequestsConfig.DefaultBaseBranch ""}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_pr_base_branch_default" $.Repository.DefaultBranch}}</option>
+							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch"}}</label>
+							<select class="ui dropdown" name="default_target_branch">
+								<option value="" {{if eq $prUnit.PullRequestsConfig.DefaultTargetBranch ""}}selected{{end}}>{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch}}</option>
 								{{range $.Branches}}
-									<option value="{{.}}" {{if eq $prUnit.PullRequestsConfig.DefaultBaseBranch .}}selected{{end}}>{{.}}</option>
+									<option value="{{.}}" {{if eq $prUnit.PullRequestsConfig.DefaultTargetBranch .}}selected{{end}}>{{.}}</option>
 								{{end}}
 							</select>
-							<p class="help">{{ctx.Locale.Tr "repo.settings.pulls.default_pr_base_branch_desc"}}</p>
+							<p class="help">{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch_desc"}}</p>
 						</div>
 						<div class="field">
 							<div class="ui checkbox">

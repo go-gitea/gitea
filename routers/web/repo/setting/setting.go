@@ -560,14 +560,14 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		}
 	}
 
-	defaultPRBaseBranch := strings.TrimSpace(form.DefaultPRBaseBranch)
-	if err := repo.ValidateDefaultPRBaseBranch(ctx, defaultPRBaseBranch); err != nil {
+	defaultTargetBranch := strings.TrimSpace(form.DefaultTargetBranch)
+	if err := repo.ValidateDefaultTargetBranch(ctx, defaultTargetBranch); err != nil {
 		if errors.Is(err, util.ErrNotExist) {
-			ctx.Flash.Error(ctx.Tr("repo.settings.pulls.default_pr_base_branch_invalid"))
+			ctx.Flash.Error(ctx.Tr("repo.settings.pulls.default_target_branch_invalid"))
 			ctx.Redirect(repo.Link() + "/settings")
 			return
 		}
-		ctx.ServerError("ValidateDefaultPRBaseBranch", err)
+		ctx.ServerError("ValidateDefaultTargetBranch", err)
 		return
 	}
 
@@ -639,7 +639,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
-			DefaultBaseBranch:             defaultPRBaseBranch,
+			DefaultTargetBranch:           defaultTargetBranch,
 		}))
 	} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)

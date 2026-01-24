@@ -143,7 +143,7 @@ type RepoSettingForm struct {
 	PullsAllowRebaseUpdate           bool
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
-	DefaultPRBaseBranch              string `form:"default_pr_base_branch"`
+	DefaultTargetBranch              string `form:"default_target_branch"`
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool

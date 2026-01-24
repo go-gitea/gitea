@@ -490,7 +490,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 		opts.CommitAfterUnix = time.Now().Add(-time.Hour * 2).Unix()
 	}
 
-	baseBranchName := opts.BaseRepo.GetDefaultPRBaseBranch(ctx)
+	baseBranchName := opts.BaseRepo.GetDefaultTargetBranch(ctx)
 	baseBranch, err := GetBranch(ctx, opts.BaseRepo.ID, baseBranchName)
 	if err != nil {
 		return nil, err

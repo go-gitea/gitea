@@ -688,11 +688,11 @@ func RepoAssignment(ctx *Context) {
 	}
 	ctx.Data["CanCompareOrPull"] = canCompare
 	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
-	defaultPRBaseBranch := repo.GetDefaultPRBaseBranch(ctx)
+	defaultTargetBranch := repo.GetDefaultTargetBranch(ctx)
 	if ctx.Repo.PullRequest.BaseRepo != nil {
-		defaultPRBaseBranch = ctx.Repo.PullRequest.BaseRepo.GetDefaultPRBaseBranch(ctx)
+		defaultTargetBranch = ctx.Repo.PullRequest.BaseRepo.GetDefaultTargetBranch(ctx)
 	}
-	ctx.Data["DefaultPRBaseBranch"] = defaultPRBaseBranch
+	ctx.Data["DefaultTargetBranch"] = defaultTargetBranch
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
 		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)

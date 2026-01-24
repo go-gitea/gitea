@@ -12,9 +12,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// GetDefaultPRBaseBranchSetting returns the configured base branch for new pull requests.
+// GetDefaultTargetBranchSetting returns the configured target branch for new pull requests.
 // It returns an empty string when unset or pull requests are disabled.
-func (repo *Repository) GetDefaultPRBaseBranchSetting(ctx context.Context) string {
+func (repo *Repository) GetDefaultTargetBranchSetting(ctx context.Context) string {
 	prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		return ""
@@ -23,13 +23,13 @@ func (repo *Repository) GetDefaultPRBaseBranchSetting(ctx context.Context) strin
 	if cfg == nil {
 		return ""
 	}
-	return cfg.DefaultBaseBranch
+	return cfg.DefaultTargetBranch
 }
 
-// GetDefaultPRBaseBranch returns the preferred base branch for new pull requests.
+// GetDefaultTargetBranch returns the preferred target branch for new pull requests.
 // It falls back to the repository default branch when unset or invalid.
-func (repo *Repository) GetDefaultPRBaseBranch(ctx context.Context) string {
-	preferred := repo.GetDefaultPRBaseBranchSetting(ctx)
+func (repo *Repository) GetDefaultTargetBranch(ctx context.Context) string {
+	preferred := repo.GetDefaultTargetBranchSetting(ctx)
 	if preferred != "" {
 		exists, err := isBranchNameExists(ctx, repo.ID, preferred)
 		if err == nil && exists {
@@ -39,8 +39,8 @@ func (repo *Repository) GetDefaultPRBaseBranch(ctx context.Context) string {
 	return repo.DefaultBranch
 }
 
-// ValidateDefaultPRBaseBranch checks whether a preferred base branch is valid.
-func (repo *Repository) ValidateDefaultPRBaseBranch(ctx context.Context, branch string) error {
+// ValidateDefaultTargetBranch checks whether a preferred target branch is valid.
+func (repo *Repository) ValidateDefaultTargetBranch(ctx context.Context, branch string) error {
 	branch = strings.TrimSpace(branch)
 	if branch == "" {
 		return nil
@@ -51,7 +51,7 @@ func (repo *Repository) ValidateDefaultPRBaseBranch(ctx context.Context, branch 
 		return err
 	}
 	if !exists {
-		return util.NewNotExistErrorf("default PR base branch does not exist [repo_id: %d name: %s]", repo.ID, branch)
+		return util.NewNotExistErrorf("default target branch does not exist [repo_id: %d name: %s]", repo.ID, branch)
 	}
 	return nil
 }

@@ -131,7 +131,7 @@ type PullRequestsConfig struct {
 	DefaultDeleteBranchAfterMerge bool
 	DefaultMergeStyle             MergeStyle
 	DefaultAllowMaintainerEdit    bool
-	DefaultBaseBranch             string
+	DefaultTargetBranch           string `json:"DefaultBaseBranch,omitempty"`
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.

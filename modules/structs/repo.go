@@ -77,7 +77,7 @@ type Repository struct {
 	OpenPulls           int         `json:"open_pr_counter"`
 	Releases            int         `json:"release_counter"`
 	DefaultBranch       string      `json:"default_branch"`
-	DefaultPRBaseBranch string      `json:"default_pr_base_branch,omitempty"`
+	DefaultTargetBranch string      `json:"default_target_branch,omitempty"`
 	Archived            bool        `json:"archived"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`

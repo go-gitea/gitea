@@ -134,8 +134,8 @@
 											{{svg "octicon-git-pull-request"}} {{ctx.Locale.Tr "repo.branch.included"}}
 										</span>
 								{{else if and (not .DBBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
-									{{$baseBranch := $.DefaultPRBaseBranch}}
-									{{if eq .DBBranch.Name $.DefaultPRBaseBranch}}
+									{{$baseBranch := $.DefaultTargetBranch}}
+									{{if eq .DBBranch.Name $.DefaultTargetBranch}}
 										{{$baseBranch = $.Repository.DefaultBranch}}
 									{{end}}
 									<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $baseBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .DBBranch.Name}}?expand=1">
@@ -144,8 +144,8 @@
 									{{end}}
 								{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
 									{{if and (not .DBBranch.IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
-									{{$baseBranch := $.DefaultPRBaseBranch}}
-									{{if eq .DBBranch.Name $.DefaultPRBaseBranch}}
+									{{$baseBranch := $.DefaultTargetBranch}}
+									{{if eq .DBBranch.Name $.DefaultTargetBranch}}
 										{{$baseBranch = $.Repository.DefaultBranch}}
 									{{end}}
 									<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $baseBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .DBBranch.Name}}?expand=1">

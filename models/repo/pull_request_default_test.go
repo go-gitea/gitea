@@ -13,24 +13,24 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestDefaultPRBaseBranchSelection(t *testing.T) {
+func TestDefaultTargetBranchSelection(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	ctx := t.Context()
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1})
 
-	assert.Equal(t, repo.DefaultBranch, repo.GetDefaultPRBaseBranch(ctx))
+	assert.Equal(t, repo.DefaultBranch, repo.GetDefaultTargetBranch(ctx))
 
 	repo.Units = nil
 	prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
 	assert.NoError(t, err)
 	prConfig := prUnit.PullRequestsConfig()
-	prConfig.DefaultBaseBranch = "branch2"
+	prConfig.DefaultTargetBranch = "branch2"
 	prUnit.Config = prConfig
 	assert.NoError(t, UpdateRepoUnit(ctx, prUnit))
 	repo.Units = nil
-	assert.Equal(t, "branch2", repo.GetDefaultPRBaseBranch(ctx))
+	assert.Equal(t, "branch2", repo.GetDefaultTargetBranch(ctx))
 
-	err = repo.ValidateDefaultPRBaseBranch(ctx, "does-not-exist")
+	err = repo.ValidateDefaultTargetBranch(ctx, "does-not-exist")
 	assert.ErrorIs(t, err, util.ErrNotExist)
 }
