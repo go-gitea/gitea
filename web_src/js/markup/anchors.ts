@@ -8,7 +8,7 @@ import {svg} from '../svg.ts';
 // - backend adds `user-content-` prefix for elements like `<h1 id>` and `<a href>`
 // - js strips the prefix from the `href` so users get nice prefix-less links
 // - js intercepts the hash navigation on page load and whenever a link is clicked
-//   to add the prefix so the correct prefixed `id` element is focused
+//   to add the prefix so the correct prefixed `id` element is scrolled into view
 //
 // TODO: ideally, backend should be able to generate elements with necessary anchors,
 // backend doesn't need to add the prefix to `href`,
