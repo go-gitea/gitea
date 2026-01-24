@@ -1,6 +1,11 @@
 import {svg} from '../svg.ts';
 
-// FIXME: don't see why these tricks make sense. If these prefixes are not needed, they should be removed entirely by backend.
+// Markdown anchor post-processing, which works like this:
+// - backend adds a prefix to guarantee unique `id`s on the page
+// - js strips prefix so users gets nice prefix-less links
+// - js intercepts the hash navigation on page load and whenever a link is clicked
+//   to add the prefix so the correct prefixed id element is focused
+
 const addPrefix = (str: string): string => `user-content-${str}`;
 const removePrefix = (str: string): string => str.replace(/^user-content-/, '');
 const hasPrefix = (str: string): boolean => str.startsWith('user-content-');
