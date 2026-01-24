@@ -46,11 +46,6 @@ func TestActionsTokenPermissionsPersistence(t *testing.T) {
 
 		// 2. Disable Max Permissions
 		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
-			"token_permission_mode":  "permissive",
-			"enable_max_permissions": "false", // or empty, checkbox unchecked sends nothing usually, or "false" if handled
-		})
-
-		req = NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
 			"token_permission_mode": "permissive",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
