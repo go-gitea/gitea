@@ -228,7 +228,7 @@ func AddAssigneeIfNotAssigned(ctx context.Context, issue *issues_model.Issue, do
 		return nil, err
 	}
 	if isAssigned {
-		// nothing to to
+		// nothing to do
 		return nil, nil
 	}
 

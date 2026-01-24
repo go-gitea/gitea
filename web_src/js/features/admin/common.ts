@@ -122,7 +122,7 @@ function initAdminAuthentication() {
           document.querySelector<HTMLInputElement>(`#oauth2_${custom}`)!.value = document.querySelector<HTMLInputElement>(`#${provider}_${custom}`)!.value;
         }
         const customInput = document.querySelector(`#${provider}_${custom}`);
-        if (customInput && customInput.getAttribute('data-available') === 'true') {
+        if (customInput?.getAttribute('data-available') === 'true') {
           for (const input of document.querySelectorAll(`.oauth2_${custom} input`)) {
             input.setAttribute('required', 'required');
           }

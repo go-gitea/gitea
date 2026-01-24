@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/yuin/goldmark/ast"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -54,6 +53,23 @@ type RenderOptions struct {
 
 	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 	InStandalonePage bool
+
+	// EnableHeadingIDGeneration controls whether to auto-generate IDs for HTML headings without id attribute.
+	// This should be enabled for repository files and wiki pages, but disabled for comments to avoid duplicate IDs.
+	EnableHeadingIDGeneration bool
+}
+
+type TocShowInSectionType string
+
+const (
+	TocShowInSidebar TocShowInSectionType = "sidebar"
+	TocShowInMain    TocShowInSectionType = "main"
+)
+
+type TocHeadingItem struct {
+	HeadingLevel int
+	AnchorID     string
+	InnerText    string
 }
 
 // RenderContext represents a render context
@@ -63,7 +79,8 @@ type RenderContext struct {
 	// the context might be used by the "render" function, but it might also be used by "postProcess" function
 	usedByRender bool
 
-	SidebarTocNode ast.Node
+	TocShowInSection TocShowInSectionType
+	TocHeadingItems  []*TocHeadingItem
 
 	RenderHelper   RenderHelper
 	RenderOptions  RenderOptions
@@ -109,6 +126,11 @@ func (ctx *RenderContext) WithMetas(metas map[string]string) *RenderContext {
 
 func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
 	ctx.RenderOptions.InStandalonePage = v
+	return ctx
+}
+
+func (ctx *RenderContext) WithEnableHeadingIDGeneration(v bool) *RenderContext {
+	ctx.RenderOptions.EnableHeadingIDGeneration = v
 	return ctx
 }
 

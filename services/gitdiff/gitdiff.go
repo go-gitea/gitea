@@ -16,7 +16,6 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -199,6 +198,11 @@ type DiffBlobExcerptData struct {
 	DiffStyle      string
 	AfterCommitID  string
 }
+
+const (
+	DiffStyleSplit   = "split"
+	DiffStyleUnified = "unified"
+)
 
 func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
 	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
@@ -394,20 +398,20 @@ type DiffFile struct {
 	isAmbiguous bool
 
 	// basic fields (parsed from diff result)
-	Name        string
-	NameHash    string
-	OldName     string
-	Addition    int
-	Deletion    int
-	Type        DiffFileType
-	Mode        string
-	OldMode     string
-	IsCreated   bool
-	IsDeleted   bool
-	IsBin       bool
-	IsLFSFile   bool
-	IsRenamed   bool
-	IsSubmodule bool
+	Name         string
+	NameHash     string
+	OldName      string
+	Addition     int
+	Deletion     int
+	Type         DiffFileType
+	EntryMode    string
+	OldEntryMode string
+	IsCreated    bool
+	IsDeleted    bool
+	IsBin        bool
+	IsLFSFile    bool
+	IsRenamed    bool
+	IsSubmodule  bool
 	// basic fields but for render purpose only
 	Sections                []*DiffSection
 	IsIncomplete            bool
@@ -496,21 +500,36 @@ func (diffFile *DiffFile) ShouldBeHidden() bool {
 	return diffFile.IsGenerated || diffFile.IsViewed
 }
 
-func (diffFile *DiffFile) ModeTranslationKey(mode string) string {
-	switch mode {
-	case "040000":
-		return "git.filemode.directory"
-	case "100644":
-		return "git.filemode.normal_file"
-	case "100755":
-		return "git.filemode.executable_file"
-	case "120000":
-		return "git.filemode.symbolic_link"
-	case "160000":
-		return "git.filemode.submodule"
-	default:
-		return mode
+func (diffFile *DiffFile) TranslateDiffEntryMode(locale translation.Locale) string {
+	entryModeTr := func(mode string) string {
+		entryMode := git.ParseEntryMode(mode)
+		switch {
+		case entryMode.IsDir():
+			return locale.TrString("git.filemode.directory")
+		case entryMode.IsRegular():
+			return locale.TrString("git.filemode.normal_file")
+		case entryMode.IsExecutable():
+			return locale.TrString("git.filemode.executable_file")
+		case entryMode.IsLink():
+			return locale.TrString("git.filemode.symbolic_link")
+		case entryMode.IsSubModule():
+			return locale.TrString("git.filemode.submodule")
+		default:
+			return mode
+		}
 	}
+
+	if diffFile.EntryMode != "" && diffFile.OldEntryMode != "" {
+		oldMode := entryModeTr(diffFile.OldEntryMode)
+		newMode := entryModeTr(diffFile.EntryMode)
+		return locale.TrString("git.filemode.changed_filemode", oldMode, newMode)
+	}
+	if diffFile.EntryMode != "" {
+		if entryMode := git.ParseEntryMode(diffFile.EntryMode); !entryMode.IsRegular() {
+			return entryModeTr(diffFile.EntryMode)
+		}
+	}
+	return ""
 }
 
 type limitByteWriter struct {
@@ -690,10 +709,10 @@ parsingLoop:
 				strings.HasPrefix(line, "new mode "):
 
 				if strings.HasPrefix(line, "old mode ") {
-					curFile.OldMode = prepareValue(line, "old mode ")
+					curFile.OldEntryMode = prepareValue(line, "old mode ")
 				}
 				if strings.HasPrefix(line, "new mode ") {
-					curFile.Mode = prepareValue(line, "new mode ")
+					curFile.EntryMode = prepareValue(line, "new mode ")
 				}
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule, curFile.SubmoduleDiffInfo = true, &SubmoduleDiffInfo{}
@@ -728,7 +747,7 @@ parsingLoop:
 				curFile.Type = DiffFileAdd
 				curFile.IsCreated = true
 				if strings.HasPrefix(line, "new file mode ") {
-					curFile.Mode = prepareValue(line, "new file mode ")
+					curFile.EntryMode = prepareValue(line, "new file mode ")
 				}
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule, curFile.SubmoduleDiffInfo = true, &SubmoduleDiffInfo{}
@@ -1244,23 +1263,14 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 	cmdCtx, cmdCancel := context.WithCancel(ctx)
 	defer cmdCancel()
 
-	reader, writer := io.Pipe()
-	defer func() {
-		_ = reader.Close()
-		_ = writer.Close()
-	}()
-
+	reader, readerClose := cmdDiff.MakeStdoutPipe()
+	defer readerClose()
 	go func() {
-		stderr := &bytes.Buffer{}
-		if err := cmdDiff.WithTimeout(time.Duration(setting.Git.Timeout.Default) * time.Second).
+		if err := cmdDiff.
 			WithDir(repoPath).
-			WithStdout(writer).
-			WithStderr(stderr).
-			Run(cmdCtx); err != nil && !git.IsErrCanceledOrKilled(err) {
-			log.Error("error during GetDiff(git diff dir: %s): %v, stderr: %s", repoPath, err, stderr.String())
+			RunWithStderr(cmdCtx); err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
+			log.Error("error during GetDiff(git diff dir: %s): %v", repoPath, err)
 		}
-
-		_ = writer.Close()
 	}()
 
 	diff, err := ParsePatch(cmdCtx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)

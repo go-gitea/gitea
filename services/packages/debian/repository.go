@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto"
 	"errors"
 	"fmt"
 	"io"
@@ -67,7 +68,14 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 }
 
 func generateKeypair() (string, string, error) {
-	e, err := openpgp.NewEntity("", "Debian Registry", "", nil)
+	// Repository signing keys are long-lived and there is currently no rotation mechanism, choose stronger algorithms
+	cfg := &packet.Config{
+		RSABits:       4096,
+		DefaultHash:   crypto.SHA256,
+		DefaultCipher: packet.CipherAES256,
+	}
+
+	e, err := openpgp.NewEntity("", "Automatically generated Debian Registry Key; created "+time.Now().UTC().Format(time.RFC3339), "", cfg)
 	if err != nil {
 		return "", "", err
 	}
