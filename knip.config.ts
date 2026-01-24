@@ -8,8 +8,8 @@ export default {
   project: [
     'web_src/**/*.{ts,vue}',
   ],
-  // dependencies used in Makefile or tools
   ignoreDependencies: [
+    // dependencies used in Makefile or tools
     '@primer/octicons',
     'markdownlint-cli',
     'nolyfill',
