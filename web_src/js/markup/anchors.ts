@@ -1,8 +1,13 @@
 import {svg} from '../svg.ts';
 
-// Markdown anchor post-processing, which works like this:
-// - backend adds a prefix to guarantee unique `id`s on the page
-// - js strips the prefix so users get nice prefix-less links
+
+// Rendered content from users have ids prefixed with `user-content-` to avoid conflicts with other ids on the page.
+// To make end users have better experience, the prefixes are stripped from the href attributes of links.
+// The same as GitHub: backend generates anchor `id="user-content-faq"` but the link shown to users is `href="#faq"`.
+//
+// At the moment, the anchor processing works like this:
+// - backend adds `user-content-` prefix for elements like `<h1 id>` and `<a href>`
+// - js strips the prefix from the `href` so users get nice prefix-less links
 // - js intercepts the hash navigation on page load and whenever a link is clicked
 //   to add the prefix so the correct prefixed `id` element is focused
 
