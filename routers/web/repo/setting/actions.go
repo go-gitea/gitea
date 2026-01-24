@@ -44,6 +44,7 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["TokenPermissionModeRestricted"] = repo_model.ActionsTokenPermissionModeRestricted
 	ctx.Data["TokenPermissionModeCustom"] = repo_model.ActionsTokenPermissionModeCustom
 	ctx.Data["MaxTokenPermissions"] = actionsCfg.GetMaxTokenPermissions()
+	ctx.Data["EnableMaxTokenPermissions"] = actionsCfg.MaxTokenPermissions != nil
 
 	// Follow org config (only for repos in orgs)
 	ctx.Data["IsInOrg"] = ctx.Repo.Repository.Owner.IsOrganization()
