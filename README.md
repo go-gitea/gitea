@@ -211,3 +211,10 @@ for the full license text.
 ![Home](https://dl.gitea.com/screenshots/org_home.png)
 
 </details>
+
+python hard_commit_finder.py \
+    --branch master \
+    --after "2016-8-01" \
+    --min-complexity 10 \
+    --top 30 \
+    --output main.csv
