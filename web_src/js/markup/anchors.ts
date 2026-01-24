@@ -1,5 +1,6 @@
 import {svg} from '../svg.ts';
 
+// FIXME: don't see why these tricks make sense. If these prefixes are not needed, they should be removed entirely by backend.
 const addPrefix = (str: string): string => `user-content-${str}`;
 const removePrefix = (str: string): string => str.replace(/^user-content-/, '');
 const hasPrefix = (str: string): boolean => str.startsWith('user-content-');
