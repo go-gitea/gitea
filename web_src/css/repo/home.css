@@ -187,6 +187,15 @@
   border-color: var(--color-primary);
 }
 
+/* README view: TOC button should not have border */
+#readme .file-header-right #toggle-sidebar-btn {
+  border: none;
+}
+
+#readme .file-header-right #toggle-sidebar-btn:hover {
+  border: none;
+}
+
 /* Sidebar toggle button active state - when sidebar is visible */
 #toggle-sidebar-btn.active {
   color: var(--color-primary);
