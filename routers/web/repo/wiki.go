@@ -277,12 +277,10 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	if rctx.SidebarTocNode != nil {
+	if rctx.TocShowInSection == markup.TocShowInSidebar && len(rctx.TocHeadingItems) > 0 {
 		sb := strings.Builder{}
-		if err = markdown.SpecializedMarkdown(rctx).Renderer().Render(&sb, nil, rctx.SidebarTocNode); err != nil {
-			log.Error("Failed to render wiki sidebar TOC: %v", err)
-		}
-		ctx.Data["WikiSidebarTocHTML"] = templates.SanitizeHTML(sb.String())
+		markup.RenderTocHeadingItems(rctx, map[string]string{"open": ""}, &sb)
+		ctx.Data["WikiSidebarTocHTML"] = template.HTML(sb.String())
 	}
 
 	if !isSideBar {

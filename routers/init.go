@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/system"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -182,7 +181,6 @@ func InitWebInstalled(ctx context.Context) {
 
 // NormalRoutes represents non install routes
 func NormalRoutes() *web.Router {
-	_ = templates.HTMLRenderer()
 	r := web.NewRouter()
 	r.Use(common.ProtocolMiddlewares()...)
 

@@ -2,6 +2,7 @@ import {
   dirname, basename, extname, isObject, stripTags, parseIssueHref,
   parseUrl, translateMonth, translateDay, blobToDataURI,
   toAbsoluteUrl, encodeURLEncodedBase64, decodeURLEncodedBase64, isImageFile, isVideoFile, parseRepoOwnerPathInfo,
+  urlQueryEscape,
 } from './utils.ts';
 
 test('dirname', () => {
@@ -31,6 +32,12 @@ test('isObject', () => {
 
 test('stripTags', () => {
   expect(stripTags('<a>test</a>')).toEqual('test');
+});
+
+test('urlQueryEscape', () => {
+  const input = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~";
+  const expected = '%21%22%23%24%25%26%27%28%29%2A%2B%2C-.%2F%3A%3B%3C%3D%3E%3F%40%5B%5C%5D%5E_%60%7B%7C%7D~';
+  expect(urlQueryEscape(input)).toEqual(expected);
 });
 
 test('parseIssueHref', () => {

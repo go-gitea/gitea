@@ -14,7 +14,7 @@ import (
 func isAnchorIDUserContent(s string) bool {
 	// blackfridayExtRegex is for blackfriday extensions create IDs like fn:user-content-footnote
 	// old logic: blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
-	return strings.HasPrefix(s, "user-content-") || strings.Contains(s, ":user-content-")
+	return strings.HasPrefix(s, "user-content-") || strings.Contains(s, ":user-content-") || isAnchorIDFootnote(s)
 }
 
 func isAnchorIDFootnote(s string) bool {
@@ -34,7 +34,10 @@ func isHeadingTag(node *html.Node) bool {
 }
 
 // getNodeText extracts the text content from a node and its children
-func getNodeText(node *html.Node) string {
+func getNodeText(node *html.Node, cached **string) string {
+	if *cached != nil {
+		return **cached
+	}
 	var text strings.Builder
 	var extractText func(*html.Node)
 	extractText = func(n *html.Node) {
@@ -46,34 +49,54 @@ func getNodeText(node *html.Node) string {
 		}
 	}
 	extractText(node)
-	return text.String()
+	textStr := text.String()
+	*cached = &textStr
+	return textStr
 }
 
-func processNodeAttrID(ctx *RenderContext, node *html.Node) {
+func processNodeHeadingAndID(ctx *RenderContext, node *html.Node) {
+	// TODO: handle duplicate IDs, need to track existing IDs in the document
 	// Add user-content- to IDs and "#" links if they don't already have them,
 	// and convert the link href to a relative link to the host root
-	hasID := false
+	attrIDVal := ""
 	for idx, attr := range node.Attr {
 		if attr.Key == "id" {
-			hasID = true
-			if !isAnchorIDUserContent(attr.Val) {
-				node.Attr[idx].Val = "user-content-" + attr.Val
+			attrIDVal = attr.Val
+			if !isAnchorIDUserContent(attrIDVal) {
+				attrIDVal = "user-content-" + attrIDVal
+				node.Attr[idx].Val = attrIDVal
 			}
 		}
+	}
+
+	if !isHeadingTag(node) || !ctx.RenderOptions.EnableHeadingIDGeneration {
+		return
 	}
 
 	// For heading tags (h1-h6) without an id attribute, generate one from the text content.
 	// This ensures HTML headings like <h1>Title</h1> get proper permalink anchors
 	// matching the behavior of Markdown headings.
 	// Only enabled for repository files and wiki pages via EnableHeadingIDGeneration option.
-	if !hasID && isHeadingTag(node) && ctx.RenderOptions.EnableHeadingIDGeneration {
-		text := getNodeText(node)
-		if text != "" {
+	var nodeTextCached *string
+	if attrIDVal == "" {
+		nodeText := getNodeText(node, &nodeTextCached)
+		if nodeText != "" {
 			// Use the same CleanValue function used by Markdown heading ID generation
-			cleanedID := string(common.CleanValue([]byte(text)))
-			if cleanedID != "" {
-				node.Attr = append(node.Attr, html.Attribute{Key: "id", Val: "user-content-" + cleanedID})
+			attrIDVal = string(common.CleanValue([]byte(nodeText)))
+			if attrIDVal != "" {
+				attrIDVal = "user-content-" + attrIDVal
+				node.Attr = append(node.Attr, html.Attribute{Key: "id", Val: attrIDVal})
 			}
+		}
+	}
+	if ctx.TocShowInSection != "" {
+		nodeText := getNodeText(node, &nodeTextCached)
+		if nodeText != "" && attrIDVal != "" {
+			ctx.TocHeadingItems = append(ctx.TocHeadingItems, &TocHeadingItem{
+				HeadingLevel: int(node.Data[1] - '0'),
+				AnchorID:     attrIDVal,
+				InnerText:    nodeText,
+			})
 		}
 	}
 }

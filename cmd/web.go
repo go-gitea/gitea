@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
@@ -249,12 +250,6 @@ func servePprof() {
 }
 
 func runWeb(ctx context.Context, cmd *cli.Command) error {
-	defer func() {
-		if panicked := recover(); panicked != nil {
-			log.Fatal("PANIC: %v\n%s", panicked, log.Stack(2))
-		}
-	}()
-
 	if subCmdName, valid := isValidDefaultSubCommand(cmd); !valid {
 		return fmt.Errorf("unknown command: %s", subCmdName)
 	}
@@ -273,6 +268,10 @@ func runWeb(ctx context.Context, cmd *cli.Command) error {
 	if cmd.IsSet("pid") {
 		createPIDFile(cmd.String("pid"))
 	}
+
+	// init the HTML renderer and load templates, if error happens, it will report the error immediately and exit with error log
+	// in dev mode, it won't exit, but watch the template files for changes
+	_ = templates.PageRenderer()
 
 	if !setting.InstallLock {
 		if err := serveInstall(cmd); err != nil {

@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 
 	"github.com/stretchr/testify/assert"
@@ -19,18 +20,10 @@ import (
 func TestMailNewReleaseFiltersUnauthorizedWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	origMailService := setting.MailService
-	origDomain := setting.Domain
-	origAppName := setting.AppName
-	origAppURL := setting.AppURL
-	origTemplates := LoadedTemplates()
-	defer func() {
-		setting.MailService = origMailService
-		setting.Domain = origDomain
-		setting.AppName = origAppName
-		setting.AppURL = origAppURL
-		loadedTemplates.Store(origTemplates)
-	}()
+	defer test.MockVariableValue(&setting.MailService)()
+	defer test.MockVariableValue(&setting.Domain)()
+	defer test.MockVariableValue(&setting.AppName)()
+	defer test.MockVariableValue(&setting.AppURL)()
 
 	setting.MailService = &setting.Mailer{
 		From:      "Gitea",
@@ -39,7 +32,7 @@ func TestMailNewReleaseFiltersUnauthorizedWatchers(t *testing.T) {
 	setting.Domain = "example.com"
 	setting.AppName = "Gitea"
 	setting.AppURL = "https://example.com/"
-	prepareMailTemplates(string(tplNewReleaseMail), "{{.Subject}}", "<p>{{.Release.TagName}}</p>")
+	defer mockMailTemplates(string(tplNewReleaseMail), "{{.Subject}}", "<p>{{.Release.TagName}}</p>")()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	require.True(t, repo.IsPrivate)

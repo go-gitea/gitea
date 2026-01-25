@@ -5,6 +5,7 @@
 package markdown
 
 import (
+	"bytes"
 	"errors"
 	"html/template"
 	"io"
@@ -21,10 +22,12 @@ import (
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	meta "github.com/yuin/goldmark-meta"
+	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
 )
 
@@ -57,7 +60,7 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 
 // newParserContext creates a parser.Context with the render context set
 func newParserContext(ctx *markup.RenderContext) parser.Context {
-	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
+	pc := parser.NewContext()
 	pc.Set(renderContextKey, ctx)
 	return pc
 }
@@ -101,12 +104,48 @@ func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.C
 	}
 }
 
+type goldmarkEmphasisParser struct {
+	parser.InlineParser
+}
+
+func goldmarkNewEmphasisParser() parser.InlineParser {
+	return &goldmarkEmphasisParser{parser.NewEmphasisParser()}
+}
+
+func (s *goldmarkEmphasisParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
+	line, _ := block.PeekLine()
+	if len(line) > 1 && line[0] == '_' {
+		// a special trick to avoid parsing emphasis in filenames like "module/__init__.py"
+		end := bytes.IndexByte(line[1:], '_')
+		mark := bytes.Index(line, []byte("_.py"))
+		// check whether the "end" matches "_.py" or "__.py"
+		if mark != -1 && (end == mark || end == mark-1) {
+			return nil
+		}
+	}
+	return s.InlineParser.Parse(parent, block, pc)
+}
+
+func goldmarkDefaultParser() parser.Parser {
+	return parser.NewParser(parser.WithBlockParsers(parser.DefaultBlockParsers()...),
+		parser.WithInlineParsers([]util.PrioritizedValue{
+			util.Prioritized(parser.NewCodeSpanParser(), 100),
+			util.Prioritized(parser.NewLinkParser(), 200),
+			util.Prioritized(parser.NewAutoLinkParser(), 300),
+			util.Prioritized(parser.NewRawHTMLParser(), 400),
+			util.Prioritized(goldmarkNewEmphasisParser(), 500),
+		}...),
+		parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
+	)
+}
+
 // SpecializedMarkdown sets up the Gitea specific markdown extensions
 func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 	// TODO: it could use a pool to cache the renderers to reuse them with different contexts
 	// at the moment it is fast enough (see the benchmarks)
 	r := &GlodmarkRender{ctx: ctx}
 	r.goldmarkMarkdown = goldmark.New(
+		goldmark.WithParser(goldmarkDefaultParser()),
 		goldmark.WithExtensions(
 			extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
 			extension.Strikethrough,
@@ -131,7 +170,6 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 		),
 		goldmark.WithParserOptions(
 			parser.WithAttribute(),
-			parser.WithAutoHeadingID(),
 			parser.WithASTTransformers(util.Prioritized(NewASTTransformer(&ctx.RenderInternal), 10000)),
 		),
 		goldmark.WithRendererOptions(html.WithUnsafe()),

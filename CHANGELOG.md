@@ -4,7 +4,39 @@ This changelog goes through the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.com).
 
-## [1.25.3](https://github.com/go-gitea/gitea/releases/tag/1.25.3) - 2025-12-17
+## [1.25.4](https://github.com/go-gitea/gitea/releases/tag/v1.25.4) - 2026-01-15
+
+* SECURITY
+  * Release attachments must belong to the intended repo (#36347) (#36375)
+  * Fix permission check on org project operations (#36318) (#36373)
+  * Clean watches when make a repository private and check permission when send release emails (#36319) (#36370)
+  * Add more check for stopwatch read or list (#36340) (#36368)
+  * Fix openid setting check (#36346) (#36361)
+  * Fix cancel auto merge bug (#36341) (#36356)
+  * Fix delete attachment check (#36320) (#36355)
+  * LFS locks must belong to the intended repo (#36344) (#36349)
+  * Fix bug on notification read (#36339) #36387
+* ENHANCEMENTS
+  * Add more routes to the "expensive" list (#36290)
+  * Make "commit statuses" API accept slashes in "ref" (#36264) (#36275)
+* BUGFIXES
+  * Fix git http service handling (#36396)
+  * Fix markdown newline handling during IME composition (#36421) (#36424)
+  * Fix missing repository id when migrating release attachments (#36389)
+  * Fix bug when compare in the pull request (#36363) (#36372)
+  * Fix incorrect text content detection (#36364) (#36369)
+  * Fill missing `has_code` in repository api (#36338) (#36359)
+  * Fix notifications pagination query parameters (#36351) (#36358)
+  * Fix some trivial problems (#36336) (#36337)
+  * Prevent panic when GitLab release has more links than sources (#36295) (#36305)
+  * Fix stats bug when syncing release (#36285) (#36294)
+  * Always honor user's choice for "delete branch after merge" (#36281) (#36286)
+  * Use the requested host for LFS links (#36242) (#36258)
+  * Fix panic when get editor config file (#36241) (#36247)
+  * Fix regression in writing authorized principals (#36213) (#36218)
+  * Fix WebAuthn error checking (#36219) (#36235)
+
+## [1.25.3](https://github.com/go-gitea/gitea/releases/tag/v1.25.3) - 2025-12-17
 
 * SECURITY
   * Bump toolchain to go1.25.5, misc fixes (#36082)
@@ -31,7 +63,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Fix error handling in mailer and wiki services (#36041) (#36053)
   * Fix bugs when comparing and creating pull request (#36166) (#36144)
 
-## [1.25.2](https://github.com/go-gitea/gitea/releases/tag/1.25.2) - 2025-11-23
+## [1.25.2](https://github.com/go-gitea/gitea/releases/tag/v1.25.2) - 2025-11-23
 
 * SECURITY
   * Upgrade golang.org/x/crypto to 0.45.0 (#35985) (#35988)
@@ -418,7 +450,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Hide href attribute of a tag if there is no target_url (#34556) (#34684)
   * Fix tag target (#34781) #34783
 
-## [1.24.0](https://github.com/go-gitea/gitea/releases/tag/1.24.0) - 2025-05-26
+## [1.24.0](https://github.com/go-gitea/gitea/releases/tag/v1.24.0) - 2025-05-26
 
 * BREAKING
   * Make Gitea always use its internal config, ignore `/etc/gitconfig` (#33076)
@@ -788,7 +820,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Bump x/net (#32896) (#32900)
   * Only activity tab needs heatmap data loading (#34652)
 
-## [1.23.8](https://github.com/go-gitea/gitea/releases/tag/1.23.8) - 2025-05-11
+## [1.23.8](https://github.com/go-gitea/gitea/releases/tag/v1.23.8) - 2025-05-11
 
 * SECURITY
   * Fix a bug when uploading file via lfs ssh command (#34408) (#34411)
@@ -815,7 +847,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
   * Bump go version in go.mod (#34160)
   * remove hardcoded 'code' string in clone_panel.tmpl (#34153) (#34158)
 
-## [1.23.7](https://github.com/go-gitea/gitea/releases/tag/1.23.7) - 2025-04-07
+## [1.23.7](https://github.com/go-gitea/gitea/releases/tag/v1.23.7) - 2025-04-07
 
 * Enhancements
   * Add a config option to block "expensive" pages for anonymous users (#34024) (#34071)
@@ -913,7 +945,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.com).
 * BUGFIXES
   * Fix a bug caused by status webhook template #33512
 
-## [1.23.2](https://github.com/go-gitea/gitea/releases/tag/1.23.2) - 2025-02-04
+## [1.23.2](https://github.com/go-gitea/gitea/releases/tag/v1.23.2) - 2025-02-04
 
 * BREAKING
   * Add tests for webhook and fix some webhook bugs (#33396) (#33442)
@@ -3443,7 +3475,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Improve decryption failure message (#24573) (#24575)
   * Makefile: Use portable !, not GNUish -not, with find(1). (#24565) (#24572)
 
-## [1.19.3](https://github.com/go-gitea/gitea/releases/tag/1.19.3) - 2023-05-03
+## [1.19.3](https://github.com/go-gitea/gitea/releases/tag/v1.19.3) - 2023-05-03
 
 * SECURITY
   * Use golang 1.20.4 to fix CVE-2023-24539, CVE-2023-24540, and CVE-2023-29400
@@ -3456,7 +3488,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Fix incorrect CurrentUser check for docker rootless (#24435)
   * Getting the tag list does not require being signed in (#24413) (#24416)
 
-## [1.19.2](https://github.com/go-gitea/gitea/releases/tag/1.19.2) - 2023-04-26
+## [1.19.2](https://github.com/go-gitea/gitea/releases/tag/v1.19.2) - 2023-04-26
 
 * SECURITY
   * Require repo scope for PATs for private repos and basic authentication (#24362) (#24364)
@@ -3955,7 +3987,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Display attachments of review comment when comment content is blank (#23035) (#23046)
   * Return empty url for submodule tree entries (#23043) (#23048)
 
-## [1.18.4](https://github.com/go-gitea/gitea/releases/tag/1.18.4) - 2023-02-20
+## [1.18.4](https://github.com/go-gitea/gitea/releases/tag/v1.18.4) - 2023-02-20
 
 * SECURITY
   * Provide the ability to set password hash algorithm parameters (#22942) (#22943)
@@ -4382,7 +4414,7 @@ Key highlights of this release encompass significant changes categorized under `
   * Fix the mode of custom dir to 0700 in docker-rootless (#20861) (#20867)
   * Fix UI mis-align for PR commit history (#20845) (#20859)
 
-## [1.17.1](https://github.com/go-gitea/gitea/releases/tag/1.17.1) - 2022-08-17
+## [1.17.1](https://github.com/go-gitea/gitea/releases/tag/v1.17.1) - 2022-08-17
 
 * SECURITY
   * Correctly escape within tribute.js (#20831) (#20832)

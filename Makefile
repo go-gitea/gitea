@@ -32,14 +32,14 @@ XGO_VERSION := go-1.25.x
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.7.2
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.1
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
-ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.9
+ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.10
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -317,11 +317,13 @@ lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backen
 lint-js: node_modules ## lint js files
 	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES)
 	$(NODE_VARS) pnpm exec vue-tsc
+	$(NODE_VARS) pnpm exec knip --no-progress --cache
 
 .PHONY: lint-js-fix
 lint-js-fix: node_modules ## lint js files and fix issues
 	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES) --fix
 	$(NODE_VARS) pnpm exec vue-tsc
+	$(NODE_VARS) pnpm exec knip --no-progress --cache --fix
 
 .PHONY: lint-css
 lint-css: node_modules ## lint css files

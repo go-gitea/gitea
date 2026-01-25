@@ -102,6 +102,16 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		inputURL,
 		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
+
+	inputURL = "https://example.com/repo/owner/archive/0123456789012345678901234567890123456789.tar.gz"
+	test(
+		inputURL,
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.tar.gz</code></a></p>`)
+
+	inputURL = "https://example.com/owner/repo/commit/0123456789012345678901234567890123456789.patch?key=val"
+	test(
+		inputURL,
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.patch</code></a></p>`)
 }
 
 func TestRender_links(t *testing.T) {

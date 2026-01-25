@@ -61,6 +61,10 @@ func (t *ScopedTemplate) Freeze() {
 	t.all.Funcs(m)
 }
 
+func (t *ScopedTemplate) HasTemplate(name string) bool {
+	return t.all.Lookup(name) != nil
+}
+
 func (t *ScopedTemplate) Executor(name string, funcMap template.FuncMap) (TemplateExecutor, error) {
 	t.scopedMu.RLock()
 	scopedTmplSet, ok := t.scopedTemplateSets[name]
