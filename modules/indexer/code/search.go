@@ -75,7 +75,7 @@ func HighlightSearchResultCode(filename, language string, lineNums []int, code s
 	hl, _ := highlight.RenderCodeFast(filename, language, code)
 	highlightedLines := strings.Split(string(hl), "\n")
 
-	// The lineNums outputted by highlight.Code might not match the original lineNums, because "highlight" removes the last `\n`
+	// The lineNums outputted by render might not match the original lineNums, because "highlight" removes the last `\n`
 	lines := make([]*ResultLine, min(len(highlightedLines), len(lineNums)))
 	for i := range lines {
 		lines[i] = &ResultLine{

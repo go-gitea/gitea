@@ -202,6 +202,8 @@ func TestUnsafeSplitHighlightedLines(t *testing.T) {
 
 func TestGetChromaLexer(t *testing.T) {
 	globalVars().highlightMapping[".my-html"] = "HTML"
+	t.Cleanup(func() { delete(globalVars().highlightMapping, ".my-html") })
+
 	cases := []struct {
 		fileName string
 		language string
