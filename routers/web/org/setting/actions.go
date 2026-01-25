@@ -10,7 +10,6 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )

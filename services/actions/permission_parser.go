@@ -48,10 +48,17 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 		return defaultPerms
 	}
 
-	// Unwrap DocumentNode if present (yaml.Unmarshal wraps content in DocumentNode)
+	// Unwrap DocumentNode and resolve AliasNode
 	node := rawPerms
-	if node.Kind == yaml.DocumentNode && len(node.Content) > 0 {
-		node = node.Content[0]
+	for node.Kind == yaml.DocumentNode || node.Kind == yaml.AliasNode {
+		if node.Kind == yaml.DocumentNode {
+			if len(node.Content) == 0 {
+				return defaultPerms
+			}
+			node = node.Content[0]
+		} else {
+			node = node.Alias
+		}
 	}
 
 	// Check for empty node after unwrapping

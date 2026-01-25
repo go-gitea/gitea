@@ -298,35 +298,45 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			return perm, err
 		}
 
-		isSameOrg := false
 		if repo.OwnerID == taskRepo.OwnerID && repo.Owner.IsOrganization() {
-			isSameOrg = true
 			orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
 			if err != nil {
 				return perm, err
 			}
-			if !orgCfg.IsRepoAllowedCrossAccess(repo.ID) {
-				// Deny access if cross-repo is disabled or not allowed for this specific repo
+			if orgCfg.IsRepoAllowedCrossAccess(repo.ID) {
+				// Access allowed by Org policy
+				perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
 				return perm, nil
 			}
 		}
 
-		if (!isSameOrg && !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID)) || !taskRepo.IsPrivate {
-			// The task repo can access the current repo only if the task repo is private and
-			// the owner of the task repo is a collaborative owner of the current repo.
-			// FIXME should owner's visibility also be considered here?
-			//
-			// If not, we check if they are in the same org and cross-repo access is allowed.
-			// If allowed, we grant Read Access (consistent with old behavior and package access).
-			// If NOT allowed (checked above for sameOrg), we fall through to here.
+		// Check Collaborative Owner and explicit Bot permissions
+		// We allow access if:
+		// 1. It's a collaborative owner relationship
+		// 2. The Actions Bot user has been explicitly granted access
+		// 3. The repository is public (and not explicitly blocked by Org policy above)
 
-			if !isSameOrg && repo.IsPrivate {
-				return perm, nil
-			}
+		if actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) {
+			perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
+			return perm, nil
 		}
 
-		// Cross-repo access is always read-only
-		perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
+		// Check permission like simple user but limit to read-only (PR #36095)
+		botPerm, err := GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
+		if err != nil {
+			return perm, err
+		}
+		if botPerm.AccessMode >= perm_model.AccessModeRead {
+			perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
+			return perm, nil
+		}
+
+		// Public repos are readable unless it's same org and was already denied by Org policy or restricted
+		if !repo.IsPrivate {
+			perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
+			return perm, nil
+		}
+
 		return perm, nil
 	}
 
@@ -350,38 +360,21 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		effectivePerms, err = repo_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
 		if err != nil {
 			// Fall back to repository settings if unmarshal fails
-			// If following org config, we need to load it
-			if !actionsCfg.OverrideOrgConfig && repo.Owner.IsOrganization() {
-				orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
-				if err != nil {
-					log.Error("GetOrgActionsConfig: %v", err)
-					effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest) // Fallback to repo config on error
-				} else {
-					effectivePerms = orgCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
-					effectivePerms = orgCfg.ClampPermissions(effectivePerms)
-				}
-			} else {
-				effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
-				effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
-			}
+			effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
 		}
 	} else {
 		// No workflow permissions or job not found, use repository settings
-		if !actionsCfg.OverrideOrgConfig && repo.Owner.IsOrganization() {
-			orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
-			if err != nil {
-				log.Error("GetOrgActionsConfig: %v", err)
-				effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest) // Fallback to repo config on error
-				effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
-			} else {
-				effectivePerms = orgCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
-				effectivePerms = orgCfg.ClampPermissions(effectivePerms)
-			}
-		} else {
-			effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
-			effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+		effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
+	}
+
+	// ALWAYS clamp at runtime against current configuration (prevents escalation if settings changed)
+	if !actionsCfg.OverrideOrgConfig && repo.Owner.IsOrganization() {
+		orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
+		if err == nil {
+			effectivePerms = orgCfg.ClampPermissions(effectivePerms)
 		}
 	}
+	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
 
 	// Set up per-unit access modes based on configured permissions
 	perm.units = repo.Units
