@@ -210,7 +210,7 @@ func GetPullReviewComments(ctx *context.APIContext) {
 
 // ResolvePullReviewComment resolves a review comment in a pull request
 func ResolvePullReviewComment(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/comments/{id}/resolve repository repoResolvePullReviewComment
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/comments/{id}/resolve repository repoResolvePullReviewComment
 	// ---
 	// summary: Resolve a pull review comment
 	// produces:
@@ -225,12 +225,6 @@ func ResolvePullReviewComment(ctx *context.APIContext) {
 	//   in: path
 	//   description: name of the repo
 	//   type: string
-	//   required: true
-	// - name: index
-	//   in: path
-	//   description: index of the pull request
-	//   type: integer
-	//   format: int64
 	//   required: true
 	// - name: id
 	//   in: path
@@ -252,7 +246,7 @@ func ResolvePullReviewComment(ctx *context.APIContext) {
 
 // UnresolvePullReviewComment unresolves a review comment in a pull request
 func UnresolvePullReviewComment(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/pulls/{index}/comments/{id}/unresolve repository repoUnresolvePullReviewComment
+	// swagger:operation POST /repos/{owner}/{repo}/pulls/comments/{id}/unresolve repository repoUnresolvePullReviewComment
 	// ---
 	// summary: Unresolve a pull review comment
 	// produces:
@@ -267,12 +261,6 @@ func UnresolvePullReviewComment(ctx *context.APIContext) {
 	//   in: path
 	//   description: name of the repo
 	//   type: string
-	//   required: true
-	// - name: index
-	//   in: path
-	//   description: index of the pull request
-	//   type: integer
-	//   format: int64
 	//   required: true
 	// - name: id
 	//   in: path
@@ -293,17 +281,17 @@ func UnresolvePullReviewComment(ctx *context.APIContext) {
 }
 
 func updatePullReviewCommentResolve(ctx *context.APIContext, isResolve bool) {
-	comment := getPullReviewCommentSafe(ctx)
+	comment := getPullReviewCommentToResolve(ctx)
 	if comment == nil {
 		return
 	}
 
-	permResult, err := issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer)
+	canMarkConv, err := issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	if !permResult {
+	if !canMarkConv {
 		ctx.APIError(http.StatusForbidden, "user should have permission to resolve comment")
 		return
 	}
@@ -316,8 +304,8 @@ func updatePullReviewCommentResolve(ctx *context.APIContext, isResolve bool) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func getPullReviewCommentSafe(ctx *context.APIContext) *issues_model.Comment {
-	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+func getPullReviewCommentToResolve(ctx *context.APIContext) *issues_model.Comment {
+	comment, err := issues_model.GetCommentWithRepoID(ctx, ctx.Repo.Repository.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		if issues_model.IsErrCommentNotExist(err) {
 			ctx.APIErrorNotFound("GetCommentByID", err)
@@ -327,23 +315,8 @@ func getPullReviewCommentSafe(ctx *context.APIContext) *issues_model.Comment {
 		return nil
 	}
 
-	if err = comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return nil
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIErrorNotFound("CommentNotInRepo")
-		return nil
-	}
-
 	if !comment.Issue.IsPull {
 		ctx.APIError(http.StatusBadRequest, "comment does not belong to a pull request")
-		return nil
-	}
-
-	if comment.Issue.Index != ctx.PathParamInt64("index") {
-		ctx.APIErrorNotFound("CommentNotInPullRequest")
 		return nil
 	}
 

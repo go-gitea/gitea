@@ -92,10 +92,7 @@ func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, d
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, comment := range comments {
-				apiComment := ToPullReviewComment(ctx, comment, review.Issue, doer)
-				if apiComment != nil {
-					apiComments = append(apiComments, apiComment)
-				}
+				apiComments = append(apiComments, ToPullReviewComment(ctx, comment, doer))
 			}
 		}
 	}
@@ -103,15 +100,7 @@ func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, d
 }
 
 // ToPullReviewComment convert a single code review comment to api format
-func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, issue *issues_model.Issue, doer *user_model.User) *api.PullReviewComment {
-	if comment == nil {
-		return nil
-	}
-
-	if issue == nil {
-		issue = comment.Issue
-	}
-
+func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, doer *user_model.User) *api.PullReviewComment {
 	apiComment := &api.PullReviewComment{
 		ID:           comment.ID,
 		Body:         comment.Content,
@@ -125,10 +114,7 @@ func ToPullReviewComment(ctx context.Context, comment *issues_model.Comment, iss
 		OrigCommitID: comment.OldRef,
 		DiffHunk:     patch2diff(comment.Patch),
 		HTMLURL:      comment.HTMLURL(ctx),
-	}
-
-	if issue != nil {
-		apiComment.HTMLPullURL = issue.HTMLURL(ctx)
+		HTMLPullURL:  comment.Issue.HTMLURL(ctx),
 	}
 
 	if comment.Line < 0 {

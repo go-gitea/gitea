@@ -390,8 +390,8 @@ func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 	session := loginUser(t, doer.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	resolveURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/%d/resolve", repo.OwnerName, repo.Name, pullIssue.Index, codeComment.ID)
-	unresolveURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/%d/unresolve", repo.OwnerName, repo.Name, pullIssue.Index, codeComment.ID)
+	resolveURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/comments/%d/resolve", repo.OwnerName, repo.Name, codeComment.ID)
+	unresolveURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/comments/%d/unresolve", repo.OwnerName, repo.Name, codeComment.ID)
 
 	req := NewRequest(t, http.MethodPost, resolveURL).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
@@ -416,12 +416,12 @@ func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 	// Unresolving again should be idempotent
 	MakeRequest(t, req, http.StatusNoContent)
 
-	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/999999/resolve", repo.OwnerName, repo.Name, pullIssue.Index)).AddTokenAuth(token)
+	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/comments/999999/resolve", repo.OwnerName, repo.Name)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
 
 	plainComment, err := issue_service.CreateIssueComment(ctx, doer, repo, pullIssue, "not a review comment", nil)
 	require.NoError(t, err)
-	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/%d/resolve", repo.OwnerName, repo.Name, pullIssue.Index, plainComment.ID)).AddTokenAuth(token)
+	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/comments/%d/resolve", repo.OwnerName, repo.Name, plainComment.ID)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
 
 	var unauthorizedUser *user_model.User
