@@ -108,12 +108,6 @@ c=2
 			),
 			lexerName: "Python",
 		},
-		{
-			name:      "test.fs",
-			code:      "module MathOps = let sum: int array -> int = Array.sum",
-			want:      lines(`<span class="k">module</span> <span class="nn">MathOps</span> <span class="o">=</span> <span class="k">let</span> <span class="nv">sum</span><span class="o">:</span> <span class="n">int</span> <span class="n">array</span> <span class="o">-&gt;</span> <span class="n">int</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">sum</span>`),
-			lexerName: "FSharp",
-		},
 	}
 
 	for _, tt := range tests {
@@ -204,4 +198,26 @@ func TestUnsafeSplitHighlightedLines(t *testing.T) {
 	assert.Len(t, ret, 2)
 	assert.Equal(t, "<span>a</span>\n", string(ret[0]))
 	assert.Equal(t, "<span>b\n</span>", string(ret[1]))
+}
+
+func TestGetChromaLexer(t *testing.T) {
+	cases := []struct {
+		fileName string
+		language string
+		content  string
+		expected string
+	}{
+		{"test.py", "", "", "Python"},
+		{"any-file", "javascript", "", "JavaScript"},
+		{"any-file", "", "/* vim: set filetype=python */", "Python"},
+		{"any-file", "", "", "fallback"},
+		{"test.fs", "", "", "Forth"},
+		{"test.fs", "F#", "", "FSharp"},
+	}
+	for _, c := range cases {
+		lexer := GetChromaLexer(c.fileName, c.language, []byte(c.content))
+		if assert.NotNil(t, lexer, "case: %+v", c) {
+			assert.Equal(t, c.expected, lexer.Config().Name, "case: %+v", c)
+		}
+	}
 }

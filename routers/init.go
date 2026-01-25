@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
@@ -131,7 +130,6 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(uinotification.Init)
 	mustInitCtx(ctx, archiver.Init)
 
-	highlight.NewContext()
 	external.RegisterRenderers()
 	markup.Init(markup_service.FormalRenderHelperFuncs())
 
