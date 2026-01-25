@@ -102,8 +102,10 @@ func getChromaLexerByFilename(fn string) chroma.Lexer {
 	return lexers.Match(fn)
 }
 
-func GetChromaLexer(fileName, lang string, code []byte) chroma.Lexer {
-	var lexer chroma.Lexer
+// GetChromaLexerWithFallback returns a chroma lexer by given file name, language and code content. All parameters can be optional.
+// When code content is provided, it will be slow if no lexer is found by file name or language.
+// If no lexer is found, it will return the fallback lexer.
+func GetChromaLexerWithFallback(fileName, lang string, code []byte) (lexer chroma.Lexer) {
 	if lang != "" {
 		lexer = getChromaLexerByLanguage(lang)
 	}
@@ -125,10 +127,7 @@ func GetChromaLexer(fileName, lang string, code []byte) chroma.Lexer {
 		lexer = getChromaLexerByLanguage(enryLanguage)
 	}
 
-	if lexer == nil {
-		lexer = lexers.Fallback
-	}
-	return lexer
+	return util.IfZero(lexer, lexers.Fallback)
 }
 
 // Code returns an HTML version of code string with chroma syntax highlighting classes and the matched lexer name
@@ -143,7 +142,7 @@ func Code(fileName, language, code string) (output template.HTML, lexerName stri
 		return template.HTML(template.HTMLEscapeString(code)), ""
 	}
 
-	lexer := GetChromaLexer(fileName, language, nil) // don't use content to detect, it is too slow
+	lexer := GetChromaLexerWithFallback(fileName, language, nil) // don't use content to detect, it is too slow
 	return CodeFromLexer(lexer, code), formatLexerName(lexer.Config().Name)
 }
 
@@ -186,7 +185,7 @@ func File(fileName, language string, code []byte) ([]template.HTML, string, erro
 		html.PreventSurroundingPre(true),
 	)
 
-	lexer := GetChromaLexer(fileName, language, code)
+	lexer := GetChromaLexerWithFallback(fileName, language, code)
 	lexerName := formatLexerName(lexer.Config().Name)
 
 	iterator, err := lexer.Tokenise(nil, string(code))

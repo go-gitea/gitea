@@ -201,6 +201,7 @@ func TestUnsafeSplitHighlightedLines(t *testing.T) {
 }
 
 func TestGetChromaLexer(t *testing.T) {
+	globalVars().highlightMapping[".my-html"] = "HTML"
 	cases := []struct {
 		fileName string
 		language string
@@ -219,9 +220,10 @@ func TestGetChromaLexer(t *testing.T) {
 		{"test.c", "", "", "C"},
 		{"test.C", "", "", "C++"},
 		{"OLD-CODE.PAS", "", "", "ObjectPascal"},
+		{"test.my-html", "", "", "HTML"},
 	}
 	for _, c := range cases {
-		lexer := GetChromaLexer(c.fileName, c.language, []byte(c.content))
+		lexer := GetChromaLexerWithFallback(c.fileName, c.language, []byte(c.content))
 		if assert.NotNil(t, lexer, "case: %+v", c) {
 			assert.Equal(t, c.expected, lexer.Config().Name, "case: %+v", c)
 		}
