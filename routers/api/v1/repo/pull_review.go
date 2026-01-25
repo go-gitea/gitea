@@ -239,8 +239,8 @@ func ResolvePullReviewComment(ctx *context.APIContext) {
 	//   format: int64
 	//   required: true
 	// responses:
-	//   "200":
-	//     "$ref": "#/responses/PullReviewComment"
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/validationError"
 	//   "403":
@@ -281,8 +281,8 @@ func UnresolvePullReviewComment(ctx *context.APIContext) {
 	//   format: int64
 	//   required: true
 	// responses:
-	//   "200":
-	//     "$ref": "#/responses/PullReviewComment"
+	//   "204":
+	//     "$ref": "#/responses/empty"
 	//   "400":
 	//     "$ref": "#/responses/validationError"
 	//   "403":
@@ -293,39 +293,8 @@ func UnresolvePullReviewComment(ctx *context.APIContext) {
 }
 
 func updatePullReviewCommentResolve(ctx *context.APIContext, isResolve bool) {
-	commentID := ctx.PathParamInt64("id")
-	comment, err := issues_model.GetCommentByID(ctx, commentID)
-	if err != nil {
-		if issues_model.IsErrCommentNotExist(err) {
-			ctx.APIErrorNotFound("GetCommentByID", err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
-		return
-	}
-
-	if err = comment.LoadIssue(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
-	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.APIErrorNotFound("CommentNotInRepo")
-		return
-	}
-
-	if !comment.Issue.IsPull {
-		ctx.APIError(http.StatusBadRequest, "comment does not belong to a pull request")
-		return
-	}
-
-	if comment.Issue.Index != ctx.PathParamInt64("index") {
-		ctx.APIErrorNotFound("CommentNotInPullRequest")
-		return
-	}
-
-	if comment.Type != issues_model.CommentTypeCode {
-		ctx.APIError(http.StatusBadRequest, "comment is not a review comment")
+	comment := getPullReviewCommentSafe(ctx)
+	if comment == nil {
 		return
 	}
 
@@ -339,35 +308,51 @@ func updatePullReviewCommentResolve(ctx *context.APIContext, isResolve bool) {
 		return
 	}
 
-	wasResolved := comment.ResolveDoerID != 0
 	if err = issues_model.MarkConversation(ctx, comment, ctx.Doer, isResolve); err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	if isResolve {
-		if !wasResolved {
-			comment.ResolveDoerID = ctx.Doer.ID
+	ctx.Status(http.StatusNoContent)
+}
+
+func getPullReviewCommentSafe(ctx *context.APIContext) *issues_model.Comment {
+	comment, err := issues_model.GetCommentByID(ctx, ctx.PathParamInt64("id"))
+	if err != nil {
+		if issues_model.IsErrCommentNotExist(err) {
+			ctx.APIErrorNotFound("GetCommentByID", err)
+		} else {
+			ctx.APIErrorInternal(err)
 		}
-	} else {
-		if wasResolved {
-			comment.ResolveDoerID = 0
-		}
-		comment.ResolveDoer = nil
+		return nil
 	}
 
-	if err = comment.LoadPoster(ctx); err != nil {
+	if err = comment.LoadIssue(ctx); err != nil {
 		ctx.APIErrorInternal(err)
-		return
+		return nil
 	}
 
-	if err = comment.LoadResolveDoer(ctx); err != nil {
-		ctx.APIErrorInternal(err)
-		return
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.APIErrorNotFound("CommentNotInRepo")
+		return nil
 	}
 
-	comment.Issue.Repo = ctx.Repo.Repository
-	ctx.JSON(http.StatusOK, convert.ToPullReviewComment(ctx, comment, comment.Issue, ctx.Doer))
+	if !comment.Issue.IsPull {
+		ctx.APIError(http.StatusBadRequest, "comment does not belong to a pull request")
+		return nil
+	}
+
+	if comment.Issue.Index != ctx.PathParamInt64("index") {
+		ctx.APIErrorNotFound("CommentNotInPullRequest")
+		return nil
+	}
+
+	if comment.Type != issues_model.CommentTypeCode {
+		ctx.APIError(http.StatusBadRequest, "comment is not a review comment")
+		return nil
+	}
+
+	return comment
 }
 
 // DeletePullReview delete a specific review from a pull request

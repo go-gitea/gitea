@@ -394,25 +394,27 @@ func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 	unresolveURL := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/%d/unresolve", repo.OwnerName, repo.Name, pullIssue.Index, codeComment.ID)
 
 	req := NewRequest(t, http.MethodPost, resolveURL).AddTokenAuth(token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var apiComment api.PullReviewComment
-	DecodeJSON(t, resp, &apiComment)
-	require.NotNil(t, apiComment.Resolver)
-	assert.Equal(t, doer.ID, apiComment.Resolver.ID)
+	MakeRequest(t, req, http.StatusNoContent)
 
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiComment)
-	require.NotNil(t, apiComment.Resolver)
-	assert.Equal(t, doer.ID, apiComment.Resolver.ID)
+	// Verify comment is resolved
+	updatedComment, err := issues_model.GetCommentByID(ctx, codeComment.ID)
+	require.NoError(t, err)
+	assert.NotZero(t, updatedComment.ResolveDoerID)
+	assert.Equal(t, doer.ID, updatedComment.ResolveDoerID)
+
+	// Resolving again should be idempotent
+	MakeRequest(t, req, http.StatusNoContent)
 
 	req = NewRequest(t, http.MethodPost, unresolveURL).AddTokenAuth(token)
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiComment)
-	assert.Nil(t, apiComment.Resolver)
+	MakeRequest(t, req, http.StatusNoContent)
 
-	resp = MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiComment)
-	assert.Nil(t, apiComment.Resolver)
+	// Verify comment is unresolved
+	updatedComment, err = issues_model.GetCommentByID(ctx, codeComment.ID)
+	require.NoError(t, err)
+	assert.Zero(t, updatedComment.ResolveDoerID)
+
+	// Unresolving again should be idempotent
+	MakeRequest(t, req, http.StatusNoContent)
 
 	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/comments/999999/resolve", repo.OwnerName, repo.Name, pullIssue.Index)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNotFound)
