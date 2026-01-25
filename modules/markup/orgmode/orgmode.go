@@ -5,7 +5,6 @@ package orgmode
 
 import (
 	"fmt"
-	"html"
 	"html/template"
 	"io"
 	"strings"
@@ -17,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/niklasfasching/go-org/org"
 )
 
@@ -57,40 +55,20 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	htmlWriter.HighlightCodeBlock = func(source, lang string, inline bool, params map[string]string) string {
 		defer func() {
 			if err := recover(); err != nil {
+				// catch the panic, log the error and return empty result
 				log.Error("Panic in HighlightCodeBlock: %v\n%s", err, log.Stack(2))
-				panic(err)
 			}
 		}()
-		w := &strings.Builder{}
 
-		lexer := lexers.Get(lang)
-		if lexer == nil && lang == "" {
-			lexer = lexers.Analyse(source)
-			if lexer == nil {
-				lexer = lexers.Fallback
-			}
-			lang = strings.ToLower(lexer.Config().Name)
-		}
+		lexer := highlight.GetChromaLexerWithFallback("", lang, nil) // don't use content to detect, it is too slow
+		lexer = chroma.Coalesce(lexer)
 
+		sb := &strings.Builder{}
 		// include language-x class as part of commonmark spec
-		if err := ctx.RenderInternal.FormatWithSafeAttrs(w, `<pre><code class="chroma language-%s">`, lang); err != nil {
-			return ""
-		}
-		if lexer == nil {
-			if _, err := w.WriteString(html.EscapeString(source)); err != nil {
-				return ""
-			}
-		} else {
-			lexer = chroma.Coalesce(lexer)
-			if _, err := w.WriteString(string(highlight.CodeFromLexer(lexer, source))); err != nil {
-				return ""
-			}
-		}
-		if _, err := w.WriteString("</code></pre>"); err != nil {
-			return ""
-		}
-
-		return w.String()
+		_ = ctx.RenderInternal.FormatWithSafeAttrs(sb, `<pre><code class="chroma language-%s">`, strings.ToLower(lexer.Config().Name))
+		_, _ = sb.WriteString(string(highlight.RenderCodeByLexer(lexer, source)))
+		_, _ = sb.WriteString("</code></pre>")
+		return sb.String()
 	}
 
 	w := &orgWriter{rctx: ctx, HTMLWriter: htmlWriter}
