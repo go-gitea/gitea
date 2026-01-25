@@ -55,6 +55,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	htmlWriter.HighlightCodeBlock = func(source, lang string, inline bool, params map[string]string) string {
 		defer func() {
 			if err := recover(); err != nil {
+				// catch the panic, log the error and return empty result
 				log.Error("Panic in HighlightCodeBlock: %v\n%s", err, log.Stack(2))
 			}
 		}()
@@ -65,7 +66,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		sb := &strings.Builder{}
 		// include language-x class as part of commonmark spec
 		_ = ctx.RenderInternal.FormatWithSafeAttrs(sb, `<pre><code class="chroma language-%s">`, strings.ToLower(lexer.Config().Name))
-		_, _ = sb.WriteString(string(highlight.CodeFromLexer(lexer, source)))
+		_, _ = sb.WriteString(string(highlight.RenderCodeByLexer(lexer, source)))
 		_, _ = sb.WriteString("</code></pre>")
 		return sb.String()
 	}

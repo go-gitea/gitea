@@ -124,7 +124,7 @@ func GetChromaLexerWithFallback(fileName, lang string, code []byte) (lexer chrom
 		lexer = getChromaLexerByLanguage(fileName, enryLanguage)
 		if lexer == nil {
 			if enryLanguage != enry.OtherLanguage {
-				log.Warn("No chroma lexer found for enry detected language: %s (file: %s)", enryLanguage, fileName)
+				log.Warn("No chroma lexer found for enry detected language: %s (file: %s), need to fix the language mapping between enry and chroma.", enryLanguage, fileName)
 			}
 			lexer = lexers.Match(fileName) // lexers.Match will search by its basename and extname
 		}
@@ -133,8 +133,7 @@ func GetChromaLexerWithFallback(fileName, lang string, code []byte) (lexer chrom
 	return util.IfZero(lexer, lexers.Fallback)
 }
 
-// Code returns an HTML version of code string with chroma syntax highlighting classes and the matched lexer name
-func Code(fileName, language, code string) (output template.HTML, lexerName string) {
+func renderCode(fileName, language, code string, slowGuess bool) (output template.HTML, lexerName string) {
 	// diff view newline will be passed as empty, change to literal '\n' so it can be copied
 	// preserve literal newline in blame view
 	if code == "" || code == "\n" {
@@ -145,12 +144,25 @@ func Code(fileName, language, code string) (output template.HTML, lexerName stri
 		return template.HTML(template.HTMLEscapeString(code)), ""
 	}
 
-	lexer := GetChromaLexerWithFallback(fileName, language, nil) // don't use content to detect, it is too slow
-	return CodeFromLexer(lexer, code), formatLexerName(lexer.Config().Name)
+	var codeForGuessLexer []byte
+	if slowGuess {
+		// it is slower to guess lexer by code content, so only do it when necessary
+		codeForGuessLexer = util.UnsafeStringToBytes(code)
+	}
+	lexer := GetChromaLexerWithFallback(fileName, language, codeForGuessLexer)
+	return RenderCodeByLexer(lexer, code), formatLexerName(lexer.Config().Name)
 }
 
-// CodeFromLexer returns a HTML version of code string with chroma syntax highlighting classes
-func CodeFromLexer(lexer chroma.Lexer, code string) template.HTML {
+func RenderCodeFast(fileName, language, code string) (output template.HTML, lexerName string) {
+	return renderCode(fileName, language, code, false)
+}
+
+func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML, lexerName string) {
+	return renderCode(fileName, language, code, true)
+}
+
+// RenderCodeByLexer returns a HTML version of code string with chroma syntax highlighting classes
+func RenderCodeByLexer(lexer chroma.Lexer, code string) template.HTML {
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
 		html.PreventSurroundingPre(true),
@@ -177,10 +189,10 @@ func CodeFromLexer(lexer chroma.Lexer, code string) template.HTML {
 	return template.HTML(strings.TrimSuffix(htmlbuf.String(), "\n"))
 }
 
-// File returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
-func File(fileName, language string, code []byte) ([]template.HTML, string, error) {
+// RenderFullFile returns a slice of chroma syntax highlighted HTML lines of code and the matched lexer name
+func RenderFullFile(fileName, language string, code []byte) ([]template.HTML, string, error) {
 	if len(code) > sizeLimit {
-		return PlainText(code), "", nil
+		return RenderPlainText(code), "", nil
 	}
 
 	formatter := html.New(html.WithClasses(true),
@@ -213,8 +225,8 @@ func File(fileName, language string, code []byte) ([]template.HTML, string, erro
 	return lines, lexerName, nil
 }
 
-// PlainText returns non-highlighted HTML for code
-func PlainText(code []byte) []template.HTML {
+// RenderPlainText returns non-highlighted HTML for code
+func RenderPlainText(code []byte) []template.HTML {
 	r := bufio.NewReader(bytes.NewReader(code))
 	m := make([]template.HTML, 0, bytes.Count(code, []byte{'\n'})+1)
 	for {
