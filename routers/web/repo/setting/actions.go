@@ -171,33 +171,36 @@ func UpdateTokenPermissions(ctx *context.Context) {
 
 	// Update Maximum Permissions (radio buttons: none/read/write)
 	enableMaxPermissions := ctx.FormBool("enable_max_permissions")
-	if shouldUpdate && enableMaxPermissions {
-		parseMaxPerm := func(name string) perm.AccessMode {
-			value := ctx.FormString("max_" + name)
-			switch value {
-			case "write":
-				return perm.AccessModeWrite
-			case "read":
-				return perm.AccessModeRead
-			default:
-				return perm.AccessModeNone
+	if shouldUpdate {
+		if enableMaxPermissions {
+			parseMaxPerm := func(name string) perm.AccessMode {
+				value := ctx.FormString("max_" + name)
+				switch value {
+				case "write":
+					return perm.AccessModeWrite
+				case "read":
+					return perm.AccessModeRead
+				default:
+					return perm.AccessModeNone
+				}
 			}
-		}
 
-		actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
-			Code:         parseMaxPerm("code"),
-			Issues:       parseMaxPerm("issues"),
-			Packages:     parseMaxPerm("packages"),
-			PullRequests: parseMaxPerm("pull_requests"),
-			Wiki:         parseMaxPerm("wiki"),
-			Actions:      parseMaxPerm("actions"),
-			Releases:     parseMaxPerm("releases"),
-			Projects:     parseMaxPerm("projects"),
+			actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
+				Code:         parseMaxPerm("code"),
+				Issues:       parseMaxPerm("issues"),
+				Packages:     parseMaxPerm("packages"),
+				PullRequests: parseMaxPerm("pull_requests"),
+				Wiki:         parseMaxPerm("wiki"),
+				Actions:      parseMaxPerm("actions"),
+				Releases:     parseMaxPerm("releases"),
+				Projects:     parseMaxPerm("projects"),
+			}
+		} else {
+			// If not enabled, ensure any sent permissions are ignored and set to nil
+			actionsCfg.MaxTokenPermissions = nil
 		}
-	} else if shouldUpdate {
-		actionsCfg.MaxTokenPermissions = nil
 	}
-	log.Error("DEBUG: UpdateTokenPermissions Repo: EnableMax=%v, MaxPerms=%v", enableMaxPermissions, actionsCfg.MaxTokenPermissions)
+
 
 	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
 		ctx.ServerError("UpdateRepoUnit", err)

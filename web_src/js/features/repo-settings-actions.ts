@@ -61,6 +61,10 @@ export function initActionsPermissionsTable(): void {
   enableMaxCheckbox?.addEventListener('change', updateTableState);
 
   updateTableState();
+  const form = modeRadios[0].closest('form');
+  if (form) {
+    (window as any).jQuery?.(form).trigger('reinitialize.areYouSure');
+  }
 
   // Cross-Repo Access Table Toggle
   const crossRepoRadios = document.querySelectorAll<HTMLInputElement>('.js-cross-repo-mode');

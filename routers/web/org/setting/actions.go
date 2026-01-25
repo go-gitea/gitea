@@ -115,7 +115,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	} else {
 		actionsCfg.MaxTokenPermissions = nil
 	}
-	log.Error("DEBUG: UpdateTokenPermissions Org: EnableMax=%v, MaxPerms=%v", enableMaxPermissions, actionsCfg.MaxTokenPermissions)
+
 
 	// Update Cross-Repo Access Mode
 	crossRepoMode := ctx.FormString("cross_repo_mode")
