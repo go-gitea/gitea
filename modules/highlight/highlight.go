@@ -30,7 +30,6 @@ import (
 const sizeLimit = 1024 * 1024
 
 type globalVarsType struct {
-	inited           bool
 	highlightMapping map[string]string
 	githubStyles     *chroma.Style
 }
@@ -83,38 +82,47 @@ func UnsafeSplitHighlightedLines(code template.HTML) (ret [][]byte) {
 	}
 }
 
-// toChromaLanguage normalizes language names to Chroma-compatible names
-func toChromaLanguage(entryLang string) string {
-	lang, _, _ := strings.Cut(entryLang, "?") // maybe, the value from gitattributes might contain `?` parameters?
+func getChromaLexerByLanguage(lang string) chroma.Lexer {
+	// maybe, the value from gitattributes might contain `?` parameters?
+	lang, _, _ = strings.Cut(lang, "?")
 	switch lang {
 	case "F#":
-		return "FSharp"
+		lang = "FSharp"
 	}
-	return lang
+	// lexers.Get is slow if the language name can't be matched directly: it does extra "Match" call to iterate all lexers
+	return lexers.Get(lang)
+}
+
+func getChromaLexerByFilename(fn string) chroma.Lexer {
+	lower := strings.ToLower(fn)
+	if strings.HasSuffix(lower, ".pas") {
+		fn = lower
+	}
+	// lexers.Match will search by its basename and extname
+	return lexers.Match(fn)
 }
 
 func GetChromaLexer(fileName, lang string, code []byte) chroma.Lexer {
-	// lexers.Get is slow if the language name can't be matched directly: it does extra "Match" call to iterate all lexers
 	var lexer chroma.Lexer
 	if lang != "" {
-		lexer = lexers.Get(toChromaLanguage(lang))
+		lexer = getChromaLexerByLanguage(lang)
 	}
 
 	if lexer == nil {
 		fileExt := path.Ext(fileName)
 		if val, ok := globalVars().highlightMapping[fileExt]; ok {
-			lexer = lexers.Get(toChromaLanguage(val)) // use mapped value to find lexer
+			lexer = getChromaLexerByLanguage(val) // use mapped value to find lexer
 		}
 	}
 
 	if lexer == nil {
-		lexer = lexers.Match(fileName) // Chroma will search by its basename and extname
+		lexer = getChromaLexerByFilename(fileName)
 	}
 
 	if lexer == nil && code != nil {
 		// analyze.GetCodeLanguage is slower, it iterates many rules to detect language from content
 		enryLanguage := analyze.GetCodeLanguage(fileName, code)
-		lexer = lexers.Get(toChromaLanguage(enryLanguage))
+		lexer = getChromaLexerByLanguage(enryLanguage)
 	}
 
 	if lexer == nil {

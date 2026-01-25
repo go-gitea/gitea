@@ -208,11 +208,17 @@ func TestGetChromaLexer(t *testing.T) {
 		expected string
 	}{
 		{"test.py", "", "", "Python"},
+
 		{"any-file", "javascript", "", "JavaScript"},
 		{"any-file", "", "/* vim: set filetype=python */", "Python"},
 		{"any-file", "", "", "fallback"},
+
 		{"test.fs", "", "", "Forth"},
 		{"test.fs", "F#", "", "FSharp"},
+
+		{"test.c", "", "", "C"},
+		{"test.C", "", "", "C++"},
+		{"OLD-CODE.PAS", "", "", "ObjectPascal"},
 	}
 	for _, c := range cases {
 		lexer := GetChromaLexer(c.fileName, c.language, []byte(c.content))
