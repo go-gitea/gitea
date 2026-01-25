@@ -3532,6 +3532,7 @@
   "packages.pypi.install": "To install the package using pip, run the following command:",
   "packages.rpm.registry": "Set up this registry from the command line:",
   "packages.rpm.distros.redhat": "on RedHat based distributions",
+  "packages.rpm.distros.fedora": "on Fedora (dnf5)",
   "packages.rpm.distros.suse": "on SUSE based distributions",
   "packages.rpm.install": "To install the package, run the following command:",
   "packages.rpm.repository": "Repository Info",
