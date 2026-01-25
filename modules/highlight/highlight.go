@@ -40,6 +40,7 @@ var (
 )
 
 func globalVars() *globalVarsType {
+	// in the future, the globalVars might need to be re-initialized when settings change, so don't use sync.Once here
 	globalVarsMu.Lock()
 	defer globalVarsMu.Unlock()
 	if globalVarsPtr == nil {
