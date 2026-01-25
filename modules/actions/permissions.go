@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	actions_model "code.gitea.io/gitea/models/actions"
 	"gopkg.in/yaml.v3"
 )
 
@@ -23,6 +24,39 @@ type WorkflowPermissions struct {
 	Discussions   string `yaml:"discussions"`
 	SecurityEvents string `yaml:"security-events"`
 	Statuses      string `yaml:"statuses"`
+}
+
+// ParseWorkflowPermissionsFromJob parses permissions from an ActionRunJob
+func ParseWorkflowPermissionsFromJob(job *actions_model.ActionRunJob) (*WorkflowPermissions, error) {
+	if job == nil || len(job.WorkflowPayload) == 0 {
+		return nil, nil
+	}
+
+	var workflow struct {
+		Permissions interface{} `yaml:"permissions"`
+		Jobs        map[string]struct {
+			Permissions interface{} `yaml:"permissions"`
+		} `yaml:"jobs"`
+	}
+
+	if err := yaml.Unmarshal(job.WorkflowPayload, &workflow); err != nil {
+		return nil, err
+	}
+
+	// Check job-level permissions first (they override workflow-level)
+	if job.JobID != "" && workflow.Jobs != nil {
+		if jobDef, ok := workflow.Jobs[job.JobID]; ok && jobDef.Permissions != nil {
+			return parsePermissionsField(jobDef.Permissions)
+		}
+	}
+
+	// Fall back to workflow-level permissions
+	if workflow.Permissions != nil {
+		return parsePermissionsField(workflow.Permissions)
+	}
+
+	// No permissions specified, return nil
+	return nil, nil
 }
 
 // ParseWorkflowPermissions parses permissions from workflow YAML content
