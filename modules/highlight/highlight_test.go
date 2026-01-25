@@ -216,6 +216,7 @@ func TestGetChromaLexer(t *testing.T) {
 
 		{"test.fs", "", "", "Forth"},
 		{"test.fs", "F#", "", "FSharp"},
+		{"test.fs", "", "let x = 1", "FSharp"},
 
 		{"test.c", "", "", "C"},
 		{"test.C", "", "", "C++"},

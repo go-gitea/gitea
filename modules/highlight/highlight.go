@@ -24,6 +24,7 @@ import (
 	"github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/go-enry/go-enry/v2"
 )
 
 // don't index files larger than this many bytes for performance purposes
@@ -83,24 +84,22 @@ func UnsafeSplitHighlightedLines(code template.HTML) (ret [][]byte) {
 	}
 }
 
-func getChromaLexerByLanguage(lang string) chroma.Lexer {
-	// maybe, the value from gitattributes might contain `?` parameters?
-	lang, _, _ = strings.Cut(lang, "?")
+func getChromaLexerByLanguage(fileName, lang string) chroma.Lexer {
+	lang, _, _ = strings.Cut(lang, "?") // maybe, the value from gitattributes might contain `?` parameters?
+	ext := path.Ext(fileName)
+	// the "lang" might come from enry, it has different naming for some languages
 	switch lang {
 	case "F#":
 		lang = "FSharp"
+	case "Pascal":
+		lang = "ObjectPascal"
+	case "C":
+		if ext == ".C" || ext == ".H" {
+			lang = "C++"
+		}
 	}
 	// lexers.Get is slow if the language name can't be matched directly: it does extra "Match" call to iterate all lexers
 	return lexers.Get(lang)
-}
-
-func getChromaLexerByFilename(fn string) chroma.Lexer {
-	lower := strings.ToLower(fn)
-	if strings.HasSuffix(lower, ".pas") {
-		fn = lower
-	}
-	// lexers.Match will search by its basename and extname
-	return lexers.Match(fn)
 }
 
 // GetChromaLexerWithFallback returns a chroma lexer by given file name, language and code content. All parameters can be optional.
@@ -108,24 +107,27 @@ func getChromaLexerByFilename(fn string) chroma.Lexer {
 // If no lexer is found, it will return the fallback lexer.
 func GetChromaLexerWithFallback(fileName, lang string, code []byte) (lexer chroma.Lexer) {
 	if lang != "" {
-		lexer = getChromaLexerByLanguage(lang)
+		lexer = getChromaLexerByLanguage(fileName, lang)
 	}
 
 	if lexer == nil {
 		fileExt := path.Ext(fileName)
 		if val, ok := globalVars().highlightMapping[fileExt]; ok {
-			lexer = getChromaLexerByLanguage(val) // use mapped value to find lexer
+			lexer = getChromaLexerByLanguage(fileName, val) // use mapped value to find lexer
 		}
 	}
 
 	if lexer == nil {
-		lexer = getChromaLexerByFilename(fileName)
-	}
-
-	if lexer == nil && code != nil {
-		// analyze.GetCodeLanguage is slower, it iterates many rules to detect language from content
+		// when using "code" to detect, analyze.GetCodeLanguage is slower, it iterates many rules to detect language from content
+		// this is the old logic: use enry to detect language, and use chroma to render, but their naming is different for some languages
 		enryLanguage := analyze.GetCodeLanguage(fileName, code)
-		lexer = getChromaLexerByLanguage(enryLanguage)
+		lexer = getChromaLexerByLanguage(fileName, enryLanguage)
+		if lexer == nil {
+			if enryLanguage != enry.OtherLanguage {
+				log.Warn("No chroma lexer found for enry detected language: %s (file: %s)", enryLanguage, fileName)
+			}
+			lexer = lexers.Match(fileName) // lexers.Match will search by its basename and extname
+		}
 	}
 
 	return util.IfZero(lexer, lexers.Fallback)
