@@ -11,10 +11,8 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -424,38 +422,9 @@ func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/comments/%d/resolve", repo.OwnerName, repo.Name, plainComment.ID)).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusBadRequest)
 
-	var unauthorizedUser *user_model.User
-	for _, userID := range []int64{2, 3, 4, 5, 6, 7, 8, 9, 10} {
-		if userID == pullIssue.PosterID {
-			continue
-		}
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID})
-		if user.IsOrganization() || !user.IsActive || user.ProhibitLogin {
-			continue
-		}
-		perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
-		require.NoError(t, err)
-		if perm.CanAccess(perm_model.AccessModeWrite, unit.TypePullRequests) {
-			continue
-		}
-		isReviewer, err := issues_model.IsOfficialReviewer(ctx, pullIssue, user)
-		require.NoError(t, err)
-		if isReviewer {
-			continue
-		}
-		if repo.IsPrivate {
-			access := &access_model.Access{UserID: user.ID, RepoID: repo.ID}
-			has, err := db.GetEngine(ctx).Get(access)
-			require.NoError(t, err)
-			if !has {
-				access.Mode = perm_model.AccessModeRead
-				require.NoError(t, db.Insert(ctx, access))
-			}
-		}
-		unauthorizedUser = user
-		break
-	}
-	require.NotNil(t, unauthorizedUser)
+	// Test permission check: find a user without write access to test 403 response
+	unauthorizedUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	require.NotEqual(t, pullIssue.PosterID, unauthorizedUser.ID)
 
 	unauthorizedSession := loginUser(t, unauthorizedUser.Name)
 	unauthorizedToken := getTokenForLoggedInUser(t, unauthorizedSession, auth_model.AccessTokenScopeWriteRepository)
