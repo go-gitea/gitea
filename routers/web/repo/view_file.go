@@ -81,7 +81,7 @@ func handleFileViewRenderMarkup(ctx *context.Context, prefetchBuf []byte, utf8Re
 	ctx.Data["MarkupType"] = rctx.RenderOptions.MarkupType
 
 	var err error
-	ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRenderToString(ctx, rctx, renderer, utf8Reader)
+	ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRenderToHTML(ctx, rctx, renderer, utf8Reader)
 	if err != nil {
 		ctx.ServerError("Render", err)
 		return true

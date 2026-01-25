@@ -197,7 +197,7 @@ func prepareToRenderReadmeFile(ctx *context.Context, subfolder string, readmeFil
 	if renderer != nil {
 		ctx.Data["IsMarkup"] = true
 		ctx.Data["MarkupType"] = rctx.RenderOptions.MarkupType
-		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRenderToString(ctx, rctx, renderer, rd)
+		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRenderToHTML(ctx, rctx, renderer, rd)
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.Name(), ctx.Repo.Repository, err)
 			delete(ctx.Data, "IsMarkup")
