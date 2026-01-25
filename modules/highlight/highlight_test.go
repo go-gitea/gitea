@@ -108,6 +108,12 @@ c=2
 			),
 			lexerName: "Python",
 		},
+		{
+			name:      "test.fs",
+			code:      "module MathOps = let sum: int array -> int = Array.sum",
+			want:      lines(`<span class="k">module</span> <span class="nn">MathOps</span> <span class="o">=</span> <span class="k">let</span> <span class="nv">sum</span><span class="o">:</span> <span class="n">int</span> <span class="n">array</span> <span class="o">-&gt;</span> <span class="n">int</span> <span class="o">=</span> <span class="nn">Array</span><span class="p">.</span><span class="n">sum</span>`),
+			lexerName: "FSharp",
+		},
 	}
 
 	for _, tt := range tests {

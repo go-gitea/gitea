@@ -88,6 +88,20 @@ func UnsafeSplitHighlightedLines(code template.HTML) (ret [][]byte) {
 	}
 }
 
+// For when Enry recognises the language,
+// but doesn't use the names that Chroma expects.
+var enryToChroma = map[string]string{
+	"F#": "FSharp",
+}
+
+// toChromaLanguage normalizes language names from Enry to Chroma-compatible names
+func toChromaLanguage(language string) string {
+	if normalized, ok := enryToChroma[language]; ok {
+		return normalized
+	}
+	return language
+}
+
 // Code returns an HTML version of code string with chroma syntax highlighting classes and the matched lexer name
 func Code(fileName, language, code string) (output template.HTML, lexerName string) {
 	NewContext()
@@ -105,12 +119,12 @@ func Code(fileName, language, code string) (output template.HTML, lexerName stri
 	var lexer chroma.Lexer
 
 	if len(language) > 0 {
-		lexer = lexers.Get(language)
+		lexer = lexers.Get(toChromaLanguage(language))
 
 		if lexer == nil {
 			// Attempt stripping off the '?'
 			if before, _, ok := strings.Cut(language, "?"); ok {
-				lexer = lexers.Get(before)
+				lexer = lexers.Get(toChromaLanguage(before))
 			}
 		}
 	}
@@ -184,7 +198,7 @@ func File(fileName, language string, code []byte) ([]template.HTML, string, erro
 
 	// provided language overrides everything
 	if language != "" {
-		lexer = lexers.Get(language)
+		lexer = lexers.Get(toChromaLanguage(language))
 	}
 
 	if lexer == nil {
@@ -195,8 +209,7 @@ func File(fileName, language string, code []byte) ([]template.HTML, string, erro
 
 	if lexer == nil {
 		guessLanguage := analyze.GetCodeLanguage(fileName, code)
-
-		lexer = lexers.Get(guessLanguage)
+		lexer = lexers.Get(toChromaLanguage(guessLanguage))
 		if lexer == nil {
 			lexer = lexers.Match(fileName)
 			if lexer == nil {
