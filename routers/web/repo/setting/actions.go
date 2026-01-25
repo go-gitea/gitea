@@ -200,7 +200,6 @@ func UpdateTokenPermissions(ctx *context.Context) {
 		}
 	}
 
-
 	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
 		ctx.ServerError("UpdateRepoUnit", err)
 		return

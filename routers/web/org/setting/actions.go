@@ -115,7 +115,6 @@ func UpdateTokenPermissions(ctx *context.Context) {
 		actionsCfg.MaxTokenPermissions = nil
 	}
 
-
 	// Update Cross-Repo Access Mode
 	crossRepoMode := ctx.FormString("cross_repo_mode")
 	switch crossRepoMode {
