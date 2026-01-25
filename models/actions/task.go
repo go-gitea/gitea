@@ -45,6 +45,7 @@ type ActionTask struct {
 	TokenHash      string `xorm:"UNIQUE"` // sha256 of token
 	TokenSalt      string
 	TokenLastEight string `xorm:"index token_last_eight"`
+	TokenScopes    string `xorm:"TEXT"` // comma-separated AccessTokenScope values for this job
 
 	LogFilename  string     // file name of log
 	LogInStorage bool       // read log from database or from storage
@@ -276,6 +277,13 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		return nil, false, err
 	}
 
+	// Calculate token scopes based on workflow permissions and repository settings
+	if err := task.calculateTokenScopes(ctx, job); err != nil {
+		log.Warn("Failed to calculate token scopes for job %d: %v, using default", job.ID, err)
+		// Use default read-only scopes on error
+		task.TokenScopes = string(auth_model.AccessTokenScopeReadRepository)
+	}
+
 	workflowJob, err := job.ParseJob()
 	if err != nil {
 		return nil, false, fmt.Errorf("load job %d: %w", job.ID, err)
@@ -322,6 +330,43 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	}
 
 	return task, true, nil
+}
+
+// calculateTokenScopes determines the appropriate token scopes for a job
+// based on workflow-level permissions, job-level permissions, and repository settings
+func (task *ActionTask) calculateTokenScopes(ctx context.Context, job *ActionRunJob) error {
+	// Get repository token permissions configuration
+	repoPerms, err := GetActionTokenPermissions(ctx, job.RepoID)
+	if err != nil {
+		return fmt.Errorf("get repository token permissions: %w", err)
+	}
+
+	// Parse workflow permissions from job payload
+	// The WorkflowPayload contains the job definition with potential permissions field
+	workflowPerms, err := ParseWorkflowPermissionsFromJob(job)
+	if err != nil {
+		log.Warn("Failed to parse workflow permissions for job %d: %v", job.ID, err)
+		// Continue with repository defaults on parse error
+	}
+
+	// Determine final scopes
+	var finalScopes auth_model.AccessTokenScope
+
+	if workflowPerms != nil {
+		// Workflow explicitly defines permissions - use them
+		finalScopes = workflowPerms.ToAccessTokenScopes()
+	} else {
+		// No workflow permissions - use repository defaults
+		finalScopes = repoPerms.ToAccessTokenScopes()
+	}
+
+	// For fork pull requests, restrict to read-only
+	if task.IsForkPullRequest {
+		finalScopes = auth_model.AccessTokenScopeReadRepository
+	}
+
+	task.TokenScopes = string(finalScopes)
+	return nil
 }
 
 func UpdateTask(ctx context.Context, task *ActionTask, cols ...string) error {
