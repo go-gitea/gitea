@@ -217,3 +217,16 @@
     margin-right: 0;
   }
 }
+
+/* Adjust sidebar layout on tablet-sized screens to prevent layout issues */
+@media (min-width: 769px) and (max-width: 1024px) {
+  /* Slightly reduce sidebar width in the grid layout */
+  .repo-grid-filelist-sidebar {
+    grid-template-columns: auto 220px;
+  }
+
+  /* Match reserved content margin to the narrower sidebar */
+  .repo-view-content.sidebar-visible {
+    margin-right: 220px;
+  }
+}
