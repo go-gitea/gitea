@@ -98,7 +98,7 @@ export default defineComponent({
   },
 
   data() {
-    const defaultViewOptions = {autoScroll: true, expandRunning: false};
+    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false};
     const {autoScroll, expandRunning} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
     return {
       // internal state

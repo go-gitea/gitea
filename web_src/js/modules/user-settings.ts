@@ -51,7 +51,7 @@ export const localUserSettings = {
   setBoolean: (key: string, value: boolean) => {
     localUserSettings.setString(key, String(value));
   },
-  getJsonObject: (key: string, def: any = null): any => {
+  getJsonObject: <T extends Record<string, any> | null>(key: string, def: T = (null as T)): T => {
     try {
       const value = getLocalStorageUserSetting(key);
       return value !== null ? JSON.parse(value) : def;
