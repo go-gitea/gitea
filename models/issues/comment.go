@@ -245,6 +245,9 @@ type CommentMetaData struct {
 	ProjectTitle       string `json:"project_title,omitempty"`
 
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+
+	CodeCommentLineStart int64 `json:"code_comment_line_start,omitempty"`
+	CodeCommentLineEnd   int64 `json:"code_comment_line_end,omitempty"`
 }
 
 // Comment represents a comment in commit and issue page.
@@ -811,17 +814,33 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 		}
 
 		var commentMetaData *CommentMetaData
+		hasMetaData := false
 		if opts.ProjectColumnTitle != "" {
-			commentMetaData = &CommentMetaData{
-				ProjectColumnID:    opts.ProjectColumnID,
-				ProjectColumnTitle: opts.ProjectColumnTitle,
-				ProjectTitle:       opts.ProjectTitle,
+			if commentMetaData == nil {
+				commentMetaData = &CommentMetaData{}
 			}
+			commentMetaData.ProjectColumnID = opts.ProjectColumnID
+			commentMetaData.ProjectColumnTitle = opts.ProjectColumnTitle
+			commentMetaData.ProjectTitle = opts.ProjectTitle
+			hasMetaData = true
 		}
 		if opts.SpecialDoerName != "" {
-			commentMetaData = &CommentMetaData{
-				SpecialDoerName: opts.SpecialDoerName,
+			if commentMetaData == nil {
+				commentMetaData = &CommentMetaData{}
 			}
+			commentMetaData.SpecialDoerName = opts.SpecialDoerName
+			hasMetaData = true
+		}
+		if opts.CodeCommentLineStart != 0 || opts.CodeCommentLineEnd != 0 {
+			if commentMetaData == nil {
+				commentMetaData = &CommentMetaData{}
+			}
+			commentMetaData.CodeCommentLineStart = opts.CodeCommentLineStart
+			commentMetaData.CodeCommentLineEnd = opts.CodeCommentLineEnd
+			hasMetaData = true
+		}
+		if !hasMetaData {
+			commentMetaData = nil
 		}
 
 		comment := &Comment{
@@ -988,38 +1007,40 @@ type CreateCommentOptions struct {
 	Issue *Issue
 	Label *Label
 
-	DependentIssueID   int64
-	OldMilestoneID     int64
-	MilestoneID        int64
-	OldProjectID       int64
-	ProjectID          int64
-	ProjectTitle       string
-	ProjectColumnID    int64
-	ProjectColumnTitle string
-	TimeID             int64
-	AssigneeID         int64
-	AssigneeTeamID     int64
-	RemovedAssignee    bool
-	OldTitle           string
-	NewTitle           string
-	OldRef             string
-	NewRef             string
-	CommitID           int64
-	CommitSHA          string
-	Patch              string
-	LineNum            int64
-	TreePath           string
-	ReviewID           int64
-	Content            string
-	Attachments        []string // UUIDs of attachments
-	RefRepoID          int64
-	RefIssueID         int64
-	RefCommentID       int64
-	RefAction          references.XRefAction
-	RefIsPull          bool
-	IsForcePush        bool
-	Invalidated        bool
-	SpecialDoerName    SpecialDoerNameType // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+	DependentIssueID     int64
+	OldMilestoneID       int64
+	MilestoneID          int64
+	OldProjectID         int64
+	ProjectID            int64
+	ProjectTitle         string
+	ProjectColumnID      int64
+	ProjectColumnTitle   string
+	TimeID               int64
+	AssigneeID           int64
+	AssigneeTeamID       int64
+	RemovedAssignee      bool
+	OldTitle             string
+	NewTitle             string
+	OldRef               string
+	NewRef               string
+	CommitID             int64
+	CommitSHA            string
+	Patch                string
+	LineNum              int64
+	TreePath             string
+	ReviewID             int64
+	Content              string
+	Attachments          []string // UUIDs of attachments
+	RefRepoID            int64
+	RefIssueID           int64
+	RefCommentID         int64
+	RefAction            references.XRefAction
+	RefIsPull            bool
+	IsForcePush          bool
+	Invalidated          bool
+	SpecialDoerName      SpecialDoerNameType // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+	CodeCommentLineStart int64
+	CodeCommentLineEnd   int64
 }
 
 // GetCommentByID returns the comment by given ID.

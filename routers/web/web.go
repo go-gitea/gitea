@@ -1295,6 +1295,7 @@ func registerWebRoutes(m *web.Router) {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
 			m.Post("/reactions/{action}", web.Bind(forms.ReactionForm{}), repo.ChangeCommentReaction)
+			m.Post("/suggestions/apply", repo.ApplySuggestion)
 		}, reqRepoIssuesOrPullsReader) // edit issue/pull comment
 
 		m.Group("/labels", func() {

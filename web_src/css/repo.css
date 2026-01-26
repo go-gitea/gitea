@@ -675,6 +675,36 @@ td .commit-summary {
   margin: 0;
 }
 
+.repository .diff-file-box .code-diff tr.active .lines-num,
+.repository .diff-file-box .code-diff tr.active .lines-escape,
+.repository .diff-file-box .code-diff tr.active .lines-type-marker,
+.repository .diff-file-box .code-diff tr.active .lines-code {
+  background: var(--color-highlight-bg);
+}
+
+.repository .diff-file-box .code-diff tr.active .lines-num {
+  position: relative;
+}
+
+.repository .diff-file-box .code-diff tr.active .lines-num::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--color-highlight-fg);
+}
+
+.repository .comment-body .suggestion-actions {
+  margin-top: 0.25rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.repository .comment-body pre.suggestion-block {
+  margin-bottom: 0;
+}
+
 .repository.view.issue .comment-list .event {
   padding-left: 15px;
 }
@@ -964,6 +994,10 @@ td .commit-summary {
 
 .repository .diff-file-box .code-diff .lines-num {
   padding: 0 5px !important;
+}
+
+.repository .diff-file-box .code-diff .lines-num span {
+  cursor: pointer;
 }
 
 .repository .diff-file-box .code-diff .tag-code .lines-num,
