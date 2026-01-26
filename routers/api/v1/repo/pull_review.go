@@ -212,7 +212,7 @@ func GetPullReviewComments(ctx *context.APIContext) {
 func ResolvePullReviewComment(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/comments/{id}/resolve repository repoResolvePullReviewComment
 	// ---
-	// summary: Resolve a pull review comment
+	// summary: Resolve a pull request review comment
 	// produces:
 	// - application/json
 	// parameters:
@@ -248,7 +248,7 @@ func ResolvePullReviewComment(ctx *context.APIContext) {
 func UnresolvePullReviewComment(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/pulls/comments/{id}/unresolve repository repoUnresolvePullReviewComment
 	// ---
-	// summary: Unresolve a pull review comment
+	// summary: Unresolve a pull request review comment
 	// produces:
 	// - application/json
 	// parameters:
