@@ -514,32 +514,20 @@
 		{{else if eq .Type 27}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-eye"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
-				<span class="comment-text-line">
-					{{template "shared/user/authorlink" .Poster}}
-					{{if (gt .AssigneeID 0)}}
-						{{if .RemovedAssignee}}
-							{{if eq .PosterID .AssigneeID}}
-								{{ctx.Locale.Tr "repo.issues.review.remove_review_request_self" $createdStr}}
-							{{else}}
-								{{ctx.Locale.Tr "repo.issues.review.remove_review_request" .Assignee.GetDisplayName $createdStr}}
-							{{end}}
-						{{else}}
-							{{ctx.Locale.Tr "repo.issues.review.add_review_request" .Assignee.GetDisplayName $createdStr}}
-						{{end}}
-					{{else}}
-						<!-- If the assigned team is deleted, just displaying "Ghost Team" in the comment -->
-						{{$teamName := "Ghost Team"}}
-						{{if .AssigneeTeam}}
-							{{$teamName = .AssigneeTeam.Name}}
-						{{end}}
-						{{if .RemovedAssignee}}
-							{{ctx.Locale.Tr "repo.issues.review.remove_review_request" $teamName $createdStr}}
-						{{else}}
-							{{ctx.Locale.Tr "repo.issues.review.add_review_request" $teamName $createdStr}}
-						{{end}}
-					{{end}}
-				</span>
+				{{$specialDoerHtml := .MetaSpecialDoerTr ctx.Locale}}
+				{{$timelineRequestedReviewHtml := .TimelineRequestedReviewTr ctx.Locale $createdStr}}
+				{{if $specialDoerHtml}}
+					<span class="comment-text-line">
+						{{$specialDoerHtml}}
+						{{$timelineRequestedReviewHtml}}
+					</span>
+				{{else}}
+					{{template "shared/user/avatarlink" dict "user" .Poster}}
+					<span class="comment-text-line">
+						{{template "shared/user/authorlink" .Poster}}
+						{{$timelineRequestedReviewHtml}}
+					</span>
+				{{end}}
 			</div>
 		{{else if and (eq .Type 29) (or (gt .CommitsNum 0) .IsForcePush)}}
 			<!-- If PR is closed, the comments whose type is CommentTypePullRequestPush(29) after latestCloseCommentID won't be rendered. //-->

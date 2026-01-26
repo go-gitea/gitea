@@ -43,17 +43,17 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 
 			if !pr.HasMerged {
 				var err error
-				pr.MergeBase, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, pr.GetGitHeadRefName()))
+				pr.MergeBase, _, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("merge-base").AddDashesAndList(pr.BaseBranch, pr.GetGitHeadRefName()))
 				if err != nil {
 					var err2 error
-					pr.MergeBase, err2 = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix+pr.BaseBranch))
+					pr.MergeBase, _, err2 = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("rev-parse").AddDynamicArguments(git.BranchPrefix+pr.BaseBranch))
 					if err2 != nil {
 						logger.Warn("Unable to get merge base for PR ID %d, #%d onto %s in %s/%s. Error: %v & %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2)
 						return nil
 					}
 				}
 			} else {
-				parentsString, err := gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID))
+				parentsString, _, err := gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("rev-list", "--parents", "-n", "1").AddDynamicArguments(pr.MergedCommitID))
 				if err != nil {
 					logger.Warn("Unable to get parents for merged PR ID %d, #%d onto %s in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
 					return nil
@@ -66,7 +66,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 				refs := append([]string{}, parents[1:]...)
 				refs = append(refs, pr.GetGitHeadRefName())
 				cmd := gitcmd.NewCommand("merge-base").AddDashesAndList(refs...)
-				pr.MergeBase, err = gitrepo.RunCmdString(ctx, repo, cmd)
+				pr.MergeBase, _, err = gitrepo.RunCmdString(ctx, repo, cmd)
 				if err != nil {
 					logger.Warn("Unable to get merge base for merged PR ID %d, #%d onto %s in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
 					return nil

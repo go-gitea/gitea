@@ -48,6 +48,10 @@ linters:
               desc: do not use the ini package, use gitea's config system instead
             - pkg: gitea.com/go-chi/cache
               desc: do not use the go-chi cache package, use gitea's cache system
+            - pkg: github.com/pkg/errors
+              desc: use builtin errors package instead
+            - pkg: github.com/go-ap/errors
+              desc: use builtin errors package instead
     nolintlint:
       allow-unused: false
       require-explanation: true

@@ -26,7 +26,6 @@
 			{{end}}
 			{{if and $.UpdateAllowed (not $.UpdateByRebaseAllowed)}}
 				<form action="{{$.Issue.Link}}/update" method="post" class="ui update-branch-form">
-					{{$.CsrfTokenHtml}}
 					<button class="ui compact button">
 						<span class="ui text">{{ctx.Locale.Tr "repo.pulls.update_branch"}}</span>
 					</button>

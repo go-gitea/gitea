@@ -5,6 +5,7 @@ package context
 
 import (
 	"fmt"
+	"image/color"
 	"sync"
 
 	"code.gitea.io/gitea/modules/cache"
@@ -29,6 +30,15 @@ func GetImageCaptcha() *captcha.Captcha {
 	imageCaptchaOnce.Do(func() {
 		cpt = captcha.NewCaptcha(captcha.Options{
 			SubURL: setting.AppSubURL,
+			// Use a color palette with high contrast colors suitable for both light and dark modes
+			// These colors provide good visibility and readability in both themes
+			ColorPalette: color.Palette{
+				color.RGBA{R: 234, G: 67, B: 53, A: 255},  // Bright red
+				color.RGBA{R: 66, G: 133, B: 244, A: 255}, // Medium blue
+				color.RGBA{R: 52, G: 168, B: 83, A: 255},  // Green
+				color.RGBA{R: 251, G: 188, B: 5, A: 255},  // Yellow/gold
+				color.RGBA{R: 171, G: 71, B: 188, A: 255}, // Purple
+			},
 		})
 		cpt.Store = cache.GetCache().ChiCache()
 	})

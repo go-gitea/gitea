@@ -83,9 +83,7 @@ func testAPICreateWebhookForRepo(t *testing.T, session *TestSession, userName, r
 }
 
 func testCreateWebhookForRepo(t *testing.T, session *TestSession, webhookType, userName, repoName, url, eventKind string) {
-	csrf := GetUserCSRFToken(t, session)
 	req := NewRequestWithValues(t, "POST", "/"+userName+"/"+repoName+"/settings/hooks/"+webhookType+"/new", map[string]string{
-		"_csrf":        csrf,
 		"payload_url":  url,
 		"events":       eventKind,
 		"active":       "true",
@@ -278,7 +276,6 @@ func Test_WebhookIssueComment(t *testing.T) {
 			commentID := testIssueAddComment(t, session, issueURL, "issue title3 comment1", "")
 			modifiedContent := "issue title2 comment1 - modified"
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
-				"_csrf":   GetUserCSRFToken(t, session),
 				"content": modifiedContent,
 			})
 			session.MakeRequest(t, req, http.StatusOK)
@@ -306,7 +303,6 @@ func Test_WebhookIssueComment(t *testing.T) {
 			payloads = make([]api.IssueCommentPayload, 0, 2)
 			triggeredEvent = ""
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/comments/%d", "user2", "repo1", commentID), map[string]string{
-				"_csrf":   GetUserCSRFToken(t, session),
 				"content": commentContent,
 			})
 			session.MakeRequest(t, req, http.StatusOK)
@@ -934,12 +930,7 @@ func Test_WebhookStatus(t *testing.T) {
 		testCtx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeAll)
 
 		// update a status for a commit via API
-		doAPICreateCommitStatus(testCtx, commitID, api.CreateStatusOption{
-			State:       commitstatus.CommitStatusSuccess,
-			TargetURL:   "http://test.ci/",
-			Description: "",
-			Context:     "testci",
-		})(t)
+		doAPICreateCommitStatusTest(testCtx, commitID, commitstatus.CommitStatusSuccess, "testci")(t)
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "status", triggeredEvent)
@@ -1284,9 +1275,7 @@ jobs:
 	// Call cancel ui api
 	// Only a web UI API exists for cancelling workflow runs, so use the UI endpoint.
 	cancelURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/cancel", webhookData.payloads[0].WorkflowRun.RunNumber)
-	req := NewRequestWithValues(t, "POST", cancelURL, map[string]string{
-		"_csrf": GetUserCSRFToken(t, session),
-	})
+	req := NewRequest(t, "POST", cancelURL)
 	session.MakeRequest(t, req, http.StatusOK)
 
 	assert.Len(t, webhookData.payloads, 2)
@@ -1418,9 +1407,7 @@ jobs:
 	// Call cancel ui api
 	// Only a web UI API exists for cancelling workflow runs, so use the UI endpoint.
 	cancelURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/cancel", webhookData.payloads[0].WorkflowRun.RunNumber)
-	req := NewRequestWithValues(t, "POST", cancelURL, map[string]string{
-		"_csrf": GetUserCSRFToken(t, session),
-	})
+	req := NewRequest(t, "POST", cancelURL)
 	session.MakeRequest(t, req, http.StatusOK)
 
 	assert.Len(t, webhookData.payloads, 2)
@@ -1438,9 +1425,7 @@ jobs:
 	// Call rerun ui api
 	// Only a web UI API exists for rerunning workflow runs, so use the UI endpoint.
 	rerunURL := fmt.Sprintf("/user2/repo1/actions/runs/%d/rerun", webhookData.payloads[0].WorkflowRun.RunNumber)
-	req = NewRequestWithValues(t, "POST", rerunURL, map[string]string{
-		"_csrf": GetUserCSRFToken(t, session),
-	})
+	req = NewRequest(t, "POST", rerunURL)
 	session.MakeRequest(t, req, http.StatusOK)
 
 	assert.Len(t, webhookData.payloads, 3)
