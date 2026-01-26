@@ -1,6 +1,6 @@
 import {getCurrentLocale} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {getLocalStorageSetting, setLocalStorageSetting} from '../modules/storage.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 
 const {pageData} = window.config;
 
@@ -39,7 +39,7 @@ export async function initCitationFileCopyContent() {
   if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
 
   const updateUi = () => {
-    const isBibtex = (getLocalStorageSetting('citation-copy-format') || defaultCitationFormat) === 'bibtex';
+    const isBibtex = localUserSettings.getString('citation-copy-format', defaultCitationFormat) === 'bibtex';
     const copyContent = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text')!;
     inputContent.value = copyContent;
     citationCopyBibtex.classList.toggle('primary', isBibtex);
@@ -56,12 +56,12 @@ export async function initCitationFileCopyContent() {
     updateUi();
 
     citationCopyApa.addEventListener('click', () => {
-      setLocalStorageSetting('citation-copy-format', 'apa');
+      localUserSettings.setString('citation-copy-format', 'apa');
       updateUi();
     });
 
     citationCopyBibtex.addEventListener('click', () => {
-      setLocalStorageSetting('citation-copy-format', 'bibtex');
+      localUserSettings.setString('citation-copy-format', 'bibtex');
       updateUi();
     });
 
