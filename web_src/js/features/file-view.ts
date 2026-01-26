@@ -132,8 +132,13 @@ function initSidebarToggle(elFileView: HTMLElement): void {
     // For file view, first add margin, wait for layout, then show sidebar
     if (isFileView && repoViewContent) {
       repoViewContent.classList.add('sidebar-visible');
-      // Wait for CSS transition to complete (200ms) before calculating position
-      setTimeout(showAfterLayout, 220);
+      // Wait for CSS transition to actually complete before calculating position
+      const onTransitionEnd = (event: TransitionEvent) => {
+        if (event.target !== repoViewContent) return;
+        repoViewContent.removeEventListener('transitionend', onTransitionEnd);
+        showAfterLayout();
+      };
+      repoViewContent.addEventListener('transitionend', onTransitionEnd);
     } else {
       // For home page (README), no margin needed, show with small delay
       setTimeout(showAfterLayout, 10);
