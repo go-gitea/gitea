@@ -166,11 +166,14 @@ function initSidebarToggle(elFileView: HTMLElement): void {
     hideSidebar();
   }
 
-  // Update sidebar position on resize/scroll to keep aligned with file content
+  // Update sidebar position on resize to keep aligned with file content
+  // Only observe the segment element to avoid unnecessary updates from unrelated page changes
   const resizeObserver = new ResizeObserver(() => {
     updatePosition();
   });
-  resizeObserver.observe(document.body);
+  if (segment) {
+    resizeObserver.observe(segment);
+  }
 
   // Update position using IntersectionObserver instead of scroll event
   // This provides better performance and avoids scroll event issues
