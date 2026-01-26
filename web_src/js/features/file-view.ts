@@ -170,8 +170,8 @@ function initSidebarToggle(elFileView: HTMLElement): void {
   const fileHeader = elFileView.querySelector('.file-header');
   const segment = elFileView.querySelector('.ui.bottom.segment');
   if (fileHeader && segment) {
-    // Use many thresholds to get fine-grained position updates during scroll
-    const thresholds = Array.from({length: 101}, (_, i) => i / 100);
+    // Use a small set of thresholds to get periodic position updates during scroll
+    const thresholds = [0, 0.25, 0.5, 0.75, 1];
     const positionObserver = new IntersectionObserver(() => {
       updatePosition();
     }, {threshold: thresholds});
