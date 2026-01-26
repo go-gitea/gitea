@@ -77,7 +77,9 @@ function updateSidebarPosition(elFileView: HTMLElement, sidebar: HTMLElement): v
 
   // Dynamically calculate max-height so sidebar doesn't extend below segment bottom
   const availableHeight = Math.max(0, segmentRect.bottom - topPos);
-  const cssMaxHeight = window.innerHeight - 140; // Match CSS calc(100vh - 140px)
+  // 140px accounts for fixed layout chrome (header, spacing, etc.) and must match CSS: calc(100vh - 140px)
+  const cssMaxHeightOffset = 140;
+  const cssMaxHeight = window.innerHeight - cssMaxHeightOffset;
   const maxHeight = Math.min(availableHeight, cssMaxHeight);
 
   // Hide sidebar if available height is too small
