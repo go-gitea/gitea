@@ -34,13 +34,13 @@ export const localUserSettings = {
   setString: (key: string, value: string) => {
     setLocalStorageUserSetting(key, value);
   },
-  getBoolean: (key: string, def: boolean = false):boolean => {
+  getBoolean: (key: string, def: boolean = false): boolean => {
     return localUserSettings.getString(key, String(def)) === 'true';
   },
   setBoolean: (key: string, value: boolean) => {
     localUserSettings.setString(key, String(value));
   },
-  getJsonObject: (key: string, def: any = null):any => {
+  getJsonObject: (key: string, def: any = null): any => {
     try {
       const value = getLocalStorageUserSetting(key);
       return value !== null ? JSON.parse(value) : def;
