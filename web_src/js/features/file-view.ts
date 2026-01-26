@@ -183,10 +183,18 @@ function initSidebarToggle(elFileView: HTMLElement): void {
     const isCurrentlyVisible = !sidebar.classList.contains('sidebar-panel-hidden');
     if (isCurrentlyVisible) {
       hideSidebar();
-      localStorage.setItem('file-view-sidebar-visible', 'false');
+      try {
+        localStorage.setItem('file-view-sidebar-visible', 'false');
+      } catch {
+        // Ignore storage errors (e.g., disabled or full localStorage)
+      }
     } else {
       showSidebar();
-      localStorage.setItem('file-view-sidebar-visible', 'true');
+      try {
+        localStorage.setItem('file-view-sidebar-visible', 'true');
+      } catch {
+        // Ignore storage errors (e.g., disabled or full localStorage)
+      }
     }
   });
 }
