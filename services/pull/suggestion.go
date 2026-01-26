@@ -4,6 +4,7 @@
 package pull
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -51,7 +52,7 @@ func ParseSuggestionBlocks(markdown string) []SuggestionBlock {
 // BuildSuggestionPatch creates a unified diff patch that replaces startLine..endLine with suggestion content.
 func BuildSuggestionPatch(filePath, fileContent string, startLine, endLine int, suggestion string, contextLines int) (string, error) {
 	if startLine <= 0 || endLine <= 0 {
-		return "", fmt.Errorf("invalid line range")
+		return "", errors.New("invalid line range")
 	}
 	if startLine > endLine {
 		startLine, endLine = endLine, startLine
@@ -65,7 +66,7 @@ func BuildSuggestionPatch(filePath, fileContent string, startLine, endLine int, 
 	}
 
 	if startLine > len(contentLines) || endLine > len(contentLines) {
-		return "", fmt.Errorf("line range out of bounds")
+		return "", errors.New("line range out of bounds")
 	}
 
 	normalizedSuggestion := string(util.NormalizeEOL([]byte(suggestion)))
@@ -75,14 +76,8 @@ func BuildSuggestionPatch(filePath, fileContent string, startLine, endLine int, 
 		suggestionLines = strings.Split(normalizedSuggestion, "\n")
 	}
 
-	preStart := startLine - contextLines
-	if preStart < 1 {
-		preStart = 1
-	}
-	postEnd := endLine + contextLines
-	if postEnd > len(contentLines) {
-		postEnd = len(contentLines)
-	}
+	preStart := max(startLine-contextLines, 1)
+	postEnd := min(endLine+contextLines, len(contentLines))
 
 	preLines := contentLines[preStart-1 : startLine-1]
 	oldLines := contentLines[startLine-1 : endLine]
