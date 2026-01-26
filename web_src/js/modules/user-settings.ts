@@ -1,9 +1,9 @@
 function getLocalStorageUserSetting(settingKey: string): string | null {
   const legacyKey = settingKey;
-  const itemKey = `user-setting:${settingKey}`;
+  const itemKey = `user-setting:${settingKey}`; // to avoid conflict with other localStorage items, use prefix
   try {
-    const legacyValue = localStorage?.getItem(legacyKey);
-    const value = localStorage?.getItem(itemKey);
+    const legacyValue = localStorage?.getItem(legacyKey) ?? null;
+    const value = localStorage?.getItem(itemKey) ?? null; // avoid undefined
     if (value !== null && legacyValue !== null) {
       // if both values exist, remove the legacy one
       localStorage?.removeItem(legacyKey);
@@ -14,22 +14,22 @@ function getLocalStorageUserSetting(settingKey: string): string | null {
       return legacyValue;
     }
     return value;
-  } catch {
-    return null;
-  }
+  } catch {}
+  return null;
 }
 
 function setLocalStorageUserSetting(settingKey: string, value: string) {
   const legacyKey = settingKey;
   const itemKey = `user-setting:${settingKey}`;
-  localStorage?.removeItem(legacyKey);
-  localStorage?.setItem(itemKey, value);
+  try {
+    localStorage?.removeItem(legacyKey);
+    localStorage?.setItem(itemKey, value);
+  } catch {}
 }
 
 export const localUserSettings = {
   getString: (key: string, def: string = ''): string => {
-    const value = getLocalStorageUserSetting(key);
-    return value !== null ? value : def;
+    return getLocalStorageUserSetting(key) ?? def;
   },
   setString: (key: string, value: string) => {
     setLocalStorageUserSetting(key, value);
@@ -43,11 +43,9 @@ export const localUserSettings = {
   getJsonObject: (key: string, def: any = null):any => {
     try {
       const value = getLocalStorageUserSetting(key);
-      if (value === null) return def;
-      return JSON.parse(value);
-    } catch {
-      return def;
-    }
+      return value !== null ? JSON.parse(value) : def;
+    } catch {}
+    return def;
   },
   setJsonObject: (key: string, value: any) => {
     localUserSettings.setString(key, JSON.stringify(value));
