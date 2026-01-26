@@ -34,10 +34,10 @@ func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 
 	// Detect whether the pull request introduces changes by comparing the merged tree (treeHash)
-	// against the merge base (pr.MergeBase) using `git diff-tree`. The command returns exit code 0
+	// against the current base commit (baseCommitID) using `git diff-tree`. The command returns exit code 0
 	// if there is no diff between these trees (empty patch) and exit code 1 if there is a diff.
 	gitErr := gitrepo.RunCmd(ctx, pr.BaseRepo, gitcmd.NewCommand("diff-tree", "-r", "--quiet").
-		AddDynamicArguments(treeHash, pr.MergeBase))
+		AddDynamicArguments(treeHash, baseCommitID))
 	switch {
 	case gitErr == nil:
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
