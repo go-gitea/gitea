@@ -55,11 +55,13 @@ export const localUserSettings = {
     localUserSettings.setString(key, String(value));
   },
   getJsonObject: <T extends Record<string, any>>(key: string, def: T): T => {
+    const value = getLocalStorageUserSetting(key);
     try {
-      const value = getLocalStorageUserSetting(key);
       const decoded = value !== null ? JSON.parse(value) : def;
       return decoded ?? def;
-    } catch {}
+    } catch (e) {
+      console.error(`Unable to parse JSON value for local user settings ${key}=${value}`, e);
+    }
     return def;
   },
   setJsonObject: <T extends Record<string, any>>(key: string, value: T) => {
