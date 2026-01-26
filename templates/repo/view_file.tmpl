@@ -143,7 +143,7 @@
 			{{end}}
 		</div>
 		{{if .FileSidebarHTML}}
-		<div class="file-view-sidebar markup sidebar-panel-hidden">
+		<div class="file-view-sidebar markup sidebar-panel-hidden" role="navigation" aria-label="{{ctx.Locale.Tr "toc"}}">
 			{{.FileSidebarHTML}}
 		</div>
 		{{end}}
