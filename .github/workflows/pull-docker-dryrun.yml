@@ -14,7 +14,7 @@ jobs:
       contents: read
 
   container:
-    if: needs.files-changed.outputs.docker == 'true' || needs.files-changed.outputs.actions == 'true'
+    if: needs.files-changed.outputs.docker == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
     permissions:
