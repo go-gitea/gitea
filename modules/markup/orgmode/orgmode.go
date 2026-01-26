@@ -31,20 +31,16 @@ var (
 	_ markup.PostProcessRenderer = (*renderer)(nil)
 )
 
-// Name implements markup.Renderer
 func (renderer) Name() string {
 	return "orgmode"
 }
 
-// NeedPostProcess implements markup.PostProcessRenderer
 func (renderer) NeedPostProcess() bool { return true }
 
-// Extensions implements markup.Renderer
-func (renderer) Extensions() []string {
-	return []string{".org"}
+func (renderer) FileNamePatterns() []string {
+	return []string{"*.org"}
 }
 
-// SanitizerRules implements markup.Renderer
 func (renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{}
 }
