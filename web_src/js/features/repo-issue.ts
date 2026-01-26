@@ -19,7 +19,7 @@ import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 
-const {appSubUrl} = window.config;
+const {appSubUrl, i18n} = window.config;
 
 export function initRepoIssueSidebarDependency() {
   const elDropdown = document.querySelector('#new-dependency-drop-list');
@@ -264,20 +264,28 @@ export function initSuggestionApplyButtons(root: ParentNode = document) {
     const commentId = comment.getAttribute('data-comment-id');
     if (!applyUrl || !commentId) continue;
     const buttonLabel = comment.getAttribute('data-apply-suggestion-text') || 'Apply suggestion';
-    const suggestionBlocks = Array.from(comment.querySelectorAll<HTMLCodeElement>('pre > code.language-suggestion'));
-    suggestionBlocks.forEach((codeEl, index) => {
-      if (codeEl.getAttribute('data-suggestion-initialized')) return;
+    const suggestionBlocks = Array.from(comment.querySelectorAll('pre > code.language-suggestion'));
+    let index = 0;
+    for (const codeEl of suggestionBlocks) {
+      if (codeEl.getAttribute('data-suggestion-initialized')) {
+        index++;
+        continue;
+      }
       codeEl.setAttribute('data-suggestion-initialized', 'true');
       const pre = codeEl.parentElement;
-      if (!pre) return;
+      if (!pre) {
+        index++;
+        continue;
+      }
       pre.classList.add('suggestion-block');
-      const actions = createElementFromHTML(
-        `<div class="suggestion-actions">
+      const actions = createElementFromHTML(html`
+        <div class="suggestion-actions">
           <button type="button" class="ui tiny basic button apply-suggestion-button" data-comment-id="${commentId}" data-suggestion-index="${index}" data-apply-url="${applyUrl}">${buttonLabel}</button>
-        </div>`,
-      );
+        </div>
+      `);
       pre.after(actions);
-    });
+      index++;
+    }
   }
 }
 
@@ -335,20 +343,21 @@ export function initRepoPullRequestReview() {
     if (el.classList.contains('is-loading')) return;
     const url = el.getAttribute('data-apply-url');
     const index = el.getAttribute('data-suggestion-index');
-    if (!url || index == null) return;
+    if (!url || index === null) return;
     try {
       el.classList.add('is-loading');
       const response = await POST(url, {data: new URLSearchParams({index})});
       const data = await response.json();
-      if (!response.ok || !data?.ok) {
-        showErrorToast(data?.message ?? window.config.i18n.error_occurred);
+      const {message, ok} = data ?? {};
+      if (!response.ok || !ok) {
+        showErrorToast(message ?? i18n.error_occurred);
         return;
       }
-      showInfoToast(data.message ?? 'Suggestion applied');
+      showInfoToast(message ?? 'Suggestion applied');
       window.location.reload();
     } catch (error) {
       console.error(error);
-      showErrorToast(window.config.i18n.error_occurred);
+      showErrorToast(i18n.error_occurred);
     } finally {
       el.classList.remove('is-loading');
     }
@@ -457,10 +466,11 @@ export function initRepoPullRequestReview() {
       let lineStart = Number(idx);
       let lineEnd = Number(idx);
       if (diffSelection && diffSelection.path === path && diffSelection.side === side) {
+        const {start, end} = diffSelection;
         const lineNum = Number(idx);
-        if (lineNum >= diffSelection.start && lineNum <= diffSelection.end) {
-          lineStart = diffSelection.start;
-          lineEnd = diffSelection.end;
+        if (lineNum >= start && lineNum <= end) {
+          lineStart = start;
+          lineEnd = end;
         }
       }
       lineInput.value = String(lineStart);
@@ -472,7 +482,6 @@ export function initRepoPullRequestReview() {
       editor.focus();
     }
   });
-
 
   addDelegatedEventListener(document, 'click', '.code-diff td.lines-num span', (el, e: MouseEvent) => {
     const td = el.closest<HTMLTableCellElement>('td.lines-num');
@@ -487,7 +496,7 @@ export function initRepoPullRequestReview() {
     if (!path) return;
     const side = td.classList.contains('lines-num-new') ? 'right' : (td.classList.contains('lines-num-old') ? 'left' : null);
     if (!side) return;
-    const isShiftSelect = e.shiftKey && diffSelection && diffSelection.path === path && diffSelection.side === side;
+    const isShiftSelect = e.shiftKey && diffSelection?.path === path && diffSelection?.side === side;
     const start = isShiftSelect ? diffSelection!.start : lineNum;
     const end = lineNum;
     setDiffSelection(table, path, side, start, end);
