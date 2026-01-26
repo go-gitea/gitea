@@ -1,6 +1,13 @@
+const itemKeyPrefix = 'glus:'; // gitea-local-user-settings
+
+function handleLocalStorageError(e: any) {
+  // in the future, maybe we need to handle quota exceeded errors differently
+  console.error('Error using local storage for user settings', e);
+}
+
 function getLocalStorageUserSetting(settingKey: string): string | null {
   const legacyKey = settingKey;
-  const itemKey = `user-setting:${settingKey}`; // to avoid conflict with other localStorage items, use prefix
+  const itemKey = `${itemKeyPrefix}${settingKey}`; // to avoid conflict with other localStorage items, use prefix
   try {
     const legacyValue = localStorage?.getItem(legacyKey) ?? null;
     const value = localStorage?.getItem(itemKey) ?? null; // avoid undefined
@@ -14,17 +21,21 @@ function getLocalStorageUserSetting(settingKey: string): string | null {
       return legacyValue;
     }
     return value;
-  } catch {}
+  } catch (e) {
+    handleLocalStorageError(e);
+  }
   return null;
 }
 
 function setLocalStorageUserSetting(settingKey: string, value: string) {
   const legacyKey = settingKey;
-  const itemKey = `user-setting:${settingKey}`;
+  const itemKey = `${itemKeyPrefix}${settingKey}`;
   try {
     localStorage?.removeItem(legacyKey);
     localStorage?.setItem(itemKey, value);
-  } catch {}
+  } catch (e) {
+    handleLocalStorageError(e);
+  }
 }
 
 export const localUserSettings = {
