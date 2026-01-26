@@ -267,7 +267,7 @@ func ApplySuggestion(ctx *context.Context) {
 		LastCommitID: headCommit.ID.String(),
 		OldBranch:    pr.HeadBranch,
 		NewBranch:    pr.HeadBranch,
-		Message:      fmt.Sprintf("Apply suggestion to %s", comment.TreePath),
+		Message:      "Apply suggestion to " + comment.TreePath,
 		Content:      patch,
 	})
 	if err != nil {

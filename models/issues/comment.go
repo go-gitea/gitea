@@ -815,26 +815,25 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 
 		var commentMetaData *CommentMetaData
 		hasMetaData := false
-		if opts.ProjectColumnTitle != "" {
+		ensureCommentMetaData := func() {
 			if commentMetaData == nil {
 				commentMetaData = &CommentMetaData{}
 			}
+		}
+		if opts.ProjectColumnTitle != "" {
+			ensureCommentMetaData()
 			commentMetaData.ProjectColumnID = opts.ProjectColumnID
 			commentMetaData.ProjectColumnTitle = opts.ProjectColumnTitle
 			commentMetaData.ProjectTitle = opts.ProjectTitle
 			hasMetaData = true
 		}
 		if opts.SpecialDoerName != "" {
-			if commentMetaData == nil {
-				commentMetaData = &CommentMetaData{}
-			}
+			ensureCommentMetaData()
 			commentMetaData.SpecialDoerName = opts.SpecialDoerName
 			hasMetaData = true
 		}
 		if opts.CodeCommentLineStart != 0 || opts.CodeCommentLineEnd != 0 {
-			if commentMetaData == nil {
-				commentMetaData = &CommentMetaData{}
-			}
+			ensureCommentMetaData()
 			commentMetaData.CodeCommentLineStart = opts.CodeCommentLineStart
 			commentMetaData.CodeCommentLineEnd = opts.CodeCommentLineEnd
 			hasMetaData = true
