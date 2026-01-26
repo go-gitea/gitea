@@ -174,9 +174,11 @@ func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, r
 	return escaped, output, err
 }
 
-func renderSidebarTocHTML(rctx *markup.RenderContext, lang string) template.HTML {
-	if len(rctx.SidebarTocHeaders) > 0 {
-		return markup.RenderSidebarTocHTML(rctx.SidebarTocHeaders, lang)
+func renderSidebarTocHTML(rctx *markup.RenderContext) template.HTML {
+	if rctx.TocShowInSection == markup.TocShowInSidebar && len(rctx.TocHeadingItems) > 0 {
+		sb := strings.Builder{}
+		markup.RenderTocHeadingItems(rctx, map[string]string{"open": ""}, &sb)
+		return template.HTML(sb.String())
 	}
 	return ""
 }

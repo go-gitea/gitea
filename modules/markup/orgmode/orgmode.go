@@ -77,7 +77,10 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	}
 
 	// Extract headers from the document outline for sidebar TOC
-	ctx.SidebarTocHeaders = extractHeadersFromOutline(doc.Outline)
+	ctx.TocHeadingItems = extractTocHeadingItems(doc.Outline)
+	if len(ctx.TocHeadingItems) > 0 {
+		ctx.TocShowInSection = markup.TocShowInSidebar
+	}
 
 	res, err := doc.Write(w)
 	if err != nil {
@@ -87,15 +90,15 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	return err
 }
 
-// extractHeadersFromOutline recursively extracts headers from org document outline
-func extractHeadersFromOutline(outline org.Outline) []markup.Header {
-	var headers []markup.Header
-	collectHeaders(outline.Section, &headers)
-	return headers
+// extractTocHeadingItems recursively extracts headers from org document outline
+func extractTocHeadingItems(outline org.Outline) []*markup.TocHeadingItem {
+	var items []*markup.TocHeadingItem
+	collectTocHeadingItems(outline.Section, &items)
+	return items
 }
 
-// collectHeaders recursively collects headers from sections
-func collectHeaders(section *org.Section, headers *[]markup.Header) {
+// collectTocHeadingItems recursively collects headers from sections
+func collectTocHeadingItems(section *org.Section, items *[]*markup.TocHeadingItem) {
 	if section == nil {
 		return
 	}
@@ -105,16 +108,16 @@ func collectHeaders(section *org.Section, headers *[]markup.Header) {
 		h := section.Headline
 		// Convert headline title nodes to plain text
 		titleText := org.String(h.Title...)
-		*headers = append(*headers, markup.Header{
-			Level: h.Lvl,
-			Text:  titleText,
-			ID:    h.ID(),
+		*items = append(*items, &markup.TocHeadingItem{
+			HeadingLevel: h.Lvl,
+			InnerText:    titleText,
+			AnchorID:     h.ID(),
 		})
 	}
 
 	// Process child sections
 	for _, child := range section.Children {
-		collectHeaders(child, headers)
+		collectTocHeadingItems(child, items)
 	}
 }
 

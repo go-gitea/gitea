@@ -91,8 +91,6 @@ type RenderContext struct {
 	TocShowInSection TocShowInSectionType
 	TocHeadingItems  []*TocHeadingItem
 
-	SidebarTocHeaders []Header // Headers for generating sidebar TOC (used by README/file view)
-
 	RenderHelper   RenderHelper
 	RenderOptions  RenderOptions
 	RenderInternal internal.RenderInternal
