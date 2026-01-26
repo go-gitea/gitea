@@ -74,16 +74,22 @@ func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase
 		cmd.AddOptionFormat("--merge-base=%s", mergeBase)
 	}
 
-	stdout := &bytes.Buffer{}
-	gitErr := RunCmd(ctx, repo, cmd.AddDynamicArguments(baseRef, headRef).WithStdoutCopy(stdout))
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+
+	gitErr := RunCmd(ctx, repo, cmd.AddDynamicArguments(baseRef, headRef))
 	// For a successful, non-conflicted merge, the exit status is 0. When the merge has conflicts, the exit status is 1.
 	// A merge can have conflicts without having individual files conflict
 	// https://git-scm.com/docs/git-merge-tree/2.38.0#_mistakes_to_avoid
 	switch {
 	case gitErr == nil:
-		return strings.TrimSpace(strings.TrimSuffix(stdout.String(), "\x00")), false, nil, nil
+		bs, err := io.ReadAll(stdoutReader)
+		if err != nil {
+			return "", false, nil, fmt.Errorf("read merge-tree output failed: %w", err)
+		}
+		return strings.TrimSpace(strings.TrimSuffix(string(bs), "\x00")), false, nil, nil
 	case gitcmd.IsErrorExitCode(gitErr, 1):
-		treeID, conflictedFiles, err := parseMergeTreeOutput(stdout, MaxConflictedDetectFiles)
+		treeID, conflictedFiles, err := parseMergeTreeOutput(stdoutReader, MaxConflictedDetectFiles)
 		if err != nil {
 			return "", false, nil, fmt.Errorf("parse merge-tree output failed: %w", err)
 		}

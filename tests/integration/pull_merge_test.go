@@ -343,17 +343,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 	})
 }
 
-func TestCantMergeConflict_MergeTree(t *testing.T) {
-	defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
-	testCantMergeConflict(t)
-}
-
-func TestCantMergeConflict_TmpRepo(t *testing.T) {
-	defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
-	testCantMergeConflict(t)
-}
-
-func testCantMergeConflict(t *testing.T) {
+func TestCantMergeConflict(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
@@ -559,17 +549,7 @@ func TestCantFastForwardOnlyMergeDiverging(t *testing.T) {
 	})
 }
 
-func TestConflictChecking_MergeTree(t *testing.T) {
-	defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, true)()
-	testConflictChecking(t)
-}
-
-func TestConflictChecking_TmpRepo(t *testing.T) {
-	defer test.MockVariableValue(&git.DefaultFeatures().SupportGitMergeTree, false)()
-	testConflictChecking(t)
-}
-
-func testConflictChecking(t *testing.T) {
+func TestConflictChecking(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 

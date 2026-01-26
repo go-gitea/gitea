@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -67,14 +66,18 @@ var patchErrorSuffices = []string{
 	": does not exist in index",
 }
 
-func testPullRequestBranchMergeable(pr *issues_model.PullRequest) error {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("testPullRequestBranchMergeable: %s", pr))
+func testPullRequestBranchMergeable(ctx context.Context, pr *issues_model.PullRequest) error {
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("testPullRequestBranchMergeable: %s", pr))
 	defer finished()
 
 	if git.DefaultFeatures().SupportGitMergeTree {
 		return testPullRequestMergeTree(ctx, pr)
 	}
 
+	return testPullRequestTmpRepoBranchMergeable(ctx, pr)
+}
+
+func testPullRequestTmpRepoBranchMergeable(ctx context.Context, pr *issues_model.PullRequest) error {
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
 		if !git_model.IsErrBranchNotExist(err) {
@@ -84,10 +87,6 @@ func testPullRequestBranchMergeable(pr *issues_model.PullRequest) error {
 	}
 	defer cancel()
 
-	return testPullRequestTmpRepoBranchMergeable(ctx, prCtx, pr)
-}
-
-func testPullRequestTmpRepoBranchMergeable(ctx context.Context, prCtx *prTmpRepoContext, pr *issues_model.PullRequest) error {
 	gitRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %w", err)

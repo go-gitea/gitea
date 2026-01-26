@@ -7,7 +7,9 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_parseMergeTreeOutput(t *testing.T) {
@@ -24,4 +26,21 @@ func Test_parseMergeTreeOutput(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "837480c2773160381cbe6bcce90f7732789b5856", treeID)
 	assert.Empty(t, conflictedFiles)
+}
+
+func TestMergeTreeDirectoryRenameConflictWithoutFiles(t *testing.T) {
+	if !git.DefaultFeatures().SupportGitMergeTree {
+		t.Skip("git merge-tree not supported")
+	}
+
+	repo := &mockRepository{path: "repo-dir-rename-conflict"}
+
+	mergeBase, err := MergeBase(t.Context(), repo, "add", "split")
+	require.NoError(t, err)
+
+	treeID, conflicted, conflictedFiles, err := MergeTree(t.Context(), repo, "add", "split", mergeBase)
+	require.NoError(t, err)
+	assert.True(t, conflicted)
+	assert.Empty(t, conflictedFiles)
+	assert.Equal(t, "5e3dd4cfc5b11e278a35b2daa83b7274175e3ab1", treeID)
 }
