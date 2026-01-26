@@ -1395,7 +1395,7 @@ func GetDiffShortStat(ctx context.Context, repoStorage gitrepo.Repository, gitRe
 
 // SyncUserSpecificDiff inserts user-specific data such as which files the user has already viewed on the given diff
 // Additionally, the database is updated asynchronously if files have changed since the last review
-func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, diff *Diff, opts *DiffOptions) (*pull_model.ReviewState, error) {
+func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, diff *Diff, opts *DiffOptions) (*pull_model.ReviewState, error) {
 	review, err := pull_model.GetNewestReviewState(ctx, userID, pull.ID)
 	if err != nil {
 		return nil, err
@@ -1409,14 +1409,18 @@ func SyncUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.
 		latestCommit = pull.HeadBranch // opts.AfterCommitID is preferred because it handles PRs from forks correctly and the branch name doesn't
 	}
 
-	changedFiles, errIgnored := gitRepo.GetFilesChangedBetween(review.CommitSHA, latestCommit)
+	if err := pull.LoadBaseRepo(ctx); err != nil {
+		return nil, err
+	}
+
+	changedFiles, errIgnored := gitrepo.GetFilesChangedBetween(ctx, pull.BaseRepo, review.CommitSHA, latestCommit)
 	// There are way too many possible errors.
 	// Examples are various git errors such as the commit the review was based on was gc'ed and hence doesn't exist anymore as well as unrecoverable errors where we should serve a 500 response
 	// Due to the current architecture and physical limitation of needing to compare explicit error messages, we can only choose one approach without the code getting ugly
 	// For SOME of the errors such as the gc'ed commit, it would be best to mark all files as changed
 	// But as that does not work for all potential errors, we simply mark all files as unchanged and drop the error which always works, even if not as good as possible
 	if errIgnored != nil {
-		log.Error("Could not get changed files between %s and %s for pull request %d in repo with path %s. Assuming no changes. Error: %w", review.CommitSHA, latestCommit, pull.Index, gitRepo.Path, err)
+		log.Error("Could not get changed files between %s and %s for pull request %d in repo with path %s. Assuming no changes. Error: %w", review.CommitSHA, latestCommit, pull.Index, pull.BaseRepo.RelativePath(), err)
 	}
 
 	filesChangedSinceLastDiff := make(map[string]pull_model.ViewedState)

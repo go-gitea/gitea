@@ -4,8 +4,6 @@
 package git
 
 import (
-	"bytes"
-	"io"
 	"path/filepath"
 	"testing"
 
@@ -13,39 +11,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestGetFormatPatch(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	clonedPath, err := cloneRepo(t, bareRepo1Path)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-
-	repo, err := OpenRepository(t.Context(), clonedPath)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-	defer repo.Close()
-
-	rd := &bytes.Buffer{}
-	err = repo.GetPatch("8d92fc95^...8d92fc95", rd)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-
-	patchb, err := io.ReadAll(rd)
-	if err != nil {
-		assert.NoError(t, err)
-		return
-	}
-
-	patch := string(patchb)
-	assert.Regexp(t, "^From 8d92fc95", patch)
-	assert.Contains(t, patch, "Subject: [PATCH] Add file2.txt")
-}
 
 func TestReadPatch(t *testing.T) {
 	// Ensure we can read the patch files
@@ -126,46 +91,4 @@ func TestReadWritePullHead(t *testing.T) {
 		WithDir(repo.Path).
 		RunStdString(t.Context())
 	assert.NoError(t, err)
-}
-
-func TestGetCommitFilesChanged(t *testing.T) {
-	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(t.Context(), bareRepo1Path)
-	assert.NoError(t, err)
-	defer repo.Close()
-
-	objectFormat, err := repo.GetObjectFormat()
-	assert.NoError(t, err)
-
-	testCases := []struct {
-		base, head string
-		files      []string
-	}{
-		{
-			objectFormat.EmptyObjectID().String(),
-			"95bb4d39648ee7e325106df01a621c530863a653",
-			[]string{"file1.txt"},
-		},
-		{
-			objectFormat.EmptyObjectID().String(),
-			"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
-			[]string{"file2.txt"},
-		},
-		{
-			"95bb4d39648ee7e325106df01a621c530863a653",
-			"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
-			[]string{"file2.txt"},
-		},
-		{
-			objectFormat.EmptyTree().String(),
-			"8d92fc957a4d7cfd98bc375f0b7bb189a0d6c9f2",
-			[]string{"file1.txt", "file2.txt"},
-		},
-	}
-
-	for _, tc := range testCases {
-		changedFiles, err := repo.GetFilesChangedBetween(tc.base, tc.head)
-		assert.NoError(t, err)
-		assert.ElementsMatch(t, tc.files, changedFiles)
-	}
 }

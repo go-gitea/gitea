@@ -1,19 +1,16 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package git
+package gitrepo
 
 import (
-	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGrepSearch(t *testing.T) {
-	repo, err := OpenRepository(t.Context(), filepath.Join(testReposDir, "language_stats_repo"))
-	assert.NoError(t, err)
-	defer repo.Close()
+	repo := &mockRepository{path: "language_stats_repo"}
 
 	res, err := GrepSearch(t.Context(), repo, "void", GrepOptions{})
 	assert.NoError(t, err)
@@ -74,7 +71,7 @@ func TestGrepSearch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, res)
 
-	res, err = GrepSearch(t.Context(), &Repository{Path: "no-such-git-repo"}, "no-such-content", GrepOptions{})
+	res, err = GrepSearch(t.Context(), &mockRepository{path: "no-such-git-repo"}, "no-such-content", GrepOptions{})
 	assert.Error(t, err)
 	assert.Empty(t, res)
 }

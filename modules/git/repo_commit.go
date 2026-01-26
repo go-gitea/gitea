@@ -277,26 +277,6 @@ func (repo *Repository) CommitsByFileAndRange(opts CommitsByFileAndRangeOptions)
 	return commits, err
 }
 
-// FilesCountBetween return the number of files changed between two commits
-func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (int, error) {
-	stdout, _, err := gitcmd.NewCommand("diff", "--name-only").
-		AddDynamicArguments(startCommitID + "..." + endCommitID).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
-	if err != nil && strings.Contains(err.Error(), "no merge base") {
-		// git >= 2.28 now returns an error if startCommitID and endCommitID have become unrelated.
-		// previously it would return the results of git diff --name-only startCommitID endCommitID so let's try that...
-		stdout, _, err = gitcmd.NewCommand("diff", "--name-only").
-			AddDynamicArguments(startCommitID, endCommitID).
-			WithDir(repo.Path).
-			RunStdString(repo.Ctx)
-	}
-	if err != nil {
-		return 0, err
-	}
-	return len(strings.Split(stdout, "\n")) - 1, nil
-}
-
 // CommitsBetween returns a list that contains commits between [before, last).
 // If before is detached (removed by reset + push) it is not included.
 func (repo *Repository) CommitsBetween(last, before *Commit) ([]*Commit, error) {
@@ -509,18 +489,6 @@ func (repo *Repository) GetCommitsFromIDs(commitIDs []string) []*Commit {
 	}
 
 	return commits
-}
-
-// IsCommitInBranch check if the commit is on the branch
-func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err error) {
-	stdout, _, err := gitcmd.NewCommand("branch", "--contains").
-		AddDynamicArguments(commitID, branch).
-		WithDir(repo.Path).
-		RunStdString(repo.Ctx)
-	if err != nil {
-		return false, err
-	}
-	return len(stdout) > 0, err
 }
 
 // GetCommitBranchStart returns the commit where the branch diverged

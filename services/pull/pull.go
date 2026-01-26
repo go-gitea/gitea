@@ -1034,7 +1034,7 @@ func IsHeadEqualWithBranch(ctx context.Context, pr *issues_model.PullRequest, br
 			return false, err
 		}
 	}
-	return baseCommit.HasPreviousCommit(headCommit.ID)
+	return gitrepo.HasPreviousCommit(ctx, pr.BaseRepo, baseCommit.ID.String(), headCommit.ID.String())
 }
 
 type CommitInfo struct {
