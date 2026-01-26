@@ -187,33 +187,35 @@
 					{{end}}
 				</div>
 			{{end}}
-			{{if .HasPullRequest}}
-				<div class="ui segment flex-text-block tw-gap-4">
-					{{template "shared/issueicon" .}}
-					<div class="issue-title tw-break-anywhere">
-						{{ctx.RenderUtils.RenderIssueTitle .PullRequest.Issue.Title $.Repository}}
-						<span class="index">#{{.PullRequest.Issue.Index}}</span>
+			{{if not $.CompareInfo.DirectComparison}}
+				{{if .HasPullRequest}}
+					<div class="ui segment flex-text-block tw-gap-4">
+						{{template "shared/issueicon" .}}
+						<div class="issue-title tw-break-anywhere">
+							{{ctx.RenderUtils.RenderIssueTitle .PullRequest.Issue.Title $.Repository}}
+							<span class="index">#{{.PullRequest.Issue.Index}}</span>
+						</div>
+						<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui compact button primary">
+							{{ctx.Locale.Tr "repo.pulls.view"}}
+						</a>
 					</div>
-					<a href="{{$.RepoLink}}/pulls/{{.PullRequest.Issue.Index}}" class="ui compact button primary">
-						{{ctx.Locale.Tr "repo.pulls.view"}}
-					</a>
-				</div>
-			{{else if .Repository.IsArchived}}
-				<div class="ui warning message">
-					{{if .Repository.ArchivedUnix.IsZero}}
-						{{ctx.Locale.Tr "repo.archive.title"}}
-					{{else}}
-						{{ctx.Locale.Tr "repo.archive.title_date" (DateUtils.AbsoluteLong .Repository.ArchivedUnix)}}
-					{{end}}
-				</div>
-			{{else if $allowCreatePR}}
-				<div class="ui info message flex-text-block pullrequest-form-toggle {{if .ExpandNewPrForm}}tw-hidden{{end}}">
-					<span class="tw-flex-1">{{ctx.Locale.Tr "repo.pulls.new.description"}}</span>
-					<a class="ui button primary show-panel toggle" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
-				</div>
-				<div class="pullrequest-form {{if not .ExpandNewPrForm}}tw-hidden{{end}}">
-					{{template "repo/issue/new_form" .}}
-				</div>
+				{{else if .Repository.IsArchived}}
+					<div class="ui warning message">
+						{{if .Repository.ArchivedUnix.IsZero}}
+							{{ctx.Locale.Tr "repo.archive.title"}}
+						{{else}}
+							{{ctx.Locale.Tr "repo.archive.title_date" (DateUtils.AbsoluteLong .Repository.ArchivedUnix)}}
+						{{end}}
+					</div>
+				{{else if $allowCreatePR}}
+					<div class="ui info message flex-text-block pullrequest-form-toggle {{if .ExpandNewPrForm}}tw-hidden{{end}}">
+						<span class="tw-flex-1">{{ctx.Locale.Tr "repo.pulls.new.description"}}</span>
+						<a class="ui button primary show-panel toggle" data-panel=".pullrequest-form-toggle, .pullrequest-form">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
+					</div>
+					<div class="pullrequest-form {{if not .ExpandNewPrForm}}tw-hidden{{end}}">
+						{{template "repo/issue/new_form" .}}
+					</div>
+				{{end}}
 			{{end}}
 		{{else}}{{/* not singed-in or not for pull-request */}}
 			{{if not .CommitCount}}
