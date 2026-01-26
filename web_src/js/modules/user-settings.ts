@@ -62,7 +62,7 @@ export const localUserSettings = {
     } catch {}
     return def;
   },
-  setJsonObject: (key: string, value: any) => {
+  setJsonObject: <T extends Record<string, any>>(key: string, value: T) => {
     localUserSettings.setString(key, JSON.stringify(value));
   },
 };
