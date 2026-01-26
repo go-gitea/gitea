@@ -357,6 +357,8 @@ func CreatePullReview(ctx *context.APIContext) {
 			ctx.Repo.GitRepo,
 			pr.Issue,
 			line,
+			line,
+			line,
 			c.Body,
 			c.Path,
 			true, // pending review

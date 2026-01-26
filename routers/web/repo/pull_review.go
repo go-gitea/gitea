@@ -10,8 +10,11 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
+	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,6 +25,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
+	files_service "code.gitea.io/gitea/services/repository/files"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -81,6 +85,23 @@ func CreateCodeComment(ctx *context.Context) {
 	if form.Side == "previous" {
 		signedLine *= -1
 	}
+	lineStart := form.LineStart
+	lineEnd := form.LineEnd
+	if lineStart == 0 {
+		lineStart = form.Line
+	}
+	if lineEnd == 0 {
+		lineEnd = form.Line
+	}
+	if lineStart > lineEnd {
+		lineStart, lineEnd = lineEnd, lineStart
+	}
+	signedLineStart := lineStart
+	signedLineEnd := lineEnd
+	if form.Side == "previous" {
+		signedLineStart *= -1
+		signedLineEnd *= -1
+	}
 
 	var attachments []string
 	if setting.Attachment.Enabled {
@@ -92,6 +113,8 @@ func CreateCodeComment(ctx *context.Context) {
 		ctx.Repo.GitRepo,
 		issue,
 		signedLine,
+		signedLineStart,
+		signedLineEnd,
 		form.Content,
 		form.TreePath,
 		!form.SingleReview,
@@ -113,6 +136,156 @@ func CreateCodeComment(ctx *context.Context) {
 	log.Trace("Comment created: %-v #%d[%d] Comment[%d]", ctx.Repo.Repository, issue.Index, issue.ID, comment.ID)
 
 	renderConversation(ctx, comment, form.Origin)
+}
+
+// ApplySuggestion applies a suggestion block from a code comment.
+func ApplySuggestion(ctx *context.Context) {
+	commentID := ctx.PathParamInt64("id")
+	suggestionIndex := ctx.FormInt("index")
+	if suggestionIndex < 0 {
+		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+
+	comment, err := issues_model.GetCommentByID(ctx, commentID)
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+	if comment.Type != issues_model.CommentTypeCode {
+		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+	if err := comment.LoadIssue(ctx); err != nil {
+		ctx.ServerError("comment.LoadIssue", err)
+		return
+	}
+	if !comment.Issue.IsPull {
+		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+	if err := comment.Issue.LoadPullRequest(ctx); err != nil {
+		ctx.ServerError("comment.Issue.LoadPullRequest", err)
+		return
+	}
+	pr := comment.Issue.PullRequest
+
+	if err := pr.LoadHeadRepo(ctx); err != nil {
+		ctx.ServerError("LoadHeadRepo", err)
+		return
+	}
+	if pr.HeadRepo == nil {
+		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+
+	canWriteToHeadRepo := false
+	if ctx.IsSigned {
+		permHead, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+		if permHead.CanWrite(unit_model.TypeCode) {
+			canWriteToHeadRepo = true
+		}
+		if !canWriteToHeadRepo {
+			if err := pr.LoadBaseRepo(ctx); err != nil {
+				ctx.ServerError("LoadBaseRepo", err)
+				return
+			}
+			permBase, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
+			}
+			if pr.AllowMaintainerEdit && permBase.CanWrite(unit_model.TypeCode) {
+				canWriteToHeadRepo = true
+			}
+		}
+	}
+	if !canWriteToHeadRepo {
+		ctx.JSON(http.StatusForbidden, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+
+	if comment.TreePath == "" {
+		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+
+	lineStart := comment.Line
+	lineEnd := comment.Line
+	if comment.CommentMetaData != nil {
+		if comment.CommentMetaData.CodeCommentLineStart != 0 {
+			lineStart = comment.CommentMetaData.CodeCommentLineStart
+		}
+		if comment.CommentMetaData.CodeCommentLineEnd != 0 {
+			lineEnd = comment.CommentMetaData.CodeCommentLineEnd
+		}
+	}
+	if lineStart < 0 || lineEnd < 0 {
+		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+
+	blocks := pull_service.ParseSuggestionBlocks(comment.Content)
+	if suggestionIndex >= len(blocks) {
+		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.HeadRepo)
+	if err != nil {
+		ctx.ServerError("RepositoryFromContextOrOpen", err)
+		return
+	}
+	defer closer.Close()
+
+	headCommit, err := gitRepo.GetBranchCommit(pr.HeadBranch)
+	if err != nil {
+		ctx.ServerError("GetBranchCommit", err)
+		return
+	}
+	if comment.Invalidated || (comment.CommitSHA != "" && comment.CommitSHA != headCommit.ID.String()) {
+		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_outdated")})
+		return
+	}
+	fileContent, err := headCommit.GetFileContent(comment.TreePath, 0)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+
+	patch, err := pull_service.BuildSuggestionPatch(comment.TreePath, fileContent, int(lineStart), int(lineEnd), blocks[suggestionIndex].Content, setting.UI.CodeCommentLines)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+
+	_, err = files_service.ApplyDiffPatch(ctx, pr.HeadRepo, ctx.Doer, &files_service.ApplyDiffPatchOptions{
+		LastCommitID: headCommit.ID.String(),
+		OldBranch:    pr.HeadBranch,
+		NewBranch:    pr.HeadBranch,
+		Message:      fmt.Sprintf("Apply suggestion to %s", comment.TreePath),
+		Content:      patch,
+	})
+	if err != nil {
+		if files_service.IsErrUserCannotCommit(err) {
+			ctx.JSON(http.StatusForbidden, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+			return
+		}
+		ctx.JSON(http.StatusInternalServerError, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+
+	if canResolve, err := issues_model.CanMarkConversation(ctx, comment.Issue, ctx.Doer); err == nil && canResolve {
+		if err := issues_model.MarkConversation(ctx, comment, ctx.Doer, true); err != nil {
+			log.Warn("ApplySuggestion: unable to resolve conversation for comment %d: %v", comment.ID, err)
+		}
+	}
+
+	ctx.JSON(http.StatusOK, map[string]any{"ok": true, "message": ctx.Locale.Tr("repo.diff.comment.suggestion_applied")})
 }
 
 // UpdateResolveConversation add or remove an Conversation resolved mark
