@@ -149,7 +149,7 @@ export class ComboMarkdownEditor {
       e.preventDefault();
       const enabled = !localUserSettings.getBoolean('markdown-editor-monospace');
       localUserSettings.setBoolean('markdown-editor-monospace', enabled);
-      this.applyMonospaceToAllEditors();
+      applyMonospaceToAllEditors();
     });
 
     if (this.supportEasyMDE) {
@@ -414,13 +414,13 @@ export class ComboMarkdownEditor {
     this.buttonMonospace.setAttribute('data-tooltip-content', text);
     this.buttonMonospace.setAttribute('aria-checked', String(enabled));
   }
+}
 
-  applyMonospaceToAllEditors() {
-    const editors = document.querySelectorAll<ComboMarkdownEditorContainer>('.combo-markdown-editor');
-    for (const editorContainer of editors) {
-      const editor = getComboMarkdownEditor(editorContainer);
-      if (editor) editor.applyMonospace();
-    }
+function applyMonospaceToAllEditors() {
+  const editors = document.querySelectorAll<ComboMarkdownEditorContainer>('.combo-markdown-editor');
+  for (const editorContainer of editors) {
+    const editor = getComboMarkdownEditor(editorContainer);
+    if (editor) editor.applyMonospace();
   }
 }
 
