@@ -1,3 +1,6 @@
+// Some people deploy Gitea under a subpath, so it needs prefix to avoid local storage key conflicts.
+// And these keys are for user settings only, it also needs a specific prefix,
+// in case in the future there are other uses of local storage and/or we need to clear some keys when the quote is exceeded.
 const itemKeyPrefix = 'glus:'; // gitea-local-user-settings
 
 function handleLocalStorageError(e: any) {
@@ -7,7 +10,7 @@ function handleLocalStorageError(e: any) {
 
 function getLocalStorageUserSetting(settingKey: string): string | null {
   const legacyKey = settingKey;
-  const itemKey = `${itemKeyPrefix}${settingKey}`; // to avoid conflict with other localStorage items, use prefix
+  const itemKey = `${itemKeyPrefix}${settingKey}`;
   try {
     const legacyValue = localStorage?.getItem(legacyKey) ?? null;
     const value = localStorage?.getItem(itemKey) ?? null; // avoid undefined
