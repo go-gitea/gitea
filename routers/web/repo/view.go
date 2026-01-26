@@ -151,12 +151,7 @@ func loadLatestCommitData(ctx *context.Context, latestCommit *git.Commit) bool {
 	return true
 }
 
-func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
-	renderer, err := markup.FindRendererByContext(renderCtx)
-	if err != nil {
-		return nil, "", err
-	}
-
+func markupRenderToHTML(ctx *context.Context, renderCtx *markup.RenderContext, renderer markup.Renderer, input io.Reader) (escaped *charset.EscapeStatus, output template.HTML, err error) {
 	markupRd, markupWr := io.Pipe()
 	defer markupWr.Close()
 

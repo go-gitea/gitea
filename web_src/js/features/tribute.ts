@@ -29,7 +29,7 @@ export async function attachTribute(element: HTMLElement) {
         return html`<div class="tribute-item">${htmlRaw(emojiHTML(item.original))}<span>${item.original}</span></div>`;
       },
     }, { // mentions
-      values: window.config.mentionValues ?? [],
+      values: window.config.mentionValues,
       requireLeadingSpace: true,
       menuItemTemplate: (item: TributeItem) => {
         const fullNameHtml = item.original.fullname && item.original.fullname !== '' ? html`<span class="fullname">${item.original.fullname}</span>` : '';

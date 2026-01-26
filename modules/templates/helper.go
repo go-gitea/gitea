@@ -25,8 +25,6 @@ import (
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() template.FuncMap {
 	return map[string]any{
-		"ctx": func() any { return nil }, // template context function
-
 		"DumpVar": dumpVar,
 		"NIL":     func() any { return nil },
 

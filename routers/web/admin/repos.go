@@ -11,10 +11,10 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -134,12 +134,12 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
 	}
-	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName))
+	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName)))
 	if err != nil {
 		ctx.ServerError("IsDir", err)
 		return
 	}
-	if has || !isDir {
+	if has || !exist {
 		// Fallthrough to failure mode
 	} else if action == "adopt" {
 		if _, err := repo_service.AdoptRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{

@@ -405,16 +405,13 @@ func TestCantMergeUnrelated(t *testing.T) {
 		err := gitcmd.NewCommand("read-tree", "--empty").WithDir(path).Run(t.Context())
 		assert.NoError(t, err)
 
-		stdin := strings.NewReader("Unrelated File")
-		var stdout strings.Builder
-		err = gitcmd.NewCommand("hash-object", "-w", "--stdin").
+		stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
 			WithDir(path).
-			WithStdin(stdin).
-			WithStdout(&stdout).
-			Run(t.Context())
+			WithStdinBytes([]byte("Unrelated File")).
+			RunStdString(t.Context())
 
 		assert.NoError(t, err)
-		sha := strings.TrimSpace(stdout.String())
+		sha := strings.TrimSpace(stdout)
 
 		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
 			AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").
@@ -441,15 +438,13 @@ func TestCantMergeUnrelated(t *testing.T) {
 		_, _ = messageBytes.WriteString("Unrelated")
 		_, _ = messageBytes.WriteString("\n")
 
-		stdout.Reset()
-		err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
+		stdout, _, err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
 			WithEnv(env).
 			WithDir(path).
-			WithStdin(messageBytes).
-			WithStdout(&stdout).
-			Run(t.Context())
+			WithStdinBytes(messageBytes.Bytes()).
+			RunStdString(t.Context())
 		assert.NoError(t, err)
-		commitSha := strings.TrimSpace(stdout.String())
+		commitSha := strings.TrimSpace(stdout)
 
 		_, _, err = gitcmd.NewCommand("branch", "unrelated").
 			AddDynamicArguments(commitSha).
@@ -1020,20 +1015,16 @@ func TestPullAutoMergeAfterCommitStatusSucceedAndApprovalForAgitFlow(t *testing.
 		})
 		assert.NoError(t, err)
 
-		stderrBuf := &bytes.Buffer{}
-
-		err = gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
+		_, stderr, err := gitcmd.NewCommand("push", "origin", "HEAD:refs/for/master", "-o").
 			AddDynamicArguments(`topic=test/head2`).
 			AddArguments("-o").
 			AddDynamicArguments(`title="create a test pull request with agit"`).
 			AddArguments("-o").
 			AddDynamicArguments(`description="This PR is a test pull request which created with agit"`).
 			WithDir(dstPath).
-			WithStderr(stderrBuf).
-			Run(t.Context())
+			RunStdString(t.Context())
 		assert.NoError(t, err)
-
-		assert.Contains(t, stderrBuf.String(), setting.AppURL+"user2/repo1/pulls/6")
+		assert.Contains(t, stderr, setting.AppURL+"user2/repo1/pulls/6")
 
 		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{

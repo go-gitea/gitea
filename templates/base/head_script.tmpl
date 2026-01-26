@@ -28,6 +28,8 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 				['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}', name: '{{$.MentionableTeamsOrg}}/{{.Name}}', avatar: '{{$.MentionableTeamsOrgAvatar}}'}],
 			{{- end -}}
 		]).values()),
+		{{else}}
+		mentionValues: [],
 		{{end}}
 		mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
 		{{/* this global i18n object should only contain general texts. for specialized texts, it should be provided inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}

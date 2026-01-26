@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -128,7 +129,9 @@ func prepareUserNotificationsData(ctx *context.Context) {
 	ctx.Data["Notifications"] = notifications
 	ctx.Data["Link"] = setting.AppSubURL + "/notifications"
 	ctx.Data["SequenceNumber"] = ctx.FormString("sequence-number")
+
 	pager.AddParamFromRequest(ctx.Req)
+	pager.RemoveParam(container.SetOf("div-only", "sequence-number"))
 	ctx.Data["Page"] = pager
 }
 

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
@@ -126,20 +127,47 @@ func resetLocale(ctx *context.Context, u *user_model.User) error {
 	return nil
 }
 
-func RedirectAfterLogin(ctx *context.Context) {
+func rememberAuthRedirectLink(ctx *context.Context) {
 	redirectTo := ctx.FormString("redirect_to")
 	if redirectTo == "" {
-		redirectTo = ctx.GetSiteCookie("redirect_to")
+		if ref, err := url.Parse(ctx.Req.Referer()); err == nil && httplib.IsCurrentGiteaSiteURL(ctx, ctx.Req.Referer()) {
+			// the request paths starting with "/user/" are either:
+			// * auth related pages: don't redirect back to them
+			// * user settings pages: they have "require sign-in" protection already, no "referer redirect" would happen
+			skipRefererRedirect := strings.HasPrefix(ref.Path, setting.AppSubURL+"/user/")
+			if !skipRefererRedirect {
+				redirectTo = ref.RequestURI()
+			}
+		}
 	}
-	middleware.DeleteRedirectToCookie(ctx.Resp)
-	nextRedirectTo := setting.AppSubURL + string(setting.LandingPageURL)
-	if setting.LandingPageURL == setting.LandingPageLogin {
-		nextRedirectTo = setting.AppSubURL + "/" // do not cycle-redirect to the login page
+	if redirectTo != "" {
+		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	}
-	ctx.RedirectToCurrentSite(redirectTo, nextRedirectTo)
 }
 
-func CheckAutoLogin(ctx *context.Context) bool {
+func consumeAuthRedirectLink(ctx *context.Context) string {
+	redirects := []string{ctx.FormString("redirect_to"), middleware.GetRedirectToCookie(ctx.Req)}
+	middleware.DeleteRedirectToCookie(ctx.Resp)
+	if setting.LandingPageURL == setting.LandingPageLogin {
+		redirects = append(redirects, setting.AppSubURL+"/") // do not cycle-redirect to the login page
+	} else {
+		redirects = append(redirects, setting.AppSubURL+string(setting.LandingPageURL))
+	}
+	for _, link := range redirects {
+		if link != "" && httplib.IsCurrentGiteaSiteURL(ctx, link) {
+			return link
+		}
+	}
+	return setting.AppSubURL + "/"
+}
+
+func redirectAfterAuth(ctx *context.Context) {
+	ctx.RedirectToCurrentSite(consumeAuthRedirectLink(ctx))
+}
+
+func performAutoLogin(ctx *context.Context) bool {
+	rememberAuthRedirectLink(ctx)
+
 	isSucceed, err := autoSignIn(ctx) // try to auto-login
 	if err != nil {
 		if errors.Is(err, auth_service.ErrAuthTokenInvalidHash) {
@@ -150,13 +178,8 @@ func CheckAutoLogin(ctx *context.Context) bool {
 		return true
 	}
 
-	redirectTo := ctx.FormString("redirect_to")
-	if len(redirectTo) > 0 {
-		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
-	}
-
 	if isSucceed {
-		RedirectAfterLogin(ctx)
+		redirectAfterAuth(ctx)
 		return true
 	}
 
@@ -181,11 +204,11 @@ func prepareSignInPageData(ctx *context.Context) {
 
 // SignIn render sign in page
 func SignIn(ctx *context.Context) {
-	if CheckAutoLogin(ctx) {
+	if performAutoLogin(ctx) {
 		return
 	}
 	if ctx.IsSigned {
-		RedirectAfterLogin(ctx)
+		redirectAfterAuth(ctx)
 		return
 	}
 	prepareSignInPageData(ctx)
@@ -295,19 +318,19 @@ func SignInPost(ctx *context.Context) {
 
 // This handles the final part of the sign-in process of the user.
 func handleSignIn(ctx *context.Context, u *user_model.User, remember bool) {
-	redirect := handleSignInFull(ctx, u, remember, true)
+	handleSignInFull(ctx, u, remember)
 	if ctx.Written() {
 		return
 	}
-	ctx.Redirect(redirect)
+	redirectAfterAuth(ctx)
 }
 
-func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRedirect bool) string {
+func handleSignInFull(ctx *context.Context, u *user_model.User, remember bool) {
 	if remember {
 		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
 		if err != nil {
 			ctx.ServerError("CreateAuthTokenForUserID", err)
-			return setting.AppSubURL + "/"
+			return
 		}
 
 		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
@@ -316,7 +339,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	userHasTwoFactorAuth, err := auth.HasTwoFactorOrWebAuthn(ctx, u.ID)
 	if err != nil {
 		ctx.ServerError("HasTwoFactorOrWebAuthn", err)
-		return setting.AppSubURL + "/"
+		return
 	}
 
 	if err := updateSession(ctx, []string{
@@ -335,7 +358,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		session.KeyUserHasTwoFactorAuth: userHasTwoFactorAuth,
 	}); err != nil {
 		ctx.ServerError("RegenerateSession", err)
-		return setting.AppSubURL + "/"
+		return
 	}
 
 	// Language setting of the user overwrites the one previously set
@@ -346,7 +369,7 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		}
 		if err := user_service.UpdateUser(ctx, u, opts); err != nil {
 			ctx.ServerError("UpdateUser Language", fmt.Errorf("Error updating user language [user: %d, locale: %s]", u.ID, ctx.Locale.Language()))
-			return setting.AppSubURL + "/"
+			return
 		}
 	}
 
@@ -359,21 +382,8 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	// Register last login
 	if err := user_service.UpdateUser(ctx, u, &user_service.UpdateOptions{SetLastLogin: true}); err != nil {
 		ctx.ServerError("UpdateUser", err)
-		return setting.AppSubURL + "/"
+		return
 	}
-
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" && httplib.IsCurrentGiteaSiteURL(ctx, redirectTo) {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
-		if obeyRedirect {
-			ctx.RedirectToCurrentSite(redirectTo)
-		}
-		return redirectTo
-	}
-
-	if obeyRedirect {
-		ctx.Redirect(setting.AppSubURL + "/")
-	}
-	return setting.AppSubURL + "/"
 }
 
 // extractUserNameFromOAuth2 tries to extract a normalized username from the given OAuth2 user.
@@ -436,10 +446,7 @@ func SignUp(ctx *context.Context) {
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
 
-	redirectTo := ctx.FormString("redirect_to")
-	if len(redirectTo) > 0 {
-		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
-	}
+	rememberAuthRedirectLink(ctx)
 
 	ctx.HTML(http.StatusOK, tplSignUp)
 }
@@ -817,13 +824,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("auth.account_activated"))
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToCurrentSite(redirectTo)
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/")
+	redirectAfterAuth(ctx)
 }
 
 // ActivateEmail render the activate email page

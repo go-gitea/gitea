@@ -16,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -236,7 +235,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			return
 		}
 
-		handleSignInFull(ctx, u, remember, false)
+		handleSignInFull(ctx, u, remember)
 		if ctx.Written() {
 			return
 		}
@@ -308,11 +307,5 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	log.Trace("User updated password: %s", ctx.Doer.Name)
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToCurrentSite(redirectTo)
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/")
+	redirectAfterAuth(ctx)
 }

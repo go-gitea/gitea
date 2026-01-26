@@ -21,7 +21,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
@@ -216,19 +215,6 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 }
 
 func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository, tmpDir string) error {
-	commitTimeStr := time.Now().Format(time.RFC3339)
-	authorSig := repo.Owner.NewGitSig()
-
-	// Because this may call hooks we should pass in the environment
-	env := append(os.Environ(),
-		"GIT_AUTHOR_NAME="+authorSig.Name,
-		"GIT_AUTHOR_EMAIL="+authorSig.Email,
-		"GIT_AUTHOR_DATE="+commitTimeStr,
-		"GIT_COMMITTER_NAME="+authorSig.Name,
-		"GIT_COMMITTER_EMAIL="+authorSig.Email,
-		"GIT_COMMITTER_DATE="+commitTimeStr,
-	)
-
 	// Clone to temporary path and do the init commit.
 	if err := gitrepo.CloneRepoToLocal(ctx, templateRepo, tmpDir, git.CloneRepoOptions{
 		Depth:  1,
@@ -262,15 +248,6 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 
 	if err = git.InitRepository(ctx, tmpDir, false, templateRepo.ObjectFormatName); err != nil {
 		return err
-	}
-
-	if stdout, _, err := gitcmd.NewCommand("remote", "add", "origin").
-		AddDynamicArguments(repo.RepoPath()).
-		WithDir(tmpDir).
-		WithEnv(env).
-		RunStdString(ctx); err != nil {
-		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
-		return fmt.Errorf("git remote add: %w", err)
 	}
 
 	if err = git.AddTemplateSubmoduleIndexes(ctx, tmpDir, submodules); err != nil {

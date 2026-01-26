@@ -930,12 +930,7 @@ func Test_WebhookStatus(t *testing.T) {
 		testCtx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeAll)
 
 		// update a status for a commit via API
-		doAPICreateCommitStatus(testCtx, commitID, api.CreateStatusOption{
-			State:       commitstatus.CommitStatusSuccess,
-			TargetURL:   "http://test.ci/",
-			Description: "",
-			Context:     "testci",
-		})(t)
+		doAPICreateCommitStatusTest(testCtx, commitID, commitstatus.CommitStatusSuccess, "testci")(t)
 
 		// 3. validate the webhook is triggered
 		assert.Equal(t, "status", triggeredEvent)

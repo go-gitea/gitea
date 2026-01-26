@@ -20,6 +20,9 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
     selectedItem: props.treePath,
 
     async loadChildren(treePath: string, subPath: string = '') {
+      // there is no git ref if no commits were made yet (an empty repo)
+      if (!props.currentRefNameSubURL) return null;
+
       const response = await GET(`${props.repoLink}/tree-view/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}?sub_path=${encodeURIComponent(subPath)}`);
       const json = await response.json();
       const poolSvgs = [];

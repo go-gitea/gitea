@@ -270,13 +270,20 @@ func TestAPICreatePullSuccess(t *testing.T) {
 	owner11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo11.OwnerID})
 
 	session := loginUser(t, owner11.Name)
+	prTitle := "test pull request title " + time.Now().String()
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &api.CreatePullRequestOption{
 		Head:  owner11.Name + ":master",
 		Base:  "master",
-		Title: "create a failure pr",
+		Title: prTitle,
 	}).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
+
+	// Also test that AllowMaintainerEdit is false by default
+	prIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: prTitle})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: prIssue.ID})
+	assert.False(t, pr.AllowMaintainerEdit)
+
 	MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
 }
 
@@ -290,11 +297,14 @@ func TestAPICreatePullBasePermission(t *testing.T) {
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 
 	session := loginUser(t, user4.Name)
+	prTitle := "test pull request title " + time.Now().String()
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 	opts := &api.CreatePullRequestOption{
 		Head:  repo11.OwnerName + ":master",
 		Base:  "master",
-		Title: "create a failure pr",
+		Title: prTitle,
+
+		AllowMaintainerEdit: util.ToPointer(true),
 	}
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
@@ -306,6 +316,11 @@ func TestAPICreatePullBasePermission(t *testing.T) {
 	// create again
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner10.Name, repo10.Name), &opts).AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
+
+	// Also test that AllowMaintainerEdit is set to true
+	prIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: prTitle})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: prIssue.ID})
+	assert.True(t, pr.AllowMaintainerEdit)
 }
 
 func TestAPICreatePullHeadPermission(t *testing.T) {

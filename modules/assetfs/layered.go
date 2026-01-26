@@ -6,9 +6,7 @@ package assetfs
 import (
 	"context"
 	"fmt"
-	"io"
 	"io/fs"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -25,7 +23,7 @@ import (
 // Layer represents a layer in a layered asset file-system. It has a name and works like http.FileSystem
 type Layer struct {
 	name      string
-	fs        http.FileSystem
+	fs        fs.FS
 	localPath string
 }
 
@@ -34,7 +32,7 @@ func (l *Layer) Name() string {
 }
 
 // Open opens the named file. The caller is responsible for closing the file.
-func (l *Layer) Open(name string) (http.File, error) {
+func (l *Layer) Open(name string) (fs.File, error) {
 	return l.fs.Open(name)
 }
 
@@ -48,12 +46,12 @@ func Local(name, base string, sub ...string) *Layer {
 		panic(fmt.Sprintf("Unable to get absolute path for %q: %v", base, err))
 	}
 	root := util.FilePathJoinAbs(base, sub...)
-	return &Layer{name: name, fs: http.Dir(root), localPath: root}
+	return &Layer{name: name, fs: os.DirFS(root), localPath: root}
 }
 
 // Bindata returns a new Layer with the given name, it serves files from the given bindata asset.
 func Bindata(name string, fs fs.FS) *Layer {
-	return &Layer{name: name, fs: http.FS(fs)}
+	return &Layer{name: name, fs: fs}
 }
 
 // LayeredFS is a layered asset file-system. It works like http.FileSystem, but it can have multiple layers.
@@ -69,7 +67,7 @@ func Layered(layers ...*Layer) *LayeredFS {
 }
 
 // Open opens the named file. The caller is responsible for closing the file.
-func (l *LayeredFS) Open(name string) (http.File, error) {
+func (l *LayeredFS) Open(name string) (fs.File, error) {
 	for _, layer := range l.layers {
 		f, err := layer.Open(name)
 		if err == nil || !os.IsNotExist(err) {
@@ -89,40 +87,34 @@ func (l *LayeredFS) ReadFile(elems ...string) ([]byte, error) {
 func (l *LayeredFS) ReadLayeredFile(elems ...string) ([]byte, string, error) {
 	name := util.PathJoinRel(elems...)
 	for _, layer := range l.layers {
-		f, err := layer.Open(name)
+		bs, err := fs.ReadFile(layer, name)
 		if os.IsNotExist(err) {
 			continue
 		} else if err != nil {
 			return nil, layer.name, err
 		}
-		bs, err := io.ReadAll(f)
-		_ = f.Close()
 		return bs, layer.name, err
 	}
 	return nil, "", fs.ErrNotExist
 }
 
-func shouldInclude(info fs.FileInfo, fileMode ...bool) bool {
-	if util.IsCommonHiddenFileName(info.Name()) {
+func shouldInclude(dirEntry fs.DirEntry, fileMode ...bool) bool {
+	if util.IsCommonHiddenFileName(dirEntry.Name()) {
 		return false
 	}
 	if len(fileMode) == 0 {
 		return true
 	} else if len(fileMode) == 1 {
-		return fileMode[0] == !info.Mode().IsDir()
+		return fileMode[0] == !dirEntry.IsDir()
 	}
 	panic("too many arguments for fileMode in shouldInclude")
 }
 
-func readDir(layer *Layer, name string) ([]fs.FileInfo, error) {
-	f, err := layer.Open(name)
-	if os.IsNotExist(err) {
+func readDirOptional(layer *Layer, name string) (entries []fs.DirEntry, err error) {
+	if entries, err = fs.ReadDir(layer, name); os.IsNotExist(err) {
 		return nil, nil
-	} else if err != nil {
-		return nil, err
 	}
-	defer f.Close()
-	return f.Readdir(-1)
+	return entries, err
 }
 
 // ListFiles lists files/directories in the given directory. The fileMode controls the returned files.
@@ -133,13 +125,13 @@ func readDir(layer *Layer, name string) ([]fs.FileInfo, error) {
 func (l *LayeredFS) ListFiles(name string, fileMode ...bool) ([]string, error) {
 	fileSet := make(container.Set[string])
 	for _, layer := range l.layers {
-		infos, err := readDir(layer, name)
+		entries, err := readDirOptional(layer, name)
 		if err != nil {
 			return nil, err
 		}
-		for _, info := range infos {
-			if shouldInclude(info, fileMode...) {
-				fileSet.Add(info.Name())
+		for _, entry := range entries {
+			if shouldInclude(entry, fileMode...) {
+				fileSet.Add(entry.Name())
 			}
 		}
 	}
@@ -163,16 +155,16 @@ func listAllFiles(layers []*Layer, name string, fileMode ...bool) ([]string, err
 	var list func(dir string) error
 	list = func(dir string) error {
 		for _, layer := range layers {
-			infos, err := readDir(layer, dir)
+			entries, err := readDirOptional(layer, dir)
 			if err != nil {
 				return err
 			}
-			for _, info := range infos {
-				path := util.PathJoinRelX(dir, info.Name())
-				if shouldInclude(info, fileMode...) {
+			for _, entry := range entries {
+				path := util.PathJoinRelX(dir, entry.Name())
+				if shouldInclude(entry, fileMode...) {
 					fileSet.Add(path)
 				}
-				if info.IsDir() {
+				if entry.IsDir() {
 					if err = list(path); err != nil {
 						return err
 					}

@@ -27,6 +27,12 @@ func TestViewUser(t *testing.T) {
 
 	req := NewRequest(t, "GET", "/user2")
 	MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequest(t, "GET", "/user2.keys")
+	resp := MakeRequest(t, req, http.StatusOK)
+	assert.Equal(t, `# Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDWVj0fQ5N8wNc0LVNA41wDLYJ89ZIbejrPfg/avyj3u/ZohAKsQclxG4Ju0VirduBFF9EOiuxoiFBRr3xRpqzpsZtnMPkWVWb+akZwBFAx8p+jKdy4QXR/SZqbVobrGwip2UjSrri1CtBxpJikojRIZfCnDaMOyd9Jp6KkujvniFzUWdLmCPxUE9zhTaPu0JsEP7MW0m6yx7ZUhHyfss+NtqmFTaDO+QlMR7L2QkDliN2Jl3Xa3PhuWnKJfWhdAq1Cw4oraKUOmIgXLkuiuxVQ6mD3AiFupkmfqdHq6h+uHHmyQqv3gU+/sD8GbGAhf6ftqhTsXjnv1Aj4R8NoDf9BS6KRkzkeun5UisSzgtfQzjOMEiJtmrep2ZQrMGahrXa+q4VKr0aKJfm+KlLfwm/JztfsBcqQWNcTURiCFqz+fgZw0Ey/de0eyMzldYTdXXNRYCKjs9bvBK+6SSXRM7AhftfQ0ZuoW5+gtinPrnmoOaSCEJbAiEiTO/BzOHgowiM=
+`, resp.Body.String())
 }
 
 func TestRenameUsername(t *testing.T) {
@@ -194,8 +200,17 @@ func TestRenameReservedUsername(t *testing.T) {
 
 func TestExportUserGPGKeys(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	testExportUserGPGKeys := func(t *testing.T, user, expected string) {
+		session := loginUser(t, user)
+		t.Logf("Testing username %s export gpg keys", user)
+		req := NewRequest(t, "GET", "/"+user+".gpg")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.Equal(t, expected, resp.Body.String())
+	}
+
 	// Export empty key list
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Comment: Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.
 Note: This user hasn't uploaded any GPG keys.
 
 
@@ -237,6 +252,7 @@ GrE0MHOxUbc9tbtyk0F1SuzREUBH
 -----END PGP PUBLIC KEY BLOCK-----`)
 	// Export new key
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Comment: Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.
 
 xsBNBFyy/VUBCADJ7zbM20Z1RWmFoVgp5WkQfI2rU1Vj9cQHes9i42wVLLtcbPeo
 QzubgzvMPITDy7nfWxgSf83E23DoHQ1ACFbQh/6eFSRrjsusp3YQ/08NSfPPbcu8
@@ -266,15 +282,6 @@ C0TLXKur6NVYQMn01iyL+FZzRpEWNuYF3f9QeeLJ/+l2DafESNhNTy17+RPmacK6
 GrE0MHOxUbc9tbtyk0F1SuzREUBH
 =WFf5
 -----END PGP PUBLIC KEY BLOCK-----`)
-}
-
-func testExportUserGPGKeys(t *testing.T, user, expected string) {
-	session := loginUser(t, user)
-	t.Logf("Testing username %s export gpg keys", user)
-	req := NewRequest(t, "GET", "/"+user+".gpg")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	// t.Log(resp.Body.String())
-	assert.Equal(t, expected, resp.Body.String())
 }
 
 func TestGetUserRss(t *testing.T) {

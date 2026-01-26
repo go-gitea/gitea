@@ -114,7 +114,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 			}
 		}
 		if runUpdated {
-			NotifyWorkflowRunStatusUpdateWithReload(ctx, jobs[0])
+			NotifyWorkflowRunStatusUpdateWithReload(ctx, js[0])
 		}
 	}
 	return nil

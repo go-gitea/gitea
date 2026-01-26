@@ -171,7 +171,6 @@ func assertReactionsEqual(t *testing.T, expected, actual []*base.Reaction) {
 func assertReleaseAssetEqual(t *testing.T, expected, actual *base.ReleaseAsset) {
 	assert.Equal(t, expected.ID, actual.ID)
 	assert.Equal(t, expected.Name, actual.Name)
-	assert.Equal(t, expected.ContentType, actual.ContentType)
 	assert.Equal(t, expected.Size, actual.Size)
 	assert.Equal(t, expected.DownloadCount, actual.DownloadCount)
 	assertTimeEqual(t, expected.Created, actual.Created)

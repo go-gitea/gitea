@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
@@ -24,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/system"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -132,7 +130,6 @@ func InitWebInstalled(ctx context.Context) {
 	mustInit(uinotification.Init)
 	mustInitCtx(ctx, archiver.Init)
 
-	highlight.NewContext()
 	external.RegisterRenderers()
 	markup.Init(markup_service.FormalRenderHelperFuncs())
 
@@ -182,7 +179,6 @@ func InitWebInstalled(ctx context.Context) {
 
 // NormalRoutes represents non install routes
 func NormalRoutes() *web.Router {
-	_ = templates.HTMLRenderer()
 	r := web.NewRouter()
 	r.Use(common.ProtocolMiddlewares()...)
 

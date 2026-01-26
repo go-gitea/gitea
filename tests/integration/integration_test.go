@@ -332,7 +332,7 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *Re
 	return &RequestWrapper{req}
 }
 
-const NoExpectedStatus = -1
+const NoExpectedStatus = 0
 
 func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()

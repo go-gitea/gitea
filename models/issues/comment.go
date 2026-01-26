@@ -20,6 +20,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/references"
@@ -233,11 +234,17 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 	return lang.TrString("repo.issues.role." + string(r) + "_helper")
 }
 
+type SpecialDoerNameType string
+
+const SpecialDoerNameCodeOwners SpecialDoerNameType = "CODEOWNERS"
+
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
 	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
 	ProjectColumnTitle string `json:"project_column_title,omitempty"`
 	ProjectTitle       string `json:"project_title,omitempty"`
+
+	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
 }
 
 // Comment represents a comment in commit and issue page.
@@ -764,6 +771,37 @@ func (c *Comment) CodeCommentLink(ctx context.Context) string {
 	return fmt.Sprintf("%s/files#%s", c.Issue.Link(), c.HashTag())
 }
 
+func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
+	if c.CommentMetaData == nil {
+		return ""
+	}
+	if c.CommentMetaData.SpecialDoerName == SpecialDoerNameCodeOwners {
+		return locale.Tr("repo.issues.review.codeowners_rules")
+	}
+	return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)
+}
+
+func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr template.HTML) template.HTML {
+	if c.AssigneeID > 0 {
+		// it guarantees LoadAssigneeUserAndTeam has been called, and c.Assignee is Ghost user but not nil if the user doesn't exist
+		if c.RemovedAssignee {
+			if c.PosterID == c.AssigneeID {
+				return locale.Tr("repo.issues.review.remove_review_request_self", createdStr)
+			}
+			return locale.Tr("repo.issues.review.remove_review_request", c.Assignee.GetDisplayName(), createdStr)
+		}
+		return locale.Tr("repo.issues.review.add_review_request", c.Assignee.GetDisplayName(), createdStr)
+	}
+	teamName := "Ghost Team"
+	if c.AssigneeTeam != nil {
+		teamName = c.AssigneeTeam.Name
+	}
+	if c.RemovedAssignee {
+		return locale.Tr("repo.issues.review.remove_review_request", teamName, createdStr)
+	}
+	return locale.Tr("repo.issues.review.add_review_request", teamName, createdStr)
+}
+
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
@@ -778,6 +816,11 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 				ProjectColumnID:    opts.ProjectColumnID,
 				ProjectColumnTitle: opts.ProjectColumnTitle,
 				ProjectTitle:       opts.ProjectTitle,
+			}
+		}
+		if opts.SpecialDoerName != "" {
+			commentMetaData = &CommentMetaData{
+				SpecialDoerName: opts.SpecialDoerName,
 			}
 		}
 
@@ -976,6 +1019,7 @@ type CreateCommentOptions struct {
 	RefIsPull          bool
 	IsForcePush        bool
 	Invalidated        bool
+	SpecialDoerName    SpecialDoerNameType // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
 }
 
 // GetCommentByID returns the comment by given ID.

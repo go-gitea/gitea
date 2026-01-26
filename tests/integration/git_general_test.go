@@ -701,6 +701,11 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame, auth_model.AccessTokenScopeWriteRepository)
+		collaboratorCtx := NewAPITestContext(t, "user5", baseCtx.Reponame, auth_model.AccessTokenScopeWriteRepository)
+		readOnlyCtx := NewAPITestContext(t, "user4", baseCtx.Reponame, auth_model.AccessTokenScopeWriteRepository)
+
+		t.Run("AddAutoMergeCollaborator", doAPIAddCollaborator(*baseCtx, collaboratorCtx.Username, perm.AccessModeWrite))
+		t.Run("AddReadOnlyAutoMergeCollaborator", doAPIAddCollaborator(*baseCtx, readOnlyCtx.Username, perm.AccessModeRead))
 
 		// automerge will merge immediately if the PR is mergeable and there is no "status check" because no status check also means "all checks passed"
 		// so we must set up a status check to test the auto merge feature
@@ -732,17 +737,8 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 
 		commitID := path.Base(commitURL)
 
-		addCommitStatus := func(status commitstatus.CommitStatusState) func(*testing.T) {
-			return doAPICreateCommitStatus(ctx, commitID, api.CreateStatusOption{
-				State:       status,
-				TargetURL:   "http://test.ci/",
-				Description: "",
-				Context:     "testci",
-			})
-		}
-
 		// Call API to add Pending status for commit
-		t.Run("CreateStatus", addCommitStatus(commitstatus.CommitStatusPending))
+		t.Run("CreateStatus", doAPICreateCommitStatusTest(ctx, commitID, commitstatus.CommitStatusPending, "testci"))
 
 		// Cancel not existing auto merge
 		ctx.ExpectedCode = http.StatusNotFound
@@ -756,9 +752,31 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		ctx.ExpectedCode = http.StatusConflict
 		t.Run("AutoMergePRTwice", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
+		// Read-only collaborator still cannot cancel
+		readOnlyCtx.ExpectedCode = http.StatusForbidden
+		t.Run("CancelAutoMergePRByReadOnlyCollaboratorForbidden", doAPICancelAutoMergePullRequest(readOnlyCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		readOnlyCtx.ExpectedCode = 0
+
+		// Collaborators with merge permissions can cancel a schedule made by someone else
+		collaboratorCtx.ExpectedCode = http.StatusNoContent
+		t.Run("CancelAutoMergePRByCollaborator", doAPICancelAutoMergePullRequest(collaboratorCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		collaboratorCtx.ExpectedCode = 0
+
+		// Re-add auto merge request so the repo owner can cancel it as well
+		ctx.ExpectedCode = http.StatusCreated
+		t.Run("AutoMergePRAfterCollaboratorCancel", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
 		// Cancel auto merge request
 		ctx.ExpectedCode = http.StatusNoContent
 		t.Run("CancelAutoMergePR", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Collaborator can schedule but admins should still be able to cancel their schedule
+		collaboratorCtx.ExpectedCode = http.StatusCreated
+		t.Run("AutoMergePRByCollaborator", doAPIAutoMergePullRequest(collaboratorCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		collaboratorCtx.ExpectedCode = 0
+
+		ctx.ExpectedCode = http.StatusNoContent
+		t.Run("CancelAutoMergePRByAdmin", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 
 		// Add auto merge request
 		ctx.ExpectedCode = http.StatusCreated
@@ -771,7 +789,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		assert.False(t, pr.HasMerged)
 
 		// Call API to add Failure status for commit
-		t.Run("CreateStatus", addCommitStatus(commitstatus.CommitStatusFailure))
+		t.Run("CreateStatus", doAPICreateCommitStatusTest(ctx, commitID, commitstatus.CommitStatusFailure, "testci"))
 
 		// Check pr status
 		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
@@ -779,8 +797,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		assert.False(t, pr.HasMerged)
 
 		// Call API to add Success status for commit
-		t.Run("CreateStatus", addCommitStatus(commitstatus.CommitStatusSuccess))
-
+		t.Run("CreateStatus", doAPICreateCommitStatusTest(ctx, commitID, commitstatus.CommitStatusSuccess, "testci"))
 		// wait to let gitea merge stuff
 		time.Sleep(time.Second)
 

@@ -18,8 +18,6 @@ declare module '*.vue' {
   export function initRepositoryActionView(): void;
 }
 
-declare let __webpack_public_path__: string;
-
 declare module 'htmx.org/dist/htmx.esm.js' {
   const value = await import('htmx.org');
   export default value;
@@ -51,8 +49,26 @@ interface Element {
 }
 
 interface Window {
-  __webpack_public_path__: string;
-  config: import('./web_src/js/types.ts').Config;
+  config: {
+    appUrl: string,
+    appSubUrl: string,
+    assetVersionEncoded: string,
+    assetUrlPrefix: string,
+    runModeIsProd: boolean,
+    customEmojis: Record<string, string>,
+    pageData: Record<string, any>,
+    notificationSettings: Record<string, any>,
+    enableTimeTracking: boolean,
+    mentionValues: Array<{
+      key: string,
+      value: string,
+      name: string,
+      fullname: string,
+      avatar: string,
+    }>,
+    mermaidMaxSourceCharacters: number,
+    i18n: Record<string, string>,
+  },
   $: typeof import('@types/jquery'),
   jQuery: typeof import('@types/jquery'),
   htmx: typeof import('htmx.org').default,
@@ -61,6 +77,7 @@ interface Window {
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
   codeEditors: any[], // export editor for customization
+  localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
 
   // various captcha plugins
   grecaptcha: any,

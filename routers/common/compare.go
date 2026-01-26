@@ -9,31 +9,28 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 )
 
 type CompareRouterReq struct {
-	BaseOriRef   string
+	BaseOriRef       string
+	BaseOriRefSuffix string
+
+	CompareSeparator string
+
 	HeadOwner    string
 	HeadRepoName string
 	HeadOriRef   string
-	CaretTimes   int // ^ times after base ref
-	DotTimes     int
 }
 
 func (cr *CompareRouterReq) DirectComparison() bool {
-	return cr.DotTimes == 2 || cr.DotTimes == 0
+	// FIXME: the design of "DirectComparison" is wrong, it loses the information of `^`
+	// To correctly handle the comparison, developers should use `ci.CompareSeparator` directly, all "DirectComparison" related code should be rewritten.
+	return cr.CompareSeparator == ".."
 }
 
-func parseBase(base string) (string, int) {
-	parts := strings.SplitN(base, "^", 2)
-	if len(parts) == 1 {
-		return base, 0
-	}
-	return parts[0], len(parts[1]) + 1
-}
-
-func parseHead(head string) (string, string, string) {
+func parseHead(head string) (headOwnerName, headRepoName, headRef string) {
 	paths := strings.SplitN(head, ":", 2)
 	if len(paths) == 1 {
 		return "", "", paths[0]
@@ -48,6 +45,7 @@ func parseHead(head string) (string, string, string) {
 // ParseCompareRouterParam Get compare information from the router parameter.
 // A full compare url is of the form:
 //
+// 0. /{:baseOwner}/{:baseRepoName}/compare
 // 1. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headBranch}
 // 2. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}:{:headBranch}
 // 3. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}/{:headRepoName}:{:headBranch}
@@ -70,45 +68,31 @@ func parseHead(head string) (string, string, string) {
 // format: <base branch>...[<head repo>:]<head branch>
 // base<-head: master...head:feature
 // same repo: master...feature
-func ParseCompareRouterParam(routerParam string) (*CompareRouterReq, error) {
+func ParseCompareRouterParam(routerParam string) *CompareRouterReq {
 	if routerParam == "" {
-		return &CompareRouterReq{}, nil
+		return &CompareRouterReq{}
 	}
 
-	var basePart, headPart string
-	dotTimes := 3
-	parts := strings.Split(routerParam, "...")
-	if len(parts) > 2 {
-		return nil, util.NewInvalidArgumentErrorf("invalid compare router: %s", routerParam)
-	}
-	if len(parts) != 2 {
-		parts = strings.Split(routerParam, "..")
-		if len(parts) == 1 {
+	sep := "..."
+	basePart, headPart, ok := strings.Cut(routerParam, sep)
+	if !ok {
+		sep = ".."
+		basePart, headPart, ok = strings.Cut(routerParam, sep)
+		if !ok {
 			headOwnerName, headRepoName, headRef := parseHead(routerParam)
 			return &CompareRouterReq{
-				HeadOriRef:   headRef,
-				HeadOwner:    headOwnerName,
-				HeadRepoName: headRepoName,
-				DotTimes:     dotTimes,
-			}, nil
-		} else if len(parts) > 2 {
-			return nil, util.NewInvalidArgumentErrorf("invalid compare router: %s", routerParam)
+				HeadOriRef:       headRef,
+				HeadOwner:        headOwnerName,
+				HeadRepoName:     headRepoName,
+				CompareSeparator: "...",
+			}
 		}
-		dotTimes = 2
 	}
-	basePart, headPart = parts[0], parts[1]
 
-	baseRef, caretTimes := parseBase(basePart)
-	headOwnerName, headRepoName, headRef := parseHead(headPart)
-
-	return &CompareRouterReq{
-		BaseOriRef:   baseRef,
-		HeadOriRef:   headRef,
-		HeadOwner:    headOwnerName,
-		HeadRepoName: headRepoName,
-		CaretTimes:   caretTimes,
-		DotTimes:     dotTimes,
-	}, nil
+	ci := &CompareRouterReq{CompareSeparator: sep}
+	ci.BaseOriRef, ci.BaseOriRefSuffix = git.ParseRefSuffix(basePart)
+	ci.HeadOwner, ci.HeadRepoName, ci.HeadOriRef = parseHead(headPart)
+	return ci
 }
 
 // maxForkTraverseLevel defines the maximum levels to traverse when searching for the head repository.

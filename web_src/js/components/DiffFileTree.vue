@@ -4,6 +4,7 @@ import {toggleElem} from '../utils/dom.ts';
 import {diffTreeStore} from '../modules/diff-file.ts';
 import {setFileFolding} from '../features/file-fold.ts';
 import {onMounted, onUnmounted} from 'vue';
+import {localUserSettings} from '../modules/user-settings.ts';
 
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
@@ -11,7 +12,7 @@ const store = diffTreeStore();
 
 onMounted(() => {
   // Default to true if unset
-  store.fileTreeIsVisible = localStorage.getItem(LOCAL_STORAGE_KEY) !== 'false';
+  store.fileTreeIsVisible = localUserSettings.getBoolean(LOCAL_STORAGE_KEY, true);
   document.querySelector('.diff-toggle-file-tree-button')!.addEventListener('click', toggleVisibility);
 
   hashChangeListener();
@@ -43,7 +44,7 @@ function toggleVisibility() {
 
 function updateVisibility(visible: boolean) {
   store.fileTreeIsVisible = visible;
-  localStorage.setItem(LOCAL_STORAGE_KEY, store.fileTreeIsVisible.toString());
+  localUserSettings.setBoolean(LOCAL_STORAGE_KEY, store.fileTreeIsVisible);
   updateState(store.fileTreeIsVisible);
 }
 

@@ -7,12 +7,13 @@ gitea-theme-meta-info {
 }
 
 /* red/green colorblind-friendly colors */
-/* from GitHub: --diffBlob-addition-*, --diffBlob-deletion-*, etc */
 :root {
-  --color-diff-added-linenum-bg: #54aeff4d;
-  --color-diff-added-row-bg: #ddf4ff80;
-  --color-diff-added-word-bg: #54aeff66;
-  --color-diff-removed-linenum-bg: #ffb77c4d;
-  --color-diff-removed-row-bg: #fff1e580;
-  --color-diff-removed-word-bg: #ffb77c80;
+  --color-diff-added-fg: #2185d0;
+  --color-diff-added-linenum-bg: #b6e3ff;
+  --color-diff-added-row-bg: #ddf4ff;
+  --color-diff-added-word-bg: #b6e3ff;
+  --color-diff-removed-fg: #fc6500;
+  --color-diff-removed-linenum-bg: #ffd8b5;
+  --color-diff-removed-row-bg: #fff1e5;
+  --color-diff-removed-word-bg: #ffd8b5;
 }

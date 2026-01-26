@@ -8,20 +8,19 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"os"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 func LineBlame(ctx context.Context, repo Repository, revision, file string, line uint) (string, error) {
-	return RunCmdString(ctx, repo,
+	stdout, _, err := RunCmdString(ctx, repo,
 		gitcmd.NewCommand("blame").
 			AddOptionFormat("-L %d,%d", line, line).
 			AddOptionValues("-p", revision).
 			AddDashesAndList(file))
+	return stdout, err
 }
 
 // BlamePart represents block of blame - continuous lines with one sha
@@ -34,8 +33,6 @@ type BlamePart struct {
 
 // BlameReader returns part of file blame one by one
 type BlameReader struct {
-	output         io.WriteCloser
-	reader         io.ReadCloser
 	bufferedReader *bufio.Reader
 	done           chan error
 	lastSha        *string
@@ -131,34 +128,42 @@ func (r *BlameReader) Close() error {
 
 	err := <-r.done
 	r.bufferedReader = nil
-	_ = r.reader.Close()
-	_ = r.output.Close()
-	for _, cleanup := range r.cleanupFuncs {
-		if cleanup != nil {
-			cleanup()
-		}
-	}
+	r.cleanup()
 	return err
 }
 
+func (r *BlameReader) cleanup() {
+	for _, cleanup := range r.cleanupFuncs {
+		cleanup()
+	}
+}
+
 // CreateBlameReader creates reader for given repository, commit and file
-func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, err error) {
-	var ignoreRevsFileName string
-	var ignoreRevsFileCleanup func()
+func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo Repository, commit *git.Commit, file string, bypassBlameIgnore bool) (rd *BlameReader, retErr error) {
 	defer func() {
-		if err != nil && ignoreRevsFileCleanup != nil {
-			ignoreRevsFileCleanup()
+		if retErr != nil {
+			rd.cleanup()
 		}
 	}()
 
+	rd = &BlameReader{
+		done:         make(chan error, 1),
+		objectFormat: objectFormat,
+	}
+
 	cmd := gitcmd.NewCommand("blame", "--porcelain")
 
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	rd.bufferedReader = bufio.NewReader(stdoutReader)
+	rd.cleanupFuncs = append(rd.cleanupFuncs, stdoutReaderClose)
+
 	if git.DefaultFeatures().CheckVersionAtLeast("2.23") && !bypassBlameIgnore {
-		ignoreRevsFileName, ignoreRevsFileCleanup, err = tryCreateBlameIgnoreRevsFile(commit)
+		ignoreRevsFileName, ignoreRevsFileCleanup, err := tryCreateBlameIgnoreRevsFile(commit)
 		if err != nil && !git.IsErrNotExist(err) {
 			return nil, err
-		}
-		if ignoreRevsFileName != "" {
+		} else if err == nil {
+			rd.ignoreRevsFile = ignoreRevsFileName
+			rd.cleanupFuncs = append(rd.cleanupFuncs, ignoreRevsFileCleanup)
 			// Possible improvement: use --ignore-revs-file /dev/stdin on unix
 			// There is no equivalent on Windows. May be implemented if Gitea uses an external git backend.
 			cmd.AddOptionValues("--ignore-revs-file", ignoreRevsFileName)
@@ -167,35 +172,12 @@ func CreateBlameReader(ctx context.Context, objectFormat git.ObjectFormat, repo 
 
 	cmd.AddDynamicArguments(commit.ID.String()).AddDashesAndList(file)
 
-	done := make(chan error, 1)
-	reader, stdout, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
 	go func() {
-		stderr := bytes.Buffer{}
 		// TODO: it doesn't work for directories (the directories shouldn't be "blamed"), and the "err" should be returned by "Read" but not by "Close"
-		err := RunCmd(ctx, repo, cmd.WithUseContextTimeout(true).
-			WithStdout(stdout).
-			WithStderr(&stderr),
-		)
-		done <- err
-		_ = stdout.Close()
-		if err != nil {
-			log.Error("Error running git blame (dir: %v): %v, stderr: %v", repoPath, err, stderr.String())
-		}
+		rd.done <- RunCmdWithStderr(ctx, repo, cmd)
 	}()
 
-	bufferedReader := bufio.NewReader(reader)
-	return &BlameReader{
-		output:         stdout,
-		reader:         reader,
-		bufferedReader: bufferedReader,
-		done:           done,
-		ignoreRevsFile: ignoreRevsFileName,
-		objectFormat:   objectFormat,
-		cleanupFuncs:   []func(){ignoreRevsFileCleanup},
-	}, nil
+	return rd, nil
 }
 
 func tryCreateBlameIgnoreRevsFile(commit *git.Commit) (string, func(), error) {

@@ -46,7 +46,7 @@
 `build` 目标分为两个子目标：
 
 - `make backend` 需要 [Go Stable](https://go.dev/dl/)，所需版本在 [go.mod](/go.mod) 中定义。
-- `make frontend` 需要 [Node.js LTS](https://nodejs.org/en/download/) 或更高版本。
+- `make frontend` 需要 [Node.js LTS](https://nodejs.org/en/download/) 或更高版本以及 [pnpm](https://pnpm.io/installation)。
 
 需要互联网连接来下载 go 和 npm 模块。从包含预构建前端文件的官方源代码压缩包构建时，不会触发 `frontend` 目标，因此可以在没有 Node.js 的情况下构建。
 

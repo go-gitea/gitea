@@ -3067,6 +3067,7 @@
   "admin.auths.attribute_mail": "电子邮箱属性",
   "admin.auths.attribute_ssh_public_key": "SSH公钥属性",
   "admin.auths.attribute_avatar": "头像属性",
+  "admin.auths.ssh_keys_are_verified": "LDAP中的 SSH 密钥被视为已验证",
   "admin.auths.attributes_in_bind": "从 Bind DN 中拉取属性信息",
   "admin.auths.allow_deactivate_all": "允许在搜索结果为空时停用所有用户",
   "admin.auths.use_paged_search": "使用分页搜索",

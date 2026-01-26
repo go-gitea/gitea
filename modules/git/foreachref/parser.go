@@ -30,9 +30,11 @@ type Parser struct {
 func NewParser(r io.Reader, format Format) *Parser {
 	scanner := bufio.NewScanner(r)
 
-	// default MaxScanTokenSize = 64 kiB may be too small for some references,
-	// so allow the buffer to grow up to 4x if needed
-	scanner.Buffer(nil, 4*bufio.MaxScanTokenSize)
+	// default Scanner.MaxScanTokenSize = 64 kiB may be too small for some references,
+	// so allow the buffer to be large enough in case the ref has long content (e.g.: a tag with long message)
+	// as long as it doesn't exceed some reasonable limit (4 MiB here, or MAX_DISPLAY_FILE_SIZE=8MiB), it is OK
+	// there are still some choices: 1. add a config option for the limit; 2. don't use scanner and write our own parser to fully handle large contents
+	scanner.Buffer(nil, 4*1024*1024)
 
 	// in addition to the reference delimiter we specified in the --format,
 	// `git for-each-ref` will always add a newline after every reference.

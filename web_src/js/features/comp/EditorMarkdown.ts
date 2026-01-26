@@ -186,6 +186,7 @@ export function markdownHandleIndention(tvs: TextareaValueSelection): MarkdownHa
 }
 
 function handleNewline(textarea: HTMLTextAreaElement, e: KeyboardEvent) {
+  if (e.isComposing) return;
   const ret = markdownHandleIndention({value: textarea.value, selStart: textarea.selectionStart, selEnd: textarea.selectionEnd});
   if (!ret.handled || !ret.valueSelection) return; // FIXME: the "handled" seems redundant, only valueSelection is enough (null for unhandled)
   e.preventDefault();

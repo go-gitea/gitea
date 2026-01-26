@@ -41,11 +41,10 @@ func (g *ASTTransformer) applyElementDir(n ast.Node) {
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
 	firstChild := node.FirstChild()
-	tocMode := ""
 	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
 	rc := pc.Get(renderConfigKey).(*RenderConfig)
 
-	tocList := make([]Header, 0, 20)
+	tocMode := ""
 	if rc.yamlNode != nil {
 		metaNode := rc.toMetaNode(g)
 		if metaNode != nil {
@@ -60,8 +59,6 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		}
 
 		switch v := n.(type) {
-		case *ast.Heading:
-			g.transformHeading(ctx, v, reader, &tocList)
 		case *ast.Paragraph:
 			g.applyElementDir(v)
 		case *ast.List:
@@ -79,19 +76,18 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		return ast.WalkContinue, nil
 	})
 
-	showTocInMain := tocMode == "true" /* old behavior, in main view */ || tocMode == "main"
-	showTocInSidebar := !showTocInMain && tocMode != "false" // not hidden, not main, then show it in sidebar
-	if len(tocList) > 0 && (showTocInMain || showTocInSidebar) {
-		if showTocInMain {
-			tocNode := createTOCNode(tocList, rc.Lang, nil)
-			node.InsertBefore(node, firstChild, tocNode)
-		} else {
-			tocNode := createTOCNode(tocList, rc.Lang, map[string]string{"open": "open"})
-			ctx.SidebarTocNode = tocNode
+	if ctx.RenderOptions.EnableHeadingIDGeneration {
+		showTocInMain := tocMode == "true" /* old behavior, in main view */ || tocMode == "main"
+		showTocInSidebar := !showTocInMain && tocMode != "false" // not hidden, not main, then show it in sidebar
+		switch {
+		case showTocInMain:
+			ctx.TocShowInSection = markup.TocShowInMain
+		case showTocInSidebar:
+			ctx.TocShowInSection = markup.TocShowInSidebar
 		}
 	}
 
-	if len(rc.Lang) > 0 {
+	if rc.Lang != "" {
 		node.SetAttributeString("lang", []byte(rc.Lang))
 	}
 }

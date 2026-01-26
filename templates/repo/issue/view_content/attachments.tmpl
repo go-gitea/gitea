@@ -6,7 +6,7 @@
 	{{- range .Attachments -}}
 		<div class="tw-flex">
 			<div class="tw-flex-1 tw-p-2">
-				<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
+				<a target="_blank" href="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
 					{{if FilenameIsImage .Name}}
 						{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) .UUID)}}
 							{{$hasThumbnails = true}}
@@ -30,7 +30,7 @@
 			{{- range .Attachments -}}
 				{{if FilenameIsImage .Name}}
 					{{if not (StringUtils.Contains (StringUtils.ToString $.RenderedContent) .UUID)}}
-					<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
+					<a target="_blank" href="{{.DownloadURL}}">
 						<img loading="lazy" alt="{{.Name}}" src="{{.DownloadURL}}" title="{{ctx.Locale.Tr "repo.issues.attachment.open_tab" .Name}}">
 					</a>
 					{{end}}

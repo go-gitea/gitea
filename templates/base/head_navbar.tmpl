@@ -36,7 +36,7 @@
 		{{template "custom/extra_links" .}}
 
 		{{if not .IsSigned}}
-			<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com">{{ctx.Locale.Tr "help"}}</a>
+			<a class="item" target="_blank" href="https://docs.gitea.com">{{ctx.Locale.Tr "help"}}</a>
 		{{end}}
 	</div>
 
@@ -116,7 +116,7 @@
 						{{svg "octicon-tools"}}
 						{{ctx.Locale.Tr "your_settings"}}
 					</a>
-					<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com">
+					<a class="item" target="_blank" href="https://docs.gitea.com">
 						{{svg "octicon-question"}}
 						{{ctx.Locale.Tr "help"}}
 					</a>
@@ -141,7 +141,7 @@
 					<span class="tw-ml-1">{{ctx.Locale.Tr "register"}}</span>
 				</a>
 			{{end}}
-			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login{{if not .PageIsSignIn}}?redirect_to={{.CurrentURL}}{{end}}">
+			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login">
 				{{svg "octicon-sign-in"}}
 				<span class="tw-ml-1">{{ctx.Locale.Tr "sign_in"}}</span>
 			</a>

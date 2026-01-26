@@ -4,12 +4,10 @@
 package pull
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"io"
-	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -52,6 +50,7 @@ type NewPullRequestOptions struct {
 	AssigneeIDs     []int64
 	Reviewers       []*user_model.User
 	TeamReviewers   []*organization.Team
+	ProjectID       int64
 }
 
 // NewPullRequest creates new pull request with labels for repository.
@@ -67,11 +66,13 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 
 	// user should be a collaborator or a member of the organization for base repo
 	canCreate := issue.Poster.IsAdmin || pr.Flow == issues_model.PullRequestFlowAGit
+	canAssignProject := canCreate
 	if !canCreate {
 		canCreate, err := repo_model.IsOwnerMemberCollaborator(ctx, repo, issue.Poster.ID)
 		if err != nil {
 			return err
 		}
+		canAssignProject = canCreate
 
 		if !canCreate {
 			// or user should have write permission in the head repo
@@ -85,6 +86,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 			if !perm.CanWrite(unit.TypeCode) {
 				return issues_model.ErrMustCollaborator
 			}
+			canAssignProject = perm.CanWrite(unit.TypeProjects)
 		}
 	}
 
@@ -115,6 +117,12 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 				return err
 			}
 			assigneeCommentMap[assigneeID] = comment
+		}
+
+		if opts.ProjectID > 0 && canAssignProject {
+			if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, issue.Poster, opts.ProjectID, 0); err != nil {
+				return err
+			}
 		}
 
 		pr.Issue = issue
@@ -511,40 +519,23 @@ func checkIfPRContentChanged(ctx context.Context, pr *issues_model.PullRequest, 
 	}
 	defer cancel()
 
-	tmpRepo, err := git.OpenRepository(ctx, prCtx.tmpBasePath)
-	if err != nil {
-		return false, "", fmt.Errorf("OpenRepository: %w", err)
-	}
-	defer tmpRepo.Close()
-
-	// Find the merge-base
-	mergeBase, _, err = tmpRepo.GetMergeBase("", "base", "tracking")
+	mergeBase, err = gitrepo.MergeBase(ctx, pr.BaseRepo, pr.BaseBranch, pr.GetGitHeadRefName())
 	if err != nil {
 		return false, "", fmt.Errorf("GetMergeBase: %w", err)
 	}
 
 	cmd := gitcmd.NewCommand("diff", "--name-only", "-z").AddDynamicArguments(newCommitID, oldCommitID, mergeBase)
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return false, mergeBase, fmt.Errorf("unable to open pipe for to run diff: %w", err)
-	}
 
-	stderr := new(bytes.Buffer)
+	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
 	if err := cmd.WithDir(prCtx.tmpBasePath).
-		WithStdout(stdoutWriter).
-		WithStderr(stderr).
-		WithPipelineFunc(func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
-			defer func() {
-				_ = stdoutReader.Close()
-			}()
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			return util.IsEmptyReader(stdoutReader)
 		}).
-		Run(ctx); err != nil {
-		if err == util.ErrNotEmpty {
+		RunWithStderr(ctx); err != nil {
+		if errors.Is(err, util.ErrNotEmpty) {
 			return true, mergeBase, nil
 		}
-		err = gitcmd.ConcatenateError(err, stderr.String())
 
 		log.Error("Unable to run diff on %s %s %s in tempRepo for PR[%d]%s/%s...%s/%s: Error: %v",
 			newCommitID, oldCommitID, mergeBase,
@@ -1067,7 +1058,7 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 	if pull.HasMerged {
 		baseBranch = pull.MergeBase
 	}
-	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, git.RefNameFromBranch(baseBranch), git.RefName(pull.GetGitHeadRefName()), true, false)
+	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo, git.RefNameFromBranch(baseBranch), git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
 		return nil, "", err
 	}

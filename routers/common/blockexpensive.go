@@ -24,7 +24,7 @@ func BlockExpensive() func(next http.Handler) http.Handler {
 			ret := determineRequestPriority(reqctx.FromContext(req.Context()))
 			if !ret.SignedIn {
 				if ret.Expensive || ret.LongPolling {
-					http.Redirect(w, req, setting.AppSubURL+"/user/login", http.StatusSeeOther)
+					http.Redirect(w, req, middleware.RedirectLinkUserLogin(req), http.StatusSeeOther)
 					return
 				}
 			}

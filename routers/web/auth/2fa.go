@@ -26,7 +26,7 @@ var (
 func TwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
-	if CheckAutoLogin(ctx) {
+	if performAutoLogin(ctx) {
 		return
 	}
 
@@ -99,7 +99,7 @@ func TwoFactorPost(ctx *context.Context) {
 func TwoFactorScratch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
 
-	if CheckAutoLogin(ctx) {
+	if performAutoLogin(ctx) {
 		return
 	}
 
@@ -151,7 +151,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 			return
 		}
 
-		handleSignInFull(ctx, u, remember, false)
+		handleSignInFull(ctx, u, remember)
 		if ctx.Written() {
 			return
 		}

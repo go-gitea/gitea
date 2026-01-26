@@ -143,8 +143,9 @@ func LoadRepoCommit(t *testing.T, ctx gocontext.Context) {
 
 	gitRepo, err := gitrepo.OpenRepository(ctx, repo.Repository)
 	require.NoError(t, err)
-	defer gitRepo.Close()
-
+	t.Cleanup(func() {
+		gitRepo.Close()
+	})
 	if repo.RefFullName == "" {
 		repo.RefFullName = git_module.RefNameFromBranch(repo.Repository.DefaultBranch)
 	}
@@ -161,8 +162,10 @@ func LoadUser(t *testing.T, ctx gocontext.Context, userID int64) {
 	switch ctx := ctx.(type) {
 	case *context.Context:
 		ctx.Doer = doer
+		ctx.IsSigned = true
 	case *context.APIContext:
 		ctx.Doer = doer
+		ctx.IsSigned = true
 	default:
 		assert.FailNow(t, "context is not *context.Context or *context.APIContext")
 	}

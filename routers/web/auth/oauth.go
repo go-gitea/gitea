@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/middleware"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
@@ -42,10 +41,7 @@ func SignInOAuth(ctx *context.Context) {
 		return
 	}
 
-	redirectTo := ctx.FormString("redirect_to")
-	if len(redirectTo) > 0 {
-		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
-	}
+	rememberAuthRedirectLink(ctx)
 
 	// try to do a direct callback flow, so we don't authenticate the user again but use the valid accesstoken to get the user
 	user, gothUser, err := oAuth2UserLoginCallback(ctx, authSource, ctx.Req, ctx.Resp)
@@ -398,13 +394,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
-		if redirectTo := ctx.GetSiteCookie("redirect_to"); len(redirectTo) > 0 {
-			middleware.DeleteRedirectToCookie(ctx.Resp)
-			ctx.RedirectToCurrentSite(redirectTo)
-			return
-		}
-
-		ctx.Redirect(setting.AppSubURL + "/")
+		redirectAfterAuth(ctx)
 		return
 	}
 
