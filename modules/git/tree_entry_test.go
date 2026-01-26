@@ -22,8 +22,9 @@ func TestEntriesCustomSort(t *testing.T) {
 		&TreeEntry{name: "b-file", entryMode: EntryModeBlob},
 	}
 	expected := slices.Clone(entries)
-	rand.Shuffle(len(entries), func(i, j int) { entries[i], entries[j] = entries[j], entries[i] })
-	assert.NotEqual(t, expected, entries)
+	for slices.Equal(expected, entries) {
+		rand.Shuffle(len(entries), func(i, j int) { entries[i], entries[j] = entries[j], entries[i] })
+	}
 	entries.CustomSort(strings.Compare)
 	assert.Equal(t, expected, entries)
 }

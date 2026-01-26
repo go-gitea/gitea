@@ -4,12 +4,13 @@
 package analyze
 
 import (
-	"path/filepath"
+	"path"
 
 	"github.com/go-enry/go-enry/v2"
 )
 
 // GetCodeLanguage detects code language based on file name and content
+// It can be slow when the content is used for detection
 func GetCodeLanguage(filename string, content []byte) string {
 	if language, ok := enry.GetLanguageByExtension(filename); ok {
 		return language
@@ -23,5 +24,5 @@ func GetCodeLanguage(filename string, content []byte) string {
 		return enry.OtherLanguage
 	}
 
-	return enry.GetLanguage(filepath.Base(filename), content)
+	return enry.GetLanguage(path.Base(filename), content)
 }

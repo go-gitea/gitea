@@ -240,30 +240,24 @@ func init() {
 	markup.RegisterRenderer(Renderer{})
 }
 
-// Renderer implements markup.Renderer
 type Renderer struct{}
 
 var _ markup.PostProcessRenderer = (*Renderer)(nil)
 
-// Name implements markup.Renderer
 func (Renderer) Name() string {
 	return MarkupName
 }
 
-// NeedPostProcess implements markup.PostProcessRenderer
 func (Renderer) NeedPostProcess() bool { return true }
 
-// Extensions implements markup.Renderer
-func (Renderer) Extensions() []string {
-	return setting.Markdown.FileExtensions
+func (Renderer) FileNamePatterns() []string {
+	return setting.Markdown.FileNamePatterns
 }
 
-// SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{}
 }
 
-// Render implements markup.Renderer
 func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	return render(ctx, input, output)
 }

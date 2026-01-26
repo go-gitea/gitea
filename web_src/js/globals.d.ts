@@ -77,6 +77,7 @@ interface Window {
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
   codeEditors: any[], // export editor for customization
+  localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
 
   // various captcha plugins
   grecaptcha: any,

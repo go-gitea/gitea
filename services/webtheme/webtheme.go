@@ -140,7 +140,7 @@ func initThemes() {
 			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
 		}
 	}()
-	cssFiles, err := public.AssetFS().ListFiles("/assets/css")
+	cssFiles, err := public.AssetFS().ListFiles("assets/css")
 	if err != nil {
 		log.Error("Failed to list themes: %v", err)
 		availableThemes = []*ThemeMetaInfo{defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)}

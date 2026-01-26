@@ -21,6 +21,9 @@ function mainExternalRenderIframe() {
   };
 
   const updateIframeHeight = () => postIframeMsg('resize', {iframeHeight: document.documentElement.scrollHeight});
+  const resizeObserver = new ResizeObserver(() => updateIframeHeight());
+  resizeObserver.observe(window.document.documentElement);
+
   updateIframeHeight();
   window.addEventListener('DOMContentLoaded', updateIframeHeight);
   // the easiest way to handle dynamic content changes and easy to debug, can be fine-tuned in the future

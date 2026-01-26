@@ -77,7 +77,7 @@
 			>{{.TextareaContent}}</textarea>
 		</text-expander>
 		<script>
-			if (localStorage?.getItem('markdown-editor-monospace') === 'true') {
+			if (window.localUserSettings.getBoolean('markdown-editor-monospace')) {
 				document.querySelector('.markdown-text-editor').classList.add('tw-font-mono');
 			}
 		</script>
