@@ -4,10 +4,14 @@
 package gitrepo
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,12 +33,35 @@ func Test_parseMergeTreeOutput(t *testing.T) {
 	assert.Empty(t, conflictedFiles)
 }
 
+func prepareRepoDirRenameConflict(t *testing.T) string {
+	t.Helper()
+
+	repoDir := filepath.Join(t.TempDir(), "repo-dir-rename-conflict.git")
+	repoDir, err := filepath.Abs(repoDir)
+	require.NoError(t, err)
+	importPath := filepath.Join(test.SetupGiteaRoot(), "modules/git/tests/testdata/repo-dir-rename-conflict.fast-import")
+
+	require.NoError(t, gitcmd.NewCommand("init", "--bare").AddDynamicArguments(repoDir).Run(t.Context()))
+
+	importFile, err := os.Open(importPath)
+	require.NoError(t, err)
+	t.Cleanup(func() {
+		_ = importFile.Close()
+	})
+
+	require.NoError(t, gitcmd.NewCommand("fast-import").WithDir(repoDir).WithStdinCopy(importFile).Run(t.Context()))
+
+	return repoDir
+}
+
 func TestMergeTreeDirectoryRenameConflictWithoutFiles(t *testing.T) {
 	if !git.DefaultFeatures().SupportGitMergeTree {
 		t.Skip("git merge-tree not supported")
 	}
 
-	repo := &mockRepository{path: "repo-dir-rename-conflict"}
+	repoDir := prepareRepoDirRenameConflict(t)
+	require.DirExists(t, repoDir)
+	repo := &mockRepository{path: repoDir}
 
 	mergeBase, err := MergeBase(t.Context(), repo, "add", "split")
 	require.NoError(t, err)
