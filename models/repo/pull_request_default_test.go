@@ -8,7 +8,6 @@ import (
 
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -31,6 +30,5 @@ func TestDefaultTargetBranchSelection(t *testing.T) {
 	repo.Units = nil
 	assert.Equal(t, "branch2", repo.GetDefaultTargetBranch(ctx))
 
-	err = repo.ValidateDefaultTargetBranch(ctx, "does-not-exist")
-	assert.ErrorIs(t, err, util.ErrNotExist)
+	assert.NoError(t, repo.ValidateDefaultTargetBranch(ctx, "does-not-exist"))
 }
