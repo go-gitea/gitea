@@ -91,11 +91,25 @@ func TestFileSize(t *testing.T) {
 	assert.Equal(t, "2.0 EiB", FileSize(size))
 }
 
-func TestGetFileSize(t *testing.T) {
-	var size int64 = 512 * 1024 * 1024 * 1024
-	s, err := GetFileSize("512 GiB")
-	assert.Equal(t, s, size)
-	assert.NoError(t, err)
+func TestGetFileSizeParsesHumanSizes(t *testing.T) {
+	cases := []struct {
+		in   string
+		want int64
+	}{
+		{"11", 11},
+		{"11 B", 11},
+		{"11 KiB", 11 * 1024},
+		{"11 MiB", 11 * 1024 * 1024},
+		{"11 GiB", 11 * 1024 * 1024 * 1024},
+		{"11 TiB", 11 * 1024 * 1024 * 1024 * 1024},
+		{"11 PiB", 11 * 1024 * 1024 * 1024 * 1024 * 1024},
+		{"2 EiB", 2 * 1024 * 1024 * 1024 * 1024 * 1024 * 1024},
+	}
+	for _, tc := range cases {
+		got, err := GetFileSize(tc.in)
+		assert.NoError(t, err, tc.in)
+		assert.Equal(t, tc.want, got, tc.in)
+	}
 }
 
 func TestStringsToInt64s(t *testing.T) {
