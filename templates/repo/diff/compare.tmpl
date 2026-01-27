@@ -174,8 +174,8 @@
 		</div>
 
 		{{if and .IsSigned .PageIsComparePull}}
-			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare))}}
-			{{if .IsNothingToCompare}}
+			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .DiffNotAvailable))}}
+			{{if .DiffNotAvailable}}
 				<div class="ui segment">
 					{{if $allowCreatePR}}
 						{{ctx.Locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}
@@ -215,18 +215,20 @@
 				</div>
 			{{end}}
 		{{else}}{{/* not singed-in or not for pull-request */}}
-			{{if .IsNothingToCompare}}
+			{{if .DiffNotAvailable}}
 				<div class="ui segment">{{ctx.Locale.Tr "repo.commits.nothing_to_compare"}}</div>
 			{{end}}
 		{{end}}
 	</div>
 
-	{{if not .IsNothingToCompare}}
+	{{if or .CommitCount (not .DiffNotAvailable)}}
 		<div class="ui container fluid padded tw-my-4">
 			{{if .CommitCount}}
 				{{template "repo/commits_table" .}}
 			{{end}}
-			{{template "repo/diff/box" .}}
+			{{if not .DiffNotAvailable}}
+				{{template "repo/diff/box" .}}
+			{{end}}
 		</div>
 	{{end}}
 </div>
