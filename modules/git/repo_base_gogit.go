@@ -32,16 +32,10 @@ type Repository struct {
 
 	gogitRepo    *gogit.Repository
 	gogitStorage *filesystem.Storage
-	gpgSettings  *GPGSettings
 
 	Ctx             context.Context
 	LastCommitCache *LastCommitCache
 	objectFormat    ObjectFormat
-}
-
-// openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
-func openRepositoryWithDefaultContext(repoPath string) (*Repository, error) {
-	return OpenRepository(DefaultContext, repoPath)
 }
 
 // OpenRepository opens the repository at the given path within the context.Context
@@ -49,7 +43,12 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {
 		return nil, err
-	} else if !isDir(repoPath) {
+	}
+	exist, err := util.IsDir(repoPath)
+	if err != nil {
+		return nil, err
+	}
+	if !exist {
 		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 

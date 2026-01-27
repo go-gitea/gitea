@@ -12,6 +12,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
@@ -45,7 +46,6 @@ type ApplyDiffPatchOptions struct {
 	NewBranch    string
 	Message      string
 	Content      string
-	SHA          string
 	Author       *IdentityOptions
 	Committer    *IdentityOptions
 	Dates        *CommitDateOptions
@@ -53,7 +53,7 @@ type ApplyDiffPatchOptions struct {
 }
 
 // Validate validates the provided options
-func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_model.Repository, doer *user_model.User) error {
+func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User) error {
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -62,28 +62,25 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 		opts.NewBranch = opts.OldBranch
 	}
 
-	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
-	if err != nil {
-		return err
-	}
-	defer closer.Close()
-
 	// oldBranch must exist for this operation
-	if _, err := gitRepo.GetBranch(opts.OldBranch); err != nil {
+	if exist, err := git_model.IsBranchExist(ctx, repo.ID, opts.OldBranch); err != nil {
 		return err
+	} else if !exist {
+		return git_model.ErrBranchNotExist{
+			BranchName: opts.OldBranch,
+		}
 	}
 	// A NewBranch can be specified for the patch to be applied to.
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := gitRepo.GetBranch(opts.NewBranch)
-		if existingBranch != nil {
+		exist, err := git_model.IsBranchExist(ctx, repo.ID, opts.NewBranch)
+		if err != nil {
+			return err
+		} else if exist {
 			return git_model.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
 			}
-		}
-		if err != nil && !git.IsErrBranchNotExist(err) {
-			return err
 		}
 	} else {
 		protectedBranch, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, opts.OldBranch)
@@ -99,7 +96,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 			}
 		}
 		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
-			_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo.RepoPath(), doer, repo.RepoPath(), opts.OldBranch)
+			_, _, _, err := asymkey_service.SignCRUDAction(ctx, doer, gitRepo, opts.OldBranch)
 			if err != nil {
 				if !asymkey_service.IsErrWontSign(err) {
 					return err
@@ -120,23 +117,27 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		return nil, err
 	}
 
-	if err := opts.Validate(ctx, repo, doer); err != nil {
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo)
+	if err != nil {
+		return nil, err
+	}
+	defer closer.Close()
+
+	if err := opts.Validate(ctx, repo, gitRepo, doer); err != nil {
 		return nil, err
 	}
 
 	message := strings.TrimSpace(opts.Message)
 
-	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
-
-	t, err := NewTemporaryUploadRepository(ctx, repo)
+	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
 		log.Error("NewTemporaryUploadRepository failed: %v", err)
 	}
 	defer t.Close()
-	if err := t.Clone(opts.OldBranch, true); err != nil {
+	if err := t.Clone(ctx, opts.OldBranch, true); err != nil {
 		return nil, err
 	}
-	if err := t.SetDefaultIndex(); err != nil {
+	if err := t.SetDefaultIndex(ctx); err != nil {
 		return nil, err
 	}
 
@@ -163,42 +164,45 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 		}
 	}
 
-	stdout := &strings.Builder{}
-	stderr := &strings.Builder{}
-
-	cmdApply := git.NewCommand(ctx, "apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary")
+	cmdApply := gitcmd.NewCommand("apply", "--index", "--recount", "--cached", "--ignore-whitespace", "--whitespace=fix", "--binary")
 	if git.DefaultFeatures().CheckVersionAtLeast("2.32") {
 		cmdApply.AddArguments("-3")
 	}
 
-	if err := cmdApply.Run(&git.RunOpts{
-		Dir:    t.basePath,
-		Stdout: stdout,
-		Stderr: stderr,
-		Stdin:  strings.NewReader(opts.Content),
-	}); err != nil {
-		return nil, fmt.Errorf("Error: Stdout: %s\nStderr: %s\nErr: %w", stdout.String(), stderr.String(), err)
+	if err := cmdApply.WithDir(t.basePath).
+		WithStdinBytes([]byte(opts.Content)).
+		RunWithStderr(ctx); err != nil {
+		return nil, fmt.Errorf("git apply error: %w", err)
 	}
 
 	// Now write the tree
-	treeHash, err := t.WriteTree()
+	treeHash, err := t.WriteTree(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	// Now commit the tree
-	var commitHash string
-	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate("HEAD", author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
-	} else {
-		commitHash, err = t.CommitTree("HEAD", author, committer, treeHash, message, opts.Signoff)
+	commitOpts := &CommitTreeUserOptions{
+		ParentCommitID:    "HEAD",
+		TreeHash:          treeHash,
+		CommitMessage:     message,
+		SignOff:           opts.Signoff,
+		DoerUser:          doer,
+		AuthorIdentity:    opts.Author,
+		AuthorTime:        nil,
+		CommitterIdentity: opts.Committer,
+		CommitterTime:     nil,
 	}
+	if opts.Dates != nil {
+		commitOpts.AuthorTime, commitOpts.CommitterTime = &opts.Dates.Author, &opts.Dates.Committer
+	}
+	commitHash, err := t.CommitTree(ctx, commitOpts)
 	if err != nil {
 		return nil, err
 	}
 
 	// Then push this tree to NewBranch
-	if err := t.Push(doer, commitHash, opts.NewBranch); err != nil {
+	if err := t.Push(ctx, doer, commitHash, opts.NewBranch, false); err != nil {
 		return nil, err
 	}
 

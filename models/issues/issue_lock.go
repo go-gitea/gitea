@@ -12,8 +12,14 @@ import (
 
 // IssueLockOptions defines options for locking and/or unlocking an issue/PR
 type IssueLockOptions struct {
-	Doer   *user_model.User
-	Issue  *Issue
+	Doer  *user_model.User
+	Issue *Issue
+
+	// Reason is the doer-provided comment message for the locked issue
+	// GitHub doesn't support changing the "reasons" by config file, so GitHub has pre-defined "reason" enum values.
+	// Gitea is not like GitHub, it allows site admin to define customized "reasons" in the config file.
+	// So the API caller might not know what kind of "reasons" are valid, and the customized reasons are not translatable.
+	// To make things clear and simple: doer have the chance to use any reason they like, we do not do validation.
 	Reason string
 }
 
@@ -41,26 +47,19 @@ func updateIssueLock(ctx context.Context, opts *IssueLockOptions, lock bool) err
 		commentType = CommentTypeUnlock
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if err := UpdateIssueCols(ctx, opts.Issue, "is_locked"); err != nil {
+			return err
+		}
 
-	if err := UpdateIssueCols(ctx, opts.Issue, "is_locked"); err != nil {
+		opt := &CreateCommentOptions{
+			Doer:    opts.Doer,
+			Issue:   opts.Issue,
+			Repo:    opts.Issue.Repo,
+			Type:    commentType,
+			Content: opts.Reason,
+		}
+		_, err := CreateComment(ctx, opt)
 		return err
-	}
-
-	opt := &CreateCommentOptions{
-		Doer:    opts.Doer,
-		Issue:   opts.Issue,
-		Repo:    opts.Issue.Repo,
-		Type:    commentType,
-		Content: opts.Reason,
-	}
-	if _, err := CreateComment(ctx, opt); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	})
 }

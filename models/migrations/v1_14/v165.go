@@ -1,7 +1,7 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_14 //nolint
+package v1_14
 
 import (
 	"code.gitea.io/gitea/models/migrations/base"
@@ -16,10 +16,7 @@ func ConvertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		return nil
 	}
 
-	type HookTask struct { //nolint:unused
-		Typ string `xorm:"VARCHAR(16) index"`
-	}
-
+	// HookTask: Typ string `xorm:"VARCHAR(16) index"`
 	if err := base.ModifyColumn(x, "hook_task", &schemas.Column{
 		Name: "typ",
 		SQLType: schemas.SQLType{
@@ -42,10 +39,7 @@ func ConvertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		return err
 	}
 
-	type Webhook struct { //nolint:unused
-		Type string `xorm:"VARCHAR(16) index"`
-	}
-
+	// Webhook: Type string `xorm:"VARCHAR(16) index"`
 	if err := base.ModifyColumn(x, "webhook", &schemas.Column{
 		Name: "type",
 		SQLType: schemas.SQLType{

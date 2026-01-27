@@ -13,23 +13,23 @@ func TestPaginateSlice(t *testing.T) {
 	stringSlice := []string{"a", "b", "c", "d", "e"}
 	result, ok := PaginateSlice(stringSlice, 1, 2).([]string)
 	assert.True(t, ok)
-	assert.EqualValues(t, []string{"a", "b"}, result)
+	assert.Equal(t, []string{"a", "b"}, result)
 
 	result, ok = PaginateSlice(stringSlice, 100, 2).([]string)
 	assert.True(t, ok)
-	assert.EqualValues(t, []string{}, result)
+	assert.Equal(t, []string{}, result)
 
 	result, ok = PaginateSlice(stringSlice, 3, 2).([]string)
 	assert.True(t, ok)
-	assert.EqualValues(t, []string{"e"}, result)
+	assert.Equal(t, []string{"e"}, result)
 
 	result, ok = PaginateSlice(stringSlice, 1, 0).([]string)
 	assert.True(t, ok)
-	assert.EqualValues(t, []string{"a", "b", "c", "d", "e"}, result)
+	assert.Equal(t, []string{"a", "b", "c", "d", "e"}, result)
 
 	result, ok = PaginateSlice(stringSlice, 1, -1).([]string)
 	assert.True(t, ok)
-	assert.EqualValues(t, []string{"a", "b", "c", "d", "e"}, result)
+	assert.Equal(t, []string{"a", "b", "c", "d", "e"}, result)
 
 	type Test struct {
 		Val int
@@ -38,9 +38,9 @@ func TestPaginateSlice(t *testing.T) {
 	testVar := []*Test{{Val: 2}, {Val: 3}, {Val: 4}}
 	testVar, ok = PaginateSlice(testVar, 1, 50).([]*Test)
 	assert.True(t, ok)
-	assert.EqualValues(t, []*Test{{Val: 2}, {Val: 3}, {Val: 4}}, testVar)
+	assert.Equal(t, []*Test{{Val: 2}, {Val: 3}, {Val: 4}}, testVar)
 
 	testVar, ok = PaginateSlice(testVar, 2, 2).([]*Test)
 	assert.True(t, ok)
-	assert.EqualValues(t, []*Test{{Val: 4}}, testVar)
+	assert.Equal(t, []*Test{{Val: 4}}, testVar)
 }

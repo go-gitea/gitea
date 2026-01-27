@@ -10,12 +10,14 @@ import (
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
@@ -40,6 +42,9 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 	if err := issue.LoadAttachments(ctx); err != nil {
 		return &api.Issue{}
 	}
+	if err := issue.LoadPinOrder(ctx); err != nil {
+		return &api.Issue{}
+	}
 
 	apiIssue := &api.Issue{
 		ID:          issue.ID,
@@ -54,7 +59,9 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 		Comments:    issue.NumComments,
 		Created:     issue.CreatedUnix.AsTime(),
 		Updated:     issue.UpdatedUnix.AsTime(),
-		PinOrder:    issue.PinOrder,
+		PinOrder:    util.Iif(issue.PinOrder == -1, 0, issue.PinOrder), // -1 means loaded with no pin order
+
+		TimeEstimate: issue.TimeEstimate,
 	}
 
 	if issue.Repo != nil {
@@ -62,11 +69,11 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 			return &api.Issue{}
 		}
 		apiIssue.URL = issue.APIURL(ctx)
-		apiIssue.HTMLURL = issue.HTMLURL()
+		apiIssue.HTMLURL = issue.HTMLURL(ctx)
 		if err := issue.LoadLabels(ctx); err != nil {
 			return &api.Issue{}
 		}
-		apiIssue.Labels = ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner)
+		apiIssue.Labels = util.SliceNilAsEmpty(ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner))
 		apiIssue.Repo = &api.RepositoryMeta{
 			ID:       issue.Repo.ID,
 			Name:     issue.Repo.Name,
@@ -108,7 +115,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 				apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
 			}
 			// Add pr's html url
-			apiIssue.PullRequest.HTMLURL = issue.HTMLURL()
+			apiIssue.PullRequest.HTMLURL = issue.HTMLURL(ctx)
 		}
 	}
 	if issue.DeadlineUnix != 0 {
@@ -121,6 +128,7 @@ func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Iss
 // ToIssueList converts an IssueList to API format
 func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
+	_ = il.LoadPinOrder(ctx)
 	for i := range il {
 		result[i] = ToIssue(ctx, doer, il[i])
 	}
@@ -130,6 +138,7 @@ func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.Iss
 // ToAPIIssueList converts an IssueList to API format
 func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
+	_ = il.LoadPinOrder(ctx)
 	for i := range il {
 		result[i] = ToAPIIssue(ctx, doer, il[i])
 	}
@@ -155,11 +164,12 @@ func ToTrackedTime(ctx context.Context, doer *user_model.User, t *issues_model.T
 }
 
 // ToStopWatches convert Stopwatch list to api.StopWatches
-func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.StopWatches, error) {
+func ToStopWatches(ctx context.Context, doer *user_model.User, sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
 
 	issueCache := make(map[int64]*issues_model.Issue)
 	repoCache := make(map[int64]*repo_model.Repository)
+	permCache := make(map[int64]access_model.Permission)
 	var (
 		issue *issues_model.Issue
 		repo  *repo_model.Repository
@@ -174,19 +184,36 @@ func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.Stop
 			if err != nil {
 				return nil, err
 			}
+			issueCache[sw.IssueID] = issue
 		}
 		repo, ok = repoCache[issue.RepoID]
 		if !ok {
 			repo, err = repo_model.GetRepositoryByID(ctx, issue.RepoID)
 			if err != nil {
-				return nil, err
+				log.Error("GetRepositoryByID(%d): %v", issue.RepoID, err)
+				continue
 			}
+			repoCache[issue.RepoID] = repo
+		}
+
+		// ADD: Check user permissions
+		perm, ok := permCache[repo.ID]
+		if !ok {
+			perm, err = access_model.GetUserRepoPermission(ctx, repo, doer)
+			if err != nil {
+				continue
+			}
+			permCache[repo.ID] = perm
+		}
+
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+			continue
 		}
 
 		result = append(result, api.StopWatch{
 			Created:       sw.CreatedUnix.AsTime(),
 			Seconds:       sw.Seconds(),
-			Duration:      sw.Duration(),
+			Duration:      util.SecToHours(sw.Seconds()),
 			IssueIndex:    issue.Index,
 			IssueTitle:    issue.Title,
 			RepoOwnerName: repo.OwnerName,

@@ -34,7 +34,7 @@ type PortablePdbList []*PortablePdb
 
 func (l PortablePdbList) Close() {
 	for _, pdb := range l {
-		pdb.Content.Close()
+		_ = pdb.Content.Close()
 	}
 }
 
@@ -65,7 +65,7 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 
 				buf, err := packages.CreateHashedBufferFromReader(f)
 
-				f.Close()
+				_ = f.Close()
 
 				if err != nil {
 					return err
@@ -73,12 +73,12 @@ func ExtractPortablePdb(r io.ReaderAt, size int64) (PortablePdbList, error) {
 
 				id, err := ParseDebugHeaderID(buf)
 				if err != nil {
-					buf.Close()
+					_ = buf.Close()
 					return fmt.Errorf("Invalid PDB file: %w", err)
 				}
 
 				if _, err := buf.Seek(0, io.SeekStart); err != nil {
-					buf.Close()
+					_ = buf.Close()
 					return err
 				}
 
@@ -142,8 +142,8 @@ func ParseDebugHeaderID(r io.ReadSeeker) (string, error) {
 			if _, err := r.Read(b); err != nil {
 				return "", err
 			}
-			if i := bytes.IndexByte(b, 0); i != -1 {
-				buf.Write(b[:i])
+			if before, _, ok := bytes.Cut(b, []byte{0}); ok {
+				buf.Write(before)
 				return buf.String(), nil
 			}
 			buf.Write(b)

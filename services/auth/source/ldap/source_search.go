@@ -117,10 +117,10 @@ func dial(source *Source) (*ldap.Conn, error) {
 	}
 
 	if source.SecurityProtocol == SecurityProtocolLDAPS {
-		return ldap.DialTLS("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)), tlsConfig) //nolint:staticcheck
+		return ldap.DialTLS("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)), tlsConfig) //nolint:staticcheck // DialTLS is deprecated
 	}
 
-	conn, err := ldap.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port))) //nolint:staticcheck
+	conn, err := ldap.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port))) //nolint:staticcheck // Dial is deprecated
 	if err != nil {
 		return nil, fmt.Errorf("error during Dial: %w", err)
 	}
@@ -241,7 +241,7 @@ func (source *Source) listLdapGroupMemberships(l *ldap.Conn, uid string, applyGr
 }
 
 func (source *Source) getUserAttributeListedInGroup(entry *ldap.Entry) string {
-	if strings.ToLower(source.UserUID) == "dn" {
+	if strings.EqualFold(source.UserUID, "dn") {
 		return entry.DN
 	}
 

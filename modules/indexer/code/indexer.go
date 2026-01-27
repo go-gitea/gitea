@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/indexer"
 	"code.gitea.io/gitea/modules/indexer/code/bleve"
 	"code.gitea.io/gitea/modules/indexer/code/elasticsearch"
 	"code.gitea.io/gitea/modules/indexer/code/internal"
@@ -21,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -29,13 +31,11 @@ var (
 	// When the real indexer is not ready, it will be a dummy indexer which will return error to explain it's not ready.
 	// So it's always safe use it as *globalIndexer.Load() and call its methods.
 	globalIndexer atomic.Pointer[internal.Indexer]
-	dummyIndexer  *internal.Indexer
 )
 
 func init() {
-	i := internal.NewDummyIndexer()
-	dummyIndexer = &i
-	globalIndexer.Store(dummyIndexer)
+	dummyIndexer := internal.NewDummyIndexer()
+	globalIndexer.Store(&dummyIndexer)
 }
 
 func index(ctx context.Context, indexer internal.Indexer, repoID int64) error {
@@ -167,12 +167,12 @@ func Init() {
 				log.Fatal("PID: %d Unable to initialize the bleve Repository Indexer at path: %s Error: %v", os.Getpid(), setting.Indexer.RepoPath, err)
 			}
 		case "elasticsearch":
-			log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), setting.Indexer.RepoConnStr)
+			log.Info("PID: %d Initializing Repository Indexer at: %s", os.Getpid(), util.SanitizeCredentialURLs(setting.Indexer.RepoConnStr))
 			defer func() {
 				if err := recover(); err != nil {
 					log.Error("PANIC whilst initializing repository indexer: %v\nStacktrace: %s", err, log.Stack(2))
 					log.Error("The indexer files are likely corrupted and may need to be deleted")
-					log.Error("You can completely remove the \"%s\" index to make Gitea recreate the indexes", setting.Indexer.RepoConnStr)
+					log.Error("You can completely remove the \"%s\" index to make Gitea recreate the indexes", util.SanitizeCredentialURLs(setting.Indexer.RepoConnStr))
 				}
 			}()
 
@@ -182,7 +182,7 @@ func Init() {
 				cancel()
 				(*globalIndexer.Load()).Close()
 				close(waitChannel)
-				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), setting.Indexer.RepoConnStr, err)
+				log.Fatal("PID: %d Unable to initialize the elasticsearch Repository Indexer connstr: %s Error: %v", os.Getpid(), util.SanitizeCredentialURLs(setting.Indexer.RepoConnStr), err)
 			}
 
 		default:
@@ -303,4 +303,12 @@ func populateRepoIndexer(ctx context.Context) {
 		}
 	}
 	log.Info("Done (re)populating the repo indexer with existing repositories")
+}
+
+func SupportedSearchModes() []indexer.SearchMode {
+	gi := globalIndexer.Load()
+	if gi == nil {
+		return nil
+	}
+	return (*gi).SupportedSearchModes()
 }

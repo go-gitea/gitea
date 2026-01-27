@@ -29,7 +29,3 @@ const (
 // NoConditionID means a condition to filter the records which don't match any id.
 // eg: "milestone_id=-1" means "find the items without any milestone.
 const NoConditionID int64 = -1
-
-// NonExistingID means a condition to match no result (eg: a non-existing user)
-// It doesn't use -1 or -2 because they are used as builtin users.
-const NonExistingID int64 = -1000000

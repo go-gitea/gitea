@@ -6,13 +6,14 @@ package webhook
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
 
@@ -42,7 +43,7 @@ func TestPrepareWebhooks(t *testing.T) {
 	for _, hookTask := range hookTasks {
 		unittest.AssertNotExistsBean(t, hookTask)
 	}
-	assert.NoError(t, PrepareWebhooks(db.DefaultContext, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}}))
+	assert.NoError(t, PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}}))
 	for _, hookTask := range hookTasks {
 		unittest.AssertExistsAndLoadBean(t, hookTask)
 	}
@@ -59,7 +60,7 @@ func TestPrepareWebhooksBranchFilterMatch(t *testing.T) {
 		unittest.AssertNotExistsBean(t, hookTask)
 	}
 	// this test also ensures that * doesn't handle / in any special way (like shell would)
-	assert.NoError(t, PrepareWebhooks(db.DefaultContext, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791", Commits: []*api.PayloadCommit{{}}}))
+	assert.NoError(t, PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791", Commits: []*api.PayloadCommit{{}}}))
 	for _, hookTask := range hookTasks {
 		unittest.AssertExistsAndLoadBean(t, hookTask)
 	}
@@ -75,7 +76,7 @@ func TestPrepareWebhooksBranchFilterNoMatch(t *testing.T) {
 	for _, hookTask := range hookTasks {
 		unittest.AssertNotExistsBean(t, hookTask)
 	}
-	assert.NoError(t, PrepareWebhooks(db.DefaultContext, EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"}))
+	assert.NoError(t, PrepareWebhooks(t.Context(), EventSource{Repository: repo}, webhook_module.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"}))
 
 	for _, hookTask := range hookTasks {
 		unittest.AssertNotExistsBean(t, hookTask)
@@ -84,8 +85,36 @@ func TestPrepareWebhooksBranchFilterNoMatch(t *testing.T) {
 
 func TestWebhookUserMail(t *testing.T) {
 	require.NoError(t, unittest.PrepareTestDatabase())
-	setting.Service.NoReplyAddress = "no-reply.com"
+	defer test.MockVariableValue(&setting.Service.NoReplyAddress, "no-reply.com")()
+
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-	assert.Equal(t, user.GetPlaceholderEmail(), convert.ToUser(db.DefaultContext, user, nil).Email)
-	assert.Equal(t, user.Email, convert.ToUser(db.DefaultContext, user, user).Email)
+	assert.Equal(t, user.GetPlaceholderEmail(), convert.ToUser(t.Context(), user, nil).Email)
+	assert.Equal(t, user.Email, convert.ToUser(t.Context(), user, user).Email)
+}
+
+func TestCheckBranchFilter(t *testing.T) {
+	cases := []struct {
+		filter string
+		ref    git.RefName
+		match  bool
+	}{
+		{"", "any-ref", true},
+		{"*", "any-ref", true},
+		{"**", "any-ref", true},
+
+		{"main", git.RefNameFromBranch("main"), true},
+		{"main", git.RefNameFromTag("main"), false},
+
+		{"feature/*", git.RefNameFromBranch("feature"), false},
+		{"feature/*", git.RefNameFromBranch("feature/foo"), true},
+		{"feature/*", git.RefNameFromTag("feature/foo"), false},
+
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromBranch("feature/foo"), true},
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromBranch("main"), false},
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromTag("release/bar"), true},
+		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromTag("dev"), false},
+	}
+	for _, v := range cases {
+		assert.Equal(t, v.match, checkBranchFilter(v.filter, v.ref), "filter: %q ref: %q", v.filter, v.ref)
+	}
 }

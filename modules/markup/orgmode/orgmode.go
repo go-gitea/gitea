@@ -1,11 +1,10 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package markup
+package orgmode
 
 import (
 	"fmt"
-	"html"
 	"html/template"
 	"io"
 	"strings"
@@ -17,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/alecthomas/chroma/v2"
-	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/niklasfasching/go-org/org"
 )
 
@@ -33,20 +31,16 @@ var (
 	_ markup.PostProcessRenderer = (*renderer)(nil)
 )
 
-// Name implements markup.Renderer
 func (renderer) Name() string {
 	return "orgmode"
 }
 
-// NeedPostProcess implements markup.PostProcessRenderer
 func (renderer) NeedPostProcess() bool { return true }
 
-// Extensions implements markup.Renderer
-func (renderer) Extensions() []string {
-	return []string{".org"}
+func (renderer) FileNamePatterns() []string {
+	return []string{"*.org"}
 }
 
-// SanitizerRules implements markup.Renderer
 func (renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{}
 }
@@ -57,40 +51,20 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	htmlWriter.HighlightCodeBlock = func(source, lang string, inline bool, params map[string]string) string {
 		defer func() {
 			if err := recover(); err != nil {
+				// catch the panic, log the error and return empty result
 				log.Error("Panic in HighlightCodeBlock: %v\n%s", err, log.Stack(2))
-				panic(err)
 			}
 		}()
-		w := &strings.Builder{}
 
-		lexer := lexers.Get(lang)
-		if lexer == nil && lang == "" {
-			lexer = lexers.Analyse(source)
-			if lexer == nil {
-				lexer = lexers.Fallback
-			}
-			lang = strings.ToLower(lexer.Config().Name)
-		}
+		lexer := highlight.GetChromaLexerWithFallback("", lang, nil) // don't use content to detect, it is too slow
+		lexer = chroma.Coalesce(lexer)
 
+		sb := &strings.Builder{}
 		// include language-x class as part of commonmark spec
-		if err := ctx.RenderInternal.FormatWithSafeAttrs(w, `<pre><code class="chroma language-%s">`, lang); err != nil {
-			return ""
-		}
-		if lexer == nil {
-			if _, err := w.WriteString(html.EscapeString(source)); err != nil {
-				return ""
-			}
-		} else {
-			lexer = chroma.Coalesce(lexer)
-			if _, err := w.WriteString(string(highlight.CodeFromLexer(lexer, source))); err != nil {
-				return ""
-			}
-		}
-		if _, err := w.WriteString("</code></pre>"); err != nil {
-			return ""
-		}
-
-		return w.String()
+		_ = ctx.RenderInternal.FormatWithSafeAttrs(sb, `<pre><code class="chroma language-%s">`, strings.ToLower(lexer.Config().Name))
+		_, _ = sb.WriteString(string(highlight.RenderCodeByLexer(lexer, source)))
+		_, _ = sb.WriteString("</code></pre>")
+		return sb.String()
 	}
 
 	w := &orgWriter{rctx: ctx, HTMLWriter: htmlWriter}
@@ -125,27 +99,13 @@ type orgWriter struct {
 
 var _ org.Writer = (*orgWriter)(nil)
 
-func (r *orgWriter) resolveLink(kind, link string) string {
-	link = strings.TrimPrefix(link, "file:")
-	if !strings.HasPrefix(link, "#") && // not a URL fragment
-		!markup.IsFullURLString(link) {
-		if kind == "regular" {
-			// orgmode reports the link kind as "regular" for "[[ImageLink.svg][The Image Desc]]"
-			// so we need to try to guess the link kind again here
-			kind = org.RegularLink{URL: link}.Kind()
-		}
-		if kind == "image" || kind == "video" {
-			link = r.rctx.RenderHelper.ResolveLink(link, markup.LinkTypeMedia)
-		} else {
-			link = r.rctx.RenderHelper.ResolveLink(link, markup.LinkTypeDefault)
-		}
-	}
-	return link
+func (r *orgWriter) resolveLink(link string) string {
+	return strings.TrimPrefix(link, "file:")
 }
 
 // WriteRegularLink renders images, links or videos
 func (r *orgWriter) WriteRegularLink(l org.RegularLink) {
-	link := r.resolveLink(l.Kind(), l.URL)
+	link := r.resolveLink(l.URL)
 
 	printHTML := func(html template.HTML, a ...any) {
 		_, _ = fmt.Fprint(r, htmlutil.HTMLFormat(html, a...))
@@ -156,14 +116,14 @@ func (r *orgWriter) WriteRegularLink(l org.RegularLink) {
 		if l.Description == nil {
 			printHTML(`<img src="%s" alt="%s">`, link, link)
 		} else {
-			imageSrc := r.resolveLink(l.Kind(), org.String(l.Description...))
+			imageSrc := r.resolveLink(org.String(l.Description...))
 			printHTML(`<a href="%s"><img src="%s" alt="%s"></a>`, link, imageSrc, imageSrc)
 		}
 	case "video":
 		if l.Description == nil {
 			printHTML(`<video src="%s">%s</video>`, link, link)
 		} else {
-			videoSrc := r.resolveLink(l.Kind(), org.String(l.Description...))
+			videoSrc := r.resolveLink(org.String(l.Description...))
 			printHTML(`<a href="%s"><video src="%s">%s</video></a>`, link, videoSrc, videoSrc)
 		}
 	default:

@@ -4,7 +4,6 @@
 package log
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"net"
@@ -40,7 +39,7 @@ func TestConnLogger(t *testing.T) {
 	level := INFO
 	flags := LstdFlags | LUTC | Lfuncname
 
-	logger := NewLoggerWithWriters(context.Background(), "test", NewEventWriterConn("test-conn", WriterMode{
+	logger := NewLoggerWithWriters(t.Context(), "test", NewEventWriterConn("test-conn", WriterMode{
 		Level:        level,
 		Prefix:       prefix,
 		Flags:        FlagsFromBits(flags),
@@ -63,11 +62,9 @@ func TestConnLogger(t *testing.T) {
 	}
 	expected := fmt.Sprintf("%s%s %s:%d:%s [%c] %s\n", prefix, dateString, event.Filename, event.Line, event.Caller, strings.ToUpper(event.Level.String())[0], event.MsgSimpleText)
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		listenReadAndClose(t, l, expected)
-	}()
+	})
 	logger.SendLogEvent(&event)
 	wg.Wait()
 

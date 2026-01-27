@@ -12,12 +12,13 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 var testLicenseContent = `
-Copyright (c) 2024 Gitea 
+Copyright (c) 2024 Gitea
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
@@ -42,13 +43,13 @@ func TestAPIRepoLicense(t *testing.T) {
 
 		// Save new file to master branch
 		req = NewRequestWithValues(t, "POST", "/user2/repo1/_new/master/", map[string]string{
-			"_csrf":         doc.GetCSRF(),
 			"last_commit":   lastCommit,
 			"tree_path":     "LICENSE",
 			"content":       testLicenseContent,
 			"commit_choice": "direct",
 		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		assert.NotEmpty(t, test.RedirectURL(resp))
 
 		// let gitea update repo license
 		time.Sleep(time.Second)

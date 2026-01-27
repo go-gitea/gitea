@@ -4,7 +4,9 @@
 package test
 
 import (
-	"fmt"
+	"archive/tar"
+	"compress/gzip"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -18,6 +20,7 @@ import (
 
 // RedirectURL returns the redirect URL of a http response.
 // It also works for JSONRedirect: `{"redirect": "..."}`
+// FIXME: it should separate the logic of checking from header and JSON body
 func RedirectURL(resp http.ResponseWriter) string {
 	loc := resp.Header().Get("Location")
 	if loc != "" {
@@ -33,6 +36,15 @@ func RedirectURL(resp http.ResponseWriter) string {
 		}
 	}
 	return ""
+}
+
+func ParseJSONError(buf []byte) (ret struct {
+	ErrorMessage string `json:"errorMessage"`
+	RenderFormat string `json:"renderFormat"`
+},
+) {
+	_ = json.Unmarshal(buf, &ret)
+	return ret
 }
 
 func IsNormalPageCompleted(s string) bool {
@@ -57,8 +69,36 @@ func SetupGiteaRoot() string {
 	giteaRoot = filepath.Dir(filepath.Dir(filepath.Dir(filename)))
 	fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
 	if exist, _ := util.IsDir(fixturesDir); !exist {
-		panic(fmt.Sprintf("fixtures directory not found: %s", fixturesDir))
+		panic("fixtures directory not found: " + fixturesDir)
 	}
 	_ = os.Setenv("GITEA_ROOT", giteaRoot)
 	return giteaRoot
+}
+
+func ReadAllTarGzContent(r io.Reader) (map[string]string, error) {
+	gzr, err := gzip.NewReader(r)
+	if err != nil {
+		return nil, err
+	}
+
+	content := make(map[string]string)
+
+	tr := tar.NewReader(gzr)
+	for {
+		hd, err := tr.Next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		buf, err := io.ReadAll(tr)
+		if err != nil {
+			return nil, err
+		}
+
+		content[hd.Name] = string(buf)
+	}
+	return content, nil
 }

@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
@@ -29,7 +28,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	pointer, err := lfs.GeneratePointer(bytes.NewReader(*content))
 	assert.NoError(t, err)
 
-	_, err = git_model.NewLFSMetaObject(db.DefaultContext, repositoryID, pointer)
+	_, err = git_model.NewLFSMetaObject(t.Context(), repositoryID, pointer)
 	assert.NoError(t, err)
 	contentStore := lfs.NewContentStore()
 	exist, err := contentStore.Exists(pointer)
@@ -42,10 +41,10 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 }
 
 func storeAndGetLfsToken(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int, ts ...auth.AccessTokenScope) *httptest.ResponseRecorder {
-	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
-	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
 
 	token := getUserToken(t, "user2", ts...)
 
@@ -67,10 +66,10 @@ func storeAndGetLfsToken(t *testing.T, content *[]byte, extraHeader *http.Header
 }
 
 func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, expectedStatus int) *httptest.ResponseRecorder {
-	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
-	defer git_model.RemoveLFSMetaObjectByOid(db.DefaultContext, repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(t.Context(), repo.ID, oid)
 
 	session := loginUser(t, "user2")
 

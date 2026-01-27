@@ -7,6 +7,7 @@ import (
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/services/context"
@@ -28,12 +29,23 @@ func ShowUserFeedAtom(ctx *context.Context) {
 // showUserFeed show user activity as RSS / Atom feed
 func showUserFeed(ctx *context.Context, formatType string) {
 	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+	isOrganisation := ctx.ContextUser.IsOrganization()
+	if ctx.IsSigned && isOrganisation && !includePrivate {
+		// When feed is requested by a member of the organization,
+		// include the private repo's the member has access to.
+		isOrgMember, err := organization.IsOrganizationMember(ctx, ctx.ContextUser.ID, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("IsOrganizationMember", err)
+			return
+		}
+		includePrivate = isOrgMember
+	}
 
 	actions, _, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
 		Actor:           ctx.Doer,
 		IncludePrivate:  includePrivate,
-		OnlyPerformedBy: !ctx.ContextUser.IsOrganization(),
+		OnlyPerformedBy: !isOrganisation,
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
 	})
@@ -42,7 +54,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 		return
 	}
 
-	rctx := renderhelper.NewRenderContextSimpleDocument(ctx, ctx.ContextUser.HTMLURL())
+	rctx := renderhelper.NewRenderContextSimpleDocument(ctx, ctx.ContextUser.HTMLURL(ctx))
 	ctxUserDescription, err := markdown.RenderString(rctx,
 		ctx.ContextUser.Description)
 	if err != nil {
@@ -52,7 +64,7 @@ func showUserFeed(ctx *context.Context, formatType string) {
 
 	feed := &feeds.Feed{
 		Title:       ctx.Locale.TrString("home.feed_of", ctx.ContextUser.DisplayName()),
-		Link:        &feeds.Link{Href: ctx.ContextUser.HTMLURL()},
+		Link:        &feeds.Link{Href: ctx.ContextUser.HTMLURL(ctx)},
 		Description: string(ctxUserDescription),
 		Created:     time.Now(),
 	}

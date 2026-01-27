@@ -5,7 +5,7 @@ export function initRepoMigrationStatusChecker() {
   const repoMigrating = document.querySelector('#repo_migrating');
   if (!repoMigrating) return;
 
-  document.querySelector('#repo_migrating_retry')?.addEventListener('click', doMigrationRetry);
+  document.querySelector<HTMLButtonElement>('#repo_migrating_retry')?.addEventListener('click', doMigrationRetry);
 
   const repoLink = repoMigrating.getAttribute('data-migrating-repo-link');
 
@@ -18,7 +18,7 @@ export function initRepoMigrationStatusChecker() {
 
     // for all status
     if (data.message) {
-      document.querySelector('#repo_migrating_progress_message').textContent = data.message;
+      document.querySelector('#repo_migrating_progress_message')!.textContent = data.message;
     }
 
     // TaskStatusFinished
@@ -34,7 +34,7 @@ export function initRepoMigrationStatusChecker() {
       showElem('#repo_migrating_retry');
       showElem('#repo_migrating_failed');
       showElem('#repo_migrating_failed_image');
-      document.querySelector('#repo_migrating_failed_error').textContent = data.message;
+      document.querySelector('#repo_migrating_failed_error')!.textContent = data.message;
       return false;
     }
 
@@ -55,7 +55,7 @@ export function initRepoMigrationStatusChecker() {
   syncTaskStatus(); // no await
 }
 
-async function doMigrationRetry(e) {
-  await POST(e.target.getAttribute('data-migrating-task-retry-url'));
+async function doMigrationRetry(e: Event) {
+  await POST((e.target as HTMLElement).getAttribute('data-migrating-task-retry-url')!);
   window.location.reload();
 }

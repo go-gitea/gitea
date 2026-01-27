@@ -8,9 +8,8 @@ import (
 	"sort"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/optional"
-
-	"github.com/gobwas/glob"
 )
 
 type ProtectedBranchRules []*ProtectedBranch

@@ -12,11 +12,11 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
+	"code.gitea.io/gitea/modules/test"
 	arch_service "code.gitea.io/gitea/services/packages/arch"
 	"code.gitea.io/gitea/tests"
 
@@ -118,24 +118,24 @@ license = MIT`)
 						AddBasicAuth(user.Name)
 					MakeRequest(t, req, http.StatusCreated)
 
-					pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeArch)
+					pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeArch)
 					assert.NoError(t, err)
 					assert.Len(t, pvs, 1)
 
-					pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+					pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 					assert.NoError(t, err)
 					assert.Nil(t, pd.SemVer)
 					assert.IsType(t, &arch_module.VersionMetadata{}, pd.Metadata)
 					assert.Equal(t, packageName, pd.Package.Name)
 					assert.Equal(t, packageVersion, pd.Version.Version)
 
-					pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+					pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 					assert.NoError(t, err)
 					assert.NotEmpty(t, pfs)
 					assert.Condition(t, func() bool {
 						seen := false
 						expectedFilename := fmt.Sprintf("%s-%s-aarch64.pkg.tar.%s", packageName, packageVersion, compression)
-						expectedCompositeKey := fmt.Sprintf("%s|aarch64", repository)
+						expectedCompositeKey := repository + "|aarch64"
 						for _, pf := range pfs {
 							if pf.Name == expectedFilename && pf.CompositeKey == expectedCompositeKey {
 								if seen {
@@ -145,7 +145,7 @@ license = MIT`)
 
 								assert.True(t, pf.IsLead)
 
-								pfps, err := packages.GetProperties(db.DefaultContext, packages.PropertyTypeFile, pf.ID)
+								pfps, err := packages.GetProperties(t.Context(), packages.PropertyTypeFile, pf.ID)
 								assert.NoError(t, err)
 
 								for _, pfp := range pfps {
@@ -171,42 +171,13 @@ license = MIT`)
 					MakeRequest(t, req, http.StatusConflict)
 				})
 
-				readIndexContent := func(r io.Reader) (map[string]string, error) {
-					gzr, err := gzip.NewReader(r)
-					if err != nil {
-						return nil, err
-					}
-
-					content := make(map[string]string)
-
-					tr := tar.NewReader(gzr)
-					for {
-						hd, err := tr.Next()
-						if err == io.EOF {
-							break
-						}
-						if err != nil {
-							return nil, err
-						}
-
-						buf, err := io.ReadAll(tr)
-						if err != nil {
-							return nil, err
-						}
-
-						content[hd.Name] = string(buf)
-					}
-
-					return content, nil
-				}
-
 				t.Run("Index", func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
 
 					req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/aarch64/%s", rootURL, repository, arch_service.IndexArchiveFilename))
 					resp := MakeRequest(t, req, http.StatusOK)
 
-					content, err := readIndexContent(resp.Body)
+					content, err := test.ReadAllTarGzContent(resp.Body)
 					assert.NoError(t, err)
 
 					desc, has := content[fmt.Sprintf("%s-%s/desc", packageName, packageVersion)]
@@ -258,7 +229,7 @@ license = MIT`)
 					req = NewRequest(t, "GET", fmt.Sprintf("%s/%s/aarch64/%s", rootURL, repository, arch_service.IndexArchiveFilename))
 					resp := MakeRequest(t, req, http.StatusOK)
 
-					content, err := readIndexContent(resp.Body)
+					content, err := test.ReadAllTarGzContent(resp.Body)
 					assert.NoError(t, err)
 
 					desc, has := content[fmt.Sprintf("%s-%s/desc", packageName, packageVersion)]
@@ -299,4 +270,39 @@ license = MIT`)
 			})
 		}
 	}
+	t.Run("KeepLastVersion", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		pkgVer1 := createPackage("gz", "gitea-test", "1.0.0", "aarch64")
+		pkgVer2 := createPackage("gz", "gitea-test", "1.0.1", "aarch64")
+		req := NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgVer1)).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+		req = NewRequestWithBody(t, "PUT", rootURL, bytes.NewReader(pkgVer2)).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/aarch64/%s", rootURL, arch_service.IndexArchiveFilename))
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		content, err := test.ReadAllTarGzContent(resp.Body)
+		assert.NoError(t, err)
+		assert.Len(t, content, 2)
+
+		_, has := content["gitea-test-1.0.0/desc"]
+		assert.False(t, has)
+		_, has = content["gitea-test-1.0.1/desc"]
+		assert.True(t, has)
+
+		req = NewRequest(t, "DELETE", rootURL+"/gitea-test/1.0.1/aarch64").
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusNoContent)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/aarch64/%s", rootURL, arch_service.IndexArchiveFilename))
+		resp = MakeRequest(t, req, http.StatusOK)
+		content, err = test.ReadAllTarGzContent(resp.Body)
+		assert.NoError(t, err)
+		assert.Len(t, content, 2)
+		_, has = content["gitea-test-1.0.0/desc"]
+		assert.True(t, has)
+	})
 }

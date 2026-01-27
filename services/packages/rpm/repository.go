@@ -408,7 +408,6 @@ func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []
 				files = append(files, f)
 			}
 		}
-		packageVersion := fmt.Sprintf("%s-%s", pd.FileMetadata.Version, pd.FileMetadata.Release)
 		packages = append(packages, &Package{
 			Type:         "rpm",
 			Name:         pd.Package.Name,
@@ -437,7 +436,7 @@ func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []
 				Archive:   pd.FileMetadata.ArchiveSize,
 			},
 			Location: Location{
-				Href: fmt.Sprintf("package/%s/%s/%s/%s-%s.%s.rpm", pd.Package.Name, packageVersion, pd.FileMetadata.Architecture, pd.Package.Name, packageVersion, pd.FileMetadata.Architecture),
+				Href: fmt.Sprintf("package/%s/%s/%s/%s-%s.%s.rpm", pd.Package.Name, pd.Version.Version, pd.FileMetadata.Architecture, pd.Package.Name, pd.Version.Version, pd.FileMetadata.Architecture),
 			},
 			Format: Format{
 				License:   pd.VersionMetadata.License,
@@ -471,7 +470,7 @@ func buildPrimary(ctx context.Context, pv *packages_model.PackageVersion, pfs []
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#filelists-xml
-func buildFilelists(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, group string) (*repoData, error) { //nolint:dupl
+func buildFilelists(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, group string) (*repoData, error) { //nolint:dupl // duplicates with buildOther
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`
@@ -518,7 +517,7 @@ func buildFilelists(ctx context.Context, pv *packages_model.PackageVersion, pfs 
 }
 
 // https://docs.pulpproject.org/en/2.19/plugins/pulp_rpm/tech-reference/rpm.html#other-xml
-func buildOther(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, group string) (*repoData, error) { //nolint:dupl
+func buildOther(ctx context.Context, pv *packages_model.PackageVersion, pfs []*packages_model.PackageFile, c packageCache, group string) (*repoData, error) { //nolint:dupl // duplicates with buildFilelists
 	type Version struct {
 		Epoch   string `xml:"epoch,attr"`
 		Version string `xml:"ver,attr"`

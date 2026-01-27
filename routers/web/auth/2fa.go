@@ -9,11 +9,11 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -26,7 +26,7 @@ var (
 func TwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
-	if CheckAutoLogin(ctx) {
+	if performAutoLogin(ctx) {
 		return
 	}
 
@@ -74,7 +74,7 @@ func TwoFactorPost(ctx *context.Context) {
 		}
 
 		if ctx.Session.Get("linkAccount") != nil {
-			err = externalaccount.LinkAccountFromStore(ctx, ctx.Session, u)
+			err = linkAccountFromContext(ctx, u)
 			if err != nil {
 				ctx.ServerError("UserSignIn", err)
 				return
@@ -87,6 +87,7 @@ func TwoFactorPost(ctx *context.Context) {
 			return
 		}
 
+		_ = ctx.Session.Set(session.KeyUserHasTwoFactorAuth, true)
 		handleSignIn(ctx, u, remember)
 		return
 	}
@@ -98,7 +99,7 @@ func TwoFactorPost(ctx *context.Context) {
 func TwoFactorScratch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa_scratch")
 
-	if CheckAutoLogin(ctx) {
+	if performAutoLogin(ctx) {
 		return
 	}
 
@@ -150,7 +151,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 			return
 		}
 
-		handleSignInFull(ctx, u, remember, false)
+		handleSignInFull(ctx, u, remember)
 		if ctx.Written() {
 			return
 		}

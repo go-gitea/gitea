@@ -4,7 +4,6 @@
 package renderhelper
 
 import (
-	"context"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -20,7 +19,7 @@ func TestRepoWiki(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	t.Run("AutoLink", func(t *testing.T) {
-		rctx := NewRenderContextRepoWiki(context.Background(), repo1).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoWiki(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 65f1bf27bc3bf70f64657658635e66094edbcb4d
 #1
@@ -35,7 +34,7 @@ func TestRepoWiki(t *testing.T) {
 	})
 
 	t.Run("AbsoluteAndRelative", func(t *testing.T) {
-		rctx := NewRenderContextRepoWiki(context.Background(), repo1).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoWiki(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 [/test](/test)
 [./test](./test)
@@ -46,19 +45,19 @@ func TestRepoWiki(t *testing.T) {
 		assert.Equal(t,
 			`<p><a href="/user2/repo1/wiki/test" rel="nofollow">/test</a>
 <a href="/user2/repo1/wiki/test" rel="nofollow">./test</a>
-<a href="/user2/repo1/wiki/raw/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="/image"/></a>
-<a href="/user2/repo1/wiki/raw/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="./image"/></a></p>
+<a href="/user2/repo1/wiki/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="/image"/></a>
+<a href="/user2/repo1/wiki/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/image" alt="./image"/></a></p>
 `, rendered)
 	})
 
 	t.Run("PathInTag", func(t *testing.T) {
-		rctx := NewRenderContextRepoWiki(context.Background(), repo1).WithMarkupType(markdown.MarkupName)
+		rctx := NewRenderContextRepoWiki(t.Context(), repo1).WithMarkupType(markdown.MarkupName)
 		rendered, err := markup.RenderString(rctx, `
 <img src="LINK">
 <video src="LINK">
 `)
 		assert.NoError(t, err)
-		assert.Equal(t, `<a href="/user2/repo1/wiki/raw/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/LINK"/></a>
+		assert.Equal(t, `<a href="/user2/repo1/wiki/LINK" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/wiki/raw/LINK"/></a>
 <video src="/user2/repo1/wiki/raw/LINK">
 </video>`, rendered)
 	})

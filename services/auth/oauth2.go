@@ -13,10 +13,10 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/httpauth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/oauth2_provider"
 )
@@ -98,9 +98,9 @@ func parseToken(req *http.Request) (string, bool) {
 
 	// check header token
 	if auHead := req.Header.Get("Authorization"); auHead != "" {
-		auths := strings.Fields(auHead)
-		if len(auths) == 2 && (auths[0] == "token" || strings.ToLower(auths[0]) == "bearer") {
-			return auths[1], true
+		parsed, ok := httpauth.ParseAuthorizationHeader(auHead)
+		if ok && parsed.BearerToken != nil {
+			return parsed.BearerToken.Token, true
 		}
 	}
 	return "", false
@@ -162,8 +162,9 @@ func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store Dat
 // Returns nil if verification fails.
 func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	// These paths are not API paths, but we still want to check for tokens because they maybe in the API returned URLs
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) &&
-		!isGitRawOrAttachPath(req) && !isArchivePath(req) {
+	detector := newAuthPathDetector(req)
+	if !detector.isAPIPath() && !detector.isAttachmentDownload() && !detector.isAuthenticatedTokenRequest() &&
+		!detector.isGitRawOrAttachPath() && !detector.isArchivePath() {
 		return nil, nil
 	}
 
@@ -189,14 +190,4 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 
 	log.Trace("OAuth2 Authorization: Logged in user %-v", user)
 	return user, nil
-}
-
-func isAuthenticatedTokenRequest(req *http.Request) bool {
-	switch req.URL.Path {
-	case "/login/oauth/userinfo":
-		fallthrough
-	case "/login/oauth/introspect":
-		return true
-	}
-	return false
 }

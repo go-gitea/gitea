@@ -19,19 +19,19 @@ func GetStopwatches(ctx *context.Context) {
 		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	count, err := issues_model.CountUserStopwatches(ctx, ctx.Doer.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	apiSWs, err := convert.ToStopWatches(ctx, sws)
+	apiSWs, err := convert.ToStopWatches(ctx, ctx.Doer, sws)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
+		ctx.HTTPError(http.StatusInternalServerError, err.Error())
 		return
 	}
 

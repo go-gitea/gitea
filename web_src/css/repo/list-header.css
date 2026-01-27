@@ -1,6 +1,6 @@
 .list-header {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   flex-wrap: wrap;
   gap: .5rem;
 }
@@ -8,9 +8,8 @@
 .list-header-search {
   display: flex;
   flex: 1;
-  align-items: center;
+  align-items: stretch;
   flex-wrap: wrap;
-  justify-content: center;
   min-width: 200px; /* to enable flexbox wrapping on mobile */
 }
 

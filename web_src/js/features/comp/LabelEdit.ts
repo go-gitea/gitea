@@ -1,5 +1,6 @@
 import {toggleElem} from '../../utils/dom.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 function nameHasScope(name: string): boolean {
   return /.*[^/]\/[^/].*/.test(name);
@@ -13,15 +14,17 @@ export function initCompLabelEdit(pageSelector: string) {
   const elModal = pageContent.querySelector<HTMLElement>('#issue-label-edit-modal');
   if (!elModal) return;
 
-  const elLabelId = elModal.querySelector<HTMLInputElement>('input[name="id"]');
-  const elNameInput = elModal.querySelector<HTMLInputElement>('.label-name-input');
-  const elExclusiveField = elModal.querySelector('.label-exclusive-input-field');
-  const elExclusiveInput = elModal.querySelector<HTMLInputElement>('.label-exclusive-input');
-  const elExclusiveWarning = elModal.querySelector('.label-exclusive-warning');
-  const elIsArchivedField = elModal.querySelector('.label-is-archived-input-field');
-  const elIsArchivedInput = elModal.querySelector<HTMLInputElement>('.label-is-archived-input');
-  const elDescInput = elModal.querySelector<HTMLInputElement>('.label-desc-input');
-  const elColorInput = elModal.querySelector<HTMLInputElement>('.js-color-picker-input input');
+  const elLabelId = elModal.querySelector<HTMLInputElement>('input[name="id"]')!;
+  const elNameInput = elModal.querySelector<HTMLInputElement>('.label-name-input')!;
+  const elExclusiveField = elModal.querySelector('.label-exclusive-input-field')!;
+  const elExclusiveInput = elModal.querySelector<HTMLInputElement>('.label-exclusive-input')!;
+  const elExclusiveWarning = elModal.querySelector('.label-exclusive-warning')!;
+  const elExclusiveOrderField = elModal.querySelector<HTMLInputElement>('.label-exclusive-order-input-field')!;
+  const elExclusiveOrderInput = elModal.querySelector<HTMLInputElement>('.label-exclusive-order-input')!;
+  const elIsArchivedField = elModal.querySelector('.label-is-archived-input-field')!;
+  const elIsArchivedInput = elModal.querySelector<HTMLInputElement>('.label-is-archived-input')!;
+  const elDescInput = elModal.querySelector<HTMLInputElement>('.label-desc-input')!;
+  const elColorInput = elModal.querySelector<HTMLInputElement>('.color-picker-combo input')!;
 
   const syncModalUi = () => {
     const hasScope = nameHasScope(elNameInput.value);
@@ -29,13 +32,21 @@ export function initCompLabelEdit(pageSelector: string) {
     const showExclusiveWarning = hasScope && elExclusiveInput.checked && elModal.hasAttribute('data-need-warn-exclusive');
     toggleElem(elExclusiveWarning, showExclusiveWarning);
     if (!hasScope) elExclusiveInput.checked = false;
+    toggleElem(elExclusiveOrderField, elExclusiveInput.checked);
+
+    if (parseInt(elExclusiveOrderInput.value) <= 0) {
+      elExclusiveOrderInput.style.color = 'var(--color-placeholder-text) !important';
+    } else {
+      elExclusiveOrderInput.style.removeProperty('color');
+    }
   };
 
   const showLabelEditModal = (btn:HTMLElement) => {
     // the "btn" should contain the label's attributes by its `data-label-xxx` attributes
-    const form = elModal.querySelector<HTMLFormElement>('form');
+    const form = elModal.querySelector<HTMLFormElement>('form')!;
     elLabelId.value = btn.getAttribute('data-label-id') || '';
     elNameInput.value = btn.getAttribute('data-label-name') || '';
+    elExclusiveOrderInput.value = btn.getAttribute('data-label-exclusive-order') || '0';
     elIsArchivedInput.checked = btn.getAttribute('data-label-is-archived') === 'true';
     elExclusiveInput.checked = btn.getAttribute('data-label-exclusive') === 'true';
     elDescInput.value = btn.getAttribute('data-label-description') || '';
@@ -48,7 +59,7 @@ export function initCompLabelEdit(pageSelector: string) {
     // if a label was not exclusive but has issues, then it should warn user if it will become exclusive
     const numIssues = parseInt(btn.getAttribute('data-label-num-issues') || '0');
     elModal.toggleAttribute('data-need-warn-exclusive', !elExclusiveInput.checked && numIssues > 0);
-    elModal.querySelector('.header').textContent = isEdit ? elModal.getAttribute('data-text-edit-label') : elModal.getAttribute('data-text-new-label');
+    elModal.querySelector('.header')!.textContent = isEdit ? elModal.getAttribute('data-text-edit-label') : elModal.getAttribute('data-text-new-label');
 
     const curPageLink = elModal.getAttribute('data-current-page-link');
     form.action = isEdit ? `${curPageLink}/edit` : `${curPageLink}/new`;
@@ -60,7 +71,8 @@ export function initCompLabelEdit(pageSelector: string) {
           form.reportValidity();
           return false;
         }
-        form.submit();
+        submitFormFetchAction(form);
+        return false;
       },
     }).modal('show');
   };

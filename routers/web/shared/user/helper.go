@@ -8,9 +8,7 @@ import (
 	"slices"
 	"strconv"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/optional"
 )
 
 func MakeSelfOnTop(doer *user.User, users []*user.User) []*user.User {
@@ -34,19 +32,20 @@ func MakeSelfOnTop(doer *user.User, users []*user.User) []*user.User {
 // So it's better to make it work like GitHub: users could input username directly.
 // Since it only converts the username to ID directly and is only used internally (to search issues), so no permission check is needed.
 // Return values:
-// * nil: no filter
-// * some(id): match the id, the id could be -1 to match the issues without assignee
-// * some(NonExistingID): match no issue (due to the user doesn't exist)
-func GetFilterUserIDByName(ctx context.Context, name string) optional.Option[int64] {
+// * "": no filter
+// * "{the-id}": match the id
+// * "(none)": match no issue (due to the user doesn't exist)
+func GetFilterUserIDByName(ctx context.Context, name string) string {
 	if name == "" {
-		return optional.None[int64]()
+		return ""
 	}
 	u, err := user.GetUserByName(ctx, name)
 	if err != nil {
 		if id, err := strconv.ParseInt(name, 10, 64); err == nil {
-			return optional.Some(id)
+			return strconv.FormatInt(id, 10)
 		}
-		return optional.Some(db.NonExistingID)
+		// The "(none)" is for internal usage only: when doer tries to search non-existing user, use "(none)" to return empty result.
+		return "(none)"
 	}
-	return optional.Some(u.ID)
+	return strconv.FormatInt(u.ID, 10)
 }

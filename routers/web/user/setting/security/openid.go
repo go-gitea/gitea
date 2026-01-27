@@ -4,12 +4,14 @@
 package security
 
 import (
+	"errors"
 	"net/http"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -18,12 +20,12 @@ import (
 // OpenIDPost response for change user's openid
 func OpenIDPost(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
 	form := web.GetForm(ctx).(*forms.AddOpenIDForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
 	if ctx.HasError() {
@@ -111,12 +113,16 @@ func settingsOpenIDVerify(ctx *context.Context) {
 // DeleteOpenID response for delete user's openid
 func DeleteOpenID(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
 	if err := user_model.DeleteUserOpenID(ctx, &user_model.UserOpenID{ID: ctx.FormInt64("id"), UID: ctx.Doer.ID}); err != nil {
-		ctx.ServerError("DeleteUserOpenID", err)
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.HTTPError(http.StatusNotFound)
+		} else {
+			ctx.ServerError("DeleteUserOpenID", err)
+		}
 		return
 	}
 	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
@@ -128,12 +134,16 @@ func DeleteOpenID(ctx *context.Context) {
 // ToggleOpenIDVisibility response for toggle visibility of user's openid
 func ToggleOpenIDVisibility(ctx *context.Context) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials) {
-		ctx.Error(http.StatusNotFound)
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
-	if err := user_model.ToggleUserOpenIDVisibility(ctx, ctx.FormInt64("id")); err != nil {
-		ctx.ServerError("ToggleUserOpenIDVisibility", err)
+	if err := user_model.ToggleUserOpenIDVisibility(ctx, ctx.FormInt64("id"), ctx.Doer); err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			ctx.HTTPError(http.StatusNotFound)
+		} else {
+			ctx.ServerError("ToggleUserOpenIDVisibility", err)
+		}
 		return
 	}
 

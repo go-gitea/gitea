@@ -54,6 +54,8 @@ func ToggleAssigneeWithNotify(ctx context.Context, issue *issues_model.Issue, do
 	if err != nil {
 		return false, nil, err
 	}
+	issue.AssigneeID = assigneeID
+	issue.Assignee = assignee
 
 	notify_service.IssueChangeAssignee(ctx, doer, issue, assignee, removed, comment)
 
@@ -68,7 +70,7 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	}
 
 	if isAdd {
-		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer, false)
 	} else {
 		comment, err = issues_model.RemoveReviewRequest(ctx, issue, reviewer, doer)
 	}
@@ -222,7 +224,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 		return nil, err
 	}
 	if isAdd {
-		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer, false)
 	} else {
 		comment, err = issues_model.RemoveTeamReviewRequest(ctx, issue, reviewer, doer)
 	}
@@ -302,7 +304,7 @@ func CanDoerChangeReviewRequests(ctx context.Context, doer *user_model.User, rep
 
 	// If the repo's owner is an organization, members of teams with read permission on pull requests can change reviewers
 	if repo.Owner.IsOrganization() {
-		teams, err := organization.GetTeamsWithAccessToRepo(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead)
+		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, repo.OwnerID, repo.ID, perm.AccessModeRead, unit.TypePullRequests)
 		if err != nil {
 			log.Error("GetTeamsWithAccessToRepo: %v", err)
 			return false

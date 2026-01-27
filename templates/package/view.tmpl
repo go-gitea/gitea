@@ -1,114 +1,24 @@
 {{template "base/head" .}}
-<div role="main" aria-label="{{.Title}}" class="page-content repository packages">
-	{{template "shared/user/org_profile_avatar" .}}
+{{if .ContextUser.IsOrganization}}
+<div role="main" aria-label="{{.Title}}" class="page-content organization packages">
+	{{template "org/header" .}}
 	<div class="ui container">
-		{{template "user/overview/header" .}}
-		<div class="issue-title-header">
-			<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
-			<div>
-				{{$timeStr := DateUtils.TimeSince .PackageDescriptor.Version.CreatedUnix}}
-				{{if .HasRepositoryAccess}}
-					{{ctx.Locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink .PackageDescriptor.Creator.GetDisplayName .PackageDescriptor.Repository.Link .PackageDescriptor.Repository.FullName}}
-				{{else}}
-					{{ctx.Locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink .PackageDescriptor.Creator.GetDisplayName}}
-				{{end}}
+		{{template "package/shared/view" .}}
+	</div>
+</div>
+{{else}}
+<div role="main" aria-label="{{.Title}}" class="page-content user profile packages">
+	<div class="ui container">
+		<div class="ui stackable grid">
+			<div class="ui four wide column">
+				{{template "shared/user/profile_big_avatar" .}}
 			</div>
-		</div>
-		<div class="issue-content">
-			<div class="issue-content-left">
-				{{template "package/content/alpine" .}}
-				{{template "package/content/arch" .}}
-				{{template "package/content/cargo" .}}
-				{{template "package/content/chef" .}}
-				{{template "package/content/composer" .}}
-				{{template "package/content/conan" .}}
-				{{template "package/content/conda" .}}
-				{{template "package/content/container" .}}
-				{{template "package/content/cran" .}}
-				{{template "package/content/debian" .}}
-				{{template "package/content/generic" .}}
-				{{template "package/content/go" .}}
-				{{template "package/content/helm" .}}
-				{{template "package/content/maven" .}}
-				{{template "package/content/npm" .}}
-				{{template "package/content/nuget" .}}
-				{{template "package/content/pub" .}}
-				{{template "package/content/pypi" .}}
-				{{template "package/content/rpm" .}}
-				{{template "package/content/rubygems" .}}
-				{{template "package/content/swift" .}}
-				{{template "package/content/vagrant" .}}
-			</div>
-			<div class="issue-content-right ui segment">
-				<strong>{{ctx.Locale.Tr "packages.details"}}</strong>
-				<div class="ui relaxed list flex-items-block">
-					<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName}} {{.PackageDescriptor.Package.Type.Name}}</div>
-					{{if .HasRepositoryAccess}}
-					<div class="item">{{svg "octicon-repo"}} <a href="{{.PackageDescriptor.Repository.Link}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
-					{{end}}
-					<div class="item">{{svg "octicon-calendar"}} {{DateUtils.TimeSince .PackageDescriptor.Version.CreatedUnix}}</div>
-					<div class="item">{{svg "octicon-download"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
-					{{template "package/metadata/alpine" .}}
-					{{template "package/metadata/arch" .}}
-					{{template "package/metadata/cargo" .}}
-					{{template "package/metadata/chef" .}}
-					{{template "package/metadata/composer" .}}
-					{{template "package/metadata/conan" .}}
-					{{template "package/metadata/conda" .}}
-					{{template "package/metadata/container" .}}
-					{{template "package/metadata/cran" .}}
-					{{template "package/metadata/debian" .}}
-					{{template "package/metadata/generic" .}}
-					{{template "package/metadata/helm" .}}
-					{{template "package/metadata/maven" .}}
-					{{template "package/metadata/npm" .}}
-					{{template "package/metadata/nuget" .}}
-					{{template "package/metadata/pub" .}}
-					{{template "package/metadata/pypi" .}}
-					{{template "package/metadata/rpm" .}}
-					{{template "package/metadata/rubygems" .}}
-					{{template "package/metadata/swift" .}}
-					{{template "package/metadata/vagrant" .}}
-					{{if not (and (eq .PackageDescriptor.Package.Type "container") .PackageDescriptor.Metadata.Manifests)}}
-					<div class="item">{{svg "octicon-database"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
-					{{end}}
-				</div>
-				{{if not (eq .PackageDescriptor.Package.Type "container")}}
-					<div class="divider"></div>
-					<strong>{{ctx.Locale.Tr "packages.assets"}} ({{len .PackageDescriptor.Files}})</strong>
-					<div class="ui relaxed list">
-					{{range .PackageDescriptor.Files}}
-						<div class="item">
-							<a href="{{$.Link}}/files/{{.File.ID}}">{{.File.Name}}</a>
-							<span class="text small file-size">{{FileSize .Blob.Size}}</span>
-						</div>
-					{{end}}
-					</div>
-				{{end}}
-				<div class="divider"></div>
-				<strong>{{ctx.Locale.Tr "packages.versions"}} ({{.TotalVersionCount}})</strong>
-				<a class="tw-float-right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{ctx.Locale.Tr "packages.versions.view_all"}}</a>
-				<div class="ui relaxed list">
-				{{range .LatestVersions}}
-					<div class="item tw-flex">
-						<a class="tw-flex-1 gt-ellipsis" title="{{.Version}}" href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-						<span class="text small">{{DateUtils.AbsoluteShort .CreatedUnix}}</span>
-					</div>
-				{{end}}
-				</div>
-				{{if or .CanWritePackages .HasRepositoryAccess}}
-					<div class="divider"></div>
-					<div class="ui relaxed list flex-items-block">
-						{{if .HasRepositoryAccess}}
-						<div class="item">{{svg "octicon-issue-opened"}} <a href="{{.PackageDescriptor.Repository.Link}}/issues">{{ctx.Locale.Tr "repo.issues"}}</a></div>
-						{{end}}
-						{{if .CanWritePackages}}
-						<div class="item">{{svg "octicon-tools"}} <a href="{{.Link}}/settings">{{ctx.Locale.Tr "repo.settings"}}</a></div>
-						{{end}}
-					</div>
-				{{end}}
+			<div class="ui twelve wide column tw-mb-4">
+				{{template "user/overview/header" .}}
+				{{template "package/shared/view" .}}
 			</div>
 		</div>
 	</div>
 </div>
+{{end}}
 {{template "base/footer" .}}

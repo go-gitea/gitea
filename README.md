@@ -11,7 +11,7 @@
 [![Contribute with Gitpod](https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod&color=green)](https://gitpod.io/#https://github.com/go-gitea/gitea)
 [![](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com "Crowdin")
 
-[View this document in Chinese](./README_ZH.md)
+[繁體中文](./README.zh-tw.md) | [简体中文](./README.zh-cn.md)
 
 ## Purpose
 
@@ -52,7 +52,7 @@ or if SQLite support is required:
 The `build` target is split into two sub-targets:
 
 - `make backend` which requires [Go Stable](https://go.dev/dl/), the required version is defined in [go.mod](/go.mod).
-- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater.
+- `make frontend` which requires [Node.js LTS](https://nodejs.org/en/download/) or greater and [pnpm](https://pnpm.io/installation).
 
 Internet connectivity is required to download the go and npm modules. When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js.
 
@@ -80,9 +80,9 @@ Expected workflow is: Fork -> Patch -> Push -> Pull Request
 
 [![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://translate.gitea.com)
 
-Translations are done through [Crowdin](https://translate.gitea.com). If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there.
+Translations are done through [Crowdin](https://translate.gitea.com). If you want to translate to a new language, ask one of the managers in the Crowdin project to add a new language there.
 
-You can also just create an issue for adding a language or ask on discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty but we hope to fill it as questions pop up.
+You can also just create an issue for adding a language or ask on Discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty, but we hope to fill it as questions pop up.
 
 Get more information from [documentation](https://docs.gitea.com/contributing/localization).
 
@@ -150,10 +150,64 @@ for the full license text.
 <details>
 <summary>Looking for an overview of the interface? Check it out!</summary>
 
-|![Dashboard](https://dl.gitea.com/screenshots/home_timeline.png)|![User Profile](https://dl.gitea.com/screenshots/user_profile.png)|![Global Issues](https://dl.gitea.com/screenshots/global_issues.png)|
-|:---:|:---:|:---:|
-|![Branches](https://dl.gitea.com/screenshots/branches.png)|![Web Editor](https://dl.gitea.com/screenshots/web_editor.png)|![Activity](https://dl.gitea.com/screenshots/activity.png)|
-|![New Migration](https://dl.gitea.com/screenshots/migration.png)|![Migrating](https://dl.gitea.com/screenshots/migration.gif)|![Pull Request View](https://image.ibb.co/e02dSb/6.png)|
-|![Pull Request Dark](https://dl.gitea.com/screenshots/pull_requests_dark.png)|![Diff Review Dark](https://dl.gitea.com/screenshots/review_dark.png)|![Diff Dark](https://dl.gitea.com/screenshots/diff_dark.png)|
+### Login/Register Page
+
+![Login](https://dl.gitea.com/screenshots/login.png)
+![Register](https://dl.gitea.com/screenshots/register.png)
+
+### User Dashboard
+
+![Home](https://dl.gitea.com/screenshots/home.png)
+![Issues](https://dl.gitea.com/screenshots/issues.png)
+![Pull Requests](https://dl.gitea.com/screenshots/pull_requests.png)
+![Milestones](https://dl.gitea.com/screenshots/milestones.png)
+
+### User Profile
+
+![Profile](https://dl.gitea.com/screenshots/user_profile.png)
+
+### Explore
+
+![Repos](https://dl.gitea.com/screenshots/explore_repos.png)
+![Users](https://dl.gitea.com/screenshots/explore_users.png)
+![Orgs](https://dl.gitea.com/screenshots/explore_orgs.png)
+
+### Repository
+
+![Home](https://dl.gitea.com/screenshots/repo_home.png)
+![Commits](https://dl.gitea.com/screenshots/repo_commits.png)
+![Branches](https://dl.gitea.com/screenshots/repo_branches.png)
+![Labels](https://dl.gitea.com/screenshots/repo_labels.png)
+![Milestones](https://dl.gitea.com/screenshots/repo_milestones.png)
+![Releases](https://dl.gitea.com/screenshots/repo_releases.png)
+![Tags](https://dl.gitea.com/screenshots/repo_tags.png)
+
+#### Repository Issue
+
+![List](https://dl.gitea.com/screenshots/repo_issues.png)
+![Issue](https://dl.gitea.com/screenshots/repo_issue.png)
+
+#### Repository Pull Requests
+
+![List](https://dl.gitea.com/screenshots/repo_pull_requests.png)
+![Pull Request](https://dl.gitea.com/screenshots/repo_pull_request.png)
+![File](https://dl.gitea.com/screenshots/repo_pull_request_file.png)
+![Commits](https://dl.gitea.com/screenshots/repo_pull_request_commits.png)
+
+#### Repository Actions
+
+![List](https://dl.gitea.com/screenshots/repo_actions.png)
+![Details](https://dl.gitea.com/screenshots/repo_actions_run.png)
+
+#### Repository Activity
+
+![Activity](https://dl.gitea.com/screenshots/repo_activity.png)
+![Contributors](https://dl.gitea.com/screenshots/repo_contributors.png)
+![Code Frequency](https://dl.gitea.com/screenshots/repo_code_frequency.png)
+![Recent Commits](https://dl.gitea.com/screenshots/repo_recent_commits.png)
+
+### Organization
+
+![Home](https://dl.gitea.com/screenshots/org_home.png)
 
 </details>

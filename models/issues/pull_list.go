@@ -14,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -28,10 +29,15 @@ type PullRequestsOptions struct {
 	Labels      []int64
 	MilestoneID int64
 	PosterID    int64
+	BaseBranch  string
 }
 
 func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullRequestsOptions) *xorm.Session {
 	sess := db.GetEngine(ctx).Where("pull_request.base_repo_id=?", baseRepoID)
+
+	if opts.BaseBranch != "" {
+		sess.And("pull_request.base_branch=?", opts.BaseBranch)
+	}
 
 	sess.Join("INNER", "issue", "pull_request.issue_id = issue.id")
 	switch opts.State {
@@ -56,7 +62,7 @@ func listPullRequestStatement(ctx context.Context, baseRepoID int64, opts *PullR
 }
 
 // GetUnmergedPullRequestsByHeadInfo returns all pull requests that are open and has not been merged
-func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) ([]*PullRequest, error) {
+func GetUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) (PullRequestList, error) {
 	prs := make([]*PullRequest, 0, 2)
 	sess := db.GetEngine(ctx).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
@@ -111,7 +117,7 @@ func HasUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch
 
 // GetUnmergedPullRequestsByBaseInfo returns all pull requests that are open and has not been merged
 // by given base information (repo and branch).
-func GetUnmergedPullRequestsByBaseInfo(ctx context.Context, repoID int64, branch string) ([]*PullRequest, error) {
+func GetUnmergedPullRequestsByBaseInfo(ctx context.Context, repoID int64, branch string) (PullRequestList, error) {
 	prs := make([]*PullRequest, 0, 2)
 	return prs, db.GetEngine(ctx).
 		Where("base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
@@ -147,7 +153,8 @@ func PullRequests(ctx context.Context, baseRepoID int64, opts *PullRequestsOptio
 	applySorts(findSession, opts.SortType, 0)
 	findSession = db.SetSessionPagination(findSession, opts)
 	prs := make([]*PullRequest, 0, opts.PageSize)
-	return prs, maxResults, findSession.Find(&prs)
+	found := findSession.Find(&prs)
+	return prs, maxResults, found
 }
 
 // PullRequestList defines a list of pull requests
@@ -318,12 +325,26 @@ func (prs PullRequestList) LoadReviews(ctx context.Context) (ReviewList, error) 
 
 // HasMergedPullRequestInRepo returns whether the user(poster) has merged pull-request in the repo
 func HasMergedPullRequestInRepo(ctx context.Context, repoID, posterID int64) (bool, error) {
-	return db.GetEngine(ctx).
+	return HasMergedPullRequestInRepoBefore(ctx, repoID, posterID, 0, 0)
+}
+
+// HasMergedPullRequestInRepoBefore returns whether the user has a merged PR before a timestamp (0 = no limit)
+func HasMergedPullRequestInRepoBefore(ctx context.Context, repoID, posterID int64, beforeUnix timeutil.TimeStamp, excludePullID int64) (bool, error) {
+	sess := db.GetEngine(ctx).
 		Join("INNER", "pull_request", "pull_request.issue_id = issue.id").
 		Where("repo_id=?", repoID).
 		And("poster_id=?", posterID).
 		And("is_pull=?", true).
-		And("pull_request.has_merged=?", true).
+		And("pull_request.has_merged=?", true)
+
+	if beforeUnix > 0 {
+		sess.And("pull_request.merged_unix < ?", beforeUnix)
+	}
+	if excludePullID > 0 {
+		sess.And("pull_request.id != ?", excludePullID)
+	}
+
+	return sess.
 		Select("issue.id").
 		Limit(1).
 		Get(new(Issue))

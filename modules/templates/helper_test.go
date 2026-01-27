@@ -15,7 +15,7 @@ import (
 
 func TestSubjectBodySeparator(t *testing.T) {
 	test := func(input, subject, body string) {
-		loc := mailSubjectSplit.FindIndex([]byte(input))
+		loc := mailSubjectSplit.FindStringIndex(input)
 		if loc == nil {
 			assert.Empty(t, subject, "no subject found, but one expected")
 			assert.Equal(t, body, input)
@@ -55,10 +55,6 @@ func TestSubjectBodySeparator(t *testing.T) {
 	test("Insufficient\n--\nSeparators",
 		"",
 		"Insufficient\n--\nSeparators")
-}
-
-func TestJSEscapeSafe(t *testing.T) {
-	assert.EqualValues(t, `\u0026\u003C\u003E\'\"`, jsEscapeSafe(`&<>'"`))
 }
 
 func TestSanitizeHTML(t *testing.T) {
@@ -120,8 +116,8 @@ func TestTemplateEscape(t *testing.T) {
 
 func TestQueryBuild(t *testing.T) {
 	t.Run("construct", func(t *testing.T) {
-		assert.Equal(t, "", string(QueryBuild()))
-		assert.Equal(t, "", string(QueryBuild("a", nil, "b", false, "c", 0, "d", "")))
+		assert.Empty(t, string(QueryBuild()))
+		assert.Empty(t, string(QueryBuild("a", nil, "b", false, "c", 0, "d", "")))
 		assert.Equal(t, "a=1&b=true", string(QueryBuild("a", 1, "b", "true")))
 
 		// path with query parameters
@@ -136,9 +132,9 @@ func TestQueryBuild(t *testing.T) {
 
 		// only query parameters
 		assert.Equal(t, "&k=1", string(QueryBuild("&", "k", 1)))
-		assert.Equal(t, "", string(QueryBuild("&", "k", 0)))
-		assert.Equal(t, "", string(QueryBuild("&k=a", "k", 0)))
-		assert.Equal(t, "", string(QueryBuild("k=a&", "k", 0)))
+		assert.Empty(t, string(QueryBuild("&", "k", 0)))
+		assert.Empty(t, string(QueryBuild("&k=a", "k", 0)))
+		assert.Empty(t, string(QueryBuild("k=a&", "k", 0)))
 		assert.Equal(t, "a=1&b=2", string(QueryBuild("a=1", "b", 2)))
 		assert.Equal(t, "&a=1&b=2", string(QueryBuild("&a=1", "b", 2)))
 		assert.Equal(t, "a=1&b=2&", string(QueryBuild("a=1&", "b", 2)))
@@ -171,4 +167,11 @@ func TestQueryBuild(t *testing.T) {
 		assert.Equal(t, "&a=b&c=d", string(QueryBuild("&a=b&c=d&e=f", "e", "")))
 		assert.Equal(t, "&a=b&c=d&e=f", string(QueryBuild("&a=b&c=d&e=f", "k", "")))
 	})
+}
+
+func TestQueryEscape(t *testing.T) {
+	// this test is a reference for "urlQueryEscape" in JS
+	in := "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~" // all non-letter & non-number chars
+	expected := "%21%22%23%24%25%26%27%28%29%2A%2B%2C-.%2F%3A%3B%3C%3D%3E%3F%40%5B%5C%5D%5E_%60%7B%7C%7D~"
+	assert.Equal(t, expected, string(queryEscape(in)))
 }

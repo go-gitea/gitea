@@ -4,7 +4,6 @@
 package webhook
 
 import (
-	"context"
 	"testing"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -164,7 +163,7 @@ func TestPackagistJSONPayload(t *testing.T) {
 		PayloadVersion: 2,
 	}
 
-	req, reqBody, err := newPackagistRequest(context.Background(), hook, task)
+	req, reqBody, err := newPackagistRequest(t.Context(), hook, task)
 	require.NotNil(t, req)
 	require.NotNil(t, reqBody)
 	require.NoError(t, err)
@@ -199,7 +198,7 @@ func TestPackagistEmptyPayload(t *testing.T) {
 		PayloadVersion: 2,
 	}
 
-	req, reqBody, err := newPackagistRequest(context.Background(), hook, task)
+	req, reqBody, err := newPackagistRequest(t.Context(), hook, task)
 	require.NotNil(t, req)
 	require.NotNil(t, reqBody)
 	require.NoError(t, err)
@@ -211,5 +210,5 @@ func TestPackagistEmptyPayload(t *testing.T) {
 	var body PackagistPayload
 	err = json.NewDecoder(req.Body).Decode(&body)
 	assert.NoError(t, err)
-	assert.Equal(t, "", body.PackagistRepository.URL)
+	assert.Empty(t, body.PackagistRepository.URL)
 }

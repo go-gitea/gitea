@@ -1,5 +1,5 @@
 <script lang="ts">
-import {nextTick} from 'vue';
+import {defineComponent, nextTick} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {GET} from '../modules/fetch.ts';
@@ -17,10 +17,52 @@ type SelectedTab = 'branches' | 'tags';
 
 type TabLoadingStates = Record<SelectedTab, '' | 'loading' | 'done'>
 
-const sfc = {
+export default defineComponent({
   components: {SvgIcon},
   props: {
-    elRoot: HTMLElement,
+    elRoot: {
+      type: HTMLElement,
+      required: true,
+    },
+  },
+  data() {
+    const shouldShowTabBranches = this.elRoot.getAttribute('data-show-tab-branches') === 'true';
+    return {
+      allItems: [] as ListItem[],
+      selectedTab: (shouldShowTabBranches ? 'branches' : 'tags') as SelectedTab,
+      searchTerm: '',
+      menuVisible: false,
+      activeItemIndex: 0,
+      tabLoadingStates: {} as TabLoadingStates,
+
+      textReleaseCompare: this.elRoot.getAttribute('data-text-release-compare')!,
+      textBranches: this.elRoot.getAttribute('data-text-branches')!,
+      textTags: this.elRoot.getAttribute('data-text-tags')!,
+      textFilterBranch: this.elRoot.getAttribute('data-text-filter-branch')!,
+      textFilterTag: this.elRoot.getAttribute('data-text-filter-tag')!,
+      textDefaultBranchLabel: this.elRoot.getAttribute('data-text-default-branch-label')!,
+      textCreateTag: this.elRoot.getAttribute('data-text-create-tag')!,
+      textCreateBranch: this.elRoot.getAttribute('data-text-create-branch')!,
+      textCreateRefFrom: this.elRoot.getAttribute('data-text-create-ref-from')!,
+      textNoResults: this.elRoot.getAttribute('data-text-no-results')!,
+      textViewAllBranches: this.elRoot.getAttribute('data-text-view-all-branches')!,
+      textViewAllTags: this.elRoot.getAttribute('data-text-view-all-tags')!,
+
+      currentRepoDefaultBranch: this.elRoot.getAttribute('data-current-repo-default-branch')!,
+      currentRepoLink: this.elRoot.getAttribute('data-current-repo-link')!,
+      currentTreePath: this.elRoot.getAttribute('data-current-tree-path')!,
+      currentRefType: this.elRoot.getAttribute('data-current-ref-type') as GitRefType,
+      currentRefShortName: this.elRoot.getAttribute('data-current-ref-short-name')!,
+
+      refLinkTemplate: this.elRoot.getAttribute('data-ref-link-template')!,
+      refFormActionTemplate: this.elRoot.getAttribute('data-ref-form-action-template')!,
+      dropdownFixedText: this.elRoot.getAttribute('data-dropdown-fixed-text')!,
+      showTabBranches: shouldShowTabBranches,
+      showTabTags: this.elRoot.getAttribute('data-show-tab-tags') === 'true',
+      allowCreateNewRef: this.elRoot.getAttribute('data-allow-create-new-ref') === 'true',
+      showViewAllRefsEntry: this.elRoot.getAttribute('data-show-view-all-refs-entry') === 'true',
+      enableFeed: this.elRoot.getAttribute('data-enable-feed') === 'true',
+    };
   },
   computed: {
     searchFieldPlaceholder() {
@@ -36,7 +78,7 @@ const sfc = {
       });
 
       // TODO: fix this anti-pattern: side-effects-in-computed-properties
-      this.activeItemIndex = !items.length && this.showCreateNewRef ? 0 : -1;
+      this.activeItemIndex = !items.length && this.showCreateNewRef ? 0 : -1; // eslint-disable-line vue/no-side-effects-in-computed-properties
       return items;
     },
     showNoResults() {
@@ -52,7 +94,7 @@ const sfc = {
       }).length;
     },
     createNewRefFormActionUrl() {
-      return `${this.currentRepoLink}/branches/_new/${this.currentRefType}/${pathEscapeSegments(this.currentRefShortName)}`;
+      return `${this.currentRepoLink}/branches/_new/${this.currentRefType}/${pathEscapeSegments(this.currentRefShortName!)}`;
     },
   },
   watch: {
@@ -61,46 +103,6 @@ const sfc = {
       this.focusSearchField();
       this.loadTabItems();
     },
-  },
-  data() {
-    const shouldShowTabBranches = this.elRoot.getAttribute('data-show-tab-branches') === 'true';
-    return {
-      csrfToken: window.config.csrfToken,
-      allItems: [] as ListItem[],
-      selectedTab: (shouldShowTabBranches ? 'branches' : 'tags') as SelectedTab,
-      searchTerm: '',
-      menuVisible: false,
-      activeItemIndex: 0,
-      tabLoadingStates: {} as TabLoadingStates,
-
-      textReleaseCompare: this.elRoot.getAttribute('data-text-release-compare'),
-      textBranches: this.elRoot.getAttribute('data-text-branches'),
-      textTags: this.elRoot.getAttribute('data-text-tags'),
-      textFilterBranch: this.elRoot.getAttribute('data-text-filter-branch'),
-      textFilterTag: this.elRoot.getAttribute('data-text-filter-tag'),
-      textDefaultBranchLabel: this.elRoot.getAttribute('data-text-default-branch-label'),
-      textCreateTag: this.elRoot.getAttribute('data-text-create-tag'),
-      textCreateBranch: this.elRoot.getAttribute('data-text-create-branch'),
-      textCreateRefFrom: this.elRoot.getAttribute('data-text-create-ref-from'),
-      textNoResults: this.elRoot.getAttribute('data-text-no-results'),
-      textViewAllBranches: this.elRoot.getAttribute('data-text-view-all-branches'),
-      textViewAllTags: this.elRoot.getAttribute('data-text-view-all-tags'),
-
-      currentRepoDefaultBranch: this.elRoot.getAttribute('data-current-repo-default-branch'),
-      currentRepoLink: this.elRoot.getAttribute('data-current-repo-link'),
-      currentTreePath: this.elRoot.getAttribute('data-current-tree-path'),
-      currentRefType: this.elRoot.getAttribute('data-current-ref-type'),
-      currentRefShortName: this.elRoot.getAttribute('data-current-ref-short-name'),
-
-      refLinkTemplate: this.elRoot.getAttribute('data-ref-link-template'),
-      refFormActionTemplate: this.elRoot.getAttribute('data-ref-form-action-template'),
-      dropdownFixedText: this.elRoot.getAttribute('data-dropdown-fixed-text'),
-      showTabBranches: shouldShowTabBranches,
-      showTabTags: this.elRoot.getAttribute('data-show-tab-tags') === 'true',
-      allowCreateNewRef: this.elRoot.getAttribute('data-allow-create-new-ref') === 'true',
-      showViewAllRefsEntry: this.elRoot.getAttribute('data-show-view-all-refs-entry') === 'true',
-      enableFeed: this.elRoot.getAttribute('data-enable-feed') === 'true',
-    };
   },
   beforeMount() {
     document.body.addEventListener('click', (e) => {
@@ -139,11 +141,11 @@ const sfc = {
       }
     },
     createNewRef() {
-      this.$refs.createNewRefForm?.submit();
+      (this.$refs.createNewRefForm as HTMLFormElement)?.submit();
     },
     focusSearchField() {
       nextTick(() => {
-        this.$refs.searchField.focus();
+        (this.$refs.searchField as HTMLInputElement).focus();
       });
     },
     getSelectedIndexInFiltered() {
@@ -153,10 +155,11 @@ const sfc = {
       return -1;
     },
     getActiveItem() {
-      const el = this.$refs[`listItem${this.activeItemIndex}`]; // eslint-disable-line no-jquery/variable-pattern
+      const el = this.$refs[`listItem${this.activeItemIndex}`];
+      // @ts-expect-error - el is unknown type
       return (el && el.length) ? el[0] : null;
     },
-    keydown(e) {
+    keydown(e: KeyboardEvent) {
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
 
@@ -180,7 +183,7 @@ const sfc = {
         this.menuVisible = false;
       }
     },
-    handleTabSwitch(selectedTab) {
+    handleTabSwitch(selectedTab: SelectedTab) {
       this.selectedTab = selectedTab;
       this.focusSearchField();
       this.loadTabItems();
@@ -212,22 +215,21 @@ const sfc = {
       }
     },
   },
-};
-
-export default sfc; // activate IDE's Vue plugin
+});
 </script>
 <template>
-  <div class="ui dropdown custom branch-selector-dropdown ellipsis-items-nowrap">
-    <div tabindex="0" class="ui button branch-dropdown-button" @click="menuVisible = !menuVisible">
+  <div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items">
+    <div tabindex="0" class="ui compact button branch-dropdown-button" @click="menuVisible = !menuVisible">
       <span class="flex-text-block gt-ellipsis">
         <template v-if="dropdownFixedText">{{ dropdownFixedText }}</template>
         <template v-else>
           <svg-icon v-if="currentRefType === 'tag'" name="octicon-tag"/>
-          <svg-icon v-else name="octicon-git-branch"/>
-          <strong ref="dropdownRefName" class="tw-ml-2 tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
+          <svg-icon v-else-if="currentRefType === 'branch'" name="octicon-git-branch"/>
+          <svg-icon v-else name="octicon-git-commit"/>
+          <strong ref="dropdownRefName" class="tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
         </template>
       </span>
-      <svg-icon name="octicon-triangle-down" :size="14" class-name="dropdown icon"/>
+      <svg-icon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
     </div>
     <div class="menu transition" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
       <div class="ui icon search input">
@@ -236,10 +238,10 @@ export default sfc; // activate IDE's Vue plugin
       </div>
       <div v-if="showTabBranches" class="branch-tag-tab">
         <a class="branch-tag-item muted" :class="{active: selectedTab === 'branches'}" href="#" @click="handleTabSwitch('branches')">
-          <svg-icon name="octicon-git-branch" :size="16" class-name="tw-mr-1"/>{{ textBranches }}
+          <svg-icon name="octicon-git-branch" :size="16" class="tw-mr-1"/>{{ textBranches }}
         </a>
         <a v-if="showTabTags" class="branch-tag-item muted" :class="{active: selectedTab === 'tags'}" href="#" @click="handleTabSwitch('tags')">
-          <svg-icon name="octicon-tag" :size="16" class-name="tw-mr-1"/>{{ textTags }}
+          <svg-icon name="octicon-tag" :size="16" class="tw-mr-1"/>{{ textTags }}
         </a>
       </div>
       <div class="branch-tag-divider"/>
@@ -269,7 +271,6 @@ export default sfc; // activate IDE's Vue plugin
             {{ textCreateRefFrom.replace('%s', currentRefShortName) }}
           </div>
           <form ref="createNewRefForm" method="post" :action="createNewRefFormActionUrl">
-            <input type="hidden" name="_csrf" :value="csrfToken">
             <input type="hidden" name="new_branch_name" :value="searchTerm">
             <input type="hidden" name="create_tag" :value="String(selectedTab === 'tags')">
             <input type="hidden" name="current_path" :value="currentTreePath">

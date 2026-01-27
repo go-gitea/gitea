@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto"
 	"errors"
 	"fmt"
 	"io"
@@ -23,10 +24,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 
-	"github.com/keybase/go-crypto/openpgp"
-	"github.com/keybase/go-crypto/openpgp/armor"
-	"github.com/keybase/go-crypto/openpgp/clearsign"
-	"github.com/keybase/go-crypto/openpgp/packet"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp/clearsign"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	"github.com/ulikunitz/xz"
 )
 
@@ -67,7 +68,14 @@ func GetOrCreateKeyPair(ctx context.Context, ownerID int64) (string, string, err
 }
 
 func generateKeypair() (string, string, error) {
-	e, err := openpgp.NewEntity("", "Debian Registry", "", nil)
+	// Repository signing keys are long-lived and there is currently no rotation mechanism, choose stronger algorithms
+	cfg := &packet.Config{
+		RSABits:       4096,
+		DefaultHash:   crypto.SHA256,
+		DefaultCipher: packet.CipherAES256,
+	}
+
+	e, err := openpgp.NewEntity("", "Automatically generated Debian Registry Key; created "+time.Now().UTC().Format(time.RFC3339), "", cfg)
 	if err != nil {
 		return "", "", err
 	}

@@ -1,6 +1,5 @@
 {{if and $.root.SignedUserID (not $.Repository.IsArchived)}}
 	<form class="ui form {{if $.hidden}}tw-hidden comment-form{{end}}" action="{{$.root.Issue.Link}}/files/reviews/comments" method="post">
-	{{$.root.CsrfTokenHtml}}
 		<input type="hidden" name="origin" value="{{if $.root.PageIsPullFiles}}diff{{else}}timeline{{end}}">
 		<input type="hidden" name="latest_commit_id" value="{{$.root.AfterCommitID}}">
 		<input type="hidden" name="side" value="{{if $.Side}}{{$.Side}}{{end}}">
@@ -27,7 +26,7 @@
 		{{end}}
 
 		<div class="field footer">
-			<div class="tw-text-right">
+			<div class="flex-text-block tw-justify-end">
 				{{if $.reply}}
 					<button class="ui submit primary tiny button btn-reply" type="submit">{{ctx.Locale.Tr "repo.diff.comment.reply"}}</button>
 					<input type="hidden" name="reply" value="{{$.reply}}">

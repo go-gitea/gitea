@@ -27,9 +27,9 @@ func Organizations(ctx *context.Context) {
 		ctx.SetFormString("sort", UserSearchDefaultAdminSort)
 	}
 
-	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
+	explore.RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor:           ctx.Doer,
-		Type:            user_model.UserTypeOrganization,
+		Types:           []user_model.UserType{user_model.UserTypeOrganization},
 		IncludeReserved: true, // administrator needs to list all accounts include reserved
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.OrgPagingNum,

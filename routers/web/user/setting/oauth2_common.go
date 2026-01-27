@@ -28,8 +28,8 @@ func (oa *OAuth2CommonHandlers) renderEditPage(ctx *context.Context) {
 	ctx.Data["FormActionPath"] = fmt.Sprintf("%s/%d", oa.BasePathEditPrefix, app.ID)
 
 	if ctx.ContextUser != nil && ctx.ContextUser.IsOrganization() {
-		if err := shared_user.LoadHeaderCount(ctx); err != nil {
-			ctx.ServerError("LoadHeaderCount", err)
+		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
+			ctx.ServerError("RenderUserOrgHeader", err)
 			return
 		}
 	}
@@ -76,14 +76,14 @@ func (oa *OAuth2CommonHandlers) EditShow(ctx *context.Context) {
 	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
-			ctx.NotFound("Application not found", err)
+			ctx.NotFound(err)
 			return
 		}
 		ctx.ServerError("GetOAuth2ApplicationByID", err)
 		return
 	}
 	if app.UID != oa.OwnerID {
-		ctx.NotFound("Application not found", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["App"] = app
@@ -98,14 +98,14 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 		app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 		if err != nil {
 			if auth.IsErrOAuthApplicationNotFound(err) {
-				ctx.NotFound("Application not found", err)
+				ctx.NotFound(err)
 				return
 			}
 			ctx.ServerError("GetOAuth2ApplicationByID", err)
 			return
 		}
 		if app.UID != oa.OwnerID {
-			ctx.NotFound("Application not found", nil)
+			ctx.NotFound(nil)
 			return
 		}
 		ctx.Data["App"] = app
@@ -135,14 +135,14 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
-			ctx.NotFound("Application not found", err)
+			ctx.NotFound(err)
 			return
 		}
 		ctx.ServerError("GetOAuth2ApplicationByID", err)
 		return
 	}
 	if app.UID != oa.OwnerID {
-		ctx.NotFound("Application not found", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["App"] = app

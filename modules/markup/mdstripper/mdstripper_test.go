@@ -79,7 +79,7 @@ A HIDDEN ` + "`" + `GHOST` + "`" + ` IN THIS LINE.
 				lines = append(lines, line)
 			}
 		}
-		assert.EqualValues(t, test.expectedText, lines)
-		assert.EqualValues(t, test.expectedLinks, links)
+		assert.Equal(t, test.expectedText, lines)
+		assert.Equal(t, test.expectedLinks, links)
 	}
 }

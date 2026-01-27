@@ -9,6 +9,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
+
+	"xorm.io/builder"
 )
 
 // TeamRepo represents an team-repository relation.
@@ -48,26 +50,48 @@ func RemoveTeamRepo(ctx context.Context, teamID, repoID int64) error {
 	return err
 }
 
-// GetTeamsWithAccessToRepo returns all teams in an organization that have given access level to the repository.
-func GetTeamsWithAccessToRepo(ctx context.Context, orgID, repoID int64, mode perm.AccessMode) ([]*Team, error) {
-	teams := make([]*Team, 0, 5)
-	return teams, db.GetEngine(ctx).Where("team.authorize >= ?", mode).
-		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		And("team_repo.org_id = ?", orgID).
-		And("team_repo.repo_id = ?", repoID).
-		OrderBy("name").
-		Find(&teams)
+// GetTeamsWithAccessToAnyRepoUnit returns all teams in an organization that have given access level to the repository special unit.
+// This function is only used for finding some teams that can be used as branch protection allowlist or reviewers, it isn't really used for access control.
+// FIXME: TEAM-UNIT-PERMISSION this logic is not complete, search the fixme keyword to see more details
+func GetTeamsWithAccessToAnyRepoUnit(ctx context.Context, orgID, repoID int64, mode perm.AccessMode, unitType unit.Type, unitTypesMore ...unit.Type) (teams []*Team, err error) {
+	teamIDs, err := getTeamIDsWithAccessToAnyRepoUnit(ctx, orgID, repoID, mode, unitType, unitTypesMore...)
+	if err != nil {
+		return nil, err
+	}
+	if len(teamIDs) == 0 {
+		return teams, nil
+	}
+	err = db.GetEngine(ctx).Where(builder.In("id", teamIDs)).OrderBy("team.name").Find(&teams)
+	return teams, err
 }
 
-// GetTeamsWithAccessToRepoUnit returns all teams in an organization that have given access level to the repository special unit.
-func GetTeamsWithAccessToRepoUnit(ctx context.Context, orgID, repoID int64, mode perm.AccessMode, unitType unit.Type) ([]*Team, error) {
-	teams := make([]*Team, 0, 5)
-	return teams, db.GetEngine(ctx).Where("team_unit.access_mode >= ?", mode).
+func getTeamIDsWithAccessToAnyRepoUnit(ctx context.Context, orgID, repoID int64, mode perm.AccessMode, unitType unit.Type, unitTypesMore ...unit.Type) (teamIDs []int64, err error) {
+	sub := builder.Select("team_id").From("team_unit").
+		Where(builder.Expr("team_unit.team_id = team.id")).
+		And(builder.In("team_unit.type", append([]unit.Type{unitType}, unitTypesMore...))).
+		And(builder.Expr("team_unit.access_mode >= ?", mode))
+
+	err = db.GetEngine(ctx).
+		Select("team.id").
+		Table("team").
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
-		Join("INNER", "team_unit", "team_unit.team_id = team.id").
-		And("team_repo.org_id = ?", orgID).
-		And("team_repo.repo_id = ?", repoID).
-		And("team_unit.type = ?", unitType).
-		OrderBy("name").
-		Find(&teams)
+		And("team_repo.org_id = ? AND team_repo.repo_id = ?", orgID, repoID).
+		And(builder.Or(
+			builder.Expr("team.authorize >= ?", mode),
+			builder.In("team.id", sub),
+		)).
+		Find(&teamIDs)
+	return teamIDs, err
+}
+
+func GetTeamUserIDsWithAccessToAnyRepoUnit(ctx context.Context, orgID, repoID int64, mode perm.AccessMode, unitType unit.Type, unitTypesMore ...unit.Type) (userIDs []int64, err error) {
+	teamIDs, err := getTeamIDsWithAccessToAnyRepoUnit(ctx, orgID, repoID, mode, unitType, unitTypesMore...)
+	if err != nil {
+		return nil, err
+	}
+	if len(teamIDs) == 0 {
+		return userIDs, nil
+	}
+	err = db.GetEngine(ctx).Table("team_user").Select("uid").Where(builder.In("team_id", teamIDs)).Find(&userIDs)
+	return userIDs, err
 }
