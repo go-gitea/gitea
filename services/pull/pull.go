@@ -91,16 +91,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		}
 	}
 
-	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
-	if err != nil {
-		if !git_model.IsErrBranchNotExist(err) {
-			log.Error("CreateTemporaryRepoForPR %-v: %v", pr, err)
-		}
-		return err
-	}
-	defer cancel()
-
-	if err := testPullRequestTmpRepoBranchMergeable(ctx, prCtx, pr); err != nil {
+	if err := checkPullRequestBranchMergeable(ctx, pr); err != nil {
 		return err
 	}
 
@@ -129,6 +120,7 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 		pr.Issue = issue
 		issue.PullRequest = pr
 
+		var err error
 		if pr.Flow == issues_model.PullRequestFlowGithub {
 			err = PushToBaseRepo(ctx, pr)
 		} else {
@@ -169,6 +161,9 @@ func NewPullRequest(ctx context.Context, opts *NewPullRequestOptions) error {
 	// Request reviews, these should be requested before other notifications because they will add request reviews record
 	// on database
 	permDoer, err := access_model.GetUserRepoPermission(ctx, repo, issue.Poster)
+	if err != nil {
+		return err
+	}
 	for _, reviewer := range opts.Reviewers {
 		if _, err = issue_service.ReviewRequest(ctx, pr.Issue, issue.Poster, &permDoer, reviewer, true); err != nil {
 			return err
@@ -302,7 +297,7 @@ func ChangeTargetBranch(ctx context.Context, pr *issues_model.PullRequest, doer 
 	pr.BaseBranch = targetBranch
 
 	// Refresh patch
-	if err := testPullRequestBranchMergeable(pr); err != nil {
+	if err := checkPullRequestBranchMergeable(ctx, pr); err != nil {
 		return err
 	}
 

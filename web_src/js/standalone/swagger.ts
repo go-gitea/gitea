@@ -1,13 +1,14 @@
 import SwaggerUI from 'swagger-ui-dist/swagger-ui-es-bundle.js';
 import 'swagger-ui-dist/swagger-ui.css';
 import {load as loadYaml} from 'js-yaml';
+import {GET} from '../modules/fetch.ts';
 
 window.addEventListener('load', async () => {
   const elSwaggerUi = document.querySelector('#swagger-ui')!;
   const url = elSwaggerUi.getAttribute('data-source')!;
   let spec: any;
   if (url) {
-    const res = await fetch(url);
+    const res = await GET(url);
     spec = await res.json();
   } else {
     const elSpecContent = elSwaggerUi.querySelector<HTMLTextAreaElement>('.swagger-spec-content')!;

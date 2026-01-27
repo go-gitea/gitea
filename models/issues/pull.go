@@ -666,9 +666,10 @@ func HasWorkInProgressPrefix(title string) bool {
 	return false
 }
 
-// IsFilesConflicted determines if the  Pull Request has changes conflicting with the target branch.
+// IsFilesConflicted determines if the Pull Request has changes conflicting with the target branch.
+// Sometimes a conflict may not list any files
 func (pr *PullRequest) IsFilesConflicted() bool {
-	return len(pr.ConflictedFiles) > 0
+	return pr.Status == PullRequestStatusConflict
 }
 
 // GetWorkInProgressPrefix returns the prefix used to mark the pull request as a work in progress.
