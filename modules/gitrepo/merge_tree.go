@@ -5,89 +5,57 @@ package gitrepo
 
 import (
 	"bufio"
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"io"
-	"strings"
 
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/util"
 )
-
-func ScanNullTerminatedStrings(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	if atEOF && len(data) == 0 {
-		return 0, nil, nil
-	}
-	if i := bytes.IndexByte(data, '\x00'); i >= 0 {
-		return i + 1, data[0:i], nil
-	}
-	if atEOF {
-		return len(data), data, nil
-	}
-	return 0, nil, nil
-}
-
-// parseMergeTreeOutput parses the output of git merge-tree --write-tree -z --name-only --no-messages
-// For a successful merge, the output is a simply one line <OID of toplevel tree>NUL
-// Whereas for a conflicted merge, the output is:
-// <OID of toplevel tree>NUL
-// <Conflicted file name 1>NUL
-// <Conflicted file name 2>NUL
-// ...
-// ref: https://git-scm.com/docs/git-merge-tree/2.38.0#OUTPUT
-func parseMergeTreeOutput(output io.Reader, maxListFiles int) (treeID string, conflictedFiles []string, err error) {
-	scanner := bufio.NewScanner(output)
-
-	scanner.Split(ScanNullTerminatedStrings)
-	var lineCount int
-	for scanner.Scan() {
-		line := scanner.Text()
-		if line == "" {
-			continue
-		}
-		if treeID == "" { // first line is tree ID
-			treeID = line
-			continue
-		}
-		conflictedFiles = append(conflictedFiles, line)
-		lineCount++
-		if lineCount >= maxListFiles {
-			break
-		}
-	}
-	if treeID == "" {
-		return "", nil, errors.New("unexpected empty output")
-	}
-	return treeID, conflictedFiles, scanner.Err()
-}
 
 const MaxConflictedDetectFiles = 10
 
 // MergeTree performs a merge between two commits (baseRef and headRef) with an optional merge base.
 // It returns the resulting tree hash, a list of conflicted files (if any), and an error if the operation fails.
 // If there are no conflicts, the list of conflicted files will be nil.
-func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase string) (string, bool, []string, error) {
-	cmd := gitcmd.NewCommand("merge-tree", "--write-tree", "-z", "--name-only", "--no-messages")
-	if git.DefaultFeatures().CheckVersionAtLeast("2.40") && mergeBase != "" {
-		cmd.AddOptionFormat("--merge-base=%s", mergeBase)
-	}
+func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase string) (treeID string, isErrHasConflicts bool, conflictFiles []string, _ error) {
+	cmd := gitcmd.NewCommand("merge-tree", "--write-tree", "-z", "--name-only", "--no-messages").
+		AddOptionFormat("--merge-base=%s", mergeBase).
+		AddDynamicArguments(baseRef, headRef)
 
-	out, _, gitErr := RunCmdBytes(ctx, repo, cmd.AddDynamicArguments(baseRef, headRef))
+	stdout, stdoutClose := cmd.MakeStdoutPipe()
+	defer stdoutClose()
+	cmd.WithPipelineFunc(func(c gitcmd.Context) error {
+		defer stdoutClose() // only partially read the output, so close it explicitly here
+
+		// https://git-scm.com/docs/git-merge-tree/2.38.0#OUTPUT
+		// For a conflicted merge, the output is:
+		// <OID of toplevel tree>NUL
+		// <Conflicted file name 1>NUL
+		// <Conflicted file name 2>NUL
+		// ...
+		scanner := bufio.NewScanner(stdout)
+		scanner.Split(util.BufioScannerSplit(0))
+		for scanner.Scan() {
+			line := scanner.Text()
+			if treeID == "" { // first line is tree ID
+				treeID = line
+				continue
+			}
+			conflictFiles = append(conflictFiles, line)
+			if len(conflictFiles) >= MaxConflictedDetectFiles {
+				break
+			}
+		}
+		return scanner.Err()
+	})
+
+	err := RunCmdWithStderr(ctx, repo, cmd)
 	// For a successful, non-conflicted merge, the exit status is 0. When the merge has conflicts, the exit status is 1.
 	// A merge can have conflicts without having individual files conflict
 	// https://git-scm.com/docs/git-merge-tree/2.38.0#_mistakes_to_avoid
-	switch {
-	case gitErr == nil:
-		return strings.TrimSpace(strings.TrimSuffix(string(out), "\x00")), false, nil, nil
-	case gitcmd.IsErrorExitCode(gitErr, 1): // it's a slight waste to read the whole conlicted files to memory, but
-		// the reader will be closed after the git command invoked.
-		treeID, conflictedFiles, err := parseMergeTreeOutput(bytes.NewReader(out), MaxConflictedDetectFiles)
-		if err != nil {
-			return "", false, nil, fmt.Errorf("parse merge-tree output failed: %w", err)
-		}
-		return treeID, true, conflictedFiles, nil
+	isErrHasConflicts = gitcmd.IsErrorExitCode(err, 1)
+	if err == nil || isErrHasConflicts {
+		return treeID, isErrHasConflicts, conflictFiles, nil
 	}
-	return "", false, nil, fmt.Errorf("run merge-tree failed: %w", gitErr)
+	return "", false, nil, fmt.Errorf("run merge-tree failed: %w", err)
 }

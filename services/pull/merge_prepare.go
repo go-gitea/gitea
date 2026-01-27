@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
@@ -213,7 +214,7 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string, o
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			// Now scan the output from the command
 			scanner := bufio.NewScanner(diffOutReader)
-			scanner.Split(gitrepo.ScanNullTerminatedStrings)
+			scanner.Split(util.BufioScannerSplit(0))
 			for scanner.Scan() {
 				treePath := scanner.Text()
 				// escape '*', '?', '[', spaces and '!' prefix
