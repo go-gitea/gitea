@@ -99,7 +99,7 @@ func TestAuthorizeGrantS256RequiresVerifier(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	ctx := loginUser(t, "user4")
 	codeChallenge := "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg"
-	req := NewRequest(t, "GET", fmt.Sprintf("/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=a&response_type=code&state=thestate&code_challenge_method=S256&code_challenge=%s", url.QueryEscape(codeChallenge)))
+	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=a&response_type=code&state=thestate&code_challenge_method=S256&code_challenge="+url.QueryEscape(codeChallenge))
 	resp := ctx.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
