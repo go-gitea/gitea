@@ -210,7 +210,7 @@
   type: 1
   reviewer_id: 5
   issue_id: 3
-  content: "review accepted of user5 but dismissed"
+  content: "review approved of user5 but dismissed"
   original_author_id: 0
   updated_unix: 946684000
   created_unix: 946684000
