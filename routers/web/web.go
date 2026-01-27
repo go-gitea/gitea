@@ -568,7 +568,7 @@ func registerWebRoutes(m *web.Router) {
 		}, optionsCorsHandler(), optSignInFromAnyOrigin)
 	}, oauth2Enabled)
 
-	m.Post("/login/device/code", oauth2Enabled, optionsCorsHandler(), web.Bind(forms.AuthorizationDeviceForm{}), optSignInIgnoreCsrf, auth.AuthorizeDeviceOAuth)
+	m.Post("/login/device/code", oauth2Enabled, optionsCorsHandler(), web.Bind(forms.AuthorizationDeviceForm{}), auth.AuthorizeDeviceOAuth)
 	m.Group("/login/device", func() {
 		m.Get("", auth.AuthorizeOAuthDevice)
 		m.Post("", web.Bind(forms.Oauth2DeviceActivationForm{}), auth.AuthorizeOAuthDevicePost)

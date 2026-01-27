@@ -1077,7 +1077,6 @@ func testOAuth2DeviceFlowGrantDeviceFind(t *testing.T, session *TestSession, use
 	assert.Equal(t, "/login/device", link)
 
 	postData := map[string]string{
-		"_csrf":     htmlDoc.GetCSRF(),
 		"user_code": userCode,
 	}
 
@@ -1096,7 +1095,6 @@ func testOAuth2DeviceFlowGrantDeviceConfirm(t *testing.T, findResp *httptest.Res
 	assert.True(t, exists, "The template has changed")
 
 	postData := map[string]string{
-		"_csrf":     htmlDoc.GetCSRF(),
 		"device_id": deviceID,
 		"granted":   util.Iif(granted, "true", "false"),
 	}

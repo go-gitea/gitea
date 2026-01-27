@@ -7,7 +7,6 @@
 		</h3>
 		<div class="ui attached segment">
 			<form class="ui form" id="grant-device-find" method="post" action="{{$.Link}}">
-				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_UserCode}}error{{end}}">
 					<label for="user_code">{{ctx.Locale.Tr "auth.authorize_device_description"}}</label>
 					<input id="user_code" name="user_code" type="text" value="{{.UserCode}}" autofocus required tabindex="1">

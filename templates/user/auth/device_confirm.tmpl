@@ -17,7 +17,6 @@
 		</div>
 		<div class="ui attached segment">
 			<form class="ui form" id="grant-device-confirmation" method="post" action="{{$.Link}}/confirmation">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="device_id" value="{{.DeviceID}}">
 				<button type="submit" name="granted" value="true" class="ui red inline button">{{ctx.Locale.Tr "auth.authorize_application"}}</button>
 				<button type="submit" name="granted" value="false" class="ui basic primary inline button">{{ctx.Locale.Tr "cancel"}}</button>
