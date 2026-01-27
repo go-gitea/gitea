@@ -136,7 +136,7 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 
 	// 8. Check for protected files changes
 	if err = checkPullFilesProtection(ctx, pr, baseGitRepo, pr.HeadCommitID); err != nil {
-		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
+		return fmt.Errorf("checkPullFilesProtection: %w", err)
 	}
 	return nil
 }

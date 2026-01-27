@@ -113,13 +113,19 @@ func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pu
 	}
 
 	// 2. Check for conflicts
-	if conflicts, err := checkConflictsByTmpRepo(ctx, pr, gitRepo, prCtx.tmpBasePath); err != nil || conflicts || pr.Status == issues_model.PullRequestStatusEmpty {
+	conflicts, err := checkConflictsByTmpRepo(ctx, pr, gitRepo, prCtx.tmpBasePath)
+	if err != nil {
 		return err
+	}
+
+	pr.ChangedProtectedFiles = nil
+	if conflicts || pr.Status == issues_model.PullRequestStatusEmpty {
+		return nil
 	}
 
 	// 3. Check for protected files changes
 	if err = checkPullFilesProtection(ctx, pr, gitRepo, tmpRepoTrackingBranch); err != nil {
-		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
+		return fmt.Errorf("pr.CheckPullFilesProtection(): %w", err)
 	}
 
 	pr.Status = issues_model.PullRequestStatusMergeable
