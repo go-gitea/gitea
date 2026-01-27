@@ -40,7 +40,7 @@ func ReloadTemplates(ctx context.Context) ResponseExtra {
 // Shutdown calls the internal shutdown function
 func GetSSHInfo(ctx context.Context) string {
 	reqURL := setting.LocalURL + "ssh_info"
-	req := newInternalRequest(ctx, reqURL, "GET")
+	req := newInternalRequestAPI(ctx, reqURL, "GET")
 
 	resp, err := req.Response()
 	if err != nil {

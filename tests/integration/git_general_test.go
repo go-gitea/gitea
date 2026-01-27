@@ -964,10 +964,10 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 				return
 			}
 
-			err = git.AddChanges(dstPath, true)
+			err = git.AddChanges(t.Context(), dstPath, true)
 			assert.NoError(t, err)
 
-			err = git.CommitChanges(dstPath, git.CommitChangesOptions{
+			err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
 				Committer: &git.Signature{
 					Email: "user2@example.com",
 					Name:  "user2",
@@ -986,7 +986,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 		})
 
 		t.Run("PushByForReview", func(t *testing.T) {
-			err := git.NewCommand(git.DefaultContext, "push", "origin").AddDynamicArguments(fmt.Sprintf("HEAD:refs/for-review/%d", pr1.Index)).Run(&git.RunOpts{Dir: dstPath})
+			err := gitcmd.NewCommand("push", "origin").AddDynamicArguments(fmt.Sprintf("HEAD:refs/for-review/%d", pr1.Index)).WithDir(dstPath).Run(t.Context())
 			if !assert.NoError(t, err) {
 				return
 			}
