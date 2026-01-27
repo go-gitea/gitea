@@ -10,7 +10,6 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 
 	"github.com/stretchr/testify/assert"
@@ -19,10 +18,6 @@ import (
 
 func Test_testPullRequestMergeTree(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	if !git.DefaultFeatures().SupportGitMergeTree {
-		t.Skip("git merge-tree not supported")
-	}
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.NoError(t, pr.LoadIssue(t.Context()))
@@ -67,10 +62,6 @@ func Test_testPullRequestTmpRepoBranchMergeable(t *testing.T) {
 func Test_testPullRequestMergeTree_Conflict(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	if !git.DefaultFeatures().SupportGitMergeTree {
-		t.Skip("git merge-tree not supported")
-	}
-
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 	assert.NoError(t, pr.LoadHeadRepo(t.Context()))
@@ -93,10 +84,6 @@ func Test_testPullRequestMergeTree_Conflict(t *testing.T) {
 
 func Test_testPullRequestMergeTree_Empty(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	if !git.DefaultFeatures().SupportGitMergeTree {
-		t.Skip("git merge-tree not supported")
-	}
 
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.NoError(t, pr.LoadBaseRepo(t.Context()))

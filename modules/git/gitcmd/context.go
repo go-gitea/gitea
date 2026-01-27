@@ -5,6 +5,8 @@ package gitcmd
 
 import (
 	"context"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 type Context interface {
@@ -23,6 +25,6 @@ type cmdContext struct {
 }
 
 func (c *cmdContext) CancelWithCause(err error) error {
-	c.cmd.cmdCancel(err)
+	c.cmd.cmdCancel(util.IfZero(err, errPipelineNoError))
 	return err
 }

@@ -45,6 +45,7 @@ type Command struct {
 	cmdStartTime time.Time
 
 	parentPipeFiles   []*os.File
+	parentPipeReaders []*os.File
 	childrenPipeFiles []*os.File
 
 	// only os.Pipe and in-memory buffers can work with Stdin safely, see https://github.com/golang/go/issues/77227 if the command would exit unexpectedly
@@ -283,6 +284,7 @@ func (c *Command) makeStdoutStderr(w *io.Writer) (PipeReader, func()) {
 	}
 	c.childrenPipeFiles = append(c.childrenPipeFiles, pw)
 	c.parentPipeFiles = append(c.parentPipeFiles, pr)
+	c.parentPipeReaders = append(c.parentPipeReaders, pr)
 	*w /* stdout, stderr */ = pw
 	return &pipeReader{f: pr}, func() { pr.Close() }
 }
@@ -444,6 +446,18 @@ func (c *Command) closePipeFiles(files []*os.File) {
 	}
 }
 
+func (c *Command) discardPipeReaders(files []*os.File) {
+	for _, f := range files {
+		_, _ = io.Copy(io.Discard, f)
+	}
+}
+
+// errPipelineNoError is used to distinguish between:
+// * context canceled by pipeline caller with no error (normal cancellation)
+// * context canceled by parent context (still context.Canceled error)
+// * other causes
+var errPipelineNoError = errors.New("canceled with no error")
+
 func (c *Command) Wait() error {
 	defer func() {
 		// The reader in another goroutine might be still reading the stdout, so we shouldn't close the pipes here
@@ -454,14 +468,19 @@ func (c *Command) Wait() error {
 
 	if c.opts.PipelineFunc != nil {
 		errPipeline := c.opts.PipelineFunc(&cmdContext{Context: c.cmdCtx, cmd: c})
-		// after the pipeline function returns, we can safely cancel the command context and close the pipes, the data in pipes should have been consumed
-		c.cmdCancel(errPipeline)
+
+		if context.Cause(c.cmdCtx) == nil {
+			// if the context is not canceled explicitly, we need to discard the unread data,
+			// and wait for the command to exit normally, and then get its exit code
+			c.discardPipeReaders(c.parentPipeReaders)
+		} // else: canceled command will be killed, and the exit code is caused by kill
+
+		// after the pipeline function returns, we can safely close the pipes
 		c.closePipeFiles(c.parentPipeFiles)
 		errWait := c.cmd.Wait()
-		errCause := context.Cause(c.cmdCtx)
-		// the pipeline function should be able to know whether it succeeds or fails
-		if errPipeline == nil && (errCause == nil || errors.Is(errCause, context.Canceled)) {
-			return nil
+		errCause := context.Cause(c.cmdCtx) // in case the cause is set during Wait(), get the final cancel cause
+		if errors.Is(errCause, errPipelineNoError) {
+			errCause = nil
 		}
 		return errors.Join(wrapPipelineError(errPipeline), errCause, errWait)
 	}
