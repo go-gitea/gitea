@@ -19,11 +19,15 @@ on:
         value: ${{ jobs.detect.outputs.swagger }}
       yaml:
         value: ${{ jobs.detect.outputs.yaml }}
+      json:
+        value: ${{ jobs.detect.outputs.json }}
 
 jobs:
   detect:
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    permissions:
+      contents: read
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
@@ -33,8 +37,9 @@ jobs:
       docker: ${{ steps.changes.outputs.docker }}
       swagger: ${{ steps.changes.outputs.swagger }}
       yaml: ${{ steps.changes.outputs.yaml }}
+      json: ${{ steps.changes.outputs.json }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v3
         id: changes
         with:
@@ -48,7 +53,7 @@ jobs:
               - "Makefile"
               - ".golangci.yml"
               - ".editorconfig"
-              - "options/locale/locale_en-US.ini"
+              - "options/locale/locale_en-US.json"
 
             frontend:
               - "*.js"
@@ -98,3 +103,6 @@ jobs:
               - "**/*.yaml"
               - ".yamllint.yaml"
               - "pyproject.toml"
+
+            json:
+              - "**/*.json"

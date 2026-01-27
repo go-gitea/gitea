@@ -56,15 +56,6 @@
   min-width: 0;
 }
 
-.ui.comments .comment .author {
-  font-size: 1em;
-  font-weight: var(--font-weight-medium);
-}
-
-.ui.comments .comment a.author {
-  cursor: pointer;
-}
-
 .ui.comments .comment .metadata {
   display: inline-block;
   margin-left: 0.5em;

@@ -35,7 +35,7 @@ func SignInOpenID(ctx *context.Context) {
 		return
 	}
 
-	if CheckAutoLogin(ctx) {
+	if performAutoLogin(ctx) {
 		return
 	}
 

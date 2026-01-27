@@ -140,7 +140,13 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, targetRepo.RepoPath(), doer, targetRepo.RepoPath(), refName.String())
+	targetGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, targetRepo)
+	if err != nil {
+		return nil, err
+	}
+	defer closer.Close()
+
+	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, doer, targetGitRepo, refName.String())
 	wontSignReason := ""
 	if asymkey_service.IsErrWontSign(err) {
 		wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
@@ -202,14 +208,14 @@ func (r *Repository) CanCreateIssueDependencies(ctx context.Context, user *user_
 }
 
 // GetCommitsCount returns cached commit count for current view
-func (r *Repository) GetCommitsCount() (int64, error) {
+func (r *Repository) GetCommitsCount(ctx context.Context) (int64, error) {
 	if r.Commit == nil {
 		return 0, nil
 	}
 	contextName := r.RefFullName.ShortName()
 	isRef := r.RefFullName.IsBranch() || r.RefFullName.IsTag()
 	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, isRef), func() (int64, error) {
-		return r.Commit.CommitsCount()
+		return gitrepo.CommitsCountOfCommit(ctx, r.Repository, r.Commit.ID.String())
 	})
 }
 
@@ -219,11 +225,10 @@ func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, 
 
 	return cache.GetInt64(cacheKey, func() (int64, error) {
 		if len(branches) == 0 {
-			return git.AllCommitsCount(ctx, r.Repository.RepoPath(), hidePRRefs, files...)
+			return gitrepo.AllCommitsCount(ctx, r.Repository, hidePRRefs, files...)
 		}
-		return git.CommitsCount(ctx,
-			git.CommitsCountOptions{
-				RepoPath: r.Repository.RepoPath(),
+		return gitrepo.CommitsCount(ctx, r.Repository,
+			gitrepo.CommitsCountOptions{
 				Revision: branches,
 				RelPath:  files,
 			})
@@ -444,7 +449,7 @@ func RepoAssignment(ctx *Context) {
 				}
 
 				if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
-					RedirectToUser(ctx.Base, userName, redirectUserID)
+					RedirectToUser(ctx.Base, ctx.Doer, userName, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
 					ctx.NotFound(nil)
 				} else {
@@ -821,7 +826,7 @@ func RepoRefByDefaultBranch() func(*Context) {
 		ctx.Repo.RefFullName = git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch)
 		ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
 		ctx.Repo.Commit, _ = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
-		ctx.Repo.CommitsCount, _ = ctx.Repo.GetCommitsCount()
+		ctx.Repo.CommitsCount, _ = ctx.Repo.GetCommitsCount(ctx)
 		ctx.Data["RefFullName"] = ctx.Repo.RefFullName
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
@@ -858,7 +863,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				if err == nil && len(brs) != 0 {
 					refShortName = brs[0]
 				} else if len(brs) == 0 {
-					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
+					log.Error("No branches in non-empty repository %s", ctx.Repo.Repository.RelativePath())
 				} else {
 					log.Error("GetBranches error: %v", err)
 				}
@@ -970,7 +975,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch() // only used by the branch selector dropdown: AllowCreateNewRef
 
-		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount(ctx)
 		if err != nil {
 			ctx.ServerError("GetCommitsCount", err)
 			return

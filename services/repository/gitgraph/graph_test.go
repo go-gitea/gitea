@@ -238,8 +238,8 @@ func TestCommitStringParsing(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.testName, func(t *testing.T) {
 			testString := fmt.Sprintf("%s%s", dataFirstPart, test.commitMessage)
-			idx := strings.Index(testString, "DATA:")
-			commit, err := NewCommit(0, 0, []byte(testString[idx+5:]))
+			_, after, _ := strings.Cut(testString, "DATA:")
+			commit, err := NewCommit(0, 0, []byte(after))
 			if err != nil && test.shouldPass {
 				t.Errorf("Could not parse %s", testString)
 				return

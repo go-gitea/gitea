@@ -148,7 +148,7 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 		}
 
 		rel.Sha1 = commit.ID.String()
-		rel.NumCommits, err = commit.CommitsCount()
+		rel.NumCommits, err = gitrepo.CommitsCountOfCommit(ctx, rel.Repo, commit.ID.String())
 		if err != nil {
 			return false, fmt.Errorf("CommitsCount: %w", err)
 		}
@@ -371,7 +371,7 @@ func DeleteReleaseByID(ctx context.Context, repo *repo_model.Repository, rel *re
 			}
 		}
 
-		if stdout, err := gitrepo.RunCmdString(ctx, repo,
+		if stdout, _, err := gitrepo.RunCmdString(ctx, repo,
 			gitcmd.NewCommand("tag", "-d").AddDashesAndList(rel.TagName),
 		); err != nil && !strings.Contains(err.Error(), "not found") {
 			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)

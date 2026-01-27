@@ -110,9 +110,9 @@ export default defineComponent({
   },
 
   mounted() {
-    const el = document.querySelector('#dashboard-repo-list');
+    const el = document.querySelector('#dashboard-repo-list')!;
     this.changeReposFilter(this.reposFilter);
-    fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
+    fomanticQuery(el.querySelector('.ui.dropdown')!).dropdown();
 
     this.textArchivedFilterTitles = {
       'archived': this.textShowOnlyArchived,

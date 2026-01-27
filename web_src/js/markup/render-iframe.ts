@@ -1,15 +1,17 @@
 import {generateElemId, queryElemChildren} from '../utils/dom.ts';
 import {isDarkTheme} from '../utils.ts';
 
-export async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
-  const iframeSrcUrl = iframe.getAttribute('data-src');
+async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
+  const iframeSrcUrl = iframe.getAttribute('data-src')!;
   if (!iframe.id) iframe.id = generateElemId('gitea-iframe-');
 
   window.addEventListener('message', (e) => {
     if (!e.data?.giteaIframeCmd || e.data?.giteaIframeId !== iframe.id) return;
     const cmd = e.data.giteaIframeCmd;
     if (cmd === 'resize') {
-      iframe.style.height = `${e.data.iframeHeight}px`;
+      // TODO: sometimes the reported iframeHeight is not the size we need, need to figure why. Example: openapi swagger.
+      //  As a workaround, add some pixels here.
+      iframe.style.height = `${e.data.iframeHeight + 2}px`;
     } else if (cmd === 'open-link') {
       if (e.data.anchorTarget === '_blank') {
         window.open(e.data.openLink, '_blank');

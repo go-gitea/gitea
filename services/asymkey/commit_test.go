@@ -31,7 +31,7 @@ func TestParseCommitWithSSHSignature(t *testing.T) {
 	// AAAEDWqPHTH51xb4hy1y1f1VeWL/2A9Q0b6atOyv5fx8x5prpPrMXSg9qTx04jPNPWRcHs
 	// utyxWjThIpzcaO68yWVnAAAAEXVzZXIyQGV4YW1wbGUuY29tAQIDBA==
 	// -----END OPENSSH PRIVATE KEY-----
-	sshPubKey, err := asymkey_model.AddPublicKey(t.Context(), 999, "user-ssh-key-any-name", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILpPrMXSg9qTx04jPNPWRcHsutyxWjThIpzcaO68yWVn", 0)
+	sshPubKey, err := asymkey_model.AddPublicKey(t.Context(), 999, "user-ssh-key-any-name", "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILpPrMXSg9qTx04jPNPWRcHsutyxWjThIpzcaO68yWVn", 0, false)
 	require.NoError(t, err)
 	_, err = db.GetEngine(t.Context()).ID(sshPubKey.ID).Cols("verified").Update(&asymkey_model.PublicKey{Verified: true})
 	require.NoError(t, err)

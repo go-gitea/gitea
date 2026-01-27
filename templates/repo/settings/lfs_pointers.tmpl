@@ -5,7 +5,6 @@
 			{{if gt .NumAssociatable 0}}
 				<div class="ui right">
 					<form class="ui form" method="post" action="{{$.Link}}/associate">
-						{{.CsrfTokenHtml}}
 						{{range .Pointers}}
 							{{if .Associatable}}
 								<input type="hidden" name="oid" value="{{.Oid}} {{.Size}}">
