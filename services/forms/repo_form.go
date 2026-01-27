@@ -45,7 +45,7 @@ type CreateRepoForm struct {
 	ObjectFormatName string
 }
 
-type UpdateGlobalRepoFrom struct {
+type UpdateGlobalRepoForm struct {
 	GitSizeMax string `form:"GitSizeMax"`
 	LFSSizeMax string `form:"LFSSizeMax"`
 }

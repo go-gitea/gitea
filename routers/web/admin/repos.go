@@ -47,7 +47,7 @@ func Repos(ctx *context.Context) {
 }
 
 func UpdateRepoPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.UpdateGlobalRepoFrom)
+	form := web.GetForm(ctx).(*forms.UpdateGlobalRepoForm)
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
 	ctx.Data["PageIsAdminRepositories"] = true
 
