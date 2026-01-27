@@ -4,6 +4,7 @@
 package pull
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -16,47 +17,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_testPullRequestMergeTree(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+func testPullRequestMergeCheck(t *testing.T,
+	targetFunc func(ctx context.Context, pr *issues_model.PullRequest) error,
+	pr *issues_model.PullRequest,
+	expectedStatus issues_model.PullRequestStatus,
+	expectedConflictedFiles []string,
+	expectedChangedProtectedFiles []string,
+) {
 	assert.NoError(t, pr.LoadIssue(t.Context()))
 	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 	assert.NoError(t, pr.LoadHeadRepo(t.Context()))
-
-	// pull 2 is mergeable, set to conflicted to see if the function updates it correctly
-	pr.Status = issues_model.PullRequestStatusConflict
-	pr.ConflictedFiles = []string{"old_file.go"}
-	pr.ChangedProtectedFiles = []string{"protected_file.go"}
-
-	err := testPullRequestMergeableByMergeTree(t.Context(), pr)
-	assert.NoError(t, err)
-	assert.Equal(t, issues_model.PullRequestStatusMergeable, pr.Status)
-	assert.Empty(t, pr.ConflictedFiles)
-	assert.Empty(t, pr.ChangedProtectedFiles)
+	pr.Status = issues_model.PullRequestStatusChecking
+	pr.ConflictedFiles = []string{"unrelated_file"}
+	pr.ChangedProtectedFiles = []string{"unrelated_file"}
+	pr.MergeBase = ""
+	pr.HeadCommitID = ""
+	err := targetFunc(t.Context(), pr)
+	require.NoError(t, err)
+	assert.Equal(t, expectedStatus, pr.Status)
+	assert.Equal(t, expectedConflictedFiles, pr.ConflictedFiles)
+	assert.Equal(t, expectedChangedProtectedFiles, pr.ChangedProtectedFiles)
 	assert.NotEmpty(t, pr.MergeBase)
 	assert.NotEmpty(t, pr.HeadCommitID)
 }
 
-func Test_testPullRequestTmpRepoBranchMergeable(t *testing.T) {
+func TestPullRequestMergeable(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 3})
-	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
-	assert.NoError(t, pr.LoadHeadRepo(t.Context()))
-
-	// pull 3 is mergeable, set to conflicted to see if the function updates it correctly
-	pr.Status = issues_model.PullRequestStatusConflict
-	pr.ConflictedFiles = []string{"old_file.go"}
-	pr.ChangedProtectedFiles = []string{"protected_file.go"}
-
-	err := testPullRequestMergeableByTmpRepo(t.Context(), pr)
-	assert.NoError(t, err)
-	assert.Equal(t, issues_model.PullRequestStatusMergeable, pr.Status)
-	assert.Empty(t, pr.ConflictedFiles)
-	assert.Empty(t, pr.ChangedProtectedFiles)
-	assert.NotEmpty(t, pr.MergeBase)
-	assert.NotEmpty(t, pr.HeadCommitID)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
+	t.Run("ByMergeTree", func(t *testing.T) {
+		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusMergeable, nil, nil)
+	})
+	t.Run("ByTmpRepo", func(t *testing.T) {
+		testPullRequestMergeCheck(t, checkPullRequestMergeableByTmpRepo, pr, issues_model.PullRequestStatusMergeable, nil, nil)
+	})
 }
 
 func Test_testPullRequestMergeTree_Conflict(t *testing.T) {
@@ -76,7 +69,7 @@ func Test_testPullRequestMergeTree_Conflict(t *testing.T) {
 	pr.ConflictedFiles = nil
 	pr.ChangedProtectedFiles = nil
 
-	err := testPullRequestMergeableByMergeTree(t.Context(), pr)
+	err := checkPullRequestMergeableByMergeTree(t.Context(), pr)
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusConflict, pr.Status)
 	assert.Contains(t, pr.ConflictedFiles, conflictFiles[0])
@@ -99,7 +92,7 @@ func Test_testPullRequestMergeTree_Empty(t *testing.T) {
 	pr.ConflictedFiles = []string{"old_file.go"}
 	pr.ChangedProtectedFiles = []string{"protected_file.go"}
 
-	err := testPullRequestMergeableByMergeTree(t.Context(), pr)
+	err := checkPullRequestMergeableByMergeTree(t.Context(), pr)
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusEmpty, pr.Status)
 	assert.Empty(t, pr.ConflictedFiles)
@@ -122,7 +115,7 @@ func Test_testPullRequestTmpRepoBranchMergeable_Conflict(t *testing.T) {
 	pr.ConflictedFiles = nil
 	pr.ChangedProtectedFiles = nil
 
-	err := testPullRequestMergeableByTmpRepo(t.Context(), pr)
+	err := checkPullRequestMergeableByTmpRepo(t.Context(), pr)
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusConflict, pr.Status)
 	assert.Contains(t, pr.ConflictedFiles, conflictFiles[0])
@@ -145,7 +138,7 @@ func Test_testPullRequestTmpRepoBranchMergeable_Empty(t *testing.T) {
 	pr.ConflictedFiles = []string{"old_file.go"}
 	pr.ChangedProtectedFiles = nil
 
-	err := testPullRequestMergeableByTmpRepo(t.Context(), pr)
+	err := checkPullRequestMergeableByTmpRepo(t.Context(), pr)
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusEmpty, pr.Status)
 	assert.Empty(t, pr.ConflictedFiles)

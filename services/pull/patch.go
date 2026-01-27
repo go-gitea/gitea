@@ -66,18 +66,18 @@ var patchErrorSuffices = []string{
 	": does not exist in index",
 }
 
-func testPullRequestBranchMergeable(ctx context.Context, pr *issues_model.PullRequest) error {
-	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("testPullRequestBranchMergeable: %s", pr))
+func checkPullRequestBranchMergeable(ctx context.Context, pr *issues_model.PullRequest) error {
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("checkPullRequestBranchMergeable: %s", pr))
 	defer finished()
 
 	if git.DefaultFeatures().SupportGitMergeTree {
-		return testPullRequestMergeableByMergeTree(ctx, pr)
+		return checkPullRequestMergeableByMergeTree(ctx, pr)
 	}
 
-	return testPullRequestMergeableByTmpRepo(ctx, pr)
+	return checkPullRequestMergeableByTmpRepo(ctx, pr)
 }
 
-func testPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.PullRequest) error {
+func checkPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
 		if !git_model.IsErrBranchNotExist(err) {
@@ -378,7 +378,7 @@ func checkConflictsByTmpRepo(ctx context.Context, pr *issues_model.PullRequest, 
 		return false, nil
 	}
 
-	log.Trace("PullRequest[%d].testPullRequestMergeableByTmpRepo (patchPath): %s", pr.ID, patchPath)
+	log.Trace("PullRequest[%d].checkPullRequestMergeableByTmpRepo (patchPath): %s", pr.ID, patchPath)
 
 	// 4. Read the base branch in to the index of the temporary repository
 	_, _, err = gitcmd.NewCommand("read-tree", tmpRepoBaseBranch).WithDir(tmpBasePath).RunStdString(ctx)
@@ -433,7 +433,7 @@ func checkConflictsByTmpRepo(ctx context.Context, pr *issues_model.PullRequest, 
 			scanner := bufio.NewScanner(stderrReader)
 			for scanner.Scan() {
 				line := scanner.Text()
-				log.Trace("PullRequest[%d].testPullRequestMergeableByTmpRepo: stderr: %s", pr.ID, line)
+				log.Trace("PullRequest[%d].checkPullRequestMergeableByTmpRepo: stderr: %s", pr.ID, line)
 				if strings.HasPrefix(line, prefix) {
 					conflict = true
 					filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
