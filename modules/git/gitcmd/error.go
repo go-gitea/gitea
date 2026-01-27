@@ -92,10 +92,10 @@ func wrapPipelineError(err error) error {
 	return pipelineError{err}
 }
 
-func ErrorAsPipeline(err error) error {
-	var pipelineErr pipelineError
-	if errors.As(err, &pipelineErr) {
-		return pipelineErr.error
+func UnwrapPipelineError(err error) (error, bool) { //nolint:revive // this is for error unwrapping
+	var pe pipelineError
+	if errors.As(err, &pe) {
+		return pe.error, true
 	}
-	return nil
+	return nil, false
 }
