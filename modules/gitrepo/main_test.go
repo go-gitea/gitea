@@ -15,12 +15,10 @@ func TestMain(m *testing.M) {
 	// resolve repository path relative to the test directory
 	testRootDir := test.SetupGiteaRoot()
 	repoPath = func(repo Repository) string {
-		rel := repo.RelativePath()
-		if filepath.IsAbs(rel) {
-			return rel
+		if filepath.IsAbs(repo.RelativePath()) {
+			return repo.RelativePath() // for testing purpose only
 		}
-		return filepath.Join(testRootDir, "modules/git/tests/repos", rel)
+		return filepath.Join(testRootDir, "modules/git/tests/repos", repo.RelativePath())
 	}
-
 	git.RunGitTests(m)
 }

@@ -106,8 +106,6 @@ from :1
 M 100644 inline %[3]s
 data 11
 head change
-
-done
 `, baseBranch, headBranch, conflictFile)
 	err := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
 	require.NoError(t, err)
@@ -150,8 +148,6 @@ from :2
 M 100644 inline %[3]s
 data 4
 base
-
-done
 `, baseBranch, headBranch, emptyFile)
 	err := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
 	require.NoError(t, err)
