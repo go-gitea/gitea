@@ -94,16 +94,16 @@ func testPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pul
 	defer gitRepo.Close()
 
 	// 1. update merge base
-	pr.MergeBase, _, err = gitcmd.NewCommand("merge-base", "--", "base", "tracking").WithDir(prCtx.tmpBasePath).RunStdString(ctx)
+	pr.MergeBase, _, err = gitcmd.NewCommand("merge-base", "--", tmpRepoBaseBranch, tmpRepoTrackingBranch).WithDir(prCtx.tmpBasePath).RunStdString(ctx)
 	if err != nil {
 		var err2 error
-		pr.MergeBase, err2 = gitRepo.GetRefCommitID(git.BranchPrefix + "base")
+		pr.MergeBase, err2 = gitRepo.GetRefCommitID(git.BranchPrefix + tmpRepoBaseBranch)
 		if err2 != nil {
 			return fmt.Errorf("GetMergeBase: %v and can't find commit ID for base: %w", err, err2)
 		}
 	}
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
-	if pr.HeadCommitID, err = gitRepo.GetRefCommitID(git.BranchPrefix + "tracking"); err != nil {
+	if pr.HeadCommitID, err = gitRepo.GetRefCommitID(git.BranchPrefix + tmpRepoTrackingBranch); err != nil {
 		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
 	}
 
@@ -118,7 +118,7 @@ func testPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.Pul
 	}
 
 	// 3. Check for protected files changes
-	if err = checkPullFilesProtection(ctx, pr, gitRepo, "tracking"); err != nil {
+	if err = checkPullFilesProtection(ctx, pr, gitRepo, tmpRepoTrackingBranch); err != nil {
 		return fmt.Errorf("pr.CheckPullFilesProtection(): %v", err)
 	}
 
@@ -313,7 +313,7 @@ func checkConflictsByTmpRepo(ctx context.Context, pr *issues_model.PullRequest, 
 	// 2. AttemptThreeWayMerge first - this is much quicker than plain patch to base
 	description := fmt.Sprintf("PR[%d] %s/%s#%d", pr.ID, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Index)
 	conflict, conflictFiles, err := AttemptThreeWayMerge(ctx,
-		tmpBasePath, gitRepo, pr.MergeBase, "base", "tracking", description)
+		tmpBasePath, gitRepo, pr.MergeBase, tmpRepoBaseBranch, tmpRepoTrackingBranch, description)
 	if err != nil {
 		return false, err
 	}
@@ -328,7 +328,7 @@ func checkConflictsByTmpRepo(ctx context.Context, pr *issues_model.PullRequest, 
 			return false, fmt.Errorf("unable to write unconflicted tree: %w\n`git ls-files -u`:\n%s", err, lsfiles)
 		}
 		treeHash = strings.TrimSpace(treeHash)
-		baseTree, err := gitRepo.GetTree("base")
+		baseTree, err := gitRepo.GetTree(tmpRepoBaseBranch)
 		if err != nil {
 			return false, err
 		}
@@ -381,7 +381,7 @@ func checkConflictsByTmpRepo(ctx context.Context, pr *issues_model.PullRequest, 
 	log.Trace("PullRequest[%d].testPullRequestMergeableByTmpRepo (patchPath): %s", pr.ID, patchPath)
 
 	// 4. Read the base branch in to the index of the temporary repository
-	_, _, err = gitcmd.NewCommand("read-tree", "base").WithDir(tmpBasePath).RunStdString(ctx)
+	_, _, err = gitcmd.NewCommand("read-tree", tmpRepoBaseBranch).WithDir(tmpBasePath).RunStdString(ctx)
 	if err != nil {
 		return false, fmt.Errorf("git read-tree %s: %w", pr.BaseBranch, err)
 	}

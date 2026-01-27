@@ -76,7 +76,7 @@ func createTemporaryRepoForMerge(ctx context.Context, pr *issues_model.PullReque
 
 	if expectedHeadCommitID != "" {
 		trackingCommitID, _, err := gitcmd.NewCommand("show-ref", "--hash").
-			AddDynamicArguments(git.BranchPrefix + trackingBranch).
+			AddDynamicArguments(git.BranchPrefix + tmpRepoTrackingBranch).
 			WithEnv(mergeCtx.env).
 			WithDir(mergeCtx.tmpBasePath).
 			RunStdString(ctx)
@@ -152,8 +152,8 @@ func prepareTemporaryRepoForMerge(ctx *mergeContext) error {
 	}
 	defer sparseCheckoutListFile.Close() // we will close it earlier but we need to ensure it is closed if there is an error
 
-	if err := getDiffTree(ctx, ctx.tmpBasePath, baseBranch, trackingBranch, sparseCheckoutListFile); err != nil {
-		log.Error("%-v getDiffTree(%s, %s, %s): %v", ctx.pr, ctx.tmpBasePath, baseBranch, trackingBranch, err)
+	if err := getDiffTree(ctx, ctx.tmpBasePath, tmpRepoBaseBranch, tmpRepoTrackingBranch, sparseCheckoutListFile); err != nil {
+		log.Error("%-v getDiffTree(%s, %s, %s): %v", ctx.pr, ctx.tmpBasePath, tmpRepoBaseBranch, tmpRepoTrackingBranch, err)
 		return fmt.Errorf("getDiffTree: %w", err)
 	}
 
@@ -253,14 +253,14 @@ func (err ErrRebaseConflicts) Error() string {
 // if there is a conflict it will return an ErrRebaseConflicts
 func rebaseTrackingOnToBase(ctx *mergeContext, mergeStyle repo_model.MergeStyle) error {
 	// Checkout head branch
-	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(stagingBranch, trackingBranch)).
+	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("checkout", "-b").AddDynamicArguments(tmpRepoStagingBranch, tmpRepoTrackingBranch)).
 		RunWithStderr(ctx); err != nil {
 		return fmt.Errorf("unable to git checkout tracking as staging in temp repo for %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
 	}
 	ctx.outbuf.Reset()
 
 	// Rebase before merging
-	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("rebase").AddDynamicArguments(baseBranch)).
+	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("rebase").AddDynamicArguments(tmpRepoBaseBranch)).
 		RunWithStderr(ctx); err != nil {
 		// Rebase will leave a REBASE_HEAD file in .git if there is a conflict
 		if _, statErr := os.Stat(filepath.Join(ctx.tmpBasePath, ".git", "REBASE_HEAD")); statErr == nil {

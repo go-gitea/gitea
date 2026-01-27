@@ -44,7 +44,7 @@ func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase
 				break
 			}
 		}
-		return ctx.CancelPipeline(scanner.Err())
+		return scanner.Err()
 	})
 
 	err := RunCmdWithStderr(ctx, repo, cmd)
