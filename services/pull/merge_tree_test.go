@@ -28,8 +28,8 @@ func testPullRequestMergeCheck(t *testing.T,
 	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 	assert.NoError(t, pr.LoadHeadRepo(t.Context()))
 	pr.Status = issues_model.PullRequestStatusChecking
-	pr.ConflictedFiles = []string{"unrelated_file"}
-	pr.ChangedProtectedFiles = []string{"unrelated_file"}
+	pr.ConflictedFiles = []string{"unrelated-conflicted-file"}
+	pr.ChangedProtectedFiles = []string{"unrelated-protected-file"}
 	pr.MergeBase = ""
 	pr.HeadCommitID = ""
 	err := targetFunc(t.Context(), pr)
@@ -44,35 +44,21 @@ func testPullRequestMergeCheck(t *testing.T,
 func TestPullRequestMergeable(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	t.Run("ByMergeTree", func(t *testing.T) {
+	t.Run("NoConflict-MergeTree", func(t *testing.T) {
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusMergeable, nil, nil)
 	})
-	t.Run("ByTmpRepo", func(t *testing.T) {
+	t.Run("NoConflict-TmpRepo", func(t *testing.T) {
 		testPullRequestMergeCheck(t, checkPullRequestMergeableByTmpRepo, pr, issues_model.PullRequestStatusMergeable, nil, nil)
 	})
-}
 
-func Test_testPullRequestMergeTree_Conflict(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
-	assert.NoError(t, pr.LoadHeadRepo(t.Context()))
-
-	baseBranch := "test-merge-tree-conflict-base"
-	headBranch := "test-merge-tree-conflict-head"
-	conflictFiles := createConflictBranches(t, pr.BaseRepo.RepoPath(), baseBranch, headBranch)
-
-	pr.BaseBranch = baseBranch
-	pr.HeadBranch = headBranch
-	pr.Status = issues_model.PullRequestStatusMergeable
-	pr.ConflictedFiles = nil
-	pr.ChangedProtectedFiles = nil
-
-	err := checkPullRequestMergeableByMergeTree(t.Context(), pr)
-	assert.NoError(t, err)
-	assert.Equal(t, issues_model.PullRequestStatusConflict, pr.Status)
-	assert.Contains(t, pr.ConflictedFiles, conflictFiles[0])
+	pr.BaseBranch, pr.HeadBranch = "test-merge-tree-conflict-base", "test-merge-tree-conflict-head"
+	conflictFiles := createConflictBranches(t, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.HeadBranch)
+	t.Run("Conflict-MergeTree", func(t *testing.T) {
+		testPullRequestMergeCheck(t, checkPullRequestMergeableByMergeTree, pr, issues_model.PullRequestStatusConflict, conflictFiles, nil)
+	})
+	t.Run("Conflict-TmpRepo", func(t *testing.T) {
+		testPullRequestMergeCheck(t, checkPullRequestMergeableByTmpRepo, pr, issues_model.PullRequestStatusConflict, conflictFiles, nil)
+	})
 }
 
 func Test_testPullRequestMergeTree_Empty(t *testing.T) {
@@ -96,29 +82,6 @@ func Test_testPullRequestMergeTree_Empty(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusEmpty, pr.Status)
 	assert.Empty(t, pr.ConflictedFiles)
-}
-
-func Test_testPullRequestTmpRepoBranchMergeable_Conflict(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
-	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
-	assert.NoError(t, pr.LoadHeadRepo(t.Context()))
-
-	baseBranch := "test-tmp-conflict-base"
-	headBranch := "test-tmp-conflict-head"
-	conflictFiles := createConflictBranches(t, pr.BaseRepo.RepoPath(), baseBranch, headBranch)
-
-	pr.BaseBranch = baseBranch
-	pr.HeadBranch = headBranch
-	pr.Status = issues_model.PullRequestStatusMergeable
-	pr.ConflictedFiles = nil
-	pr.ChangedProtectedFiles = nil
-
-	err := checkPullRequestMergeableByTmpRepo(t.Context(), pr)
-	assert.NoError(t, err)
-	assert.Equal(t, issues_model.PullRequestStatusConflict, pr.Status)
-	assert.Contains(t, pr.ConflictedFiles, conflictFiles[0])
 }
 
 func Test_testPullRequestTmpRepoBranchMergeable_Empty(t *testing.T) {
