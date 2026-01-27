@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 
@@ -122,11 +121,6 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
 			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RelativePath())
-			gitRepo, err := gitrepo.OpenRepository(ctx, repo)
-			if err != nil {
-				log.Warn("OpenRepository: %v", err)
-				continue
-			}
 
 			oldnum, err := getReleaseCount(ctx, repo.ID)
 			if err != nil {
@@ -134,22 +128,19 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
-			if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+			if err = repo_module.SyncReleasesWithTags(ctx, repo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
-				gitRepo.Close()
 				continue
 			}
 
 			count, err = getReleaseCount(ctx, repo.ID)
 			if err != nil {
 				log.Warn(" GetReleaseCountByRepoID: %v", err)
-				gitRepo.Close()
 				continue
 			}
 
 			log.Trace("repo %s releases synchronized to tags: from %d to %d",
 				repo.FullName(), oldnum, count)
-			gitRepo.Close()
 		}
 	}
 

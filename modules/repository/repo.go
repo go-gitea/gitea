@@ -47,13 +47,7 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 		return err
 	}
 
-	gitRepo, err := gitrepo.OpenRepository(ctx, repo)
-	if err != nil {
-		return err
-	}
-	defer gitRepo.Close()
-
-	return SyncReleasesWithTags(ctx, repo, gitRepo)
+	return SyncReleasesWithTags(ctx, repo)
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
@@ -178,9 +172,9 @@ func (shortRelease) TableName() string {
 // upstream. Hence, after each sync we want the release set to be
 // identical to the upstream tag set. This is much more efficient for
 // repositories like https://github.com/vim/vim (with over 13000 tags).
-func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
+func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository) error {
 	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
-	tags, _, err := gitRepo.GetTagInfos(0, 0)
+	tags, _, err := gitrepo.GetTagInfos(ctx, repo, 0, 0)
 	if err != nil {
 		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}

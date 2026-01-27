@@ -153,7 +153,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		// otherwise, the releases sync will be done out of this function
 		if !opts.Releases {
 			repo.IsMirror = opts.Mirror
-			if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+			if err = repo_module.SyncReleasesWithTags(ctx, repo); err != nil {
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
 		}

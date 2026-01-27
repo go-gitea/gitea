@@ -41,7 +41,7 @@ func TestParseSignatureFromCommitLine(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		got := parseSignatureFromCommitLine(test.line)
+		got := ParseSignatureFromCommitLine(test.line)
 		assert.Equal(t, test.want, got)
 	}
 }

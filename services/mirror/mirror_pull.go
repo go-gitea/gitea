@@ -311,7 +311,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: syncing releases with tags...", m.Repo)
-	if err = repo_module.SyncReleasesWithTags(ctx, m.Repo, gitRepo); err != nil {
+	if err = repo_module.SyncReleasesWithTags(ctx, m.Repo); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to synchronize tags to releases: %v", m.Repo, err)
 	}
 	gitRepo.Close()
@@ -370,7 +370,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 
 	log.Trace("SyncMirrors [repo: %-v]: invalidating mirror branch caches...", m.Repo)
-	branches, _, err := gitrepo.GetBranchesByPath(ctx, m.Repo, 0, 0)
+	branches, _, err := gitrepo.GetBranchNames(ctx, m.Repo, 0, 0)
 	if err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to GetBranches: %v", m.Repo, err)
 		return nil, false
