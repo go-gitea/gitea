@@ -173,7 +173,6 @@
 			</div>
 		</div>
 
-		{{$showDiffBox := and .CommitCount (not .IsNothingToCompare)}}
 		{{if and .IsSigned .PageIsComparePull}}
 			{{$allowCreatePR := and ($.CompareInfo.BaseRef.IsBranch) ($.CompareInfo.HeadRef.IsBranch) (not $.CompareInfo.DirectComparison) (or $.AllowEmptyPr (not .IsNothingToCompare))}}
 			{{if .IsNothingToCompare}}
@@ -216,15 +215,17 @@
 				</div>
 			{{end}}
 		{{else}}{{/* not singed-in or not for pull-request */}}
-			{{if not .CommitCount}}
+			{{if .IsNothingToCompare}}
 				<div class="ui segment">{{ctx.Locale.Tr "repo.commits.nothing_to_compare"}}</div>
 			{{end}}
 		{{end}}
 	</div>
 
-	{{if $showDiffBox}}
+	{{if not .IsNothingToCompare}}
 		<div class="ui container fluid padded tw-my-4">
-			{{template "repo/commits_table" .}}
+			{{if .CommitCount}}
+				{{template "repo/commits_table" .}}
+			{{end}}
 			{{template "repo/diff/box" .}}
 		</div>
 	{{end}}

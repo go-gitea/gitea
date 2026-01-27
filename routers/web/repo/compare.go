@@ -495,6 +495,7 @@ func PrepareCompareDiff(
 		ctx.ServerError("GetDiffShortStat", err)
 		return false
 	}
+	ctx.Data["IsNothingToCompare"] = diffShortStat.NumFiles == 0
 	ctx.Data["DiffShortStat"] = diffShortStat
 	ctx.Data["Diff"] = diff
 	ctx.Data["DiffBlobExcerptData"] = &gitdiff.DiffBlobExcerptData{
@@ -532,24 +533,26 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	commits, err := processGitCommits(ctx, ci.Commits)
-	if err != nil {
-		ctx.ServerError("processGitCommits", err)
-		return false
-	}
-	ctx.Data["Commits"] = commits
-	ctx.Data["CommitCount"] = len(commits)
-
 	title := ci.HeadRef.ShortName()
-	if len(commits) == 1 {
-		c := commits[0]
-		title = strings.TrimSpace(c.UserCommit.Summary())
 
-		body := strings.Split(strings.TrimSpace(c.UserCommit.Message()), "\n")
-		if len(body) > 1 {
-			ctx.Data["content"] = strings.Join(body[1:], "\n")
+	if len(ci.Commits) > 0 {
+		commits, err := processGitCommits(ctx, ci.Commits)
+		if err != nil {
+			ctx.ServerError("processGitCommits", err)
+			return false
+		}
+		ctx.Data["Commits"] = commits
+		if len(commits) == 1 {
+			c := commits[0]
+			title = strings.TrimSpace(c.UserCommit.Summary())
+
+			body := strings.Split(strings.TrimSpace(c.UserCommit.Message()), "\n")
+			if len(body) > 1 {
+				ctx.Data["content"] = strings.Join(body[1:], "\n")
+			}
 		}
 	}
+	ctx.Data["CommitCount"] = len(ci.Commits)
 
 	if len(title) > 255 {
 		var trailer string
