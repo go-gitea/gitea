@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-globals */
 import {isObject} from '../utils.ts';
 import type {RequestOpts} from '../types.ts';
 

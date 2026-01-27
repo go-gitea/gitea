@@ -7,7 +7,7 @@ window.addEventListener('load', async () => {
   const url = elSwaggerUi.getAttribute('data-source')!;
   let spec: any;
   if (url) {
-    const res = await fetch(url);
+    const res = await fetch(url); // eslint-disable-line no-restricted-globals
     spec = await res.json();
   } else {
     const elSpecContent = elSwaggerUi.querySelector<HTMLTextAreaElement>('.swagger-spec-content')!;
