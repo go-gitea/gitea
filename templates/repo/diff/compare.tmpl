@@ -187,6 +187,7 @@
 					{{end}}
 				</div>
 			{{end}}
+			{{/* only "..." comparison can be used for PR creation, then: check whether a PR exists, whether the repo is archived, or show the New PR form */}}
 			{{if not $.CompareInfo.DirectComparison}}
 				{{if .HasPullRequest}}
 					<div class="ui segment flex-text-block tw-gap-4">
