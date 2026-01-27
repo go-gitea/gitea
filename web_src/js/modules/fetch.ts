@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-globals */
 import {isObject} from '../utils.ts';
 import type {RequestOpts} from '../types.ts';
 
@@ -23,7 +22,7 @@ export function request(url: string, {method = 'GET', data, headers = {}, ...oth
     headersMerged.set(name, value);
   }
 
-  return fetch(url, {
+  return fetch(url, { // eslint-disable-line no-restricted-globals
     method,
     headers: headersMerged,
     ...other,
