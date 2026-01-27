@@ -350,7 +350,13 @@ func (c *Command) WithStdoutCopy(w io.Writer) *Command {
 	return c
 }
 
-func (c *Command) WithPipelineFunc(f func(Context) error) *Command {
+// WithPipelineFunc sets the pipeline function for the command.
+// The pipeline function will be called in the Run / Wait function after the command is started successfully.
+// The function can read/write from/to the command's stdio pipes (if any).
+// The pipeline function can cancel (kill) the command by calling ctx.CancelPipeline before the command finishes.
+// The returned error of Run / Wait can be joined errors from the pipeline function, context cause, and command exit error.
+// Caller can get the pipeline function's error (if any) by UnwrapPipelineError.
+func (c *Command) WithPipelineFunc(f func(ctx Context) error) *Command {
 	c.opts.PipelineFunc = f
 	return c
 }
@@ -474,12 +480,19 @@ func (c *Command) Wait() error {
 		errWait := c.cmd.Wait()
 		errCause := context.Cause(c.cmdCtx) // in case the cause is set during Wait(), get the final cancel cause
 
-		if unwrapped, ok := UnwrapPipelineError(errCause); ok && unwrapped == nil {
-			// the pipeline function declares that there is no error, and it cancels (kills) the command ahead,
-			// so we should ignore the errors from "wait" and "cause"
-			errWait, errCause = nil, nil
+		if unwrapped, ok := UnwrapPipelineError(errCause); ok {
+			if unwrapped != errPipeline {
+				panic("unwrapped context pipeline error should be the same one returned by pipeline function")
+			}
+			if unwrapped == nil {
+				// the pipeline function declares that there is no error, and it cancels (kills) the command ahead,
+				// so we should ignore the errors from "wait" and "cause"
+				errWait, errCause = nil, nil
+			}
 		}
 
+		// some legacy code still need to access the error returned by pipeline function by "==" but not "errors.Is"
+		// so we need to make sure the original error is able to be unwrapped by UnwrapPipelineError
 		return errors.Join(wrapPipelineError(errPipeline), errCause, errWait)
 	}
 

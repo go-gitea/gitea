@@ -24,9 +24,7 @@ func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase
 
 	stdout, stdoutClose := cmd.MakeStdoutPipe()
 	defer stdoutClose()
-	cmd.WithPipelineFunc(func(c gitcmd.Context) error {
-		defer stdoutClose() // only partially read the output, so close it explicitly here
-
+	cmd.WithPipelineFunc(func(ctx gitcmd.Context) error {
 		// https://git-scm.com/docs/git-merge-tree/2.38.0#OUTPUT
 		// For a conflicted merge, the output is:
 		// <OID of toplevel tree>NUL
@@ -46,7 +44,7 @@ func MergeTree(ctx context.Context, repo Repository, baseRef, headRef, mergeBase
 				break
 			}
 		}
-		return scanner.Err()
+		return ctx.CancelPipeline(scanner.Err())
 	})
 
 	err := RunCmdWithStderr(ctx, repo, cmd)

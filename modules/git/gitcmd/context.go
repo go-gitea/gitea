@@ -23,6 +23,10 @@ type cmdContext struct {
 }
 
 func (c *cmdContext) CancelPipeline(err error) error {
+	// pipelineError is used to distinguish between:
+	// * context canceled by pipeline caller with/without error (normal cancellation)
+	// * context canceled by parent context (still context.Canceled error)
+	// * other causes
 	c.cmd.cmdCancel(pipelineError{err})
 	return err
 }
