@@ -5,8 +5,7 @@ package pull
 
 import (
 	"context"
-	"os"
-	"path/filepath"
+	"fmt"
 	"testing"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -71,77 +70,89 @@ func TestPullRequestMergeable(t *testing.T) {
 }
 
 func createConflictBranches(t *testing.T, repoPath, baseBranch, headBranch string) []string {
-	t.Helper()
-
-	disableRepoHooks(t, repoPath)
-	workDir := cloneRepoForTest(t, repoPath)
 	conflictFile := "conflict.txt"
+	stdin := fmt.Sprintf(
+		`reset refs/heads/%[1]s
+from refs/heads/master
 
-	assert.NoError(t, gitcmd.NewCommand("checkout", "-B").AddDynamicArguments(baseBranch, "master").WithDir(workDir).Run(t.Context()))
-	writeFile(t, workDir, conflictFile, "base")
-	assert.NoError(t, gitcmd.NewCommand("add").AddDynamicArguments(conflictFile).WithDir(workDir).Run(t.Context()))
-	assert.NoError(t, gitcmd.NewCommand("commit", "-m").AddDynamicArguments("add conflict file").WithDir(workDir).Run(t.Context()))
+commit refs/heads/%[1]s
+mark :1
+committer Test <test@example.com> 0 +0000
+data 17
+add conflict file
+M 100644 inline %[3]s
+data 4
+base
 
-	assert.NoError(t, gitcmd.NewCommand("checkout", "-B").AddDynamicArguments(headBranch, baseBranch).WithDir(workDir).Run(t.Context()))
+commit refs/heads/%[1]s
+mark :2
+committer Test <test@example.com> 0 +0000
+data 11
+base change
+from :1
+M 100644 inline %[3]s
+data 11
+base change
 
-	assert.NoError(t, gitcmd.NewCommand("checkout").AddDynamicArguments(baseBranch).WithDir(workDir).Run(t.Context()))
-	writeFile(t, workDir, conflictFile, "base change")
-	assert.NoError(t, gitcmd.NewCommand("add").AddDynamicArguments(conflictFile).WithDir(workDir).Run(t.Context()))
-	assert.NoError(t, gitcmd.NewCommand("commit", "-m").AddDynamicArguments("base change").WithDir(workDir).Run(t.Context()))
+reset refs/heads/%[2]s
+from :1
 
-	assert.NoError(t, gitcmd.NewCommand("checkout").AddDynamicArguments(headBranch).WithDir(workDir).Run(t.Context()))
-	writeFile(t, workDir, conflictFile, "head change")
-	assert.NoError(t, gitcmd.NewCommand("add").AddDynamicArguments(conflictFile).WithDir(workDir).Run(t.Context()))
-	assert.NoError(t, gitcmd.NewCommand("commit", "-m").AddDynamicArguments("head change").WithDir(workDir).Run(t.Context()))
+commit refs/heads/%[2]s
+mark :3
+committer Test <test@example.com> 0 +0000
+data 11
+head change
+from :1
+M 100644 inline %[3]s
+data 11
+head change
 
-	assert.NoError(t, gitcmd.NewCommand("push", "origin").AddDynamicArguments(baseBranch, headBranch).WithDir(workDir).Run(t.Context()))
+done
+`, baseBranch, headBranch, conflictFile)
+	err := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
+	require.NoError(t, err)
 	return []string{conflictFile}
 }
 
 func createEmptyBranches(t *testing.T, repoPath, baseBranch, headBranch string) {
-	t.Helper()
-
-	disableRepoHooks(t, repoPath)
-	workDir := cloneRepoForTest(t, repoPath)
 	emptyFile := "empty.txt"
+	stdin := fmt.Sprintf(`reset refs/heads/%[1]s
+from refs/heads/master
 
-	assert.NoError(t, gitcmd.NewCommand("checkout", "-B").AddDynamicArguments(baseBranch, "master").WithDir(workDir).Run(t.Context()))
-	writeFile(t, workDir, emptyFile, "base")
-	assert.NoError(t, gitcmd.NewCommand("add").AddDynamicArguments(emptyFile).WithDir(workDir).Run(t.Context()))
-	assert.NoError(t, gitcmd.NewCommand("commit", "-m").AddDynamicArguments("add empty file").WithDir(workDir).Run(t.Context()))
+commit refs/heads/%[1]s
+mark :1
+committer Test <test@example.com> 0 +0000
+data 14
+add empty file
+M 100644 inline %[3]s
+data 4
+base
 
-	assert.NoError(t, gitcmd.NewCommand("checkout", "-B").AddDynamicArguments(headBranch, baseBranch).WithDir(workDir).Run(t.Context()))
-	writeFile(t, workDir, emptyFile, "change")
-	assert.NoError(t, gitcmd.NewCommand("add").AddDynamicArguments(emptyFile).WithDir(workDir).Run(t.Context()))
-	assert.NoError(t, gitcmd.NewCommand("commit", "-m").AddDynamicArguments("change empty file").WithDir(workDir).Run(t.Context()))
+reset refs/heads/%[2]s
+from :1
 
-	writeFile(t, workDir, emptyFile, "base")
-	assert.NoError(t, gitcmd.NewCommand("add").AddDynamicArguments(emptyFile).WithDir(workDir).Run(t.Context()))
-	assert.NoError(t, gitcmd.NewCommand("commit", "-m").AddDynamicArguments("revert empty file").WithDir(workDir).Run(t.Context()))
+commit refs/heads/%[2]s
+mark :2
+committer Test <test@example.com> 0 +0000
+data 17
+change empty file
+from :1
+M 100644 inline %[3]s
+data 6
+change
 
-	assert.NoError(t, gitcmd.NewCommand("push", "origin").AddDynamicArguments(baseBranch, headBranch).WithDir(workDir).Run(t.Context()))
-}
+commit refs/heads/%[2]s
+mark :3
+committer Test <test@example.com> 0 +0000
+data 17
+revert empty file
+from :2
+M 100644 inline %[3]s
+data 4
+base
 
-func cloneRepoForTest(t *testing.T, repoPath string) string {
-	t.Helper()
-
-	workDir := t.TempDir()
-	assert.NoError(t, gitcmd.NewCommand("clone").AddDynamicArguments(repoPath, workDir).Run(t.Context()))
-	assert.NoError(t, gitcmd.NewCommand("config", "user.name").AddDynamicArguments("Test User").WithDir(workDir).Run(t.Context()))
-	assert.NoError(t, gitcmd.NewCommand("config", "user.email").AddDynamicArguments("test@example.com").WithDir(workDir).Run(t.Context()))
-	return workDir
-}
-
-func disableRepoHooks(t *testing.T, repoPath string) {
-	t.Helper()
-
-	configPath := filepath.Join(repoPath, "config")
-	assert.NoError(t, gitcmd.NewCommand("config", "-f").AddDynamicArguments(configPath, "core.hooksPath", "/dev/null").Run(t.Context()))
-}
-
-func writeFile(t *testing.T, workDir, filename, content string) {
-	t.Helper()
-
-	filePath := filepath.Join(workDir, filename)
-	require.NoError(t, os.WriteFile(filePath, []byte(content), 0o644))
+done
+`, baseBranch, headBranch, emptyFile)
+	err := gitcmd.NewCommand("fast-import").WithDir(repoPath).WithStdinBytes([]byte(stdin)).RunWithStderr(t.Context())
+	require.NoError(t, err)
 }
