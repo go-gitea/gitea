@@ -108,8 +108,10 @@ func checkPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.
 
 	pr.MergeBase, err = gitrepo.MergeBase(ctx, pr.BaseRepo, baseCommitID, pr.HeadCommitID)
 	if err != nil {
-		log.Error("GetMergeBase: %v and can't find commit ID for base: %v", err, baseCommitID)
-		pr.Status = issues_model.PullRequestStatusEmpty // if there is no merge base, then it's empty but we still need to allow the pull request created
+		// if there is no merge base, then it's empty, still need to allow the pull request to be created
+		// not quite right (e.g.: why not reset the fields like below), but no interest to do more investigation at the moment
+		log.Error("MergeBase: unable to find merge base between %s and %s: %v", baseCommitID, pr.HeadCommitID, err)
+		pr.Status = issues_model.PullRequestStatusEmpty
 		return nil
 	}
 
