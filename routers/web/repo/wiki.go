@@ -10,7 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models/renderhelper"
@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	git_service "code.gitea.io/gitea/services/git"
 	notify_service "code.gitea.io/gitea/services/notify"
+	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
@@ -132,7 +133,7 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 		return nil
 	}
 	defer reader.Close()
-	content, err := io.ReadAll(reader)
+	content, err := util.ReadWithLimit(reader, 5*1024*1024) // 5MB should be enough for a wiki page
 	if err != nil {
 		ctx.ServerError("ReadAll", err)
 		return nil
@@ -276,12 +277,10 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	if rctx.SidebarTocNode != nil {
+	if rctx.TocShowInSection == markup.TocShowInSidebar && len(rctx.TocHeadingItems) > 0 {
 		sb := strings.Builder{}
-		if err = markdown.SpecializedMarkdown(rctx).Renderer().Render(&sb, nil, rctx.SidebarTocNode); err != nil {
-			log.Error("Failed to render wiki sidebar TOC: %v", err)
-		}
-		ctx.Data["WikiSidebarTocHTML"] = templates.SanitizeHTML(sb.String())
+		markup.RenderTocHeadingItems(rctx, map[string]string{"open": ""}, &sb)
+		ctx.Data["WikiSidebarTocHTML"] = template.HTML(sb.String())
 	}
 
 	if !isSideBar {
@@ -309,7 +308,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiGitRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	return wikiGitRepo, entry
@@ -349,7 +348,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiGitRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
@@ -474,7 +473,7 @@ func Wiki(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
 		ctx.HTML(http.StatusOK, tplWikiStart)
 		return
@@ -491,9 +490,9 @@ func Wiki(ctx *context.Context) {
 	}
 
 	wikiPath := entry.Name()
-	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
-		ext := strings.ToUpper(filepath.Ext(wikiPath))
-		ctx.Data["FormatWarning"] = ext + " rendering is not supported at the moment. Rendered as Markdown."
+	detectedRender := markup.DetectRendererTypeByFilename(wikiPath)
+	if detectedRender == nil || detectedRender.Name() != markdown.MarkupName {
+		ctx.Data["FormatWarning"] = "File extension " + path.Ext(wikiPath) + " is not supported at the moment. Rendered as Markdown."
 	}
 	// Get last change information.
 	lastCommit, err := wikiGitRepo.GetCommitByPath(wikiPath)
@@ -510,7 +509,7 @@ func Wiki(ctx *context.Context) {
 func WikiRevision(ctx *context.Context) {
 	ctx.Data["CanWriteWiki"] = ctx.Repo.CanWrite(unit.TypeWiki) && !ctx.Repo.Repository.IsArchived
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
 		ctx.HTML(http.StatusOK, tplWikiStart)
 		return
@@ -540,7 +539,7 @@ func WikiRevision(ctx *context.Context) {
 
 // WikiPages render wiki pages list page
 func WikiPages(ctx *context.Context) {
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
 		return
 	}
@@ -566,7 +565,7 @@ func WikiPages(ctx *context.Context) {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
-	allEntries.CustomSort(base.NaturalSortLess)
+	allEntries.CustomSort(base.NaturalSortCompare)
 
 	entries, _, err := allEntries.GetCommitsInfo(ctx, ctx.Repo.RepoLink, commit, treePath)
 	if err != nil {
@@ -648,7 +647,7 @@ func WikiRaw(ctx *context.Context) {
 func NewWiki(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.wiki.new_page")
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Data["title"] = "Home"
 	}
 	if ctx.FormString("title") != "" {
@@ -701,7 +700,7 @@ func NewWikiPost(ctx *context.Context) {
 func EditWiki(ctx *context.Context) {
 	ctx.Data["PageIsWikiEdit"] = true
 
-	if !ctx.Repo.Repository.HasWiki() {
+	if !repo_service.HasWiki(ctx, ctx.Repo.Repository) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/wiki")
 		return
 	}

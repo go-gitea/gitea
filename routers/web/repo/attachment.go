@@ -4,11 +4,12 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -40,12 +41,13 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 
 	file, header, err := ctx.Req.FormFile("file")
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("FormFile: %v", err))
+		ctx.ServerError("FormFile", err)
 		return
 	}
 	defer file.Close()
 
-	attach, err := attachment.UploadAttachment(ctx, file, allowedTypes, header.Size, &repo_model.Attachment{
+	uploaderFile := attachment.NewLimitedUploaderKnownSize(file, header.Size)
+	attach, err := attachment.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, allowedTypes, &repo_model.Attachment{
 		Name:       header.Filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     repoID,
@@ -55,7 +57,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
 			return
 		}
-		ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("NewAttachment: %v", err))
+		ctx.ServerError("UploadAttachmentGeneralSizeLimit", err)
 		return
 	}
 
@@ -73,13 +75,44 @@ func DeleteAttachment(ctx *context.Context) {
 		ctx.HTTPError(http.StatusBadRequest, err.Error())
 		return
 	}
-	if !ctx.IsSigned || (ctx.Doer.ID != attach.UploaderID) {
+
+	if !ctx.IsSigned {
 		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
+
+	if attach.RepoID != ctx.Repo.Repository.ID {
+		ctx.HTTPError(http.StatusBadRequest, "attachment does not belong to this repository")
+		return
+	}
+
+	if ctx.Doer.ID != attach.UploaderID {
+		if attach.IssueID > 0 {
+			issue, err := issues_model.GetIssueByID(ctx, attach.IssueID)
+			if err != nil {
+				ctx.ServerError("GetIssueByID", err)
+				return
+			}
+			if !ctx.Repo.Permission.CanWriteIssuesOrPulls(issue.IsPull) {
+				ctx.HTTPError(http.StatusForbidden)
+				return
+			}
+		} else if attach.ReleaseID > 0 {
+			if !ctx.Repo.Permission.CanWrite(unit.TypeReleases) {
+				ctx.HTTPError(http.StatusForbidden)
+				return
+			}
+		} else {
+			if !ctx.Repo.Permission.IsAdmin() && !ctx.Repo.Permission.IsOwner() {
+				ctx.HTTPError(http.StatusForbidden)
+				return
+			}
+		}
+	}
+
 	err = repo_model.DeleteAttachment(ctx, attach, true)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, fmt.Sprintf("DeleteAttachment: %v", err))
+		ctx.ServerError("DeleteAttachment", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, map[string]string{
@@ -99,23 +132,41 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 		return
 	}
 
-	repository, unitType, err := repo_service.LinkedRepository(ctx, attach)
-	if err != nil {
-		ctx.ServerError("LinkedRepository", err)
+	// prevent visiting attachment from other repository directly
+	// The check will be ignored before this code merged.
+	if attach.CreatedUnix > repo_model.LegacyAttachmentMissingRepoIDCutoff && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID != attach.RepoID {
+		ctx.HTTPError(http.StatusNotFound)
 		return
 	}
 
-	if repository == nil { // If not linked
+	unitType, repoID, err := repo_service.GetAttachmentLinkedTypeAndRepoID(ctx, attach)
+	if err != nil {
+		ctx.ServerError("GetAttachmentLinkedTypeAndRepoID", err)
+		return
+	}
+
+	if unitType == unit.TypeInvalid { // unlinked attachment can only be accessed by the uploader
 		if !(ctx.IsSigned && attach.UploaderID == ctx.Doer.ID) { // We block if not the uploader
 			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
-	} else { // If we have the repository we check access
-		perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
-		if err != nil {
-			ctx.HTTPError(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
-			return
+	} else { // If we have the linked type, we need to check access
+		var perm access_model.Permission
+		if ctx.Repo.Repository == nil {
+			repo, err := repo_model.GetRepositoryByID(ctx, repoID)
+			if err != nil {
+				ctx.ServerError("GetRepositoryByID", err)
+				return
+			}
+			perm, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
+			}
+		} else {
+			perm = ctx.Repo.Permission
 		}
+
 		if !perm.CanRead(unitType) {
 			ctx.HTTPError(http.StatusNotFound)
 			return

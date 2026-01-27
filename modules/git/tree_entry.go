@@ -6,11 +6,59 @@ package git
 
 import (
 	"path"
-	"sort"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/util"
 )
+
+// TreeEntry the leaf in the git tree
+type TreeEntry struct {
+	ID ObjectID
+
+	name  string
+	ptree *Tree
+
+	entryMode EntryMode
+
+	size  int64
+	sized bool
+}
+
+// Name returns the name of the entry (base name)
+func (te *TreeEntry) Name() string {
+	return te.name
+}
+
+// Mode returns the mode of the entry
+func (te *TreeEntry) Mode() EntryMode {
+	return te.entryMode
+}
+
+// IsSubModule if the entry is a submodule
+func (te *TreeEntry) IsSubModule() bool {
+	return te.entryMode.IsSubModule()
+}
+
+// IsDir if the entry is a sub dir
+func (te *TreeEntry) IsDir() bool {
+	return te.entryMode.IsDir()
+}
+
+// IsLink if the entry is a symlink
+func (te *TreeEntry) IsLink() bool {
+	return te.entryMode.IsLink()
+}
+
+// IsRegular if the entry is a regular file
+func (te *TreeEntry) IsRegular() bool {
+	return te.entryMode.IsRegular()
+}
+
+// IsExecutable if the entry is an executable file (not necessarily binary)
+func (te *TreeEntry) IsExecutable() bool {
+	return te.entryMode.IsExecutable()
+}
 
 // Type returns the type of the entry (commit, tree, blob)
 func (te *TreeEntry) Type() string {
@@ -109,49 +157,16 @@ func (te *TreeEntry) GetSubJumpablePathName() string {
 // Entries a list of entry
 type Entries []*TreeEntry
 
-type customSortableEntries struct {
-	Comparer func(s1, s2 string) bool
-	Entries
-}
-
-var sorter = []func(t1, t2 *TreeEntry, cmp func(s1, s2 string) bool) bool{
-	func(t1, t2 *TreeEntry, cmp func(s1, s2 string) bool) bool {
-		return (t1.IsDir() || t1.IsSubModule()) && !t2.IsDir() && !t2.IsSubModule()
-	},
-	func(t1, t2 *TreeEntry, cmp func(s1, s2 string) bool) bool {
-		return cmp(t1.Name(), t2.Name())
-	},
-}
-
-func (ctes customSortableEntries) Len() int { return len(ctes.Entries) }
-
-func (ctes customSortableEntries) Swap(i, j int) {
-	ctes.Entries[i], ctes.Entries[j] = ctes.Entries[j], ctes.Entries[i]
-}
-
-func (ctes customSortableEntries) Less(i, j int) bool {
-	t1, t2 := ctes.Entries[i], ctes.Entries[j]
-	var k int
-	for k = 0; k < len(sorter)-1; k++ {
-		s := sorter[k]
-		switch {
-		case s(t1, t2, ctes.Comparer):
-			return true
-		case s(t2, t1, ctes.Comparer):
-			return false
-		}
-	}
-	return sorter[k](t1, t2, ctes.Comparer)
-}
-
-// Sort sort the list of entry
-func (tes Entries) Sort() {
-	sort.Sort(customSortableEntries{func(s1, s2 string) bool {
-		return s1 < s2
-	}, tes})
-}
-
 // CustomSort customizable string comparing sort entry list
-func (tes Entries) CustomSort(cmp func(s1, s2 string) bool) {
-	sort.Sort(customSortableEntries{cmp, tes})
+func (tes Entries) CustomSort(cmp func(s1, s2 string) int) {
+	slices.SortFunc(tes, func(a, b *TreeEntry) int {
+		s1Dir, s2Dir := a.IsDir() || a.IsSubModule(), b.IsDir() || b.IsSubModule()
+		if s1Dir != s2Dir {
+			if s1Dir {
+				return -1
+			}
+			return 1
+		}
+		return cmp(a.Name(), b.Name())
+	})
 }

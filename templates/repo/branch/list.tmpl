@@ -117,7 +117,7 @@
 								<div class="commit-divergence" data-tooltip-content="{{$tooltipDivergence}}">
 									<div class="bar-group">
 										<div class="count count-behind">{{.CommitsBehind}}</div>
-										{{/* old code bears 0/0.0 = NaN output, so it might output invalid "width: NaNpx", it just works and doesn't caues any problem. */}}
+										{{/* old code bears 0/0.0 = NaN output, so it might output invalid "width: NaNpx", it just works and doesn't cause any problem. */}}
 										<div class="bar bar-behind" style="width: {{Eval 100 "*" .CommitsBehind "/" "(" .CommitsBehind "+" .CommitsAhead "+" 0.0 ")"}}%"></div>
 									</div>
 									<div class="bar-group">
@@ -230,7 +230,6 @@
 
 	<form class="ui form" id="create-branch-form" action="" data-base-action="{{.Link}}/_new/branch/" method="post">
 		<div class="content">
-			{{.CsrfTokenHtml}}
 			<div class="field">
 				{{ctx.Locale.Tr "repo.branch.create_new_branch"}}
 				<span id="modal-create-branch-from-span"></span>
@@ -250,7 +249,6 @@
 	</div>
 	<form class="ui form" action="{{$.Repository.Link}}/branches/rename" method="post">
 		<div class="content">
-			{{.CsrfTokenHtml}}
 			<div class="field default-branch-warning">
 				<span class="text red">{{ctx.Locale.Tr "repo.branch.warning_rename_default_branch"}}</span>
 			</div>

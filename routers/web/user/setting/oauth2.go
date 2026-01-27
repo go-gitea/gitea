@@ -24,7 +24,7 @@ func newOAuth2CommonHandlers(userID int64) *OAuth2CommonHandlers {
 
 // OAuthApplicationsPost response for adding a oauth2 application
 func OAuthApplicationsPost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	oa := newOAuth2CommonHandlers(ctx.Doer.ID)
@@ -33,7 +33,7 @@ func OAuthApplicationsPost(ctx *context.Context) {
 
 // OAuthApplicationsEdit response for editing oauth2 application
 func OAuthApplicationsEdit(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	oa := newOAuth2CommonHandlers(ctx.Doer.ID)
@@ -42,7 +42,7 @@ func OAuthApplicationsEdit(ctx *context.Context) {
 
 // OAuthApplicationsRegenerateSecret handles the post request for regenerating the secret
 func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	oa := newOAuth2CommonHandlers(ctx.Doer.ID)

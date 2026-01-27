@@ -1,5 +1,6 @@
 import {getCurrentLocale} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 
 const {pageData} = window.config;
 
@@ -31,15 +32,15 @@ export async function initCitationFileCopyContent() {
 
   if (!pageData.citationFileContent) return;
 
-  const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa');
-  const citationCopyBibtex = document.querySelector<HTMLButtonElement>('#citation-copy-bibtex');
+  const citationCopyApa = document.querySelector<HTMLButtonElement>('#citation-copy-apa')!;
+  const citationCopyBibtex = document.querySelector<HTMLButtonElement>('#citation-copy-bibtex')!;
   const inputContent = document.querySelector<HTMLInputElement>('#citation-copy-content');
 
   if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
 
   const updateUi = () => {
-    const isBibtex = (localStorage.getItem('citation-copy-format') || defaultCitationFormat) === 'bibtex';
-    const copyContent = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text');
+    const isBibtex = localUserSettings.getString('citation-copy-format', defaultCitationFormat) === 'bibtex';
+    const copyContent = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text')!;
     inputContent.value = copyContent;
     citationCopyBibtex.classList.toggle('primary', isBibtex);
     citationCopyApa.classList.toggle('primary', !isBibtex);
@@ -55,12 +56,12 @@ export async function initCitationFileCopyContent() {
     updateUi();
 
     citationCopyApa.addEventListener('click', () => {
-      localStorage.setItem('citation-copy-format', 'apa');
+      localUserSettings.setString('citation-copy-format', 'apa');
       updateUi();
     });
 
     citationCopyBibtex.addEventListener('click', () => {
-      localStorage.setItem('citation-copy-format', 'bibtex');
+      localUserSettings.setString('citation-copy-format', 'bibtex');
       updateUi();
     });
 

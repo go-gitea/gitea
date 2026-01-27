@@ -169,9 +169,9 @@ func TestGetUserRepoPermission(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	team := &organization.Team{OrgID: org.ID, LowerName: "test_team"}
 	require.NoError(t, db.Insert(ctx, team))
+	require.NoError(t, db.Insert(ctx, &organization.TeamUser{OrgID: org.ID, TeamID: team.ID, UID: user.ID}))
 
 	t.Run("DoerInTeamWithNoRepo", func(t *testing.T) {
-		require.NoError(t, db.Insert(ctx, &organization.TeamUser{OrgID: org.ID, TeamID: team.ID, UID: user.ID}))
 		perm, err := GetUserRepoPermission(ctx, repo32, user)
 		require.NoError(t, err)
 		assert.Equal(t, perm_model.AccessModeRead, perm.AccessMode)
@@ -196,5 +196,52 @@ func TestGetUserRepoPermission(t *testing.T) {
 		assert.Equal(t, perm_model.AccessModeRead, perm.AccessMode)
 		assert.Equal(t, perm_model.AccessModeWrite, perm.unitsMode[unit.TypeCode])
 		assert.Equal(t, perm_model.AccessModeRead, perm.unitsMode[unit.TypeIssues])
+	})
+
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}) // org private repo, same org as repo 32
+	require.NoError(t, repo3.LoadOwner(ctx))
+	require.True(t, repo3.Owner.IsOrganization())
+	require.NoError(t, db.TruncateBeans(ctx, &organization.TeamUnit{}, &Access{})) // The user has access set of that repo, remove it, it is useless for our test
+	require.NoError(t, db.Insert(ctx, &organization.TeamRepo{OrgID: org.ID, TeamID: team.ID, RepoID: repo3.ID}))
+	t.Run("DoerWithNoopTeamOnPrivateRepo", func(t *testing.T) {
+		perm, err := GetUserRepoPermission(ctx, repo3, user)
+		require.NoError(t, err)
+		assert.Equal(t, perm_model.AccessModeNone, perm.AccessMode)
+		assert.Equal(t, perm_model.AccessModeNone, perm.unitsMode[unit.TypeCode])
+		assert.Equal(t, perm_model.AccessModeNone, perm.unitsMode[unit.TypeIssues])
+	})
+
+	require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: org.ID, TeamID: team.ID, Type: unit.TypeCode, AccessMode: perm_model.AccessModeNone}))
+	require.NoError(t, db.Insert(ctx, &organization.TeamUnit{OrgID: org.ID, TeamID: team.ID, Type: unit.TypeIssues, AccessMode: perm_model.AccessModeRead}))
+	t.Run("DoerWithReadIssueTeamOnPrivateRepo", func(t *testing.T) {
+		perm, err := GetUserRepoPermission(ctx, repo3, user)
+		require.NoError(t, err)
+		assert.Equal(t, perm_model.AccessModeNone, perm.AccessMode)
+		assert.Equal(t, perm_model.AccessModeNone, perm.unitsMode[unit.TypeCode])
+		assert.Equal(t, perm_model.AccessModeRead, perm.unitsMode[unit.TypeIssues])
+
+		users, err := GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeRead, unit.TypeIssues)
+		require.NoError(t, err)
+		require.Len(t, users, 1)
+		assert.Equal(t, user.ID, users[0].ID)
+
+		users, err = GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
+		require.NoError(t, err)
+		require.Empty(t, users)
+	})
+
+	require.NoError(t, db.Insert(ctx, repo_model.Collaboration{RepoID: repo3.ID, UserID: user.ID, Mode: perm_model.AccessModeWrite}))
+	require.NoError(t, db.Insert(ctx, Access{RepoID: repo3.ID, UserID: user.ID, Mode: perm_model.AccessModeWrite}))
+	t.Run("DoerWithReadIssueTeamAndWriteCollaboratorOnPrivateRepo", func(t *testing.T) {
+		perm, err := GetUserRepoPermission(ctx, repo3, user)
+		require.NoError(t, err)
+		assert.Equal(t, perm_model.AccessModeWrite, perm.AccessMode)
+		assert.Equal(t, perm_model.AccessModeWrite, perm.unitsMode[unit.TypeCode])
+		assert.Equal(t, perm_model.AccessModeWrite, perm.unitsMode[unit.TypeIssues])
+
+		users, err := GetUsersWithUnitAccess(ctx, repo3, perm_model.AccessModeWrite, unit.TypeIssues)
+		require.NoError(t, err)
+		require.Len(t, users, 1)
+		assert.Equal(t, user.ID, users[0].ID)
 	})
 }

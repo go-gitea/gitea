@@ -23,7 +23,7 @@ export function html(tmpl: TemplateStringsArray, ...parts: Array<any>): string {
   return output;
 }
 
-export function htmlRaw(s: string|TemplateStringsArray, ...tmplParts: Array<any>): rawObject {
+export function htmlRaw(s: string | TemplateStringsArray, ...tmplParts: Array<any>): rawObject {
   if (typeof s === 'string') {
     if (tmplParts.length !== 0) throw new Error("either htmlRaw('str') or htmlRaw`tmpl`");
     return new rawObject(s);

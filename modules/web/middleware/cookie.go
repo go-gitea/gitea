@@ -11,16 +11,27 @@ import (
 
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
+
+const cookieRedirectTo = "redirect_to"
+
+func GetRedirectToCookie(req *http.Request) string {
+	return GetSiteCookie(req, cookieRedirectTo)
+}
 
 // SetRedirectToCookie convenience function to set the RedirectTo cookie consistently
 func SetRedirectToCookie(resp http.ResponseWriter, value string) {
-	SetSiteCookie(resp, "redirect_to", value, 0)
+	SetSiteCookie(resp, cookieRedirectTo, value, 0)
 }
 
 // DeleteRedirectToCookie convenience function to delete most cookies consistently
 func DeleteRedirectToCookie(resp http.ResponseWriter) {
-	SetSiteCookie(resp, "redirect_to", "", -1)
+	SetSiteCookie(resp, cookieRedirectTo, "", -1)
+}
+
+func RedirectLinkUserLogin(req *http.Request) string {
+	return setting.AppSubURL + "/user/login?redirect_to=" + url.QueryEscape(setting.AppSubURL+req.URL.RequestURI())
 }
 
 // GetSiteCookie returns given cookie value from request header.
@@ -39,11 +50,13 @@ func SetSiteCookie(resp http.ResponseWriter, name, value string, maxAge int) {
 	// These are more specific than cookies without a trailing /, so
 	// we need to delete these if they exist.
 	deleteLegacySiteCookie(resp, name)
+
+	// HINT: INSTALL-PAGE-COOKIE-INIT: the cookie system is not properly initialized on the Install page, so there is no CookiePath
 	cookie := &http.Cookie{
 		Name:     name,
 		Value:    url.QueryEscape(value),
 		MaxAge:   maxAge,
-		Path:     setting.SessionConfig.CookiePath,
+		Path:     util.IfZero(setting.SessionConfig.CookiePath, "/"),
 		Domain:   setting.SessionConfig.Domain,
 		Secure:   setting.SessionConfig.Secure,
 		HttpOnly: true,

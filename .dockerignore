@@ -65,6 +65,7 @@ cpu.out
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
+/pnpm-debug.log*
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
@@ -73,6 +74,9 @@ cpu.out
 /VERSION
 /.air
 /.go-licenses
+/Dockerfile
+/Dockerfile.rootless
+/.venv
 
 # Files and folders that were previously generated
 /public/assets/img/webpack

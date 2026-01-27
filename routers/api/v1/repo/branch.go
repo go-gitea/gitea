@@ -225,7 +225,7 @@ func CreateBranch(ctx *context.APIContext) {
 			return
 		}
 	} else if len(opt.OldBranchName) > 0 { //nolint:staticcheck // deprecated field
-		if gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, opt.OldBranchName) { //nolint:staticcheck // deprecated field
+		if exist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, opt.OldBranchName); exist { //nolint:staticcheck // deprecated field
 			oldCommit, err = ctx.Repo.GitRepo.GetBranchCommit(opt.OldBranchName) //nolint:staticcheck // deprecated field
 			if err != nil {
 				ctx.APIErrorInternal(err)
@@ -243,7 +243,7 @@ func CreateBranch(ctx *context.APIContext) {
 		}
 	}
 
-	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, oldCommit.ID.String(), opt.BranchName)
+	err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, oldCommit.ID.String(), opt.BranchName)
 	if err != nil {
 		if git_model.IsErrBranchNotExist(err) {
 			ctx.APIError(http.StatusNotFound, "The old branch does not exist")
@@ -380,11 +380,11 @@ func ListBranches(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, apiBranches)
 }
 
-// UpdateBranch updates a repository's branch.
+// UpdateBranch moves a branch reference to a new commit.
 func UpdateBranch(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/branches/{branch} repository repoUpdateBranch
+	// swagger:operation PUT /repos/{owner}/{repo}/branches/{branch} repository repoUpdateBranch
 	// ---
-	// summary: Update a branch
+	// summary: Update a branch reference to a new commit
 	// consumes:
 	// - application/json
 	// produces:
@@ -416,10 +416,85 @@ func UpdateBranch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     "$ref": "#/responses/conflict"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
 	opt := web.GetForm(ctx).(*api.UpdateBranchRepoOption)
+
+	branchName := ctx.PathParam("*")
+	repo := ctx.Repo.Repository
+
+	if repo.IsEmpty {
+		ctx.APIError(http.StatusNotFound, "Git Repository is empty.")
+		return
+	}
+
+	if repo.IsMirror {
+		ctx.APIError(http.StatusForbidden, "Git Repository is a mirror.")
+		return
+	}
+
+	// permission check has been done in api.go
+	if err := repo_service.UpdateBranch(ctx, repo, ctx.Repo.GitRepo, ctx.Doer, branchName, opt.NewCommitID, opt.OldCommitID, opt.Force); err != nil {
+		switch {
+		case git_model.IsErrBranchNotExist(err):
+			ctx.APIErrorNotFound(err)
+		case errors.Is(err, util.ErrInvalidArgument):
+			ctx.APIError(http.StatusUnprocessableEntity, err)
+		case git.IsErrPushRejected(err):
+			rej := err.(*git.ErrPushRejected)
+			ctx.APIError(http.StatusForbidden, rej.Message)
+		default:
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
+}
+
+// RenameBranch renames a repository's branch.
+func RenameBranch(ctx *context.APIContext) {
+	// swagger:operation PATCH /repos/{owner}/{repo}/branches/{branch} repository repoRenameBranch
+	// ---
+	// summary: Rename a branch
+	// consumes:
+	// - application/json
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: branch
+	//   in: path
+	//   description: name of the branch
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/RenameBranchRepoOption"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	opt := web.GetForm(ctx).(*api.RenameBranchRepoOption)
 
 	oldName := ctx.PathParam("*")
 	repo := ctx.Repo.Repository
@@ -434,13 +509,13 @@ func UpdateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, ctx.Repo.GitRepo, oldName, opt.Name)
+	msg, err := repo_service.RenameBranch(ctx, repo, ctx.Doer, oldName, opt.Name)
 	if err != nil {
 		switch {
 		case repo_model.IsErrUserDoesNotHaveAccessToRepo(err):
 			ctx.APIError(http.StatusForbidden, "User must be a repo or site admin to rename default or protected branches.")
 		case errors.Is(err, git_model.ErrBranchIsProtected):
-			ctx.APIError(http.StatusForbidden, "Branch is protected by glob-based protection rules.")
+			ctx.APIError(http.StatusForbidden, "Failed to rename branch due to branch protection rules.")
 		default:
 			ctx.APIErrorInternal(err)
 		}
@@ -897,7 +972,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		whitelistUsers = protectBranch.WhitelistUserIDs
 	}
-	if form.ForcePushAllowlistDeployKeys != nil {
+	if form.ForcePushAllowlistUsernames != nil {
 		forcePushAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.ForcePushAllowlistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -1011,7 +1086,11 @@ func EditBranchProtection(ctx *context.APIContext) {
 	isPlainRule := !git_model.IsRuleNameSpecial(bpName)
 	var isBranchExist bool
 	if isPlainRule {
-		isBranchExist = gitrepo.IsBranchExist(ctx, ctx.Repo.Repository, bpName)
+		isBranchExist, err = git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, bpName)
+		if err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 	}
 
 	if isBranchExist {

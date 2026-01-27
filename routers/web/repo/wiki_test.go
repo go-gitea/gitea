@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/contexttest"
 	"code.gitea.io/gitea/services/forms"
+	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 
 	"github.com/stretchr/testify/assert"
@@ -240,7 +241,7 @@ func TestDefaultWikiBranch(t *testing.T) {
 
 	// repo with no wiki
 	repoWithNoWiki := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	assert.False(t, repoWithNoWiki.HasWiki())
+	assert.False(t, repo_service.HasWiki(t.Context(), repoWithNoWiki))
 	assert.NoError(t, wiki_service.ChangeDefaultWikiBranch(t.Context(), repoWithNoWiki, "main"))
 
 	// repo with wiki

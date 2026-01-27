@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -99,7 +101,10 @@ func TestReadWritePullHead(t *testing.T) {
 
 	// Write a fake sha1 with only 40 zeros
 	newCommit := "feaf4ba6bc635fec442f46ddd4512416ec43c2c2"
-	err = repo.SetReference(PullPrefix+"1/head", newCommit)
+	_, _, err = gitcmd.NewCommand("update-ref").
+		AddDynamicArguments(PullPrefix+"1/head", newCommit).
+		WithDir(repo.Path).
+		RunStdString(t.Context())
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -116,7 +121,10 @@ func TestReadWritePullHead(t *testing.T) {
 	assert.Equal(t, headContents, newCommit)
 
 	// Remove file after the test
-	err = repo.RemoveReference(PullPrefix + "1/head")
+	_, _, err = gitcmd.NewCommand("update-ref", "--no-deref", "-d").
+		AddDynamicArguments(PullPrefix + "1/head").
+		WithDir(repo.Path).
+		RunStdString(t.Context())
 	assert.NoError(t, err)
 }
 

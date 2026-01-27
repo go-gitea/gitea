@@ -20,7 +20,7 @@ export function initCopyContent() {
       btn.classList.add('is-loading', 'loading-icon-2px');
       try {
         const res = await GET(rawFileLink, {credentials: 'include', redirect: 'follow'});
-        const contentType = res.headers.get('content-type');
+        const contentType = res.headers.get('content-type')!;
 
         if (contentType.startsWith('image/') && !contentType.startsWith('image/svg')) {
           isRasterImage = true;

@@ -11,12 +11,13 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 )
 
-func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attributes []string) (*git.Command, []string, func(), error) {
+func checkAttrCommand(gitRepo *git.Repository, treeish string, filenames, attributes []string) (*gitcmd.Command, []string, func(), error) {
 	cancel := func() {}
 	envs := []string{"GIT_FLUSH=1"}
-	cmd := git.NewCommand("check-attr", "-z")
+	cmd := gitcmd.NewCommand("check-attr", "-z")
 	if len(attributes) == 0 {
 		cmd.AddArguments("--all")
 	}
@@ -67,19 +68,14 @@ func CheckAttributes(ctx context.Context, gitRepo *git.Repository, treeish strin
 	}
 	defer cancel()
 
-	stdOut := new(bytes.Buffer)
-	stdErr := new(bytes.Buffer)
-
-	if err := cmd.Run(ctx, &git.RunOpts{
-		Env:    append(os.Environ(), envs...),
-		Dir:    gitRepo.Path,
-		Stdout: stdOut,
-		Stderr: stdErr,
-	}); err != nil {
-		return nil, fmt.Errorf("failed to run check-attr: %w\n%s\n%s", err, stdOut.String(), stdErr.String())
+	stdout, _, err := cmd.WithEnv(append(os.Environ(), envs...)).
+		WithDir(gitRepo.Path).
+		RunStdBytes(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to run check-attr: %w", err)
 	}
 
-	fields := bytes.Split(stdOut.Bytes(), []byte{'\000'})
+	fields := bytes.Split(stdout, []byte{'\000'})
 	if len(fields)%3 != 1 {
 		return nil, errors.New("wrong number of fields in return from check-attr")
 	}

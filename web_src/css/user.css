@@ -120,6 +120,7 @@
   flex-wrap: wrap;
   gap: 0.5em;
   padding: 0.5em 1em;
+  overflow-wrap: anywhere;
 }
 
 .notifications-item:hover {

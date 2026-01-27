@@ -78,7 +78,7 @@ func VerifyGPGKey(ctx context.Context, ownerID int64, keyID, token, signature st
 		}
 
 		key.Verified = true
-		if _, err := db.GetEngine(ctx).ID(key.ID).SetExpr("verified", true).Update(new(GPGKey)); err != nil {
+		if _, err := db.GetEngine(ctx).ID(key.ID).Cols("verified").Update(key); err != nil {
 			return "", err
 		}
 

@@ -65,7 +65,7 @@ function updateSelectionLabel(label: HTMLElement) {
   const deleteIcon = label.querySelector('.delete.icon');
   if (deleteIcon) {
     deleteIcon.setAttribute('aria-hidden', 'false');
-    deleteIcon.setAttribute('aria-label', window.config.i18n.remove_label_str.replace('%s', label.getAttribute('data-value')));
+    deleteIcon.setAttribute('aria-label', window.config.i18n.remove_label_str.replace('%s', label.getAttribute('data-value')!));
     deleteIcon.setAttribute('role', 'button');
   }
 }
@@ -348,7 +348,7 @@ export function hideScopedEmptyDividers(container: Element) {
   }
 }
 
-function onResponseKeepSelectedItem(dropdown: typeof $|HTMLElement, selectedValue: string) {
+function onResponseKeepSelectedItem(dropdown: typeof $ | HTMLElement, selectedValue: string) {
   // There is a bug in fomantic dropdown when using "apiSettings" to fetch data
   // * when there is a selected item, the dropdown insists on hiding the selected one from the list:
   // * in the "filter" function: ('[data-value="'+value+'"]').addClass(className.filtered)

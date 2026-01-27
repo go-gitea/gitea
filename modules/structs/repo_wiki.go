@@ -5,10 +5,14 @@ package structs
 
 // WikiCommit page commit/revision
 type WikiCommit struct {
-	ID        string      `json:"sha"`
-	Author    *CommitUser `json:"author"`
+	// The commit SHA hash
+	ID string `json:"sha"`
+	// The author of the commit
+	Author *CommitUser `json:"author"`
+	// The committer of the commit
 	Committer *CommitUser `json:"commiter"`
-	Message   string      `json:"message"`
+	// The commit message
+	Message string `json:"message"`
 }
 
 // WikiPage a wiki page
@@ -16,16 +20,23 @@ type WikiPage struct {
 	*WikiPageMetaData
 	// Page content, base64 encoded
 	ContentBase64 string `json:"content_base64"`
-	CommitCount   int64  `json:"commit_count"`
-	Sidebar       string `json:"sidebar"`
-	Footer        string `json:"footer"`
+	// The number of commits that modified this page
+	CommitCount int64 `json:"commit_count"`
+	// The sidebar content for the wiki page
+	Sidebar string `json:"sidebar"`
+	// The footer content for the wiki page
+	Footer string `json:"footer"`
 }
 
 // WikiPageMetaData wiki page meta information
 type WikiPageMetaData struct {
-	Title      string      `json:"title"`
-	HTMLURL    string      `json:"html_url"`
-	SubURL     string      `json:"sub_url"`
+	// The title of the wiki page
+	Title string `json:"title"`
+	// The HTML URL to view the wiki page
+	HTMLURL string `json:"html_url"`
+	// The sub URL path for the wiki page
+	SubURL string `json:"sub_url"`
+	// The last commit that modified this wiki page
 	LastCommit *WikiCommit `json:"last_commit"`
 }
 
@@ -41,6 +52,8 @@ type CreateWikiPageOptions struct {
 
 // WikiCommitList commit/revision list
 type WikiCommitList struct {
+	// The list of wiki commits
 	WikiCommits []*WikiCommit `json:"commits"`
-	Count       int64         `json:"count"`
+	// The total count of commits
+	Count int64 `json:"count"`
 }

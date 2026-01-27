@@ -241,10 +241,6 @@ func (sr StorageRepo) RelativePath() string {
 	return string(sr)
 }
 
-func (repo *Repository) WikiStorageRepo() StorageRepo {
-	return StorageRepo(strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git")
-}
-
 // SanitizedOriginalURL returns a sanitized OriginalURL
 func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
@@ -599,7 +595,7 @@ func (repo *Repository) IsGenerated() bool {
 
 // RepoPath returns repository path by given user and repository name.
 func RepoPath(userName, repoName string) string { //revive:disable-line:exported
-	return filepath.Join(user_model.UserPath(userName), strings.ToLower(repoName)+".git")
+	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)), filepath.Clean(strings.ToLower(repoName)+".git"))
 }
 
 // RepoPath returns the repository path
@@ -871,16 +867,6 @@ func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repos
 		return repos, nil
 	}
 	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
-}
-
-// IsRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
-func IsRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
-	has, err := IsRepositoryModelExist(ctx, u, repoName)
-	if err != nil {
-		return false, err
-	}
-	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
-	return has || isDir, err
 }
 
 func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
