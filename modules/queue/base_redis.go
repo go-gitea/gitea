@@ -79,23 +79,53 @@ func (q *baseRedis) PushItem(ctx context.Context, data []byte) error {
 }
 
 func (q *baseRedis) PopItem(ctx context.Context) ([]byte, error) {
-	return backoffRetErr(ctx, backoffBegin, backoffUpper, infiniteTimerC, func() (retry bool, data []byte, err error) {
-		q.mu.Lock()
-		defer q.mu.Unlock()
+	connBackoff := backoffBegin
+	for {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
 
-		data, err = q.client.LPop(ctx, q.cfg.QueueFullName).Bytes()
-		if err == redis.Nil {
-			return true, nil, nil
-		}
+		res, err := q.client.BLPop(ctx, time.Second, q.cfg.QueueFullName).Result()
+
 		if err != nil {
-			return true, nil, nil
+			if err == redis.Nil {
+				connBackoff = backoffBegin
+				continue
+			}
+
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(connBackoff):
+				connBackoff *= 2
+				if connBackoff > backoffUpper {
+					connBackoff = backoffUpper
+				}
+			}
+			continue
 		}
+
+		connBackoff = backoffBegin
+
+		if len(res) < 2 {
+			continue
+		}
+
+		data := []byte(res[1])
+
+		q.mu.Lock()
 		if q.isUnique {
-			// the data has been popped, even if there is any error we can't do anything
-			_ = q.client.SRem(ctx, q.cfg.SetFullName, data).Err()
+			// use a separate context for cleanup to ensure it runs even if request context is canceled
+			cleanupCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			_ = q.client.SRem(cleanupCtx, q.cfg.SetFullName, data).Err()
+			cancel()
 		}
-		return false, data, err
-	})
+		q.mu.Unlock()
+
+		return data, nil
+	}
 }
 
 func (q *baseRedis) HasItem(ctx context.Context, data []byte) (bool, error) {
