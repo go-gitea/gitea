@@ -14,6 +14,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// Agit gitea implementation version history:
+// v1: initial version, support `/refs/for/*` only
+// v2: added support for `/refs/for-review/*`
+
 func SSHInfo(rw http.ResponseWriter, req *http.Request) {
 	if !git.DefaultFeatures().SupportProcReceive {
 		rw.WriteHeader(http.StatusNotFound)

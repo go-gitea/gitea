@@ -472,9 +472,21 @@ func preReceiveFor(ctx *preReceiveContext, refFullName git.RefName) {
 	}
 }
 
+type ErrUpdateAgitPullDenied struct {
+	reason string
+}
+
+func (e ErrUpdateAgitPullDenied) Error() string {
+	return e.reason
+}
+
+func (e ErrUpdateAgitPullDenied) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 func canUpdateAgitPull(ctx *preReceiveContext, pull *issues_model.PullRequest) error {
 	if pull.Flow != issues_model.PullRequestFlowAGit {
-		return errors.New("Pull request that are not created through agit cannot be updated using agit")
+		return ErrUpdateAgitPullDenied{"Pull request that are not created through agit cannot be updated using agit"}
 	}
 
 	if ctx.opts.UserID == pull.Issue.PosterID {
@@ -482,16 +494,20 @@ func canUpdateAgitPull(ctx *preReceiveContext, pull *issues_model.PullRequest) e
 	}
 
 	if !pull.AllowMaintainerEdit {
-		return fmt.Errorf("The author does not allow maintainers to edit this pull request")
+		return ErrUpdateAgitPullDenied{"The author does not allow maintainers to edit this pull request"}
 	}
 
 	if !ctx.loadPusherAndPermission() {
-		return fmt.Errorf("Internal Server Error (no specific error)")
+		// if error occurs, loadPusherAndPermission had written the error response
+		return nil
 	}
 
-	if ctx.userPerm.CanWrite(unit.TypeCode) {
-		return errors.New("You have no permission to update this pull request")
+	// if the pull creator allows maintainer to edit, it means the write permissions of the head branch has been
+	// granted to the user with write permission of the base repository
+	if !ctx.userPerm.CanWrite(unit.TypeCode) {
+		return ErrUpdateAgitPullDenied{"You have no permission to update this pull request"}
 	}
+
 	return nil
 }
 
@@ -538,9 +554,22 @@ func preReceiveForReview(ctx *preReceiveContext, refFullName git.RefName) {
 		return
 	}
 
-	if err := canUpdateAgitPull(ctx, pull); err != nil {
-		ctx.JSON(http.StatusForbidden, private.Response{
-			UserMsg: err.Error(),
+	err = canUpdateAgitPull(ctx, pull)
+	if ctx.Written() {
+		return
+	}
+
+	if err != nil {
+		if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.JSON(http.StatusForbidden, private.Response{
+				UserMsg: err.Error(),
+			})
+			return
+		}
+
+		log.Error("preReceiveForReview: canUpdateAgitPull: err: %v", err)
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: "check update agit pull request permission failed",
 		})
 		return
 	}
