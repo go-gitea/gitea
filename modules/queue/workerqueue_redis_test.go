@@ -60,7 +60,7 @@ func TestWorkerPoolQueueRedis(t *testing.T) {
 		// q1: Push items and consume some
 		var tasksQ1 []string
 		q1Done := make(chan struct{})
-		
+
 		q1Handler := func(data ...string) []string {
 			for _, s := range data {
 				tasksQ1 = append(tasksQ1, s)
@@ -73,9 +73,9 @@ func TestWorkerPoolQueueRedis(t *testing.T) {
 
 		q1, err := newWorkerPoolQueueForTest("test-redis-queue", queueSetting, q1Handler, true)
 		require.NoError(t, err)
-		
+
 		stop1 := runWorkerPoolQueue(q1)
-		
+
 		for i := 0; i < testCount; i++ {
 			// using unique items
 			_ = q1.Push("task-" + t.Name() + "-" + strconv.Itoa(i))
@@ -87,9 +87,9 @@ func TestWorkerPoolQueueRedis(t *testing.T) {
 		case <-time.After(5 * time.Second):
 			// Proceed even if timeout, might be slow machine
 		}
-		
+
 		stop1() // Stop q1, should shut down gracefully
-		
+
 		// q2: Restart queue and consume the rest
 		var tasksQ2 []string
 		q2Handler := func(data ...string) []string {
@@ -110,16 +110,16 @@ func TestWorkerPoolQueueRedis(t *testing.T) {
 
 		total := len(tasksQ1) + len(tasksQ2)
 		assert.Equal(t, testCount, total, "Should process all items across restarts")
-		
+
 		// Cleanup after test
 		_ = q2.RemoveAllItems(t.Context())
 	}
 
 	t.Run("Persistence", func(t *testing.T) {
 		testRedisPersistence(t, setting.QueueSettings{
-			BatchLength: 10, 
-			MaxWorkers: 2, 
-			Length: 100,
+			BatchLength: 10,
+			MaxWorkers:  2,
+			Length:      100,
 		})
 	})
 }
