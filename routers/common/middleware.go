@@ -120,7 +120,7 @@ func MustInitSessioner() func(next http.Handler) http.Handler {
 
 	middleware, err := session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		ProviderConfig: setting.SessionConfig.ProviderConfig.String(),
 		CookieName:     setting.SessionConfig.CookieName,
 		CookiePath:     setting.SessionConfig.CookiePath,
 		Gclifetime:     setting.SessionConfig.Gclifetime,
