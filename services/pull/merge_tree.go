@@ -50,7 +50,7 @@ func checkConflictsMergeTree(ctx context.Context, pr *issues_model.PullRequest, 
 	return false, nil
 }
 
-func testPullRequestMergeTree(ctx context.Context, pr *issues_model.PullRequest) error {
+func testPullRequestMergeableByMergeTree(ctx context.Context, pr *issues_model.PullRequest) error {
 	// 1. Get head commit
 	if err := pr.LoadHeadRepo(ctx); err != nil {
 		return err

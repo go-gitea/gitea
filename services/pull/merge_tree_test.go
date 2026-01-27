@@ -29,7 +29,7 @@ func Test_testPullRequestMergeTree(t *testing.T) {
 	pr.ConflictedFiles = []string{"old_file.go"}
 	pr.ChangedProtectedFiles = []string{"protected_file.go"}
 
-	err := testPullRequestMergeTree(t.Context(), pr)
+	err := testPullRequestMergeableByMergeTree(t.Context(), pr)
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusMergeable, pr.Status)
 	assert.Empty(t, pr.ConflictedFiles)
@@ -50,7 +50,7 @@ func Test_testPullRequestTmpRepoBranchMergeable(t *testing.T) {
 	pr.ConflictedFiles = []string{"old_file.go"}
 	pr.ChangedProtectedFiles = []string{"protected_file.go"}
 
-	err := testPullRequestTmpRepoBranchMergeable(t.Context(), pr)
+	err := testPullRequestMergeableByTmpRepo(t.Context(), pr)
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusMergeable, pr.Status)
 	assert.Empty(t, pr.ConflictedFiles)
@@ -76,7 +76,7 @@ func Test_testPullRequestMergeTree_Conflict(t *testing.T) {
 	pr.ConflictedFiles = nil
 	pr.ChangedProtectedFiles = nil
 
-	err := testPullRequestMergeTree(t.Context(), pr)
+	err := testPullRequestMergeableByMergeTree(t.Context(), pr)
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusConflict, pr.Status)
 	assert.Contains(t, pr.ConflictedFiles, conflictFiles[0])
@@ -99,7 +99,7 @@ func Test_testPullRequestMergeTree_Empty(t *testing.T) {
 	pr.ConflictedFiles = []string{"old_file.go"}
 	pr.ChangedProtectedFiles = []string{"protected_file.go"}
 
-	err := testPullRequestMergeTree(t.Context(), pr)
+	err := testPullRequestMergeableByMergeTree(t.Context(), pr)
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusEmpty, pr.Status)
 	assert.Empty(t, pr.ConflictedFiles)
@@ -122,7 +122,7 @@ func Test_testPullRequestTmpRepoBranchMergeable_Conflict(t *testing.T) {
 	pr.ConflictedFiles = nil
 	pr.ChangedProtectedFiles = nil
 
-	err := testPullRequestTmpRepoBranchMergeable(t.Context(), pr)
+	err := testPullRequestMergeableByTmpRepo(t.Context(), pr)
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusConflict, pr.Status)
 	assert.Contains(t, pr.ConflictedFiles, conflictFiles[0])
@@ -145,7 +145,7 @@ func Test_testPullRequestTmpRepoBranchMergeable_Empty(t *testing.T) {
 	pr.ConflictedFiles = []string{"old_file.go"}
 	pr.ChangedProtectedFiles = nil
 
-	err := testPullRequestTmpRepoBranchMergeable(t.Context(), pr)
+	err := testPullRequestMergeableByTmpRepo(t.Context(), pr)
 	assert.NoError(t, err)
 	assert.Equal(t, issues_model.PullRequestStatusEmpty, pr.Status)
 	assert.Empty(t, pr.ConflictedFiles)

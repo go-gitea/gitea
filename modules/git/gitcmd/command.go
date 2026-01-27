@@ -452,12 +452,6 @@ func (c *Command) discardPipeReaders(files []*os.File) {
 	}
 }
 
-// errPipelineNoError is used to distinguish between:
-// * context canceled by pipeline caller with no error (normal cancellation)
-// * context canceled by parent context (still context.Canceled error)
-// * other causes
-var errPipelineNoError = errors.New("canceled with no error")
-
 func (c *Command) Wait() error {
 	defer func() {
 		// The reader in another goroutine might be still reading the stdout, so we shouldn't close the pipes here
@@ -475,13 +469,17 @@ func (c *Command) Wait() error {
 			c.discardPipeReaders(c.parentPipeReaders)
 		} // else: canceled command will be killed, and the exit code is caused by kill
 
-		// after the pipeline function returns, we can safely close the pipes
+		// after the pipeline function returns, we can safely close the pipes, then wait for the command to exit
 		c.closePipeFiles(c.parentPipeFiles)
 		errWait := c.cmd.Wait()
 		errCause := context.Cause(c.cmdCtx) // in case the cause is set during Wait(), get the final cancel cause
-		if errors.Is(errCause, errPipelineNoError) {
-			errCause = nil
+
+		if unwrapped, ok := UnwrapPipelineError(errCause); ok && unwrapped == nil {
+			// the pipeline function declares that there is no error, and it cancels (kills) the command ahead,
+			// so we should ignore the errors from "wait" and "cause"
+			errWait, errCause = nil, nil
 		}
+
 		return errors.Join(wrapPipelineError(errPipeline), errCause, errWait)
 	}
 

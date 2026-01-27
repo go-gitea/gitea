@@ -71,13 +71,13 @@ func testPullRequestBranchMergeable(ctx context.Context, pr *issues_model.PullRe
 	defer finished()
 
 	if git.DefaultFeatures().SupportGitMergeTree {
-		return testPullRequestMergeTree(ctx, pr)
+		return testPullRequestMergeableByMergeTree(ctx, pr)
 	}
 
-	return testPullRequestTmpRepoBranchMergeable(ctx, pr)
+	return testPullRequestMergeableByTmpRepo(ctx, pr)
 }
 
-func testPullRequestTmpRepoBranchMergeable(ctx context.Context, pr *issues_model.PullRequest) error {
+func testPullRequestMergeableByTmpRepo(ctx context.Context, pr *issues_model.PullRequest) error {
 	prCtx, cancel, err := createTemporaryRepoForPR(ctx, pr)
 	if err != nil {
 		if !git_model.IsErrBranchNotExist(err) {
@@ -113,7 +113,7 @@ func testPullRequestTmpRepoBranchMergeable(ctx context.Context, pr *issues_model
 	}
 
 	// 2. Check for conflicts
-	if conflicts, err := checkConflicts(ctx, pr, gitRepo, prCtx.tmpBasePath); err != nil || conflicts || pr.Status == issues_model.PullRequestStatusEmpty {
+	if conflicts, err := checkConflictsByTmpRepo(ctx, pr, gitRepo, prCtx.tmpBasePath); err != nil || conflicts || pr.Status == issues_model.PullRequestStatusEmpty {
 		return err
 	}
 
@@ -306,8 +306,8 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	return conflict, conflictedFiles, nil
 }
 
-func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
-	// 1. checkConflicts resets the conflict status - therefore - reset the conflict status
+func checkConflictsByTmpRepo(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
+	// 1. checkConflictsByTmpRepo resets the conflict status - therefore - reset the conflict status
 	pr.ConflictedFiles = nil
 
 	// 2. AttemptThreeWayMerge first - this is much quicker than plain patch to base
@@ -378,7 +378,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		return false, nil
 	}
 
-	log.Trace("PullRequest[%d].testPullRequestTmpRepoBranchMergeable (patchPath): %s", pr.ID, patchPath)
+	log.Trace("PullRequest[%d].testPullRequestMergeableByTmpRepo (patchPath): %s", pr.ID, patchPath)
 
 	// 4. Read the base branch in to the index of the temporary repository
 	_, _, err = gitcmd.NewCommand("read-tree", "base").WithDir(tmpBasePath).RunStdString(ctx)
@@ -433,7 +433,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 			scanner := bufio.NewScanner(stderrReader)
 			for scanner.Scan() {
 				line := scanner.Text()
-				log.Trace("PullRequest[%d].testPullRequestTmpRepoBranchMergeable: stderr: %s", pr.ID, line)
+				log.Trace("PullRequest[%d].testPullRequestMergeableByTmpRepo: stderr: %s", pr.ID, line)
 				if strings.HasPrefix(line, prefix) {
 					conflict = true
 					filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])

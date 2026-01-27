@@ -5,16 +5,14 @@ package gitcmd
 
 import (
 	"context"
-
-	"code.gitea.io/gitea/modules/util"
 )
 
 type Context interface {
 	context.Context
 
-	// CancelWithCause is a helper function to cancel the context with a specific error cause
-	// And it returns the same error for convenience, to break the PipelineFunc easily
-	CancelWithCause(err error) error
+	// CancelPipeline is a helper function to cancel the command context (kill the command) with a specific error cause,
+	// it returns the same error for convenience to break the PipelineFunc easily
+	CancelPipeline(err error) error
 
 	// In the future, this interface will be extended to support stdio pipe readers/writers
 }
@@ -24,7 +22,7 @@ type cmdContext struct {
 	cmd *Command
 }
 
-func (c *cmdContext) CancelWithCause(err error) error {
-	c.cmd.cmdCancel(util.IfZero(err, errPipelineNoError))
+func (c *cmdContext) CancelPipeline(err error) error {
+	c.cmd.cmdCancel(pipelineError{err})
 	return err
 }
