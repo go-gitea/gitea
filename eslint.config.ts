@@ -21,7 +21,7 @@ const tsExts = ['ts', 'mts', 'cts'] as const;
 
 const restrictedSyntax = ['WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'];
 const restrictedFetchSyntax = [
-  {selector: 'CallExpression[callee.name="fetch"]', message: 'use `modules/fetch.ts` instead'},
+  {selector: 'CallExpression[callee.name="fetch"]', message: 'use `modules/fetch.ts` instead.'},
 ];
 const restrictedGlobals = [
   'addEventListener', 'blur', 'close', 'closed', 'confirm', 'defaultStatus', 'defaultstatus', 'error', 'event', 'external', 'find', 'focus', 'frameElement', 'frames', 'history', 'innerHeight', 'innerWidth', 'isFinite', 'isNaN', 'length', 'locationbar', 'menubar', 'moveBy', 'moveTo', 'name', 'onblur', 'onerror', 'onfocus', 'onload', 'onresize', 'onunload', 'open', 'opener', 'opera', 'outerHeight', 'outerWidth', 'pageXOffset', 'pageYOffset', 'parent', 'print', 'removeEventListener', 'resizeBy', 'resizeTo', 'screen', 'screenLeft', 'screenTop', 'screenX', 'screenY', 'scroll', 'scrollbars', 'scrollBy', 'scrollTo', 'scrollX', 'scrollY', 'status', 'statusbar', 'stop', 'toolbar', 'top',
