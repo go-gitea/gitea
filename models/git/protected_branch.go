@@ -182,13 +182,13 @@ func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user
 }
 
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
-func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch, userID int64, permissionInRepo access_model.Permission) bool {
+func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch, user *user_model.User, permissionInRepo access_model.Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {
 		// Then we need to fall back on whether the user has write permission
-		return permissionInRepo.CanWrite(unit.TypeCode)
+		return protectBranch.CanUserPush(ctx, user)
 	}
 
-	if slices.Contains(protectBranch.MergeWhitelistUserIDs, userID) {
+	if slices.Contains(protectBranch.MergeWhitelistUserIDs, user.ID) {
 		return true
 	}
 
@@ -196,7 +196,7 @@ func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch,
 		return false
 	}
 
-	in, err := organization.IsUserInTeams(ctx, userID, protectBranch.MergeWhitelistTeamIDs)
+	in, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.MergeWhitelistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
 		return false
