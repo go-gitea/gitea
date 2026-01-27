@@ -405,13 +405,6 @@ func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) 
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// .___
-// |   | ______ ________ __   ____
-// |   |/  ___//  ___/  |  \_/ __ \
-// |   |\___ \ \___ \|  |  /\  ___/
-// |___/____  >____  >____/  \___  >
-//          \/     \/            \/
-
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
 	Title               string `binding:"Required;MaxSize(255)"`
@@ -634,6 +627,19 @@ type NewReleaseForm struct {
 
 // Validate validates the fields
 func (f *NewReleaseForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetValidateContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// GenerateReleaseNotesForm retrieves release notes recommendations.
+type GenerateReleaseNotesForm struct {
+	TagName     string `form:"tag_name" binding:"Required;GitRefName;MaxSize(255)"`
+	TagTarget   string `form:"tag_target" binding:"MaxSize(255)"`
+	PreviousTag string `form:"previous_tag" binding:"MaxSize(255)"`
+}
+
+// Validate validates the fields
+func (f *GenerateReleaseNotesForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

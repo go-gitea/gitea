@@ -29,9 +29,13 @@ body {
   margin-right: 0.5rem;
 }
 
+.swagger-spec-content {
+  display: none;
+}
+
 @media (prefers-color-scheme: dark) {
   body {
-    background: #1e1e1e;
+    background: #14171a;
   }
   .swagger-ui, .swagger-back-link {
     filter: invert(88%) hue-rotate(180deg);

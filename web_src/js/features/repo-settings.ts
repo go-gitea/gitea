@@ -5,21 +5,21 @@ import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {globMatch} from '../utils/glob.ts';
 
-const {appSubUrl, csrfToken} = window.config;
+const {appSubUrl} = window.config;
 
 function initRepoSettingsCollaboration() {
   // Change collaborator access mode
   for (const dropdownEl of queryElems(document, '.page-content.repository .ui.dropdown.access-mode')) {
-    const textEl = dropdownEl.querySelector(':scope > .text');
+    const textEl = dropdownEl.querySelector(':scope > .text')!;
     const $dropdown = fomanticQuery(dropdownEl);
     $dropdown.dropdown({
       async action(text: string, value: string) {
         dropdownEl.classList.add('is-loading', 'loading-icon-2px');
-        const lastValue = dropdownEl.getAttribute('data-last-value');
+        const lastValue = dropdownEl.getAttribute('data-last-value')!;
         $dropdown.dropdown('hide');
         try {
-          const uid = dropdownEl.getAttribute('data-uid');
-          await POST(dropdownEl.getAttribute('data-url'), {data: new URLSearchParams({uid, 'mode': value})});
+          const uid = dropdownEl.getAttribute('data-uid')!;
+          await POST(dropdownEl.getAttribute('data-url')!, {data: new URLSearchParams({uid, 'mode': value})});
           textEl.textContent = text;
           dropdownEl.setAttribute('data-last-value', value);
         } catch {
@@ -56,7 +56,6 @@ function initRepoSettingsSearchTeamBox() {
     rawResponse: true,
     apiSettings: {
       url: `${appSubUrl}/org/${searchTeamBox.getAttribute('data-org-name')}/teams/-/search?q={query}`,
-      headers: {'X-Csrf-Token': csrfToken},
       onResponse(response: any) {
         const items: Array<Record<string, any>> = [];
         for (const item of response.data) {
@@ -73,8 +72,8 @@ function initRepoSettingsSearchTeamBox() {
 
 function initRepoSettingsGitHook() {
   if (!document.querySelector('.page-content.repository.settings.edit.githook')) return;
-  const filename = document.querySelector('.hook-filename').textContent;
-  createMonaco(document.querySelector<HTMLTextAreaElement>('#content'), filename, {language: 'shell'});
+  const filename = document.querySelector('.hook-filename')!.textContent;
+  createMonaco(document.querySelector<HTMLTextAreaElement>('#content')!, filename, {language: 'shell'});
 }
 
 function initRepoSettingsBranches() {
@@ -82,14 +81,14 @@ function initRepoSettingsBranches() {
 
   for (const el of document.querySelectorAll<HTMLInputElement>('.toggle-target-enabled')) {
     el.addEventListener('change', function () {
-      const target = document.querySelector(this.getAttribute('data-target'));
+      const target = document.querySelector(this.getAttribute('data-target')!);
       target?.classList.toggle('disabled', !this.checked);
     });
   }
 
   for (const el of document.querySelectorAll<HTMLInputElement>('.toggle-target-disabled')) {
     el.addEventListener('change', function () {
-      const target = document.querySelector(this.getAttribute('data-target'));
+      const target = document.querySelector(this.getAttribute('data-target')!);
       if (this.checked) target?.classList.add('disabled'); // only disable, do not auto enable
     });
   }
@@ -100,13 +99,13 @@ function initRepoSettingsBranches() {
 
   // show the `Matched` mark for the status checks that match the pattern
   const markMatchedStatusChecks = () => {
-    const patterns = (document.querySelector<HTMLTextAreaElement>('#status_check_contexts').value || '').split(/[\r\n]+/);
+    const patterns = (document.querySelector<HTMLTextAreaElement>('#status_check_contexts')!.value || '').split(/[\r\n]+/);
     const validPatterns = patterns.map((item) => item.trim()).filter(Boolean as unknown as <T>(x: T | boolean) => x is T);
     const marks = document.querySelectorAll('.status-check-matched-mark');
 
     for (const el of marks) {
       let matched = false;
-      const statusCheck = el.getAttribute('data-status-check');
+      const statusCheck = el.getAttribute('data-status-check')!;
       for (const pattern of validPatterns) {
         if (globMatch(statusCheck, pattern, '/')) {
           matched = true;
@@ -117,7 +116,7 @@ function initRepoSettingsBranches() {
     }
   };
   markMatchedStatusChecks();
-  document.querySelector('#status_check_contexts').addEventListener('input', onInputDebounce(markMatchedStatusChecks));
+  document.querySelector('#status_check_contexts')!.addEventListener('input', onInputDebounce(markMatchedStatusChecks));
 }
 
 function initRepoSettingsOptions() {
@@ -130,17 +129,17 @@ function initRepoSettingsOptions() {
     queryElems(document, selector, (el) => el.classList.toggle('disabled', !enabled));
   };
   queryElems<HTMLInputElement>(pageContent, '.enable-system', (el) => el.addEventListener('change', () => {
-    toggleTargetContextPanel(el.getAttribute('data-target'), el.checked);
-    toggleTargetContextPanel(el.getAttribute('data-context'), !el.checked);
+    toggleTargetContextPanel(el.getAttribute('data-target')!, el.checked);
+    toggleTargetContextPanel(el.getAttribute('data-context')!, !el.checked);
   }));
   queryElems<HTMLInputElement>(pageContent, '.enable-system-radio', (el) => el.addEventListener('change', () => {
-    toggleTargetContextPanel(el.getAttribute('data-target'), el.value === 'true');
-    toggleTargetContextPanel(el.getAttribute('data-context'), el.value === 'false');
+    toggleTargetContextPanel(el.getAttribute('data-target')!, el.value === 'true');
+    toggleTargetContextPanel(el.getAttribute('data-context')!, el.value === 'false');
   }));
 
   queryElems<HTMLInputElement>(pageContent, '.js-tracker-issue-style', (el) => el.addEventListener('change', () => {
     const checkedVal = el.value;
-    pageContent.querySelector('#tracker-issue-style-regex-box').classList.toggle('disabled', checkedVal !== 'regexp');
+    pageContent.querySelector('#tracker-issue-style-regex-box')!.classList.toggle('disabled', checkedVal !== 'regexp');
   }));
 }
 

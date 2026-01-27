@@ -10,7 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models/renderhelper"
@@ -277,12 +277,10 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	if rctx.SidebarTocNode != nil {
+	if rctx.TocShowInSection == markup.TocShowInSidebar && len(rctx.TocHeadingItems) > 0 {
 		sb := strings.Builder{}
-		if err = markdown.SpecializedMarkdown(rctx).Renderer().Render(&sb, nil, rctx.SidebarTocNode); err != nil {
-			log.Error("Failed to render wiki sidebar TOC: %v", err)
-		}
-		ctx.Data["WikiSidebarTocHTML"] = templates.SanitizeHTML(sb.String())
+		markup.RenderTocHeadingItems(rctx, map[string]string{"open": ""}, &sb)
+		ctx.Data["WikiSidebarTocHTML"] = template.HTML(sb.String())
 	}
 
 	if !isSideBar {
@@ -310,7 +308,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiGitRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	return wikiGitRepo, entry
@@ -350,7 +348,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiGitRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
@@ -492,9 +490,9 @@ func Wiki(ctx *context.Context) {
 	}
 
 	wikiPath := entry.Name()
-	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
-		ext := strings.ToUpper(filepath.Ext(wikiPath))
-		ctx.Data["FormatWarning"] = ext + " rendering is not supported at the moment. Rendered as Markdown."
+	detectedRender := markup.DetectRendererTypeByFilename(wikiPath)
+	if detectedRender == nil || detectedRender.Name() != markdown.MarkupName {
+		ctx.Data["FormatWarning"] = "File extension " + path.Ext(wikiPath) + " is not supported at the moment. Rendered as Markdown."
 	}
 	// Get last change information.
 	lastCommit, err := wikiGitRepo.GetCommitByPath(wikiPath)

@@ -26,17 +26,13 @@ func TestChangeDefaultBranch(t *testing.T) {
 	session := loginUser(t, owner.Name)
 	branchesURL := fmt.Sprintf("/%s/%s/settings/branches", owner.Name, repo.Name)
 
-	csrf := GetUserCSRFToken(t, session)
 	req := NewRequestWithValues(t, "POST", branchesURL, map[string]string{
-		"_csrf":  csrf,
 		"action": "default_branch",
 		"branch": "DefaultBranch",
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
-	csrf = GetUserCSRFToken(t, session)
 	req = NewRequestWithValues(t, "POST", branchesURL, map[string]string{
-		"_csrf":  csrf,
 		"action": "default_branch",
 		"branch": "does_not_exist",
 	})
@@ -110,9 +106,7 @@ func TestChangeDefaultBranchDivergence(t *testing.T) {
 
 	// switch default branch
 	newDefaultBranch := "good-sign-not-yet-validated"
-	csrf := GetUserCSRFToken(t, session)
 	req := NewRequestWithValues(t, "POST", settingsBranchesURL, map[string]string{
-		"_csrf":  csrf,
 		"action": "default_branch",
 		"branch": newDefaultBranch,
 	})

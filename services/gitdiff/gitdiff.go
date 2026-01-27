@@ -16,7 +16,6 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -200,6 +199,11 @@ type DiffBlobExcerptData struct {
 	AfterCommitID  string
 }
 
+const (
+	DiffStyleSplit   = "split"
+	DiffStyleUnified = "unified"
+)
+
 func (d *DiffLine) RenderBlobExcerptButtons(fileNameHash string, data *DiffBlobExcerptData) template.HTML {
 	dataHiddenCommentIDs := strings.Join(base.Int64sToStrings(d.SectionInfo.HiddenCommentIDs), ",")
 	anchor := fmt.Sprintf("diff-%sK%d", fileNameHash, d.SectionInfo.RightIdx)
@@ -327,7 +331,7 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 	if setting.Git.DisableDiffHighlight {
 		return template.HTML(html.EscapeString(diffLine.Content[1:]))
 	}
-	h, _ = highlight.Code(diffSection.FileName, fileLanguage, diffLine.Content[1:])
+	h, _ = highlight.RenderCodeFast(diffSection.FileName, fileLanguage, diffLine.Content[1:])
 	return h
 }
 
@@ -394,20 +398,20 @@ type DiffFile struct {
 	isAmbiguous bool
 
 	// basic fields (parsed from diff result)
-	Name        string
-	NameHash    string
-	OldName     string
-	Addition    int
-	Deletion    int
-	Type        DiffFileType
-	Mode        string
-	OldMode     string
-	IsCreated   bool
-	IsDeleted   bool
-	IsBin       bool
-	IsLFSFile   bool
-	IsRenamed   bool
-	IsSubmodule bool
+	Name         string
+	NameHash     string
+	OldName      string
+	Addition     int
+	Deletion     int
+	Type         DiffFileType
+	EntryMode    string
+	OldEntryMode string
+	IsCreated    bool
+	IsDeleted    bool
+	IsBin        bool
+	IsLFSFile    bool
+	IsRenamed    bool
+	IsSubmodule  bool
 	// basic fields but for render purpose only
 	Sections                []*DiffSection
 	IsIncomplete            bool
@@ -496,21 +500,36 @@ func (diffFile *DiffFile) ShouldBeHidden() bool {
 	return diffFile.IsGenerated || diffFile.IsViewed
 }
 
-func (diffFile *DiffFile) ModeTranslationKey(mode string) string {
-	switch mode {
-	case "040000":
-		return "git.filemode.directory"
-	case "100644":
-		return "git.filemode.normal_file"
-	case "100755":
-		return "git.filemode.executable_file"
-	case "120000":
-		return "git.filemode.symbolic_link"
-	case "160000":
-		return "git.filemode.submodule"
-	default:
-		return mode
+func (diffFile *DiffFile) TranslateDiffEntryMode(locale translation.Locale) string {
+	entryModeTr := func(mode string) string {
+		entryMode := git.ParseEntryMode(mode)
+		switch {
+		case entryMode.IsDir():
+			return locale.TrString("git.filemode.directory")
+		case entryMode.IsRegular():
+			return locale.TrString("git.filemode.normal_file")
+		case entryMode.IsExecutable():
+			return locale.TrString("git.filemode.executable_file")
+		case entryMode.IsLink():
+			return locale.TrString("git.filemode.symbolic_link")
+		case entryMode.IsSubModule():
+			return locale.TrString("git.filemode.submodule")
+		default:
+			return mode
+		}
 	}
+
+	if diffFile.EntryMode != "" && diffFile.OldEntryMode != "" {
+		oldMode := entryModeTr(diffFile.OldEntryMode)
+		newMode := entryModeTr(diffFile.EntryMode)
+		return locale.TrString("git.filemode.changed_filemode", oldMode, newMode)
+	}
+	if diffFile.EntryMode != "" {
+		if entryMode := git.ParseEntryMode(diffFile.EntryMode); !entryMode.IsRegular() {
+			return entryModeTr(diffFile.EntryMode)
+		}
+	}
+	return ""
 }
 
 type limitByteWriter struct {
@@ -690,10 +709,10 @@ parsingLoop:
 				strings.HasPrefix(line, "new mode "):
 
 				if strings.HasPrefix(line, "old mode ") {
-					curFile.OldMode = prepareValue(line, "old mode ")
+					curFile.OldEntryMode = prepareValue(line, "old mode ")
 				}
 				if strings.HasPrefix(line, "new mode ") {
-					curFile.Mode = prepareValue(line, "new mode ")
+					curFile.EntryMode = prepareValue(line, "new mode ")
 				}
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule, curFile.SubmoduleDiffInfo = true, &SubmoduleDiffInfo{}
@@ -728,7 +747,7 @@ parsingLoop:
 				curFile.Type = DiffFileAdd
 				curFile.IsCreated = true
 				if strings.HasPrefix(line, "new file mode ") {
-					curFile.Mode = prepareValue(line, "new file mode ")
+					curFile.EntryMode = prepareValue(line, "new file mode ")
 				}
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule, curFile.SubmoduleDiffInfo = true, &SubmoduleDiffInfo{}
@@ -835,11 +854,11 @@ parsingLoop:
 			if buffer.Len() == 0 {
 				continue
 			}
-			charsetLabel, err := charset.DetectEncoding(buffer.Bytes())
-			if charsetLabel != "UTF-8" && err == nil {
-				encoding, _ := stdcharset.Lookup(charsetLabel)
-				if encoding != nil {
-					diffLineTypeDecoders[lineType] = encoding.NewDecoder()
+			charsetLabel, _ := charset.DetectEncoding(buffer.Bytes())
+			if charsetLabel != "UTF-8" {
+				charsetEncoding, _ := stdcharset.Lookup(charsetLabel)
+				if charsetEncoding != nil {
+					diffLineTypeDecoders[lineType] = charsetEncoding.NewDecoder()
 				}
 			}
 		}
@@ -1225,8 +1244,9 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 	}
 
 	cmdDiff := gitcmd.NewCommand().
-		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M").
-		AddArguments(opts.WhitespaceBehavior...)
+		AddArguments("diff", "--src-prefix=\\a/", "--dst-prefix=\\b/").
+		AddArguments(opts.WhitespaceBehavior...).
+		AddOptionFormat("--find-renames=%s", setting.Git.DiffRenameSimilarityThreshold)
 
 	// In git 2.31, git diff learned --skip-to which we can use to shortcut skip to file
 	// so if we are using at least this version of git we don't have to tell ParsePatch to do
@@ -1243,23 +1263,14 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 	cmdCtx, cmdCancel := context.WithCancel(ctx)
 	defer cmdCancel()
 
-	reader, writer := io.Pipe()
-	defer func() {
-		_ = reader.Close()
-		_ = writer.Close()
-	}()
-
+	reader, readerClose := cmdDiff.MakeStdoutPipe()
+	defer readerClose()
 	go func() {
-		stderr := &bytes.Buffer{}
-		if err := cmdDiff.WithTimeout(time.Duration(setting.Git.Timeout.Default) * time.Second).
+		if err := cmdDiff.
 			WithDir(repoPath).
-			WithStdout(writer).
-			WithStderr(stderr).
-			Run(cmdCtx); err != nil && !git.IsErrCanceledOrKilled(err) {
-			log.Error("error during GetDiff(git diff dir: %s): %v, stderr: %s", repoPath, err, stderr.String())
+			RunWithStderr(cmdCtx); err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
+			log.Error("error during GetDiff(git diff dir: %s): %v", repoPath, err)
 		}
-
-		_ = writer.Close()
 	}()
 
 	diff, err := ParsePatch(cmdCtx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
@@ -1325,10 +1336,10 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		shouldFullFileHighlight := !setting.Git.DisableDiffHighlight && attrDiff.Value() == ""
 		if shouldFullFileHighlight {
 			if limitedContent.LeftContent != nil && limitedContent.LeftContent.buf.Len() < MaxDiffHighlightEntireFileSize {
-				diffFile.highlightedLeftLines = highlightCodeLines(diffFile, true /* left */, limitedContent.LeftContent.buf.String())
+				diffFile.highlightedLeftLines = highlightCodeLines(diffFile, true /* left */, limitedContent.LeftContent.buf.Bytes())
 			}
 			if limitedContent.RightContent != nil && limitedContent.RightContent.buf.Len() < MaxDiffHighlightEntireFileSize {
-				diffFile.highlightedRightLines = highlightCodeLines(diffFile, false /* right */, limitedContent.RightContent.buf.String())
+				diffFile.highlightedRightLines = highlightCodeLines(diffFile, false /* right */, limitedContent.RightContent.buf.Bytes())
 			}
 		}
 	}
@@ -1336,10 +1347,11 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 	return diff, nil
 }
 
-func highlightCodeLines(diffFile *DiffFile, isLeft bool, content string) map[int]template.HTML {
-	highlightedNewContent, _ := highlight.Code(diffFile.Name, diffFile.Language, content)
-	splitLines := strings.Split(string(highlightedNewContent), "\n")
-	lines := make(map[int]template.HTML, len(splitLines))
+func highlightCodeLines(diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
+	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
+	highlightedNewContent, _ := highlight.RenderCodeFast(diffFile.Name, diffFile.Language, content)
+	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
+	lines := make(map[int]template.HTML, len(unsafeLines))
 	// only save the highlighted lines we need, but not the whole file, to save memory
 	for _, sec := range diffFile.Sections {
 		for _, ln := range sec.Lines {
@@ -1349,8 +1361,8 @@ func highlightCodeLines(diffFile *DiffFile, isLeft bool, content string) map[int
 			}
 			if lineIdx >= 1 {
 				idx := lineIdx - 1
-				if idx < len(splitLines) {
-					lines[idx] = template.HTML(splitLines[idx])
+				if idx < len(unsafeLines) {
+					lines[idx] = template.HTML(util.UnsafeBytesToString(unsafeLines[idx]))
 				}
 			}
 		}

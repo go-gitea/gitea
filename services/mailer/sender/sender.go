@@ -4,10 +4,8 @@
 package sender
 
 import (
+	"errors"
 	"io"
-
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 type Sender interface {
@@ -16,23 +14,18 @@ type Sender interface {
 
 var Send = send
 
-func send(sender Sender, msgs ...*Message) error {
-	if setting.MailService == nil {
-		log.Error("Mailer: Send is being invoked but mail service hasn't been initialized")
-		return nil
+func send(sender Sender, msg *Message) error {
+	m := msg.ToMessage()
+	froms := m.GetFrom()
+	to, err := m.GetRecipients()
+	if err != nil {
+		return err
 	}
-	for _, msg := range msgs {
-		m := msg.ToMessage()
-		froms := m.GetFrom()
-		to, err := m.GetRecipients()
-		if err != nil {
-			return err
-		}
 
-		// TODO: implement sending from multiple addresses
-		if err := sender.Send(froms[0].Address, to, m); err != nil {
-			return err
-		}
+	// TODO: implement sending from multiple addresses
+	if len(froms) == 0 {
+		// FIXME: no idea why sometimes the "froms" can be empty, need to figure out the root problem
+		return errors.New("no FROM specified")
 	}
-	return nil
+	return sender.Send(froms[0].Address, to, m)
 }

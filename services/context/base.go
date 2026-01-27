@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
@@ -43,8 +44,10 @@ type Base struct {
 	Locale translation.Locale
 }
 
+var ParseMultipartFormMaxMemory = int64(32 << 20)
+
 func (b *Base) ParseMultipartForm() bool {
-	err := b.Req.ParseMultipartForm(32 << 20)
+	err := b.Req.ParseMultipartForm(ParseMultipartFormMaxMemory)
 	if err != nil {
 		// TODO: all errors caused by client side should be ignored (connection closed).
 		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
@@ -145,10 +148,7 @@ func (b *Base) PlainText(status int, text string) {
 
 // Redirect redirects the request
 func (b *Base) Redirect(location string, status ...int) {
-	code := http.StatusSeeOther
-	if len(status) == 1 {
-		code = status[0]
-	}
+	code := util.OptionalArg(status, http.StatusSeeOther)
 
 	if !httplib.IsRelativeURL(location) {
 		// Some browsers (Safari) have buggy behavior for Cookie + Cache + External Redirection, eg: /my-path => https://other/path

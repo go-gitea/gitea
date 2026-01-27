@@ -11,12 +11,12 @@ export function initMarkupRefIssue(el: HTMLElement) {
   });
 }
 
-export function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
+function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
   const refIssue = e.currentTarget as HTMLElement;
   if (getAttachedTippyInstance(refIssue)) return;
   if (refIssue.classList.contains('ref-external-issue')) return;
 
-  const issuePathInfo = parseIssueHref(refIssue.getAttribute('href'));
+  const issuePathInfo = parseIssueHref(refIssue.getAttribute('href')!);
   if (!issuePathInfo.ownerName) return;
 
   const el = document.createElement('div');

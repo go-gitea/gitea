@@ -10,22 +10,26 @@ concurrency:
 jobs:
   files-changed:
     uses: ./.github/workflows/files-changed.yml
+    permissions:
+      contents: read
 
   container:
     if: needs.files-changed.outputs.docker == 'true' || needs.files-changed.outputs.actions == 'true'
     needs: files-changed
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: docker/setup-buildx-action@v3
       - name: Build regular container image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: false
           tags: gitea/gitea:linux-amd64
       - name: Build rootless container image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: false

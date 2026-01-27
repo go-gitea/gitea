@@ -21,6 +21,9 @@ function mainExternalRenderIframe() {
   };
 
   const updateIframeHeight = () => postIframeMsg('resize', {iframeHeight: document.documentElement.scrollHeight});
+  const resizeObserver = new ResizeObserver(() => updateIframeHeight());
+  resizeObserver.observe(window.document.documentElement);
+
   updateIframeHeight();
   window.addEventListener('DOMContentLoaded', updateIframeHeight);
   // the easiest way to handle dynamic content changes and easy to debug, can be fine-tuned in the future
@@ -35,7 +38,7 @@ function mainExternalRenderIframe() {
     // safe links: "./any", "../any", "/any", "//host/any", "http://host/any", "https://host/any"
     if (href.startsWith('.') || href.startsWith('/') || href.startsWith('http://') || href.startsWith('https://')) {
       e.preventDefault();
-      openIframeLink(href, el.getAttribute('target'));
+      openIframeLink(href, el.getAttribute('target')!);
     }
   });
 }

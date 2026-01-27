@@ -222,7 +222,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
+	commitsCount, err := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository, ctx.Repo.RefFullName.ShortName(), ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("FileCommitsCount", err)
 		return
@@ -279,7 +279,7 @@ func Diff(ctx *context.Context) {
 
 	diffBlobExcerptData := &gitdiff.DiffBlobExcerptData{
 		BaseLink:      ctx.Repo.RepoLink + "/blob_excerpt",
-		DiffStyle:     ctx.FormString("style"),
+		DiffStyle:     GetDiffViewStyle(ctx),
 		AfterCommitID: commitID,
 	}
 	gitRepo := ctx.Repo.GitRepo

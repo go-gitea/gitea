@@ -264,12 +264,12 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 			return git_model.ErrBranchAlreadyExists{
 				BranchName: name,
 			}
-		// If branchRefName like a/b but we want to create a branch named a then we have a conflict
+		// If branchRefName like "a/b" but we want to create a branch named a then we have a conflict
 		case strings.HasPrefix(branchRefName, name+"/"):
 			return git_model.ErrBranchNameConflict{
 				BranchName: branchRefName,
 			}
-			// Conversely if branchRefName like a but we want to create a branch named a/b then we also have a conflict
+			// Conversely if branchRefName like "a" but we want to create a branch named "a/b" then we also have a conflict
 		case strings.HasPrefix(name, branchRefName+"/"):
 			return git_model.ErrBranchNameConflict{
 				BranchName: branchRefName,
@@ -281,7 +281,6 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 		}
 		return nil
 	})
-
 	return err
 }
 
@@ -385,8 +384,7 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		return err
 	}
 
-	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
-		Remote: repo.RepoPath(),
+	if err := gitrepo.Push(ctx, repo, repo, git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitID, git.BranchPrefix, branchName),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 	}); err != nil {
@@ -444,6 +442,15 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		}
 	}
 
+	// We also need to check if "to" matches with a protected branch rule.
+	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, to)
+	if err != nil {
+		return "", err
+	}
+	if rule != nil && !rule.CanUserPush(ctx, doer) {
+		return "", git_model.ErrBranchIsProtected
+	}
+
 	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
 		err2 := gitrepo.RenameBranch(ctx, repo, from, to)
 		if err2 != nil {
@@ -481,6 +488,63 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 	notify_service.CreateRef(ctx, doer, repo, git.RefNameFromBranch(to), fromBranch.CommitID)
 
 	return "", nil
+}
+
+// UpdateBranch moves a branch reference to the provided commit. permission check should be done before calling this function.
+func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, doer *user_model.User, branchName, newCommitID, expectedOldCommitID string, force bool) error {
+	branch, err := git_model.GetBranch(ctx, repo.ID, branchName)
+	if err != nil {
+		return err
+	}
+	if branch.IsDeleted {
+		return git_model.ErrBranchNotExist{
+			BranchName: branchName,
+		}
+	}
+
+	if expectedOldCommitID != "" {
+		expectedID, err := gitRepo.ConvertToGitID(expectedOldCommitID)
+		if err != nil {
+			return fmt.Errorf("ConvertToGitID(old): %w", err)
+		}
+		if expectedID.String() != branch.CommitID {
+			return util.NewInvalidArgumentErrorf("branch commit does not match [expected: %s, given: %s]", expectedID.String(), branch.CommitID)
+		}
+	}
+
+	newID, err := gitRepo.ConvertToGitID(newCommitID)
+	if err != nil {
+		return fmt.Errorf("ConvertToGitID(new): %w", err)
+	}
+	newCommit, err := gitRepo.GetCommit(newID.String())
+	if err != nil {
+		return err
+	}
+
+	if newCommit.ID.String() == branch.CommitID {
+		return nil
+	}
+
+	isForcePush, err := newCommit.IsForcePush(branch.CommitID)
+	if err != nil {
+		return err
+	}
+	if isForcePush && !force {
+		return util.NewInvalidArgumentErrorf("Force push %s need a confirm force parameter", branchName)
+	}
+
+	pushOpts := git.PushOptions{
+		Branch: fmt.Sprintf("%s:%s%s", newCommit.ID.String(), git.BranchPrefix, branchName),
+		Env:    repo_module.PushingEnvironment(doer, repo),
+		Force:  isForcePush || force,
+	}
+
+	if expectedOldCommitID != "" {
+		pushOpts.ForceWithLease = fmt.Sprintf("%s:%s", git.BranchPrefix+branchName, branch.CommitID)
+	}
+
+	// branch protection will be checked in the pre received hook, so that we don't need any check here
+	return gitrepo.Push(ctx, repo, repo, pushOpts)
 }
 
 var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default")
