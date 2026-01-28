@@ -48,22 +48,18 @@ func TestAuthenticate(t *testing.T) {
 
 	t.Run("authenticate", func(t *testing.T) {
 		const prefixBearer = "Bearer "
-		assert.False(t, authenticate(ctx, repo1, "", true, false))
-		assert.False(t, authenticate(ctx, repo1, prefixBearer+"invalid", true, false))
-		assert.True(t, authenticate(ctx, repo1, prefixBearer+token2, true, false))
+		assert.False(t, authenticate(ctx, repo1, "", true, false, ""))
+		assert.False(t, authenticate(ctx, repo1, prefixBearer+"invalid", true, false, ""))
+		assert.True(t, authenticate(ctx, repo1, prefixBearer+token2, true, false, ""))
 	})
 
 	t.Run("maintainer edits", func(t *testing.T) {
 		maintainer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 12})
 		ctx2, _ := contexttest.MockContext(t, "/")
 		ctx2.Doer = maintainer
-		if ctx2.Data == nil {
-			ctx2.Data = make(map[string]any)
-		}
-		ctx2.Data[lfsRefContextKey] = "branch2"
 		perm, err := access_model.GetUserRepoPermission(ctx2, repoFork, maintainer)
 		require.NoError(t, err)
 		require.False(t, perm.CanWrite(unit.TypeCode))
-		assert.True(t, authenticate(ctx2, repoFork, "", false, true))
+		assert.True(t, authenticate(ctx2, repoFork, "", false, true, "branch2"))
 	})
 }

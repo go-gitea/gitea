@@ -50,8 +50,7 @@ type requestContext struct {
 }
 
 const (
-	lfsRefContextKey = "LFSRefName"
-	lfsRefQueryKey   = "lfs-ref"
+	lfsRefQueryKey = "lfs-ref"
 )
 
 // Claims is a JWT Token Claims
@@ -130,7 +129,7 @@ func DownloadHandler(ctx *context.Context) {
 	rc := getRequestContext(ctx)
 	p := lfs_module.Pointer{Oid: ctx.PathParam("oid")}
 
-	meta := getAuthenticatedMeta(ctx, rc, p, false)
+	meta := getAuthenticatedMeta(ctx, rc, p, false, "")
 	if meta == nil {
 		return
 	}
@@ -207,25 +206,6 @@ func refNameFromBatchRequest(br *lfs_module.BatchRequest) string {
 	return br.Ref.Name
 }
 
-func setLFSRefInContext(ctx *context.Context, ref string) {
-	if ref == "" {
-		return
-	}
-	ctx.Data[lfsRefContextKey] = ref
-}
-
-func getLFSRefFromContext(ctx *context.Context) string {
-	if ref, ok := ctx.Data[lfsRefContextKey].(string); ok {
-		return ref
-	}
-	return ""
-}
-
-func setLFSRefFromQuery(ctx *context.Context) {
-	ref := ctx.Req.URL.Query().Get(lfsRefQueryKey)
-	setLFSRefInContext(ctx, ref)
-}
-
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
 	var br lfs_module.BatchRequest
@@ -249,9 +229,8 @@ func BatchHandler(ctx *context.Context) {
 
 	rc := getRequestContext(ctx)
 	refName := refNameFromBatchRequest(&br)
-	setLFSRefInContext(ctx, refName)
 
-	repository := getAuthenticatedRepository(ctx, rc, isUpload)
+	repository := getAuthenticatedRepository(ctx, rc, isUpload, refName)
 	if repository == nil {
 		return
 	}
@@ -352,7 +331,7 @@ func BatchHandler(ctx *context.Context) {
 
 // UploadHandler receives data from the client and puts it into the content store
 func UploadHandler(ctx *context.Context) {
-	setLFSRefFromQuery(ctx)
+	ref := ctx.Req.URL.Query().Get(lfsRefQueryKey)
 	rc := getRequestContext(ctx)
 
 	p := lfs_module.Pointer{Oid: ctx.PathParam("oid")}
@@ -367,7 +346,7 @@ func UploadHandler(ctx *context.Context) {
 		return
 	}
 
-	repository := getAuthenticatedRepository(ctx, rc, true)
+	repository := getAuthenticatedRepository(ctx, rc, true, ref)
 	if repository == nil {
 		return
 	}
@@ -438,10 +417,10 @@ func VerifyHandler(ctx *context.Context) {
 		return
 	}
 
-	setLFSRefFromQuery(ctx)
+	ref := ctx.Req.URL.Query().Get(lfsRefQueryKey)
 	rc := getRequestContext(ctx)
 
-	meta := getAuthenticatedMeta(ctx, rc, p, true)
+	meta := getAuthenticatedMeta(ctx, rc, p, true, ref)
 	if meta == nil {
 		return
 	}
@@ -478,14 +457,14 @@ func getRequestContext(ctx *context.Context) *requestContext {
 	}
 }
 
-func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool) *git_model.LFSMetaObject {
+func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module.Pointer, requireWrite bool, ref string) *git_model.LFSMetaObject {
 	if !p.IsValid() {
 		log.Info("Attempt to access invalid LFS OID[%s] in %s/%s", p.Oid, rc.User, rc.Repo)
 		writeStatusMessage(ctx, http.StatusUnprocessableEntity, "Oid or size are invalid")
 		return nil
 	}
 
-	repository := getAuthenticatedRepository(ctx, rc, requireWrite)
+	repository := getAuthenticatedRepository(ctx, rc, requireWrite, ref)
 	if repository == nil {
 		return nil
 	}
@@ -500,7 +479,7 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 	return meta
 }
 
-func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool) *repo_model.Repository {
+func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requireWrite bool, ref string) *repo_model.Repository {
 	repository, err := repo_model.GetRepositoryByOwnerAndName(ctx, rc.User, rc.Repo)
 	if err != nil {
 		log.Error("Unable to get repository: %s/%s Error: %v", rc.User, rc.Repo, err)
@@ -508,7 +487,7 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 		return nil
 	}
 
-	if !authenticate(ctx, repository, rc.Authorization, false, requireWrite) {
+	if !authenticate(ctx, repository, rc.Authorization, false, requireWrite, ref) {
 		requireAuth(ctx)
 		return nil
 	}
@@ -587,20 +566,28 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 	}
 }
 
-func canMaintainerWriteLFS(ctx *context.Context, perm access_model.Permission, user *user_model.User) bool {
+func canMaintainerWriteLFS(ctx *context.Context, perm access_model.Permission, user *user_model.User, ref string) bool {
 	if user == nil {
 		return false
 	}
-	ref := git.RefName(getLFSRefFromContext(ctx))
-	if ref == "" || !ref.IsBranch() {
+	refName := git.RefName(ref)
+	if refName == "" {
 		return false
 	}
-	return issues_model.CanMaintainerWriteToBranch(ctx, perm, ref.BranchName(), user)
+
+	branchName := refName.BranchName()
+	if branchName == "" {
+		if strings.HasPrefix(ref, "refs/") {
+			return false
+		}
+		branchName = ref
+	}
+	return issues_model.CanMaintainerWriteToBranch(ctx, perm, branchName, user)
 }
 
 // authenticate uses the authorization string to determine whether
 // to proceed. This server assumes an HTTP Basic auth format.
-func authenticate(ctx *context.Context, repository *repo_model.Repository, authorization string, requireSigned, requireWrite bool) bool {
+func authenticate(ctx *context.Context, repository *repo_model.Repository, authorization string, requireSigned, requireWrite bool, ref string) bool {
 	accessMode := perm_model.AccessModeRead
 	if requireWrite {
 		accessMode = perm_model.AccessModeWrite
@@ -624,7 +611,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	}
 
 	canAccess := perm.CanAccess(accessMode, unit.TypeCode)
-	if requireWrite && !canAccess && canMaintainerWriteLFS(ctx, perm, ctx.Doer) {
+	if requireWrite && !canAccess && canMaintainerWriteLFS(ctx, perm, ctx.Doer, ref) {
 		canAccess = true
 	}
 	// if it doesn't require sign-in and anonymous user has access, return true
@@ -655,7 +642,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	}
 
 	canAccess = perm.CanAccess(accessMode, unit.TypeCode)
-	if !canAccess && canMaintainerWriteLFS(ctx, perm, ctx.Doer) {
+	if !canAccess && canMaintainerWriteLFS(ctx, perm, ctx.Doer, ref) {
 		canAccess = true
 	}
 	if canAccess {
