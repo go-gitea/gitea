@@ -88,7 +88,6 @@ func (q *baseRedis) PopItem(ctx context.Context) ([]byte, error) {
 		}
 
 		res, err := q.client.BLPop(ctx, time.Second, q.cfg.QueueFullName).Result()
-
 		if err != nil {
 			if err == redis.Nil {
 				connBackoff = backoffBegin
