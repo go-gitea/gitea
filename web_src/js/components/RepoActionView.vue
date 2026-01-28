@@ -130,6 +130,8 @@ export default defineComponent({
         workflowID: '',
         workflowLink: '',
         isSchedule: false,
+        parentJobLink: '',
+        parentJobDisplay: '',
         jobs: [
           // {
           //   id: 0,
@@ -501,6 +503,11 @@ export default defineComponent({
         <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
           <span v-if="run.commit.branch.isDeleted" class="gt-ellipsis tw-line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
           <a v-else class="gt-ellipsis" :href="run.commit.branch.link" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</a>
+        </span>
+        <span v-if="run.parentJobLink && run.parentJobDisplay">
+          ({{ locale.parentJob }}
+          <a class="muted" :href="run.parentJobLink">{{ run.parentJobDisplay }}</a>
+          )
         </span>
       </div>
     </div>

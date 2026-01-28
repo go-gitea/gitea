@@ -125,6 +125,8 @@ type ViewResponse struct {
 			WorkflowID        string        `json:"workflowID"`
 			WorkflowLink      string        `json:"workflowLink"`
 			IsSchedule        bool          `json:"isSchedule"`
+			ParentJobLink     string        `json:"parentJobLink"`
+			ParentJobDisplay  string        `json:"parentJobDisplay"`
 			Jobs              []*ViewJob    `json:"jobs"`
 			Commit            ViewCommit    `json:"commit"`
 		} `json:"run"`
@@ -241,6 +243,32 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.WorkflowID = run.WorkflowID
 	resp.State.Run.WorkflowLink = run.WorkflowLink()
 	resp.State.Run.IsSchedule = run.IsSchedule()
+	if run.ParentJobID > 0 {
+		if err := run.LoadParentJob(ctx); err != nil {
+			ctx.ServerError("LoadParentJob", err)
+			return
+		}
+		if err := run.ParentJob.LoadAttributes(ctx); err != nil {
+			ctx.ServerError("LoadAttributes", err)
+			return
+		}
+		parentJobs, err := actions_model.GetRunJobsByRunID(ctx, run.ParentJob.RunID)
+		if err != nil {
+			ctx.ServerError("GetRunJobsByRunID", err)
+			return
+		}
+		parentJobIndex := -1
+		for i, pj := range parentJobs {
+			if pj.ID == run.ParentJob.ID {
+				parentJobIndex = i
+				break
+			}
+		}
+		if parentJobIndex >= 0 {
+			resp.State.Run.ParentJobLink = fmt.Sprintf("%s/jobs/%d", run.ParentJob.Run.Link(), parentJobIndex)
+			resp.State.Run.ParentJobDisplay = fmt.Sprintf("#%d / %s", run.ParentJob.Run.Index, run.ParentJob.Name)
+		}
+	}
 	resp.State.Run.Jobs = make([]*ViewJob, 0, len(jobs)) // marshal to '[]' instead fo 'null' in json
 	resp.State.Run.Status = run.Status.String()
 	for i, v := range jobs {
