@@ -5,7 +5,7 @@ const pngPhys = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91
 const pngEmpty = 'data:image/png;base64,';
 
 async function dataUriToBlob(datauri: string) {
-  return await (await globalThis.fetch(datauri)).blob();
+  return await (await globalThis.fetch(datauri)).blob(); // eslint-disable-line no-restricted-properties
 }
 
 test('pngChunks', async () => {

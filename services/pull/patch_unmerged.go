@@ -63,7 +63,7 @@ func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan
 	lsFilesReader, lsFilesReaderClose := cmd.MakeStdoutPipe()
 	defer lsFilesReaderClose()
 	err := cmd.WithDir(tmpBasePath).
-		WithPipelineFunc(func(_ gitcmd.Context) error {
+		WithPipelineFunc(func(gitcmd.Context) error {
 			bufferedReader := bufio.NewReader(lsFilesReader)
 
 			for {

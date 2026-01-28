@@ -82,6 +82,8 @@
 				<ul>
 					{{range .ConflictedFiles}}
 					<li>{{.}}</li>
+					{{else}}
+					<li>{{ctx.Locale.Tr "repo.pulls.files_conflicted_no_listed_files"}}</li>
 					{{end}}
 				</ul>
 			{{else if .IsPullRequestBroken}}

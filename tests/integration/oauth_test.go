@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -92,6 +93,44 @@ func TestAuthorizeShow(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	AssertHTMLElement(t, htmlDoc, "#authorize-app", true)
+}
+
+func TestAuthorizeGrantS256RequiresVerifier(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	ctx := loginUser(t, "user4")
+	codeChallenge := "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg"
+	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=a&response_type=code&state=thestate&code_challenge_method=S256&code_challenge="+url.QueryEscape(codeChallenge))
+	resp := ctx.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	AssertHTMLElement(t, htmlDoc, "#authorize-app", true)
+
+	grantReq := NewRequestWithValues(t, "POST", "/login/oauth/grant", map[string]string{
+		"client_id":    "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"state":        "thestate",
+		"scope":        "",
+		"nonce":        "",
+		"redirect_uri": "a",
+		"granted":      "true",
+	})
+	grantResp := ctx.MakeRequest(t, grantReq, http.StatusSeeOther)
+	u, err := grantResp.Result().Location()
+	assert.NoError(t, err)
+	code := u.Query().Get("code")
+	assert.NotEmpty(t, code)
+
+	accessReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "a",
+		"code":          code,
+	})
+	accessResp := MakeRequest(t, accessReq, http.StatusBadRequest)
+	parsedError := new(oauth2_provider.AccessTokenError)
+	assert.NoError(t, json.Unmarshal(accessResp.Body.Bytes(), parsedError))
+	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
+	assert.Equal(t, "failed PKCE code challenge", parsedError.ErrorDescription)
 }
 
 func TestAuthorizeRedirectWithExistingGrant(t *testing.T) {

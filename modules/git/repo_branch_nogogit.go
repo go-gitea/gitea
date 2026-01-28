@@ -101,7 +101,7 @@ func WalkShowRef(ctx context.Context, repoPath string, extraArgs gitcmd.TrustedC
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
 	defer stdoutReaderClose()
 	cmd.WithDir(repoPath).
-		WithPipelineFunc(func(c gitcmd.Context) error {
+		WithPipelineFunc(func(gitcmd.Context) error {
 			bufReader := bufio.NewReader(stdoutReader)
 			for i < skip {
 				_, isPrefix, err := bufReader.ReadLine()
@@ -165,7 +165,7 @@ func WalkShowRef(ctx context.Context, repoPath string, extraArgs gitcmd.TrustedC
 			return nil
 		})
 	err = cmd.RunWithStderr(ctx)
-	if errPipeline := gitcmd.ErrorAsPipeline(err); errPipeline != nil {
+	if errPipeline, ok := gitcmd.UnwrapPipelineError(err); ok {
 		return i, errPipeline // keep the old behavior: return pipeline error directly
 	}
 	return i, err

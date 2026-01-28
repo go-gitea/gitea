@@ -43,7 +43,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 		return fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
 	}
 
-	cmd := gitcmd.NewCommand("merge", "--ff-only").AddDynamicArguments(stagingBranch)
+	cmd := gitcmd.NewCommand("merge", "--ff-only").AddDynamicArguments(tmpRepoStagingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleRebase, cmd); err != nil {
 		log.Error("Unable to merge staging into base: %v", err)
 		return err
@@ -88,7 +88,7 @@ func doMergeRebaseFastForward(ctx *mergeContext) error {
 
 // Perform rebase merge with merge commit.
 func doMergeRebaseMergeCommit(ctx *mergeContext, message string) error {
-	cmd := gitcmd.NewCommand("merge").AddArguments("--no-ff", "--no-commit").AddDynamicArguments(stagingBranch)
+	cmd := gitcmd.NewCommand("merge").AddArguments("--no-ff", "--no-commit").AddDynamicArguments(tmpRepoStagingBranch)
 
 	if err := runMergeCommand(ctx, repo_model.MergeStyleRebaseMerge, cmd); err != nil {
 		log.Error("Unable to merge staging into base: %v", err)
@@ -109,7 +109,7 @@ func doMergeStyleRebase(ctx *mergeContext, mergeStyle repo_model.MergeStyle, mes
 	}
 
 	// Checkout base branch again
-	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("checkout").AddDynamicArguments(baseBranch)).
+	if err := ctx.PrepareGitCmd(gitcmd.NewCommand("checkout").AddDynamicArguments(tmpRepoBaseBranch)).
 		RunWithStderr(ctx); err != nil {
 		log.Error("git checkout base prior to merge post staging rebase %-v: %v\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())
 		return fmt.Errorf("git checkout base prior to merge post staging rebase  %v: %w\n%s\n%s", ctx.pr, err, ctx.outbuf.String(), err.Stderr())

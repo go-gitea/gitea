@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-globals */
 // Some people deploy Gitea under a subpath, so it needs prefix to avoid local storage key conflicts.
 // And these keys are for user settings only, it also needs a specific prefix,
 // in case in the future there are other uses of local storage, and/or we need to clear some keys when the quota is exceeded.

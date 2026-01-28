@@ -1796,6 +1796,7 @@
   "repo.pulls.remove_prefix": "Remove <strong>%s</strong> prefix",
   "repo.pulls.data_broken": "This pull request is broken due to missing fork information.",
   "repo.pulls.files_conflicted": "This pull request has changes conflicting with the target branch.",
+  "repo.pulls.files_conflicted_no_listed_files": "(No conflicting files listed)",
   "repo.pulls.is_checking": "Checking for merge conflicts…",
   "repo.pulls.is_ancestor": "This branch is already included in the target branch. There is nothing to merge.",
   "repo.pulls.is_empty": "The changes on this branch are already on the target branch. This will be an empty commit.",
