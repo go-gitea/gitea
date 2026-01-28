@@ -38,11 +38,13 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 
 	// Group by 15 minute intervals which will allow the client to accurately shift the timestamp to their timezone.
 	// The interval is based on the fact that there are timezones such as UTC +5:30 and UTC +12:45.
-	groupBy := "created_unix / 900 * 900"
+	// Use original_unix if available (for commit actions, this is the commit author date),
+	// otherwise fall back to created_unix (the push/action timestamp).
+	groupBy := "COALESCE(NULLIF(original_unix, 0), created_unix) / 900 * 900"
 	groupByName := "timestamp" // We need this extra case because mssql doesn't allow grouping by alias
 	switch {
 	case setting.Database.Type.IsMySQL():
-		groupBy = "created_unix DIV 900 * 900"
+		groupBy = "COALESCE(NULLIF(original_unix, 0), created_unix) DIV 900 * 900"
 	case setting.Database.Type.IsMSSQL():
 		groupByName = groupBy
 	}

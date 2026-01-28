@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -337,15 +338,29 @@ func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.Use
 		opType = activities_model.ActionDeleteBranch
 	}
 
+	// Find the earliest commit timestamp to use as the original timestamp for the heatmap.
+	// This ensures commits show up on their actual author date, not the push date.
+	var originalUnix timeutil.TimeStamp
+	if len(commits.Commits) > 0 {
+		earliest := commits.Commits[0].Timestamp
+		for _, commit := range commits.Commits[1:] {
+			if commit.Timestamp.Before(earliest) {
+				earliest = commit.Timestamp
+			}
+		}
+		originalUnix = timeutil.TimeStamp(earliest.Unix())
+	}
+
 	if err = NotifyWatchers(ctx, &activities_model.Action{
-		ActUserID: pusher.ID,
-		ActUser:   pusher,
-		OpType:    opType,
-		Content:   string(data),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		RefName:   opts.RefFullName.String(),
-		IsPrivate: repo.IsPrivate,
+		ActUserID:    pusher.ID,
+		ActUser:      pusher,
+		OpType:       opType,
+		Content:      string(data),
+		RepoID:       repo.ID,
+		Repo:         repo,
+		RefName:      opts.RefFullName.String(),
+		IsPrivate:    repo.IsPrivate,
+		OriginalUnix: originalUnix,
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
@@ -402,15 +417,28 @@ func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model
 		return
 	}
 
+	// Find the earliest commit timestamp to use as the original timestamp for the heatmap.
+	var originalUnix timeutil.TimeStamp
+	if len(commits.Commits) > 0 {
+		earliest := commits.Commits[0].Timestamp
+		for _, commit := range commits.Commits[1:] {
+			if commit.Timestamp.Before(earliest) {
+				earliest = commit.Timestamp
+			}
+		}
+		originalUnix = timeutil.TimeStamp(earliest.Unix())
+	}
+
 	if err := NotifyWatchers(ctx, &activities_model.Action{
-		ActUserID: repo.OwnerID,
-		ActUser:   repo.MustOwner(ctx),
-		OpType:    activities_model.ActionMirrorSyncPush,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		RefName:   opts.RefFullName.String(),
-		Content:   string(data),
+		ActUserID:    repo.OwnerID,
+		ActUser:      repo.MustOwner(ctx),
+		OpType:       activities_model.ActionMirrorSyncPush,
+		RepoID:       repo.ID,
+		Repo:         repo,
+		IsPrivate:    repo.IsPrivate,
+		RefName:      opts.RefFullName.String(),
+		Content:      string(data),
+		OriginalUnix: originalUnix,
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
