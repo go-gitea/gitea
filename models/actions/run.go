@@ -443,6 +443,19 @@ func UpdateRun(ctx context.Context, run *ActionRun, cols ...string) error {
 		if err := UpdateRepoRunsNumbers(ctx, run.Repo); err != nil {
 			return err
 		}
+
+		if run.ParentJobID > 0 { //If this run belongs to a parent job, its parent job's status needs to be updated.
+			if err := run.LoadParentJob(ctx); err != nil {
+				return err
+			}
+			parentJob := run.ParentJob
+			parentJob.Status = run.Status
+			parentJob.Started = run.Started
+			parentJob.Stopped = run.Stopped
+			if _, err := UpdateRunJob(ctx, parentJob, nil, "status", "started", "stopped"); err != nil {
+				return fmt.Errorf("UpdateRunJob: %w", err)
+			}
+		}
 	}
 
 	return nil

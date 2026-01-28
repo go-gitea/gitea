@@ -121,6 +121,21 @@ func Rerun(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_mo
 		}
 	}
 
+	// If this is a child run, rerun the parent job and its downstream jobs
+	if run.ParentJobID > 0 {
+		parentJob := run.ParentJob
+		if err := parentJob.LoadRun(ctx); err != nil {
+			return err
+		}
+		parentRunJobs, err := actions_model.GetRunJobsByRunID(ctx, parentJob.RunID)
+		if err != nil {
+			return fmt.Errorf("get parent run jobs: %w", err)
+		}
+		if err := Rerun(ctx, parentJob.Run, parentRunJobs, parentJob); err != nil {
+			return fmt.Errorf("rerun parent run: %w", err)
+		}
+	}
+
 	return nil
 }
 

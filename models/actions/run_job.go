@@ -217,23 +217,6 @@ func UpdateRunJob(ctx context.Context, job *ActionRunJob, cond builder.Cond, col
 		if err := UpdateRun(ctx, run, "status", "started", "stopped"); err != nil {
 			return 0, fmt.Errorf("update run %d: %w", run.ID, err)
 		}
-
-		if run.ParentJobID > 0 { //If this run belongs to a parent job, its parent job's status needs to be updated.
-			if err := run.LoadParentJob(ctx); err != nil {
-				return 0, err
-			}
-			parentJob := run.ParentJob
-			parentJob.Status = run.Status
-			if parentJob.Started.IsZero() && parentJob.Status.IsRunning() {
-				parentJob.Started = timeutil.TimeStampNow()
-			}
-			if parentJob.Stopped.IsZero() && parentJob.Status.IsDone() {
-				parentJob.Stopped = timeutil.TimeStampNow()
-			}
-			if _, err := UpdateRunJob(ctx, parentJob, nil, "status", "started", "stopped"); err != nil {
-				return 0, fmt.Errorf("UpdateRunJob: %w", err)
-			}
-		}
 	}
 
 	return affected, nil
