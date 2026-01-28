@@ -265,6 +265,7 @@ func prepareWorkflowList(ctx *context.Context, workflows []WorkflowInfo) {
 		RepoID:        ctx.Repo.Repository.ID,
 		WorkflowID:    workflowID,
 		TriggerUserID: actorID,
+		OnlyRoot:      true,
 	}
 
 	// if status is not StatusUnknown, it means user has selected a status filter
