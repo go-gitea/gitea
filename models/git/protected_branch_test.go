@@ -7,12 +7,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -156,20 +152,4 @@ func TestNewProtectBranchPriority(t *testing.T) {
 	savedPB2, err := GetFirstMatchProtectedBranchRule(t.Context(), repo.ID, "branch-2")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), savedPB2.Priority)
-}
-
-func TestIsUserMergeWhitelistedUsesPushRules(t *testing.T) {
-	user := &user_model.User{ID: 1000}
-	permission := access_model.Permission{}
-	// the user have write permission
-	permission.SetUnitsWithDefaultAccessMode([]*repo_model.RepoUnit{{Type: unit.TypeCode}}, perm.AccessModeWrite)
-
-	// but protected branch refuse to push
-	protectedBranch := &ProtectedBranch{
-		CanPush:              false,
-		EnableMergeWhitelist: false,
-		EnableWhitelist:      false,
-	}
-
-	assert.False(t, IsUserMergeWhitelisted(t.Context(), protectedBranch, user, permission))
 }

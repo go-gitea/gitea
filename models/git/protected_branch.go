@@ -185,7 +185,7 @@ func (protectBranch *ProtectedBranch) CanUserForcePush(ctx context.Context, user
 func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch, user *user_model.User, permissionInRepo access_model.Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {
 		// Then we need to fall back on whether the user has write permission
-		return protectBranch.CanUserPush(ctx, user)
+		return permissionInRepo.CanWrite(unit.TypeCode)
 	}
 
 	if slices.Contains(protectBranch.MergeWhitelistUserIDs, user.ID) {
