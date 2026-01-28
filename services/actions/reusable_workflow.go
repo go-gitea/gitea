@@ -24,26 +24,22 @@ import (
 
 	"github.com/nektos/act/pkg/jobparser"
 	actmodel "github.com/nektos/act/pkg/model"
-	act_runner_pkg "github.com/nektos/act/pkg/runner"
+	act_pkg_runner "github.com/nektos/act/pkg/runner"
 	"gopkg.in/yaml.v3"
 	"xorm.io/builder"
 )
 
-func expandReusableWorkflows(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_model.ActionRunJob, vars map[string]string) error {
-	for _, job := range jobs {
-		if job.ChildRunID != -1 {
-			// should not happen
-			continue
-		}
-		workflowJob, err := job.ParseJob()
+func expandReusableWorkflows(ctx context.Context, parentJobs []*actions_model.ActionRunJob, vars map[string]string) error {
+	for _, parentJob := range parentJobs {
+		workflowJob, err := parentJob.ParseJob()
 		if err != nil {
 			return err
 		}
-		ref, err := act_runner_pkg.ParseReusableWorkflowRef(workflowJob.Uses)
+		ref, err := act_pkg_runner.ParseReusableWorkflowRef(workflowJob.Uses)
 		if err != nil {
 			return err
 		}
-		if err := createChildRunFromReusableWorkflow(ctx, job, workflowJob, ref, vars); err != nil {
+		if err := createChildRunFromReusableWorkflow(ctx, parentJob, workflowJob, ref, vars); err != nil {
 			return err
 		}
 	}
@@ -51,15 +47,11 @@ func expandReusableWorkflows(ctx context.Context, run *actions_model.ActionRun, 
 }
 
 func expandReusableWorkflow(ctx context.Context, parentJob *actions_model.ActionRunJob) error {
-	if parentJob.ChildRunID != -1 {
-		// should not happen
-		return fmt.Errorf("no need to expand")
-	}
 	workflowJob, err := parentJob.ParseJob()
 	if err != nil {
 		return err
 	}
-	ref, err := act_runner_pkg.ParseReusableWorkflowRef(workflowJob.Uses)
+	ref, err := act_pkg_runner.ParseReusableWorkflowRef(workflowJob.Uses)
 	if err != nil {
 		return err
 	}
@@ -76,7 +68,7 @@ func expandReusableWorkflow(ctx context.Context, parentJob *actions_model.Action
 	return nil
 }
 
-func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_model.ActionRunJob, workflowJob *jobparser.Job, ref *act_runner_pkg.ReusableWorkflowRef, vars map[string]string) error {
+func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_model.ActionRunJob, workflowJob *jobparser.Job, ref *act_pkg_runner.ReusableWorkflowRef, vars map[string]string) error {
 	if err := parentJob.LoadAttributes(ctx); err != nil {
 		return err
 	}
@@ -106,10 +98,18 @@ func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_
 	if err != nil {
 		return fmt.Errorf("parse workflow: %w", err)
 	}
-	childRunName := ref.WorkflowPath
-	if len(jobs) > 0 && jobs[0].RunName != "" {
-		childRunName = jobs[0].RunName
+	var childRunName string
+	if len(jobs) > 0 {
+		if jobs[0].RunName != "" {
+			childRunName = jobs[0].RunName
+		} else if jobs[0].Name != "" {
+			childRunName = jobs[0].Name
+		}
 	}
+	if childRunName == "" {
+		childRunName = path.Base(ref.WorkflowPath)
+	}
+	childRunTitle := fmt.Sprintf("%s / %s / %s", parentRun.Title, parentJob.JobID, childRunName)
 
 	var eventPayload []byte
 	if eventPayload, err = workflowCallPayload.JSONPayload(); err != nil {
@@ -117,7 +117,7 @@ func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_
 	}
 
 	childRun := &actions_model.ActionRun{
-		Title:       fmt.Sprintf("%s / %s", parentJob.JobID, path.Base(childRunName)),
+		Title:       childRunTitle,
 		RepoID:      parentRun.RepoID,
 		OwnerID:     parentRun.OwnerID,
 		ParentJobID: parentJob.ID,
@@ -171,15 +171,15 @@ func buildWorkflowCallInputs(ctx context.Context, parentJob *actions_model.Actio
 	return jobparser.EvaluateWorkflowCallInputs(workflow, parentJob.JobID, workflowJob, giteaCtx, results, vars, inputs)
 }
 
-func loadReusableWorkflowContent(ctx context.Context, parentRun *actions_model.ActionRun, ref *act_runner_pkg.ReusableWorkflowRef) ([]byte, error) {
-	if ref.Kind == act_runner_pkg.ReusableWorkflowKindLocalSameRepo {
+func loadReusableWorkflowContent(ctx context.Context, parentRun *actions_model.ActionRun, ref *act_pkg_runner.ReusableWorkflowRef) ([]byte, error) {
+	if ref.Kind == act_pkg_runner.ReusableWorkflowKindLocalSameRepo {
 		if err := parentRun.LoadRepo(ctx); err != nil {
 			return nil, err
 		}
 		return readWorkflowContentFromRepo(ctx, parentRun.Repo, parentRun.Ref, ref.WorkflowPath)
 	}
 
-	if ref.Kind == act_runner_pkg.ReusableWorkflowKindLocalOtherRepo || isSameInstanceHost(ref.Host) {
+	if ref.Kind == act_pkg_runner.ReusableWorkflowKindLocalOtherRepo || isSameInstanceHost(ref.GitInstanceURL) {
 		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Repo)
 		if err != nil {
 			return nil, err
@@ -196,7 +196,7 @@ func loadReusableWorkflowContent(ctx context.Context, parentRun *actions_model.A
 		return readWorkflowContentFromRepo(ctx, repo, ref.Ref, ref.WorkflowPath)
 	}
 
-	content, err := act_runner_pkg.FetchReusableWorkflowContent(ctx, ref)
+	content, err := ref.FetchReusableWorkflowContent(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -221,16 +221,16 @@ func readWorkflowContentFromRepo(ctx context.Context, repo *repo_model.Repositor
 	return []byte(content), nil
 }
 
-func isSameInstanceHost(host string) bool {
-	appURL, err := url.Parse(setting.AppURL)
+func isSameInstanceHost(usesInstanceURL string) bool {
+	u1, err := url.Parse(setting.AppURL)
 	if err != nil {
 		return false
 	}
-	h, err := url.Parse(host)
+	u2, err := url.Parse(usesInstanceURL)
 	if err != nil {
 		return false
 	}
-	return strings.EqualFold(h.Host, appURL.Host)
+	return strings.EqualFold(u1.Host, u2.Host)
 }
 
 func markChildRunJobsSkipped(ctx context.Context, childRunJobs []*actions_model.ActionRunJob) error {
