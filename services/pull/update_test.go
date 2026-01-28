@@ -24,10 +24,10 @@ func TestIsUserAllowedToUpdateRespectsProtectedBranch(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	protectedBranch := &git_model.ProtectedBranch{
-		RepoID:        pr.HeadRepoID,
-		RuleName:      pr.HeadBranch,
-		CanPush:       false,
-		CanForcePush:  false,
+		RepoID:       pr.HeadRepoID,
+		RuleName:     pr.HeadBranch,
+		CanPush:      false,
+		CanForcePush: false,
 	}
 	_, err := db.GetEngine(t.Context()).Insert(protectedBranch)
 	assert.NoError(t, err)
