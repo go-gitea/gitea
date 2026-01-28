@@ -5,6 +5,7 @@ package charset
 
 import (
 	"fmt"
+	"html/template"
 	"io"
 
 	"golang.org/x/net/html"
@@ -124,7 +125,7 @@ func (h *HTMLStreamerWriter) startTag(data string, attrs []html.Attribute, selfc
 		return h.err
 	}
 	for _, attr := range attrs {
-		if _, h.err = h.WriteString(" " + attr.Key + "=\"" + html.EscapeString(attr.Val) + "\""); h.err != nil {
+		if _, h.err = h.WriteString(" " + attr.Key + "=\"" + template.HTMLEscapeString(attr.Val) + "\""); h.err != nil {
 			return h.err
 		}
 	}
