@@ -9,7 +9,9 @@ async function loadRenderIframeContent(iframe: HTMLIFrameElement) {
     if (!e.data?.giteaIframeCmd || e.data?.giteaIframeId !== iframe.id) return;
     const cmd = e.data.giteaIframeCmd;
     if (cmd === 'resize') {
-      iframe.style.height = `${e.data.iframeHeight}px`;
+      // TODO: sometimes the reported iframeHeight is not the size we need, need to figure why. Example: openapi swagger.
+      //  As a workaround, add some pixels here.
+      iframe.style.height = `${e.data.iframeHeight + 2}px`;
     } else if (cmd === 'open-link') {
       if (e.data.anchorTarget === '_blank') {
         window.open(e.data.openLink, '_blank');

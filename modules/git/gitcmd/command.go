@@ -45,6 +45,7 @@ type Command struct {
 	cmdStartTime time.Time
 
 	parentPipeFiles   []*os.File
+	parentPipeReaders []*os.File
 	childrenPipeFiles []*os.File
 
 	// only os.Pipe and in-memory buffers can work with Stdin safely, see https://github.com/golang/go/issues/77227 if the command would exit unexpectedly
@@ -283,6 +284,7 @@ func (c *Command) makeStdoutStderr(w *io.Writer) (PipeReader, func()) {
 	}
 	c.childrenPipeFiles = append(c.childrenPipeFiles, pw)
 	c.parentPipeFiles = append(c.parentPipeFiles, pr)
+	c.parentPipeReaders = append(c.parentPipeReaders, pr)
 	*w /* stdout, stderr */ = pw
 	return &pipeReader{f: pr}, func() { pr.Close() }
 }
@@ -348,7 +350,13 @@ func (c *Command) WithStdoutCopy(w io.Writer) *Command {
 	return c
 }
 
-func (c *Command) WithPipelineFunc(f func(Context) error) *Command {
+// WithPipelineFunc sets the pipeline function for the command.
+// The pipeline function will be called in the Run / Wait function after the command is started successfully.
+// The function can read/write from/to the command's stdio pipes (if any).
+// The pipeline function can cancel (kill) the command by calling ctx.CancelPipeline before the command finishes.
+// The returned error of Run / Wait can be joined errors from the pipeline function, context cause, and command exit error.
+// Caller can get the pipeline function's error (if any) by UnwrapPipelineError.
+func (c *Command) WithPipelineFunc(f func(ctx Context) error) *Command {
 	c.opts.PipelineFunc = f
 	return c
 }
@@ -444,6 +452,12 @@ func (c *Command) closePipeFiles(files []*os.File) {
 	}
 }
 
+func (c *Command) discardPipeReaders(files []*os.File) {
+	for _, f := range files {
+		_, _ = io.Copy(io.Discard, f)
+	}
+}
+
 func (c *Command) Wait() error {
 	defer func() {
 		// The reader in another goroutine might be still reading the stdout, so we shouldn't close the pipes here
@@ -454,15 +468,31 @@ func (c *Command) Wait() error {
 
 	if c.opts.PipelineFunc != nil {
 		errPipeline := c.opts.PipelineFunc(&cmdContext{Context: c.cmdCtx, cmd: c})
-		// after the pipeline function returns, we can safely cancel the command context and close the pipes, the data in pipes should have been consumed
-		c.cmdCancel(errPipeline)
+
+		if context.Cause(c.cmdCtx) == nil {
+			// if the context is not canceled explicitly, we need to discard the unread data,
+			// and wait for the command to exit normally, and then get its exit code
+			c.discardPipeReaders(c.parentPipeReaders)
+		} // else: canceled command will be killed, and the exit code is caused by kill
+
+		// after the pipeline function returns, we can safely close the pipes, then wait for the command to exit
 		c.closePipeFiles(c.parentPipeFiles)
 		errWait := c.cmd.Wait()
-		errCause := context.Cause(c.cmdCtx)
-		// the pipeline function should be able to know whether it succeeds or fails
-		if errPipeline == nil && (errCause == nil || errors.Is(errCause, context.Canceled)) {
-			return nil
+		errCause := context.Cause(c.cmdCtx) // in case the cause is set during Wait(), get the final cancel cause
+
+		if unwrapped, ok := UnwrapPipelineError(errCause); ok {
+			if unwrapped != errPipeline {
+				panic("unwrapped context pipeline error should be the same one returned by pipeline function")
+			}
+			if unwrapped == nil {
+				// the pipeline function declares that there is no error, and it cancels (kills) the command ahead,
+				// so we should ignore the errors from "wait" and "cause"
+				errWait, errCause = nil, nil
+			}
 		}
+
+		// some legacy code still need to access the error returned by pipeline function by "==" but not "errors.Is"
+		// so we need to make sure the original error is able to be unwrapped by UnwrapPipelineError
 		return errors.Join(wrapPipelineError(errPipeline), errCause, errWait)
 	}
 
