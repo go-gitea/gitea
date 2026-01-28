@@ -29,23 +29,6 @@ import (
 	"xorm.io/builder"
 )
 
-func expandReusableWorkflows(ctx context.Context, parentJobs []*actions_model.ActionRunJob, vars map[string]string) error {
-	for _, parentJob := range parentJobs {
-		workflowJob, err := parentJob.ParseJob()
-		if err != nil {
-			return err
-		}
-		ref, err := act_pkg_runner.ParseReusableWorkflowRef(workflowJob.Uses)
-		if err != nil {
-			return err
-		}
-		if err := createChildRunFromReusableWorkflow(ctx, parentJob, workflowJob, ref, vars); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func expandReusableWorkflow(ctx context.Context, parentJob *actions_model.ActionRunJob) error {
 	workflowJob, err := parentJob.ParseJob()
 	if err != nil {
@@ -72,27 +55,31 @@ func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_
 	if err := parentJob.LoadAttributes(ctx); err != nil {
 		return err
 	}
-	parentRun := parentJob.Run
+	parentJobRun := parentJob.Run
 
-	content, err := loadReusableWorkflowContent(ctx, parentRun, ref)
+	if err := checkRunNestingLevel(ctx, parentJobRun); err != nil {
+		return err
+	}
+
+	content, err := loadReusableWorkflowContent(ctx, parentJobRun, ref)
 	if err != nil {
 		return err
 	}
 
-	inputsWithDefaults, err := buildWorkflowCallInputs(ctx, parentJob, workflowJob, content, vars)
+	giteaCtx := GenerateGiteaContext(parentJob.Run, parentJob)
+
+	inputsWithDefaults, err := buildWorkflowCallInputs(ctx, parentJob, workflowJob, content, vars, giteaCtx)
 	if err != nil {
 		return err
 	}
 
 	workflowCallPayload := &api.WorkflowCallPayload{
-		Workflow:   parentRun.WorkflowID,
-		Ref:        parentRun.Ref,
-		Repository: convert.ToRepo(ctx, parentRun.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
-		Sender:     convert.ToUserWithAccessMode(ctx, parentRun.TriggerUser, perm.AccessModeNone),
+		Workflow:   parentJobRun.WorkflowID,
+		Ref:        parentJobRun.Ref,
+		Repository: convert.ToRepo(ctx, parentJobRun.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
+		Sender:     convert.ToUserWithAccessMode(ctx, parentJobRun.TriggerUser, perm.AccessModeNone),
 		Inputs:     inputsWithDefaults,
 	}
-
-	giteaCtx := GenerateGiteaContext(parentJob.Run, parentJob)
 
 	jobs, err := jobparser.Parse(content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputsWithDefaults))
 	if err != nil {
@@ -109,7 +96,7 @@ func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_
 	if childRunName == "" {
 		childRunName = path.Base(ref.WorkflowPath)
 	}
-	childRunTitle := fmt.Sprintf("%s / %s / %s", parentRun.Title, parentJob.JobID, childRunName)
+	childRunTitle := fmt.Sprintf("%s / %s / %s", parentJobRun.Title, parentJob.JobID, childRunName)
 
 	var eventPayload []byte
 	if eventPayload, err = workflowCallPayload.JSONPayload(); err != nil {
@@ -118,22 +105,22 @@ func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_
 
 	childRun := &actions_model.ActionRun{
 		Title:       childRunTitle,
-		RepoID:      parentRun.RepoID,
-		OwnerID:     parentRun.OwnerID,
+		RepoID:      parentJobRun.RepoID,
+		OwnerID:     parentJobRun.OwnerID,
 		ParentJobID: parentJob.ID,
 		// A called workflow uses the name of its caller workflow in ${{ github.workflow }}
 		// See https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations#supported-keywords-for-jobs-that-call-a-reusable-workflow
-		WorkflowID:        parentRun.WorkflowID,
-		TriggerUserID:     parentRun.TriggerUserID,
-		TriggerUser:       parentRun.TriggerUser,
-		Ref:               parentRun.Ref,
-		CommitSHA:         parentRun.CommitSHA,
-		IsForkPullRequest: parentRun.IsForkPullRequest,
+		WorkflowID:        parentJobRun.WorkflowID,
+		TriggerUserID:     parentJobRun.TriggerUserID,
+		TriggerUser:       parentJobRun.TriggerUser,
+		Ref:               parentJobRun.Ref,
+		CommitSHA:         parentJobRun.CommitSHA,
+		IsForkPullRequest: parentJobRun.IsForkPullRequest,
 		Event:             "workflow_call",
 		TriggerEvent:      "workflow_call",
 		EventPayload:      string(eventPayload),
 		Status:            actions_model.StatusWaiting,
-		NeedApproval:      parentRun.NeedApproval,
+		NeedApproval:      parentJobRun.NeedApproval,
 	}
 
 	if err := PrepareRunAndInsert(ctx, content, childRun, inputsWithDefaults); err != nil {
@@ -146,7 +133,7 @@ func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_
 	return nil
 }
 
-func buildWorkflowCallInputs(ctx context.Context, parentJob *actions_model.ActionRunJob, workflowJob *jobparser.Job, content []byte, vars map[string]string) (map[string]any, error) {
+func buildWorkflowCallInputs(ctx context.Context, parentJob *actions_model.ActionRunJob, workflowJob *jobparser.Job, content []byte, vars map[string]string, giteaCtx GiteaContext) (map[string]any, error) {
 	singleWorkflow := &jobparser.SingleWorkflow{}
 	if err := yaml.Unmarshal(content, singleWorkflow); err != nil {
 		return nil, fmt.Errorf("unmarshal workflow: %w", err)
@@ -156,11 +143,9 @@ func buildWorkflowCallInputs(ctx context.Context, parentJob *actions_model.Actio
 		RawOn: singleWorkflow.RawOn,
 	}
 
-	giteaCtx := GenerateGiteaContext(parentJob.Run, parentJob)
-
-	inputs, err := getInputsFromRun(parentJob.Run)
+	parentRunInputs, err := getInputsFromRun(parentJob.Run)
 	if err != nil {
-		return nil, fmt.Errorf("get inputs: %w", err)
+		return nil, fmt.Errorf("get parent run inputs: %w", err)
 	}
 
 	results, err := findJobNeedsAndFillJobResults(ctx, parentJob)
@@ -168,7 +153,7 @@ func buildWorkflowCallInputs(ctx context.Context, parentJob *actions_model.Actio
 		return nil, fmt.Errorf("get job results: %w", err)
 	}
 
-	return jobparser.EvaluateWorkflowCallInputs(workflow, parentJob.JobID, workflowJob, giteaCtx, results, vars, inputs)
+	return jobparser.EvaluateWorkflowCallInputs(workflow, parentJob.JobID, workflowJob, giteaCtx, results, vars, parentRunInputs)
 }
 
 func loadReusableWorkflowContent(ctx context.Context, parentRun *actions_model.ActionRun, ref *act_pkg_runner.ReusableWorkflowRef) ([]byte, error) {
@@ -252,6 +237,35 @@ func markChildRunJobsSkipped(ctx context.Context, childRunJobs []*actions_model.
 			if err := markChildRunJobsSkipped(ctx, jobs); err != nil {
 				return err
 			}
+		}
+	}
+	return nil
+}
+
+var ErrReusableWorkflowNestingLimitExceeded = errors.New("reusable workflow nesting limit exceeded")
+
+// See: https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows#nesting-reusable-workflows
+const maxNestingReusableWorkflowLevel = 9
+
+// checkRunNestingLevel returns the number of parent runs from this run to the top-level run.
+func checkRunNestingLevel(ctx context.Context, run *actions_model.ActionRun) error {
+	depth := 0
+	cur := run
+	for cur.ParentJobID > 0 {
+		if cur.ParentJobID == 0 {
+			break
+		}
+		if err := cur.LoadParentJob(ctx); err != nil {
+			return err
+		}
+		parentJob := cur.ParentJob
+		if err := parentJob.LoadRun(ctx); err != nil {
+			return err
+		}
+		cur = parentJob.Run
+		depth++
+		if depth >= maxNestingReusableWorkflowLevel {
+			return ErrReusableWorkflowNestingLimitExceeded
 		}
 	}
 	return nil

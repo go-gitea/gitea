@@ -188,9 +188,11 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		return err
 	}
 
-	if err := expandReusableWorkflows(ctx, readyUsesJobs, vars); err != nil {
-		// TODO: need to rollback and show an error message to the user
-		log.Error("expandReusableWorkflows for run %d: %v", run.ID, err)
+	for _, usesJob := range readyUsesJobs {
+		if err := expandReusableWorkflow(ctx, usesJob); err != nil {
+			// TODO: show the error message to users
+			log.Error("expandReusableWorkflows for run %d: %v", run.ID, err)
+		}
 	}
 
 	return nil
