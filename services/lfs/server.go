@@ -5,7 +5,6 @@ package lfs
 
 import (
 	stdCtx "context"
-	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -192,19 +191,6 @@ func traceBatchDecision(rc *requestContext, op, msg string, args ...any) {
 	log.Trace(prefix+msg, args...)
 }
 
-// batchReqID returns a unique ID for a batch request
-func batchReqID(br *lfs_module.BatchRequest) string {
-	h := sha1.New()
-	h.Write([]byte(br.Operation))
-	for _, o := range br.Objects {
-		h.Write([]byte(o.Oid))
-		h.Write([]byte{0})
-		h.Write([]byte(strconv.FormatInt(o.Size, 10)))
-		h.Write([]byte{0})
-	}
-	return hex.EncodeToString(h.Sum(nil))[:10]
-}
-
 // BatchHandler provides the batch api
 func BatchHandler(ctx *context.Context) {
 	var br lfs_module.BatchRequest
@@ -227,9 +213,7 @@ func BatchHandler(ctx *context.Context) {
 	}
 
 	rc := getRequestContext(ctx)
-	reqID := batchReqID(&br)
-
-	log.Trace("LFS[BATCH][%s/%s] req=%s op=%s objects=%d", rc.User, rc.Repo, reqID, br.Operation, len(br.Objects))
+	log.Trace("LFS[BATCH][%s/%s] op=%s objects=%d", rc.User, rc.Repo, br.Operation, len(br.Objects))
 
 	repository := getAuthenticatedRepository(ctx, rc, isUpload)
 	if repository == nil {
@@ -246,8 +230,7 @@ func BatchHandler(ctx *context.Context) {
 
 	// Baseline repo stats and limits
 	traceBatchDecision(rc, br.Operation,
-		"req=%s auth=%t isUpload=%t repoID=%d sizes: git=%s lfs=%s limits: git=%s lfs=%s",
-		reqID,
+		"auth=%t isUpload=%t repoID=%d sizes: git=%s lfs=%s limits: git=%s lfs=%s",
 		ctx.IsSigned || ctx.Doer != nil,
 		isUpload,
 		repository.ID,
@@ -261,9 +244,11 @@ func BatchHandler(ctx *context.Context) {
 	if isUpload && repository.ShouldCheckLFSSize() {
 		// Sum sizes of objects that are NEW TO THIS REPO (no meta row)
 		var incomingNewToRepoLFS int64
+		var invalid, newObjects, metaPresent int
 
 		for _, p := range br.Objects {
 			if !p.IsValid() {
+				invalid++
 				continue
 			}
 
@@ -271,6 +256,9 @@ func BatchHandler(ctx *context.Context) {
 
 			if meta == nil {
 				incomingNewToRepoLFS += p.Size
+				newObjects++
+			} else {
+				metaPresent++
 			}
 		}
 
@@ -279,8 +267,9 @@ func BatchHandler(ctx *context.Context) {
 		// LFS-only limit if we are over, but size doesn't increase allow
 		if predictedLFS > repository.GetActualLFSSizeLimit() && predictedLFS > repository.LFSSize {
 			traceBatchDecision(rc, br.Operation,
-				"req=%s DECISION=FORBID reason=LFS_LIMIT predictedLFS=%s limit=%s (NewObjects=%d ObjectsPresentInStore=%d MetaPresent=%d StoreExists=%d Invalid=%d)",
-				reqID, base.FileSize(predictedLFS), setting.FormatRepositorySizeLimit(repository.GetActualLFSSizeLimit()),
+				"DECISION=FORBID reason=LFS_LIMIT predictedLFS=%s limit=%s (NewObjects=%d MetaPresent=%d Invalid=%d)",
+				base.FileSize(predictedLFS), setting.FormatRepositorySizeLimit(repository.GetActualLFSSizeLimit()),
+				newObjects, metaPresent, invalid,
 			)
 			writeStatusMessage(ctx, http.StatusForbidden,
 				fmt.Sprintf("LFS size %s would exceed limit %s",
@@ -288,7 +277,7 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		traceBatchDecision(rc, br.Operation, "req=%s DECISION=ALLOW size-check passed", reqID)
+		traceBatchDecision(rc, br.Operation, "DECISION=ALLOW size-check passed")
 	}
 
 	var responseObjects []*lfs_module.ObjectResponse
