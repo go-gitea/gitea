@@ -2652,7 +2652,7 @@
   "repo.branch.restore_success": "Branch \"%s\" has been restored.",
   "repo.branch.restore_failed": "Failed to restore branch \"%s\".",
   "repo.branch.protected_deletion_failed": "Branch \"%s\" is protected. It cannot be deleted.",
-  "repo.branch.default_deletion_failed": "Branch \"%s\" is the default branch. It cannot be deleted.",
+  "repo.branch.default_deletion_failed": "Branch \"%s\" is the default or pull request target branch. It cannot be deleted.",
   "repo.branch.default_branch_not_exist": "Default branch \"%s\" does not exist.",
   "repo.branch.restore": "Restore Branch \"%s\"",
   "repo.branch.download": "Download Branch \"%s\"",

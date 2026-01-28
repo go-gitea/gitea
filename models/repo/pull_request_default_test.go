@@ -18,7 +18,7 @@ func TestDefaultTargetBranchSelection(t *testing.T) {
 	ctx := t.Context()
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1})
 
-	assert.Equal(t, repo.DefaultBranch, repo.GetDefaultTargetBranch(ctx))
+	assert.Equal(t, repo.DefaultBranch, repo.GetPullRequestTargetBranch(ctx))
 
 	repo.Units = nil
 	prUnit, err := repo.GetUnit(ctx, unit.TypePullRequests)
@@ -28,5 +28,5 @@ func TestDefaultTargetBranchSelection(t *testing.T) {
 	prUnit.Config = prConfig
 	assert.NoError(t, UpdateRepoUnit(ctx, prUnit))
 	repo.Units = nil
-	assert.Equal(t, "branch2", repo.GetDefaultTargetBranch(ctx))
+	assert.Equal(t, "branch2", repo.GetPullRequestTargetBranch(ctx))
 }

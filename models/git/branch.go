@@ -490,13 +490,25 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 		opts.CommitAfterUnix = time.Now().Add(-time.Hour * 2).Unix()
 	}
 
-	baseBranchName := opts.BaseRepo.GetDefaultTargetBranch(ctx)
-	baseBranch, err := GetBranch(ctx, opts.BaseRepo.ID, baseBranchName)
+	baseTargetBranchName := opts.BaseRepo.GetPullRequestTargetBranch(ctx)
+
+	var ignoredCommitIDs []string
+	baseDefaultBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
 	if err != nil {
-		return nil, err
+		log.Warn("GetBranch:DefaultBranch: %v", err)
+	} else {
+		ignoredCommitIDs = append(ignoredCommitIDs, baseDefaultBranch.CommitID)
 	}
 
-	// find all related branches, these branches may already created PRs, we will check later
+	baseDefaultTargetBranchName := opts.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultTargetBranch
+	baseDefaultTargetBranch, err := GetBranch(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
+	if err != nil {
+		log.Warn("GetBranch:DefaultTargetBranch: %v", err)
+	} else {
+		ignoredCommitIDs = append(ignoredCommitIDs, baseDefaultTargetBranch.CommitID)
+	}
+
+	// find all related branches, these branches may already have PRs, we will check later
 	var branches []*Branch
 	if err := db.GetEngine(ctx).
 		Where(builder.And(
@@ -507,7 +519,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 			builder.Gte{"commit_time": opts.CommitAfterUnix},
 			builder.In("repo_id", repoIDs),
 			// newly created branch have no changes, so skip them
-			builder.Neq{"commit_id": baseBranch.CommitID},
+			builder.NotIn("commit_id", ignoredCommitIDs),
 		)).
 		OrderBy(db.SearchOrderByRecentUpdated.String()).
 		Find(&branches); err != nil {
@@ -556,7 +568,7 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 				BranchDisplayName: branchDisplayName,
 				BranchName:        branch.Name,
 				BranchLink:        fmt.Sprintf("%s/src/branch/%s", branch.Repo.Link(), util.PathEscapeSegments(branch.Name)),
-				BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, baseBranchName, branch.Name),
+				BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, baseTargetBranchName, branch.Name),
 				CommitTime:        branch.CommitTime,
 			})
 		}

@@ -547,10 +547,11 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	return gitrepo.Push(ctx, repo, repo, pushOpts)
 }
 
-var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default")
+var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default or pull request target")
 
 func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
-	if branchName == repo.DefaultBranch {
+	unitPRConfig := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
+	if branchName == repo.DefaultBranch || branchName == unitPRConfig.DefaultTargetBranch {
 		return ErrBranchIsDefault
 	}
 
@@ -849,12 +850,6 @@ func DeleteBranchAfterMerge(ctx context.Context, doer *user_model.User, prID int
 	}
 	if exist {
 		return errFailedToDelete(util.ErrUnprocessableContent)
-	}
-	if pr.HeadRepoID == pr.BaseRepoID {
-		preferred := pr.BaseRepo.GetDefaultTargetBranchSetting(ctx)
-		if preferred != "" && pr.HeadBranch == preferred {
-			return errFailedToDelete(util.ErrPermissionDenied)
-		}
 	}
 
 	if err := CanDeleteBranch(ctx, pr.HeadRepo, pr.HeadBranch, doer); err != nil {
