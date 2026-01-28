@@ -16,7 +16,6 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -332,7 +331,7 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 	if setting.Git.DisableDiffHighlight {
 		return template.HTML(html.EscapeString(diffLine.Content[1:]))
 	}
-	h, _ = highlight.Code(diffSection.FileName, fileLanguage, diffLine.Content[1:])
+	h, _ = highlight.RenderCodeFast(diffSection.FileName, fileLanguage, diffLine.Content[1:])
 	return h
 }
 
@@ -1264,23 +1263,14 @@ func getDiffBasic(ctx context.Context, gitRepo *git.Repository, opts *DiffOption
 	cmdCtx, cmdCancel := context.WithCancel(ctx)
 	defer cmdCancel()
 
-	reader, writer := io.Pipe()
-	defer func() {
-		_ = reader.Close()
-		_ = writer.Close()
-	}()
-
+	reader, readerClose := cmdDiff.MakeStdoutPipe()
+	defer readerClose()
 	go func() {
-		stderr := &bytes.Buffer{}
-		if err := cmdDiff.WithTimeout(time.Duration(setting.Git.Timeout.Default) * time.Second).
+		if err := cmdDiff.
 			WithDir(repoPath).
-			WithStdout(writer).
-			WithStderr(stderr).
-			Run(cmdCtx); err != nil && !git.IsErrCanceledOrKilled(err) {
-			log.Error("error during GetDiff(git diff dir: %s): %v, stderr: %s", repoPath, err, stderr.String())
+			RunWithStderr(cmdCtx); err != nil && !gitcmd.IsErrorCanceledOrKilled(err) {
+			log.Error("error during GetDiff(git diff dir: %s): %v", repoPath, err)
 		}
-
-		_ = writer.Close()
 	}()
 
 	diff, err := ParsePatch(cmdCtx, opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, reader, parsePatchSkipToFile)
@@ -1359,7 +1349,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 
 func highlightCodeLines(diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
 	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
-	highlightedNewContent, _ := highlight.Code(diffFile.Name, diffFile.Language, content)
+	highlightedNewContent, _ := highlight.RenderCodeFast(diffFile.Name, diffFile.Language, content)
 	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
 	lines := make(map[int]template.HTML, len(unsafeLines))
 	// only save the highlighted lines we need, but not the whole file, to save memory

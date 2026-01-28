@@ -70,7 +70,7 @@ func ReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *user_mo
 	}
 
 	if isAdd {
-		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.AddReviewRequest(ctx, issue, reviewer, doer, false)
 	} else {
 		comment, err = issues_model.RemoveReviewRequest(ctx, issue, reviewer, doer)
 	}
@@ -224,7 +224,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 		return nil, err
 	}
 	if isAdd {
-		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer)
+		comment, err = issues_model.AddTeamReviewRequest(ctx, issue, reviewer, doer, false)
 	} else {
 		comment, err = issues_model.RemoveTeamReviewRequest(ctx, issue, reviewer, doer)
 	}

@@ -15,7 +15,6 @@ import (
 	"mime"
 	"regexp"
 	"strings"
-	"sync/atomic"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -32,12 +31,10 @@ import (
 
 const mailMaxSubjectRunes = 256 // There's no actual limit for subject in RFC 5322
 
-var loadedTemplates atomic.Pointer[templates.MailTemplates]
-
 var subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
 
-func LoadedTemplates() *templates.MailTemplates {
-	return loadedTemplates.Load()
+func LoadedTemplates() *templates.MailRender {
+	return templates.MailRenderer()
 }
 
 // SendTestMail sends a test mail

@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	incoming_payload "code.gitea.io/gitea/services/mailer/incoming/payload"
 	sender_service "code.gitea.io/gitea/services/mailer/sender"
 	"code.gitea.io/gitea/services/mailer/token"
@@ -122,9 +123,7 @@ func composeIssueCommentMessages(ctx context.Context, comment *mailComment, lang
 	var mailSubject bytes.Buffer
 	if err := LoadedTemplates().SubjectTemplates.ExecuteTemplate(&mailSubject, tplName, mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
-		if subject == "" {
-			subject = fallback
-		}
+		subject = util.IfZero(subject, fallback)
 	} else {
 		log.Error("ExecuteTemplate [%s]: %v", tplName+"/subject", err)
 	}
@@ -261,14 +260,14 @@ func actionToTemplate(issue *issues_model.Issue, actionType activities_model.Act
 	}
 
 	template = "repo/" + typeName + "/" + name
-	ok := LoadedTemplates().BodyTemplates.Lookup(template) != nil
+	ok := LoadedTemplates().BodyTemplates.HasTemplate(template)
 	if !ok && typeName != "issue" {
 		template = "repo/issue/" + name
-		ok = LoadedTemplates().BodyTemplates.Lookup(template) != nil
+		ok = LoadedTemplates().BodyTemplates.HasTemplate(template)
 	}
 	if !ok {
 		template = "repo/" + typeName + "/default"
-		ok = LoadedTemplates().BodyTemplates.Lookup(template) != nil
+		ok = LoadedTemplates().BodyTemplates.HasTemplate(template)
 	}
 	if !ok {
 		template = "repo/issue/default"
