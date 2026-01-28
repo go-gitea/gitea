@@ -2,6 +2,7 @@ import {checkAppUrl} from '../common-page.ts';
 import {hideElem, queryElems, showElem, toggleElem} from '../../utils/dom.ts';
 import {POST} from '../../modules/fetch.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
+import {urlQueryEscape} from '../../utils.ts';
 
 const {appSubUrl} = window.config;
 
@@ -230,7 +231,7 @@ function initAdminAuthentication() {
   const elAuthName = document.querySelector<HTMLInputElement>('#auth_name')!;
   const onAuthNameChange = function () {
     // appSubUrl is either empty or is a path that starts with `/` and doesn't have a trailing slash.
-    document.querySelector('#oauth2-callback-url')!.textContent = `${window.location.origin}${appSubUrl}/user/oauth2/${encodeURIComponent(elAuthName.value)}/callback`;
+    document.querySelector('#oauth2-callback-url')!.textContent = `${window.location.origin}${appSubUrl}/user/oauth2/${urlQueryEscape(elAuthName.value)}/callback`;
   };
   elAuthName.addEventListener('input', onAuthNameChange);
   onAuthNameChange();

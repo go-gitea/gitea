@@ -24,11 +24,9 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
-	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -37,8 +35,6 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/versioned_migration"
-
-	"gitea.com/go-chi/session"
 )
 
 const (
@@ -55,29 +51,13 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 	return dbTypeNames
 }
 
-// installContexter prepare for rendering installation page
 func installContexter() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
-	dbTypeNames := getSupportedDbTypeNames()
-	envConfigKeys := setting.CollectEnvConfigKeys()
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-			base := context.NewBaseContext(resp, req)
-			ctx := context.NewWebContext(base, rnd, session.GetSession(req))
-			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
-			ctx.Data.MergeFrom(reqctx.ContextData{
-				"Title":          ctx.Locale.Tr("install.install"),
-				"PageIsInstall":  true,
-				"DbTypeNames":    dbTypeNames,
-				"EnvConfigKeys":  envConfigKeys,
-				"CustomConfFile": setting.CustomConf,
-				"AllLangs":       translation.AllLangs(),
-
-				"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
-			})
-			next.ServeHTTP(resp, ctx.Req)
-		})
-	}
+	return context.ContexterInstallPage(map[string]any{
+		"DbTypeNames":            getSupportedDbTypeNames(),
+		"EnvConfigKeys":          setting.CollectEnvConfigKeys(),
+		"CustomConfFile":         setting.CustomConf,
+		"PasswordHashAlgorithms": hash.RecommendedHashAlgorithms,
+	})
 }
 
 // Install render installation page

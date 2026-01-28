@@ -112,7 +112,7 @@ c=2
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out, lexerName, err := File(tt.name, "", []byte(tt.code))
+			out, lexerName, err := RenderFullFile(tt.name, "", []byte(tt.code))
 			assert.NoError(t, err)
 			assert.Equal(t, tt.want, out)
 			assert.Equal(t, tt.lexerName, lexerName)
@@ -176,7 +176,7 @@ c=2`),
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out := PlainText([]byte(tt.code))
+			out := RenderPlainText([]byte(tt.code))
 			assert.Equal(t, tt.want, out)
 		})
 	}
@@ -198,4 +198,37 @@ func TestUnsafeSplitHighlightedLines(t *testing.T) {
 	assert.Len(t, ret, 2)
 	assert.Equal(t, "<span>a</span>\n", string(ret[0]))
 	assert.Equal(t, "<span>b\n</span>", string(ret[1]))
+}
+
+func TestGetChromaLexer(t *testing.T) {
+	globalVars().highlightMapping[".my-html"] = "HTML"
+	t.Cleanup(func() { delete(globalVars().highlightMapping, ".my-html") })
+
+	cases := []struct {
+		fileName string
+		language string
+		content  string
+		expected string
+	}{
+		{"test.py", "", "", "Python"},
+
+		{"any-file", "javascript", "", "JavaScript"},
+		{"any-file", "", "/* vim: set filetype=python */", "Python"},
+		{"any-file", "", "", "fallback"},
+
+		{"test.fs", "", "", "Forth"},
+		{"test.fs", "F#", "", "FSharp"},
+		{"test.fs", "", "let x = 1", "FSharp"},
+
+		{"test.c", "", "", "C"},
+		{"test.C", "", "", "C++"},
+		{"OLD-CODE.PAS", "", "", "ObjectPascal"},
+		{"test.my-html", "", "", "HTML"},
+	}
+	for _, c := range cases {
+		lexer := GetChromaLexerWithFallback(c.fileName, c.language, []byte(c.content))
+		if assert.NotNil(t, lexer, "case: %+v", c) {
+			assert.Equal(t, c.expected, lexer.Config().Name, "case: %+v", c)
+		}
+	}
 }

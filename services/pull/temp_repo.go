@@ -23,9 +23,9 @@ import (
 // Temporary repos created here use standard branch names to help simplify
 // merging code
 const (
-	baseBranch     = "base"     // equivalent to pr.BaseBranch
-	trackingBranch = "tracking" // equivalent to pr.HeadBranch
-	stagingBranch  = "staging"  // this is used for a working branch
+	tmpRepoBaseBranch     = "base"     // equivalent to pr.BaseBranch
+	tmpRepoTrackingBranch = "tracking" // equivalent to pr.HeadBranch
+	tmpRepoStagingBranch  = "staging"  // this is used for a working branch
 )
 
 type prTmpRepoContext struct {
@@ -95,7 +95,6 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	}
 
 	remoteRepoName := "head_repo"
-	baseBranch := "base"
 
 	fetchArgs := gitcmd.TrustedCmdArgs{"--no-tags"}
 	if git.DefaultFeatures().CheckVersionAtLeast("2.25.0") {
@@ -135,14 +134,14 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	}
 
 	if err := prCtx.PrepareGitCmd(gitcmd.NewCommand("fetch", "origin").AddArguments(fetchArgs...).
-		AddDashesAndList(git.BranchPrefix+pr.BaseBranch+":"+git.BranchPrefix+baseBranch, git.BranchPrefix+pr.BaseBranch+":"+git.BranchPrefix+"original_"+baseBranch)).
+		AddDashesAndList(git.BranchPrefix+pr.BaseBranch+":"+git.BranchPrefix+tmpRepoBaseBranch, git.BranchPrefix+pr.BaseBranch+":"+git.BranchPrefix+"original_"+tmpRepoBaseBranch)).
 		RunWithStderr(ctx); err != nil {
 		log.Error("%-v Unable to fetch origin base branch [%s:%s -> base, original_base in %s]: %v:\n%s\n%s", pr, pr.BaseRepo.FullName(), pr.BaseBranch, tmpBasePath, err, prCtx.outbuf.String(), err.Stderr())
 		cancel()
 		return nil, nil, fmt.Errorf("Unable to fetch origin base branch [%s:%s -> base, original_base in tmpBasePath]: %w\n%s\n%s", pr.BaseRepo.FullName(), pr.BaseBranch, err, prCtx.outbuf.String(), err.Stderr())
 	}
 
-	if err := prCtx.PrepareGitCmd(gitcmd.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+baseBranch)).
+	if err := prCtx.PrepareGitCmd(gitcmd.NewCommand("symbolic-ref").AddDynamicArguments("HEAD", git.BranchPrefix+tmpRepoBaseBranch)).
 		RunWithStderr(ctx); err != nil {
 		log.Error("%-v Unable to set HEAD as base branch in [%s]: %v\n%s\n%s", pr, tmpBasePath, err, prCtx.outbuf.String(), err.Stderr())
 		cancel()
@@ -162,7 +161,6 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 		return nil, nil, fmt.Errorf("Unable to add head repository as head_repo [%s -> tmpBasePath]: %w\n%s\n%s", pr.HeadRepo.FullName(), err, prCtx.outbuf.String(), err.Stderr())
 	}
 
-	trackingBranch := "tracking"
 	objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 	// Fetch head branch
 	var headBranch string
@@ -173,7 +171,7 @@ func createTemporaryRepoForPR(ctx context.Context, pr *issues_model.PullRequest)
 	} else {
 		headBranch = pr.GetGitHeadRefName()
 	}
-	if err := prCtx.PrepareGitCmd(gitcmd.NewCommand("fetch").AddArguments(fetchArgs...).AddDynamicArguments(remoteRepoName, headBranch+":"+trackingBranch)).
+	if err := prCtx.PrepareGitCmd(gitcmd.NewCommand("fetch").AddArguments(fetchArgs...).AddDynamicArguments(remoteRepoName, headBranch+":"+tmpRepoTrackingBranch)).
 		RunWithStderr(ctx); err != nil {
 		cancel()
 		if exist, _ := git_model.IsBranchExist(ctx, pr.HeadRepo.ID, pr.HeadBranch); !exist {
