@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -35,32 +34,6 @@ func ReloadTemplates(ctx context.Context) ResponseExtra {
 	reqURL := setting.LocalURL + "api/internal/manager/reload-templates"
 	req := newInternalRequestAPI(ctx, reqURL, "POST")
 	return requestJSONClientMsg(req, "Reloaded")
-}
-
-// Shutdown calls the internal shutdown function
-func GetSSHInfo(ctx context.Context) string {
-	reqURL := setting.LocalURL + "ssh_info"
-	req := newInternalRequestAPI(ctx, reqURL, "GET")
-
-	resp, err := req.Response()
-	if err != nil {
-		log.Error("GetSSHInfo Error: %v", err)
-		return ""
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		log.Error("response status code is not OK, code: %d", resp.StatusCode)
-		return ""
-	}
-
-	content, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error("read body error: %v", err)
-		return ""
-	}
-
-	return string(content)
 }
 
 // FlushOptions represents the options for the flush call
