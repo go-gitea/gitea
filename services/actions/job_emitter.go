@@ -125,14 +125,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 			}
 		}
 		if runUpdated {
-			updatedRun, err := actions_model.GetRunByRepoAndID(ctx, js[0].RepoID, runID)
-			if err != nil {
-				log.Error("GetRunByRepoAndID for run %d: %v", runID, err)
-				continue
-			}
-			if updatedRun.ParentJobID == 0 {
-				NotifyWorkflowRunStatusUpdateWithReload(ctx, js[0])
-			}
+			NotifyWorkflowRunStatusUpdateWithReload(ctx, js[0])
 		}
 	}
 	if run.ParentJobID > 0 {
