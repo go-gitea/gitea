@@ -99,7 +99,7 @@ type Repository struct {
 	CommitID     string
 	CommitsCount int64
 
-	PullRequest *PullRequestContext
+	PullRequestCtx *PullRequestContext
 }
 
 // CanWriteToBranch checks if the branch is writable by the user
@@ -454,9 +454,9 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 }
 
 func InitRepoPullRequestCtx(ctx *Context, base, head *repo_model.Repository) {
-	ctx.Repo.PullRequest = &PullRequestContext{ctx: ctx}
-	ctx.Repo.PullRequest.baseRepo, ctx.Repo.PullRequest.headRepo = base, head
-	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
+	ctx.Repo.PullRequestCtx = &PullRequestContext{ctx: ctx}
+	ctx.Repo.PullRequestCtx.baseRepo, ctx.Repo.PullRequestCtx.headRepo = base, head
+	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequestCtx
 }
 
 // RepoAssignment returns a middleware to handle repository assignment

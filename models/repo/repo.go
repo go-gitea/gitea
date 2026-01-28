@@ -614,12 +614,6 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 }
 
 func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, baseBranch, branchName string) string {
-	if baseRepo == nil {
-		baseRepo = repo
-	}
-	if baseBranch == "" {
-		baseBranch = baseRepo.DefaultBranch
-	}
 	var cmpBranchEscaped string
 	if repo.ID != baseRepo.ID {
 		cmpBranchEscaped = fmt.Sprintf("%s/%s:", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name))
