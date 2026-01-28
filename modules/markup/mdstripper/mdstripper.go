@@ -165,7 +165,6 @@ func StripMarkdownBytes(rawBytes []byte) ([]byte, []string) {
 			),
 			goldmark.WithParserOptions(
 				parser.WithAttribute(),
-				parser.WithAutoHeadingID(),
 			),
 			goldmark.WithRendererOptions(
 				html.WithUnsafe(),

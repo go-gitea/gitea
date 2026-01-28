@@ -500,6 +500,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	unitPullRequest, err := ctx.Repo.Repository.GetUnit(ctx, unit.TypePullRequests)
 	if err != nil {
 		ctx.APIErrorInternal(err)
+		return
 	}
 
 	prIssue := &issues_model.Issue{
@@ -1321,7 +1322,7 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	}
 
 	if ctx.Doer.ID != autoMerge.DoerID {
-		allowed, err := access_model.IsUserRepoAdmin(ctx, ctx.Repo.Repository, ctx.Doer)
+		allowed, err := pull_service.IsUserAllowedToMerge(ctx, pull, ctx.Repo.Permission, ctx.Doer)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -1531,9 +1532,9 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	var compareInfo *git_service.CompareInfo
 	if pr.HasMerged {
-		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), true, false)
+		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefName(pr.MergeBase), git.RefName(pr.GetGitHeadRefName()), false, false)
 	} else {
-		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), true, false)
+		compareInfo, err = git_service.GetCompareInfo(ctx, pr.BaseRepo, pr.BaseRepo, baseGitRepo, git.RefNameFromBranch(pr.BaseBranch), git.RefName(pr.GetGitHeadRefName()), false, false)
 	}
 	if err != nil {
 		ctx.APIErrorInternal(err)
