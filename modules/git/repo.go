@@ -251,6 +251,7 @@ const (
 // ParseCountObjectsResult parses the output from git count-objects -v
 // and returns a CountObject struct with the parsed values
 func ParseCountObjectsResult(output string) *CountObject {
+	const bytesPerKilobyte = 1024
 	repoSize := new(CountObject)
 	for line := range strings.SplitSeq(output, "\n") {
 		switch {
@@ -258,21 +259,21 @@ func ParseCountObjectsResult(output string) *CountObject {
 			repoSize.Count, _ = strconv.ParseInt(line[7:], 10, 64)
 		case strings.HasPrefix(line, statSize):
 			number, _ := strconv.ParseInt(line[6:], 10, 64)
-			repoSize.Size = number * 1024
+			repoSize.Size = number * bytesPerKilobyte
 		case strings.HasPrefix(line, statInpack):
 			repoSize.InPack, _ = strconv.ParseInt(line[9:], 10, 64)
 		case strings.HasPrefix(line, statPacks):
 			repoSize.Packs, _ = strconv.ParseInt(line[7:], 10, 64)
 		case strings.HasPrefix(line, statSizePack):
 			number, _ := strconv.ParseInt(line[11:], 10, 64)
-			repoSize.SizePack = number * 1024
+			repoSize.SizePack = number * bytesPerKilobyte
 		case strings.HasPrefix(line, statPrunePackage):
 			repoSize.PrunePack, _ = strconv.ParseInt(line[16:], 10, 64)
 		case strings.HasPrefix(line, statGarbage):
 			repoSize.Garbage, _ = strconv.ParseInt(line[9:], 10, 64)
 		case strings.HasPrefix(line, statSizeGarbage):
 			number, _ := strconv.ParseInt(line[14:], 10, 64)
-			repoSize.SizeGarbage = number * 1024
+			repoSize.SizeGarbage = number * bytesPerKilobyte
 		}
 	}
 	return repoSize
