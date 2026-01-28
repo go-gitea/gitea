@@ -1,0 +1,76 @@
+name: task-wait-merge-label
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  update-prs:
+    if: github.repository == 'go-gitea/gitea'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Update all PRs with reviewed/wait-merge label
+        env:
+          GH_TOKEN: ${{ secrets.PR_UPDATE_TOKEN }}
+        run: |
+          gh auth status || exit 1
+
+          prs=$(gh pr list --repo ${{ github.repository }} --label "reviewed/wait-merge" --state open --json number --jq '.[].number')
+
+          if [ -z "$prs" ]; then
+            echo "No PRs found with 'reviewed/wait-merge' label"
+            exit 0
+          fi
+
+          failed=0
+
+          for pr_number in $prs; do
+            if gh api --method PUT \
+              -H "Accept: application/vnd.github+json" \
+              "/repos/${{ github.repository }}/pulls/$pr_number/update-branch"; then
+              echo "#$pr_number PR succeeded"
+            else
+              echo "#$pr_number PR failed"
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo ""
+            echo "One or more PRs failed to update. Possible reasons:"
+            echo "- Merge conflicts with main"
+            echo "- PR is from a fork and 'Allow edits from maintainers' is disabled"
+            echo "- Branch belongs to an organization that disallows maintainer edits"
+            echo "- Required status checks or branch protections blocked the update"
+          fi
+
+          exit $failed
+
+  cleanup-labels:
+    if: github.repository == 'go-gitea/gitea'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Remove label from closed PRs
+        env:
+          GH_TOKEN: ${{ secrets.PR_UPDATE_TOKEN }}
+        run: |
+          closed_prs=$(gh pr list --repo ${{ github.repository }} --label "reviewed/wait-merge" --state closed --json number --jq '.[].number')
+
+          if [ -z "$closed_prs" ]; then
+            echo "No closed PRs found with 'reviewed/wait-merge' label"
+            exit 0
+          fi
+
+          for pr_number in $closed_prs; do
+            if gh pr edit "$pr_number" --repo ${{ github.repository }} --remove-label "reviewed/wait-merge"; then
+              echo "#$pr_number label removed"
+            else
+              echo "#$pr_number failed to remove label"
+            fi
+          done
