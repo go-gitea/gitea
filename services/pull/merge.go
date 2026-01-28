@@ -555,7 +555,7 @@ func isUserAllowedToMergeInRepoBranch(ctx context.Context, repoID int64, branch 
 		return false, err
 	}
 
-	if (p.CanWrite(unit.TypeCode) && pb == nil) || (pb != nil && git_model.IsUserMergeWhitelisted(ctx, pb, user, p)) {
+	if (p.CanWrite(unit.TypeCode) && pb == nil) || (pb != nil && git_model.IsUserMergeWhitelisted(ctx, pb, user.ID, p)) {
 		return true, nil
 	}
 

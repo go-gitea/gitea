@@ -111,7 +111,7 @@ func ToBranch(ctx context.Context, repo *repo_model.Repository, branchName strin
 		}
 		bp.Repo = repo
 		branch.UserCanPush = bp.CanUserPush(ctx, user)
-		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(ctx, bp, user, permission)
+		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(ctx, bp, user.ID, permission)
 	}
 
 	return branch, nil
