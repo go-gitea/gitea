@@ -29,6 +29,4 @@ func TestDefaultTargetBranchSelection(t *testing.T) {
 	assert.NoError(t, UpdateRepoUnit(ctx, prUnit))
 	repo.Units = nil
 	assert.Equal(t, "branch2", repo.GetDefaultTargetBranch(ctx))
-
-	assert.NoError(t, repo.ValidateDefaultTargetBranch(ctx, "does-not-exist"))
 }

@@ -560,17 +560,6 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		}
 	}
 
-	defaultTargetBranch := strings.TrimSpace(form.DefaultTargetBranch)
-	if err := repo.ValidateDefaultTargetBranch(ctx, defaultTargetBranch); err != nil {
-		if errors.Is(err, util.ErrNotExist) {
-			ctx.Flash.Error(ctx.Tr("repo.settings.pulls.default_target_branch_invalid"))
-			ctx.Redirect(repo.Link() + "/settings")
-			return
-		}
-		ctx.ServerError("ValidateDefaultTargetBranch", err)
-		return
-	}
-
 	if form.EnableIssues && form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 		if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
@@ -639,7 +628,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
-			DefaultTargetBranch:           defaultTargetBranch,
+			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
 		}))
 	} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)

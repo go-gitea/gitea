@@ -33,12 +33,3 @@ func (repo *Repository) GetDefaultTargetBranch(ctx context.Context) string {
 	}
 	return repo.DefaultBranch
 }
-
-// ValidateDefaultTargetBranch checks whether a preferred target branch is valid.
-func (repo *Repository) ValidateDefaultTargetBranch(ctx context.Context, branch string) error {
-	branch = strings.TrimSpace(branch)
-	if branch == "" {
-		return nil
-	}
-	return nil
-}
