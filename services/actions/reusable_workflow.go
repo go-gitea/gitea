@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path"
 	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -116,7 +117,7 @@ func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_
 	}
 
 	childRun := &actions_model.ActionRun{
-		Title:       fmt.Sprintf("%s / %s", parentRun.Title, childRunName),
+		Title:       fmt.Sprintf("%s / %s", parentJob.JobID, path.Base(childRunName)),
 		RepoID:      parentRun.RepoID,
 		OwnerID:     parentRun.OwnerID,
 		ParentJobID: parentJob.ID,
