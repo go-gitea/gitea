@@ -97,8 +97,6 @@ func testGitGeneral(t *testing.T, u *url.URL) {
 			mediaTest(t, &forkedUserCtx, pushedFilesStandard[0], pushedFilesStandard[1], pushedFilesLFS[0], pushedFilesLFS[1])
 		})
 
-		u.Path = httpContext.GitPath()
-		u.User = url.UserPassword(username, userPassword)
 		t.Run("PushCreate", doPushCreate(httpContext, u))
 	})
 	t.Run("SSH", func(t *testing.T) {
@@ -185,40 +183,45 @@ func ensureAnonymousClone(t *testing.T, u *url.URL) {
 }
 
 func standardCommitAndPushTest(t *testing.T, dstPath string, sizes ...int) (pushedFiles []string) {
-	defer tests.PrintCurrentTest(t)()
-	return commitAndPushTest(t, dstPath, "data-file-", sizes...)
+	t.Run("CommitAndPushStandard", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+		pushedFiles = commitAndPushTest(t, dstPath, "data-file-", sizes...)
+	})
+	return pushedFiles
 }
 
 func lfsCommitAndPushTest(t *testing.T, dstPath string, sizes ...int) (pushedFiles []string) {
-	defer tests.PrintCurrentTest(t)()
-	prefix := "lfs-data-file-"
-	err := gitcmd.NewCommand("lfs").AddArguments("install").WithDir(dstPath).Run(t.Context())
-	assert.NoError(t, err)
-	_, _, err = gitcmd.NewCommand("lfs").AddArguments("track").AddDynamicArguments(prefix + "*").
-		WithDir(dstPath).RunStdString(t.Context())
-	assert.NoError(t, err)
-	err = git.AddChanges(t.Context(), dstPath, false, ".gitattributes")
-	assert.NoError(t, err)
-
-	err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
-		Committer: &git.Signature{
-			Email: "user2@example.com",
-			Name:  "User Two",
-			When:  time.Now(),
-		},
-		Author: &git.Signature{
-			Email: "user2@example.com",
-			Name:  "User Two",
-			When:  time.Now(),
-		},
-		Message: "Add LFS Tracking",
-	})
-	assert.NoError(t, err)
-
-	pushedFiles = commitAndPushTest(t, dstPath, prefix, sizes...)
-	t.Run("Locks", func(t *testing.T) {
+	t.Run("CommitAndPushLFS", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
-		lockTest(t, dstPath)
+		prefix := "lfs-data-file-"
+		err := gitcmd.NewCommand("lfs").AddArguments("install").WithDir(dstPath).Run(t.Context())
+		assert.NoError(t, err)
+		_, _, err = gitcmd.NewCommand("lfs").AddArguments("track").AddDynamicArguments(prefix + "*").
+			WithDir(dstPath).RunStdString(t.Context())
+		assert.NoError(t, err)
+		err = git.AddChanges(t.Context(), dstPath, false, ".gitattributes")
+		assert.NoError(t, err)
+
+		err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+			Committer: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "User Two",
+				When:  time.Now(),
+			},
+			Author: &git.Signature{
+				Email: "user2@example.com",
+				Name:  "User Two",
+				When:  time.Now(),
+			},
+			Message: fmt.Sprintf("Testing commit @ %v", time.Now()),
+		})
+		assert.NoError(t, err)
+
+		pushedFiles = commitAndPushTest(t, dstPath, prefix, sizes...)
+		t.Run("Locks", func(t *testing.T) {
+			defer tests.PrintCurrentTest(t)()
+			lockTest(t, dstPath)
+		})
 	})
 	return pushedFiles
 }
@@ -325,14 +328,6 @@ func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 	assert.NoError(t, err)
 	_, _, err = gitcmd.NewCommand("push", "origin", "master").WithDir(repoPath).RunStdString(t.Context())
 	assert.NoError(t, err)
-	return name
-}
-
-func doCommitAndPushWithExpectedError(t *testing.T, size int, repoPath, prefix string) string {
-	name, err := generateCommitWithNewData(t.Context(), size, repoPath, "user2@example.com", "User Two", prefix)
-	assert.NoError(t, err)
-	_, _, err = gitcmd.NewCommand("push", "origin", "master").WithDir(repoPath).RunStdString(t.Context()) // Push
-	assert.Error(t, err)
 	return name
 }
 

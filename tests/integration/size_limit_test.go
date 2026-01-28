@@ -338,4 +338,12 @@ func doCommitAndPushLFSWithRandomDataWithExpectedError(t *testing.T, repoPath, f
 	assert.Error(t, err)
 }
 
-// Reuse global helpers for Git: doCommitAndPush, doCommitAndPushWithExpectedError
+// Reuse global helpers for Git: doCommitAndPush
+
+func doCommitAndPushWithExpectedError(t *testing.T, size int, repoPath, prefix string) string {
+	name, err := generateCommitWithNewData(t.Context(), size, repoPath, "user2@example.com", "User Two", prefix)
+	assert.NoError(t, err)
+	_, _, err = gitcmd.NewCommand("push", "origin", "master").WithDir(repoPath).RunStdString(t.Context()) // Push
+	assert.Error(t, err)
+	return name
+}
