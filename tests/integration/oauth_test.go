@@ -113,6 +113,7 @@ func TestAuthorizeGrantS256RequiresVerifier(t *testing.T) {
 		"nonce":        "",
 		"redirect_uri": "a",
 		"granted":      "true",
+		"_csrf":        htmlDoc.GetCSRF(),
 	})
 	grantResp := ctx.MakeRequest(t, grantReq, http.StatusSeeOther)
 	u, err := grantResp.Result().Location()
