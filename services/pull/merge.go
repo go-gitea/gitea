@@ -366,11 +366,11 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	if err != nil {
 		return "", fmt.Errorf("Failed to get full commit id for HEAD: %w", err)
 	}
-	mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "original_"+baseBranch)
+	mergeBaseSHA, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, "original_"+tmpRepoBaseBranch)
 	if err != nil {
 		return "", fmt.Errorf("Failed to get full commit id for origin/%s: %w", pr.BaseBranch, err)
 	}
-	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, baseBranch)
+	mergeCommitID, err := git.GetFullCommitID(ctx, mergeCtx.tmpBasePath, tmpRepoBaseBranch)
 	if err != nil {
 		return "", fmt.Errorf("Failed to get full commit id for the new merge: %w", err)
 	}
@@ -407,7 +407,7 @@ func doMergeAndPush(ctx context.Context, pr *issues_model.PullRequest, doer *use
 	)
 
 	mergeCtx.env = append(mergeCtx.env, repo_module.EnvPushTrigger+"="+string(pushTrigger))
-	pushCmd := gitcmd.NewCommand("push", "origin").AddDynamicArguments(baseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
+	pushCmd := gitcmd.NewCommand("push", "origin").AddDynamicArguments(tmpRepoBaseBranch + ":" + git.BranchPrefix + pr.BaseBranch)
 
 	// Push back to upstream.
 	// This cause an api call to "/api/internal/hook/post-receive/...",
@@ -717,7 +717,7 @@ func SetMerged(ctx context.Context, pr *issues_model.PullRequest, mergedCommitID
 			return false, fmt.Errorf("ChangeIssueStatus: %w", err)
 		}
 
-		// We need to save all of the data used to compute this merge as it may have already been changed by testPullRequestBranchMergeable. FIXME: need to set some state to prevent testPullRequestBranchMergeable from running whilst we are merging.
+		// We need to save all of the data used to compute this merge as it may have already been changed by checkPullRequestBranchMergeable. FIXME: need to set some state to prevent checkPullRequestBranchMergeable from running whilst we are merging.
 		if cnt, err := db.GetEngine(ctx).Where("id = ?", pr.ID).
 			And("has_merged = ?", false).
 			Cols("has_merged, status, merge_base, merged_commit_id, merger_id, merged_unix, conflicted_files").

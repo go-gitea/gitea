@@ -81,7 +81,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 				line := scanner.Bytes()
 				if bytes.IndexByte(line, '*') >= 0 {
 					if err := parser.AddLineToGraph(graph, row, line); err != nil {
-						return ctx.CancelWithCause(err)
+						return ctx.CancelPipeline(err)
 					}
 					break
 				}
@@ -92,7 +92,7 @@ func GetCommitGraph(r *git.Repository, page, maxAllowedColors int, hidePRRefs bo
 				row++
 				line := scanner.Bytes()
 				if err := parser.AddLineToGraph(graph, row, line); err != nil {
-					return ctx.CancelWithCause(err)
+					return ctx.CancelPipeline(err)
 				}
 			}
 			return scanner.Err()
