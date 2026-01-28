@@ -181,7 +181,7 @@ func convertObjectsToSlice(objects string) (objectIDs []string) {
 // loadObjectSizesFromPack access all packs that this push or repo has
 // and load compressed object size in bytes into objectSizes map
 // using `git verify-pack -v` output
-func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env, _ []string, objectsSizes map[string]int64) error {
+func loadObjectSizesFromPack(ctx *gitea_context.PrivateContext, dir string, env []string, objectsSizes map[string]int64) error {
 	// Find the path from GIT_QUARANTINE_PATH environment variable (path to the pack file)
 	var packPath string
 	var errExec error
@@ -294,11 +294,11 @@ func loadObjectsSizesViaCatFile(ctx *gitea_context.PrivateContext, dir string, e
 		go func(reducedObjectIDs *[]string) {
 			defer wg.Done()
 			for _, objectID := range *reducedObjectIDs {
-				ctx := ctx
+				workerCtx := ctx
 				// Ensure that each worker has its own copy of the env environment to prevent races
 				env := append([]string(nil), env...)
 
-				objectSize, err := calculateSizeOfObject(ctx, dir, env, objectID)
+				objectSize, err := calculateSizeOfObject(workerCtx, dir, env, objectID)
 				// Upon error we store the first error and continue processing, as we can't stop the push
 				// if we were not able to calculate the size of the object, but we keep one error to
 				// return at the end, along with a count of subsequent similar errors.
@@ -666,7 +666,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			// Load sizes of OLD+OTHER objects (existing in DB): pack + batch (git deep only)
 			if isRepoOversized {
 				if repoSize != nil && repoSize.InPack > 0 {
-					errLoop = loadObjectSizesFromPack(ctx, repo.RepoPath(), nil, objectIDs, commitObjectsSizes)
+					errLoop = loadObjectSizesFromPack(ctx, repo.RepoPath(), nil, commitObjectsSizes)
 					if errLoop != nil {
 						log.Error("Unable to get sizes of objects from the pack in %-v Error: %v", repo, errLoop)
 					}
@@ -712,7 +712,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 			// Load sizes of NEW objects (may be in quarantine packs, etc.) (git deep only)
 			if isRepoOversized {
 				if pushSize != nil && pushSize.InPack > 0 {
-					errLoop = loadObjectSizesFromPack(ctx, repo.RepoPath(), ourCtx.env, objectIDs, commitObjectsSizes)
+					errLoop = loadObjectSizesFromPack(ctx, repo.RepoPath(), ourCtx.env, commitObjectsSizes)
 					if errLoop != nil {
 						log.Error("Unable to get sizes of objects from the pack in new commit %s in %-v Error: %v", newCommitID, repo, errLoop)
 					}
@@ -832,7 +832,7 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 				repo,
 			)
 			ctx.JSON(http.StatusForbidden, private.Response{
-				UserMsg: fmt.Sprintf("Repository git size limit exceeded: %s > then limit of %s",
+				UserMsg: fmt.Sprintf("Repository git size limit exceeded: %s > than limit of %s",
 					base.FileSize(predictedGitAfter),
 					base.FileSize(limit),
 				),
