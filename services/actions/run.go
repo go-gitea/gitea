@@ -9,6 +9,8 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
@@ -103,6 +105,20 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
+
+		// Load Actions configuration to get default and max permissions
+		var actionsCfg *repo_model.ActionsConfig
+		actionsUnit, err := run.Repo.GetUnit(ctx, unit_model.TypeActions)
+		if err == nil {
+			actionsCfg = actionsUnit.ActionsConfig()
+		} else {
+			// Default config if Actions unit doesn't exist
+			actionsCfg = &repo_model.ActionsConfig{}
+		}
+
+		// Get default permissions based on repository settings
+		defaultPerms := actionsCfg.GetEffectiveTokenPermissions(run.IsForkPullRequest)
+
 		for _, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
@@ -112,6 +128,12 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 			payload, _ := v.Marshal()
 
 			shouldBlockJob := len(needs) > 0 || run.NeedApproval || run.Status == actions_model.StatusBlocked
+
+			// Parse workflow-level and job-level permissions
+			workflowPerms := ParseWorkflowPermissions(v, defaultPerms)
+			jobPerms := ParseJobPermissions(job, workflowPerms)
+			// Clamp by repository max settings
+			finalPerms := actionsCfg.ClampPermissions(jobPerms)
 
 			job.Name = util.EllipsisDisplayString(job.Name, 255)
 			runJob := &actions_model.ActionRunJob{
@@ -126,6 +148,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				Needs:             needs,
 				RunsOn:            job.RunsOn(),
 				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
+				TokenPermissions:  repo_model.MarshalTokenPermissions(finalPerms),
 			}
 			// check job concurrency
 			if job.RawConcurrency != nil {
