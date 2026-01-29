@@ -1034,6 +1034,20 @@ func GetCommentByID(ctx context.Context, id int64) (*Comment, error) {
 	return c, nil
 }
 
+func GetCommentWithRepoID(ctx context.Context, repoID, commentID int64) (*Comment, error) {
+	c, err := GetCommentByID(ctx, commentID)
+	if err != nil {
+		return nil, err
+	}
+	if err := c.LoadIssue(ctx); err != nil {
+		return nil, err
+	}
+	if c.Issue.RepoID != repoID {
+		return nil, ErrCommentNotExist{commentID, 0}
+	}
+	return c, nil
+}
+
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
 	db.ListOptions
