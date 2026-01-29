@@ -7,14 +7,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/testlogger"
 
 	"github.com/stretchr/testify/require"
@@ -101,28 +99,7 @@ func LoadTableSchemasMap(t *testing.T, x *xorm.Engine) map[string]*schemas.Table
 
 func MainTest(m *testing.M) {
 	testlogger.Init()
-
-	giteaRoot := test.SetupGiteaRoot()
-	giteaBinary := "gitea"
-	if runtime.GOOS == "windows" {
-		giteaBinary += ".exe"
-	}
-	setting.AppPath = filepath.Join(giteaRoot, giteaBinary)
-	if _, err := os.Stat(setting.AppPath); err != nil {
-		testlogger.Fatalf("Could not find gitea binary at %s\n", setting.AppPath)
-	}
-
-	giteaConf := os.Getenv("GITEA_CONF")
-	if giteaConf == "" {
-		giteaConf = filepath.Join(filepath.Dir(setting.AppPath), "tests/sqlite.ini")
-		_, _ = fmt.Fprintf(os.Stderr, "Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
-	}
-
-	if !filepath.IsAbs(giteaConf) {
-		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
-	} else {
-		setting.CustomConf = giteaConf
-	}
+	setting.SetupGiteaTestEnv()
 
 	tmpDataPath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("data")
 	if err != nil {
@@ -130,7 +107,6 @@ func MainTest(m *testing.M) {
 	}
 	defer cleanup()
 
-	setting.CustomPath = filepath.Join(setting.AppWorkPath, "custom")
 	setting.AppDataPath = tmpDataPath
 
 	unittest.InitSettingsForTesting()
