@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path"
 	"strings"
+	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
@@ -319,12 +321,6 @@ func (*actionNotifier) NotifyPullRevieweDismiss(ctx context.Context, doer *user_
 }
 
 func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	data, err := json.Marshal(commits)
-	if err != nil {
-		log.Error("Marshal: %v", err)
-		return
-	}
-
 	opType := activities_model.ActionCommitRepo
 
 	// Check it's tag push or branch.
@@ -337,17 +333,84 @@ func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.Use
 		opType = activities_model.ActionDeleteBranch
 	}
 
-	if err = NotifyWatchers(ctx, &activities_model.Action{
-		ActUserID: pusher.ID,
-		ActUser:   pusher,
-		OpType:    opType,
-		Content:   string(data),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		RefName:   opts.RefFullName.String(),
-		IsPrivate: repo.IsPrivate,
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+	// Group commits by date (truncated to day) so each day's commits appear
+	// on the correct date in the heatmap, not all on the push date.
+	commitsByDate := make(map[int64][]*repository.PushCommit)
+	for _, commit := range commits.Commits {
+		// Truncate to start of day (UTC)
+		dayTimestamp := commit.Timestamp.UTC().Truncate(24 * time.Hour).Unix()
+		commitsByDate[dayTimestamp] = append(commitsByDate[dayTimestamp], commit)
+	}
+
+	// If no commits or only one date, use simple path
+	if len(commitsByDate) <= 1 {
+		data, err := json.Marshal(commits)
+		if err != nil {
+			log.Error("Marshal: %v", err)
+			return
+		}
+
+		var originalUnix timeutil.TimeStamp
+		if len(commits.Commits) > 0 {
+			// Use the first commit's date as the original timestamp
+			originalUnix = timeutil.TimeStamp(commits.Commits[0].Timestamp.Unix())
+		}
+
+		if err = NotifyWatchers(ctx, &activities_model.Action{
+			ActUserID:    pusher.ID,
+			ActUser:      pusher,
+			OpType:       opType,
+			Content:      string(data),
+			RepoID:       repo.ID,
+			Repo:         repo,
+			RefName:      opts.RefFullName.String(),
+			IsPrivate:    repo.IsPrivate,
+			OriginalUnix: originalUnix,
+		}); err != nil {
+			log.Error("NotifyWatchers: %v", err)
+		}
+		return
+	}
+
+	// Create separate action records for each date
+	for _, dayCommits := range commitsByDate {
+		// Create a PushCommits struct for this day's commits
+		dayPushCommits := &repository.PushCommits{
+			Commits:    dayCommits,
+			CompareURL: commits.CompareURL,
+			Len:        len(dayCommits),
+		}
+		// Set HeadCommit if it's in this day's commits
+		for _, c := range dayCommits {
+			if commits.HeadCommit != nil && c.Sha1 == commits.HeadCommit.Sha1 {
+				dayPushCommits.HeadCommit = c
+				break
+			}
+		}
+
+		data, err := json.Marshal(dayPushCommits)
+		if err != nil {
+			log.Error("Marshal: %v", err)
+			continue
+		}
+
+		// Use the first commit's actual timestamp (not truncated) so the frontend
+		// can properly display it in the user's timezone
+		originalUnix := timeutil.TimeStamp(dayCommits[0].Timestamp.Unix())
+
+		if err = NotifyWatchers(ctx, &activities_model.Action{
+			ActUserID:    pusher.ID,
+			ActUser:      pusher,
+			OpType:       opType,
+			Content:      string(data),
+			RepoID:       repo.ID,
+			Repo:         repo,
+			RefName:      opts.RefFullName.String(),
+			IsPrivate:    repo.IsPrivate,
+			OriginalUnix: originalUnix,
+		}); err != nil {
+			log.Error("NotifyWatchers: %v", err)
+		}
 	}
 }
 
@@ -396,23 +459,81 @@ func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model
 		return
 	}
 
-	data, err := json.Marshal(commits)
-	if err != nil {
-		log.Error("json.Marshal: %v", err)
+	// Group commits by date (truncated to day) so each day's commits appear
+	// on the correct date in the heatmap, not all on the sync date.
+	commitsByDate := make(map[int64][]*repository.PushCommit)
+	for _, commit := range commits.Commits {
+		// Truncate to start of day (UTC)
+		dayTimestamp := commit.Timestamp.UTC().Truncate(24 * time.Hour).Unix()
+		commitsByDate[dayTimestamp] = append(commitsByDate[dayTimestamp], commit)
+	}
+
+	// If no commits or only one date, use simple path
+	if len(commitsByDate) <= 1 {
+		data, err := json.Marshal(commits)
+		if err != nil {
+			log.Error("json.Marshal: %v", err)
+			return
+		}
+
+		var originalUnix timeutil.TimeStamp
+		if len(commits.Commits) > 0 {
+			originalUnix = timeutil.TimeStamp(commits.Commits[0].Timestamp.Unix())
+		}
+
+		if err := NotifyWatchers(ctx, &activities_model.Action{
+			ActUserID:    repo.OwnerID,
+			ActUser:      repo.MustOwner(ctx),
+			OpType:       activities_model.ActionMirrorSyncPush,
+			RepoID:       repo.ID,
+			Repo:         repo,
+			IsPrivate:    repo.IsPrivate,
+			RefName:      opts.RefFullName.String(),
+			Content:      string(data),
+			OriginalUnix: originalUnix,
+		}); err != nil {
+			log.Error("NotifyWatchers: %v", err)
+		}
 		return
 	}
 
-	if err := NotifyWatchers(ctx, &activities_model.Action{
-		ActUserID: repo.OwnerID,
-		ActUser:   repo.MustOwner(ctx),
-		OpType:    activities_model.ActionMirrorSyncPush,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		RefName:   opts.RefFullName.String(),
-		Content:   string(data),
-	}); err != nil {
-		log.Error("NotifyWatchers: %v", err)
+	// Create separate action records for each date
+	for _, dayCommits := range commitsByDate {
+		dayPushCommits := &repository.PushCommits{
+			Commits:    dayCommits,
+			CompareURL: commits.CompareURL,
+			Len:        len(dayCommits),
+		}
+		for _, c := range dayCommits {
+			if commits.HeadCommit != nil && c.Sha1 == commits.HeadCommit.Sha1 {
+				dayPushCommits.HeadCommit = c
+				break
+			}
+		}
+
+		data, err := json.Marshal(dayPushCommits)
+		if err != nil {
+			log.Error("json.Marshal: %v", err)
+			continue
+		}
+
+		// Use the first commit's actual timestamp (not truncated) so the frontend
+		// can properly display it in the user's timezone
+		originalUnix := timeutil.TimeStamp(dayCommits[0].Timestamp.Unix())
+
+		if err := NotifyWatchers(ctx, &activities_model.Action{
+			ActUserID:    repo.OwnerID,
+			ActUser:      repo.MustOwner(ctx),
+			OpType:       activities_model.ActionMirrorSyncPush,
+			RepoID:       repo.ID,
+			Repo:         repo,
+			IsPrivate:    repo.IsPrivate,
+			RefName:      opts.RefFullName.String(),
+			Content:      string(data),
+			OriginalUnix: originalUnix,
+		}); err != nil {
+			log.Error("NotifyWatchers: %v", err)
+		}
 	}
 }
 
