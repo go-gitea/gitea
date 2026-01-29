@@ -104,3 +104,70 @@ int a;
 <pre><code class="chroma language-c"><span class="kt">int</span> <span class="n">a</span><span class="p">;</span></code></pre>
 </div>`)
 }
+
+func TestRender_TocHeaderExtraction(t *testing.T) {
+	// Test single level headers
+	t.Run("SingleLevel", func(t *testing.T) {
+		input := `* Header 1
+* Header 2
+* Header 3
+`
+		ctx := markup.NewTestRenderContext()
+		_, err := orgmode.RenderString(ctx, input)
+		assert.NoError(t, err)
+		assert.Len(t, ctx.TocHeadingItems, 3)
+		assert.Equal(t, "Header 1", ctx.TocHeadingItems[0].InnerText)
+		assert.Equal(t, "Header 2", ctx.TocHeadingItems[1].InnerText)
+		assert.Equal(t, "Header 3", ctx.TocHeadingItems[2].InnerText)
+		for _, item := range ctx.TocHeadingItems {
+			assert.Equal(t, 1, item.HeadingLevel)
+		}
+	})
+
+	// Test nested headers
+	t.Run("NestedHeaders", func(t *testing.T) {
+		input := `* Level 1
+** Level 2
+*** Level 3
+** Another Level 2
+`
+		ctx := markup.NewTestRenderContext()
+		_, err := orgmode.RenderString(ctx, input)
+		assert.NoError(t, err)
+		assert.Len(t, ctx.TocHeadingItems, 4)
+		assert.Equal(t, 1, ctx.TocHeadingItems[0].HeadingLevel)
+		assert.Equal(t, 2, ctx.TocHeadingItems[1].HeadingLevel)
+		assert.Equal(t, 3, ctx.TocHeadingItems[2].HeadingLevel)
+		assert.Equal(t, 2, ctx.TocHeadingItems[3].HeadingLevel)
+	})
+
+	// Test headers with special characters
+	t.Run("SpecialCharacters", func(t *testing.T) {
+		input := `* Header with <special> & "characters"
+* Another header
+`
+		ctx := markup.NewTestRenderContext()
+		_, err := orgmode.RenderString(ctx, input)
+		assert.NoError(t, err)
+		assert.Len(t, ctx.TocHeadingItems, 2)
+		assert.Equal(t, `Header with <special> & "characters"`, ctx.TocHeadingItems[0].InnerText)
+	})
+
+	// Test empty document
+	t.Run("EmptyDocument", func(t *testing.T) {
+		input := `Just some text without headers.`
+		ctx := markup.NewTestRenderContext()
+		_, err := orgmode.RenderString(ctx, input)
+		assert.NoError(t, err)
+		assert.Empty(t, ctx.TocHeadingItems)
+	})
+
+	// Test that TocShowInSection is set correctly
+	t.Run("TocShowInSection", func(t *testing.T) {
+		input := `* Header 1`
+		ctx := markup.NewTestRenderContext()
+		_, err := orgmode.RenderString(ctx, input)
+		assert.NoError(t, err)
+		assert.Equal(t, markup.TocShowInSidebar, ctx.TocShowInSection)
+	})
+}
