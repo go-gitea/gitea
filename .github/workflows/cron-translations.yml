@@ -29,7 +29,7 @@ jobs:
       - name: update locales
         run: ./build/update-locales.sh
       - name: push translations to repo
-        uses: appleboy/git-push-action@v1.0.0
+        uses: appleboy/git-push-action@v1.2.0
         with:
           author_email: "teabot@gitea.io"
           author_name: GiteaBot

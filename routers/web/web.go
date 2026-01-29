@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -159,9 +158,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 					}
 					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 					ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
-					if ctx.Req.URL.Path != "/user/events" {
-						middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
-					}
+					middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
 					ctx.Redirect(setting.AppSubURL + "/user/settings/change_password")
 					return
 				}
@@ -172,7 +169,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 			}
 		}
 
-		// Redirect to dashboard (or alternate location) if user tries to visit any non-login page.
+		// When a signed-in user visits a page that requires sign-out (e.g.: "/user/login"), redirect to home (or alternate location)
 		if options.SignOutRequired && ctx.IsSigned && ctx.Req.URL.RequestURI() != "/" {
 			ctx.RedirectToCurrentSite(ctx.FormString("redirect_to"))
 			return
@@ -187,10 +184,7 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 
 		if options.SignInRequired {
 			if !ctx.IsSigned {
-				if ctx.Req.URL.Path != "/user/events" {
-					middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
-				}
-				ctx.Redirect(setting.AppSubURL + "/user/login")
+				ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
 				return
 			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
@@ -200,12 +194,8 @@ func verifyAuthWithOptions(options *common.VerifyOptions) func(ctx *context.Cont
 		}
 
 		// Redirect to log in page if auto-signin info is provided and has not signed in.
-		if !options.SignOutRequired && !ctx.IsSigned &&
-			ctx.GetSiteCookie(setting.CookieRememberName) != "" {
-			if ctx.Req.URL.Path != "/user/events" {
-				middleware.SetRedirectToCookie(ctx.Resp, setting.AppSubURL+ctx.Req.URL.RequestURI())
-			}
-			ctx.Redirect(setting.AppSubURL + "/user/login")
+		if !options.SignOutRequired && !ctx.IsSigned && ctx.GetSiteCookie(setting.CookieRememberName) != "" {
+			ctx.Redirect(middleware.RedirectLinkUserLogin(ctx.Req))
 			return
 		}
 
@@ -240,8 +230,6 @@ func Routes() *web.Router {
 	routes.Methods("GET, HEAD", "/apple-touch-icon.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/apple-touch-icon-precomposed.png", misc.StaticRedirect("/assets/img/apple-touch-icon.png"))
 	routes.Methods("GET, HEAD", "/favicon.ico", misc.StaticRedirect("/assets/img/favicon.png"))
-
-	_ = templates.HTMLRenderer()
 
 	var mid []any
 
