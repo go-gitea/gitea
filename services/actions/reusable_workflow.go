@@ -96,7 +96,7 @@ func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_
 	if childRunName == "" {
 		childRunName = path.Base(ref.WorkflowPath)
 	}
-	childRunTitle := fmt.Sprintf("%s / %s / %s", parentJobRun.Title, parentJob.JobID, childRunName)
+	childRunTitle := fmt.Sprintf("%s / %s", parentJobRun.Title, parentJob.Name)
 
 	var eventPayload []byte
 	if eventPayload, err = workflowCallPayload.JSONPayload(); err != nil {
