@@ -102,7 +102,7 @@ func Update(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
 // update PR means send new commits to PR head branch from base branch
-func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
+func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, user *user_model.User) (pushAllowed, rebaseAllowed bool, err error) {
 	if pull.Flow == issues_model.PullRequestFlowAGit {
 		return false, false, nil
 	}
@@ -116,6 +116,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		}
 		return false, false, err
 	}
+	pushAllowed = headRepoPerm.CanWrite(unit.TypeCode)
 
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return false, false, err
@@ -143,16 +144,12 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		if pb != nil {
 			pb.Repo = pull.HeadRepo
 			rebaseAllowed = rebaseAllowed && pb.CanUserForcePush(ctx, user)
+			pushAllowed = pb.CanUserPush(ctx, user)
 		}
 	}
 
-	// 3. check whether user has write access to head branch
+	// 3. check whether user has write access to base branch
 	baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)
-	if err != nil {
-		return false, false, err
-	}
-
-	mergeAllowed, err = isUserAllowedToMergeInRepoBranch(ctx, pull.HeadRepoID, pull.HeadBranch, headRepoPerm, user)
 	if err != nil {
 		return false, false, err
 	}
@@ -165,13 +162,13 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 			return false, false, err
 		}
 
-		mergeAllowed = mergeAllowed || mergeAllowedMaintainer
+		pushAllowed = pushAllowed || mergeAllowedMaintainer
 	}
 
-	// if merge is not allowed, rebase is also not allowed
-	rebaseAllowed = rebaseAllowed && mergeAllowed
+	// if push is not allowed, rebase is also not allowed
+	rebaseAllowed = rebaseAllowed && pushAllowed
 
-	return mergeAllowed, rebaseAllowed, nil
+	return pushAllowed, rebaseAllowed, nil
 }
 
 func syncCommitDivergence(ctx context.Context, pr *issues_model.PullRequest) error {
