@@ -19,8 +19,8 @@ func SetupGiteaTestEnv() string {
 		_, filename, _, _ := runtime.Caller(0)
 		giteaRoot = filepath.Dir(filepath.Dir(filepath.Dir(filename)))
 		fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
-		if exist, _ := util.IsDir(fixturesDir); !exist {
-			panic("fixtures directory not found: " + fixturesDir)
+		if _, err := os.Stat(fixturesDir); err != nil {
+			panic("in gitea source code directory, fixtures directory not found: " + fixturesDir)
 		}
 	}
 
