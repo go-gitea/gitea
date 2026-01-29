@@ -160,6 +160,8 @@ export default defineComponent({
       currentJob: {
         title: '',
         detail: '',
+        childRunLink: '',
+        childRunIndex: 0,
         steps: [
           // {
           //   summary: '',
@@ -559,6 +561,10 @@ export default defineComponent({
           <div class="job-info-header-left gt-ellipsis">
             <h3 class="job-info-header-title gt-ellipsis">
               {{ currentJob.title }}
+              <span v-if="currentJob.childRunLink">
+                ({{ locale.reusableWorkflowChildRun }}
+                <a class="muted" :href="currentJob.childRunLink">#{{ currentJob.childRunIndex }}</a>)
+              </span>
             </h3>
             <p class="job-info-header-detail">
               {{ currentJob.detail }}

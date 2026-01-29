@@ -131,9 +131,11 @@ type ViewResponse struct {
 			Commit            ViewCommit    `json:"commit"`
 		} `json:"run"`
 		CurrentJob struct {
-			Title  string         `json:"title"`
-			Detail string         `json:"detail"`
-			Steps  []*ViewJobStep `json:"steps"`
+			Title         string         `json:"title"`
+			Detail        string         `json:"detail"`
+			ChildRunLink  string         `json:"childRunLink"`
+			ChildRunIndex int64          `json:"childRunIndex"`
+			Steps         []*ViewJobStep `json:"steps"`
 		} `json:"currentJob"`
 	} `json:"state"`
 	Logs struct {
@@ -273,13 +275,6 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.Run.Status = run.Status.String()
 	for i, v := range jobs {
 		jobLink := fmt.Sprintf("%s/jobs/%d", run.Link(), i)
-		if v.ChildRunID > 0 {
-			if err := v.LoadChildRun(ctx); err != nil {
-				log.Error("LoadChildRun: %v", err)
-			} else {
-				jobLink = v.ChildRun.Link()
-			}
-		}
 		resp.State.Run.Jobs = append(resp.State.Run.Jobs, &ViewJob{
 			ID:       v.ID,
 			Name:     v.Name,
@@ -334,6 +329,14 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.CurrentJob.Detail = current.Status.LocaleString(ctx.Locale)
 	if run.NeedApproval {
 		resp.State.CurrentJob.Detail = ctx.Locale.TrString("actions.need_approval_desc")
+	}
+	if current.ChildRunID > 0 {
+		if err := current.LoadChildRun(ctx); err != nil {
+			log.Error("LoadChildRun: %v", err)
+		} else {
+			resp.State.CurrentJob.ChildRunLink = current.ChildRun.Link()
+			resp.State.CurrentJob.ChildRunIndex = current.ChildRun.Index
+		}
 	}
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json

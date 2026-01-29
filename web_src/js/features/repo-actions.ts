@@ -23,6 +23,7 @@ export function initRepositoryActionView() {
       commit: el.getAttribute('data-locale-runs-commit'),
       pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
       parentJob: el.getAttribute('data-locale-runs-parent-job'),
+      reusableWorkflowChildRun: el.getAttribute('data-locale-runs-reusable-workflow-child-run'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),
