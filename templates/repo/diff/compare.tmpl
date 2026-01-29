@@ -221,9 +221,10 @@
 		{{end}}
 	</div>
 
-	{{if or .CommitCount (not .DiffNotAvailable)}}
+	{{$hasCommits := and .Commits (gt .CommitCount 0)}}
+	{{if or $hasCommits (not .DiffNotAvailable)}}
 		<div class="ui container fluid padded tw-my-4">
-			{{if .CommitCount}}
+			{{if $hasCommits}}
 				{{template "repo/commits_table" .}}
 			{{end}}
 			{{if not .DiffNotAvailable}}
