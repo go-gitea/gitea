@@ -1,4 +1,5 @@
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
+import {initSuggestionApplyButtons} from './repo-issue.ts';
 import {initDiffFileTree} from './repo-diff-filetree.ts';
 import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
 import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
@@ -56,6 +57,7 @@ function initRepoDiffConversationForm() {
       const idx = newConversationHolder.getAttribute('data-idx');
 
       form.closest('.conversation-holder')!.replaceWith(newConversationHolder);
+      initSuggestionApplyButtons(newConversationHolder);
       // @ts-expect-error -- prevent further usage of the form because it should have been replaced
       form = null;
 
