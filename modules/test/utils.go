@@ -9,13 +9,9 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/util"
 )
 
 // RedirectURL returns the redirect URL of a http response.
@@ -57,22 +53,6 @@ func MockVariableValue[T any](p *T, v ...T) (reset func()) {
 		*p = v[0]
 	}
 	return func() { *p = old }
-}
-
-// SetupGiteaRoot Sets GITEA_ROOT if it is not already set and returns the value
-func SetupGiteaRoot() string {
-	giteaRoot := os.Getenv("GITEA_ROOT")
-	if giteaRoot != "" {
-		return giteaRoot
-	}
-	_, filename, _, _ := runtime.Caller(0)
-	giteaRoot = filepath.Dir(filepath.Dir(filepath.Dir(filename)))
-	fixturesDir := filepath.Join(giteaRoot, "models", "fixtures")
-	if exist, _ := util.IsDir(fixturesDir); !exist {
-		panic("fixtures directory not found: " + fixturesDir)
-	}
-	_ = os.Setenv("GITEA_ROOT", giteaRoot)
-	return giteaRoot
 }
 
 func ReadAllTarGzContent(r io.Reader) (map[string]string, error) {

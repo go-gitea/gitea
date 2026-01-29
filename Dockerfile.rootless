@@ -77,5 +77,6 @@ ENV HOME="/var/lib/gitea/git"
 VOLUME ["/var/lib/gitea", "/etc/gitea"]
 WORKDIR /var/lib/gitea
 
+# HINT: HEALTH-CHECK-ENDPOINT: don't use HEALTHCHECK, search this hint keyword for more information
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD []

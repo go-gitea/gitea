@@ -76,5 +76,6 @@ ENV GITEA_CUSTOM=/data/gitea
 
 VOLUME ["/data"]
 
+# HINT: HEALTH-CHECK-ENDPOINT: don't use HEALTHCHECK, search this hint keyword for more information
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/usr/bin/s6-svscan", "/etc/s6"]

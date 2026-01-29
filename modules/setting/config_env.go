@@ -178,13 +178,3 @@ func InitGiteaEnvVars() {
 	// then our git.InitFull would still write to "XDG_CONFIG_HOME/git/config" if XDG_CONFIG_HOME is set.
 	_ = os.Unsetenv("XDG_CONFIG_HOME")
 }
-
-func InitGiteaEnvVarsForTesting() {
-	InitGiteaEnvVars()
-	_ = os.Unsetenv("GIT_AUTHOR_NAME")
-	_ = os.Unsetenv("GIT_AUTHOR_EMAIL")
-	_ = os.Unsetenv("GIT_AUTHOR_DATE")
-	_ = os.Unsetenv("GIT_COMMITTER_NAME")
-	_ = os.Unsetenv("GIT_COMMITTER_EMAIL")
-	_ = os.Unsetenv("GIT_COMMITTER_DATE")
-}

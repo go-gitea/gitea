@@ -94,7 +94,7 @@ func TestE2e(t *testing.T) {
 			onGiteaRun(t, func(*testing.T, *url.URL) {
 				cmd := exec.Command(runArgs[0], runArgs...)
 				cmd.Env = os.Environ()
-				cmd.Env = append(cmd.Env, "GITEA_URL="+setting.AppURL)
+				cmd.Env = append(cmd.Env, "GITEA_TEST_SERVER_URL="+setting.AppURL)
 
 				var stdout, stderr bytes.Buffer
 				cmd.Stdout = &stdout
