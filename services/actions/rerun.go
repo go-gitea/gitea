@@ -140,19 +140,23 @@ func Rerun(ctx context.Context, run *actions_model.ActionRun, jobs []*actions_mo
 }
 
 func rerunJob(ctx context.Context, job *actions_model.ActionRunJob, shouldBlock bool) error {
-	status := job.Status
-	if !status.IsDone() {
+	oldStatus := job.Status
+	newStatus := util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting)
+
+	if oldStatus == newStatus {
 		return nil
 	}
 
-	job.TaskID = 0
-	job.Status = util.Iif(shouldBlock, actions_model.StatusBlocked, actions_model.StatusWaiting)
-	job.Started = 0
-	job.Stopped = 0
+	if oldStatus.IsDone() {
+		job.TaskID = 0
+		job.Started = 0
+		job.Stopped = 0
+		job.ConcurrencyGroup = ""
+		job.ConcurrencyCancel = false
+		job.IsConcurrencyEvaluated = false
+	}
+	job.Status = newStatus
 
-	job.ConcurrencyGroup = ""
-	job.ConcurrencyCancel = false
-	job.IsConcurrencyEvaluated = false
 	if err := job.LoadAttributes(ctx); err != nil {
 		return err
 	}
@@ -176,7 +180,7 @@ func rerunJob(ctx context.Context, job *actions_model.ActionRunJob, shouldBlock 
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"}
-		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, updateCols...)
+		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": oldStatus}, updateCols...)
 		return err
 	}); err != nil {
 		return err
@@ -197,10 +201,10 @@ func rerunJob(ctx context.Context, job *actions_model.ActionRunJob, shouldBlock 
 }
 
 func rerunReusableWorkflowRun(ctx context.Context, parentJob *actions_model.ActionRunJob) error {
-	if err := parentJob.LoadChildRun(ctx); err != nil {
-		return fmt.Errorf("LoadChildRun: %w", err)
+	childRun, err := actions_model.GetRunByRepoAndID(ctx, parentJob.RepoID, parentJob.ChildRunID)
+	if err != nil {
+		return fmt.Errorf("GetRunByRepoAndID: %w", err)
 	}
-	childRun := parentJob.ChildRun
 	childRunJobs, err := actions_model.GetRunJobsByRunID(ctx, childRun.ID)
 	if err != nil {
 		return fmt.Errorf("GetRunJobsByRunID: %w", err)
