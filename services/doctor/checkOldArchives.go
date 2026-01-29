@@ -19,14 +19,14 @@ func checkOldArchives(ctx context.Context, logger log.Logger, autofix bool) erro
 			return nil
 		}
 
-		isDir, err := gitrepo.IsRepoDirExist(ctx, repo, "archives")
+		isDir, err := gitrepo.IsRepoDirExist(repo, "archives")
 		if err != nil {
 			log.Warn("check if %s is directory failed: %v", repo.FullName(), err)
 		}
 		if isDir {
 			numRepos++
 			if autofix {
-				err := gitrepo.RemoveRepoFileOrDir(ctx, repo, "archives")
+				err := gitrepo.RemoveRepoFileOrDir(repo, "archives")
 				if err == nil {
 					numReposUpdated++
 				} else {

@@ -4,15 +4,14 @@
 package repository
 
 import (
-	"os"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -63,7 +62,7 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, fork)
 
-	exist, err := util.IsExist(repo_model.RepoPath(user2.Name, "test"))
+	exist, err := gitrepo.IsRepositoryExist(repo_model.StorageRepo(repo_model.RelativePath(user2.Name, "test")))
 	assert.NoError(t, err)
 	assert.True(t, exist)
 
@@ -72,8 +71,7 @@ func TestForkRepositoryCleanup(t *testing.T) {
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
-	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "test"), os.ModePerm))
-
+	assert.NoError(t, gitrepo.CreateRepositoryDir(repo_model.StorageRepo(repo_model.RelativePath(user2.Name, "test"))))
 	fork2, err := ForkRepository(t.Context(), user2, user2, ForkRepoOptions{
 		BaseRepo: repo10,
 		Name:     "test",
@@ -84,7 +82,7 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	// assert the cleanup is successful
 	unittest.AssertNotExistsBean(t, &repo_model.Repository{OwnerName: user2.Name, Name: "test"})
 
-	exist, err = util.IsExist(repo_model.RepoPath(user2.Name, "test"))
+	exist, err = gitrepo.IsRepositoryExist(repo_model.StorageRepo(repo_model.RelativePath(user2.Name, "test")))
 	assert.NoError(t, err)
 	assert.False(t, exist)
 }
