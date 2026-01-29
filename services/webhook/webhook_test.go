@@ -109,6 +109,14 @@ func TestCheckBranchFilter(t *testing.T) {
 		{"feature/*", git.RefNameFromBranch("feature/foo"), true},
 		{"feature/*", git.RefNameFromTag("feature/foo"), false},
 
+		{"feature/**", git.RefNameFromBranch("feature/foo/bar"), true},
+
+		{"[!d]ev", git.RefNameFromBranch("dev"), false},
+		{"[!d]ev", git.RefNameFromBranch("mev"), true},
+
+		{"{!dev,main}", git.RefNameFromBranch("dev"), false},
+		{"{!dev,main}", git.RefNameFromBranch("main"), true},
+
 		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromBranch("feature/foo"), true},
 		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromBranch("main"), false},
 		{"{refs/heads/feature/*,refs/tags/release/*}", git.RefNameFromTag("release/bar"), true},
