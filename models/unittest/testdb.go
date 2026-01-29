@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/setting/config"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/tempdir"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -60,7 +59,6 @@ func InitSettingsForTesting() {
 	_ = hash.Register("dummy", hash.NewDummyHasher)
 
 	setting.PasswordHashAlgo, _ = hash.SetDefaultPasswordHashAlgorithm("dummy")
-	setting.InitGiteaEnvVarsForTesting()
 }
 
 // TestOptions represents test options
@@ -74,8 +72,7 @@ type TestOptions struct {
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 	testOpts := util.OptionalArg(testOptsArg, &TestOptions{})
-	giteaRoot = test.SetupGiteaRoot()
-	setting.CustomPath = filepath.Join(giteaRoot, "custom")
+	giteaRoot = setting.SetupGiteaTestEnv()
 	InitSettingsForTesting()
 
 	fixturesOpts := FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
@@ -172,7 +169,7 @@ func CreateTestEngine(opts FixturesOptions) error {
 	x, err := xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
 	if err != nil {
 		if strings.Contains(err.Error(), "unknown driver") {
-			return fmt.Errorf(`sqlite3 requires: -tags sqlite,sqlite_unlock_notify%s%w`, "\n", err)
+			return fmt.Errorf("sqlite3 requires: -tags sqlite,sqlite_unlock_notify\n%w", err)
 		}
 		return err
 	}
@@ -182,7 +179,7 @@ func CreateTestEngine(opts FixturesOptions) error {
 	if err = db.SyncAllTables(); err != nil {
 		return err
 	}
-	switch os.Getenv("GITEA_UNIT_TESTS_LOG_SQL") {
+	switch os.Getenv("GITEA_TEST_LOG_SQL") {
 	case "true", "1":
 		x.ShowSQL(true)
 	}
@@ -201,5 +198,5 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
 	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
 	assert.NoError(t, SyncDirs(metaPath, setting.RepoRootPath))
-	test.SetupGiteaRoot() // Makes sure GITEA_ROOT is set
+	setting.SetupGiteaTestEnv()
 }

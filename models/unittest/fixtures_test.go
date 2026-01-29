@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"
@@ -60,7 +60,8 @@ func NewFixturesLoaderVendorGoTestfixtures(e *xorm.Engine, opts unittest.Fixture
 
 func prepareTestFixturesLoaders(t testing.TB) unittest.FixturesOptions {
 	_ = user_model.User{}
-	opts := unittest.FixturesOptions{Dir: filepath.Join(test.SetupGiteaRoot(), "models", "fixtures"), Files: []string{
+	giteaRoot := setting.SetupGiteaTestEnv()
+	opts := unittest.FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: []string{
 		"user.yml",
 	}}
 	require.NoError(t, unittest.CreateTestEngine(opts))
