@@ -45,6 +45,11 @@ type CreateRepoForm struct {
 	ObjectFormatName string
 }
 
+type UpdateGlobalRepoForm struct {
+	GitSizeMax string `form:"GitSizeMax"`
+	LFSSizeMax string `form:"LFSSizeMax"`
+}
+
 // Validate validates the fields
 func (f *CreateRepoForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetValidateContext(req)
