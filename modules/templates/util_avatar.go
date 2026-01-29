@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/application"
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -54,6 +55,11 @@ func (au *AvatarUtils) Avatar(item any, others ...any) template.HTML {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
 	case *organization.Organization:
+		src := t.AsUser().AvatarLinkWithSize(au.ctx, size*setting.Avatar.RenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
+		}
+	case *application.Application:
 		src := t.AsUser().AvatarLinkWithSize(au.ctx, size*setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.AsUser().DisplayName())

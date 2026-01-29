@@ -65,6 +65,32 @@ func (u *User) IsGiteaActions() bool {
 	return u != nil && u.ID == ActionsUserID
 }
 
+const (
+	SystemAdminUserID    int64 = -3
+	SystemAdminUserName        = ".system-admin"
+	SystemAdminUserEmail       = "system-admin@gitea.io"
+)
+
+// NewSystemAdminUser creates and returns a fake user for system admin actions.
+func NewSystemAdminUser() *User {
+	return &User{
+		ID:               SystemAdminUserID,
+		Name:             SystemAdminUserName,
+		LowerName:        SystemAdminUserName,
+		IsActive:         true,
+		FullName:         "system admin",
+		Email:            SystemAdminUserEmail,
+		KeepEmailPrivate: true,
+		Type:             UserTypeBot,
+		Visibility:       structs.VisibleTypePublic,
+		IsAdmin:          true,
+	}
+}
+
+func IsSystemAdminUserName(name string) bool {
+	return strings.EqualFold(name, SystemAdminUserName)
+}
+
 func GetSystemUserByName(name string) *User {
 	if IsGhostUserName(name) {
 		return NewGhostUser()
@@ -72,5 +98,9 @@ func GetSystemUserByName(name string) *User {
 	if IsGiteaActionsUserName(name) {
 		return NewActionsUser()
 	}
+	if IsSystemAdminUserName(name) {
+		return NewSystemAdminUser()
+	}
+
 	return nil
 }
