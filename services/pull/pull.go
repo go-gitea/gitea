@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -1091,6 +1092,7 @@ func GetPullCommits(ctx context.Context, baseGitRepo *git.Repository, doer *user
 				issues_model.ReviewTypeComment,
 				issues_model.ReviewTypeReject,
 			},
+			Dismissed: optional.Some(false),
 		})
 
 		if err != nil && !issues_model.IsErrReviewNotExist(err) {
