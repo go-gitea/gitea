@@ -6,8 +6,8 @@
 {{if or .Addition .Deletion}}
 <div class="flex-text-block tw-flex-shrink-0 tw-text-[13px] {{if .Classes}}{{.Classes}}{{end}}">
 	<span>
-		{{if .Addition}}<span class="tw-text-diff-prompt-add-fg">+{{.Addition}}</span>{{end}}
-		{{if .Deletion}}<span class="tw-text-diff-prompt-del-fg">-{{.Deletion}}</span>{{end}}
+		{{if .Addition}}<span class="tw-text-diff-added-fg">+{{.Addition}}</span>{{end}}
+		{{if .Deletion}}<span class="tw-text-diff-removed-fg">-{{.Deletion}}</span>{{end}}
 	</span>
 	<span class="diff-stats-bar" data-tooltip-content="{{ctx.Locale.Tr "repo.diff.stats_desc_file" (Eval .Addition "+" .Deletion) .Addition .Deletion}}">
 		{{/* if the denominator is zero, then the float result is "width: NaNpx", as before, it just works */}}

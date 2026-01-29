@@ -65,7 +65,7 @@ function updateSelectionLabel(label: HTMLElement) {
   const deleteIcon = label.querySelector('.delete.icon');
   if (deleteIcon) {
     deleteIcon.setAttribute('aria-hidden', 'false');
-    deleteIcon.setAttribute('aria-label', window.config.i18n.remove_label_str.replace('%s', label.getAttribute('data-value')));
+    deleteIcon.setAttribute('aria-label', window.config.i18n.remove_label_str.replace('%s', label.getAttribute('data-value')!));
     deleteIcon.setAttribute('role', 'button');
   }
 }
