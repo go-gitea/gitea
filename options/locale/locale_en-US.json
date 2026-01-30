@@ -2125,7 +2125,6 @@
   "repo.settings.pulls.default_target_branch": "Default target branch",
   "repo.settings.pulls.default_target_branch_desc": "Preselect this branch as the target when creating a new pull request. Leave empty to use the repository default branch.",
   "repo.settings.pulls.default_target_branch_default": "Use repository default branch (%s)",
-  "repo.settings.pulls.default_target_branch_invalid": "Default target branch does not exist.",
   "repo.settings.pulls.default_delete_branch_after_merge": "Delete pull request branch after merge by default",
   "repo.settings.pulls.default_allow_edits_from_maintainers": "Allow edits from maintainers by default",
   "repo.settings.releases_desc": "Enable Repository Releases",
