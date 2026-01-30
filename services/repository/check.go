@@ -91,7 +91,7 @@ func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Du
 	stdout, _, err = gitrepo.RunCmdString(ctx, repo, command)
 	if err != nil {
 		log.Error("Repository garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
-		desc := fmt.Sprintf("Repository garbage collection failed for (%s). Stdout: %s\nError: %v", repo.FullName(), stdout, err)
+		desc := fmt.Sprintf("Repository garbage collection failed (%s). Stdout: %s\nError: %v", repo.FullName(), stdout, err)
 		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
@@ -101,7 +101,7 @@ func GitGcRepo(ctx context.Context, repo *repo_model.Repository, timeout time.Du
 	// Now update the size of the repository
 	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Updating size as part of garbage collection failed for %-v. Stdout: %s\nError: %v", repo, stdout, err)
-		desc := fmt.Sprintf("Updating size as part of garbage collection failed for (%s). Stdout: %s\nError: %v", repo.FullName(), stdout, err)
+		desc := fmt.Sprintf("Updating size as part of garbage collection failed (%s). Stdout: %s\nError: %v", repo.FullName(), stdout, err)
 		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}

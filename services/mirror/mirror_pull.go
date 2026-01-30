@@ -202,7 +202,7 @@ func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, gitRepo gi
 		stdoutMessage := util.SanitizeCredentialURLs(stdout)
 
 		log.Error("Failed to prune mirror repository %s references:\nStdout: %s\nStderr: %s\nErr: %v", gitRepo.RelativePath(), stdoutMessage, stderrMessage, pruneErr)
-		desc := fmt.Sprintf("Failed to prune mirror repository (%s): %s", m.Repo.FullName(), stderrMessage)
+		desc := fmt.Sprintf("Failed to prune mirror repository (%s) references: %s", m.Repo.FullName(), stderrMessage)
 		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
