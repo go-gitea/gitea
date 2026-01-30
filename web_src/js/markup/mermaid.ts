@@ -14,7 +14,7 @@ body {margin: 0; padding: 0; overflow: hidden}
 /** detect whether mermaid sources contain elk layout configuration */
 export function sourcesContainElk(sources: Array<string>) {
   return sources.some((source) => {
-    return /(layout|defaultRenderer).+elk/.test(source);
+    return /(layout|defaultRenderer)[\s\S]*elk/.test(source);
   });
 }
 
@@ -34,23 +34,26 @@ async function loadMermaid(sources: Array<string>) {
   };
 }
 
+let elkLayoutsRegistered = false;
+
 export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void> {
   // .markup code.language-mermaid
   const els = Array.from(queryElems(elMarkup, 'code.language-mermaid'));
-  const sources = Array.from(els, (el) => el.textContent);
+  const sources = Array.from(els, (el) => el.textContent ?? '');
   const {mermaid, elkLayouts} = await loadMermaid(sources);
 
   for (const [index, el] of els.entries()) {
     const source = sources[index];
-    const pre = el.closest('pre')!;
+    const pre = el.closest('pre');
 
-    if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
+    if (pre && mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
       displayError(pre, new Error(`Mermaid source of ${source.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
-      return;
+      continue;
     }
 
-    if (elkLayouts) {
+    if (elkLayouts && !elkLayoutsRegistered) {
       mermaid.registerLayoutLoaders(elkLayouts);
+      elkLayoutsRegistered = true;
     }
     mermaid.initialize({
       startOnLoad: false,
