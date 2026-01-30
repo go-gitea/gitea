@@ -42,7 +42,11 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     const source = sources[index];
     const pre = el.closest('pre');
 
-    if (pre && mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
+    if (!pre || pre.hasAttribute('data-render-done')) {
+      continue;
+    }
+
+    if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
       displayError(pre, new Error(`Mermaid source of ${source.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
       continue;
     }
@@ -57,8 +61,6 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       securityLevel: 'strict',
       suppressErrorRendering: true,
     });
-
-    if (!pre || pre.hasAttribute('data-render-done')) return;
 
     try {
       await mermaid.parse(source);
