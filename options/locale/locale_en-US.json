@@ -2437,7 +2437,7 @@
   "repo.settings.block_outdated_branch_desc": "Merging will not be possible when head branch is behind base branch.",
   "repo.settings.block_admin_merge_override": "Administrators must follow branch protection rules",
   "repo.settings.block_admin_merge_override_desc": "Administrators must follow branch protection rules and cannot circumvent it.",
-  "repo.settings.default_branch_desc": "Select a default repository branch for pull requests and code commits:",
+  "repo.settings.default_branch_desc": "Select a default branch for code commits.",
   "repo.settings.merge_style_desc": "Merge Styles",
   "repo.settings.default_merge_style_desc": "Default Merge Style",
   "repo.settings.choose_branch": "Choose a branch…",
