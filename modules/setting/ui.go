@@ -29,6 +29,7 @@ var UI = struct {
 	DefaultTheme            string
 	Themes                  []string
 	FileIconTheme           string
+	FolderIconTheme         string
 	Reactions               []string
 	ReactionsLookup         container.Set[string] `ini:"-"`
 	CustomEmojis            []string
@@ -88,6 +89,7 @@ var UI = struct {
 	MaxDisplayFileSize:      8388608,
 	DefaultTheme:            `gitea-auto`,
 	FileIconTheme:           `material`,
+	FolderIconTheme:         ``,
 	Reactions:               []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 	CustomEmojis:            []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
 	CustomEmojisMap:         map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
@@ -162,6 +164,11 @@ func loadUIFrom(rootCfg ConfigProvider) {
 	// OnlyShowRelevantRepos=false is important for many private/enterprise instances,
 	// because many private repositories do not have "description/topic", users just want to search by their names.
 	UI.OnlyShowRelevantRepos = sec.Key("ONLY_SHOW_RELEVANT_REPOS").MustBool(false)
+
+	// If FolderIconTheme is not set, default it to FileIconTheme for backward compatibility
+	if UI.FolderIconTheme == "" {
+		UI.FolderIconTheme = UI.FileIconTheme
+	}
 
 	UI.ReactionsLookup = make(container.Set[string])
 	for _, reaction := range UI.Reactions {
