@@ -3,7 +3,6 @@ import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
 import {queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
-import type {LayoutLoaderDefinition, Mermaid} from 'mermaid';
 
 const {mermaidMaxSourceCharacters} = window.config;
 

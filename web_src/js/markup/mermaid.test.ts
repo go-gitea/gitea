@@ -1,4 +1,4 @@
-import {sourcesContainElk} from "./mermaid.ts";
+import {sourcesContainElk} from './mermaid.ts';
 
 test('sourcesContainElk', () => {
   expect(sourcesContainElk([`
