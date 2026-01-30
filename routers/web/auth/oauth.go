@@ -21,6 +21,8 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	auth_service "code.gitea.io/gitea/services/auth"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/context"
@@ -380,6 +382,14 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 			return
 		}
 
+		// Set the remember me cookie for OAuth2 login to persist the session
+		nt, token, err := auth_service.CreateAuthTokenForUserID(ctx, u.ID)
+		if err != nil {
+			ctx.ServerError("CreateAuthTokenForUserID", err)
+			return
+		}
+		ctx.SetSiteCookie(setting.CookieRememberName, nt.ID+":"+token, setting.LogInRememberDays*timeutil.Day)
+
 		if err := updateSession(ctx, nil, map[string]any{
 			session.KeyUID:                  u.ID,
 			session.KeyUname:                u.Name,
@@ -408,7 +418,7 @@ func handleOAuth2SignIn(ctx *context.Context, authSource *auth.Source, u *user_m
 	if err := updateSession(ctx, nil, map[string]any{
 		// User needs to use 2FA, save data and redirect to 2FA page.
 		"twofaUid":      u.ID,
-		"twofaRemember": false,
+		"twofaRemember": true, // OAuth2 login should always be remembered
 	}); err != nil {
 		ctx.ServerError("updateSession", err)
 		return
