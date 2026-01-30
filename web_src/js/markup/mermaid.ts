@@ -14,7 +14,7 @@ body {margin: 0; padding: 0; overflow: hidden}
 export function sourcesContainElk(sources: Array<string>) {
   return sources.some((source) => {
     // yaml frontmatter
-    if (/^\s*(layout|defaultRenderer)\s*:\s*elk/m.test(source)) return true;
+    if (/^['"\s]*(layout|defaultRenderer)['"\s]*:['"\s]*elk/m.test(source)) return true;
     // json init
     if (/"(layout|defaultRenderer)"\s*:\s*"elk/.test(source)) return true;
     return false;

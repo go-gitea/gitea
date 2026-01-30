@@ -36,6 +36,26 @@ test('sourcesContainElk', () => {
   expect(sourcesContainElk([`
     ---
     config:
+      "layout": "elk.layered"
+    ---
+    flowchart TB
+      A --> B
+      A --> C --> B
+  `])).toEqual(true);
+
+  expect(sourcesContainElk([`
+    ---
+    config:
+      'layout': 'elk.layered'
+    ---
+    flowchart TB
+      A --> B
+      A --> C --> B
+  `])).toEqual(true);
+
+  expect(sourcesContainElk([`
+    ---
+    config:
       flowchart:
         defaultRenderer: elk
     ---
