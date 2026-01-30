@@ -149,7 +149,7 @@ func NewMainApp(appVer AppVersion) *cli.Command {
 	app.Commands = append(app.Commands, subCmdWithConfig...)
 	app.Commands = append(app.Commands, subCmdStandalone...)
 
-	setting.InitGiteaEnvVars()
+	setting.UnsetUnnecessaryEnvVars()
 	return app
 }
 
