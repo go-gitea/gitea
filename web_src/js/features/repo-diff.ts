@@ -1,7 +1,7 @@
 import {initRepoIssueContentHistory} from './repo-issue-content.ts';
 import {initDiffFileTree} from './repo-diff-filetree.ts';
 import {initDiffCommitSelect} from './repo-diff-commitselect.ts';
-import {validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
+import {initComboMarkdownEditor, validateTextareaNonEmpty} from './comp/ComboMarkdownEditor.ts';
 import {initViewedCheckboxListenerFor, initExpandAndCollapseFilesButton} from './pull-view-file.ts';
 import {initImageDiff} from './imagediff.ts';
 import {showErrorToast} from '../modules/toast.ts';
@@ -11,6 +11,7 @@ import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom, sleep} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {htmlEscape} from '../utils/html.ts';
 
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -289,5 +290,52 @@ export function initRepoDiffView() {
   registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
   addDelegatedEventListener(document, 'click', '.fold-file', (el) => {
     invertFileFolding(el.closest('.file-content')!, el);
+  });
+
+  initRepoDiffAddCodeComment();
+}
+
+function initRepoDiffAddCodeComment() {
+  addDelegatedEventListener(document, 'click', '.add-code-comment', async (el, e) => {
+    e.preventDefault();
+
+    const isSplit = el.closest('.code-diff')?.classList.contains('code-diff-split');
+    const side = el.getAttribute('data-side')!;
+    const idx = el.getAttribute('data-idx')!;
+    const path = el.closest('[data-path]')?.getAttribute('data-path');
+    const tr = el.closest('tr')!;
+    const lineType = tr.getAttribute('data-line-type')!;
+
+    let ntr = tr.nextElementSibling;
+    if (!ntr?.classList.contains('add-comment')) {
+      ntr = createElementFromHTML(`
+        <tr class="add-comment" data-line-type="${htmlEscape(lineType)}">
+          ${isSplit ? `
+            <td class="add-comment-left" colspan="4"></td>
+            <td class="add-comment-right" colspan="4"></td>
+          ` : `
+            <td class="add-comment-left add-comment-right" colspan="5"></td>
+          `}
+        </tr>`);
+      tr.after(ntr);
+    }
+    const td = ntr.querySelector(`.add-comment-${side}`)!;
+    const commentCloud = td.querySelector('.comment-code-cloud');
+    if (!commentCloud && !ntr.querySelector('button[name="pending_review"]')) {
+      try {
+        const newCommentUrl = el.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url') ?? '';
+        console.debug('add-code-comment clicked', {path, idx, side, newCommentUrl});
+        const response = await GET(newCommentUrl);
+        td.innerHTML = await response.text();
+        td.querySelector<HTMLInputElement>("input[name='line']")!.value = idx;
+        td.querySelector<HTMLInputElement>("input[name='side']")!.value = (side === 'left' ? 'previous' : 'proposed');
+        td.querySelector<HTMLInputElement>("input[name='path']")!.value = String(path);
+        const editor = await initComboMarkdownEditor(td.querySelector<HTMLElement>('.combo-markdown-editor')!);
+        editor.focus();
+      } catch (err) {
+        console.error('Failed to load new comment form', err);
+        showErrorToast(`Failed to open comment form: ${err}`);
+      }
+    }
   });
 }
