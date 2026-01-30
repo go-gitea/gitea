@@ -179,6 +179,12 @@ func ApplySuggestion(ctx *context.Context) {
 		return
 	}
 
+	if pr.Flow == issues_model.PullRequestFlowAGit {
+		// TODO: Support suggestions for AGit flow pull requests
+		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
+		return
+	}
+
 	canWriteToHeadRepo := false
 	if ctx.IsSigned {
 		permHead, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, ctx.Doer)
@@ -189,7 +195,7 @@ func ApplySuggestion(ctx *context.Context) {
 		if permHead.CanWrite(unit_model.TypeCode) {
 			canWriteToHeadRepo = true
 		}
-		if !canWriteToHeadRepo {
+		if !canWriteToHeadRepo && pr.AllowMaintainerEdit {
 			if err := pr.LoadBaseRepo(ctx); err != nil {
 				ctx.ServerError("LoadBaseRepo", err)
 				return
@@ -199,7 +205,7 @@ func ApplySuggestion(ctx *context.Context) {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
 			}
-			if pr.AllowMaintainerEdit && permBase.CanWrite(unit_model.TypeCode) {
+			if permBase.CanWrite(unit_model.TypeCode) {
 				canWriteToHeadRepo = true
 			}
 		}
@@ -263,11 +269,22 @@ func ApplySuggestion(ctx *context.Context) {
 		return
 	}
 
+	if err := comment.LoadPoster(ctx); err != nil {
+		ctx.ServerError("comment.LoadPoster", err)
+		return
+	}
+
+	commitMessage := fmt.Sprintf("Apply suggestion to %s\n\nCo-authored-by: %s <%s>",
+		comment.TreePath,
+		comment.Poster.Name,
+		comment.Poster.GetEmail(),
+	)
+
 	_, err = files_service.ApplyDiffPatch(ctx, pr.HeadRepo, ctx.Doer, &files_service.ApplyDiffPatchOptions{
 		LastCommitID: headCommit.ID.String(),
 		OldBranch:    pr.HeadBranch,
 		NewBranch:    pr.HeadBranch,
-		Message:      "Apply suggestion to " + comment.TreePath,
+		Message:      commitMessage,
 		Content:      patch,
 	})
 	if err != nil {
