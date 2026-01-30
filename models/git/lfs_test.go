@@ -32,7 +32,7 @@ func TestIterateLFSMetaObjectsForRepoUpdatesDoNotSkip(t *testing.T) {
 	test.MockVariableValue(&setting.Database.IterateBufferSize, 1)
 
 	created := make([]*git_model.LFSMetaObject, 0, 3)
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		content := []byte("gitea-lfs-" + strconv.Itoa(i))
 		pointer, err := lfs.GeneratePointer(bytes.NewReader(content))
 		assert.NoError(t, err)
