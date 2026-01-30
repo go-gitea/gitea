@@ -147,7 +147,6 @@ func TestMaxParallelJobStatusAndCounting(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-
 				// Create jobs with the test max-parallel value
 				for i := range 5 {
 					job := &actions_model.ActionRunJob{
