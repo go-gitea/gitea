@@ -17,10 +17,10 @@ import (
 )
 
 func TestGiteaDownloadRepo(t *testing.T) {
-	// Skip tests if Gitea token is not found
-	giteaToken := os.Getenv("GITEA_TOKEN")
+	// Skip tests if Gitea token is not found (TODO: this test seems stopped for long time because there is no token in CI secrets)
+	giteaToken := os.Getenv("GITEA_TEST_OFFICIAL_SITE_TOKEN")
 	if giteaToken == "" {
-		t.Skip("skipped test because GITEA_TOKEN was not in the environment")
+		t.Skip("skipped test because GITEA_TEST_OFFICIAL_SITE_TOKEN was not in the environment")
 	}
 
 	resp, err := http.Get("https://gitea.com/gitea")

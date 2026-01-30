@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
@@ -37,20 +36,7 @@ var currentEngine *xorm.Engine
 
 func initMigrationTest(t *testing.T) func() {
 	testlogger.Init()
-	giteaRoot := test.SetupGiteaRoot()
-	setting.AppPath = filepath.Join(giteaRoot, "gitea")
-	if _, err := os.Stat(setting.AppPath); err != nil {
-		testlogger.Fatalf(fmt.Sprintf("Could not find gitea binary at %s\n", setting.AppPath))
-	}
-
-	giteaConf := os.Getenv("GITEA_CONF")
-	if giteaConf == "" {
-		testlogger.Fatalf("Environment variable $GITEA_CONF not set\n")
-	} else if !path.IsAbs(giteaConf) {
-		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
-	} else {
-		setting.CustomConf = giteaConf
-	}
+	setting.SetupGiteaTestEnv()
 
 	unittest.InitSettingsForTesting()
 
