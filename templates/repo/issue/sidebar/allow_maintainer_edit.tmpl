@@ -1,5 +1,7 @@
 {{- $isHeadForkedRepo := and .Issue.PullRequest .Issue.PullRequest.HeadRepo (ne .Issue.PullRequest.HeadRepo.FullName .Issue.PullRequest.BaseRepo.FullName) -}}
-{{if $isHeadForkedRepo}}
+{{- $isAgitFlow := eq .Issue.PullRequest.Flow 1 -}}
+
+{{if or $isHeadForkedRepo $isAgitFlow}}
 	{{- $isPullPoster := and .Issue.IsPull .IsIssuePoster -}}
 	{{- $isPullEditable := and .Issue.PullRequest (not .Issue.IsClosed) (not .Repository.IsArchived) -}}
 	{{- $allowToChange := and $isPullPoster $isPullEditable -}}
