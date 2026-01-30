@@ -10,39 +10,44 @@ import (
 )
 
 func TestFolderIconThemeDefault(t *testing.T) {
-	// Test that FolderIconTheme defaults to FileIconTheme when not set
-	t.Run("DefaultsToFileIconTheme", func(t *testing.T) {
+	t.Run("DefaultsToBasic", func(t *testing.T) {
 		cfg, err := NewConfigProviderFromData(`
 [ui]
 FILE_ICON_THEME = material
 `)
 		assert.NoError(t, err)
 
-		// Reset UI settings
-		UI.FileIconTheme = "material"
-		UI.FolderIconTheme = ""
-
 		loadUIFrom(cfg)
 
 		assert.Equal(t, "material", UI.FileIconTheme)
-		assert.Equal(t, "material", UI.FolderIconTheme, "FolderIconTheme should default to FileIconTheme")
+		assert.Equal(t, "basic", UI.FolderIconTheme, "FolderIconTheme should default to basic")
 	})
 
 	t.Run("UsesExplicitValue", func(t *testing.T) {
 		cfg, err := NewConfigProviderFromData(`
 [ui]
 FILE_ICON_THEME = material
-FOLDER_ICON_THEME = basic
+FOLDER_ICON_THEME = material
 `)
 		assert.NoError(t, err)
-
-		// Reset UI settings
-		UI.FileIconTheme = "material"
-		UI.FolderIconTheme = ""
 
 		loadUIFrom(cfg)
 
 		assert.Equal(t, "material", UI.FileIconTheme)
-		assert.Equal(t, "basic", UI.FolderIconTheme, "FolderIconTheme should use explicit value")
+		assert.Equal(t, "material", UI.FolderIconTheme, "FolderIconTheme should use explicit value")
+	})
+
+	t.Run("BothBasic", func(t *testing.T) {
+		cfg, err := NewConfigProviderFromData(`
+[ui]
+FILE_ICON_THEME = basic
+FOLDER_ICON_THEME = basic
+`)
+		assert.NoError(t, err)
+
+		loadUIFrom(cfg)
+
+		assert.Equal(t, "basic", UI.FileIconTheme)
+		assert.Equal(t, "basic", UI.FolderIconTheme)
 	})
 }

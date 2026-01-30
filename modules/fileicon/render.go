@@ -39,7 +39,7 @@ func RenderEntryIconHTML(renderedIconPool *RenderedIconPool, entry *EntryInfo) t
 	if entry.EntryMode.IsDir() || (entry.EntryMode.IsLink() && entry.SymlinkToMode.IsDir()) {
 		theme = setting.UI.FolderIconTheme
 	}
-	
+
 	if theme == "material" {
 		return DefaultMaterialIconProvider().EntryIconHTML(renderedIconPool, entry)
 	}
