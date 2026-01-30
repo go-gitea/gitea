@@ -34,6 +34,7 @@ let elkLayoutsRegistered = false;
 export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void> {
   // .markup code.language-mermaid
   const els = Array.from(queryElems(elMarkup, 'code.language-mermaid'));
+  if (!els.length) return;
   const sources = Array.from(els, (el) => el.textContent ?? '');
   const {mermaid, elkLayouts} = await loadMermaid(sources);
 
