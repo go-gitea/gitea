@@ -6,6 +6,7 @@ package gitgrep
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
@@ -46,6 +47,11 @@ func PerformSearch(ctx context.Context, page int, repoID int64, gitRepo *git.Rep
 	if err != nil {
 		return nil, 0, fmt.Errorf("gitRepo.GetRefCommitID: %w", err)
 	}
+
+	// Sort results by filename for stable ordering
+	slices.SortFunc(res, func(a, b *git.GrepResult) int {
+		return strings.Compare(a.Filename, b.Filename)
+	})
 
 	total = len(res)
 	pageStart := min((page-1)*setting.UI.RepoSearchPagingNum, len(res))

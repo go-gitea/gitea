@@ -397,7 +397,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 					HighlighterType("fvh"),
 			).
 			Sort("_score", false).
-			Sort("updated_at", true).
+			Sort("filename", true).
 			From(start).Size(pageSize).
 			Do(ctx)
 		if err != nil {
@@ -430,7 +430,7 @@ func (b *Indexer) Search(ctx context.Context, opts *internal.SearchOptions) (int
 				HighlighterType("fvh"),
 		).
 		Sort("_score", false).
-		Sort("updated_at", true).
+		Sort("filename", true).
 		From(start).Size(pageSize).
 		Do(ctx)
 	if err != nil {
