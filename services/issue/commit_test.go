@@ -298,3 +298,63 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }
+
+func TestUpdateIssuesCommit_SelfReference(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Test that a PR merge commit that references its own PR does not create a self-reference comment
+	// PR #2 (issue_id=2) has merged_commit_id: 1a8823cd1a9549fde083f992f6b9b87a7ab74fb3
+	pushCommits := []*repository.PushCommit{
+		{
+			Sha1:           "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3", // This is the merge commit for PR #2
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User Two",
+			AuthorEmail:    "user2@example.com",
+			AuthorName:     "User Two",
+			Message:        "Merge pull request (#2) from branch1", // References its own PR
+		},
+	}
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	
+	// This comment should NOT be created (self-reference)
+	selfRefCommentBean := &issues_model.Comment{
+		Type:      issues_model.CommentTypeCommitRef,
+		CommitSHA: "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3",
+		PosterID:  user.ID,
+		IssueID:   2, // PR #2 references itself
+	}
+
+	unittest.AssertNotExistsBean(t, selfRefCommentBean)
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
+	// The self-reference comment should still not exist
+	unittest.AssertNotExistsBean(t, selfRefCommentBean)
+	unittest.CheckConsistencyFor(t, &activities_model.Action{})
+
+	// Test that the same merge commit can still create references to other issues
+	pushCommits2 := []*repository.PushCommit{
+		{
+			Sha1:           "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3",
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User Two",
+			AuthorEmail:    "user2@example.com",
+			AuthorName:     "User Two",
+			Message:        "Merge pull request (#2) - also fixes #1", // References a different issue
+		},
+	}
+
+	// This comment SHOULD be created (reference to a different issue)
+	otherRefCommentBean := &issues_model.Comment{
+		Type:      issues_model.CommentTypeCommitRef,
+		CommitSHA: "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3",
+		PosterID:  user.ID,
+		IssueID:   1, // References issue #1
+	}
+
+	unittest.AssertNotExistsBean(t, otherRefCommentBean)
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits2, repo.DefaultBranch))
+	// The reference to issue #1 should exist
+	unittest.AssertExistsAndLoadBean(t, otherRefCommentBean)
+	unittest.CheckConsistencyFor(t, &activities_model.Action{})
+}
