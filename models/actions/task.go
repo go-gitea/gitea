@@ -249,6 +249,12 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 		}
 
 		// Check max-parallel constraint for matrix jobs
+		// Note: This is a best-effort check with a small race window. Multiple runners
+		// could simultaneously check the count before any commits, potentially allowing
+		// the limit to be briefly exceeded (e.g., if limit=2 and count=1, two runners
+		// might both proceed). Perfect enforcement would require row-level locking across
+		// all jobs with the same run_id+job_id, which has a significant performance impact.
+		// The race window is small since jobs are picked and committed quickly.
 		if v.MaxParallel > 0 {
 			runningCount, err := CountRunningJobsByWorkflowAndRun(ctx, v.RunID, v.JobID)
 			if err != nil {
