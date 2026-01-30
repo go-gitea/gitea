@@ -7,7 +7,6 @@ import (
 	"bytes"
 	"context"
 	"html/template"
-	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
@@ -139,13 +138,6 @@ func PerformSearch(ctx context.Context, opts *SearchOptions) (int, []*Result, []
 	if err != nil {
 		return 0, nil, nil, err
 	}
-
-	// Sort results by filename for stable ordering
-	// The indexer returns results sorted by relevance score, but results with the same score
-	// should be in a consistent order. Sorting by filename ensures this.
-	slices.SortStableFunc(results, func(a, b *internal.SearchResult) int {
-		return strings.Compare(a.Filename, b.Filename)
-	})
 
 	displayResults := make([]*Result, len(results))
 
