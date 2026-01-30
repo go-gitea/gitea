@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/otelexporter"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
@@ -223,7 +224,12 @@ func serveInstalled(c *cli.Command) error {
 		}
 	}
 
-	gtprof.EnableBuiltinTracer(util.Iif(setting.IsProd, 2000*time.Millisecond, 100*time.Millisecond))
+	gtprof.EnableTracer(&gtprof.TracerOptions{
+		ServiceName:      "gitea",
+		AppVer:           setting.AppVer,
+		BuiltinThreshold: util.Iif(setting.IsProd, 2000*time.Millisecond, 100*time.Millisecond),
+	})
+	otelexporter.InitDefaultOtelExporter()
 
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()
