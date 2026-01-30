@@ -14,5 +14,7 @@ export default {
     'spectral-cli-bundle',
     'vue-tsc',
     'webpack-cli',
+    // false-positives
+    '@types/katex',
   ],
 } satisfies KnipConfig;
