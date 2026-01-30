@@ -42,6 +42,17 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
   const sources = Array.from(els, (el) => el.textContent ?? '');
   const {mermaid, elkLayouts} = await loadMermaid(sources);
 
+  if (elkLayouts && !elkLayoutsRegistered) {
+    mermaid.registerLayoutLoaders(elkLayouts);
+    elkLayoutsRegistered = true;
+  }
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: isDarkTheme() ? 'dark' : 'neutral',
+    securityLevel: 'strict',
+    suppressErrorRendering: true,
+  });
+
   for (const [index, el] of els.entries()) {
     const source = sources[index];
     const pre = el.closest('pre');
@@ -54,17 +65,6 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       displayError(pre, new Error(`Mermaid source of ${source.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
       continue;
     }
-
-    if (elkLayouts && !elkLayoutsRegistered) {
-      mermaid.registerLayoutLoaders(elkLayouts);
-      elkLayoutsRegistered = true;
-    }
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: isDarkTheme() ? 'dark' : 'neutral',
-      securityLevel: 'strict',
-      suppressErrorRendering: true,
-    });
 
     try {
       await mermaid.parse(source);
