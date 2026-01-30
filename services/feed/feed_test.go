@@ -28,11 +28,11 @@ func TestGetFeeds(t *testing.T) {
 		IncludeDeleted:  true,
 	})
 	assert.NoError(t, err)
-	if assert.Len(t, actions, 1) {
-		assert.EqualValues(t, 1, actions[0].ID)
-		assert.Equal(t, user.ID, actions[0].UserID)
+	assert.Len(t, actions, 2)
+	assert.Equal(t, int64(2), count)
+	for _, action := range actions {
+		assert.Equal(t, user.ID, action.UserID)
 	}
-	assert.Equal(t, int64(1), count)
 
 	actions, count, err = GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedUser:   user,
@@ -76,8 +76,8 @@ func TestGetFeedsForRepos(t *testing.T) {
 		Actor:          user,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
-	assert.Equal(t, int64(1), count)
+	assert.Len(t, actions, 2)
+	assert.Equal(t, int64(2), count)
 
 	// public repo & login
 	actions, count, err = GetFeeds(t.Context(), activities_model.GetFeedsOptions{
