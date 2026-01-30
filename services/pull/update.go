@@ -134,6 +134,9 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	if pull.Flow == issues_model.PullRequestFlowAGit {
 		return false, false, nil
 	}
+	if user == nil {
+		return false, false, nil
+	}
 
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		return false, false, err
