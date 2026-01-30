@@ -13,8 +13,12 @@ body {margin: 0; padding: 0; overflow: hidden}
 export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void> {
   // .markup code.language-mermaid
   queryElems(elMarkup, 'code.language-mermaid', async (el) => {
-    const {default: mermaid} = await import(/* webpackChunkName: "mermaid" */'mermaid');
+    const [{default: mermaid}, {default: elk}] = await Promise.all([
+      import(/* webpackChunkName: "mermaid" */'mermaid'),
+      import(/* webpackChunkName: "mermaid-layout-elk" */'@mermaid-js/layout-elk'),
+    ]);
 
+    mermaid.registerLayoutLoaders(elk);
     mermaid.initialize({
       startOnLoad: false,
       theme: isDarkTheme() ? 'dark' : 'neutral',
