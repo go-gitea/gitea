@@ -490,8 +490,6 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 		opts.CommitAfterUnix = time.Now().Add(-time.Hour * 2).Unix()
 	}
 
-	baseTargetBranchName := opts.BaseRepo.GetPullRequestTargetBranch(ctx)
-
 	var ignoredCommitIDs []string
 	baseDefaultBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
 	if err != nil {
@@ -501,11 +499,13 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 	}
 
 	baseDefaultTargetBranchName := opts.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultTargetBranch
-	baseDefaultTargetBranch, err := GetBranch(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
-	if err != nil {
-		log.Warn("GetBranch:DefaultTargetBranch: %v", err)
-	} else {
-		ignoredCommitIDs = append(ignoredCommitIDs, baseDefaultTargetBranch.CommitID)
+	if baseDefaultTargetBranchName != "" && baseDefaultTargetBranchName != opts.BaseRepo.DefaultBranch {
+		baseDefaultTargetBranch, err := GetBranch(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
+		if err != nil {
+			log.Warn("GetBranch:DefaultTargetBranch: %v", err)
+		} else {
+			ignoredCommitIDs = append(ignoredCommitIDs, baseDefaultTargetBranch.CommitID)
+		}
 	}
 
 	// find all related branches, these branches may already have PRs, we will check later
@@ -527,10 +527,8 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 	}
 
 	newBranches := make([]*RecentlyPushedNewBranch, 0, len(branches))
-	if opts.MaxCount == 0 {
-		// by default we display 2 recently pushed new branch
-		opts.MaxCount = 2
-	}
+	opts.MaxCount = util.IfZero(opts.MaxCount, 2) // by default, we display 2 recently pushed new branch
+	baseTargetBranchName := opts.BaseRepo.GetPullRequestTargetBranch(ctx)
 	for _, branch := range branches {
 		// whether the branch is protected
 		protected, err := IsBranchProtected(ctx, branch.RepoID, branch.Name)
