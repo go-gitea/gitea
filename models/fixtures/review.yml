@@ -207,6 +207,17 @@
 
 -
   id: 22
+  type: 1
+  reviewer_id: 5
+  issue_id: 3
+  content: "review approved of user5 but dismissed"
+  original_author_id: 0
+  updated_unix: 946684000
+  created_unix: 946684000
+  dismissed: true
+
+-
+  id: 23
   type: 4
   reviewer_id: 5
   issue_id: 3
@@ -214,3 +225,26 @@
   original_author_id: 0
   updated_unix: 946684817
   created_unix: 946684817
+
+-
+  id: 24
+  type: 3
+  reviewer_id: 5
+  issue_id: 3
+  content: "review rejected of user5 but dismissed"
+  original_author_id: 0
+  updated_unix: 946684827
+  created_unix: 946684827
+  dismissed: true
+
+-
+  id: 25
+  type: 3
+  reviewer_id: 15
+  reviewer_team_id: 0
+  issue_id: 3
+  content: "review rejected by user15 but dismissed"
+  original_author_id: 0
+  updated_unix: 946684899
+  created_unix: 946684899
+  dismissed: true
