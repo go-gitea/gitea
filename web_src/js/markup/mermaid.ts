@@ -19,18 +19,14 @@ export function sourcesContainElk(sources: Array<string>) {
 }
 
 async function loadMermaid(sources: Array<string>) {
-  const imports: Array<Promise<any>> = [
-    import(/* webpackChunkName: "mermaid" */'mermaid'),
-  ];
+  const mermaidPromise = import(/* webpackChunkName: "mermaid" */'mermaid');
+  const elkPromise = sourcesContainElk(sources) ?
+    import(/* webpackChunkName: "mermaid-layout-elk" */'@mermaid-js/layout-elk') : null;
 
-  if (sourcesContainElk(sources)) {
-    imports.push(import(/* webpackChunkName: "mermaid-layout-elk" */'@mermaid-js/layout-elk'));
-  }
-
-  const results = await Promise.all(imports);
+  const results = await Promise.all([mermaidPromise, elkPromise]);
   return {
-    mermaid: results[0].default as Mermaid,
-    elkLayouts: (results[1]?.default) as Array<LayoutLoaderDefinition> | undefined,
+    mermaid: results[0].default,
+    elkLayouts: results[1]?.default,
   };
 }
 
