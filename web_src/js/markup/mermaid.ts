@@ -3,6 +3,7 @@ import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
 import {queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import type {LayoutLoaderDefinition, Mermaid} from 'mermaid';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
@@ -10,15 +11,45 @@ const iframeCss = `:root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}`;
 
+async function loadMermaid(sources: Array<string>) {
+  const imports: Array<Promise<any>> = [
+    import(/* webpackChunkName: "mermaid" */'mermaid'),
+  ];
+
+  // crude check to detect elk layout configuration in the source, defined in either a
+  // YAML frontmatter block or an JSON init directive.
+  const sourcesContainElk = sources.some((source) => {
+    return /(layout|defaultRenderer).+elk/.test(source);
+  });
+  if (sourcesContainElk) {
+    imports.push(import(/* webpackChunkName: "mermaid-layout-elk" */'@mermaid-js/layout-elk'));
+  }
+
+  const results = await Promise.all(imports);
+  return {
+    mermaid: results[0].default as Mermaid,
+    elkLayouts: (results[1]?.default) as Array<LayoutLoaderDefinition> | undefined,
+  };
+}
+
 export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void> {
   // .markup code.language-mermaid
-  queryElems(elMarkup, 'code.language-mermaid', async (el) => {
-    const [{default: mermaid}, {default: elkLoaders}] = await Promise.all([
-      import(/* webpackChunkName: "mermaid" */'mermaid'),
-      import(/* webpackChunkName: "mermaid" */'@mermaid-js/layout-elk'),
-    ]);
+  const els = Array.from(queryElems(elMarkup, 'code.language-mermaid'));
+  const sources = Array.from(els, (el) => el.textContent);
+  const {mermaid, elkLayouts} = await loadMermaid(sources);
 
-    mermaid.registerLayoutLoaders(elkLoaders);
+  for (const [index, el] of els.entries()) {
+    const source = sources[index];
+    const pre = el.closest('pre')!;
+
+    if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
+      displayError(pre, new Error(`Mermaid source of ${source.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
+      return;
+    }
+
+    if (elkLayouts) {
+      mermaid.registerLayoutLoaders(elkLayouts);
+    }
     mermaid.initialize({
       startOnLoad: false,
       theme: isDarkTheme() ? 'dark' : 'neutral',
@@ -26,14 +57,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       suppressErrorRendering: true,
     });
 
-    const pre = el.closest('pre');
     if (!pre || pre.hasAttribute('data-render-done')) return;
-
-    const source = el.textContent;
-    if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
-      displayError(pre, new Error(`Mermaid source of ${source.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
-      return;
-    }
 
     try {
       await mermaid.parse(source);
@@ -87,5 +111,5 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     } catch (err) {
       displayError(pre, err);
     }
-  });
+  }
 }
