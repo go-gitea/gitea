@@ -312,7 +312,7 @@ func TestUpdateIssuesCommit_SelfReference(t *testing.T) {
 			CommitterName:  "User Two",
 			AuthorEmail:    "user2@example.com",
 			AuthorName:     "User Two",
-			Message:        "Merge pull request (#2) from branch1", // References its own PR
+			Message:        "Merge pull request 'issue2' (#2) from branch1 into master", // References its own PR
 		},
 	}
 
