@@ -53,7 +53,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     suppressErrorRendering: true,
   });
 
-  await Promise.all(els.entries().map(async ([index, el]) => {
+  await Promise.all(els.map(async (el, index) => {
     const source = sources[index];
     const pre = el.closest('pre');
 
