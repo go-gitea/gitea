@@ -592,7 +592,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 	}
 
 	if compareInfo.HeadCommitID == compareInfo.MergeBase {
-		ctx.Data["IsNothingToCompare"] = true
+		ctx.Data["DiffNotAvailable"] = true
 	}
 
 	if pull.IsWorkInProgress(ctx) {
