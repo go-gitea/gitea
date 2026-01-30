@@ -56,7 +56,7 @@ func TestGetTreeBySHA(t *testing.T) {
 
 func TestGetTreeViewNodes(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	
+
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
 	ctx.Repo.RefFullName = git.RefNameFromBranch("sub-home-md-img-check")
 	contexttest.LoadRepo(t, ctx, 1)
