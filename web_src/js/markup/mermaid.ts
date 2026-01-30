@@ -70,7 +70,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       await mermaid.parse(source);
     } catch (err) {
       displayError(pre, err);
-      return;
+      continue;
     }
 
     try {
