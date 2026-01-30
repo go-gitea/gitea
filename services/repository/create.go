@@ -462,10 +462,16 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 }
 
 func cleanupRepository(repoID int64) {
-	if errDelete := DeleteRepositoryDirectly(graceful.GetManager().ShutdownContext(), repoID); errDelete != nil {
+	ctx := graceful.GetManager().ShutdownContext()
+	if errDelete := DeleteRepositoryDirectly(ctx, repoID); errDelete != nil {
 		log.Error("cleanupRepository failed: %v", errDelete)
+		// Try to get repository name for better error message
+		repoIdentifier := fmt.Sprintf("[%d]", repoID)
+		if repo, err := repo_model.GetRepositoryByID(ctx, repoID); err == nil {
+			repoIdentifier = fmt.Sprintf("(%s)", repo.FullName())
+		}
 		// add system notice
-		if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when cleanup repository: %v", errDelete); err != nil {
+		if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when cleanup repository %s: %v", repoIdentifier, errDelete); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
