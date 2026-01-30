@@ -11,17 +11,19 @@ const iframeCss = `:root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}`;
 
+/** detect whether mermaid sources contain elk layout configuration */
+export function sourcesContainElk(sources: Array<string>) {
+  return sources.some((source) => {
+    return /(layout|defaultRenderer).+elk/.test(source);
+  });
+}
+
 async function loadMermaid(sources: Array<string>) {
   const imports: Array<Promise<any>> = [
     import(/* webpackChunkName: "mermaid" */'mermaid'),
   ];
 
-  // crude check to detect elk layout configuration in the source, defined in either a
-  // YAML frontmatter block or an JSON init directive.
-  const sourcesContainElk = sources.some((source) => {
-    return /(layout|defaultRenderer).+elk/.test(source);
-  });
-  if (sourcesContainElk) {
+  if (sourcesContainElk(sources)) {
     imports.push(import(/* webpackChunkName: "mermaid-layout-elk" */'@mermaid-js/layout-elk'));
   }
 
