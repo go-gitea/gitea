@@ -131,6 +131,9 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
+		// TODO: opts.OriginalURL can be empty when migration is triggered via API (routers/api/v1/repo/migrate.go doesn't set it).
+		// This may result in a message like "Migrate repository (owner/repo) from  failed" when OriginalURL is empty.
+		// Consider either: 1) ensuring OriginalURL is always set in the API, or 2) conditionally formatting this message.
 		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository (%s/%s) from %s failed: %v", ownerName, opts.RepoName, opts.OriginalURL, err)); err2 != nil {
 			log.Error("create repository notice failed: ", err2)
 		}
