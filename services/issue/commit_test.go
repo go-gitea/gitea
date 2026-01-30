@@ -317,7 +317,7 @@ func TestUpdateIssuesCommit_SelfReference(t *testing.T) {
 	}
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	
+
 	selfRefCommentBean := &issues_model.Comment{
 		Type:      issues_model.CommentTypeCommitRef,
 		CommitSHA: "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3",
