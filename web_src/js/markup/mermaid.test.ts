@@ -16,7 +16,26 @@ test('sourcesContainElk', () => {
   expect(sourcesContainElk([`
     ---
     config:
-      layout: elk
+      layout : elk
+    ---
+    flowchart TB
+      A --> B
+      A --> C --> B
+  `])).toEqual(true);
+
+  expect(sourcesContainElk([`
+    ---
+    config:
+      layout: elk.layered
+    ---
+    flowchart TB
+      A --> B
+      A --> C --> B
+  `])).toEqual(true);
+
+  expect(sourcesContainElk([`
+    ---
+    config:
       flowchart:
         defaultRenderer: elk
     ---
@@ -43,6 +62,30 @@ test('sourcesContainElk', () => {
     %%{
       init: {
         "layout": "elk",
+      }
+    }%%
+    flowchart TB
+      A --> B
+      A --> C --> B
+  `])).toEqual(true);
+
+  expect(sourcesContainElk([`
+    %%{
+      init: {
+        "layout" : "elk.layered",
+      }
+    }%%
+    flowchart TB
+      A --> B
+      A --> C --> B
+  `])).toEqual(true);
+
+  expect(sourcesContainElk([`
+    %%{
+      init: {
+        "flowchart": {
+          "defaultRenderer": "elk",
+        }
       }
     }%%
     flowchart TB

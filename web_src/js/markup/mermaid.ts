@@ -13,7 +13,11 @@ body {margin: 0; padding: 0; overflow: hidden}
 /** detect whether mermaid sources contain elk layout configuration */
 export function sourcesContainElk(sources: Array<string>) {
   return sources.some((source) => {
-    return /(layout|defaultRenderer)[\s\S]*elk/.test(source);
+    // yaml frontmatter
+    if (/^\s*(layout|defaultRenderer)\s*:\s*elk/m.test(source)) return true;
+    // json init
+    if (/"(layout|defaultRenderer)"\s*:\s*"elk/.test(source)) return true;
+    return false;
   });
 }
 
