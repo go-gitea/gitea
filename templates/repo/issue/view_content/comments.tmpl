@@ -154,29 +154,19 @@
 				</div>
 			</div>
 		{{else if eq .Type 4}}
-			{{/* Render commit reference comments, but skip self-references (e.g., PR merge commits that reference the PR itself) */}}
-			{{$isSelfRef := false}}
-			{{if and $.Issue.IsPull $.Issue.PullRequest.MergedCommitID}}
-				{{/* Check if this commit ref is from the PR's own merge commit - if so, it's a self-reference */}}
-				{{if eq .CommitSHA $.Issue.PullRequest.MergedCommitID}}
-					{{$isSelfRef = true}}
-				{{end}}
-			{{end}}
-			{{if not $isSelfRef}}
-				<div class="timeline-item event" id="{{.HashTag}}">
-					<span class="badge">{{svg "octicon-bookmark"}}</span>
-					{{template "shared/user/avatarlink" dict "user" .Poster}}
-					<span class="comment-text-line">
-						{{template "shared/user/authorlink" .Poster}}
-						{{ctx.Locale.Tr "repo.issues.commit_ref_at" .EventTag $createdStr}}
-					</span>
-					<div class="detail flex-text-block">
-						{{svg "octicon-git-commit"}}
-						{{/* the content is a link like <a href="{RepoLink}/commit/{CommitID}">message title</a> (from CreateRefComment) */}}
-						<span class="comment-text-line">{{.Content | SanitizeHTML}}</span>
-					</div>
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-bookmark"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="comment-text-line">
+					{{template "shared/user/authorlink" .Poster}}
+					{{ctx.Locale.Tr "repo.issues.commit_ref_at" .EventTag $createdStr}}
+				</span>
+				<div class="detail flex-text-block">
+					{{svg "octicon-git-commit"}}
+					{{/* the content is a link like <a href="{RepoLink}/commit/{CommitID}">message title</a> (from CreateRefComment) */}}
+					<span class="comment-text-line">{{.Content | SanitizeHTML}}</span>
 				</div>
-			{{end}}
+			</div>
 		{{else if eq .Type 7}}
 			{{if or .AddedLabels .RemovedLabels}}
 				<div class="timeline-item event with-labels-list-inline" id="{{.HashTag}}">

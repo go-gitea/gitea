@@ -158,6 +158,16 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 				continue
 			}
 
+			// Skip self-references: if this commit is the merge commit of the PR it references
+			if refIssue.IsPull {
+				if err := refIssue.LoadPullRequest(ctx); err != nil {
+					log.Error("LoadPullRequest: %v", err)
+				} else if refIssue.PullRequest.MergedCommitID == c.Sha1 {
+					// This is a self-reference (PR merge commit referencing its own PR), skip it
+					continue
+				}
+			}
+
 			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, html.EscapeString(repo.Link()), html.EscapeString(url.PathEscape(c.Sha1)), html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
 			if err = CreateRefComment(ctx, doer, refRepo, refIssue, message, c.Sha1); err != nil {
 				if errors.Is(err, user_model.ErrBlockedUser) {
