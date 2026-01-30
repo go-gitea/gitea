@@ -53,24 +53,24 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     suppressErrorRendering: true,
   });
 
-  for (const [index, el] of els.entries()) {
+  await Promise.all(els.entries().map(async ([index, el]) => {
     const source = sources[index];
     const pre = el.closest('pre');
 
     if (!pre || pre.hasAttribute('data-render-done')) {
-      continue;
+      return;
     }
 
     if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
       displayError(pre, new Error(`Mermaid source of ${source.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
-      continue;
+      return;
     }
 
     try {
       await mermaid.parse(source);
     } catch (err) {
       displayError(pre, err);
-      continue;
+      return;
     }
 
     try {
@@ -118,5 +118,5 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     } catch (err) {
       displayError(pre, err);
     }
-  }
+  }));
 }
