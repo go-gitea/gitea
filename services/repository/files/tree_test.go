@@ -10,7 +10,9 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/contexttest"
 
 	"github.com/stretchr/testify/assert"
@@ -56,6 +58,9 @@ func TestGetTreeBySHA(t *testing.T) {
 
 func TestGetTreeViewNodes(t *testing.T) {
 	unittest.PrepareTestEnv(t)
+	// This test expects material icons for folders
+	defer test.MockVariableValue(&setting.UI.FolderIconTheme, "material")()
+	
 	ctx, _ := contexttest.MockContext(t, "user2/repo1")
 	ctx.Repo.RefFullName = git.RefNameFromBranch("sub-home-md-img-check")
 	contexttest.LoadRepo(t, ctx, 1)
