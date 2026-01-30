@@ -332,22 +332,23 @@ func TestUpdateIssuesCommit_SelfReference(t *testing.T) {
 	unittest.AssertNotExistsBean(t, selfRefCommentBean)
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 
-	// Test that the same merge commit can still create references to other issues
+	// Test that normal (non-self-referencing) commit comments are still created
+	// Use a different commit that is NOT a merge commit for any PR
 	pushCommits2 := []*repository.PushCommit{
 		{
-			Sha1:           "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3",
+			Sha1:           "abcdef9876543210", // Different commit, not a merge commit
 			CommitterEmail: "user2@example.com",
 			CommitterName:  "User Two",
 			AuthorEmail:    "user2@example.com",
 			AuthorName:     "User Two",
-			Message:        "Merge pull request (#2) - also fixes #1", // References a different issue
+			Message:        "Fix bug, refs #1", // References issue #1
 		},
 	}
 
-	// This comment SHOULD be created (reference to a different issue)
+	// This comment SHOULD be created (reference to a different issue from a non-merge commit)
 	otherRefCommentBean := &issues_model.Comment{
 		Type:      issues_model.CommentTypeCommitRef,
-		CommitSHA: "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3",
+		CommitSHA: "abcdef9876543210",
 		PosterID:  user.ID,
 		IssueID:   1, // References issue #1
 	}

@@ -161,8 +161,10 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 			// Skip self-references: if this commit is the merge commit of the PR it references
 			if refIssue.IsPull {
 				if err := refIssue.LoadPullRequest(ctx); err != nil {
-					log.Error("LoadPullRequest: %v", err)
-				} else if refIssue.PullRequest != nil && refIssue.PullRequest.MergedCommitID == c.Sha1 {
+					if !issues_model.IsErrPullRequestNotExist(err) {
+						log.Error("LoadPullRequest: %v", err)
+					}
+				} else if refIssue.PullRequest.MergedCommitID == c.Sha1 {
 					// This is a self-reference (PR merge commit referencing its own PR), skip it
 					continue
 				}
