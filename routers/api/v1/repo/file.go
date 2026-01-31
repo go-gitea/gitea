@@ -363,8 +363,10 @@ func ReqChangeRepoFileOptionsAndCheck(ctx *context.APIContext) {
 		NewBranch: commonOpts.NewBranchName,
 		ForcePush: commonOpts.ForcePush,
 		ActionsTaskID: func() int64 {
-			if ctx.Data["ActionsTaskID"] != nil {
-				return ctx.Data["ActionsTaskID"].(int64)
+			if v, ok := ctx.Data["ActionsTaskID"]; ok {
+				if taskID, ok := v.(int64); ok {
+					return taskID
+				}
 			}
 			return 0
 		}(),
