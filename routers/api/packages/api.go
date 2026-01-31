@@ -90,7 +90,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 			// 2. If not, check cross-repo policy (currently only for Orgs).
 
 			taskID, ok := ctx.Data["ActionsTaskID"].(int64)
-			log.Error("DEBUG: reqPackageAccess: isActionsToken=%v, TaskID=%d", isActionsToken, taskID)
+			log.Debug("reqPackageAccess: isActionsToken=%v, TaskID=%d", isActionsToken, taskID)
 
 			if ok && taskID > 0 {
 				task, err := actions_model.GetTaskByID(ctx, taskID)
