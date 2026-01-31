@@ -198,7 +198,11 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			}
 
 			if ctx.Data["IsActionsToken"] == true {
-				taskID := ctx.Data["ActionsTaskID"].(int64)
+				taskID, _ := ctx.Data["ActionsTaskID"].(int64)
+				if taskID == 0 {
+					ctx.PlainText(http.StatusForbidden, "Invalid Actions task ID")
+					return nil
+				}
 				p, err := access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
 				if err != nil {
 					ctx.ServerError("GetActionsUserRepoPermission", err)

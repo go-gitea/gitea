@@ -216,5 +216,5 @@ func ActionsAllowedReposRemove(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/general")
 }
