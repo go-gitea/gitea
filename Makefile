@@ -314,12 +314,12 @@ lint-backend: lint-go lint-go-gitea-vet lint-editorconfig ## lint backend files
 lint-backend-fix: lint-go-fix lint-go-gitea-vet lint-editorconfig ## lint backend files and fix issues
 
 .PHONY: lint-js
-lint-js: node_modules ## lint js files
+lint-js: node_modules ## lint js and ts files
 	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES)
 	$(NODE_VARS) pnpm exec vue-tsc
 
 .PHONY: lint-js-fix
-lint-js-fix: node_modules ## lint js files and fix issues
+lint-js-fix: node_modules ## lint js and ts files and fix issues
 	$(NODE_VARS) pnpm exec eslint --color --max-warnings=0 $(ESLINT_FILES) --fix
 	$(NODE_VARS) pnpm exec vue-tsc
 
