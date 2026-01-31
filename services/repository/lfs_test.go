@@ -23,7 +23,6 @@ func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	setting.LFS.StartServer = true
-
 	err := storage.Init()
 	assert.NoError(t, err)
 
