@@ -213,7 +213,6 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 					ctx.PlainText(http.StatusNotFound, "Repository not found")
 					return nil
 				}
-				environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, p.UnitAccessMode(unitType)))
 				environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionsTaskID, taskID))
 			} else {
 				p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
