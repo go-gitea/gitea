@@ -167,7 +167,6 @@ func ActionsAllowedReposAdd(ctx *context.Context) {
 	}
 
 	// Check if already exists
-	// Check if already exists
 	if slices.Contains(actionsCfg.AllowedCrossRepoIDs, repo.ID) {
 		ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
 		return
