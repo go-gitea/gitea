@@ -34,6 +34,7 @@ import (
 	context_module "code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
 
+	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"gopkg.in/yaml.v3"
 	"xorm.io/builder"
@@ -536,8 +537,37 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 		}
 	}
 
+	// Recalculate permissions on rerun to respect current repo settings
+	if len(job.WorkflowPayload) > 0 {
+		singleWorkflow, err := jobparser.Parse(job.WorkflowPayload)
+		if err != nil {
+			log.Warn("rerunJob: failed to parse workflow payload for job %d: %v", job.ID, err)
+		} else {
+			for _, flow := range singleWorkflow {
+				wfJobID, wfJob := flow.Job()
+				if wfJobID == job.JobID {
+					if job.Run.Repo == nil {
+						if err := job.Run.LoadRepo(ctx); err != nil {
+							return err
+						}
+					}
+					cfgUnit := job.Run.Repo.MustGetUnit(ctx, unit.TypeActions)
+					cfg := cfgUnit.ActionsConfig()
+
+					defaultPerms := cfg.GetEffectiveTokenPermissions(job.Run.IsForkPullRequest)
+					workflowPerms := actions_service.ParseWorkflowPermissions(flow, defaultPerms)
+					jobPerms := actions_service.ParseJobPermissions(wfJob, workflowPerms)
+					finalPerms := cfg.ClampPermissions(jobPerms)
+
+					job.TokenPermissions = repo_model.MarshalTokenPermissions(finalPerms)
+					break
+				}
+			}
+		}
+	}
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"}
+		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated", "token_permissions"}
 		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, updateCols...)
 		return err
 	}); err != nil {
