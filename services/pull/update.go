@@ -116,6 +116,7 @@ func isUserAllowedToPushOrForcePushInRepoBranch(ctx context.Context, user *user_
 		return false, false, err
 	}
 	pushAllowed = repoPerm.CanWrite(unit.TypeCode)
+	rebaseAllowed = pushAllowed
 
 	// 2. check branch protection whether user can push or force push
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, branch)
