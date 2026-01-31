@@ -1,3 +1,4 @@
+// @ts-check
 // TODO: Move to .ts after https://github.com/stylelint/stylelint/issues/8893 is fixed
 import {fileURLToPath} from 'node:url';
 
@@ -7,6 +8,7 @@ const cssVarFiles = [
   fileURLToPath(new URL('web_src/css/themes/theme-gitea-dark.css', import.meta.url)),
 ];
 
+/** @type {import('stylelint').Config} */
 export default {
   extends: 'stylelint-config-recommended',
   reportUnscopedDisables: true,
