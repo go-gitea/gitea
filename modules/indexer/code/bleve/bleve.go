@@ -176,20 +176,21 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	info, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
+	var fileContents []byte
+	err = catFileBatch.QueryContent(update.BlobSha, func(info *git.CatFileObject, reader io.Reader) error {
+		var err error
+		fileContents, err = io.ReadAll(reader)
+		if err != nil {
+			return err
+		}
+		if !typesniffer.DetectContentType(fileContents).IsText() {
+			// FIXME: UTF-16 files will probably fail here
+			// Even if the file is not recognized as a "text file", we could still put its name into the indexers to make the filename become searchable, while leave the content to empty.
+			fileContents = nil
+		}
+		return nil
+	})
 	if err != nil {
-		return err
-	}
-	fileContents, err := io.ReadAll(io.LimitReader(batchReader, info.Size))
-	if err != nil {
-		return err
-	} else if !typesniffer.DetectContentType(fileContents).IsText() {
-		// FIXME: UTF-16 files will probably fail here
-		// Even if the file is not recognized as a "text file", we could still put its name into the indexers to make the filename become searchable, while leave the content to empty.
-		fileContents = nil
-	}
-
-	if _, err = batchReader.Discard(1); err != nil {
 		return err
 	}
 	id := internal.FilenameIndexerID(repo.ID, update.Filename)

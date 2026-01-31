@@ -5,6 +5,7 @@ package git
 
 import (
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -38,16 +39,22 @@ func (b *catFileBatchCommand) getBatch() *catFileBatchCommunicator {
 	return b.batch
 }
 
-func (b *catFileBatchCommand) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
+func (b *catFileBatchCommand) QueryContent(obj string, handler func(info *CatFileObject, reader io.Reader) error) error {
 	_, err := b.getBatch().reqWriter.Write([]byte("contents " + obj + "\n"))
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	info, err := catFileBatchParseInfoLine(b.getBatch().respReader)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	return info, b.getBatch().respReader, nil
+	contentReader := newCatFileBatchContentReader(b.getBatch().respReader, info.Size)
+	handlerErr := handler(info, contentReader)
+	discardErr := contentReader.discardRemaining()
+	if handlerErr != nil {
+		return handlerErr
+	}
+	return discardErr
 }
 
 func (b *catFileBatchCommand) QueryInfo(obj string) (*CatFileObject, error) {

@@ -50,14 +50,20 @@ func testCatFileBatch(t *testing.T) {
 	})
 
 	t.Run("QueryContent", func(t *testing.T) {
-		info, rd, err := batch.QueryContent("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
+		var (
+			info    *CatFileObject
+			content []byte
+		)
+		err := batch.QueryContent("e2129701f1a4d54dc44f03c93bca0a2aec7c5449", func(obj *CatFileObject, reader io.Reader) error {
+			info = obj
+			var err error
+			content, err = io.ReadAll(reader)
+			return err
+		})
 		require.NoError(t, err)
 		assert.Equal(t, "e2129701f1a4d54dc44f03c93bca0a2aec7c5449", info.ID)
 		assert.Equal(t, "blob", info.Type)
 		assert.EqualValues(t, 6, info.Size)
-
-		content, err := io.ReadAll(io.LimitReader(rd, info.Size))
-		require.NoError(t, err)
 		require.Equal(t, "file1\n", string(content))
 	})
 

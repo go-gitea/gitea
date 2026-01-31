@@ -161,21 +161,24 @@ func (b *Indexer) addUpdate(ctx context.Context, catFileBatch git.CatFileBatch, 
 		return []elastic.BulkableRequest{b.addDelete(update.Filename, repo)}, nil
 	}
 
-	info, batchReader, err := catFileBatch.QueryContent(update.BlobSha)
+	var fileContents []byte
+	err = catFileBatch.QueryContent(update.BlobSha, func(info *git.CatFileObject, reader io.Reader) error {
+		var err error
+		fileContents, err = io.ReadAll(reader)
+		if err != nil {
+			return err
+		}
+		if !typesniffer.DetectContentType(fileContents).IsText() {
+			// FIXME: UTF-16 files will probably fail here
+			fileContents = nil
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
-
-	fileContents, err := io.ReadAll(io.LimitReader(batchReader, info.Size))
-	if err != nil {
-		return nil, err
-	} else if !typesniffer.DetectContentType(fileContents).IsText() {
-		// FIXME: UTF-16 files will probably fail here
+	if fileContents == nil {
 		return nil, nil
-	}
-
-	if _, err = batchReader.Discard(1); err != nil {
-		return nil, err
 	}
 	id := internal.FilenameIndexerID(repo.ID, update.Filename)
 

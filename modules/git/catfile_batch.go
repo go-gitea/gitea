@@ -8,16 +8,6 @@ import (
 	"io"
 )
 
-type BufferedReader interface {
-	io.Reader
-	Buffered() int
-	Peek(n int) ([]byte, error)
-	Discard(n int) (int, error)
-	ReadString(sep byte) (string, error)
-	ReadSlice(sep byte) ([]byte, error)
-	ReadBytes(sep byte) ([]byte, error)
-}
-
 type CatFileObject struct {
 	ID   string
 	Type string
@@ -30,11 +20,10 @@ type CatFileBatch interface {
 	// In Gitea, we only use the simple ref name or object id, no other complex rev syntax like "suffix" or "git describe" although they are supported by git.
 	QueryInfo(obj string) (*CatFileObject, error)
 
-	// QueryContent is similar to QueryInfo, it queries the object info and additionally returns a reader for its content.
-	// FIXME: this design still follows the old pattern: the returned BufferedReader is very fragile,
-	// callers should carefully maintain its lifecycle and discard all unread data.
-	// TODO: It needs to be refactored to a fully managed Reader stream in the future, don't let callers manually Close or Discard
-	QueryContent(obj string) (*CatFileObject, BufferedReader, error)
+	// QueryContent is similar to QueryInfo. It provides the object info and a reader for its content to the handler.
+	// The reader is limited to the object's size, and remaining bytes are discarded after the handler returns.
+	// The handler should not retain the reader or invoke QueryContent recursively.
+	QueryContent(obj string, handler func(info *CatFileObject, reader io.Reader) error) error
 }
 
 type CatFileBatchCloser interface {

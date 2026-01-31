@@ -49,16 +49,22 @@ func (b *catFileBatchLegacy) getBatchCheck() *catFileBatchCommunicator {
 	return b.batchCheck
 }
 
-func (b *catFileBatchLegacy) QueryContent(obj string) (*CatFileObject, BufferedReader, error) {
+func (b *catFileBatchLegacy) QueryContent(obj string, handler func(info *CatFileObject, reader io.Reader) error) error {
 	_, err := io.WriteString(b.getBatchContent().reqWriter, obj+"\n")
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	info, err := catFileBatchParseInfoLine(b.getBatchContent().respReader)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
-	return info, b.getBatchContent().respReader, nil
+	contentReader := newCatFileBatchContentReader(b.getBatchContent().respReader, info.Size)
+	handlerErr := handler(info, contentReader)
+	discardErr := contentReader.discardRemaining()
+	if handlerErr != nil {
+		return handlerErr
+	}
+	return discardErr
 }
 
 func (b *catFileBatchLegacy) QueryInfo(obj string) (*CatFileObject, error) {

@@ -24,6 +24,34 @@ type catFileBatchCommunicator struct {
 	debugGitCmd *gitcmd.Command
 }
 
+type catFileBatchContentReader struct {
+	rd        *bufio.Reader
+	remaining int64
+}
+
+func newCatFileBatchContentReader(rd *bufio.Reader, size int64) *catFileBatchContentReader {
+	return &catFileBatchContentReader{
+		rd:        rd,
+		remaining: size,
+	}
+}
+
+func (r *catFileBatchContentReader) Read(p []byte) (int, error) {
+	if r.remaining <= 0 {
+		return 0, io.EOF
+	}
+	if int64(len(p)) > r.remaining {
+		p = p[:r.remaining]
+	}
+	n, err := r.rd.Read(p)
+	r.remaining -= int64(n)
+	return n, err
+}
+
+func (r *catFileBatchContentReader) discardRemaining() error {
+	return discardFull(r.rd, r.remaining+1)
+}
+
 func (b *catFileBatchCommunicator) Close() {
 	if b.cancel != nil {
 		b.cancel()
@@ -69,7 +97,7 @@ func newCatFileBatch(ctx context.Context, repoPath string, cmdCatFile *gitcmd.Co
 // catFileBatchParseInfoLine reads the header line from cat-file --batch
 // We expect: <oid> SP <type> SP <size> LF
 // then leaving the rest of the stream "<contents> LF" to be read
-func catFileBatchParseInfoLine(rd BufferedReader) (*CatFileObject, error) {
+func catFileBatchParseInfoLine(rd *bufio.Reader) (*CatFileObject, error) {
 	typ, err := rd.ReadString('\n')
 	if err != nil {
 		return nil, err
@@ -99,17 +127,15 @@ func catFileBatchParseInfoLine(rd BufferedReader) (*CatFileObject, error) {
 	return &CatFileObject{ID: sha, Type: typ, Size: size}, err
 }
 
-// ReadTagObjectID reads a tag object ID hash from a cat-file --batch stream, throwing away the rest of the stream.
-func ReadTagObjectID(rd BufferedReader, size int64) (string, error) {
+// ReadTagObjectID reads a tag object ID hash from a cat-file --batch stream.
+func ReadTagObjectID(rd *bufio.Reader) (string, error) {
 	var id string
-	var n int64
 headerLoop:
 	for {
 		line, err := rd.ReadBytes('\n')
 		if err != nil {
 			return "", err
 		}
-		n += int64(len(line))
 		idx := bytes.Index(line, []byte{' '})
 		if idx < 0 {
 			continue
@@ -121,21 +147,18 @@ headerLoop:
 		}
 	}
 
-	// Discard the rest of the tag
-	return id, DiscardFull(rd, size-n+1)
+	return id, nil
 }
 
-// ReadTreeID reads a tree ID from a cat-file --batch stream, throwing away the rest of the stream.
-func ReadTreeID(rd BufferedReader, size int64) (string, error) {
+// ReadTreeID reads a tree ID from a cat-file --batch stream.
+func ReadTreeID(rd *bufio.Reader) (string, error) {
 	var id string
-	var n int64
 headerLoop:
 	for {
 		line, err := rd.ReadBytes('\n')
 		if err != nil {
 			return "", err
 		}
-		n += int64(len(line))
 		idx := bytes.Index(line, []byte{' '})
 		if idx < 0 {
 			continue
@@ -147,8 +170,7 @@ headerLoop:
 		}
 	}
 
-	// Discard the rest of the commit
-	return id, DiscardFull(rd, size-n+1)
+	return id, nil
 }
 
 // git tree files are a list:
@@ -165,7 +187,7 @@ headerLoop:
 // <mode-in-ascii-dropping-initial-zeros> SP <fname> NUL <binary HASH>
 //
 // We don't attempt to convert the raw HASH to save a lot of time
-func ParseCatFileTreeLine(objectFormat ObjectFormat, rd BufferedReader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
+func ParseCatFileTreeLine(objectFormat ObjectFormat, rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
 	var readBytes []byte
 
 	// Read the Mode & fname
@@ -224,7 +246,7 @@ func ParseCatFileTreeLine(objectFormat ObjectFormat, rd BufferedReader, modeBuf,
 	return mode, fname, sha, n, err
 }
 
-func DiscardFull(rd BufferedReader, discard int64) error {
+func discardFull(rd *bufio.Reader, discard int64) error {
 	if discard > math.MaxInt32 {
 		n, err := rd.Discard(math.MaxInt32)
 		discard -= int64(n)

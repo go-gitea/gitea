@@ -16,56 +16,63 @@ func (repo *Repository) getTree(id ObjectID) (*Tree, error) {
 	}
 	defer cancel()
 
-	info, rd, err := batch.QueryContent(id.String())
+	resolvedID := id
+	var (
+		objectType string
+		tagObject  ObjectID
+		commit     *Commit
+		tree       *Tree
+	)
+
+	err = batch.QueryContent(id.String(), func(info *CatFileObject, reader io.Reader) error {
+		objectType = info.Type
+		switch info.Type {
+		case "tag":
+			data, err := io.ReadAll(reader)
+			if err != nil {
+				return err
+			}
+			tag, err := parseTagData(id.Type(), data)
+			if err != nil {
+				return err
+			}
+			tagObject = tag.Object
+		case "commit":
+			var err error
+			commit, err = CommitFromReader(repo, id, reader)
+			if err != nil {
+				return err
+			}
+		case "tree":
+			tree = NewTree(repo, id)
+			tree.ResolvedID = id
+			objectFormat := id.Type()
+			tree.entries, err = catBatchParseTreeEntries(objectFormat, tree, reader, info.Size)
+			if err != nil {
+				return err
+			}
+			tree.entriesParsed = true
+		}
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	switch info.Type {
+	switch objectType {
 	case "tag":
-		resolvedID := id
-		data, err := io.ReadAll(io.LimitReader(rd, info.Size))
-		if err != nil {
-			return nil, err
-		}
-		tag, err := parseTagData(id.Type(), data)
-		if err != nil {
-			return nil, err
-		}
-
-		commit, err := repo.getCommitWithBatch(batch, tag.Object)
+		commit, err := repo.getCommitWithBatch(batch, tagObject)
 		if err != nil {
 			return nil, err
 		}
 		commit.Tree.ResolvedID = resolvedID
 		return &commit.Tree, nil
 	case "commit":
-		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, info.Size))
-		if err != nil {
-			return nil, err
-		}
-		if _, err := rd.Discard(1); err != nil {
-			return nil, err
-		}
 		commit.Tree.ResolvedID = commit.ID
 		return &commit.Tree, nil
 	case "tree":
-		tree := NewTree(repo, id)
-		tree.ResolvedID = id
-		objectFormat, err := repo.GetObjectFormat()
-		if err != nil {
-			return nil, err
-		}
-		tree.entries, err = catBatchParseTreeEntries(objectFormat, tree, rd, info.Size)
-		if err != nil {
-			return nil, err
-		}
-		tree.entriesParsed = true
 		return tree, nil
 	default:
-		if err := DiscardFull(rd, info.Size+1); err != nil {
-			return nil, err
-		}
 		return nil, ErrNotExist{
 			ID: id.String(),
 		}

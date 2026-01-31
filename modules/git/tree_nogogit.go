@@ -6,6 +6,7 @@
 package git
 
 import (
+	"bufio"
 	"io"
 	"strings"
 
@@ -33,33 +34,43 @@ func (t *Tree) ListEntries() (Entries, error) {
 		}
 		defer cancel()
 
-		info, rd, err := batch.QueryContent(t.ID.String())
-		if err != nil {
-			return nil, err
-		}
-
-		if info.Type == "commit" {
-			treeID, err := ReadTreeID(rd, info.Size)
-			if err != nil && err != io.EOF {
-				return nil, err
-			}
-			info, rd, err = batch.QueryContent(treeID)
+		currentID := t.ID.String()
+		for {
+			var (
+				objectType string
+				treeID     string
+			)
+			err = batch.QueryContent(currentID, func(info *CatFileObject, reader io.Reader) error {
+				objectType = info.Type
+				switch info.Type {
+				case "commit":
+					bufReader := bufio.NewReader(reader)
+					var err error
+					treeID, err = ReadTreeID(bufReader)
+					if err != nil && err != io.EOF {
+						return err
+					}
+				case "tree":
+					objectFormat := t.ID.Type()
+					t.entries, err = catBatchParseTreeEntries(objectFormat, t, reader, info.Size)
+					if err != nil {
+						return err
+					}
+					t.entriesParsed = true
+				}
+				return nil
+			})
 			if err != nil {
 				return nil, err
 			}
-		}
-		if info.Type == "tree" {
-			t.entries, err = catBatchParseTreeEntries(t.ID.Type(), t, rd, info.Size)
-			if err != nil {
-				return nil, err
+			if objectType == "commit" && treeID != "" {
+				currentID = treeID
+				continue
 			}
-			t.entriesParsed = true
-			return t.entries, nil
-		}
-
-		// Not a tree just use ls-tree instead
-		if err := DiscardFull(rd, info.Size+1); err != nil {
-			return nil, err
+			if objectType == "tree" && t.entriesParsed {
+				return t.entries, nil
+			}
+			break
 		}
 	}
 

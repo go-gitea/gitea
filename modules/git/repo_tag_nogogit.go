@@ -90,35 +90,36 @@ func (repo *Repository) getTag(tagID ObjectID, name string) (*Tag, error) {
 	}
 	defer cancel()
 
-	info, rd, err := batch.QueryContent(tagID.String())
+	var (
+		objectType string
+		tag        *Tag
+	)
+
+	err = batch.QueryContent(tagID.String(), func(info *CatFileObject, reader io.Reader) error {
+		objectType = info.Type
+		if info.Type != "tag" {
+			return nil
+		}
+		// then we need to parse the tag
+		// and load the commit
+		data, err := io.ReadAll(reader)
+		if err != nil {
+			return err
+		}
+		tag, err = parseTagData(tagID.Type(), data)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
 			return nil, ErrNotExist{ID: tagID.String()}
 		}
 		return nil, err
 	}
-	typ, size := info.Type, info.Size
-	if typ != "tag" {
-		if err := DiscardFull(rd, size+1); err != nil {
-			return nil, err
-		}
+	if objectType != "tag" {
 		return nil, ErrNotExist{ID: tagID.String()}
-	}
-
-	// then we need to parse the tag
-	// and load the commit
-	data, err := io.ReadAll(io.LimitReader(rd, size))
-	if err != nil {
-		return nil, err
-	}
-	_, err = rd.Discard(1)
-	if err != nil {
-		return nil, err
-	}
-
-	tag, err := parseTagData(tagID.Type(), data)
-	if err != nil {
-		return nil, err
 	}
 
 	tag.Name = name

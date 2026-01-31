@@ -54,82 +54,80 @@ func findLFSFileFunc(repo *git.Repository, objectID git.ObjectID, revListReader 
 		// Get the next commit ID
 		commitID := scan.Text()
 
-		// push the commit to the cat-file --batch process
-		info, batchReader, err := batch.QueryContent(commitID)
-		if err != nil {
-			return nil, err
-		}
-
 		var curCommit *git.Commit
 		curPath := ""
+		currentID := commitID
 
 	commitReadingLoop:
 		for {
-			switch info.Type {
-			case "tag":
-				// This shouldn't happen but if it does well just get the commit and try again
-				id, err := git.ReadTagObjectID(batchReader, info.Size)
-				if err != nil {
-					return nil, err
-				}
-				if info, batchReader, err = batch.QueryContent(id); err != nil {
-					return nil, err
-				}
-				continue
-			case "commit":
-				// Read in the commit to get its tree and in case this is one of the last used commits
-				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(commitID), io.LimitReader(batchReader, info.Size))
-				if err != nil {
-					return nil, err
-				}
-				if _, err := batchReader.Discard(1); err != nil {
-					return nil, err
-				}
-
-				if info, _, err = batch.QueryContent(curCommit.Tree.ID.String()); err != nil {
-					return nil, err
-				}
-				curPath = ""
-			case "tree":
-				var n int64
-				for n < info.Size {
-					mode, fname, binObjectID, count, err := git.ParseCatFileTreeLine(objectID.Type(), batchReader, modeBuf, fnameBuf, workingShaBuf)
+			var (
+				objectType string
+				nextID     string
+			)
+			err := batch.QueryContent(currentID, func(info *git.CatFileObject, reader io.Reader) error {
+				objectType = info.Type
+				switch info.Type {
+				case "tag":
+					// This shouldn't happen but if it does well just get the commit and try again
+					bufReader := bufio.NewReader(reader)
+					id, err := git.ReadTagObjectID(bufReader)
 					if err != nil {
-						return nil, err
+						return err
 					}
-					n += int64(count)
-					if bytes.Equal(binObjectID, objectID.RawValue()) {
-						result := LFSResult{
-							Name:         curPath + string(fname),
-							SHA:          curCommit.ID.String(),
-							Summary:      strings.Split(strings.TrimSpace(curCommit.CommitMessage), "\n")[0],
-							When:         curCommit.Author.When,
-							ParentHashes: curCommit.Parents,
+					nextID = id
+				case "commit":
+					// Read in the commit to get its tree and in case this is one of the last used commits
+					var err error
+					curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(info.ID), reader)
+					if err != nil {
+						return err
+					}
+					nextID = curCommit.Tree.ID.String()
+					curPath = ""
+				case "tree":
+					bufReader := bufio.NewReader(reader)
+					var n int64
+					for n < info.Size {
+						mode, fname, binObjectID, count, err := git.ParseCatFileTreeLine(objectID.Type(), bufReader, modeBuf, fnameBuf, workingShaBuf)
+						if err != nil {
+							return err
 						}
-						resultsMap[curCommit.ID.String()+":"+curPath+string(fname)] = &result
-					} else if string(mode) == git.EntryModeTree.String() {
-						trees = append(trees, hex.EncodeToString(binObjectID))
-						paths = append(paths, curPath+string(fname)+"/")
+						n += int64(count)
+						if bytes.Equal(binObjectID, objectID.RawValue()) {
+							result := LFSResult{
+								Name:         curPath + string(fname),
+								SHA:          curCommit.ID.String(),
+								Summary:      strings.Split(strings.TrimSpace(curCommit.CommitMessage), "\n")[0],
+								When:         curCommit.Author.When,
+								ParentHashes: curCommit.Parents,
+							}
+							resultsMap[curCommit.ID.String()+":"+curPath+string(fname)] = &result
+						} else if string(mode) == git.EntryModeTree.String() {
+							trees = append(trees, hex.EncodeToString(binObjectID))
+							paths = append(paths, curPath+string(fname)+"/")
+						}
+					}
+					if len(trees) > 0 {
+						nextID = trees[len(trees)-1]
+						curPath = paths[len(paths)-1]
+						trees = trees[:len(trees)-1]
+						paths = paths[:len(paths)-1]
 					}
 				}
-				if _, err := batchReader.Discard(1); err != nil {
-					return nil, err
-				}
-				if len(trees) > 0 {
-					info, _, err = batch.QueryContent(trees[len(trees)-1])
-					if err != nil {
-						return nil, err
-					}
-					curPath = paths[len(paths)-1]
-					trees = trees[:len(trees)-1]
-					paths = paths[:len(paths)-1]
-				} else {
+				return nil
+			})
+			if err != nil {
+				return nil, err
+			}
+			switch objectType {
+			case "tag", "commit", "tree":
+				if nextID == "" {
 					break commitReadingLoop
 				}
+				currentID = nextID
+				continue
 			default:
-				if err := git.DiscardFull(batchReader, info.Size+1); err != nil {
-					return nil, err
-				}
+				break commitReadingLoop
 			}
 		}
 	}

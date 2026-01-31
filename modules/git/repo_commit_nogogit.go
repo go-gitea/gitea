@@ -60,7 +60,36 @@ func (repo *Repository) getCommit(id ObjectID) (*Commit, error) {
 }
 
 func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Commit, error) {
-	info, rd, err := batch.QueryContent(id.String())
+	var (
+		objectType string
+		commit     *Commit
+		tagObject  ObjectID
+	)
+
+	err := batch.QueryContent(id.String(), func(info *CatFileObject, reader io.Reader) error {
+		objectType = info.Type
+		switch info.Type {
+		case "tag":
+			// then we need to parse the tag
+			// and load the commit
+			data, err := io.ReadAll(reader)
+			if err != nil {
+				return err
+			}
+			tag, err := parseTagData(id.Type(), data)
+			if err != nil {
+				return err
+			}
+			tagObject = tag.Object
+		case "commit":
+			var err error
+			commit, err = CommitFromReader(repo, id, reader)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 	if err != nil {
 		if errors.Is(err, io.EOF) || IsErrNotExist(err) {
 			return nil, ErrNotExist{ID: id.String()}
@@ -68,41 +97,15 @@ func (repo *Repository) getCommitWithBatch(batch CatFileBatch, id ObjectID) (*Co
 		return nil, err
 	}
 
-	switch info.Type {
+	switch objectType {
 	case "missing":
 		return nil, ErrNotExist{ID: id.String()}
 	case "tag":
-		// then we need to parse the tag
-		// and load the commit
-		data, err := io.ReadAll(io.LimitReader(rd, info.Size))
-		if err != nil {
-			return nil, err
-		}
-		_, err = rd.Discard(1)
-		if err != nil {
-			return nil, err
-		}
-		tag, err := parseTagData(id.Type(), data)
-		if err != nil {
-			return nil, err
-		}
-		return repo.getCommitWithBatch(batch, tag.Object)
+		return repo.getCommitWithBatch(batch, tagObject)
 	case "commit":
-		commit, err := CommitFromReader(repo, id, io.LimitReader(rd, info.Size))
-		if err != nil {
-			return nil, err
-		}
-		_, err = rd.Discard(1)
-		if err != nil {
-			return nil, err
-		}
-
 		return commit, nil
 	default:
-		log.Debug("Unknown cat-file object type: %s", info.Type)
-		if err := DiscardFull(rd, info.Size+1); err != nil {
-			return nil, err
-		}
+		log.Debug("Unknown cat-file object type: %s", objectType)
 		return nil, ErrNotExist{
 			ID: id.String(),
 		}

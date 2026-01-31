@@ -28,28 +28,32 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 	}
 	defer cancel()
 
-	commitInfo, batchReader, err := batch.QueryContent(commitID)
+	var (
+		commit     *git.Commit
+		commitInfo *git.CatFileObject
+	)
+	err = batch.QueryContent(commitID, func(info *git.CatFileObject, reader io.Reader) error {
+		commitInfo = info
+		if info.Type != "commit" {
+			return nil
+		}
+		sha, err := git.NewIDFromString(info.ID)
+		if err != nil {
+			return err
+		}
+		commit, err = git.CommitFromReader(repo, sha, reader)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
+		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, err
 	}
-	if commitInfo.Type != "commit" {
+	if commitInfo == nil || commitInfo.Type != "commit" {
 		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, git.ErrNotExist{ID: commitID}
-	}
-
-	sha, err := git.NewIDFromString(commitInfo.ID)
-	if err != nil {
-		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
-		return nil, git.ErrNotExist{ID: commitID}
-	}
-
-	commit, err := git.CommitFromReader(repo, sha, io.LimitReader(batchReader, commitInfo.Size))
-	if err != nil {
-		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
-		return nil, err
-	}
-	if _, err = batchReader.Discard(1); err != nil {
-		return nil, err
 	}
 
 	tree := commit.Tree
@@ -139,24 +143,15 @@ func GetLanguageStats(repo *git.Repository, commitID string) (map[string]int64, 
 		// If content can not be read or file is too big just do detection by filename
 
 		if f.Size() <= bigFileSize {
-			info, _, err := batch.QueryContent(f.ID.String())
+			err = batch.QueryContent(f.ID.String(), func(info *git.CatFileObject, reader io.Reader) error {
+				_, err := contentBuf.ReadFrom(io.LimitReader(reader, min(info.Size, fileSizeLimit)))
+				if err != nil {
+					return err
+				}
+				content = contentBuf.Bytes()
+				return nil
+			})
 			if err != nil {
-				return nil, err
-			}
-
-			sizeToRead := info.Size
-			discard := int64(1)
-			if info.Size > fileSizeLimit {
-				sizeToRead = fileSizeLimit
-				discard = info.Size - fileSizeLimit + 1
-			}
-
-			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))
-			if err != nil {
-				return nil, err
-			}
-			content = contentBuf.Bytes()
-			if err := git.DiscardFull(batchReader, discard); err != nil {
 				return nil, err
 			}
 		}

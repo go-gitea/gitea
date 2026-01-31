@@ -4,6 +4,7 @@
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -46,15 +47,16 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	return entries, nil
 }
 
-func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd BufferedReader, sz int64) ([]*TreeEntry, error) {
+func catBatchParseTreeEntries(objectFormat ObjectFormat, ptree *Tree, rd io.Reader, sz int64) ([]*TreeEntry, error) {
 	fnameBuf := make([]byte, 4096)
 	modeBuf := make([]byte, 40)
 	shaBuf := make([]byte, objectFormat.FullLength())
 	entries := make([]*TreeEntry, 0, 10)
+	bufReader := bufio.NewReader(rd)
 
 loop:
 	for sz > 0 {
-		mode, fname, sha, count, err := ParseCatFileTreeLine(objectFormat, rd, modeBuf, fnameBuf, shaBuf)
+		mode, fname, sha, count, err := ParseCatFileTreeLine(objectFormat, bufReader, modeBuf, fnameBuf, shaBuf)
 		if err != nil {
 			if err == io.EOF {
 				break loop
@@ -85,9 +87,5 @@ loop:
 		entry.name = string(fname)
 		entries = append(entries, entry)
 	}
-	if _, err := rd.Discard(1); err != nil {
-		return entries, err
-	}
-
 	return entries, nil
 }
