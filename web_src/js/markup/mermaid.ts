@@ -10,22 +10,57 @@ const iframeCss = `:root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}`;
 
+/** detect whether mermaid sources contain elk layout configuration */
+export function sourcesContainElk(sources: Array<string>) {
+  return sources.some((source) => {
+    // yaml frontmatter
+    if (/^['"\s]*(layout|defaultRenderer)['"\s]*:['"\s]*elk/m.test(source)) return true;
+    // json init
+    if (/"(layout|defaultRenderer)"\s*:\s*"elk/.test(source)) return true;
+    return false;
+  });
+}
+
+async function loadMermaid(sources: Array<string>) {
+  const mermaidPromise = import(/* webpackChunkName: "mermaid" */'mermaid');
+  const elkPromise = sourcesContainElk(sources) ?
+    import(/* webpackChunkName: "mermaid-layout-elk" */'@mermaid-js/layout-elk') : null;
+
+  const results = await Promise.all([mermaidPromise, elkPromise]);
+  return {
+    mermaid: results[0].default,
+    elkLayouts: results[1]?.default,
+  };
+}
+
+let elkLayoutsRegistered = false;
+
 export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void> {
   // .markup code.language-mermaid
-  queryElems(elMarkup, 'code.language-mermaid', async (el) => {
-    const {default: mermaid} = await import(/* webpackChunkName: "mermaid" */'mermaid');
+  const els = Array.from(queryElems(elMarkup, 'code.language-mermaid'));
+  if (!els.length) return;
+  const sources = Array.from(els, (el) => el.textContent ?? '');
+  const {mermaid, elkLayouts} = await loadMermaid(sources);
 
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: isDarkTheme() ? 'dark' : 'neutral',
-      securityLevel: 'strict',
-      suppressErrorRendering: true,
-    });
+  if (elkLayouts && !elkLayoutsRegistered) {
+    mermaid.registerLayoutLoaders(elkLayouts);
+    elkLayoutsRegistered = true;
+  }
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: isDarkTheme() ? 'dark' : 'neutral',
+    securityLevel: 'strict',
+    suppressErrorRendering: true,
+  });
 
+  await Promise.all(els.map(async (el, index) => {
+    const source = sources[index];
     const pre = el.closest('pre');
-    if (!pre || pre.hasAttribute('data-render-done')) return;
 
-    const source = el.textContent;
+    if (!pre || pre.hasAttribute('data-render-done')) {
+      return;
+    }
+
     if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
       displayError(pre, new Error(`Mermaid source of ${source.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
       return;
@@ -83,5 +118,5 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     } catch (err) {
       displayError(pre, err);
     }
-  });
+  }));
 }
