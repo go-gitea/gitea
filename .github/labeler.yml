@@ -84,9 +84,9 @@ docs-update-needed:
 topic/code-linting:
   - changed-files:
       - any-glob-to-any-file:
-          - ".eslintrc.cjs"
           - ".golangci.yml"
           - ".markdownlint.yaml"
           - ".spectral.yaml"
           - ".yamllint.yaml"
+          - "eslint*.config.*"
           - "stylelint.config.*"
