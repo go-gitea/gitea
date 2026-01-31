@@ -23,7 +23,7 @@ import (
 )
 
 func TestIterateLFSMetaObjectsForRepoUpdatesDoNotSkip(t *testing.T) {
-	unittest.PrepareTestEnv(t)
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	ctx := t.Context()
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, "user2", "repo1")
