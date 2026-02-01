@@ -30,6 +30,12 @@ func TestIsVendor(t *testing.T) {
 		{"external/lib/file.go", true},
 		{"externals/lib/file.go", true},
 
+		// Directories with similar names should NOT be detected as vendored
+		{"myvendor/file.go", false},
+		{"vendor_old/file.go", false},
+		{"external_lib/file.go", false},
+		{"node_modules_backup/file.js", false},
+
 		// Git-related files should NOT be detected as vendored
 		{".gitignore", false},
 		{".gitattributes", false},

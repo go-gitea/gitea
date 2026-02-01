@@ -7,19 +7,18 @@ import (
 	"strings"
 )
 
-// vendorPatterns is a list of directory path prefixes/components that indicate
-// the file is vendored third-party code. All patterns are lowercase for
-// case-insensitive matching.
-var vendorPatterns = []string{
-	"vendor/",
-	"vendors/",
-	"node_modules/",
-	"bower_components/",
-	"godeps/",
-	"third_party/",
-	"3rdparty/",
-	"external/",
-	"externals/",
+// vendorDirs is a set of directory names that indicate vendored third-party code.
+// All names are lowercase for case-insensitive matching.
+var vendorDirs = map[string]bool{
+	"vendor":           true,
+	"vendors":          true,
+	"node_modules":     true,
+	"bower_components": true,
+	"godeps":           true,
+	"third_party":      true,
+	"3rdparty":         true,
+	"external":         true,
+	"externals":        true,
 }
 
 // IsVendor returns whether or not path is a vendor path.
@@ -30,8 +29,8 @@ var vendorPatterns = []string{
 // See https://github.com/go-gitea/gitea/issues/22618
 func IsVendor(path string) bool {
 	pathLower := strings.ToLower(path)
-	for _, pattern := range vendorPatterns {
-		if strings.HasPrefix(pathLower, pattern) || strings.Contains(pathLower, "/"+pattern) {
+	for _, component := range strings.Split(pathLower, "/") {
+		if vendorDirs[component] {
 			return true
 		}
 	}
