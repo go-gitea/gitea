@@ -21,7 +21,7 @@ export async function attachTribute(element: HTMLElement) {
         }
         cb(matches);
       },
-      lookup: String,
+      lookup: (item: TributeItem) => item,
       selectTemplate: (item: TributeItem) => {
         if (item === undefined) return null;
         return emojiString(item.original);
