@@ -102,6 +102,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 				continue
 			}
 			comment.Review = re
+			comment.Issue = issue
 		}
 		comments[n] = comment
 		n++
