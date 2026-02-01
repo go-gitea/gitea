@@ -80,15 +80,12 @@ function initGlobalErrorHandler() {
   // we added an event handler for window error at the very beginning of <script> of page head the
   // handler calls `_globalHandlerErrors.push` (array method) to record all errors occur before
   // this init then in this init, we can collect all error events and show them.
-  const errors = window._globalHandlerErrors;
-  if (errors && Array.isArray(errors)) {
-    for (const e of errors) {
-      processWindowErrorEvent(e);
-    }
+  for (const e of window._globalHandlerErrors || []) {
+    processWindowErrorEvent(e);
   }
   // then, change _globalHandlerErrors to an object with push method, to process further error
   // events directly
-  window._globalHandlerErrors = {_inited: true, push: (e: ErrorEvent & PromiseRejectionEvent) => processWindowErrorEvent(e)};
+  window._globalHandlerErrors = {_inited: true, push: (e: ErrorEvent & PromiseRejectionEvent) => processWindowErrorEvent(e)} as any;
 }
 
 initGlobalErrorHandler();

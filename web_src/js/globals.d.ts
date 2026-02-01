@@ -47,12 +47,9 @@ interface Window {
   $: typeof import('@types/jquery'),
   jQuery: typeof import('@types/jquery'),
   htmx: typeof import('htmx.org').default,
-  _globalHandlerErrors: (Array<ErrorEvent & PromiseRejectionEvent> & {
+  _globalHandlerErrors: Array<ErrorEvent & PromiseRejectionEvent> & {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
-  }) | {
-    _inited: boolean;
-    push: (e: ErrorEvent & PromiseRejectionEvent) => void;
   },
   codeEditors: any[], // export editor for customization
   localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
