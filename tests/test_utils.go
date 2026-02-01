@@ -6,7 +6,6 @@ package tests
 import (
 	"database/sql"
 	"fmt"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -18,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
@@ -29,40 +27,7 @@ import (
 func InitTest(requireGitea bool) {
 	testlogger.Init()
 
-	giteaRoot := test.SetupGiteaRoot()
-
-	// TODO: Speedup tests that rely on the event source ticker, confirm whether there is any bug or failure.
-	// setting.UI.Notification.EventSourceUpdateTime = time.Second
-
-	setting.AppWorkPath = giteaRoot
-	setting.CustomPath = filepath.Join(setting.AppWorkPath, "custom")
-	if requireGitea {
-		giteaBinary := "gitea"
-		if setting.IsWindows {
-			giteaBinary += ".exe"
-		}
-		setting.AppPath = filepath.Join(giteaRoot, giteaBinary)
-		if _, err := os.Stat(setting.AppPath); err != nil {
-			testlogger.Fatalf("Could not find gitea binary at %s\n", setting.AppPath)
-		}
-	}
-	giteaConf := os.Getenv("GITEA_CONF")
-	if giteaConf == "" {
-		// By default, use sqlite.ini for testing, then IDE like GoLand can start the test process with debugger.
-		// It's easier for developers to debug bugs step by step with a debugger.
-		// Notice: when doing "ssh push", Gitea executes sub processes, debugger won't work for the sub processes.
-		giteaConf = "tests/sqlite.ini"
-		_ = os.Setenv("GITEA_CONF", giteaConf)
-		_, _ = fmt.Fprintf(os.Stderr, "Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
-		if !setting.EnableSQLite3 {
-			testlogger.Fatalf(`sqlite3 requires: -tags sqlite,sqlite_unlock_notify` + "\n")
-		}
-	}
-	if !filepath.IsAbs(giteaConf) {
-		setting.CustomConf = filepath.Join(giteaRoot, giteaConf)
-	} else {
-		setting.CustomConf = giteaConf
-	}
+	setting.SetupGiteaTestEnv()
 
 	unittest.InitSettingsForTesting()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"

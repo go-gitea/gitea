@@ -35,7 +35,7 @@ const baseOptions: MonacoOpts = {
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
   rulers: [],
-  scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
+  scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6, alwaysConsumeMouseWheel: false},
   scrollBeyondLastLine: false,
   automaticLayout: true,
   wrappingIndent: 'none',
