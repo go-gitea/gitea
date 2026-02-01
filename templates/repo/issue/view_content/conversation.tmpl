@@ -60,7 +60,7 @@ The variables in "ctx.Data" are different in each case, making this template fra
 			<div class="ui comments tw-mb-0">
 				{{range .comments}}
 					{{$createdSubStr:= DateUtils.TimeSince .CreatedUnix}}
-					<div class="comment code-comment" id="{{.HashTag}}">
+					<div class="comment code-comment" id="{{.HashTag}}" data-comment-id="{{.ID}}" data-apply-suggestion-url="{{$.RepoLink}}/comments/{{.ID}}/suggestions/apply" data-apply-suggestion-text="{{ctx.Locale.Tr "repo.diff.comment.apply_suggestion"}}" data-can-apply-suggestion="{{if $.CanWriteToHeadRepo}}true{{else}}false{{end}}">
 						<div class="content comment-container">
 							<div class="comment-header">
 								<div class="comment-header-left">
