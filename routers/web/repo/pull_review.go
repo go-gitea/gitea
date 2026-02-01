@@ -160,6 +160,10 @@ func ApplySuggestion(ctx *context.Context) {
 		ctx.ServerError("comment.LoadIssue", err)
 		return
 	}
+	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.NotFound(errors.New("comment's repoID is incorrect"))
+		return
+	}
 	if !comment.Issue.IsPull {
 		ctx.JSON(http.StatusBadRequest, map[string]any{"ok": false, "message": ctx.Locale.Tr("repo.diff.comment.apply_suggestion_failed")})
 		return

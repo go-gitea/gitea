@@ -1,7 +1,8 @@
 {{range .comments}}
 
 {{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
-<div class="comment" id="{{.HashTag}}" data-comment-id="{{.ID}}" data-apply-suggestion-url="{{$.root.RepoLink}}/comments/{{.ID}}/suggestions/apply" data-apply-suggestion-text="{{ctx.Locale.Tr "repo.diff.comment.apply_suggestion"}}" data-can-apply-suggestion="{{if $.root.CanWriteToHeadRepo}}true{{else}}false{{end}}">
+{{$canApplySuggestion := and $.root.CanWriteToHeadRepo (ge .Line 0)}}
+<div class="comment" id="{{.HashTag}}" data-comment-id="{{.ID}}" data-apply-suggestion-url="{{$.root.RepoLink}}/comments/{{.ID}}/suggestions/apply" data-apply-suggestion-text="{{ctx.Locale.Tr "repo.diff.comment.apply_suggestion"}}" data-can-apply-suggestion="{{if $canApplySuggestion}}true{{else}}false{{end}}">
 	<div class="tw-mt-2 tw-mr-4">
 		{{if .OriginalAuthor}}
 			<span class="avatar">{{ctx.AvatarUtils.Avatar nil}}</span>

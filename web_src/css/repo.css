@@ -996,7 +996,7 @@ td .commit-summary {
   padding: 0 5px !important;
 }
 
-.repository .diff-file-box .code-diff .lines-num span {
+.repository.pull.diff .diff-file-box .code-diff .lines-num span {
   cursor: pointer;
 }
 

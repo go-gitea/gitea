@@ -381,7 +381,7 @@ func TestAPIPullReviewCommentResolveEndpoints(t *testing.T) {
 	latestCommitID, err := gitRepo.GetRefCommitID(pullIssue.PullRequest.GetGitHeadRefName())
 	require.NoError(t, err)
 
-	codeComment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, pullIssue, 1, "resolve comment", "README.md", false, 0, latestCommitID, nil)
+	codeComment, err := pull_service.CreateCodeComment(ctx, doer, gitRepo, pullIssue, 1, 1, 1, "resolve comment", "README.md", false, 0, latestCommitID, nil)
 	require.NoError(t, err)
 	require.NotNil(t, codeComment)
 

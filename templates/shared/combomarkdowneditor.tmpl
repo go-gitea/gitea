@@ -60,7 +60,9 @@
 			<div class="markdown-toolbar-group">
 				<md-mention class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.mention.tooltip"}}">{{svg "octicon-mention"}}</md-mention>
 				<md-ref class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.ref.tooltip"}}">{{svg "octicon-cross-reference"}}</md-ref>
+				{{if .ShowSuggestionButton}}
 				<button class="markdown-toolbar-button markdown-button-suggestion" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.suggestion.tooltip"}}" data-suggestion-empty="{{ctx.Locale.Tr "editor.buttons.suggestion.empty"}}" data-suggestion-proposed-only="{{ctx.Locale.Tr "editor.buttons.suggestion.proposed_only"}}">{{svg "octicon-light-bulb"}}</button>
+				{{end}}
 			</div>
 			{{end}}
 			<div class="markdown-toolbar-group">
