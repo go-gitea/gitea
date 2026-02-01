@@ -11,6 +11,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	repo_perm_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
@@ -174,7 +175,6 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 					ctx.Package.AccessMode = grantedMode
 				}
 			}
-		}
 
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
