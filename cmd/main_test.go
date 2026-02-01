@@ -157,6 +157,7 @@ func TestCliCmd(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.cmd, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.InstallLock, false)()
 			app := newTestApp(cli.Command{
 				Action: func(ctx context.Context, cmd *cli.Command) error {
 					_, _ = fmt.Fprint(cmd.Root().Writer, makePathOutput(setting.AppWorkPath, setting.CustomPath, setting.CustomConf))
@@ -170,7 +171,10 @@ func TestCliCmd(t *testing.T) {
 			r, err := runTestApp(app, args...)
 			assert.NoError(t, err, c.cmd)
 			assert.NotEmpty(t, c.exp, c.cmd)
-			assert.Contains(t, r.Stdout, c.exp, c.cmd)
+			if !assert.Contains(t, r.Stdout, c.exp, c.cmd) {
+				t.Log("Full output:\n" + r.Stdout)
+				t.Log("Expected:\n" + c.exp)
+			}
 		})
 	}
 }

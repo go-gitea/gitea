@@ -10,7 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path/filepath"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models/renderhelper"
@@ -490,9 +490,9 @@ func Wiki(ctx *context.Context) {
 	}
 
 	wikiPath := entry.Name()
-	if markup.DetectMarkupTypeByFileName(wikiPath) != markdown.MarkupName {
-		ext := strings.ToUpper(filepath.Ext(wikiPath))
-		ctx.Data["FormatWarning"] = ext + " rendering is not supported at the moment. Rendered as Markdown."
+	detectedRender := markup.DetectRendererTypeByFilename(wikiPath)
+	if detectedRender == nil || detectedRender.Name() != markdown.MarkupName {
+		ctx.Data["FormatWarning"] = "File extension " + path.Ext(wikiPath) + " is not supported at the moment. Rendered as Markdown."
 	}
 	// Get last change information.
 	lastCommit, err := wikiGitRepo.GetCommitByPath(wikiPath)

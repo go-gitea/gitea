@@ -34,7 +34,13 @@ func (p *RenderedIconPool) RenderToHTML() template.HTML {
 }
 
 func RenderEntryIconHTML(renderedIconPool *RenderedIconPool, entry *EntryInfo) template.HTML {
-	if setting.UI.FileIconTheme == "material" {
+	// Use folder theme for directories and symlinks to directories
+	theme := setting.UI.FileIconTheme
+	if entry.EntryMode.IsDir() || (entry.EntryMode.IsLink() && entry.SymlinkToMode.IsDir()) {
+		theme = setting.UI.FolderIconTheme
+	}
+
+	if theme == "material" {
 		return DefaultMaterialIconProvider().EntryIconHTML(renderedIconPool, entry)
 	}
 	return BasicEntryIconHTML(entry)

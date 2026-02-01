@@ -18,7 +18,7 @@ import (
 func TestRenderHelperCodePreview(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.HTMLRenderer()})
+	ctx, _ := contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 	htm, err := renderRepoFileCodePreview(ctx, markup.RenderCodePreviewOptions{
 		FullURL:   "http://full",
 		OwnerName: "user2",
@@ -46,7 +46,7 @@ func TestRenderHelperCodePreview(t *testing.T) {
 </div>
 `, string(htm))
 
-	ctx, _ = contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.HTMLRenderer()})
+	ctx, _ = contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 	htm, err = renderRepoFileCodePreview(ctx, markup.RenderCodePreviewOptions{
 		FullURL:   "http://full",
 		OwnerName: "user2",
@@ -70,7 +70,7 @@ func TestRenderHelperCodePreview(t *testing.T) {
 </div>
 `, string(htm))
 
-	ctx, _ = contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.HTMLRenderer()})
+	ctx, _ = contexttest.MockContext(t, "/", contexttest.MockContextOption{Render: templates.PageRenderer()})
 	_, err = renderRepoFileCodePreview(ctx, markup.RenderCodePreviewOptions{
 		FullURL:   "http://full",
 		OwnerName: "user15",

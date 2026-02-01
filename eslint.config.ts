@@ -18,7 +18,18 @@ import {defineConfig, globalIgnores} from 'eslint/config';
 
 const jsExts = ['js', 'mjs', 'cjs'] as const;
 const tsExts = ['ts', 'mts', 'cts'] as const;
-const restrictedSyntax = ['WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'];
+
+const restrictedGlobals = [
+  {name: 'localStorage', message: 'Use `modules/user-settings.ts` instead.'},
+  {name: 'fetch', message: 'Use `modules/fetch.ts` instead.'},
+];
+
+const restrictedProperties = [
+  {object: 'window', property: 'localStorage', message: 'Use `modules/user-settings.ts` instead.'},
+  {object: 'globalThis', property: 'localStorage', message: 'Use `modules/user-settings.ts` instead.'},
+  {object: 'window', property: 'fetch', message: 'Use `modules/fetch.ts` instead.'},
+  {object: 'globalThis', property: 'fetch', message: 'Use `modules/fetch.ts` instead.'},
+];
 
 export default defineConfig([
   globalIgnores([
@@ -65,7 +76,7 @@ export default defineConfig([
       'import-x/resolver': {'typescript': true},
     },
     rules: {
-      '@eslint-community/eslint-comments/disable-enable-pair': [2],
+      '@eslint-community/eslint-comments/disable-enable-pair': [0],
       '@eslint-community/eslint-comments/no-aggregating-enable': [2],
       '@eslint-community/eslint-comments/no-duplicate-disable': [2],
       '@eslint-community/eslint-comments/no-restricted-disable': [0],
@@ -555,9 +566,10 @@ export default defineConfig([
       'no-redeclare': [0], // must be disabled for typescript overloads
       'no-regex-spaces': [2],
       'no-restricted-exports': [0],
-      'no-restricted-globals': [2, 'addEventListener', 'blur', 'close', 'closed', 'confirm', 'defaultStatus', 'defaultstatus', 'error', 'event', 'external', 'find', 'focus', 'frameElement', 'frames', 'history', 'innerHeight', 'innerWidth', 'isFinite', 'isNaN', 'length', 'locationbar', 'menubar', 'moveBy', 'moveTo', 'name', 'onblur', 'onerror', 'onfocus', 'onload', 'onresize', 'onunload', 'open', 'opener', 'opera', 'outerHeight', 'outerWidth', 'pageXOffset', 'pageYOffset', 'parent', 'print', 'removeEventListener', 'resizeBy', 'resizeTo', 'screen', 'screenLeft', 'screenTop', 'screenX', 'screenY', 'scroll', 'scrollbars', 'scrollBy', 'scrollTo', 'scrollX', 'scrollY', 'status', 'statusbar', 'stop', 'toolbar', 'top'],
+      'no-restricted-globals': [2, ...restrictedGlobals],
+      'no-restricted-properties': [2, ...restrictedProperties],
       'no-restricted-imports': [0],
-      'no-restricted-syntax': [2, ...restrictedSyntax, {selector: 'CallExpression[callee.name="fetch"]', message: 'use modules/fetch.ts instead'}],
+      'no-restricted-syntax': [2, 'WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'],
       'no-return-assign': [0],
       'no-script-url': [2],
       'no-self-assign': [2, {props: true}],
@@ -924,12 +936,6 @@ export default defineConfig([
     },
   },
   {
-    files: ['web_src/js/modules/fetch.ts', 'web_src/js/standalone/**/*'],
-    rules: {
-      'no-restricted-syntax': [2, ...restrictedSyntax],
-    },
-  },
-  {
     files: ['**/*.test.ts', 'web_src/js/test/setup.ts'],
     plugins: {vitest},
     languageOptions: {globals: globals.vitest},
@@ -995,10 +1001,10 @@ export default defineConfig([
   },
   {
     files: ['*', 'tools/**/*'],
-    languageOptions: {globals: globals.node},
+    languageOptions: {globals: globals.nodeBuiltin},
   },
   {
-    files: ['web_src/**/*', 'docs/**/*'],
-    languageOptions: {globals: globals.browser},
+    files: ['web_src/**/*'],
+    languageOptions: {globals: {...globals.browser, ...globals.webpack}},
   },
 ]);

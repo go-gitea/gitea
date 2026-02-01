@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -34,17 +35,18 @@ func MailPreviewRender(ctx *context.Context) {
 
 func prepareMailPreviewRender(ctx *context.Context, tmplName string) {
 	tmplSubject := mailer.LoadedTemplates().SubjectTemplates.Lookup(tmplName)
-	if tmplSubject == nil {
-		ctx.Data["RenderMailSubject"] = "default subject"
-	} else {
+	// FIXME: MAIL-TEMPLATE-SUBJECT: only "issue" related messages support using subject from templates
+	subject := "(default subject)"
+	if tmplSubject != nil {
 		var buf strings.Builder
 		err := tmplSubject.Execute(&buf, nil)
 		if err != nil {
-			ctx.Data["RenderMailSubject"] = err.Error()
+			subject = "ERROR: " + err.Error()
 		} else {
-			ctx.Data["RenderMailSubject"] = buf.String()
+			subject = util.IfZero(buf.String(), subject)
 		}
 	}
+	ctx.Data["RenderMailSubject"] = subject
 	ctx.Data["RenderMailTemplateName"] = tmplName
 }
 

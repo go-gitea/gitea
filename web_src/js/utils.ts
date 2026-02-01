@@ -43,6 +43,15 @@ export function stripTags(text: string): string {
   return text;
 }
 
+export function urlQueryEscape(s: string) {
+  // See "TestQueryEscape" in backend
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#encoding_for_rfc3986
+  return encodeURIComponent(s).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
 export function parseIssueHref(href: string): IssuePathInfo {
   // FIXME: it should use pathname and trim the appSubUrl ahead
   const path = (href || '').replace(/[#?].*$/, '');

@@ -89,6 +89,24 @@ func issueAddTime(ctx context.Context, issue *issues_model.Issue, doer *user_mod
 	return err
 }
 
+// isSelfReference checks if a commit is the merge commit of the PR it references.
+// This prevents creating self-referencing timeline entries when a PR merge commit
+// contains a reference to its own PR number in the commit message.
+func isSelfReference(ctx context.Context, issue *issues_model.Issue, commitSHA string) bool {
+	if !issue.IsPull {
+		return false
+	}
+
+	if err := issue.LoadPullRequest(ctx); err != nil {
+		if !issues_model.IsErrPullRequestNotExist(err) {
+			log.Error("LoadPullRequest: %v", err)
+		}
+		return false
+	}
+
+	return issue.PullRequest.MergedCommitID == commitSHA
+}
+
 // getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
 // if the provided ref references a non-existent issue.
 func getIssueFromRef(ctx context.Context, repo *repo_model.Repository, index int64) (*issues_model.Issue, error) {
@@ -155,6 +173,11 @@ func UpdateIssuesCommit(ctx context.Context, doer *user_model.User, repo *repo_m
 
 			// Don't proceed if the user can't comment
 			if !cancomment {
+				continue
+			}
+
+			// Skip self-references: if this commit is the merge commit of the PR it references
+			if isSelfReference(ctx, refIssue, c.Sha1) {
 				continue
 			}
 
