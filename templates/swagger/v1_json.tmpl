@@ -13707,6 +13707,106 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/comments/{id}/resolve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Resolve a pull request review comment",
+        "operationId": "repoResolvePullReviewComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/comments/{id}/unresolve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Unresolve a pull request review comment",
+        "operationId": "repoUnresolvePullReviewComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/pinned": {
       "get": {
         "produces": [
@@ -23536,7 +23636,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CreatePullReviewOptions": {
-      "description": "CreatePullReviewOptions are options to create a pull review",
+      "description": "CreatePullReviewOptions are options to create a pull request review",
       "type": "object",
       "properties": {
         "body": {
@@ -24133,7 +24233,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "DismissPullReviewOptions": {
-      "description": "DismissPullReviewOptions are options to dismiss a pull review",
+      "description": "DismissPullReviewOptions are options to dismiss a pull request review",
       "type": "object",
       "properties": {
         "message": {
@@ -27645,7 +27745,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "PullReviewRequestOptions": {
-      "description": "PullReviewRequestOptions are options to add or remove pull review requests",
+      "description": "PullReviewRequestOptions are options to add or remove pull request review requests",
       "type": "object",
       "properties": {
         "reviewers": {
@@ -28389,7 +28489,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "SubmitPullReviewOptions": {
-      "description": "SubmitPullReviewOptions are options to submit a pending pull review",
+      "description": "SubmitPullReviewOptions are options to submit a pending pull request review",
       "type": "object",
       "properties": {
         "body": {
