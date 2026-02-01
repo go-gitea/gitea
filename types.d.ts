@@ -18,8 +18,6 @@ declare module 'eslint-plugin-github' {
   export = plugin;
 }
 
-// Module stubs for web_src/js
-
 declare module '*.svg' {
   const value: string;
   export default value;
