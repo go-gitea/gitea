@@ -228,7 +228,6 @@ export default defineComponent({
     // get the active logs container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
     getActiveLogsContainer(stepIndex: number): HTMLElement {
       const el = this.getJobStepLogsContainer(stepIndex);
-      // @ts-expect-error - _stepLogsActiveContainer is a custom property
       return el._stepLogsActiveContainer ?? el;
     },
     // begin a log group

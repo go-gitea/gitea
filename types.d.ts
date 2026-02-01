@@ -17,3 +17,123 @@ declare module 'eslint-plugin-github' {
   const plugin: Eslint.Plugin;
   export = plugin;
 }
+
+// Module stubs for web_src/js
+
+declare module '*.svg' {
+  const value: string;
+  export default value;
+}
+
+declare module '*.css' {
+  const value: string;
+  export default value;
+}
+
+declare module '*.vue' {
+  import type {DefineComponent} from 'vue';
+  const component: DefineComponent<unknown, unknown, any>;
+  export default component;
+  // Here we declare all exports from vue files so `tsc` or `tsgo` can work for
+  // non-vue files. To lint .vue files, `vue-tsc` must be used.
+  export function initDashboardRepoList(): void;
+  export function initRepositoryActionView(): void;
+}
+
+declare module 'htmx.org/dist/htmx.esm.js' {
+  const value = await import('htmx.org');
+  export default value;
+}
+
+declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
+  const value = await import('swagger-ui-dist');
+  export default value.SwaggerUIBundle;
+}
+
+declare module 'sortablejs' {
+  import Sortable from '@types/sortablejs';
+  import type {Options, SortableEvent} from '@types/sortablejs';
+  export type SortableOptions = Options;
+  export type {SortableEvent};
+  export {Sortable};
+  export default Sortable;
+}
+
+declare module 'asciinema-player' {
+  export function create(src: string, element: HTMLElement, options?: Record<string, any>): void;
+}
+
+declare module '@citation-js/core' {
+  export class Cite {
+    constructor(data: string);
+    format(format: string, options?: Record<string, any>): string;
+  }
+  export const plugins: {
+    config: {
+      get(name: string): any;
+    };
+  };
+}
+
+declare module '@citation-js/plugin-software-formats' {}
+declare module '@citation-js/plugin-bibtex' {}
+declare module '@citation-js/plugin-csl' {}
+
+declare module 'vue-bar-graph' {
+  import type {DefineComponent} from 'vue';
+
+  interface BarGraphPoint {
+    value: number;
+    label: string;
+  }
+
+  interface BarInfo {
+    index: number;
+    midPoint: number;
+    yLabel: number;
+  }
+
+  export const VueBarGraph: DefineComponent<{
+    points?: Array<BarGraphPoint>;
+    barColor?: string;
+    textColor?: string;
+    textAltColor?: string;
+    height?: number;
+    labelHeight?: number;
+  }, object, object, object, object, object, object, {
+    label?: (opt: {bar: BarInfo}) => unknown;
+    title?: (opt: {bar: BarInfo}) => unknown;
+  }>;
+}
+
+declare module 'tributejs' {
+  type TributeCollection<T = unknown> = {
+    trigger?: string;
+    requireLeadingSpace?: boolean;
+    values?: ((text: string, cb: (results: Array<T>) => void) => void) | Array<T>;
+    lookup?: string | ((item: T) => string);
+    selectTemplate?: (item: {original: T}) => string | null;
+    menuItemTemplate?: (item: {original: T}) => string;
+  };
+
+  export default class Tribute<T = unknown> {
+    constructor(options: {
+      collection?: Array<TributeCollection<T>>;
+      noMatchTemplate?: string;
+    });
+    attach(element: HTMLElement): void;
+    detach(element: HTMLElement): void;
+  }
+}
+
+declare module '@mcaptcha/vanilla-glue' {
+  export let INPUT_NAME: string;
+  export default class Widget {
+    constructor(options: {
+      siteKey: {
+        instanceUrl: URL;
+        key: string;
+      };
+    });
+  }
+}

@@ -2,7 +2,7 @@ import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {POST} from '../modules/fetch.ts';
 import {createSortable} from '../modules/sortable.ts';
-import type {SortableEvent, SortableOptions} from 'sortablejs';
+import type {SortableOptions, SortableEvent} from 'sortablejs';
 import type Sortable from 'sortablejs';
 
 vi.mock('../modules/fetch.ts', () => ({
@@ -60,8 +60,7 @@ describe('Repository Branch Settings', () => {
       if (options?.onEnd) {
         options.onEnd(new Event('SortableEvent') as SortableEvent);
       }
-      // @ts-expect-error: mock is incomplete
-      return {destroy: vi.fn()} as Sortable;
+      return {destroy: vi.fn()} as unknown as Sortable;
     });
 
     initRepoSettingsBranchesDrag();

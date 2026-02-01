@@ -20,7 +20,7 @@ export async function attachTribute(element: HTMLElement) {
         }
         cb(matches);
       },
-      lookup: (item: TributeItem) => item,
+      lookup: String,
       selectTemplate: (item: TributeItem) => {
         if (item === undefined) return null;
         return emojiString(item.original);
@@ -44,7 +44,6 @@ export async function attachTribute(element: HTMLElement) {
     },
   ];
 
-  // @ts-expect-error TS2351: This expression is not constructable (strange, why)
   const tribute = new Tribute({collection: collections, noMatchTemplate: ''});
   tribute.attach(element);
   return tribute;

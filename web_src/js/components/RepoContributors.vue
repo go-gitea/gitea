@@ -264,7 +264,6 @@ export default defineComponent({
             position: 'top',
             align: 'center',
           },
-          // @ts-expect-error: bug in chart.js types
           customEventListener: {
             chartType: type,
             instance: this,
@@ -324,6 +323,13 @@ export default defineComponent({
             },
           },
         },
+      } as ChartOptions<'line'> & {
+        plugins?: {
+          customEventListener?: {
+            chartType: string;
+            instance: unknown;
+          };
+        };
       };
     },
   },

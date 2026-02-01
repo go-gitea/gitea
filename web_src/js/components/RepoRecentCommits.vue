@@ -83,12 +83,11 @@ function toGraphData(data: DayData[]): ChartData<'bar'> {
   return {
     datasets: [
       {
-        // @ts-expect-error -- bar chart expects one-dimensional data, but apparently x/y still works
-        data: data.map((i) => ({x: i.week, y: i.commits})),
+        // Bar chart with time scale accepts x/y format despite TypeScript types
+        data: data.map((i) => ({x: i.week, y: i.commits})) as unknown as Array<number>,
         label: 'Commits',
         backgroundColor: chartJsColors['commits'],
         borderWidth: 0,
-        tension: 0.3,
       },
     ],
   };
