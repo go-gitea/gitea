@@ -13,6 +13,8 @@ import {localUserSettings} from '../modules/user-settings.ts';
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
 
+type StepContainerElement = HTMLElement & {_stepLogsActiveContainer?: HTMLElement}
+
 type LogLine = {
   index: number;
   timestamp: number;
@@ -221,19 +223,18 @@ export default defineComponent({
     },
 
     // get the job step logs container ('.job-step-logs')
-    getJobStepLogsContainer(stepIndex: number): HTMLElement {
+    getJobStepLogsContainer(stepIndex: number): StepContainerElement {
       return (this.$refs.logs as any)[stepIndex];
     },
 
     // get the active logs container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
-    getActiveLogsContainer(stepIndex: number): HTMLElement {
+    getActiveLogsContainer(stepIndex: number): StepContainerElement {
       const el = this.getJobStepLogsContainer(stepIndex);
-      // @ts-expect-error - _stepLogsActiveContainer is a custom property
       return el._stepLogsActiveContainer ?? el;
     },
     // begin a log group
     beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
-      const el = (this.$refs.logs as any)[stepIndex];
+      const el = (this.$refs.logs as any)[stepIndex] as StepContainerElement;
       const elJobLogGroupSummary = createElementFromAttrs('summary', {class: 'job-log-group-summary'},
         this.createLogLine(stepIndex, startTime, {
           index: line.index,
@@ -395,7 +396,7 @@ export default defineComponent({
         }
 
         // auto-scroll to the last log line of the last step
-        let autoScrollJobStepElement: HTMLElement | undefined;
+        let autoScrollJobStepElement: StepContainerElement | undefined;
         for (let stepIndex = 0; stepIndex < this.currentJob.steps.length; stepIndex++) {
           if (!autoScrollStepIndexes.get(stepIndex)) continue;
           autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
