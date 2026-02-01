@@ -63,7 +63,7 @@ export default defineConfig([
       '@stylistic': stylistic,
       '@typescript-eslint': typescriptPlugin.plugin,
       'array-func': arrayFunc,
-      'import-x': importPlugin as unknown as ESLint.Plugin,
+      'import-x': importPlugin as unknown as ESLint.Plugin, // https://github.com/un-ts/eslint-plugin-import-x/issues/203
       regexp,
       sonarjs,
       unicorn,
