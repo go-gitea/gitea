@@ -12,7 +12,7 @@ import (
 
 // vendorOverrideRe matches paths that go-enry marks as vendored but shouldn't
 // be shown as "Vendored" in Gitea's diff view.
-var vendorOverrideRe = regexp.MustCompile(`^\.git(hub|ea)/`)
+var vendorOverrideRe = regexp.MustCompile(`^\.(git(hub|ea)|forgejo)/`)
 
 // IsVendor returns whether or not path is a vendor path.
 // It uses go-enry's IsVendor function but overrides its detection for certain
@@ -32,7 +32,7 @@ func IsVendor(path string) bool {
 		return false
 	}
 
-	// Files in .github/ or .gitea/ directories shouldn't be marked as vendored
+	// Files in .github/, .gitea/, or .forgejo/ directories shouldn't be marked as vendored
 	if vendorOverrideRe.MatchString(path) {
 		return false
 	}

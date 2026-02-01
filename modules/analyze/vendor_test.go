@@ -42,11 +42,13 @@ func TestIsVendor(t *testing.T) {
 		{".gitmodules", false},
 		{"src/.gitignore", false},
 
-		// Override: .github/ and .gitea/ directories should NOT be detected as vendored
+		// Override: .github/, .gitea/, and .forgejo/ directories should NOT be detected as vendored
 		{".github/workflows/ci.yml", false},
 		{".github/CODEOWNERS", false},
 		{".gitea/workflows/ci.yml", false},
 		{".gitea/CODEOWNERS", false},
+		{".forgejo/workflows/ci.yml", false},
+		{".forgejo/CODEOWNERS", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
