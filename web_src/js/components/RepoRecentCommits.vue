@@ -8,6 +8,7 @@ import {
   TimeScale,
   type ChartOptions,
   type ChartData,
+  type ChartDataset,
 } from 'chart.js';
 import {GET} from '../modules/fetch.ts';
 import {Bar} from 'vue-chartjs';
@@ -83,12 +84,12 @@ function toGraphData(data: DayData[]): ChartData<'bar'> {
   return {
     datasets: [
       {
-        // Bar chart with time scale accepts x/y format despite TypeScript types
-        data: data.map((i) => ({x: i.week, y: i.commits})) as unknown as Array<number>,
+        data: data.map((i) => ({x: i.week, y: i.commits})),
         label: 'Commits',
         backgroundColor: chartJsColors['commits'],
         borderWidth: 0,
-      },
+        tension: 0.3,
+      } as unknown as ChartDataset<'bar'>,
     ],
   };
 }

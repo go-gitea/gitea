@@ -35,10 +35,9 @@ function initRepoDiffConversationForm() {
     if (!validateTextareaNonEmpty(textArea)) return;
     if (form.classList.contains('is-loading')) return;
 
-    let currentForm: HTMLFormElement | null = form;
     try {
-      currentForm.classList.add('is-loading');
-      const formData = new FormData(currentForm);
+      form.classList.add('is-loading');
+      const formData = new FormData(form);
 
       // if the form is submitted by a button, append the button's name and value to the form data
       const submitter = submitEventSubmitter(e);
@@ -49,16 +48,14 @@ function initRepoDiffConversationForm() {
 
       // on the diff page, the form is inside a "tr" and need to get the line-type ahead
       // but on the conversation page, there is no parent "tr"
-      const trLineType = currentForm.closest('tr')?.getAttribute('data-line-type');
-      const response = await POST(currentForm.getAttribute('action')!, {data: formData});
+      const trLineType = form.closest('tr')?.getAttribute('data-line-type');
+      const response = await POST(form.getAttribute('action')!, {data: formData});
       const newConversationHolder = createElementFromHTML(await response.text());
       const path = newConversationHolder.getAttribute('data-path');
       const side = newConversationHolder.getAttribute('data-side');
       const idx = newConversationHolder.getAttribute('data-idx');
 
-      currentForm.closest('.conversation-holder')!.replaceWith(newConversationHolder);
-      // prevent further usage of the form because it should have been replaced
-      currentForm = null;
+      form.closest('.conversation-holder')!.replaceWith(newConversationHolder);
 
       if (trLineType) {
         // if there is a line-type for the "tr", it means the form is on the diff page
@@ -88,7 +85,7 @@ function initRepoDiffConversationForm() {
       console.error('Error:', error);
       showErrorToast(`Submit form failed: ${error}`);
     } finally {
-      currentForm?.classList.remove('is-loading');
+      form?.classList.remove('is-loading');
     }
   });
 

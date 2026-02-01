@@ -2,7 +2,7 @@ import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {POST} from '../modules/fetch.ts';
 import {createSortable} from '../modules/sortable.ts';
-import type {SortableOptions, SortableEvent} from 'sortablejs';
+import type {SortableEvent, SortableOptions} from 'sortablejs';
 import type Sortable from 'sortablejs';
 
 vi.mock('../modules/fetch.ts', () => ({

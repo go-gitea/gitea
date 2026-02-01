@@ -60,7 +60,11 @@ declare module 'sortablejs' {
 }
 
 declare module 'asciinema-player' {
-  export function create(src: string, element: HTMLElement, options?: Record<string, any>): void;
+  interface AsciinemaPlayer {
+    create(src: string, element: HTMLElement, options?: Record<string, unknown>): void;
+  }
+  const exports: AsciinemaPlayer;
+  export = exports;
 }
 
 declare module '@citation-js/core' {
@@ -107,7 +111,7 @@ declare module 'vue-bar-graph' {
 }
 
 declare module 'tributejs' {
-  type TributeCollection<T = unknown> = {
+  export type TributeCollection<T = unknown> = {
     trigger?: string;
     requireLeadingSpace?: boolean;
     values?: ((text: string, cb: (results: Array<T>) => void) => void) | Array<T>;
