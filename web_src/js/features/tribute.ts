@@ -1,5 +1,6 @@
 import {emojiKeys, emojiHTML, emojiString} from './emoji.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import type {TributeCollection} from 'tributejs';
 
 type TributeItem = Record<string, any>;
 
@@ -20,7 +21,8 @@ export async function attachTribute(element: HTMLElement) {
         }
         cb(matches);
       },
-      lookup: (item: TributeItem) => item,
+      // eslint-disable-next-line unicorn/prefer-native-coercion-functions -- explicit function form requested
+      lookup: (item: TributeItem) => String(item),
       selectTemplate: (item: TributeItem) => {
         if (item === undefined) return null;
         return emojiString(item.original);
@@ -44,8 +46,7 @@ export async function attachTribute(element: HTMLElement) {
     },
   ];
 
-  // @ts-expect-error TS2351: This expression is not constructable (strange, why)
-  const tribute = new Tribute({collection: collections, noMatchTemplate: ''});
+  const tribute = new Tribute({collection: collections as unknown as TributeCollection<TributeItem>[], noMatchTemplate: ''});
   tribute.attach(element);
   return tribute;
 }

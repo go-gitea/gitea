@@ -2,10 +2,9 @@ import type {SortableOptions, SortableEvent} from 'sortablejs';
 import type SortableType from 'sortablejs';
 
 export async function createSortable(el: Element, opts: {handle?: string} & SortableOptions = {}): Promise<SortableType> {
-  // @ts-expect-error: wrong type derived by typescript
   const {Sortable} = await import(/* webpackChunkName: "sortablejs" */'sortablejs');
 
-  return new Sortable(el, {
+  return new Sortable(el as HTMLElement, {
     animation: 150,
     ghostClass: 'card-ghost',
     onChoose: (e: SortableEvent) => {

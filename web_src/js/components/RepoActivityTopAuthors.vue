@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-// @ts-expect-error - module exports no types
 import {VueBarGraph} from 'vue-bar-graph';
 import {computed, onMounted, shallowRef, useTemplateRef, type ShallowRef} from 'vue';
 

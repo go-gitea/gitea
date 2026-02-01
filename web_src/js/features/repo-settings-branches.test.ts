@@ -60,8 +60,7 @@ describe('Repository Branch Settings', () => {
       if (options?.onEnd) {
         options.onEnd(new Event('SortableEvent') as SortableEvent);
       }
-      // @ts-expect-error: mock is incomplete
-      return {destroy: vi.fn()} as Sortable;
+      return {destroy: vi.fn()} as unknown as Sortable;
     });
 
     initRepoSettingsBranchesDrag();

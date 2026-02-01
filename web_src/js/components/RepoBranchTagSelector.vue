@@ -156,8 +156,7 @@ export default defineComponent({
     },
     getActiveItem() {
       const el = this.$refs[`listItem${this.activeItemIndex}`];
-      // @ts-expect-error - el is unknown type
-      return (el && el.length) ? el[0] : null;
+      return (el && (el as unknown as any[]).length) ? (el as unknown as any[])[0] : null;
     },
     keydown(e: KeyboardEvent) {
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
