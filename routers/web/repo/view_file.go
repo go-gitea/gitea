@@ -21,9 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -60,14 +58,19 @@ func prepareFileViewLfsAttrs(ctx *context.Context) (*attribute.Attributes, bool)
 	return attrs, true
 }
 
-func handleFileViewRenderMarkup(ctx *context.Context, filename string, sniffedType typesniffer.SniffedType, prefetchBuf []byte, utf8Reader io.Reader) bool {
-	markupType := markup.DetectMarkupTypeByFileName(filename)
-	if markupType == "" {
-		markupType = markup.DetectRendererType(filename, sniffedType, prefetchBuf)
+func handleFileViewRenderMarkup(ctx *context.Context, prefetchBuf []byte, utf8Reader io.Reader) bool {
+	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
+		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
+		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
+	}).WithRelativePath(ctx.Repo.TreePath)
+
+	renderer := rctx.DetectMarkupRenderer(prefetchBuf)
+	if renderer == nil {
+		return false // not supported markup
 	}
-	if markupType == "" {
-		return false
-	}
+	metas := ctx.Repo.Repository.ComposeRepoFileMetas(ctx)
+	metas["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
+	rctx.WithMetas(metas)
 
 	ctx.Data["HasSourceRenderedToggle"] = true
 
@@ -75,19 +78,10 @@ func handleFileViewRenderMarkup(ctx *context.Context, filename string, sniffedTy
 		return false
 	}
 
-	ctx.Data["MarkupType"] = markupType
-	metas := ctx.Repo.Repository.ComposeRepoFileMetas(ctx)
-	metas["RefTypeNameSubURL"] = ctx.Repo.RefTypeNameSubURL()
-	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
-		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
-		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
-	}).
-		WithMarkupType(markupType).
-		WithRelativePath(ctx.Repo.TreePath).
-		WithMetas(metas)
+	ctx.Data["MarkupType"] = rctx.RenderOptions.MarkupType
 
 	var err error
-	ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, rctx, utf8Reader)
+	ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRenderToHTML(ctx, rctx, renderer, utf8Reader)
 	if err != nil {
 		ctx.ServerError("Render", err)
 		return true
@@ -95,7 +89,8 @@ func handleFileViewRenderMarkup(ctx *context.Context, filename string, sniffedTy
 	return true
 }
 
-func handleFileViewRenderSource(ctx *context.Context, filename string, attrs *attribute.Attributes, fInfo *fileInfo, utf8Reader io.Reader) bool {
+func handleFileViewRenderSource(ctx *context.Context, attrs *attribute.Attributes, fInfo *fileInfo, utf8Reader io.Reader) bool {
+	filename := ctx.Repo.TreePath
 	if ctx.FormString("display") == "rendered" || !fInfo.st.IsRepresentableAsText() {
 		return false
 	}
@@ -246,10 +241,10 @@ func prepareFileView(ctx *context.Context, entry *git.TreeEntry) {
 	switch {
 	case fInfo.blobOrLfsSize >= setting.UI.MaxDisplayFileSize:
 		ctx.Data["IsFileTooLarge"] = true
-	case handleFileViewRenderMarkup(ctx, entry.Name(), fInfo.st, buf, contentReader):
+	case handleFileViewRenderMarkup(ctx, buf, contentReader):
 		// it also sets ctx.Data["FileContent"] and more
 		ctx.Data["IsMarkup"] = true
-	case handleFileViewRenderSource(ctx, entry.Name(), attrs, fInfo, contentReader):
+	case handleFileViewRenderSource(ctx, attrs, fInfo, contentReader):
 		// it also sets ctx.Data["FileContent"] and more
 		ctx.Data["IsDisplayingSource"] = true
 	case handleFileViewRenderImage(ctx, fInfo, buf):

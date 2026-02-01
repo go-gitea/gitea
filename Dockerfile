@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build stage
-FROM docker.io/library/golang:1.25-alpine3.22 AS build-env
+FROM docker.io/library/golang:1.25-alpine3.23 AS build-env
 
 ARG GOPROXY=direct
 
@@ -39,7 +39,7 @@ RUN chmod 755 /tmp/local/usr/bin/entrypoint \
               /tmp/local/etc/s6/.s6-svscan/* \
               /go/src/code.gitea.io/gitea/gitea
 
-FROM docker.io/library/alpine:3.22 AS gitea
+FROM docker.io/library/alpine:3.23 AS gitea
 
 EXPOSE 22 3000
 
@@ -76,5 +76,6 @@ ENV GITEA_CUSTOM=/data/gitea
 
 VOLUME ["/data"]
 
+# HINT: HEALTH-CHECK-ENDPOINT: don't use HEALTHCHECK, search this hint keyword for more information
 ENTRYPOINT ["/usr/bin/entrypoint"]
 CMD ["/usr/bin/s6-svscan", "/etc/s6"]

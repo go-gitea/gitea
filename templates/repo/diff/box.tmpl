@@ -10,7 +10,7 @@
 				</button>
 				<script>
 					// Default to true if unset
-					const diffTreeVisible = localStorage?.getItem('diff_file_tree_visible') !== 'false';
+					const diffTreeVisible = window.localUserSettings.getBoolean('diff_file_tree_visible', true);
 					const diffTreeBtn = document.querySelector('.diff-toggle-file-tree-button');
 					const diffTreeIcon = `.octicon-sidebar-${diffTreeVisible ? 'expand' : 'collapse'}`;
 					diffTreeBtn.querySelector(diffTreeIcon).classList.remove('tw-hidden');

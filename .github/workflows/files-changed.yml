@@ -85,6 +85,7 @@ jobs:
               - "uv.lock"
 
             docker:
+              - ".github/workflows/pull-docker-dryrun.yml"
               - "Dockerfile"
               - "Dockerfile.rootless"
               - "docker/**"

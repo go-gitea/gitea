@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build stage
-FROM docker.io/library/golang:1.25-alpine3.22 AS build-env
+FROM docker.io/library/golang:1.25-alpine3.23 AS build-env
 
 ARG GOPROXY=direct
 
@@ -33,7 +33,7 @@ COPY docker/rootless /tmp/local
 RUN chmod 755 /tmp/local/usr/local/bin/* \
               /go/src/code.gitea.io/gitea/gitea
 
-FROM docker.io/library/alpine:3.22 AS gitea-rootless
+FROM docker.io/library/alpine:3.23 AS gitea-rootless
 
 EXPOSE 2222 3000
 
@@ -77,5 +77,6 @@ ENV HOME="/var/lib/gitea/git"
 VOLUME ["/var/lib/gitea", "/etc/gitea"]
 WORKDIR /var/lib/gitea
 
+# HINT: HEALTH-CHECK-ENDPOINT: don't use HEALTHCHECK, search this hint keyword for more information
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD []
