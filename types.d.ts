@@ -83,12 +83,6 @@ declare module 'vue-bar-graph' {
     label: string;
   }
 
-  interface BarInfo {
-    index: number;
-    midPoint: number;
-    yLabel: number;
-  }
-
   export const VueBarGraph: DefineComponent<{
     points?: Array<BarGraphPoint>;
     barColor?: string;
@@ -96,9 +90,6 @@ declare module 'vue-bar-graph' {
     textAltColor?: string;
     height?: number;
     labelHeight?: number;
-  }, object, object, object, object, object, object, {
-    label?: (opt: {bar: BarInfo}) => unknown;
-    title?: (opt: {bar: BarInfo}) => unknown;
   }>;
 }
 
