@@ -30,9 +30,5 @@ func IsVendor(path string) bool {
 		return false
 	}
 
-	if vendorOverrideRe.MatchString(path) {
-		return false
-	}
-
-	return true
+	return !vendorOverrideRe.MatchString(path)
 }
