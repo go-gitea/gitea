@@ -38,7 +38,7 @@ async function moveIssue({item, from, to, oldIndex}: SortableEvent): Promise<voi
 
 async function initRepoProjectSortable(): Promise<void> {
   // the HTML layout is: #project-board.board > .project-column .cards > .issue-card
-  const mainBoard = document.querySelector('#project-board')!;
+  const mainBoard = document.querySelector<HTMLElement>('#project-board')!;
   let boardColumns = mainBoard.querySelectorAll<HTMLElement>('.project-column');
   createSortable(mainBoard, {
     group: 'project-column',
@@ -67,7 +67,7 @@ async function initRepoProjectSortable(): Promise<void> {
   });
 
   for (const boardColumn of boardColumns) {
-    const boardCardList = boardColumn.querySelector('.cards')!;
+    const boardCardList = boardColumn.querySelector<HTMLElement>('.cards')!;
     createSortable(boardCardList, {
       group: 'shared',
       onAdd: moveIssue, // eslint-disable-line @typescript-eslint/no-misused-promises
