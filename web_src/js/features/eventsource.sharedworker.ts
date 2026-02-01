@@ -73,7 +73,7 @@ const sourcesByUrl = new Map<string, Source | null>();
 const sourcesByPort = new Map<MessagePort, Source | null>();
 
 (self as unknown as SharedWorkerGlobalScope).addEventListener('connect', (e: MessageEvent) => {
-  for (const port of e.ports || []) {
+  for (const port of e.ports) {
     port.addEventListener('message', (event: MessageEvent) => {
       if (!self.EventSource) {
         // some browsers (like PaleMoon, Firefox<53) don't support EventSource in SharedWorkerGlobalScope.
