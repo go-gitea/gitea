@@ -22,6 +22,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -166,7 +167,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 			return nil
 		}
 
-		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true && ctx.Data["IsActionsToken"] != true {
+		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true && !ctx.Doer.IsGiteaActions() {
 			_, err = auth_model.GetTwoFactorByUID(ctx, ctx.Doer.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
@@ -197,8 +198,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 				accessMode = perm.AccessModeRead
 			}
 
-			if ctx.Data["IsActionsToken"] == true {
-				taskID := ctx.Data["ActionsTaskID"].(int64)
+			if taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer); ok {
 				p, err := access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
 				if err != nil {
 					ctx.ServerError("GetActionsUserRepoPermission", err)
