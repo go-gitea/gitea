@@ -14,26 +14,56 @@ func TestIsVendor(t *testing.T) {
 		path string
 		want bool
 	}{
-		{"cache/", true},
-		{"random/cache/", true},
-		{"cache", false},
-		{"dependencies/", true},
-		{"Dependencies/", true},
-		{"dependency/", false},
-		{"dist/", true},
-		{"dist", false},
-		{"random/dist/", true},
-		{"random/dist", false},
-		{"deps/", true},
-		{"configure", true},
-		{"a/configure", true},
-		{"config.guess", true},
-		{"config.guess/", false},
-		{".vscode/", true},
-		{"doc/_build/", true},
-		{"a/docs/_build/", true},
-		{"a/dasdocs/_build-vsdoc.js", true},
-		{"a/dasdocs/_build-vsdoc.j", false},
+		// Actual vendor directories should be detected
+		{"vendor/file.go", true},
+		{"vendor/github.com/pkg/errors/errors.go", true},
+		{"Vendor/file.go", true},
+		{"src/vendor/file.go", true},
+		{"vendors/file.go", true},
+		{"node_modules/package/index.js", true},
+		{"src/node_modules/package/file.js", true},
+		{"bower_components/package/file.js", true},
+		{"Godeps/file.go", true},
+		{"Godeps/_workspace/src/pkg/file.go", true},
+		{"third_party/lib/file.go", true},
+		{"3rdparty/lib/file.go", true},
+		{"external/lib/file.go", true},
+		{"externals/lib/file.go", true},
+
+		// Git-related files should NOT be detected as vendored
+		{".gitignore", false},
+		{".gitattributes", false},
+		{".gitmodules", false},
+		{"src/.gitignore", false},
+		{".github/workflows/ci.yml", false},
+		{".github/CODEOWNERS", false},
+
+		// Regular source files should NOT be detected as vendored
+		{"main.go", false},
+		{"src/index.js", false},
+		{"index.js", false},
+		{"app.js", false},
+
+		// Test data and other directories should NOT be detected as vendored
+		{"testdata/file.txt", false},
+		{"tests/fixtures/file.txt", false},
+
+		// Minified files should NOT be detected as vendored
+		{"app.min.js", false},
+		{"styles.min.css", false},
+
+		// Config files should NOT be detected as vendored
+		{".editorconfig", false},
+		{".rubocop.yml", false},
+		{"configure", false},
+		{"config.guess", false},
+
+		// IDE/editor directories should NOT be detected as vendored
+		{".vscode/settings.json", false},
+
+		// Build output directories should NOT be detected as vendored
+		{"dist/bundle.js", false},
+		{"cache/file.txt", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
