@@ -133,6 +133,9 @@ func TestHighlightFileForExcerptJSONSyntax(t *testing.T) {
 func TestDiffSectionSetDiffFile(t *testing.T) {
 	section := &gitdiff.DiffSection{
 		FileName: "test.go",
+		Lines: []*gitdiff.DiffLine{
+			{LeftIdx: 1, RightIdx: 1, Type: gitdiff.DiffLinePlain, Content: " package main"},
+		},
 	}
 	
 	diffFile := &gitdiff.DiffFile{
@@ -140,14 +143,17 @@ func TestDiffSectionSetDiffFile(t *testing.T) {
 		Language: "go",
 	}
 	
-	// Initially, getting diff file should return nil or have no language
+	// Set the diff file
 	section.SetDiffFile(diffFile)
 	
-	// After setting, we can't directly test the private field, but we can verify
-	// the method doesn't panic and accepts the file
+	// Verify the method doesn't panic and works correctly by setting it again
 	assert.NotPanics(t, func() {
 		section.SetDiffFile(diffFile)
-	})
+	}, "SetDiffFile should not panic when called multiple times")
+	
+	// We can't directly test the private field, but we can verify the method
+	// accepts the parameter without error. In actual usage, the rendering
+	// code will use the file's language and highlighted lines.
 }
 
 func TestDiffFileSetHighlightedRightLines(t *testing.T) {
@@ -160,8 +166,16 @@ func TestDiffFileSetHighlightedRightLines(t *testing.T) {
 		1: template.HTML(`<span class="line">line 2</span>`),
 	}
 	
-	// Test that SetHighlightedRightLines doesn't panic
+	// Test that SetHighlightedRightLines doesn't panic and can be called multiple times
 	assert.NotPanics(t, func() {
 		diffFile.SetHighlightedRightLines(highlightedLines)
-	})
+	}, "SetHighlightedRightLines should not panic")
+	
+	// Set different lines to verify it can be updated
+	differentLines := map[int]template.HTML{
+		0: template.HTML(`<span class="line">different line</span>`),
+	}
+	assert.NotPanics(t, func() {
+		diffFile.SetHighlightedRightLines(differentLines)
+	}, "SetHighlightedRightLines should handle updates without panicking")
 }

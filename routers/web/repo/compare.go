@@ -790,7 +790,11 @@ func ExcerptBlob(ctx *context.Context) {
 			if language := attrs.GetLanguage(); language.Has() {
 				diffFile.Language = language.Value()
 			}
+		} else {
+			log.Debug("Failed to check attributes for file %s: %v", filePath, err)
 		}
+	} else {
+		log.Debug("Failed to create attribute checker for commit %s: %v", commitID, err)
 	}
 
 	// Highlight the entire file for proper syntax highlighting in excerpts
@@ -805,8 +809,14 @@ func ExcerptBlob(ctx *context.Context) {
 					if len(highlightedLines) > 0 {
 						diffFile.SetHighlightedRightLines(highlightedLines)
 					}
+				} else if err != nil {
+					log.Debug("Failed to read blob content for file %s: %v", filePath, err)
 				}
+			} else {
+				log.Debug("Failed to create blob reader for file %s: %v", filePath, err)
 			}
+		} else {
+			log.Debug("Failed to get blob for file %s: %v", filePath, err)
 		}
 	}
 
