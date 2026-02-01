@@ -28,8 +28,8 @@ func IsVendor(path string) bool {
 		return false
 	}
 
-	// Files in .github/ directory shouldn't be marked as vendored
-	if strings.HasPrefix(path, ".github/") || strings.Contains(path, "/.github/") {
+	// Files in .github/ or .gitea/ directories shouldn't be marked as vendored
+	if strings.HasPrefix(path, ".github/") || strings.HasPrefix(path, ".gitea/") {
 		return false
 	}
 

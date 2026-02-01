@@ -27,6 +27,8 @@ func TestIsVendor(t *testing.T) {
 		{"src/.gitignore", false},
 		{".github/workflows/ci.yml", false},
 		{".github/CODEOWNERS", false},
+		{".gitea/workflows/ci.yml", false},
+		{".gitea/CODEOWNERS", false},
 
 		// Regular source files should NOT be detected as vendored
 		{"main.go", false},
