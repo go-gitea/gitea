@@ -16,7 +16,6 @@ interface JQueryStatic {
 
 interface Element {
   _tippy: import('tippy.js').Instance;
-  _stepLogsActiveContainer?: HTMLElement;
 }
 
 interface MessageEvent {
