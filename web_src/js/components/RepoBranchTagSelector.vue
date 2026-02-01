@@ -173,7 +173,7 @@ export default defineComponent({
           return;
         }
         this.activeItemIndex = nextIndex;
-        this.getActiveItem()?.scrollIntoView({block: 'nearest'});
+        this.getActiveItem()!.scrollIntoView({block: 'nearest'});
       } else if (e.key === 'Enter') {
         e.preventDefault();
         this.getActiveItem()?.click();
