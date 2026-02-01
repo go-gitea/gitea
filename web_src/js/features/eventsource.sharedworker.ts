@@ -72,7 +72,7 @@ class Source {
 const sourcesByUrl = new Map<string, Source | null>();
 const sourcesByPort = new Map<MessagePort, Source | null>();
 
-self.addEventListener('connect', (e: Event & {ports?: ReadonlyArray<MessagePort>}) => {
+(self as unknown as SharedWorkerGlobalScope).addEventListener('connect', (e: MessageEvent) => {
   for (const port of e.ports || []) {
     port.addEventListener('message', (event: MessageEvent) => {
       if (!self.EventSource) {
