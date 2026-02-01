@@ -38,6 +38,7 @@
   base_branch: master
   merge_base: 0abcb056019adb83
   has_merged: false
+  allow_maintainer_edit: true
 
 -
   id: 4
