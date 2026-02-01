@@ -4,6 +4,8 @@
 package repo
 
 import (
+	"html/template"
+	"strings"
 	"testing"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -37,4 +39,129 @@ func TestAttachCommentsToLines(t *testing.T) {
 	assert.Len(t, section.Lines[1].Comments, 2)
 	assert.Equal(t, int64(300), section.Lines[1].Comments[0].ID)
 	assert.Equal(t, int64(301), section.Lines[1].Comments[1].ID)
+}
+
+func TestHighlightFileForExcerpt(t *testing.T) {
+	tests := []struct {
+		name     string
+		fileName string
+		language string
+		content  string
+		wantSpan bool // whether we expect span tags in output
+	}{
+		{
+			name:     "JSON file with language specified",
+			fileName: "test.json",
+			language: "json",
+			content:  `{"key": "value"}`,
+			wantSpan: true,
+		},
+		{
+			name:     "Plain text",
+			fileName: "test.txt",
+			language: "",
+			content:  "plain text content",
+			wantSpan: false,
+		},
+		{
+			name:     "Go code",
+			fileName: "test.go",
+			language: "go",
+			content:  "package main\n\nfunc main() {}\n",
+			wantSpan: true,
+		},
+		{
+			name:     "Empty content",
+			fileName: "empty.txt",
+			language: "",
+			content:  "",
+			wantSpan: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			content := []byte(tt.content)
+			result := highlightFileForExcerpt(tt.fileName, tt.language, content)
+
+			// Check that we got some lines
+			if tt.content != "" {
+				expectedLines := len(strings.Split(tt.content, "\n"))
+				assert.GreaterOrEqual(t, len(result), expectedLines-1, "Should have at least as many lines as content")
+			}
+
+			// Check if highlighting was applied
+			if tt.wantSpan && tt.content != "" {
+				// At least one line should contain span tags if highlighting was applied
+				foundSpan := false
+				for _, line := range result {
+					if strings.Contains(string(line), "<span") {
+						foundSpan = true
+						break
+					}
+				}
+				assert.True(t, foundSpan, "Expected span tags in highlighted output")
+			}
+		})
+	}
+}
+
+func TestHighlightFileForExcerptJSONSyntax(t *testing.T) {
+	// Test that JSON keys are highlighted with the correct class
+	content := []byte(`{
+  "name": "test",
+  "version": "1.0.0"
+}`)
+	
+	result := highlightFileForExcerpt("test.json", "json", content)
+	
+	// We should have multiple lines
+	assert.Greater(t, len(result), 1, "Should have multiple lines")
+	
+	// Check that we have syntax highlighting HTML
+	hasHighlighting := false
+	for _, line := range result {
+		lineStr := string(line)
+		if strings.Contains(lineStr, "<span") {
+			hasHighlighting = true
+			break
+		}
+	}
+	assert.True(t, hasHighlighting, "JSON should be syntax highlighted")
+}
+
+func TestDiffSectionSetDiffFile(t *testing.T) {
+	section := &gitdiff.DiffSection{
+		FileName: "test.go",
+	}
+	
+	diffFile := &gitdiff.DiffFile{
+		Name:     "test.go",
+		Language: "go",
+	}
+	
+	// Initially, getting diff file should return nil or have no language
+	section.SetDiffFile(diffFile)
+	
+	// After setting, we can't directly test the private field, but we can verify
+	// the method doesn't panic and accepts the file
+	assert.NotPanics(t, func() {
+		section.SetDiffFile(diffFile)
+	})
+}
+
+func TestDiffFileSetHighlightedRightLines(t *testing.T) {
+	diffFile := &gitdiff.DiffFile{
+		Name: "test.go",
+	}
+	
+	highlightedLines := map[int]template.HTML{
+		0: template.HTML(`<span class="line">line 1</span>`),
+		1: template.HTML(`<span class="line">line 2</span>`),
+	}
+	
+	// Test that SetHighlightedRightLines doesn't panic
+	assert.NotPanics(t, func() {
+		diffFile.SetHighlightedRightLines(highlightedLines)
+	})
 }
