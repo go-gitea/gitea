@@ -23,8 +23,6 @@ func IsVendor(path string) bool {
 		return false
 	}
 
-	// go-enry marks certain files as "vendored" for language statistics purposes,
-	// but these shouldn't show as "Vendored" in Gitea's diff view.
 	// Override detection for these special cases.
 	basename := filepath.Base(path)
 	switch basename {
