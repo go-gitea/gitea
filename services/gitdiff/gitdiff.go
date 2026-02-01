@@ -445,6 +445,11 @@ func (diffFile *DiffFile) GetType() int {
 	return int(diffFile.Type)
 }
 
+// SetHighlightedRightLines sets the highlighted lines for the right side (after commit)
+func (diffFile *DiffFile) SetHighlightedRightLines(lines map[int]template.HTML) {
+	diffFile.highlightedRightLines = lines
+}
+
 type DiffLimitedContent struct {
 	LeftContent, RightContent *limitByteWriter
 }

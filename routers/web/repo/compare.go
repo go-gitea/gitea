@@ -9,6 +9,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"net/url"
@@ -31,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/optional"
@@ -778,7 +780,7 @@ func ExcerptBlob(ctx *context.Context) {
 		return
 	}
 
-	// Detect the file language for proper syntax highlighting
+	// Detect the file language and prepare full-file syntax highlighting
 	diffFile := &gitdiff.DiffFile{
 		Name: filePath,
 	}
@@ -791,10 +793,29 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 	}
 
+	// Highlight the entire file for proper syntax highlighting in excerpts
+	if !setting.Git.DisableDiffHighlight && diffFile.Language != "" {
+		blob, err := commit.Tree.GetBlobByPath(filePath)
+		if err == nil {
+			if reader, err := blob.DataAsync(); err == nil {
+				content, err := io.ReadAll(reader)
+				reader.Close()
+				if err == nil && len(content) > 0 {
+					highlightedLines := highlightFileForExcerpt(diffFile.Name, diffFile.Language, content)
+					if len(highlightedLines) > 0 {
+						diffFile.SetHighlightedRightLines(highlightedLines)
+					}
+				}
+			}
+		}
+	}
+
 	section := &gitdiff.DiffSection{
 		FileName: filePath,
 	}
 	section.SetDiffFile(diffFile)
+
+	// Determine which lines to extract and create excerpt lines
 	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
 		idxLeft -= chunkSize
 		idxRight -= chunkSize
@@ -914,4 +935,16 @@ func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chu
 		return nil, fmt.Errorf("getExcerptLines scan: %w", err)
 	}
 	return diffLines, nil
+}
+
+// highlightFileForExcerpt highlights an entire file and returns a map of line numbers to highlighted HTML
+func highlightFileForExcerpt(fileName, language string, content []byte) map[int]template.HTML {
+	contentStr := util.UnsafeBytesToString(charset.ToUTF8(content, charset.ConvertOpts{}))
+	highlightedContent, _ := highlight.RenderCodeFast(fileName, language, contentStr)
+	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedContent)
+	lines := make(map[int]template.HTML, len(unsafeLines))
+	for i, line := range unsafeLines {
+		lines[i] = template.HTML(util.UnsafeBytesToString(line))
+	}
+	return lines
 }
