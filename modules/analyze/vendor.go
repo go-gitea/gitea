@@ -11,7 +11,7 @@ import (
 )
 
 // vendorOverrideRe matches paths that go-enry marks as vendored but shouldn't
-// be shown as "Vendored" in Gitea's diff view.
+// be shown as "Vendored" in diff view.
 var vendorOverrideRe = regexp.MustCompile(`^\.(git(hub|ea)|forgejo)/`)
 
 // IsVendor returns whether or not path is a vendor path.
