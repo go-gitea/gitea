@@ -87,49 +87,59 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 		taskID, isActionsToken := user_model.GetActionsUserTaskID(ctx.Doer)
 		if isActionsToken && ctx.Package != nil && ctx.Package.Owner != nil {
 			log.Debug("reqPackageAccess: isActionsToken=%v, TaskID=%d", isActionsToken, taskID)
-				task, err := actions_model.GetTaskByID(ctx, taskID)
-				if err != nil {
-					log.Error("GetTaskByID: %v", err)
-					ctx.HTTPError(http.StatusInternalServerError, "GetTaskByID", err.Error())
-					return
-				}
-				if task == nil {
-					ctx.HTTPError(http.StatusInternalServerError, "GetTaskByID", "task not found")
-					return
-				}
+			task, err := actions_model.GetTaskByID(ctx, taskID)
+			if err != nil {
+				log.Error("GetTaskByID: %v", err)
+				ctx.HTTPError(http.StatusInternalServerError, "GetTaskByID", err.Error())
+				return
+			}
+			if task == nil {
+				ctx.HTTPError(http.StatusInternalServerError, "GetTaskByID", "task not found")
+				return
+			}
 
-				taskRepo, err := repo_perm_model.GetRepositoryByID(ctx, task.RepoID)
-				if err != nil {
-					ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID", err.Error())
-					return
-				}
+			taskRepo, err := repo_perm_model.GetRepositoryByID(ctx, task.RepoID)
+			if err != nil {
+				ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID", err.Error())
+				return
+			}
 
-				var packageRepoID int64
-				if ctx.Package.Descriptor != nil && ctx.Package.Descriptor.Package != nil {
-					packageRepoID = ctx.Package.Descriptor.Package.RepoID
-				}
+			var packageRepoID int64
+			if ctx.Package.Descriptor != nil && ctx.Package.Descriptor.Package != nil {
+				packageRepoID = ctx.Package.Descriptor.Package.RepoID
+			}
 
-				// If package is not linked to any repo (org-level package), deny access from Actions
-				// Actions tokens should only access packages linked to repos
-				if packageRepoID == 0 {
-					if packageName := ctx.PathParam("packagename"); packageName != "" && ctx.Package.Owner != nil {
-						pkg, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, packageName)
-						if err == nil && pkg != nil {
-							packageRepoID = pkg.RepoID
-						}
+			// If package is not linked to any repo (org-level package), deny access from Actions
+			// Actions tokens should only access packages linked to repos
+			if packageRepoID == 0 {
+				if packageName := ctx.PathParam("packagename"); packageName != "" && ctx.Package.Owner != nil {
+					pkg, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, packageName)
+					if err == nil && pkg != nil {
+						packageRepoID = pkg.RepoID
 					}
 				}
+			}
 
-				var grantedMode perm.AccessMode
+			var grantedMode perm.AccessMode
 
-				if packageRepoID == 0 {
-					// Package is unlinked (or new/doesn't exist yet).
-					// Only allow if the Action's Repository Owner matches the Package Owner.
-					if taskRepo.OwnerID != ctx.Package.Owner.ID {
-						ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "Actions tokens cannot access unlinked packages from a different owner")
-						return
-					}
-					// Treat as "Same Owner/Repo" scope - allow configured permissions
+			if packageRepoID == 0 {
+				// Package is unlinked (or new/doesn't exist yet).
+				// Only allow if the Action's Repository Owner matches the Package Owner.
+				if taskRepo.OwnerID != ctx.Package.Owner.ID {
+					ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "Actions tokens cannot access unlinked packages from a different owner")
+					return
+				}
+				// Treat as "Same Owner/Repo" scope - allow configured permissions
+				if err := task.LoadJob(ctx); err == nil && task.Job != nil {
+					perms, _ := repo_perm_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
+					grantedMode = perms.Packages
+				} else {
+					grantedMode = perm.AccessModeRead
+				}
+			} else {
+				// Package is linked to a repository
+				if task.RepoID == packageRepoID {
+					// Same-repository access: use the token's configured package permission
 					if err := task.LoadJob(ctx); err == nil && task.Job != nil {
 						perms, _ := repo_perm_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
 						grantedMode = perms.Packages
@@ -137,44 +147,34 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 						grantedMode = perm.AccessModeRead
 					}
 				} else {
-					// Package is linked to a repository
-					if task.RepoID == packageRepoID {
-						// Same-repository access: use the token's configured package permission
-						if err := task.LoadJob(ctx); err == nil && task.Job != nil {
-							perms, _ := repo_perm_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
-							grantedMode = perms.Packages
-						} else {
-							grantedMode = perm.AccessModeRead
-						}
-					} else {
-						// Cross-repository access - only allowed for Orgs with explicit policy
-						if !ctx.Package.Owner.IsOrganization() {
-							ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is only allowed for organizations")
-							return
-						}
-
-						cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
-						if err != nil {
-							log.Error("GetOrgActionsConfig: %v", err)
-							ctx.HTTPError(http.StatusInternalServerError, "GetOrgActionsConfig", err.Error())
-							return
-						}
-						// Use selective cross-repo access check
-						if !cfg.IsRepoAllowedCrossAccess(packageRepoID) {
-							ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is not allowed for this repository")
-							return
-						}
-						// Cross-repository access: strictly Read-only even if token/policy allow more
-						grantedMode = perm.AccessModeRead
+					// Cross-repository access - only allowed for Orgs with explicit policy
+					if !ctx.Package.Owner.IsOrganization() {
+						ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is only allowed for organizations")
+						return
 					}
-				}
 
-				// If all security checks pass, ensure the context has at least the granted permission.
-				// This effectively "boosts" the Actions token's permissions for the targeted package.
-				if ctx.Package.AccessMode < grantedMode {
-					ctx.Package.AccessMode = grantedMode
+					cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
+					if err != nil {
+						log.Error("GetOrgActionsConfig: %v", err)
+						ctx.HTTPError(http.StatusInternalServerError, "GetOrgActionsConfig", err.Error())
+						return
+					}
+					// Use selective cross-repo access check
+					if !cfg.IsRepoAllowedCrossAccess(packageRepoID) {
+						ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is not allowed for this repository")
+						return
+					}
+					// Cross-repository access: strictly Read-only even if token/policy allow more
+					grantedMode = perm.AccessModeRead
 				}
 			}
+
+			// If all security checks pass, ensure the context has at least the granted permission.
+			// This effectively "boosts" the Actions token's permissions for the targeted package.
+			if ctx.Package.AccessMode < grantedMode {
+				ctx.Package.AccessMode = grantedMode
+			}
+		}
 
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
