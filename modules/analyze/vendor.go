@@ -4,35 +4,34 @@
 package analyze
 
 import (
+	"path/filepath"
 	"strings"
+
+	"github.com/go-enry/go-enry/v2"
 )
 
-// vendorDirs is a set of directory names that indicate vendored third-party code.
-// All names are lowercase for case-insensitive matching.
-var vendorDirs = map[string]bool{
-	"vendor":           true,
-	"vendors":          true,
-	"node_modules":     true,
-	"bower_components": true,
-	"godeps":           true,
-	"third_party":      true,
-	"3rdparty":         true,
-	"external":         true,
-	"externals":        true,
-}
-
 // IsVendor returns whether or not path is a vendor path.
-// This is a more restrictive check than go-enry's IsVendor, which marks many files
-// as "vendored" for the purpose of language statistics (e.g., .gitignore, .github/,
-// testdata/, minified files). For Gitea's diff view, we only want to show "Vendored"
-// for files that are truly third-party dependencies in typical vendor directories.
+// It uses go-enry's IsVendor function but overrides its detection for certain
+// special cases that shouldn't be marked as vendored in the diff view.
 // See https://github.com/go-gitea/gitea/issues/22618
 func IsVendor(path string) bool {
-	pathLower := strings.ToLower(path)
-	for _, component := range strings.Split(pathLower, "/") {
-		if vendorDirs[component] {
-			return true
-		}
+	if !enry.IsVendor(path) {
+		return false
 	}
-	return false
+
+	// go-enry marks certain files as "vendored" for language statistics purposes,
+	// but these shouldn't show as "Vendored" in Gitea's diff view.
+	// Override detection for these special cases.
+	basename := filepath.Base(path)
+	switch basename {
+	case ".gitignore", ".gitattributes", ".gitmodules":
+		return false
+	}
+
+	// Files in .github/ directory shouldn't be marked as vendored
+	if strings.HasPrefix(path, ".github/") || strings.Contains(path, "/.github/") {
+		return false
+	}
+
+	return true
 }
