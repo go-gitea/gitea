@@ -4,31 +4,28 @@
 package analyze
 
 import (
-	"path/filepath"
-	"regexp"
+	"path"
+	"strings"
 
 	"github.com/go-enry/go-enry/v2"
 )
 
-// vendorOverrideRe matches paths that go-enry marks as vendored but shouldn't
-// be shown as "Vendored" in diff view.
-var vendorOverrideRe = regexp.MustCompile(`^\.(git(hub|ea)|forgejo)/`)
-
-// IsVendor returns whether or not path is a vendor path.
+// IsVendor returns whether the path is a vendor path.
 // It uses go-enry's IsVendor function but overrides its detection for certain
 // special cases that shouldn't be marked as vendored in the diff view.
-// See https://github.com/go-gitea/gitea/issues/22618
-func IsVendor(path string) bool {
-	if !enry.IsVendor(path) {
+func IsVendor(treePath string) bool {
+	if !enry.IsVendor(treePath) {
 		return false
 	}
 
 	// Override detection for single files
-	basename := filepath.Base(path)
+	basename := path.Base(treePath)
 	switch basename {
 	case ".gitignore", ".gitattributes", ".gitmodules":
 		return false
 	}
-
-	return !vendorOverrideRe.MatchString(path)
+	if strings.HasPrefix(treePath, ".github/") || strings.HasPrefix(treePath, ".gitea/") {
+		return false
+	}
+	return true
 }

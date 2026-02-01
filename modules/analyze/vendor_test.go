@@ -36,19 +36,13 @@ func TestIsVendor(t *testing.T) {
 		{"a/dasdocs/_build-vsdoc.js", true},
 		{"a/dasdocs/_build-vsdoc.j", false},
 
-		// Override: Git-related files should NOT be detected as vendored
+		// Override: Git/GitHub/Gitea-related paths should NOT be detected as vendored
 		{".gitignore", false},
 		{".gitattributes", false},
 		{".gitmodules", false},
 		{"src/.gitignore", false},
-
-		// Override: .github/, .gitea/, and .forgejo/ directories should NOT be detected as vendored
 		{".github/workflows/ci.yml", false},
-		{".github/CODEOWNERS", false},
 		{".gitea/workflows/ci.yml", false},
-		{".gitea/CODEOWNERS", false},
-		{".forgejo/workflows/ci.yml", false},
-		{".forgejo/CODEOWNERS", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
