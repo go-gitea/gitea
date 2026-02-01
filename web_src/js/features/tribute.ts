@@ -45,7 +45,10 @@ export async function attachTribute(element: HTMLElement) {
     },
   ];
 
-  const tribute = new Tribute({collection: collections as unknown as TributeCollection<TributeItem>[], noMatchTemplate: ''});
+  const tribute = new Tribute({
+    collection: collections as unknown as TributeCollection<TributeItem>[],
+    noMatchTemplate: () => '',
+  });
   tribute.attach(element);
   return tribute;
 }

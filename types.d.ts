@@ -111,26 +111,6 @@ declare module 'vue-bar-graph' {
   }>;
 }
 
-declare module 'tributejs' {
-  export type TributeCollection<T = unknown> = {
-    trigger?: string;
-    requireLeadingSpace?: boolean;
-    values?: ((text: string, cb: (results: Array<T>) => void) => void) | Array<T>;
-    lookup?: string | ((item: T) => string);
-    selectTemplate?: (item: {original: T}) => string | null;
-    menuItemTemplate?: (item: {original: T}) => string;
-  };
-
-  export default class Tribute<T = unknown> {
-    constructor(options: {
-      collection?: Array<TributeCollection<T>>;
-      noMatchTemplate?: string;
-    });
-    attach(element: HTMLElement): void;
-    detach(element: HTMLElement): void;
-  }
-}
-
 declare module '@mcaptcha/vanilla-glue' {
   export let INPUT_NAME: string;
   export default class Widget {
