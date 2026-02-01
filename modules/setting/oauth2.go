@@ -99,6 +99,7 @@ var OAuth2 = struct {
 	JWTClaimIssuer             string `ini:"JWT_CLAIM_ISSUER"`
 	MaxTokenLength             int
 	DefaultApplications        []string
+	DeviceFlowExpirationTime   int64
 }{
 	Enabled:                    true,
 	AccessTokenExpirationTime:  3600,
@@ -108,6 +109,7 @@ var OAuth2 = struct {
 	JWTSigningPrivateKeyFile:   "jwt/private.pem",
 	MaxTokenLength:             math.MaxInt16,
 	DefaultApplications:        []string{"git-credential-oauth", "git-credential-manager", "tea"},
+	DeviceFlowExpirationTime:   900,
 }
 
 func loadOAuth2From(rootCfg ConfigProvider) {

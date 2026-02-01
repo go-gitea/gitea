@@ -134,5 +134,11 @@ func loadApplicationsData(ctx *context.Context) {
 			ctx.ServerError("GetOAuth2GrantsByUserID", err)
 			return
 		}
+
+		ctx.Data["DeviceGrants"], err = auth_model.GetOAuth2DeviceGrantsByUserID(ctx, ctx.Doer.ID)
+		if err != nil {
+			ctx.ServerError("GetOAuth2DeviceGrantsByUserID", err)
+			return
+		}
 	}
 }
