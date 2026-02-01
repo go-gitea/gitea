@@ -41,6 +41,15 @@ const customEventListener: Plugin = {
   },
 };
 
+type LineOptions = ChartOptions<'line'> & {
+ plugins?: {
+   customEventListener?: {
+     chartType: string;
+     instance: unknown;
+   };
+ };
+}
+
 Chart.defaults.color = chartJsColors.text;
 Chart.defaults.borderColor = chartJsColors.border;
 
@@ -251,7 +260,7 @@ export default defineComponent({
       }
     },
 
-    getOptions(type: string): ChartOptions<'line'> {
+    getOptions(type: string): LineOptions {
       return {
         responsive: true,
         maintainAspectRatio: false,
@@ -323,13 +332,6 @@ export default defineComponent({
             },
           },
         },
-      } as ChartOptions<'line'> & {
-        plugins?: {
-          customEventListener?: {
-            chartType: string;
-            instance: unknown;
-          };
-        };
       };
     },
   },

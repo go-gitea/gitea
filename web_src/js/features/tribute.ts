@@ -21,8 +21,7 @@ export async function attachTribute(element: HTMLElement) {
         }
         cb(matches);
       },
-      // eslint-disable-next-line unicorn/prefer-native-coercion-functions -- explicit function form requested
-      lookup: (item: TributeItem) => String(item),
+      lookup: String,
       selectTemplate: (item: TributeItem) => {
         if (item === undefined) return null;
         return emojiString(item.original);

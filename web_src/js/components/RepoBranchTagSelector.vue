@@ -155,8 +155,8 @@ export default defineComponent({
       return -1;
     },
     getActiveItem() {
-      const el = this.$refs[`listItem${this.activeItemIndex}`];
-      return (el && (el as unknown as any[]).length) ? (el as unknown as any[])[0] : null;
+      const el = this.$refs[`listItem${this.activeItemIndex}`] as Array<HTMLDivElement>;
+      return el?.length ? el[0] : null;
     },
     keydown(e: KeyboardEvent) {
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -173,7 +173,7 @@ export default defineComponent({
           return;
         }
         this.activeItemIndex = nextIndex;
-        this.getActiveItem().scrollIntoView({block: 'nearest'});
+        this.getActiveItem()?.scrollIntoView({block: 'nearest'});
       } else if (e.key === 'Enter') {
         e.preventDefault();
         this.getActiveItem()?.click();
