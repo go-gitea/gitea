@@ -18,10 +18,6 @@ interface Element {
   _tippy: import('tippy.js').Instance;
 }
 
-interface MessageEvent {
-  ports?: ReadonlyArray<MessagePort>;
-}
-
 interface Window {
   config: {
     appUrl: string,
