@@ -265,7 +265,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	// WARNING: Don't override all later err with local variables
 	defer func() {
 		if err != nil {
-			// we can not use the ctx because it may be canceled or timed out
+			// we can not use `ctx` because it may be canceled or timed out
 			cleanupRepository(repo)
 		}
 	}()
