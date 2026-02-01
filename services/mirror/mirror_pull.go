@@ -202,7 +202,7 @@ func pruneBrokenReferences(ctx context.Context, m *repo_model.Mirror, gitRepo gi
 		stdoutMessage := util.SanitizeCredentialURLs(stdout)
 
 		log.Error("Failed to prune mirror repository %s references:\nStdout: %s\nStderr: %s\nErr: %v", gitRepo.RelativePath(), stdoutMessage, stderrMessage, pruneErr)
-		desc := fmt.Sprintf("Failed to prune mirror repository %s references: %s", gitRepo.RelativePath(), stderrMessage)
+		desc := fmt.Sprintf("Failed to prune mirror repository (%s) references: %s", m.Repo.FullName(), stderrMessage)
 		if err := system_model.CreateRepositoryNotice(desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
@@ -277,7 +277,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 		// If there is still an error (or there always was an error)
 		if err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to update mirror repository:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
-			desc := fmt.Sprintf("Failed to update mirror repository '%s': %s", m.Repo.RelativePath(), stderrMessage)
+			desc := fmt.Sprintf("Failed to update mirror repository (%s): %s", m.Repo.FullName(), stderrMessage)
 			if err := system_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
@@ -355,7 +355,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 			// If there is still an error (or there always was an error)
 			if err != nil {
 				log.Error("SyncMirrors [repo: %-v Wiki]: failed to update mirror repository wiki:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
-				desc := fmt.Sprintf("Failed to update mirror repository wiki '%s': %s", m.Repo.WikiStorageRepo().RelativePath(), stderrMessage)
+				desc := fmt.Sprintf("Failed to update mirror repository wiki (%s): %s", m.Repo.FullName(), stderrMessage)
 				if err := system_model.CreateRepositoryNotice(desc); err != nil {
 					log.Error("CreateRepositoryNotice: %v", err)
 				}
@@ -595,7 +595,7 @@ func checkAndUpdateEmptyRepository(ctx context.Context, m *repo_model.Mirror, re
 		// Update the is empty and default_branch columns
 		if err := repo_model.UpdateRepositoryColsWithAutoTime(ctx, m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
-			desc := fmt.Sprintf("Failed to update default branch of repository '%s': %v", m.Repo.RelativePath(), err)
+			desc := fmt.Sprintf("Failed to update default branch of repository (%s): %v", m.Repo.FullName(), err)
 			if err = system_model.CreateRepositoryNotice(desc); err != nil {
 				log.Error("CreateRepositoryNotice: %v", err)
 			}
