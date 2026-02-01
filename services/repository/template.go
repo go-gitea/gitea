@@ -101,7 +101,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 	defer func() {
 		if err != nil {
 			// we can not use the ctx because it maybe canceled or timeout
-			cleanupRepository(generateRepo.ID)
+			cleanupRepository(generateRepo)
 		}
 	}()
 
