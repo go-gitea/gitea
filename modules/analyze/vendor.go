@@ -23,7 +23,7 @@ func IsVendor(path string) bool {
 		return false
 	}
 
-	// Override detection for these special cases.
+	// Override detection for single files
 	basename := filepath.Base(path)
 	switch basename {
 	case ".gitignore", ".gitattributes", ".gitmodules":
