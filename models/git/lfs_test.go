@@ -29,7 +29,7 @@ func TestIterateLFSMetaObjectsForRepoUpdatesDoNotSkip(t *testing.T) {
 	repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, "user2", "repo1")
 	assert.NoError(t, err)
 
-	test.MockVariableValue(&setting.Database.IterateBufferSize, 1)
+	defer test.MockVariableValue(&setting.Database.IterateBufferSize, 1)()
 
 	created := make([]*git_model.LFSMetaObject, 0, 3)
 	for i := range 3 {
