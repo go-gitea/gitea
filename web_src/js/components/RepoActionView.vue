@@ -33,6 +33,7 @@ type Job = {
   status: RunStatus;
   canRerun: boolean;
   duration: string;
+  link: string;
 }
 
 type Step = {
@@ -129,6 +130,8 @@ export default defineComponent({
         workflowID: '',
         workflowLink: '',
         isSchedule: false,
+        parentJobLink: '',
+        parentJobDisplay: '',
         jobs: [
           // {
           //   id: 0,
@@ -157,6 +160,8 @@ export default defineComponent({
       currentJob: {
         title: '',
         detail: '',
+        childRunLink: '',
+        childRunIndex: 0,
         steps: [
           // {
           //   summary: '',
@@ -501,13 +506,18 @@ export default defineComponent({
           <span v-if="run.commit.branch.isDeleted" class="gt-ellipsis tw-line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
           <a v-else class="gt-ellipsis" :href="run.commit.branch.link" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</a>
         </span>
+        <span v-if="run.parentJobLink && run.parentJobDisplay">
+          ({{ locale.parentJob }}
+          <a class="muted" :href="run.parentJobLink">{{ run.parentJobDisplay }}</a>
+          )
+        </span>
       </div>
     </div>
     <div class="action-view-body">
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
+            <a class="job-brief-item" :href="job.link || run.link + '/jobs/' + index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
@@ -551,6 +561,10 @@ export default defineComponent({
           <div class="job-info-header-left gt-ellipsis">
             <h3 class="job-info-header-title gt-ellipsis">
               {{ currentJob.title }}
+              <span v-if="currentJob.childRunLink">
+                ({{ locale.reusableWorkflowChildRun }}
+                <a class="muted" :href="currentJob.childRunLink">#{{ currentJob.childRunIndex }}</a>)
+              </span>
             </h3>
             <p class="job-info-header-detail">
               {{ currentJob.detail }}
