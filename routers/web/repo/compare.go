@@ -24,6 +24,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	csv_module "code.gitea.io/gitea/modules/csv"
@@ -797,6 +798,12 @@ func ExcerptBlob(ctx *context.Context) {
 		log.Debug("Failed to create attribute checker for commit %s: %v", commitID, err)
 	}
 
+	// Fallback to filename-based language detection if git attributes didn't provide a language
+	if diffFile.Language == "" {
+		diffFile.Language = analyze.GetCodeLanguage(filePath, nil)
+		log.Debug("Using filename-based language detection for %s: %s", filePath, diffFile.Language)
+	}
+
 	// Highlight the entire file for proper syntax highlighting in excerpts
 	if !setting.Git.DisableDiffHighlight && diffFile.Language != "" {
 		blob, err := commit.Tree.GetBlobByPath(filePath)
@@ -808,6 +815,7 @@ func ExcerptBlob(ctx *context.Context) {
 					highlightedLines := highlightFileForExcerpt(diffFile.Name, diffFile.Language, content)
 					if len(highlightedLines) > 0 {
 						diffFile.SetHighlightedRightLines(highlightedLines)
+						log.Debug("Highlighted %d lines for file %s with language %s", len(highlightedLines), filePath, diffFile.Language)
 					}
 				} else if err != nil {
 					log.Debug("Failed to read blob content for file %s: %v", filePath, err)
