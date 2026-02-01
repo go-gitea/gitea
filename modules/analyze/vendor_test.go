@@ -14,27 +14,39 @@ func TestIsVendor(t *testing.T) {
 		path string
 		want bool
 	}{
-		// Actual vendor directories should be detected (go-enry behavior)
-		{"vendor/file.go", true},
-		{"vendor/github.com/pkg/errors/errors.go", true},
-		{"node_modules/package/index.js", true},
-		{"Godeps/_workspace/src/pkg/file.go", true},
+		// Original go-enry test cases
+		{"cache/", true},
+		{"random/cache/", true},
+		{"cache", false},
+		{"dependencies/", true},
+		{"Dependencies/", true},
+		{"dependency/", false},
+		{"dist/", true},
+		{"dist", false},
+		{"random/dist/", true},
+		{"random/dist", false},
+		{"deps/", true},
+		{"configure", true},
+		{"a/configure", true},
+		{"config.guess", true},
+		{"config.guess/", false},
+		{".vscode/", true},
+		{"doc/_build/", true},
+		{"a/docs/_build/", true},
+		{"a/dasdocs/_build-vsdoc.js", true},
+		{"a/dasdocs/_build-vsdoc.j", false},
 
-		// Git-related files should NOT be detected as vendored (override)
+		// Override: Git-related files should NOT be detected as vendored
 		{".gitignore", false},
 		{".gitattributes", false},
 		{".gitmodules", false},
 		{"src/.gitignore", false},
+
+		// Override: .github/ and .gitea/ directories should NOT be detected as vendored
 		{".github/workflows/ci.yml", false},
 		{".github/CODEOWNERS", false},
 		{".gitea/workflows/ci.yml", false},
 		{".gitea/CODEOWNERS", false},
-
-		// Regular source files should NOT be detected as vendored
-		{"main.go", false},
-		{"src/index.js", false},
-		{"index.js", false},
-		{"app.js", false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.path, func(t *testing.T) {
