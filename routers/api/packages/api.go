@@ -83,16 +83,9 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 			}
 		}
 
-		isActionsToken, _ := ctx.Data["IsActionsToken"].(bool)
+		taskID, isActionsToken := user_model.GetActionsUserTaskID(ctx.Doer)
 		if isActionsToken && ctx.Package != nil && ctx.Package.Owner != nil {
-			// Actions rules:
-			// 1. If the package is linked to the task repo, allow.
-			// 2. If not, check cross-repo policy (currently only for Orgs).
-
-			taskID, ok := ctx.Data["ActionsTaskID"].(int64)
 			log.Debug("reqPackageAccess: isActionsToken=%v, TaskID=%d", isActionsToken, taskID)
-
-			if ok && taskID > 0 {
 				task, err := actions_model.GetTaskByID(ctx, taskID)
 				if err != nil {
 					log.Error("GetTaskByID: %v", err)

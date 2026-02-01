@@ -197,8 +197,8 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 				accessMode = perm.AccessModeRead
 			}
 
-			if ctx.Data["IsActionsToken"] == true {
-				taskID, _ := ctx.Data["ActionsTaskID"].(int64)
+			taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer)
+			if ok {
 				if taskID == 0 {
 					ctx.PlainText(http.StatusForbidden, "Invalid Actions task ID")
 					return nil
