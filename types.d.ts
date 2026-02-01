@@ -51,15 +51,6 @@ declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
   export default value.SwaggerUIBundle;
 }
 
-declare module 'sortablejs' {
-  import Sortable from '@types/sortablejs';
-  import type {Options, SortableEvent} from '@types/sortablejs';
-  export type SortableOptions = Options;
-  export type {SortableEvent};
-  export {Sortable};
-  export default Sortable;
-}
-
 declare module 'asciinema-player' {
   interface AsciinemaPlayer {
     create(src: string, element: HTMLElement, options?: Record<string, unknown>): void;
