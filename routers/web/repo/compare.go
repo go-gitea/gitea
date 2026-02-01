@@ -28,6 +28,7 @@ import (
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/fileicon"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
@@ -776,9 +777,24 @@ func ExcerptBlob(ctx *context.Context) {
 		ctx.HTTPError(http.StatusInternalServerError, "GetCommit")
 		return
 	}
+
+	// Detect the file language for proper syntax highlighting
+	diffFile := &gitdiff.DiffFile{
+		Name: filePath,
+	}
+	if checker, err := attribute.NewBatchChecker(gitRepo, commitID, []string{attribute.LinguistLanguage, attribute.GitlabLanguage}); err == nil {
+		defer checker.Close()
+		if attrs, err := checker.CheckPath(filePath); err == nil {
+			if language := attrs.GetLanguage(); language.Has() {
+				diffFile.Language = language.Value()
+			}
+		}
+	}
+
 	section := &gitdiff.DiffSection{
 		FileName: filePath,
 	}
+	section.SetDiffFile(diffFile)
 	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
 		idxLeft -= chunkSize
 		idxRight -= chunkSize

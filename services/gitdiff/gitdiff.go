@@ -302,6 +302,11 @@ func (diffSection *DiffSection) GetLine(idx int) *DiffLine {
 	return diffSection.Lines[idx]
 }
 
+// SetDiffFile sets the file field for this section
+func (diffSection *DiffSection) SetDiffFile(file *DiffFile) {
+	diffSection.file = file
+}
+
 func defaultDiffMatchPatch() *diffmatchpatch.DiffMatchPatch {
 	dmp := diffmatchpatch.New()
 	dmp.DiffEditCost = 100
