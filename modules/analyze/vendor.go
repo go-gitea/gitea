@@ -30,7 +30,6 @@ func IsVendor(path string) bool {
 		return false
 	}
 
-	// Files in .github/, .gitea/, or .forgejo/ directories shouldn't be marked as vendored
 	if vendorOverrideRe.MatchString(path) {
 		return false
 	}
