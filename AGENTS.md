@@ -7,4 +7,4 @@
 - Before committing `go.mod` changes, run `make tidy`
 - Before committing new `.go` files, add the current year into the copyright header
 - Before committing files, removed any trailing whitespace
-- Wait for up to 5 minutes for `go test` and `lint-go` to complete
+- Wait for up to 5 minutes for `go test` and `lint-go` commands to complete
