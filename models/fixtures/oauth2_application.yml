@@ -18,3 +18,12 @@
   created_unix: 1546869730
   updated_unix: 1546869730
   confidential_client: false
+
+-
+  id: 3
+  client_id: "b4732d48-a71d-4f80-9d9d-82dcfd77049c"
+  client_secret: "$2a$10$UYRgUSgekzBp6hYe8pAdc.cgB4Gn06QRKsORUnIYTYQADs.YR/uvi" # bcrypt of "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=
+  gitea_app_id: 1
+  created_unix: 1759215894
+  updated_unix: 1759215894
+  confidential_client: false

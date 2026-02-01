@@ -34,6 +34,10 @@ type OAuth2Application struct {
 	Name         string
 	ClientID     string `xorm:"unique"`
 	ClientSecret string
+
+	// if this app is linked to a Gitea App, this is the ID of that app
+	GiteaAppID int64 `xorm:"INDEX DEFAULT 0"`
+
 	// OAuth defines both Confidential and Public client types
 	// https://datatracker.ietf.org/doc/html/rfc6749#section-2.1
 	// "Authorization servers MUST record the client type in the client registration details"
@@ -258,6 +262,7 @@ type CreateOAuth2ApplicationOptions struct {
 	ConfidentialClient         bool
 	SkipSecondaryAuthorization bool
 	RedirectURIs               []string
+	GiteaAppID                 int64
 }
 
 // CreateOAuth2Application inserts a new oauth2 application
@@ -270,6 +275,7 @@ func CreateOAuth2Application(ctx context.Context, opts CreateOAuth2ApplicationOp
 		RedirectURIs:               opts.RedirectURIs,
 		ConfidentialClient:         opts.ConfidentialClient,
 		SkipSecondaryAuthorization: opts.SkipSecondaryAuthorization,
+		GiteaAppID:                 opts.GiteaAppID,
 	}
 	if err := db.Insert(ctx, app); err != nil {
 		return nil, err

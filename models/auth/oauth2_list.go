@@ -15,6 +15,8 @@ type FindOAuth2ApplicationsOptions struct {
 	OwnerID int64
 	// find global applications, if true, then OwnerID will be igonred
 	IsGlobal bool
+	// IncludeGiteaAppLinked indicates whether to include Gitea app linked applications
+	IncludeGiteaAppLinked bool
 }
 
 func (opts FindOAuth2ApplicationsOptions) ToConds() builder.Cond {
@@ -24,6 +26,11 @@ func (opts FindOAuth2ApplicationsOptions) ToConds() builder.Cond {
 	} else if opts.OwnerID != 0 {
 		conds = conds.And(builder.Eq{"uid": opts.OwnerID})
 	}
+
+	if !opts.IncludeGiteaAppLinked {
+		conds = conds.And(builder.Eq{"gitea_app_id": 0})
+	}
+
 	return conds
 }
 

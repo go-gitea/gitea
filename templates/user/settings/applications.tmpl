@@ -90,6 +90,8 @@
 			{{template "user/settings/grants_oauth2" .}}
 			{{template "user/settings/applications_oauth2" .}}
 		{{end}}
+
+		{{template "user/settings/gitea_app" .}}
 	</div>
 
 <div class="ui g-modal-confirm delete modal" id="delete-token">

@@ -1,0 +1,101 @@
+<div class="ui attached segment">
+	<div class="flex-list">
+		<div class="flex-item">
+			{{ctx.Locale.Tr "settings.gitea_application_list_description"}}
+		</div>
+		{{range .GiteaApps}}
+			<div class="flex-item tw-items-center">
+				<div class="flex-item-leading">
+					{{svg "octicon-apps" 32}}
+				</div>
+				<div class="flex-item-main">
+					<div class="flex-item-title">{{.Name}}</div>
+				</div>
+				<div class="flex-item-trailing">
+				<a href="{{$.Link}}/oauth2/{{.ID}}" class="ui primary tiny button">
+					{{svg "octicon-pencil" 16 "tw-mr-1"}}
+					{{ctx.Locale.Tr "settings.oauth2_application_edit"}}
+				</a>
+				</div>
+			</div>
+		{{end}}
+	</div>
+</div>
+
+<div class="ui bottom attached segment">
+	<details {{if .application_name}}open{{end}}>
+		<summary><h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr "settings.create_gitea_application"}}</h4></summary>
+		<form class="ui form ignore-dirty" name="gita-app-create" id="gita-app-create" action="{{.Link}}/gitea_app" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field {{if .Err_AppName}}error{{end}}">
+				<label for="application-name">{{ctx.Locale.Tr "settings.oauth2_application_name"}}</label>
+				<input id="application-name" name="application_name" value="{{.application_name}}" required maxlength="255">
+			</div>
+
+			<div class="field">
+				{{template "shared/combomarkdowneditor" (dict
+					"TextareaName" "readme"
+					"TextareaContent" .readme
+					"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.description_placeholder")
+				)}}
+			</div>
+
+			<div class="field {{if .Err_HomePageURL}}error{{end}}">
+				<label for="home-page-url">{{ctx.Locale.Tr "settings.oauth2_home_page_url"}}</label>
+				<input id="home-page-url" name="home_page_url" value="{{.home_page_url}}" required maxlength="255">
+			</div>
+
+			<div class="field {{if .Err_SetUpURL}}error{{end}}">
+				<label for="setup-url">{{ctx.Locale.Tr "settings.oauth2_setup_url"}}</label>
+				<input id="setup-url" name="setup_url" value="{{.setup_url}}" required maxlength="255">
+			</div>
+
+			<div class="inline field">
+				<label></label>
+				<div class="ui checkbox" id="redirect-on-update">
+					<input name="redirect_on_update" type="checkbox" {{if .redirect_on_update}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "settings.gitea_app.redirect_on_update"}}</label>
+				</div>
+			</div>
+
+			<h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr "settings.gitea_app.permissions"}}</h4>
+
+			<input type="hidden" name="perm_list" value="{{.perm_list}}">
+
+			{{range $group, $permList := .GiteaAppPerms}}
+				<details>
+					<summary><h4 class="ui header tw-inline-block tw-my-2">{{ctx.Locale.Tr $group.LocalTitle}}</h4></summary>
+
+					{{range $permItem, $permValue := $permList}}
+						<div class="inline field tw-flex">
+							<div class="tw-grow">
+								<div>{{ctx.Locale.Tr $permItem.LocalTitle}}</div>
+								<div>{{ctx.Locale.Tr $permItem.LocalDesc}}</div>
+							</div>
+							<select class="ui selection dropdown gitea-app-perm-item" data-perm-item="{{$permItem}}" name="type">
+								{{range $permItem.AllPermLevels}}
+									<option value="{{.}}" {{if eq $permValue .}}selected{{end}}>{{.LocalTitle}}</option>
+								{{end}}
+							</select>
+						</div>
+					{{end}}
+				</details>
+			{{end}}
+
+			<div class="inline field">
+				<div>
+					<label>{{ctx.Locale.Tr "settings.gitea_app.visibility"}}</label>
+					<div class="ui checkbox">
+						<input name="private" type="checkbox" {{if .private}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "settings.gitea_app.visibility_helper"}}</label>
+					</div>
+				</div>
+				<span class="help">{{ctx.Locale.Tr "settings.gitea_app.visibility_description"}}</span>
+			</div>
+
+			<button class="ui primary button">
+				{{ctx.Locale.Tr "settings.create_oauth2_application_button"}}
+			</button>
+		</form>
+	</details>
+</div>
