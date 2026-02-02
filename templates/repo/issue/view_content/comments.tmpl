@@ -13,7 +13,8 @@
 		29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
 		32 = DISMISSED_REVIEW, 33 = COMMENT_TYPE_CHANGE_ISSUE_REF, 34 = PR_SCHEDULE_TO_AUTO_MERGE,
 		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR, 36 = PIN_ISSUE, 37 = UNPIN_ISSUE,
-		38 = COMMENT_TYPE_CHANGE_TIME_ESTIMATE -->
+		38 = COMMENT_TYPE_CHANGE_TIME_ESTIMATE, 39 = MARKED_AS_WORK_IN_PROGRESS,
+		40 = MARKED_AS_READY_FOR_REVIEW -->
 		{{if eq .Type 0}}
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
@@ -690,6 +691,24 @@
 					{{else}}
 						{{ctx.Locale.Tr "repo.issues.remove_time_estimate_at" $createdStr}}
 					{{end}}
+				</span>
+			</div>
+		{{else if eq .Type 39}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-x-circle"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="comment-text-line">
+					{{template "shared/user/authorlink" .Poster}}
+					{{ctx.Locale.Tr "repo.issues.marked_as_work_in_progress" $createdStr}}
+				</span>
+			</div>
+		{{else if eq .Type 40}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-check-circle"}}</span>
+				{{template "shared/user/avatarlink" dict "user" .Poster}}
+				<span class="comment-text-line">
+					{{template "shared/user/authorlink" .Poster}}
+					{{ctx.Locale.Tr "repo.issues.marked_as_ready_for_review" $createdStr}}
 				</span>
 			</div>
 		{{end}}

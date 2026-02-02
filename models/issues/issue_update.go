@@ -209,8 +209,23 @@ func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, 
 			return fmt.Errorf("loadRepo: %w", err)
 		}
 
+		// Determine the comment type based on WIP prefix changes for pull requests
+		commentType := CommentTypeChangeTitle
+		if issue.IsPull {
+			hadWIP := HasWorkInProgressPrefix(oldTitle)
+			hasWIP := HasWorkInProgressPrefix(issue.Title)
+
+			if !hadWIP && hasWIP {
+				// WIP prefix was added
+				commentType = CommentTypeMarkedAsWorkInProgress
+			} else if hadWIP && !hasWIP {
+				// WIP prefix was removed
+				commentType = CommentTypeMarkedAsReadyForReview
+			}
+		}
+
 		opts := &CreateCommentOptions{
-			Type:     CommentTypeChangeTitle,
+			Type:     commentType,
 			Doer:     doer,
 			Repo:     issue.Repo,
 			Issue:    issue,

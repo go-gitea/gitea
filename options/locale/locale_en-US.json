@@ -1447,6 +1447,8 @@
   "repo.issues.remove_assignee_at": "was unassigned by <b>%s</b> %s",
   "repo.issues.remove_self_assignment": "removed their assignment %s",
   "repo.issues.change_title_at": "changed title from <b><strike>%s</strike></b> to <b>%s</b> %s",
+  "repo.issues.marked_as_work_in_progress": "marked the pull request as work in progress %s",
+  "repo.issues.marked_as_ready_for_review": "marked the pull request as ready for review %s",
   "repo.issues.change_ref_at": "changed reference from <b><strike>%s</strike></b> to <b>%s</b> %s",
   "repo.issues.remove_ref_at": "removed reference <b>%s</b> %s",
   "repo.issues.add_ref_at": "added reference <b>%s</b> %s",

@@ -116,6 +116,9 @@ const (
 	CommentTypeUnpin // 37 unpin Issue/PullRequest
 
 	CommentTypeChangeTimeEstimate // 38 Change time estimate
+
+	CommentTypeMarkedAsWorkInProgress // 39 Mark PR as work in progress
+	CommentTypeMarkedAsReadyForReview // 40 Mark PR as ready for review
 )
 
 var commentStrings = []string{
@@ -158,6 +161,8 @@ var commentStrings = []string{
 	"pin",
 	"unpin",
 	"change_time_estimate",
+	"marked_as_work_in_progress",
+	"marked_as_ready_for_review",
 }
 
 func (t CommentType) String() string {
