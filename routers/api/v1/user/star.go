@@ -1,5 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Copyright 2026 The Gitea Authors. All rights reserved.
+// Copyright 2020 The Gitea Authors.
 // SPDX-License-Identifier: MIT
 
 package user

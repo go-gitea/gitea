@@ -1,4 +1,4 @@
-// Copyright 2026 The Gitea Authors. All rights reserved.
+// Copyright 2024 The Gitea Authors.
 // SPDX-License-Identifier: MIT
 
 package shared
