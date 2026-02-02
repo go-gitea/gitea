@@ -288,9 +288,7 @@ export default defineComponent({
 
     appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
       for (const line of logLines) {
-        if (shouldHideLine(line)) {
-          continue;
-        }
+        if (shouldHideLine(line)) continue;
         const el = this.getActiveLogsContainer(stepIndex);
         const cmd = parseLineCommand(line);
         if (cmd?.name === 'group') {
