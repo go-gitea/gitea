@@ -88,7 +88,7 @@ func TestChangeTitleNormalChange(t *testing.T) {
 		Type:    issues_model.CommentTypeChangeTitle,
 	})
 	assert.NoError(t, err)
-	assert.Greater(t, len(comments), 0, "Should have created a CommentTypeChangeTitle comment")
+	assert.NotEmpty(t, comments, "Should have created a CommentTypeChangeTitle comment")
 
 	// Verify the last comment has the correct old and new titles
 	lastComment := comments[len(comments)-1]
