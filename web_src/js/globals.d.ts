@@ -1,33 +1,3 @@
-declare module '*.svg' {
-  const value: string;
-  export default value;
-}
-
-declare module '*.css' {
-  const value: string;
-  export default value;
-}
-
-declare module '*.vue' {
-  import type {DefineComponent} from 'vue';
-  const component: DefineComponent<unknown, unknown, any>;
-  export default component;
-  // Here we declare all exports from vue files so `tsc` or `tsgo` can work for
-  // non-vue files. To lint .vue files, `vue-tsc` must be used.
-  export function initDashboardRepoList(): void;
-  export function initRepositoryActionView(): void;
-}
-
-declare module 'htmx.org/dist/htmx.esm.js' {
-  const value = await import('htmx.org');
-  export default value;
-}
-
-declare module 'swagger-ui-dist/swagger-ui-es-bundle.js' {
-  const value = await import('swagger-ui-dist');
-  export default value.SwaggerUIBundle;
-}
-
 interface JQuery {
   areYouSure: any, // jquery.are-you-sure
   fomanticExt: any; // fomantic extension
@@ -49,7 +19,26 @@ interface Element {
 }
 
 interface Window {
-  config: import('./web_src/js/types.ts').Config;
+  config: {
+    appUrl: string,
+    appSubUrl: string,
+    assetVersionEncoded: string,
+    assetUrlPrefix: string,
+    runModeIsProd: boolean,
+    customEmojis: Record<string, string>,
+    pageData: Record<string, any>,
+    notificationSettings: Record<string, any>,
+    enableTimeTracking: boolean,
+    mentionValues: Array<{
+      key: string,
+      value: string,
+      name: string,
+      fullname: string,
+      avatar: string,
+    }>,
+    mermaidMaxSourceCharacters: number,
+    i18n: Record<string, string>,
+  },
   $: typeof import('@types/jquery'),
   jQuery: typeof import('@types/jquery'),
   htmx: typeof import('htmx.org').default,
@@ -58,6 +47,7 @@ interface Window {
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
   codeEditors: any[], // export editor for customization
+  localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
 
   // various captcha plugins
   grecaptcha: any,

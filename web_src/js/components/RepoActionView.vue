@@ -8,9 +8,12 @@ import {renderAnsi} from '../render/ansi.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+
+type StepContainerElement = HTMLElement & {_stepLogsActiveContainer?: HTMLElement}
 
 type LogLine = {
   index: number;
@@ -71,15 +74,6 @@ type LocaleStorageOptions = {
   expandRunning: boolean;
 };
 
-function getLocaleStorageOptions(): LocaleStorageOptions {
-  try {
-    const optsJson = localStorage.getItem('actions-view-options');
-    if (optsJson) return JSON.parse(optsJson);
-  } catch {}
-  // if no options in localStorage, or failed to parse, return default options
-  return {autoScroll: true, expandRunning: false};
-}
-
 export default defineComponent({
   name: 'RepoActionView',
   components: {
@@ -106,7 +100,8 @@ export default defineComponent({
   },
 
   data() {
-    const {autoScroll, expandRunning} = getLocaleStorageOptions();
+    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false};
+    const {autoScroll, expandRunning} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
     return {
       // internal state
       loadingAbortController: null as AbortController | null,
@@ -224,23 +219,22 @@ export default defineComponent({
   methods: {
     saveLocaleStorageOptions() {
       const opts: LocaleStorageOptions = {autoScroll: this.optionAlwaysAutoScroll, expandRunning: this.optionAlwaysExpandRunning};
-      localStorage.setItem('actions-view-options', JSON.stringify(opts));
+      localUserSettings.setJsonObject('actions-view-options', opts);
     },
 
     // get the job step logs container ('.job-step-logs')
-    getJobStepLogsContainer(stepIndex: number): HTMLElement {
+    getJobStepLogsContainer(stepIndex: number): StepContainerElement {
       return (this.$refs.logs as any)[stepIndex];
     },
 
     // get the active logs container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
-    getActiveLogsContainer(stepIndex: number): HTMLElement {
+    getActiveLogsContainer(stepIndex: number): StepContainerElement {
       const el = this.getJobStepLogsContainer(stepIndex);
-      // @ts-expect-error - _stepLogsActiveContainer is a custom property
       return el._stepLogsActiveContainer ?? el;
     },
     // begin a log group
     beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
-      const el = (this.$refs.logs as any)[stepIndex];
+      const el = (this.$refs.logs as any)[stepIndex] as StepContainerElement;
       const elJobLogGroupSummary = createElementFromAttrs('summary', {class: 'job-log-group-summary'},
         this.createLogLine(stepIndex, startTime, {
           index: line.index,
@@ -402,7 +396,7 @@ export default defineComponent({
         }
 
         // auto-scroll to the last log line of the last step
-        let autoScrollJobStepElement: HTMLElement | undefined;
+        let autoScrollJobStepElement: StepContainerElement | undefined;
         for (let stepIndex = 0; stepIndex < this.currentJob.steps.length; stepIndex++) {
           if (!autoScrollStepIndexes.get(stepIndex)) continue;
           autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
