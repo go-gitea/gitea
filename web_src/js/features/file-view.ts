@@ -168,7 +168,6 @@ function initSidebarToggle(elFileView: HTMLElement): void {
 
   // Update sidebar position on resize to keep aligned with file content
   // Only observe the segment element to avoid unnecessary updates from unrelated page changes
-  const fileHeader = elFileView.querySelector('.file-header');
   const segment = elFileView.querySelector('.ui.bottom.segment');
 
   const resizeObserver = new ResizeObserver(() => {
@@ -178,17 +177,29 @@ function initSidebarToggle(elFileView: HTMLElement): void {
     resizeObserver.observe(segment);
   }
 
-  // Update position using IntersectionObserver instead of scroll event
-  // This provides better performance and avoids scroll event issues
-  if (fileHeader && segment) {
-    // Use a small set of thresholds to get periodic position updates during scroll
-    const thresholds = [0, 0.25, 0.5, 0.75, 1];
-    const positionObserver = new IntersectionObserver(() => {
+  // Update position on scroll using requestAnimationFrame for smooth updates
+  // Note: IntersectionObserver was tried but it only triggers at threshold crossings,
+  // not continuously during scroll, causing the sidebar to "jump" or get stuck
+  // when scrolling between thresholds. scroll event + rAF provides smooth tracking.
+  let scrollRafId: number | null = null;
+  const scrollHandler = () => {
+    // Auto-cleanup: if element is removed from DOM, remove the listener and disconnect observer
+    if (!document.contains(elFileView)) {
+      window.removeEventListener('scroll', scrollHandler);
+      resizeObserver.disconnect();
+      if (scrollRafId !== null) {
+        cancelAnimationFrame(scrollRafId);
+        scrollRafId = null;
+      }
+      return;
+    }
+    if (scrollRafId !== null) return; // Already scheduled
+    scrollRafId = requestAnimationFrame(() => {
       updatePosition();
-    }, {threshold: thresholds});
-    positionObserver.observe(segment);
-    positionObserver.observe(fileHeader);
-  }
+      scrollRafId = null;
+    });
+  };
+  window.addEventListener('scroll', scrollHandler, {passive: true});
 
   toggleBtn.addEventListener('click', () => {
     const isCurrentlyVisible = !sidebar.classList.contains('sidebar-panel-hidden');
