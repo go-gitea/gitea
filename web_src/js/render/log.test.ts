@@ -17,7 +17,7 @@ test('filters workflow command lines from log output', () => {
     {index: 9, timestamp: 1008, message: 'Build complete'},
   ];
 
-  expect(filterLogLines(inputLogLines).map(line => line.message)).toMatchInlineSnapshot(`
+  expect(filterLogLines(inputLogLines).map((line) => line.message)).toMatchInlineSnapshot(`
     [
       "Starting build process",
       "Running tests...",
@@ -39,7 +39,7 @@ test('preserves non-workflow command lines including group commands', () => {
     {index: 6, timestamp: 1005, message: 'Done'},
   ];
 
-  expect(filterLogLines(inputLogLines).map(line => line.message)).toMatchInlineSnapshot(`
+  expect(filterLogLines(inputLogLines).map((line) => line.message)).toMatchInlineSnapshot(`
     [
       "Normal log line",
       "::group::Installation",
