@@ -79,7 +79,7 @@ test('shouldHideLine handles group commands (should not hide them)', () => {
     message: '::group::Build Step',
   };
   expect(shouldHideLine(groupLine)).toBe(false);
-  
+
   const endGroupLine: LogLine = {
     index: 8,
     timestamp: 1007,
@@ -99,12 +99,12 @@ test('shouldHideLine handles various log formats', () => {
     {message: '  ::add-matcher::.github/test.json', expected: false}, // with leading space
   ];
 
-  testCases.forEach(({message, expected}, index) => {
+  for (const [index, {message, expected}] of testCases.entries()) {
     const line: LogLine = {
       index: index + 10,
       timestamp: 2000 + index,
       message,
     };
     expect(shouldHideLine(line)).toBe(expected);
-  });
+  }
 });
