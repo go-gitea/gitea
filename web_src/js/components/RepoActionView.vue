@@ -23,6 +23,7 @@ type LogLine = {
 
 const LogLinePrefixesGroup = ['::group::', '##[group]'];
 const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
+const LogLinePrefixesHidden = ['::add-matcher::', '##[add-matcher]', '::workflow-command', '::remove-matcher'];
 
 type LogLineCommand = {
   name: 'group' | 'endgroup',
@@ -61,6 +62,15 @@ function parseLineCommand(line: LogLine): LogLineCommand | null {
     }
   }
   return null;
+}
+
+function shouldHideLine(line: LogLine): boolean {
+  for (const prefix of LogLinePrefixesHidden) {
+    if (line.message.startsWith(prefix)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
@@ -315,6 +325,10 @@ export default defineComponent({
 
     appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
       for (const line of logLines) {
+        // Skip lines that should be hidden (workflow commands)
+        if (shouldHideLine(line)) {
+          continue;
+        }
         const el = this.getActiveLogsContainer(stepIndex);
         const cmd = parseLineCommand(line);
         if (cmd?.name === 'group') {
