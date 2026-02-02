@@ -108,7 +108,7 @@ function initSidebarToggle(elFileView: HTMLElement): void {
   if (!toggleBtn || !sidebar) return;
 
   // Check if we're in file view (not home page) - only file view needs margin adjustment
-  const repoViewContent = elFileView.closest('.repo-view-content');
+  const repoViewContent = elFileView.closest<HTMLElement>('.repo-view-content');
   const isFileView = Boolean(repoViewContent);
 
   // Helper to update position
