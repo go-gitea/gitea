@@ -32,9 +32,9 @@ func getAuthorSignatureSquash(ctx *mergeContext) (*git.Signature, error) {
 	}
 	defer gitRepo.Close()
 
-	commits, err := gitRepo.CommitsBetweenIDs(trackingBranch, "HEAD")
+	commits, err := gitRepo.CommitsBetweenIDs(tmpRepoTrackingBranch, "HEAD")
 	if err != nil {
-		log.Error("%-v Unable to get commits between: %s %s: %v", ctx.pr, "HEAD", trackingBranch, err)
+		log.Error("%-v Unable to get commits between: %s %s: %v", ctx.pr, "HEAD", tmpRepoTrackingBranch, err)
 		return nil, err
 	}
 
@@ -58,7 +58,7 @@ func doMergeStyleSquash(ctx *mergeContext, message string) error {
 		return fmt.Errorf("getAuthorSignatureSquash: %w", err)
 	}
 
-	cmdMerge := gitcmd.NewCommand("merge", "--squash").AddDynamicArguments(trackingBranch)
+	cmdMerge := gitcmd.NewCommand("merge", "--squash").AddDynamicArguments(tmpRepoTrackingBranch)
 	if err := runMergeCommand(ctx, repo_model.MergeStyleSquash, cmdMerge); err != nil {
 		log.Error("%-v Unable to merge --squash tracking into base: %v", ctx.pr, err)
 		return err
