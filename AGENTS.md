@@ -1,8 +1,8 @@
 # Instructions for agents
 
 - Use `make help` to find available development targets
-- Install the latest Golang stable release before working on `.go` files
-- Install the latest Node.js LTS release and `pnpm` before working on `.ts` files
+- Install the latest `go` stable release before working on `.go` files
+- Install the latest `node` LTS release and `pnpm` before working on `.ts` files
 - Before running `.go` tests, run `make deps-backend` to install dependencies
 - Before running `.ts` tests, run `make deps-frontend` to install dependencies
 - Before committing `.go`, run `make fmt` to format, and run `make lint-go` to lint
