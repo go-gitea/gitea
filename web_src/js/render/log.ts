@@ -1,7 +1,7 @@
 export type LogLine = {
-  index: number;
-  timestamp: number;
-  message: string;
+  index: number; // 1
+  message: string; // "message"
+  timestamp: number; // 1770061591.330781
 };
 
 export const LogLinePrefixesGroup = ['::group::', '##[group]'];
