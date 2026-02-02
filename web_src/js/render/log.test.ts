@@ -1,30 +1,10 @@
-// Test for workflow command line filtering logic
+import {shouldHideLine, type LogLine} from './log.ts';
 
-// These are the constants and functions from RepoActionView.vue
-const LogLinePrefixesHidden = ['::add-matcher::', '##[add-matcher]', '::workflow-command', '::remove-matcher'];
-
-type LogLine = {
-  index: number;
-  timestamp: number;
-  message: string;
-};
-
-function shouldHideLine(line: LogLine): boolean {
-  for (const prefix of LogLinePrefixesHidden) {
-    if (line.message.startsWith(prefix)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-// Simulate the filtering behavior of appendLogs
 function filterLogLines(logLines: LogLine[]): LogLine[] {
   return logLines.filter((line) => !shouldHideLine(line));
 }
 
 test('filters workflow command lines from log output', () => {
-  // Input: log lines including workflow commands that should be hidden
   const inputLogLines: LogLine[] = [
     {index: 1, timestamp: 1000, message: 'Starting build process'},
     {index: 2, timestamp: 1001, message: '::add-matcher::.github/problem-matcher.json'},
@@ -37,29 +17,25 @@ test('filters workflow command lines from log output', () => {
     {index: 9, timestamp: 1008, message: 'Build complete'},
   ];
 
-  // Expected output: only non-workflow-command lines
   const expectedVisibleMessages = [
     'Starting build process',
     'Running tests...',
     'Test suite started',
+    '::workflow-command::echo some-output',
     'All tests passed',
     'Build complete',
   ];
 
-  // Filter the lines
   const visibleLines = filterLogLines(inputLogLines);
 
-  // Assert the correct number of lines are visible
-  expect(visibleLines.length).toBe(5);
+  expect(visibleLines.length).toBe(6);
 
-  // Assert the visible lines contain the expected messages
   const visibleMessages = visibleLines.map((line) => line.message);
   expect(visibleMessages).toEqual(expectedVisibleMessages);
 
-  // Assert that workflow command lines are not in the output
   expect(visibleMessages).not.toContain('::add-matcher::.github/problem-matcher.json');
   expect(visibleMessages).not.toContain('##[add-matcher].github/eslint.json');
-  expect(visibleMessages).not.toContain('::workflow-command::echo some-output');
+  expect(visibleMessages).toContain('::workflow-command::echo some-output');
   expect(visibleMessages).not.toContain('::remove-matcher::owner=eslint');
 });
 
@@ -75,7 +51,6 @@ test('preserves non-workflow command lines including group commands', () => {
 
   const visibleLines = filterLogLines(inputLogLines);
 
-  // Should have 5 lines (all except the ::add-matcher:: line)
   expect(visibleLines.length).toBe(5);
 
   const visibleMessages = visibleLines.map((line) => line.message);

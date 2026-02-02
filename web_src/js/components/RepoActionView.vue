@@ -9,26 +9,12 @@ import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
+import {parseLineCommand, shouldHideLine, type LogLine, type LogLineCommand} from '../render/log.ts';
 
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
 
 type StepContainerElement = HTMLElement & {_stepLogsActiveContainer?: HTMLElement}
-
-type LogLine = {
-  index: number;
-  timestamp: number;
-  message: string;
-};
-
-const LogLinePrefixesGroup = ['::group::', '##[group]'];
-const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
-const LogLinePrefixesHidden = ['::add-matcher::', '##[add-matcher]', '::workflow-command', '::remove-matcher'];
-
-type LogLineCommand = {
-  name: 'group' | 'endgroup',
-  prefix: string,
-}
 
 type Job = {
   id: number;
@@ -48,29 +34,6 @@ type JobStepState = {
   cursor: string|null,
   expanded: boolean,
   manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
-}
-
-function parseLineCommand(line: LogLine): LogLineCommand | null {
-  for (const prefix of LogLinePrefixesGroup) {
-    if (line.message.startsWith(prefix)) {
-      return {name: 'group', prefix};
-    }
-  }
-  for (const prefix of LogLinePrefixesEndGroup) {
-    if (line.message.startsWith(prefix)) {
-      return {name: 'endgroup', prefix};
-    }
-  }
-  return null;
-}
-
-function shouldHideLine(line: LogLine): boolean {
-  for (const prefix of LogLinePrefixesHidden) {
-    if (line.message.startsWith(prefix)) {
-      return true;
-    }
-  }
-  return false;
 }
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
@@ -325,7 +288,6 @@ export default defineComponent({
 
     appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
       for (const line of logLines) {
-        // Skip lines that should be hidden (workflow commands)
         if (shouldHideLine(line)) {
           continue;
         }
