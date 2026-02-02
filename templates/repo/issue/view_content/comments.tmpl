@@ -699,7 +699,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="comment-text-line">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.pulls.marked_as_work_in_progress"}}
+					{{ctx.Locale.Tr "repo.pulls.marked_as_work_in_progress" $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 40}}
@@ -708,7 +708,7 @@
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="comment-text-line">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.pulls.marked_as_ready_for_review"}}
+					{{ctx.Locale.Tr "repo.pulls.marked_as_ready_for_review" $createdStr}}
 				</span>
 			</div>
 		{{end}}
