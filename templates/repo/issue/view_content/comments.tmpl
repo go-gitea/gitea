@@ -695,7 +695,7 @@
 			</div>
 		{{else if eq .Type 39}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-x-circle"}}</span>
+				<span class="badge">{{svg "octicon-git-pull-request-draft"}}</span>
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="comment-text-line">
 					{{template "shared/user/authorlink" .Poster}}
@@ -704,7 +704,7 @@
 			</div>
 		{{else if eq .Type 40}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-check-circle"}}</span>
+				<span class="badge">{{svg "octicon-git-pull-request-draft"}}</span>
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="comment-text-line">
 					{{template "shared/user/authorlink" .Poster}}
