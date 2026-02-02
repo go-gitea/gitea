@@ -1,4 +1,4 @@
-// Copyright 2016 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package user
@@ -71,6 +71,7 @@ func GetWatchedRepos(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 	}
 
+	ctx.SetLinkHeader(int(total), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &repos)
 }
@@ -99,7 +100,7 @@ func GetMyWatchedRepos(ctx *context.APIContext) {
 	if err != nil {
 		ctx.APIErrorInternal(err)
 	}
-
+	ctx.SetLinkHeader(int(total), utils.GetListOptions(ctx).PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &repos)
 }

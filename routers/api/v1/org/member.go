@@ -1,4 +1,4 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package org
@@ -20,11 +20,12 @@ import (
 
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, isMember bool) {
+	listOptions := utils.GetListOptions(ctx)
 	opts := &organization.FindOrgMembersOpts{
 		Doer:         ctx.Doer,
 		IsDoerMember: isMember,
 		OrgID:        ctx.Org.Organization.ID,
-		ListOptions:  utils.GetListOptions(ctx),
+		ListOptions:  listOptions,
 	}
 
 	count, err := organization.CountOrgMembers(ctx, opts)
@@ -44,6 +45,7 @@ func listMembers(ctx *context.APIContext, isMember bool) {
 		apiMembers[i] = convert.ToUser(ctx, member, ctx.Doer)
 	}
 
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiMembers)
 }

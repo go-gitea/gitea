@@ -1,4 +1,4 @@
-// Copyright 2016 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package utils
@@ -23,8 +23,9 @@ import (
 
 // ListOwnerHooks lists the webhooks of the provided owner
 func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
+	listOptions := GetListOptions(ctx)
 	opts := &webhook.ListWebhookOptions{
-		ListOptions: GetListOptions(ctx),
+		ListOptions: listOptions,
 		OwnerID:     owner.ID,
 	}
 
@@ -42,7 +43,7 @@ func ListOwnerHooks(ctx *context.APIContext, owner *user_model.User) {
 			return
 		}
 	}
-
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiHooks)
 }

@@ -1,4 +1,4 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package notify
@@ -86,6 +86,7 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetLinkHeader(int(totalCount), opts.PageSize)
 	ctx.SetTotalCountHeader(totalCount)
 	ctx.JSON(http.StatusOK, convert.ToNotifications(ctx, nl))
 }

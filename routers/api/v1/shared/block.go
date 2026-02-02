@@ -1,4 +1,4 @@
-// Copyright 2024 The Gitea Authors.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package shared
@@ -16,8 +16,9 @@ import (
 )
 
 func ListBlocks(ctx *context.APIContext, blocker *user_model.User) {
+	listOptions := utils.GetListOptions(ctx)
 	blocks, total, err := user_model.FindBlockings(ctx, &user_model.FindBlockingOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		BlockerID:   blocker.ID,
 	})
 	if err != nil {
@@ -35,6 +36,7 @@ func ListBlocks(ctx *context.APIContext, blocker *user_model.User) {
 		users = append(users, convert.ToUser(ctx, b.Blockee, blocker))
 	}
 
+	ctx.SetLinkHeader(int(total), listOptions.PageSize)
 	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &users)
 }

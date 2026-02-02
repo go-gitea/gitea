@@ -1,5 +1,5 @@
 // Copyright 2016 The Gogs Authors. All rights reserved.
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package org
@@ -54,8 +54,10 @@ func ListTeams(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	listOptions := utils.GetListOptions(ctx)
+
 	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		OrgID:       ctx.Org.Organization.ID,
 	})
 	if err != nil {
@@ -69,6 +71,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiTeams)
 }
@@ -93,8 +96,10 @@ func ListUserTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
+	listOptions := utils.GetListOptions(ctx)
+
 	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		UserID:      ctx.Doer.ID,
 	})
 	if err != nil {
@@ -108,6 +113,7 @@ func ListUserTeams(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiTeams)
 }

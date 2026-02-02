@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package user
@@ -57,7 +58,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 
 	fingerprint := ctx.FormString("fingerprint")
 	username := ctx.PathParam("username")
-
+	listOptions := utils.GetListOptions(ctx)
 	if fingerprint != "" {
 		var userID int64 // Unrestricted
 		// Querying not just listing
@@ -74,7 +75,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 		var total int64
 		// Use ListPublicKeys
 		keys, total, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
-			ListOptions: utils.GetListOptions(ctx),
+			ListOptions: listOptions,
 			OwnerID:     user.ID,
 			NotKeytype:  asymkey_model.KeyTypePrincipal,
 		})
@@ -95,6 +96,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 		}
 	}
 
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(count))
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
