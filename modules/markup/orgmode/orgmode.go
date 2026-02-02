@@ -70,15 +70,14 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	w := &orgWriter{rctx: ctx, HTMLWriter: htmlWriter}
 	htmlWriter.ExtendingWriter = w
 
-	// Parse the document first to extract outline for TOC
 	doc := org.New().Silent().Parse(input, "")
 	if doc.Error != nil {
 		return fmt.Errorf("orgmode.Parse failed: %w", doc.Error)
 	}
 
-	// Extract headers from the document outline for sidebar TOC
-	ctx.TocHeadingItems = extractTocHeadingItems(doc.Outline)
-	if len(ctx.TocHeadingItems) > 0 {
+	// Enable TOC extraction in post-process step for orgmode files
+	// The actual TOC items will be extracted from HTML headings during post-processing
+	if ctx.RenderOptions.EnableHeadingIDGeneration {
 		ctx.TocShowInSection = markup.TocShowInSidebar
 	}
 
@@ -88,37 +87,6 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	}
 	_, err = io.Copy(output, strings.NewReader(res))
 	return err
-}
-
-// extractTocHeadingItems recursively extracts headers from org document outline
-func extractTocHeadingItems(outline org.Outline) []*markup.TocHeadingItem {
-	var items []*markup.TocHeadingItem
-	collectTocHeadingItems(outline.Section, &items)
-	return items
-}
-
-// collectTocHeadingItems recursively collects headers from sections
-func collectTocHeadingItems(section *org.Section, items *[]*markup.TocHeadingItem) {
-	if section == nil {
-		return
-	}
-
-	// Process current section's headline
-	if section.Headline != nil {
-		h := section.Headline
-		// Convert headline title nodes to plain text
-		titleText := org.String(h.Title...)
-		*items = append(*items, &markup.TocHeadingItem{
-			HeadingLevel: h.Lvl,
-			InnerText:    titleText,
-			AnchorID:     h.ID(),
-		})
-	}
-
-	// Process child sections
-	for _, child := range section.Children {
-		collectTocHeadingItems(child, items)
-	}
 }
 
 // RenderString renders orgmode string to HTML string

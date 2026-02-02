@@ -38,9 +38,9 @@ include_toc: true
 	result = re.ReplaceAllString(result, "\n")
 	expected := `<details><summary>toc</summary>
 <ul>
-  <li><a href="#user-content-tag-link-and-bold" rel="nofollow">tag link and Bold</a>
+  <li><a href="#user-content-tag-link-and-bold" rel="nofollow">tag link and Bold</a></li>
   <li><ul>
-    <li><a href="#user-content-code-block-a" rel="nofollow">code block &lt;a&gt;</a>
+    <li><a href="#user-content-code-block-a" rel="nofollow">code block &lt;a&gt;</a></li>
     <li><ul>
       <li><ul>
         <li><a href="#user-content-markdown-bold" rel="nofollow">markdown bold</a></li>

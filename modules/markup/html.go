@@ -254,7 +254,7 @@ func RenderTocHeadingItems(ctx *RenderContext, nodeDetailsAttrs map[string]strin
 	currentLevel := baseLevel
 	indent := []byte{' ', ' '}
 	_, _ = htmlutil.HTMLPrint(out, "<ul>\n")
-	for i, header := range ctx.TocHeadingItems {
+	for _, header := range ctx.TocHeadingItems {
 		// Go deeper: open nested <ul> elements (wrapped in <li> for valid HTML)
 		for currentLevel < header.HeadingLevel {
 			_, _ = out.Write(indent)
@@ -270,13 +270,7 @@ func RenderTocHeadingItems(ctx *RenderContext, nodeDetailsAttrs map[string]strin
 			currentLevel--
 		}
 		_, _ = out.Write(indent)
-		_, _ = htmlutil.HTMLPrintf(out, "<li><a href=\"#%s\">%s</a>", header.AnchorID, header.InnerText)
-		// Check if next item is at a deeper level - if so, don't close the <li> yet
-		nextIsDeeper := i+1 < len(ctx.TocHeadingItems) && ctx.TocHeadingItems[i+1].HeadingLevel > header.HeadingLevel
-		if !nextIsDeeper {
-			_, _ = htmlutil.HTMLPrint(out, "</li>")
-		}
-		_, _ = htmlutil.HTMLPrint(out, "\n")
+		_, _ = htmlutil.HTMLPrintf(out, "<li><a href=\"#%s\">%s</a></li>\n", header.AnchorID, header.InnerText)
 	}
 	// Close any remaining nested levels
 	for currentLevel > baseLevel {

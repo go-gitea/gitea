@@ -2,6 +2,7 @@ import type {FileRenderPlugin} from '../render/plugin.ts';
 import {newRenderPlugin3DViewer} from '../render/plugins/3d-viewer.ts';
 import {newRenderPluginPdfViewer} from '../render/plugins/pdf-viewer.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 import {createElementFromHTML, showElem, toggleElemClass} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 import {basename} from '../utils.ts';
@@ -155,9 +156,8 @@ function initSidebarToggle(elFileView: HTMLElement): void {
     }
   };
 
-  // Restore saved state from localStorage (default to hidden)
-  const savedState = localStorage.getItem('file-view-sidebar-visible');
-  const isVisible = savedState === 'true'; // default to hidden
+  // Restore saved state (default to hidden)
+  const isVisible = localUserSettings.getBoolean('file-view-sidebar-visible');
 
   // Apply initial state
   if (isVisible) {
@@ -168,6 +168,9 @@ function initSidebarToggle(elFileView: HTMLElement): void {
 
   // Update sidebar position on resize to keep aligned with file content
   // Only observe the segment element to avoid unnecessary updates from unrelated page changes
+  const fileHeader = elFileView.querySelector('.file-header');
+  const segment = elFileView.querySelector('.ui.bottom.segment');
+
   const resizeObserver = new ResizeObserver(() => {
     updatePosition();
   });
@@ -177,8 +180,6 @@ function initSidebarToggle(elFileView: HTMLElement): void {
 
   // Update position using IntersectionObserver instead of scroll event
   // This provides better performance and avoids scroll event issues
-  const fileHeader = elFileView.querySelector('.file-header');
-  const segment = elFileView.querySelector('.ui.bottom.segment');
   if (fileHeader && segment) {
     // Use a small set of thresholds to get periodic position updates during scroll
     const thresholds = [0, 0.25, 0.5, 0.75, 1];
@@ -193,18 +194,10 @@ function initSidebarToggle(elFileView: HTMLElement): void {
     const isCurrentlyVisible = !sidebar.classList.contains('sidebar-panel-hidden');
     if (isCurrentlyVisible) {
       hideSidebar();
-      try {
-        localStorage.setItem('file-view-sidebar-visible', 'false');
-      } catch {
-        // Ignore storage errors (e.g., disabled or full localStorage)
-      }
+      localUserSettings.setBoolean('file-view-sidebar-visible', false);
     } else {
       showSidebar();
-      try {
-        localStorage.setItem('file-view-sidebar-visible', 'true');
-      } catch {
-        // Ignore storage errors (e.g., disabled or full localStorage)
-      }
+      localUserSettings.setBoolean('file-view-sidebar-visible', true);
     }
   });
 }
