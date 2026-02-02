@@ -168,6 +168,7 @@ function initSidebarToggle(elFileView: HTMLElement): void {
 
   // Update sidebar position on resize to keep aligned with file content
   // Only observe the segment element to avoid unnecessary updates from unrelated page changes
+  const fileHeader = elFileView.querySelector('.file-header');
   const segment = elFileView.querySelector('.ui.bottom.segment');
 
   const resizeObserver = new ResizeObserver(() => {
@@ -177,29 +178,19 @@ function initSidebarToggle(elFileView: HTMLElement): void {
     resizeObserver.observe(segment);
   }
 
-  // Update position on scroll using requestAnimationFrame for smooth updates
-  // Note: IntersectionObserver was tried but it only triggers at threshold crossings,
-  // not continuously during scroll, causing the sidebar to "jump" or get stuck
-  // when scrolling between thresholds. scroll event + rAF provides smooth tracking.
-  let scrollRafId: number | null = null;
-  const scrollHandler = () => {
-    // Auto-cleanup: if element is removed from DOM, remove the listener and disconnect observer
-    if (!document.contains(elFileView)) {
-      window.removeEventListener('scroll', scrollHandler);
-      resizeObserver.disconnect();
-      if (scrollRafId !== null) {
-        cancelAnimationFrame(scrollRafId);
-        scrollRafId = null;
+  // Update position using IntersectionObserver for scroll tracking
+  // Use 101 thresholds (0%, 1%, 2%, ..., 100%) for fine-grained position updates
+  if (fileHeader && segment) {
+    const thresholds = Array.from({length: 101}, (_, i) => i / 100);
+    const positionObserver = new IntersectionObserver((entries) => {
+      // Only update if any entry is intersecting (visible)
+      if (entries.some((e) => e.isIntersecting)) {
+        updatePosition();
       }
-      return;
-    }
-    if (scrollRafId !== null) return; // Already scheduled
-    scrollRafId = requestAnimationFrame(() => {
-      updatePosition();
-      scrollRafId = null;
-    });
-  };
-  window.addEventListener('scroll', scrollHandler, {passive: true});
+    }, {threshold: thresholds});
+    positionObserver.observe(segment);
+    positionObserver.observe(fileHeader);
+  }
 
   toggleBtn.addEventListener('click', () => {
     const isCurrentlyVisible = !sidebar.classList.contains('sidebar-panel-hidden');

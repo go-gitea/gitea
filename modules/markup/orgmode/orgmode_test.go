@@ -104,4 +104,3 @@ int a;
 <pre><code class="chroma language-c"><span class="kt">int</span> <span class="n">a</span><span class="p">;</span></code></pre>
 </div>`)
 }
-
