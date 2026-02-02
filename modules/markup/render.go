@@ -4,6 +4,7 @@
 package markup
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"html/template"
@@ -16,9 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup/internal"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/yuin/goldmark/ast"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -54,6 +55,23 @@ type RenderOptions struct {
 
 	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 	InStandalonePage bool
+
+	// EnableHeadingIDGeneration controls whether to auto-generate IDs for HTML headings without id attribute.
+	// This should be enabled for repository files and wiki pages, but disabled for comments to avoid duplicate IDs.
+	EnableHeadingIDGeneration bool
+}
+
+type TocShowInSectionType string
+
+const (
+	TocShowInSidebar TocShowInSectionType = "sidebar"
+	TocShowInMain    TocShowInSectionType = "main"
+)
+
+type TocHeadingItem struct {
+	HeadingLevel int
+	AnchorID     string
+	InnerText    string
 }
 
 // RenderContext represents a render context
@@ -63,7 +81,8 @@ type RenderContext struct {
 	// the context might be used by the "render" function, but it might also be used by "postProcess" function
 	usedByRender bool
 
-	SidebarTocNode ast.Node
+	TocShowInSection TocShowInSectionType
+	TocHeadingItems  []*TocHeadingItem
 
 	RenderHelper   RenderHelper
 	RenderOptions  RenderOptions
@@ -112,6 +131,11 @@ func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
 	return ctx
 }
 
+func (ctx *RenderContext) WithEnableHeadingIDGeneration(v bool) *RenderContext {
+	ctx.RenderOptions.EnableHeadingIDGeneration = v
+	return ctx
+}
+
 func (ctx *RenderContext) WithUseAbsoluteLink(v bool) *RenderContext {
 	ctx.RenderOptions.UseAbsoluteLink = v
 	return ctx
@@ -122,22 +146,29 @@ func (ctx *RenderContext) WithHelper(helper RenderHelper) *RenderContext {
 	return ctx
 }
 
-// FindRendererByContext finds renderer by RenderContext
-// TODO: it should be merged with other similar functions like GetRendererByFileName, DetectMarkupTypeByFileName, etc
-func FindRendererByContext(ctx *RenderContext) (Renderer, error) {
+func (ctx *RenderContext) DetectMarkupRenderer(prefetchBuf []byte) Renderer {
 	if ctx.RenderOptions.MarkupType == "" && ctx.RenderOptions.RelativePath != "" {
-		ctx.RenderOptions.MarkupType = DetectMarkupTypeByFileName(ctx.RenderOptions.RelativePath)
-		if ctx.RenderOptions.MarkupType == "" {
-			return nil, util.NewInvalidArgumentErrorf("unsupported file to render: %q", ctx.RenderOptions.RelativePath)
+		var sniffedType typesniffer.SniffedType
+		if len(prefetchBuf) > 0 {
+			sniffedType = typesniffer.DetectContentType(prefetchBuf)
 		}
+		ctx.RenderOptions.MarkupType = DetectRendererTypeByPrefetch(ctx.RenderOptions.RelativePath, sniffedType, prefetchBuf)
 	}
+	return renderers[ctx.RenderOptions.MarkupType]
+}
 
-	renderer := renderers[ctx.RenderOptions.MarkupType]
+func (ctx *RenderContext) DetectMarkupRendererByReader(in io.Reader) (Renderer, io.Reader, error) {
+	prefetchBuf := make([]byte, 512)
+	n, err := util.ReadAtMost(in, prefetchBuf)
+	if err != nil && err != io.EOF {
+		return nil, nil, err
+	}
+	prefetchBuf = prefetchBuf[:n]
+	renderer := ctx.DetectMarkupRenderer(prefetchBuf)
 	if renderer == nil {
-		return nil, util.NewNotExistErrorf("unsupported markup type: %q", ctx.RenderOptions.MarkupType)
+		return nil, nil, util.NewInvalidArgumentErrorf("unable to find a render")
 	}
-
-	return renderer, nil
+	return renderer, io.MultiReader(bytes.NewReader(prefetchBuf), in), nil
 }
 
 func RendererNeedPostProcess(renderer Renderer) bool {
@@ -148,12 +179,12 @@ func RendererNeedPostProcess(renderer Renderer) bool {
 }
 
 // Render renders markup file to HTML with all specific handling stuff.
-func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	renderer, err := FindRendererByContext(ctx)
+func Render(rctx *RenderContext, origInput io.Reader, output io.Writer) error {
+	renderer, input, err := rctx.DetectMarkupRendererByReader(origInput)
 	if err != nil {
 		return err
 	}
-	return RenderWithRenderer(ctx, renderer, input, output)
+	return RenderWithRenderer(rctx, renderer, input, output)
 }
 
 // RenderString renders Markup string to HTML with all specific handling stuff and return string
@@ -265,12 +296,14 @@ func Init(renderHelpFuncs *RenderHelperFuncs) {
 	}
 
 	// since setting maybe changed extensions, this will reload all renderer extensions mapping
-	extRenderers = make(map[string]Renderer)
+	fileNameRenderers = make(map[string]Renderer)
 	for _, renderer := range renderers {
-		for _, ext := range renderer.Extensions() {
-			extRenderers[strings.ToLower(ext)] = renderer
+		for _, pattern := range renderer.FileNamePatterns() {
+			fileNameRenderers[pattern] = renderer
 		}
 	}
+
+	RefreshFileNamePatterns()
 }
 
 func ComposeSimpleDocumentMetas() map[string]string {

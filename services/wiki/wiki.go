@@ -170,7 +170,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
 
-	objectHash, err := gitRepo.HashObject(strings.NewReader(content))
+	objectHash, err := gitRepo.HashObjectBytes([]byte(content))
 	if err != nil {
 		log.Error("HashObject failed: %v", err)
 		return err
@@ -369,7 +369,7 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 	}
 
 	if err := gitrepo.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
-		desc := fmt.Sprintf("Delete wiki repository files [%s]: %v", repo.FullName(), err)
+		desc := fmt.Sprintf("Delete wiki repository files (%s): %v", repo.FullName(), err)
 		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
 		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)

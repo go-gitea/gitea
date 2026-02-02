@@ -67,7 +67,7 @@ func CherryPickPost(ctx *context.Context) {
 		if parsed.form.Revert {
 			err = gitrepo.GetReverseRawDiff(ctx, ctx.Repo.Repository, fromCommitID, buf)
 		} else {
-			err = git.GetRawDiff(ctx.Repo.GitRepo, fromCommitID, "patch", buf)
+			err = git.GetRawDiff(ctx.Repo.GitRepo, fromCommitID, git.RawDiffPatch, buf)
 		}
 		if err == nil {
 			opts.Content = buf.String()

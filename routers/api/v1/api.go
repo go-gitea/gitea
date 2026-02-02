@@ -188,8 +188,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repo.Owner = owner
 		ctx.Repo.Repository = repo
 
-		if ctx.Doer != nil && ctx.Doer.ID == user_model.ActionsUserID {
-			taskID := ctx.Data["ActionsTaskID"].(int64)
+		if taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer); ok {
 			ctx.Repo.Permission, err = access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
 			if err != nil {
 				ctx.APIErrorInternal(err)
@@ -349,11 +348,7 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 // Contexter middleware already checks token for user sign in process.
 func reqToken() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		// If actions token is present
-		if true == ctx.Data["IsActionsToken"] {
-			return
-		}
-
+		// if a real user is signed in, or the user is from a Actions task, we are good
 		if ctx.IsSigned {
 			return
 		}
@@ -1353,6 +1348,8 @@ func Routes() *web.Router {
 					m.Combo("").Get(repo.ListPullRequests).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
 					m.Get("/pinned", repo.ListPinnedPullRequests)
+					m.Post("/comments/{id}/resolve", reqToken(), mustNotBeArchived, repo.ResolvePullReviewComment)
+					m.Post("/comments/{id}/unresolve", reqToken(), mustNotBeArchived, repo.UnresolvePullReviewComment)
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
@@ -1384,19 +1381,19 @@ func Routes() *web.Router {
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
-				m.Group("/statuses", func() {
+				m.Group("/statuses", func() { // "/statuses/{sha}" only accepts commit ID
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
 						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)
-					m.Group("/{ref}", func() {
-						m.Get("/status", repo.GetCombinedCommitStatusByRef)
-						m.Get("/statuses", repo.GetCommitStatusesByRef)
-					}, context.ReferencesGitRepo())
-					m.Group("/{sha}", func() {
-						m.Get("/pull", repo.GetCommitPullRequest)
-					}, context.ReferencesGitRepo())
+					m.PathGroup("/*", func(g *web.RouterPathGroup) {
+						// Mis-configured reverse proxy might decode the `%2F` to slash ahead, so we need to support both formats (escaped, unescaped) here.
+						// It also matches GitHub's behavior
+						g.MatchPath("GET", "/<ref:*>/status", repo.GetCombinedCommitStatusByRef)
+						g.MatchPath("GET", "/<ref:*>/statuses", repo.GetCommitStatusesByRef)
+						g.MatchPath("GET", "/<sha>/pull", repo.GetCommitPullRequest)
+					})
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {

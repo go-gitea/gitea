@@ -7,8 +7,11 @@ import (
 	"strconv"
 
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/gitdiff"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -28,36 +31,24 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 	ctx.Data["Editorconfig"] = ec
 }
 
+func GetDiffViewStyle(ctx *context.Context) string {
+	return util.Iif(ctx.Data["IsSplitStyle"] == true, gitdiff.DiffStyleSplit, gitdiff.DiffStyleUnified)
+}
+
 // SetDiffViewStyle set diff style as render variable
 func SetDiffViewStyle(ctx *context.Context) {
-	queryStyle := ctx.FormString("style")
-
-	if !ctx.IsSigned {
-		ctx.Data["IsSplitStyle"] = queryStyle == "split"
-		return
+	style := ctx.FormString("style")
+	if ctx.IsSigned {
+		style = util.IfZero(style, ctx.Doer.DiffViewStyle)
+		style = util.Iif(style == gitdiff.DiffStyleSplit, gitdiff.DiffStyleSplit, gitdiff.DiffStyleUnified)
+		if style != ctx.Doer.DiffViewStyle {
+			err := user_service.UpdateUser(ctx, ctx.Doer, &user_service.UpdateOptions{DiffViewStyle: optional.Some(style)})
+			if err != nil {
+				log.Error("UpdateUser DiffViewStyle: %v", err)
+			}
+		}
 	}
-
-	var (
-		userStyle = ctx.Doer.DiffViewStyle
-		style     string
-	)
-
-	if queryStyle == "unified" || queryStyle == "split" {
-		style = queryStyle
-	} else if userStyle == "unified" || userStyle == "split" {
-		style = userStyle
-	} else {
-		style = "unified"
-	}
-
 	ctx.Data["IsSplitStyle"] = style == "split"
-
-	opts := &user_service.UpdateOptions{
-		DiffViewStyle: optional.Some(style),
-	}
-	if err := user_service.UpdateUser(ctx, ctx.Doer, opts); err != nil {
-		ctx.ServerError("UpdateUser", err)
-	}
 }
 
 // SetWhitespaceBehavior set whitespace behavior as render variable

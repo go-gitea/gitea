@@ -14,14 +14,24 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+const cookieRedirectTo = "redirect_to"
+
+func GetRedirectToCookie(req *http.Request) string {
+	return GetSiteCookie(req, cookieRedirectTo)
+}
+
 // SetRedirectToCookie convenience function to set the RedirectTo cookie consistently
 func SetRedirectToCookie(resp http.ResponseWriter, value string) {
-	SetSiteCookie(resp, "redirect_to", value, 0)
+	SetSiteCookie(resp, cookieRedirectTo, value, 0)
 }
 
 // DeleteRedirectToCookie convenience function to delete most cookies consistently
 func DeleteRedirectToCookie(resp http.ResponseWriter) {
-	SetSiteCookie(resp, "redirect_to", "", -1)
+	SetSiteCookie(resp, cookieRedirectTo, "", -1)
+}
+
+func RedirectLinkUserLogin(req *http.Request) string {
+	return setting.AppSubURL + "/user/login?redirect_to=" + url.QueryEscape(setting.AppSubURL+req.URL.RequestURI())
 }
 
 // GetSiteCookie returns given cookie value from request header.
