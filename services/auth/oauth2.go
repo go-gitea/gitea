@@ -6,6 +6,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -17,14 +18,12 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/oauth2_provider"
 )
 
-// Ensure the struct implements the interface.
-var (
-	_ Method = &OAuth2{}
-)
+var _ Method = &OAuth2{}
 
 // GetOAuthAccessTokenScopeAndUserID returns access token scope and user id
 func GetOAuthAccessTokenScopeAndUserID(ctx context.Context, accessToken string) (auth_model.AccessTokenScope, int64) {
@@ -106,18 +105,16 @@ func parseToken(req *http.Request) (string, bool) {
 	return "", false
 }
 
-// userIDFromToken returns the user id corresponding to the OAuth token.
+// userFromToken returns the user corresponding to the OAuth token.
 // It will set 'IsApiToken' to true if the token is an API token and
-// set 'ApiTokenScope' to the scope of the access token
-func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store DataStore) int64 {
+// set 'ApiTokenScope' to the scope of the access token (TODO: this behavior should be fixed, don't set ctx.Data)
+func (o *OAuth2) userFromToken(ctx context.Context, tokenSHA string, store DataStore) (*user_model.User, error) {
 	// Let's see if token is valid.
 	if strings.Contains(tokenSHA, ".") {
 		// First attempt to decode an actions JWT, returning the actions user
 		if taskID, err := actions.TokenToTaskID(tokenSHA); err == nil {
 			if CheckTaskIsRunning(ctx, taskID) {
-				store.GetData()["IsActionsToken"] = true
-				store.GetData()["ActionsTaskID"] = taskID
-				return user_model.ActionsUserID
+				return user_model.NewActionsUserWithTaskID(taskID), nil
 			}
 		}
 
@@ -127,33 +124,27 @@ func (o *OAuth2) userIDFromToken(ctx context.Context, tokenSHA string, store Dat
 			store.GetData()["IsApiToken"] = true
 			store.GetData()["ApiTokenScope"] = accessTokenScope
 		}
-		return uid
+		return user_model.GetUserByID(ctx, uid)
 	}
 	t, err := auth_model.GetAccessTokenBySHA(ctx, tokenSHA)
 	if err != nil {
 		if auth_model.IsErrAccessTokenNotExist(err) {
 			// check task token
-			task, err := actions_model.GetRunningTaskByToken(ctx, tokenSHA)
-			if err == nil && task != nil {
+			if task, err := actions_model.GetRunningTaskByToken(ctx, tokenSHA); err == nil {
 				log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
-
-				store.GetData()["IsActionsToken"] = true
-				store.GetData()["ActionsTaskID"] = task.ID
-
-				return user_model.ActionsUserID
+				return user_model.NewActionsUserWithTaskID(task.ID), nil
 			}
-		} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
-			log.Error("GetAccessTokenBySHA: %v", err)
 		}
-		return 0
+		return nil, err
 	}
+
 	t.UpdatedUnix = timeutil.TimeStampNow()
 	if err = auth_model.UpdateAccessToken(ctx, t); err != nil {
 		log.Error("UpdateAccessToken: %v", err)
 	}
 	store.GetData()["IsApiToken"] = true
 	store.GetData()["ApiTokenScope"] = t.Scope
-	return t.UID
+	return user_model.GetUserByID(ctx, t.UID)
 }
 
 // Verify extracts the user ID from the OAuth token in the query parameters
@@ -173,21 +164,9 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 		return nil, nil
 	}
 
-	id := o.userIDFromToken(req.Context(), token, store)
-
-	if id <= 0 && id != -2 { // -2 means actions, so we need to allow it.
-		return nil, user_model.ErrUserNotExist{}
+	user, err := o.userFromToken(req.Context(), token, store)
+	if err != nil && !errors.Is(err, util.ErrNotExist) {
+		log.Error("userFromToken: %v", err) // the callers might ignore the error, so log it here
 	}
-	log.Trace("OAuth2 Authorization: Found token for user[%d]", id)
-
-	user, err := user_model.GetPossibleUserByID(req.Context(), id)
-	if err != nil {
-		if !user_model.IsErrUserNotExist(err) {
-			log.Error("GetUserByName: %v", err)
-		}
-		return nil, err
-	}
-
-	log.Trace("OAuth2 Authorization: Logged in user %-v", user)
-	return user, nil
+	return user, err
 }

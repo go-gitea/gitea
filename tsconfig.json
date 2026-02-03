@@ -13,7 +13,7 @@
     "target": "es2020",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "lib": ["dom", "dom.iterable", "dom.asynciterable", "esnext"],
+    "lib": ["dom", "dom.iterable", "dom.asynciterable", "esnext", "webworker"],
     "allowImportingTsExtensions": true,
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
