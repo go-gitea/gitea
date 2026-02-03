@@ -1,11 +1,11 @@
 import {shouldHideLine, type LogLine} from './log.ts';
 
-function filterLogLines(logLines: LogLine[]): LogLine[] {
+function filterLogLines(logLines: Array<LogLine>): Array<LogLine> {
   return logLines.filter((line) => !shouldHideLine(line));
 }
 
-test('filters workflow command lines from log output', () => {
-  const inputLogLines: LogLine[] = [
+test('filters workflow command', () => {
+  expect(filterLogLines([
     {index: 1, message: 'Starting build process', timestamp: 1000},
     {index: 2, message: '::add-matcher::.github/problem-matcher.json', timestamp: 1001},
     {index: 3, message: 'Running tests...', timestamp: 1002},
@@ -15,9 +15,7 @@ test('filters workflow command lines from log output', () => {
     {index: 7, message: 'All tests passed', timestamp: 1006},
     {index: 8, message: '::remove-matcher::owner=eslint', timestamp: 1007},
     {index: 9, message: 'Build complete', timestamp: 1008},
-  ];
-
-  expect(filterLogLines(inputLogLines).map((line) => line.message)).toMatchInlineSnapshot(`
+  ]).map((line) => line.message)).toMatchInlineSnapshot(`
     [
       "Starting build process",
       "Running tests...",
@@ -27,19 +25,15 @@ test('filters workflow command lines from log output', () => {
       "Build complete",
     ]
   `);
-});
 
-test('preserves non-workflow command lines including group commands', () => {
-  const inputLogLines: LogLine[] = [
+  expect(filterLogLines([
     {index: 1, message: 'Normal log line', timestamp: 1000},
     {index: 2, message: '::group::Installation', timestamp: 1001},
     {index: 3, message: 'Installing dependencies', timestamp: 1002},
     {index: 4, message: '::add-matcher::.github/npm.json', timestamp: 1003},
     {index: 5, message: '::endgroup::', timestamp: 1004},
     {index: 6, message: 'Done', timestamp: 1005},
-  ];
-
-  expect(filterLogLines(inputLogLines).map((line) => line.message)).toMatchInlineSnapshot(`
+  ]).map((line) => line.message)).toMatchInlineSnapshot(`
     [
       "Normal log line",
       "::group::Installation",
