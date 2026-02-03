@@ -41,7 +41,7 @@ func TestGetOrInsertBlobConcurrent(t *testing.T) {
 	// then: all GetOrInsertBlob succeeds with the same blob ID, and only one indicates it did not exist before
 	existedCount := 0
 	assert.NotNil(t, results[0])
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		assert.Equal(t, results[0].ID, results[i].ID)
 		if existed[i] {
 			existedCount++
