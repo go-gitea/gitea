@@ -651,6 +651,8 @@ type WorkflowCallPayload struct {
 	Ref string `json:"ref"`
 	// Input parameters for the workflow_call event
 	Inputs map[string]any `json:"inputs"`
+	// Secret mappings for the workflow_call event (caller secret name)
+	Secrets map[string]string `json:"secrets"`
 	// The repository containing the workflow
 	Repository *Repository `json:"repository"`
 	// The user who triggered the workflow

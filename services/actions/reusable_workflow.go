@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -72,6 +73,10 @@ func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_
 	if err != nil {
 		return err
 	}
+	secretsMapping, err := buildWorkflowCallSecrets(workflowJob, content)
+	if err != nil {
+		return err
+	}
 
 	workflowCallPayload := &api.WorkflowCallPayload{
 		Workflow:   parentJobRun.WorkflowID,
@@ -79,6 +84,7 @@ func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_
 		Repository: convert.ToRepo(ctx, parentJobRun.Repo, access_model.Permission{AccessMode: perm.AccessModeNone}),
 		Sender:     convert.ToUserWithAccessMode(ctx, parentJobRun.TriggerUser, perm.AccessModeNone),
 		Inputs:     inputsWithDefaults,
+		Secrets:    flattenWorkflowCallSecrets(parentJobRun, secretsMapping),
 	}
 
 	jobs, err := jobparser.Parse(content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()), jobparser.WithInputs(inputsWithDefaults))
@@ -154,6 +160,43 @@ func buildWorkflowCallInputs(ctx context.Context, parentJob *actions_model.Actio
 	}
 
 	return jobparser.EvaluateWorkflowCallInputs(workflow, parentJob.JobID, workflowJob, giteaCtx, results, vars, parentRunInputs)
+}
+
+func buildWorkflowCallSecrets(workflowJob *jobparser.Job, content []byte) (map[string]string, error) {
+	singleWorkflow := &jobparser.SingleWorkflow{}
+	if err := yaml.Unmarshal(content, singleWorkflow); err != nil {
+		return nil, fmt.Errorf("unmarshal workflow: %w", err)
+	}
+
+	workflow := &actmodel.Workflow{
+		RawOn: singleWorkflow.RawOn,
+	}
+
+	return jobparser.EvaluateWorkflowCallSecrets(workflow, workflowJob)
+}
+
+func flattenWorkflowCallSecrets(parentRun *actions_model.ActionRun, mapping map[string]string) map[string]string {
+	if parentRun.TriggerEvent != "workflow_call" || len(mapping) == 0 {
+		return mapping
+	}
+
+	var payload api.WorkflowCallPayload
+	if err := json.Unmarshal([]byte(parentRun.EventPayload), &payload); err != nil {
+		return mapping
+	}
+	if len(payload.Secrets) == 0 {
+		return mapping
+	}
+
+	out := make(map[string]string, len(mapping))
+	for dest, src := range mapping {
+		if root, ok := payload.Secrets[src]; ok {
+			out[dest] = root
+		} else {
+			out[dest] = src
+		}
+	}
+	return out
 }
 
 func loadReusableWorkflowContent(ctx context.Context, parentRun *actions_model.ActionRun, ref *act_pkg_runner.ReusableWorkflowRef) ([]byte, error) {
