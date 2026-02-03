@@ -1450,7 +1450,7 @@ func Routes() *web.Router {
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
 
-		//
+		// Commit status can be created by write:commitstatus or write:repository
 		m.Group("/repos/{username}/{reponame}/statuses", func() { // "/statuses/{sha}" only accepts commit ID
 			m.Combo("/{sha}").Get(repo.GetCommitStatuses).
 				Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
