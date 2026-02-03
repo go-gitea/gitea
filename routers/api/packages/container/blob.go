@@ -76,7 +76,7 @@ func saveAsPackageBlobInternal(ctx context.Context, hsr packages_module.HashedSi
 		return createFileForBlob(ctx, uploadVersion, pb)
 	})
 	if err != nil {
-		if !exists {
+		if !exists && pb != nil { // pb can be nil if GetOrInsertBlob failed
 			if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
 				log.Error("Error deleting package blob from content store: %v", err)
 			}
