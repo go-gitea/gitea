@@ -22,7 +22,7 @@ type ListSystemWebhookOptions struct {
 
 func (opts ListSystemWebhookOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
-	cond.And(builder.Eq{"webhook.repo_id": 0}, builder.Eq{"webhook.owner_id": 0})
+	cond = cond.And(builder.Eq{"webhook.repo_id": 0}, builder.Eq{"webhook.owner_id": 0})
 	if opts.IsActive.Has() {
 		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.Value()})
 	}
