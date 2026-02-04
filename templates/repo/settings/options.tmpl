@@ -597,15 +597,17 @@
 						</div>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch"}}</label>
-							<select class="ui dropdown" name="default_target_branch">
-								{{$defaultTargetBranch := $prUnit.PullRequestsConfig.DefaultTargetBranch}}
-								<option value="" {{if not $defaultTargetBranch}}selected{{end}}>
-									{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch}}
-								</option>
-								{{range $branchName := $.Branches}}
-									<option value="{{$branchName}}" {{if eq $defaultTargetBranch $branchName}}selected{{end}}>{{$branchName}}</option>
-								{{end}}
-							</select>
+							<div class="ui search selection dropdown">
+								<input type="hidden" name="default_target_branch" value="{{$prUnit.PullRequestsConfig.DefaultTargetBranch}}">
+								<div class="default text"></div>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="menu">
+									<div class="item" data-value="">{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch}}</div>
+									{{range $branchName := $.Branches}}
+										<div class="item" data-value="{{$branchName}}">{{$branchName}}</div>
+									{{end}}
+								</div>
+							</div>
 							<p class="help">{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch_desc"}}</p>
 						</div>
 						<div class="field">
