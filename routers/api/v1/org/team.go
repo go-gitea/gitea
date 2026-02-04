@@ -55,7 +55,6 @@ func ListTeams(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	listOptions := utils.GetListOptions(ctx)
-
 	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
 		ListOptions: listOptions,
 		OrgID:       ctx.Org.Organization.ID,
@@ -97,7 +96,6 @@ func ListUserTeams(ctx *context.APIContext) {
 	//     "$ref": "#/responses/TeamList"
 
 	listOptions := utils.GetListOptions(ctx)
-
 	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
 		ListOptions: listOptions,
 		UserID:      ctx.Doer.ID,
@@ -398,8 +396,9 @@ func GetTeamMembers(ctx *context.APIContext) {
 		return
 	}
 
+	listOptions := utils.GetListOptions(ctx)
 	teamMembers, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		TeamID:      ctx.Org.Team.ID,
 	})
 	if err != nil {
@@ -412,6 +411,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 		members[i] = convert.ToUser(ctx, member, ctx.Doer)
 	}
 
+	ctx.SetLinkHeader(ctx.Org.Team.NumMembers, listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(ctx.Org.Team.NumMembers))
 	ctx.JSON(http.StatusOK, members)
 }
@@ -565,8 +565,9 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	team := ctx.Org.Team
+	listOptions := utils.GetListOptions(ctx)
 	teamRepos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		TeamID:      team.ID,
 	})
 	if err != nil {
@@ -582,6 +583,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 		}
 		repos[i] = convert.ToRepo(ctx, repo, permission)
 	}
+	ctx.SetLinkHeader(team.NumRepos, listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(team.NumRepos))
 	ctx.JSON(http.StatusOK, repos)
 }
@@ -880,7 +882,7 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
-
 	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
 }
