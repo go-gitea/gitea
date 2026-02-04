@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetSystemOrDefaultWebhooks(t *testing.T) {
+func TestListSystemWebhookOptions(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	opts := ListSystemWebhookOptions{IsSystem: optional.None[bool]()}
 	hooks, _, err := GetGlobalWebhooks(t.Context(), &opts)

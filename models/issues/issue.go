@@ -702,6 +702,19 @@ func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptio
 	return issueDeps, err
 }
 
+// BlockedByDependenciesCount counts all Dependencies an issue is blocked by
+func (issue *Issue) BlockedByDependenciesCount(ctx context.Context) (int64, error) {
+	sess := db.GetEngine(ctx).
+		Table("issue").
+		Join("INNER", "repository", "repository.id = issue.repo_id").
+		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
+		Where("issue_id = ?", issue.ID).
+		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
+		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID)
+
+	return sess.Count()
+}
+
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
 func (issue *Issue) BlockingDependencies(ctx context.Context) (issueDeps []*DependencyInfo, err error) {
 	err = db.GetEngine(ctx).
