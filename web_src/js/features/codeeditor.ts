@@ -168,16 +168,16 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
     textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
   });
 
-  const form = textarea.closest('form');
-  form.querySelector<HTMLSelectElement>('.js-indent-style-select').addEventListener('change', (e) => {
+  const form = textarea.closest('form')!;
+  form.querySelector<HTMLSelectElement>('.js-indent-style-select')!.addEventListener('change', (e) => {
     const insertSpaces = (e.target as HTMLSelectElement).value === 'space';
     editor.updateOptions({insertSpaces, useTabStops: !insertSpaces});
   });
-  form.querySelector<HTMLSelectElement>('.js-indent-size-select').addEventListener('change', (e) => {
+  form.querySelector<HTMLSelectElement>('.js-indent-size-select')!.addEventListener('change', (e) => {
     const tabSize = Number((e.target as HTMLSelectElement).value);
     editor.updateOptions({tabSize});
   });
-  form.querySelector<HTMLSelectElement>('.js-line-wrap-select').addEventListener('change', (e) => {
+  form.querySelector<HTMLSelectElement>('.js-line-wrap-select')!.addEventListener('change', (e) => {
     const wordWrap = (e.target as HTMLSelectElement).value as IEditorOptions['wordWrap'];
     editor.updateOptions({wordWrap});
   });
