@@ -3,6 +3,8 @@ import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
 import {queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import {load as loadYaml} from 'js-yaml';
+import type {MermaidConfig} from 'mermaid';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
@@ -10,13 +12,33 @@ const iframeCss = `:root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}`;
 
+function configContainsElk(config: MermaidConfig) {
+  if (config?.layout === 'elk' || config?.layout?.startsWith('elk.')) return true;
+  return Object.values(config).some((value) => value?.defaultRenderer?.startsWith('elk'));
+}
+
 /** detect whether mermaid sources contain elk layout configuration */
 export function sourcesContainElk(sources: Array<string>) {
   return sources.some((source) => {
-    // yaml frontmatter
-    if (/^['"\s]*(layout|defaultRenderer)['"\s]*:['"\s]*elk/m.test(source)) return true;
-    // json init
-    if (/"(layout|defaultRenderer)"\s*:\s*"elk/.test(source)) return true;
+    const frontmatter = (/---\r?\n([\s\S]*?)\r?\n\s*---/.exec(source) || [])[1];
+    if (frontmatter) {
+      try {
+        return configContainsElk((loadYaml(frontmatter) as {config: MermaidConfig}).config);
+      } catch {
+        return false;
+      }
+    }
+    const directive = (/%%\{([\s\S]*)\}%%/.exec(source) || [])[1];
+    if (directive) {
+      const init = (/init\s*:\s*([\s\S]*)$/.exec(directive) || [])[1];
+      if (init) {
+        try {
+          return configContainsElk((JSON.parse(init.trim().replace(/,(\s*[}\]])/g, '$1')) as MermaidConfig));
+        } catch {
+          return false;
+        }
+      }
+    }
     return false;
   });
 }
