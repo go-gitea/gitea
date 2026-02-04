@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -212,7 +213,7 @@ func (u *User) SetLastLogin() {
 
 // GetPlaceholderEmail returns an noreply email
 func (u *User) GetPlaceholderEmail() string {
-	return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
+	return fmt.Sprintf("%s+%d@%s", u.LowerName, u.ID, setting.Service.NoReplyAddress)
 }
 
 // GetEmail returns a noreply email, if the user has set to keep his
@@ -1197,14 +1198,19 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 
 	needCheckEmails := make(container.Set[string])
 	needCheckUserNames := make(container.Set[string])
+	needCheckUserIDs := make(container.Set[int64])
 	noReplyAddressSuffix := "@" + strings.ToLower(setting.Service.NoReplyAddress)
 	for _, email := range emails {
 		emailLower := strings.ToLower(email)
+		needCheckEmails.Add(emailLower)
 		if noReplyUserNameLower, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
-			needCheckUserNames.Add(noReplyUserNameLower)
-			needCheckEmails.Add(emailLower)
-		} else {
-			needCheckEmails.Add(emailLower)
+			name, idstr, hasPlus := strings.Cut(noReplyUserNameLower, "+")
+			if hasPlus {
+				if id, err := strconv.ParseInt(idstr, 10, 64); err == nil {
+					needCheckUserIDs.Add(id)
+				}
+			}
+			needCheckUserNames.Add(name)
 		}
 	}
 
@@ -1234,13 +1240,46 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 		}
 	}
 
-	users := make(map[int64]*User, len(needCheckUserNames))
-	if err := db.GetEngine(ctx).In("lower_name", needCheckUserNames.Values()).Find(&users); err != nil {
-		return nil, err
+	usersByIDs := make(map[string]*User)
+	if len(needCheckUserIDs) > 0 || len(needCheckUserNames) > 0 {
+		cond := builder.NewCond()
+		if len(needCheckUserIDs) > 0 {
+			cond = cond.Or(builder.In("id", needCheckUserIDs.Values()))
+		}
+		if len(needCheckUserNames) > 0 {
+			cond = cond.Or(builder.In("lower_name", needCheckUserNames.Values()))
+		}
+		if err := db.GetEngine(ctx).Where(cond).Find(&usersByIDs); err != nil {
+			return nil, err
+		}
 	}
-	for _, user := range users {
-		results[strings.ToLower(user.GetPlaceholderEmail())] = user
+
+	usersByName := make(map[string]*User)
+	for _, user := range usersByIDs {
+		usersByName[user.LowerName] = user
 	}
+
+	for _, email := range emails {
+		emailLower := strings.ToLower(email)
+		if _, ok := results[emailLower]; ok {
+			continue
+		}
+
+		noReplyUserNameLower, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix)
+		if !ok {
+			continue
+		}
+
+		name, idstr, hasPlus := strings.Cut(noReplyUserNameLower, "+")
+		if hasPlus {
+			if user, ok := usersByIDs[idstr]; ok {
+				results[emailLower] = user
+			}
+		} else if user, ok := usersByName[name]; ok {
+			results[emailLower] = user
+		}
+	}
+
 	return &EmailUserMap{results}, nil
 }
 
@@ -1262,16 +1301,17 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Finally, if email address is the protected email address:
-	if before, ok := strings.CutSuffix(email, "@"+setting.Service.NoReplyAddress); ok {
-		username := before
-		user := &User{}
-		has, err := db.GetEngine(ctx).Where("lower_name=?", username).Get(user)
-		if err != nil {
-			return nil, err
+	if before, ok := strings.CutSuffix(email, strings.ToLower("@"+setting.Service.NoReplyAddress)); ok {
+		// check if the email is in format user+id@noreplyaddress
+		username, id, isAlias := strings.Cut(before, "+")
+		if isAlias {
+			id, err := strconv.ParseInt(id, 10, 64)
+			if err != nil {
+				return nil, err
+			} // error or UserNotExist?
+			return GetUserByID(ctx, id)
 		}
-		if has {
-			return user, nil
-		}
+		return GetUserByName(ctx, username)
 	}
 
 	return nil, ErrUserNotExist{Name: email}
