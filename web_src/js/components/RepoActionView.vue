@@ -28,7 +28,7 @@ export const LogLinePrefixesHidden = ['::add-matcher::', '##[add-matcher]', '::r
 export type LogLineCommand = {
   name: 'group' | 'endgroup',
   prefix: string,
-};
+}
 
 type Job = {
   id: number;
