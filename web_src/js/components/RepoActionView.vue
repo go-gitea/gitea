@@ -9,10 +9,46 @@ import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
-import {parseLineCommand, shouldHideLine, type LogLine, type LogLineCommand} from '../actions/log.ts';
-
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+
+export type LogLine = {
+  index: number; // 1
+  message: string; // "message"
+  timestamp: number; // 1770061591.330781
+};
+
+export const LogLinePrefixesGroup = ['::group::', '##[group]'];
+export const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
+export const LogLinePrefixesHidden = ['::add-matcher::', '##[add-matcher]', '::remove-matcher'];
+
+export type LogLineCommand = {
+  name: 'group' | 'endgroup';
+  prefix: string;
+};
+
+export function parseLineCommand(line: LogLine): LogLineCommand | null {
+  for (const prefix of LogLinePrefixesGroup) {
+    if (line.message.startsWith(prefix)) {
+      return {name: 'group', prefix};
+    }
+  }
+  for (const prefix of LogLinePrefixesEndGroup) {
+    if (line.message.startsWith(prefix)) {
+      return {name: 'endgroup', prefix};
+    }
+  }
+  return null;
+}
+
+export function shouldHideLine(line: LogLine): boolean {
+  for (const prefix of LogLinePrefixesHidden) {
+    if (line.message.startsWith(prefix)) {
+      return true;
+    }
+  }
+  return false;
+}
 
 type StepContainerElement = HTMLElement & {_stepLogsActiveContainer?: HTMLElement}
 
