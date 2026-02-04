@@ -76,6 +76,16 @@ test('sourcesContainElk', () => {
   `])).toEqual(true);
 
   expect(sourcesContainElk([`
+    ---
+
+    ---
+    %%{ init: { "layout": "elk" } }%%
+    flowchart TB
+      A --> B
+      A --> C --> B
+  `])).toEqual(true);
+
+  expect(sourcesContainElk([`
     %%{ init: { "layout": "elk" } }%%
     flowchart TB
       A --> B
