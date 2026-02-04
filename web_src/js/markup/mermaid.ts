@@ -19,28 +19,28 @@ function configContainsElk(config: MermaidConfig) {
 
 /** detect whether mermaid sources contain elk layout configuration */
 export function sourcesContainElk(sources: Array<string>) {
-  return sources.some((source) => {
+  for (const source of sources) {
     const frontmatter = (/---\r?\n([\s\S]*?)\r?\n\s*---/.exec(source) || [])[1];
     if (frontmatter) {
       try {
-        return configContainsElk((loadYaml(frontmatter) as {config: MermaidConfig}).config);
-      } catch {
-        return false;
-      }
+        if (configContainsElk((loadYaml(frontmatter) as {config: MermaidConfig}).config)) {
+          return true;
+        }
+      } catch {}
     }
     const directive = (/%%\{([\s\S]*)\}%%/.exec(source) || [])[1];
     if (directive) {
       const init = (/init\s*:\s*([\s\S]*)$/.exec(directive) || [])[1];
       if (init) {
         try {
-          return configContainsElk((JSON.parse(init) as MermaidConfig));
-        } catch {
-          return false;
-        }
+          if (configContainsElk((JSON.parse(init) as MermaidConfig))) {
+            return true;
+          }
+        } catch {}
       }
     }
-    return false;
-  });
+  }
+  return false;
 }
 
 async function loadMermaid(sources: Array<string>) {
