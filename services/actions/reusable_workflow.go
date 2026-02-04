@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/jobparser"
-	actmodel "github.com/nektos/act/pkg/model"
+	act_pkg_model "github.com/nektos/act/pkg/model"
 	act_pkg_runner "github.com/nektos/act/pkg/runner"
 	"gopkg.in/yaml.v3"
 	"xorm.io/builder"
@@ -145,7 +145,7 @@ func buildWorkflowCallInputs(ctx context.Context, parentJob *actions_model.Actio
 		return nil, fmt.Errorf("unmarshal workflow: %w", err)
 	}
 
-	workflow := &actmodel.Workflow{
+	workflow := &act_pkg_model.Workflow{
 		RawOn: singleWorkflow.RawOn,
 	}
 
@@ -168,7 +168,7 @@ func buildWorkflowCallSecrets(workflowJob *jobparser.Job, content []byte) (map[s
 		return nil, fmt.Errorf("unmarshal workflow: %w", err)
 	}
 
-	workflow := &actmodel.Workflow{
+	workflow := &act_pkg_model.Workflow{
 		RawOn: singleWorkflow.RawOn,
 	}
 
@@ -312,4 +312,66 @@ func checkRunNestingLevel(ctx context.Context, run *actions_model.ActionRun) err
 		}
 	}
 	return nil
+}
+
+func workflowCallOutputsByChildRun(ctx context.Context, childRunID int64) (map[string]string, error) {
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, childRunID)
+	if err != nil {
+		return nil, fmt.Errorf("GetRunJobsByRunID: %w", err)
+	}
+	if len(jobs) == 0 {
+		return nil, nil
+	}
+
+	childRun, err := actions_model.GetRunByRepoAndID(ctx, jobs[0].RepoID, jobs[0].RunID)
+	if err != nil {
+		return nil, fmt.Errorf("GetRunByRepoAndID: %w", err)
+	}
+
+	singleWorkflows, err := jobparser.Parse(jobs[0].WorkflowPayload)
+	if err != nil {
+		return nil, err
+	}
+	if len(singleWorkflows) == 0 {
+		return nil, nil
+	}
+	actWorkflow := &act_pkg_model.Workflow{
+		RawOn: singleWorkflows[0].RawOn,
+	}
+
+	outputsByJobID, err := collectJobOutputsByJobID(ctx, jobs)
+	if err != nil {
+		return nil, fmt.Errorf("collectJobOutputsByJobID: %w", err)
+	}
+
+	vars, err := actions_model.GetVariablesOfRun(ctx, childRun)
+	if err != nil {
+		return nil, fmt.Errorf("GetVariablesOfRun: %w", err)
+	}
+	inputs, err := getInputsFromRun(childRun)
+	if err != nil {
+		return nil, fmt.Errorf("getInputsFromRun: %w", err)
+	}
+	gitCtx := GenerateGiteaContext(childRun, nil)
+
+	return jobparser.EvaluateWorkflowCallOutputs(actWorkflow, gitCtx, vars, inputs, outputsByJobID)
+}
+
+func collectJobOutputsByJobID(ctx context.Context, jobs []*actions_model.ActionRunJob) (map[string]map[string]string, error) {
+	jobIDJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
+	for _, job := range jobs {
+		jobIDJobs[job.JobID] = append(jobIDJobs[job.JobID], job)
+	}
+
+	ret := make(map[string]map[string]string, len(jobIDJobs))
+	for jobID, jobsWithSameID := range jobIDJobs {
+		jobOutputs, err := getJobOutputsForSameIDJobs(ctx, jobsWithSameID)
+		if err != nil {
+			return nil, err
+		}
+		if len(jobOutputs) > 0 {
+			ret[jobID] = jobOutputs
+		}
+	}
+	return ret, nil
 }
