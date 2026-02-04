@@ -14,7 +14,7 @@ function shouldIgnoreError(err: Error) {
     // https://github.com/microsoft/monaco-editor/issues/4496
     // https://github.com/microsoft/monaco-editor/issues/4679
     '/assets/js/monaco.',
-    '/monaco-editor/',
+    '_monaco-editor_',
   ];
   for (const pattern of ignorePatterns) {
     if (err.stack?.includes(pattern)) return true;
