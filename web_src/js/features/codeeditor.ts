@@ -38,6 +38,7 @@ const baseOptions: MonacoOpts = {
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6, alwaysConsumeMouseWheel: false},
   scrollBeyondLastLine: false,
   automaticLayout: true,
+  indentSize: 'tabSize',
   wrappingIndent: 'none',
   wordWrapBreakAfterCharacters: '',
   wordWrapBreakBeforeCharacters: '',
@@ -152,6 +153,7 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
   const editor = monaco.editor.create(container, {
     model,
     theme: 'gitea',
+    ...baseOptions,
     ...other,
   });
 
@@ -165,6 +167,20 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
       lineEnding: '',
     });
     textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
+  });
+
+  const form = textarea.closest('form');
+  form?.querySelector<HTMLSelectElement>('.js-indent-style-select')?.addEventListener('change', (e) => {
+    const insertSpaces = (e.target as HTMLSelectElement).value === 'space';
+    editor.updateOptions({insertSpaces, useTabStops: !insertSpaces});
+  });
+  form?.querySelector<HTMLSelectElement>('.js-indent-size-select')?.addEventListener('change', (e) => {
+    const tabSize = Number((e.target as HTMLSelectElement).value);
+    editor.updateOptions({tabSize});
+  });
+  form?.querySelector<HTMLSelectElement>('.js-line-wrap-select')?.addEventListener('change', (e) => {
+    const wordWrap = (e.target as HTMLSelectElement).value as IEditorOptions['wordWrap'];
+    editor.updateOptions({wordWrap});
   });
 
   exportEditor(editor);
@@ -208,7 +224,6 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   togglePreviewDisplay(isPreviewable);
 
   const {monaco, editor} = await createMonaco(textarea, filename, {
-    ...baseOptions,
     ...getFileBasedOptions(filenameInput.value, lineWrapExts),
     ...getEditorConfigOptions(editorConfig),
   });
@@ -229,12 +244,9 @@ function getEditorConfigOptions(ec: EditorConfig | null): MonacoOpts {
   const opts: MonacoOpts = {};
   opts.detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
 
-  if ('indent_size' in ec) {
-    opts.indentSize = Number(ec.indent_size);
-  }
-  if ('tab_width' in ec) {
-    opts.tabSize = Number(ec.tab_width) || Number(ec.indent_size);
-  }
+  // we use indentSize='tabSize' so these numbers always match
+  opts.tabSize = Number(ec.indent_size) || Number(ec.tab_width) || 4;
+
   if ('max_line_length' in ec) {
     opts.rulers = [Number(ec.max_line_length)];
   }

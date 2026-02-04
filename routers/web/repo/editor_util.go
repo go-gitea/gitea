@@ -18,6 +18,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	context_service "code.gitea.io/gitea/services/context"
+
+	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
 // getUniquePatchBranchName Gets a unique branch name for a new patch branch
@@ -62,17 +64,17 @@ func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePa
 	return f(originTreePath, commit)
 }
 
-// getContextRepoEditorConfig returns the editorconfig JSON string for given treePath or "null"
-func getContextRepoEditorConfig(ctx *context_service.Context, treePath string) string {
+// getContextRepoEditorConfig returns the editorconfig JSON string and definition for given treePath
+func getContextRepoEditorConfig(ctx *context_service.Context, treePath string) (string, *editorconfig.Definition) {
 	ec, _, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
 			jsonStr, _ := json.Marshal(def)
-			return string(jsonStr)
+			return string(jsonStr), def
 		}
 	}
-	return "null"
+	return "null", nil
 }
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths based on given treePath.
