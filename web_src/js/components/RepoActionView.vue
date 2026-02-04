@@ -21,11 +21,11 @@ export type LogLine = {
   timestamp: number; // 1770061591.330781
 };
 
-export const LogLinePrefixesGroup = ['::group::', '##[group]'];
-export const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
-export const LogLinePrefixesHidden = ['::add-matcher::', '##[add-matcher]', '::remove-matcher'];
+const LogLinePrefixesGroup = ['::group::', '##[group]'];
+const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
+const LogLinePrefixesHidden = ['::add-matcher::', '##[add-matcher]', '::remove-matcher'];
 
-export type LogLineCommand = {
+type LogLineCommand = {
   name: 'group' | 'endgroup',
   prefix: string,
 }
@@ -50,7 +50,7 @@ type JobStepState = {
   manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
 }
 
-export function parseLineCommand(line: LogLine): LogLineCommand | null {
+function parseLineCommand(line: LogLine): LogLineCommand | null {
   for (const prefix of LogLinePrefixesGroup) {
     if (line.message.startsWith(prefix)) {
       return {name: 'group', prefix};
