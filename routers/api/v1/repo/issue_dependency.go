@@ -83,14 +83,8 @@ func GetIssueDependencies(ctx *context.APIContext) {
 
 	blockerIssues := make([]*issues_model.Issue, 0, listOptions.PageSize)
 
-	total, err := issue.BlockedByDependenciesCount(ctx)
-	if err != nil {
-		ctx.APIErrorInternal(err)
-		return
-	}
-
 	// 2. Get the issues this issue depends on, i.e. the `<#b>`: `<issue> <- <#b>`
-	blockersInfo, err := issue.BlockedByDependencies(ctx, listOptions)
+	blockersInfo, total, err := issue.BlockedByDependencies(ctx, listOptions)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

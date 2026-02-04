@@ -682,7 +682,7 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 }
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by
-func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptions) (issueDeps []*DependencyInfo, err error) {
+func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptions) (issueDeps []*DependencyInfo, total int64, err error) {
 	sess := db.GetEngine(ctx).
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
@@ -693,26 +693,13 @@ func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptio
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 	}
-	err = sess.Find(&issueDeps)
+	total, err = sess.FindAndCount(&issueDeps)
 
 	for _, depInfo := range issueDeps {
 		depInfo.Issue.Repo = &depInfo.Repository
 	}
 
-	return issueDeps, err
-}
-
-// BlockedByDependenciesCount counts all Dependencies an issue is blocked by
-func (issue *Issue) BlockedByDependenciesCount(ctx context.Context) (int64, error) {
-	sess := db.GetEngine(ctx).
-		Table("issue").
-		Join("INNER", "repository", "repository.id = issue.repo_id").
-		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
-		Where("issue_id = ?", issue.ID).
-		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID)
-
-	return sess.Count()
+	return issueDeps, total, err
 }
 
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks

@@ -67,6 +67,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 			userID = user.ID
 		}
 		keys, err = db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+			ListOptions: listOptions,
 			OwnerID:     userID,
 			Fingerprint: fingerprint,
 		})
