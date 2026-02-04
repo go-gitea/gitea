@@ -26,8 +26,8 @@ export const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
 export const LogLinePrefixesHidden = ['::add-matcher::', '##[add-matcher]', '::remove-matcher'];
 
 export type LogLineCommand = {
-  name: 'group' | 'endgroup';
-  prefix: string;
+  name: 'group' | 'endgroup',
+  prefix: string,
 };
 
 type Job = {
