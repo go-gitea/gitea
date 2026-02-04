@@ -88,7 +88,7 @@ test('sourcesContainElk', () => {
   expect(sourcesContainElk([`
     %%{
       init: {
-        "layout": "elk",
+        "layout": "elk"
       }
     }%%
     flowchart TB
@@ -99,7 +99,7 @@ test('sourcesContainElk', () => {
   expect(sourcesContainElk([`
     %%{
       init: {
-        "layout" : "elk.layered",
+        "layout" : "elk.layered"
       }
     }%%
     flowchart TB
@@ -111,7 +111,7 @@ test('sourcesContainElk', () => {
     %%{
       init: {
         "flowchart": {
-          "defaultRenderer": "elk",
+          "defaultRenderer": "elk"
         }
       }
     }%%

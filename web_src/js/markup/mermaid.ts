@@ -33,7 +33,7 @@ export function sourcesContainElk(sources: Array<string>) {
       const init = (/init\s*:\s*([\s\S]*)$/.exec(directive) || [])[1];
       if (init) {
         try {
-          return configContainsElk((JSON.parse(init.trim().replace(/,(\s*[}\]])/g, '$1')) as MermaidConfig));
+          return configContainsElk((JSON.parse(init) as MermaidConfig));
         } catch {
           return false;
         }
