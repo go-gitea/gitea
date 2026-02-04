@@ -9,8 +9,11 @@ import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
+
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+
+type StepContainerElement = HTMLElement & {_stepLogsActiveContainer?: HTMLElement}
 
 export type LogLine = {
   index: number; // 1
@@ -26,6 +29,26 @@ export type LogLineCommand = {
   name: 'group' | 'endgroup';
   prefix: string;
 };
+
+type Job = {
+  id: number;
+  name: string;
+  status: RunStatus;
+  canRerun: boolean;
+  duration: string;
+}
+
+type Step = {
+  summary: string,
+  duration: string,
+  status: RunStatus,
+}
+
+type JobStepState = {
+  cursor: string|null,
+  expanded: boolean,
+  manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
+}
 
 export function parseLineCommand(line: LogLine): LogLineCommand | null {
   for (const prefix of LogLinePrefixesGroup) {
@@ -48,28 +71,6 @@ export function shouldHideLine(line: LogLine): boolean {
     }
   }
   return false;
-}
-
-type StepContainerElement = HTMLElement & {_stepLogsActiveContainer?: HTMLElement}
-
-type Job = {
-  id: number;
-  name: string;
-  status: RunStatus;
-  canRerun: boolean;
-  duration: string;
-}
-
-type Step = {
-  summary: string,
-  duration: string,
-  status: RunStatus,
-}
-
-type JobStepState = {
-  cursor: string|null,
-  expanded: boolean,
-  manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
 }
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
