@@ -10,7 +10,11 @@ window.__webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/
 
 function shouldIgnoreError(err: Error) {
   const ignorePatterns = [
-    '/assets/js/monaco.', // https://github.com/go-gitea/gitea/issues/30861 , https://github.com/microsoft/monaco-editor/issues/4496
+    // https://github.com/go-gitea/gitea/issues/30861
+    // https://github.com/microsoft/monaco-editor/issues/4496
+    // https://github.com/microsoft/monaco-editor/issues/4679
+    '/assets/js/monaco.',
+    '/monaco-editor/',
   ];
   for (const pattern of ignorePatterns) {
     if (err.stack?.includes(pattern)) return true;
