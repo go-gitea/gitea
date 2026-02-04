@@ -72,7 +72,6 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 			Fingerprint: fingerprint,
 		})
 	} else {
-
 		// Use ListPublicKeys
 		keys, count, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
 			ListOptions: listOptions,
