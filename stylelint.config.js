@@ -1,5 +1,5 @@
 // @ts-check
-import {defineConfig} from 'stylelint-define-config';
+// TODO: Move to .ts after https://github.com/stylelint/stylelint/issues/8893 is fixed
 import {fileURLToPath} from 'node:url';
 
 const cssVarFiles = [
@@ -8,8 +8,12 @@ const cssVarFiles = [
   fileURLToPath(new URL('web_src/css/themes/theme-gitea-dark.css', import.meta.url)),
 ];
 
-export default defineConfig({
+/** @type {import('stylelint').Config} */
+export default {
   extends: 'stylelint-config-recommended',
+  reportUnscopedDisables: true,
+  reportNeedlessDisables: true,
+  reportInvalidScopeDisables: true,
   plugins: [
     'stylelint-declaration-strict-value',
     'stylelint-declaration-block-no-ignored-properties',
@@ -55,14 +59,14 @@ export default defineConfig({
     '@stylistic/block-opening-brace-space-before': 'always',
     '@stylistic/color-hex-case': 'lower',
     '@stylistic/declaration-bang-space-after': 'never',
-    '@stylistic/declaration-bang-space-before': null,
+    '@stylistic/declaration-bang-space-before': 'always',
     '@stylistic/declaration-block-semicolon-newline-after': null,
     '@stylistic/declaration-block-semicolon-newline-before': null,
     '@stylistic/declaration-block-semicolon-space-after': null,
     '@stylistic/declaration-block-semicolon-space-before': 'never',
     '@stylistic/declaration-block-trailing-semicolon': null,
     '@stylistic/declaration-colon-newline-after': null,
-    '@stylistic/declaration-colon-space-after': null,
+    '@stylistic/declaration-colon-space-after': 'always',
     '@stylistic/declaration-colon-space-before': 'never',
     '@stylistic/function-comma-newline-after': null,
     '@stylistic/function-comma-newline-before': null,
@@ -99,7 +103,7 @@ export default defineConfig({
     '@stylistic/selector-attribute-operator-space-before': null,
     '@stylistic/selector-combinator-space-after': null,
     '@stylistic/selector-combinator-space-before': null,
-    '@stylistic/selector-descendant-combinator-no-non-space': null,
+    '@stylistic/selector-descendant-combinator-no-non-space': true,
     '@stylistic/selector-list-comma-newline-after': null,
     '@stylistic/selector-list-comma-newline-before': null,
     '@stylistic/selector-list-comma-space-after': 'always-single-line',
@@ -121,9 +125,7 @@ export default defineConfig({
     'csstools/value-no-unknown-custom-properties': [true, {importFrom: cssVarFiles}],
     'declaration-block-no-duplicate-properties': [true, {ignore: ['consecutive-duplicates-with-different-values']}],
     'declaration-block-no-redundant-longhand-properties': [true, {ignoreShorthands: ['flex-flow', 'overflow', 'grid-template']}],
-    // @ts-expect-error - https://github.com/stylelint-types/stylelint-define-config/issues/1
     'declaration-property-unit-disallowed-list': {'line-height': ['em']},
-    // @ts-expect-error - https://github.com/stylelint-types/stylelint-define-config/issues/1
     'declaration-property-value-disallowed-list': {'word-break': ['break-word']},
     'font-family-name-quotes': 'always-where-recommended',
     'function-name-case': 'lower',
@@ -146,4 +148,4 @@ export default defineConfig({
     'shorthand-property-no-redundant-values': true,
     'value-no-vendor-prefix': [true, {ignoreValues: ['box', 'inline-box']}],
   },
-});
+};

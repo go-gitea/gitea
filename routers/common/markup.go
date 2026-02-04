@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/renderhelper"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -31,7 +32,7 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 	// and the urlPathContext is "/gitea/owner/repo/src/branch/features/feat-123/doc"
 
 	if mode == "" || mode == "markdown" {
-		// raw markdown doesn't need any special handling
+		// raw Markdown doesn't need any special handling
 		baseLink := urlPathContext
 		if baseLink == "" {
 			baseLink = fmt.Sprintf("%s%s", httplib.GuessCurrentHostURL(ctx), urlPathContext)
@@ -39,7 +40,8 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		rctx := renderhelper.NewRenderContextSimpleDocument(ctx, baseLink).WithUseAbsoluteLink(true).
 			WithMarkupType(markdown.MarkupName)
 		if err := markdown.RenderRaw(rctx, strings.NewReader(text), ctx.Resp); err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
+			log.Error("RenderMarkupRaw: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "failed to render raw markup")
 		}
 		return
 	}
@@ -76,7 +78,11 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		})
 		rctx = rctx.WithMarkupType(markdown.MarkupName)
 	case "comment":
-		rctx = renderhelper.NewRenderContextRepoComment(ctx, repoModel, renderhelper.RepoCommentOptions{DeprecatedOwnerName: repoOwnerName, DeprecatedRepoName: repoName})
+		rctx = renderhelper.NewRenderContextRepoComment(ctx, repoModel, renderhelper.RepoCommentOptions{
+			DeprecatedOwnerName: repoOwnerName,
+			DeprecatedRepoName:  repoName,
+			FootnoteContextID:   "preview",
+		})
 		rctx = rctx.WithMarkupType(markdown.MarkupName)
 	case "wiki":
 		rctx = renderhelper.NewRenderContextRepoWiki(ctx, repoModel, renderhelper.RepoWikiOptions{DeprecatedOwnerName: repoOwnerName, DeprecatedRepoName: repoName})
@@ -88,15 +94,16 @@ func RenderMarkup(ctx *context.Base, ctxRepo *context.Repository, mode, text, ur
 		})
 		rctx = rctx.WithMarkupType("").WithRelativePath(filePath) // render the repo file content by its extension
 	default:
-		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Unknown mode: %s", mode))
+		ctx.HTTPError(http.StatusUnprocessableEntity, "unsupported render mode: "+mode)
 		return
 	}
 	rctx = rctx.WithUseAbsoluteLink(true)
 	if err := markup.Render(rctx, strings.NewReader(text), ctx.Resp); err != nil {
 		if errors.Is(err, util.ErrInvalidArgument) {
-			ctx.Error(http.StatusUnprocessableEntity, err.Error())
+			ctx.HTTPError(http.StatusUnprocessableEntity, err.Error())
 		} else {
-			ctx.Error(http.StatusInternalServerError, err.Error())
+			log.Error("RenderMarkup: %v", err)
+			ctx.HTTPError(http.StatusInternalServerError, "failed to render markup")
 		}
 		return
 	}

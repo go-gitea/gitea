@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/externalaccount"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -27,7 +26,7 @@ var tplWebAuthn templates.TplName = "user/auth/webauthn"
 func WebAuthn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
-	if CheckAutoLogin(ctx) {
+	if performAutoLogin(ctx) {
 		return
 	}
 
@@ -51,7 +50,7 @@ func WebAuthn(ctx *context.Context) {
 // WebAuthnPasskeyAssertion submits a WebAuthn challenge for the passkey login to the browser
 func WebAuthnPasskeyAssertion(ctx *context.Context) {
 	if !setting.Service.EnablePasskeyAuth {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -72,7 +71,7 @@ func WebAuthnPasskeyAssertion(ctx *context.Context) {
 // WebAuthnPasskeyLogin handles the WebAuthn login process using a Passkey
 func WebAuthnPasskeyLogin(ctx *context.Context) {
 	if !setting.Service.EnablePasskeyAuth {
-		ctx.Error(http.StatusForbidden)
+		ctx.HTTPError(http.StatusForbidden)
 		return
 	}
 
@@ -150,19 +149,15 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 
 	// Now handle account linking if that's requested
 	if ctx.Session.Get("linkAccount") != nil {
-		if err := externalaccount.LinkAccountFromStore(ctx, ctx.Session, user); err != nil {
+		if err := linkAccountFromContext(ctx, user); err != nil {
 			ctx.ServerError("LinkAccountFromStore", err)
 			return
 		}
 	}
 
 	remember := false // TODO: implement remember me
-	redirect := handleSignInFull(ctx, user, remember, false)
-	if redirect == "" {
-		redirect = setting.AppSubURL + "/"
-	}
-
-	ctx.JSONRedirect(redirect)
+	handleSignInFull(ctx, user, remember)
+	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))
 }
 
 // WebAuthnLoginAssertion submits a WebAuthn challenge to the browser
@@ -268,18 +263,14 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 
 	// Now handle account linking if that's requested
 	if ctx.Session.Get("linkAccount") != nil {
-		if err := externalaccount.LinkAccountFromStore(ctx, ctx.Session, user); err != nil {
+		if err := linkAccountFromContext(ctx, user); err != nil {
 			ctx.ServerError("LinkAccountFromStore", err)
 			return
 		}
 	}
 
 	remember := ctx.Session.Get("twofaRemember").(bool)
-	redirect := handleSignInFull(ctx, user, remember, false)
-	if redirect == "" {
-		redirect = setting.AppSubURL + "/"
-	}
+	handleSignInFull(ctx, user, remember)
 	_ = ctx.Session.Delete("twofaUid")
-
-	ctx.JSONRedirect(redirect)
+	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))
 }

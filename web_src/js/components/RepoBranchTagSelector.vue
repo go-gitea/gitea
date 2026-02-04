@@ -20,12 +20,14 @@ type TabLoadingStates = Record<SelectedTab, '' | 'loading' | 'done'>
 export default defineComponent({
   components: {SvgIcon},
   props: {
-    elRoot: HTMLElement,
+    elRoot: {
+      type: HTMLElement,
+      required: true,
+    },
   },
   data() {
     const shouldShowTabBranches = this.elRoot.getAttribute('data-show-tab-branches') === 'true';
     return {
-      csrfToken: window.config.csrfToken,
       allItems: [] as ListItem[],
       selectedTab: (shouldShowTabBranches ? 'branches' : 'tags') as SelectedTab,
       searchTerm: '',
@@ -33,28 +35,28 @@ export default defineComponent({
       activeItemIndex: 0,
       tabLoadingStates: {} as TabLoadingStates,
 
-      textReleaseCompare: this.elRoot.getAttribute('data-text-release-compare'),
-      textBranches: this.elRoot.getAttribute('data-text-branches'),
-      textTags: this.elRoot.getAttribute('data-text-tags'),
-      textFilterBranch: this.elRoot.getAttribute('data-text-filter-branch'),
-      textFilterTag: this.elRoot.getAttribute('data-text-filter-tag'),
-      textDefaultBranchLabel: this.elRoot.getAttribute('data-text-default-branch-label'),
-      textCreateTag: this.elRoot.getAttribute('data-text-create-tag'),
-      textCreateBranch: this.elRoot.getAttribute('data-text-create-branch'),
-      textCreateRefFrom: this.elRoot.getAttribute('data-text-create-ref-from'),
-      textNoResults: this.elRoot.getAttribute('data-text-no-results'),
-      textViewAllBranches: this.elRoot.getAttribute('data-text-view-all-branches'),
-      textViewAllTags: this.elRoot.getAttribute('data-text-view-all-tags'),
+      textReleaseCompare: this.elRoot.getAttribute('data-text-release-compare')!,
+      textBranches: this.elRoot.getAttribute('data-text-branches')!,
+      textTags: this.elRoot.getAttribute('data-text-tags')!,
+      textFilterBranch: this.elRoot.getAttribute('data-text-filter-branch')!,
+      textFilterTag: this.elRoot.getAttribute('data-text-filter-tag')!,
+      textDefaultBranchLabel: this.elRoot.getAttribute('data-text-default-branch-label')!,
+      textCreateTag: this.elRoot.getAttribute('data-text-create-tag')!,
+      textCreateBranch: this.elRoot.getAttribute('data-text-create-branch')!,
+      textCreateRefFrom: this.elRoot.getAttribute('data-text-create-ref-from')!,
+      textNoResults: this.elRoot.getAttribute('data-text-no-results')!,
+      textViewAllBranches: this.elRoot.getAttribute('data-text-view-all-branches')!,
+      textViewAllTags: this.elRoot.getAttribute('data-text-view-all-tags')!,
 
-      currentRepoDefaultBranch: this.elRoot.getAttribute('data-current-repo-default-branch'),
-      currentRepoLink: this.elRoot.getAttribute('data-current-repo-link'),
-      currentTreePath: this.elRoot.getAttribute('data-current-tree-path'),
+      currentRepoDefaultBranch: this.elRoot.getAttribute('data-current-repo-default-branch')!,
+      currentRepoLink: this.elRoot.getAttribute('data-current-repo-link')!,
+      currentTreePath: this.elRoot.getAttribute('data-current-tree-path')!,
       currentRefType: this.elRoot.getAttribute('data-current-ref-type') as GitRefType,
-      currentRefShortName: this.elRoot.getAttribute('data-current-ref-short-name'),
+      currentRefShortName: this.elRoot.getAttribute('data-current-ref-short-name')!,
 
-      refLinkTemplate: this.elRoot.getAttribute('data-ref-link-template'),
-      refFormActionTemplate: this.elRoot.getAttribute('data-ref-form-action-template'),
-      dropdownFixedText: this.elRoot.getAttribute('data-dropdown-fixed-text'),
+      refLinkTemplate: this.elRoot.getAttribute('data-ref-link-template')!,
+      refFormActionTemplate: this.elRoot.getAttribute('data-ref-form-action-template')!,
+      dropdownFixedText: this.elRoot.getAttribute('data-dropdown-fixed-text')!,
       showTabBranches: shouldShowTabBranches,
       showTabTags: this.elRoot.getAttribute('data-show-tab-tags') === 'true',
       allowCreateNewRef: this.elRoot.getAttribute('data-allow-create-new-ref') === 'true',
@@ -92,7 +94,7 @@ export default defineComponent({
       }).length;
     },
     createNewRefFormActionUrl() {
-      return `${this.currentRepoLink}/branches/_new/${this.currentRefType}/${pathEscapeSegments(this.currentRefShortName)}`;
+      return `${this.currentRepoLink}/branches/_new/${this.currentRefType}/${pathEscapeSegments(this.currentRefShortName!)}`;
     },
   },
   watch: {
@@ -153,9 +155,8 @@ export default defineComponent({
       return -1;
     },
     getActiveItem() {
-      const el = this.$refs[`listItem${this.activeItemIndex}`]; // eslint-disable-line no-jquery/variable-pattern
-      // @ts-expect-error - el is unknown type
-      return (el && el.length) ? el[0] : null;
+      const el = this.$refs[`listItem${this.activeItemIndex}`] as Array<HTMLDivElement>;
+      return el?.length ? el[0] : null;
     },
     keydown(e: KeyboardEvent) {
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
@@ -172,7 +173,7 @@ export default defineComponent({
           return;
         }
         this.activeItemIndex = nextIndex;
-        this.getActiveItem().scrollIntoView({block: 'nearest'});
+        this.getActiveItem()!.scrollIntoView({block: 'nearest'});
       } else if (e.key === 'Enter') {
         e.preventDefault();
         this.getActiveItem()?.click();
@@ -216,17 +217,18 @@ export default defineComponent({
 });
 </script>
 <template>
-  <div class="ui dropdown custom branch-selector-dropdown ellipsis-items-nowrap">
-    <div tabindex="0" class="ui button branch-dropdown-button" @click="menuVisible = !menuVisible">
+  <div class="ui dropdown custom branch-selector-dropdown ellipsis-text-items">
+    <div tabindex="0" class="ui compact button branch-dropdown-button" @click="menuVisible = !menuVisible">
       <span class="flex-text-block gt-ellipsis">
         <template v-if="dropdownFixedText">{{ dropdownFixedText }}</template>
         <template v-else>
           <svg-icon v-if="currentRefType === 'tag'" name="octicon-tag"/>
-          <svg-icon v-else name="octicon-git-branch"/>
-          <strong ref="dropdownRefName" class="tw-ml-2 tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
+          <svg-icon v-else-if="currentRefType === 'branch'" name="octicon-git-branch"/>
+          <svg-icon v-else name="octicon-git-commit"/>
+          <strong ref="dropdownRefName" class="tw-inline-block gt-ellipsis">{{ currentRefShortName }}</strong>
         </template>
       </span>
-      <svg-icon name="octicon-triangle-down" :size="14" class-name="dropdown icon"/>
+      <svg-icon name="octicon-triangle-down" :size="14" class="dropdown icon"/>
     </div>
     <div class="menu transition" :class="{visible: menuVisible}" v-show="menuVisible" v-cloak>
       <div class="ui icon search input">
@@ -235,10 +237,10 @@ export default defineComponent({
       </div>
       <div v-if="showTabBranches" class="branch-tag-tab">
         <a class="branch-tag-item muted" :class="{active: selectedTab === 'branches'}" href="#" @click="handleTabSwitch('branches')">
-          <svg-icon name="octicon-git-branch" :size="16" class-name="tw-mr-1"/>{{ textBranches }}
+          <svg-icon name="octicon-git-branch" :size="16" class="tw-mr-1"/>{{ textBranches }}
         </a>
         <a v-if="showTabTags" class="branch-tag-item muted" :class="{active: selectedTab === 'tags'}" href="#" @click="handleTabSwitch('tags')">
-          <svg-icon name="octicon-tag" :size="16" class-name="tw-mr-1"/>{{ textTags }}
+          <svg-icon name="octicon-tag" :size="16" class="tw-mr-1"/>{{ textTags }}
         </a>
       </div>
       <div class="branch-tag-divider"/>
@@ -268,7 +270,6 @@ export default defineComponent({
             {{ textCreateRefFrom.replace('%s', currentRefShortName) }}
           </div>
           <form ref="createNewRefForm" method="post" :action="createNewRefFormActionUrl">
-            <input type="hidden" name="_csrf" :value="csrfToken">
             <input type="hidden" name="new_branch_name" :value="searchTerm">
             <input type="hidden" name="create_tag" :value="String(selectedTab === 'tags')">
             <input type="hidden" name="current_path" :value="currentTreePath">

@@ -4,13 +4,14 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // cmdDoctorConvert represents the available convert sub-command.
@@ -21,11 +22,8 @@ var cmdDoctorConvert = &cli.Command{
 	Action:      runDoctorConvert,
 }
 
-func runDoctorConvert(ctx *cli.Context) error {
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(stdCtx); err != nil {
+func runDoctorConvert(ctx context.Context, cmd *cli.Command) error {
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 

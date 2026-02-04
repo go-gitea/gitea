@@ -127,7 +127,7 @@ func (pt Type) Name() string {
 	case TypeVagrant:
 		return "Vagrant"
 	}
-	panic(fmt.Sprintf("unknown package type: %s", string(pt)))
+	panic("unknown package type: " + string(pt))
 }
 
 // SVGName gets the name of the package type svg image
@@ -178,7 +178,7 @@ func (pt Type) SVGName() string {
 	case TypeVagrant:
 		return "gitea-vagrant"
 	}
-	panic(fmt.Sprintf("unknown package type: %s", string(pt)))
+	panic("unknown package type: " + string(pt))
 }
 
 // Package represents a package
@@ -225,6 +225,11 @@ func DeletePackageByID(ctx context.Context, packageID int64) error {
 // SetRepositoryLink sets the linked repository
 func SetRepositoryLink(ctx context.Context, packageID, repoID int64) error {
 	_, err := db.GetEngine(ctx).ID(packageID).Cols("repo_id").Update(&Package{RepoID: repoID})
+	return err
+}
+
+func UnlinkRepository(ctx context.Context, packageID int64) error {
+	_, err := db.GetEngine(ctx).ID(packageID).Cols("repo_id").Update(&Package{RepoID: 0})
 	return err
 }
 

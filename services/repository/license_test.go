@@ -4,13 +4,13 @@
 package repository
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 
 	repo_module "code.gitea.io/gitea/modules/repository"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func Test_detectLicense(t *testing.T) {
@@ -33,9 +33,7 @@ func Test_detectLicense(t *testing.T) {
 		},
 	}
 
-	repo_module.LoadRepoConfig()
-	err := loadLicenseAliases()
-	assert.NoError(t, err)
+	require.NoError(t, repo_module.LoadRepoConfig())
 	for _, licenseName := range repo_module.Licenses {
 		license, err := repo_module.GetLicense(licenseName, &repo_module.LicenseValues{
 			Owner: "Gitea",
@@ -46,14 +44,13 @@ func Test_detectLicense(t *testing.T) {
 		assert.NoError(t, err)
 
 		tests = append(tests, DetectLicenseTest{
-			name: fmt.Sprintf("single license test: %s", licenseName),
+			name: "single license test: " + licenseName,
 			arg:  string(license),
-			want: []string{ConvertLicenseName(licenseName)},
+			want: []string{licenseName},
 		})
 	}
 
-	err = InitLicenseClassifier()
-	assert.NoError(t, err)
+	require.NoError(t, InitLicenseClassifier())
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			license, err := detectLicense(strings.NewReader(tt.arg))

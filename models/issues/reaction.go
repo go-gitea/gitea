@@ -224,21 +224,9 @@ func CreateReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
-	reaction, err := createReaction(ctx, opts)
-	if err != nil {
-		return reaction, err
-	}
-
-	if err := committer.Commit(); err != nil {
-		return nil, err
-	}
-	return reaction, nil
+	return db.WithTx2(ctx, func(ctx context.Context) (*Reaction, error) {
+		return createReaction(ctx, opts)
+	})
 }
 
 // DeleteReaction deletes reaction for issue or comment.

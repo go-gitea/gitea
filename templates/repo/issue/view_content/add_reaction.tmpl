@@ -3,7 +3,7 @@
 	<a class="muted">{{svg "octicon-smiley"}}</a>
 	<div class="menu">
 		{{range $value := AllowedReactions}}
-		<a class="item emoji comment-reaction-button" data-tooltip-content="{{$value}}" aria-label="{{$value}}" data-reaction-content="{{$value}}">{{ReactionToEmoji $value}}</a>
+		<a class="item emoji" data-tooltip-content="{{$value}}" aria-label="{{$value}}" data-reaction-content="{{$value}}" data-global-click="onCommentReactionButtonClick">{{ReactionToEmoji $value}}</a>
 		{{end}}
 	</div>
 </div>

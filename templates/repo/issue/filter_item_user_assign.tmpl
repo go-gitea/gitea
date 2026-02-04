@@ -4,8 +4,8 @@
 * UserSearchList
 * SelectedUserId: 0 or empty means default, -1 means "no user is set"
 * TextFilterTitle
-* TextZeroValue: the text for "all issues"
-* TextNegativeOne: the text for "issues with no assignee"
+* TextFilterMatchNone: the text for "issues with no assignee"
+* TextFilterMatchAny: the text for "issues with any assignee"
 */}}
 {{$queryLink := .QueryLink}}
 <div class="item ui dropdown jump {{if not .UserSearchList}}disabled{{end}}">
@@ -15,16 +15,24 @@
 			<i class="icon">{{svg "octicon-search" 16}}</i>
 			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_user_placeholder"}}">
 		</div>
-		{{if $.TextZeroValue}}
-			<a class="item {{if not .SelectedUserId}}selected{{end}}" href="{{QueryBuild $queryLink $.QueryParamKey NIL}}">{{$.TextZeroValue}}</a>
+		{{if $.TextFilterMatchNone}}
+			{{$isSelected := eq .SelectedUserId "(none)"}}
+			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL "(none)")}}">
+				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}} {{$.TextFilterMatchNone}}
+			</a>
 		{{end}}
-		{{if $.TextNegativeOne}}
-			<a class="item {{if eq .SelectedUserId -1}}selected{{end}}" href="{{QueryBuild $queryLink $.QueryParamKey -1}}">{{$.TextNegativeOne}}</a>
+		{{if $.TextFilterMatchAny}}
+			{{$isSelected := eq .SelectedUserId "(any)"}}
+			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL "(any)")}}">
+				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}} {{$.TextFilterMatchAny}}
+			</a>
 		{{end}}
 		<div class="divider"></div>
-		{{range .UserSearchList}}
-			<a class="item {{if eq $.SelectedUserId .ID}}selected{{end}}" href="{{QueryBuild $queryLink $.QueryParamKey .ID}}">
-				{{ctx.AvatarUtils.Avatar . 20}}{{template "repo/search_name" .}}
+		{{range $user := .UserSearchList}}
+			{{$isSelected := eq $.SelectedUserId (print $user.ID)}}
+			<a class="item" href="{{QueryBuild $queryLink $.QueryParamKey (Iif $isSelected NIL $user.ID)}}">
+				{{svg "octicon-check" 14 (Iif $isSelected "" "tw-invisible")}}
+				{{ctx.AvatarUtils.Avatar $user 20}}{{template "repo/search_name" .}}
 			</a>
 		{{end}}
 	</div>

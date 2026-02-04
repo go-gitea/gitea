@@ -39,7 +39,7 @@ func Test_halfCommitter(t *testing.T) {
 	/*
 		Do something like:
 
-		ctx, committer, err := db.TxContext(db.DefaultContext)
+		ctx, committer, err := db.TxContext(t.Context())
 		if err != nil {
 			return nil
 		}

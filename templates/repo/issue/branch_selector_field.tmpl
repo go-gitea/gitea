@@ -2,7 +2,8 @@
 PR: https://github.com/go-gitea/gitea/pull/32744
 
 The Issue.Ref was added by Add possibility to record branch or tag information in an issue (#780)
-After 8 years, this "branch selector" does nothing more than saving the branch/tag name into database and displays it.
+After 8 years, this "branch selector" does nothing more than saving the branch/tag name into database and displays it,
+or sometimes auto-close a ref-matched issue by a commit message when CloseIssuesViaCommitInAnyBranch=false.
 
 There are still users using it:
 * @didim99: it is a really useful feature to specify a branch in which issue found.
@@ -14,7 +15,7 @@ Still needs to figure out:
 */}}
 {{if and (not .Issue.IsPull) (not .PageIsComparePull)}}
 <input id="ref_selector" name="ref" type="hidden" value="{{.Reference}}">
-<div class="ui dropdown select-branch branch-selector-dropdown ellipsis-items-nowrap {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}}"
+<div class="ui dropdown select-branch branch-selector-dropdown ellipsis-text-items {{if not .HasIssuesOrPullsWritePermission}}disabled{{end}}"
 	data-no-results="{{ctx.Locale.Tr "no_results_found"}}"
 	{{if and .Issue (or .IsIssueWriter .HasIssuesOrPullsWritePermission)}}data-url-update-issueref="{{$.RepoLink}}/issues/{{.Issue.Index}}/ref"{{end}}
 >

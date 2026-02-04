@@ -4,7 +4,7 @@
 package storage
 
 import (
-	"bytes"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -26,7 +26,7 @@ func testStorageIterator(t *testing.T, typStr Type, cfg *setting.Storage) {
 		{"b/x 4.txt", "bx4"},
 	}
 	for _, f := range testFiles {
-		_, err = l.Save(f[0], bytes.NewBufferString(f[1]), -1)
+		_, err = l.Save(f[0], strings.NewReader(f[1]), -1)
 		assert.NoError(t, err)
 	}
 

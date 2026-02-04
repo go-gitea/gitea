@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -27,11 +26,46 @@ const (
 	ArchiverReady             // it's ready
 )
 
+// ArchiveType archive types
+type ArchiveType int
+
+const (
+	ArchiveUnknown ArchiveType = iota
+	ArchiveZip                 // 1
+	ArchiveTarGz               // 2
+	ArchiveBundle              // 3
+)
+
+// String converts an ArchiveType to string: the extension of the archive file without prefix dot
+func (a ArchiveType) String() string {
+	switch a {
+	case ArchiveZip:
+		return "zip"
+	case ArchiveTarGz:
+		return "tar.gz"
+	case ArchiveBundle:
+		return "bundle"
+	}
+	return "unknown"
+}
+
+func SplitArchiveNameType(s string) (string, ArchiveType) {
+	switch {
+	case strings.HasSuffix(s, ".zip"):
+		return strings.TrimSuffix(s, ".zip"), ArchiveZip
+	case strings.HasSuffix(s, ".tar.gz"):
+		return strings.TrimSuffix(s, ".tar.gz"), ArchiveTarGz
+	case strings.HasSuffix(s, ".bundle"):
+		return strings.TrimSuffix(s, ".bundle"), ArchiveBundle
+	}
+	return s, ArchiveUnknown
+}
+
 // RepoArchiver represents all archivers
 type RepoArchiver struct { //revive:disable-line:exported
-	ID          int64           `xorm:"pk autoincr"`
-	RepoID      int64           `xorm:"index unique(s)"`
-	Type        git.ArchiveType `xorm:"unique(s)"`
+	ID          int64       `xorm:"pk autoincr"`
+	RepoID      int64       `xorm:"index unique(s)"`
+	Type        ArchiveType `xorm:"unique(s)"`
 	Status      ArchiverStatus
 	CommitID    string             `xorm:"VARCHAR(64) unique(s)"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
@@ -50,21 +84,21 @@ func (archiver *RepoArchiver) RelativePath() string {
 func repoArchiverForRelativePath(relativePath string) (*RepoArchiver, error) {
 	parts := strings.SplitN(relativePath, "/", 3)
 	if len(parts) != 3 {
-		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+		return nil, util.NewInvalidArgumentErrorf("invalid storage path: must have 3 parts")
 	}
 	repoID, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
-		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+		return nil, util.NewInvalidArgumentErrorf("invalid storage path: invalid repo id")
 	}
-	commitID, archiveType := git.SplitArchiveNameType(parts[2])
-	if archiveType == git.ArchiveUnknown {
-		return nil, util.SilentWrap{Message: fmt.Sprintf("invalid storage path: %s", relativePath), Err: util.ErrInvalidArgument}
+	commitID, archiveType := SplitArchiveNameType(parts[2])
+	if archiveType == ArchiveUnknown {
+		return nil, util.NewInvalidArgumentErrorf("invalid storage path: invalid archive type")
 	}
 	return &RepoArchiver{RepoID: repoID, CommitID: commitID, Type: archiveType}, nil
 }
 
 // GetRepoArchiver get an archiver
-func GetRepoArchiver(ctx context.Context, repoID int64, tp git.ArchiveType, commitID string) (*RepoArchiver, error) {
+func GetRepoArchiver(ctx context.Context, repoID int64, tp ArchiveType, commitID string) (*RepoArchiver, error) {
 	var archiver RepoArchiver
 	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("`type`=?", tp).And("commit_id=?", commitID).Get(&archiver)
 	if err != nil {

@@ -19,11 +19,15 @@ on:
         value: ${{ jobs.detect.outputs.swagger }}
       yaml:
         value: ${{ jobs.detect.outputs.yaml }}
+      json:
+        value: ${{ jobs.detect.outputs.json }}
 
 jobs:
   detect:
     runs-on: ubuntu-latest
     timeout-minutes: 3
+    permissions:
+      contents: read
     outputs:
       backend: ${{ steps.changes.outputs.backend }}
       frontend: ${{ steps.changes.outputs.frontend }}
@@ -33,8 +37,9 @@ jobs:
       docker: ${{ steps.changes.outputs.docker }}
       swagger: ${{ steps.changes.outputs.swagger }}
       yaml: ${{ steps.changes.outputs.yaml }}
+      json: ${{ steps.changes.outputs.json }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: dorny/paths-filter@v3
         id: changes
         with:
@@ -48,24 +53,26 @@ jobs:
               - "Makefile"
               - ".golangci.yml"
               - ".editorconfig"
-              - "options/locale/locale_en-US.ini"
+              - "options/locale/locale_en-US.json"
 
             frontend:
-              - "**/*.js"
+              - "*.js"
+              - "*.ts"
               - "web_src/**"
+              - "tools/*.js"
+              - "tools/*.ts"
               - "assets/emoji.json"
               - "package.json"
-              - "package-lock.json"
+              - "pnpm-lock.yaml"
               - "Makefile"
-              - ".eslintrc.yaml"
-              - "stylelint.config.js"
+              - ".eslintrc.cjs"
               - ".npmrc"
 
             docs:
               - "**/*.md"
               - ".markdownlint.yaml"
               - "package.json"
-              - "package-lock.json"
+              - "pnpm-lock.yaml"
 
             actions:
               - ".github/workflows/*"
@@ -75,9 +82,10 @@ jobs:
               - "tools/lint-templates-*.js"
               - "templates/**/*.tmpl"
               - "pyproject.toml"
-              - "poetry.lock"
+              - "uv.lock"
 
             docker:
+              - ".github/workflows/pull-docker-dryrun.yml"
               - "Dockerfile"
               - "Dockerfile.rootless"
               - "docker/**"
@@ -85,9 +93,10 @@ jobs:
 
             swagger:
               - "templates/swagger/v1_json.tmpl"
+              - "templates/swagger/v1_input.json"
               - "Makefile"
               - "package.json"
-              - "package-lock.json"
+              - "pnpm-lock.yaml"
               - ".spectral.yaml"
 
             yaml:
@@ -95,4 +104,6 @@ jobs:
               - "**/*.yaml"
               - ".yamllint.yaml"
               - "pyproject.toml"
-              - "poetry.lock"
+
+            json:
+              - "**/*.json"

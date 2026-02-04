@@ -28,7 +28,7 @@ func NewInlineRenderer(renderInternal *internal.RenderInternal) renderer.NodeRen
 
 func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_ = r.renderInternal.FormatWithSafeAttrs(w, `<code class="language-math">`)
+		_, _ = w.WriteString(string(r.renderInternal.ProtectSafeAttrs(`<code class="language-math">`)))
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 			segment := c.(*ast.Text).Segment
 			value := util.EscapeHTML(segment.Value(source))

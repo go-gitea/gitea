@@ -28,7 +28,7 @@
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   animation: isloadingspin 1000ms infinite linear;
-  border-width: 4px;
+  border-width: 3px;
   border-style: solid;
   border-color: var(--color-secondary) var(--color-secondary) var(--color-secondary-dark-8) var(--color-secondary-dark-8);
   border-radius: var(--border-radius-full);
@@ -52,8 +52,7 @@ form.single-button-form.is-loading .button {
 }
 
 .markup pre.is-loading,
-.editor-loading.is-loading,
-.pdf-content.is-loading {
+.editor-loading.is-loading {
   height: var(--height-loading);
 }
 
@@ -115,4 +114,14 @@ code.language-math.is-loading::after {
   animation-name: fadein;
   animation-duration: 100ms;
   animation-timing-function: ease-in-out;
+}
+
+.rotate-clockwise {
+  animation: rotate-clockwise-keyframes 1s linear infinite;
+}
+
+@keyframes rotate-clockwise-keyframes {
+  100% {
+    transform: rotate(360deg);
+  }
 }

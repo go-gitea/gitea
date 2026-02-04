@@ -4,9 +4,9 @@
 package storage
 
 import (
-	"bytes"
 	"io"
 	"os"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -33,14 +33,14 @@ func TestAzureBlobStorageIterator(t *testing.T) {
 
 func TestAzureBlobStoragePath(t *testing.T) {
 	m := &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: ""}}
-	assert.Equal(t, "", m.buildAzureBlobPath("/"))
-	assert.Equal(t, "", m.buildAzureBlobPath("."))
+	assert.Empty(t, m.buildAzureBlobPath("/"))
+	assert.Empty(t, m.buildAzureBlobPath("."))
 	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
 	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
 
 	m = &AzureBlobStorage{cfg: &setting.AzureBlobStorageConfig{BasePath: "/"}}
-	assert.Equal(t, "", m.buildAzureBlobPath("/"))
-	assert.Equal(t, "", m.buildAzureBlobPath("."))
+	assert.Empty(t, m.buildAzureBlobPath("/"))
+	assert.Empty(t, m.buildAzureBlobPath("."))
 	assert.Equal(t, "a", m.buildAzureBlobPath("/a"))
 	assert.Equal(t, "a/b", m.buildAzureBlobPath("/a/b/"))
 
@@ -76,7 +76,7 @@ func Test_azureBlobObject(t *testing.T) {
 	assert.NoError(t, err)
 
 	data := "Q2xTckt6Y1hDOWh0"
-	_, err = s.Save("test.txt", bytes.NewBufferString(data), int64(len(data)))
+	_, err = s.Save("test.txt", strings.NewReader(data), int64(len(data)))
 	assert.NoError(t, err)
 	obj, err := s.Open("test.txt")
 	assert.NoError(t, err)
@@ -86,7 +86,7 @@ func Test_azureBlobObject(t *testing.T) {
 	buf1 := make([]byte, 3)
 	read, err := obj.Read(buf1)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 3, read)
+	assert.Equal(t, 3, read)
 	assert.Equal(t, data[2:5], string(buf1))
 	offset, err = obj.Seek(-5, io.SeekEnd)
 	assert.NoError(t, err)
@@ -94,7 +94,7 @@ func Test_azureBlobObject(t *testing.T) {
 	buf2 := make([]byte, 4)
 	read, err = obj.Read(buf2)
 	assert.NoError(t, err)
-	assert.EqualValues(t, 4, read)
+	assert.Equal(t, 4, read)
 	assert.Equal(t, data[11:15], string(buf2))
 	assert.NoError(t, obj.Close())
 	assert.NoError(t, s.Delete("test.txt"))

@@ -10,7 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 
-	mc "gitea.com/go-chi/cache" //nolint:depguard
+	mc "gitea.com/go-chi/cache" //nolint:depguard // we wrap this package here
 	lru "github.com/hashicorp/golang-lru/v2"
 )
 

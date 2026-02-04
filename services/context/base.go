@@ -4,10 +4,12 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/httplib"
@@ -16,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
@@ -23,6 +26,10 @@ type BaseContextKeyType struct{}
 
 var BaseContextKey BaseContextKeyType
 
+// Base is the base context for all web handlers
+// ATTENTION: This struct should never be manually constructed in routes/services,
+// it has many internal details which should be carefully prepared by the framework.
+// If it is abused, it would cause strange bugs like panic/resource-leak.
 type Base struct {
 	reqctx.RequestContext
 
@@ -37,6 +44,22 @@ type Base struct {
 	Locale translation.Locale
 }
 
+var ParseMultipartFormMaxMemory = int64(32 << 20)
+
+func (b *Base) ParseMultipartForm() bool {
+	err := b.Req.ParseMultipartForm(ParseMultipartFormMaxMemory)
+	if err != nil {
+		// TODO: all errors caused by client side should be ignored (connection closed).
+		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+			// Errors caused by server side (disk full) should be logged.
+			log.Error("Failed to parse request multipart form for %s: %v", b.Req.RequestURI, err)
+		}
+		b.HTTPError(http.StatusInternalServerError, "failed to parse request multipart form")
+		return false
+	}
+	return true
+}
+
 // AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
 func (b *Base) AppendAccessControlExposeHeaders(names ...string) {
 	val := b.RespHeader().Get("Access-Control-Expose-Headers")
@@ -49,7 +72,7 @@ func (b *Base) AppendAccessControlExposeHeaders(names ...string) {
 
 // SetTotalCountHeader set "X-Total-Count" header
 func (b *Base) SetTotalCountHeader(total int64) {
-	b.RespHeader().Set("X-Total-Count", fmt.Sprint(total))
+	b.RespHeader().Set("X-Total-Count", strconv.FormatInt(total, 10))
 	b.AppendAccessControlExposeHeaders("X-Total-Count")
 }
 
@@ -77,8 +100,9 @@ func (b *Base) RespHeader() http.Header {
 	return b.Resp.Header()
 }
 
-// Error returned an error to web browser
-func (b *Base) Error(status int, contents ...string) {
+// HTTPError returned an error to web browser
+// FIXME: many calls to this HTTPError are not right: it shouldn't expose err.Error() directly, it doesn't accept more than one content
+func (b *Base) HTTPError(status int, contents ...string) {
 	v := http.StatusText(status)
 	if len(contents) > 0 {
 		v = contents[0]
@@ -124,10 +148,7 @@ func (b *Base) PlainText(status int, text string) {
 
 // Redirect redirects the request
 func (b *Base) Redirect(location string, status ...int) {
-	code := http.StatusSeeOther
-	if len(status) == 1 {
-		code = status[0]
-	}
+	code := util.OptionalArg(status, http.StatusSeeOther)
 
 	if !httplib.IsRelativeURL(location) {
 		// Some browsers (Safari) have buggy behavior for Cookie + Cache + External Redirection, eg: /my-path => https://other/path

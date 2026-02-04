@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -18,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
-	gitea_context "code.gitea.io/gitea/services/context"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -39,6 +39,20 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		feedRefPathRe:        regexp.MustCompile(`^/[-.\w]+/[-.\w]+/(rss|atom)/`),     // "/owner/repo/rss/branch/..."
 	}
 })
+
+type ErrUserAuthMessage string
+
+func (e ErrUserAuthMessage) Error() string {
+	return string(e)
+}
+
+func ErrAsUserAuthMessage(err error) (string, bool) {
+	var msg ErrUserAuthMessage
+	if errors.As(err, &msg) {
+		return msg.Error(), true
+	}
+	return "", false
+}
 
 // Init should be called exactly once when the application starts to allow plugins
 // to allocate necessary resources
@@ -62,14 +76,14 @@ func (a *authPathDetector) isAPIPath() bool {
 
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
 func (a *authPathDetector) isAttachmentDownload() bool {
-	return strings.HasPrefix(a.req.URL.Path, "/attachments/") && a.req.Method == "GET"
+	return strings.HasPrefix(a.req.URL.Path, "/attachments/") && a.req.Method == http.MethodGet
 }
 
 func (a *authPathDetector) isFeedRequest(req *http.Request) bool {
 	if !setting.Other.EnableFeed {
 		return false
 	}
-	if req.Method != "GET" {
+	if req.Method != http.MethodGet {
 		return false
 	}
 	return a.vars.feedPathRe.MatchString(req.URL.Path) || a.vars.feedRefPathRe.MatchString(req.URL.Path)
@@ -147,9 +161,4 @@ func handleSignIn(resp http.ResponseWriter, req *http.Request, sess SessionStore
 	}
 
 	middleware.SetLocaleCookie(resp, user.Language, 0)
-
-	// force to generate a new CSRF token
-	if ctx := gitea_context.GetWebContext(req); ctx != nil {
-		ctx.Csrf.PrepareForSessionUser(ctx)
-	}
 }

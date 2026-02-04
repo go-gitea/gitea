@@ -23,7 +23,7 @@ var fixturesLoader FixturesLoader
 
 // GetXORMEngine gets the XORM engine
 func GetXORMEngine() (x *xorm.Engine) {
-	return db.GetEngine(db.DefaultContext).(*xorm.Engine)
+	return db.GetXORMEngineForTesting()
 }
 
 func loadFixtureResetSeqPgsql(e *xorm.Engine) error {

@@ -26,25 +26,6 @@ func TestShortSha(t *testing.T) {
 	assert.Equal(t, "veryverylo", ShortSha("veryverylong"))
 }
 
-func TestBasicAuthDecode(t *testing.T) {
-	_, _, err := BasicAuthDecode("?")
-	assert.Equal(t, "illegal base64 data at input byte 0", err.Error())
-
-	user, pass, err := BasicAuthDecode("Zm9vOmJhcg==")
-	assert.NoError(t, err)
-	assert.Equal(t, "foo", user)
-	assert.Equal(t, "bar", pass)
-
-	_, _, err = BasicAuthDecode("aW52YWxpZA==")
-	assert.Error(t, err)
-
-	_, _, err = BasicAuthDecode("invalid")
-	assert.Error(t, err)
-
-	_, _, err = BasicAuthDecode("YWxpY2U=") // "alice", no colon
-	assert.Error(t, err)
-}
-
 func TestVerifyTimeLimitCode(t *testing.T) {
 	defer test.MockVariableValue(&setting.InstallLock, true)()
 	initGeneralSecret := func(secret string) {
@@ -86,13 +67,10 @@ JWT_SECRET = %s
 		verifyDataCode := func(c string) bool {
 			return VerifyTimeLimitCode(now, "data", 2, c)
 		}
-		code1 := CreateTimeLimitCode("data", 2, now, sha1.New())
-		code2 := CreateTimeLimitCode("data", 2, now, nil)
-		assert.True(t, verifyDataCode(code1))
-		assert.True(t, verifyDataCode(code2))
+		code := CreateTimeLimitCode("data", 2, now, nil)
+		assert.True(t, verifyDataCode(code))
 		initGeneralSecret("000_QLUd4fYVyxetjxC4eZkrBgWM2SndOOWDNtgUUko")
-		assert.False(t, verifyDataCode(code1))
-		assert.False(t, verifyDataCode(code2))
+		assert.False(t, verifyDataCode(code))
 	})
 }
 
@@ -137,5 +115,3 @@ func TestInt64sToStrings(t *testing.T) {
 		Int64sToStrings([]int64{1, 4, 16, 64, 256}),
 	)
 }
-
-// TODO: Test EntryIcon

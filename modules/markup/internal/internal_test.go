@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestRenderInternal(t *testing.T) {
+func TestRenderInternalAttrs(t *testing.T) {
 	cases := []struct {
 		input, protected, recovered string
 	}{
@@ -30,32 +30,61 @@ func TestRenderInternal(t *testing.T) {
 	for _, c := range cases {
 		var r RenderInternal
 		out := &bytes.Buffer{}
-		in := r.init("sec", out)
+		in := r.init("sec", out, "")
 		protected := r.ProtectSafeAttrs(template.HTML(c.input))
 		assert.EqualValues(t, c.protected, protected)
 		_, _ = io.WriteString(in, string(protected))
 		_ = in.Close()
-		assert.EqualValues(t, c.recovered, out.String())
+		assert.Equal(t, c.recovered, out.String())
 	}
 
 	var r1, r2 RenderInternal
 	protected := r1.ProtectSafeAttrs(`<div class="test"></div>`)
 	assert.EqualValues(t, `<div class="test"></div>`, protected, "non-initialized RenderInternal should not protect any attributes")
-	_ = r1.init("sec", nil)
+	_ = r1.init("sec", nil, "")
 	protected = r1.ProtectSafeAttrs(`<div class="test"></div>`)
 	assert.EqualValues(t, `<div data-attr-class="sec:test"></div>`, protected)
-	assert.EqualValues(t, "data-attr-class", r1.SafeAttr("class"))
-	assert.EqualValues(t, "sec:val", r1.SafeValue("val"))
+	assert.Equal(t, "data-attr-class", r1.SafeAttr("class"))
+	assert.Equal(t, "sec:val", r1.SafeValue("val"))
 	recovered, ok := r1.RecoverProtectedValue("sec:val")
 	assert.True(t, ok)
-	assert.EqualValues(t, "val", recovered)
+	assert.Equal(t, "val", recovered)
 	recovered, ok = r1.RecoverProtectedValue("other:val")
 	assert.False(t, ok)
 	assert.Empty(t, recovered)
 
 	out2 := &bytes.Buffer{}
-	in2 := r2.init("sec-other", out2)
+	in2 := r2.init("sec-other", out2, "")
 	_, _ = io.WriteString(in2, string(protected))
 	_ = in2.Close()
-	assert.EqualValues(t, `<div data-attr-class="sec:test"></div>`, out2.String(), "different secureID should not recover the value")
+	assert.Equal(t, `<div data-attr-class="sec:test"></div>`, out2.String(), "different secureID should not recover the value")
+}
+
+func TestRenderInternalExtraHead(t *testing.T) {
+	t.Run("HeadExists", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		var r RenderInternal
+		in := r.init("sec", out, `<MY-TAG>`)
+		_, _ = io.WriteString(in, `<head>any</head>`)
+		_ = in.Close()
+		assert.Equal(t, `<head><MY-TAG>any</head>`, out.String())
+	})
+
+	t.Run("HeadNotExists", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		var r RenderInternal
+		in := r.init("sec", out, `<MY-TAG>`)
+		_, _ = io.WriteString(in, `<div></div>`)
+		_ = in.Close()
+		assert.Equal(t, `<MY-TAG><div></div>`, out.String())
+	})
+
+	t.Run("NotHTML", func(t *testing.T) {
+		out := &bytes.Buffer{}
+		var r RenderInternal
+		in := r.init("sec", out, `<MY-TAG>`)
+		_, _ = io.WriteString(in, `<any>`)
+		_ = in.Close()
+		assert.Equal(t, `<any>`, out.String())
+	})
 }

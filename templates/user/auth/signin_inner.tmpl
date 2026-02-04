@@ -12,7 +12,6 @@
 	<div class="ui attached segment">
 		{{if .EnablePasswordSignInForm}}
 		<form class="ui form" action="{{.SignInLink}}" method="post">
-			{{.CsrfTokenHtml}}
 			<div class="required field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 				<label for="user_name">{{ctx.Locale.Tr "home.uname_holder"}}</label>
 				<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required tabindex="1">
@@ -59,6 +58,7 @@
 	</div>
 </div>
 
+{{if or .EnablePasskeyAuth .ShowRegistrationButton}}
 <div class="ui container fluid">
 	<div class="ui attached segment header top tw-max-w-2xl tw-m-auto tw-flex tw-flex-col tw-items-center">
 		{{if .EnablePasskeyAuth}}
@@ -74,3 +74,4 @@
 		{{end}}
 	</div>
 </div>
+{{end}}

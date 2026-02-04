@@ -17,6 +17,8 @@ import (
 
 // Source holds configuration for the SMTP login source.
 type Source struct {
+	auth.ConfigBase `json:"-"`
+
 	Auth           string
 	Host           string
 	Port           int
@@ -25,10 +27,6 @@ type Source struct {
 	SkipVerify     bool
 	HeloHostname   string
 	DisableHelo    bool
-	SkipLocalTwoFA bool `json:",omitempty"`
-
-	// reference to the authSource
-	authSource *auth.Source
 }
 
 // FromDB fills up an SMTPConfig from serialized format.
@@ -54,11 +52,6 @@ func (source *Source) HasTLS() bool {
 // UseTLS returns if TLS is set
 func (source *Source) UseTLS() bool {
 	return source.ForceSMTPS || source.Port == 465
-}
-
-// SetAuthSource sets the related AuthSource
-func (source *Source) SetAuthSource(authSource *auth.Source) {
-	source.authSource = authSource
 }
 
 func init() {

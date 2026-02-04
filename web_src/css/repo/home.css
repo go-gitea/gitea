@@ -49,6 +49,35 @@
   }
 }
 
+.repo-view-container {
+  display: flex;
+  gap: var(--page-spacing);
+}
+
+.repo-view-file-tree-container {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 15%;
+  min-width: 0;
+  max-height: 100vh;
+  position: sticky;
+  top: 0;
+  bottom: 0;
+  height: 100%;
+  overflow-y: hidden;
+}
+
+@media (max-width: 767.98px) {
+  .repo-view-file-tree-container {
+    display: none;
+  }
+}
+
+.repo-view-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .language-stats {
   display: flex;
   gap: 2px;

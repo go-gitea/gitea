@@ -1,20 +1,20 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_9 //nolint
+package v1_9
 
 import (
+	"context"
 	"fmt"
-	"path/filepath"
-	"strings"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/gitrepo"
 
 	"xorm.io/xorm"
 )
 
-func FixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
+func FixReleaseSha1OnReleaseTable(ctx context.Context, x *xorm.Engine) error {
 	type Release struct {
 		ID      int64
 		RepoID  int64
@@ -31,16 +31,6 @@ func FixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 	type User struct {
 		ID   int64
 		Name string
-	}
-
-	// UserPath returns the path absolute path of user repositories.
-	UserPath := func(userName string) string {
-		return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
-	}
-
-	// RepoPath returns repository path by given user and repository name.
-	RepoPath := func(userName, repoName string) string {
-		return filepath.Join(UserPath(userName), strings.ToLower(repoName)+".git")
 	}
 
 	// Update release sha1
@@ -98,7 +88,7 @@ func FixReleaseSha1OnReleaseTable(x *xorm.Engine) error {
 					userCache[repo.OwnerID] = user
 				}
 
-				gitRepo, err = git.OpenRepository(git.DefaultContext, RepoPath(user.Name, repo.Name))
+				gitRepo, err = gitrepo.OpenRepository(ctx, repo_model.StorageRepo(repo_model.RelativePath(user.Name, repo.Name)))
 				if err != nil {
 					return err
 				}

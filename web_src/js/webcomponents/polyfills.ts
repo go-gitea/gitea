@@ -4,15 +4,30 @@ try {
   new Intl.NumberFormat('en', {style: 'unit', unit: 'minute'}).format(1);
 } catch {
   const intlNumberFormat = Intl.NumberFormat;
-  // @ts-expect-error - polyfill is incomplete
   Intl.NumberFormat = function(locales: string | string[], options: Intl.NumberFormatOptions) {
     if (options.style === 'unit') {
       return {
         format(value: number | bigint | string) {
           return ` ${value} ${options.unit}`;
         },
-      };
+      } as Intl.NumberFormat;
     }
     return intlNumberFormat(locales, options);
+  } as unknown as typeof Intl.NumberFormat;
+}
+
+export function weakRefClass() {
+  const weakMap = new WeakMap();
+  return class {
+    constructor(target: any) {
+      weakMap.set(this, target);
+    }
+    deref() {
+      return weakMap.get(this);
+    }
   };
+}
+
+if (!window.WeakRef) {
+  window.WeakRef = weakRefClass() as any;
 }

@@ -8,13 +8,13 @@ import (
 	"testing"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/contexttest"
@@ -24,23 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createSSHAuthorizedKeysTmpPath(t *testing.T) func() {
-	tmpDir := t.TempDir()
-
-	oldPath := setting.SSH.RootPath
-	setting.SSH.RootPath = tmpDir
-
-	return func() {
-		setting.SSH.RootPath = oldPath
-	}
-}
-
 func TestAddReadOnlyDeployKey(t *testing.T) {
-	if deferable := createSSHAuthorizedKeysTmpPath(t); deferable != nil {
-		defer deferable()
-	} else {
-		return
-	}
+	defer test.MockVariableValue(&setting.SSH.RootPath, t.TempDir())()
 	unittest.PrepareTestEnv(t)
 
 	ctx, _ := contexttest.MockContext(t, "user2/repo1/settings/keys")
@@ -54,7 +39,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	}
 	web.SetForm(ctx, &addKeyForm)
 	DeployKeysPost(ctx)
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		Name:    addKeyForm.Title,
@@ -64,11 +49,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 }
 
 func TestAddReadWriteOnlyDeployKey(t *testing.T) {
-	if deferable := createSSHAuthorizedKeysTmpPath(t); deferable != nil {
-		defer deferable()
-	} else {
-		return
-	}
+	defer test.MockVariableValue(&setting.SSH.RootPath, t.TempDir())()
 
 	unittest.PrepareTestEnv(t)
 
@@ -84,7 +65,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 	}
 	web.SetForm(ctx, &addKeyForm)
 	DeployKeysPost(ctx)
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.DeployKey{
 		Name:    addKeyForm.Title,
@@ -121,7 +102,7 @@ func TestCollaborationPost(t *testing.T) {
 
 	CollaborationPost(ctx)
 
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 
 	exists, err := repo_model.IsCollaborator(ctx, re.ID, 4)
 	assert.NoError(t, err)
@@ -147,7 +128,7 @@ func TestCollaborationPost_InactiveUser(t *testing.T) {
 
 	CollaborationPost(ctx)
 
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
@@ -179,7 +160,7 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 	CollaborationPost(ctx)
 
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 
 	exists, err := repo_model.IsCollaborator(ctx, re.ID, 4)
 	assert.NoError(t, err)
@@ -188,7 +169,7 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 	// Try adding the same collaborator again
 	CollaborationPost(ctx)
 
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
@@ -210,7 +191,7 @@ func TestCollaborationPost_NonExistentUser(t *testing.T) {
 
 	CollaborationPost(ctx)
 
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
@@ -249,8 +230,8 @@ func TestAddTeamPost(t *testing.T) {
 
 	AddTeamPost(ctx)
 
-	assert.True(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.True(t, repo_service.HasRepository(t.Context(), team, re.ID))
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	assert.Empty(t, ctx.Flash.ErrorMsg)
 }
 
@@ -289,8 +270,8 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 
 	AddTeamPost(ctx)
 
-	assert.False(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.False(t, repo_service.HasRepository(t.Context(), team, re.ID))
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
@@ -330,8 +311,8 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 	AddTeamPost(ctx)
 
 	AddTeamPost(ctx)
-	assert.True(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.True(t, repo_service.HasRepository(t.Context(), team, re.ID))
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
@@ -364,7 +345,7 @@ func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 	ctx.Repo = repo
 
 	AddTeamPost(ctx)
-	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
+	assert.Equal(t, http.StatusSeeOther, ctx.Resp.WrittenStatus())
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
@@ -403,5 +384,5 @@ func TestDeleteTeam(t *testing.T) {
 
 	DeleteTeam(ctx)
 
-	assert.False(t, repo_service.HasRepository(db.DefaultContext, team, re.ID))
+	assert.False(t, repo_service.HasRepository(t.Context(), team, re.ID))
 }

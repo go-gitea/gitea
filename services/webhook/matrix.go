@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -23,6 +24,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 )
+
+func init() {
+	RegisterWebhookRequester(webhook_module.MATRIX, newMatrixRequest)
+}
 
 func newMatrixRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	meta := &MatrixMeta{}
@@ -52,7 +57,7 @@ func newMatrixRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_mo
 	}
 	req.Header.Set("Content-Type", "application/json")
 
-	return req, body, addDefaultHeaders(req, []byte(w.Secret), t, body) // likely useless, but has always been sent historially
+	return req, body, addDefaultHeaders(req, []byte(w.Secret), w, t, body) // likely useless, but has always been sent historially
 }
 
 const matrixPayloadSizeLimit = 1024 * 64
@@ -168,18 +173,19 @@ func (m matrixConvertor) Push(p *api.PushPayload) (MatrixPayload, error) {
 
 	repoLink := htmlLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	branchLink := MatrixLinkToRef(p.Repo.HTMLURL, p.Ref)
-	text := fmt.Sprintf("[%s] %s pushed %s to %s:<br>", repoLink, p.Pusher.UserName, commitDesc, branchLink)
+	var text strings.Builder
+	text.WriteString(fmt.Sprintf("[%s] %s pushed %s to %s:<br>", repoLink, p.Pusher.UserName, commitDesc, branchLink))
 
 	// for each commit, generate a new line text
 	for i, commit := range p.Commits {
-		text += fmt.Sprintf("%s: %s - %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), commit.Message, commit.Author.Name)
+		text.WriteString(fmt.Sprintf("%s: %s - %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), commit.Message, commit.Author.Name))
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "<br>"
+			text.WriteString("<br>")
 		}
 	}
 
-	return m.newPayload(text, p.Commits...)
+	return m.newPayload(text.String(), p.Commits...)
 }
 
 // PullRequest implements payloadConvertor PullRequest method
@@ -240,6 +246,25 @@ func (m matrixConvertor) Package(p *api.PackagePayload) (MatrixPayload, error) {
 	return m.newPayload(text)
 }
 
+func (m matrixConvertor) Status(p *api.CommitStatusPayload) (MatrixPayload, error) {
+	refLink := htmlLinkFormatter(p.TargetURL, fmt.Sprintf("%s [%s]", p.Context, base.ShortSha(p.SHA)))
+	text := fmt.Sprintf("Commit Status changed: %s - %s", refLink, p.Description)
+
+	return m.newPayload(text)
+}
+
+func (m matrixConvertor) WorkflowRun(p *api.WorkflowRunPayload) (MatrixPayload, error) {
+	text, _ := getWorkflowRunPayloadInfo(p, htmlLinkFormatter, true)
+
+	return m.newPayload(text)
+}
+
+func (m matrixConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MatrixPayload, error) {
+	text, _ := getWorkflowJobPayloadInfo(p, htmlLinkFormatter, true)
+
+	return m.newPayload(text)
+}
+
 var urlRegex = regexp.MustCompile(`<a [^>]*?href="([^">]*?)">(.*?)</a>`)
 
 func getMessageBody(htmlText string) string {
@@ -250,6 +275,7 @@ func getMessageBody(htmlText string) string {
 
 // getMatrixTxnID computes the transaction ID to ensure idempotency
 func getMatrixTxnID(payload []byte) (string, error) {
+	payload = bytes.TrimSpace(payload)
 	if len(payload) >= matrixPayloadSizeLimit {
 		return "", fmt.Errorf("getMatrixTxnID: payload size %d > %d", len(payload), matrixPayloadSizeLimit)
 	}

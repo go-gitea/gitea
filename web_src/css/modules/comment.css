@@ -56,19 +56,6 @@
   min-width: 0;
 }
 
-.ui.comments .comment > .avatar ~ .content {
-  margin-left: 12px;
-}
-
-.ui.comments .comment .author {
-  font-size: 1em;
-  font-weight: var(--font-weight-medium);
-}
-
-.ui.comments .comment a.author {
-  cursor: pointer;
-}
-
 .ui.comments .comment .metadata {
   display: inline-block;
   margin-left: 0.5em;
@@ -87,6 +74,6 @@
 .ui.comments .comment .text {
   margin: 0.25em 0 0.5em;
   font-size: 1em;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
   line-height: 1.3;
 }

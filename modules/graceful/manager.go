@@ -47,12 +47,19 @@ var (
 
 // GetManager returns the Manager
 func GetManager() *Manager {
-	InitManager(context.Background())
+	initManager(context.Background())
 	return manager
 }
 
 // InitManager creates the graceful manager in the provided context
 func InitManager(ctx context.Context) {
+	if manager != nil {
+		log.Error("graceful.InitManager called more than once")
+	}
+	initManager(ctx) // FIXME: this design is not right, it conflicts with the "Background" context used in GetManager
+}
+
+func initManager(ctx context.Context) {
 	initOnce.Do(func() {
 		manager = newGracefulManager(ctx)
 
@@ -67,12 +74,6 @@ func (g *Manager) RunWithCancel(rc RunCanceler) {
 	g.RunAtShutdown(context.Background(), rc.Cancel)
 	g.runningServerWaitGroup.Add(1)
 	defer g.runningServerWaitGroup.Done()
-	defer func() {
-		if err := recover(); err != nil {
-			log.Critical("PANIC during RunWithCancel: %v\nStacktrace: %s", err, log.Stack(2))
-			g.doShutdown()
-		}
-	}()
 	rc.Run()
 }
 
@@ -82,12 +83,6 @@ func (g *Manager) RunWithCancel(rc RunCanceler) {
 func (g *Manager) RunWithShutdownContext(run func(context.Context)) {
 	g.runningServerWaitGroup.Add(1)
 	defer g.runningServerWaitGroup.Done()
-	defer func() {
-		if err := recover(); err != nil {
-			log.Critical("PANIC during RunWithShutdownContext: %v\nStacktrace: %s", err, log.Stack(2))
-			g.doShutdown()
-		}
-	}()
 	ctx := g.ShutdownContext()
 	pprof.SetGoroutineLabels(ctx) // We don't have a label to restore back to but I think this is fine
 	run(ctx)

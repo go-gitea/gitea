@@ -4,7 +4,6 @@
 package actions
 
 import (
-	"context"
 	"testing"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -19,7 +18,7 @@ func TestFindTaskNeeds(t *testing.T) {
 	task := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionTask{ID: 51})
 	job := unittest.AssertExistsAndLoadBean(t, &actions_model.ActionRunJob{ID: task.JobID})
 
-	ret, err := FindTaskNeeds(context.Background(), job)
+	ret, err := FindTaskNeeds(t.Context(), job)
 	assert.NoError(t, err)
 	assert.Len(t, ret, 1)
 	assert.Contains(t, ret, "job1")

@@ -4,23 +4,22 @@
 package markdown
 
 import (
+	"strings"
+
+	"code.gitea.io/gitea/modules/htmlutil"
+	"code.gitea.io/gitea/modules/svg"
+
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 	"gopkg.in/yaml.v3"
 )
 
 func nodeToTable(meta *yaml.Node) ast.Node {
-	for {
-		if meta == nil {
-			return nil
-		}
-		switch meta.Kind {
-		case yaml.DocumentNode:
-			meta = meta.Content[0]
-			continue
-		default:
-		}
-		break
+	for meta != nil && meta.Kind == yaml.DocumentNode {
+		meta = meta.Content[0]
+	}
+	if meta == nil {
+		return nil
 	}
 	switch meta.Kind {
 	case yaml.MappingNode:
@@ -72,12 +71,28 @@ func sequenceNodeToTable(meta *yaml.Node) ast.Node {
 	return table
 }
 
-func nodeToDetails(meta *yaml.Node, icon string) ast.Node {
+func nodeToDetails(g *ASTTransformer, meta *yaml.Node) ast.Node {
+	for meta != nil && meta.Kind == yaml.DocumentNode {
+		meta = meta.Content[0]
+	}
+	if meta == nil {
+		return nil
+	}
+	if meta.Kind != yaml.MappingNode {
+		return nil
+	}
+	var keys []string
+	for i := 0; i < len(meta.Content); i += 2 {
+		if meta.Content[i].Kind == yaml.ScalarNode {
+			keys = append(keys, meta.Content[i].Value)
+		}
+	}
 	details := NewDetails()
+	details.SetAttributeString(g.renderInternal.SafeAttr("class"), g.renderInternal.SafeValue("frontmatter-content"))
 	summary := NewSummary()
-	summary.AppendChild(summary, NewIcon(icon))
+	summaryInnerHTML := htmlutil.HTMLFormat("%s %s", svg.RenderHTML("octicon-table", 12), strings.Join(keys, ", "))
+	summary.AppendChild(summary, NewRawHTML(summaryInnerHTML))
 	details.AppendChild(details, summary)
 	details.AppendChild(details, nodeToTable(meta))
-
 	return details
 }

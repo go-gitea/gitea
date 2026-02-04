@@ -43,7 +43,7 @@ func NewContext(ctx context.Context) {
 		sender = &sender_service.SMTPSender{}
 	}
 
-	subjectTemplates, bodyTemplates = templates.Mailer(ctx)
+	_ = templates.MailRenderer()
 
 	mailQueue = queue.CreateSimpleQueue(graceful.GetManager().ShutdownContext(), "mail", func(items ...*sender_service.Message) []*sender_service.Message {
 		for _, msg := range items {

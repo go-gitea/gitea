@@ -30,6 +30,12 @@ type Parser struct {
 func NewParser(r io.Reader, format Format) *Parser {
 	scanner := bufio.NewScanner(r)
 
+	// default Scanner.MaxScanTokenSize = 64 kiB may be too small for some references,
+	// so allow the buffer to be large enough in case the ref has long content (e.g.: a tag with long message)
+	// as long as it doesn't exceed some reasonable limit (4 MiB here, or MAX_DISPLAY_FILE_SIZE=8MiB), it is OK
+	// there are still some choices: 1. add a config option for the limit; 2. don't use scanner and write our own parser to fully handle large contents
+	scanner.Buffer(nil, 4*1024*1024)
+
 	// in addition to the reference delimiter we specified in the --format,
 	// `git for-each-ref` will always add a newline after every reference.
 	refDelim := make([]byte, 0, len(format.refDelim)+1)
@@ -70,6 +76,9 @@ func NewParser(r io.Reader, format Format) *Parser {
 //	{ "objecttype": "tag", "refname:short": "v1.16.4", "object": "f460b7543ed500e49c133c2cd85c8c55ee9dbe27" }
 func (p *Parser) Next() map[string]string {
 	if !p.scanner.Scan() {
+		if err := p.scanner.Err(); err != nil {
+			p.err = err
+		}
 		return nil
 	}
 	fields, err := p.parseRef(p.scanner.Text())
@@ -106,10 +115,10 @@ func (p *Parser) parseRef(refBlock string) (map[string]string, error) {
 
 		var fieldKey string
 		var fieldVal string
-		firstSpace := strings.Index(field, " ")
-		if firstSpace > 0 {
-			fieldKey = field[:firstSpace]
-			fieldVal = field[firstSpace+1:]
+		before, after, ok := strings.Cut(field, " ")
+		if ok {
+			fieldKey = before
+			fieldVal = after
 		} else {
 			// could be the case if the requested field had no value
 			fieldKey = field

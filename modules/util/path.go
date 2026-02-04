@@ -36,9 +36,10 @@ func PathJoinRel(elem ...string) string {
 		elems[i] = path.Clean("/" + e)
 	}
 	p := path.Join(elems...)
-	if p == "" {
+	switch p {
+	case "":
 		return ""
-	} else if p == "/" {
+	case "/":
 		return "."
 	}
 	return p[1:]
@@ -114,15 +115,10 @@ func IsDir(dir string) (bool, error) {
 	return false, err
 }
 
-// IsFile returns true if given path is a file,
-// or returns false when it's a directory or does not exist.
-func IsFile(filePath string) (bool, error) {
-	f, err := os.Stat(filePath)
+func IsRegularFile(filePath string) (bool, error) {
+	f, err := os.Lstat(filePath)
 	if err == nil {
-		return !f.IsDir(), nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
+		return f.Mode().IsRegular(), nil
 	}
 	return false, err
 }

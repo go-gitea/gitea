@@ -53,7 +53,7 @@ func toUser(ctx context.Context, user *user_model.User, signed, authed bool) *ap
 		FullName:    user.FullName,
 		Email:       user.GetPlaceholderEmail(),
 		AvatarURL:   user.AvatarLink(ctx),
-		HTMLURL:     user.HTMLURL(),
+		HTMLURL:     user.HTMLURL(ctx),
 		Created:     user.CreatedUnix.AsTime(),
 		Restricted:  user.IsRestricted,
 		Location:    user.Location,

@@ -5,12 +5,12 @@ package context
 
 import (
 	"bytes"
-	"fmt"
 	"net"
 	"net/http"
 	"strings"
 	"text/template"
 	"time"
+	"unicode"
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -38,6 +38,16 @@ const keyOfRequestIDInTemplate = ".RequestID"
 // So, we accept a Request ID with a maximum character length of 40
 const maxRequestIDByteLength = 40
 
+func isSafeRequestID(id string) bool {
+	for _, r := range id {
+		safe := unicode.IsPrint(r)
+		if !safe {
+			return false
+		}
+	}
+	return true
+}
+
 func parseRequestIDFromRequestHeader(req *http.Request) string {
 	requestID := "-"
 	for _, key := range setting.Log.RequestIDHeaders {
@@ -46,8 +56,11 @@ func parseRequestIDFromRequestHeader(req *http.Request) string {
 			break
 		}
 	}
+	if !isSafeRequestID(requestID) {
+		return "-"
+	}
 	if len(requestID) > maxRequestIDByteLength {
-		requestID = fmt.Sprintf("%s...", requestID[:maxRequestIDByteLength])
+		requestID = requestID[:maxRequestIDByteLength] + "..."
 	}
 	return requestID
 }
@@ -92,7 +105,7 @@ func (lr *accessLogRecorder) record(start time.Time, respWriter ResponseWriter, 
 		log.Error("Could not execute access logger template: %v", err.Error())
 	}
 
-	lr.logger.Log(1, log.INFO, "%s", buf.String())
+	lr.logger.Log(1, &log.Event{Level: log.INFO}, "%s", buf.String())
 }
 
 func newAccessLogRecorder() *accessLogRecorder {

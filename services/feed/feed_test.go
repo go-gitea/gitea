@@ -20,7 +20,7 @@ func TestGetFeeds(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	actions, count, err := GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+	actions, count, err := GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedUser:   user,
 		Actor:           user,
 		IncludePrivate:  true,
@@ -30,11 +30,11 @@ func TestGetFeeds(t *testing.T) {
 	assert.NoError(t, err)
 	if assert.Len(t, actions, 1) {
 		assert.EqualValues(t, 1, actions[0].ID)
-		assert.EqualValues(t, user.ID, actions[0].UserID)
+		assert.Equal(t, user.ID, actions[0].UserID)
 	}
 	assert.Equal(t, int64(1), count)
 
-	actions, count, err = GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+	actions, count, err = GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedUser:   user,
 		Actor:           user,
 		IncludePrivate:  false,
@@ -52,7 +52,7 @@ func TestGetFeedsForRepos(t *testing.T) {
 	pubRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8})
 
 	// private repo & no login
-	actions, count, err := GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+	actions, count, err := GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedRepo:  privRepo,
 		IncludePrivate: true,
 	})
@@ -61,7 +61,7 @@ func TestGetFeedsForRepos(t *testing.T) {
 	assert.Equal(t, int64(0), count)
 
 	// public repo & no login
-	actions, count, err = GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+	actions, count, err = GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedRepo:  pubRepo,
 		IncludePrivate: true,
 	})
@@ -70,7 +70,7 @@ func TestGetFeedsForRepos(t *testing.T) {
 	assert.Equal(t, int64(1), count)
 
 	// private repo and login
-	actions, count, err = GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+	actions, count, err = GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedRepo:  privRepo,
 		IncludePrivate: true,
 		Actor:          user,
@@ -80,7 +80,7 @@ func TestGetFeedsForRepos(t *testing.T) {
 	assert.Equal(t, int64(1), count)
 
 	// public repo & login
-	actions, count, err = GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+	actions, count, err = GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedRepo:  pubRepo,
 		IncludePrivate: true,
 		Actor:          user,
@@ -96,7 +96,7 @@ func TestGetFeeds2(t *testing.T) {
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
-	actions, count, err := GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+	actions, count, err := GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedUser:   org,
 		Actor:           user,
 		IncludePrivate:  true,
@@ -107,11 +107,11 @@ func TestGetFeeds2(t *testing.T) {
 	assert.Len(t, actions, 1)
 	if assert.Len(t, actions, 1) {
 		assert.EqualValues(t, 2, actions[0].ID)
-		assert.EqualValues(t, org.ID, actions[0].UserID)
+		assert.Equal(t, org.ID, actions[0].UserID)
 	}
 	assert.Equal(t, int64(1), count)
 
-	actions, count, err = GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+	actions, count, err = GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedUser:   org,
 		Actor:           user,
 		IncludePrivate:  false,
@@ -133,7 +133,7 @@ func TestGetFeedsCorrupted(t *testing.T) {
 		RepoID: 1700,
 	})
 
-	actions, count, err := GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+	actions, count, err := GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedUser:  user,
 		Actor:          user,
 		IncludePrivate: true,
@@ -146,20 +146,57 @@ func TestGetFeedsCorrupted(t *testing.T) {
 func TestRepoActions(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	_ = db.TruncateBeans(db.DefaultContext, &activities_model.Action{})
-	for i := 0; i < 3; i++ {
-		_ = db.Insert(db.DefaultContext, &activities_model.Action{
+	_ = db.TruncateBeans(t.Context(), &activities_model.Action{})
+	for i := range 3 {
+		_ = db.Insert(t.Context(), &activities_model.Action{
 			UserID:    2 + int64(i),
 			ActUserID: 2,
 			RepoID:    repo.ID,
 			OpType:    activities_model.ActionCommentIssue,
 		})
 	}
-	count, _ := db.Count[activities_model.Action](db.DefaultContext, &db.ListOptions{})
+	count, _ := db.Count[activities_model.Action](t.Context(), &db.ListOptions{})
 	assert.EqualValues(t, 3, count)
-	actions, _, err := GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+	actions, _, err := GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 		RequestedRepo: repo,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
+}
+
+func TestNotifyWatchers(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	action := &activities_model.Action{
+		ActUserID: 8,
+		RepoID:    1,
+		OpType:    activities_model.ActionStarRepo,
+	}
+	assert.NoError(t, NotifyWatchers(t.Context(), action))
+
+	// One watchers are inactive, thus action is only created for user 8, 1, 4, 11
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    8,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    1,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    4,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		ActUserID: action.ActUserID,
+		UserID:    11,
+		RepoID:    action.RepoID,
+		OpType:    action.OpType,
+	})
 }

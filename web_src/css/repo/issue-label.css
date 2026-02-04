@@ -4,41 +4,46 @@
   margin: 0;
 }
 
-.issue-label-list .item {
+.issue-label-list > .item {
   border-bottom: 1px solid var(--color-secondary);
   display: flex;
   padding: 1em 0;
   margin: 0;
 }
 
-.issue-label-list .item:first-child {
+.issue-label-list > .item:first-child {
   padding-top: 0;
 }
 
-.issue-label-list .item:last-child {
+.issue-label-list > .item:last-child {
   border-bottom: none;
   padding-bottom: 0;
 }
 
-.issue-label-list .item .label-title {
+.issue-label-list > .item .label-title {
   width: 33%;
+  padding-right: 1em;
 }
 
-.issue-label-list .item .label-issues {
+.issue-label-list > .item .label-issues {
   width: 33%;
+  padding-right: 1em;
 }
 
-.issue-label-list .item .label-operation {
+.issue-label-list > .item .label-operation {
   width: 33%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em;
+  justify-content: end;
+  align-items: center;
 }
 
-.issue-label-list .item a {
+.issue-label-list > .item .label-operation a {
   font-size: 12px;
-  padding-right: 10px;
-  color: var(--color-text-light);
 }
 
-.issue-label-list .item.org-label {
+.issue-label-list > .item.org-label {
   opacity: 0.7;
 }
 

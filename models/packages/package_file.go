@@ -115,6 +115,11 @@ func DeleteFileByID(ctx context.Context, fileID int64) error {
 	return err
 }
 
+func UpdateFile(ctx context.Context, pf *PackageFile, cols []string) error {
+	_, err := db.GetEngine(ctx).ID(pf.ID).Cols(cols...).Update(pf)
+	return err
+}
+
 // PackageFileSearchOptions are options for SearchXXX methods
 type PackageFileSearchOptions struct {
 	OwnerID       int64

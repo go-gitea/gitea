@@ -6,21 +6,9 @@ import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts'
 import {getIssueColor, getIssueIcon} from '../issue.ts';
 import {debounce} from 'perfect-debounce';
 import type TextExpanderElement from '@github/text-expander-element';
+import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element';
 
-type TextExpanderProvideResult = {
-  matched: boolean,
-  fragment?: HTMLElement,
-}
-
-type TextExpanderChangeEvent = Event & {
-  detail?: {
-    key: string,
-    text: string,
-    provide: (result: TextExpanderProvideResult | Promise<TextExpanderProvideResult>) => void,
-  }
-}
-
-async function fetchIssueSuggestions(key: string, text: string): Promise<TextExpanderProvideResult> {
+async function fetchIssueSuggestions(key: string, text: string): Promise<TextExpanderResult> {
   const issuePathInfo = parseIssueHref(window.location.href);
   if (!issuePathInfo.ownerName) {
     const repoOwnerPathInfo = parseRepoOwnerPathInfo(window.location.pathname);
@@ -49,7 +37,7 @@ async function fetchIssueSuggestions(key: string, text: string): Promise<TextExp
 export function initTextExpander(expander: TextExpanderElement) {
   if (!expander) return;
 
-  const textarea = expander.querySelector<HTMLTextAreaElement>('textarea');
+  const textarea = expander.querySelector<HTMLTextAreaElement>('textarea')!;
 
   // help to fix the text-expander "multiword+promise" bug: do not show the popup when there is no "#" before current line
   const shouldShowIssueSuggestions = () => {
@@ -59,7 +47,7 @@ export function initTextExpander(expander: TextExpanderElement) {
     return keyStart > lineStart;
   };
 
-  const debouncedIssueSuggestions = debounce(async (key: string, text: string): Promise<TextExpanderProvideResult> => {
+  const debouncedIssueSuggestions = debounce(async (key: string, text: string): Promise<TextExpanderResult> => {
     // https://github.com/github/text-expander-element/issues/71
     // Upstream bug: when using "multiword+promise", TextExpander will get wrong "key" position.
     // To reproduce, comment out the "shouldShowIssueSuggestions" check, use the "await sleep" below,
@@ -76,6 +64,7 @@ export function initTextExpander(expander: TextExpanderElement) {
   }, 300); // to match onInputDebounce delay
 
   expander.addEventListener('text-expander-change', (e: TextExpanderChangeEvent) => {
+    if (!e.detail) return;
     const {key, text, provide} = e.detail;
     if (key === ':') {
       const matches = matchEmoji(text);
@@ -109,6 +98,7 @@ export function initTextExpander(expander: TextExpanderElement) {
         li.append(img);
 
         const nameSpan = document.createElement('span');
+        nameSpan.classList.add('name');
         nameSpan.textContent = name;
         li.append(nameSpan);
 

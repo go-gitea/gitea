@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/util"
@@ -18,7 +19,7 @@ import (
 )
 
 // MergeUpstream merges the base repository's default branch into the fork repository's current branch.
-func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, branch string) (mergeStyle string, err error) {
+func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, branch string, ffOnly bool) (mergeStyle string, err error) {
 	if err = repo.MustNotBeArchived(); err != nil {
 		return "", err
 	}
@@ -33,8 +34,7 @@ func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_
 		return "up-to-date", nil
 	}
 
-	err = git.Push(ctx, repo.BaseRepo.RepoPath(), git.PushOptions{
-		Remote: repo.RepoPath(),
+	err = gitrepo.Push(ctx, repo.BaseRepo, repo, git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s", divergingInfo.BaseBranchName, branch),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 	})
@@ -43,6 +43,11 @@ func MergeUpstream(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_
 	}
 	if !git.IsErrPushOutOfDate(err) && !git.IsErrPushRejected(err) {
 		return "", err
+	}
+
+	// If ff_only is requested and fast-forward failed, return error
+	if ffOnly {
+		return "", util.NewInvalidArgumentErrorf("fast-forward merge not possible: branch has diverged")
 	}
 
 	// TODO: FakePR: it is somewhat hacky, but it is the only way to "merge" at the moment

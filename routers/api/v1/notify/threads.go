@@ -42,7 +42,7 @@ func GetThread(ctx *context.APIContext) {
 		return
 	}
 	if err := n.LoadAttributes(ctx); err != nil && !issues_model.IsErrCommentNotExist(err) {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -90,11 +90,11 @@ func ReadThread(ctx *context.APIContext) {
 
 	notif, err := activities_model.SetNotificationStatus(ctx, n.ID, ctx.Doer, targetStatus)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	if err = notif.LoadAttributes(ctx); err != nil && !issues_model.IsErrCommentNotExist(err) {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusResetContent, convert.ToNotificationThread(ctx, notif))
@@ -104,14 +104,14 @@ func getThread(ctx *context.APIContext) *activities_model.Notification {
 	n, err := activities_model.GetNotificationByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
-			ctx.Error(http.StatusNotFound, "GetNotificationByID", err)
+			ctx.APIError(http.StatusNotFound, err)
 		} else {
-			ctx.InternalServerError(err)
+			ctx.APIErrorInternal(err)
 		}
 		return nil
 	}
 	if n.UserID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
-		ctx.Error(http.StatusForbidden, "GetNotificationByID", fmt.Errorf("only user itself and admin are allowed to read/change this thread %d", n.ID))
+		ctx.APIError(http.StatusForbidden, fmt.Errorf("only user itself and admin are allowed to read/change this thread %d", n.ID))
 		return nil
 	}
 	return n

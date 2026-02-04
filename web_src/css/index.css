@@ -18,8 +18,9 @@
 @import "./modules/checkbox.css";
 @import "./modules/dimmer.css";
 @import "./modules/modal.css";
+@import "./modules/tab.css";
+@import "./modules/form.css";
 
-@import "./modules/select.css";
 @import "./modules/tippy.css";
 @import "./modules/breadcrumb.css";
 @import "./modules/comment.css";
@@ -39,9 +40,10 @@
 @import "./features/imagediff.css";
 @import "./features/codeeditor.css";
 @import "./features/projects.css";
-@import "./features/tribute.css";
+@import "./features/expander.css";
 @import "./features/cropper.css";
 @import "./features/console.css";
+@import "./features/captcha.css";
 
 @import "./markup/content.css";
 @import "./markup/codecopy.css";
@@ -54,7 +56,6 @@
 @import "./base.css";
 @import "./home.css";
 @import "./install.css";
-@import "./form.css";
 
 @import "./repo.css";
 @import "./repo/release-tag.css";
@@ -62,7 +63,7 @@
 @import "./repo/issue-label.css";
 @import "./repo/issue-list.css";
 @import "./repo/list-header.css";
-@import "./repo/linebutton.css";
+@import "./repo/file-view.css";
 @import "./repo/wiki.css";
 @import "./repo/header.css";
 @import "./repo/home.css";
@@ -70,6 +71,7 @@
 @import "./repo/reactions.css";
 @import "./repo/clone.css";
 @import "./repo/commit-sign.css";
+@import "./repo/packages.css";
 
 @import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";

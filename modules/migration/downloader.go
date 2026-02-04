@@ -12,18 +12,17 @@ import (
 
 // Downloader downloads the site repo information
 type Downloader interface {
-	SetContext(context.Context)
-	GetRepoInfo() (*Repository, error)
-	GetTopics() ([]string, error)
-	GetMilestones() ([]*Milestone, error)
-	GetReleases() ([]*Release, error)
-	GetLabels() ([]*Label, error)
-	GetIssues(page, perPage int) ([]*Issue, bool, error)
-	GetComments(commentable Commentable) ([]*Comment, bool, error)
-	GetAllComments(page, perPage int) ([]*Comment, bool, error)
+	GetRepoInfo(ctx context.Context) (*Repository, error)
+	GetTopics(ctx context.Context) ([]string, error)
+	GetMilestones(ctx context.Context) ([]*Milestone, error)
+	GetReleases(ctx context.Context) ([]*Release, error)
+	GetLabels(ctx context.Context) ([]*Label, error)
+	GetIssues(ctx context.Context, page, perPage int) ([]*Issue, bool, error)
+	GetComments(ctx context.Context, commentable Commentable) ([]*Comment, bool, error)
+	GetAllComments(ctx context.Context, page, perPage int) ([]*Comment, bool, error)
 	SupportGetRepoComments() bool
-	GetPullRequests(page, perPage int) ([]*PullRequest, bool, error)
-	GetReviews(reviewable Reviewable) ([]*Review, error)
+	GetPullRequests(ctx context.Context, page, perPage int) ([]*PullRequest, bool, error)
+	GetReviews(ctx context.Context, reviewable Reviewable) ([]*Review, error)
 	FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error)
 }
 

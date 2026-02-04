@@ -6,6 +6,7 @@ package incoming
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	net_mail "net/mail"
 	"regexp"
@@ -221,7 +222,7 @@ loop:
 			err := func() error {
 				r := msg.GetBody(section)
 				if r == nil {
-					return fmt.Errorf("could not get body from message: %w", err)
+					return errors.New("could not get body from message")
 				}
 
 				env, err := enmime.ReadEnvelope(r)

@@ -5,12 +5,14 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // AutoMerge represents a pull request scheduled for merging when checks succeed
@@ -76,7 +78,10 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 		return false, nil, err
 	}
 
-	doer, err := user_model.GetUserByID(ctx, scheduledPRM.DoerID)
+	doer, err := user_model.GetPossibleUserByID(ctx, scheduledPRM.DoerID)
+	if errors.Is(err, util.ErrNotExist) {
+		doer, err = user_model.NewGhostUser(), nil
+	}
 	if err != nil {
 		return false, nil, err
 	}

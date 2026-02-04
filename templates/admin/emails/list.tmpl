@@ -67,6 +67,8 @@
 								>{{svg "octicon-trash"}}</a>
 							</td>
 						</tr>
+					{{else}}
+						<tr><td class="tw-text-center" colspan="6">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 					{{end}}
 				</tbody>
 			</table>
@@ -80,8 +82,6 @@
 			</div>
 			<form class="content ui form" action="{{AppSubUrl}}/-/admin/emails/activate" method="post">
 				<p class="center">{{ctx.Locale.Tr "admin.emails.change_email_text"}}</p>
-
-				{{$.CsrfTokenHtml}}
 
 				<input type="hidden" name="sort" value="{{.SortType}}">
 				<input type="hidden" name="q" value="{{.Keyword}}">

@@ -5,7 +5,8 @@
 package markdown
 
 import (
-	"fmt"
+	"bytes"
+	"errors"
 	"html/template"
 	"io"
 	"strings"
@@ -21,10 +22,12 @@ import (
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	meta "github.com/yuin/goldmark-meta"
+	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/renderer"
 	"github.com/yuin/goldmark/renderer/html"
+	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
 )
 
@@ -48,7 +51,7 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 		if err != nil {
 			return n, err
 		}
-		return n, fmt.Errorf("rendered content too large - truncating render")
+		return n, errors.New("rendered content too large - truncating render")
 	}
 	n, err := l.w.Write(data)
 	l.sum += int64(n)
@@ -57,7 +60,7 @@ func (l *limitWriter) Write(data []byte) (int, error) {
 
 // newParserContext creates a parser.Context with the render context set
 func newParserContext(ctx *markup.RenderContext) parser.Context {
-	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
+	pc := parser.NewContext()
 	pc.Set(renderContextKey, ctx)
 	return pc
 }
@@ -86,24 +89,54 @@ func (r *GlodmarkRender) highlightingRenderer(w util.BufWriter, c highlighting.C
 			preClasses += " is-loading"
 		}
 
-		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<pre class="%s">`, preClasses)
-		if err != nil {
-			return
-		}
-
 		// include language-x class as part of commonmark spec, "chroma" class is used to highlight the code
 		// the "display" class is used by "js/markup/math.ts" to render the code element as a block
 		// the "math.ts" strictly depends on the structure: <pre class="code-block is-loading"><code class="language-math display">...</code></pre>
-		err = r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<code class="chroma language-%s display">`, languageStr)
+		err := r.ctx.RenderInternal.FormatWithSafeAttrs(w, `<div class="code-block-container code-overflow-scroll"><pre class="%s"><code class="chroma language-%s display">`, preClasses, languageStr)
 		if err != nil {
 			return
 		}
 	} else {
-		_, err := w.WriteString("</code></pre>")
+		_, err := w.WriteString("</code></pre></div>")
 		if err != nil {
 			return
 		}
 	}
+}
+
+type goldmarkEmphasisParser struct {
+	parser.InlineParser
+}
+
+func goldmarkNewEmphasisParser() parser.InlineParser {
+	return &goldmarkEmphasisParser{parser.NewEmphasisParser()}
+}
+
+func (s *goldmarkEmphasisParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
+	line, _ := block.PeekLine()
+	if len(line) > 1 && line[0] == '_' {
+		// a special trick to avoid parsing emphasis in filenames like "module/__init__.py"
+		end := bytes.IndexByte(line[1:], '_')
+		mark := bytes.Index(line, []byte("_.py"))
+		// check whether the "end" matches "_.py" or "__.py"
+		if mark != -1 && (end == mark || end == mark-1) {
+			return nil
+		}
+	}
+	return s.InlineParser.Parse(parent, block, pc)
+}
+
+func goldmarkDefaultParser() parser.Parser {
+	return parser.NewParser(parser.WithBlockParsers(parser.DefaultBlockParsers()...),
+		parser.WithInlineParsers([]util.PrioritizedValue{
+			util.Prioritized(parser.NewCodeSpanParser(), 100),
+			util.Prioritized(parser.NewLinkParser(), 200),
+			util.Prioritized(parser.NewAutoLinkParser(), 300),
+			util.Prioritized(parser.NewRawHTMLParser(), 400),
+			util.Prioritized(goldmarkNewEmphasisParser(), 500),
+		}...),
+		parser.WithParagraphTransformers(parser.DefaultParagraphTransformers()...),
+	)
 }
 
 // SpecializedMarkdown sets up the Gitea specific markdown extensions
@@ -112,6 +145,7 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 	// at the moment it is fast enough (see the benchmarks)
 	r := &GlodmarkRender{ctx: ctx}
 	r.goldmarkMarkdown = goldmark.New(
+		goldmark.WithParser(goldmarkDefaultParser()),
 		goldmark.WithExtensions(
 			extension.NewTable(extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
 			extension.Strikethrough,
@@ -126,17 +160,16 @@ func SpecializedMarkdown(ctx *markup.RenderContext) *GlodmarkRender {
 				highlighting.WithWrapperRenderer(r.highlightingRenderer),
 			),
 			math.NewExtension(&ctx.RenderInternal, math.Options{
-				Enabled:           setting.Markdown.EnableMath,
-				ParseDollarInline: true,
-				ParseDollarBlock:  true,
-				ParseSquareBlock:  true, // TODO: this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping, it should be deprecated in the future (by some config options)
-				// ParseBracketInline: true, // TODO: this is also a bad syntax "\( ... \)", it also conflicts, it should be deprecated in the future
+				Enabled:                  setting.Markdown.EnableMath,
+				ParseInlineDollar:        setting.Markdown.MathCodeBlockOptions.ParseInlineDollar,
+				ParseInlineParentheses:   setting.Markdown.MathCodeBlockOptions.ParseInlineParentheses, // this is a bad syntax "\( ... \)", it conflicts with normal markdown escaping
+				ParseBlockDollar:         setting.Markdown.MathCodeBlockOptions.ParseBlockDollar,
+				ParseBlockSquareBrackets: setting.Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets, //  this is a bad syntax "\[ ... \]", it conflicts with normal markdown escaping
 			}),
 			meta.Meta,
 		),
 		goldmark.WithParserOptions(
 			parser.WithAttribute(),
-			parser.WithAutoHeadingID(),
 			parser.WithASTTransformers(util.Prioritized(NewASTTransformer(&ctx.RenderInternal), 10000)),
 		),
 		goldmark.WithRendererOptions(html.WithUnsafe()),
@@ -159,21 +192,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		limit: setting.UI.MaxDisplayFileSize * 3,
 	}
 
-	// FIXME: should we include a timeout to abort the renderer if it takes too long?
-	defer func() {
-		err := recover()
-		if err == nil {
-			return
-		}
-
-		log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
-		if (!setting.IsProd && !setting.IsInTesting) || log.IsDebug() {
-			log.Error("Panic in markdown: %v\n%s", err, log.Stack(2))
-		}
-	}()
-
 	// FIXME: Don't read all to memory, but goldmark doesn't support
-	pc := newParserContext(ctx)
 	buf, err := io.ReadAll(input)
 	if err != nil {
 		log.Error("Unable to ReadAll: %v", err)
@@ -181,20 +200,27 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	}
 	buf = giteautil.NormalizeEOL(buf)
 
+	// FIXME: should we include a timeout to abort the renderer if it takes too long?
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+
+		log.Error("Panic in markdown: %v\n%s", err, log.Stack(2))
+		escapedHTML := template.HTMLEscapeString(giteautil.UnsafeBytesToString(buf))
+		_, _ = output.Write(giteautil.UnsafeStringToBytes(escapedHTML))
+	}()
+
+	pc := newParserContext(ctx)
+
 	// Preserve original length.
 	bufWithMetadataLength := len(buf)
 
-	rc := &RenderConfig{
-		Meta: markup.RenderMetaAsDetails,
-		Icon: "table",
-		Lang: "",
-	}
+	rc := &RenderConfig{Meta: markup.RenderMetaAsDetails}
 	buf, _ = ExtractMetadataBytes(buf, rc)
 
-	metaLength := bufWithMetadataLength - len(buf)
-	if metaLength < 0 {
-		metaLength = 0
-	}
+	metaLength := max(bufWithMetadataLength-len(buf), 0)
 	rc.metaLength = metaLength
 
 	pc.Set(renderConfigKey, rc)
@@ -214,30 +240,24 @@ func init() {
 	markup.RegisterRenderer(Renderer{})
 }
 
-// Renderer implements markup.Renderer
 type Renderer struct{}
 
 var _ markup.PostProcessRenderer = (*Renderer)(nil)
 
-// Name implements markup.Renderer
 func (Renderer) Name() string {
 	return MarkupName
 }
 
-// NeedPostProcess implements markup.PostProcessRenderer
 func (Renderer) NeedPostProcess() bool { return true }
 
-// Extensions implements markup.Renderer
-func (Renderer) Extensions() []string {
-	return setting.Markdown.FileExtensions
+func (Renderer) FileNamePatterns() []string {
+	return setting.Markdown.FileNamePatterns
 }
 
-// SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{}
 }
 
-// Render implements markup.Renderer
 func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	return render(ctx, input, output)
 }

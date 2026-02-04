@@ -1,10 +1,10 @@
-<form hx-boost="true" hx-target="this" method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}unstar{{else}}star{{end}}">
+<form class="flex-text-inline" hx-boost="true" hx-target="this" method="post" action="{{$.RepoLink}}/action/{{if $.IsStaringRepo}}unstar{{else}}star{{end}}">
 	<div class="ui labeled button" {{if not $.IsSigned}}data-tooltip-content="{{ctx.Locale.Tr "repo.star_guest_user"}}"{{end}}>
 		{{$buttonText := ctx.Locale.Tr "repo.star"}}
 		{{if $.IsStaringRepo}}{{$buttonText = ctx.Locale.Tr "repo.unstar"}}{{end}}
 		<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}} aria-label="{{$buttonText}}">
 			{{svg (Iif $.IsStaringRepo "octicon-star-fill" "octicon-star")}}
-			<span aria-hidden="true">{{$buttonText}}</span>
+			<span class="not-mobile" aria-hidden="true">{{$buttonText}}</span>
 		</button>
 		<a hx-boost="false" class="ui basic label" href="{{$.RepoLink}}/stars">
 			{{CountFmt .Repository.NumStars}}

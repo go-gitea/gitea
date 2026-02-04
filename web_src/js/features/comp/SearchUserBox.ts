@@ -1,4 +1,4 @@
-import {htmlEscape} from 'escape-goat';
+import {htmlEscape} from '../../utils/html.ts';
 import {fomanticQuery} from '../../modules/fomantic/base.ts';
 
 const {appSubUrl} = window.config;
@@ -10,13 +10,14 @@ export function initCompSearchUserBox() {
 
   const allowEmailInput = searchUserBox.getAttribute('data-allow-email') === 'true';
   const allowEmailDescription = searchUserBox.getAttribute('data-allow-email-description') ?? undefined;
+  const includeOrgs = searchUserBox.getAttribute('data-include-orgs') === 'true';
   fomanticQuery(searchUserBox).search({
     minCharacters: 2,
     apiSettings: {
-      url: `${appSubUrl}/user/search_candidates?q={query}`,
+      url: `${appSubUrl}/user/search_candidates?q={query}&orgs=${includeOrgs}`,
       onResponse(response: any) {
         const resultItems = [];
-        const searchQuery = searchUserBox.querySelector('input').value;
+        const searchQuery = searchUserBox.querySelector('input')!.value;
         const searchQueryUppercase = searchQuery.toUpperCase();
         for (const item of response.data) {
           const resultItem = {

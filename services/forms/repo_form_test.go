@@ -6,8 +6,6 @@ package forms
 import (
 	"testing"
 
-	"code.gitea.io/gitea/modules/setting"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -37,28 +35,5 @@ func TestSubmitReviewForm_IsEmpty(t *testing.T) {
 
 	for _, v := range cases {
 		assert.Equal(t, v.expected, v.form.HasEmptyContent())
-	}
-}
-
-func TestIssueLock_HasValidReason(t *testing.T) {
-	// Init settings
-	_ = setting.Repository
-
-	cases := []struct {
-		form     IssueLockForm
-		expected bool
-	}{
-		{IssueLockForm{""}, true}, // an empty reason is accepted
-		{IssueLockForm{"Off-topic"}, true},
-		{IssueLockForm{"Too heated"}, true},
-		{IssueLockForm{"Spam"}, true},
-		{IssueLockForm{"Resolved"}, true},
-
-		{IssueLockForm{"ZZZZ"}, false},
-		{IssueLockForm{"I want to lock this issue"}, false},
-	}
-
-	for _, v := range cases {
-		assert.Equal(t, v.expected, v.form.HasValidReason())
 	}
 }

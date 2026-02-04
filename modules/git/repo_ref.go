@@ -7,6 +7,7 @@ import (
 	"context"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -18,15 +19,17 @@ func (repo *Repository) GetRefs() ([]*Reference, error) {
 // ListOccurrences lists all refs of the given refType the given commit appears in sorted by creation date DESC
 // refType should only be a literal "branch" or "tag" and nothing else
 func (repo *Repository) ListOccurrences(ctx context.Context, refType, commitSHA string) ([]string, error) {
-	cmd := NewCommand(ctx)
-	if refType == "branch" {
+	cmd := gitcmd.NewCommand()
+	switch refType {
+	case "branch":
 		cmd.AddArguments("branch")
-	} else if refType == "tag" {
+	case "tag":
 		cmd.AddArguments("tag")
-	} else {
+	default:
 		return nil, util.NewInvalidArgumentErrorf(`can only use "branch" or "tag" for refType, but got %q`, refType)
 	}
-	stdout, _, err := cmd.AddArguments("--no-color", "--sort=-creatordate", "--contains").AddDynamicArguments(commitSHA).RunStdString(&RunOpts{Dir: repo.Path})
+	stdout, _, err := cmd.AddArguments("--no-color", "--sort=-creatordate", "--contains").
+		AddDynamicArguments(commitSHA).WithDir(repo.Path).RunStdString(ctx)
 	if err != nil {
 		return nil, err
 	}

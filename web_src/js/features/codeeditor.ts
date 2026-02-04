@@ -19,7 +19,7 @@ type EditorConfig = {
   trim_trailing_whitespace?: boolean,
   insert_final_newline?: boolean,
   root?: boolean,
-}
+};
 
 const languagesByFilename: Record<string, string> = {};
 const languagesByExt: Record<string, string> = {};
@@ -35,10 +35,14 @@ const baseOptions: MonacoOpts = {
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
   rulers: [],
-  scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
+  scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6, alwaysConsumeMouseWheel: false},
   scrollBeyondLastLine: false,
   automaticLayout: true,
   indentSize: 'tabSize',
+  wrappingIndent: 'none',
+  wordWrapBreakAfterCharacters: '',
+  wordWrapBreakBeforeCharacters: '',
+  matchBrackets: 'never',
 };
 
 function getEditorconfig(input: HTMLInputElement): EditorConfig | null {
@@ -60,9 +64,9 @@ function initLanguages(monaco: Monaco): void {
       languagesByExt[extension] = id;
     }
     if (id === 'typescript') {
-      monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+      monaco.typescript.typescriptDefaults.setCompilerOptions({
         // this is needed to suppress error annotations in tsx regarding missing --jsx flag.
-        jsx: monaco.languages.typescript.JsxEmit.Preserve,
+        jsx: monaco.typescript.JsxEmit.Preserve,
       });
     }
   }

@@ -4,7 +4,6 @@
 package issues
 
 import (
-	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -45,6 +44,7 @@ func TestDBSearchIssues(t *testing.T) {
 	t.Run("search issues with order", searchIssueWithOrder)
 	t.Run("search issues in project", searchIssueInProject)
 	t.Run("search issues with paginator", searchIssueWithPaginator)
+	t.Run("search issues with any assignee", searchIssueWithAnyAssignee)
 }
 
 func searchIssueWithKeyword(t *testing.T) {
@@ -83,9 +83,11 @@ func searchIssueWithKeyword(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
-		require.NoError(t, err)
-		assert.Equal(t, test.expectedIDs, issueIDs)
+		t.Run(test.opts.Keyword, func(t *testing.T) {
+			issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
+			require.NoError(t, err)
+			assert.Equal(t, test.expectedIDs, issueIDs)
+		})
 	}
 }
 
@@ -118,7 +120,7 @@ func searchIssueByIndex(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -162,7 +164,7 @@ func searchIssueInRepo(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -175,19 +177,19 @@ func searchIssueByID(t *testing.T) {
 	}{
 		{
 			opts: SearchOptions{
-				PosterID: optional.Some(int64(1)),
+				PosterID: "1",
 			},
 			expectedIDs: []int64{11, 6, 3, 2, 1},
 		},
 		{
 			opts: SearchOptions{
-				AssigneeID: optional.Some(int64(1)),
+				AssigneeID: "1",
 			},
 			expectedIDs: []int64{6, 1},
 		},
 		{
-			// NOTE: This tests no assignees filtering and also ToSearchOptions() to ensure it will set AssigneeID to 0 when it is passed as -1.
-			opts:        *ToSearchOptions("", &issues.IssuesOptions{AssigneeID: optional.Some(db.NoConditionID)}),
+			// NOTE: This tests no assignees filtering and also ToSearchOptions() to ensure it handles the filter correctly
+			opts:        *ToSearchOptions("", &issues.IssuesOptions{AssigneeID: "(none)"}),
 			expectedIDs: []int64{22, 21, 16, 15, 14, 13, 12, 11, 20, 5, 19, 18, 10, 7, 4, 9, 8, 3, 2},
 		},
 		{
@@ -232,7 +234,7 @@ func searchIssueByID(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -257,7 +259,7 @@ func searchIssueIsPull(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -282,7 +284,7 @@ func searchIssueIsClosed(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -307,7 +309,7 @@ func searchIssueIsArchived(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -332,7 +334,7 @@ func searchIssueByMilestoneID(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -363,7 +365,7 @@ func searchIssueByLabelID(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -382,7 +384,7 @@ func searchIssueByTime(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -401,7 +403,7 @@ func searchIssueWithOrder(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -432,7 +434,7 @@ func searchIssueInProject(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, _, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, _, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 	}
@@ -455,7 +457,29 @@ func searchIssueWithPaginator(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		issueIDs, total, err := SearchIssues(context.TODO(), &test.opts)
+		issueIDs, total, err := SearchIssues(t.Context(), &test.opts)
+		require.NoError(t, err)
+		assert.Equal(t, test.expectedIDs, issueIDs)
+		assert.Equal(t, test.expectedTotal, total)
+	}
+}
+
+func searchIssueWithAnyAssignee(t *testing.T) {
+	tests := []struct {
+		opts          SearchOptions
+		expectedIDs   []int64
+		expectedTotal int64
+	}{
+		{
+			SearchOptions{
+				AssigneeID: "(any)",
+			},
+			[]int64{17, 6, 1},
+			3,
+		},
+	}
+	for _, test := range tests {
+		issueIDs, total, err := SearchIssues(t.Context(), &test.opts)
 		require.NoError(t, err)
 		assert.Equal(t, test.expectedIDs, issueIDs)
 		assert.Equal(t, test.expectedTotal, total)

@@ -50,7 +50,7 @@ func toReleaseLink(ctx *context.Context, act *activities_model.Action) string {
 
 // renderCommentMarkdown renders the comment markdown to html
 func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, content string) template.HTML {
-	act.LoadRepo(ctx)
+	_ = act.LoadRepo(ctx)
 	if act.Repo == nil {
 		return ""
 	}
@@ -201,7 +201,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			switch act.OpType {
 			case activities_model.ActionCommitRepo, activities_model.ActionMirrorSyncPush:
 				push := templates.ActionContent2Commits(act)
-
+				_ = act.LoadRepo(ctx)
 				for _, commit := range push.Commits {
 					if len(desc) != 0 {
 						desc += "\n\n"
@@ -209,7 +209,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 					desc += fmt.Sprintf("<a href=\"%s\">%s</a>\n%s",
 						html.EscapeString(fmt.Sprintf("%s/commit/%s", act.GetRepoAbsoluteLink(ctx), commit.Sha1)),
 						commit.Sha1,
-						renderUtils.RenderCommitMessage(commit.Message, nil),
+						renderUtils.RenderCommitMessage(commit.Message, act.Repo),
 					)
 				}
 

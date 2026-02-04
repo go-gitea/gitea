@@ -99,5 +99,5 @@ type ErrInvalidSHA struct {
 }
 
 func (err ErrInvalidSHA) Error() string {
-	return fmt.Sprintf("invalid sha: %s", err.SHA)
+	return "invalid sha: " + err.SHA
 }

@@ -15,8 +15,14 @@ type SimpleDocument struct {
 	baseLink string
 }
 
-func (r *SimpleDocument) ResolveLink(link string, likeType markup.LinkType) string {
-	return r.ctx.ResolveLinkRelative(r.baseLink, "", link)
+func (r *SimpleDocument) ResolveLink(link, preferLinkType string) string {
+	linkType, link := markup.ParseRenderedLink(link, preferLinkType)
+	switch linkType {
+	case markup.LinkTypeRoot:
+		return r.ctx.ResolveLinkRoot(link)
+	default:
+		return r.ctx.ResolveLinkRelative(r.baseLink, "", link)
+	}
 }
 
 var _ markup.RenderHelper = (*SimpleDocument)(nil)
