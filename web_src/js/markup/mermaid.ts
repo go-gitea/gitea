@@ -14,7 +14,7 @@ body {margin: 0; padding: 0; overflow: hidden}
 
 function configContainsElk(config: MermaidConfig) {
   if (config?.layout === 'elk' || config?.layout?.startsWith('elk.')) return true;
-  return Object.values(config).some((value) => value?.defaultRenderer?.startsWith('elk'));
+  return Object.values(config).some((value) => value?.defaultRenderer === 'elk');
 }
 
 /** detect whether mermaid sources contain elk layout configuration */
