@@ -9,7 +9,7 @@ import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import {localUserSettings} from '../modules/user-settings.ts';
-import {parseLineCommand, shouldHideLine, type LogLine, type LogLineCommand} from '../render/log.ts';
+import {parseLineCommand, shouldHideLine, type LogLine, type LogLineCommand} from '../actions/log.ts';
 
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
