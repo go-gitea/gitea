@@ -12,6 +12,10 @@ const iframeCss = `:root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}`;
 
+function isSourceTooLarge(source: string) {
+  return mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters;
+}
+
 function configContainsElk(config: MermaidConfig) {
   if (config?.layout === 'elk' || config?.layout?.startsWith('elk.')) return true;
   return Object.values(config).some((value) => value?.defaultRenderer === 'elk');
@@ -20,6 +24,8 @@ function configContainsElk(config: MermaidConfig) {
 /** detect whether mermaid sources contain elk layout configuration */
 export function sourcesContainElk(sources: Array<string>) {
   for (const source of sources) {
+    if (isSourceTooLarge(source)) continue;
+
     const frontmatter = (/---\r?\n([\s\S]*?)\r?\n\s*---/.exec(source) || [])[1];
     if (frontmatter) {
       try {
@@ -40,6 +46,7 @@ export function sourcesContainElk(sources: Array<string>) {
       }
     }
   }
+
   return false;
 }
 
@@ -83,7 +90,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       return;
     }
 
-    if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
+    if (isSourceTooLarge(source)) {
       displayError(pre, new Error(`Mermaid source of ${source.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
       return;
     }
