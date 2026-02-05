@@ -208,6 +208,7 @@ func ChangeIssueTitle(ctx context.Context, issue *Issue, doer *user_model.User, 
 		if err = issue.LoadRepo(ctx); err != nil {
 			return fmt.Errorf("loadRepo: %w", err)
 		}
+
 		opts := &CreateCommentOptions{
 			Type:     CommentTypeChangeTitle,
 			Doer:     doer,
