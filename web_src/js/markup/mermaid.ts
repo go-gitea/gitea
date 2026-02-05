@@ -14,6 +14,7 @@ body {margin: 0; padding: 0; overflow: hidden}
 
 // ref: https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/diagram-api/regexes.ts
 const yamlFrontMatterRegex = /^---\s*[\n\r](.*?)[\n\r]---\s*[\n\r]+/s;
+// https://mermaid.js.org/config/directives.html#declaring-directives
 const jsonInitConfigRegex = /%%\{\s*init\s*:\s*(.*?)\}%%/s;
 
 function isSourceTooLarge(source: string) {
@@ -24,15 +25,16 @@ function parseYamlInitConfig(source: string): MermaidConfig | null {
   const frontmatter = (yamlFrontMatterRegex.exec(source) || [])[1];
   if (!frontmatter) return null;
   try {
-    return (loadYaml(frontmatter) as {config: MermaidConfig}).config;
+    return (loadYaml(frontmatter) as {config: MermaidConfig})?.config;
   } catch {}
   return null;
 }
 
 function parseJsonInitConfig(source: string): MermaidConfig | null {
-  const json = (jsonInitConfigRegex.exec(source) || [])[1];
+  const jsonInit = (jsonInitConfigRegex.exec(source) || [])[1];
+  if (!jsonInit) return null;
   try {
-    return JSON.parse(json);
+    return JSON.parse(jsonInit);
   } catch {}
   return null;
 }
