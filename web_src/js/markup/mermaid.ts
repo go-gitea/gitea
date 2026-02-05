@@ -12,16 +12,13 @@ const iframeCss = `:root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}`;
 
-// ref: https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/diagram-api/regexes.ts
-const yamlFrontMatterRegex = /^---\s*[\n\r](.*?)[\n\r]---\s*[\n\r]+/s;
-// https://mermaid.js.org/config/directives.html#declaring-directives
-const jsonInitConfigRegex = /%%\{\s*init\s*:\s*(.*?)\}%%/s;
-
 function isSourceTooLarge(source: string) {
   return mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters;
 }
 
 function parseYamlInitConfig(source: string): MermaidConfig | null {
+  // ref: https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/diagram-api/regexes.ts
+  const yamlFrontMatterRegex = /^---\s*[\n\r](.*?)[\n\r]---\s*[\n\r]+/s;
   const frontmatter = (yamlFrontMatterRegex.exec(source) || [])[1];
   if (!frontmatter) return null;
   try {
@@ -31,6 +28,8 @@ function parseYamlInitConfig(source: string): MermaidConfig | null {
 }
 
 function parseJsonInitConfig(source: string): MermaidConfig | null {
+  // https://mermaid.js.org/config/directives.html#declaring-directives
+  const jsonInitConfigRegex = /%%\{\s*init\s*:\s*(.*?)\}%%/s;
   const jsonInit = (jsonInitConfigRegex.exec(source) || [])[1];
   if (!jsonInit) return null;
   try {

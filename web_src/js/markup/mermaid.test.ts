@@ -25,7 +25,7 @@ flowchart TB
 `.trim()])).toEqual(true);
 
   expect(sourcesContainElk([`
-    %%{ init: { "flowchart": { "defaultRenderer": "elk" } } }%%
+    %%{ init : { "flowchart": { "defaultRenderer": "elk" } } }%%
     flowchart TB
       A --> B
   `])).toEqual(true);
