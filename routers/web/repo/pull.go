@@ -344,7 +344,7 @@ func (d *pullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.L
 	return locale.TrString("repo.pulls.status_checking")
 }
 
-func getViewPullHeadRepoInfo(ctx *context.Context, pull *issues_model.PullRequest, baseGitRepo *git.Repository) (headCommitID string, headCommitExists bool, err error) {
+func getViewPullHeadBranchInfo(ctx *context.Context, pull *issues_model.PullRequest, baseGitRepo *git.Repository) (headCommitID string, headCommitExists bool, err error) {
 	if pull.HeadRepo == nil {
 		return "", false, nil
 	}
@@ -459,9 +459,9 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		return compareInfo
 	}
 
-	headBranchSha, headBranchExist, err := getViewPullHeadRepoInfo(ctx, pull, baseGitRepo)
+	headBranchSha, headBranchExist, err := getViewPullHeadBranchInfo(ctx, pull, baseGitRepo)
 	if err != nil {
-		ctx.ServerError("getViewPullHeadRepoInfo", err)
+		ctx.ServerError("getViewPullHeadBranchInfo", err)
 		return nil
 	}
 
