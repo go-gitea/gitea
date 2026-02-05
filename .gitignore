@@ -121,8 +121,6 @@ prime/
 /.goosehints
 /.windsurfrules
 /.github/copilot-instructions.md
-/AGENT.md
-/CLAUDE.md
 /llms.txt
 
 # Ignore worktrees when working on multiple branches
