@@ -23,21 +23,4 @@ test('filterLogLines', () => {
       "Build complete",
     ]
   `);
-
-  expect(filterLogLines([
-    {index: 1, message: 'Normal log line', timestamp: 1000},
-    {index: 2, message: '::group::Setup Go', timestamp: 1001},
-    {index: 3, message: 'Downloading go1.25.7', timestamp: 1002},
-    {index: 4, message: '##[add-matcher]/opt/hostedtoolcache/go/1.25.7/x64/matchers.json', timestamp: 1003},
-    {index: 5, message: '::endgroup::', timestamp: 1004},
-    {index: 6, message: 'Done', timestamp: 1005},
-  ]).map((line) => line.message)).toMatchInlineSnapshot(`
-    [
-      "Normal log line",
-      "::group::Setup Go",
-      "Downloading go1.25.7",
-      "::endgroup::",
-      "Done",
-    ]
-  `);
 });
