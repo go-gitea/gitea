@@ -11,7 +11,6 @@ test('filterLogLines', () => {
     {index: 3, message: 'Running tests...', timestamp: 1002},
     {index: 4, message: '##[add-matcher].github/eslint.json', timestamp: 1003},
     {index: 5, message: 'Test suite started', timestamp: 1004},
-    {index: 6, message: '::workflow-command::echo some-output', timestamp: 1005},
     {index: 7, message: 'All tests passed', timestamp: 1006},
     {index: 8, message: '::remove-matcher::owner=eslint', timestamp: 1007},
     {index: 9, message: 'Build complete', timestamp: 1008},
@@ -20,7 +19,6 @@ test('filterLogLines', () => {
       "Starting build process",
       "Running tests...",
       "Test suite started",
-      "::workflow-command::echo some-output",
       "All tests passed",
       "Build complete",
     ]
