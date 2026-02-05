@@ -15,10 +15,10 @@ type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'ca
 
 type StepContainerElement = HTMLElement & {_stepLogsActiveContainer?: HTMLElement}
 
-export type LogLine = {
-  index: number; // 1
-  message: string; // "message"
-  timestamp: number; // 1770061591.330781
+type LogLine = {
+  index: number;
+  timestamp: number;
+  message: string;
 };
 
 const LogLinePrefixesGroup = ['::group::', '##[group]'];
@@ -64,7 +64,7 @@ function parseLineCommand(line: LogLine): LogLineCommand | null {
   return null;
 }
 
-export function shouldHideLine(line: LogLine): boolean {
+function shouldHideLine(line: LogLine): boolean {
   for (const prefix of LogLinePrefixesHidden) {
     if (line.message.startsWith(prefix)) {
       return true;
