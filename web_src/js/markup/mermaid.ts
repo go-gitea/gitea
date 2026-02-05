@@ -46,8 +46,8 @@ function parseJsonInitConfig(source: string): MermaidConfig | null {
   return null;
 }
 
-function isElk(layout: string | undefined) {
-  return Boolean(layout === 'elk' || layout?.startsWith?.('elk.'));
+function isElk(layoutOrRenderer: string | undefined) {
+  return Boolean(layoutOrRenderer === 'elk' || layoutOrRenderer?.startsWith?.('elk.'));
 }
 
 function configContainsElk(config: MermaidConfig | null) {
