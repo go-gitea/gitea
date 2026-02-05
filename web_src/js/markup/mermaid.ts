@@ -12,13 +12,34 @@ const iframeCss = `:root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}`;
 
+// ref: https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/diagram-api/regexes.ts
+const yamlFrontMatterRegex = /^---\s*[\n\r](.*?)[\n\r]---\s*[\n\r]+/s;
+const jsonInitConfigRegex = /%%\{\s*init\s*:\s*(.*?)\}%%/s;
+
 function isSourceTooLarge(source: string) {
   return mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters;
 }
 
-function configContainsElk(config: MermaidConfig) {
+function parseYamlInitConfig(source: string): MermaidConfig | null {
+  const frontmatter = (yamlFrontMatterRegex.exec(source) || [])[1];
+  if (!frontmatter) return null;
+  try {
+    return (loadYaml(frontmatter) as {config: MermaidConfig}).config;
+  } catch {}
+  return null;
+}
+
+function parseJsonInitConfig(source: string): MermaidConfig | null {
+  const json = (jsonInitConfigRegex.exec(source) || [])[1];
+  try {
+    return JSON.parse(json);
+  } catch {}
+  return null;
+}
+
+function configContainsElk(config: MermaidConfig | null) {
   if (config?.layout === 'elk' || config?.layout?.startsWith('elk.')) return true;
-  return Object.values(config).some((value) => value?.defaultRenderer === 'elk');
+  return config?.flowchart?.defaultRenderer === 'elk';
 }
 
 /** detect whether mermaid sources contain elk layout configuration */
@@ -26,25 +47,11 @@ export function sourcesContainElk(sources: Array<string>) {
   for (const source of sources) {
     if (isSourceTooLarge(source)) continue;
 
-    const frontmatter = (/---\r?\n([\s\S]*?)\r?\n\s*---/.exec(source) || [])[1];
-    if (frontmatter) {
-      try {
-        if (configContainsElk((loadYaml(frontmatter) as {config: MermaidConfig}).config)) {
-          return true;
-        }
-      } catch {}
-    }
-    const directive = (/%%\{([\s\S]*)\}%%/.exec(source) || [])[1];
-    if (directive) {
-      const init = (/init\s*:\s*([\s\S]*)$/.exec(directive) || [])[1];
-      if (init) {
-        try {
-          if (configContainsElk((JSON.parse(init) as MermaidConfig))) {
-            return true;
-          }
-        } catch {}
-      }
-    }
+    const yamlConfig = parseYamlInitConfig(source);
+    if (configContainsElk(yamlConfig)) return true;
+
+    const jsonConfig = parseJsonInitConfig(source);
+    if (configContainsElk(jsonConfig)) return true;
   }
 
   return false;
