@@ -13,7 +13,7 @@ export function shouldIgnoreError(err: Error) {
     // https://github.com/go-gitea/gitea/issues/30861
     // https://github.com/microsoft/monaco-editor/issues/4496
     // https://github.com/microsoft/monaco-editor/issues/4679
-    /\/assets\/js\/(monaco(-editor)?\.|.*_monaco-editor_)/,
+    /\/assets\/js\/.*monaco/,
   ];
   for (const pattern of ignorePatterns) {
     if (pattern.test(err.stack ?? '')) return true;
