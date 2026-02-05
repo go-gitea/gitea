@@ -4,7 +4,7 @@ function filterLogLines(logLines: Array<LogLine>): Array<LogLine> {
   return logLines.filter((line) => !shouldHideLine(line));
 }
 
-test('filters workflow command', () => {
+test('filterLogLines', () => {
   expect(filterLogLines([
     {index: 1, message: 'Starting build process', timestamp: 1000},
     {index: 2, message: '::add-matcher::.github/problem-matcher.json', timestamp: 1001},
