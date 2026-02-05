@@ -324,7 +324,7 @@ func EditFile(ctx *context.Context) {
 	ecJSON, ecDef := getContextRepoEditorConfig(ctx, ctx.Repo.TreePath)
 	ctx.Data["EditorconfigJson"] = ecJSON
 	ctx.Data["EditorconfigIndentStyle"] = "space" // default value
-	ctx.Data["EditorconfigIndentSize"] = "4" // default value
+	ctx.Data["EditorconfigIndentSize"] = "4"      // default value
 	if ecDef != nil {
 		if ecDef.IndentStyle != "" {
 			ctx.Data["EditorconfigIndentStyle"] = ecDef.IndentStyle
