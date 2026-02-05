@@ -658,12 +658,18 @@ func (pr *PullRequest) IsWorkInProgress(ctx context.Context) bool {
 
 // HasWorkInProgressPrefix determines if the given PR title has a Work In Progress prefix
 func HasWorkInProgressPrefix(title string) bool {
+	_, ok := CutWorkInProgressPrefix(title)
+	return ok
+}
+
+func CutWorkInProgressPrefix(title string) (origTitle string, ok bool) {
 	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
-		if strings.HasPrefix(strings.ToUpper(title), strings.ToUpper(prefix)) {
-			return true
+		prefixLen := len(prefix)
+		if prefixLen <= len(title) && util.AsciiEqualFold(title[:prefixLen], prefix) {
+			return title[len(prefix):], true
 		}
 	}
-	return false
+	return title, false
 }
 
 // IsFilesConflicted determines if the Pull Request has changes conflicting with the target branch.

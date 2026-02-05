@@ -1,5 +1,5 @@
 {{template "base/alert"}}
-{{range .Issue.Comments}}
+{{range $comment := .Issue.Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
 		{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
 
@@ -13,8 +13,7 @@
 		29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
 		32 = DISMISSED_REVIEW, 33 = COMMENT_TYPE_CHANGE_ISSUE_REF, 34 = PR_SCHEDULE_TO_AUTO_MERGE,
 		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR, 36 = PIN_ISSUE, 37 = UNPIN_ISSUE,
-		38 = COMMENT_TYPE_CHANGE_TIME_ESTIMATE, 39 = MARKED_AS_WORK_IN_PROGRESS,
-		40 = MARKED_AS_READY_FOR_REVIEW -->
+		38 = COMMENT_TYPE_CHANGE_TIME_ESTIMATE -->
 		{{if eq .Type 0}}
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor}}
@@ -221,11 +220,11 @@
 			</div>
 		{{else if eq .Type 10}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-pencil"}}</span>
+				<span class="badge">{{ctx.RenderUtils.RenderTimelineEventBadge $comment}}</span>
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="comment-text-line">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.change_title_at" (.OldTitle|ctx.RenderUtils.RenderEmoji) (.NewTitle|ctx.RenderUtils.RenderEmoji) $createdStr}}
+					{{ctx.RenderUtils.RenderTimelineEventComment $comment $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 11}}
@@ -691,24 +690,6 @@
 					{{else}}
 						{{ctx.Locale.Tr "repo.issues.remove_time_estimate_at" $createdStr}}
 					{{end}}
-				</span>
-			</div>
-		{{else if eq .Type 39}}
-			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-git-pull-request-draft"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
-				<span class="comment-text-line">
-					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.pulls.marked_as_work_in_progress" $createdStr}}
-				</span>
-			</div>
-		{{else if eq .Type 40}}
-			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-eye"}}</span>
-				{{template "shared/user/avatarlink" dict "user" .Poster}}
-				<span class="comment-text-line">
-					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.pulls.marked_as_ready_for_review" $createdStr}}
 				</span>
 			</div>
 		{{end}}
