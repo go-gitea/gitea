@@ -21,6 +21,7 @@ export type LogLine = {
   message: string;
 };
 
+// `##[group]` is from Azure Pipelines, just supported by the way. https://learn.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands
 const LogLinePrefixesGroup = ['::group::', '##[group]'];
 const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
 // https://github.com/actions/toolkit/blob/master/docs/commands.md
