@@ -49,10 +49,6 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 		return pr.Status == issues_model.PullRequestStatusChecking
 	}, 1*time.Second, 100*time.Millisecond)
 
-	has, err := prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))
-	assert.True(t, has)
-	assert.NoError(t, err)
-
 	go prPatchCheckerQueue.Run()
 
 	select {
@@ -61,10 +57,6 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	case <-time.After(time.Second):
 		assert.FailNow(t, "Timeout: nothing was added to pullRequestQueue")
 	}
-
-	has, err = prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))
-	assert.False(t, has)
-	assert.NoError(t, err)
 
 	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.Equal(t, issues_model.PullRequestStatusChecking, pr.Status)

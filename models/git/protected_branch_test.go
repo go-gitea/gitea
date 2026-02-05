@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -152,4 +153,31 @@ func TestNewProtectBranchPriority(t *testing.T) {
 	savedPB2, err := GetFirstMatchProtectedBranchRule(t.Context(), repo.ID, "branch-2")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), savedPB2.Priority)
+}
+
+func TestCanBypassBranchProtection(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	ctx := t.Context()
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	pb := &ProtectedBranch{
+		EnableBypassAllowlist:  true,
+		BypassAllowlistUserIDs: []int64{user.ID},
+	}
+
+	assert.True(t, CanBypassBranchProtection(ctx, pb, user, false))
+
+	pb.EnableBypassAllowlist = false
+	assert.False(t, CanBypassBranchProtection(ctx, pb, user, false))
+
+	pb.EnableBypassAllowlist = true
+	pb.BlockAdminMergeOverride = true
+	assert.True(t, CanBypassBranchProtection(ctx, pb, user, false))
+
+	pb.BypassAllowlistUserIDs = nil
+	assert.False(t, CanBypassBranchProtection(ctx, pb, user, true))
+
+	pb.BypassAllowlistUserIDs = []int64{user.ID}
+	assert.True(t, CanBypassBranchProtection(ctx, pb, user, true))
 }
