@@ -23,6 +23,9 @@ export type LogLine = {
 
 const LogLinePrefixesGroup = ['::group::', '##[group]'];
 const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
+// https://github.com/actions/toolkit/blob/master/docs/commands.md
+// https://github.com/actions/runner/blob/main/docs/adrs/0276-problem-matchers.md#registration
+// Although there should be no `##[add-matcher]` syntax, there are still such outputs when using act-runner
 const LogLinePrefixesHidden = ['::add-matcher::', '##[add-matcher]', '::remove-matcher'];
 
 type LogLineCommand = {
