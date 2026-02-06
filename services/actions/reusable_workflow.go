@@ -122,7 +122,7 @@ func createChildRunFromReusableWorkflow(ctx context.Context, parentJob *actions_
 		Ref:               parentJobRun.Ref,
 		CommitSHA:         parentJobRun.CommitSHA,
 		IsForkPullRequest: parentJobRun.IsForkPullRequest,
-		Event:             "workflow_call",
+		Event:             parentJobRun.Event,
 		TriggerEvent:      "workflow_call",
 		EventPayload:      string(eventPayload),
 		Status:            actions_model.StatusWaiting,

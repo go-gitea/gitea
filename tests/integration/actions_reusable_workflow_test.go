@@ -36,6 +36,11 @@ func TestJobUsesReusableWorkflow(t *testing.T) {
 			}).
 			AddTokenAuth(user2Token)
 		MakeRequest(t, req, http.StatusCreated)
+		// add a secret for test
+		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/actions/secrets/mysecret", user2.Name, repo1.Name), api.CreateOrUpdateSecretOption{
+			Data: "secRET-t0Ken",
+		}).AddTokenAuth(user2Token)
+		MakeRequest(t, req, http.StatusCreated)
 
 		repo1ReusableWorkflowTreePath := ".gitea/workflows/reusable1.yaml"
 		repo1ReusableWorkflowFileContent := `name: Reusable1
@@ -44,8 +49,14 @@ on:
     inputs:
       str_input:
         type: string
+      num_input:
+       type: number
+      bool_input:
+       type: boolean
       parent_var:
         type: string
+    secrets:
+      parent_token:
 
 jobs:
   r1-job1:
@@ -66,7 +77,11 @@ jobs:
     uses: './.gitea/workflows/reusable1.yaml'
     with:
       str_input: 'from caller job1'
+      num_input: ${{ 2.3e2 }}
+      bool_input: ${{ gitea.event_name == 'push' }}
       parent_var: ${{ vars.myvar }}
+    secrets:
+      parent_token: ${{ secrets.mysecret }}
 `
 		callerOpts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+callerWorkflowTreePath, callerWorkflowFileContent)
 		createWorkflowFile(t, user2Token, repo1.OwnerName, repo1.Name, callerWorkflowTreePath, callerOpts)
@@ -78,9 +93,16 @@ jobs:
 		assert.NoError(t, err)
 		var payload api.WorkflowCallPayload
 		assert.NoError(t, json.Unmarshal(eventJSON, &payload))
-		if assert.Len(t, payload.Inputs, 2) {
+		if assert.Len(t, payload.Inputs, 4) {
 			assert.Equal(t, "from caller job1", payload.Inputs["str_input"])
+			assert.EqualValues(t, 230, payload.Inputs["num_input"])
+			assert.Equal(t, true, payload.Inputs["bool_input"])
 			assert.Equal(t, "abc123", payload.Inputs["parent_var"])
+		}
+		if assert.Len(t, task1.Secrets, 3) {
+			assert.Contains(t, task1.Secrets, "GITEA_TOKEN")
+			assert.Contains(t, task1.Secrets, "GITHUB_TOKEN")
+			assert.Equal(t, "secRET-t0Ken", task1.Secrets["parent_token"])
 		}
 	})
 }

@@ -193,7 +193,7 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 			return nil, err
 		}
 		for dest, src := range payload.Secrets {
-			v, ok := secretValues[src]
+			v, ok := secretValues[strings.ToUpper(src)]
 			if !ok {
 				return nil, fmt.Errorf("workflow_call secret %q not found", src)
 			}
