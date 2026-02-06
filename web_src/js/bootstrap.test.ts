@@ -1,4 +1,4 @@
-import {shouldIgnoreError, showGlobalErrorMessage} from './bootstrap.ts';
+import {showGlobalErrorMessage, shouldIgnoreError} from './bootstrap.ts';
 
 test('showGlobalErrorMessage', () => {
   document.body.innerHTML = '<div class="page-content"></div>';
