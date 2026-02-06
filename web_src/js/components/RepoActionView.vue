@@ -302,7 +302,13 @@ export default defineComponent({
         formatDatetime(new Date(line.timestamp * 1000)), // for "Show timestamps"
       );
 
-      const logMsg = createElementFromAttrs('span', {class: 'log-msg'});
+      const classes = ['log-msg'];
+      if (line.message.startsWith('[command]')) {
+        line.message = line.message.substring(9);
+        classes.push('log-msg-command');
+      }
+
+      const logMsg = createElementFromAttrs('span', {class: classes.join(' ')});
       logMsg.innerHTML = renderAnsi(line.message);
 
       const seconds = Math.floor(line.timestamp - startTime);
@@ -989,6 +995,10 @@ export default defineComponent({
   white-space: break-spaces;
   margin-left: 10px;
   overflow-wrap: anywhere;
+}
+
+.job-step-logs .job-log-line .log-msg-command {
+  color: var(--color-ansi-blue);
 }
 
 /* selectors here are intentionally exact to only match fullscreen */
