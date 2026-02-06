@@ -46,6 +46,7 @@ function parseJsonInitConfig(source: string): MermaidConfig | null {
   return null;
 }
 
+/** checks if either `config.layout` or `config.*.defaultRender` contains a elk layout. */
 function isElk(layoutOrRenderer: string | undefined) {
   return Boolean(layoutOrRenderer === 'elk' || layoutOrRenderer?.startsWith?.('elk.'));
 }
