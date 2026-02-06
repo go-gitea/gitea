@@ -388,7 +388,7 @@ func (cfg *ActionsConfig) GetMaxTokenPermissions() ActionsTokenPermissions {
 	if cfg.MaxTokenPermissions != nil {
 		return *cfg.MaxTokenPermissions
 	}
-	// Default max is write for everything except packages
+	// Default max is write for everything
 	return ActionsTokenPermissions{
 		Code:         perm.AccessModeWrite,
 		Issues:       perm.AccessModeWrite,
@@ -571,7 +571,7 @@ func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err
 }
 
 // UpdateRepoUnit updates the provided repo unit
-func UpdateRepoUnit(ctx context.Context, unit *RepoUnit) error {
+func UpdateRepoUnitConfig(ctx context.Context, unit *RepoUnit) error {
 	_, err := db.GetEngine(ctx).ID(unit.ID).Cols("config").Update(unit)
 	return err
 }

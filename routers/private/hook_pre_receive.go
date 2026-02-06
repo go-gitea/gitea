@@ -500,7 +500,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 			log.Warn("HookPreReceive: ActionsUser with ID 0, defaulting to permissive")
 		}
 
-		userPerm, err := access_model.GetActionsUserRepoPermission(ctx, ctx.Repo.Repository, ctx.user, 0)
+		userPerm, err := access_model.GetActionsUserRepoPermission(ctx, ctx.Repo.Repository, ctx.user, taskID)
 		if err != nil {
 			log.Error("Unable to get Actions user repo permission for task %d Error: %v", taskID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{

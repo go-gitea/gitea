@@ -104,7 +104,7 @@ func AddCollaborativeOwner(ctx *context.Context) {
 	}
 	actionsCfg := actionsUnit.ActionsConfig()
 	actionsCfg.AddCollaborativeOwner(ownerID)
-	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
+	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
 		ctx.ServerError("UpdateRepoUnit", err)
 		return
 	}
@@ -127,7 +127,7 @@ func DeleteCollaborativeOwner(ctx *context.Context) {
 		return
 	}
 	actionsCfg.RemoveCollaborativeOwner(ownerID)
-	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
+	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
 		ctx.ServerError("UpdateRepoUnit", err)
 		return
 	}
@@ -200,7 +200,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 		}
 	}
 
-	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
+	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
 		ctx.ServerError("UpdateRepoUnit", err)
 		return
 	}

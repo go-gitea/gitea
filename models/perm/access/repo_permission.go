@@ -264,13 +264,6 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	if actionsUser.ID != user_model.ActionsUserID {
 		return perm, errors.New("api GetActionsUserRepoPermission can only be called by the actions user")
 	}
-	if taskID == 0 {
-		var ok bool
-		taskID, ok = user_model.GetActionsUserTaskID(actionsUser)
-		if !ok {
-			return perm, errors.New("api GetActionsUserRepoPermission called without task ID")
-		}
-	}
 	task, err := actions_model.GetTaskByID(ctx, taskID)
 	if err != nil {
 		return perm, err
