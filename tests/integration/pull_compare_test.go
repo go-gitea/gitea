@@ -7,16 +7,22 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"path"
+	"strconv"
 	"testing"
+	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPullCompare(t *testing.T) {
@@ -168,5 +174,70 @@ func TestPullCompare_EnableAllowEditsFromMaintainer(t *testing.T) {
 				assert.NotEmpty(t, test.RedirectURL(resp))
 			}
 		}
+	})
+}
+
+func TestPullCompareForcePushDroppedCommit(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user, user, repo_service.CreateRepoOptions{
+			Name:          "compare-force-push",
+			AutoInit:      true,
+			DefaultBranch: "master",
+			Readme:        "Default",
+		}, true)
+		require.NoError(t, err)
+
+		session := loginUser(t, user.Name)
+		u.Path = fmt.Sprintf("/%s/%s.git", user.Name, repo.Name)
+		u.User = url.UserPassword(user.Name, userPassword)
+
+		dstPath := t.TempDir()
+		doGitClone(dstPath, u)(t)
+		doGitCreateBranch(dstPath, "feature/drop-commit")(t)
+
+		doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+			LocalRepoPath:   dstPath,
+			CheckoutBranch:  "feature/drop-commit",
+			TreeFilePath:    "README.md",
+			TreeFileContent: "first\n",
+		})(t)
+		doGitCheckoutWriteFileCommit(localGitAddCommitOptions{
+			LocalRepoPath:   dstPath,
+			CheckoutBranch:  "feature/drop-commit",
+			TreeFilePath:    "README.md",
+			TreeFileContent: "first\nsecond\n",
+		})(t)
+		doGitPushTestRepository(dstPath, "origin", "feature/drop-commit")(t)
+
+		resp := testPullCreate(t, session, user.Name, repo.Name, true, "master", "feature/drop-commit", "Force push compare")
+		prURL := test.RedirectURL(resp)
+		issueIndex, err := strconv.ParseInt(path.Base(prURL), 10, 64)
+		require.NoError(t, err)
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID, Index: issueIndex})
+		require.NoError(t, issue.LoadPullRequest(t.Context()))
+
+		err = gitcmd.NewCommand("reset", "--hard", "HEAD~1").WithDir(dstPath).Run(t.Context())
+		require.NoError(t, err)
+		err = gitcmd.NewCommand("push", "--force", "origin", "feature/drop-commit").WithDir(dstPath).Run(t.Context())
+		require.NoError(t, err)
+
+		var compareURL string
+		require.Eventually(t, func() bool {
+			req := NewRequest(t, "GET", prURL)
+			resp := session.MakeRequest(t, req, http.StatusOK)
+			htmlDoc := NewHTMLParser(t, resp.Body)
+			selection := htmlDoc.doc.Find("a.comment-text-label[href*='/compare/']")
+			if selection.Length() == 0 {
+				return false
+			}
+			compareURL = selection.Last().AttrOr("href", "")
+			return compareURL != ""
+		}, 5*time.Second, 20*time.Millisecond)
+
+		req := NewRequest(t, "GET", compareURL)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		assert.Positive(t, htmlDoc.doc.Find("#diff-file-boxes [data-new-filename=\"README.md\"]").Length())
 	})
 }
