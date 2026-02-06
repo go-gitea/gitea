@@ -26,7 +26,7 @@ import (
 	"github.com/nektos/act/pkg/jobparser"
 	act_pkg_model "github.com/nektos/act/pkg/model"
 	act_pkg_runner "github.com/nektos/act/pkg/runner"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 	"xorm.io/builder"
 )
 
