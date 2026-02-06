@@ -8,9 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/url"
 	"path"
-	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/perm"
@@ -19,7 +17,6 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/convert"
 
@@ -207,7 +204,7 @@ func loadReusableWorkflowContent(ctx context.Context, parentRun *actions_model.A
 		return readWorkflowContentFromRepo(ctx, parentRun.Repo, parentRun.Ref, ref.WorkflowPath)
 	}
 
-	if ref.Kind == act_pkg_runner.ReusableWorkflowKindLocalOtherRepo || isSameInstanceHost(ref.GitInstanceURL) {
+	if ref.Kind == act_pkg_runner.ReusableWorkflowKindLocalOtherRepo {
 		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx, ref.Owner, ref.Repo)
 		if err != nil {
 			return nil, err
@@ -247,18 +244,6 @@ func readWorkflowContentFromRepo(ctx context.Context, repo *repo_model.Repositor
 		return nil, err
 	}
 	return []byte(content), nil
-}
-
-func isSameInstanceHost(usesInstanceURL string) bool {
-	u1, err := url.Parse(setting.AppURL)
-	if err != nil {
-		return false
-	}
-	u2, err := url.Parse(usesInstanceURL)
-	if err != nil {
-		return false
-	}
-	return strings.EqualFold(u1.Host, u2.Host)
 }
 
 func markChildRunJobsSkipped(ctx context.Context, childRunJobs []*actions_model.ActionRunJob) error {
