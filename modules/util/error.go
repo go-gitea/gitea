@@ -91,6 +91,7 @@ func (w *errorTranslatableWrapper) Error() string { return w.err.Error() }
 func (w *errorTranslatableWrapper) Unwrap() error { return w.err }
 
 func (w *errorTranslatableWrapper) Translate(t ErrorLocaleTranslator) template.HTML {
+	// i18n-check: ignore
 	return t.Tr(w.trKey, w.trArgs...)
 }
 

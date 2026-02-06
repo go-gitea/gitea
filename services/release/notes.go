@@ -40,6 +40,7 @@ func GenerateReleaseNotes(ctx context.Context, repo *repo_model.Repository, gitR
 
 	baseCommit, err := gitRepo.GetCommit(opts.PreviousTag)
 	if err != nil {
+		// i18n-check: ignore
 		return "", util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_tag_not_found", opts.TagName)
 	}
 
@@ -70,6 +71,7 @@ func resolveHeadCommit(gitRepo *git.Repository, tagName, tagTarget string) (*git
 
 	commit, err := gitRepo.GetCommit(ref)
 	if err != nil {
+		// i18n-check: ignore
 		return nil, util.ErrorWrapTranslatable(util.ErrNotExist, "repo.release.generate_notes_target_not_found", ref)
 	}
 	return commit, nil

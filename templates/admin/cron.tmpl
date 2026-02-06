@@ -21,7 +21,7 @@
 					{{range .Entries}}
 						<tr>
 							<td><button type="submit" class="ui primary button" name="op" value="{{.Name}}" title="{{ctx.Locale.Tr "admin.dashboard.operation_run"}}">{{svg "octicon-triangle-right"}}</button></td>
-							<td>{{ctx.Locale.Tr (printf "admin.dashboard.%s" .Name)}}</td>
+							<td><!-- i18n-check: admin.dashboard.* -->{{ctx.Locale.Tr (printf "admin.dashboard.%s" .Name)}}</td>
 							<td>{{.Spec}}</td>
 							<td>{{DateUtils.FullTime .Next}}</td>
 							<td>{{if gt .Prev.Year 1}}{{DateUtils.FullTime .Prev}}{{else}}-{{end}}</td>
