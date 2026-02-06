@@ -854,7 +854,6 @@ update-py: node_modules ## update py dependencies
 .PHONY: update-go
 update-go: node_modules ## update go dependencies
 	$(NODE_VARS) pnpm exec updates -u -f go.mod
-	rm -rf go.sum
 	$(MAKE) --no-print-directory tidy
 
 .PHONY: webpack
