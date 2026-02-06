@@ -50,6 +50,7 @@ function isElk(layoutOrRenderer: string | undefined) {
   return Boolean(layoutOrRenderer === 'elk' || layoutOrRenderer?.startsWith?.('elk.'));
 }
 
+/** checks if either `config.layout` or `config.*.defaultRender` contains a elk layout. */
 function configContainsElk(config: MermaidConfig | null) {
   return isElk(config?.layout) || Object.values(config || {}).some((value) => isElk(value?.defaultRenderer));
 }
