@@ -307,6 +307,7 @@ export default defineComponent({
     },
 
     async reposFilterKeyControl(e: KeyboardEvent) {
+      if (e.isComposing) return;
       switch (e.key) {
         case 'Enter':
           document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();
