@@ -16,14 +16,19 @@ type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'ca
 
 type StepContainerElement = HTMLElement & {_stepLogsActiveContainer?: HTMLElement}
 
-type LogLine = {
+export type LogLine = {
   index: number;
   timestamp: number;
   message: string;
 };
 
+// `##[group]` is from Azure Pipelines, just supported by the way. https://learn.microsoft.com/en-us/azure/devops/pipelines/scripts/logging-commands
 const LogLinePrefixesGroup = ['::group::', '##[group]'];
 const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
+// https://github.com/actions/toolkit/blob/master/docs/commands.md
+// https://github.com/actions/runner/blob/main/docs/adrs/0276-problem-matchers.md#registration
+// Although there should be no `##[add-matcher]` syntax, there are still such outputs when using act-runner
+const LogLinePrefixesHidden = ['::add-matcher::', '##[add-matcher]', '::remove-matcher'];
 
 type LogLineCommand = {
   name: 'group' | 'endgroup',
@@ -64,6 +69,15 @@ function parseLineCommand(line: LogLine): LogLineCommand | null {
     }
   }
   return null;
+}
+
+export function shouldHideLine(line: LogLine): boolean {
+  for (const prefix of LogLinePrefixesHidden) {
+    if (line.message.startsWith(prefix)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
@@ -320,6 +334,7 @@ export default defineComponent({
 
     appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
       for (const line of logLines) {
+        if (shouldHideLine(line)) continue;
         const el = this.getActiveLogsContainer(stepIndex);
         const cmd = parseLineCommand(line);
         if (cmd?.name === 'group') {
