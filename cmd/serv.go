@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/lfs"
 
 	"github.com/kballard/go-shellquote"
@@ -191,7 +192,7 @@ func runServ(ctx context.Context, c *cli.Command) error {
 		if git.DefaultFeatures().SupportProcReceive {
 			// for AGit Flow
 			if cmd == "ssh_info" {
-				fmt.Print(`{"type":"agit","version":1}`)
+				fmt.Println(agit.VersionInfo)
 				return nil
 			}
 		}
