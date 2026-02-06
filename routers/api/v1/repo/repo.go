@@ -108,7 +108,7 @@ func Search(ctx *context.APIContext) {
 	// - name: sort
 	//   in: query
 	//   description: sort repos by attribute. Supported values are
-	//                "alpha", "created", "updated", "size", "git_size", "lfs_size", "stars", "forks" and "id".
+	//                "alpha", "created", "updated", "mirror_updated", "size", "git_size", "lfs_size", "stars", "forks" and "id".
 	//                Default is "alpha"
 	//   type: string
 	// - name: order
