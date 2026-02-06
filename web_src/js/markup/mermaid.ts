@@ -46,13 +46,19 @@ function parseJsonInitConfig(source: string): MermaidConfig | null {
   return null;
 }
 
-function isElk(layoutOrRenderer: string | undefined) {
-  return Boolean(layoutOrRenderer === 'elk' || layoutOrRenderer?.startsWith?.('elk.'));
+function configValueIsElk(layoutOrRenderer: string | undefined) {
+  if (typeof layoutOrRenderer !== 'string') return false;
+  return layoutOrRenderer === 'elk' || layoutOrRenderer.startsWith('elk.');
 }
 
-/** checks if either `config.layout` or `config.*.defaultRender` contains a elk layout. */
 function configContainsElk(config: MermaidConfig | null) {
-  return isElk(config?.layout) || Object.values(config || {}).some((value) => isElk(value?.defaultRenderer));
+  if (!config) return false;
+  // Check the layout from the following properties:
+  // * config.layout
+  // * config.{any-diagram-config}.defaultRenderer
+  //   Although only a few diagram types like "flowchart" support "defaultRenderer",
+  //   as long as there is no side effect, here do a general check for all properties of "config", for ease of maintenance
+  return configValueIsElk(config.layout) || Object.values(config).some((value) => configValueIsElk(value?.defaultRenderer));
 }
 
 /** detect whether mermaid sources contain elk layout configuration */
