@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/httpauth"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
@@ -537,7 +538,7 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 // to proceed. This server assumes an HTTP Basic auth format.
 func authenticate(ctx *context.Context, repository *repo_model.Repository, authorization string, requireSigned, requireWrite bool) bool {
 	accessMode := perm_model.AccessModeRead
-	if requireWrite {
+	if requireWrite && !git.DefaultFeatures().SupportProcReceive {
 		accessMode = perm_model.AccessModeWrite
 	}
 
