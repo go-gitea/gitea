@@ -13,7 +13,7 @@ require (
 	code.gitea.io/actions-proto-go v0.4.1
 	code.gitea.io/sdk/gitea v0.22.0
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
-	connectrpc.com/connect v1.18.1
+	connectrpc.com/connect v1.19.1
 	gitea.com/go-chi/binding v0.0.0-20240430071103-39a851e106ed
 	gitea.com/go-chi/cache v0.2.1
 	gitea.com/go-chi/captcha v0.0.0-20240315150714-fb487f629098
@@ -26,11 +26,11 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v1.6.2
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358
 	github.com/ProtonMail/go-crypto v1.3.0
-	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/PuerkitoBio/goquery v1.11.0
 	github.com/SaveTheRbtz/zstd-seekable-format-go/pkg v0.8.0
 	github.com/alecthomas/chroma/v2 v2.23.1
-	github.com/aws/aws-sdk-go-v2/credentials v1.18.10
-	github.com/aws/aws-sdk-go-v2/service/codecommit v1.32.2
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
+	github.com/aws/aws-sdk-go-v2/service/codecommit v1.33.8
 	github.com/blakesmith/ar v0.0.0-20190502131153-809d4375e1fb
 	github.com/blevesearch/bleve/v2 v2.5.7
 	github.com/bohde/codel v0.2.0
@@ -54,10 +54,10 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/go-co-op/gocron v1.37.0
 	github.com/go-enry/go-enry/v2 v2.9.4
-	github.com/go-git/go-billy/v5 v5.6.2
+	github.com/go-git/go-billy/v5 v5.7.0
 	github.com/go-git/go-git/v5 v5.16.4
 	github.com/go-ldap/ldap/v3 v3.4.12
-	github.com/go-redsync/redsync/v4 v4.13.0
+	github.com/go-redsync/redsync/v4 v4.15.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/go-webauthn/webauthn v0.13.4
 	github.com/goccy/go-json v0.10.5
@@ -70,7 +70,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/feeds v1.2.0
 	github.com/gorilla/sessions v1.4.0
-	github.com/hashicorp/go-version v1.7.0
+	github.com/hashicorp/go-version v1.8.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/huandu/xstrings v1.5.0
 	github.com/jaytaylor/html2text v0.0.0-20230321000545-74c2419ad056
@@ -78,11 +78,11 @@ require (
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klauspost/compress v1.18.3
 	github.com/klauspost/cpuid/v2 v2.3.0
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.11.1
 	github.com/markbates/goth v1.82.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-sqlite3 v1.14.33
-	github.com/meilisearch/meilisearch-go v0.33.2
+	github.com/meilisearch/meilisearch-go v0.36.0
 	github.com/mholt/archives v0.0.0-20251009205813-e30ac6010726
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/microsoft/go-mssqldb v1.9.3
@@ -96,7 +96,7 @@ require (
 	github.com/pquerna/otp v1.5.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/quasoft/websspi v1.1.2
-	github.com/redis/go-redis/v9 v9.12.1
+	github.com/redis/go-redis/v9 v9.17.3
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/sassoftware/go-rpmutils v0.4.0
@@ -117,11 +117,11 @@ require (
 	golang.org/x/crypto v0.46.0
 	golang.org/x/image v0.30.0
 	golang.org/x/net v0.48.0
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.32.0
 	golang.org/x/sync v0.19.0
 	golang.org/x/sys v0.39.0
 	golang.org/x/text v0.32.0
-	google.golang.org/grpc v1.75.0
+	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/ini.v1 v1.67.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -132,7 +132,7 @@ require (
 )
 
 require (
-	cloud.google.com/go/compute/metadata v0.8.0 // indirect
+	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	code.gitea.io/gitea-vet v0.2.3 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	filippo.io/edwards25519 v1.1.0 // indirect
@@ -145,10 +145,10 @@ require (
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be // indirect
-	github.com/aws/aws-sdk-go-v2 v1.38.3 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.6 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.6 // indirect
-	github.com/aws/smithy-go v1.23.0 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.41.1 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.17 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.17 // indirect
+	github.com/aws/smithy-go v1.24.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.24.0 // indirect
@@ -199,7 +199,6 @@ require (
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-webauthn/x v0.1.24 // indirect
-	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
@@ -284,7 +283,7 @@ require (
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.39.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
