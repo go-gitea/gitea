@@ -148,7 +148,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				perms, err = access.GetActionsUserRepoPermission(ctx, packageRepo, ctx.Doer, taskID)
 			} else {
 				// Linked package / to be linked package
-				// FIXME non existant package has a security problem, since the hasPackage code is wrong
+				// FIXME non existent package has a security problem, since the hasPackage code is wrong
 				perms, err = access.GetActionsUserRepoPermission(ctx, taskRepo, ctx.Doer, taskID)
 			}
 			if err != nil {
