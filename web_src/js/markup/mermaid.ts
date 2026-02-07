@@ -3,6 +3,8 @@ import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
 import {queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import {load as loadYaml} from 'js-yaml';
+import type {MermaidConfig} from 'mermaid';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
@@ -10,23 +12,111 @@ const iframeCss = `:root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}`;
 
+function isSourceTooLarge(source: string) {
+  return mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters;
+}
+
+function parseYamlInitConfig(source: string): MermaidConfig | null {
+  // ref: https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/diagram-api/regexes.ts
+  const yamlFrontMatterRegex = /^---\s*[\n\r](.*?)[\n\r]---\s*[\n\r]+/s;
+  const frontmatter = (yamlFrontMatterRegex.exec(source) || [])[1];
+  if (!frontmatter) return null;
+  try {
+    return (loadYaml(frontmatter) as {config: MermaidConfig})?.config;
+  } catch {
+    console.error('invalid or unsupported mermaid init YAML config', frontmatter);
+  }
+  return null;
+}
+
+function parseJsonInitConfig(source: string): MermaidConfig | null {
+  // https://mermaid.js.org/config/directives.html#declaring-directives
+  // Do as dirty as mermaid does: https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/utils.ts
+  // It can even accept invalid JSON string like:
+  // %%{initialize: { 'logLevel': 'fatal', "theme":'dark', 'startOnLoad': true } }%%
+  const jsonInitConfigRegex = /%%\{\s*(init|initialize)\s*:\s*(.*?)\}%%/s;
+  const jsonInitText = (jsonInitConfigRegex.exec(source) || [])[2];
+  if (!jsonInitText) return null;
+  try {
+    const processed = jsonInitText.trim().replace(/'/g, '"');
+    return JSON.parse(processed);
+  } catch {
+    console.error('invalid or unsupported mermaid init JSON config', jsonInitText);
+  }
+  return null;
+}
+
+function configValueIsElk(layoutOrRenderer: string | undefined) {
+  if (typeof layoutOrRenderer !== 'string') return false;
+  return layoutOrRenderer === 'elk' || layoutOrRenderer.startsWith('elk.');
+}
+
+function configContainsElk(config: MermaidConfig | null) {
+  if (!config) return false;
+  // Check the layout from the following properties:
+  // * config.layout
+  // * config.{any-diagram-config}.defaultRenderer
+  //   Although only a few diagram types like "flowchart" support "defaultRenderer",
+  //   as long as there is no side effect, here do a general check for all properties of "config", for ease of maintenance
+  return configValueIsElk(config.layout) || Object.values(config).some((value) => configValueIsElk(value?.defaultRenderer));
+}
+
+/** detect whether mermaid sources contain elk layout configuration */
+export function sourcesContainElk(sources: Array<string>) {
+  for (const source of sources) {
+    if (isSourceTooLarge(source)) continue;
+
+    const yamlConfig = parseYamlInitConfig(source);
+    if (configContainsElk(yamlConfig)) return true;
+
+    const jsonConfig = parseJsonInitConfig(source);
+    if (configContainsElk(jsonConfig)) return true;
+  }
+
+  return false;
+}
+
+async function loadMermaid(sources: Array<string>) {
+  const mermaidPromise = import(/* webpackChunkName: "mermaid" */'mermaid');
+  const elkPromise = sourcesContainElk(sources) ?
+    import(/* webpackChunkName: "mermaid-layout-elk" */'@mermaid-js/layout-elk') : null;
+
+  const results = await Promise.all([mermaidPromise, elkPromise]);
+  return {
+    mermaid: results[0].default,
+    elkLayouts: results[1]?.default,
+  };
+}
+
+let elkLayoutsRegistered = false;
+
 export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void> {
   // .markup code.language-mermaid
-  queryElems(elMarkup, 'code.language-mermaid', async (el) => {
-    const {default: mermaid} = await import(/* webpackChunkName: "mermaid" */'mermaid');
+  const els = Array.from(queryElems(elMarkup, 'code.language-mermaid'));
+  if (!els.length) return;
+  const sources = Array.from(els, (el) => el.textContent ?? '');
+  const {mermaid, elkLayouts} = await loadMermaid(sources);
 
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: isDarkTheme() ? 'dark' : 'neutral',
-      securityLevel: 'strict',
-      suppressErrorRendering: true,
-    });
+  if (elkLayouts && !elkLayoutsRegistered) {
+    mermaid.registerLayoutLoaders(elkLayouts);
+    elkLayoutsRegistered = true;
+  }
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: isDarkTheme() ? 'dark' : 'neutral',
+    securityLevel: 'strict',
+    suppressErrorRendering: true,
+  });
 
+  await Promise.all(els.map(async (el, index) => {
+    const source = sources[index];
     const pre = el.closest('pre');
-    if (!pre || pre.hasAttribute('data-render-done')) return;
 
-    const source = el.textContent;
-    if (mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters) {
+    if (!pre || pre.hasAttribute('data-render-done')) {
+      return;
+    }
+
+    if (isSourceTooLarge(source)) {
       displayError(pre, new Error(`Mermaid source of ${source.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
       return;
     }
@@ -83,5 +173,5 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     } catch (err) {
       displayError(pre, err);
     }
-  });
+  }));
 }
