@@ -313,10 +313,10 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		// Check Collaborative Owner and explicit Bot permissions
 		// We allow access if:
 		// 1. It's a collaborative owner relationship
-		// 2. The Actions Bot user has been explicitly granted access
+		// 2. The Actions Bot user has been explicitly granted access and repository is private
 		// 3. The repository is public (and not explicitly blocked by Org policy above)
 
-		if actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) {
+		if taskRepo.IsPrivate && actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) {
 			perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
 			return perm, nil
 		}
@@ -327,12 +327,6 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			return perm, err
 		}
 		if botPerm.AccessMode >= perm_model.AccessModeRead {
-			perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
-			return perm, nil
-		}
-
-		// Public repos are readable unless it's same org and was already denied by Org policy or restricted
-		if !repo.IsPrivate {
 			perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
 			return perm, nil
 		}
