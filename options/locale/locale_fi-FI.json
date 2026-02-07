@@ -1183,6 +1183,7 @@
   "admin.dashboard.operation_name": "Toiminnon nimi",
   "admin.dashboard.operation_switch": "Vaihda",
   "admin.dashboard.operation_run": "Suorita",
+  "admin.dashboard.update_mirrors": "Peilien päivittäminen",
   "admin.dashboard.delete_inactive_accounts": "Poista kaikki aktivoimattomat käyttäjät",
   "admin.dashboard.delete_repo_archives": "Poista kaikki repojen arkistot (ZIP, TAR.GZ, jne..)",
   "admin.dashboard.server_uptime": "Palvelimen Uptime",

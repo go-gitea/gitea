@@ -1068,6 +1068,7 @@
   "admin.dashboard.operation_run": "Futtatás",
   "admin.dashboard.clean_unbind_oauth": "Megszüntetett OAuth kapcsolatok törlése",
   "admin.dashboard.clean_unbind_oauth_success": "Az összes megszüntetett OAuth kapcsolat törölve.",
+  "admin.dashboard.update_mirrors": "Tükrök frissítése",
   "admin.dashboard.delete_generated_repository_avatars": "Generált tároló avatarok törlése",
   "admin.dashboard.reinit_missing_repos": "Az összes Git tároló újra-inicializálása amihez léteznek bejegyzések",
   "admin.dashboard.sync_external_users": "Külső felhasználói adatok szinkronizálása",

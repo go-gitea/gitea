@@ -902,6 +902,7 @@
   "admin.dashboard.operation_run": "Lari",
   "admin.dashboard.clean_unbind_oauth": "Bersihkan koneksi OAuth yang tidak terikat",
   "admin.dashboard.clean_unbind_oauth_success": "Semua koneksi OAuth yang tidak terikat telah dihapus.",
+  "admin.dashboard.update_mirrors": "Perbarui cermin",
   "admin.dashboard.reinit_missing_repos": "Menginstal kembali semua repositori Git yang hilang dimana ada catatan",
   "admin.dashboard.sync_external_users": "Sinkronkan data pengguna eksternal",
   "admin.dashboard.server_uptime": "Waktu tambahan server",

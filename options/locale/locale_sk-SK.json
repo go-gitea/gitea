@@ -1060,6 +1060,7 @@
   "org.teams.all_repositories_write_permission_desc": "Tomuto tímu je pridelený prístup na <strong>Zápis</strong> do <strong>všetkých repozitárov</strong>: členovia môžu prezerať a nahrávať do repozitárov.",
   "org.teams.all_repositories_admin_permission_desc": "Tomuto tímu je pridelený <strong>Admin</strong> prístup ku <strong>všetkým repozitárom</strong>: členovia môžu prezerať, nahrávať do repozitárov a pridávať do nich spolupracovníkov.",
   "admin.dashboard": "Nástenka",
+  "admin.dashboard.update_mirrors": "Aktualizácia zrkadiel",
   "admin.organizations": "Organizácie",
   "admin.repositories": "Repozitáre",
   "admin.hooks": "Webhooky",
