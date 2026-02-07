@@ -15,8 +15,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/services/context"
+	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -30,12 +32,57 @@ func Repos(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.repositories")
 	ctx.Data["PageIsAdminRepositories"] = true
 
+	gitSizeStr := setting.FormatRepositorySizeLimit(setting.Repository.GitSizeMax)
+	lfsSizeStr := setting.FormatRepositorySizeLimit(setting.Repository.LFSSizeMax)
+	log.Trace("Repos: GitSizeMax=%d -> %s, LFSSizeMax=%d -> %s", setting.Repository.GitSizeMax, gitSizeStr, setting.Repository.LFSSizeMax, lfsSizeStr)
+	ctx.Data["GitSizeMax"] = gitSizeStr
+	ctx.Data["LFSSizeMax"] = lfsSizeStr
+
 	explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
 		Private:          true,
 		PageSize:         setting.UI.Admin.RepoPagingNum,
 		TplName:          tplRepos,
 		OnlyShowRelevant: false,
 	})
+}
+
+func UpdateRepoPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.UpdateGlobalRepoForm)
+	ctx.Data["Title"] = ctx.Tr("admin.repositories")
+	ctx.Data["PageIsAdminRepositories"] = true
+
+	ctx.Data["GitSizeMax"] = form.GitSizeMax
+	ctx.Data["LFSSizeMax"] = form.LFSSizeMax
+
+	gitSizeMax, err := setting.ParseRepositorySizeLimit(form.GitSizeMax)
+	if err != nil {
+		ctx.Data["Err_Git_Size_Max"] = form.GitSizeMax
+		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
+			Private:          true,
+			PageSize:         setting.UI.Admin.RepoPagingNum,
+			TplName:          tplRepos,
+			OnlyShowRelevant: false,
+		})
+		return
+	}
+
+	lfsSizeMax, err := setting.ParseRepositorySizeLimit(form.LFSSizeMax)
+	if err != nil {
+		ctx.Data["Err_LFS_Size_Max"] = form.LFSSizeMax
+		explore.RenderRepoSearch(ctx, &explore.RepoSearchOptions{
+			Private:          true,
+			PageSize:         setting.UI.Admin.RepoPagingNum,
+			TplName:          tplRepos,
+			OnlyShowRelevant: false,
+		})
+		return
+	}
+
+	setting.UpdateGlobalRepositoryLimit(gitSizeMax, lfsSizeMax)
+	log.Trace("UpdateRepoPost: After update, setting.Repository.GitSizeMax=%d, LFSSizeMax=%d", setting.Repository.GitSizeMax, setting.Repository.LFSSizeMax)
+
+	ctx.Flash.Success(ctx.Tr("admin.repos.update_success"))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/repos")
 }
 
 // DeleteRepo delete one repository

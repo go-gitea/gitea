@@ -252,8 +252,8 @@ func (repo *Repository) SanitizedOriginalURL() string {
 
 // text representations to be returned in SizeDetail.Name
 const (
-	SizeDetailNameGit = "git"
-	SizeDetailNameLFS = "lfs"
+	SizeDetailNameGit = "Git"
+	SizeDetailNameLFS = "LFS"
 )
 
 type SizeDetail struct {
@@ -625,6 +625,46 @@ func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, baseBranch
 // IsOwnedBy returns true when user owns this repository
 func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
+}
+
+// GetActualSizeLimit returns repository size limit in bytes
+func (repo *Repository) GetActualSizeLimit() int64 {
+	return setting.Repository.GitSizeMax
+}
+
+// IsRepoSizeOversized return true if is over size limitation
+func (repo *Repository) IsRepoSizeOversized(additionalSize int64) bool {
+	limit := repo.GetActualSizeLimit()
+	if limit < 0 {
+		return false
+	}
+	newSize := repo.GitSize + additionalSize
+	return newSize > limit && newSize > repo.GitSize
+}
+
+// ShouldCheckRepoSize returns true if size limit checking is enabled
+func (repo *Repository) ShouldCheckRepoSize() bool {
+	return setting.Repository.GitSizeMax > -1
+}
+
+// GetActualLFSSizeLimit returns repository LFS size limit in bytes
+func (repo *Repository) GetActualLFSSizeLimit() int64 {
+	return setting.Repository.LFSSizeMax
+}
+
+// ShouldCheckLFSSize returns true if LFS size limit checking is enabled
+func (repo *Repository) ShouldCheckLFSSize() bool {
+	return setting.Repository.LFSSizeMax > -1
+}
+
+// IsLFSSizeOversized returns true if adding additionalSize would exceed the LFS size limit
+func (repo *Repository) IsLFSSizeOversized(additionalSize int64) bool {
+	limit := repo.GetActualLFSSizeLimit()
+	if limit < 0 {
+		return false
+	}
+	newSize := repo.LFSSize + additionalSize
+	return newSize > limit && newSize > repo.LFSSize
 }
 
 // CanCreateBranch returns true if repository meets the requirements for creating new branches.
