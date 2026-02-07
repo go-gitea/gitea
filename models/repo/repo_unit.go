@@ -249,6 +249,20 @@ func (p ActionsTokenPermissions) HasWrite(scope string) bool {
 	return p.HasAccess(scope, perm.AccessModeWrite)
 }
 
+// ClampPermissions ensures that the given permissions don't exceed the maximum
+func (p ActionsTokenPermissions) ClampPermissions(maxPerms ActionsTokenPermissions) ActionsTokenPermissions {
+	return ActionsTokenPermissions{
+		Code:         min(p.Code, maxPerms.Code),
+		Issues:       min(p.Issues, maxPerms.Issues),
+		PullRequests: min(p.PullRequests, maxPerms.PullRequests),
+		Packages:     min(p.Packages, maxPerms.Packages),
+		Actions:      min(p.Actions, maxPerms.Actions),
+		Wiki:         min(p.Wiki, maxPerms.Wiki),
+		Releases:     min(p.Releases, maxPerms.Releases),
+		Projects:     min(p.Projects, maxPerms.Projects),
+	}
+}
+
 // DefaultActionsTokenPermissions returns the default permissions for permissive mode
 func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsTokenPermissions {
 	if mode == ActionsTokenPermissionModeRestricted {
@@ -276,8 +290,8 @@ func DefaultActionsTokenPermissions(mode ActionsTokenPermissionMode) ActionsToke
 	}
 }
 
-// ForkPullRequestPermissions returns the restricted permissions for fork pull requests
-func ForkPullRequestPermissions() ActionsTokenPermissions {
+// GetReadOnlyPermissions returns the restricted permissions for fork pull requests
+func GetReadOnlyPermissions() ActionsTokenPermissions {
 	return ActionsTokenPermissions{
 		Code:         perm.AccessModeRead,
 		Issues:       perm.AccessModeRead,
@@ -370,18 +384,22 @@ func (cfg *ActionsConfig) GetTokenPermissionMode() ActionsTokenPermissionMode {
 }
 
 // GetEffectiveTokenPermissions returns the effective token permissions based on settings and context
-func (cfg *ActionsConfig) GetEffectiveTokenPermissions(isForkPullRequest bool) ActionsTokenPermissions {
+func (cfg *ActionsConfig) GetEffectiveTokenPermissions(isMaxReadonly bool) ActionsTokenPermissions {
+	var perm ActionsTokenPermissions
+	permMode := cfg.GetTokenPermissionMode()
+	if permMode == ActionsTokenPermissionModeCustom {
+		perm = cfg.GetMaxTokenPermissions()
+	} else {
+		// Otherwise use mode-based defaults
+		perm = DefaultActionsTokenPermissions(permMode)
+	}
+
 	// Fork pull requests always get restricted read-only access for security
-	if isForkPullRequest {
-		return ForkPullRequestPermissions()
+	if isMaxReadonly {
+		return perm.ClampPermissions(GetReadOnlyPermissions())
 	}
 
-	if cfg.GetTokenPermissionMode() == ActionsTokenPermissionModeCustom {
-		return cfg.GetMaxTokenPermissions()
-	}
-
-	// Otherwise use mode-based defaults
-	return DefaultActionsTokenPermissions(cfg.GetTokenPermissionMode())
+	return perm
 }
 
 // GetMaxTokenPermissions returns the maximum allowed permissions
@@ -405,16 +423,7 @@ func (cfg *ActionsConfig) GetMaxTokenPermissions() ActionsTokenPermissions {
 // ClampPermissions ensures that the given permissions don't exceed the maximum
 func (cfg *ActionsConfig) ClampPermissions(perms ActionsTokenPermissions) ActionsTokenPermissions {
 	maxPerms := cfg.GetMaxTokenPermissions()
-	return ActionsTokenPermissions{
-		Code:         min(perms.Code, maxPerms.Code),
-		Issues:       min(perms.Issues, maxPerms.Issues),
-		PullRequests: min(perms.PullRequests, maxPerms.PullRequests),
-		Packages:     min(perms.Packages, maxPerms.Packages),
-		Actions:      min(perms.Actions, maxPerms.Actions),
-		Wiki:         min(perms.Wiki, maxPerms.Wiki),
-		Releases:     min(perms.Releases, maxPerms.Releases),
-		Projects:     min(perms.Projects, maxPerms.Projects),
-	}
+	return perms.ClampPermissions(maxPerms)
 }
 
 // IsRepoAllowedCrossAccess checks if a specific repo is allowed for cross-repo access

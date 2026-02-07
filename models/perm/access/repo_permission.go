@@ -287,7 +287,75 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	}
 	actionsCfg := actionsUnit.ActionsConfig()
 
-	if task.RepoID != repo.ID {
+	// First check if job has explicit permissions stored from workflow YAML
+	var effectivePerms repo_model.ActionsTokenPermissions
+	var jobLoaded bool
+
+	// Only attempt to load job if JobID is set (non-zero)
+	if task.JobID != 0 {
+		if err := task.LoadJob(ctx); err == nil {
+			jobLoaded = true
+		} else {
+			// If loading job fails (e.g. resource doesn't exist), log it but fall back to repo permissions
+			// This prevents 500 errors if the task has a broken job link
+			log.Warn("GetActionsUserRepoPermission: failed to load job %d for task %d: %v", task.JobID, task.ID, err)
+		}
+	}
+
+	isSameRepo := task.RepoID == repo.ID
+	maxReadOnly := task.IsForkPullRequest || !isSameRepo
+
+	if jobLoaded && task.Job != nil && task.Job.TokenPermissions != "" {
+		// Use permissions parsed from workflow YAML (already clamped by repo max settings during insertion)
+		effectivePerms, err = repo_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
+		if err != nil {
+			// Fall back to repository settings if unmarshal fails
+			effectivePerms = actionsCfg.GetEffectiveTokenPermissions(maxReadOnly)
+		} else if maxReadOnly {
+			// Clamp to readonly
+			effectivePerms = effectivePerms.ClampPermissions(repo_model.GetReadOnlyPermissions())
+		}
+	} else {
+		// No workflow permissions or job not found, use repository settings
+		effectivePerms = actionsCfg.GetEffectiveTokenPermissions(maxReadOnly)
+	}
+
+	// ALWAYS clamp at runtime against current configuration (prevents escalation if settings changed)
+	if !actionsCfg.OverrideOrgConfig && repo.Owner.IsOrganization() {
+		orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
+		if err == nil {
+			effectivePerms = orgCfg.ClampPermissions(effectivePerms)
+		}
+	}
+	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+
+	var maxPerm Permission
+
+	// Set up per-unit access modes based on configured permissions
+	maxPerm.units = repo.Units
+	maxPerm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
+	maxPerm.unitsMode[unit.TypeCode] = effectivePerms.Code
+	maxPerm.unitsMode[unit.TypeIssues] = effectivePerms.Issues
+	maxPerm.unitsMode[unit.TypePullRequests] = effectivePerms.PullRequests
+	maxPerm.unitsMode[unit.TypePackages] = effectivePerms.Packages
+	maxPerm.unitsMode[unit.TypeActions] = effectivePerms.Actions
+	maxPerm.unitsMode[unit.TypeWiki] = effectivePerms.Wiki
+	maxPerm.unitsMode[unit.TypeReleases] = effectivePerms.Releases
+	maxPerm.unitsMode[unit.TypeProjects] = effectivePerms.Projects
+
+	// Set base access mode to the maximum of all unit maxPermissions
+	maxMode := perm_model.AccessModeNone
+	for _, mode := range maxPerm.unitsMode {
+		if mode > maxMode {
+			maxMode = mode
+		}
+	}
+	maxPerm.AccessMode = maxMode
+
+	if task.RepoID == repo.ID {
+		perm = maxPerm
+	} else {
+		// maxReadOnly is true in this case so maxPerm is between none and readonly
 		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
 		if err != nil || !exist {
 			return perm, err
@@ -305,7 +373,8 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			}
 			if orgCfg.IsRepoAllowedCrossAccess(repo.ID) {
 				// Access allowed by Org policy
-				perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
+				// No access if maxPerm is none for used unit
+				perm = maxPerm
 				return perm, nil
 			}
 		}
@@ -317,7 +386,8 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		// 3. The repository is public (and not explicitly blocked by Org policy above)
 
 		if taskRepo.IsPrivate && actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) {
-			perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
+			// No access if maxPerm is none for used unit
+			perm = maxPerm
 			return perm, nil
 		}
 
@@ -327,69 +397,11 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			return perm, err
 		}
 		if botPerm.AccessMode >= perm_model.AccessModeRead {
+			// Public repository are accessible even if maxPerm access level is none
 			perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
 			return perm, nil
 		}
-
-		return perm, nil
 	}
-
-	// First check if job has explicit permissions stored from workflow YAML
-	var effectivePerms repo_model.ActionsTokenPermissions
-	var jobLoaded bool
-
-	// Only attempt to load job if JobID is set (non-zero)
-	if task.JobID != 0 {
-		if err := task.LoadJob(ctx); err == nil {
-			jobLoaded = true
-		} else {
-			// If loading job fails (e.g. resource doesn't exist), log it but fall back to repo permissions
-			// This prevents 500 errors if the task has a broken job link
-			log.Warn("GetActionsUserRepoPermission: failed to load job %d for task %d: %v", task.JobID, task.ID, err)
-		}
-	}
-
-	if jobLoaded && task.Job != nil && task.Job.TokenPermissions != "" {
-		// Use permissions parsed from workflow YAML (already clamped by repo max settings during insertion)
-		effectivePerms, err = repo_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
-		if err != nil {
-			// Fall back to repository settings if unmarshal fails
-			effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
-		}
-	} else {
-		// No workflow permissions or job not found, use repository settings
-		effectivePerms = actionsCfg.GetEffectiveTokenPermissions(task.IsForkPullRequest)
-	}
-
-	// ALWAYS clamp at runtime against current configuration (prevents escalation if settings changed)
-	if !actionsCfg.OverrideOrgConfig && repo.Owner.IsOrganization() {
-		orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
-		if err == nil {
-			effectivePerms = orgCfg.ClampPermissions(effectivePerms)
-		}
-	}
-	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
-
-	// Set up per-unit access modes based on configured permissions
-	perm.units = repo.Units
-	perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
-	perm.unitsMode[unit.TypeCode] = effectivePerms.Code
-	perm.unitsMode[unit.TypeIssues] = effectivePerms.Issues
-	perm.unitsMode[unit.TypePullRequests] = effectivePerms.PullRequests
-	perm.unitsMode[unit.TypePackages] = effectivePerms.Packages
-	perm.unitsMode[unit.TypeActions] = effectivePerms.Actions
-	perm.unitsMode[unit.TypeWiki] = effectivePerms.Wiki
-	perm.unitsMode[unit.TypeReleases] = effectivePerms.Releases
-	perm.unitsMode[unit.TypeProjects] = effectivePerms.Projects
-
-	// Set base access mode to the maximum of all unit permissions
-	maxMode := perm_model.AccessModeNone
-	for _, mode := range perm.unitsMode {
-		if mode > maxMode {
-			maxMode = mode
-		}
-	}
-	perm.AccessMode = maxMode
 
 	return perm, nil
 }
