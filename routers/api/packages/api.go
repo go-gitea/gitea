@@ -133,21 +133,22 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 			}
 			var perms access.Permission
 
-			if hasPackage /* && packageRepoID != task.RepoID package created disabled to prevent permission escalation  */ {
+			if hasPackage && packageRepoID != task.RepoID {
 				// TODO support accessing public packages
 				// Refactor GetActionsUserRepoPermission to be partially reusable in this case
 				if packageRepoID == 0 {
 					ctx.HTTPError(http.StatusNotFound, "GetActionsUserRepoPermission", "unlinked package cannot be accessed by actions")
 					return
 				}
-				packageRepo, err := repo_perm_model.GetRepositoryByID(ctx, packageRepoID)
-				if err != nil {
-					ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID", err.Error())
+				packageRepo, repoErr := repo_perm_model.GetRepositoryByID(ctx, packageRepoID)
+				if repoErr != nil {
+					ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID", repoErr.Error())
 					return
 				}
 				perms, err = access.GetActionsUserRepoPermission(ctx, packageRepo, ctx.Doer, taskID)
 			} else {
-				// Linked package (/ to be linked package (disabled))
+				// Linked package / to be linked package
+				// FIXME non existant package has a security problem, since the hasPackage code is wrong
 				perms, err = access.GetActionsUserRepoPermission(ctx, taskRepo, ctx.Doer, taskID)
 			}
 			if err != nil {
