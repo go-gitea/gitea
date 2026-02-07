@@ -354,10 +354,32 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	}
 	maxPerm.AccessMode = maxMode
 
+	// Check permission like simple user but limit to read-only (PR #36095)
+	// Enhanced to also grant read-only access if isSameRepo is true and target repository is public
+	botPerm, err := GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
+	if err != nil {
+		return perm, err
+	}
+	if botPerm.AccessMode >= perm_model.AccessModeRead {
+		// Public repo allows read access, increase permissions to at least read
+		// Otherwise you cannot access your own repository if your permissions are set to none but the repository is public
+		maxPerm.AccessMode = max(maxPerm.AccessMode, perm_model.AccessModeRead)
+		for _, u := range repo.Units {
+			if botPerm.CanRead(u.Type) {
+				maxPerm.unitsMode[u.Type] = max(maxPerm.unitsMode[u.Type], perm_model.AccessModeRead)
+			}
+		}
+	}
+
 	if isSameRepo {
 		perm = maxPerm
 	} else {
 		// maxReadOnly is true in this case so maxPerm is between none and readonly
+		// Public repo allows read access
+		if botPerm.AccessMode >= perm_model.AccessModeRead {
+			perm = maxPerm
+		}
+
 		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
 		if err != nil || !exist {
 			return perm, err
@@ -390,17 +412,6 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		if taskRepo.IsPrivate && actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) {
 			// No access if maxPerm is none for used unit
 			perm = maxPerm
-			return perm, nil
-		}
-
-		// Check permission like simple user but limit to read-only (PR #36095)
-		botPerm, err := GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
-		if err != nil {
-			return perm, err
-		}
-		if botPerm.AccessMode >= perm_model.AccessModeRead {
-			// Public repository are accessible even if maxPerm access level is none
-			perm.SetUnitsWithDefaultAccessMode(repo.Units, perm_model.AccessModeRead)
 			return perm, nil
 		}
 	}
