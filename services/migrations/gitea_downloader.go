@@ -345,7 +345,7 @@ func (g *GiteaDownloader) GetReleases(ctx context.Context) ([]*base.Release, err
 	return releases, nil
 }
 
-func (g *GiteaDownloader) getIssueReactions(index int64) ([]*base.Reaction, error) {
+func (g *GiteaDownloader) getIssueReactions(ctx context.Context, index int64) ([]*base.Reaction, error) {
 	if err := g.client.CheckServerVersionConstraint(">=1.11"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip getIssueReactions")
 		return nil, nil
@@ -354,6 +354,13 @@ func (g *GiteaDownloader) getIssueReactions(index int64) ([]*base.Reaction, erro
 	allReactions := make([]*base.Reaction, 0, g.maxPerPage)
 
 	for i := 1; ; i++ {
+		// make sure gitea can shutdown gracefully
+		select {
+		case <-ctx.Done():
+			return nil, nil
+		default:
+		}
+
 		reactions, _, err := g.client.ListIssueReactions(g.repoOwner, g.repoName, index, gitea_sdk.ListIssueReactionsOptions{ListOptions: gitea_sdk.ListOptions{
 			PageSize: g.maxPerPage,
 			Page:     i,
@@ -399,7 +406,7 @@ func (g *GiteaDownloader) getCommentReactions(commentID int64) ([]*base.Reaction
 }
 
 // GetIssues returns issues according start and limit
-func (g *GiteaDownloader) GetIssues(_ context.Context, page, perPage int) ([]*base.Issue, bool, error) {
+func (g *GiteaDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*base.Issue, bool, error) {
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -424,7 +431,7 @@ func (g *GiteaDownloader) GetIssues(_ context.Context, page, perPage int) ([]*ba
 			milestone = issue.Milestone.Title
 		}
 
-		reactions, err := g.getIssueReactions(issue.Index)
+		reactions, err := g.getIssueReactions(ctx, issue.Index)
 		if err != nil {
 			WarnAndNotice("Unable to load reactions during migrating issue #%d in %s. Error: %v", issue.Index, g, err)
 		}
@@ -508,7 +515,7 @@ func (g *GiteaDownloader) GetComments(ctx context.Context, commentable base.Comm
 }
 
 // GetPullRequests returns pull requests according page and perPage
-func (g *GiteaDownloader) GetPullRequests(_ context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
+func (g *GiteaDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
 	if perPage > g.maxPerPage {
 		perPage = g.maxPerPage
 	}
@@ -557,7 +564,7 @@ func (g *GiteaDownloader) GetPullRequests(_ context.Context, page, perPage int) 
 			mergeCommitSHA = *pr.MergedCommitID
 		}
 
-		reactions, err := g.getIssueReactions(pr.Index)
+		reactions, err := g.getIssueReactions(ctx, pr.Index)
 		if err != nil {
 			WarnAndNotice("Unable to load reactions during migrating pull #%d in %s. Error: %v", pr.Index, g, err)
 		}
