@@ -3,14 +3,6 @@ import {createTippy} from '../modules/tippy.ts';
 import {toAbsoluteUrl} from '../utils.ts';
 import {addDelegatedEventListener} from '../utils/dom.ts';
 
-function changeHash(hash: string) {
-  if (window.history.pushState) {
-    window.history.pushState(null, '', hash);
-  } else {
-    window.location.hash = hash;
-  }
-}
-
 // it selects the code lines defined by range: `L1-L3` (3 lines) or `L2` (singe line)
 function selectRange(range: string): Element | null {
   for (const el of document.querySelectorAll('.code-view tr.active')) el.classList.remove('active');
@@ -65,7 +57,7 @@ function selectRange(range: string): Element | null {
   for (let i = startLineNum - 1; i <= stopLineNum - 1 && i < elLineNums.length; i++) {
     elLineNums[i].closest('tr')!.classList.add('active');
   }
-  changeHash(`#${range}`);
+  window.history.replaceState(null, '', `#${range}`);
   updateIssueHref(range);
   updateViewGitBlameFragment(range);
   updateCopyPermalinkUrl(range);

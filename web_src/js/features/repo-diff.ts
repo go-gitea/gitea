@@ -11,6 +11,7 @@ import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom, sleep} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {parseDiffHashRange, highlightDiffSelectionFromHash, initDiffLineSelection, diffAutoScrollAttr} from './repo-diff-selection.ts';
 
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -148,7 +149,7 @@ function initDiffHeaderPopup() {
 }
 
 // Will be called when the show more (files) button has been pressed
-function onShowMoreFiles() {
+async function onShowMoreFiles() {
   // TODO: replace these calls with the "observer.ts" methods
   initRepoIssueContentHistory();
   initViewedCheckboxListenerFor();
@@ -168,9 +169,11 @@ async function loadMoreFiles(btn: Element): Promise<boolean> {
     const resp = await response.text();
     const respDoc = parseDom(resp, 'text/html');
     const respFileBoxes = respDoc.querySelector('#diff-file-boxes')!;
+    const respFileBoxesChildren = Array.from(respFileBoxes.children); // respFileBoxes.children will be empty after replaceWith
     // the response is a full HTML page, we need to extract the relevant contents:
     // * append the newly loaded file list items to the existing list
-    document.querySelector('#diff-incomplete')!.replaceWith(...Array.from(respFileBoxes.children));
+    document.querySelector('#diff-incomplete')!.replaceWith(...respFileBoxesChildren);
+    for (const el of respFileBoxesChildren) window.htmx.process(el);
     onShowMoreFiles();
     return true;
   } catch (error) {
@@ -218,30 +221,51 @@ function initRepoDiffShowMore() {
 async function onLocationHashChange() {
   // try to scroll to the target element by the current hash
   const currentHash = window.location.hash;
-  if (!currentHash.startsWith('#diff-') && !currentHash.startsWith('#issuecomment-')) return;
+  const issueCommentPrefix = '#issuecomment-';
+  const isDiffHash = currentHash.startsWith('#diff-');
+  const isIssueCommentHash = currentHash.startsWith(issueCommentPrefix);
+  if (!isDiffHash && !isIssueCommentHash) return;
 
   // avoid reentrance when we are changing the hash to scroll and trigger ":target" selection
-  const attrAutoScrollRunning = 'data-auto-scroll-running';
-  if (document.body.hasAttribute(attrAutoScrollRunning)) return;
+  if (document.body.hasAttribute(diffAutoScrollAttr)) return;
 
-  const targetElementId = currentHash.substring(1);
-  while (currentHash === window.location.hash) {
-    // use getElementById to avoid querySelector throws an error when the hash is invalid
-    // eslint-disable-next-line unicorn/prefer-query-selector
-    const targetElement = document.getElementById(targetElementId);
-    if (targetElement) {
-      // need to change hash to re-trigger ":target" CSS selector, let's manually scroll to it
-      targetElement.scrollIntoView();
-      document.body.setAttribute(attrAutoScrollRunning, 'true');
-      window.location.hash = '';
-      window.location.hash = currentHash;
-      setTimeout(() => document.body.removeAttribute(attrAutoScrollRunning), 0);
+  const hashValue = currentHash.substring(1);
+  let targetElementId = hashValue;
+
+  if (isDiffHash) {
+    const success = await highlightDiffSelectionFromHash();
+    if (success) {
+      // Successfully highlighted and scrolled, we're done
       return;
+    }
+    const range = parseDiffHashRange(hashValue);
+    if (range) {
+      targetElementId = `${range.fragment}${range.startSide}${range.startLine}`;
+    }
+  }
+
+  while (currentHash === window.location.hash) {
+    if (isDiffHash) {
+      // eslint-disable-next-line unicorn/prefer-query-selector
+      const targetElement = document.getElementById(targetElementId);
+      if (targetElement) {
+        // Try again to highlight and scroll now that the element is loaded
+        const success = await highlightDiffSelectionFromHash();
+        if (success) return;
+      }
+    } else if (isIssueCommentHash) {
+      // eslint-disable-next-line unicorn/prefer-query-selector
+      const commentElement = document.getElementById(hashValue);
+      if (commentElement) {
+        commentElement.scrollIntoView({behavior: 'instant'});
+        window.location.hash = '';
+        window.location.hash = currentHash;
+        return;
+      }
     }
 
     // If looking for a hidden comment, try to expand the section that contains it
-    const issueCommentPrefix = '#issuecomment-';
-    if (currentHash.startsWith(issueCommentPrefix)) {
+    if (isIssueCommentHash) {
       const commentId = currentHash.substring(issueCommentPrefix.length);
       const expandButton = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${commentId},"]`);
       if (expandButton) {
@@ -283,6 +307,7 @@ export function initRepoDiffView() {
   initDiffHeaderPopup();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
+  initDiffLineSelection();
   initRepoDiffHashChangeListener();
 
   registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);
