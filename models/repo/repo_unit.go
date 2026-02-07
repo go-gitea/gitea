@@ -571,7 +571,7 @@ func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err
 	return units, nil
 }
 
-// UpdateRepoUnit updates the provided repo unit
+// UpdateRepoUnitConfig updates the config of the provided repo unit
 func UpdateRepoUnitConfig(ctx context.Context, unit *RepoUnit) error {
 	_, err := db.GetEngine(ctx).ID(unit.ID).Cols("config").Update(unit)
 	return err
