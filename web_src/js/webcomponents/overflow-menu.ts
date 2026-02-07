@@ -41,6 +41,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           this.button?._tippy.hide();
           this.button?.focus();
         } else if (e.key === ' ' || e.code === 'Enter') {
+          if (e.isComposing) return;
           if (document.activeElement?.matches('[role="menuitem"]')) {
             e.preventDefault();
             e.stopPropagation();

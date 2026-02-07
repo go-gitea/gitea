@@ -61,6 +61,7 @@ const handleKeyDown = (e: KeyboardEvent) => {
   } else if (e.key === 'ArrowUp') {
     handleSelectedItem(Math.max(selectedIndex.value - 1, 0))
   } else if (e.key === 'Enter') {
+    if (e.isComposing) return;
     e.preventDefault();
     const selectedFile = filteredFiles.value[selectedIndex.value];
     if (selectedFile) {

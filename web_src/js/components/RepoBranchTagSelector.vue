@@ -175,6 +175,7 @@ export default defineComponent({
         this.activeItemIndex = nextIndex;
         this.getActiveItem()!.scrollIntoView({block: 'nearest'});
       } else if (e.key === 'Enter') {
+        if (e.isComposing) return;
         e.preventDefault();
         this.getActiveItem()?.click();
       } else if (e.key === 'Escape') {
