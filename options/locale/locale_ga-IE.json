@@ -1778,6 +1778,8 @@
   "repo.pulls.title_desc": "ag iarraidh %[1]d gealltanas a chumasc ó <code>%[2]s</code> go <code id=\"branch_target\">%[3]s</code>",
   "repo.pulls.merged_title_desc": "cumasc %[1]d tiomantas ó <code>%[2]s</code> go <code>%[3]s</code> %[4]s",
   "repo.pulls.change_target_branch_at": "athraigh an spriocbhrainse ó <b>%s</b> go <b>%s</b> %s",
+  "repo.pulls.marked_as_work_in_progress_at": "marcáladh an iarratas tarraingthe mar obair ar siúl %s",
+  "repo.pulls.marked_as_ready_for_review_at": "marcáladh an iarratas tarraingthe mar réidh le haghaidh athbhreithnithe %s",
   "repo.pulls.tab_conversation": "Comhrá",
   "repo.pulls.tab_commits": "Tiomáintí",
   "repo.pulls.tab_files": "Comhaid Athraithe",

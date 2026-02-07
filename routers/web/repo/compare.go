@@ -247,7 +247,7 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	}
 
 	// 4 get base and head refs
-	baseRefName := util.IfZero(compareReq.BaseOriRef, baseRepo.DefaultBranch)
+	baseRefName := util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx))
 	headRefName := util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch)
 
 	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefName)
@@ -276,9 +276,9 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	ctx.Data["BaseBranch"] = baseRef.ShortName() // for legacy templates
 	ctx.Data["HeadUser"] = headOwner
 	ctx.Data["HeadBranch"] = headRef.ShortName() // for legacy templates
-	ctx.Repo.PullRequest.SameRepo = isSameRepo
-
 	ctx.Data["IsPull"] = true
+
+	context.InitRepoPullRequestCtx(ctx, baseRepo, headRepo)
 
 	// The current base and head repositories and branches may not
 	// actually be the intended branches that the user wants to
