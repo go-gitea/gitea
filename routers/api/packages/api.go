@@ -116,7 +116,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 			// Actions tokens should only access packages linked to repos
 			if !hasPackage {
 				if packageName := ctx.PathParam("packagename"); packageName != "" && ctx.Package.Owner != nil {
-					pkg, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), packageName)
+					pkg, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, packageName)
 					if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
 						ctx.HTTPError(http.StatusInternalServerError, "GetPackageByName", err.Error())
 						return
