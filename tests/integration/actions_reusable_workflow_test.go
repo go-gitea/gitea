@@ -18,32 +18,31 @@ import (
 
 func TestJobUsesReusableWorkflow(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		// user2 is the owner of actions-reuse-1 repo
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 		user2Session := loginUser(t, user2.Name)
 		user2Token := getTokenForLoggedInUser(t, user2Session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-		// create caller repo
-		apiRepo1 := createActionsTestRepo(t, user2Token, "actions-reuse-1", false)
-		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo1.ID})
+
+		apiRepo := createActionsTestRepo(t, user2Token, "workflow-call-test", false)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
 
 		defaultRunner := newMockRunner()
-		defaultRunner.registerAsRepoRunner(t, repo1.OwnerName, repo1.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+		defaultRunner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
 
 		// add a variable for test
 		req := NewRequestWithJSON(t, "POST",
-			fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables/myvar", user2.Name, repo1.Name), &api.CreateVariableOption{
+			fmt.Sprintf("/api/v1/repos/%s/%s/actions/variables/myvar", repo.OwnerName, repo.Name), &api.CreateVariableOption{
 				Value: "abc123",
 			}).
 			AddTokenAuth(user2Token)
 		MakeRequest(t, req, http.StatusCreated)
 		// add a secret for test
-		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/actions/secrets/mysecret", user2.Name, repo1.Name), api.CreateOrUpdateSecretOption{
+		req = NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/actions/secrets/mysecret", repo.OwnerName, repo.Name), api.CreateOrUpdateSecretOption{
 			Data: "secRET-t0Ken",
 		}).AddTokenAuth(user2Token)
 		MakeRequest(t, req, http.StatusCreated)
 
-		repo1ReusableWorkflowTreePath := ".gitea/workflows/reusable1.yaml"
-		repo1ReusableWorkflowFileContent := `name: Reusable1
+		createRepoWorkflowFile(t, user2, repo, ".gitea/workflows/reusable1.yaml",
+			`name: Reusable1
 on:
   workflow_call:
     inputs:
@@ -63,11 +62,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo 'reusable1-job1'
-`
-		reuse1Opts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+repo1ReusableWorkflowTreePath, repo1ReusableWorkflowFileContent)
-		createWorkflowFile(t, user2Token, repo1.OwnerName, repo1.Name, repo1ReusableWorkflowTreePath, reuse1Opts)
-		callerWorkflowTreePath := ".gitea/workflows/caller.yaml"
-		callerWorkflowFileContent := `name: Pull Request
+`)
+
+		createRepoWorkflowFile(t, user2, repo, ".gitea/workflows/caller.yaml",
+			`name: Caller
 on:
   push:
     paths:
@@ -82,9 +80,7 @@ jobs:
       parent_var: ${{ vars.myvar }}
     secrets:
       parent_token: ${{ secrets.mysecret }}
-`
-		callerOpts := getWorkflowCreateFileOptions(user2, repo1.DefaultBranch, "create "+callerWorkflowTreePath, callerWorkflowFileContent)
-		createWorkflowFile(t, user2Token, repo1.OwnerName, repo1.Name, callerWorkflowTreePath, callerOpts)
+`)
 
 		task1 := defaultRunner.fetchTask(t)
 		_, job, _ := getTaskAndJobAndRunByTaskID(t, task1.Id)
@@ -105,4 +101,10 @@ jobs:
 			assert.Equal(t, "secRET-t0Ken", task1.Secrets["parent_token"])
 		}
 	})
+}
+
+func createRepoWorkflowFile(t *testing.T, u *user_model.User, repo *repo_model.Repository, treePath, content string) {
+	token := getTokenForLoggedInUser(t, loginUser(t, u.Name), auth_model.AccessTokenScopeWriteRepository)
+	opts := getWorkflowCreateFileOptions(u, repo.DefaultBranch, "create "+treePath, content)
+	createWorkflowFile(t, token, repo.OwnerName, repo.Name, treePath, opts)
 }
