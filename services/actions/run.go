@@ -134,6 +134,10 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 			jobPerms := ParseJobPermissions(job, workflowPerms)
 			// Clamp by repository max settings
 			finalPerms := actionsCfg.ClampPermissions(jobPerms)
+			// Store read-only permissions for fork PRs in the database, but also enforce read-only permission at runtime
+			if run.IsForkPullRequest {
+				finalPerms = finalPerms.ClampPermissions(repo_model.GetReadOnlyPermissions())
+			}
 
 			job.Name = util.EllipsisDisplayString(job.Name, 255)
 			runJob := &actions_model.ActionRunJob{
