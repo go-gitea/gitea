@@ -554,10 +554,13 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 					cfgUnit := job.Run.Repo.MustGetUnit(ctx, unit.TypeActions)
 					cfg := cfgUnit.ActionsConfig()
 
-					defaultPerms := cfg.GetEffectiveTokenPermissions(job.Run.IsForkPullRequest)
+					defaultPerms := cfg.GetDefaultTokenPermissions()
 					workflowPerms := actions_service.ParseWorkflowPermissions(flow, defaultPerms)
 					jobPerms := actions_service.ParseJobPermissions(wfJob, workflowPerms)
 					finalPerms := cfg.ClampPermissions(jobPerms)
+					if job.Run.IsForkPullRequest {
+						finalPerms = finalPerms.ClampPermissions(repo_model.GetReadOnlyPermissions())
+					}
 
 					job.TokenPermissions = repo_model.MarshalTokenPermissions(finalPerms)
 					break

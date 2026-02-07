@@ -117,7 +117,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		}
 
 		// Get default permissions based on repository settings
-		defaultPerms := actionsCfg.GetEffectiveTokenPermissions(run.IsForkPullRequest)
+		defaultPerms := actionsCfg.GetDefaultTokenPermissions()
 
 		for _, v := range jobs {
 			id, job := v.Job()

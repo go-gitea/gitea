@@ -302,22 +302,16 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		}
 	}
 
-	isSameRepo := task.RepoID == repo.ID
-	maxReadOnly := task.IsForkPullRequest || !isSameRepo
-
 	if jobLoaded && task.Job != nil && task.Job.TokenPermissions != "" {
 		// Use permissions parsed from workflow YAML (already clamped by repo max settings during insertion)
 		effectivePerms, err = repo_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
 		if err != nil {
 			// Fall back to repository settings if unmarshal fails
-			effectivePerms = actionsCfg.GetEffectiveTokenPermissions(maxReadOnly)
-		} else if maxReadOnly {
-			// Clamp to readonly
-			effectivePerms = effectivePerms.ClampPermissions(repo_model.GetReadOnlyPermissions())
+			effectivePerms = actionsCfg.GetDefaultTokenPermissions()
 		}
 	} else {
 		// No workflow permissions or job not found, use repository settings
-		effectivePerms = actionsCfg.GetEffectiveTokenPermissions(maxReadOnly)
+		effectivePerms = actionsCfg.GetDefaultTokenPermissions()
 	}
 
 	// ALWAYS clamp at runtime against current configuration (prevents escalation if settings changed)
@@ -328,6 +322,14 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		}
 	}
 	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+
+	isSameRepo := task.RepoID == repo.ID
+	maxReadOnly := task.IsForkPullRequest || !isSameRepo
+
+	if maxReadOnly {
+		// Clamp to readonly for PR from forks or cross-repo access
+		effectivePerms = effectivePerms.ClampPermissions(repo_model.GetReadOnlyPermissions())
+	}
 
 	var maxPerm Permission
 
@@ -352,7 +354,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	}
 	maxPerm.AccessMode = maxMode
 
-	if task.RepoID == repo.ID {
+	if isSameRepo {
 		perm = maxPerm
 	} else {
 		// maxReadOnly is true in this case so maxPerm is between none and readonly

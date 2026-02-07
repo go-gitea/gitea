@@ -48,7 +48,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 		cfg := &ActionsConfig{
 			TokenPermissionMode: ActionsTokenPermissionModePermissive,
 		}
-		perms := cfg.GetEffectiveTokenPermissions(false)
+		perms := cfg.GetDefaultTokenPermissions()
 		assert.Equal(t, perm.AccessModeWrite, perms.Code)
 		assert.Equal(t, perm.AccessModeWrite, perms.Issues)
 		assert.Equal(t, perm.AccessModeRead, perms.Packages) // Packages read by default for security
@@ -58,18 +58,7 @@ func TestActionsConfigTokenPermissions(t *testing.T) {
 		cfg := &ActionsConfig{
 			TokenPermissionMode: ActionsTokenPermissionModeRestricted,
 		}
-		perms := cfg.GetEffectiveTokenPermissions(false)
-		assert.Equal(t, perm.AccessModeRead, perms.Code)
-		assert.Equal(t, perm.AccessModeRead, perms.Issues)
-		assert.Equal(t, perm.AccessModeRead, perms.Packages)
-	})
-
-	t.Run("Fork Pull Request Always Read-Only", func(t *testing.T) {
-		cfg := &ActionsConfig{
-			TokenPermissionMode: ActionsTokenPermissionModePermissive,
-		}
-		// Even with permissive mode, fork PRs get read-only
-		perms := cfg.GetEffectiveTokenPermissions(true)
+		perms := cfg.GetDefaultTokenPermissions()
 		assert.Equal(t, perm.AccessModeRead, perms.Code)
 		assert.Equal(t, perm.AccessModeRead, perms.Issues)
 		assert.Equal(t, perm.AccessModeRead, perms.Packages)

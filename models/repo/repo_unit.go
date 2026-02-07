@@ -383,23 +383,9 @@ func (cfg *ActionsConfig) GetTokenPermissionMode() ActionsTokenPermissionMode {
 	return cfg.TokenPermissionMode
 }
 
-// GetEffectiveTokenPermissions returns the effective token permissions based on settings and context
-func (cfg *ActionsConfig) GetEffectiveTokenPermissions(isMaxReadonly bool) ActionsTokenPermissions {
-	var perm ActionsTokenPermissions
-	permMode := cfg.GetTokenPermissionMode()
-	if permMode == ActionsTokenPermissionModeCustom {
-		perm = cfg.GetMaxTokenPermissions()
-	} else {
-		// Otherwise use mode-based defaults
-		perm = DefaultActionsTokenPermissions(permMode)
-	}
-
-	// Fork pull requests always get restricted read-only access for security
-	if isMaxReadonly {
-		return perm.ClampPermissions(GetReadOnlyPermissions())
-	}
-
-	return perm
+// GetDefaultTokenPermissions returns the default token permissions based on settings and context
+func (cfg *ActionsConfig) GetDefaultTokenPermissions() ActionsTokenPermissions {
+	return cfg.ClampPermissions(DefaultActionsTokenPermissions(cfg.GetTokenPermissionMode()))
 }
 
 // GetMaxTokenPermissions returns the maximum allowed permissions

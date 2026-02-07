@@ -664,7 +664,7 @@ jobs:
 			actionsUnit, err := repo.GetUnit(t.Context(), unit_model.TypeActions)
 			require.NoError(t, err)
 			cfg := actionsUnit.ActionsConfig()
-			defaultPerms := cfg.GetEffectiveTokenPermissions(false)
+			defaultPerms := cfg.GetDefaultTokenPermissions()
 
 			// Create Run (shared)
 			run := &actions_model.ActionRun{
