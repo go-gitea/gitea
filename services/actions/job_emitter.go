@@ -215,15 +215,66 @@ func checkJobsOfRun(ctx context.Context, run *actions_model.ActionRun) (jobs, up
 		updates := newJobStatusResolver(jobs, vars).Resolve(ctx)
 		for _, job := range jobs {
 			if status, ok := updates[job.ID]; ok {
+				// IMPORTANT: Even if status hasn't changed, we must reset task_id for WAITING jobs
+				// after a previous task has completed (max-parallel constraint is released)
+				if status == actions_model.StatusWaiting && job.TaskID != 0 {
+					// This job was running but is now ready to be reassigned
+					job.Status = status
+					job.TaskID = 0
+					if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "task_id"); err != nil {
+						return fmt.Errorf("reset task_id for job %d: %w", job.ID, err)
+					}
+					updatedJobs = append(updatedJobs, job)
+					continue
+				}
+
+				if job.Status == status {
+					// Status hasn't changed, skip
+					continue
+				}
+
 				job.Status = status
-				if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
-					return err
-				} else if n != 1 {
-					return fmt.Errorf("no affected for updating blocked job %v", job.ID)
+
+				// For jobs transitioning to WAITING status (can happen after max-parallel constraint is released),
+				// we need to reset task_id to 0 so a new runner can pick them up
+				if status == actions_model.StatusWaiting {
+					job.TaskID = 0
+					if _, err := actions_model.UpdateRunJob(ctx, job, nil, "status", "task_id"); err != nil {
+						return fmt.Errorf("reset task_id for job %d: %w", job.ID, err)
+					}
+				} else {
+					// For other status changes (BLOCKED, RUNNING, etc.), only update status
+					if _, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusWaiting}, "status"); err != nil {
+						return fmt.Errorf("update status for job %d: %w", job.ID, err)
+					}
 				}
 				updatedJobs = append(updatedJobs, job)
 			}
 		}
+
+		// CRITICAL FIX for max-parallel: Even if no jobs were updated above (because they already have task_id=0),
+		// we must notify runners to poll for new tasks when a job completes.
+		// This handles the max-parallel=1 case where jobs were never started (task_id=0)
+		// and won't be processed by jobStatusResolver (which only handles BLOCKED jobs).
+		if len(jobs) > 0 && jobs[0].OwnerID > 0 && jobs[0].RepoID > 0 {
+			// Check if there are any WAITING jobs with task_id=0 (ready to be picked up)
+			hasWaitingJobs := false
+			for _, job := range jobs {
+				if job.Status == actions_model.StatusWaiting && job.TaskID == 0 {
+					hasWaitingJobs = true
+					break
+				}
+			}
+			if hasWaitingJobs {
+				// Notify runners to poll for new tasks
+				if err := actions_model.IncreaseTaskVersion(ctx, jobs[0].OwnerID, jobs[0].RepoID); err != nil {
+					log.Error("Failed to increase task version for repo %d: %v", jobs[0].RepoID, err)
+				} else {
+					log.Debug("Increased task version for repo %d (max-parallel waiting jobs ready)", jobs[0].RepoID)
+				}
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return nil, nil, err
