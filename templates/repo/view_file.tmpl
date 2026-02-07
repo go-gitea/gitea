@@ -35,7 +35,10 @@
 			{{end}}
 		</div>
 		<div class="file-header-right file-actions flex-text-block tw-flex-wrap">
-			{{/* this componment is also controlled by frontend plugin renders */}}
+		{{if .FileSidebarHTML}}
+			<button class="btn-octicon" id="toggle-sidebar-btn" data-tooltip-content="{{ctx.Locale.Tr "toc"}}">{{svg "octicon-list-unordered"}}</button>
+		{{end}}
+			{{/* this component is also controlled by frontend plugin renders */}}
 			<div class="ui compact icon buttons file-view-toggle-buttons {{Iif .HasSourceRenderedToggle "" "tw-hidden"}}">
 				{{if .IsRepresentableAsText}}
 				<a href="?display=source" class="ui mini basic button file-view-toggle-source {{if .IsDisplayingSource}}active{{end}}" data-tooltip-content="{{ctx.Locale.Tr "repo.file_view_source"}}">{{svg "octicon-code" 15}}</a>
@@ -139,6 +142,11 @@
 				</div>
 			{{end}}
 		</div>
+		{{if .FileSidebarHTML}}
+		<div class="file-view-sidebar markup sidebar-panel-hidden" role="navigation" aria-label="{{ctx.Locale.Tr "toc"}}">
+			{{.FileSidebarHTML}}
+		</div>
+		{{end}}
 
 		<div class="code-line-menu tippy-target">
 			{{if $.Permission.CanRead ctx.Consts.RepoUnitTypeIssues}}

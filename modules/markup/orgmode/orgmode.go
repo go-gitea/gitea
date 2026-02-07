@@ -70,7 +70,18 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	w := &orgWriter{rctx: ctx, HTMLWriter: htmlWriter}
 	htmlWriter.ExtendingWriter = w
 
-	res, err := org.New().Silent().Parse(input, "").Write(w)
+	doc := org.New().Silent().Parse(input, "")
+	if doc.Error != nil {
+		return fmt.Errorf("orgmode.Parse failed: %w", doc.Error)
+	}
+
+	// Enable TOC extraction in post-process step for orgmode files
+	// The actual TOC items will be extracted from HTML headings during post-processing
+	if ctx.RenderOptions.EnableHeadingIDGeneration {
+		ctx.TocShowInSection = markup.TocShowInSidebar
+	}
+
+	res, err := doc.Write(w)
 	if err != nil {
 		return fmt.Errorf("orgmode.Render failed: %w", err)
 	}
