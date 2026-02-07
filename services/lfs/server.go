@@ -463,12 +463,19 @@ func getAuthenticatedRepository(ctx *context.Context, rc *requestContext, requir
 		return nil
 	}
 
-	if !authenticate(ctx, repository, rc.Authorization, false, requireWrite) {
+	// Because of special ref "refs/for" (AGit), we need to delay/relax write permission check
+	// for LFS object uploads. LFS locks still require full write access.
+	lfsWriteMode := requireWrite
+	if lfsWriteMode && git.DefaultFeatures().SupportProcReceive {
+		lfsWriteMode = false
+	}
+
+	if !authenticate(ctx, repository, rc.Authorization, false, lfsWriteMode) {
 		requireAuth(ctx)
 		return nil
 	}
 
-	if requireWrite {
+	if lfsWriteMode {
 		context.CheckRepoScopedToken(ctx, repository, auth_model.Write)
 	} else {
 		context.CheckRepoScopedToken(ctx, repository, auth_model.Read)
@@ -538,7 +545,7 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 // to proceed. This server assumes an HTTP Basic auth format.
 func authenticate(ctx *context.Context, repository *repo_model.Repository, authorization string, requireSigned, requireWrite bool) bool {
 	accessMode := perm_model.AccessModeRead
-	if requireWrite && !git.DefaultFeatures().SupportProcReceive {
+	if requireWrite {
 		accessMode = perm_model.AccessModeWrite
 	}
 
