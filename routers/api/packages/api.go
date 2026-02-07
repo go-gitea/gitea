@@ -4,6 +4,7 @@
 package packages
 
 import (
+	"errors"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
@@ -105,47 +106,54 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 			}
 
 			var packageRepoID int64
+			var hasPackage bool
 			if ctx.Package.Descriptor != nil && ctx.Package.Descriptor.Package != nil {
 				packageRepoID = ctx.Package.Descriptor.Package.RepoID
+				hasPackage = true
 			}
 
 			// If package is not linked to any repo (org-level package), deny access from Actions
 			// Actions tokens should only access packages linked to repos
-			if packageRepoID == 0 {
+			if !hasPackage {
 				if packageName := ctx.PathParam("packagename"); packageName != "" && ctx.Package.Owner != nil {
-					pkg, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, packageName)
-					if err == nil && pkg != nil {
+					pkg, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.Type(ctx.PathParam("type")), packageName)
+					if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
+						ctx.HTTPError(http.StatusInternalServerError, "GetPackageByName", err.Error())
+						return
+					}
+					if pkg != nil {
 						packageRepoID = pkg.RepoID
+						hasPackage = true
 					}
 				}
 			}
 
+			var maxGrantedMode perm.AccessMode
+
+			if err := task.LoadJob(ctx); err == nil && task.Job != nil {
+				perms, _ := repo_perm_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
+				maxGrantedMode = perms.Packages
+			} else {
+				// TODO should we use none here?
+				maxGrantedMode = perm.AccessModeRead
+			}
+
 			var grantedMode perm.AccessMode
 
-			if packageRepoID == 0 {
-				// Package is unlinked (or new/doesn't exist yet).
+			if !hasPackage {
+				// Package doesn't exist yet.
 				// Only allow if the Action's Repository Owner matches the Package Owner.
 				if taskRepo.OwnerID != ctx.Package.Owner.ID {
 					ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "Actions tokens cannot access unlinked packages from a different owner")
 					return
 				}
 				// Treat as "Same Owner/Repo" scope - allow configured permissions
-				if err := task.LoadJob(ctx); err == nil && task.Job != nil {
-					perms, _ := repo_perm_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
-					grantedMode = perms.Packages
-				} else {
-					grantedMode = perm.AccessModeRead
-				}
+				grantedMode = maxGrantedMode
 			} else {
 				// Package is linked to a repository
 				if task.RepoID == packageRepoID {
 					// Same-repository access: use the token's configured package permission
-					if err := task.LoadJob(ctx); err == nil && task.Job != nil {
-						perms, _ := repo_perm_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
-						grantedMode = perms.Packages
-					} else {
-						grantedMode = perm.AccessModeRead
-					}
+					grantedMode = maxGrantedMode
 				} else {
 					// Cross-repository access - only allowed for Orgs with explicit policy
 					if !ctx.Package.Owner.IsOrganization() {
@@ -165,7 +173,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 						return
 					}
 					// Cross-repository access: strictly Read-only even if token/policy allow more
-					grantedMode = perm.AccessModeRead
+					grantedMode = min(maxGrantedMode, perm.AccessModeRead)
 				}
 			}
 
