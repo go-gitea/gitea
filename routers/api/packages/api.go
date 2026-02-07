@@ -137,6 +137,9 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				// TODO should we use none here?
 				maxGrantedMode = perm.AccessModeRead
 			}
+			if task.IsForkPullRequest {
+				maxGrantedMode = min(maxGrantedMode, perm.AccessModeRead)
+			}
 
 			var grantedMode perm.AccessMode
 
