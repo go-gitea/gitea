@@ -26,7 +26,7 @@ func TestDefaultTargetBranchSelection(t *testing.T) {
 	prConfig := prUnit.PullRequestsConfig()
 	prConfig.DefaultTargetBranch = "branch2"
 	prUnit.Config = prConfig
-	assert.NoError(t, UpdateRepoUnit(ctx, prUnit))
+	assert.NoError(t, UpdateRepoUnitConfig(ctx, prUnit))
 	repo.Units = nil
 	assert.Equal(t, "branch2", repo.GetPullRequestTargetBranch(ctx))
 }
