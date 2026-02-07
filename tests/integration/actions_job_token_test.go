@@ -62,7 +62,7 @@ func testActionsJobTokenAccess(u *url.URL, isFork bool) func(t *testing.T) {
 			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionModePermissive
 			actionsCfg.MaxTokenPermissions = nil
 			actionsUnit.Config = actionsCfg
-			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), actionsUnit))
+			require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), actionsUnit))
 		}
 
 		require.NoError(t, task.GenerateToken())
@@ -180,7 +180,7 @@ func testActionsTokenPermissionsMode(u *url.URL, mode string, expectReadOnly boo
 			actionsCfg.MaxTokenPermissions = nil // Ensure no max permissions interfere
 			// Update the config
 			actionsUnit.Config = actionsCfg
-			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), actionsUnit))
+			require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), actionsUnit))
 		}
 
 		// Load a task that can be used for testing
@@ -596,7 +596,7 @@ func TestActionsTokenPermissionsWorkflowScenario(t *testing.T) {
 			actionsCfg := actionsUnit.ActionsConfig()
 			actionsCfg.TokenPermissionMode = repo_model.ActionsTokenPermissionModeRestricted
 			actionsUnit.Config = actionsCfg
-			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), actionsUnit))
+			require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), actionsUnit))
 
 			// Regenerate token to get fresh permissions
 			require.NoError(t, task.GenerateToken())
@@ -822,7 +822,7 @@ jobs:
 			require.NoError(t, err)
 
 			unit.Config = unitConfig
-			require.NoError(t, repo_model.UpdateRepoUnit(t.Context(), unit))
+			require.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), unit))
 
 			// 4. Trigger Rerun via Web Handler
 			run.Index = 1

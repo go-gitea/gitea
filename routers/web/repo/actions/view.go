@@ -930,7 +930,7 @@ func disableOrEnableWorkflowFile(ctx *context_module.Context, isEnable bool) {
 		cfg.DisableWorkflow(workflow)
 	}
 
-	if err := repo_model.UpdateRepoUnit(ctx, cfgUnit); err != nil {
+	if err := repo_model.UpdateRepoUnitConfig(ctx, cfgUnit); err != nil {
 		ctx.ServerError("UpdateRepoUnit", err)
 		return
 	}
