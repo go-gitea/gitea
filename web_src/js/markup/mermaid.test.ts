@@ -49,12 +49,11 @@ test('sourcesContainElk', () => {
       A --> B
   `])).toEqual(true);
 
-  // TODO: mermaid supports invalid JSON, but we don't support it at the moment
   expect(sourcesContainElk([`
-    %%{init:{
+    %%{ initialize: {
         'layout' : 'elk.layered'
     }}%%
     flowchart TB
       A --> B
-  `])).toEqual(false);
+  `])).toEqual(true);
 });

@@ -31,17 +31,17 @@ function parseYamlInitConfig(source: string): MermaidConfig | null {
 
 function parseJsonInitConfig(source: string): MermaidConfig | null {
   // https://mermaid.js.org/config/directives.html#declaring-directives
-  // TODO: mermaid is quite hacky for the "JSON" pattern, it can have other root keys
-  //       and it can even accept invalid JSON string like:
-  //       %%{initialize: { 'logLevel': 'fatal', "theme":'dark', 'startOnLoad': true } }%%
-  // To keep things simple, Gitea only supports "init" directive with valid JSON string at the moment.
-  const jsonInitConfigRegex = /%%\{\s*init\s*:\s*(.*?)\}%%/s;
-  const jsonInit = (jsonInitConfigRegex.exec(source) || [])[1];
-  if (!jsonInit) return null;
+  // Do as dirty as mermaid does: https://github.com/mermaid-js/mermaid/blob/develop/packages/mermaid/src/utils.ts
+  // It can even accept invalid JSON string like:
+  // %%{initialize: { 'logLevel': 'fatal', "theme":'dark', 'startOnLoad': true } }%%
+  const jsonInitConfigRegex = /%%\{\s*(init|initialize)\s*:\s*(.*?)\}%%/s;
+  const jsonInitText = (jsonInitConfigRegex.exec(source) || [])[2];
+  if (!jsonInitText) return null;
   try {
-    return JSON.parse(jsonInit);
+    const processed = jsonInitText.trim().replace(/'/g, '"');
+    return JSON.parse(processed);
   } catch {
-    console.error('invalid or unsupported mermaid init JSON config', jsonInit);
+    console.error('invalid or unsupported mermaid init JSON config', jsonInitText);
   }
   return null;
 }
