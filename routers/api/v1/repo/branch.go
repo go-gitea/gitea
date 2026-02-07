@@ -930,6 +930,10 @@ func EditBranchProtection(ctx *context.APIContext) {
 		protectBranch.BlockOnOfficialReviewRequests = *form.BlockOnOfficialReviewRequests
 	}
 
+	if form.BlockOnCodeownerReviews != nil {
+		protectBranch.BlockOnCodeownerReviews = *form.BlockOnCodeownerReviews
+	}
+
 	if form.DismissStaleApprovals != nil {
 		protectBranch.DismissStaleApprovals = *form.DismissStaleApprovals
 	}
