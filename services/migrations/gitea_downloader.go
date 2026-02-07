@@ -346,24 +346,35 @@ func (g *GiteaDownloader) GetReleases(ctx context.Context) ([]*base.Release, err
 }
 
 func (g *GiteaDownloader) getIssueReactions(index int64) ([]*base.Reaction, error) {
-	var reactions []*base.Reaction
 	if err := g.client.CheckServerVersionConstraint(">=1.11"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip getIssueReactions")
-		return reactions, nil
-	}
-	rl, _, err := g.client.GetIssueReactions(g.repoOwner, g.repoName, index)
-	if err != nil {
-		return nil, err
+		return nil, nil
 	}
 
-	for _, reaction := range rl {
-		reactions = append(reactions, &base.Reaction{
-			UserID:   reaction.User.ID,
-			UserName: reaction.User.UserName,
-			Content:  reaction.Reaction,
-		})
+	allReactions := make([]*base.Reaction, 0, g.maxPerPage)
+
+	for i := 1; ; i++ {
+		reactions, _, err := g.client.ListIssueReactions(g.repoOwner, g.repoName, index, gitea_sdk.ListIssueReactionsOptions{ListOptions: gitea_sdk.ListOptions{
+			PageSize: g.maxPerPage,
+			Page:     i,
+		}})
+		if err != nil {
+			return nil, err
+		}
+
+		for _, reaction := range reactions {
+			allReactions = append(allReactions, &base.Reaction{
+				UserID:   reaction.User.ID,
+				UserName: reaction.User.UserName,
+				Content:  reaction.Reaction,
+			})
+		}
+
+		if !g.pagination || len(reactions) < g.maxPerPage {
+			break
+		}
 	}
-	return reactions, nil
+	return allReactions, nil
 }
 
 func (g *GiteaDownloader) getCommentReactions(commentID int64) ([]*base.Reaction, error) {
