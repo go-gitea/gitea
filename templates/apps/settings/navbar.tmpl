@@ -1,0 +1,11 @@
+<div class="flex-container-nav">
+	<div class="ui fluid vertical menu">
+		<div class="header item">{{ctx.Locale.Tr "app.settings"}}</div>
+		<a class="{{if .PageIsSettingsProfile}}active {{end}}item" href="{{.GiteaApp.SettingsURL}}">
+			{{ctx.Locale.Tr "app.settings.profile"}}
+		</a>
+		<a class="{{if .PageIsSettingsSecurity}}active {{end}}item" href="{{.GiteaApp.SettingsURL}}/security">
+			{{ctx.Locale.Tr "app.settings.security"}}
+		</a>
+	</div>
+</div>

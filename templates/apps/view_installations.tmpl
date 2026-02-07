@@ -1,0 +1,10 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content user profile">
+	<div class="ui container">
+        {{range .Installations}}
+            <div> {{.Owner.DisplayName}} - {{.IsInstalled}} </div>
+        {{end}}
+    </div>
+</div>
+
+{{template "base/footer" .}}

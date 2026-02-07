@@ -436,3 +436,13 @@ func (f *BlockUserForm) Validate(req *http.Request, errs binding.Errors) binding
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+type NewGiteaAppForm struct {
+	Name             string `binding:"Required;MaxSize(255)" form:"application_name"`
+	Readme           string
+	HomePageURL      string `binding:"ValidUrl" form:"home_page_url"`
+	SetupURL         string `binding:"ValidUrl" form:"setup_url"`
+	RedirectOnUpdate bool   `form:"redirect_on_update"`
+	PermList         string `form:"perm_list"`
+	Private          bool
+}

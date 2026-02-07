@@ -1,0 +1,126 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content user profile">
+    <div class="ui middle very relaxed page grid">
+		<div class="column tw-flex tw-flex-col tw-gap-4 tw-max-w-2xl tw-m-auto">
+            <div class="ui container fluid">
+                <h4 class="ui top attached header center"> Installe {{.Installation.Owner.DisplayName}} on xxxxx </h4>
+
+                <div class="ui attached segment">
+                    <form class="ui form" action="{{.InstallLink}}" method="post">
+			            {{.CsrfTokenHtml}}
+                    </form>
+
+                    {{if .IsSystemAdminInstallation}}
+                        <div class="inline field" data-field-patched="true">
+                            <label for="install_in_system">Install in system: </label>
+                            <div class="ui checkbox" data-checkbox-patched="true">
+                                <input id="install_in_system" name="install_in_system" type="checkbox">
+                            </div>
+                            <span class="help">
+                                Install app as a system appliaction
+                            </span>
+                        </div>
+
+                       <div class="inline field" data-field-patched="true">
+                            <label for="install_in_all_users">Install in all users: </label>
+                            <div class="ui checkbox" data-checkbox-patched="true">
+                                <input id="install_in_all_users" name="install_in_all_users" type="checkbox">
+                            </div>
+                            <span class="help">
+                                Install app for all users and organizations.
+                            </span>
+                        </div>
+
+                        <div class="inline field">
+                            <label for="install_in_system">Install for users: </label>
+
+                            <div class="flex-list">
+                                <div class="flex-item tw-items-center">
+                                    <div class="flex-item-leading">
+                                        xxxxxxx
+                                    </div>
+                                    <div class="flex-item-main">
+                                        <div class="flex-item-title">
+                                            bbbbb
+                                        </div>
+                                    </div>
+                                    <div class="flex-item-trailing">
+                                        <form>
+                                            <button class="ui red button delete-button">xxxxxxxxxx </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="search-user-box" class="ui search tw-mr-2">
+								<div class="ui input">
+									<input class="prompt" name="uname" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" required>
+                                    <button class="ui primary button">add</button>
+								</div>
+							</div>
+                        </div>
+                    {{end}}
+
+                    {{if not .IsSystemAdminInstallation}}
+                        <div class="inline field" data-field-patched="true">
+                            <label for="install_in_user">Install as user app: </label>
+                            <div class="ui checkbox" data-checkbox-patched="true">
+                                <input id="install_in_user" name="install_in_all_user_repos" type="checkbox">
+                            </div>
+                        </div>
+
+                        <div class="inline field">
+                            <label for="install_in_system">Install for repositories: </label>
+
+                            <div class="flex-list">
+                                <div class="flex-item tw-items-center">
+                                    <div class="flex-item-leading">
+                                        xxxxxxx
+                                    </div>
+                                    <div class="flex-item-main">
+                                        <div class="flex-item-title">
+                                            bbbbb
+                                        </div>
+                                    </div>
+                                    <div class="flex-item-trailing">
+                                        <form>
+                                            <button class="ui red button delete-button">xxxxxxxxxx </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div data-global-init="initSearchRepoBox" data-uid="{{.Installation.OwnerID}}" class="ui search">
+								<div class="ui input">
+									<input class="prompt" name="repo_name" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off" required>
+                                    <button class="ui primary button">add</button>
+								</div>
+							</div>
+                        </div>
+                    {{end}}
+
+                    <div class="divider"></div>
+
+                    <div class="inline fieled">
+                        with these permissions:
+                        <ul>
+                            <li>aaaaaaaaaa</li>
+                            <li>nnnnnnnnnnnn</li>
+                            <li>cdddddddddddddd</li>
+                            <li>efsg safrg sdsaarg fdbs</li>
+                        </ul>
+                    </div>
+
+                    <div class="inline field">
+                        <label></label>
+                        <button class="ui primary button">
+                            安装
+                        </button>
+				</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{template "base/footer" .}}
