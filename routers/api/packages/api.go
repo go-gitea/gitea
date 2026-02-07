@@ -11,7 +11,9 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/perm/access"
 	repo_perm_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -105,6 +107,8 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				return
 			}
 
+			// BEGIN ==========BROKEN==========
+			// FIXME Get Packages for all types
 			var packageRepoID int64
 			var hasPackage bool
 			if ctx.Package.Descriptor != nil && ctx.Package.Descriptor.Package != nil {
@@ -127,64 +131,38 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 					}
 				}
 			}
+			var perms access.Permission
 
-			var maxGrantedMode perm.AccessMode
-
-			if err := task.LoadJob(ctx); err == nil && task.Job != nil {
-				perms, _ := repo_perm_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
-				maxGrantedMode = perms.Packages
-			} else {
-				// TODO should we use none here?
-				maxGrantedMode = perm.AccessModeRead
-			}
-			if task.IsForkPullRequest {
-				maxGrantedMode = min(maxGrantedMode, perm.AccessModeRead)
-			}
-
-			var grantedMode perm.AccessMode
-
-			if !hasPackage {
-				// Package doesn't exist yet.
-				// Only allow if the Action's Repository Owner matches the Package Owner.
-				if taskRepo.OwnerID != ctx.Package.Owner.ID {
-					ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "Actions tokens cannot access unlinked packages from a different owner")
+			if hasPackage /* && packageRepoID != task.RepoID package created disabled to prevent permission escalation  */ {
+				// TODO support accessing public packages
+				// Refactor GetActionsUserRepoPermission to be partially reusable in this case
+				if packageRepoID == 0 {
+					ctx.HTTPError(http.StatusNotFound, "GetActionsUserRepoPermission", "unlinked package cannot be accessed by actions")
 					return
 				}
-				// Treat as "Same Owner/Repo" scope - allow configured permissions
-				grantedMode = maxGrantedMode
-			} else {
-				// Package is linked to a repository
-				if task.RepoID == packageRepoID {
-					// Same-repository access: use the token's configured package permission
-					grantedMode = maxGrantedMode
-				} else {
-					// Cross-repository access - only allowed for Orgs with explicit policy
-					if !ctx.Package.Owner.IsOrganization() {
-						ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is only allowed for organizations")
-						return
-					}
-
-					cfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Package.Owner.ID)
-					if err != nil {
-						log.Error("GetOrgActionsConfig: %v", err)
-						ctx.HTTPError(http.StatusInternalServerError, "GetOrgActionsConfig", err.Error())
-						return
-					}
-					// Use selective cross-repo access check
-					if !cfg.IsRepoAllowedCrossAccess(packageRepoID) {
-						ctx.HTTPError(http.StatusForbidden, "reqPackageAccess", "cross-repository package access is not allowed for this repository")
-						return
-					}
-					// Cross-repository access: strictly Read-only even if token/policy allow more
-					grantedMode = min(maxGrantedMode, perm.AccessModeRead)
+				packageRepo, err := repo_perm_model.GetRepositoryByID(ctx, packageRepoID)
+				if err != nil {
+					ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID", err.Error())
+					return
 				}
+				perms, err = access.GetActionsUserRepoPermission(ctx, packageRepo, ctx.Doer, taskID)
+			} else {
+				// Linked package (/ to be linked package (disabled))
+				perms, err = access.GetActionsUserRepoPermission(ctx, taskRepo, ctx.Doer, taskID)
 			}
+			if err != nil {
+				ctx.HTTPError(http.StatusInternalServerError, "GetActionsUserRepoPermission", err.Error())
+				return
+			}
+
+			grantedMode := perms.UnitAccessMode(unit.TypePackages)
 
 			// If all security checks pass, ensure the context has at least the granted permission.
 			// This effectively "boosts" the Actions token's permissions for the targeted package.
 			if ctx.Package.AccessMode < grantedMode {
 				ctx.Package.AccessMode = grantedMode
 			}
+			// END ==========BROKEN============
 		}
 
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
