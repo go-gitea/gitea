@@ -13,14 +13,14 @@ import (
 var _ auth.Method = &Auth{}
 
 type Auth struct {
-	auth.Basic
+	basicAuth auth.Basic
 }
 
 func (a *Auth) Name() string {
 	return "nuget"
 }
 
-// https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#request-parameters
 func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) (*user_model.User, error) {
-	return a.VerifyAuthToken(req, w, store, sess, req.Header.Get("X-NuGet-ApiKey"))
+	// ref: https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#request-parameters
+	return a.basicAuth.VerifyAuthToken(req, w, store, sess, req.Header.Get("X-NuGet-ApiKey"))
 }

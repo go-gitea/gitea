@@ -40,7 +40,40 @@ func (b *Basic) Name() string {
 	return BasicMethodName
 }
 
-// Verify only the access token provided as parameter, used by other auth methods that want to reuse access token verification logic
+func (b *Basic) parseAuthBasic(req *http.Request) (ret struct{ authToken, uname, passwd string }) {
+	// Basic authentication should only fire on API, Feed, Download, Archives or on Git or LFSPaths
+	// Not all feed (rss/atom) clients feature the ability to add cookies or headers, so we need to allow basic auth for feeds
+	detector := newAuthPathDetector(req)
+	if !detector.isAPIPath() && !detector.isFeedRequest(req) && !detector.isContainerPath() && !detector.isAttachmentDownload() && !detector.isArchivePath() && !detector.isGitRawOrAttachOrLFSPath() {
+		return ret
+	}
+
+	authHeader := req.Header.Get("Authorization")
+	if authHeader == "" {
+		return ret
+	}
+	parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
+	if !ok || parsed.BasicAuth == nil {
+		return ret
+	}
+	uname, passwd := parsed.BasicAuth.Username, parsed.BasicAuth.Password
+
+	// Check if username or password is a token
+	isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"
+	// Assume username is token
+	authToken := uname
+	if !isUsernameToken {
+		log.Trace("Basic Authorization: Attempting login for: %s", uname)
+		// Assume password is token
+		authToken = passwd
+	} else {
+		log.Trace("Basic Authorization: Attempting login with username as token")
+	}
+	ret.authToken, ret.uname, ret.passwd = authToken, uname, passwd
+	return ret
+}
+
+// VerifyAuthToken only the access token provided as parameter, used by other auth methods that want to reuse access token verification logic
 func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore, authToken string) (*user_model.User, error) {
 	// get oauth2 token's user's ID
 	_, uid := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
@@ -96,34 +129,8 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
 func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
-	// Basic authentication should only fire on API, Feed, Download, Archives or on Git or LFSPaths
-	// Not all feed (rss/atom) clients feature the ability to add cookies or headers, so we need to allow basic auth for feeds
-	detector := newAuthPathDetector(req)
-	if !detector.isAPIPath() && !detector.isFeedRequest(req) && !detector.isContainerPath() && !detector.isAttachmentDownload() && !detector.isArchivePath() && !detector.isGitRawOrAttachOrLFSPath() {
-		return nil, nil
-	}
-
-	authHeader := req.Header.Get("Authorization")
-	if authHeader == "" {
-		return nil, nil
-	}
-	parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
-	if !ok || parsed.BasicAuth == nil {
-		return nil, nil
-	}
-	uname, passwd := parsed.BasicAuth.Username, parsed.BasicAuth.Password
-
-	// Check if username or password is a token
-	isUsernameToken := len(passwd) == 0 || passwd == "x-oauth-basic"
-	// Assume username is token
-	authToken := uname
-	if !isUsernameToken {
-		log.Trace("Basic Authorization: Attempting login for: %s", uname)
-		// Assume password is token
-		authToken = passwd
-	} else {
-		log.Trace("Basic Authorization: Attempting login with username as token")
-	}
+	parseBasicRet := b.parseAuthBasic(req)
+	authToken, uname, passwd := parseBasicRet.authToken, parseBasicRet.uname, parseBasicRet.passwd
 
 	u, err := b.VerifyAuthToken(req, w, store, sess, authToken)
 	if u != nil || err != nil {
