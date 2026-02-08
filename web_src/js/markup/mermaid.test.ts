@@ -1,37 +1,37 @@
-import {sourcesContainElk} from './mermaid.ts';
+import {sourceNeedsElk} from './mermaid.ts';
 import {dedent} from '../utils/testhelper.ts';
 
-test('sourcesContainElk', () => {
-  expect(sourcesContainElk([dedent(`
+test('MermaidConfigLayoutCheck', () => {
+  expect(sourceNeedsElk(dedent(`
     flowchart TB
       elk --> B
-  `)])).toEqual(false);
+  `))).toEqual(false);
 
-  expect(sourcesContainElk([dedent(`
+  expect(sourceNeedsElk(dedent(`
     ---
     config:
       layout : elk
     ---
     flowchart TB
       A --> B
-  `)])).toEqual(true);
+  `))).toEqual(true);
 
-  expect(sourcesContainElk([dedent(`
+  expect(sourceNeedsElk(dedent(`
     ---
     config:
       layout: elk.layered
     ---
     flowchart TB
       A --> B
-  `)])).toEqual(true);
+  `))).toEqual(true);
 
-  expect(sourcesContainElk([`
+  expect(sourceNeedsElk(`
     %%{ init : { "flowchart": { "defaultRenderer": "elk" } } }%%
     flowchart TB
       A --> B
-  `])).toEqual(true);
+  `)).toEqual(true);
 
-  expect(sourcesContainElk([`
+  expect(sourceNeedsElk(dedent(`
     ---
     config:
       layout: 123
@@ -39,21 +39,21 @@ test('sourcesContainElk', () => {
     %%{ init : { "class": { "defaultRenderer": "elk.any" } } }%%
     flowchart TB
       A --> B
-  `])).toEqual(true);
+  `))).toEqual(true);
 
-  expect(sourcesContainElk([`
+  expect(sourceNeedsElk(`
     %%{init:{
         "layout" : "elk.layered"
     }}%%
     flowchart TB
       A --> B
-  `])).toEqual(true);
+  `)).toEqual(true);
 
-  expect(sourcesContainElk([`
+  expect(sourceNeedsElk(`
     %%{ initialize: {
         'layout' : 'elk.layered'
     }}%%
     flowchart TB
       A --> B
-  `])).toEqual(true);
+  `)).toEqual(true);
 });
