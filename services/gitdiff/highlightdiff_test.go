@@ -27,12 +27,19 @@ func TestDiffWithHighlight(t *testing.T) {
 
 	t.Run("CleanUp", func(t *testing.T) {
 		hcd := newHighlightCodeDiff()
-		codeA := template.HTML(`<span class="cm">this is a comment</span>`)
-		codeB := template.HTML(`<span class="cm">this is updated comment</span>`)
+		codeA := template.HTML(` <span class="cm">this is a comment</span>`)
+		codeB := template.HTML(` <span class="cm">this is updated comment</span>`)
 		outDel := hcd.diffLineWithHighlight(DiffLineDel, codeA, codeB)
-		assert.Equal(t, `<span class="cm">this is <span class="removed-code">a</span> comment</span>`, string(outDel))
+		assert.Equal(t, ` <span class="cm">this is <span class="removed-code">a</span> comment</span>`, string(outDel))
 		outAdd := hcd.diffLineWithHighlight(DiffLineAdd, codeA, codeB)
-		assert.Equal(t, `<span class="cm">this is <span class="added-code">updated</span> comment</span>`, string(outAdd))
+		assert.Equal(t, ` <span class="cm">this is <span class="added-code">updated</span> comment</span>`, string(outAdd))
+
+		codeA = `<span class="line"><span>line1</span></span>` + "\n" + `<span class="cl"><span>line2</span></span>`
+		codeB = `<span class="cl"><span>line1</span></span>` + "\n" + `<span class="line"><span>line!</span></span>`
+		outDel = hcd.diffLineWithHighlight(DiffLineDel, codeA, codeB)
+		assert.Equal(t, `<span>line1</span>`+"\n"+`<span class="removed-code"><span>line2</span></span>`, string(outDel))
+		outAdd = hcd.diffLineWithHighlight(DiffLineAdd, codeA, codeB)
+		assert.Equal(t, `<span>line1</span>`+"\n"+`<span class="added-code"><span>line!</span></span>`, string(outAdd))
 	})
 
 	t.Run("OpenCloseTags", func(t *testing.T) {

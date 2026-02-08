@@ -186,14 +186,7 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlContent template.HTML) s
 	var tagStack []string
 	res := strings.Builder{}
 
-	htmlCode := strings.TrimSpace(string(htmlContent))
-
-	// the standard chroma highlight HTML is `<span class="line [hl]"><span class="cl"> ... </span></span>`
-	// the line wrapper tags should be removed before diff
-	if strings.HasPrefix(htmlCode, `<span class="line`) || strings.HasPrefix(htmlCode, `<span class="cl"`) {
-		htmlCode = strings.TrimSuffix(htmlCode, "</span>")
-	}
-
+	htmlCode := string(htmlContent)
 	var beforeToken, token string
 	var valid bool
 	for {
@@ -201,13 +194,20 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlContent template.HTML) s
 		if !valid || token == "" {
 			break
 		}
+
 		// write the content before the token into result string, and consume the token in the string
 		res.WriteString(beforeToken)
+
+		// the standard chroma highlight HTML is `<span class="line [hl]"><span class="cl"> ... </span></span>`
+		// the line wrapper tags should be removed before diff
+		if strings.HasPrefix(token, `<span class="line`) || strings.HasPrefix(token, `<span class="cl"`) {
+			continue
+		}
 
 		var tokenInMap string
 		if strings.HasPrefix(token, "</") { // for closing tag
 			if len(tagStack) == 0 {
-				break // invalid diff result, no opening tag but see closing tag
+				continue // no opening tag but see closing tag, skip it
 			}
 			// make sure the closing tag in map is related to the open tag, to make the diff algorithm can match the opening/closing tags
 			// the closing tag will be recorded in the map by key "</span><!-- <span the-opening> -->" for "<span the-opening>"
