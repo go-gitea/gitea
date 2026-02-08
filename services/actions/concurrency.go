@@ -104,12 +104,20 @@ func EvaluateJobConcurrencyFillModel(ctx context.Context, run *actions_model.Act
 }
 
 func getInputsFromRun(run *actions_model.ActionRun) (map[string]any, error) {
-	if run.Event != "workflow_dispatch" {
+	switch run.Event {
+	case "workflow_dispatch":
+		var payload api.WorkflowDispatchPayload
+		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
+			return nil, err
+		}
+		return payload.Inputs, nil
+	case "workflow_call":
+		var payload api.WorkflowCallPayload
+		if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
+			return nil, err
+		}
+		return payload.Inputs, nil
+	default:
 		return map[string]any{}, nil
 	}
-	var payload api.WorkflowDispatchPayload
-	if err := json.Unmarshal([]byte(run.EventPayload), &payload); err != nil {
-		return nil, err
-	}
-	return payload.Inputs, nil
 }

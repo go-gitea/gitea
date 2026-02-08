@@ -400,6 +400,9 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit
 }
 
 func WorkflowRunStatusUpdate(ctx context.Context, repo *repo_model.Repository, sender *user_model.User, run *actions_model.ActionRun) {
+	if run.ParentJobID > 0 {
+		return
+	}
 	for _, notifier := range notifiers {
 		notifier.WorkflowRunStatusUpdate(ctx, repo, sender, run)
 	}

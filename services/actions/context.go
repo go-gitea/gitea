@@ -113,7 +113,7 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 		return nil, fmt.Errorf("FindRunJobs: %w", err)
 	}
 
-	jobIDJobs := make(map[string][]*actions_model.ActionRunJob)
+	jobIDJobs := make(map[string][]*actions_model.ActionRunJob, len(jobs))
 	for _, job := range jobs {
 		jobIDJobs[job.JobID] = append(jobIDJobs[job.JobID], job)
 	}
@@ -123,25 +123,9 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 		if !needs.Contains(jobID) {
 			continue
 		}
-		var jobOutputs map[string]string
-		for _, job := range jobsWithSameID {
-			if job.TaskID == 0 || !job.Status.IsDone() {
-				// it shouldn't happen, or the job has been rerun
-				continue
-			}
-			got, err := actions_model.FindTaskOutputByTaskID(ctx, job.TaskID)
-			if err != nil {
-				return nil, fmt.Errorf("FindTaskOutputByTaskID: %w", err)
-			}
-			outputs := make(map[string]string, len(got))
-			for _, v := range got {
-				outputs[v.OutputKey] = v.OutputValue
-			}
-			if len(jobOutputs) == 0 {
-				jobOutputs = outputs
-			} else {
-				jobOutputs = mergeTwoOutputs(outputs, jobOutputs)
-			}
+		jobOutputs, err := getJobOutputsForSameIDJobs(ctx, jobsWithSameID)
+		if err != nil {
+			return nil, err
 		}
 		ret[jobID] = &TaskNeed{
 			Outputs: jobOutputs,
@@ -149,6 +133,41 @@ func FindTaskNeeds(ctx context.Context, job *actions_model.ActionRunJob) (map[st
 		}
 	}
 	return ret, nil
+}
+
+func getJobOutputsForSameIDJobs(ctx context.Context, jobs []*actions_model.ActionRunJob) (map[string]string, error) {
+	var jobOutputs map[string]string
+	for _, job := range jobs {
+		if !job.Status.IsDone() {
+			continue
+		}
+
+		if job.ChildRunID > 0 {
+			outputs, err := workflowCallOutputsByChildRun(ctx, job.ChildRunID)
+			if err != nil {
+				return nil, fmt.Errorf("workflow_call outputs for child run %d: %w", job.ChildRunID, err)
+			}
+			if outputs != nil {
+				jobOutputs = util.Iif(len(jobOutputs) == 0, outputs, mergeTwoOutputs(outputs, jobOutputs))
+			}
+			continue
+		}
+
+		if job.TaskID == 0 {
+			continue
+		}
+
+		got, err := actions_model.FindTaskOutputByTaskID(ctx, job.TaskID)
+		if err != nil {
+			return nil, fmt.Errorf("FindTaskOutputByTaskID: %w", err)
+		}
+		outputs := make(map[string]string, len(got))
+		for _, v := range got {
+			outputs[v.OutputKey] = v.OutputValue
+		}
+		jobOutputs = util.Iif(len(jobOutputs) == 0, outputs, mergeTwoOutputs(outputs, jobOutputs))
+	}
+	return jobOutputs, nil
 }
 
 // mergeTwoOutputs merges two outputs from two different ActionRunJobs

@@ -11,9 +11,11 @@ import (
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	actions_module "code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	secret_module "code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -175,13 +177,33 @@ func GetSecretsOfTask(ctx context.Context, task *actions_model.ActionTask) (map[
 		return nil, err
 	}
 
+	secretValues := make(map[string]string, len(ownerSecrets)+len(repoSecrets))
 	for _, secret := range append(ownerSecrets, repoSecrets...) {
 		v, err := secret_module.DecryptSecret(setting.SecretKey, secret.Data)
 		if err != nil {
 			log.Error("Unable to decrypt Actions secret %v %q, maybe SECRET_KEY is wrong: %v", secret.ID, secret.Name, err)
 			continue
 		}
-		secrets[secret.Name] = v
+		secretValues[secret.Name] = v
+	}
+
+	if task.Job.Run.TriggerEvent == "workflow_call" {
+		var payload api.WorkflowCallPayload
+		if err := json.Unmarshal([]byte(task.Job.Run.EventPayload), &payload); err != nil {
+			return nil, err
+		}
+		for dest, src := range payload.Secrets {
+			v, ok := secretValues[strings.ToUpper(src)]
+			if !ok {
+				return nil, fmt.Errorf("workflow_call secret %q not found", src)
+			}
+			secrets[dest] = v
+		}
+		return secrets, nil
+	}
+
+	for name, v := range secretValues {
+		secrets[name] = v
 	}
 
 	return secrets, nil
