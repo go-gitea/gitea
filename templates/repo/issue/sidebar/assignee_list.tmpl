@@ -32,9 +32,9 @@
 	<div class="ui relaxed list muted-links flex-items-block">
 		<span class="item empty-list {{if $issueAssignees}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
 		{{range $issueAssignees}}
-		<a class="item" href="{{$listBaseLink}}?assignee={{.ID}}">
-			{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
-		</a>
+			<a class="item" href="{{$listBaseLink}}?assignee={{.ID}}">
+				{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
+			</a>
 		{{end}}
 	</div>
 </div>
