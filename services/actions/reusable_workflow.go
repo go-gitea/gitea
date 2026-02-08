@@ -312,6 +312,9 @@ func workflowCallOutputsByChildRun(ctx context.Context, childRunID int64) (map[s
 	if err != nil {
 		return nil, fmt.Errorf("GetRunByRepoAndID: %w", err)
 	}
+	if err := childRun.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
 
 	singleWorkflows, err := jobparser.Parse(jobs[0].WorkflowPayload)
 	if err != nil {
