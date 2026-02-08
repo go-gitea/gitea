@@ -1,10 +1,13 @@
 import {svg} from '../svg.ts';
 import {queryElems} from '../utils/dom.ts';
 
-export function makeCodeCopyButton(): HTMLButtonElement {
+export function makeCodeCopyButton(attrs: Record<string, string> = {}): HTMLButtonElement {
   const button = document.createElement('button');
   button.classList.add('code-copy', 'ui', 'button');
   button.innerHTML = svg('octicon-copy');
+  for (const [key, value] of Object.entries(attrs)) {
+    button.setAttribute(key, value);
+  }
   return button;
 }
 
