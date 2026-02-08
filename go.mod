@@ -11,7 +11,7 @@ godebug x509negativeserial=1
 
 require (
 	code.gitea.io/actions-proto-go v0.4.1
-	code.gitea.io/sdk/gitea v0.22.0
+	code.gitea.io/sdk/gitea v0.23.2
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	connectrpc.com/connect v1.19.1
 	gitea.com/go-chi/binding v0.0.0-20240430071103-39a851e106ed
