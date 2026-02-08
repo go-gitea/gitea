@@ -6,6 +6,7 @@ package context
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -19,9 +20,10 @@ import (
 
 // Package contains owner, access mode and optional the package descriptor
 type Package struct {
-	Owner      *user_model.User
-	AccessMode perm.AccessMode
-	Descriptor *packages_model.PackageDescriptor
+	Owner       *user_model.User
+	AccessMode  perm.AccessMode
+	PackageType packages_model.Type
+	Descriptor  *packages_model.PackageDescriptor
 }
 
 type packageAssignmentCtx struct {
@@ -57,10 +59,29 @@ func PackageAssignmentAPI() func(ctx *APIContext) {
 	}
 }
 
-func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, any)) *Package {
-	pkg := &Package{
-		Owner: ctx.ContextUser,
+// WithPackageType returns a middleware to set the package type
+func WithPackageType(t packages_model.Type) func(ctx *Context) {
+	return func(ctx *Context) {
+		if ctx.Package == nil {
+			ctx.Package = &Package{}
+		}
+		ctx.Package.PackageType = t
 	}
+}
+
+func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, any)) *Package {
+	var pkg *Package
+	// Check if Package was already initialized by WithPackageType
+	if ctx.Base.Data["Package"] != nil {
+		if p, ok := ctx.Base.Data["Package"].(*Package); ok {
+			pkg = p
+		}
+	}
+	if pkg == nil {
+		pkg = &Package{}
+	}
+	pkg.Owner = ctx.ContextUser
+
 	var err error
 	pkg.AccessMode, err = determineAccessMode(ctx.Base, pkg, ctx.Doer)
 	if err != nil {
@@ -68,11 +89,53 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, any)) *Package
 		return pkg
 	}
 
-	packageType := ctx.PathParam("type")
+	packageType := pkg.PackageType
+	if packageType == "" {
+		packageType = packages_model.Type(ctx.PathParam("type"))
+	}
+	if packageType == "" {
+		// Try to infer from path: .../packages/{owner}/{type}/...
+		parts := strings.Split(ctx.Req.URL.Path, "/")
+		for i, part := range parts {
+			if part == pkg.Owner.Name && i+1 < len(parts) {
+				t := packages_model.Type(parts[i+1])
+				for _, supportedType := range packages_model.TypeList {
+					if t == supportedType {
+						packageType = t
+						break
+					}
+				}
+			}
+			if packageType != "" {
+				break
+			}
+		}
+	}
+
 	name := ctx.PathParam("name")
+	if name == "" {
+		name = ctx.PathParam("packagename")
+	}
+	if name == "" {
+		name = ctx.PathParam("package")
+	}
+	if name == "" {
+		name = ctx.PathParam("id")
+	}
+	if name == "" {
+		name = ctx.PathParam("image")
+	}
+
 	version := ctx.PathParam("version")
+	if version == "" {
+		version = ctx.PathParam("packageversion")
+	}
+	if version == "" {
+		version = ctx.PathParam("reference")
+	}
+
 	if packageType != "" && name != "" && version != "" {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packages_model.Type(packageType), name, version)
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packageType, name, version)
 		if err != nil {
 			if err == packages_model.ErrPackageNotExist {
 				errCb(http.StatusNotFound, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
