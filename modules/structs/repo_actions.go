@@ -161,6 +161,7 @@ type ActionWorkflowStep struct {
 // ActionWorkflowJob represents a WorkflowJob
 type ActionWorkflowJob struct {
 	ID         int64                 `json:"id"`
+	JobID      string                `json:"job_id,omitempty"`
 	URL        string                `json:"url"`
 	HTMLURL    string                `json:"html_url"`
 	RunID      int64                 `json:"run_id"`
@@ -175,6 +176,7 @@ type ActionWorkflowJob struct {
 	RunnerID   int64                 `json:"runner_id,omitempty"`
 	RunnerName string                `json:"runner_name,omitempty"`
 	Steps      []*ActionWorkflowStep `json:"steps"`
+	Needs      []string              `json:"needs,omitempty"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
 	// swagger:strfmt date-time
