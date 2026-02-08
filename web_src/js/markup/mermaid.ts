@@ -1,4 +1,4 @@
-import {isDarkTheme} from '../utils.ts';
+import {isDarkTheme, parseDom} from '../utils.ts';
 import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
 import {queryElems} from '../utils/dom.ts';
@@ -43,12 +43,19 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     try {
       // can't use bindFunctions here because we can't cross the iframe boundary. This
       // means js-based interactions won't work but they aren't intended to work either
-      const {svg} = await mermaid.render('mermaid', source);
+      const {svg} = await mermaid.render('mermaid', source, pre);
+      const svgDoc = parseDom(svg, 'image/svg+xml');
+      const svgNode = (svgDoc.documentElement as unknown) as SVGSVGElement;
 
       const iframe = document.createElement('iframe');
       iframe.classList.add('markup-content-iframe', 'tw-invisible');
       iframe.srcdoc = html`<html><head><style>${htmlRaw(iframeCss)}</style></head><body>${htmlRaw(svg)}</body></html>`;
 
+      // although the "viewBox" is optional, mermaid's output should always have a correct viewBox with width and height
+      const iframeHeightFromViewBox = Math.ceil(svgNode.viewBox?.baseVal?.height ?? 0);
+      if (iframeHeightFromViewBox) iframe.style.height = `${iframeHeightFromViewBox}px`;
+
+      // FIXME: the logic is not right, the full fix is on main branch
       const mermaidBlock = document.createElement('div');
       mermaidBlock.classList.add('mermaid-block', 'is-loading', 'tw-hidden');
       mermaidBlock.append(iframe);
@@ -59,11 +66,12 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
 
       const updateIframeHeight = () => {
         const body = iframe.contentWindow?.document?.body;
-        if (body) {
+        if (body?.clientHeight) {
           iframe.style.height = `${body.clientHeight}px`;
         }
       };
 
+      // FIXME: the logic is not right, the full fix is on main branch
       iframe.addEventListener('load', () => {
         pre.replaceWith(mermaidBlock);
         mermaidBlock.classList.remove('tw-hidden');
