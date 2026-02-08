@@ -14,15 +14,16 @@ import (
 
 var _ auth.Method = &Auth{}
 
-// conan and container auth
-type Auth struct{}
+// Auth is for conan and container
+type Auth struct {
+	AllowGhostUser bool
+}
 
 func (a *Auth) Name() string {
 	return "packages"
 }
 
 // Verify extracts the user from the Bearer token
-// If it's an anonymous session, a ghost user is returned
 func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) (*user_model.User, error) {
 	packageMeta, err := packages.ParseAuthorizationRequest(req)
 	if err != nil {
@@ -35,10 +36,16 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 	}
 
 	var u *user_model.User
-	if packageMeta.UserID == user_model.ActionsUserID {
+	switch packageMeta.UserID {
+	case user_model.GhostUserID:
+		if !a.AllowGhostUser {
+			return nil, nil
+		}
+		u = user_model.NewGhostUser()
+	case user_model.ActionsUserID:
 		u = user_model.NewActionsUserWithTaskID(packageMeta.ActionsUserTaskID)
-	} else {
-		u, err = user_model.GetPossibleUserByID(req.Context(), packageMeta.UserID)
+	default:
+		u, err = user_model.GetUserByID(req.Context(), packageMeta.UserID)
 		if err != nil {
 			return nil, err
 		}
