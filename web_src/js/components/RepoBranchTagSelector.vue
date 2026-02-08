@@ -159,6 +159,7 @@ export default defineComponent({
       return el?.length ? el[0] : null;
     },
     keydown(e: KeyboardEvent) {
+      if (e.isComposing) return;
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
 
@@ -175,7 +176,6 @@ export default defineComponent({
         this.activeItemIndex = nextIndex;
         this.getActiveItem()!.scrollIntoView({block: 'nearest'});
       } else if (e.key === 'Enter') {
-        if (e.isComposing) return;
         e.preventDefault();
         this.getActiveItem()?.click();
       } else if (e.key === 'Escape') {

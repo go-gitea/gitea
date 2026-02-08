@@ -22,6 +22,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       const div = document.createElement('div');
       div.tabIndex = -1; // for initial focus, programmatic focus only
       div.addEventListener('keydown', (e) => {
+        if (e.isComposing) return;
         if (e.key === 'Tab') {
           const items = this.tippyContent.querySelectorAll<HTMLElement>('[role="menuitem"]');
           if (e.shiftKey) {
@@ -41,7 +42,6 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           this.button?._tippy.hide();
           this.button?.focus();
         } else if (e.key === ' ' || e.code === 'Enter') {
-          if (e.isComposing) return;
           if (document.activeElement?.matches('[role="menuitem"]')) {
             e.preventDefault();
             e.stopPropagation();

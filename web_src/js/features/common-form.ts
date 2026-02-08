@@ -14,8 +14,8 @@ export function initGlobalFormDirtyLeaveConfirm() {
 
 export function initGlobalEnterQuickSubmit() {
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Enter') return;
     if (e.isComposing) return;
+    if (e.key !== 'Enter') return;
     const hasCtrlOrMeta = ((e.ctrlKey || e.metaKey) && !e.altKey);
     if (hasCtrlOrMeta && (e.target as HTMLElement).matches('textarea')) {
       if (handleGlobalEnterQuickSubmit(e.target as HTMLElement)) {
