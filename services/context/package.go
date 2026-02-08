@@ -6,7 +6,6 @@ package context
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -33,7 +32,7 @@ type packageAssignmentCtx struct {
 }
 
 // PackageAssignment returns a middleware to handle Context.Package assignment
-func PackageAssignment() func(ctx *Context) {
+func PackageAssignment(packageType packages_model.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		errorFn := func(status int, obj any) {
 			err, ok := obj.(error)
@@ -47,40 +46,23 @@ func PackageAssignment() func(ctx *Context) {
 			}
 		}
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
-		ctx.Package = packageAssignment(paCtx, errorFn)
+		ctx.Package = packageAssignment(paCtx, packageType, errorFn)
 	}
 }
 
 // PackageAssignmentAPI returns a middleware to handle Context.Package assignment
-func PackageAssignmentAPI() func(ctx *APIContext) {
+func PackageAssignmentAPI(packageType packages_model.Type) func(ctx *APIContext) {
 	return func(ctx *APIContext) {
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
-		ctx.Package = packageAssignment(paCtx, ctx.APIError)
+		ctx.Package = packageAssignment(paCtx, packageType, ctx.APIError)
 	}
 }
 
-// WithPackageType returns a middleware to set the package type
-func WithPackageType(t packages_model.Type) func(ctx *Context) {
-	return func(ctx *Context) {
-		if ctx.Package == nil {
-			ctx.Package = &Package{}
-		}
-		ctx.Package.PackageType = t
+func packageAssignment(ctx *packageAssignmentCtx, packageType packages_model.Type, errCb func(int, any)) *Package {
+	pkg := &Package{
+		Owner:       ctx.ContextUser,
+		PackageType: packageType,
 	}
-}
-
-func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, any)) *Package {
-	var pkg *Package
-	// Check if Package was already initialized by WithPackageType
-	if ctx.Base.Data["Package"] != nil {
-		if p, ok := ctx.Base.Data["Package"].(*Package); ok {
-			pkg = p
-		}
-	}
-	if pkg == nil {
-		pkg = &Package{}
-	}
-	pkg.Owner = ctx.ContextUser
 
 	var err error
 	pkg.AccessMode, err = determineAccessMode(ctx.Base, pkg, ctx.Doer)
@@ -89,49 +71,18 @@ func packageAssignment(ctx *packageAssignmentCtx, errCb func(int, any)) *Package
 		return pkg
 	}
 
-	packageType := pkg.PackageType
 	if packageType == "" {
 		packageType = packages_model.Type(ctx.PathParam("type"))
-	}
-	if packageType == "" {
-		// Try to infer from path: .../packages/{owner}/{type}/...
-		parts := strings.Split(ctx.Req.URL.Path, "/")
-		for i, part := range parts {
-			if part == pkg.Owner.Name && i+1 < len(parts) {
-				t := packages_model.Type(parts[i+1])
-				for _, supportedType := range packages_model.TypeList {
-					if t == supportedType {
-						packageType = t
-						break
-					}
-				}
-			}
-			if packageType != "" {
-				break
-			}
-		}
 	}
 
 	name := ctx.PathParam("name")
 	if name == "" {
 		name = ctx.PathParam("packagename")
 	}
-	if name == "" {
-		name = ctx.PathParam("package")
-	}
-	if name == "" {
-		name = ctx.PathParam("id")
-	}
-	if name == "" {
-		name = ctx.PathParam("image")
-	}
 
 	version := ctx.PathParam("version")
 	if version == "" {
 		version = ctx.PathParam("packageversion")
-	}
-	if version == "" {
-		version = ctx.PathParam("reference")
 	}
 
 	if packageType != "" && name != "" && version != "" {
