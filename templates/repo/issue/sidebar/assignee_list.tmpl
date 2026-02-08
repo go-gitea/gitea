@@ -1,7 +1,8 @@
 {{$pageMeta := .}}
 {{$data := .AssigneesData}}
-{{$issueAssignees := Iif $pageMeta.Issue $pageMeta.Issue.Assignees nil}}
 {{$listBaseLink := print $pageMeta.RepoLink (Iif $pageMeta.IsPullRequest "/pulls" "/issues")}}
+{{/* TODO: it seems that the code keeps checking $pageMeta.Issue and assumes that it might not exist, need to figure out why */}}
+{{$issueAssignees := NIL}}{{if $pageMeta.Issue}}{{$issueAssignees = $pageMeta.Issue.Assignees}}{{end}}
 <div class="divider"></div>
 <div class="issue-sidebar-combo" data-selection-mode="multiple" data-update-algo="diff"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/assignee?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
