@@ -12,7 +12,7 @@ import (
 )
 
 // extractDiffTokenRemainingFullTag tries to extract full tag with content from the remaining string
-// e.g. for input: "content</span>reset", it returns "content</span>", "rest", true
+// e.g. for input: "content</span>rest", it returns "content</span>", "rest", true
 func extractDiffTokenRemainingFullTag(s string) (token, after string, valid bool) {
 	pos := 0
 	for ; pos < len(s); pos++ {
