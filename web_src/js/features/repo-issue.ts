@@ -10,15 +10,16 @@ import {
 } from '../utils/dom.ts';
 import {setFileFolding} from './file-fold.ts';
 import {ComboMarkdownEditor, getComboMarkdownEditor, initComboMarkdownEditor} from './comp/ComboMarkdownEditor.ts';
+import {replaceTextareaSelection} from './comp/EditorMarkdown.ts';
 import {parseIssuePageInfo, toAbsoluteUrl} from '../utils.ts';
 import {GET, POST} from '../modules/fetch.ts';
-import {showErrorToast} from '../modules/toast.ts';
+import {showErrorToast, showInfoToast} from '../modules/toast.ts';
 import {initRepoIssueSidebar} from './repo-issue-sidebar.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {registerGlobalInitFunc} from '../modules/observer.ts';
 
-const {appSubUrl} = window.config;
+const {appSubUrl, i18n} = window.config;
 
 export function initRepoIssueSidebarDependency() {
   const elDropdown = document.querySelector('#new-dependency-drop-list');
@@ -254,6 +255,39 @@ export async function handleReply(el: HTMLElement) {
   return editor;
 }
 
+export function initSuggestionApplyButtons(root: ParentNode = document) {
+  for (const comment of root.querySelectorAll<HTMLElement>('.comment[data-apply-suggestion-url]')) {
+    const canApply = comment.getAttribute('data-can-apply-suggestion') === 'true';
+    if (!canApply) continue;
+    const applyUrl = comment.getAttribute('data-apply-suggestion-url');
+    const commentId = comment.getAttribute('data-comment-id');
+    if (!applyUrl || !commentId) continue;
+    const buttonLabel = comment.getAttribute('data-apply-suggestion-text') || 'Apply suggestion';
+    const suggestionBlocks = Array.from(comment.querySelectorAll('pre > code.language-suggestion'));
+    let index = 0;
+    for (const codeEl of suggestionBlocks) {
+      if (codeEl.getAttribute('data-suggestion-initialized')) {
+        index++;
+        continue;
+      }
+      codeEl.setAttribute('data-suggestion-initialized', 'true');
+      const pre = codeEl.parentElement;
+      if (!pre) {
+        index++;
+        continue;
+      }
+      pre.classList.add('suggestion-block');
+      const actions = createElementFromHTML(html`
+        <div class="suggestion-actions">
+          <button type="button" class="ui tiny basic button apply-suggestion-button" data-comment-id="${commentId}" data-suggestion-index="${index}" data-apply-url="${applyUrl}">${buttonLabel}</button>
+        </div>
+      `);
+      pre.after(actions);
+      index++;
+    }
+  }
+}
+
 export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     const commentDiv = document.querySelector(window.location.hash);
@@ -301,8 +335,86 @@ export function initRepoPullRequestReview() {
     handleReply(el);
   });
 
+  initSuggestionApplyButtons();
+
+  addDelegatedEventListener(document, 'click', '.apply-suggestion-button', async (el, e) => {
+    e.preventDefault();
+    if (el.classList.contains('is-loading')) return;
+    const url = el.getAttribute('data-apply-url');
+    const index = el.getAttribute('data-suggestion-index');
+    if (!url || index === null) return;
+    try {
+      el.classList.add('is-loading');
+      const response = await POST(url, {data: new URLSearchParams({index})});
+      const data = await response.json();
+      const {message, ok} = data ?? {};
+      if (!response.ok || !ok) {
+        showErrorToast(message ?? i18n.error_occurred);
+        return;
+      }
+      showInfoToast(message ?? 'Suggestion applied');
+      window.location.reload();
+    } catch (error) {
+      console.error(error);
+      showErrorToast(i18n.error_occurred);
+    } finally {
+      el.classList.remove('is-loading');
+    }
+  });
+
   // The following part is only for diff views
   if (!document.querySelector('.repository.pull.diff')) return;
+
+  type DiffSelection = {
+    path: string;
+    side: 'left' | 'right';
+    start: number;
+    end: number;
+  };
+
+  let diffSelection: DiffSelection | null = null;
+
+  const clearDiffSelection = () => {
+    for (const row of document.querySelectorAll('.code-diff tr.active')) {
+      row.classList.remove('active');
+    }
+  };
+
+  const setDiffSelection = (table: HTMLTableElement, path: string, side: 'left' | 'right', start: number, end: number) => {
+    clearDiffSelection();
+    const rangeStart = Math.min(start, end);
+    const rangeEnd = Math.max(start, end);
+    const sideClass = side === 'right' ? 'lines-num-new' : 'lines-num-old';
+    for (const td of table.querySelectorAll<HTMLTableCellElement>(`td.lines-num.${sideClass}[data-line-num]`)) {
+      const lineValue = td.getAttribute('data-line-num')!;
+      const lineNum = Number(lineValue);
+      if (!lineNum) continue;
+      if (lineNum >= rangeStart && lineNum <= rangeEnd) {
+        td.closest('tr')?.classList.add('active');
+      }
+    }
+    diffSelection = {path, side, start: rangeStart, end: rangeEnd};
+  };
+
+  const getSuggestionLinesFromDiff = (path: string, side: 'left' | 'right', start: number, end: number): string[] => {
+    const table = document.querySelector<HTMLTableElement>(`.code-diff table[data-path="${CSS.escape(path)}"]`);
+    if (!table) return [];
+    const sideClass = side === 'right' ? 'lines-num-new' : 'lines-num-old';
+    const lines: string[] = [];
+    const rangeStart = Math.min(start, end);
+    const rangeEnd = Math.max(start, end);
+    for (let lineNum = rangeStart; lineNum <= rangeEnd; lineNum++) {
+      const td = table.querySelector<HTMLTableCellElement>(`td.lines-num.${sideClass}[data-line-num="${lineNum}"]`);
+      if (!td) {
+        lines.push('');
+        continue;
+      }
+      const tr = td.closest('tr');
+      const codeEl = tr?.querySelector<HTMLTableCellElement>('td.lines-code code');
+      lines.push(codeEl?.textContent ?? '');
+    }
+    return lines;
+  };
 
   const elReviewBtn = document.querySelector('.js-btn-review');
   const elReviewPanel = document.querySelector('.review-box-panel.tippy-target');
@@ -347,12 +459,80 @@ export function initRepoPullRequestReview() {
     if (!commentCloud && !ntr.querySelector('button[name="pending_review"]')) {
       const response = await GET(el.closest('[data-new-comment-url]')?.getAttribute('data-new-comment-url') ?? '');
       td.innerHTML = await response.text();
-      td.querySelector<HTMLInputElement>("input[name='line']")!.value = idx;
+      const lineStartInput = td.querySelector<HTMLInputElement>("input[name='line_start']")!;
+      const lineEndInput = td.querySelector<HTMLInputElement>("input[name='line_end']")!;
+      const lineInput = td.querySelector<HTMLInputElement>("input[name='line']")!;
+      let lineStart = Number(idx);
+      let lineEnd = Number(idx);
+      if (diffSelection && diffSelection.path === path && diffSelection.side === side) {
+        const {start, end} = diffSelection;
+        const lineNum = Number(idx);
+        if (lineNum >= start && lineNum <= end) {
+          lineStart = start;
+          lineEnd = end;
+        }
+      }
+      lineInput.value = String(lineStart);
+      lineStartInput.value = String(lineStart);
+      lineEndInput.value = String(lineEnd);
       td.querySelector<HTMLInputElement>("input[name='side']")!.value = (side === 'left' ? 'previous' : 'proposed');
       td.querySelector<HTMLInputElement>("input[name='path']")!.value = String(path);
       const editor = await initComboMarkdownEditor(td.querySelector<HTMLElement>('.combo-markdown-editor')!);
       editor.focus();
     }
+  });
+
+  addDelegatedEventListener(document, 'click', '.code-diff td.lines-num span', (el, e: MouseEvent) => {
+    const td = el.closest<HTMLTableCellElement>('td.lines-num');
+    if (!td) return;
+    const lineValue = td.getAttribute('data-line-num');
+    if (!lineValue) return;
+    const lineNum = Number(lineValue);
+    if (!lineNum) return;
+    const table = td.closest<HTMLTableElement>('table[data-path]');
+    if (!table) return;
+    const path = table.getAttribute('data-path');
+    if (!path) return;
+    const side = td.classList.contains('lines-num-new') ? 'right' : (td.classList.contains('lines-num-old') ? 'left' : null);
+    if (!side) return;
+    const isShiftSelect = e.shiftKey && diffSelection?.path === path && diffSelection?.side === side;
+    const start = isShiftSelect ? diffSelection!.start : lineNum;
+    const end = lineNum;
+    setDiffSelection(table, path, side, start, end);
+    window.getSelection()?.removeAllRanges();
+  });
+
+  addDelegatedEventListener(document, 'click', '.markdown-button-suggestion', (el, e) => {
+    e.preventDefault();
+    const emptyMessage = el.getAttribute('data-suggestion-empty') ?? 'No selected lines available for suggestion.';
+    const proposedOnlyMessage = el.getAttribute('data-suggestion-proposed-only') ?? 'Suggestions can only be added on the proposed side.';
+    const form = el.closest<HTMLFormElement>('form');
+    const textarea = form?.querySelector<HTMLTextAreaElement>('textarea.markdown-text-editor');
+    if (!form || !textarea) return;
+    const path = form.querySelector<HTMLInputElement>("input[name='path']")?.value;
+    const side = form.querySelector<HTMLInputElement>("input[name='side']")?.value;
+    const lineStartValue = form.querySelector<HTMLInputElement>("input[name='line_start']")?.value;
+    const lineEndValue = form.querySelector<HTMLInputElement>("input[name='line_end']")?.value;
+    if (!path || !side) return;
+    if (!lineStartValue || !lineEndValue) {
+      showErrorToast(emptyMessage);
+      return;
+    }
+    if (side !== 'proposed') {
+      showErrorToast(proposedOnlyMessage);
+      return;
+    }
+    const lineStart = Number(lineStartValue);
+    const lineEnd = Number(lineEndValue);
+    const lines = getSuggestionLinesFromDiff(path, 'right', lineStart, lineEnd);
+    if (!lines.length) {
+      showErrorToast(emptyMessage);
+      return;
+    }
+    const suggestionBody = lines.join('\n');
+    const block = `\n\`\`\`suggestion\n${suggestionBody}\n\`\`\`\n`;
+    replaceTextareaSelection(textarea, block);
+    textarea.focus();
   });
 }
 
