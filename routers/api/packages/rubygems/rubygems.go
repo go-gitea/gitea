@@ -300,7 +300,7 @@ func DeletePackage(ctx *context.Context) {
 // GetPackageInfo returns a custom text based format for the single rubygem with a line for each version of the rubygem
 // ref: https://guides.rubygems.org/rubygems-org-compact-index-api/
 func GetPackageInfo(ctx *context.Context) {
-	packageName := ctx.PathParam("packagename")
+	packageName := ctx.PathParam("name")
 	versions, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeRubyGems, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)

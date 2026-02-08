@@ -160,7 +160,7 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeComposer,
-			Name:        ctx.PathParam("package"),
+			Name:        ctx.PathParam("name"),
 			Version:     ctx.PathParam("version"),
 		},
 		&packages_service.PackageFileInfo{

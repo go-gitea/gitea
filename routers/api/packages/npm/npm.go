@@ -43,7 +43,7 @@ func apiError(ctx *context.Context, status int, obj any) {
 // Variations: /name/, /@scope/name/, /@scope%2Fname/
 func packageNameFromParams(ctx *context.Context) string {
 	scope := ctx.PathParam("scope")
-	id := ctx.PathParam("id")
+	id := ctx.PathParam("name")
 	if scope != "" {
 		return fmt.Sprintf("@%s/%s", scope, id)
 	}

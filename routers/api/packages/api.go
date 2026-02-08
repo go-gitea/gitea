@@ -149,7 +149,7 @@ func CommonRoutes() *web.Router {
 			r.Group("/api/v1/crates", func() {
 				r.Get("", cargo.SearchPackages)
 				r.Put("/new", reqPackageAccess(perm.AccessModeWrite), cargo.UploadPackage)
-				r.Group("/{package}", func() {
+				r.Group("/{name}", func() {
 					r.Group("/{version}", func() {
 						r.Get("/download", cargo.DownloadPackageFile)
 						r.Delete("/yank", reqPackageAccess(perm.AccessModeWrite), cargo.YankPackage)
@@ -159,11 +159,11 @@ func CommonRoutes() *web.Router {
 				})
 			})
 			r.Get("/config.json", cargo.RepositoryConfig)
-			r.Get("/1/{package}", cargo.EnumeratePackageVersions)
-			r.Get("/2/{package}", cargo.EnumeratePackageVersions)
+			r.Get("/1/{name}", cargo.EnumeratePackageVersions)
+			r.Get("/2/{name}", cargo.EnumeratePackageVersions)
 			// Use dummy placeholders because these parts are not of interest
-			r.Get("/3/{_}/{package}", cargo.EnumeratePackageVersions)
-			r.Get("/{_}/{__}/{package}", cargo.EnumeratePackageVersions)
+			r.Get("/3/{_}/{name}", cargo.EnumeratePackageVersions)
+			r.Get("/{_}/{__}/{name}", cargo.EnumeratePackageVersions)
 		}, context.PackageAssignment(packages_model.TypeCargo), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/chef", func() {
 			r.Group("/api/v1", func() {
@@ -190,7 +190,7 @@ func CommonRoutes() *web.Router {
 			r.Get("/list.json", composer.EnumeratePackages)
 			r.Get("/p2/{vendorname}/{projectname}~dev.json", composer.PackageMetadata)
 			r.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
-			r.Get("/files/{package}/{version}/{filename}", composer.DownloadPackageFile)
+			r.Get("/files/{name}/{version}/{filename}", composer.DownloadPackageFile)
 			r.Put("", reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
 		}, context.PackageAssignment(packages_model.TypeComposer), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/conan", func() {
@@ -292,7 +292,7 @@ func CommonRoutes() *web.Router {
 					r.Get("/PACKAGES", cran.EnumerateSourcePackages)
 					r.Get("/PACKAGES{format}", cran.EnumerateSourcePackages)
 					r.Get("/{filename}", cran.DownloadSourcePackageFile)
-					r.Get("/Archive/{packagename}/{filename}", cran.DownloadSourcePackageFile)
+					r.Get("/Archive/{name}/{filename}", cran.DownloadSourcePackageFile)
 				})
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), cran.UploadSourcePackageFile)
 			})
@@ -336,18 +336,18 @@ func CommonRoutes() *web.Router {
 				g.MatchPath("GET", "/<name:*>/@v/<version>.mod", goproxy.PackageVersionGoModContent)
 			})
 		}, context.PackageAssignment(packages_model.TypeGo), reqPackageAccess(perm.AccessModeRead))
-		r.Group("/generic", func() {
-			r.Group("/{packagename}/{packageversion}", func() {
-				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
-				r.Group("/{filename}", func() {
-					r.Methods("HEAD,GET", "", generic.DownloadPackageFile)
-					r.Group("", func() {
-						r.Put("", generic.UploadPackage)
-						r.Delete("", generic.DeletePackageFile)
-					}, reqPackageAccess(perm.AccessModeWrite))
-				})
+	r.Group("/generic", func() {
+		r.Group("/{name}/{version}", func() {
+			r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
+			r.Group("/{filename}", func() {
+				r.Methods("HEAD,GET", "", generic.DownloadPackageFile)
+				r.Group("", func() {
+					r.Put("", generic.UploadPackage)
+					r.Delete("", generic.DeletePackageFile)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			})
-		}, context.PackageAssignment(packages_model.TypeGeneric), reqPackageAccess(perm.AccessModeRead))
+		})
+	}, context.PackageAssignment(packages_model.TypeGeneric), reqPackageAccess(perm.AccessModeRead))
 		r.Group("/helm", func() {
 			r.Get("/index.yaml", helm.Index)
 			r.Get("/{filename}", helm.DownloadPackageFile)
@@ -366,21 +366,21 @@ func CommonRoutes() *web.Router {
 			})
 			r.Group("", func() {
 				r.Get("/query", nuget.SearchServiceV3)
-				r.Group("/registration/{id}", func() {
+				r.Group("/registration/{name}", func() {
 					r.Get("/index.json", nuget.RegistrationIndex)
 					r.Get("/{version}", nuget.RegistrationLeafV3)
 				})
-				r.Group("/package/{id}", func() {
+				r.Group("/package/{name}", func() {
 					r.Get("/index.json", nuget.EnumeratePackageVersionsV3)
 					r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
 				})
 				r.Group("", func() {
 					r.Put("/", nuget.UploadPackage)
 					r.Put("/symbolpackage", nuget.UploadSymbolPackage)
-					r.Delete("/{id}/{version}", nuget.DeletePackage)
+					r.Delete("/{name}/{version}", nuget.DeletePackage)
 				}, reqPackageAccess(perm.AccessModeWrite))
 				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
-				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
+				r.Get("/Packages(Id='{name:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
 				r.Group("/Packages()", func() {
 					r.Get("", nuget.SearchServiceV2)
 					r.Get("/$count", nuget.SearchServiceV2Count)
@@ -396,7 +396,7 @@ func CommonRoutes() *web.Router {
 			}, context.PackageAssignment(packages_model.TypeNuGet), reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
-			r.Group("/@{scope}/{id}", func() {
+			r.Group("/@{scope}/{name}", func() {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 				r.Group("/-/{version}/{filename}", func() {
@@ -409,7 +409,7 @@ func CommonRoutes() *web.Router {
 					r.Put("", npm.DeletePreview)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
-			r.Group("/{id}", func() {
+			r.Group("/{name}", func() {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 				r.Group("/-/{version}/{filename}", func() {
@@ -422,14 +422,14 @@ func CommonRoutes() *web.Router {
 					r.Put("", npm.DeletePreview)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
-			r.Group("/-/package/@{scope}/{id}/dist-tags", func() {
+			r.Group("/-/package/@{scope}/{name}/dist-tags", func() {
 				r.Get("", npm.ListPackageTags)
 				r.Group("/{tag}", func() {
 					r.Put("", npm.AddPackageTag)
 					r.Delete("", npm.DeletePackageTag)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
-			r.Group("/-/package/{id}/dist-tags", func() {
+			r.Group("/-/package/{name}/dist-tags", func() {
 				r.Get("", npm.ListPackageTags)
 				r.Group("/{tag}", func() {
 					r.Put("", npm.AddPackageTag)
@@ -445,9 +445,9 @@ func CommonRoutes() *web.Router {
 				r.Group("/versions/new", func() {
 					r.Get("", pub.RequestUpload)
 					r.Post("/upload", pub.UploadPackageFile)
-					r.Get("/finalize/{id}/{version}", pub.FinalizePackage)
+					r.Get("/finalize/{name}/{version}", pub.FinalizePackage)
 				}, reqPackageAccess(perm.AccessModeWrite))
-				r.Group("/{id}", func() {
+				r.Group("/{name}", func() {
 					r.Get("", pub.EnumeratePackageVersions)
 					r.Get("/files/{version}", pub.DownloadPackageFile)
 					r.Get("/{version}", pub.PackageVersionMetadata)
@@ -457,8 +457,8 @@ func CommonRoutes() *web.Router {
 
 		r.Group("/pypi", func() {
 			r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
-			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
-			r.Get("/simple/{id}", pypi.PackageMetadata)
+			r.Get("/files/{name}/{version}/{filename}", pypi.DownloadPackageFile)
+			r.Get("/simple/{name}", pypi.PackageMetadata)
 		}, context.PackageAssignment(packages_model.TypePyPI), reqPackageAccess(perm.AccessModeRead))
 
 		r.Methods("HEAD,GET", "/rpm.repo", reqPackageAccess(perm.AccessModeRead), rpm.GetRepositoryConfig)
@@ -480,7 +480,7 @@ func CommonRoutes() *web.Router {
 			r.Get("/prerelease_specs.4.8.gz", rubygems.EnumeratePackagesPreRelease)
 			r.Get("/quick/Marshal.4.8/{filename}", rubygems.ServePackageSpecification)
 			r.Get("/gems/{filename}", rubygems.DownloadPackageFile)
-			r.Get("/info/{packagename}", rubygems.GetPackageInfo)
+			r.Get("/info/{name}", rubygems.GetPackageInfo)
 			r.Get("/versions", rubygems.GetAllPackagesVersions)
 			r.Group("/api/v1/gems", func() {
 				r.Post("/", rubygems.UploadPackageFile)

@@ -54,7 +54,7 @@ func RepositoryConfig(ctx *context.Context) {
 }
 
 func EnumeratePackageVersions(ctx *context.Context) {
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeCargo, ctx.PathParam("package"))
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeCargo, ctx.PathParam("name"))
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -169,11 +169,11 @@ func DownloadPackageFile(ctx *context.Context) {
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeCargo,
-			Name:        ctx.PathParam("package"),
+			Name:        ctx.PathParam("name"),
 			Version:     ctx.PathParam("version"),
 		},
 		&packages_service.PackageFileInfo{
-			Filename: strings.ToLower(fmt.Sprintf("%s-%s.crate", ctx.PathParam("package"), ctx.PathParam("version"))),
+			Filename: strings.ToLower(fmt.Sprintf("%s-%s.crate", ctx.PathParam("name"), ctx.PathParam("version"))),
 		},
 		ctx.Req.Method,
 	)
@@ -271,7 +271,7 @@ func UnyankPackage(ctx *context.Context) {
 }
 
 func yankPackage(ctx *context.Context, yank bool) {
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeCargo, ctx.PathParam("package"), ctx.PathParam("version"))
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeCargo, ctx.PathParam("name"), ctx.PathParam("version"))
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)

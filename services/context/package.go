@@ -32,7 +32,7 @@ type packageAssignmentCtx struct {
 }
 
 // PackageAssignment returns a middleware to handle Context.Package assignment
-func PackageAssignment(packageType packages_model.Type) func(ctx *Context) {
+func PackageAssignment(pt ...packages_model.Type) func(ctx *Context) {
 	return func(ctx *Context) {
 		errorFn := func(status int, obj any) {
 			err, ok := obj.(error)
@@ -45,14 +45,23 @@ func PackageAssignment(packageType packages_model.Type) func(ctx *Context) {
 				ctx.ServerError("PackageAssignment", err)
 			}
 		}
+
+		var packageType packages_model.Type
+		if len(pt) > 0 {
+			packageType = pt[0]
+		} else {
+			packageType = packages_model.Type(ctx.PathParam("type"))
+		}
+
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
 		ctx.Package = packageAssignment(paCtx, packageType, errorFn)
 	}
 }
 
 // PackageAssignmentAPI returns a middleware to handle Context.Package assignment
-func PackageAssignmentAPI(packageType packages_model.Type) func(ctx *APIContext) {
+func PackageAssignmentAPI() func(ctx *APIContext) {
 	return func(ctx *APIContext) {
+		packageType := packages_model.Type(ctx.PathParam("type"))
 		paCtx := &packageAssignmentCtx{Base: ctx.Base, Doer: ctx.Doer, ContextUser: ctx.ContextUser}
 		ctx.Package = packageAssignment(paCtx, packageType, ctx.APIError)
 	}
@@ -71,36 +80,26 @@ func packageAssignment(ctx *packageAssignmentCtx, packageType packages_model.Typ
 		return pkg
 	}
 
-	if packageType == "" {
-		packageType = packages_model.Type(ctx.PathParam("type"))
-	}
-
 	name := ctx.PathParam("name")
-	if name == "" {
-		name = ctx.PathParam("packagename")
-	}
-
 	version := ctx.PathParam("version")
-	if version == "" {
-		version = ctx.PathParam("packageversion")
+	if name == "" || version == "" {
+		return pkg
 	}
 
-	if packageType != "" && name != "" && version != "" {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pkg.Owner.ID, packageType, name, version)
-		if err != nil {
-			if err == packages_model.ErrPackageNotExist {
-				errCb(http.StatusNotFound, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
-			} else {
-				errCb(http.StatusInternalServerError, fmt.Errorf("GetVersionByNameAndVersion: %w", err))
-			}
-			return pkg
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx.Base, pkg.Owner.ID, pkg.PackageType, name, version)
+	if err != nil {
+		if err == packages_model.ErrPackageNotExist {
+			errCb(http.StatusNotFound, err)
+		} else {
+			errCb(http.StatusInternalServerError, fmt.Errorf("GetVersionByNameAndVersion [%s, %s]: %w", name, version, err))
 		}
+		return pkg
+	}
 
-		pkg.Descriptor, err = packages_model.GetPackageDescriptor(ctx, pv)
-		if err != nil {
-			errCb(http.StatusInternalServerError, fmt.Errorf("GetPackageDescriptor: %w", err))
-			return pkg
-		}
+	pkg.Descriptor, err = packages_model.GetPackageDescriptor(ctx.Base, pv)
+	if err != nil {
+		errCb(http.StatusInternalServerError, fmt.Errorf("GetPackageDescriptor: %w", err))
+		return pkg
 	}
 
 	return pkg

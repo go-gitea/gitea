@@ -77,7 +77,7 @@ func baseURL(ctx *context.Context) string {
 
 // https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#list-all-versions-of-a-package
 func EnumeratePackageVersions(ctx *context.Context) {
-	packageName := ctx.PathParam("id")
+	packageName := ctx.PathParam("name")
 
 	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName)
 	if err != nil {
@@ -115,7 +115,7 @@ func EnumeratePackageVersions(ctx *context.Context) {
 
 // https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#deprecated-inspect-a-specific-version-of-a-package
 func PackageVersionMetadata(ctx *context.Context) {
-	packageName := ctx.PathParam("id")
+	packageName := ctx.PathParam("name")
 	packageVersion := ctx.PathParam("version")
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)
@@ -224,7 +224,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 // https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#publishing-packages
 func FinalizePackage(ctx *context.Context) {
-	packageName := ctx.PathParam("id")
+	packageName := ctx.PathParam("name")
 	packageVersion := ctx.PathParam("version")
 
 	_, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)
@@ -249,7 +249,7 @@ func FinalizePackage(ctx *context.Context) {
 
 // https://github.com/dart-lang/pub/blob/master/doc/repository-spec-v2.md#deprecated-download-a-specific-version-of-a-package
 func DownloadPackageFile(ctx *context.Context) {
-	packageName := ctx.PathParam("id")
+	packageName := ctx.PathParam("name")
 	packageVersion := strings.TrimSuffix(ctx.PathParam("version"), ".tar.gz")
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypePub, packageName, packageVersion)

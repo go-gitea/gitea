@@ -1020,7 +1020,7 @@ func registerWebRoutes(m *web.Router) {
 						}, reqPackageAccess(perm.AccessModeWrite))
 					})
 				})
-			}, context.PackageAssignment(""), reqPackageAccess(perm.AccessModeRead))
+			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
 		m.Get("/repositories", org.Repositories)
