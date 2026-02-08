@@ -11,8 +11,38 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
-// token is a html tag or entity, eg: "<span ...>", "</span>", "&lt;"
-func extractHTMLToken(s string) (before, token, after string, valid bool) {
+// extractDiffTokenRemainingFullTag tries to extract full tag with content from the remaining string
+// e.g. for input: "content</span>the-rest...", it returns "content</span>", "the-rest...", true
+func extractDiffTokenRemainingFullTag(s string) (token, after string, valid bool) {
+	pos := 0
+	for ; pos < len(s); pos++ {
+		c := s[pos]
+		if c == '<' {
+			break
+		}
+		// keep in mind: even if we'd like to relax this check,
+		// we should never ignore "&" because it is for HTML entity and can't be safely used in the diff algorithm,
+		// because diff between "&lt;" and "&gt;" will generate broken result.
+		isSymbolChar := 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' || c == '_' || c == '-'
+		if !isSymbolChar {
+			return "", s, false
+		}
+	}
+	if pos+1 >= len(s) || s[pos+1] != '/' {
+		return "", s, false
+	}
+	pos2 := strings.IndexByte(s[pos:], '>')
+	if pos2 == -1 {
+		return "", s, false
+	}
+	return s[:pos+pos2+1], s[pos+pos2+1:], true
+}
+
+// Returned token:
+// * full tag with content: "<<span>content</span>>", it is used to optimize diff results to highlight the whole changed symbol
+// * opening/close tag: "<span ...>" or "</span>"
+// * HTML entity: "&lt;"
+func extractDiffToken(s string) (before, token, after string, valid bool) {
 	for pos1 := 0; pos1 < len(s); pos1++ {
 		switch s[pos1] {
 		case '<':
@@ -20,7 +50,15 @@ func extractHTMLToken(s string) (before, token, after string, valid bool) {
 			if pos2 == -1 {
 				return "", "", s, false
 			}
-			return s[:pos1], s[pos1 : pos1+pos2+1], s[pos1+pos2+1:], true
+			before, token, after = s[:pos1], s[pos1:pos1+pos2+1], s[pos1+pos2+1:]
+
+			if !strings.HasPrefix(token, "</") {
+				// try to extract full tag with content, e.g. `<<span>content</span>>`, to optimize diff results
+				if fullTokenRemaining, fullTokenAfter, ok := extractDiffTokenRemainingFullTag(after); ok {
+					return before, "<" + token + fullTokenRemaining + ">", fullTokenAfter, true
+				}
+			}
+			return before, token, after, true
 		case '&':
 			pos2 := strings.IndexByte(s[pos1:], ';')
 			if pos2 == -1 {
@@ -46,8 +84,6 @@ type highlightCodeDiff struct {
 	tokenPlaceholderMap map[string]rune
 
 	placeholderOverflowCount int
-
-	lineWrapperTags []string
 }
 
 func newHighlightCodeDiff() *highlightCodeDiff {
@@ -88,10 +124,6 @@ func (hcd *highlightCodeDiff) collectUsedRunes(code template.HTML) {
 }
 
 func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA, codeB template.HTML) template.HTML {
-	return hcd.diffLineWithHighlightWrapper(nil, lineType, codeA, codeB)
-}
-
-func (hcd *highlightCodeDiff) diffLineWithHighlightWrapper(lineWrapperTags []string, lineType DiffLineType, codeA, codeB template.HTML) template.HTML {
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
@@ -104,16 +136,13 @@ func (hcd *highlightCodeDiff) diffLineWithHighlightWrapper(lineWrapperTags []str
 
 	buf := bytes.NewBuffer(nil)
 
-	// restore the line wrapper tags <span class="line"> and <span class="cl">, if necessary
-	for _, tag := range lineWrapperTags {
-		buf.WriteString(tag)
-	}
-
 	addedCodePrefix := hcd.registerTokenAsPlaceholder(`<span class="added-code">`)
-	removedCodePrefix := hcd.registerTokenAsPlaceholder(`<span class="removed-code">`)
-	codeTagSuffix := hcd.registerTokenAsPlaceholder(`</span>`)
+	addedCodeSuffix := hcd.registerTokenAsPlaceholder(`</span><!-- added-code -->`)
 
-	if codeTagSuffix != 0 {
+	removedCodePrefix := hcd.registerTokenAsPlaceholder(`<span class="removed-code">`)
+	removedCodeSuffix := hcd.registerTokenAsPlaceholder(`</span><!-- removed-code -->`)
+
+	if removedCodeSuffix != 0 {
 		for _, diff := range diffs {
 			switch {
 			case diff.Type == diffmatchpatch.DiffEqual:
@@ -121,11 +150,11 @@ func (hcd *highlightCodeDiff) diffLineWithHighlightWrapper(lineWrapperTags []str
 			case diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd:
 				buf.WriteRune(addedCodePrefix)
 				buf.WriteString(diff.Text)
-				buf.WriteRune(codeTagSuffix)
+				buf.WriteRune(addedCodeSuffix)
 			case diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel:
 				buf.WriteRune(removedCodePrefix)
 				buf.WriteString(diff.Text)
-				buf.WriteRune(codeTagSuffix)
+				buf.WriteRune(removedCodeSuffix)
 			}
 		}
 	} else {
@@ -136,9 +165,6 @@ func (hcd *highlightCodeDiff) diffLineWithHighlightWrapper(lineWrapperTags []str
 				buf.WriteString(diff.Text)
 			}
 		}
-	}
-	for range lineWrapperTags {
-		buf.WriteString("</span>")
 	}
 	return hcd.recoverOneDiff(buf.String())
 }
@@ -160,33 +186,26 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlContent template.HTML) s
 	var tagStack []string
 	res := strings.Builder{}
 
-	firstRunForLineTags := hcd.lineWrapperTags == nil
+	htmlCode := strings.TrimSpace(string(htmlContent))
+
+	// the standard chroma highlight HTML is `<span class="line [hl]"><span class="cl"> ... </span></span>`
+	// the line wrapper tags should be removed before diff
+	if strings.HasPrefix(htmlCode, `<span class="line`) || strings.HasPrefix(htmlCode, `<span class="cl"`) {
+		htmlCode = strings.TrimSuffix(htmlCode, "</span>")
+	}
 
 	var beforeToken, token string
 	var valid bool
-
-	htmlCode := string(htmlContent)
-	// the standard chroma highlight HTML is "<span class="line [hl]"><span class="cl"> ... </span></span>"
 	for {
-		beforeToken, token, htmlCode, valid = extractHTMLToken(htmlCode)
+		beforeToken, token, htmlCode, valid = extractDiffToken(htmlCode)
 		if !valid || token == "" {
 			break
 		}
 		// write the content before the token into result string, and consume the token in the string
 		res.WriteString(beforeToken)
 
-		// the line wrapper tags should be removed before diff
-		if strings.HasPrefix(token, `<span class="line`) || strings.HasPrefix(token, `<span class="cl"`) {
-			if firstRunForLineTags {
-				// if this is the first run for converting, save the line wrapper tags for later use, they should be added back
-				hcd.lineWrapperTags = append(hcd.lineWrapperTags, token)
-			}
-			htmlCode = strings.TrimSuffix(htmlCode, "</span>")
-			continue
-		}
-
 		var tokenInMap string
-		if strings.HasSuffix(token, "</") { // for closing tag
+		if strings.HasPrefix(token, "</") { // for closing tag
 			if len(tagStack) == 0 {
 				break // invalid diff result, no opening tag but see closing tag
 			}
@@ -194,10 +213,16 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlContent template.HTML) s
 			// the closing tag will be recorded in the map by key "</span><!-- <span the-opening> -->" for "<span the-opening>"
 			tokenInMap = token + "<!-- " + tagStack[len(tagStack)-1] + "-->"
 			tagStack = tagStack[:len(tagStack)-1]
-		} else if token[0] == '<' { // for opening tag
-			tokenInMap = token
-			tagStack = append(tagStack, token)
-		} else if token[0] == '&' { // for html entity
+		} else if token[0] == '<' {
+			if token[1] == '<' {
+				// full tag `<<span>content</span>>`, recover to `<span>content</span>`
+				tokenInMap = token
+			} else {
+				// opening tag
+				tokenInMap = token
+				tagStack = append(tagStack, token)
+			}
+		} else if token[0] == '&' { // for HTML entity
 			tokenInMap = token
 		} // else: impossible
 
@@ -210,8 +235,13 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlContent template.HTML) s
 			// unfortunately, all private use runes has been exhausted, no more placeholder could be used, no more converting
 			// usually, the exhausting won't occur in real cases, the magnitude of used placeholders is not larger than that of the CSS classes outputted by chroma.
 			hcd.placeholderOverflowCount++
+			if strings.HasPrefix(token, "<<") {
+				pos1 := strings.IndexByte(token, '>')
+				pos2 := strings.LastIndexByte(token, '<')
+				res.WriteString(token[pos1+1 : pos2]) // recover to `content` from "<<span>content</span>>"
+			}
 			if strings.HasPrefix(token, "&") {
-				// when the token is a html entity, something must be outputted even if there is no placeholder.
+				// when the token is an HTML entity, something must be outputted even if there is no placeholder.
 				res.WriteRune(0xFFFD)      // replacement character TODO: how to handle this case more gracefully?
 				res.WriteString(token[1:]) // still output the entity code part, otherwise there will be no diff result.
 			}
@@ -241,10 +271,16 @@ func (hcd *highlightCodeDiff) recoverOneDiff(str string) template.HTML {
 				continue // if no opening tag in stack yet, skip the closing tag
 			}
 			tagStack = tagStack[:len(tagStack)-1]
-		} else if token[0] == '<' { // for opening tag
-			tokenToRecover = token
-			tagStack = append(tagStack, token)
-		} else if token[0] == '&' { // for html entity
+		} else if token[0] == '<' { // for HTML tag
+			if token[1] == '<' {
+				// full tag `<<span>content</span>>`, recover to `<span>content</span>`
+				tokenToRecover = token[1 : len(token)-1]
+			} else {
+				// opening tag
+				tokenToRecover = token
+				tagStack = append(tagStack, token)
+			}
+		} else if token[0] == '&' { // for HTML entity
 			tokenToRecover = token
 		} // else: impossible
 		sb.WriteString(tokenToRecover)
