@@ -51,12 +51,14 @@ func TestOAuth2Application_LoadUser(t *testing.T) {
 
 func TestUserEmails(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
 	t.Run("GetUserEmailsByNames", func(t *testing.T) {
 		// ignore not active user email
 		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "user9"}))
 		assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "user5"}))
 		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "org7"}))
 	})
+
 	cases := []struct {
 		Email string
 		UID   int64
@@ -95,7 +97,6 @@ func TestUserEmails(t *testing.T) {
 		})
 	})
 	t.Run("GetUserByEmail", func(t *testing.T) {
-		defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
 		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
 			user, err := user_model.GetUserByEmail(t.Context(), email)
 			if uid == 0 {
@@ -106,7 +107,6 @@ func TestUserEmails(t *testing.T) {
 				assert.Equal(t, uid, user.ID)
 			}
 		}
-
 		for _, c := range cases {
 			t.Run(c.Email, func(t *testing.T) {
 				testGetUserByEmail(t, c.Email, c.UID)

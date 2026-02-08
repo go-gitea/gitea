@@ -1270,9 +1270,9 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 			continue
 		}
 
-		name, idstr, hasPlus := strings.Cut(noReplyUserNameLower, "+")
+		name, id, hasPlus := strings.Cut(noReplyUserNameLower, "+")
 		if hasPlus {
-			if user, ok := usersByIDs[idstr]; ok {
+			if user, ok := usersByIDs[id]; ok {
 				results[emailLower] = user
 			}
 		} else if user, ok := usersByName[name]; ok {
