@@ -296,8 +296,6 @@ ignore (
 
 replace github.com/jaytaylor/html2text => github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347
 
-replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1
-
 replace github.com/nektos/act => gitea.com/gitea/act v0.261.7-0.20251003180512-ac6e4b751763
 
 replace git.sr.ht/~mariusor/go-xsd-duration => gitea.com/gitea/go-xsd-duration v0.0.0-20220703122237-02e73435a078
