@@ -70,6 +70,12 @@ export function initRepository() {
     initCompReactionSelector();
 
     registerGlobalInitFunc('initRepoPullMergeBox', initRepoPullMergeBox);
+  } else if (pageContent.matches('.page-content.repository.diff')) {
+    initRepoIssueCommentEdit();
+    initRepoIssueCommentDelete();
+    initRepoIssueCodeCommentCancel();
+    initRepoIssueReferenceIssue();
+    initCompReactionSelector();
   }
 
   initUnicodeEscapeButton();
