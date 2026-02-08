@@ -1,7 +1,7 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package container
+package packages
 
 import (
 	"net/http"
@@ -14,10 +14,11 @@ import (
 
 var _ auth.Method = &Auth{}
 
+// conan and container auth
 type Auth struct{}
 
 func (a *Auth) Name() string {
-	return "container"
+	return "packages"
 }
 
 // Verify extracts the user from the Bearer token
@@ -33,9 +34,14 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil, nil
 	}
 
-	u, err := user_model.GetPossibleUserByID(req.Context(), packageMeta.UserID)
-	if err != nil {
-		return nil, err
+	var u *user_model.User
+	if packageMeta.UserID == user_model.ActionsUserID {
+		u = user_model.NewActionsUserWithTaskID(packageMeta.ActionsUserTaskID)
+	} else {
+		u, err = user_model.GetPossibleUserByID(req.Context(), packageMeta.UserID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if packageMeta.Scope != "" {
