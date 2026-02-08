@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -33,7 +34,6 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
 	"code.gitea.io/gitea/routers/api/packages/swift"
 	"code.gitea.io/gitea/routers/api/packages/vagrant"
-	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 )
