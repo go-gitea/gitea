@@ -198,7 +198,12 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 				accessMode = perm.AccessModeRead
 			}
 
-			if taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer); ok {
+			taskID, ok := user_model.GetActionsUserTaskID(ctx.Doer)
+			if ok {
+				if taskID == 0 {
+					ctx.PlainText(http.StatusForbidden, "Invalid Actions task ID")
+					return nil
+				}
 				p, err := access_model.GetActionsUserRepoPermission(ctx, repo, ctx.Doer, taskID)
 				if err != nil {
 					ctx.ServerError("GetActionsUserRepoPermission", err)
@@ -209,7 +214,7 @@ func httpBase(ctx *context.Context, optGitService ...string) *serviceHandler {
 					ctx.PlainText(http.StatusNotFound, "Repository not found")
 					return nil
 				}
-				environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionPerm, p.UnitAccessMode(unitType)))
+				environ = append(environ, fmt.Sprintf("%s=%d", repo_module.EnvActionsTaskID, taskID))
 			} else {
 				p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 				if err != nil {

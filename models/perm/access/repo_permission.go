@@ -104,6 +104,7 @@ func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
 }
 
 func (p *Permission) SetUnitsWithDefaultAccessMode(units []*repo_model.RepoUnit, mode perm_model.AccessMode) {
+	p.AccessMode = mode
 	p.units = units
 	p.unitsMode = make(map[unit.Type]perm_model.AccessMode)
 	for _, u := range p.units {
@@ -268,37 +269,153 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		return perm, err
 	}
 
-	var accessMode perm_model.AccessMode
-	if task.RepoID != repo.ID {
+	if err := repo.LoadUnits(ctx); err != nil {
+		return perm, err
+	}
+
+	if err := repo.LoadOwner(ctx); err != nil {
+		return perm, err
+	}
+
+	actionsUnit, err := repo.GetUnit(ctx, unit.TypeActions)
+	if err != nil {
+		// If Actions unit doesn't exist, return empty permission
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			return perm, nil
+		}
+		return perm, err
+	}
+	actionsCfg := actionsUnit.ActionsConfig()
+
+	// First check if job has explicit permissions stored from workflow YAML
+	var effectivePerms repo_model.ActionsTokenPermissions
+	var jobLoaded bool
+
+	// Only attempt to load job if JobID is set (non-zero)
+	if task.JobID != 0 {
+		if err := task.LoadJob(ctx); err == nil {
+			jobLoaded = true
+		} else {
+			// If loading job fails (e.g. resource doesn't exist), log it but fall back to repo permissions
+			// This prevents 500 errors if the task has a broken job link
+			log.Warn("GetActionsUserRepoPermission: failed to load job %d for task %d: %v", task.JobID, task.ID, err)
+		}
+	}
+
+	if jobLoaded && task.Job != nil && task.Job.TokenPermissions != "" {
+		// Use permissions parsed from workflow YAML (already clamped by repo max settings during insertion)
+		effectivePerms, err = repo_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
+		if err != nil {
+			// Fall back to repository settings if unmarshal fails
+			effectivePerms = actionsCfg.GetDefaultTokenPermissions()
+		}
+	} else {
+		// No workflow permissions or job not found, use repository settings
+		effectivePerms = actionsCfg.GetDefaultTokenPermissions()
+	}
+
+	// ALWAYS clamp at runtime against current configuration (prevents escalation if settings changed)
+	if !actionsCfg.OverrideOrgConfig && repo.Owner.IsOrganization() {
+		orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
+		if err == nil {
+			effectivePerms = orgCfg.ClampPermissions(effectivePerms)
+		}
+	}
+	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
+
+	isSameRepo := task.RepoID == repo.ID
+	maxReadOnly := task.IsForkPullRequest || !isSameRepo
+
+	if maxReadOnly {
+		// Clamp to readonly for PR from forks or cross-repo access
+		effectivePerms = effectivePerms.ClampPermissions(repo_model.GetReadOnlyPermissions())
+	}
+
+	var maxPerm Permission
+
+	// Set up per-unit access modes based on configured permissions
+	maxPerm.units = repo.Units
+	maxPerm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
+	maxPerm.unitsMode[unit.TypeCode] = effectivePerms.Code
+	maxPerm.unitsMode[unit.TypeIssues] = effectivePerms.Issues
+	maxPerm.unitsMode[unit.TypePullRequests] = effectivePerms.PullRequests
+	maxPerm.unitsMode[unit.TypePackages] = effectivePerms.Packages
+	maxPerm.unitsMode[unit.TypeActions] = effectivePerms.Actions
+	maxPerm.unitsMode[unit.TypeWiki] = effectivePerms.Wiki
+	maxPerm.unitsMode[unit.TypeReleases] = effectivePerms.Releases
+	maxPerm.unitsMode[unit.TypeProjects] = effectivePerms.Projects
+
+	// Set base access mode to the maximum of all unit maxPermissions
+	maxMode := perm_model.AccessModeNone
+	for _, mode := range maxPerm.unitsMode {
+		if mode > maxMode {
+			maxMode = mode
+		}
+	}
+	maxPerm.AccessMode = maxMode
+
+	// Check permission like simple user but limit to read-only (PR #36095)
+	// Enhanced to also grant read-only access if isSameRepo is true and target repository is public
+	botPerm, err := GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
+	if err != nil {
+		return perm, err
+	}
+	if botPerm.AccessMode >= perm_model.AccessModeRead {
+		// Public repo allows read access, increase permissions to at least read
+		// Otherwise you cannot access your own repository if your permissions are set to none but the repository is public
+		maxPerm.AccessMode = max(maxPerm.AccessMode, perm_model.AccessModeRead)
+		for _, u := range repo.Units {
+			if botPerm.CanRead(u.Type) {
+				maxPerm.unitsMode[u.Type] = max(maxPerm.unitsMode[u.Type], perm_model.AccessModeRead)
+			}
+		}
+	}
+
+	if isSameRepo {
+		perm = maxPerm
+	} else {
+		// maxReadOnly is true in this case so maxPerm is between none and readonly
+		// Public repo allows read access
+		if botPerm.AccessMode >= perm_model.AccessModeRead {
+			perm = maxPerm
+		}
+
 		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
 		if err != nil || !exist {
 			return perm, err
 		}
-		actionsCfg := repo.MustGetUnit(ctx, unit.TypeActions).ActionsConfig()
-		if !actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) || !taskRepo.IsPrivate {
-			// The task repo can access the current repo only if the task repo is private and
-			// the owner of the task repo is a collaborative owner of the current repo.
-			// FIXME should owner's visibility also be considered here?
 
-			// check permission like simple user but limit to read-only
-			perm, err = GetUserRepoPermission(ctx, repo, user_model.NewActionsUser())
+		// Check Organization Cross-Repo Access Policy
+		if err := repo.LoadOwner(ctx); err != nil {
+			return perm, err
+		}
+
+		if repo.OwnerID == taskRepo.OwnerID && repo.Owner.IsOrganization() {
+			orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
 			if err != nil {
 				return perm, err
 			}
-			perm.AccessMode = min(perm.AccessMode, perm_model.AccessModeRead)
+			if orgCfg.IsRepoAllowedCrossAccess(repo.ID) {
+				// Access allowed by Org policy
+				// No access if maxPerm is none for used unit
+				perm = maxPerm
+				return perm, nil
+			}
+		}
+
+		// Check Collaborative Owner and explicit Bot permissions
+		// We allow access if:
+		// 1. It's a collaborative owner relationship
+		// 2. The Actions Bot user has been explicitly granted access and repository is private
+		// 3. The repository is public (and not explicitly blocked by Org policy above)
+
+		if taskRepo.IsPrivate && actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) {
+			// No access if maxPerm is none for used unit
+			perm = maxPerm
 			return perm, nil
 		}
-		accessMode = perm_model.AccessModeRead
-	} else if task.IsForkPullRequest {
-		accessMode = perm_model.AccessModeRead
-	} else {
-		accessMode = perm_model.AccessModeWrite
 	}
 
-	if err := repo.LoadUnits(ctx); err != nil {
-		return perm, err
-	}
-	perm.SetUnitsWithDefaultAccessMode(repo.Units, accessMode)
 	return perm, nil
 }
 
