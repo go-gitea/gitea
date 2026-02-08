@@ -131,7 +131,7 @@ func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store 
 func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
 	parseBasicRet := b.parseAuthBasic(req)
 	authToken, uname, passwd := parseBasicRet.authToken, parseBasicRet.uname, parseBasicRet.passwd
-	if authToken == "" &&  uname == "" {
+	if authToken == "" && uname == "" {
 		return nil, nil
 	}
 	u, err := b.VerifyAuthToken(req, w, store, sess, authToken)
