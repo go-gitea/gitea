@@ -15,6 +15,7 @@
     "@github/relative-time-element": "5.0.0",
     "@github/text-expander-element": "2.9.4",
     "@mcaptcha/vanilla-glue": "0.1.0-alpha-3",
+    "@mermaid-js/layout-elk": "0.2.0",
     "@primer/octicons": "19.21.2",
     "@resvg/resvg-wasm": "2.6.2",
     "@silverwind/vue3-calendar-heatmap": "2.1.1",

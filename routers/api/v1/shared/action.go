@@ -32,11 +32,12 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
+	listOptions := utils.GetListOptions(ctx)
 	opts := actions_model.FindRunJobOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
 		RunID:       runID,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	}
 	for _, status := range ctx.FormStrings("status") {
 		values, err := convertToInternal(status)
@@ -78,7 +79,8 @@ func ListJobs(ctx *context.APIContext, ownerID, repoID, runID int64) {
 		}
 		res.Entries[i] = convertedWorkflowJob
 	}
-
+	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &res)
 }
 
@@ -120,10 +122,11 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 	if ownerID != 0 && repoID != 0 {
 		setting.PanicInDevOrTesting("ownerID and repoID should not be both set")
 	}
+	listOptions := utils.GetListOptions(ctx)
 	opts := actions_model.FindRunOptions{
 		OwnerID:     ownerID,
 		RepoID:      repoID,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	}
 
 	if event := ctx.FormString("event"); event != "" {
@@ -182,6 +185,7 @@ func ListRuns(ctx *context.APIContext, ownerID, repoID int64) {
 		}
 		res.Entries[i] = convertedRun
 	}
-
+	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &res)
 }
