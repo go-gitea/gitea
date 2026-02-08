@@ -1,10 +1,7 @@
 {{$pageMeta := .}}
 {{$data := .AssigneesData}}
-{{$hasAssignees := and $pageMeta.Issue (gt (len $pageMeta.Issue.Assignees) 0)}}
-{{$listLink := printf "%s/issues" $pageMeta.RepoLink}}
-{{if $pageMeta.IsPullRequest}}
-{{$listLink = printf "%s/pulls" $pageMeta.RepoLink}}
-{{end}}
+{{$issueAssignees := Iif $pageMeta.Issue $pageMeta.Issue.Assignees nil}}
+{{$listBaseLink := print $pageMeta.RepoLink (Iif $pageMeta.IsPullRequest "/pulls" "/issues")}}
 <div class="divider"></div>
 <div class="issue-sidebar-combo" data-selection-mode="multiple" data-update-algo="diff"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/assignee?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
@@ -23,7 +20,7 @@
 				<div class="item clear-selection" data-text="">{{ctx.Locale.Tr "repo.issues.new.clear_assignees"}}</div>
 				<div class="divider"></div>
 				{{range $data.CandidateAssignees}}
-					<a class="item" href="{{QueryBuild $listLink "assignee" .ID}}" data-value="{{.ID}}">
+					<a class="item" href="{{$listBaseLink}}?assignee={{.ID}}" data-value="{{.ID}}">
 						<span class="item-check-mark">{{svg "octicon-check"}}</span>
 						{{ctx.AvatarUtils.Avatar . 20}} {{template "repo/search_name" .}}
 					</a>
@@ -32,6 +29,11 @@
 		</div>
 	</div>
 	<div class="ui relaxed list muted-links flex-items-block">
-		<span class="item empty-list {{if $hasAssignees}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
+		<span class="item empty-list {{if $issueAssignees}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_assignees"}}</span>
+		{{range $issueAssignees}}
+		<a class="item" href="{{$listBaseLink}}?assignee={{.ID}}">
+			{{ctx.AvatarUtils.Avatar . 20}} {{.GetDisplayName}}
+		</a>
+		{{end}}
 	</div>
 </div>
