@@ -833,7 +833,7 @@ node_modules: pnpm-lock.yaml
 	@touch .venv
 
 .PHONY: update
-update: update-js update-py ## update js and py dependencies
+update: update-js update-py update-go ## update dependencies
 
 .PHONY: update-js
 update-js: node_modules ## update js dependencies
@@ -850,6 +850,12 @@ update-py: node_modules ## update py dependencies
 	rm -rf .venv uv.lock
 	uv sync
 	@touch .venv
+
+.PHONY: update-go
+update-go:  ## update go dependencies
+	$(GO) get -u ./...
+	$(MAKE) tidy
+	$(MAKE) go-licenses
 
 .PHONY: webpack
 webpack: $(WEBPACK_DEST) ## build webpack files
