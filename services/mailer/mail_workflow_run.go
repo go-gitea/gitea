@@ -165,7 +165,7 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 		if err != nil {
 			return err
 		}
-		if notifyPref == user_model.SettingEmailNotificationGiteaActionsAll || !run.Status.IsSuccess() && notifyPref != user_model.SettingEmailNotificationGiteaActionsDisabled {
+		if notifyPref == user_model.SettingEmailNotificationGiteaActionsAll || run.Status.IsFailure() && notifyPref != user_model.SettingEmailNotificationGiteaActionsDisabled {
 			recipients = append(recipients, sender)
 		}
 	}
