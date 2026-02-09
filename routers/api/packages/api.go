@@ -111,7 +111,7 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 			}
 
 			grantedMode := perms.UnitAccessMode(unit.TypePackages)
-			// DANGER delayed permission checks per package type in hander
+			// DANGER delayed permission checks per package type in handler
 			if taskRepo.OwnerID != ctx.Package.Owner.ID {
 				if ctx.Package.Owner.Visibility.IsPrivate() {
 					grantedMode = perm.AccessModeNone
