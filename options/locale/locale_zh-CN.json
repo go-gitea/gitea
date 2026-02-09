@@ -1635,7 +1635,7 @@
   "repo.issues.cancel_tracking": "取消",
   "repo.issues.cancel_tracking_history": "取消时间跟踪 %s",
   "repo.issues.del_time": "删除此时间跟踪日志",
-  "repo.issues.add_time_history": "于 %[2]s 添加计时 <b>%[1]</b>",
+  "repo.issues.add_time_history": "于 %[2]s 添加计时 <b>%[1]s</b>",
   "repo.issues.del_time_history": "已删除时间 %s",
   "repo.issues.add_time_manually": "手动添加时间",
   "repo.issues.add_time_hours": "小时",
