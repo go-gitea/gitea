@@ -95,9 +95,9 @@ func getProjectIssueIDs(t *testing.T, htmlDoc *HTMLDoc) map[int64]struct{} {
 	ids := make(map[int64]struct{})
 	htmlDoc.doc.Find(".issue-card[data-issue]").Each(func(_ int, s *goquery.Selection) {
 		idStr, exists := s.Attr("data-issue")
-		assert.True(t, exists)
+		require.True(t, exists)
 		id, err := strconv.ParseInt(idStr, 10, 64)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 		ids[id] = struct{}{}
 	})
 	return ids
@@ -184,7 +184,7 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		Title:        "org milestone filter test",
 		OwnerID:      org.ID,
 		Type:         project_model.TypeOrganization,
-		TemplateType: project_model.TemplateTypeNone,
+		TemplateType: project_model.TemplateTypeBasicKanban,
 	}
 	require.NoError(t, project_model.NewProject(t.Context(), &project))
 
@@ -205,7 +205,17 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		req := NewRequest(t, "GET", projectURL)
 		resp := sess.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
+		// Debug: print column count and issue card count
+		columnCount := htmlDoc.doc.Find(".project-column").Length()
+		cardCount := htmlDoc.doc.Find(".issue-card").Length()
+		t.Logf("Columns: %d, Cards: %d", columnCount, cardCount)
+		htmlDoc.doc.Find(".project-column").Each(func(i int, s *goquery.Selection) {
+			title := s.Find(".project-column-title-text").Text()
+			cards := s.Find(".issue-card").Length()
+			t.Logf("Column %d: title=%q, cards=%d", i, title, cards)
+		})
 		issueIDs := getProjectIssueIDs(t, htmlDoc)
+		t.Logf("Found issue IDs: %v", issueIDs)
 		assert.Contains(t, issueIDs, issue6.ID)
 		assert.Contains(t, issueIDs, issue12.ID)
 	})

@@ -347,7 +347,11 @@ func ViewProject(ctx *context.Context) {
 		AssigneeID:   assigneeID,
 		MilestoneIDs: milestoneIDs,
 		Owner:        project.Owner,
-		Doer:         ctx.Doer,
+	}
+	if ctx.Doer != nil {
+		opts.Doer = ctx.Doer
+	} else {
+		opts.AllPublic = true
 	}
 
 	issuesMap, err := project_service.LoadIssuesFromProject(ctx, project, &opts)
@@ -436,9 +440,10 @@ func ViewProject(ctx *context.Context) {
 	} else {
 		// Organization-wide project - get milestones from all organization repos
 		// but only from repositories the current user can access
+		includePrivate := ctx.Doer != nil
 		repoIDs, _, err := repo_model.SearchRepositoryIDs(ctx, repo_model.SearchRepoOptions{
 			Actor:   ctx.Doer,
-			Private: true,
+			Private: includePrivate,
 			OwnerID: project.OwnerID,
 		})
 		if err != nil {
