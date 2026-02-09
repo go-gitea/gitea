@@ -13,21 +13,47 @@ import {localUserSettings} from '../modules/user-settings.ts';
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
 type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
 
-type StepContainerElement = HTMLElement & {_stepLogsActiveContainer?: HTMLElement}
+type StepContainerElement = HTMLElement & {
+  // To remember the last active logs container, for example: a batch of logs only starts a group but doesn't end it,
+  // then the following batches of logs should still use the same group (active logs container).
+  // maybe it can be refactored to decouple from the HTML element in the future.
+  _stepLogsActiveContainer?: HTMLElement;
+}
 
-type LogLine = {
+export type LogLine = {
   index: number;
   timestamp: number;
   message: string;
 };
 
-const LogLinePrefixesGroup = ['::group::', '##[group]'];
-const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
 
+type LogLineCommandName = 'group' | 'endgroup' | 'command' | 'error' | 'hidden';
 type LogLineCommand = {
-  name: 'group' | 'endgroup',
+  name: LogLineCommandName,
   prefix: string,
 }
+
+// How GitHub Actions logs work:
+// * Workflow command outputs log commands like "::group::the-title", "::add-matcher::...."
+// * Workflow runner parses and processes the commands to "##[group]", apply "matchers", hide secrets, etc.
+// * The reported logs are the processed logs.
+// HOWEVER: Gitea runner does not completely process those commands. Many works are done by the frontend at the moment.
+const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
+  '::group::': 'group',
+  '##[group]': 'group',
+  '::endgroup::': 'endgroup',
+  '##[endgroup]': 'endgroup',
+
+  '##[error]': 'error',
+  '[command]': 'command',
+
+  // https://github.com/actions/toolkit/blob/master/docs/commands.md
+  // https://github.com/actions/runner/blob/main/docs/adrs/0276-problem-matchers.md#registration
+  '::add-matcher::': 'hidden',
+  '##[add-matcher]': 'hidden',
+  '::remove-matcher': 'hidden', // it has arguments
+};
+
 
 type Job = {
   id: number;
@@ -49,18 +75,27 @@ type JobStepState = {
   manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
 }
 
-function parseLineCommand(line: LogLine): LogLineCommand | null {
-  for (const prefix of LogLinePrefixesGroup) {
+export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
+  // TODO: in the future it can be refactored to be a general parser that can parse arguments, drop the "prefix match"
+  for (const prefix in LogLinePrefixCommandMap) {
     if (line.message.startsWith(prefix)) {
-      return {name: 'group', prefix};
-    }
-  }
-  for (const prefix of LogLinePrefixesEndGroup) {
-    if (line.message.startsWith(prefix)) {
-      return {name: 'endgroup', prefix};
+      return {name: LogLinePrefixCommandMap[prefix], prefix};
     }
   }
   return null;
+}
+
+export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
+  const logMsgAttrs = {class: 'log-msg'};
+  if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd?.name}`; // make it easier to add styles to some commands like "error"
+
+  // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
+  // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
+  const msgContent = cmd ? line.message.substring(cmd.prefix.length) : line.message;
+
+  const logMsg = createElementFromAttrs('span', logMsgAttrs);
+  logMsg.innerHTML = renderAnsi(msgContent);
+  return logMsg;
 }
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
@@ -236,11 +271,7 @@ export default defineComponent({
     beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
       const el = (this.$refs.logs as any)[stepIndex] as StepContainerElement;
       const elJobLogGroupSummary = createElementFromAttrs('summary', {class: 'job-log-group-summary'},
-        this.createLogLine(stepIndex, startTime, {
-          index: line.index,
-          timestamp: line.timestamp,
-          message: line.message.substring(cmd.prefix.length),
-        }),
+        this.createLogLine(stepIndex, startTime, line, cmd),
       );
       const elJobLogList = createElementFromAttrs('div', {class: 'job-log-list'});
       const elJobLogGroup = createElementFromAttrs('details', {class: 'job-log-group'},
@@ -254,11 +285,7 @@ export default defineComponent({
     endLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
       const el = (this.$refs.logs as any)[stepIndex];
       el._stepLogsActiveContainer = null;
-      el.append(this.createLogLine(stepIndex, startTime, {
-        index: line.index,
-        timestamp: line.timestamp,
-        message: line.message.substring(cmd.prefix.length),
-      }));
+      el.append(this.createLogLine(stepIndex, startTime, line, cmd));
     },
 
     // show/hide the step logs for a step
@@ -279,7 +306,7 @@ export default defineComponent({
       POST(`${this.run.link}/approve`);
     },
 
-    createLogLine(stepIndex: number, startTime: number, line: LogLine) {
+    createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand | null) {
       const lineNum = createElementFromAttrs('a', {class: 'line-num muted', href: `#jobstep-${stepIndex}-${line.index}`},
         String(line.index),
       );
@@ -288,9 +315,7 @@ export default defineComponent({
         formatDatetime(new Date(line.timestamp * 1000)), // for "Show timestamps"
       );
 
-      const logMsg = createElementFromAttrs('span', {class: 'log-msg'});
-      logMsg.innerHTML = renderAnsi(line.message);
-
+      const logMsg = createLogLineMessage(line, cmd);
       const seconds = Math.floor(line.timestamp - startTime);
       const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
         `${seconds}s`, // for "Show seconds"
@@ -315,16 +340,20 @@ export default defineComponent({
 
     appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
       for (const line of logLines) {
-        const el = this.getActiveLogsContainer(stepIndex);
-        const cmd = parseLineCommand(line);
-        if (cmd?.name === 'group') {
-          this.beginLogGroup(stepIndex, startTime, line, cmd);
-          continue;
-        } else if (cmd?.name === 'endgroup') {
-          this.endLogGroup(stepIndex, startTime, line, cmd);
-          continue;
+        const cmd = parseLogLineCommand(line);
+        switch (cmd?.name) {
+          case 'hidden':
+            continue;
+          case 'group':
+            this.beginLogGroup(stepIndex, startTime, line, cmd);
+            continue;
+          case 'endgroup':
+            this.endLogGroup(stepIndex, startTime, line, cmd);
+            continue;
         }
-        el.append(this.createLogLine(stepIndex, startTime, line));
+        // the active logs container may change during the loop, for example: entering and leaving a group
+        const el = this.getActiveLogsContainer(stepIndex);
+        el.append(this.createLogLine(stepIndex, startTime, line, cmd));
       }
     },
 
@@ -974,6 +1003,14 @@ export default defineComponent({
   white-space: break-spaces;
   margin-left: 10px;
   overflow-wrap: anywhere;
+}
+
+.job-step-logs .job-log-line .log-cmd-command {
+  color: var(--color-ansi-blue);
+}
+
+.job-step-logs .job-log-line .log-cmd-error {
+  color: var(--color-ansi-red);
 }
 
 /* selectors here are intentionally exact to only match fullscreen */

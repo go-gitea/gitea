@@ -5,6 +5,7 @@ package test
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"io"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // RedirectURL returns the redirect URL of a http response.
@@ -81,4 +83,41 @@ func ReadAllTarGzContent(r io.Reader) (map[string]string, error) {
 		content[hd.Name] = string(buf)
 	}
 	return content, nil
+}
+
+func WriteTarArchive(files map[string]string) *bytes.Buffer {
+	return WriteTarCompression(func(w io.Writer) io.WriteCloser { return util.NopCloser{Writer: w} }, files)
+}
+
+func WriteTarCompression[F func(io.Writer) io.WriteCloser | func(io.Writer) (io.WriteCloser, error)](compression F, files map[string]string) *bytes.Buffer {
+	buf := &bytes.Buffer{}
+	var cw io.WriteCloser
+	switch compressFunc := any(compression).(type) {
+	case func(io.Writer) io.WriteCloser:
+		cw = compressFunc(buf)
+	case func(io.Writer) (io.WriteCloser, error):
+		cw, _ = compressFunc(buf)
+	}
+	tw := tar.NewWriter(cw)
+
+	for name, content := range files {
+		hdr := &tar.Header{
+			Name: name,
+			Mode: 0o600,
+			Size: int64(len(content)),
+		}
+		_ = tw.WriteHeader(hdr)
+		_, _ = tw.Write([]byte(content))
+	}
+	_ = tw.Close()
+	_ = cw.Close()
+	return buf
+}
+
+func CompressGzip(content string) *bytes.Buffer {
+	buf := &bytes.Buffer{}
+	cw := gzip.NewWriter(buf)
+	_, _ = cw.Write([]byte(content))
+	_ = cw.Close()
+	return buf
 }

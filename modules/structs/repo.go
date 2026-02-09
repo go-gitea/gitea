@@ -58,26 +58,27 @@ type Repository struct {
 	Fork        bool   `json:"fork"`
 	Template    bool   `json:"template"`
 	// the original repository if this repository is a fork, otherwise null
-	Parent        *Repository `json:"parent,omitempty"`
-	Mirror        bool        `json:"mirror"`
-	Size          int         `json:"size"`
-	Language      string      `json:"language"`
-	LanguagesURL  string      `json:"languages_url"`
-	HTMLURL       string      `json:"html_url"`
-	URL           string      `json:"url"`
-	Link          string      `json:"link"`
-	SSHURL        string      `json:"ssh_url"`
-	CloneURL      string      `json:"clone_url"`
-	OriginalURL   string      `json:"original_url"`
-	Website       string      `json:"website"`
-	Stars         int         `json:"stars_count"`
-	Forks         int         `json:"forks_count"`
-	Watchers      int         `json:"watchers_count"`
-	OpenIssues    int         `json:"open_issues_count"`
-	OpenPulls     int         `json:"open_pr_counter"`
-	Releases      int         `json:"release_counter"`
-	DefaultBranch string      `json:"default_branch"`
-	Archived      bool        `json:"archived"`
+	Parent              *Repository `json:"parent,omitempty"`
+	Mirror              bool        `json:"mirror"`
+	Size                int         `json:"size"`
+	Language            string      `json:"language"`
+	LanguagesURL        string      `json:"languages_url"`
+	HTMLURL             string      `json:"html_url"`
+	URL                 string      `json:"url"`
+	Link                string      `json:"link"`
+	SSHURL              string      `json:"ssh_url"`
+	CloneURL            string      `json:"clone_url"`
+	OriginalURL         string      `json:"original_url"`
+	Website             string      `json:"website"`
+	Stars               int         `json:"stars_count"`
+	Forks               int         `json:"forks_count"`
+	Watchers            int         `json:"watchers_count"`
+	OpenIssues          int         `json:"open_issues_count"`
+	OpenPulls           int         `json:"open_pr_counter"`
+	Releases            int         `json:"release_counter"`
+	DefaultBranch       string      `json:"default_branch"`
+	DefaultTargetBranch string      `json:"default_target_branch,omitempty"`
+	Archived            bool        `json:"archived"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
