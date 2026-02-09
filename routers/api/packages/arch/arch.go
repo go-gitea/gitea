@@ -13,7 +13,6 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	arch_module "code.gitea.io/gitea/modules/packages/arch"
@@ -67,16 +66,6 @@ func UploadPackageFile(ctx *context.Context) {
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		return
-	}
-
-	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeArch, pck.Name)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		apiError(ctx, http.StatusForbidden, "permission denied")
 		return
 	}
 

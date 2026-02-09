@@ -11,7 +11,6 @@ import (
 	"unicode"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/context"
@@ -81,16 +80,6 @@ func UploadPackage(ctx *context.Context) {
 
 	if !isValidFileName(filename) {
 		apiError(ctx, http.StatusBadRequest, errors.New("invalid filename"))
-		return
-	}
-
-	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeGeneric, packageName)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		apiError(ctx, http.StatusForbidden, "permission denied")
 		return
 	}
 

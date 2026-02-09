@@ -12,7 +12,6 @@ import (
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	goproxy_module "code.gitea.io/gitea/modules/packages/goproxy"
@@ -177,16 +176,6 @@ func UploadPackage(ctx *context.Context) {
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		return
-	}
-
-	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeGo, pck.Name)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		apiError(ctx, http.StatusForbidden, "permission denied")
 		return
 	}
 

@@ -164,16 +164,6 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeNpm, npmPackage.Name)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		apiError(ctx, http.StatusForbidden, "permission denied")
-		return
-	}
-
 	repo, err := repo_model.GetRepositoryByURLRelax(ctx, npmPackage.Metadata.Repository.URL)
 	if err == nil {
 		canWrite := repo.OwnerID == ctx.Doer.ID

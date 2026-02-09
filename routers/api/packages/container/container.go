@@ -18,7 +18,6 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
-	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
@@ -237,16 +236,6 @@ func GetRepositoryList(ctx *context.Context) {
 func PostBlobsUploads(ctx *context.Context) {
 	image := ctx.PathParam("image")
 
-	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeContainer, image)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		apiError(ctx, http.StatusForbidden, util.ErrPermissionDenied)
-		return
-	}
-
 	mount := ctx.FormTrim("mount")
 	from := ctx.FormTrim("from")
 	if mount != "" {
@@ -410,16 +399,6 @@ func PatchBlobsUpload(ctx *context.Context) {
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
 func PutBlobsUpload(ctx *context.Context) {
 	image := ctx.PathParam("image")
-
-	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeContainer, image)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		apiError(ctx, http.StatusForbidden, util.ErrPermissionDenied)
-		return
-	}
 
 	digest := ctx.FormTrim("digest")
 	if digest == "" {

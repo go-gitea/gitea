@@ -4,10 +4,12 @@
 package packages
 
 import (
+	"errors"
 	"net/http"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/perm/access"
 	repo_perm_model "code.gitea.io/gitea/models/repo"
@@ -104,28 +106,64 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 				ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID", err.Error())
 				return
 			}
-			perms, err := access.GetActionsUserRepoPermission(ctx, taskRepo, ctx.Doer, taskID)
+
+			// BEGIN ==========BROKEN==========
+			// FIXME Get Packages for all types
+			var packageRepoID int64
+			var hasPackage bool
+			if ctx.Package.Descriptor != nil && ctx.Package.Descriptor.Package != nil {
+				packageRepoID = ctx.Package.Descriptor.Package.RepoID
+				hasPackage = true
+			}
+
+			// If package is not linked to any repo (org-level package), deny access from Actions
+			// Actions tokens should only access packages linked to repos
+			if !hasPackage {
+				if packageName := ctx.PathParam("packagename"); packageName != "" && ctx.Package.Owner != nil {
+					pkg, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, packageName)
+					if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
+						ctx.HTTPError(http.StatusInternalServerError, "GetPackageByName", err.Error())
+						return
+					}
+					if pkg != nil {
+						packageRepoID = pkg.RepoID
+						hasPackage = true
+					}
+				}
+			}
+			var perms access.Permission
+
+			if hasPackage && packageRepoID != task.RepoID {
+				// TODO support accessing public packages
+				// Refactor GetActionsUserRepoPermission to be partially reusable in this case
+				if packageRepoID == 0 {
+					ctx.HTTPError(http.StatusNotFound, "GetActionsUserRepoPermission", "unlinked package cannot be accessed by actions")
+					return
+				}
+				packageRepo, repoErr := repo_perm_model.GetRepositoryByID(ctx, packageRepoID)
+				if repoErr != nil {
+					ctx.HTTPError(http.StatusInternalServerError, "GetRepositoryByID", repoErr.Error())
+					return
+				}
+				perms, err = access.GetActionsUserRepoPermission(ctx, packageRepo, ctx.Doer, taskID)
+			} else {
+				// Linked package / to be linked package
+				// FIXME non existent package has a security problem, since the hasPackage code is wrong
+				perms, err = access.GetActionsUserRepoPermission(ctx, taskRepo, ctx.Doer, taskID)
+			}
 			if err != nil {
 				ctx.HTTPError(http.StatusInternalServerError, "GetActionsUserRepoPermission", err.Error())
 				return
 			}
 
 			grantedMode := perms.UnitAccessMode(unit.TypePackages)
-			// DANGER delayed permission checks per package type in handler
-			if taskRepo.OwnerID != ctx.Package.Owner.ID {
-				if ctx.Package.Owner.Visibility.IsPrivate() {
-					grantedMode = perm.AccessModeNone
-				} else {
-					// Clamp to readonly for public foreign org packages
-					grantedMode = max(grantedMode, perm.AccessModeRead)
-				}
-			}
 
 			// If all security checks pass, ensure the context has at least the granted permission.
 			// This effectively "boosts" the Actions token's permissions for the targeted package.
 			if ctx.Package.AccessMode < grantedMode {
 				ctx.Package.AccessMode = grantedMode
 			}
+			// END ==========BROKEN============
 		}
 
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
