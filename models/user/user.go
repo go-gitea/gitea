@@ -1240,7 +1240,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 		}
 	}
 
-	usersByIDs := make(map[string]*User)
+	usersByIDs := make(map[int64]*User)
 	if len(needCheckUserIDs) > 0 || len(needCheckUserNames) > 0 {
 		cond := builder.NewCond()
 		if len(needCheckUserIDs) > 0 {
@@ -1272,8 +1272,10 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 
 		name, id, hasPlus := strings.Cut(noReplyUserNameLower, "+")
 		if hasPlus {
-			if user, ok := usersByIDs[id]; ok {
-				results[emailLower] = user
+			if id, err := strconv.ParseInt(id, 10, 64); err != nil {
+				if user, ok := usersByIDs[id]; ok {
+					results[emailLower] = user
+				}
 			}
 		} else if user, ok := usersByName[name]; ok {
 			results[emailLower] = user
@@ -1307,8 +1309,8 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 		if isAlias {
 			id, err := strconv.ParseInt(id, 10, 64)
 			if err != nil {
-				return nil, err
-			} // error or UserNotExist?
+				return nil, ErrUserNotExist{Name: email}
+			}
 			return GetUserByID(ctx, id)
 		}
 		return GetUserByName(ctx, username)
