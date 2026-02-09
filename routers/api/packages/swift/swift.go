@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/perm/access"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
@@ -353,7 +353,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeSwift, buildPackageID(packageScope, packageName))
+	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeSwift, buildPackageID(packageScope, packageName))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

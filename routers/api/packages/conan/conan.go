@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
-	"code.gitea.io/gitea/models/perm/access"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -332,7 +332,7 @@ func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey 
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
-	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name)
+	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

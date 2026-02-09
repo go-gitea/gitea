@@ -13,7 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/perm/access"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	debian_module "code.gitea.io/gitea/modules/packages/debian"
 	"code.gitea.io/gitea/modules/util"
@@ -154,7 +154,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeDebian, pck.Name)
+	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeDebian, pck.Name)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

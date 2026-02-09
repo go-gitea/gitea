@@ -12,7 +12,7 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	conda_model "code.gitea.io/gitea/models/packages/conda"
-	"code.gitea.io/gitea/models/perm/access"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	conda_module "code.gitea.io/gitea/modules/packages/conda"
@@ -242,7 +242,7 @@ func UploadPackageFile(ctx *context.Context) {
 		extension = ".conda"
 	}
 
-	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeConda, fullName)
+	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeConda, fullName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

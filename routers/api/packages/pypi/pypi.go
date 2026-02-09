@@ -14,7 +14,7 @@ import (
 	"unicode"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/perm/access"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/setting"
@@ -142,7 +142,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypePyPI, packageName)
+	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypePyPI, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

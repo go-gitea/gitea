@@ -18,7 +18,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
-	"code.gitea.io/gitea/models/perm/access"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
@@ -237,7 +237,7 @@ func GetRepositoryList(ctx *context.Context) {
 func PostBlobsUploads(ctx *context.Context) {
 	image := ctx.PathParam("image")
 
-	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeContainer, image)
+	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeContainer, image)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -411,7 +411,7 @@ func PatchBlobsUpload(ctx *context.Context) {
 func PutBlobsUpload(ctx *context.Context) {
 	image := ctx.PathParam("image")
 
-	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeContainer, image)
+	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeContainer, image)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

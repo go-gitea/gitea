@@ -12,7 +12,7 @@ import (
 	"time"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/perm/access"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	goproxy_module "code.gitea.io/gitea/modules/packages/goproxy"
@@ -180,7 +180,7 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeGo, pck.Name)
+	ok, err := access_model.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeGo, pck.Name)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
