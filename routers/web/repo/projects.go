@@ -311,6 +311,9 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	preparedLabelFilter := issue.PrepareFilterIssueLabels(ctx, ctx.Repo.Repository.ID, ctx.Repo.Owner)
+	if ctx.Written() {
+		return
+	}
 
 	assigneeID := ctx.FormString("assignee")
 	milestoneID := ctx.FormInt64("milestone")

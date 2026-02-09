@@ -13,7 +13,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
-	attachment_model "code.gitea.io/gitea/models/repo"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/optional"
@@ -338,7 +338,7 @@ func ViewProject(ctx *context.Context) {
 	var milestoneIDs []int64
 	if milestoneID > 0 {
 		milestoneIDs = []int64{milestoneID}
-	} else if milestoneID == -1 {
+	} else if milestoneID == db.NoConditionID {
 		milestoneIDs = []int64{db.NoConditionID}
 	}
 
@@ -360,10 +360,10 @@ func ViewProject(ctx *context.Context) {
 	}
 
 	if project.CardType != project_model.CardTypeTextOnly {
-		issuesAttachmentMap := make(map[int64][]*attachment_model.Attachment)
+		issuesAttachmentMap := make(map[int64][]*repo_model.Attachment)
 		for _, issuesList := range issuesMap {
 			for _, issue := range issuesList {
-				if issueAttachment, err := attachment_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
+				if issueAttachment, err := repo_model.GetAttachmentsByIssueIDImagesLatest(ctx, issue.ID); err == nil {
 					issuesAttachmentMap[issue.ID] = issueAttachment
 				}
 			}
@@ -435,20 +435,15 @@ func ViewProject(ctx *context.Context) {
 		}
 	} else {
 		// Organization-wide project - get milestones from all organization repos
-		// Get repos owned by the organization
-		repos, _, err := attachment_model.GetUserRepositories(ctx, attachment_model.SearchRepoOptions{
-			Actor:   project.Owner,
+		// but only from repositories the current user can access
+		repoIDs, _, err := repo_model.SearchRepositoryIDs(ctx, repo_model.SearchRepoOptions{
+			Actor:   ctx.Doer,
 			Private: true,
 			OwnerID: project.OwnerID,
 		})
 		if err != nil {
-			ctx.ServerError("GetUserRepositories", err)
+			ctx.ServerError("SearchRepositoryIDs", err)
 			return
-		}
-
-		repoIDs := make([]int64, 0, len(repos))
-		for _, repo := range repos {
-			repoIDs = append(repoIDs, repo.ID)
 		}
 
 		if len(repoIDs) > 0 {
