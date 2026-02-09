@@ -20,6 +20,7 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -250,6 +251,17 @@ func UploadPackageFile(ctx *context.Context) {
 	if ctx.FormBool("use_legacy_package_name") {
 		// for testing purpose only
 		packageName = params.toInternalPackageNameLegacy()
+	}
+
+	// DANGER check both old and new package names, since both are accessed later
+	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeMaven, packageName, params.toInternalPackageNameLegacy())
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !ok {
+		apiError(ctx, http.StatusForbidden, "permission denied")
+		return
 	}
 
 	// for the same package, only one upload at a time

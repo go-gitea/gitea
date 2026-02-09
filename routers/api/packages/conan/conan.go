@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
+	"code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -330,6 +331,16 @@ func UploadPackageFile(ctx *context.Context) {
 func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
+
+	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeConan, rref.Name)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !ok {
+		apiError(ctx, http.StatusForbidden, "permission denied")
+		return
+	}
 
 	filename := ctx.PathParam("filename")
 	if !fileFilter.Contains(filename) {

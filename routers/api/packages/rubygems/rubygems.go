@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
@@ -222,6 +223,16 @@ func UploadPackageFile(ctx *context.Context) {
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
+		return
+	}
+
+	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeRubyGems, rp.Name)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !ok {
+		apiError(ctx, http.StatusForbidden, "permission denied")
 		return
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {

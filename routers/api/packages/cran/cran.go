@@ -13,6 +13,7 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	cran_model "code.gitea.io/gitea/models/packages/cran"
+	"code.gitea.io/gitea/models/perm/access"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	cran_module "code.gitea.io/gitea/modules/packages/cran"
 	"code.gitea.io/gitea/modules/util"
@@ -173,6 +174,16 @@ func uploadPackageFile(ctx *context.Context, compositeKey string, properties map
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
+		return
+	}
+
+	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeCran, pck.Name)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !ok {
+		apiError(ctx, http.StatusForbidden, "permission denied")
 		return
 	}
 

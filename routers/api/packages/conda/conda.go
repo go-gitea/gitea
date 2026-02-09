@@ -12,6 +12,7 @@ import (
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	conda_model "code.gitea.io/gitea/models/packages/conda"
+	"code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/modules/json"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	conda_module "code.gitea.io/gitea/modules/packages/conda"
@@ -239,6 +240,16 @@ func UploadPackageFile(ctx *context.Context) {
 	extension := ".tar.bz2"
 	if pck.FileMetadata.IsCondaPackage {
 		extension = ".conda"
+	}
+
+	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeConda, fullName)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if !ok {
+		apiError(ctx, http.StatusForbidden, "permission denied")
+		return
 	}
 
 	fileMetadataRaw, err := json.Marshal(pck.FileMetadata)
