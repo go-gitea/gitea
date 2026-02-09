@@ -378,6 +378,7 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		// Public repo allows read access
 		if botPerm.AccessMode >= perm_model.AccessModeRead {
 			perm = maxPerm
+			return perm, nil
 		}
 
 		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
