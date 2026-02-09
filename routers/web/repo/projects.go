@@ -318,7 +318,7 @@ func ViewProject(ctx *context.Context) {
 	var milestoneIDs []int64
 	if milestoneID > 0 {
 		milestoneIDs = []int64{milestoneID}
-	} else if milestoneID == -1 {
+	} else if milestoneID == db.NoConditionID {
 		milestoneIDs = []int64{db.NoConditionID}
 	}
 
