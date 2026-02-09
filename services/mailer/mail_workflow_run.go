@@ -156,23 +156,26 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 	if !run.Status.IsDone() || run.Status.IsSkipped() {
 		return nil
 	}
+	if sender.IsGiteaActions() || sender.IsGhost() || !sender.IsMailable() {
+		return nil
+	}
 
-	recipients := make([]*user_model.User, 0)
-
-	if !sender.IsGiteaActions() && !sender.IsGhost() && sender.IsMailable() {
-		notifyPref, err := user_model.GetUserSetting(ctx, sender.ID,
-			user_model.SettingsKeyEmailNotificationGiteaActions, user_model.SettingEmailNotificationGiteaActionsFailureOnly)
-		if err != nil {
-			return err
-		}
-		if notifyPref == user_model.SettingEmailNotificationGiteaActionsAll || run.Status.IsFailure() && notifyPref != user_model.SettingEmailNotificationGiteaActionsDisabled {
-			recipients = append(recipients, sender)
+	notifyPref, err := user_model.GetUserSetting(ctx, sender.ID,
+		user_model.SettingsKeyEmailNotificationGiteaActions, user_model.SettingEmailNotificationGiteaActionsFailureOnly)
+	if err != nil {
+		return err
+	}
+	switch notifyPref {
+	case user_model.SettingEmailNotificationGiteaActionsAll:
+		// send for all statuses
+	case user_model.SettingEmailNotificationGiteaActionsDisabled:
+		return nil
+	default: // failure-only
+		if !run.Status.IsFailure() {
+			return nil
 		}
 	}
 
-	if len(recipients) > 0 {
-		log.Debug("MailActionsTrigger: Initiate email composition")
-		return composeAndSendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, recipients)
-	}
-	return nil
+	log.Debug("MailActionsTrigger: Initiate email composition")
+	return composeAndSendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, []*user_model.User{sender})
 }
