@@ -41,18 +41,19 @@ func FineGrainedPackageWriteCheck(ctx context.Context, doer *user_model.User, ow
 						return false, err
 					}
 				}
-
-				p, err := packages_model.TryInsertPackage(ctx, &packages_model.Package{
-					OwnerID:   ownerID,
-					Name:      pkgName,
-					LowerName: strings.ToLower(pkgName),
-					Type:      pkgType,
-					RepoID:    task.RepoID,
-				})
-				if err != nil {
-					return false, err
+				if pkg == nil {
+					p, err := packages_model.TryInsertPackage(ctx, &packages_model.Package{
+						OwnerID:   ownerID,
+						Name:      pkgName,
+						LowerName: strings.ToLower(pkgName),
+						Type:      pkgType,
+						RepoID:    task.RepoID,
+					})
+					if err != nil {
+						return false, err
+					}
+					pkg = p
 				}
-				pkg = p
 			} else {
 				return false, err
 			}
