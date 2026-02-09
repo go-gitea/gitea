@@ -102,7 +102,7 @@ func GrepSearch(ctx context.Context, repo *Repository, search string, opts GrepO
 				}
 				if line == "" {
 					if len(results) >= opts.MaxResultLimit {
-						return ctx.CancelWithCause(nil)
+						return ctx.CancelPipeline(nil)
 					}
 					isInBlock = false
 					continue

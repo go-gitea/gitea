@@ -331,7 +331,7 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 	if setting.Git.DisableDiffHighlight {
 		return template.HTML(html.EscapeString(diffLine.Content[1:]))
 	}
-	h, _ = highlight.Code(diffSection.FileName, fileLanguage, diffLine.Content[1:])
+	h, _ = highlight.RenderCodeFast(diffSection.FileName, fileLanguage, diffLine.Content[1:])
 	return h
 }
 
@@ -1349,7 +1349,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 
 func highlightCodeLines(diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
 	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
-	highlightedNewContent, _ := highlight.Code(diffFile.Name, diffFile.Language, content)
+	highlightedNewContent, _ := highlight.RenderCodeFast(diffFile.Name, diffFile.Language, content)
 	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
 	lines := make(map[int]template.HTML, len(unsafeLines))
 	// only save the highlighted lines we need, but not the whole file, to save memory

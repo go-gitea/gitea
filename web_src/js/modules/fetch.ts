@@ -22,7 +22,7 @@ export function request(url: string, {method = 'GET', data, headers = {}, ...oth
     headersMerged.set(name, value);
   }
 
-  return fetch(url, {
+  return fetch(url, { // eslint-disable-line no-restricted-globals
     method,
     headers: headersMerged,
     ...other,

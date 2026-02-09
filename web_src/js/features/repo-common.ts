@@ -6,6 +6,7 @@ import RepoActivityTopAuthors from '../components/RepoActivityTopAuthors.vue';
 import {createApp} from 'vue';
 import {toOriginUrl} from '../utils/url.ts';
 import {createTippy} from '../modules/tippy.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 
 async function onDownloadArchive(e: Event) {
   e.preventDefault();
@@ -57,7 +58,7 @@ function initCloneSchemeUrlSelection(parent: Element) {
   const tabSsh = parent.querySelector('.repo-clone-ssh');
   const tabTea = parent.querySelector('.repo-clone-tea');
   const updateClonePanelUi = function() {
-    let scheme = localStorage.getItem('repo-clone-protocol')!;
+    let scheme = localUserSettings.getString('repo-clone-protocol');
     if (!['https', 'ssh', 'tea'].includes(scheme)) {
       scheme = 'https';
     }
@@ -114,15 +115,15 @@ function initCloneSchemeUrlSelection(parent: Element) {
   updateClonePanelUi();
   // tabSsh or tabHttps might not both exist, eg: guest view, or one is disabled by the server
   tabHttps?.addEventListener('click', () => {
-    localStorage.setItem('repo-clone-protocol', 'https');
+    localUserSettings.setString('repo-clone-protocol', 'https');
     updateClonePanelUi();
   });
   tabSsh?.addEventListener('click', () => {
-    localStorage.setItem('repo-clone-protocol', 'ssh');
+    localUserSettings.setString('repo-clone-protocol', 'ssh');
     updateClonePanelUi();
   });
   tabTea?.addEventListener('click', () => {
-    localStorage.setItem('repo-clone-protocol', 'tea');
+    localUserSettings.setString('repo-clone-protocol', 'tea');
     updateClonePanelUi();
   });
   elCloneUrlInput.addEventListener('focus', () => {
