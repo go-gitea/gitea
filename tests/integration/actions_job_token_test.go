@@ -328,63 +328,6 @@ jobs:
 	})
 }
 
-func TestActionsTokenPackagePermission(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		session := loginUser(t, user2.Name)
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
-
-		// Create Repo
-		apiRepo := createActionsTestRepo(t, token, "repo-package-perm", false)
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: apiRepo.ID})
-		httpContext := NewAPITestContext(t, user2.Name, repo.Name, auth_model.AccessTokenScopeWriteRepository)
-		defer doAPIDeleteRepository(httpContext)(t)
-
-		// Mock Runner
-		runner := newMockRunner()
-		runner.registerAsRepoRunner(t, repo.OwnerName, repo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
-
-		// Set Config: Permissive Mode, Max Packages = Write, Max Code = Read
-		req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/actions/general/token_permissions", repo.OwnerName, repo.Name), map[string]string{
-			"token_permission_mode":  "permissive",
-			"enable_max_permissions": "true",
-			"max_packages":           "write",
-			"max_code":               "read", // Ensure repo read access if needed
-		})
-		session.MakeRequest(t, req, http.StatusSeeOther)
-
-		// Create workflow with NO explicit permissions (inherits Default)
-		wfTreePath := ".gitea/workflows/package.yml"
-		wfFileContent := `name: Package
-on: [push]
-jobs:
-  job-package:
-    permissions:
-      packages: write
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo test
-`
-		opts := getWorkflowCreateFileOptions(user2, repo.DefaultBranch, "create "+wfTreePath, wfFileContent)
-		createWorkflowFile(t, token, user2.Name, repo.Name, wfTreePath, opts)
-
-		// Fetch task
-		runnerTask := runner.fetchTask(t)
-		taskToken := runnerTask.Secrets["GITEA_TOKEN"]
-		require.NotEmpty(t, taskToken)
-
-		// Verify Package Upload Access
-		packageName := "test-pkg"
-		packageVersion := "1.0.0"
-		writePackageURL := fmt.Sprintf("/api/packages/%s/generic/%s/%s/test.bin", user2.Name, packageName, packageVersion)
-		uploadReq := NewRequestWithBody(t, "PUT", writePackageURL, bytes.NewReader([]byte{1, 2, 3})).
-			AddTokenAuth(taskToken)
-
-		// Should Succeed (201)
-		MakeRequest(t, uploadReq, http.StatusCreated)
-	})
-}
-
 func TestActionsCrossRepoAccess(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user2")
