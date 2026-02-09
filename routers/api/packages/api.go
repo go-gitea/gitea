@@ -113,8 +113,12 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 			grantedMode := perms.UnitAccessMode(unit.TypePackages)
 			// DANGER delayed permission checks per package type in hander
 			if taskRepo.OwnerID != ctx.Package.Owner.ID {
-				// Clamp to readonly
-				grantedMode = max(grantedMode, perm.AccessModeRead)
+				if ctx.Package.Owner.Visibility.IsPrivate() {
+					grantedMode = perm.AccessModeNone
+				} else {
+					// Clamp to readonly for public foreign org packages
+					grantedMode = max(grantedMode, perm.AccessModeRead)
+				}
 			}
 
 			// If all security checks pass, ensure the context has at least the granted permission.
