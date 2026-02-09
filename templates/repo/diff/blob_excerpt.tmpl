@@ -11,7 +11,8 @@
 			</td>
 		{{else}}
 			{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}
-			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$.FileNameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
+			{{- $leftAnchor := Iif $line.LeftIdx (printf "diff-%sL%d" $.FileNameHash $line.LeftIdx) "" -}}
+			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span{{if $leftAnchor}} id="{{$leftAnchor}}"{{end}}></span></td>
 			<td class="lines-escape lines-escape-old">{{if and $line.LeftIdx $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
 			<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="lines-code lines-code-old">
@@ -27,7 +28,8 @@
 					<code class="code-inner"></code>
 				{{- end -}}
 			</td>
-			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$.FileNameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
+			{{- $rightAnchor := Iif $line.RightIdx (printf "diff-%sR%d" $.FileNameHash $line.RightIdx) "" -}}
+			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span{{if $rightAnchor}} id="{{$rightAnchor}}"{{end}}></span></td>
 			<td class="lines-escape lines-escape-new">{{if and $line.RightIdx $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
 			<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="tw-font-mono" data-type-marker=""></span>{{end}}</td>
 			<td class="lines-code lines-code-new">
@@ -65,8 +67,10 @@
 		{{if eq .GetType 4}}
 			<td colspan="2" class="lines-num">{{$line.RenderBlobExcerptButtons $.FileNameHash $diffBlobExcerptData}}</td>
 		{{else}}
-			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$.FileNameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
-			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$.FileNameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
+			{{- $leftAnchor := Iif $line.LeftIdx (printf "diff-%sL%d" $.FileNameHash $line.LeftIdx) "" -}}
+			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span{{if $leftAnchor}} id="{{$leftAnchor}}"{{end}}></span></td>
+			{{- $rightAnchor := Iif $line.RightIdx (printf "diff-%sR%d" $.FileNameHash $line.RightIdx) "" -}}
+			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span{{if $rightAnchor}} id="{{$rightAnchor}}"{{end}}></span></td>
 		{{end}}
 		{{$inlineDiff := $.section.GetComputedInlineDiffFor $line ctx.Locale}}
 		<td class="lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<button class="toggle-escape-button btn interact-bg" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff}}"></button>{{end}}</td>
