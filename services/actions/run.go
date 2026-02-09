@@ -52,7 +52,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 		run.Title = jobs[0].RunName
 	}
 
-	if err = InsertRun(ctx, run, jobs, vars); err != nil {
+	if err = InsertRun(ctx, run, jobs, vars, content); err != nil {
 		return fmt.Errorf("InsertRun: %w", err)
 	}
 
@@ -74,7 +74,7 @@ func PrepareRunAndInsert(ctx context.Context, content []byte, run *actions_model
 
 // InsertRun inserts a run
 // The title will be cut off at 255 characters if it's longer than 255 characters.
-func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string) error {
+func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobparser.SingleWorkflow, vars map[string]string, workflowContent []byte) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		index, err := db.GetNextResourceIndex(ctx, "action_run_index", run.RepoID)
 		if err != nil {
@@ -100,6 +100,9 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		if err := actions_model.UpdateRepoRunsNumbers(ctx, run.Repo); err != nil {
 			return err
 		}
+
+		// Extract raw strategies from the original workflow before parsing
+		rawStrategies, _ := ExtractRawStrategies(workflowContent)
 
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
@@ -127,6 +130,13 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				RunsOn:            job.RunsOn(),
 				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
 			}
+
+			// Store raw strategy if job has matrix that depends on job outputs
+			if rawStrategy, exists := rawStrategies[id]; exists && len(needs) > 0 {
+				runJob.RawStrategy = rawStrategy
+				runJob.IsMatrixEvaluated = false
+			}
+
 			// check job concurrency
 			if job.RawConcurrency != nil {
 				rawConcurrency, err := yaml.Marshal(job.RawConcurrency)

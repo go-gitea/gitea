@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -202,6 +203,9 @@ func checkJobsOfRun(ctx context.Context, run *actions_model.ActionRun) (jobs, up
 	if err != nil {
 		return nil, nil, err
 	}
+
+	log.Debug("Checking %d jobs for run %d (status: %s)", len(jobs), run.ID, run.Status)
+
 	vars, err := actions_model.GetVariablesOfRun(ctx, run)
 	if err != nil {
 		return nil, nil, err
@@ -213,14 +217,18 @@ func checkJobsOfRun(ctx context.Context, run *actions_model.ActionRun) (jobs, up
 		}
 
 		updates := newJobStatusResolver(jobs, vars).Resolve(ctx)
+		log.Debug("Job status resolver returned %d job status updates for run %d", len(updates), run.ID)
+
 		for _, job := range jobs {
 			if status, ok := updates[job.ID]; ok {
+				oldStatus := job.Status
 				job.Status = status
 				if n, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": actions_model.StatusBlocked}, "status"); err != nil {
 					return err
 				} else if n != 1 {
 					return fmt.Errorf("no affected for updating blocked job %v", job.ID)
 				}
+				log.Info("Job %d (JobID: %s) status updated: %s -> %s", job.ID, job.JobID, oldStatus, status)
 				updatedJobs = append(updatedJobs, job)
 			}
 		}
@@ -228,6 +236,20 @@ func checkJobsOfRun(ctx context.Context, run *actions_model.ActionRun) (jobs, up
 	}); err != nil {
 		return nil, nil, err
 	}
+
+	// Reload jobs from the database to pick up any newly created matrix jobs
+	oldJobCount := len(jobs)
+	jobs, err = db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if len(jobs) > oldJobCount {
+		log.Info("Matrix re-evaluation created %d new jobs for run %d (was %d, now %d)",
+			len(jobs)-oldJobCount, run.ID, oldJobCount, len(jobs))
+	}
+
+	log.Debug("Job check completed for run %d: %d jobs updated, %d total jobs", run.ID, len(updatedJobs), len(jobs))
 
 	return jobs, updatedJobs, nil
 }
@@ -313,26 +335,64 @@ func (r *jobStatusResolver) resolveJobHasIfCondition(actionRunJob *actions_model
 
 func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model.Status {
 	ret := map[int64]actions_model.Status{}
+	resolveMetrics := struct {
+		totalBlocked       int
+		matrixReevaluated  int
+		concurrencyUpdated int
+		jobsStarted        int
+		jobsSkipped        int
+	}{}
+
 	for id, status := range r.statuses {
 		actionRunJob := r.jobMap[id]
 		if status != actions_model.StatusBlocked {
 			continue
 		}
+
+		resolveMetrics.totalBlocked++
+		log.Debug("Resolving blocked job %d (JobID: %s, RunID: %d)", id, actionRunJob.JobID, actionRunJob.RunID)
+
 		allDone, allSucceed := r.resolveCheckNeeds(id)
 		if !allDone {
+			log.Debug("Job %d: not all dependencies completed yet", id)
 			continue
 		}
 
+		log.Debug("Job %d: all dependencies completed (allSucceed: %v), checking matrix re-evaluation", id, allSucceed)
+
+		// Try to re-evaluate the matrix with job outputs if it depends on them
+		startTime := time.Now()
+		newMatrixJobs, err := ReEvaluateMatrixForJobWithNeeds(ctx, actionRunJob, r.vars)
+		duration := time.Since(startTime).Milliseconds()
+
+		if err != nil {
+			log.Error("Matrix re-evaluation error for job %d (JobID: %s): %v (duration: %dms)", id, actionRunJob.JobID, err, duration)
+			continue
+		}
+
+		// If new matrix jobs were created, add them to the resolver and continue
+		if len(newMatrixJobs) > 0 {
+			resolveMetrics.matrixReevaluated++
+			log.Info("Matrix re-evaluation succeeded for job %d (JobID: %s): created %d new jobs (duration: %dms)",
+				id, actionRunJob.JobID, len(newMatrixJobs), duration)
+			// The new jobs will be picked up in the next resolution iteration
+			continue
+		}
+
+		log.Debug("Job %d: no matrix re-evaluation needed or result is empty", id)
+
 		// update concurrency and check whether the job can run now
-		err := updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)
+		err = updateConcurrencyEvaluationForJobWithNeeds(ctx, actionRunJob, r.vars)
 		if err != nil {
 			// The err can be caused by different cases: database error, or syntax error, or the needed jobs haven't completed
 			// At the moment there is no way to distinguish them.
 			// Actually, for most cases, the error is caused by "syntax error" / "the needed jobs haven't completed (skipped?)"
 			// TODO: if workflow or concurrency expression has syntax error, there should be a user error message, need to show it to end users
-			log.Debug("updateConcurrencyEvaluationForJobWithNeeds failed, this job will stay blocked: job: %d, err: %v", id, err)
+			log.Debug("Concurrency evaluation failed for job %d (JobID: %s): %v (job will stay blocked)", id, actionRunJob.JobID, err)
 			continue
 		}
+
+		resolveMetrics.concurrencyUpdated++
 
 		shouldStartJob := true
 		if !allSucceed {
@@ -340,20 +400,37 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			// * if the job has "if" condition, it can be started, then the act_runner will evaluate the "if" condition.
 			// * otherwise, the job should be skipped.
 			shouldStartJob = r.resolveJobHasIfCondition(actionRunJob)
+			log.Debug("Job %d: not all dependencies succeeded. Has if-condition: %v, should start: %v", id, shouldStartJob, shouldStartJob)
 		}
 
 		newStatus := util.Iif(shouldStartJob, actions_model.StatusWaiting, actions_model.StatusSkipped)
 		if newStatus == actions_model.StatusWaiting {
 			newStatus, err = PrepareToStartJobWithConcurrency(ctx, actionRunJob)
 			if err != nil {
-				log.Error("ShouldBlockJobByConcurrency failed, this job will stay blocked: job: %d, err: %v", id, err)
+				log.Error("Concurrency check failed for job %d (JobID: %s): %v (job will stay blocked)", id, actionRunJob.JobID, err)
 			}
 		}
 
 		if newStatus != actions_model.StatusBlocked {
 			ret[id] = newStatus
+			switch newStatus {
+			case actions_model.StatusWaiting:
+				resolveMetrics.jobsStarted++
+				log.Info("Job %d (JobID: %s) transitioned to StatusWaiting", id, actionRunJob.JobID)
+			case actions_model.StatusSkipped:
+				resolveMetrics.jobsSkipped++
+				log.Info("Job %d (JobID: %s) transitioned to StatusSkipped", id, actionRunJob.JobID)
+			}
 		}
 	}
+
+	// Log resolution metrics summary
+	if resolveMetrics.totalBlocked > 0 {
+		log.Debug("Job resolution summary: total_blocked=%d, matrix_reevaluated=%d, concurrency_updated=%d, jobs_started=%d, jobs_skipped=%d",
+			resolveMetrics.totalBlocked, resolveMetrics.matrixReevaluated, resolveMetrics.concurrencyUpdated,
+			resolveMetrics.jobsStarted, resolveMetrics.jobsSkipped)
+	}
+
 	return ret
 }
 

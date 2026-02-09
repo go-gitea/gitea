@@ -642,3 +642,97 @@ func getTaskJobNameByTaskID(t *testing.T, authToken, ownerName, repoName string,
 	}
 	return ""
 }
+
+func TestDynamicMatrixFromJobOutputs(t *testing.T) {
+	testCases := []struct {
+		treePath    string
+		fileContent string
+		outcomes    map[string]*mockTaskOutcome
+	}{
+		{
+			treePath: ".gitea/workflows/dynamic-matrix.yml",
+			fileContent: `name: Dynamic Matrix from Job Outputs
+on:
+  push:
+    paths:
+      - '.gitea/workflows/dynamic-matrix.yml'
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gen_matrix.outputs.matrix }}
+    steps:
+      - name: Generate matrix
+        id: gen_matrix
+        run: |
+          echo "matrix=[1,2,3]" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: [generate]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: ${{ fromJson(needs.generate.outputs.matrix) }}
+    steps:
+      - run: echo "Building version ${{ matrix.version }}"
+`,
+			outcomes: map[string]*mockTaskOutcome{
+				"generate": {
+					result: runnerv1.Result_RESULT_SUCCESS,
+					outputs: map[string]string{
+						"matrix": "[1,2,3]",
+					},
+				},
+				"build (1)": {
+					result: runnerv1.Result_RESULT_SUCCESS,
+				},
+				"build (2)": {
+					result: runnerv1.Result_RESULT_SUCCESS,
+				},
+				"build (3)": {
+					result: runnerv1.Result_RESULT_SUCCESS,
+				},
+			},
+		},
+	}
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		session := loginUser(t, user2.Name)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
+
+		apiRepo := createActionsTestRepo(t, token, "actions-dynamic-jobs-outputs-with-matrix", false)
+		runner := newMockRunner()
+		runner.registerAsRepoRunner(t, user2.Name, apiRepo.Name, "mock-runner", []string{"ubuntu-latest"}, false)
+
+		for _, tc := range testCases {
+			t.Run("test "+tc.treePath, func(t *testing.T) {
+				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+tc.treePath, tc.fileContent)
+				createWorkflowFile(t, token, user2.Name, apiRepo.Name, tc.treePath, opts)
+
+				// Execute the generate job first
+				task := runner.fetchTask(t)
+				jobName := getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, task.Id)
+				assert.Equal(t, "generate", jobName)
+				outcome := tc.outcomes[jobName]
+				assert.NotNil(t, outcome)
+				runner.execTask(t, task, outcome)
+
+				// Now the build job should be created with matrix expansion from the output
+				// We expect 3 tasks for build (1), build (2), build (3)
+				buildTasks := make([]int64, 0)
+				for range 3 {
+					buildTask := runner.fetchTask(t)
+					buildJobName := getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, buildTask.Id)
+					t.Logf("Fetched task: %s", buildJobName)
+					assert.Contains(t, []string{"build (1)", "build (2)", "build (3)"}, buildJobName, "Expected a build job with matrix index")
+					outcome := tc.outcomes[buildJobName]
+					assert.NotNil(t, outcome)
+					runner.execTask(t, buildTask, outcome)
+					buildTasks = append(buildTasks, buildTask.Id)
+				}
+
+				assert.Len(t, buildTasks, 3, "Expected 3 build tasks from dynamic matrix")
+			})
+		}
+	})
+}
