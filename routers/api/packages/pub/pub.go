@@ -180,7 +180,7 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypeDebian, pck.Name)
+	ok, err := access.FineGrainedPackageWriteCheck(ctx, ctx.Doer, ctx.Package.Owner.ID, packages_model.TypePub, pck.Name)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
