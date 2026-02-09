@@ -287,6 +287,7 @@
 			</div>
 		{{end}}
 
+		{{/* FIXME: need to split the "Advance Settings" by units, there are too many options here */}}
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "repo.settings.advanced_settings"}}
 		</h4>
@@ -591,6 +592,20 @@
 									<div class="item" data-value="rebase-merge">{{ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
 									<div class="item" data-value="squash">{{ctx.Locale.Tr "repo.pulls.squash_merge_pull_request"}}</div>
 									<div class="item" data-value="fast-forward-only">{{ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request"}}</div>
+								</div>
+							</div>
+						</div>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch"}}</label>
+							<div class="ui search selection dropdown">
+								<input type="hidden" name="default_target_branch" value="{{$prUnit.PullRequestsConfig.DefaultTargetBranch}}">
+								<div class="default text"></div>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="menu">
+									<div class="item" data-value="">{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch}}</div>
+									{{range $branchName := $.Branches}}
+										<div class="item" data-value="{{$branchName}}">{{$branchName}}</div>
+									{{end}}
 								</div>
 							</div>
 						</div>

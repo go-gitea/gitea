@@ -63,10 +63,10 @@ func NewBlobUploader(ctx context.Context, id string) (*BlobUploader, error) {
 	}
 
 	return &BlobUploader{
-		model,
-		hash,
-		f,
-		false,
+		PackageBlobUpload: model,
+		MultiHasher:       hash,
+		file:              f,
+		reading:           false,
 	}, nil
 }
 
