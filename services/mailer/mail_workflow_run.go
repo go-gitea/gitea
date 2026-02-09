@@ -165,15 +165,13 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 	if err != nil {
 		return err
 	}
-	switch notifyPref {
-	case user_model.SettingEmailNotificationGiteaActionsAll:
-		// send for all statuses
-	case user_model.SettingEmailNotificationGiteaActionsDisabled:
+	// "disabled" never sends
+	if notifyPref == user_model.SettingEmailNotificationGiteaActionsDisabled {
 		return nil
-	default: // failure-only
-		if !run.Status.IsFailure() {
-			return nil
-		}
+	}
+	// "failure-only" skips non-failure runs
+	if notifyPref != user_model.SettingEmailNotificationGiteaActionsAll && !run.Status.IsFailure() {
+		return nil
 	}
 
 	log.Debug("MailActionsTrigger: Initiate email composition")
