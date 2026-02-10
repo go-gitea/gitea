@@ -88,12 +88,17 @@ func parseGitVersionLine(s string) (*version.Version, error) {
 		return nil, fmt.Errorf("invalid git version: %q", s)
 	}
 
-	// version string is like: "git version 2.29.3" or "git version 2.29.3.windows.1"
+	// version output is like: "git version {versionString}"
+	// versionString can be:
+	// * "2.5.3"
+	// * "2.29.3.windows.1"
+	// * "2.28.0.618.gf4bc123cb7": https://github.com/go-gitea/gitea/issues/12731
 	versionString := fields[2]
-	if pos := strings.Index(versionString, "windows"); pos >= 1 {
-		versionString = versionString[:pos-1]
+	versionFields := strings.Split(versionString, ".")
+	if len(versionFields) > 3 {
+		versionFields = versionFields[:3]
 	}
-	return version.NewVersion(versionString)
+	return version.NewVersion(strings.Join(versionFields, "."))
 }
 
 func checkGitVersionCompatibility(gitVer *version.Version) error {

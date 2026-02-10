@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
+	repo_router "code.gitea.io/gitea/routers/web/repo"
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -88,6 +89,11 @@ func SettingsCtxData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PushMirrors"] = pushMirrors
+
+	repo_router.PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 }
 
 // Settings show a repository's settings page
@@ -622,6 +628,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
+			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
 		}))
 	} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
