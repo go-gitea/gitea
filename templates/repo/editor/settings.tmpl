@@ -1,7 +1,7 @@
 {{$indentStyle := (or .EditorconfigIndentStyle "space")}}
 {{$indentSize := (or .EditorconfigIndentSize "4")}}
 {{$treePath := (or .TreePath "")}}
-<div class="editor-options tw-flex tw-gap-2">
+<div class="editor-options tw-flex tw-gap-2 tw-font-normal tw-font-sans">
 	<div class="ui dropdown selection tw-min-w-0" data-tooltip-content="{{ctx.Locale.Tr "text_indent_style"}}">
 		<select class="js-indent-style-select">
 			<option{{if eq $indentStyle "space"}} selected{{end}} value="space">{{ctx.Locale.Tr "characters_spaces"}}</option>
