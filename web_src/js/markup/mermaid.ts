@@ -246,7 +246,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       // create an iframe to sandbox the svg with styles, and set correct height by reading svg's viewBox height
       const iframe = document.createElement('iframe');
       iframe.classList.add('markup-content-iframe', 'is-loading');
-      iframe.srcdoc = html`<html><head><style>${htmlRaw(iframeStyleText)}</style></head><body>${htmlRaw(viewController)}</body></html>`;
+      iframe.srcdoc = html`<html><head></head><body>${htmlRaw(viewController)}</body></html>`;
 
       // although the "viewBox" is optional, mermaid's output should always have a correct viewBox with width and height
       const iframeHeightFromViewBox = Math.ceil(svgNode.viewBox?.baseVal?.height ?? 0);
@@ -255,7 +255,11 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       // the iframe will be fully reloaded if its DOM context is changed (e.g.: moved in the DOM tree).
       // to avoid unnecessary reloading, we should insert the iframe to its final position only once.
       iframe.addEventListener('load', () => {
-        // same origin, so we can operate "iframe body" and all elements directly
+        // same origin, so we can operate "iframe head/body" and all elements directly
+        const style = document.createElement('style');
+        style.textContent = iframeStyleText;
+        iframe.contentDocument!.head.append(style);
+
         const iframeBody = iframe.contentDocument!.body;
         iframeBody.append(svgNode);
         bindFunctions?.(iframeBody); // follow "mermaid.render" doc, attach event handlers to the svg's container
