@@ -9,6 +9,8 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/highlight"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,9 +20,9 @@ func TestDiffWithHighlight(t *testing.T) {
 		codeA := template.HTML(`x <span class="k">foo</span> y`)
 		codeB := template.HTML(`x <span class="k">bar</span> y`)
 		outDel := hcd.diffLineWithHighlight(DiffLineDel, codeA, codeB)
-		assert.Equal(t, `x <span class="k"><span class="removed-code">foo</span></span> y`, string(outDel))
+		assert.Equal(t, `x <span class="removed-code"><span class="k">foo</span></span> y`, string(outDel))
 		outAdd := hcd.diffLineWithHighlight(DiffLineAdd, codeA, codeB)
-		assert.Equal(t, `x <span class="k"><span class="added-code">bar</span></span> y`, string(outAdd))
+		assert.Equal(t, `x <span class="added-code"><span class="k">bar</span></span> y`, string(outAdd))
 	})
 
 	t.Run("CleanUp", func(t *testing.T) {
@@ -39,6 +41,14 @@ func TestDiffWithHighlight(t *testing.T) {
 		assert.Equal(t, "<span></span>", string(hcd.recoverOneDiff("OC")))
 		assert.Equal(t, "<span></span>", string(hcd.recoverOneDiff("O")))
 		assert.Empty(t, string(hcd.recoverOneDiff("C")))
+	})
+
+	t.Run("ComplexDiff", func(t *testing.T) {
+		oldCode, _ := highlight.RenderCodeFast("a.go", "Go", `xxx || yyy`)
+		newCode, _ := highlight.RenderCodeFast("a.go", "Go", `bot.xxx || bot.yyy`)
+		hcd := newHighlightCodeDiff()
+		out := hcd.diffLineWithHighlight(DiffLineAdd, oldCode, newCode)
+		assert.Equal(t, `<span class="added-code"><span class="nx">bot</span><span class="p">.</span></span><span class="nx">xxx</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="added-code"><span class="nx">bot</span><span class="p">.</span></span><span class="nx">yyy</span>`, string(out))
 	})
 }
 
@@ -64,6 +74,11 @@ func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 	assert.Equal(t, placeHolderAmp+"lt;", string(output))
 	output = hcd.diffLineWithHighlight(DiffLineAdd, `<span class="k">&lt;</span>`, `<span class="k">&gt;</span>`)
 	assert.Equal(t, placeHolderAmp+"gt;", string(output))
+
+	output = hcd.diffLineWithHighlight(DiffLineDel, `<span class="k">foo</span>`, `<span class="k">bar</span>`)
+	assert.Equal(t, "foo", string(output))
+	output = hcd.diffLineWithHighlight(DiffLineAdd, `<span class="k">foo</span>`, `<span class="k">bar</span>`)
+	assert.Equal(t, "bar", string(output))
 }
 
 func TestDiffWithHighlightTagMatch(t *testing.T) {
