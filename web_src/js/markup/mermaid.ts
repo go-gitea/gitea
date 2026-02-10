@@ -1,7 +1,7 @@
 import {isDarkTheme, parseDom} from '../utils.ts';
 import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
-import {createElementFromAttrs, getCssKeyframeText, getCssRootVariablesText, queryElems} from '../utils/dom.ts';
+import {createElementFromAttrs, getCssKeyframeTexts, getCssRootVariablesText, queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {load as loadYaml} from 'js-yaml';
 import type {MermaidConfig} from 'mermaid';
@@ -12,8 +12,7 @@ const {mermaidMaxSourceCharacters} = window.config;
 function getIframeCss(): string {
   return `
 ${getCssRootVariablesText()}
-${getCssKeyframeText('fadein')}
-${getCssKeyframeText('fadeout')}
+${getCssKeyframeTexts(['fadein', 'fadeout'])}
 
 html, body { height: 100%; }
 body { margin: 0; padding: 0; overflow: hidden; }

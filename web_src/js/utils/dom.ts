@@ -354,24 +354,29 @@ export function isPlainClick(e: MouseEvent) {
 
 const cssKeyframeCache: Record<string, string> = {};
 
-/** Extract a CSS `@keyframes` rule by name from the document's stylesheets. The DOM lookup is only
- *  performed once per keyframe name. */
-export function getCssKeyframeText(name: string): string {
-  if (name in cssKeyframeCache) return cssKeyframeCache[name];
+/** Extract a CSS `@keyframes` rule by name from the document's stylesheets. It is very slow. */
+export function getCssKeyframeTexts(names: string[]): string {
   let result = '';
-  for (const sheet of document.styleSheets) {
-    try {
-      for (const rule of sheet.cssRules) {
-        if (rule instanceof CSSKeyframesRule && rule.name === name) {
-          result = rule.cssText;
-          break;
+  for (const name of names) {
+    if (name in cssKeyframeCache) {
+      result += `${cssKeyframeCache[name]}\n`;
+      continue;
+    }
+    let found = false;
+    for (const sheet of document.styleSheets) {
+      try {
+        for (const rule of sheet.cssRules) {
+          if (rule instanceof CSSKeyframesRule && rule.name === name) {
+            result += `${rule.cssText}\n`;
+            cssKeyframeCache[name] = result;
+            found = true;
+            break;
+          }
         }
-      }
-    } catch { /* skip cross-origin sheets */ }
-    if (result) break;
+      } catch {} // skip cross-origin sheets
+      if (!found) throw new Error(`Unable to get css styles for keyframe ${name}`);
+    }
   }
-  if (!result) throw new Error(`Unable to get css styles for keyframe ${name}`);
-  cssKeyframeCache[name] = result;
   return result;
 }
 
