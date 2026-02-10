@@ -352,29 +352,32 @@ export function isPlainClick(e: MouseEvent) {
   return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
 }
 
-const cssKeyframeCache: Record<string, string> = {};
+let cssKeyframeCache: Record<string, string> | null = null;
 
 /** Extract a CSS `@keyframes` rule by name from the document's stylesheets. It is very slow. */
 export function getCssKeyframeTexts(names: string[]): string {
-  let result = '';
-  for (const name of names) {
-    if (name in cssKeyframeCache) {
-      result += `${cssKeyframeCache[name]}\n`;
-      continue;
-    }
-    let found = false;
+  // It loops over 10000+ times because there are too many rules
+  // So we cache all keyframes rules in the first call (there aren't that many keyframes rules in a typical page, so it is acceptable)
+  // It only collects the top-level keyframes rules, it doesn't support nested keyframes rules (e.g. inside @media), but it is good enough for our use cases.
+  if (!cssKeyframeCache) {
+    cssKeyframeCache = {};
     for (const sheet of document.styleSheets) {
       try {
         for (const rule of sheet.cssRules) {
-          if (rule instanceof CSSKeyframesRule && rule.name === name) {
-            result += `${rule.cssText}\n`;
-            cssKeyframeCache[name] = result;
-            found = true;
-            break;
+          if (rule instanceof CSSKeyframesRule) {
+            cssKeyframeCache[rule.name] = rule.cssText;
           }
         }
       } catch {} // skip cross-origin sheets
-      if (!found) throw new Error(`Unable to get css styles for keyframe ${name}`);
+    }
+  }
+
+  let result = '';
+  for (const name of names) {
+    if (cssKeyframeCache[name]) {
+      result += `${cssKeyframeCache[name]}\n`;
+    } else {
+      throw new Error(`Unable to get css styles for keyframe ${name}`);
     }
   }
   return result;
