@@ -1,8 +1,8 @@
 import {isDarkTheme, parseDom} from '../utils.ts';
 import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
-import {createElementFromAttrs, getCssRootVariablesText, queryElems} from '../utils/dom.ts';
-import {html, htmlRaw} from '../utils/html.ts';
+import {createElementFromAttrs, createElementFromHTML, getCssRootVariablesText, queryElems} from '../utils/dom.ts';
+import {html} from '../utils/html.ts';
 import {load as loadYaml} from 'js-yaml';
 import type {MermaidConfig} from 'mermaid';
 
@@ -233,12 +233,13 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       const svgDoc = parseDom(svgText, 'image/svg+xml');
       const svgNode = (svgDoc.documentElement as unknown) as SVGSVGElement;
 
-      const viewController = html`<div class="view-controller"><button data-control-action="zoom-in">+</button><button data-control-action="reset">reset</button><button data-control-action="zoom-out">-</button></div>`;
+      const viewControllerHtml = html`<div class="view-controller"><button data-control-action="zoom-in">+</button><button data-control-action="reset">reset</button><button data-control-action="zoom-out">-</button></div>`;
 
       // create an iframe to sandbox the svg with styles, and set correct height by reading svg's viewBox height
       const iframe = document.createElement('iframe');
       iframe.classList.add('markup-content-iframe', 'is-loading');
-      iframe.srcdoc = html`<html><head></head><body>${htmlRaw(viewController)}</body></html>`;
+      // the styles are not ready, so don't really render anything before the "load" event, to avoid flicker of unstyled content
+      iframe.srcdoc = html`<html><head></head><body></div></body></html>`;
 
       // although the "viewBox" is optional, mermaid's output should always have a correct viewBox with width and height
       const iframeHeightFromViewBox = Math.ceil(svgNode.viewBox?.baseVal?.height ?? 0);
@@ -255,6 +256,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
         const iframeBody = iframe.contentDocument!.body;
         iframeBody.append(svgNode);
         bindFunctions?.(iframeBody); // follow "mermaid.render" doc, attach event handlers to the svg's container
+        iframeBody.append(createElementFromHTML(viewControllerHtml));
 
         // according to mermaid, the viewBox height should always exist, here just a fallback for unknown cases.
         // and keep in mind: clientHeight can be 0 if the element is hidden (display: none).
