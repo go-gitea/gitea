@@ -16,7 +16,7 @@ function getIframeCss(): string {
 :root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}
-.view-controller {position: absolute; z-index: 1; right: 0; bottom: 0; display: flex; gap: 4px; opacity: 0; visibility: hidden; transition: ${cssVar('--transition-fade')}}
+.view-controller {position: absolute; z-index: 1; right: 0; bottom: 0; display: flex; gap: 4px; opacity: 0; visibility: hidden; transition: ${cssVar('--transition-hover-fade')}}
 body:hover .view-controller {opacity: 1; visibility: visible}
 @media (hover: none) {.view-controller {opacity: 1; visibility: visible}}
 .view-controller button {cursor: pointer; display: inline-flex; justify-content: center; align-items: center; line-height: 1; padding: 7.5px 10px; border: 1px solid ${cssVar('--color-light-border')}; border-radius: ${cssVar('--border-radius')}; background: ${cssVar('--color-button')}; color: ${cssVar('--color-text')}; user-select: none}

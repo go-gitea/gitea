@@ -5,7 +5,7 @@
   padding: 9px;
   opacity: 0;
   visibility: hidden;
-  transition: var(--transition-fade);
+  transition: var(--transition-hover-fade);
 }
 
 /* adjustments for comment content having only 14px font size */
