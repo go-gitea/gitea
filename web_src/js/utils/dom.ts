@@ -352,12 +352,12 @@ export function isPlainClick(e: MouseEvent) {
   return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
 }
 
-const cssKeyframeCache = new Map<string, string>();
+const cssKeyframeCache: Record<string, string> = {};
 
 /** Extract a CSS `@keyframes` rule by name from the document's stylesheets. The DOM lookup is only
  *  performed once per keyframe name. */
 export function getCssKeyframe(name: string): string {
-  if (cssKeyframeCache.has(name)) return cssKeyframeCache.get(name)!;
+  if (name in cssKeyframeCache) return cssKeyframeCache[name];
   let result = '';
   for (const sheet of document.styleSheets) {
     try {
@@ -370,7 +370,7 @@ export function getCssKeyframe(name: string): string {
     } catch { /* skip cross-origin sheets */ }
     if (result) break;
   }
-  cssKeyframeCache.set(name, result);
+  cssKeyframeCache[name] = result;
   return result;
 }
 
