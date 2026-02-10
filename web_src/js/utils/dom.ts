@@ -352,6 +352,20 @@ export function isPlainClick(e: MouseEvent) {
   return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
 }
 
+/** Extract a CSS `@keyframes` rule by name from the document's stylesheets */
+export function getCssKeyFrame(name: string): string {
+  for (const sheet of document.styleSheets) {
+    try {
+      for (const rule of sheet.cssRules) {
+        if (rule instanceof CSSKeyframesRule && rule.name === name) {
+          return rule.cssText;
+        }
+      }
+    } catch { /* skip cross-origin sheets */ }
+  }
+  return '';
+}
+
 let elemIdCounter = 0;
 export function generateElemId(prefix: string = ''): string {
   return `${prefix}${elemIdCounter++}`;

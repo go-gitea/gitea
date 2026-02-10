@@ -1,7 +1,7 @@
 import {isDarkTheme, parseDom} from '../utils.ts';
 import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
-import {createElementFromAttrs, queryElems} from '../utils/dom.ts';
+import {createElementFromAttrs, getCssKeyFrame, queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {load as loadYaml} from 'js-yaml';
 import type {MermaidConfig} from 'mermaid';
@@ -12,22 +12,12 @@ const {mermaidMaxSourceCharacters} = window.config;
 function getIframeCss(): string {
   const style = getComputedStyle(document.documentElement);
   const cssVar = (name: string) => style.getPropertyValue(name).trim();
-  // extract keyframe animations from parent stylesheets to reuse in the iframe
-  let keyframes = '';
-  for (const sheet of document.styleSheets) {
-    try {
-      for (const rule of sheet.cssRules) {
-        if (rule instanceof CSSKeyframesRule && (rule.name === 'fadein' || rule.name === 'fadeout')) {
-          keyframes += rule.cssText;
-        }
-      }
-    } catch { /* skip cross-origin sheets */ }
-  }
   return `html, body {height: 100%}
 :root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}
-${keyframes}
+${getCssKeyFrame('fadein')}
+${getCssKeyFrame('fadeout')}
 .view-controller {position: absolute; z-index: 1; right: 0; bottom: 0; display: flex; gap: 4px; visibility: hidden; animation: fadeout 0.2s both}
 body:hover .view-controller {visibility: visible; animation: fadein 0.2s both}
 @media (hover: none) {.view-controller {visibility: visible; animation: none}}
