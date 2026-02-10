@@ -11,19 +11,61 @@ const {mermaidMaxSourceCharacters} = window.config;
 // keep button styling the same as `button.code-copy`
 function getIframeCss(): string {
   const style = getComputedStyle(document.documentElement);
-  const cssVar = (name: string) => style.getPropertyValue(name).trim();
-  return `html, body {height: 100%}
-:root {color-scheme: normal}
-body {margin: 0; padding: 0; overflow: hidden}
-#mermaid {display: block; margin: 0 auto}
+
+  let globalStyleText = ':root {';
+  for (let i = 0; i < style.length; i++) {
+    const name = style.item(i);
+    if (name.startsWith('--')) {
+      globalStyleText += ` ${name}: ${style.getPropertyValue(name)};\n`;
+    }
+  }
+  globalStyleText += '}\n';
+  globalStyleText += `
+html, body { height: 100%; }
+body { margin: 0; padding: 0; overflow: hidden; }
+
 ${getCssKeyframe('fadein')}
 ${getCssKeyframe('fadeout')}
-.view-controller {position: absolute; z-index: 1; right: 0; bottom: 0; display: flex; gap: 4px; visibility: hidden; animation: fadeout 0.2s both}
-body:hover .view-controller {visibility: visible; animation: fadein 0.2s both}
-@media (hover: none) {.view-controller {visibility: visible; animation: none}}
-.view-controller button {cursor: pointer; display: inline-flex; justify-content: center; align-items: center; line-height: 1; padding: 7.5px 10px; border: 1px solid ${cssVar('--color-light-border')}; border-radius: ${cssVar('--border-radius')}; background: ${cssVar('--color-button')}; color: ${cssVar('--color-text')}; user-select: none}
-.view-controller button:hover {background: ${cssVar('--color-secondary')}}
-.view-controller button:active {background: ${cssVar('--color-secondary-dark-1')}}`;
+
+#mermaid { display: block; margin: 0 auto; }
+
+.view-controller {
+  position: absolute;
+  z-index: 1;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 4px;
+  visibility: hidden;
+  animation: fadeout 0.2s both;
+}
+body:hover .view-controller {
+  visibility: visible;
+  animation: fadein 0.2s both;
+}
+@media (hover: none) {
+  .view-controller {
+    visibility: visible;
+    animation: none;
+  }
+}
+.view-controller button {
+  cursor: pointer;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  line-height: 1;
+  padding: 7.5px 10px;
+  border: 1px solid var(--color-light-border);
+  border-radius: var(--border-radius);
+  background: var(--color-button);
+  color: var(--color-text);
+  user-select: none;
+}
+.view-controller button:hover { background: var(--color-secondary); }
+.view-controller button:active { background: var(--color-secondary-dark-1); }
+`;
+  return globalStyleText;
 }
 
 function isSourceTooLarge(source: string) {

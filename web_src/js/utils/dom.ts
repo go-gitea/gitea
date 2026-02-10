@@ -370,6 +370,7 @@ export function getCssKeyframe(name: string): string {
     } catch { /* skip cross-origin sheets */ }
     if (result) break;
   }
+  if (!result) throw new Error(`Unable to get css styles for keyframe ${name}`);
   cssKeyframeCache[name] = result;
   return result;
 }
