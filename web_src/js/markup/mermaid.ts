@@ -22,8 +22,8 @@ ${getCssKeyFrame('fadeout')}
 body:hover .view-controller {visibility: visible; animation: fadein 0.2s both}
 @media (hover: none) {.view-controller {visibility: visible; animation: none}}
 .view-controller button {cursor: pointer; display: inline-flex; justify-content: center; align-items: center; line-height: 1; padding: 7.5px 10px; border: 1px solid ${cssVar('--color-light-border')}; border-radius: ${cssVar('--border-radius')}; background: ${cssVar('--color-button')}; color: ${cssVar('--color-text')}; user-select: none}
-.view-controller button:hover {background: ${cssVar('--color-hover')}}
-.view-controller button:active {background: ${cssVar('--color-active')}}`;
+.view-controller button:hover {background: ${cssVar('--color-secondary')}}
+.view-controller button:active {background: ${cssVar('--color-secondary-dark-1')}}`;
 }
 
 function isSourceTooLarge(source: string) {
