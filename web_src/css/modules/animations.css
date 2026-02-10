@@ -73,6 +73,15 @@ code.language-math.is-loading::after {
   height: 1.25rem;
 }
 
+@keyframes fadein {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 /* 1p5 means 1-point-5. it can't use "pulse" here, otherwise the animation is not right (maybe due to some conflicts */
 @keyframes pulse-1p5 {
   0% {
@@ -93,10 +102,9 @@ code.language-math.is-loading::after {
 
 .ui.modal,
 .ui.dimmer.transition {
-  transition: var(--transition-hover-fade);
-  @starting-style {
-    opacity: 0;
-  }
+  animation-name: fadein;
+  animation-duration: 100ms;
+  animation-timing-function: ease-in-out;
 }
 
 .rotate-clockwise {
