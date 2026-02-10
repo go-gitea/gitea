@@ -126,6 +126,7 @@ type PullRequestsConfig struct {
 	AllowSquash                   bool
 	AllowFastForwardOnly          bool
 	AllowManualMerge              bool
+	AllowAgitPullRequests         bool
 	AutodetectManualMerge         bool
 	AllowRebaseUpdate             bool
 	DefaultDeleteBranchAfterMerge bool
@@ -138,6 +139,7 @@ type PullRequestsConfig struct {
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
 	// AllowRebaseUpdate = true as default for existing PullRequestConfig in DB
 	cfg.AllowRebaseUpdate = true
+	cfg.AllowAgitPullRequests = true
 	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 

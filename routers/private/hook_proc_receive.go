@@ -25,6 +25,13 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
+	if !ctx.Repo.Repository.AllowsAgitPullRequests(ctx) {
+		ctx.JSON(http.StatusForbidden, private.Response{
+			UserMsg: "Pull requests via refs/for are disabled for this repository.",
+		})
+		return
+	}
+
 	results, err := agit.ProcReceive(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, opts)
 	if err != nil {
 		if errors.Is(err, issues_model.ErrMustCollaborator) {
