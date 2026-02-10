@@ -375,6 +375,22 @@ export function getCssKeyframe(name: string): string {
   return result;
 }
 
+let cssRootVariablesTextCache: string = '';
+export function getCssRootVariablesText(): string {
+  if (cssRootVariablesTextCache) return cssRootVariablesTextCache;
+  const style = getComputedStyle(document.documentElement);
+  let text = ':root {\n';
+  for (let i = 0; i < style.length; i++) {
+    const name = style.item(i);
+    if (name.startsWith('--')) {
+      text += ` ${name}: ${style.getPropertyValue(name)};\n`;
+    }
+  }
+  text += '}\n';
+  cssRootVariablesTextCache = text;
+  return text;
+}
+
 let elemIdCounter = 0;
 export function generateElemId(prefix: string = ''): string {
   return `${prefix}${elemIdCounter++}`;

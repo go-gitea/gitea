@@ -1,7 +1,7 @@
 import {isDarkTheme, parseDom} from '../utils.ts';
 import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
-import {createElementFromAttrs, getCssKeyframe, queryElems} from '../utils/dom.ts';
+import {createElementFromAttrs, getCssKeyframe, getCssRootVariablesText, queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {load as loadYaml} from 'js-yaml';
 import type {MermaidConfig} from 'mermaid';
@@ -21,12 +21,12 @@ function getIframeCss(): string {
   }
   globalStyleText += '}\n';
   globalStyleText += `
-html, body { height: 100%; }
-body { margin: 0; padding: 0; overflow: hidden; }
-
+${getCssRootVariablesText()}
 ${getCssKeyframe('fadein')}
 ${getCssKeyframe('fadeout')}
 
+html, body { height: 100%; }
+body { margin: 0; padding: 0; overflow: hidden; }
 #mermaid { display: block; margin: 0 auto; }
 
 .view-controller {
@@ -39,15 +39,9 @@ ${getCssKeyframe('fadeout')}
   visibility: hidden;
   animation: fadeout 0.2s both;
 }
-body:hover .view-controller {
-  visibility: visible;
-  animation: fadein 0.2s both;
-}
+body:hover .view-controller { visibility: visible; animation: fadein 0.2s both; }
 @media (hover: none) {
-  .view-controller {
-    visibility: visible;
-    animation: none;
-  }
+  .view-controller { visibility: visible; animation: none; }
 }
 .view-controller button {
   cursor: pointer;
