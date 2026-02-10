@@ -10,14 +10,16 @@
   overflow-y: auto;
   justify-content: center;
   padding: 8px 0;
-  animation-name: fadein;
-  animation-duration: .2s;
+  transition: var(--transition-hover-fade);
   user-select: none;
 }
 
 .ui.active.dimmer {
   display: flex;
   opacity: 1;
+  @starting-style {
+    opacity: 0;
+  }
 }
 
 .ui.dimmer > .ui.modal {
