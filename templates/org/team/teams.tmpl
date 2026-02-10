@@ -7,8 +7,18 @@
 			<div class="flex-text-block tw-justify-end">
 				<a class="ui primary button" href="{{.OrgLink}}/teams/new">{{svg "octicon-plus"}} {{ctx.Locale.Tr "org.create_new_team"}}</a>
 			</div>
-			<div class="divider"></div>
 		{{end}}
+
+		<div class="ui secondary filter menu tw-mx-0">
+			<form class="ui form ignore-dirty tw-flex-1" method="get">
+				<div class="ui fluid action input">
+					<input name="q" value="{{$.Keyword}}" placeholder="{{ctx.Locale.Tr "search.team_kind"}}" autofocus>
+					<button class="ui primary button" type="submit">{{svg "octicon-search"}}</button>
+				</div>
+			</form>
+		</div>
+
+		<div class="divider"></div>
 
 		<div class="ui two column stackable grid">
 			{{range .Teams}}
@@ -30,6 +40,11 @@
 							{{end}}
 						</div>
 					</div>
+					{{if .Description}}
+						<div class="ui attached segment">
+							<p class="tw-text-sm tw-text-secondary tw-my-0">{{.Description}}</p>
+						</div>
+					{{end}}
 					<div class="ui attached segment members">
 						{{range .Members}}
 							{{template "shared/user/avatarlink" dict "user" .}}
@@ -41,6 +56,8 @@
 				</div>
 			{{end}}
 		</div>
+
+		{{template "base/paginate" .}}
 	</div>
 </div>
 <div class="ui g-modal-confirm delete modal" id="leave-team">
@@ -53,3 +70,4 @@
 	{{template "base/modal_actions_confirm" .}}
 </div>
 {{template "base/footer" .}}
+
