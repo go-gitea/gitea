@@ -3,9 +3,8 @@
   top: 8px;
   right: 6px;
   padding: 9px;
-  opacity: 0;
   visibility: hidden;
-  transition: var(--transition-hover-fade);
+  animation: fadeout 0.2s both;
 }
 
 /* adjustments for comment content having only 14px font size */
@@ -27,13 +26,13 @@
 .markup .code-block-container:hover .code-copy,
 .markup .code-block:hover .code-copy,
 .markup .mermaid-block:hover .code-copy {
-  opacity: 1;
   visibility: visible;
+  animation: fadein 0.2s both;
 }
 
 @media (hover: none) {
   .markup .code-copy {
-    opacity: 1;
     visibility: visible;
+    animation: none;
   }
 }

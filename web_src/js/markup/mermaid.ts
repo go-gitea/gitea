@@ -8,17 +8,29 @@ import type {MermaidConfig} from 'mermaid';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
-// keep button styling the same is `button.code-copy`
+// keep button styling the same as `button.code-copy`
 function getIframeCss(): string {
   const style = getComputedStyle(document.documentElement);
   const cssVar = (name: string) => style.getPropertyValue(name).trim();
+  // extract keyframe animations from parent stylesheets to reuse in the iframe
+  let keyframes = '';
+  for (const sheet of document.styleSheets) {
+    try {
+      for (const rule of sheet.cssRules) {
+        if (rule instanceof CSSKeyframesRule && (rule.name === 'fadein' || rule.name === 'fadeout')) {
+          keyframes += rule.cssText;
+        }
+      }
+    } catch { /* skip cross-origin sheets */ }
+  }
   return `html, body {height: 100%}
 :root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}
-.view-controller {position: absolute; z-index: 1; right: 0; bottom: 0; display: flex; gap: 4px; opacity: 0; visibility: hidden; transition: ${cssVar('--transition-hover-fade')}}
-body:hover .view-controller {opacity: 1; visibility: visible}
-@media (hover: none) {.view-controller {opacity: 1; visibility: visible}}
+${keyframes}
+.view-controller {position: absolute; z-index: 1; right: 0; bottom: 0; display: flex; gap: 4px; visibility: hidden; animation: fadeout 0.2s both}
+body:hover .view-controller {visibility: visible; animation: fadein 0.2s both}
+@media (hover: none) {.view-controller {visibility: visible; animation: none}}
 .view-controller button {cursor: pointer; display: inline-flex; justify-content: center; align-items: center; line-height: 1; padding: 7.5px 10px; border: 1px solid ${cssVar('--color-light-border')}; border-radius: ${cssVar('--border-radius')}; background: ${cssVar('--color-button')}; color: ${cssVar('--color-text')}; user-select: none}
 .view-controller button:hover {background: ${cssVar('--color-hover')}}
 .view-controller button:active {background: ${cssVar('--color-active')}}`;
