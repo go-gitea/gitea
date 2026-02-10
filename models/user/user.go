@@ -1209,8 +1209,9 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 				if id, err := strconv.ParseInt(idstr, 10, 64); err == nil {
 					needCheckUserIDs.Add(id)
 				}
+			} else {
+				needCheckUserNames.Add(name)
 			}
-			needCheckUserNames.Add(name)
 		}
 	}
 
@@ -1272,7 +1273,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 
 		name, id, hasPlus := strings.Cut(noReplyUserNameLower, "+")
 		if hasPlus {
-			if id, err := strconv.ParseInt(id, 10, 64); err != nil {
+			if id, err := strconv.ParseInt(id, 10, 64); err == nil {
 				if user, ok := usersByIDs[id]; ok {
 					results[emailLower] = user
 				}
