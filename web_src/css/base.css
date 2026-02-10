@@ -37,6 +37,7 @@
 
   --font-size-label: 12px; /* font size of individual labels */
 
+  --transition-fade: opacity 0.2s, visibility 0.2s;
   --gap-inline: 0.25rem; /* gap for inline texts and elements, for example: the spaces for sentence with labels, button text, etc */
   --gap-block: 0.5rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
 

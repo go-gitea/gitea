@@ -8,10 +8,20 @@ import type {MermaidConfig} from 'mermaid';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
-const iframeCss = `:root {color-scheme: normal}
+function getIframeCss(): string {
+  const style = getComputedStyle(document.documentElement);
+  const cssVar = (name: string) => style.getPropertyValue(name).trim();
+  return `html, body {height: 100%}
+:root {color-scheme: normal}
 body {margin: 0; padding: 0; overflow: hidden}
 #mermaid {display: block; margin: 0 auto}
-.view-controller {position: absolute; z-index: 1; right: 0; bottom: 0}`;
+.view-controller {position: absolute; z-index: 1; right: 0; bottom: 0; display: flex; gap: 4px; opacity: 0; visibility: hidden; transition: ${cssVar('--transition-fade')}}
+body:hover .view-controller {opacity: 1; visibility: visible}
+@media (hover: none) {.view-controller {opacity: 1; visibility: visible}}
+.view-controller button {cursor: pointer; display: inline-flex; justify-content: center; align-items: center; line-height: 1; padding: 7.5px 10px; border: 1px solid ${cssVar('--color-light-border')}; border-radius: ${cssVar('--border-radius')}; background: ${cssVar('--color-button')}; color: ${cssVar('--color-text')}; user-select: none}
+.view-controller button:hover {background: ${cssVar('--color-hover')}}
+.view-controller button:active {background: ${cssVar('--color-active')}}`;
+}
 
 function isSourceTooLarge(source: string) {
   return mermaidMaxSourceCharacters >= 0 && source.length > mermaidMaxSourceCharacters;
@@ -195,7 +205,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       // create an iframe to sandbox the svg with styles, and set correct height by reading svg's viewBox height
       const iframe = document.createElement('iframe');
       iframe.classList.add('markup-content-iframe', 'is-loading');
-      iframe.srcdoc = html`<html><head><style>${htmlRaw(iframeCss)}</style></head><body>${htmlRaw(viewController)}</body></html>`;
+      iframe.srcdoc = html`<html><head><style>${htmlRaw(getIframeCss())}</style></head><body>${htmlRaw(viewController)}</body></html>`;
 
       // although the "viewBox" is optional, mermaid's output should always have a correct viewBox with width and height
       const iframeHeightFromViewBox = Math.ceil(svgNode.viewBox?.baseVal?.height ?? 0);
