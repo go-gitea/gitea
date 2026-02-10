@@ -159,6 +159,9 @@ function initMermaidViewController(dragElement: SVGSVGElement) {
 
   dragElement.addEventListener('mousedown', (e) => {
     if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return; // only left mouse button can drag
+    const target = e.target as Element;
+    if (target.closest('div, p, a, span, button, input')) return; // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
+
     initAbsolutePosition();
     isDragging = true;
     lastPageX = e.pageX;
