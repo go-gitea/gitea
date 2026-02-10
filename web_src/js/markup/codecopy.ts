@@ -3,7 +3,7 @@ import {createElementFromAttrs, queryElems} from '../utils/dom.ts';
 
 export function makeCodeCopyButton(attrs: Record<string, string> = {}): HTMLButtonElement {
   const btn = createElementFromAttrs<HTMLButtonElement>('button', {
-    class: 'ui button code-copy auto-hide-control',
+    class: 'ui compact icon button code-copy auto-hide-control',
     ...attrs,
   });
   btn.innerHTML = svg('octicon-copy');

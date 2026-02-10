@@ -4,7 +4,7 @@ import {createElementFromAttrs, createElementFromHTML, queryElems} from '../util
 import {html, htmlRaw} from '../utils/html.ts';
 import {load as loadYaml} from 'js-yaml';
 import type {MermaidConfig} from 'mermaid';
-import {svg} from "../svg.ts";
+import {svg} from '../svg.ts';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
@@ -125,7 +125,8 @@ function initMermaidViewController(viewController: HTMLElement, dragElement: SVG
   dragElement.addEventListener('mousedown', (e) => {
     if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return; // only left mouse button can drag
     const target = e.target as Element;
-    if (target.closest('div, p, a, span, button, input')) return; // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
+    // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
+    if (target.closest('div, p, a, span, button, input, text')) return;
 
     initAbsolutePosition();
     isDragging = true;
