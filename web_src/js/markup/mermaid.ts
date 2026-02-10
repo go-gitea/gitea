@@ -8,8 +8,9 @@ import type {MermaidConfig} from 'mermaid';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
-// keep button styling the same as `button.code-copy`
 function getIframeCss(): string {
+  // Inherit some styles (including root variables, keyframes) from parent document.
+  // The buttons should use the same styles as `button.code-copy`
   return `
 ${getCssRootVariablesText()}
 ${getCssKeyframeTexts(['fadein', 'fadeout'])}
