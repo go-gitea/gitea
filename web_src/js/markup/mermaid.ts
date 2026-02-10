@@ -8,6 +8,7 @@ import type {MermaidConfig} from 'mermaid';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
+// keep button styling the same is `button.code-copy`
 function getIframeCss(): string {
   const style = getComputedStyle(document.documentElement);
   const cssVar = (name: string) => style.getPropertyValue(name).trim();
