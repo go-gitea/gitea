@@ -206,9 +206,9 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
 
       const viewControllerHtml = html`
         <div class="view-controller auto-hide-control flex-text-block">
-          <button class="ui tiny compact icon button" data-control-action="zoom-in">${htmlRaw(svg('octicon-zoom-in', 12))}</button>
-          <button class="ui tiny compact icon button" data-control-action="reset">${htmlRaw(svg('octicon-sync', 12))}</button>
-          <button class="ui tiny compact icon button" data-control-action="zoom-out">${htmlRaw(svg('octicon-zoom-out', 12))}</button>
+          <button type="button" class="ui tiny compact icon button" data-control-action="zoom-in">${htmlRaw(svg('octicon-zoom-in', 12))}</button>
+          <button type="button" class="ui tiny compact icon button" data-control-action="reset">${htmlRaw(svg('octicon-sync', 12))}</button>
+          <button type="button" class="ui tiny compact icon button" data-control-action="zoom-out">${htmlRaw(svg('octicon-zoom-out', 12))}</button>
         </div>
       `;
       const viewController = createElementFromHTML(viewControllerHtml);
