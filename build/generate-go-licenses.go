@@ -51,7 +51,11 @@ func main() {
 	out := os.Args[1]
 
 	// Get all modules with their local directory paths from the module cache.
-	cmd := exec.Command("go", "list", "-m", "-json", "all")
+	goCmd := "go"
+	if env := os.Getenv("GO"); env != "" {
+		goCmd = env
+	}
+	cmd := exec.Command(goCmd, "list", "-m", "-json", "all")
 	cmd.Stderr = os.Stderr
 	output, err := cmd.Output()
 	if err != nil {
@@ -81,6 +85,7 @@ func main() {
 		// Scan the module root directory for license files.
 		dirEntries, err := os.ReadDir(mod.Dir)
 		if err != nil {
+			fmt.Fprintf(os.Stderr, "warning: failed to read directory %s for %s: %v\n", mod.Dir, mod.Path, err)
 			continue
 		}
 
@@ -98,6 +103,7 @@ func main() {
 
 			content, err := os.ReadFile(filepath.Join(mod.Dir, name))
 			if err != nil {
+				fmt.Fprintf(os.Stderr, "warning: failed to read %s/%s: %v\n", mod.Path, name, err)
 				continue
 			}
 
