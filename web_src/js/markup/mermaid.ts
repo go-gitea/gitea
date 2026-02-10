@@ -21,8 +21,8 @@ body { margin: 0; padding: 0; overflow: hidden; }
 .view-controller {
   position: absolute;
   z-index: 1;
-  right: 0;
-  bottom: 0;
+  right: 6px;
+  bottom: 6px;
   display: flex;
   gap: 4px;
   visibility: hidden;
@@ -34,6 +34,7 @@ body:hover .view-controller { visibility: visible; opacity: 1; }
   .view-controller { visibility: visible; opacity: 1; }
 }
 .view-controller button {
+  margin-right: 0.25em;
   cursor: pointer;
   display: inline-flex;
   justify-content: center;
