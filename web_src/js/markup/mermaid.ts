@@ -25,12 +25,13 @@ body { margin: 0; padding: 0; overflow: hidden; }
   bottom: 0;
   display: flex;
   gap: 4px;
+  visibility: hidden;
   opacity: 0;
   transition: var(--transition-hover-fade);
 }
-body:hover .view-controller { opacity: 1; }
+body:hover .view-controller { visibility: visible; opacity: 1; }
 @media (hover: none) {
-  .view-controller { opacity: 1; }
+  .view-controller { visibility: visible; opacity: 1; }
 }
 .view-controller button {
   cursor: pointer;
