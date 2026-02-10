@@ -9,8 +9,8 @@ import type {MermaidConfig} from 'mermaid';
 const {mermaidMaxSourceCharacters} = window.config;
 
 function getIframeCss(): string {
-  // Inherit some styles (including root variables, keyframes) from parent document.
-  // The buttons should use the same styles as `button.code-copy`
+  // Inherit some styles (e.g.: root variables) from parent document.
+  // The buttons should use the same styles as `button.code-copy`, and align with it.
   return `
 ${getCssRootVariablesText()}
 
@@ -220,6 +220,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
   const iframeStyleText = getIframeCss();
   const applyMermaidIframeHeight = (iframe: HTMLIFrameElement, height: number) => {
     if (!height) return;
+    // use a min-height to make sure the buttons won't overlap.
     iframe.style.height = `${Math.max(height, 100)}px`;
   };
 
