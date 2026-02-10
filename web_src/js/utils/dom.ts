@@ -356,7 +356,7 @@ const cssKeyframeCache: Record<string, string> = {};
 
 /** Extract a CSS `@keyframes` rule by name from the document's stylesheets. The DOM lookup is only
  *  performed once per keyframe name. */
-export function getCssKeyframe(name: string): string {
+export function getCssKeyframeText(name: string): string {
   if (name in cssKeyframeCache) return cssKeyframeCache[name];
   let result = '';
   for (const sheet of document.styleSheets) {

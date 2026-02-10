@@ -1,7 +1,7 @@
 import {isDarkTheme, parseDom} from '../utils.ts';
 import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
-import {createElementFromAttrs, getCssKeyframe, getCssRootVariablesText, queryElems} from '../utils/dom.ts';
+import {createElementFromAttrs, getCssKeyframeText, getCssRootVariablesText, queryElems} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import {load as loadYaml} from 'js-yaml';
 import type {MermaidConfig} from 'mermaid';
@@ -10,20 +10,10 @@ const {mermaidMaxSourceCharacters} = window.config;
 
 // keep button styling the same as `button.code-copy`
 function getIframeCss(): string {
-  const style = getComputedStyle(document.documentElement);
-
-  let globalStyleText = ':root {';
-  for (let i = 0; i < style.length; i++) {
-    const name = style.item(i);
-    if (name.startsWith('--')) {
-      globalStyleText += ` ${name}: ${style.getPropertyValue(name)};\n`;
-    }
-  }
-  globalStyleText += '}\n';
-  globalStyleText += `
+  return `
 ${getCssRootVariablesText()}
-${getCssKeyframe('fadein')}
-${getCssKeyframe('fadeout')}
+${getCssKeyframeText('fadein')}
+${getCssKeyframeText('fadeout')}
 
 html, body { height: 100%; }
 body { margin: 0; padding: 0; overflow: hidden; }
@@ -59,7 +49,6 @@ body:hover .view-controller { visibility: visible; animation: fadein 0.2s both; 
 .view-controller button:hover { background: var(--color-secondary); }
 .view-controller button:active { background: var(--color-secondary-dark-1); }
 `;
-  return globalStyleText;
 }
 
 function isSourceTooLarge(source: string) {

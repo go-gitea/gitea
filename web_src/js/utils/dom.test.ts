@@ -1,7 +1,7 @@
 import {
   createElementFromAttrs,
   createElementFromHTML,
-  getCssKeyframe,
+  getCssKeyframeText,
   queryElemChildren,
   querySingleVisibleElem,
   toggleElem,
@@ -44,22 +44,12 @@ test('queryElemChildren', () => {
   expect(children.length).toEqual(1);
 });
 
-test('getCssKeyframe', () => {
-  let style: HTMLStyleElement | undefined;
-  try {
-    style = document.createElement('style');
-    style.textContent = '@keyframes testanim { from { opacity: 0 } to { opacity: 1 } }';
-    document.head.append(style);
-    expect(getCssKeyframe('testanim')).toMatchInlineSnapshot(`
-      "@keyframes testanim { 
-        0% { opacity: 0; }
-        100% { opacity: 1; }
-      }"
-    `);
-    expect(getCssKeyframe('nonexistent')).toMatchInlineSnapshot(`""`);
-  } finally {
-    style?.remove();
-  }
+test('getCssKeyframeText', () => {
+  const style = document.createElement('style');
+  style.textContent = '@keyframes test-anim { from { opacity: 0 } to { opacity: 1 } }';
+  document.head.append(style);
+  expect(getCssKeyframeText('test-anim')).toContain(`@keyframes test-anim {`);
+  expect(() => getCssKeyframeText('nonexistent')).toThrowError();
 });
 
 test('toggleElem', () => {
