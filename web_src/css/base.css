@@ -954,7 +954,7 @@ table th[data-sortt-desc] .svg {
   border-radius: 0;
 }
 
-.ui.dropdown .menu .item:first-of-type {
+.ui.dropdown:not(.selection) .menu .item:first-of-type {
   border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 
