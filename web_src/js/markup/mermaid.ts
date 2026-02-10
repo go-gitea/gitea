@@ -221,7 +221,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
   const applyMermaidIframeHeight = (iframe: HTMLIFrameElement, height: number) => {
     if (!height) return;
     // use a min-height to make sure the buttons won't overlap.
-    iframe.style.height = `${Math.max(height, 100)}px`;
+    iframe.style.height = `${Math.max(height, 90)}px`;
   };
 
   // mermaid is a globally shared instance, its document also says "Multiple calls to this function will be enqueued to run serially."
