@@ -48,8 +48,13 @@ test('getCssKeyFrame', () => {
   const style = document.createElement('style');
   style.textContent = '@keyframes testanim { from { opacity: 0 } to { opacity: 1 } }';
   document.head.append(style);
-  expect(getCssKeyFrame('testanim')).toContain('testanim');
-  expect(getCssKeyFrame('nonexistent')).toEqual('');
+  expect(getCssKeyFrame('testanim')).toMatchInlineSnapshot(`
+    "@keyframes testanim { 
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }"
+  `);
+  expect(getCssKeyFrame('nonexistent')).toMatchInlineSnapshot(`""`);
   style.remove();
 });
 
