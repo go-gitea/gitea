@@ -159,6 +159,7 @@ export default defineComponent({
       return el?.length ? el[0] : null;
     },
     keydown(e: KeyboardEvent) {
+      if (e.isComposing) return;
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
 
