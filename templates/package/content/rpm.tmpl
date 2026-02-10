@@ -14,6 +14,12 @@
 dnf config-manager --add-repo <origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group}}.repo"></origin-url>
 {{- end}}
 
+# Fedora 41+ (DNF5)
+{{- range $group := .Groups}}
+	{{- if $group}}{{$group = print "/" $group}}{{end}}
+dnf config-manager addrepo --from-repofile=<origin-url data-url="{{AppSubUrl}}/api/packages/{{$.PackageDescriptor.Owner.Name}}/rpm{{$group}}.repo"></origin-url>
+{{- end}}
+
 # {{ctx.Locale.Tr "packages.rpm.distros.suse"}}
 {{- range $group := .Groups}}
 	{{- if $group}}{{$group = print "/" $group}}{{end}}
