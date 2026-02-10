@@ -46,6 +46,7 @@ func Activity(ctx *context.Context) {
 	ctx.Data["DateFrom"] = timeFrom
 	ctx.Data["DateUntil"] = timeUntil
 	ctx.Data["Period"] = period
+	// i18n-check: repo.activity.period.*
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + period)
 
 	canReadCode := ctx.Repo.CanRead(unit.TypeCode)
