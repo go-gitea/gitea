@@ -245,7 +245,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       const iframe = document.createElement('iframe');
       iframe.classList.add('markup-content-iframe', 'is-loading');
       // the styles are not ready, so don't really render anything before the "load" event, to avoid flicker of unstyled content
-      iframe.srcdoc = html`<html><head></head><body></div></body></html>`;
+      iframe.srcdoc = html`<html><head></head><body></body></html>`;
 
       // although the "viewBox" is optional, mermaid's output should always have a correct viewBox with width and height
       const iframeHeightFromViewBox = Math.ceil(svgNode.viewBox?.baseVal?.height ?? 0);
