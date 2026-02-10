@@ -21,20 +21,20 @@ body { margin: 0; padding: 0; overflow: hidden; }
 .view-controller {
   position: absolute;
   z-index: 1;
-  right: 6px;
+  right: 5px;
   bottom: 6px;
   display: flex;
   gap: 4px;
   visibility: hidden;
   opacity: 0;
   transition: var(--transition-hover-fade);
+  margin-right: 0.25em;
 }
 body:hover .view-controller { visibility: visible; opacity: 1; }
 @media (hover: none) {
   .view-controller { visibility: visible; opacity: 1; }
 }
 .view-controller button {
-  margin-right: 0.25em;
   cursor: pointer;
   display: inline-flex;
   justify-content: center;
@@ -221,7 +221,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
   const applyMermaidIframeHeight = (iframe: HTMLIFrameElement, height: number) => {
     if (!height) return;
     // use a min-height to make sure the buttons won't overlap.
-    iframe.style.height = `${Math.max(height, 90)}px`;
+    iframe.style.height = `${Math.max(height, 86)}px`;
   };
 
   // mermaid is a globally shared instance, its document also says "Multiple calls to this function will be enqueued to run serially."
