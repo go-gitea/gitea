@@ -108,6 +108,12 @@ c=2
 			),
 			lexerName: "Python",
 		},
+		{
+			name:      "test.sql",
+			code:      "--\nSELECT",
+			want:      []template.HTML{"<span class=\"c1\">--\n</span>", `<span class="k">SELECT</span>`},
+			lexerName: "SQL",
+		},
 	}
 
 	for _, tt := range tests {
