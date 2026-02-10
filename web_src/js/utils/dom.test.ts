@@ -45,17 +45,21 @@ test('queryElemChildren', () => {
 });
 
 test('getCssKeyFrame', () => {
-  const style = document.createElement('style');
-  style.textContent = '@keyframes testanim { from { opacity: 0 } to { opacity: 1 } }';
-  document.head.append(style);
-  expect(getCssKeyFrame('testanim')).toMatchInlineSnapshot(`
-    "@keyframes testanim { 
-      0% { opacity: 0; }
-      100% { opacity: 1; }
-    }"
-  `);
-  expect(getCssKeyFrame('nonexistent')).toMatchInlineSnapshot(`""`);
-  style.remove();
+  let style: HTMLStyleElement | undefined;
+  try {
+    style = document.createElement('style');
+    style.textContent = '@keyframes testanim { from { opacity: 0 } to { opacity: 1 } }';
+    document.head.append(style);
+    expect(getCssKeyFrame('testanim')).toMatchInlineSnapshot(`
+      "@keyframes testanim { 
+        0% { opacity: 0; }
+        100% { opacity: 1; }
+      }"
+    `);
+    expect(getCssKeyFrame('nonexistent')).toMatchInlineSnapshot(`""`);
+  } finally {
+    style?.remove();
+  }
 });
 
 test('toggleElem', () => {
