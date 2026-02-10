@@ -217,6 +217,10 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
   });
 
   const iframeStyleText = getIframeCss();
+  const applyMermaidIframeHeight = (iframe: HTMLIFrameElement, height: number) => {
+    if (!height) return;
+    iframe.style.height = `${Math.max(height, 100)}px`;
+  };
 
   // mermaid is a globally shared instance, its document also says "Multiple calls to this function will be enqueued to run serially."
   // so here we just simply render the mermaid blocks one by one, no need to do "Promise.all" concurrently
@@ -243,7 +247,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
 
       // although the "viewBox" is optional, mermaid's output should always have a correct viewBox with width and height
       const iframeHeightFromViewBox = Math.ceil(svgNode.viewBox?.baseVal?.height ?? 0);
-      if (iframeHeightFromViewBox) iframe.style.height = `${iframeHeightFromViewBox}px`;
+      applyMermaidIframeHeight(iframe, iframeHeightFromViewBox);
 
       // the iframe will be fully reloaded if its DOM context is changed (e.g.: moved in the DOM tree).
       // to avoid unnecessary reloading, we should insert the iframe to its final position only once.
@@ -260,7 +264,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
 
         // according to mermaid, the viewBox height should always exist, here just a fallback for unknown cases.
         // and keep in mind: clientHeight can be 0 if the element is hidden (display: none).
-        if (!iframeHeightFromViewBox && iframeBody.clientHeight) iframe.style.height = `${iframeBody.clientHeight}px`;
+        if (!iframeHeightFromViewBox) applyMermaidIframeHeight(iframe, iframeBody.clientHeight);
         iframe.classList.remove('is-loading');
 
         initMermaidViewController(svgNode);
