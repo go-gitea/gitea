@@ -27,6 +27,7 @@ var excludedExt = map[string]bool{
 	".mod":       true,
 	".sum":       true,
 	".toml":      true,
+	".yaml":       true,
 	".yml":       true,
 }
 
