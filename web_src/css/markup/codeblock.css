@@ -1,0 +1,16 @@
+.markup .code-copy {
+  top: 8px;
+  right: 6px;
+  padding: 9px;
+}
+
+/* adjustments for comment content having only 14px font size */
+.repository.view.issue .comment-list .comment .markup .code-copy {
+  right: 5px;
+  padding: 8px;
+}
+
+.markup .mermaid-block .view-controller {
+  right: 6px;
+  bottom: 5px;
+}
