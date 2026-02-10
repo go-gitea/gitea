@@ -186,6 +186,8 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
     suppressErrorRendering: true,
   });
 
+  const iframeStyleText = getIframeCss();
+
   // mermaid is a globally shared instance, its document also says "Multiple calls to this function will be enqueued to run serially."
   // so here we just simply render the mermaid blocks one by one, no need to do "Promise.all" concurrently
   for (const block of mermaidBlocks) {
@@ -206,7 +208,7 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       // create an iframe to sandbox the svg with styles, and set correct height by reading svg's viewBox height
       const iframe = document.createElement('iframe');
       iframe.classList.add('markup-content-iframe', 'is-loading');
-      iframe.srcdoc = html`<html><head><style>${htmlRaw(getIframeCss())}</style></head><body>${htmlRaw(viewController)}</body></html>`;
+      iframe.srcdoc = html`<html><head><style>${htmlRaw(iframeStyleText)}</style></head><body>${htmlRaw(viewController)}</body></html>`;
 
       // although the "viewBox" is optional, mermaid's output should always have a correct viewBox with width and height
       const iframeHeightFromViewBox = Math.ceil(svgNode.viewBox?.baseVal?.height ?? 0);
