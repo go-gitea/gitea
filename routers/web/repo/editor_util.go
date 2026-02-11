@@ -84,7 +84,9 @@ func getCodeEditorConfig(ctx *context_service.Context, treePath string) (ret Cod
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
 			ret.IndentStyle = def.IndentStyle
-			ret.IndentSize, _ = strconv.Atoi(def.IndentSize)
+			if ecIndentSize, _ := strconv.Atoi(def.IndentSize); ecIndentSize == 2 || ecIndentSize == 4 || ecIndentSize == 8 {
+				ret.IndentSize = ecIndentSize
+			}
 		}
 	}
 	return ret
