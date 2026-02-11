@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -78,8 +77,6 @@ func prepareEditorPageFormOptions(ctx *context.Context, editorAction string) *co
 	ctx.Data["CommitFormOptions"] = commitFormOptions
 
 	// for online editor
-	ctx.Data["PreviewableExtensions"] = markup.PreviewableExtensions()
-	ctx.Data["LineWrapExtensions"] = setting.Repository.Editor.LineWrapExtensions
 	ctx.Data["IsEditingFileOnly"] = ctx.FormString("return_uri") != ""
 	ctx.Data["ReturnURI"] = ctx.FormString("return_uri")
 

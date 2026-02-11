@@ -32,8 +32,8 @@
 							<div class="ui bottom attached segment tw-p-0">
 								<div class="ui active tab tw-rounded-b" data-tab="write">
 									<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
-										data-previewable-extensions="{{StringUtils.Join .PreviewableExtensions ","}}"
-										data-line-wrap-extensions="{{StringUtils.Join .LineWrapExtensions ","}}">{{.FileContent}}</textarea>
+										data-previewable-extensions="{{StringUtils.Join $.CodeEditorConfig.PreviewableExtensions ","}}"
+										data-line-wrap-extensions="{{StringUtils.Join $.CodeEditorConfig.LineWrapExtensions ","}}">{{.FileContent}}</textarea>
 									<div class="editor-loading is-loading"></div>
 								</div>
 								<div class="ui tab tw-px-4 tw-py-3" data-tab="preview">

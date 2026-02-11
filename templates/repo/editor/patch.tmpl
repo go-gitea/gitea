@@ -31,9 +31,7 @@
 				<div class="ui bottom attached segment tw-p-0">
 					<div class="ui active tab tw-rounded-b" data-tab="write">
 						<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
-							data-context="{{.RepoLink}}"
-							data-line-wrap-extensions="{{StringUtils.Join .LineWrapExtensions ","}}">
-{{.FileContent}}</textarea>
+							data-context="{{.RepoLink}}">{{.FileContent}}</textarea>
 						<div class="editor-loading is-loading"></div>
 					</div>
 				</div>
