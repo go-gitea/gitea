@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
