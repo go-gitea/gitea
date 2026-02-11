@@ -408,7 +408,7 @@ $.fn.dropdown = function(parameters) {
                 .insertBefore($input)
               ;
 
-              $module.attr('data-tooltip-content', $input.attr('data-tooltip-content')); // GITEA-PATCH: convert "select" to "dropdown" with attrs
+              $module.attr('data-tooltip-content', $input.attr('data-tooltip-content') ?? null); // GITEA-PATCH: convert "select" to "dropdown" with attrs
 
               if($input.hasClass(className.multiple) && $input.prop('multiple') === false) {
                 module.error(error.missingMultiple);
