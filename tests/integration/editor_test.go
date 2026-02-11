@@ -148,10 +148,10 @@ func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, bra
 func testEditorDiffPreview(t *testing.T) {
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user2/repo1/_preview/master/README.md", map[string]string{
-		"content": "Hello, World (Edited)\n",
+		"content": "# repo1 (Edited)",
 	})
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	assert.Contains(t, resp.Body.String(), `<span class="added-code">Hello, World (Edited)</span>`)
+	assert.Contains(t, resp.Body.String(), `<span class="added-code"> (Edited)</span>`)
 }
 
 func testEditorPatchFile(t *testing.T) {
