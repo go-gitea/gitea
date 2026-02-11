@@ -18,7 +18,7 @@
 					{{if not .NotEditableReason}}
 						<div class="field">
 							<div class="ui top attached header">
-								<div class="tw-w-100 tw-flex tw-justify-between tw-flex-col md:tw-flex-row tw-gap-2 tw-items-stretch">
+								<div class="flex-text-block tw-justify-between md:tw-flex-row">
 									<div class="ui compact small menu small-menu-items repo-editor-menu tw-self-start">
 										<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
 										<a class="item" data-tab="preview" data-preview-url="{{.Repository.Link}}/markup" data-preview-context-ref="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>
@@ -26,7 +26,7 @@
 										<a class="item" data-tab="diff" hx-params="context,content" hx-vals='{"context":"{{.BranchLink}}"}' hx-include="#edit_area" hx-swap="innerHTML" hx-target=".tab[data-tab='diff']" hx-indicator=".tab[data-tab='diff']" hx-post="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">{{svg "octicon-diff"}} {{ctx.Locale.Tr "repo.editor.preview_changes"}}</a>
 										{{end}}
 									</div>
-									{{template "repo/editor/settings" .}}
+									{{template "repo/editor/options" dict "CodeEditorConfig" $.CodeEditorConfig}}
 								</div>
 							</div>
 							<div class="ui bottom attached segment tw-p-0">

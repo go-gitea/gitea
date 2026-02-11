@@ -21,11 +21,11 @@
 			</div>
 			<div class="field">
 				<div class="ui top attached header">
-					<div class="tw-w-100 tw-flex tw-justify-between tw-flex-col md:tw-flex-row tw-gap-2 tw-items-stretch">
+					<div class="flex-text-block tw-justify-between md:tw-flex-row">
 						<div class="ui compact small menu small-menu-items repo-editor-menu tw-self-start">
 							<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
 						</div>
-						{{template "repo/editor/settings" .}}
+						{{template "repo/editor/options" dict "CodeEditorConfig" $.CodeEditorConfig}}
 					</div>
 				</div>
 				<div class="ui bottom attached segment tw-p-0">

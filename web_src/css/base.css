@@ -416,7 +416,9 @@ a.label,
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
 }
-
+.ui.selection.dropdown .menu .item:first-of-type {
+  border-radius: 0;
+}
 .ui.selection.visible.dropdown > .text:not(.default) {
   color: var(--color-text);
 }
@@ -955,7 +957,7 @@ table th[data-sortt-desc] .svg {
   border-radius: 0;
 }
 
-.ui.dropdown:not(.selection) .menu .item:first-of-type {
+.ui.dropdown .menu .item:first-of-type {
   border-radius: var(--border-radius) var(--border-radius) 0 0;
 }
 

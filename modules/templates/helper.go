@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/url"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -43,7 +42,6 @@ func NewFuncMap() template.FuncMap {
 
 		"PathEscape":         url.PathEscape,
 		"PathEscapeSegments": util.PathEscapeSegments,
-		"PathExt":            path.Ext,
 
 		// utils
 		"StringUtils": NewStringUtils,

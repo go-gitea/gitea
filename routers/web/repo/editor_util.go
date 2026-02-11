@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -14,12 +15,12 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	context_service "code.gitea.io/gitea/services/context"
-
-	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
 // getUniquePatchBranchName Gets a unique branch name for a new patch branch
@@ -64,17 +65,29 @@ func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePa
 	return f(originTreePath, commit)
 }
 
-// getContextRepoEditorConfig returns the editorconfig JSON string and definition for given treePath
-func getContextRepoEditorConfig(ctx *context_service.Context, treePath string) (string, *editorconfig.Definition) {
+type CodeEditorConfig struct {
+	PreviewableExtensions []string
+	LineWrapExtensions    []string
+	LineWrapOn            bool
+	IndentStyle           string
+	IndentSize            int
+}
+
+func getCodeEditorConfig(ctx *context_service.Context, treePath string) (ret CodeEditorConfig) {
+	ret.PreviewableExtensions = markup.PreviewableExtensions()
+	ret.LineWrapExtensions = setting.Repository.Editor.LineWrapExtensions
+	ret.IndentStyle = "space"
+	ret.IndentSize = 4
+	ret.LineWrapOn = util.SliceContainsString(ret.LineWrapExtensions, path.Ext(treePath), true)
 	ec, _, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
-			jsonStr, _ := json.Marshal(def)
-			return string(jsonStr), def
+			ret.IndentStyle = def.IndentStyle
+			ret.IndentSize, _ = strconv.Atoi(def.IndentSize)
 		}
 	}
-	return "null", nil
+	return ret
 }
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths based on given treePath.
