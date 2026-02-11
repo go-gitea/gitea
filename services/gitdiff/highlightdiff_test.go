@@ -77,15 +77,13 @@ func TestDiffWithHighlight(t *testing.T) {
 
 	t.Run("ComplexDiff1", func(t *testing.T) {
 		oldCode, _ := highlight.RenderCodeFast("a.go", "Go", `xxx || yyy`)
-		newCode, _ := highlight.RenderCodeFast("a.go", "Go", `bot.xxx || bot.yyy`)
+		newCode, _ := highlight.RenderCodeFast("a.go", "Go", `bot&xxx || bot&yyy`)
 		hcd := newHighlightCodeDiff()
 		out := hcd.diffLineWithHighlight(DiffLineAdd, oldCode, newCode)
 		assert.Equal(t, strings.ReplaceAll(`
-<span class="added-code"><span class="nx">bot</span></span>
-<span class="added-code"><span class="p">.</span></span>
+<span class="added-code"><span class="nx">bot</span></span><span class="o"><span class="added-code">&amp;</span></span>
 <span class="nx">xxx</span><span class="w"> </span><span class="o">||</span><span class="w"> </span>
-<span class="added-code"><span class="nx">bot</span></span>
-<span class="added-code"><span class="p">.</span></span>
+<span class="added-code"><span class="nx">bot</span></span><span class="o"><span class="added-code">&amp;</span></span>
 <span class="nx">yyy</span>`, "\n", ""), string(out))
 	})
 

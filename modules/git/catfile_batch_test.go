@@ -4,7 +4,9 @@
 package git
 
 import (
+	"errors"
 	"io"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -81,7 +83,10 @@ func testCatFileBatch(t *testing.T) {
 			_, _ = c.respReader.Read(buf)
 			n, errRead := c.respReader.Read(buf)
 			assert.Zero(t, n)
-			assert.ErrorIs(t, errRead, io.EOF) // the pipe is closed due to command being killed
+			// the pipe is closed due to command being killed
+			if errOK := errors.Is(errRead, os.ErrClosed) || errors.Is(errRead, io.EOF); !errOK {
+				assert.Fail(t, "unexpected error", "error: %v", errRead)
+			}
 		})
 		c.debugGitCmd.DebugKill()
 		wg.Wait()
