@@ -15,7 +15,7 @@
 			"CustomInit" true
 			"MarkdownPreviewInRepo" $.root.Repository
 			"MarkdownPreviewMode" "comment"
-			"ShowSuggestionButton" $.root.PageIsPullFiles
+			"ShowSuggestionButton" (and $.root.PageIsPullFiles (not $.root.Issue.PullRequest.IsAgitFlow))
 			"TextareaName" "content"
 			"TextareaPlaceholder" (ctx.Locale.Tr "repo.diff.comment.placeholder")
 			"DropzoneParentContainer" "form"

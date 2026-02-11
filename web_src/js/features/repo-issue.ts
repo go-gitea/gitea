@@ -258,12 +258,15 @@ export async function handleReply(el: HTMLElement) {
 
 export function initSuggestionApplyButtons(root: ParentNode = document) {
   for (const comment of root.querySelectorAll<HTMLElement>('.comment[data-apply-suggestion-url]')) {
-    const canApply = comment.getAttribute('data-can-apply-suggestion') === 'true';
-    if (!canApply) continue;
+    const canApplyValue = comment.getAttribute('data-can-apply-suggestion');
+    if (canApplyValue === null) throw new Error('Missing data-can-apply-suggestion on comment');
+    if (canApplyValue !== 'true') continue;
     const applyUrl = comment.getAttribute('data-apply-suggestion-url');
+    if (!applyUrl) throw new Error('Missing data-apply-suggestion-url on comment');
     const commentId = comment.getAttribute('data-comment-id');
-    if (!applyUrl || !commentId) continue;
-    const buttonLabel = comment.getAttribute('data-apply-suggestion-text') || 'Apply suggestion';
+    if (!commentId) throw new Error('Missing data-comment-id on comment');
+    const buttonLabel = comment.getAttribute('data-apply-suggestion-text');
+    if (!buttonLabel) throw new Error('Missing data-apply-suggestion-text on comment');
     const suggestionBlocks = Array.from(comment.querySelectorAll('pre > code.language-suggestion'));
     let index = 0;
     for (const codeEl of suggestionBlocks) {
@@ -273,10 +276,7 @@ export function initSuggestionApplyButtons(root: ParentNode = document) {
       }
       codeEl.setAttribute('data-suggestion-initialized', 'true');
       const pre = codeEl.parentElement;
-      if (!pre) {
-        index++;
-        continue;
-      }
+      if (!pre) throw new Error('Suggestion code block is missing a parent element');
       pre.classList.add('suggestion-block');
       const actions = createElementFromHTML(html`
         <div class="suggestion-actions">
@@ -342,8 +342,9 @@ export function initRepoPullRequestReview() {
     e.preventDefault();
     if (el.classList.contains('is-loading')) return;
     const url = el.getAttribute('data-apply-url');
+    if (!url) throw new Error('Missing data-apply-url on apply suggestion button');
     const index = el.getAttribute('data-suggestion-index');
-    if (!url || index === null) return;
+    if (index === null) throw new Error('Missing data-suggestion-index on apply suggestion button');
     try {
       el.classList.add('is-loading');
       const response = await POST(url, {data: new URLSearchParams({index})});
@@ -399,7 +400,7 @@ export function initRepoPullRequestReview() {
 
   const getSuggestionLinesFromDiff = (path: string, side: 'left' | 'right', start: number, end: number): string[] => {
     const table = document.querySelector<HTMLTableElement>(`.code-diff table[data-path="${CSS.escape(path)}"]`);
-    if (!table) return [];
+    if (!table) throw new Error('Suggestion selection table not found');
     const sideClass = side === 'right' ? 'lines-num-new' : 'lines-num-old';
     const lines: string[] = [];
     const rangeStart = Math.min(start, end);
@@ -483,19 +484,12 @@ export function initRepoPullRequestReview() {
     }
   });
 
-  addDelegatedEventListener(document, 'click', '.code-diff td.lines-num span', (el, e: MouseEvent) => {
-    const td = el.closest<HTMLTableCellElement>('td.lines-num');
-    if (!td) return;
-    const lineValue = td.getAttribute('data-line-num');
-    if (!lineValue) return;
-    const lineNum = Number(lineValue);
-    if (!lineNum) return;
-    const table = td.closest<HTMLTableElement>('table[data-path]');
-    if (!table) return;
-    const path = table.getAttribute('data-path');
-    if (!path) return;
-    const side = td.classList.contains('lines-num-new') ? 'right' : (td.classList.contains('lines-num-old') ? 'left' : null);
-    if (!side) return;
+  addDelegatedEventListener(document, 'click', '.code-diff td.lines-num[data-line-num]:not([data-line-num=""]) span', (el, e: MouseEvent) => {
+    const td = el.closest<HTMLTableCellElement>('td.lines-num')!;
+    const lineNum = Number(td.getAttribute('data-line-num')!);
+    const table = td.closest<HTMLTableElement>('table[data-path]')!;
+    const path = table.getAttribute('data-path')!;
+    const side = td.classList.contains('lines-num-new') ? 'right' : 'left';
     const isShiftSelect = e.shiftKey && diffSelection?.path === path && diffSelection?.side === side;
     const start = isShiftSelect ? diffSelection!.start : lineNum;
     const end = lineNum;
@@ -505,26 +499,30 @@ export function initRepoPullRequestReview() {
 
   addDelegatedEventListener(document, 'click', '.markdown-button-suggestion', (el, e) => {
     e.preventDefault();
-    const emptyMessage = el.getAttribute('data-suggestion-empty') ?? 'No selected lines available for suggestion.';
-    const proposedOnlyMessage = el.getAttribute('data-suggestion-proposed-only') ?? 'Suggestions can only be added on the proposed side.';
+    const emptyMessage = el.getAttribute('data-suggestion-empty');
+    if (!emptyMessage) throw new Error('Missing data-suggestion-empty on suggestion button');
+    const proposedOnlyMessage = el.getAttribute('data-suggestion-proposed-only');
+    if (!proposedOnlyMessage) throw new Error('Missing data-suggestion-proposed-only on suggestion button');
     const form = el.closest<HTMLFormElement>('form');
-    const textarea = form?.querySelector<HTMLTextAreaElement>('textarea.markdown-text-editor');
-    if (!form || !textarea) return;
+    if (!form) throw new Error('Suggestion button is not inside a form');
+    const textarea = form.querySelector<HTMLTextAreaElement>('textarea.markdown-text-editor');
+    if (!textarea) throw new Error('Suggestion form is missing the markdown textarea');
     const path = form.querySelector<HTMLInputElement>("input[name='path']")?.value;
     const side = form.querySelector<HTMLInputElement>("input[name='side']")?.value;
     const lineStartValue = form.querySelector<HTMLInputElement>("input[name='line_start']")?.value;
     const lineEndValue = form.querySelector<HTMLInputElement>("input[name='line_end']")?.value;
-    if (!path || !side) return;
-    if (!lineStartValue || !lineEndValue) {
-      showErrorToast(emptyMessage);
-      return;
-    }
+    if (!path) throw new Error('Suggestion form missing path');
+    if (!side) throw new Error('Suggestion form missing side');
+    if (!lineStartValue || !lineEndValue) throw new Error('Suggestion form missing line range');
     if (side !== 'proposed') {
       showErrorToast(proposedOnlyMessage);
       return;
     }
     const lineStart = Number(lineStartValue);
     const lineEnd = Number(lineEndValue);
+    if (!Number.isInteger(lineStart) || !Number.isInteger(lineEnd) || lineStart <= 0 || lineEnd <= 0) {
+      throw new Error('Suggestion form has invalid line range');
+    }
     const lines = getSuggestionLinesFromDiff(path, 'right', lineStart, lineEnd);
     if (!lines.length) {
       showErrorToast(emptyMessage);
