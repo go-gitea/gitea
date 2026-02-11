@@ -42,7 +42,7 @@ func TestRepoMergeUpstream(t *testing.T) {
 
 		// create a fork
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseUser.Name, baseRepo.Name), &api.CreateForkOption{
-			Name: util.ToPointer("test-repo-fork"),
+			Name: new("test-repo-fork"),
 		}).AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusAccepted)
 		forkRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: forkUser.ID, Name: "test-repo-fork"})

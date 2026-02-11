@@ -68,7 +68,7 @@ jobs:
 		// user4 forks the repo
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
 			&api.CreateForkOption{
-				Name: util.ToPointer("approve-all-runs-fork"),
+				Name: new("approve-all-runs-fork"),
 			}).AddTokenAuth(user4Token)
 		resp := MakeRequest(t, req, http.StatusAccepted)
 		var apiForkRepo api.Repository

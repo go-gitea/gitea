@@ -53,8 +53,8 @@ func getCreateFileOptions() api.CreateFileOptions {
 func normalizeFileContentResponseCommitTime(c *api.ContentsResponse) {
 	// decoded JSON response may contain different timezone from the one parsed by git commit
 	// so we need to normalize the time to UTC to make "assert.Equal" pass
-	c.LastCommitterDate = util.ToPointer(c.LastCommitterDate.UTC())
-	c.LastAuthorDate = util.ToPointer(c.LastAuthorDate.UTC())
+	c.LastCommitterDate = new(c.LastCommitterDate.UTC())
+	c.LastAuthorDate = new(c.LastAuthorDate.UTC())
 }
 
 type apiFileResponseInfo struct {
@@ -75,9 +75,9 @@ func getExpectedFileResponseForCreate(info apiFileResponseInfo) *api.FileRespons
 			Name:              path.Base(info.treePath),
 			Path:              info.treePath,
 			SHA:               sha,
-			LastCommitSHA:     util.ToPointer(info.lastCommitSHA),
-			LastCommitterDate: util.ToPointer(info.lastCommitterWhen),
-			LastAuthorDate:    util.ToPointer(info.lastAuthorWhen),
+			LastCommitSHA:     new(info.lastCommitSHA),
+			LastCommitterDate: new(info.lastCommitterWhen),
+			LastAuthorDate:    new(info.lastAuthorWhen),
 			Size:              16,
 			Type:              "file",
 			Encoding:          &encoding,

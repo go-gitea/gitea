@@ -18,8 +18,9 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m)
 }
 
+//go:fix inline
 func timePtr(t time.Time) *time.Time {
-	return &t
+	return new(t)
 }
 
 func assertTimeEqual(t *testing.T, expected, actual time.Time) {
