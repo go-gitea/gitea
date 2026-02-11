@@ -327,7 +327,6 @@ a.label,
   pointer-events: none; /* make the click event can pass through the svg to the select element */
   top: 7px;
   right: 5px;
-  pointer-events: none;
   content: "";
   width: 16px;
   height: 16px;
