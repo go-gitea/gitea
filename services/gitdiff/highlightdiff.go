@@ -23,7 +23,7 @@ func extractDiffTokenRemainingFullTag(s string) (token, after string, valid bool
 		// keep in mind: even if we'd like to relax this check,
 		// we should never ignore "&" because it is for HTML entity and can't be safely used in the diff algorithm,
 		// because diff between "&lt;" and "&gt;" will generate broken result.
-		isSymbolChar := 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' || c == '_' || c == '-'
+		isSymbolChar := 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z' || '0' <= c && c <= '9' || c == '_' || c == '-' || c == '.'
 		if !isSymbolChar {
 			return "", s, false
 		}
@@ -40,7 +40,7 @@ func extractDiffTokenRemainingFullTag(s string) (token, after string, valid bool
 
 // Returned token:
 // * full tag with content: "<<span>content</span>>", it is used to optimize diff results to highlight the whole changed symbol
-// * opening/close tag: "<span ...>" or "</span>"
+// * opening/closing tag: "<span ...>" or "</span>"
 // * HTML entity: "&lt;"
 func extractDiffToken(s string) (before, token, after string, valid bool) {
 	for pos1 := 0; pos1 < len(s); pos1++ {
@@ -123,6 +123,25 @@ func (hcd *highlightCodeDiff) collectUsedRunes(code template.HTML) {
 	}
 }
 
+func (hcd *highlightCodeDiff) diffEqualPartIsSpaceOnly(s string) bool {
+	for _, r := range s {
+		if r >= hcd.placeholderBegin {
+			recovered := hcd.placeholderTokenMap[r]
+			if strings.HasPrefix(recovered, "<<") {
+				return false // a full tag with content, it can't be space-only
+			} else if strings.HasPrefix(recovered, "<") {
+				continue // a single opening/closing tag, skip the tag and continue to check the content
+			}
+			return false // otherwise, it must be an HTML entity, it can't be space-only
+		}
+		isSpace := r == ' ' || r == '\t' || r == '\n' || r == '\r'
+		if !isSpace {
+			return false
+		}
+	}
+	return true
+}
+
 func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA, codeB template.HTML) template.HTML {
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
@@ -142,7 +161,21 @@ func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA
 	removedCodePrefix := hcd.registerTokenAsPlaceholder(`<span class="removed-code">`)
 	removedCodeSuffix := hcd.registerTokenAsPlaceholder(`</span><!-- removed-code -->`)
 
-	if removedCodeSuffix != 0 {
+	equalPartSpaceOnly := true
+	for _, diff := range diffs {
+		if diff.Type != diffmatchpatch.DiffEqual {
+			continue
+		}
+		if equalPartSpaceOnly = hcd.diffEqualPartIsSpaceOnly(diff.Text); !equalPartSpaceOnly {
+			break
+		}
+	}
+
+	// only add "added"/"removed" tags when needed:
+	// * non-space contents appear in the DiffEqual parts (not a full-line add/del)
+	// * placeholder map still works (not exhausted, can get removedCodeSuffix)
+	addDiffTags := !equalPartSpaceOnly && removedCodeSuffix != 0
+	if addDiffTags {
 		for _, diff := range diffs {
 			switch {
 			case diff.Type == diffmatchpatch.DiffEqual:
@@ -158,7 +191,7 @@ func (hcd *highlightCodeDiff) diffLineWithHighlight(lineType DiffLineType, codeA
 			}
 		}
 	} else {
-		// placeholder map space is exhausted
+		// the caller will still add added/removed backgrounds for the whole line
 		for _, diff := range diffs {
 			take := diff.Type == diffmatchpatch.DiffEqual || (diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd) || (diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel)
 			if take {
@@ -186,14 +219,7 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlContent template.HTML) s
 	var tagStack []string
 	res := strings.Builder{}
 
-	htmlCode := strings.TrimSpace(string(htmlContent))
-
-	// the standard chroma highlight HTML is `<span class="line [hl]"><span class="cl"> ... </span></span>`
-	// the line wrapper tags should be removed before diff
-	if strings.HasPrefix(htmlCode, `<span class="line`) || strings.HasPrefix(htmlCode, `<span class="cl"`) {
-		htmlCode = strings.TrimSuffix(htmlCode, "</span>")
-	}
-
+	htmlCode := string(htmlContent)
 	var beforeToken, token string
 	var valid bool
 	for {
@@ -204,10 +230,16 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlContent template.HTML) s
 		// write the content before the token into result string, and consume the token in the string
 		res.WriteString(beforeToken)
 
+		// the standard chroma highlight HTML is `<span class="line [hl]"><span class="cl"> ... </span></span>`
+		// the line wrapper tags should be removed before diff
+		if strings.HasPrefix(token, `<span class="line`) || strings.HasPrefix(token, `<span class="cl"`) {
+			continue
+		}
+
 		var tokenInMap string
 		if strings.HasPrefix(token, "</") { // for closing tag
 			if len(tagStack) == 0 {
-				break // invalid diff result, no opening tag but see closing tag
+				continue // no opening tag but see closing tag, skip it
 			}
 			// make sure the closing tag in map is related to the open tag, to make the diff algorithm can match the opening/closing tags
 			// the closing tag will be recorded in the map by key "</span><!-- <span the-opening> -->" for "<span the-opening>"
