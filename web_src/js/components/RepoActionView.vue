@@ -110,6 +110,7 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
 type LocaleStorageOptions = {
   autoScroll: boolean;
   expandRunning: boolean;
+  showSummary: boolean;
 };
 
 export default defineComponent({
@@ -139,8 +140,8 @@ export default defineComponent({
   },
 
   data() {
-    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false};
-    const {autoScroll, expandRunning} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
+    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false, showSummary: false};
+    const {autoScroll, expandRunning, showSummary} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
     return {
       // internal state
       loadingAbortController: null as AbortController | null,
@@ -149,7 +150,7 @@ export default defineComponent({
       artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
       isFullScreen: false,
-      showSummary: true,
+      showSummary: showSummary ?? false,
       timeVisible: {
         'log-time-stamp': false,
         'log-time-seconds': false,
@@ -217,6 +218,9 @@ export default defineComponent({
     optionAlwaysExpandRunning() {
       this.saveLocaleStorageOptions();
     },
+    showSummary() {
+      this.saveLocaleStorageOptions();
+    },
   },
 
   async mounted() {
@@ -258,7 +262,7 @@ export default defineComponent({
 
   methods: {
     saveLocaleStorageOptions() {
-      const opts: LocaleStorageOptions = {autoScroll: this.optionAlwaysAutoScroll, expandRunning: this.optionAlwaysExpandRunning};
+      const opts: LocaleStorageOptions = {autoScroll: this.optionAlwaysAutoScroll, expandRunning: this.optionAlwaysExpandRunning, showSummary: this.showSummary};
       localUserSettings.setJsonObject('actions-view-options', opts);
     },
 
@@ -547,7 +551,7 @@ export default defineComponent({
             :class="{ active: showSummary }"
           >
             <SvgIcon :name="showSummary ? 'octicon-chevron-down' : 'octicon-chevron-right'"/>
-            Summary
+            Dependency Graph
           </button>
         </div>
         <div class="job-group-section">
