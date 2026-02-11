@@ -1,54 +1,18 @@
 import {isDarkTheme, parseDom} from '../utils.ts';
-import {makeCodeCopyButton} from './codecopy.ts';
 import {displayError} from './common.ts';
-import {createElementFromAttrs, createElementFromHTML, getCssRootVariablesText, queryElems} from '../utils/dom.ts';
-import {html} from '../utils/html.ts';
+import {createElementFromAttrs, createElementFromHTML, queryElems} from '../utils/dom.ts';
+import {html, htmlRaw} from '../utils/html.ts';
 import {load as loadYaml} from 'js-yaml';
 import type {MermaidConfig} from 'mermaid';
+import {svg} from '../svg.ts';
 
 const {mermaidMaxSourceCharacters} = window.config;
 
 function getIframeCss(): string {
-  // Inherit some styles (e.g.: root variables) from parent document.
-  // The buttons should use the same styles as `button.code-copy`, and align with it.
   return `
-${getCssRootVariablesText()}
-
 html, body { height: 100%; }
 body { margin: 0; padding: 0; overflow: hidden; }
 #mermaid { display: block; margin: 0 auto; }
-
-.view-controller {
-  position: absolute;
-  z-index: 1;
-  right: 5px;
-  bottom: 5px;
-  display: flex;
-  gap: 4px;
-  visibility: hidden;
-  opacity: 0;
-  transition: var(--transition-hover-fade);
-  margin-right: 0.25em;
-}
-body:hover .view-controller { visibility: visible; opacity: 1; }
-@media (hover: none) {
-  .view-controller { visibility: visible; opacity: 1; }
-}
-.view-controller button {
-  cursor: pointer;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  line-height: 1;
-  padding: 7.5px 10px;
-  border: 1px solid var(--color-light-border);
-  border-radius: var(--border-radius);
-  background: var(--color-button);
-  color: var(--color-text);
-  user-select: none;
-}
-.view-controller button:hover { background: var(--color-secondary); }
-.view-controller button:active { background: var(--color-secondary-dark-1); }
 `;
 }
 
@@ -117,10 +81,9 @@ async function loadMermaid(needElkRender: boolean) {
   };
 }
 
-function initMermaidViewController(dragElement: SVGSVGElement) {
+function initMermaidViewController(viewController: HTMLElement, dragElement: SVGSVGElement) {
   let inited = false, isDragging = false;
   let currentScale = 1, initLeft = 0, lastLeft = 0, lastTop = 0, lastPageX = 0, lastPageY = 0;
-  const container = dragElement.parentElement!;
 
   const resetView = () => {
     currentScale = 1;
@@ -136,11 +99,12 @@ function initMermaidViewController(dragElement: SVGSVGElement) {
     if (inited) return;
     // if we need to drag or zoom, use absolute position and get the current "left" from the "margin: auto" layout.
     inited = true;
+    const container = dragElement.parentElement!;
     initLeft = container.getBoundingClientRect().width / 2 - dragElement.getBoundingClientRect().width / 2;
     resetView();
   };
 
-  for (const el of queryElems(container, '[data-control-action]')) {
+  for (const el of viewController.querySelectorAll('[data-control-action]')) {
     el.addEventListener('click', () => {
       initAbsolutePosition();
       switch (el.getAttribute('data-control-action')) {
@@ -161,7 +125,8 @@ function initMermaidViewController(dragElement: SVGSVGElement) {
   dragElement.addEventListener('mousedown', (e) => {
     if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return; // only left mouse button can drag
     const target = e.target as Element;
-    if (target.closest('div, p, a, span, button, input')) return; // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
+    // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
+    if (target.closest('div, p, a, span, button, input, text')) return;
 
     initAbsolutePosition();
     isDragging = true;
@@ -239,7 +204,14 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
       const svgDoc = parseDom(svgText, 'image/svg+xml');
       const svgNode = (svgDoc.documentElement as unknown) as SVGSVGElement;
 
-      const viewControllerHtml = html`<div class="view-controller"><button data-control-action="zoom-in">+</button><button data-control-action="reset">reset</button><button data-control-action="zoom-out">-</button></div>`;
+      const viewControllerHtml = html`
+        <div class="view-controller auto-hide-control flex-text-block">
+          <button type="button" class="ui tiny compact icon button" data-control-action="zoom-in">${htmlRaw(svg('octicon-zoom-in', 12))}</button>
+          <button type="button" class="ui tiny compact icon button" data-control-action="reset">${htmlRaw(svg('octicon-sync', 12))}</button>
+          <button type="button" class="ui tiny compact icon button" data-control-action="zoom-out">${htmlRaw(svg('octicon-zoom-out', 12))}</button>
+        </div>
+      `;
+      const viewController = createElementFromHTML(viewControllerHtml);
 
       // create an iframe to sandbox the svg with styles, and set correct height by reading svg's viewBox height
       const iframe = document.createElement('iframe');
@@ -262,17 +234,15 @@ export async function initMarkupCodeMermaid(elMarkup: HTMLElement): Promise<void
         const iframeBody = iframe.contentDocument!.body;
         iframeBody.append(svgNode);
         bindFunctions?.(iframeBody); // follow "mermaid.render" doc, attach event handlers to the svg's container
-        iframeBody.append(createElementFromHTML(viewControllerHtml));
 
         // according to mermaid, the viewBox height should always exist, here just a fallback for unknown cases.
         // and keep in mind: clientHeight can be 0 if the element is hidden (display: none).
         if (!iframeHeightFromViewBox) applyMermaidIframeHeight(iframe, iframeBody.clientHeight);
         iframe.classList.remove('is-loading');
-
-        initMermaidViewController(svgNode);
+        initMermaidViewController(viewController, svgNode);
       });
 
-      const container = createElementFromAttrs('div', {class: 'mermaid-block'}, iframe, makeCodeCopyButton({'data-clipboard-text': source}));
+      const container = createElementFromAttrs('div', {class: 'mermaid-block'}, iframe, viewController);
       parentContainer.replaceWith(container);
     } catch (err) {
       displayError(parentContainer, err);
