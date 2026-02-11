@@ -321,7 +321,7 @@ a.label,
 }
 
 /* ::before and ::after pseudo elements don't work on select elements,
-   so we need to put it on the parent. */
+   so we need to put it on the parent wrapper element. */
 .native-select::after {
   position: absolute;
   pointer-events: none; /* make the click event can pass through the svg to the select element */
