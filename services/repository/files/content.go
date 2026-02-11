@@ -173,18 +173,18 @@ func getFileContentsByEntryInternal(ctx context.Context, repo *repo_model.Reposi
 		}
 
 		if opts.IncludeCommitMetadata {
-			contentsResponse.LastCommitSHA = util.ToPointer(lastCommit.ID.String())
+			contentsResponse.LastCommitSHA = new(lastCommit.ID.String())
 			// GitHub doesn't have these fields in the response, but we could follow other similar APIs to name them
 			// https://docs.github.com/en/rest/commits/commits?apiVersion=2022-11-28#list-commits
 			if lastCommit.Committer != nil {
-				contentsResponse.LastCommitterDate = util.ToPointer(lastCommit.Committer.When)
+				contentsResponse.LastCommitterDate = new(lastCommit.Committer.When)
 			}
 			if lastCommit.Author != nil {
-				contentsResponse.LastAuthorDate = util.ToPointer(lastCommit.Author.When)
+				contentsResponse.LastAuthorDate = new(lastCommit.Author.When)
 			}
 		}
 		if opts.IncludeCommitMessage {
-			contentsResponse.LastCommitMessage = util.ToPointer(lastCommit.Message())
+			contentsResponse.LastCommitMessage = new(lastCommit.Message())
 		}
 	}
 
@@ -281,7 +281,7 @@ func GetBlobBySHA(repo *repo_model.Repository, gitRepo *git.Repository, sha stri
 		return nil, err
 	}
 
-	ret.Encoding, ret.Content = util.ToPointer("base64"), &content
+	ret.Encoding, ret.Content = new("base64"), &content
 	if originContent != nil {
 		ret.LfsOid, ret.LfsSize = parsePossibleLfsPointerBuffer(strings.NewReader(originContent.String()))
 	}
