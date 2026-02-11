@@ -162,22 +162,22 @@ func TestRepoProjectFilterByMilestone(t *testing.T) {
 func TestOrgProjectFilterByMilestone(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	// org3 owns repo3 which has issues 6 and 12
+	// org3 owns repo32 (public) which has issues 16 and 17
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
-	issue6 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 6})
-	issue12 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12})
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
+	issue16 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 16})
+	issue17 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 17})
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	// Create a milestone on repo3 and assign it to issue6
+	// Create a milestone on repo32 and assign it to issue16
 	milestone := &issues_model.Milestone{
 		RepoID: repo.ID,
 		Name:   "org-test-milestone",
 	}
 	require.NoError(t, issues_model.NewMilestone(t.Context(), milestone))
 
-	issue6.MilestoneID = milestone.ID
-	require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue6, "milestone_id"))
+	issue16.MilestoneID = milestone.ID
+	require.NoError(t, issues_model.UpdateIssueCols(t.Context(), issue16, "milestone_id"))
 
 	// Create an org-level project
 	project := project_model.Project{
@@ -195,29 +195,19 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 	defaultColumnID := columns[0].ID
 
 	// Add issues to the project
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue6, user2, project.ID, defaultColumnID))
-	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue12, user2, project.ID, defaultColumnID))
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue16, user1, project.ID, defaultColumnID))
+	require.NoError(t, issues_model.IssueAssignOrRemoveProject(t.Context(), issue17, user1, project.ID, defaultColumnID))
 
-	sess := loginUser(t, "user2")
+	sess := loginUser(t, "user1")
 	projectURL := fmt.Sprintf("/org3/-/projects/%d", project.ID)
 
 	t.Run("NoFilter", func(t *testing.T) {
 		req := NewRequest(t, "GET", projectURL)
 		resp := sess.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		// Debug: print column count and issue card count
-		columnCount := htmlDoc.doc.Find(".project-column").Length()
-		cardCount := htmlDoc.doc.Find(".issue-card").Length()
-		t.Logf("Columns: %d, Cards: %d", columnCount, cardCount)
-		htmlDoc.doc.Find(".project-column").Each(func(i int, s *goquery.Selection) {
-			title := s.Find(".project-column-title-text").Text()
-			cards := s.Find(".issue-card").Length()
-			t.Logf("Column %d: title=%q, cards=%d", i, title, cards)
-		})
 		issueIDs := getProjectIssueIDs(t, htmlDoc)
-		t.Logf("Found issue IDs: %v", issueIDs)
-		assert.Contains(t, issueIDs, issue6.ID)
-		assert.Contains(t, issueIDs, issue12.ID)
+		assert.Contains(t, issueIDs, issue16.ID)
+		assert.Contains(t, issueIDs, issue17.ID)
 	})
 
 	t.Run("FilterByMilestone", func(t *testing.T) {
@@ -225,8 +215,8 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		resp := sess.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		issueIDs := getProjectIssueIDs(t, htmlDoc)
-		assert.Contains(t, issueIDs, issue6.ID)
-		assert.NotContains(t, issueIDs, issue12.ID)
+		assert.Contains(t, issueIDs, issue16.ID)
+		assert.NotContains(t, issueIDs, issue17.ID)
 	})
 
 	t.Run("FilterByNoMilestone", func(t *testing.T) {
@@ -234,7 +224,7 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		resp := sess.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		issueIDs := getProjectIssueIDs(t, htmlDoc)
-		assert.Contains(t, issueIDs, issue12.ID)
-		assert.NotContains(t, issueIDs, issue6.ID)
+		assert.Contains(t, issueIDs, issue17.ID)
+		assert.NotContains(t, issueIDs, issue16.ID)
 	})
 }
