@@ -18,7 +18,7 @@
 					{{if not .NotEditableReason}}
 						<div class="field">
 							<div class="ui top attached header">
-								<div class="flex-text-block tw-justify-between md:tw-flex-row">
+								<div class="flex-text-block tw-justify-between tw-flex-wrap">
 									<div class="ui compact small menu small-menu-items repo-editor-menu tw-self-start">
 										<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{ctx.Locale.Tr "repo.editor.new_file"}}{{else}}{{ctx.Locale.Tr "repo.editor.edit_file"}}{{end}}</a>
 										<a class="item" data-tab="preview" data-preview-url="{{.Repository.Link}}/markup" data-preview-context-ref="{{.RepoLink}}/src/{{.RefTypeNameSubURL}}">{{svg "octicon-eye"}} {{ctx.Locale.Tr "preview"}}</a>

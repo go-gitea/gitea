@@ -309,6 +309,23 @@ a.label,
   text-decoration-line: none !important;
 }
 
+.native-select {
+  position: relative;
+}
+
+.native-select > select {
+  appearance: none;
+  padding: 6px 26px 6px 10px;
+  border-radius: var(--border-radius);
+}
+
+.native-select svg.gitea-select-arrow {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 .ui.search > .results {
   background: var(--color-body);
   border-color: var(--color-secondary);
