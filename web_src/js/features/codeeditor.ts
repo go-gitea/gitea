@@ -10,15 +10,11 @@ type IGlobalEditorOptions = MonacoNamespace.editor.IGlobalEditorOptions;
 type ITextModelUpdateOptions = MonacoNamespace.editor.ITextModelUpdateOptions;
 type MonacoOpts = IEditorOptions & IGlobalEditorOptions & ITextModelUpdateOptions;
 
-type EditorConfig = {
+type CodeEditorConfig = {
   indent_style?: 'tab' | 'space',
-  indent_size?: string | number, // backend emits this as string
+  indent_size?: number,
   tab_width?: string | number, // backend emits this as string
-  end_of_line?: 'lf' | 'cr' | 'crlf',
-  charset?: 'latin1' | 'utf-8' | 'utf-8-bom' | 'utf-16be' | 'utf-16le',
   trim_trailing_whitespace?: boolean,
-  insert_final_newline?: boolean,
-  root?: boolean,
 };
 
 const languagesByFilename: Record<string, string> = {};
@@ -45,8 +41,8 @@ const baseOptions: MonacoOpts = {
   matchBrackets: 'never',
 };
 
-function getEditorconfig(input: HTMLInputElement): EditorConfig | null {
-  const json = input.getAttribute('data-editorconfig');
+function getEditorconfig(input: HTMLInputElement): CodeEditorConfig | null {
+  const json = input.getAttribute('data-code-editor-config');
   if (!json) return null;
   try {
     return JSON.parse(json);
@@ -240,19 +236,15 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   return editor;
 }
 
-function getEditorConfigOptions(ec: EditorConfig | null): MonacoOpts {
+function getEditorConfigOptions(ec: CodeEditorConfig | null): MonacoOpts {
   if (!ec || !isObject(ec)) return {};
 
   const opts: MonacoOpts = {};
-  opts.detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
+  opts.detectIndentation = !ec.indent_style || !ec.indent_size;
 
   // with indentSize='tabSize', this also controls the `indentSize` option
   if (!opts.detectIndentation) {
     opts.tabSize = Number(ec.tab_width) || Number(ec.indent_size) || 4;
-  }
-
-  if ('max_line_length' in ec) {
-    opts.rulers = [Number(ec.max_line_length)];
   }
 
   opts.trimAutoWhitespace = ec.trim_trailing_whitespace === true;
