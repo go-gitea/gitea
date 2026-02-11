@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"context"
 	"strings"
 	"sync"
 
@@ -53,9 +54,72 @@ type RepositoryStruct struct {
 	GitGuideRemoteName *config.Value[string]
 }
 
+const (
+	InstanceNoticeLevelInfo    = "info"
+	InstanceNoticeLevelSuccess = "success"
+	InstanceNoticeLevelWarning = "warning"
+	InstanceNoticeLevelDanger  = "danger"
+)
+
+type InstanceNotice struct {
+	Enabled  bool
+	Message  string
+	Level    string
+	ShowIcon bool
+
+	StartTime int64
+	EndTime   int64
+}
+
+func DefaultInstanceNotice() InstanceNotice {
+	return InstanceNotice{
+		Level:    InstanceNoticeLevelInfo,
+		ShowIcon: true,
+	}
+}
+
+func IsValidInstanceNoticeLevel(level string) bool {
+	switch level {
+	case InstanceNoticeLevelInfo, InstanceNoticeLevelSuccess, InstanceNoticeLevelWarning, InstanceNoticeLevelDanger:
+		return true
+	default:
+		return false
+	}
+}
+
+func (n *InstanceNotice) Normalize() {
+	if !IsValidInstanceNoticeLevel(n.Level) {
+		n.Level = InstanceNoticeLevelInfo
+	}
+}
+
+func (n *InstanceNotice) IsActive(now int64) bool {
+	if !n.Enabled || n.Message == "" {
+		return false
+	}
+	if n.StartTime > 0 && now < n.StartTime {
+		return false
+	}
+	if n.EndTime > 0 && now > n.EndTime {
+		return false
+	}
+	return true
+}
+
+func GetInstanceNotice(ctx context.Context) InstanceNotice {
+	notice := Config().InstanceNotice.Banner.Value(ctx)
+	notice.Normalize()
+	return notice
+}
+
+type InstanceNoticeStruct struct {
+	Banner *config.Value[InstanceNotice]
+}
+
 type ConfigStruct struct {
-	Picture    *PictureStruct
-	Repository *RepositoryStruct
+	Picture        *PictureStruct
+	Repository     *RepositoryStruct
+	InstanceNotice *InstanceNoticeStruct
 }
 
 var (
@@ -73,6 +137,9 @@ func initDefaultConfig() {
 		Repository: &RepositoryStruct{
 			OpenWithEditorApps: config.ValueJSON[OpenWithEditorAppsType]("repository.open-with.editor-apps"),
 			GitGuideRemoteName: config.ValueJSON[string]("repository.git-guide-remote-name").WithDefault("origin"),
+		},
+		InstanceNotice: &InstanceNoticeStruct{
+			Banner: config.ValueJSON[InstanceNotice]("instance.notice").WithDefault(DefaultInstanceNotice()),
 		},
 	}
 }

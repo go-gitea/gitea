@@ -717,6 +717,7 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
+			m.Post("/instance_notice", admin.SetInstanceNotice)
 			m.Post("/test_mail", admin.SendTestMail)
 			m.Post("/test_cache", admin.TestCache)
 			m.Get("/settings", admin.ConfigSettings)

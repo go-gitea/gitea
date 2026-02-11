@@ -265,6 +265,79 @@
 			</dl>
 		</div>
 
+		<h4 id="instance-notice" class="ui top attached header">
+			{{ctx.Locale.Tr "admin.config.instance_notice"}}
+		</h4>
+		<div class="ui attached table segment">
+			<dl class="admin-dl-horizontal">
+				<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.instance_notice.settings"}}</dt>
+				<dd class="tw-py-0">
+					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/instance_notice" method="post">
+						<div class="field">
+							<div class="ui checkbox">
+								<input type="checkbox" name="enabled" value="true" {{if .InstanceNotice.Enabled}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "admin.config.instance_notice.enabled"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "admin.config.instance_notice.message"}}</label>
+							<textarea name="message" rows="4" maxlength="2000" placeholder="{{ctx.Locale.Tr "admin.config.instance_notice.message_placeholder"}}">{{.InstanceNotice.Message}}</textarea>
+						</div>
+						<div class="field">
+							<label>{{ctx.Locale.Tr "admin.config.instance_notice.level"}}</label>
+							<select class="ui dropdown" name="level">
+								<option value="info" {{if eq .InstanceNotice.Level "info"}}selected{{end}}>{{ctx.Locale.Tr "admin.config.instance_notice.level.info"}}</option>
+								<option value="success" {{if eq .InstanceNotice.Level "success"}}selected{{end}}>{{ctx.Locale.Tr "admin.config.instance_notice.level.success"}}</option>
+								<option value="warning" {{if eq .InstanceNotice.Level "warning"}}selected{{end}}>{{ctx.Locale.Tr "admin.config.instance_notice.level.warning"}}</option>
+								<option value="danger" {{if eq .InstanceNotice.Level "danger"}}selected{{end}}>{{ctx.Locale.Tr "admin.config.instance_notice.level.danger"}}</option>
+							</select>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input type="checkbox" name="show_icon" value="true" {{if .InstanceNotice.ShowIcon}}checked{{end}}>
+								<label>{{ctx.Locale.Tr "admin.config.instance_notice.show_icon"}}</label>
+							</div>
+						</div>
+						<div class="two fields">
+							<div class="field">
+								<label>{{ctx.Locale.Tr "admin.config.instance_notice.start_time"}}</label>
+								<input type="datetime-local" name="start_time" value="{{.InstanceNoticeStartTime}}">
+							</div>
+							<div class="field">
+								<label>{{ctx.Locale.Tr "admin.config.instance_notice.end_time"}}</label>
+								<input type="datetime-local" name="end_time" value="{{.InstanceNoticeEndTime}}">
+							</div>
+						</div>
+						<p class="text tw-mb-3">{{ctx.Locale.Tr "admin.config.instance_notice.markdown_hint"}}</p>
+
+						<div class="field">
+							<label>{{ctx.Locale.Tr "admin.config.instance_notice.preview"}}</label>
+							<div id="instance-notice-preview" class="ui {{if eq .InstanceNotice.Level "success"}}positive{{else if eq .InstanceNotice.Level "warning"}}warning{{else if eq .InstanceNotice.Level "danger"}}negative{{else}}info{{end}} message tw-mt-2">
+								<div class="tw-flex tw-items-start tw-justify-center tw-gap-2">
+									<div id="instance-notice-preview-icon" class="{{if not .InstanceNotice.ShowIcon}}tw-hidden{{end}} tw-leading-6">
+										{{if eq .InstanceNotice.Level "success"}}{{svg "octicon-check-circle"}}{{else if eq .InstanceNotice.Level "warning"}}{{svg "octicon-alert"}}{{else if eq .InstanceNotice.Level "danger"}}{{svg "octicon-stop"}}{{else}}{{svg "octicon-info"}}{{end}}
+									</div>
+									<div id="instance-notice-preview-content" class="render-content markup tw-text-center">{{ctx.RenderUtils.MarkdownToHtml .InstanceNotice.Message}}</div>
+								</div>
+							</div>
+							<div id="instance-notice-preview-icons" class="tw-hidden">
+								<span data-level="info">{{svg "octicon-info"}}</span>
+								<span data-level="success">{{svg "octicon-check-circle"}}</span>
+								<span data-level="warning">{{svg "octicon-alert"}}</span>
+								<span data-level="danger">{{svg "octicon-stop"}}</span>
+							</div>
+						</div>
+
+						<button class="ui tiny primary button">{{ctx.Locale.Tr "admin.config.instance_notice.save"}}</button>
+					</form>
+					<form class="ui form ignore-dirty tw-mt-3" action="{{AppSubUrl}}/-/admin/config/instance_notice" method="post">
+						<input type="hidden" name="action" value="delete">
+						<button class="ui tiny button">{{ctx.Locale.Tr "admin.config.instance_notice.delete"}}</button>
+					</form>
+				</dd>
+			</dl>
+		</div>
+
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.session_config"}}
 		</h4>

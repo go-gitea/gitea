@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
@@ -145,6 +146,14 @@ func Config(ctx *context.Context) {
 	ctx.Data["Service"] = setting.Service
 	ctx.Data["DbCfg"] = setting.Database
 	ctx.Data["Webhook"] = setting.Webhook
+	instanceNotice := setting.GetInstanceNotice(ctx)
+	ctx.Data["InstanceNotice"] = instanceNotice
+	if instanceNotice.StartTime > 0 {
+		ctx.Data["InstanceNoticeStartTime"] = time.Unix(instanceNotice.StartTime, 0).In(setting.DefaultUILocation).Format("2006-01-02T15:04")
+	}
+	if instanceNotice.EndTime > 0 {
+		ctx.Data["InstanceNoticeEndTime"] = time.Unix(instanceNotice.EndTime, 0).In(setting.DefaultUILocation).Format("2006-01-02T15:04")
+	}
 
 	ctx.Data["MailerEnabled"] = false
 	if setting.MailService != nil {
@@ -185,6 +194,92 @@ func Config(ctx *context.Context) {
 	prepareStartupProblemsAlert(ctx)
 
 	ctx.HTML(http.StatusOK, tplConfig)
+}
+
+func parseDatetimeLocalValue(raw string) (int64, error) {
+	if raw == "" {
+		return 0, nil
+	}
+	tm, err := time.ParseInLocation("2006-01-02T15:04", raw, setting.DefaultUILocation)
+	if err != nil {
+		return 0, err
+	}
+	return tm.Unix(), nil
+}
+
+func SetInstanceNotice(ctx *context.Context) {
+	saveInstanceNotice := func(instanceNotice setting.InstanceNotice) {
+		instanceNotice.Normalize()
+		marshaled, err := json.Marshal(instanceNotice)
+		if err != nil {
+			ctx.ServerError("Marshal", err)
+			return
+		}
+		if err := system_model.SetSettings(ctx, map[string]string{
+			setting.Config().InstanceNotice.Banner.DynKey(): string(marshaled),
+		}); err != nil {
+			ctx.ServerError("SetSettings", err)
+			return
+		}
+		config.GetDynGetter().InvalidateCache()
+	}
+
+	if ctx.FormString("action") == "delete" {
+		saveInstanceNotice(setting.DefaultInstanceNotice())
+		if ctx.Written() {
+			return
+		}
+		ctx.Flash.Success(ctx.Tr("admin.config.instance_notice.delete_success"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		return
+	}
+
+	enabled := ctx.FormBool("enabled")
+	message := strings.TrimSpace(ctx.FormString("message"))
+	level := strings.TrimSpace(ctx.FormString("level"))
+	showIcon := ctx.FormBool("show_icon")
+	startTime, err := parseDatetimeLocalValue(strings.TrimSpace(ctx.FormString("start_time")))
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		return
+	}
+	endTime, err := parseDatetimeLocalValue(strings.TrimSpace(ctx.FormString("end_time")))
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		return
+	}
+	if !setting.IsValidInstanceNoticeLevel(level) {
+		level = setting.InstanceNoticeLevelInfo
+	}
+	if enabled && message == "" {
+		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.message_required"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		return
+	}
+	if startTime > 0 && endTime > 0 && endTime < startTime {
+		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time_range"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		return
+	}
+
+	instanceNotice := setting.InstanceNotice{
+		Enabled:   enabled,
+		Message:   message,
+		Level:     level,
+		ShowIcon:  showIcon,
+		StartTime: startTime,
+		EndTime:   endTime,
+	}
+
+	saveInstanceNotice(instanceNotice)
+	if ctx.Written() {
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("admin.config.instance_notice.save_success"))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
 }
 
 func ConfigSettings(ctx *context.Context) {

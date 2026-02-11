@@ -12,6 +12,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -69,14 +71,50 @@ type pageGlobalDataType struct {
 	IsSigned    bool
 	IsSiteAdmin bool
 
+	InstanceNoticeBanner *InstanceNoticeBannerTmplInfo
+
 	GetNotificationUnreadCount func() int64
 	GetActiveStopwatch         func() *StopwatchTmplInfo
+}
+
+type InstanceNoticeBannerTmplInfo struct {
+	Message  string
+	Level    string
+	ShowIcon bool
+	IconName string
+}
+
+func instanceNoticeIconName(level string) string {
+	switch level {
+	case setting.InstanceNoticeLevelSuccess:
+		return "octicon-check-circle"
+	case setting.InstanceNoticeLevelWarning:
+		return "octicon-alert"
+	case setting.InstanceNoticeLevelDanger:
+		return "octicon-stop"
+	default:
+		return "octicon-info"
+	}
+}
+
+func getInstanceNoticeBanner(ctx *context.Context) *InstanceNoticeBannerTmplInfo {
+	notice := setting.GetInstanceNotice(ctx)
+	if !notice.IsActive(int64(timeutil.TimeStampNow())) {
+		return nil
+	}
+	return &InstanceNoticeBannerTmplInfo{
+		Message:  notice.Message,
+		Level:    notice.Level,
+		ShowIcon: notice.ShowIcon,
+		IconName: instanceNoticeIconName(notice.Level),
+	}
 }
 
 func PageGlobalData(ctx *context.Context) {
 	var data pageGlobalDataType
 	data.IsSigned = ctx.Doer != nil
 	data.IsSiteAdmin = ctx.Doer != nil && ctx.Doer.IsAdmin
+	data.InstanceNoticeBanner = getInstanceNoticeBanner(ctx)
 	data.GetNotificationUnreadCount = sync.OnceValue(func() int64 { return notificationUnreadCount(ctx) })
 	data.GetActiveStopwatch = sync.OnceValue(func() *StopwatchTmplInfo { return getActiveStopwatch(ctx) })
 	ctx.Data["PageGlobalData"] = data
