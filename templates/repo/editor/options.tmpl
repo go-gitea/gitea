@@ -1,5 +1,5 @@
 {{$indentStyle := $.CodeEditorConfig.IndentStyle}}
-{{$indentSize := $.CodeEditorConfig.IndentSize}}
+{{$indentSize := or $.CodeEditorConfig.IndentSize 4}}
 {{$lineWrapOn := $.CodeEditorConfig.LineWrapOn}}
 <div class="flex-text-block code-editor-options">
 	<div class="native-select">

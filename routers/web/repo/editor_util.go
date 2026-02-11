@@ -67,9 +67,9 @@ func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePa
 
 // CodeEditorConfig is also used by frontend, defined in "codeeditor.ts"
 type CodeEditorConfig struct {
-	PreviewableExtensions []string
-	LineWrapExtensions    []string
-	LineWrapOn            bool
+	PreviewableExtensions []string `json:"previewable_extensions"`
+	LineWrapExtensions    []string `json:"line_wrap_extensions"`
+	LineWrapOn            bool     `json:"line_wrap_on"`
 
 	IndentStyle            string `json:"indent_style"`
 	IndentSize             int    `json:"indent_size"`
@@ -80,19 +80,15 @@ type CodeEditorConfig struct {
 func getCodeEditorConfig(ctx *context_service.Context, treePath string) (ret CodeEditorConfig) {
 	ret.PreviewableExtensions = markup.PreviewableExtensions()
 	ret.LineWrapExtensions = setting.Repository.Editor.LineWrapExtensions
-	ret.IndentStyle = "" // leave it empty, then Monaco will guess by source code, the options UI shows "spaces" by default
-	ret.IndentSize = 4
 	ret.LineWrapOn = util.SliceContainsString(ret.LineWrapExtensions, path.Ext(treePath), true)
 	ec, _, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
 			ret.IndentStyle = def.IndentStyle
+			ret.IndentSize, _ = strconv.Atoi(def.IndentSize)
 			ret.TabWidth = def.TabWidth
 			ret.TrimTrailingWhitespace = def.TrimTrailingWhitespace
-			if ecIndentSize, _ := strconv.Atoi(def.IndentSize); ecIndentSize == 2 || ecIndentSize == 4 || ecIndentSize == 8 {
-				ret.IndentSize = ecIndentSize
-			}
 		}
 	}
 	return ret

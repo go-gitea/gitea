@@ -41,7 +41,7 @@ const baseOptions: MonacoOpts = {
   matchBrackets: 'never',
 };
 
-function getEditorconfig(input: HTMLInputElement): CodeEditorConfig | null {
+function getCodeEditorConfig(input: HTMLInputElement): CodeEditorConfig | null {
   const json = input.getAttribute('data-code-editor-config');
   if (!json) return null;
   try {
@@ -217,13 +217,13 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
   const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
   const isPreviewable = previewableExts.has(extname(filename));
-  const editorConfig = getEditorconfig(filenameInput);
+  const editorConfig = getCodeEditorConfig(filenameInput);
 
   togglePreviewDisplay(isPreviewable);
 
   const {monaco, editor} = await createMonaco(textarea, filename, {
     ...getFileBasedOptions(filenameInput.value, lineWrapExts),
-    ...getEditorConfigOptions(editorConfig),
+    ...getMonacoOptsByCodeEditorConfig(editorConfig),
   });
 
   filenameInput.addEventListener('input', onInputDebounce(() => {
@@ -236,7 +236,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   return editor;
 }
 
-function getEditorConfigOptions(ec: CodeEditorConfig | null): MonacoOpts {
+function getMonacoOptsByCodeEditorConfig(ec: CodeEditorConfig | null): MonacoOpts {
   if (!ec || !isObject(ec)) return {};
 
   const opts: MonacoOpts = {};
