@@ -11,8 +11,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
-
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
 	"github.com/stretchr/testify/assert"
@@ -419,7 +417,7 @@ func TestParseGPGKey(t *testing.T) {
 
 	// then revoke the key
 	for _, id := range e.Identities {
-		id.Revocations = append(id.Revocations, &packet.Signature{RevocationReason: util.ToPointer(packet.KeyCompromised)})
+		id.Revocations = append(id.Revocations, &packet.Signature{RevocationReason: new(packet.KeyCompromised)})
 	}
 	k, err = parseGPGKey(t.Context(), 1, e, true)
 	require.NoError(t, err)

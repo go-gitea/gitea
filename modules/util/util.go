@@ -197,13 +197,6 @@ func ToFloat64(number any) (float64, error) {
 	return value, nil
 }
 
-// ToPointer returns the pointer of a copy of any given value
-//
-//go:fix inline
-func ToPointer[T any](val T) *T {
-	return new(val)
-}
-
 // Iif is an "inline-if", it returns "trueVal" if "condition" is true, otherwise "falseVal"
 func Iif[T any](condition bool, trueVal, falseVal T) T {
 	if condition {
