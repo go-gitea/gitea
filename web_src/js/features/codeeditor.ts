@@ -42,6 +42,7 @@ const baseOptions: MonacoOpts = {
   wordWrapBreakAfterCharacters: '',
   wordWrapBreakBeforeCharacters: '',
   matchBrackets: 'never',
+  editContext: false,
 };
 
 function getEditorconfig(input: HTMLInputElement): EditorConfig | null {
