@@ -324,6 +324,7 @@ a.label,
    so we need to put it on the parent. */
 .native-select::after {
   position: absolute;
+  pointer-events: none; /* make the click event can pass through the svg to the select element */
   top: 7px;
   right: 5px;
   pointer-events: none;
