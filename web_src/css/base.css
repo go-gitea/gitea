@@ -325,7 +325,8 @@ a.label,
 .native-select::after {
   position: absolute;
   pointer-events: none; /* make the click event can pass through the svg to the select element */
-  top: 7px;
+  top: 50%;
+  transform: translateY(-50%);
   right: 5px;
   content: "";
   width: 16px;
