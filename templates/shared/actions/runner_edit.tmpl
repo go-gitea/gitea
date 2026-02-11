@@ -66,7 +66,7 @@
 					<td><span class="ui label task-status-{{.Status.String}}">{{.Status.LocaleString ctx.Locale}}</span></td>
 					<td><a href="{{.GetRepoLink}}" target="_blank">{{.GetRepoName}}</a></td>
 					<td>
-						<div class="ui sha label"><a href="{{.GetCommitLink}}" target="_blank">{{ShortSha .CommitSHA}}</a></div>
+						<a class="ui sha label" href="{{.GetCommitLink}}" target="_blank">{{ShortSha .CommitSHA}}</a>
 					</td>
 					<td>{{if .IsStopped}}
 						<span>{{DateUtils.TimeSince .Stopped}}</span>
