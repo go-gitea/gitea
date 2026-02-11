@@ -179,6 +179,12 @@ export function initRepoEditor() {
       editor.setValue(value);
     }
 
+    editor.onKeyDown((e) => {
+      if (e.browserEvent.code === 'Space') {
+        e.stopPropagation();
+      }
+    });
+
     commitButton.addEventListener('click', async (e) => {
       // A modal which asks if an empty file should be committed
       if (!editArea.value) {
