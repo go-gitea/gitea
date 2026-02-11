@@ -321,6 +321,7 @@ a.label,
 
 .native-select svg.gitea-select-arrow {
   position: absolute;
+  pointer-events: none; /* make the click event can pass through the svg to the select element */
   right: 4px;
   top: 50%;
   transform: translateY(-50%);

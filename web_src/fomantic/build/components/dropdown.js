@@ -409,7 +409,6 @@ $.fn.dropdown = function(parameters) {
               ;
 
               $module.attr('data-tooltip-content', $input.attr('data-tooltip-content')); // GITEA-PATCH: convert "select" to "dropdown" with attrs
-              if ($input[0].clientWidth && !$module[0].style.width) $module[0].style.width = $input[0].clientWidth + 'px'; // GITEA-PATCH: set width of dropdown to prevent it from being too wide when the select is hidden
 
               if($input.hasClass(className.multiple) && $input.prop('multiple') === false) {
                 module.error(error.missingMultiple);
