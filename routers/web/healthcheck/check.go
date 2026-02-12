@@ -64,6 +64,15 @@ type componentStatus struct {
 }
 
 // Check is the health check API handler
+//
+// HINT: HEALTH-CHECK-ENDPOINT: there is no clear definition about what "health" means.
+// In most cases, end users don't need to check such endpoint, because even if database is down,
+// Gitea will reover after database is up again. Sysop should monitor database and cache status directly.
+//
+// And keep in mind: this health check should NEVER be used as a "restart" trigger, for example: Docker's "HEALTHCHECK".
+// * If Gitea is upgrading and migrating database, there will be a long time before this endpoint starts to return "pass" status.
+// In this case, if the checker restarts Gitea just because it doesn't get "pass" status in short time,
+// the instance will just be restarted again and again before the migation finishes and the sitution just goes worse.
 func Check(w http.ResponseWriter, r *http.Request) {
 	rsp := response{
 		Status:      pass,

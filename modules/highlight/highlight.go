@@ -98,6 +98,10 @@ func getChromaLexerByLanguage(fileName, lang string) chroma.Lexer {
 			lang = "C++"
 		}
 	}
+	if lang == "" && util.AsciiEqualFold(ext, ".sql") {
+		// there is a bug when using MySQL lexer: "--\nSELECT", the second line will be rendered as comment incorrectly
+		lang = "SQL"
+	}
 	// lexers.Get is slow if the language name can't be matched directly: it does extra "Match" call to iterate all lexers
 	return lexers.Get(lang)
 }

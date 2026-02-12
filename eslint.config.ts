@@ -15,6 +15,7 @@ import vue from 'eslint-plugin-vue';
 import vueScopedCss from 'eslint-plugin-vue-scoped-css';
 import wc from 'eslint-plugin-wc';
 import {defineConfig, globalIgnores} from 'eslint/config';
+import type {ESLint} from 'eslint';
 
 const jsExts = ['js', 'mjs', 'cjs'] as const;
 const tsExts = ['ts', 'mts', 'cts'] as const;
@@ -62,8 +63,7 @@ export default defineConfig([
       '@stylistic': stylistic,
       '@typescript-eslint': typescriptPlugin.plugin,
       'array-func': arrayFunc,
-      // @ts-expect-error -- https://github.com/un-ts/eslint-plugin-import-x/issues/203
-      'import-x': importPlugin,
+      'import-x': importPlugin as unknown as ESLint.Plugin, // https://github.com/un-ts/eslint-plugin-import-x/issues/203
       regexp,
       sonarjs,
       unicorn,
@@ -156,7 +156,7 @@ export default defineConfig([
       '@typescript-eslint/adjacent-overload-signatures': [0],
       '@typescript-eslint/array-type': [0],
       '@typescript-eslint/await-thenable': [2],
-      '@typescript-eslint/ban-ts-comment': [2, {'ts-expect-error': false, 'ts-ignore': true, 'ts-nocheck': false, 'ts-check': false}],
+      '@typescript-eslint/ban-ts-comment': [2, {'ts-expect-error': true, 'ts-ignore': true, 'ts-nocheck': false, 'ts-check': false}],
       '@typescript-eslint/ban-tslint-comment': [0],
       '@typescript-eslint/class-literal-property-style': [0],
       '@typescript-eslint/class-methods-use-this': [0],
@@ -342,7 +342,7 @@ export default defineConfig([
       'import-x/first': [2],
       'import-x/group-exports': [0],
       'import-x/max-dependencies': [0],
-      'import-x/named': [2],
+      'import-x/named': [0],
       'import-x/namespace': [0],
       'import-x/newline-after-import': [0],
       'import-x/no-absolute-path': [0],
@@ -924,8 +924,7 @@ export default defineConfig([
     },
     extends: [
       vue.configs['flat/recommended'],
-      // @ts-expect-error
-      vueScopedCss.configs['flat/recommended'],
+      vueScopedCss.configs['flat/recommended'] as any,
     ],
     rules: {
       'vue/attributes-order': [0],
@@ -988,7 +987,7 @@ export default defineConfig([
       'vitest/require-to-throw-message': [0],
       'vitest/require-top-level-describe': [0],
       'vitest/valid-describe-callback': [2],
-      'vitest/valid-expect': [2],
+      'vitest/valid-expect': [2, {maxArgs: 2}],
       'vitest/valid-title': [2],
     },
   },

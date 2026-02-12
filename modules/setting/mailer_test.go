@@ -11,12 +11,12 @@ import (
 
 func Test_loadMailerFrom(t *testing.T) {
 	kases := map[string]*Mailer{
-		"smtp.mydomain.com": {
-			SMTPAddr: "smtp.mydomain.com",
+		"smtp.mydomain.test": {
+			SMTPAddr: "smtp.mydomain.test",
 			SMTPPort: "465",
 		},
-		"smtp.mydomain.com:123": {
-			SMTPAddr: "smtp.mydomain.com",
+		"smtp.mydomain.test:123": {
+			SMTPAddr: "smtp.mydomain.test",
 			SMTPPort: "123",
 		},
 		":123": {
