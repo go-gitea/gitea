@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -330,7 +329,7 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 
 		forkIntoOrg := func(srcOrg, dstOrg string) api.Repository {
 			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", srcOrg, repoName), &api.CreateForkOption{
-				Organization: util.ToPointer(dstOrg),
+				Organization: new(dstOrg),
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusAccepted)
 			var forkRepo api.Repository

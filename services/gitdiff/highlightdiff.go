@@ -298,15 +298,21 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlContent template.HTML) s
 	return res.String()
 }
 
-func (hcd *highlightCodeDiff) extractNextPlaceholder(buf []byte, lastIdx int) (idx int, placeholder rune, runeLen int, token string) {
-	for idx = lastIdx; idx < len(buf); {
-		placeholder, runeLen = utf8.DecodeRune(buf[idx:])
-		if token = hcd.placeholderTokenMap[placeholder]; token != "" {
-			break
+// recoverOneRune tries to recover one rune
+// * if the rune is a placeholder, it will be recovered to the corresponding content
+// * otherwise it will be returned as is
+func (hcd *highlightCodeDiff) recoverOneRune(buf []byte) (r rune, runeLen int, isSingleTag bool, recovered string) {
+	r, runeLen = utf8.DecodeRune(buf)
+	token := hcd.placeholderTokenMap[r]
+	if token == "" {
+		return r, runeLen, false, "" // rune itself, not a placeholder
+	} else if token[0] == '<' {
+		if token[1] == '<' {
+			return 0, runeLen, false, token[1 : len(token)-1] // full tag `<<span>content</span>>`, recover to `<span>content</span>`
 		}
-		idx += runeLen
+		return r, runeLen, true, token // single tag
 	}
-	return idx, placeholder, runeLen, token
+	return 0, runeLen, false, token // HTML entity
 }
 
 func (hcd *highlightCodeDiff) recoverOneDiff(str string) template.HTML {
@@ -315,49 +321,65 @@ func (hcd *highlightCodeDiff) recoverOneDiff(str string) template.HTML {
 	var diffCodeOpenTag string
 	diffCodeCloseTag := hcd.placeholderTokenMap[hcd.diffCodeClose]
 	strBytes := util.UnsafeStringToBytes(str)
+
+	// this loop is slightly longer than expected, for performance consideration
 	for idx := 0; idx < len(strBytes); {
-		newIdx, placeholder, lastRuneLen, token := hcd.extractNextPlaceholder(strBytes, idx)
-		if newIdx != idx {
+		// take a look at the next rune
+		r, runeLen, isSingleTag, recovered := hcd.recoverOneRune(strBytes[idx:])
+		idx += runeLen
+
+		// loop section 1: if it isn't a single tag, then try to find the following runes until the next single tag, and recover them together
+		if !isSingleTag {
 			if diffCodeOpenTag != "" {
+				// start the "added/removed diff tag" if the current token is in the diff part
 				sb.WriteString(diffCodeOpenTag)
-				sb.Write(strBytes[idx:newIdx])
-				sb.WriteString(diffCodeCloseTag)
-			} else {
-				sb.Write(strBytes[idx:newIdx])
 			}
-		} // else: no text content before, the current token is a placeholder
-		if token == "" {
-			break // reaches the string end, no more placeholder
-		}
-		idx = newIdx + lastRuneLen
-
-		// for HTML entity
-		if token[0] == '&' {
-			sb.WriteString(token)
-			continue
-		}
-
-		// for various HTML tags
-		var recovered string
-		if token[1] == '<' { // full tag `<<span>content</span>>`, recover to `<span>content</span>`
-			recovered = token[1 : len(token)-1]
-			if diffCodeOpenTag != "" {
-				recovered = diffCodeOpenTag + recovered + diffCodeCloseTag
-			} // else: just use the recovered content
-		} else if token[1] != '/' { // opening tag
-			if placeholder == hcd.diffCodeAddedOpen || placeholder == hcd.diffCodeRemovedOpen {
-				diffCodeOpenTag = token
+			if recovered != "" {
+				sb.WriteString(recovered)
 			} else {
-				recovered = token
+				sb.WriteRune(r)
+			}
+			// inner loop to recover following runes until the next single tag
+			for idx < len(strBytes) {
+				r, runeLen, isSingleTag, recovered = hcd.recoverOneRune(strBytes[idx:])
+				idx += runeLen
+				if isSingleTag {
+					break
+				}
+				if recovered != "" {
+					sb.WriteString(recovered)
+				} else {
+					sb.WriteRune(r)
+				}
+			}
+			if diffCodeOpenTag != "" {
+				// end the "added/removed diff tag" if the current token is in the diff part
+				sb.WriteString(diffCodeCloseTag)
+			}
+		}
+
+		if !isSingleTag {
+			break // the inner loop has already consumed all remaining runes, no more single tag found
+		}
+
+		// loop section 2: for opening/closing HTML tags
+		placeholder := r
+		if recovered[1] != '/' { // opening tag
+			if placeholder == hcd.diffCodeAddedOpen || placeholder == hcd.diffCodeRemovedOpen {
+				diffCodeOpenTag = recovered
+				recovered = ""
+			} else {
 				tagStack = append(tagStack, recovered)
 			}
 		} else { // closing tag
 			if placeholder == hcd.diffCodeClose {
 				diffCodeOpenTag = "" // the highlighted diff is closed, no more diff
+				recovered = ""
 			} else if len(tagStack) != 0 {
-				recovered = token
 				tagStack = tagStack[:len(tagStack)-1]
-			} // else: if no opening tag in stack yet, skip the closing tag
+			} else {
+				recovered = ""
+			}
 		}
 		sb.WriteString(recovered)
 	}

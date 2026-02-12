@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
@@ -398,7 +397,7 @@ epiDVQ==
 func TestTryGetKeyIDFromSignature(t *testing.T) {
 	assert.Empty(t, TryGetKeyIDFromSignature(&packet.Signature{}))
 	assert.Equal(t, "038D1A3EADDBEA9C", TryGetKeyIDFromSignature(&packet.Signature{
-		IssuerKeyId: util.ToPointer(uint64(0x38D1A3EADDBEA9C)),
+		IssuerKeyId: new(uint64(0x38D1A3EADDBEA9C)),
 	}))
 	assert.Equal(t, "038D1A3EADDBEA9C", TryGetKeyIDFromSignature(&packet.Signature{
 		IssuerFingerprint: []uint8{0xb, 0x23, 0x24, 0xc7, 0xe6, 0xfe, 0x4f, 0x3a, 0x6, 0x26, 0xc1, 0x21, 0x3, 0x8d, 0x1a, 0x3e, 0xad, 0xdb, 0xea, 0x9c},
@@ -419,7 +418,7 @@ func TestParseGPGKey(t *testing.T) {
 
 	// then revoke the key
 	for _, id := range e.Identities {
-		id.Revocations = append(id.Revocations, &packet.Signature{RevocationReason: util.ToPointer(packet.KeyCompromised)})
+		id.Revocations = append(id.Revocations, &packet.Signature{RevocationReason: new(packet.KeyCompromised)})
 	}
 	k, err = parseGPGKey(t.Context(), 1, e, true)
 	require.NoError(t, err)
