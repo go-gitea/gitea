@@ -71,7 +71,7 @@ func TestGarbageCollectLFSMetaObjectsForRepoAutoFix(t *testing.T) {
 	assert.NoError(t, err)
 
 	_, err = git_model.GetLFSMetaObjectByOid(t.Context(), repo.ID, lfsOid)
-	assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
+	assert.ErrorIs(t, err, git_model.ErrLFSObjectNotExist)
 }
 
 func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string {
