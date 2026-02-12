@@ -15,22 +15,9 @@ function createPreviewDOM() {
     <div class="page-content admin config">
       <form class="ui form" action="/-/admin/config/instance_notice" method="post">
         <textarea name="message">Initial message</textarea>
-        <select name="level">
-          <option value="info" selected>Info</option>
-          <option value="success">Success</option>
-          <option value="warning">Warning</option>
-          <option value="danger">Danger</option>
-        </select>
       </form>
       <div id="instance-notice-preview" class="ui info message">
-        <div id="instance-notice-preview-icon"></div>
         <div id="instance-notice-preview-content"></div>
-      </div>
-      <div id="instance-notice-preview-icons" class="tw-hidden">
-        <span data-level="info"><svg data-icon="info"></svg></span>
-        <span data-level="success"><svg data-icon="success"></svg></span>
-        <span data-level="warning"><svg data-icon="warning"></svg></span>
-        <span data-level="danger"><svg data-icon="warning"></svg></span>
       </div>
     </div>
   `;
@@ -66,19 +53,6 @@ describe('Admin Instance Notice Preview', () => {
 
     const previewContent = document.querySelector('#instance-notice-preview-content')!;
     expect(previewContent.innerHTML).toContain('Rendered message');
-  });
-
-  test('updates preview class and icon when level changes', () => {
-    initAdminConfigs();
-
-    const levelSelect = document.querySelector<HTMLSelectElement>('select[name="level"]')!;
-    const preview = document.querySelector<HTMLDivElement>('#instance-notice-preview')!;
-    const previewIcon = document.querySelector<HTMLDivElement>('#instance-notice-preview-icon')!;
-
-    levelSelect.value = 'danger';
-    levelSelect.dispatchEvent(new Event('change'));
-    expect(preview.classList.contains('negative')).toBe(true);
-    expect(previewIcon.innerHTML).toContain('data-icon="warning"');
   });
 
   test('queues a second render while first request is in flight and re-renders with latest text', async () => {
