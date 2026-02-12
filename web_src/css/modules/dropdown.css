@@ -298,6 +298,10 @@ select.ui.dropdown {
   overflow-wrap: normal;
 }
 
+.ui.selection.dropdown .menu .item:first-of-type {
+  border-radius: 0;
+}
+
 .ui.selection.dropdown:hover {
   border-color: var(--color-input-border-hover);
   box-shadow: none;
