@@ -204,7 +204,7 @@ select.ui.dropdown {
 .ui.selection.dropdown {
   cursor: pointer;
   overflow-wrap: break-word;
-  line-height: 1em; /* stylelint-disable-line declaration-property-unit-disallowed-list */
+  line-height: 1;
   white-space: normal;
   outline: 0;
   transform: rotateZ(0deg);
@@ -231,7 +231,7 @@ select.ui.dropdown {
   position: absolute;
   width: auto;
   height: auto;
-  line-height: 1.21428571em; /* stylelint-disable-line declaration-property-unit-disallowed-list */
+  line-height: 1.21428571;
   top: 0.78571429em;
   right: 1em;
   z-index: 3;
@@ -302,6 +302,10 @@ select.ui.dropdown {
   border-radius: 0;
 }
 
+.ui.selection.dropdown .menu > .hidden.addition.item {
+  display: none;
+}
+
 .ui.selection.dropdown:hover {
   border-color: var(--color-input-border-hover);
   box-shadow: none;
@@ -352,6 +356,16 @@ select.ui.dropdown {
   border-bottom-right-radius: 0 !important;
 }
 
+.ui.active.empty.selection.dropdown {
+  border-radius: 0.28571429rem !important;
+  box-shadow: none !important;
+}
+
+.ui.active.empty.selection.dropdown .menu {
+  border: none !important;
+  box-shadow: none !important;
+}
+
 .ui.search.dropdown > input.search {
   background: none transparent !important;
   border: none !important;
@@ -377,6 +391,13 @@ select.ui.dropdown {
 .ui.search.selection.dropdown > input.search {
   line-height: 1.21428571;
   padding: 0.67857143em 3.2em 0.67857143em 1em;
+}
+
+.ui.search.selection.dropdown > span.sizer {
+  line-height: 1.21428571;
+  padding: 0.67857143em 3.2em 0.67857143em 1em;
+  display: none;
+  white-space: pre;
 }
 
 .ui.search.dropdown.active > input.search,
@@ -505,7 +526,7 @@ select.ui.dropdown {
   left: 0;
   padding: inherit;
   margin: 0.45238095em 0 0.45238095em 0.64285714em;
-  line-height: 1.21428571em; /* stylelint-disable-line declaration-property-unit-disallowed-list */
+  line-height: 1.21428571;
 }
 
 .ui.multiple.search.dropdown > .label ~ .text {
@@ -518,7 +539,7 @@ select.ui.dropdown {
   max-width: 100%;
   margin: 0.45238095em 0 0.45238095em 0.64285714em;
   width: 2.2em;
-  line-height: 1.21428571em; /* stylelint-disable-line declaration-property-unit-disallowed-list */
+  line-height: 1.21428571;
 }
 
 .ui.dropdown .menu .active.item {
@@ -869,10 +890,14 @@ select.ui.dropdown {
   line-height: var(--line-height-default);
 }
 
-/* fix misaligned images in webhook dropdown */
+/* Icons / Flags / Labels / Image */
+.ui.dropdown > .text > img,
+.ui.dropdown > .text > .image,
+.ui.dropdown .menu > .item > .image,
 .ui.dropdown .menu > .item > img {
-  margin-top: -0.25rem;
-  margin-bottom: -0.25rem;
+  margin-left: 0;
+  float: none;
+  margin-right: 0.78571429rem;
 }
 
 .ui.dropdown .menu > .item > svg {
@@ -884,6 +909,18 @@ select.ui.dropdown {
   margin-left: 0;
   float: none;
   margin-right: 0.78571429rem;
+}
+
+.ui.dropdown > .text > img,
+.ui.dropdown > .text > .image:not(.icon),
+.ui.dropdown .menu > .item > .image:not(.icon),
+.ui.dropdown .menu > .item > img {
+  display: inline-block;
+  vertical-align: top;
+  width: auto;
+  margin-top: -0.25rem;
+  margin-bottom: -0.25rem;
+  max-height: 2em;
 }
 
 .ui.dropdown .menu .item {
