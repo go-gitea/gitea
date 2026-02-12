@@ -137,8 +137,14 @@ func TestCompareMultiCommitPRTitle(t *testing.T) {
 
 		session := loginUser(t, user1.Name)
 
-		// Create a new branch and make two commits with custom summaries
-		testEditFileToNewBranch(t, session, user1.Name, repo.Name, "main", "multi-commit-branch", "README.md", "first edit\n")
+		// Create a new branch with a first commit with a known summary
+		testEditorActionEdit(t, session, user1.Name, repo.Name, "_edit", "main", "README.md", map[string]string{
+			"content":         "first edit\n",
+			"commit_choice":   "commit-to-new-branch",
+			"new_branch_name": "multi-commit-branch",
+			"commit_summary":  "First commit title",
+		})
+		// Add a second commit with a different summary
 		testEditorActionEdit(t, session, user1.Name, repo.Name, "_edit", "multi-commit-branch", "README.md", map[string]string{
 			"content":        "second edit\n",
 			"commit_choice":  "direct",
@@ -150,10 +156,9 @@ func TestCompareMultiCommitPRTitle(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 
-		// The title should be the first (oldest) commit's summary, not the branch name
+		// The title should be the first (oldest) commit's summary
 		titleValue := htmlDoc.GetInputValueByName("title")
-		assert.NotEqual(t, "multi-commit-branch", titleValue, "PR title should not be the branch name for multi-commit PRs")
-		assert.NotEqual(t, "Second commit title", titleValue, "PR title should not be the latest commit's title")
+		assert.Equal(t, "First commit title", titleValue, "PR title should be the oldest commit's title for multi-commit PRs")
 	})
 }
 
