@@ -25,12 +25,12 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		JSONResult  string
 	}{
 		{
-			"self looks at action in private repo (includes original_unix action)",
-			2, 2, 2, `[{"timestamp":1602622800,"contributions":1},{"timestamp":1603227600,"contributions":1}]`,
+			"self looks at action in private repo (includes commits from action_commit_date)",
+			2, 2, 3, `[{"timestamp":1602622800,"contributions":1},{"timestamp":1603227600,"contributions":2}]`,
 		},
 		{
-			"admin looks at action in private repo (includes original_unix action)",
-			2, 1, 2, `[{"timestamp":1602622800,"contributions":1},{"timestamp":1603227600,"contributions":1}]`,
+			"admin looks at action in private repo (includes commits from action_commit_date)",
+			2, 1, 3, `[{"timestamp":1602622800,"contributions":1},{"timestamp":1603227600,"contributions":2}]`,
 		},
 		{
 			"other user looks at action in private repo",
@@ -68,8 +68,10 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 			doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.doerID})
 		}
 
-		// get the action for comparison
-		actions, count, err := activities_model.GetFeeds(t.Context(), activities_model.GetFeedsOptions{
+		// With auxiliary table approach, feed entries (actions) and heatmap contributions
+		// are decoupled - one push action can have multiple commit dates in the heatmap.
+		// We no longer compare action count to contribution count.
+		_, _, err := activities_model.GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 			RequestedUser:   user,
 			Actor:           doer,
 			IncludePrivate:  true,
@@ -85,8 +87,8 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 			contributions += int(hm.Contributions)
 		}
 		assert.NoError(t, err)
-		assert.Len(t, actions, contributions, "invalid action count: did the test data became too old?")
-		assert.Equal(t, count, int64(contributions))
+		// Note: With the auxiliary table approach, one action (push) can have multiple commits,
+		// so total contributions can be >= number of actions. We only verify the expected count.
 		assert.Equal(t, tc.CountResult, contributions, "testcase '%s'", tc.desc)
 
 		// Test JSON rendering

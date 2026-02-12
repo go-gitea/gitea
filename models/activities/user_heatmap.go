@@ -38,13 +38,13 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 
 	// Group by 15 minute intervals which will allow the client to accurately shift the timestamp to their timezone.
 	// The interval is based on the fact that there are timezones such as UTC +5:30 and UTC +12:45.
-	// Use original_unix if available (for commit actions, this is the commit author date),
-	// otherwise fall back to created_unix (the push/action timestamp).
-	groupBy := "COALESCE(NULLIF(original_unix, 0), created_unix) / 900 * 900"
+	// For push actions with commit data, use commit timestamps from action_commit_date table.
+	// For other actions or pushes without commit data, fall back to created_unix.
+	groupBy := "CASE WHEN action_commit_date.commit_timestamp IS NOT NULL THEN action_commit_date.commit_timestamp / 900 * 900 ELSE created_unix / 900 * 900 END"
 	groupByName := "timestamp" // We need this extra case because mssql doesn't allow grouping by alias
 	switch {
 	case setting.Database.Type.IsMySQL():
-		groupBy = "COALESCE(NULLIF(original_unix, 0), created_unix) DIV 900 * 900"
+		groupBy = "CASE WHEN action_commit_date.commit_timestamp IS NOT NULL THEN action_commit_date.commit_timestamp DIV 900 * 900 ELSE created_unix DIV 900 * 900 END"
 	case setting.Database.Type.IsMSSQL():
 		groupByName = groupBy
 	}
@@ -64,11 +64,14 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		return nil, err
 	}
 
+	cutoff := timeutil.TimeStampNow() - (366+7)*86400 // (366+7) days to include the first week for the heatmap
+
 	return hdata, db.GetEngine(ctx).
-		Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
+		Select(groupBy+" AS timestamp, count(*) as contributions").
+		Join("LEFT", "action_commit_date", "action_commit_date.action_id = action.id").
 		Where(cond).
-		And("COALESCE(NULLIF(original_unix, 0), created_unix) > ?", timeutil.TimeStampNow()-(366+7)*86400). // (366+7) days to include the first week for the heatmap
+		And("(action_commit_date.commit_timestamp > ? OR (action_commit_date.commit_timestamp IS NULL AND created_unix > ?))", cutoff, cutoff).
 		GroupBy(groupByName).
 		OrderBy("timestamp").
 		Find(&hdata)

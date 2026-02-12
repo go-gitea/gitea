@@ -7,9 +7,7 @@ import (
 	"context"
 	"fmt"
 	"path"
-	"slices"
 	"strings"
-	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -321,78 +319,6 @@ func (*actionNotifier) NotifyPullRevieweDismiss(ctx context.Context, doer *user_
 	}
 }
 
-// groupCommitsByDay groups commits by their author date (truncated to UTC day)
-// and returns the day keys in sorted order along with the grouped commits.
-func groupCommitsByDay(commits []*repository.PushCommit) ([]int64, map[int64][]*repository.PushCommit) {
-	commitsByDate := make(map[int64][]*repository.PushCommit)
-	for _, commit := range commits {
-		dayTimestamp := commit.Timestamp.UTC().Truncate(24 * time.Hour).Unix()
-		commitsByDate[dayTimestamp] = append(commitsByDate[dayTimestamp], commit)
-	}
-	days := make([]int64, 0, len(commitsByDate))
-	for day := range commitsByDate {
-		days = append(days, day)
-	}
-	slices.Sort(days)
-	return days, commitsByDate
-}
-
-// notifyPushActions creates action records for a push, grouping commits by date
-// so each day's commits appear on the correct date in the heatmap.
-func notifyPushActions(ctx context.Context, action *activities_model.Action, commits *repository.PushCommits) {
-	days, commitsByDate := groupCommitsByDay(commits.Commits)
-
-	// If no commits or only one date, use simple path
-	if len(days) <= 1 {
-		data, err := json.Marshal(commits)
-		if err != nil {
-			log.Error("Marshal: %v", err)
-			return
-		}
-
-		if len(commits.Commits) > 0 {
-			action.OriginalUnix = timeutil.TimeStamp(commits.Commits[0].Timestamp.Unix())
-		}
-		action.Content = string(data)
-
-		if err = NotifyWatchers(ctx, action); err != nil {
-			log.Error("NotifyWatchers: %v", err)
-		}
-		return
-	}
-
-	// Create separate action records for each date (sorted chronologically)
-	for _, day := range days {
-		dayCommits := commitsByDate[day]
-		dayPushCommits := &repository.PushCommits{
-			Commits:    dayCommits,
-			CompareURL: commits.CompareURL,
-			Len:        len(dayCommits),
-		}
-		for _, c := range dayCommits {
-			if commits.HeadCommit != nil && c.Sha1 == commits.HeadCommit.Sha1 {
-				dayPushCommits.HeadCommit = c
-				break
-			}
-		}
-
-		data, err := json.Marshal(dayPushCommits)
-		if err != nil {
-			log.Error("Marshal: %v", err)
-			continue
-		}
-
-		// Clone the base action for each day so we don't mutate shared state
-		dayAction := *action
-		dayAction.Content = string(data)
-		dayAction.OriginalUnix = timeutil.TimeStamp(dayCommits[0].Timestamp.Unix())
-
-		if err = NotifyWatchers(ctx, &dayAction); err != nil {
-			log.Error("NotifyWatchers: %v", err)
-		}
-	}
-}
-
 func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	opType := activities_model.ActionCommitRepo
 
@@ -406,15 +332,50 @@ func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.Use
 		opType = activities_model.ActionDeleteBranch
 	}
 
-	notifyPushActions(ctx, &activities_model.Action{
-		ActUserID: pusher.ID,
-		ActUser:   pusher,
-		OpType:    opType,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		RefName:   opts.RefFullName.String(),
-		IsPrivate: repo.IsPrivate,
-	}, commits)
+	data, err := json.Marshal(commits)
+	if err != nil {
+		log.Error("Marshal: %v", err)
+		return
+	}
+
+	var originalUnix timeutil.TimeStamp
+	if len(commits.Commits) > 0 {
+		originalUnix = timeutil.TimeStamp(commits.Commits[0].Timestamp.Unix())
+	}
+
+	action := &activities_model.Action{
+		ActUserID:    pusher.ID,
+		ActUser:      pusher,
+		OpType:       opType,
+		Content:      string(data),
+		RepoID:       repo.ID,
+		Repo:         repo,
+		RefName:      opts.RefFullName.String(),
+		IsPrivate:    repo.IsPrivate,
+		OriginalUnix: originalUnix,
+	}
+
+	if err = NotifyWatchers(ctx, action); err != nil {
+		log.Error("NotifyWatchers: %v", err)
+		return
+	}
+
+	// Populate action_commit_date table with per-commit timestamps
+	if action.ID > 0 && len(commits.Commits) > 0 {
+		commitDates := make([]struct {
+			Sha1      string
+			Timestamp timeutil.TimeStamp
+		}, len(commits.Commits))
+
+		for i, commit := range commits.Commits {
+			commitDates[i].Sha1 = commit.Sha1
+			commitDates[i].Timestamp = timeutil.TimeStamp(commit.Timestamp.Unix())
+		}
+
+		if err := activities_model.InsertActionCommitDates(ctx, action.ID, commitDates); err != nil {
+			log.Error("InsertActionCommitDates: %v", err)
+		}
+	}
 }
 
 func (a *actionNotifier) CreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {
@@ -462,15 +423,50 @@ func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model
 		return
 	}
 
-	notifyPushActions(ctx, &activities_model.Action{
-		ActUserID: repo.OwnerID,
-		ActUser:   repo.MustOwner(ctx),
-		OpType:    activities_model.ActionMirrorSyncPush,
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
-		RefName:   opts.RefFullName.String(),
-	}, commits)
+	data, err := json.Marshal(commits)
+	if err != nil {
+		log.Error("Marshal: %v", err)
+		return
+	}
+
+	var originalUnix timeutil.TimeStamp
+	if len(commits.Commits) > 0 {
+		originalUnix = timeutil.TimeStamp(commits.Commits[0].Timestamp.Unix())
+	}
+
+	action := &activities_model.Action{
+		ActUserID:    repo.OwnerID,
+		ActUser:      repo.MustOwner(ctx),
+		OpType:       activities_model.ActionMirrorSyncPush,
+		Content:      string(data),
+		RepoID:       repo.ID,
+		Repo:         repo,
+		IsPrivate:    repo.IsPrivate,
+		RefName:      opts.RefFullName.String(),
+		OriginalUnix: originalUnix,
+	}
+
+	if err = NotifyWatchers(ctx, action); err != nil {
+		log.Error("NotifyWatchers: %v", err)
+		return
+	}
+
+	// Populate action_commit_date table with per-commit timestamps
+	if action.ID > 0 && len(commits.Commits) > 0 {
+		commitDates := make([]struct {
+			Sha1      string
+			Timestamp timeutil.TimeStamp
+		}, len(commits.Commits))
+
+		for i, commit := range commits.Commits {
+			commitDates[i].Sha1 = commit.Sha1
+			commitDates[i].Timestamp = timeutil.TimeStamp(commit.Timestamp.Unix())
+		}
+
+		if err := activities_model.InsertActionCommitDates(ctx, action.ID, commitDates); err != nil {
+			log.Error("InsertActionCommitDates: %v", err)
+		}
+	}
 }
 
 func (a *actionNotifier) SyncCreateRef(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, refFullName git.RefName, refID string) {

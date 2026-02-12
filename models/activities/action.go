@@ -560,7 +560,17 @@ func DeleteOldActions(ctx context.Context, olderThan time.Duration) (err error) 
 		return nil
 	}
 
-	_, err = db.GetEngine(ctx).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
+	e := db.GetEngine(ctx)
+	cutoff := time.Now().Add(-olderThan).Unix()
+
+	// Delete associated commit date records first
+	_, err = e.Where("action_id IN (SELECT id FROM `action` WHERE created_unix < ?)", cutoff).Delete(&ActionCommitDate{})
+	if err != nil {
+		return err
+	}
+
+	// Delete old actions
+	_, err = e.Where("created_unix < ?", cutoff).Delete(&Action{})
 	return err
 }
 
@@ -583,12 +593,47 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) 
 			return err
 		} else if len(commentIDs) == 0 {
 			break
-		} else if _, err = db.GetEngine(ctx).In("comment_id", commentIDs).Delete(&Action{}); err != nil {
+		}
+
+		// Query action IDs before deleting
+		actionIDs := make([]int64, 0, len(commentIDs))
+		if err := e.Table("action").Select("id").In("comment_id", commentIDs).Find(&actionIDs); err != nil {
 			return err
 		}
+
+		// Delete associated commit date records
+		if len(actionIDs) > 0 {
+			if _, err := e.In("action_id", actionIDs).Delete(&ActionCommitDate{}); err != nil {
+				return err
+			}
+		}
+
+		// Delete the actions
+		if _, err = e.In("comment_id", commentIDs).Delete(&Action{}); err != nil {
+			return err
+		}
+
 		lastCommentID = commentIDs[len(commentIDs)-1]
 	}
 
+	// Query action IDs for issue create/PR create actions before deleting
+	actionIDs := make([]int64, 0)
+	if err := e.Table("action").Select("id").
+		Where("repo_id = ?", repoID).
+		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
+		Where("content LIKE ?", strconv.FormatInt(issueIndex, 10)+"|%"). // "IssueIndex|content..."
+		Find(&actionIDs); err != nil {
+		return err
+	}
+
+	// Delete associated commit date records
+	if len(actionIDs) > 0 {
+		if _, err := e.In("action_id", actionIDs).Delete(&ActionCommitDate{}); err != nil {
+			return err
+		}
+	}
+
+	// Delete the actions
 	_, err := e.Where("repo_id = ?", repoID).
 		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
 		Where("content LIKE ?", strconv.FormatInt(issueIndex, 10)+"|%"). // "IssueIndex|content..."
