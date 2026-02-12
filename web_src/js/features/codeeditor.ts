@@ -39,6 +39,7 @@ const baseOptions: MonacoOpts = {
   wordWrapBreakAfterCharacters: '',
   wordWrapBreakBeforeCharacters: '',
   matchBrackets: 'never',
+  editContext: false, // https://github.com/microsoft/monaco-editor/issues/5081
 };
 
 function getCodeEditorConfig(input: HTMLInputElement): CodeEditorConfig | null {
