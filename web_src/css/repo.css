@@ -476,6 +476,7 @@ td .commit-summary {
 .repository.view.issue .comment-list .timeline-item .timeline-avatar {
   position: absolute;
   left: -68px;
+  top: 0;
 }
 
 /* Don't show the mobile oriented avatar ".inline-timeline-avatar" on desktop. Desktop uses the avatar with class ".timeline-avatar" */
