@@ -686,8 +686,7 @@ td .commit-summary {
   display: block;
 }
 
-.repository.view.issue .comment-list .event > .comment-text-line,
-.repository.view.issue .comment-list .event > del {
+.repository.view.issue .comment-list .event > .comment-text-line {
   flex: 1;
   min-width: 0;
 }

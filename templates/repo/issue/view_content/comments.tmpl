@@ -142,12 +142,12 @@
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-bookmark"}}</span>
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
-				{{if eq .RefAction 3}}<del>{{end}}
 				<span class="comment-text-line">
+					{{if eq .RefAction 3}}<del>{{end}}
 					{{template "shared/user/authorlink" .Poster}}
 					{{ctx.Locale.Tr $refTr .EventTag $createdStr (.RefCommentLink ctx) $refFrom}}
+					{{if eq .RefAction 3}}</del>{{end}}
 				</span>
-				{{if eq .RefAction 3}}</del>{{end}}
 
 				<div class="detail flex-text-block">
 					<span class="comment-text-line"><a href="{{.RefIssueLink ctx}}"><b>{{.RefIssueTitle ctx}}</b> {{.RefIssueIdent ctx}}</a></span>
