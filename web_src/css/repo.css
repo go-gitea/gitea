@@ -503,7 +503,6 @@ td .commit-summary {
   border-radius: var(--border-radius-full);
   display: flex;
   flex-shrink: 0;
-  float: left;
   margin-left: -33px;
   margin-right: 4px;
   color: var(--color-text);
@@ -534,7 +533,6 @@ td .commit-summary {
   /* TODO: this "line-height" is not ideal (actually it is abused), many layouts depend on this magic value,
       for example: alignment of the header arrow and the avatar, view PR commit list left icon layout, dismiss review with reason, etc */
   line-height: 32px;
-  vertical-align: middle;
   color: var(--color-text-light);
   min-width: 0;
 }
@@ -545,10 +543,6 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .timeline-item .comment-text-line a {
   color: inherit;
-}
-
-.repository.view.issue .comment-list .timeline-item .avatar-with-link + .comment-text-line {
-  margin-left: 0.25em;
 }
 
 .repository.view.issue .comment-list .timeline-item.commits-list {
@@ -563,10 +557,9 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .timeline-item .comment-text-label {
-  vertical-align: middle;
   border: 1px solid var(--color-light-border);
   height: 26px;
-  margin: 4px 0; /* because this label is beside the comment line, which has "line-height: 34px" */
+  margin: 4px 0;
 }
 
 @media (max-width: 767.98px) {
@@ -692,7 +685,6 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .event > .detail {
-  margin-top: 4px;
   margin-left: 15px;
   width: 100%;
 }
