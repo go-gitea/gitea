@@ -16,23 +16,27 @@ import (
 // Handles especially SQLite correctly as UPPER there only transforms ASCII letters.
 func BuildCaseInsensitiveLike(key, value string) builder.Cond {
 	if setting.Database.Type.IsSQLite3() {
-		return builder.Like{"UPPER(" + key + ")", util.ToUpperASCII(value)}
+		return builder.Expr(key+" LIKE ? COLLATE NOCASE", value)
 	}
-	return builder.Like{"UPPER(" + key + ")", strings.ToUpper(value)}
+	if setting.Database.Type.IsPostgreSQL() {
+		return builder.Expr(key+" ILIKE ?", value)
+	}
+	return builder.Like{"LOWER(" + key + ")", strings.ToLower(value)}
 }
 
 // BuildCaseInsensitiveIn returns a condition to check if the given value is in the given values case-insensitively.
 // Handles especially SQLite correctly as UPPER there only transforms ASCII letters.
 func BuildCaseInsensitiveIn(key string, values []string) builder.Cond {
-	uppers := make([]string, 0, len(values))
+	if setting.Database.Type.IsPostgreSQL() {
+		return builder.Expr(key+" ILIKE ANY (ARRAY[?])", values)
+	}
+	uppers := make([]string, len(values))
+	transform := strings.ToUpper
 	if setting.Database.Type.IsSQLite3() {
-		for _, value := range values {
-			uppers = append(uppers, util.ToUpperASCII(value))
-		}
-	} else {
-		for _, value := range values {
-			uppers = append(uppers, strings.ToUpper(value))
-		}
+		transform = util.ToUpperASCII
+	}
+	for i, value := range values {
+		uppers[i] = transform(value)
 	}
 
 	return builder.In("UPPER("+key+")", uppers)
