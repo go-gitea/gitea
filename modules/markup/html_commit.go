@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
@@ -123,7 +123,7 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 			text += " (" + ret.QueryHash + ")"
 		}
 		// only turn commit links to the current instance into hash link
-		if !strings.HasPrefix(strings.ToLower(ret.FullURL), strings.ToLower(setting.AppURL)) {
+		if !httplib.IsCurrentGiteaSiteURL(ctx, ret.FullURL) {
 			node = node.NextSibling
 			continue
 		}
