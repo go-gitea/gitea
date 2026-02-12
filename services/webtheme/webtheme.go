@@ -20,6 +20,7 @@ var (
 	availableThemes   []*ThemeMetaInfo
 	availableThemeMap map[string]*ThemeMetaInfo
 	themeOnce         sync.Once
+	themeDevMu        sync.Mutex
 )
 
 const (
@@ -136,7 +137,7 @@ func initThemes() {
 		for _, theme := range availableThemes {
 			availableThemeMap[theme.InternalName] = theme
 		}
-		if availableThemeMap[setting.UI.DefaultTheme] == nil {
+		if availableThemeMap[setting.UI.DefaultTheme] == nil && setting.IsProd {
 			setting.LogStartupProblem(1, log.ERROR, "Default theme %q is not available, please correct the '[ui].DEFAULT_THEME' setting in the config file", setting.UI.DefaultTheme)
 		}
 	}()
@@ -177,19 +178,36 @@ func initThemes() {
 		return availableThemes[i].DisplayName < availableThemes[j].DisplayName
 	})
 	if len(availableThemes) == 0 {
-		setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
+		if setting.IsProd {
+			setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
+		}
 		availableThemes = []*ThemeMetaInfo{defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)}
 	}
 }
 
+// loadThemes returns the current themes and theme map. In dev mode, themes are
+// reloaded from disk on each call to continue discovering them as they are built
+// which is necessary during `make watch` where the backend build usually finishes
+// before the frontend build.
+func loadThemes() ([]*ThemeMetaInfo, map[string]*ThemeMetaInfo) {
+	if setting.IsProd {
+		themeOnce.Do(initThemes)
+		return availableThemes, availableThemeMap
+	}
+	themeDevMu.Lock()
+	defer themeDevMu.Unlock()
+	initThemes()
+	return availableThemes, availableThemeMap
+}
+
 func GetAvailableThemes() []*ThemeMetaInfo {
-	themeOnce.Do(initThemes)
-	return availableThemes
+	themes, _ := loadThemes()
+	return themes
 }
 
 func GetThemeMetaInfo(internalName string) *ThemeMetaInfo {
-	themeOnce.Do(initThemes)
-	return availableThemeMap[internalName]
+	_, themeMap := loadThemes()
+	return themeMap[internalName]
 }
 
 // GuaranteeGetThemeMetaInfo guarantees to return a non-nil ThemeMetaInfo,
