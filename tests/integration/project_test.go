@@ -93,7 +93,7 @@ func TestMoveRepoProjectColumns(t *testing.T) {
 func getProjectIssueIDs(t *testing.T, htmlDoc *HTMLDoc) map[int64]struct{} {
 	t.Helper()
 	ids := make(map[int64]struct{})
-	htmlDoc.doc.Find(".issue-card[data-issue]").Each(func(_ int, s *goquery.Selection) {
+	htmlDoc.Find(".issue-card[data-issue]").Each(func(_ int, s *goquery.Selection) {
 		idStr, exists := s.Attr("data-issue")
 		require.True(t, exists)
 		id, err := strconv.ParseInt(idStr, 10, 64)

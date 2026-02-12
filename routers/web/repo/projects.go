@@ -420,25 +420,10 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["Assignees"] = shared_user.MakeSelfOnTop(ctx.Doer, assigneeUsers)
 	ctx.Data["AssigneeID"] = assigneeID
 
-	// Get milestones
-	milestones, err := db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-		RepoID: ctx.Repo.Repository.ID,
-	})
-	if err != nil {
-		ctx.ServerError("GetMilestones", err)
+	renderMilestones(ctx)
+	if ctx.Written() {
 		return
 	}
-
-	openMilestones, closedMilestones := issues_model.MilestoneList{}, issues_model.MilestoneList{}
-	for _, milestone := range milestones {
-		if milestone.IsClosed {
-			closedMilestones = append(closedMilestones, milestone)
-		} else {
-			openMilestones = append(openMilestones, milestone)
-		}
-	}
-	ctx.Data["OpenMilestones"] = openMilestones
-	ctx.Data["ClosedMilestones"] = closedMilestones
 	ctx.Data["MilestoneID"] = milestoneID
 
 	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)

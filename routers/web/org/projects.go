@@ -429,7 +429,7 @@ func ViewProject(ctx *context.Context) {
 
 	// Get milestones for filtering
 	// For organization projects, we need to get milestones from all repos the user has access to
-	var milestones []*issues_model.Milestone
+	var milestones issues_model.MilestoneList
 	if project.RepoID > 0 {
 		// Repo-specific project
 		milestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
@@ -441,35 +441,24 @@ func ViewProject(ctx *context.Context) {
 		}
 	} else {
 		// Organization-wide project - get milestones from all organization repos
-		// but only from repositories the current user can access
+		// but only from repositories the current user can access.
+		// Use RepoCond with a subquery to avoid materializing all repo IDs in memory
+		// which can hit SQL parameter limits for orgs with many repos.
 		accessCond := repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypeIssues)
-		repoIDs, err := repo_model.SearchRepositoryIDsByCondition(ctx,
-			builder.And(builder.Eq{"owner_id": project.OwnerID}, accessCond),
+		repoCond := builder.And(
+			builder.Eq{"owner_id": project.OwnerID},
+			accessCond,
 		)
+		milestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
+			RepoCond: repoCond,
+		})
 		if err != nil {
-			ctx.ServerError("SearchRepositoryIDsByCondition", err)
+			ctx.ServerError("GetOrgMilestones", err)
 			return
 		}
-
-		if len(repoIDs) > 0 {
-			milestones, err = db.Find[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
-				RepoIDs: repoIDs,
-			})
-			if err != nil {
-				ctx.ServerError("GetOrgMilestones", err)
-				return
-			}
-		}
 	}
 
-	openMilestones, closedMilestones := issues_model.MilestoneList{}, issues_model.MilestoneList{}
-	for _, milestone := range milestones {
-		if milestone.IsClosed {
-			closedMilestones = append(closedMilestones, milestone)
-		} else {
-			openMilestones = append(openMilestones, milestone)
-		}
-	}
+	openMilestones, closedMilestones := milestones.SplitByOpenClosed()
 	ctx.Data["OpenMilestones"] = openMilestones
 	ctx.Data["ClosedMilestones"] = closedMilestones
 	ctx.Data["MilestoneID"] = milestoneID
