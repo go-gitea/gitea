@@ -152,7 +152,9 @@ func (a *actionNotifier) CreateIssueComment(ctx context.Context, doer *user_mode
 			truncatedContent = truncatedContent[:lastSpaceIdx] + "…"
 		}
 	}
-	truncatedContent = trimUnclosedCodeBlock(truncatedContent)
+	if truncatedRight != "" {
+		truncatedContent = trimUnclosedCodeBlock(truncatedContent)
+	}
 	act.Content = fmt.Sprintf("%d|%s", issue.Index, truncatedContent)
 
 	if issue.IsPull {
