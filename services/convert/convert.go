@@ -349,6 +349,14 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 			}
 		}
 
+		if task != nil {
+			tSteps, err := actions_model.GetTaskStepsByTaskID(ctx, task.ID)
+			if err != nil {
+				return nil, err
+			}
+			task.Steps = tSteps
+		}
+
 		runnerID = task.RunnerID
 		if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
 			runnerName = runner.Name
