@@ -65,6 +65,9 @@ func WalkRepoStoreDirs(relativeDir string, fn fs.WalkDirFunc) error {
 		if err1 != nil {
 			return err1
 		}
+		if p == "." {
+			p = ""
+		}
 		return fn(p, d, err)
 	})
 }
