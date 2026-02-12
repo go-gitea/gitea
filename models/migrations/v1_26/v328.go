@@ -4,8 +4,9 @@
 package v1_26
 
 import (
-	"encoding/json"
 	"time"
+
+	"code.gitea.io/gitea/modules/json"
 
 	"xorm.io/xorm"
 )
@@ -65,9 +66,9 @@ func BackfillActionCommitDates(x *xorm.Engine) error {
 			}
 
 			// Insert commit date records
-			commitDates := make([]map[string]interface{}, 0, len(pushCommits.Commits))
+			commitDates := make([]map[string]any, 0, len(pushCommits.Commits))
 			for _, commit := range pushCommits.Commits {
-				commitDates = append(commitDates, map[string]interface{}{
+				commitDates = append(commitDates, map[string]any{
 					"action_id":        action.ID,
 					"commit_sha1":      commit.Sha1,
 					"commit_timestamp": commit.Timestamp.Unix(),

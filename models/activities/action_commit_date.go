@@ -12,10 +12,10 @@ import (
 
 // ActionCommitDate represents a commit's author date for heatmap display
 type ActionCommitDate struct {
-	ID              int64                  `xorm:"pk autoincr"`
-	ActionID        int64                  `xorm:"INDEX"`
-	CommitSha1      string                 `xorm:"VARCHAR(64)"`
-	CommitTimestamp timeutil.TimeStamp     `xorm:"INDEX"`
+	ID              int64              `xorm:"pk autoincr"`
+	ActionID        int64              `xorm:"INDEX"`
+	CommitSha1      string             `xorm:"VARCHAR(64)"`
+	CommitTimestamp timeutil.TimeStamp `xorm:"INDEX"`
 }
 
 func init() {
