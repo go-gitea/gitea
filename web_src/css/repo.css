@@ -550,7 +550,7 @@ td .commit-summary {
 .repository.view.issue .comment-list .timeline-item .comment-text-label {
   border: 1px solid var(--color-light-border);
   height: 26px;
-  margin: 4px 0;
+  margin: 4px 0; /* because this label is beside the comment line, which has "line-height: 34px" */
 }
 
 @media (max-width: 767.98px) {
