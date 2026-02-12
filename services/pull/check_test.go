@@ -51,6 +51,8 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 
 	go prPatchCheckerQueue.Run()
 
+	// Observe queue processing via handler output; direct queue state polling (Has)
+	// is timing-sensitive and can lead to flaky assertions.
 	select {
 	case id := <-idChan:
 		assert.Equal(t, pr.ID, id)

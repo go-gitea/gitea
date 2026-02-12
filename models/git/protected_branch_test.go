@@ -166,18 +166,26 @@ func TestCanBypassBranchProtection(t *testing.T) {
 		BypassAllowlistUserIDs: []int64{user.ID},
 	}
 
+	// User bypasses via explicit allowlist.
 	assert.True(t, CanBypassBranchProtection(ctx, pb, user, false))
 
+	// Non-admin cannot bypass when allowlist is disabled.
 	pb.EnableBypassAllowlist = false
 	assert.False(t, CanBypassBranchProtection(ctx, pb, user, false))
 
+	// Repo admin can bypass independently of allowlist when not blocked.
+	assert.True(t, CanBypassBranchProtection(ctx, pb, user, true))
+
+	// Admin override block still allows bypass for allowlisted users.
 	pb.EnableBypassAllowlist = true
 	pb.BlockAdminMergeOverride = true
 	assert.True(t, CanBypassBranchProtection(ctx, pb, user, false))
 
+	// Blocked admin cannot bypass without allowlist membership.
 	pb.BypassAllowlistUserIDs = nil
 	assert.False(t, CanBypassBranchProtection(ctx, pb, user, true))
 
+	// Blocked admin can bypass when allowlisted.
 	pb.BypassAllowlistUserIDs = []int64{user.ID}
 	assert.True(t, CanBypassBranchProtection(ctx, pb, user, true))
 }
