@@ -671,6 +671,13 @@ td .commit-summary {
   display: block;
 }
 
+.repository.view.issue .comment-list .event > .avatar-with-link {
+  align-self: flex-start;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+
 .repository.view.issue .comment-list .event > .comment-text-line {
   flex: 1;
   min-width: 0;
