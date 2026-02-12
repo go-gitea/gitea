@@ -221,13 +221,13 @@ func APIContexter() func(http.Handler) http.Handler {
 			ctx := &APIContext{
 				Base:  base,
 				Cache: cache.GetCache(),
-				Repo:  &Repository{PullRequest: &PullRequest{}},
+				Repo:  &Repository{},
 				Org:   &APIOrganization{},
 			}
 
 			ctx.SetContextValue(apiContextKey, ctx)
 
-			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
+			// FIXME: GLOBAL-PARSE-FORM: see more details in another FIXME comment
 			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
 				if !ctx.ParseMultipartForm() {
 					return

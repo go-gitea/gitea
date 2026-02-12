@@ -6,21 +6,18 @@ package templates
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
+	"html/template"
 	"io"
-	"net/http"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	texttemplate "text/template"
 
 	"code.gitea.io/gitea/modules/assetfs"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates/scopedtmpl"
@@ -31,58 +28,27 @@ type TemplateExecutor scopedtmpl.TemplateExecutor
 
 type TplName string
 
-type HTMLRender struct {
+type tmplRender struct {
 	templates atomic.Pointer[scopedtmpl.ScopedTemplate]
+
+	collectTemplateNames func() ([]string, error)
+	readTemplateContent  func(name string) ([]byte, error)
 }
 
-var (
-	htmlRender     *HTMLRender
-	htmlRenderOnce sync.Once
-)
-
-var ErrTemplateNotInitialized = errors.New("template system is not initialized, check your log for errors")
-
-func (h *HTMLRender) HTML(w io.Writer, status int, tplName TplName, data any, ctx context.Context) error { //nolint:revive // we don't use ctx, only pass it to the template executor
-	name := string(tplName)
-	if respWriter, ok := w.(http.ResponseWriter); ok {
-		if respWriter.Header().Get("Content-Type") == "" {
-			respWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
-		}
-		respWriter.WriteHeader(status)
-	}
-	t, err := h.TemplateLookup(name, ctx)
-	if err != nil {
-		return texttemplate.ExecError{Name: name, Err: err}
-	}
-	return t.Execute(w, data)
+func (h *tmplRender) Templates() *scopedtmpl.ScopedTemplate {
+	return h.templates.Load()
 }
 
-func (h *HTMLRender) TemplateLookup(name string, ctx context.Context) (TemplateExecutor, error) { //nolint:revive // we don't use ctx, only pass it to the template executor
-	tmpls := h.templates.Load()
-	if tmpls == nil {
-		return nil, ErrTemplateNotInitialized
-	}
-	m := NewFuncMap()
-	m["ctx"] = func() any { return ctx }
-	return tmpls.Executor(name, m)
-}
-
-func (h *HTMLRender) CompileTemplates() error {
-	assets := AssetFS()
-	extSuffix := ".tmpl"
+func (h *tmplRender) recompileTemplates(dummyFuncMap template.FuncMap) error {
 	tmpls := scopedtmpl.NewScopedTemplate()
-	tmpls.Funcs(NewFuncMap())
-	files, err := ListWebTemplateAssetNames(assets)
+	tmpls.Funcs(dummyFuncMap)
+	names, err := h.collectTemplateNames()
 	if err != nil {
-		return nil
+		return err
 	}
-	for _, file := range files {
-		if !strings.HasSuffix(file, extSuffix) {
-			continue
-		}
-		name := strings.TrimSuffix(file, extSuffix)
+	for _, name := range names {
 		tmpl := tmpls.New(filepath.ToSlash(name))
-		buf, err := assets.ReadFile(file)
+		buf, err := h.readTemplateContent(name)
 		if err != nil {
 			return err
 		}
@@ -95,55 +61,20 @@ func (h *HTMLRender) CompileTemplates() error {
 	return nil
 }
 
-// HTMLRenderer init once and returns the globally shared html renderer
-func HTMLRenderer() *HTMLRender {
-	htmlRenderOnce.Do(initHTMLRenderer)
-	return htmlRender
+func ReloadAllTemplates() error {
+	return errors.Join(PageRendererReload(), MailRendererReload())
 }
 
-func ReloadHTMLTemplates() error {
-	log.Trace("Reloading HTML templates")
-	if err := htmlRender.CompileTemplates(); err != nil {
-		log.Error("Template error: %v\n%s", err, log.Stack(2))
-		return err
-	}
-	return nil
-}
-
-func initHTMLRenderer() {
-	rendererType := "static"
-	if !setting.IsProd {
-		rendererType = "auto-reloading"
-	}
-	log.Debug("Creating %s HTML Renderer", rendererType)
-
-	htmlRender = &HTMLRender{}
-	if err := htmlRender.CompileTemplates(); err != nil {
-		p := &templateErrorPrettier{assets: AssetFS()}
-		wrapTmplErrMsg(p.handleFuncNotDefinedError(err))
-		wrapTmplErrMsg(p.handleUnexpectedOperandError(err))
-		wrapTmplErrMsg(p.handleExpectedEndError(err))
-		wrapTmplErrMsg(p.handleGenericTemplateError(err))
-		wrapTmplErrMsg(fmt.Sprintf("CompileTemplates error: %v", err))
-	}
-
-	if !setting.IsProd {
-		go AssetFS().WatchLocalChanges(graceful.GetManager().ShutdownContext(), func() {
-			_ = ReloadHTMLTemplates()
-		})
-	}
-}
-
-func wrapTmplErrMsg(msg string) {
-	if msg == "" {
+func processStartupTemplateError(err error) {
+	if err == nil {
 		return
 	}
-	if setting.IsProd {
+	if setting.IsProd || setting.IsInTesting {
 		// in prod mode, Gitea must have correct templates to run
-		log.Fatal("Gitea can't run with template errors: %s", msg)
+		log.Fatal("Gitea can't run with template errors: %v", err)
 	}
 	// in dev mode, do not need to really exit, because the template errors could be fixed by developer soon and the templates get reloaded
-	log.Error("There are template errors but Gitea continues to run in dev mode: %s", msg)
+	log.Error("There are template errors but Gitea continues to run in dev mode: %v", err)
 }
 
 type templateErrorPrettier struct {

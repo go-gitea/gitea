@@ -29,7 +29,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -1406,7 +1405,7 @@ jobs:
 		// user4 forks the repo
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
 			&api.CreateForkOption{
-				Name: util.ToPointer("close-pull-request-with-path-fork"),
+				Name: new("close-pull-request-with-path-fork"),
 			}).AddTokenAuth(user4Token)
 		resp := MakeRequest(t, req, http.StatusAccepted)
 		var apiForkRepo api.Repository
@@ -1614,7 +1613,7 @@ func TestPullRequestWithPathsRebase(t *testing.T) {
 		testCreateFile(t, session, "user2", repoName, repo.DefaultBranch, "", "dir1/dir1.txt", "1")
 		testCreateFile(t, session, "user2", repoName, repo.DefaultBranch, "", "dir2/dir2.txt", "2")
 		wfFileContent := `name: ci
-on: 
+on:
   pull_request:
     paths:
       - 'dir1/**'
@@ -1639,12 +1638,10 @@ jobs:
 		apiPull, err := doAPICreatePullRequest(apiCtx, "user2", repoName, repo.DefaultBranch, "update-dir2")(t)
 		runner.fetchNoTask(t)
 		assert.NoError(t, err)
-		testEditFile(t, session, "user2", repoName, repo.DefaultBranch, "dir1/dir1.txt", "11") // change the file in "dir1"
-		req := NewRequestWithValues(t, "POST",
-			fmt.Sprintf("/%s/%s/pulls/%d/update?style=rebase", "user2", repoName, apiPull.Index), // update by rebase
-			map[string]string{
-				"_csrf": GetUserCSRFToken(t, session),
-			})
+		// change the file in "dir1"
+		testEditFile(t, session, "user2", repoName, repo.DefaultBranch, "dir1/dir1.txt", "11")
+		// update by rebase
+		req := NewRequest(t, "POST", fmt.Sprintf("/%s/%s/pulls/%d/update?style=rebase", "user2", repoName, apiPull.Index))
 		session.MakeRequest(t, req, http.StatusSeeOther)
 		runner.fetchNoTask(t)
 	})

@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/git/gitcmd"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -59,7 +58,6 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo string, toSel
 	link, exists = htmlDoc.doc.Find("form.ui.form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
 		"title": title,
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -103,7 +101,6 @@ func testPullCreateDirectly(t *testing.T, session *TestSession, opts createPullR
 	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	params := map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
 		"title": opts.Title,
 	}
 	if opts.ReviewerIDs != "" {
@@ -131,7 +128,6 @@ func testPullCreateFailure(t *testing.T, session *TestSession, baseRepoOwner, ba
 	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
 		"title": title,
 	})
 	resp = session.MakeRequest(t, req, http.StatusBadRequest)
@@ -159,7 +155,6 @@ func TestPullCreate(t *testing.T) {
 		// test create the pull request again and it should fail now
 		link := "/user2/repo1/compare/master...user1/repo1:master"
 		req := NewRequestWithValues(t, "POST", link, map[string]string{
-			"_csrf": GetUserCSRFToken(t, session),
 			"title": "This is a pull title",
 		})
 		session.MakeRequest(t, req, http.StatusBadRequest)
@@ -200,7 +195,6 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 		assert.True(t, exists, "The template has changed")
 
 		req = NewRequestWithValues(t, "POST", editTestTitleURL, map[string]string{
-			"_csrf": htmlDoc.GetCSRF(),
 			"title": "<u>XSS PR</u>",
 		})
 		session.MakeRequest(t, req, http.StatusOK)
@@ -219,25 +213,15 @@ func TestPullCreate_TitleEscape(t *testing.T) {
 
 func testUIDeleteBranch(t *testing.T, session *TestSession, ownerName, repoName, branchName string) {
 	relURL := "/" + path.Join(ownerName, repoName, "branches")
-	req := NewRequest(t, "GET", relURL)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-
-	req = NewRequestWithValues(t, "POST", relURL+"/delete", map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
-		"name":  branchName,
+	req := NewRequestWithValues(t, "POST", relURL+"/delete", map[string]string{
+		"name": branchName,
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
 func testDeleteRepository(t *testing.T, session *TestSession, ownerName, repoName string) {
 	relURL := "/" + path.Join(ownerName, repoName, "settings")
-	req := NewRequest(t, "GET", relURL)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
-
-	req = NewRequestWithValues(t, "POST", relURL+"?action=delete", map[string]string{
-		"_csrf":     htmlDoc.GetCSRF(),
+	req := NewRequestWithValues(t, "POST", relURL+"?action=delete", map[string]string{
 		"repo_name": repoName,
 	})
 	session.MakeRequest(t, req, http.StatusSeeOther)
@@ -345,7 +329,7 @@ func TestCreatePullRequestFromNestedOrgForks(t *testing.T) {
 
 		forkIntoOrg := func(srcOrg, dstOrg string) api.Repository {
 			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", srcOrg, repoName), &api.CreateForkOption{
-				Organization: util.ToPointer(dstOrg),
+				Organization: new(dstOrg),
 			}).AddTokenAuth(token)
 			resp := MakeRequest(t, req, http.StatusAccepted)
 			var forkRepo api.Repository

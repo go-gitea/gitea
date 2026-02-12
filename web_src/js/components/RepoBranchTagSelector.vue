@@ -28,7 +28,6 @@ export default defineComponent({
   data() {
     const shouldShowTabBranches = this.elRoot.getAttribute('data-show-tab-branches') === 'true';
     return {
-      csrfToken: window.config.csrfToken,
       allItems: [] as ListItem[],
       selectedTab: (shouldShowTabBranches ? 'branches' : 'tags') as SelectedTab,
       searchTerm: '',
@@ -156,11 +155,11 @@ export default defineComponent({
       return -1;
     },
     getActiveItem() {
-      const el = this.$refs[`listItem${this.activeItemIndex}`];
-      // @ts-expect-error - el is unknown type
-      return (el && el.length) ? el[0] : null;
+      const el = this.$refs[`listItem${this.activeItemIndex}`] as Array<HTMLDivElement>;
+      return el?.length ? el[0] : null;
     },
     keydown(e: KeyboardEvent) {
+      if (e.isComposing) return;
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
         e.preventDefault();
 
@@ -175,7 +174,7 @@ export default defineComponent({
           return;
         }
         this.activeItemIndex = nextIndex;
-        this.getActiveItem().scrollIntoView({block: 'nearest'});
+        this.getActiveItem()!.scrollIntoView({block: 'nearest'});
       } else if (e.key === 'Enter') {
         e.preventDefault();
         this.getActiveItem()?.click();
@@ -272,7 +271,6 @@ export default defineComponent({
             {{ textCreateRefFrom.replace('%s', currentRefShortName) }}
           </div>
           <form ref="createNewRefForm" method="post" :action="createNewRefFormActionUrl">
-            <input type="hidden" name="_csrf" :value="csrfToken">
             <input type="hidden" name="new_branch_name" :value="searchTerm">
             <input type="hidden" name="create_tag" :value="String(selectedTab === 'tags')">
             <input type="hidden" name="current_path" :value="currentTreePath">

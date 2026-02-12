@@ -317,6 +317,7 @@ func TestAPILFSBatch(t *testing.T) {
 			ul := br.Objects[0].Actions["upload"]
 			assert.NotNil(t, ul)
 			assert.NotEmpty(t, ul.Href)
+			assert.Equal(t, "chunked", ul.Header["Transfer-Encoding"], "git-lfs client needs Transfer-Encoding to do chunked transfer")
 			assert.Contains(t, br.Objects[0].Actions, "verify")
 			vl := br.Objects[0].Actions["verify"]
 			assert.NotNil(t, vl)

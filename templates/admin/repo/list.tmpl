@@ -10,7 +10,7 @@
 			{{template "shared/repo/search" .}}
 		</div>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table selectable unstackable">
+			<table class="ui very basic table selectable unstackable">
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
@@ -102,7 +102,6 @@
 	</div>
 
 <form class="ui small modal form-fetch-action" id="admin-repo-delete-modal" method="post">
-	{{.CsrfTokenHtml}}
 	<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.settings.delete"}}</div>
 	<div class="content">
 		<p>{{ctx.Locale.Tr "repo.settings.delete_desc"}}</p>

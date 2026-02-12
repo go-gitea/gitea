@@ -1,5 +1,6 @@
 {{$pageMeta := .}}
 {{$data := .LabelsData}}
+{{$listBaseLink := print $pageMeta.RepoLink (Iif $pageMeta.IsPullRequest "/pulls" "/issues")}}
 <div class="issue-sidebar-combo" data-selection-mode="multiple" data-update-algo="diff"
 		{{if $pageMeta.Issue}}data-update-url="{{$pageMeta.RepoLink}}/issues/labels?issue_ids={{$pageMeta.Issue.ID}}"{{end}}
 >
@@ -26,7 +27,7 @@
 							<div class="divider" data-scope="{{.ExclusiveScope}}"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
-						{{template "repo/issue/sidebar/label_list_item" dict "Label" .}}
+						{{template "repo/issue/sidebar/label_list_item" dict "Label" . "LabelLink" (print $listBaseLink "?labels=" .ID)}}
 					{{end}}
 					{{if and $data.RepoLabels $data.OrgLabels}}<div class="divider"></div>{{end}}
 					{{$previousExclusiveScope = "_no_scope"}}
@@ -36,7 +37,7 @@
 							<div class="divider" data-scope="{{.ExclusiveScope}}"></div>
 						{{end}}
 						{{$previousExclusiveScope = $exclusiveScope}}
-						{{template "repo/issue/sidebar/label_list_item" dict "Label" .}}
+						{{template "repo/issue/sidebar/label_list_item" dict "Label" . "LabelLink" (print $listBaseLink "?labels=" .ID)}}
 					{{end}}
 				</div>
 			{{end}}
@@ -47,7 +48,7 @@
 		<span class="item empty-list {{if $data.SelectedLabelIDs}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_label"}}</span>
 		{{range $data.AllLabels}}
 			{{if .IsChecked}}
-				<a class="item" href="{{$pageMeta.RepoLink}}/{{if $pageMeta.IsPullRequest}}pulls{{else}}issues{{end}}?labels={{.ID}}">
+				<a class="item" href="{{$listBaseLink}}?labels={{.ID}}">
 					{{- ctx.RenderUtils.RenderLabel . -}}
 				</a>
 			{{end}}

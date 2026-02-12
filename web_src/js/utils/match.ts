@@ -35,7 +35,7 @@ export function matchMention(queryText: string): MentionSuggestion[] {
 
   // results is a map of weights, lower is better
   const results = new Map<MentionSuggestion, number>();
-  for (const obj of window.config.mentionValues ?? []) {
+  for (const obj of window.config.mentionValues) {
     const index = obj.key.toLowerCase().indexOf(query);
     if (index === -1) continue;
     const existing = results.get(obj);
