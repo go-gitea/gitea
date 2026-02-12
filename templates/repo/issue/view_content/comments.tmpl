@@ -447,7 +447,7 @@
 				{{end}}
 
 				{{if and .Review .Review.CodeComments}}
-				<div class="timeline-item event">
+				<div class="timeline-item event code-comments-list">
 					{{range $filename, $lines := .Review.CodeComments}}
 						{{range $line, $comms := $lines}}
 							{{template "repo/issue/view_content/conversation" dict "." $ "comments" $comms}}
@@ -545,7 +545,7 @@
 					{{end}}
 				</span>
 				{{if and .IsForcePush $.Issue.PullRequest.BaseRepo.Name}}
-					<a class="ui label comment-text-label tw-float-right" href="{{$.Issue.PullRequest.BaseRepo.Link}}/compare/{{PathEscape .OldCommit}}..{{PathEscape .NewCommit}}" rel="nofollow">{{ctx.Locale.Tr "repo.issues.force_push_compare"}}</a>
+					<a class="ui label comment-text-label tw-ml-auto" href="{{$.Issue.PullRequest.BaseRepo.Link}}/compare/{{PathEscape .OldCommit}}..{{PathEscape .NewCommit}}" rel="nofollow">{{ctx.Locale.Tr "repo.issues.force_push_compare"}}</a>
 				{{end}}
 			</div>
 			{{if not .IsForcePush}}

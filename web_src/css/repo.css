@@ -505,7 +505,7 @@ td .commit-summary {
   flex-shrink: 0;
   float: left;
   margin-left: -33px;
-  margin-right: 8px;
+  margin-right: 4px;
   color: var(--color-text);
   align-items: center;
   justify-content: center;
@@ -557,7 +557,7 @@ td .commit-summary {
 }
 
 .repository.view.issue .comment-list .timeline-item.event > .commit-status-link {
-  float: right;
+  margin-left: auto;
   margin-right: 8px;
   margin-top: 4px;
 }
@@ -677,11 +677,25 @@ td .commit-summary {
 
 .repository.view.issue .comment-list .event {
   padding-left: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
-.repository.view.issue .comment-list .event .detail {
+.repository.view.issue .comment-list .event.code-comments-list {
+  display: block;
+}
+
+.repository.view.issue .comment-list .event > .comment-text-line,
+.repository.view.issue .comment-list .event > del {
+  flex: 1;
+  min-width: 0;
+}
+
+.repository.view.issue .comment-list .event > .detail {
   margin-top: 4px;
   margin-left: 15px;
+  width: 100%;
 }
 
 .repository.view.issue .comment-list .event .detail .text {
