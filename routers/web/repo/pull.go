@@ -344,6 +344,35 @@ func (d *pullCommitStatusCheckData) CommitStatusCheckPrompt(locale translation.L
 	return locale.TrString("repo.pulls.status_checking")
 }
 
+func getViewPullHeadBranchInfo(ctx *context.Context, pull *issues_model.PullRequest, baseGitRepo *git.Repository) (headCommitID string, headCommitExists bool, err error) {
+	if pull.HeadRepo == nil {
+		return "", false, nil
+	}
+	headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pull.HeadRepo)
+	if err != nil {
+		return "", false, util.Iif(errors.Is(err, util.ErrNotExist), nil, err)
+	}
+	defer closer.Close()
+
+	if pull.Flow == issues_model.PullRequestFlowGithub {
+		headCommitExists, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
+	} else {
+		headCommitExists = gitrepo.IsReferenceExist(ctx, pull.BaseRepo, pull.GetGitHeadRefName())
+	}
+
+	if headCommitExists {
+		if pull.Flow != issues_model.PullRequestFlowGithub {
+			headCommitID, err = baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
+		} else {
+			headCommitID, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
+		}
+		if err != nil {
+			return "", false, util.Iif(errors.Is(err, util.ErrNotExist), nil, err)
+		}
+	}
+	return headCommitID, headCommitExists, nil
+}
+
 // prepareViewPullInfo show meta information for a pull request preview page
 func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_service.CompareInfo {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
@@ -430,34 +459,10 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		return compareInfo
 	}
 
-	var headBranchExist bool
-	var headBranchSha string
-	// HeadRepo may be missing
-	if pull.HeadRepo != nil {
-		headGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pull.HeadRepo)
-		if err != nil {
-			ctx.ServerError("RepositoryFromContextOrOpen", err)
-			return nil
-		}
-		defer closer.Close()
-
-		if pull.Flow == issues_model.PullRequestFlowGithub {
-			headBranchExist, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
-		} else {
-			headBranchExist = gitrepo.IsReferenceExist(ctx, pull.BaseRepo, pull.GetGitHeadRefName())
-		}
-
-		if headBranchExist {
-			if pull.Flow != issues_model.PullRequestFlowGithub {
-				headBranchSha, err = baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
-			} else {
-				headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
-			}
-			if err != nil {
-				ctx.ServerError("GetBranchCommitID", err)
-				return nil
-			}
-		}
+	headBranchSha, headBranchExist, err := getViewPullHeadBranchInfo(ctx, pull, baseGitRepo)
+	if err != nil {
+		ctx.ServerError("getViewPullHeadBranchInfo", err)
+		return nil
 	}
 
 	if headBranchExist {

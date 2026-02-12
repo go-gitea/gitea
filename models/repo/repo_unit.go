@@ -131,6 +131,7 @@ type PullRequestsConfig struct {
 	DefaultDeleteBranchAfterMerge bool
 	DefaultMergeStyle             MergeStyle
 	DefaultAllowMaintainerEdit    bool
+	DefaultTargetBranch           string
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.
