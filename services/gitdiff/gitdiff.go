@@ -127,6 +127,7 @@ const BlobExcerptChunkSize = 20
 // Chroma seems extremely slow when highlighting large files, it might take dozens or hundreds of milliseconds.
 // When fully highlighting a diff with a lot of large files, it would take many seconds or even dozens of seconds.
 // So, don't highlight the entire file if it's too large, or highlighting takes too long.
+// When there is no full-file highlighting, the legacy "line-by-line" highlighting is still applied as the fallback.
 const (
 	MaxFullFileHighlightSizeLimit = 256 * 1024
 	MaxFullFileHighlightTimeLimit = 2 * time.Second
