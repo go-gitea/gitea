@@ -10,15 +10,11 @@ type IGlobalEditorOptions = MonacoNamespace.editor.IGlobalEditorOptions;
 type ITextModelUpdateOptions = MonacoNamespace.editor.ITextModelUpdateOptions;
 type MonacoOpts = IEditorOptions & IGlobalEditorOptions & ITextModelUpdateOptions;
 
-type EditorConfig = {
+type CodeEditorConfig = {
   indent_style?: 'tab' | 'space',
-  indent_size?: string | number, // backend emits this as string
+  indent_size?: number,
   tab_width?: string | number, // backend emits this as string
-  end_of_line?: 'lf' | 'cr' | 'crlf',
-  charset?: 'latin1' | 'utf-8' | 'utf-8-bom' | 'utf-16be' | 'utf-16le',
   trim_trailing_whitespace?: boolean,
-  insert_final_newline?: boolean,
-  root?: boolean,
 };
 
 const languagesByFilename: Record<string, string> = {};
@@ -38,6 +34,7 @@ const baseOptions: MonacoOpts = {
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6, alwaysConsumeMouseWheel: false},
   scrollBeyondLastLine: false,
   automaticLayout: true,
+  indentSize: 'tabSize',
   wrappingIndent: 'none',
   wordWrapBreakAfterCharacters: '',
   wordWrapBreakBeforeCharacters: '',
@@ -45,8 +42,8 @@ const baseOptions: MonacoOpts = {
   editContext: false, // https://github.com/microsoft/monaco-editor/issues/5081
 };
 
-function getEditorconfig(input: HTMLInputElement): EditorConfig | null {
-  const json = input.getAttribute('data-editorconfig');
+function getCodeEditorConfig(input: HTMLInputElement): CodeEditorConfig | null {
+  const json = input.getAttribute('data-code-editor-config');
   if (!json) return null;
   try {
     return JSON.parse(json);
@@ -153,6 +150,7 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
   const editor = monaco.editor.create(container, {
     model,
     theme: 'gitea',
+    ...baseOptions,
     ...other,
   });
 
@@ -167,6 +165,22 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
     });
     textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
   });
+
+  const elEditorOptions = textarea.closest('form')?.querySelector('.code-editor-options');
+  if (elEditorOptions) {
+    elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-style-select')!.addEventListener('change', (e) => {
+      const insertSpaces = (e.target as HTMLSelectElement).value === 'space';
+      editor.updateOptions({insertSpaces, useTabStops: !insertSpaces});
+    });
+    elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-size-select')!.addEventListener('change', (e) => {
+      const tabSize = Number((e.target as HTMLSelectElement).value);
+      editor.updateOptions({tabSize});
+    });
+    elEditorOptions.querySelector<HTMLSelectElement>('.js-line-wrap-select')!.addEventListener('change', (e) => {
+      const wordWrap = (e.target as HTMLSelectElement).value as IEditorOptions['wordWrap'];
+      editor.updateOptions({wordWrap});
+    });
+  }
 
   exportEditor(editor);
 
@@ -204,14 +218,13 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
   const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
   const isPreviewable = previewableExts.has(extname(filename));
-  const editorConfig = getEditorconfig(filenameInput);
+  const editorConfig = getCodeEditorConfig(filenameInput);
 
   togglePreviewDisplay(isPreviewable);
 
   const {monaco, editor} = await createMonaco(textarea, filename, {
-    ...baseOptions,
     ...getFileBasedOptions(filenameInput.value, lineWrapExts),
-    ...getEditorConfigOptions(editorConfig),
+    ...getMonacoOptsByCodeEditorConfig(editorConfig),
   });
 
   filenameInput.addEventListener('input', onInputDebounce(() => {
@@ -224,20 +237,15 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   return editor;
 }
 
-function getEditorConfigOptions(ec: EditorConfig | null): MonacoOpts {
+function getMonacoOptsByCodeEditorConfig(ec: CodeEditorConfig | null): MonacoOpts {
   if (!ec || !isObject(ec)) return {};
 
   const opts: MonacoOpts = {};
-  opts.detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
+  opts.detectIndentation = !ec.indent_style || !ec.indent_size;
 
-  if ('indent_size' in ec) {
-    opts.indentSize = Number(ec.indent_size);
-  }
-  if ('tab_width' in ec) {
-    opts.tabSize = Number(ec.tab_width) || Number(ec.indent_size);
-  }
-  if ('max_line_length' in ec) {
-    opts.rulers = [Number(ec.max_line_length)];
+  // with indentSize='tabSize', this also controls the `indentSize` option
+  if (!opts.detectIndentation) {
+    opts.tabSize = Number(ec.tab_width) || Number(ec.indent_size) || 4;
   }
 
   opts.trimAutoWhitespace = ec.trim_trailing_whitespace === true;

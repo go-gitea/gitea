@@ -16,6 +16,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -123,8 +124,14 @@ type DiffHTMLOperation struct {
 // BlobExcerptChunkSize represent max lines of excerpt
 const BlobExcerptChunkSize = 20
 
-// MaxDiffHighlightEntireFileSize is the maximum file size that will be highlighted with "entire file diff"
-const MaxDiffHighlightEntireFileSize = 1 * 1024 * 1024
+// Chroma seems extremely slow when highlighting large files, it might take dozens or hundreds of milliseconds.
+// When fully highlighting a diff with a lot of large files, it would take many seconds or even dozens of seconds.
+// So, don't highlight the entire file if it's too large, or highlighting takes too long.
+// When there is no full-file highlighting, the legacy "line-by-line" highlighting is still applied as the fallback.
+const (
+	MaxFullFileHighlightSizeLimit = 256 * 1024
+	MaxFullFileHighlightTimeLimit = 2 * time.Second
+)
 
 // GetType returns the type of DiffLine.
 func (d *DiffLine) GetType() int {
@@ -564,7 +571,7 @@ func getCommitFileLineCountAndLimitedContent(commit *git.Commit, filePath string
 	if err != nil {
 		return 0, nil
 	}
-	w := &limitByteWriter{limit: MaxDiffHighlightEntireFileSize + 1}
+	w := &limitByteWriter{limit: MaxFullFileHighlightSizeLimit + 1}
 	lineCount, err = blob.GetBlobLineCount(w)
 	if err != nil {
 		return 0, nil
@@ -1317,6 +1324,8 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		return nil, err
 	}
 
+	startTime := time.Now()
+
 	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage, attribute.Diff})
 	if err != nil {
 		return nil, err
@@ -1356,7 +1365,8 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 
-		shouldFullFileHighlight := !setting.Git.DisableDiffHighlight && attrDiff.Value() == ""
+		shouldFullFileHighlight := attrDiff.Value() == "" // only do highlight if no custom diff command
+		shouldFullFileHighlight = shouldFullFileHighlight && time.Since(startTime) < MaxFullFileHighlightTimeLimit
 		if shouldFullFileHighlight {
 			if limitedContent.LeftContent != nil {
 				diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, limitedContent.LeftContent.buf.Bytes())
@@ -1380,7 +1390,7 @@ func highlightCodeLinesForDiffFile(diffFile *DiffFile, isLeft bool, rawContent [
 }
 
 func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool, rawContent []byte) map[int]template.HTML {
-	if setting.Git.DisableDiffHighlight || len(rawContent) > MaxDiffHighlightEntireFileSize {
+	if setting.Git.DisableDiffHighlight || len(rawContent) > MaxFullFileHighlightSizeLimit {
 		return nil
 	}
 
