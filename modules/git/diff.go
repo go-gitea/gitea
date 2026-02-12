@@ -32,7 +32,7 @@ func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer 
 	if err != nil {
 		return fmt.Errorf("getRepoRawDiffForFileCmd: %w", err)
 	}
-	return cmd.WithStdoutCopy(writer).Run(repo.Ctx)
+	return cmd.WithStdoutCopy(writer).RunWithStderr(repo.Ctx)
 }
 
 // GetFileDiffCutAroundLine cuts the old or new part of the diff of a file around a specific line number

@@ -81,7 +81,7 @@ func UnsafeSplitHighlightedLines(code template.HTML) (ret [][]byte) {
 }
 
 // RenderCodeSlowGuess tries to get a lexer by file name and language first,
-// if not found, it will try to guess the lexer by code content, which is slow (more than serval hundreds of milliseconds).
+// if not found, it will try to guess the lexer by code content, which is slow (more than several hundreds of milliseconds).
 func RenderCodeSlowGuess(fileName, language, code string) (output template.HTML, lexer chroma.Lexer, lexerDisplayName string) {
 	// diff view newline will be passed as empty, change to literal '\n' so it can be copied
 	// preserve literal newline in blame view

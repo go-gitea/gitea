@@ -36,7 +36,7 @@ var chromaLexers = sync.OnceValue(func() (ret struct {
 	ret.fileBaseMap = make(map[string]chroma.Lexer)
 	ret.fileExtMap = make(map[string]chroma.Lexer)
 
-	// Chrome has overlaps in file extension for different languages,
+	// Chroma has overlaps in file extension for different languages,
 	// When we need to do fast render, there is no way to detect the language by content,
 	// So we can only choose some default languages for the overlapped file extensions.
 	ret.conflictingExtLangMap = map[string]string{
@@ -78,7 +78,7 @@ var chromaLexers = sync.OnceValue(func() (ret struct {
 
 	setMapWithLowerKey := func(m map[string]chroma.Lexer, key string, lexer chroma.Lexer) {
 		if _, conflict := m[key]; conflict {
-			panic("duplicate key in lexer map: " + key + ", need to add it to defaultExtLangMap")
+			panic("duplicate key in lexer map: " + key + ", need to add it to conflictingExtLangMap")
 		}
 		m[key] = lexer
 		m[mapKeyLowerPrefix+strings.ToLower(key)] = lexer
@@ -119,7 +119,7 @@ var chromaLexers = sync.OnceValue(func() (ret struct {
 	}
 
 	expandGlobPatterns := func(patterns []string) []string {
-		// expand patterns like "file.[ch]" to "file.c" and "file.h", only one pair of "[]" is supported, enough for current Chrome lexers
+		// expand patterns like "file.[ch]" to "file.c" and "file.h", only one pair of "[]" is supported, enough for current Chroma lexers
 		for idx, s := range patterns {
 			idx1 := strings.IndexByte(s, '[')
 			idx2 := strings.IndexByte(s, ']')
@@ -163,6 +163,7 @@ var chromaLexers = sync.OnceValue(func() (ret struct {
 })
 
 func normalizeFileNameLang(fileName, fileLang string) (string, string) {
+	fileName = path.Base(fileName)
 	fileLang, _, _ = strings.Cut(fileLang, "?") // maybe, the value from gitattributes might contain `?` parameters?
 	ext := path.Ext(fileName)
 	// the "lang" might come from enry or gitattributes, it has different naming for some languages
@@ -232,7 +233,7 @@ func detectChromaLexerByFileName(fileName, fileLang string) (_ chroma.Lexer, byL
 	{
 		if lexer, ok := chromaLexers().fileExtMap[fileExt]; ok {
 			return lexer, false
-		} else if lexer, ok = chromaLexers().fileBaseMap[mapKeyLowerPrefix+strings.ToLower(fileExt)]; ok {
+		} else if lexer, ok = chromaLexers().fileExtMap[mapKeyLowerPrefix+strings.ToLower(fileExt)]; ok {
 			return lexer, false
 		}
 	}
