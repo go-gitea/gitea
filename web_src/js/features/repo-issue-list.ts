@@ -139,7 +139,7 @@ function initDropdownUserRemoteSearch(el: Element) {
         processedResults.length = 0;
         for (const item of resp.results) {
           let nameHtml = html`<img class="ui avatar tw-align-middle" src="${item.avatar_link}" aria-hidden="true" alt width="20" height="20"><span class="gt-ellipsis">`;
-          nameHtml += item.full_name ? html`<span class="search-fullname">${item.full_name}</span>` : item.username;
+          nameHtml += item.full_name ? html`<span class="search-fullname">${item.full_name}</span>` : html`${item.username}`;
           nameHtml += html`</span>`;
           if (selectedUsername.toLowerCase() === item.username.toLowerCase()) selectedUsername = item.username;
           processedResults.push({value: item.username, name: nameHtml});

@@ -1,1 +1,1 @@
-<span class="gt-ellipsis">{{if DefaultShowFullName}}<span class="search-fullname">{{.FullName}}</span>{{else}}{{.Name}}{{end}}</span>
+<span class="gt-ellipsis">{{if and DefaultShowFullName .FullName}}<span class="search-fullname">{{.FullName}}</span>{{else}}{{.Name}}{{end}}</span>
