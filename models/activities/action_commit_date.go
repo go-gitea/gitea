@@ -23,10 +23,12 @@ func init() {
 }
 
 // InsertActionCommitDates inserts commit date records for an action
-func InsertActionCommitDates(ctx context.Context, actionID int64, commits []struct {
-	Sha1      string
-	Timestamp timeutil.TimeStamp
-}) error {
+func InsertActionCommitDates(
+	ctx context.Context, actionID int64, commits []struct {
+		Sha1      string
+		Timestamp timeutil.TimeStamp
+	},
+) error {
 	if len(commits) == 0 {
 		return nil
 	}
