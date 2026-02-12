@@ -326,7 +326,7 @@ func ListUnadoptedRepositories(ctx context.Context, query string, opts *db.ListO
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() || path == "" {
+		if !d.IsDir() || path == "" || path == "." {
 			return nil
 		}
 
