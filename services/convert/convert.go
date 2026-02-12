@@ -343,34 +343,39 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 
 	if job.TaskID != 0 {
 		if task == nil {
-			task, _, err = db.GetByID[actions_model.ActionTask](ctx, job.TaskID)
+			var has bool
+			task, has, err = db.GetByID[actions_model.ActionTask](ctx, job.TaskID)
 			if err != nil {
 				return nil, err
+			}
+			if !has {
+				task = nil
 			}
 		}
 
 		if task != nil {
-			tSteps, err := actions_model.GetTaskStepsByTaskID(ctx, task.ID)
-			if err != nil {
-				return nil, err
+			if task.Steps == nil {
+				tSteps, err := actions_model.GetTaskStepsByTaskID(ctx, task.ID)
+				if err != nil {
+					return nil, err
+				}
+				task.Steps = tSteps
 			}
-			task.Steps = tSteps
-		}
-
-		runnerID = task.RunnerID
-		if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
-			runnerName = runner.Name
-		}
-		for i, step := range task.Steps {
-			stepStatus, stepConclusion := ToActionsStatus(job.Status)
-			steps = append(steps, &api.ActionWorkflowStep{
-				Name:        step.Name,
-				Number:      int64(i),
-				Status:      stepStatus,
-				Conclusion:  stepConclusion,
-				StartedAt:   step.Started.AsTime().UTC(),
-				CompletedAt: step.Stopped.AsTime().UTC(),
-			})
+			runnerID = task.RunnerID
+			if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
+				runnerName = runner.Name
+			}
+			for i, step := range task.Steps {
+				stepStatus, stepConclusion := ToActionsStatus(job.Status)
+				steps = append(steps, &api.ActionWorkflowStep{
+					Name:        step.Name,
+					Number:      int64(i),
+					Status:      stepStatus,
+					Conclusion:  stepConclusion,
+					StartedAt:   step.Started.AsTime().UTC(),
+					CompletedAt: step.Stopped.AsTime().UTC(),
+				})
+			}
 		}
 	}
 
