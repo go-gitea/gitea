@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/httplib"
@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	gitea_context "code.gitea.io/gitea/services/context"
 )
 
@@ -36,58 +37,31 @@ type ArchiveRequest struct {
 	Repo     *repo_model.Repository
 	Type     repo_model.ArchiveType
 	CommitID string
+	Paths    []string
 
 	archiveRefShortName string // the ref short name to download the archive, for example: "master", "v1.0.0", "commit id"
-}
-
-// ErrUnknownArchiveFormat request archive format is not supported
-type ErrUnknownArchiveFormat struct {
-	RequestNameType string
-}
-
-// Error implements error
-func (err ErrUnknownArchiveFormat) Error() string {
-	return "unknown format: " + err.RequestNameType
-}
-
-// Is implements error
-func (ErrUnknownArchiveFormat) Is(err error) bool {
-	_, ok := err.(ErrUnknownArchiveFormat)
-	return ok
-}
-
-// RepoRefNotFoundError is returned when a requested reference (commit, tag) was not found.
-type RepoRefNotFoundError struct {
-	RefShortName string
-}
-
-// Error implements error.
-func (e RepoRefNotFoundError) Error() string {
-	return "unrecognized repository reference: " + e.RefShortName
-}
-
-func (e RepoRefNotFoundError) Is(err error) bool {
-	_, ok := err.(RepoRefNotFoundError)
-	return ok
 }
 
 // NewRequest creates an archival request, based on the URI.  The
 // resulting ArchiveRequest is suitable for being passed to Await()
 // if it's determined that the request still needs to be satisfied.
-func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRefExt string) (*ArchiveRequest, error) {
+func NewRequest(repo *repo_model.Repository, gitRepo *git.Repository, archiveRefExt string, paths []string) (*ArchiveRequest, error) {
 	// here the archiveRefShortName is not a clear ref, it could be a tag, branch or commit id
 	archiveRefShortName, archiveType := repo_model.SplitArchiveNameType(archiveRefExt)
 	if archiveType == repo_model.ArchiveUnknown {
-		return nil, ErrUnknownArchiveFormat{archiveRefExt}
+		return nil, util.NewInvalidArgumentErrorf("unknown format: %s", archiveRefExt)
+	}
+	if archiveType == repo_model.ArchiveBundle && len(paths) != 0 {
+		return nil, util.NewInvalidArgumentErrorf("cannot specify paths when requesting a bundle")
 	}
 
 	// Get corresponding commit.
 	commitID, err := gitRepo.ConvertToGitID(archiveRefShortName)
 	if err != nil {
-		return nil, RepoRefNotFoundError{RefShortName: archiveRefShortName}
+		return nil, util.NewNotExistErrorf("unrecognized repository reference: %s", archiveRefShortName)
 	}
 
-	r := &ArchiveRequest{Repo: repo, archiveRefShortName: archiveRefShortName, Type: archiveType}
+	r := &ArchiveRequest{Repo: repo, archiveRefShortName: archiveRefShortName, Type: archiveType, Paths: paths}
 	r.CommitID = commitID.String()
 	return r, nil
 }
@@ -159,6 +133,7 @@ func (aReq *ArchiveRequest) Stream(ctx context.Context, w io.Writer) error {
 		w,
 		setting.Repository.PrefixArchiveFiles,
 		aReq.CommitID,
+		aReq.Paths,
 	)
 }
 
@@ -339,7 +314,7 @@ func DeleteRepositoryArchives(ctx context.Context) error {
 	return storage.Clean(storage.RepoArchives)
 }
 
-func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) {
+func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) error {
 	// Add nix format link header so tarballs lock correctly:
 	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
 	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.%s?rev=%s>; rel="immutable"`,
@@ -350,20 +325,22 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) {
 	))
 	downloadName := archiveReq.Repo.Name + "-" + archiveReq.GetArchiveName()
 
-	if setting.Repository.StreamArchives {
+	if setting.Repository.StreamArchives || len(archiveReq.Paths) > 0 {
+		// the header must be set before starting streaming even an error would occur,
+		// because errors may happen in git command and such cases aren't in our control.
 		httplib.ServeSetHeaders(ctx.Resp, &httplib.ServeHeaderOptions{Filename: downloadName})
 		if err := archiveReq.Stream(ctx, ctx.Resp); err != nil && !ctx.Written() {
-			log.Error("Archive %v streaming failed: %v", archiveReq, err)
-			ctx.HTTPError(http.StatusInternalServerError)
+			if gitcmd.StderrHasPrefix(err, "fatal: pathspec") {
+				return util.NewInvalidArgumentErrorf("path doesn't exist or is invalid")
+			}
+			return fmt.Errorf("archive repo %s: failed to stream: %w", archiveReq.Repo.FullName(), err)
 		}
-		return
+		return nil
 	}
 
 	archiver, err := archiveReq.Await(ctx)
 	if err != nil {
-		log.Error("Archive %v await failed: %v", archiveReq, err)
-		ctx.HTTPError(http.StatusInternalServerError)
-		return
+		return fmt.Errorf("archive repo %s: failed to await: %w", archiveReq.Repo.FullName(), err)
 	}
 
 	rPath := archiver.RelativePath()
@@ -372,15 +349,13 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) {
 		u, err := storage.RepoArchives.URL(rPath, downloadName, ctx.Req.Method, nil)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
-			return
+			return nil
 		}
 	}
 
 	fr, err := storage.RepoArchives.Open(rPath)
 	if err != nil {
-		log.Error("Archive %v open file failed: %v", archiveReq, err)
-		ctx.HTTPError(http.StatusInternalServerError)
-		return
+		return fmt.Errorf("archive repo %s: failed to open archive file: %w", archiveReq.Repo.FullName(), err)
 	}
 	defer fr.Close()
 
@@ -388,4 +363,5 @@ func ServeRepoArchive(ctx *gitea_context.Base, archiveReq *ArchiveRequest) {
 		Filename:     downloadName,
 		LastModified: archiver.CreatedUnix.AsLocalTime(),
 	})
+	return nil
 }

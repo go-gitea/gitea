@@ -134,7 +134,7 @@ func runRepoSyncReleases(ctx context.Context, _ *cli.Command) error {
 			}
 			log.Trace(" currentNumReleases is %d, running SyncReleasesWithTags", oldnum)
 
-			if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+			if _, err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 				log.Warn(" SyncReleasesWithTags: %v", err)
 				gitRepo.Close()
 				continue

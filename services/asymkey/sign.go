@@ -271,12 +271,21 @@ Loop:
 }
 
 // SignMerge determines if we should sign a PR merge commit to the base repository
-func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.User, gitRepo *git.Repository, baseCommit, headCommit string) (bool, *git.SigningKey, *git.Signature, error) {
+func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.User, gitRepo *git.Repository) (bool, *git.SigningKey, *git.Signature, error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to get Base Repo for pull request")
 		return false, nil, nil, err
 	}
 	repo := pr.BaseRepo
+
+	baseCommit, err := gitRepo.GetCommit(pr.BaseBranch)
+	if err != nil {
+		return false, nil, nil, err
+	}
+	headCommit, err := gitRepo.GetCommit(pr.GetGitHeadRefName())
+	if err != nil {
+		return false, nil, nil, err
+	}
 
 	signingKey, signer := gitrepo.GetSigningKey(ctx)
 	if signingKey == nil {
@@ -319,38 +328,26 @@ Loop:
 				return false, nil, nil, &ErrWontSign{approved}
 			}
 		case baseSigned:
-			commit, err := gitRepo.GetCommit(baseCommit)
-			if err != nil {
-				return false, nil, nil, err
-			}
-			verification := ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, baseCommit)
 			if !verification.Verified {
 				return false, nil, nil, &ErrWontSign{baseSigned}
 			}
 		case headSigned:
-			commit, err := gitRepo.GetCommit(headCommit)
-			if err != nil {
-				return false, nil, nil, err
-			}
-			verification := ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, headCommit)
 			if !verification.Verified {
 				return false, nil, nil, &ErrWontSign{headSigned}
 			}
 		case commitsSigned:
-			commit, err := gitRepo.GetCommit(headCommit)
-			if err != nil {
-				return false, nil, nil, err
-			}
-			verification := ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, headCommit)
 			if !verification.Verified {
 				return false, nil, nil, &ErrWontSign{commitsSigned}
 			}
 			// need to work out merge-base
-			mergeBaseCommit, _, err := gitRepo.GetMergeBase("", baseCommit, headCommit)
+			mergeBaseCommit, err := gitrepo.MergeBase(ctx, pr.BaseRepo, baseCommit.ID.String(), headCommit.ID.String())
 			if err != nil {
 				return false, nil, nil, err
 			}
-			commitList, err := commit.CommitsBeforeUntil(mergeBaseCommit)
+			commitList, err := headCommit.CommitsBeforeUntil(mergeBaseCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}

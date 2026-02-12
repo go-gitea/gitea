@@ -7,7 +7,6 @@
 			<div class="ui list flex-items-block">
 				<div class="item">
 					<form class="ui form tw-w-full" action="{{AppSubUrl}}/user/settings/notifications/email" method="post">
-						{{$.CsrfTokenHtml}}
 						<div class="field">
 							<label>{{ctx.Locale.Tr "settings.email_desc"}}</label>
 							<div class="ui selection dropdown">
@@ -38,7 +37,6 @@
 			<div class="ui list flex-items-block">
 				<div class="item">
 					<form class="ui form tw-w-full" action="{{AppSubUrl}}/user/settings/notifications/actions" method="post">
-						{{$.CsrfTokenHtml}}
 						<div class="field">
 							<label>{{ctx.Locale.Tr "settings.email_notifications.actions.desc" "https://docs.gitea.com/usage/actions/overview/"}}</label>
 							<div class="ui selection dropdown">

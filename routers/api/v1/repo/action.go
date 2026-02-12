@@ -69,10 +69,11 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repo := ctx.Repo.Repository
+	listOptions := utils.GetListOptions(ctx)
 
 	opts := &secret_model.FindSecretsOptions{
 		RepoID:      repo.ID,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	}
 
 	secrets, count, err := db.FindAndCount[secret_model.Secret](ctx, opts)
@@ -89,7 +90,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 			Created:     v.CreatedUnix.AsTime(),
 		}
 	}
-
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiSecrets)
 }
@@ -482,9 +483,11 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	listOptions := utils.GetListOptions(ctx)
+
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
 		RepoID:      ctx.Repo.Repository.ID,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -502,6 +505,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 		}
 	}
 
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, variables)
 }
@@ -807,9 +811,10 @@ func ListActionTasks(ctx *context.APIContext) {
 	//     "$ref": "#/responses/conflict"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+	listOptions := utils.GetListOptions(ctx)
 
 	tasks, total, err := db.FindAndCount[actions_model.ActionTask](ctx, &actions_model.FindTaskOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		RepoID:      ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -830,6 +835,8 @@ func ListActionTasks(ctx *context.APIContext) {
 		res.Entries[i] = convertedTask
 	}
 
+	ctx.SetLinkHeader(int(total), listOptions.PageSize)
+	ctx.SetTotalCountHeader(total) // Duplicates api response field but it's better to set it for consistency
 	ctx.JSON(http.StatusOK, &res)
 }
 

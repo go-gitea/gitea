@@ -201,7 +201,7 @@ async function pinMoveEnd(e: SortableEvent) {
 }
 
 async function initIssuePinSort() {
-  const pinDiv = document.querySelector('#issue-pins');
+  const pinDiv = document.querySelector<HTMLElement>('#issue-pins');
 
   if (pinDiv === null) return;
 

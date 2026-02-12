@@ -301,7 +301,7 @@ export function createElementFromHTML<T extends HTMLElement>(htmlString: string)
   return div.firstChild as T;
 }
 
-export function createElementFromAttrs(tagName: string, attrs: Record<string, any> | null, ...children: (Node | string)[]): HTMLElement {
+export function createElementFromAttrs<T extends HTMLElement>(tagName: string, attrs: Record<string, any> | null, ...children: (Node | string)[]): T {
   const el = document.createElement(tagName);
   for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;
@@ -314,7 +314,7 @@ export function createElementFromAttrs(tagName: string, attrs: Record<string, an
   for (const child of children) {
     el.append(child instanceof Node ? child : document.createTextNode(child));
   }
-  return el;
+  return el as T;
 }
 
 export function animateOnce(el: Element, animationClassName: string): Promise<void> {

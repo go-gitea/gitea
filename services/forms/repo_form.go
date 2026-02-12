@@ -143,6 +143,7 @@ type RepoSettingForm struct {
 	PullsAllowRebaseUpdate           bool
 	DefaultDeleteBranchAfterMerge    bool
 	DefaultAllowMaintainerEdit       bool
+	DefaultTargetBranch              string
 	EnableTimetracker                bool
 	AllowOnlyContributorsToTrackTime bool
 	EnableIssueDependencies          bool
@@ -404,13 +405,6 @@ func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) 
 	ctx := context.GetValidateContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
-
-// .___
-// |   | ______ ________ __   ____
-// |   |/  ___//  ___/  |  \_/ __ \
-// |   |\___ \ \___ \|  |  /\  ___/
-// |___/____  >____  >____/  \___  >
-//          \/     \/            \/
 
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {

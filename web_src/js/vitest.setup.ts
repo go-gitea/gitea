@@ -7,7 +7,6 @@ window.config = {
   assetUrlPrefix: '',
   runModeIsProd: true,
   customEmojis: {},
-  csrfToken: 'test-csrf-token-123456',
   pageData: {},
   notificationSettings: {},
   enableTimeTracking: true,

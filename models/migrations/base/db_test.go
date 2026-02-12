@@ -11,6 +11,10 @@ import (
 	"xorm.io/xorm/names"
 )
 
+func TestMain(m *testing.M) {
+	MainTest(m)
+}
+
 func Test_DropTableColumns(t *testing.T) {
 	x, deferable := PrepareTestEnv(t, 0)
 	if x == nil || t.Failed() {
