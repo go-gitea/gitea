@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
@@ -29,6 +30,8 @@ import (
 const (
 	tplConfig         templates.TplName = "admin/config"
 	tplConfigSettings templates.TplName = "admin/config_settings/config_settings"
+
+	instanceNoticeMessageMaxLength = 2000
 )
 
 // SendTestMail send test mail to confirm mail service is OK
@@ -148,6 +151,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["Webhook"] = setting.Webhook
 	instanceNotice := setting.GetInstanceNotice(ctx)
 	ctx.Data["InstanceNotice"] = instanceNotice
+	ctx.Data["InstanceNoticeMessageMaxLength"] = instanceNoticeMessageMaxLength
 	if instanceNotice.StartTime > 0 {
 		ctx.Data["InstanceNoticeStartTime"] = time.Unix(instanceNotice.StartTime, 0).In(setting.DefaultUILocation).Format("2006-01-02T15:04")
 	}
@@ -237,7 +241,6 @@ func SetInstanceNotice(ctx *context.Context) {
 	enabled := ctx.FormBool("enabled")
 	message := strings.TrimSpace(ctx.FormString("message"))
 	level := strings.TrimSpace(ctx.FormString("level"))
-	showIcon := ctx.FormBool("show_icon")
 	startTime, err := parseDatetimeLocalValue(strings.TrimSpace(ctx.FormString("start_time")))
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time"))
@@ -258,6 +261,11 @@ func SetInstanceNotice(ctx *context.Context) {
 		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
 		return
 	}
+	if utf8.RuneCountInString(message) > instanceNoticeMessageMaxLength {
+		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.message_too_long", instanceNoticeMessageMaxLength))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		return
+	}
 	if startTime > 0 && endTime > 0 && endTime < startTime {
 		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time_range"))
 		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
@@ -268,7 +276,6 @@ func SetInstanceNotice(ctx *context.Context) {
 		Enabled:   enabled,
 		Message:   message,
 		Level:     level,
-		ShowIcon:  showIcon,
 		StartTime: startTime,
 		EndTime:   endTime,
 	}

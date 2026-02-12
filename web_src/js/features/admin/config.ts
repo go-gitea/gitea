@@ -10,12 +10,11 @@ function initInstanceNoticePreview(elAdminConfig: HTMLDivElement): void {
 
   const inputMessage = form.querySelector<HTMLTextAreaElement>('textarea[name="message"]');
   const selectLevel = form.querySelector<HTMLSelectElement>('select[name="level"]');
-  const inputShowIcon = form.querySelector<HTMLInputElement>('input[name="show_icon"]');
   const preview = elAdminConfig.querySelector<HTMLDivElement>('#instance-notice-preview');
   const previewIcon = elAdminConfig.querySelector<HTMLDivElement>('#instance-notice-preview-icon');
   const previewContent = elAdminConfig.querySelector<HTMLDivElement>('#instance-notice-preview-content');
   const iconContainer = elAdminConfig.querySelector<HTMLDivElement>('#instance-notice-preview-icons');
-  if (!inputMessage || !selectLevel || !inputShowIcon || !preview || !previewIcon || !previewContent || !iconContainer) return;
+  if (!inputMessage || !selectLevel || !preview || !previewIcon || !previewContent || !iconContainer) return;
 
   const iconHTMLByLevel = new Map<string, string>();
   for (const el of iconContainer.querySelectorAll<HTMLElement>('[data-level]')) {
@@ -33,7 +32,6 @@ function initInstanceNoticePreview(elAdminConfig: HTMLDivElement): void {
     preview.classList.remove('info', 'positive', 'warning', 'negative');
     preview.classList.add(classByLevel[selectLevel.value] || 'info');
     previewIcon.innerHTML = iconHTMLByLevel.get(selectLevel.value) || iconHTMLByLevel.get('info') || '';
-    previewIcon.classList.toggle('tw-hidden', !inputShowIcon.checked);
   };
 
   let renderRequesting = false;
@@ -68,7 +66,6 @@ function initInstanceNoticePreview(elAdminConfig: HTMLDivElement): void {
     renderPreviewMarkdown();
   });
   selectLevel.addEventListener('change', updateStyle);
-  inputShowIcon.addEventListener('change', updateStyle);
 
   updateStyle();
 }

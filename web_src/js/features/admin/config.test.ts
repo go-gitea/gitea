@@ -21,7 +21,6 @@ function createPreviewDOM() {
           <option value="warning">Warning</option>
           <option value="danger">Danger</option>
         </select>
-        <input type="checkbox" name="show_icon" value="true" checked>
       </form>
       <div id="instance-notice-preview" class="ui info message">
         <div id="instance-notice-preview-icon"></div>
@@ -31,7 +30,7 @@ function createPreviewDOM() {
         <span data-level="info"><svg data-icon="info"></svg></span>
         <span data-level="success"><svg data-icon="success"></svg></span>
         <span data-level="warning"><svg data-icon="warning"></svg></span>
-        <span data-level="danger"><svg data-icon="danger"></svg></span>
+        <span data-level="danger"><svg data-icon="warning"></svg></span>
       </div>
     </div>
   `;
@@ -69,22 +68,17 @@ describe('Admin Instance Notice Preview', () => {
     expect(previewContent.innerHTML).toContain('Rendered message');
   });
 
-  test('updates preview class and icon when level and icon toggle change', () => {
+  test('updates preview class and icon when level changes', () => {
     initAdminConfigs();
 
     const levelSelect = document.querySelector<HTMLSelectElement>('select[name="level"]')!;
-    const showIcon = document.querySelector<HTMLInputElement>('input[name="show_icon"]')!;
     const preview = document.querySelector<HTMLDivElement>('#instance-notice-preview')!;
     const previewIcon = document.querySelector<HTMLDivElement>('#instance-notice-preview-icon')!;
 
     levelSelect.value = 'danger';
     levelSelect.dispatchEvent(new Event('change'));
     expect(preview.classList.contains('negative')).toBe(true);
-    expect(previewIcon.innerHTML).toContain('data-icon="danger"');
-
-    showIcon.checked = false;
-    showIcon.dispatchEvent(new Event('change'));
-    expect(previewIcon.classList.contains('tw-hidden')).toBe(true);
+    expect(previewIcon.innerHTML).toContain('data-icon="warning"');
   });
 
   test('queues a second render while first request is in flight and re-renders with latest text', async () => {

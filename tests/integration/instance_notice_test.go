@@ -5,6 +5,7 @@ package integration
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -23,10 +24,9 @@ func TestInstanceNoticeVisibility(t *testing.T) {
 	setInstanceNoticeForTest(t, setting.DefaultInstanceNotice())
 
 	setInstanceNoticeForTest(t, setting.InstanceNotice{
-		Enabled:  true,
-		Message:  "Planned **upgrade** in progress.",
-		Level:    setting.InstanceNoticeLevelWarning,
-		ShowIcon: true,
+		Enabled: true,
+		Message: "Planned **upgrade** in progress.",
+		Level:   setting.InstanceNoticeLevelWarning,
 	})
 
 	t.Run("AnonymousUserSeesBanner", func(t *testing.T) {
@@ -86,16 +86,25 @@ func TestInstanceNoticeAdminCRUD(t *testing.T) {
 
 	adminSession := loginUser(t, "user1")
 	req := NewRequestWithValues(t, "POST", "/-/admin/config/instance_notice", map[string]string{
-		"enabled":   "true",
-		"message":   "Admin set banner",
-		"level":     "danger",
-		"show_icon": "true",
+		"enabled": "true",
+		"message": "Admin set banner",
+		"level":   "danger",
 	})
 	adminSession.MakeRequest(t, req, http.StatusSeeOther)
 
 	notice := setting.GetInstanceNotice(t.Context())
 	assert.True(t, notice.Enabled)
-	assert.True(t, notice.ShowIcon)
+	assert.Equal(t, "Admin set banner", notice.Message)
+	assert.Equal(t, setting.InstanceNoticeLevelDanger, notice.Level)
+
+	req = NewRequestWithValues(t, "POST", "/-/admin/config/instance_notice", map[string]string{
+		"enabled": "true",
+		"message": strings.Repeat("a", 2001),
+		"level":   "warning",
+	})
+	adminSession.MakeRequest(t, req, http.StatusSeeOther)
+
+	notice = setting.GetInstanceNotice(t.Context())
 	assert.Equal(t, "Admin set banner", notice.Message)
 	assert.Equal(t, setting.InstanceNoticeLevelDanger, notice.Level)
 

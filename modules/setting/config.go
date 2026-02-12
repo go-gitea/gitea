@@ -62,10 +62,9 @@ const (
 )
 
 type InstanceNotice struct {
-	Enabled  bool
-	Message  string
-	Level    string
-	ShowIcon bool
+	Enabled bool
+	Message string
+	Level   string
 
 	StartTime int64
 	EndTime   int64
@@ -73,8 +72,7 @@ type InstanceNotice struct {
 
 func DefaultInstanceNotice() InstanceNotice {
 	return InstanceNotice{
-		Level:    InstanceNoticeLevelInfo,
-		ShowIcon: true,
+		Level: InstanceNoticeLevelInfo,
 	}
 }
 

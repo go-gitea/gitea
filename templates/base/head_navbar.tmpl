@@ -177,14 +177,12 @@
 	{{end}}
 </nav>
 {{if and .PageGlobalData .PageGlobalData.InstanceNoticeBanner}}
-	{{$banner := .PageGlobalData.InstanceNoticeBanner}}
-	<div class="ui {{if eq $banner.Level "success"}}positive{{else if eq $banner.Level "warning"}}warning{{else if eq $banner.Level "danger"}}negative{{else}}info{{end}} attached message tw-m-0 tw-rounded-none">
-		<div class="tw-flex tw-items-start tw-justify-center tw-gap-2">
-			{{if $banner.ShowIcon}}
+		{{$banner := .PageGlobalData.InstanceNoticeBanner}}
+		<div class="ui {{if eq $banner.Level "success"}}positive{{else if eq $banner.Level "warning"}}warning{{else if eq $banner.Level "danger"}}negative{{else}}info{{end}} attached message tw-m-0 tw-rounded-none">
+			<div class="tw-flex tw-items-start tw-justify-center tw-gap-2">
 				<span class="tw-leading-6">{{svg $banner.IconName}}</span>
-			{{end}}
-			<div class="render-content markup tw-text-center">{{ctx.RenderUtils.MarkdownToHtml $banner.Message}}</div>
-		</div>
+				<div class="render-content markup tw-text-center">{{ctx.RenderUtils.MarkdownToHtml $banner.Message}}</div>
+			</div>
 		{{if .PageGlobalData.IsSiteAdmin}}
 			<div class="tw-mt-2 tw-text-center">
 				<a href="{{AppSubUrl}}/-/admin/config#instance-notice">{{ctx.Locale.Tr "admin.config.instance_notice.edit_hint"}}</a>

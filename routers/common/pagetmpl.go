@@ -80,18 +80,17 @@ type pageGlobalDataType struct {
 type InstanceNoticeBannerTmplInfo struct {
 	Message  string
 	Level    string
-	ShowIcon bool
 	IconName string
 }
 
 func instanceNoticeIconName(level string) string {
 	switch level {
 	case setting.InstanceNoticeLevelSuccess:
-		return "octicon-check-circle"
+		return "octicon-check"
 	case setting.InstanceNoticeLevelWarning:
 		return "octicon-alert"
 	case setting.InstanceNoticeLevelDanger:
-		return "octicon-stop"
+		return "octicon-alert"
 	default:
 		return "octicon-info"
 	}
@@ -105,7 +104,6 @@ func getInstanceNoticeBanner(ctx *context.Context) *InstanceNoticeBannerTmplInfo
 	return &InstanceNoticeBannerTmplInfo{
 		Message:  notice.Message,
 		Level:    notice.Level,
-		ShowIcon: notice.ShowIcon,
 		IconName: instanceNoticeIconName(notice.Level),
 	}
 }

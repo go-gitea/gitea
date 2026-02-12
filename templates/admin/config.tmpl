@@ -279,10 +279,10 @@
 								<label>{{ctx.Locale.Tr "admin.config.instance_notice.enabled"}}</label>
 							</div>
 						</div>
-						<div class="field">
-							<label>{{ctx.Locale.Tr "admin.config.instance_notice.message"}}</label>
-							<textarea name="message" rows="4" maxlength="2000" placeholder="{{ctx.Locale.Tr "admin.config.instance_notice.message_placeholder"}}">{{.InstanceNotice.Message}}</textarea>
-						</div>
+							<div class="field">
+								<label>{{ctx.Locale.Tr "admin.config.instance_notice.message"}}</label>
+								<textarea name="message" rows="4" maxlength="{{.InstanceNoticeMessageMaxLength}}" placeholder="{{ctx.Locale.Tr "admin.config.instance_notice.message_placeholder"}}">{{.InstanceNotice.Message}}</textarea>
+							</div>
 						<div class="field">
 							<label>{{ctx.Locale.Tr "admin.config.instance_notice.level"}}</label>
 							<select class="ui dropdown" name="level">
@@ -292,13 +292,7 @@
 								<option value="danger" {{if eq .InstanceNotice.Level "danger"}}selected{{end}}>{{ctx.Locale.Tr "admin.config.instance_notice.level.danger"}}</option>
 							</select>
 						</div>
-						<div class="field">
-							<div class="ui checkbox">
-								<input type="checkbox" name="show_icon" value="true" {{if .InstanceNotice.ShowIcon}}checked{{end}}>
-								<label>{{ctx.Locale.Tr "admin.config.instance_notice.show_icon"}}</label>
-							</div>
-						</div>
-						<div class="two fields">
+							<div class="two fields">
 							<div class="field">
 								<label>{{ctx.Locale.Tr "admin.config.instance_notice.start_time"}}</label>
 								<input type="datetime-local" name="start_time" value="{{.InstanceNoticeStartTime}}">
@@ -308,25 +302,23 @@
 								<input type="datetime-local" name="end_time" value="{{.InstanceNoticeEndTime}}">
 							</div>
 						</div>
-						<p class="text tw-mb-3">{{ctx.Locale.Tr "admin.config.instance_notice.markdown_hint"}}</p>
-
 						<div class="field">
-							<label>{{ctx.Locale.Tr "admin.config.instance_notice.preview"}}</label>
-							<div id="instance-notice-preview" class="ui {{if eq .InstanceNotice.Level "success"}}positive{{else if eq .InstanceNotice.Level "warning"}}warning{{else if eq .InstanceNotice.Level "danger"}}negative{{else}}info{{end}} message tw-mt-2">
-								<div class="tw-flex tw-items-start tw-justify-center tw-gap-2">
-									<div id="instance-notice-preview-icon" class="{{if not .InstanceNotice.ShowIcon}}tw-hidden{{end}} tw-leading-6">
-										{{if eq .InstanceNotice.Level "success"}}{{svg "octicon-check-circle"}}{{else if eq .InstanceNotice.Level "warning"}}{{svg "octicon-alert"}}{{else if eq .InstanceNotice.Level "danger"}}{{svg "octicon-stop"}}{{else}}{{svg "octicon-info"}}{{end}}
+								<label>{{ctx.Locale.Tr "admin.config.instance_notice.preview"}}</label>
+								<div id="instance-notice-preview" class="ui {{if eq .InstanceNotice.Level "success"}}positive{{else if eq .InstanceNotice.Level "warning"}}warning{{else if eq .InstanceNotice.Level "danger"}}negative{{else}}info{{end}} message tw-mt-2">
+									<div class="tw-flex tw-items-start tw-justify-center tw-gap-2">
+										<div id="instance-notice-preview-icon" class="tw-leading-6">
+											{{if eq .InstanceNotice.Level "success"}}{{svg "octicon-check"}}{{else if eq .InstanceNotice.Level "warning"}}{{svg "octicon-alert"}}{{else if eq .InstanceNotice.Level "danger"}}{{svg "octicon-alert"}}{{else}}{{svg "octicon-info"}}{{end}}
+										</div>
+										<div id="instance-notice-preview-content" class="render-content markup tw-text-center">{{ctx.RenderUtils.MarkdownToHtml .InstanceNotice.Message}}</div>
 									</div>
-									<div id="instance-notice-preview-content" class="render-content markup tw-text-center">{{ctx.RenderUtils.MarkdownToHtml .InstanceNotice.Message}}</div>
+								</div>
+								<div id="instance-notice-preview-icons" class="tw-hidden">
+									<span data-level="info">{{svg "octicon-info"}}</span>
+									<span data-level="success">{{svg "octicon-check"}}</span>
+									<span data-level="warning">{{svg "octicon-alert"}}</span>
+									<span data-level="danger">{{svg "octicon-alert"}}</span>
 								</div>
 							</div>
-							<div id="instance-notice-preview-icons" class="tw-hidden">
-								<span data-level="info">{{svg "octicon-info"}}</span>
-								<span data-level="success">{{svg "octicon-check-circle"}}</span>
-								<span data-level="warning">{{svg "octicon-alert"}}</span>
-								<span data-level="danger">{{svg "octicon-stop"}}</span>
-							</div>
-						</div>
 
 						<button class="ui tiny primary button">{{ctx.Locale.Tr "admin.config.instance_notice.save"}}</button>
 					</form>
