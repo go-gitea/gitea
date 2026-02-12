@@ -260,7 +260,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	authorDate := opts.AuthorTime
 	committerDate := opts.CommitterTime
 	if authorDate == nil && committerDate == nil {
-		authorDate = util.ToPointer(time.Now())
+		authorDate = new(time.Now())
 		committerDate = authorDate
 	} else if authorDate == nil {
 		authorDate = committerDate
@@ -365,7 +365,7 @@ func (t *TemporaryUploadRepository) Push(ctx context.Context, doer *user_model.U
 }
 
 // DiffIndex returns a Diff of the current index to the head
-func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context) (*gitdiff.Diff, error) {
+func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context, oldContent, newContent string) (*gitdiff.Diff, error) {
 	var diff *gitdiff.Diff
 	cmd := gitcmd.NewCommand("diff-index", "--src-prefix=\\a/", "--dst-prefix=\\b/", "--cached", "-p", "HEAD")
 	stdoutReader, stdoutReaderClose := cmd.MakeStdoutPipe()
@@ -387,6 +387,9 @@ func (t *TemporaryUploadRepository) DiffIndex(ctx context.Context) (*gitdiff.Dif
 		return nil, fmt.Errorf("unable to run diff-index pipeline in temporary repo: %w", err)
 	}
 
+	if len(diff.Files) > 0 {
+		gitdiff.FillDiffFileHighlightLinesByContent(diff.Files[0], util.UnsafeStringToBytes(oldContent), util.UnsafeStringToBytes(newContent))
+	}
 	return diff, nil
 }
 

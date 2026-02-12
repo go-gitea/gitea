@@ -1111,22 +1111,20 @@ func TestDiffLine_GetExpandDirection(t *testing.T) {
 func TestHighlightCodeLines(t *testing.T) {
 	t.Run("CharsetDetecting", func(t *testing.T) {
 		diffFile := &DiffFile{
-			Name:     "a.c",
-			Language: "c",
+			Name: "a.c",
 			Sections: []*DiffSection{
 				{
 					Lines: []*DiffLine{{LeftIdx: 1}},
 				},
 			},
 		}
-		ret := highlightCodeLines(diffFile, true, []byte("// abc\xcc def\xcd")) // ISO-8859-1 bytes
+		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("// abc\xcc def\xcd")) // ISO-8859-1 bytes
 		assert.Equal(t, "<span class=\"c1\">// abcÌ defÍ\n</span>", string(ret[0]))
 	})
 
 	t.Run("LeftLines", func(t *testing.T) {
 		diffFile := &DiffFile{
-			Name:     "a.c",
-			Language: "c",
+			Name: "a.c",
 			Sections: []*DiffSection{
 				{
 					Lines: []*DiffLine{
@@ -1138,7 +1136,7 @@ func TestHighlightCodeLines(t *testing.T) {
 			},
 		}
 		const nl = "\n"
-		ret := highlightCodeLines(diffFile, true, []byte("a\nb\n"))
+		ret := highlightCodeLinesForDiffFile(diffFile, true, []byte("a\nb\n"))
 		assert.Equal(t, map[int]template.HTML{
 			0: `<span class="n">a</span>` + nl,
 			1: `<span class="n">b</span>`,
