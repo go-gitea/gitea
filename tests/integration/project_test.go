@@ -227,4 +227,24 @@ func TestOrgProjectFilterByMilestone(t *testing.T) {
 		assert.Contains(t, issueIDs, issue17.ID)
 		assert.NotContains(t, issueIDs, issue16.ID)
 	})
+
+	t.Run("AnonymousAccess", func(t *testing.T) {
+		// Anonymous users should be able to view org project boards for public orgs
+		// and the milestone filter should work without exposing private repo data
+		req := NewRequest(t, "GET", projectURL)
+		resp := MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+		issueIDs := getProjectIssueIDs(t, htmlDoc)
+		// repo32 is public, so anonymous users should see its issues
+		assert.Contains(t, issueIDs, issue16.ID)
+		assert.Contains(t, issueIDs, issue17.ID)
+
+		// Milestone filtering should also work for anonymous users
+		req = NewRequest(t, "GET", fmt.Sprintf("%s?milestone=%d", projectURL, milestone.ID))
+		resp = MakeRequest(t, req, http.StatusOK)
+		htmlDoc = NewHTMLParser(t, resp.Body)
+		issueIDs = getProjectIssueIDs(t, htmlDoc)
+		assert.Contains(t, issueIDs, issue16.ID)
+		assert.NotContains(t, issueIDs, issue17.ID)
+	})
 }
