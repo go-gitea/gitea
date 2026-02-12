@@ -56,11 +56,11 @@
 						{{$index := index .GetIssueInfos 0}}
 						{{ctx.Locale.Tr "action.delete_branch" (.GetRepoLink ctx) .GetBranch (.ShortRepoPath ctx)}}
 					{{else if .GetOpType.InActions "mirror_sync_push"}}
-						{{ctx.Locale.Tr "action.mirror_sync_push" (.GetRepoLink ctx) (.GetRefLink ctx) .GetBranch (.ShortRepoPath ctx)}}
+						{{ctx.Locale.Tr "action.mirror_sync_push" (.GetRepoLink ctx) (.GetRefLink ctx) .RefName (.ShortRepoPath ctx)}}
 					{{else if .GetOpType.InActions "mirror_sync_create"}}
-						{{ctx.Locale.Tr "action.mirror_sync_create" (.GetRepoLink ctx) (.GetRefLink ctx) .GetBranch (.ShortRepoPath ctx)}}
+						{{ctx.Locale.Tr "action.mirror_sync_create" (.GetRepoLink ctx) (.GetRefLink ctx) .RefName (.ShortRepoPath ctx)}}
 					{{else if .GetOpType.InActions "mirror_sync_delete"}}
-						{{ctx.Locale.Tr "action.mirror_sync_delete" (.GetRepoLink ctx) .GetBranch (.ShortRepoPath ctx)}}
+						{{ctx.Locale.Tr "action.mirror_sync_delete" (.GetRepoLink ctx) .RefName (.ShortRepoPath ctx)}}
 					{{else if .GetOpType.InActions "approve_pull_request"}}
 						{{$index := index .GetIssueInfos 0}}
 						{{ctx.Locale.Tr "action.approve_pull_request" (printf "%s/pulls/%s" (.GetRepoLink ctx) $index) $index (.ShortRepoPath ctx)}}
@@ -113,7 +113,7 @@
 						<div class="render-content markup tw-text-14">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>
 					{{end}}
 				{{else if .GetOpType.InActions "merge_pull_request"}}
-					<div class="flex-item-body text black">{{index .GetIssueInfos 1}}</div>
+					<div class="flex-item-body text black">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</div>
 				{{else if .GetOpType.InActions "close_issue" "reopen_issue" "close_pull_request" "reopen_pull_request"}}
 					<span class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "pull_review_dismissed"}}

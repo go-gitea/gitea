@@ -11,7 +11,7 @@ export function initMarkupRefIssue(el: HTMLElement) {
   });
 }
 
-export function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
+function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
   const refIssue = e.currentTarget as HTMLElement;
   if (getAttachedTippyInstance(refIssue)) return;
   if (refIssue.classList.contains('ref-external-issue')) return;

@@ -601,3 +601,40 @@ In markup content, we always use bottom margin for all elements */
 .file-view.markup.orgmode li.indeterminate > p {
   display: inline-block;
 }
+
+/* auto-hide-control is a control element or a container for control elements,
+   it floats over the code-block and only shows when the code-block is hovered. */
+.markup .auto-hide-control {
+  position: absolute;
+  z-index: 1;
+  visibility: hidden; /* prevent from click events even opacity=0 */
+  opacity: 0;
+  transition: var(--transition-hover-fade);
+}
+
+/* all rendered code-block elements are in their container,
+the manually written code-block elements on "packages" pages don't have the container */
+.markup .code-block-container:hover .auto-hide-control,
+.markup .code-block:hover .auto-hide-control {
+  visibility: visible;
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .markup .auto-hide-control {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+/* can not use regular transparent button colors for hover and active states
+   because we need opaque colors here as code can appear behind the button */
+.markup .auto-hide-control.ui.button:hover,
+.markup .auto-hide-control .ui.button:hover {
+  background: var(--color-secondary) !important;
+}
+
+.markup .auto-hide-control.ui.button:active,
+.markup .auto-hide-control .ui.button:active {
+  background: var(--color-secondary-dark-1) !important;
+}

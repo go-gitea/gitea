@@ -13,6 +13,7 @@ export default defineConfig({
     passWithNoTests: true,
     globals: true,
     watch: false,
+    isolate: false,
   },
   plugins: [
     stringPlugin(),
