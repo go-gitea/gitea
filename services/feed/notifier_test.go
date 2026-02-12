@@ -22,6 +22,55 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m)
 }
 
+func TestTrimUnclosedCodeBlock(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "no code block",
+			input:    "hello world",
+			expected: "hello world",
+		},
+		{
+			name:     "closed code block",
+			input:    "before\n```go\nfmt.Println()\n```\nafter",
+			expected: "before\n```go\nfmt.Println()\n```\nafter",
+		},
+		{
+			name:     "unclosed code block",
+			input:    "before\n```mermaid\ngraph LR\nA --> B",
+			expected: "before",
+		},
+		{
+			name:     "unclosed code block with leading text",
+			input:    "some text here\n```\ncode line 1\ncode line 2",
+			expected: "some text here",
+		},
+		{
+			name:     "closed then unclosed",
+			input:    "```\nblock1\n```\ntext\n```\nunclosed",
+			expected: "```\nblock1\n```\ntext",
+		},
+		{
+			name:     "only unclosed fence",
+			input:    "```mermaid\ngraph LR",
+			expected: "",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expected, trimUnclosedCodeBlock(tt.input))
+		})
+	}
+}
+
 func TestRenameRepoAction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
