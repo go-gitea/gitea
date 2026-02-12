@@ -672,6 +672,7 @@ td .commit-summary {
   padding-left: 15px;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 4px;
 }
 
