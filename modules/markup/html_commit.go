@@ -173,6 +173,12 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 			}
 		}
 
+		// only turn compare links to the current instance into hash link
+		if !httplib.IsCurrentGiteaSiteURL(ctx, urlFull) {
+			node = node.NextSibling
+			continue
+		}
+
 		text := text1 + textDots + text2
 		if hash != "" {
 			text += " (" + hash + ")"

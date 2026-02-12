@@ -71,8 +71,7 @@ func TestRender_Commits(t *testing.T) {
 }
 
 func TestRender_CrossReferences(t *testing.T) {
-	setting.AppURL = markup.TestAppURL
-
+	defer testModule.MockVariableValue(&setting.AppURL, markup.TestAppURL)()
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
@@ -113,12 +112,12 @@ func TestRender_CrossReferences(t *testing.T) {
 	inputURL = "https://example.com/repo/owner/archive/0123456789012345678901234567890123456789.tar.gz"
 	test(
 		inputURL,
-		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.tar.gz</code></a></p>`)
+		`<p><a href="`+inputURL+`" rel="nofollow">`+inputURL+`</a></p>`)
 
 	inputURL = "https://example.com/owner/repo/commit/0123456789012345678901234567890123456789.patch?key=val"
 	test(
 		inputURL,
-		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.patch</code></a></p>`)
+		`<p><a href="`+inputURL+`" rel="nofollow">`+inputURL+`</a></p>`)
 }
 
 func TestRender_links(t *testing.T) {
@@ -582,13 +581,21 @@ func TestFuzz(t *testing.T) {
 }
 
 func TestIssue18471(t *testing.T) {
-	data := `http://domain/org/repo/compare/783b039...da951ce`
+	defer testModule.MockVariableValue(&setting.AppURL, markup.TestAppURL)()
 
+	// external compare URL should not be shortened
+	data := `http://domain/org/repo/compare/783b039...da951ce`
 	var res strings.Builder
 	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
-
 	assert.NoError(t, err)
-	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
+	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce">http://domain/org/repo/compare/783b039...da951ce</a>`, res.String())
+
+	// current instance compare URL should be shortened
+	data = markup.TestAppURL + "org/repo/compare/783b039...da951ce"
+	res.Reset()
+	err = markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
+	assert.NoError(t, err)
+	assert.Equal(t, `<a href="`+markup.TestAppURL+`org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
 }
 
 func TestIsFullURL(t *testing.T) {
