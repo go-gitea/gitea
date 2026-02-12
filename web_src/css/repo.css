@@ -521,10 +521,6 @@ td .commit-summary {
   padding: 3px;
 }
 
-.repository.view.issue .comment-list .timeline-item .badge .svg.octicon-comment {
-  margin-top: 2px;
-}
-
 .repository.view.issue .comment-list .timeline-item.comment > .content {
   margin-left: -16px;
 }
@@ -548,12 +544,6 @@ td .commit-summary {
 .repository.view.issue .comment-list .timeline-item.commits-list {
   padding-left: 15px;
   padding-top: 0;
-}
-
-.repository.view.issue .comment-list .timeline-item.event > .commit-status-link {
-  margin-left: auto;
-  margin-right: 8px;
-  margin-top: 4px;
 }
 
 .repository.view.issue .comment-list .timeline-item .comment-text-label {
@@ -688,16 +678,6 @@ td .commit-summary {
 .repository.view.issue .comment-list .event > .detail {
   margin-left: 15px;
   width: 100%;
-}
-
-.repository.view.issue .comment-list .event .detail .text {
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.repository.view.issue .comment-list .event .segments {
-  box-shadow: none;
 }
 
 .repository.view.issue .ui.depending .item.is-closed .issue-dependency-title {
