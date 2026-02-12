@@ -442,6 +442,15 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, doer *user_m
 		}
 	}
 
+	// We also need to check if "to" matches with a protected branch rule.
+	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, to)
+	if err != nil {
+		return "", err
+	}
+	if rule != nil && !rule.CanUserPush(ctx, doer) {
+		return "", git_model.ErrBranchIsProtected
+	}
+
 	if err := git_model.RenameBranch(ctx, repo, from, to, func(ctx context.Context, isDefault bool) error {
 		err2 := gitrepo.RenameBranch(ctx, repo, from, to)
 		if err2 != nil {
@@ -538,10 +547,11 @@ func UpdateBranch(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	return gitrepo.Push(ctx, repo, repo, pushOpts)
 }
 
-var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default")
+var ErrBranchIsDefault = util.ErrorWrap(util.ErrPermissionDenied, "branch is default or pull request target")
 
 func CanDeleteBranch(ctx context.Context, repo *repo_model.Repository, branchName string, doer *user_model.User) error {
-	if branchName == repo.DefaultBranch {
+	unitPRConfig := repo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig()
+	if branchName == repo.DefaultBranch || branchName == unitPRConfig.DefaultTargetBranch {
 		return ErrBranchIsDefault
 	}
 

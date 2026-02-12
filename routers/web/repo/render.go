@@ -32,24 +32,18 @@ func RenderFile(ctx *context.Context) {
 		return
 	}
 
-	dataRc, err := blob.DataAsync()
+	blobReader, err := blob.DataAsync()
 	if err != nil {
 		ctx.ServerError("DataAsync", err)
 		return
 	}
-	defer dataRc.Close()
-
-	if markupType := markup.DetectMarkupTypeByFileName(blob.Name()); markupType == "" {
-		http.Error(ctx.Resp, "Unsupported file type render", http.StatusBadRequest)
-		return
-	}
+	defer blobReader.Close()
 
 	rctx := renderhelper.NewRenderContextRepoFile(ctx, ctx.Repo.Repository, renderhelper.RepoFileOptions{
 		CurrentRefPath:  ctx.Repo.RefTypeNameSubURL(),
 		CurrentTreePath: path.Dir(ctx.Repo.TreePath),
 	}).WithRelativePath(ctx.Repo.TreePath).WithInStandalonePage(true)
-
-	renderer, err := markup.FindRendererByContext(rctx)
+	renderer, rendererInput, err := rctx.DetectMarkupRendererByReader(blobReader)
 	if err != nil {
 		http.Error(ctx.Resp, "Unable to find renderer", http.StatusBadRequest)
 		return
@@ -71,7 +65,7 @@ func RenderFile(ctx *context.Context) {
 		ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
 	}
 
-	err = markup.RenderWithRenderer(rctx, renderer, dataRc, ctx.Resp)
+	err = markup.RenderWithRenderer(rctx, renderer, rendererInput, ctx.Resp)
 	if err != nil {
 		log.Error("Failed to render file %q: %v", ctx.Repo.TreePath, err)
 		http.Error(ctx.Resp, "Failed to render file", http.StatusInternalServerError)

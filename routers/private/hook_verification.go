@@ -34,7 +34,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 		WithDir(repo.Path).
 		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
-			return ctx.CancelWithCause(err)
+			return ctx.CancelPipeline(err)
 		}).
 		Run(repo.Ctx)
 	if err != nil && !isErrUnverifiedCommit(err) {
@@ -70,7 +70,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 			}
 			verification := asymkey_service.ParseCommitWithSignature(ctx, commit)
 			if !verification.Verified {
-				return ctx.CancelWithCause(&errUnverifiedCommit{commit.ID.String()})
+				return ctx.CancelPipeline(&errUnverifiedCommit{commit.ID.String()})
 			}
 			return nil
 		}).

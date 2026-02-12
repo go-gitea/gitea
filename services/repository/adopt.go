@@ -74,7 +74,7 @@ func AdoptRepository(ctx context.Context, doer, owner *user_model.User, opts Cre
 	// WARNING: Don't override all later err with local variables
 	defer func() {
 		if err != nil {
-			// we can not use the ctx because it maybe canceled or timeout
+			// we can not use `ctx` because it may be canceled or timed out
 			if errDel := deleteFailedAdoptRepository(repo.ID); errDel != nil {
 				log.Error("Failed to delete repository %s that could not be adopted: %v", repo.FullName(), errDel)
 			}
@@ -147,11 +147,11 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 	}
 	defer gitRepo.Close()
 
-	if _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, 0); err != nil {
+	if _, _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, 0); err != nil {
 		return fmt.Errorf("SyncRepoBranchesWithRepo: %w", err)
 	}
 
-	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+	if _, err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 		return fmt.Errorf("SyncReleasesWithTags: %w", err)
 	}
 
