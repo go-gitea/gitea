@@ -41,7 +41,7 @@ func initMigrationTest(t *testing.T) func() {
 
 	unittest.InitSettingsForTesting()
 
-	assert.NotEqual(t, gitrepo.ErrRepoStoreConfig, gitrepo.RepoStoreStat())
+	assert.NoError(t, gitrepo.RepoStoreStat())
 	assert.NoError(t, gitrepo.SyncLocalToRepoStore(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta")))
 	assert.NoError(t, git.InitFull())
 	setting.LoadDBSetting()
