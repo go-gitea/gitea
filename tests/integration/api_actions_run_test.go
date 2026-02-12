@@ -8,12 +8,15 @@ import (
 	"net/http"
 	"testing"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	auth_model "code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -133,4 +136,49 @@ func testAPIActionsDeleteRunListTasks(t *testing.T, repo *repo_model.Repository,
 	}
 	assert.Equal(t, expected, findTask1)
 	assert.Equal(t, expected, findTask2)
+}
+
+func TestAPIListWorkflowRunJobsReturnsSteps(t *testing.T) {
+	defer prepareTestEnvActionsArtifacts(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	// Insert task steps for task_id 53 (job 198) so the API can return them once the backend loads them
+	_, err := db.GetEngine(t.Context()).Insert(&actions_model.ActionTaskStep{
+		Name:    "main",
+		TaskID:  53,
+		Index:   0,
+		RepoID:  repo.ID,
+		Status:  actions_model.StatusSuccess,
+		Started: timeutil.TimeStamp(1683636528),
+		Stopped: timeutil.TimeStamp(1683636626),
+	})
+	assert.NoError(t, err)
+
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/actions/runs/795/jobs", repo.FullName())).
+		AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var jobList api.ActionWorkflowJobsResponse
+	err = json.Unmarshal(resp.Body.Bytes(), &jobList)
+	assert.NoError(t, err)
+
+	var job198 *api.ActionWorkflowJob
+	for _, j := range jobList.Entries {
+		if j.ID == 198 {
+			job198 = j
+			break
+		}
+	}
+	assert.NotNil(t, job198, "expected to find job 198 in run 795 jobs list")
+
+	// Steps must be non-nil and populated when the job has a task with steps
+	assert.NotNil(t, job198.Steps, "job steps must not be null")
+	assert.NotEmpty(t, job198.Steps, "job must return at least one step when task has steps")
+	if len(job198.Steps) > 0 {
+		assert.Equal(t, "main", job198.Steps[0].Name, "first step name")
+	}
 }
