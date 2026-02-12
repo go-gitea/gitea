@@ -142,14 +142,6 @@ textarea:focus,
   margin-top: 0.7em;
 }
 
-.ui.form select {
-  display: block;
-  height: auto;
-  width: 100%;
-  border-radius: 0.28571429rem;
-  padding: 0.62em 1em;
-}
-
 .ui.form .field > .selection.dropdown {
   min-width: 14em; /* matches the default min width */
   width: 100%;

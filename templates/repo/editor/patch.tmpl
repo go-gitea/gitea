@@ -20,15 +20,20 @@
 				</div>
 			</div>
 			<div class="field">
-				<div class="ui compact small menu small-menu-items repo-editor-menu">
-					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
+				<div class="ui top attached header">
+					<div class="flex-text-block tw-justify-between tw-flex-wrap">
+						<div class="ui compact small menu small-menu-items repo-editor-menu tw-self-start">
+							<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
+						</div>
+						{{template "repo/editor/options" dict "CodeEditorConfig" $.CodeEditorConfig}}
+					</div>
 				</div>
-				<div class="ui active tab segment tw-rounded tw-p-0" data-tab="write">
-					<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
-						data-context="{{.RepoLink}}"
-						data-line-wrap-extensions="{{.LineWrapExtensions}}">
-{{.FileContent}}</textarea>
-					<div class="editor-loading is-loading"></div>
+				<div class="ui bottom attached segment tw-p-0">
+					<div class="ui active tab tw-rounded-b" data-tab="write">
+						<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
+							data-context="{{.RepoLink}}">{{.FileContent}}</textarea>
+						<div class="editor-loading is-loading"></div>
+					</div>
 				</div>
 			</div>
 			{{template "repo/editor/commit_form" .}}
