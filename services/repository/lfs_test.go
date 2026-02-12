@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/test"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,8 @@ import (
 func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	setting.LFS.StartServer = true
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
+
 	err := storage.Init()
 	assert.NoError(t, err)
 
@@ -49,7 +51,8 @@ func TestGarbageCollectLFSMetaObjects(t *testing.T) {
 func TestGarbageCollectLFSMetaObjectsForRepoAutoFix(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	setting.LFS.StartServer = true
+	defer test.MockVariableValue(&setting.LFS.StartServer, true)()
+
 	err := storage.Init()
 	assert.NoError(t, err)
 
