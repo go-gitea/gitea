@@ -548,6 +548,9 @@ func PrepareCompareDiff(
 		if len(body) > 1 {
 			ctx.Data["content"] = strings.Join(body[1:], "\n")
 		}
+	} else if len(commits) > 1 {
+		c := commits[len(commits)-1]
+		title = strings.TrimSpace(c.UserCommit.Summary())
 	}
 
 	if len(title) > 255 {

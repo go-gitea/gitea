@@ -124,6 +124,39 @@ func TestCompareBranches(t *testing.T) {
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
 }
 
+func TestCompareMultiCommitPRTitle(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user1, user1, repo_service.CreateRepoOptions{
+			Name:          "test_multi_commit_pr_title",
+			Readme:        "Default",
+			AutoInit:      true,
+			DefaultBranch: "main",
+		}, true)
+		assert.NoError(t, err)
+
+		session := loginUser(t, user1.Name)
+
+		// Create a new branch and make two commits with custom summaries
+		testEditFileToNewBranch(t, session, user1.Name, repo.Name, "main", "multi-commit-branch", "README.md", "first edit\n")
+		testEditorActionEdit(t, session, user1.Name, repo.Name, "_edit", "multi-commit-branch", "README.md", map[string]string{
+			"content":        "second edit\n",
+			"commit_choice":  "direct",
+			"commit_summary": "Second commit title",
+		})
+
+		// Open the compare page for creating a PR
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/compare/main...multi-commit-branch", user1.Name, repo.Name))
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		htmlDoc := NewHTMLParser(t, resp.Body)
+
+		// The title should be the first (oldest) commit's summary, not the branch name
+		titleValue := htmlDoc.GetInputValueByName("title")
+		assert.NotEqual(t, "multi-commit-branch", titleValue, "PR title should not be the branch name for multi-commit PRs")
+		assert.NotEqual(t, "Second commit title", titleValue, "PR title should not be the latest commit's title")
+	})
+}
+
 func TestCompareCodeExpand(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
