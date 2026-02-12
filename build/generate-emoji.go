@@ -149,8 +149,8 @@ func generate() ([]byte, error) {
 	}
 
 	// write a JSON file to use with tribute (write before adding skin tones since we can't support them there yet)
-	file, _ := json.Marshal(data)
-	_ = os.WriteFile("assets/emoji.json", file, 0o644)
+	file, _ := json.MarshalIndent(data, "", "  ")
+	_ = os.WriteFile("assets/emoji.json", append(file, '\n'), 0o644)
 
 	// Add skin tones to emoji that support it
 	var (
