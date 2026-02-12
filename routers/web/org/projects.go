@@ -25,6 +25,8 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	project_service "code.gitea.io/gitea/services/projects"
+
+	"xorm.io/builder"
 )
 
 const (
@@ -440,14 +442,12 @@ func ViewProject(ctx *context.Context) {
 	} else {
 		// Organization-wide project - get milestones from all organization repos
 		// but only from repositories the current user can access
-		includePrivate := ctx.Doer != nil
-		repoIDs, _, err := repo_model.SearchRepositoryIDs(ctx, repo_model.SearchRepoOptions{
-			Actor:   ctx.Doer,
-			Private: includePrivate,
-			OwnerID: project.OwnerID,
-		})
+		accessCond := repo_model.AccessibleRepositoryCondition(ctx.Doer, unit.TypeIssues)
+		repoIDs, err := repo_model.SearchRepositoryIDsByCondition(ctx,
+			builder.And(builder.Eq{"owner_id": project.OwnerID}, accessCond),
+		)
 		if err != nil {
-			ctx.ServerError("SearchRepositoryIDs", err)
+			ctx.ServerError("SearchRepositoryIDsByCondition", err)
 			return
 		}
 
