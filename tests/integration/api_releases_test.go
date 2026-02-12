@@ -81,6 +81,28 @@ func TestAPIListReleases(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
 }
 
+func TestAPIGetDraftRelease(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 4})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	reader := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d", owner.Name, repo.Name, release.ID)
+
+	MakeRequest(t, NewRequest(t, "GET", urlStr), http.StatusNotFound)
+
+	readerToken := getUserToken(t, reader.LowerName, auth_model.AccessTokenScopeReadRepository)
+	MakeRequest(t, NewRequest(t, "GET", urlStr).AddTokenAuth(readerToken), http.StatusNotFound)
+
+	ownerToken := getUserToken(t, owner.LowerName, auth_model.AccessTokenScopeWriteRepository)
+	resp := MakeRequest(t, NewRequest(t, "GET", urlStr).AddTokenAuth(ownerToken), http.StatusOK)
+	var apiRelease api.Release
+	DecodeJSON(t, resp, &apiRelease)
+	assert.Equal(t, release.Title, apiRelease.Title)
+}
+
 func createNewReleaseUsingAPI(t *testing.T, token string, owner *user_model.User, repo *repo_model.Repository, name, target, title, desc string) *api.Release {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases", owner.Name, repo.Name)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -33,6 +34,12 @@ func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {
 	if release.RepoID != ctx.Repo.Repository.ID {
 		ctx.APIErrorNotFound()
 		return false
+	}
+	if release.IsDraft {
+		if !ctx.IsSigned || !ctx.Repo.CanWrite(unit_model.TypeReleases) {
+			ctx.APIErrorNotFound()
+			return false
+		}
 	}
 	return true
 }

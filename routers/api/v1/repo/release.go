@@ -62,6 +62,13 @@ func GetRelease(ctx *context.APIContext) {
 		return
 	}
 
+	if release.IsDraft { // only the users with write access can see draft releases
+		if !ctx.IsSigned || !ctx.Repo.CanWrite(unit.TypeReleases) {
+			ctx.APIErrorNotFound()
+			return
+		}
+	}
+
 	if err := release.LoadAttributes(ctx); err != nil {
 		ctx.APIErrorInternal(err)
 		return
