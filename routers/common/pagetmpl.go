@@ -5,6 +5,8 @@ package common
 
 import (
 	goctx "context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"sync"
 
@@ -78,7 +80,8 @@ type pageGlobalDataType struct {
 }
 
 type InstanceNoticeBannerTmplInfo struct {
-	Message string
+	Message    string
+	DismissKey string
 }
 
 func getInstanceNoticeBanner(ctx *context.Context) *InstanceNoticeBannerTmplInfo {
@@ -86,8 +89,11 @@ func getInstanceNoticeBanner(ctx *context.Context) *InstanceNoticeBannerTmplInfo
 	if !notice.IsActive(int64(timeutil.TimeStampNow())) {
 		return nil
 	}
+	h := sha256.Sum256([]byte(notice.Message))
+	dismissKey := hex.EncodeToString(h[:])[:16]
 	return &InstanceNoticeBannerTmplInfo{
-		Message: notice.Message,
+		Message:    notice.Message,
+		DismissKey: dismissKey,
 	}
 }
 

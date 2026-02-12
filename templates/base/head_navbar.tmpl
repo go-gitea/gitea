@@ -178,9 +178,12 @@
 </nav>
 {{if and .PageGlobalData .PageGlobalData.InstanceNoticeBanner}}
 		{{$banner := .PageGlobalData.InstanceNoticeBanner}}
-		<div class="ui info attached message tw-m-0 tw-rounded-none">
-			<div class="tw-flex tw-items-center tw-justify-center">
-				<div class="render-content markup tw-text-center">{{ctx.RenderUtils.MarkdownToHtml $banner.Message}}</div>
+		<div id="instance-notice-banner" class="ui info attached message tw-m-0 tw-rounded-none" data-dismiss-key="{{$banner.DismissKey}}">
+			<div class="tw-flex tw-items-center tw-justify-center tw-gap-3">
+				<div class="render-content markup tw-text-center tw-flex-1">{{ctx.RenderUtils.MarkdownToHtml $banner.Message}}</div>
+				<button type="button" class="ui mini icon button instance-notice-dismiss tw-shrink-0" aria-label="{{ctx.Locale.Tr "admin.config.instance_notice.dismiss"}}">
+					{{svg "octicon-x"}}
+				</button>
 			</div>
 		{{if .PageGlobalData.IsSiteAdmin}}
 			<div class="tw-mt-2 tw-text-center">

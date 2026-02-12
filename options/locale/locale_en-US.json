@@ -3299,6 +3299,7 @@
   "admin.config.instance_notice.delete": "Delete banner",
   "admin.config.instance_notice.delete_success": "Instance banner deleted.",
   "admin.config.instance_notice.edit_hint": "Edit this banner",
+  "admin.config.instance_notice.dismiss": "Dismiss",
   "admin.config.session_config": "Session Configuration",
   "admin.config.session_provider": "Session Provider",
   "admin.config.provider_config": "Provider Config",
