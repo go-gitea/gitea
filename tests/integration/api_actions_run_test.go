@@ -43,7 +43,7 @@ func TestAPIActionsGetWorkflowRun(t *testing.T) {
 		MakeRequest(t, req, http.StatusOK)
 	})
 
-	t.Run("APIListWorkflowRunJobsReturnsSteps", func(t *testing.T) {
+	t.Run("GetJobSteps", func(t *testing.T) {
 		// Insert task steps for task_id 53 (job 198) so the API can return them once the backend loads them
 		_, err := db.GetEngine(t.Context()).Insert(&actions_model.ActionTaskStep{
 			Name:    "main",
