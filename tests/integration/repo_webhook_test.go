@@ -1712,9 +1712,9 @@ jobs:
 
 	// 3. validate the webhook is triggered
 	assert.Equal(t, "workflow_run", webhookData.triggeredEvent)
-	// 1x push + 5x workflow_run requested chain
-	assert.Len(t, webhookData.payloads, 6)
-	for i := range 6 {
+	// 1x push + MaxWorkflowRunDepth workflow_run requested chain
+	assert.Len(t, webhookData.payloads, actions.MaxWorkflowRunDepth+1)
+	for i := range actions.MaxWorkflowRunDepth + 1 {
 		assert.Equal(t, "requested", webhookData.payloads[i].Action)
 		assert.Equal(t, "queued", webhookData.payloads[i].WorkflowRun.Status)
 		assert.Equal(t, repo1.DefaultBranch, webhookData.payloads[i].WorkflowRun.HeadBranch)

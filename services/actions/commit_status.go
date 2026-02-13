@@ -121,7 +121,7 @@ func getCommitStatusEventNameAndCommitID(ctx context.Context, run *actions_model
 	case webhook_module.HookEventWorkflowRun:
 		event = "workflow_run"
 		currentRun := run
-		for range 5 {
+		for range MaxWorkflowRunDepth {
 			payload, err := currentRun.GetWorkflowRunEventPayload()
 			if err != nil {
 				return "", "", fmt.Errorf("GetWorkflowRunEventPayload: %w", err)
