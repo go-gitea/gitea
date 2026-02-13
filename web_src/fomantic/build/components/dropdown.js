@@ -98,6 +98,7 @@ $.fn.dropdown = function(parameters) {
         selectObserver,
         menuObserver,
         classObserver,
+        lastText,
         module
       ;
 
@@ -764,6 +765,13 @@ $.fn.dropdown = function(parameters) {
           }
           if(settings.apiSettings) {
             if( module.can.useAPI() ) {
+              if (lastText !== " " && lastText === searchTerm) return;
+              lastText = searchTerm;
+
+              if ($item.filter('div:not(.filtered)').length !== 0) {
+                module.filterItems(searchTerm);
+                return;
+              }
               module.queryRemote(searchTerm, function() {
                 if(settings.filterRemoteData) {
                   module.filterItems(searchTerm);
