@@ -34,7 +34,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 		return
 	}
 
-	event, commitID, err := getCommitStatusEventNameAndCommitID(run)
+	event, commitID, err := getCommitStatusEventNameAndCommitID(ctx, run)
 	if err != nil {
 		log.Error("GetCommitStatusEventNameAndSHA: %v", err)
 	}
@@ -81,7 +81,7 @@ func GetRunsFromCommitStatuses(ctx context.Context, statuses []*git_model.Commit
 	return runs, nil
 }
 
-func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, commitID string, _ error) {
+func getCommitStatusEventNameAndCommitID(ctx context.Context, run *actions_model.ActionRun) (event, commitID string, _ error) {
 	switch run.Event {
 	case webhook_module.HookEventPush:
 		event = "push"
@@ -118,6 +118,28 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 	case webhook_module.HookEventRelease:
 		event = string(run.Event)
 		commitID = run.CommitSHA
+	case webhook_module.HookEventWorkflowRun:
+		event = "workflow_run"
+		currentRun := run
+		for range 5 {
+			payload, err := currentRun.GetWorkflowRunEventPayload()
+			if err != nil {
+				return "", "", fmt.Errorf("GetWorkflowRunEventPayload: %w", err)
+			}
+			if payload.WorkflowRun == nil {
+				return "", "", nil
+			}
+			parentRun, err := actions_model.GetRunByRepoAndID(ctx, currentRun.RepoID, payload.WorkflowRun.ID)
+			if err != nil {
+				return "", "", fmt.Errorf("GetRunByRepoAndID: %w", err)
+			}
+			if parentRun.Event != webhook_module.HookEventWorkflowRun {
+				_, commitID, err = getCommitStatusEventNameAndCommitID(ctx, parentRun)
+				return event, commitID, err
+			}
+			currentRun = parentRun
+		}
+		return "", "", nil
 	default: // do nothing, return empty
 	}
 	return event, commitID, nil
