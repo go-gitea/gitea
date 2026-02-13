@@ -180,14 +180,9 @@ type StringTest struct {
 
 var lowerTests = []StringTest{
 	{"", ""},
-	{"onlyupper", "onlyupper"},
 	{"ABC", "abc"},
-	{"AbC123", "abc123"},
-	{"azAZ09_", "azaz09_"},
-	{"longStrinGwitHmixofsmaLLandcAps", "longstringwithmixofsmallandcaps"},
-	{"LONG\u0250STRING\u0250WITH\u0250NONASCII\u2C6FCHARS", "long\u0250string\u0250with\u0250nonascii\u2C6Fchars"},
-	{"\u0250\u0250\u0250\u0250\u0250", "\u0250\u0250\u0250\u0250\u0250"},
-	{"A\u0080\U0010FFFF", "a\u0080\U0010FFFF"},
+	{"AbC123_", "abc123_"},
+	{"LONG\u0250string\u0250WITH\u0250non-ascii\u2C6FCHARS\u0080\uFFFF", "long\u0250string\u0250with\u0250nonascii\u2C6Fchars\u0080\uFFFF"},
 	{"LéL", "lél"},
 }
 

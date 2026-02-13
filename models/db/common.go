@@ -13,8 +13,12 @@ import (
 )
 
 // BuildCaseInsensitiveLike returns a case-insensitive LIKE condition for the given key and value.
+// Cast the value and the database column value to the same cast to do case-insensitive matching.
+// * For SQLite, only cast ASCII chars because it doesn't handle complete Unicode case folding
+// * For other databases, the assumption is that they are able to handle complete Unicode case folding correctly
 // Handles especially SQLite correctly as LOWER there only transforms ASCII letters.
 // Other databases use LOWER(column) + LOWER(value) for case-insensitive matching.
+// Using lower case makes 7% speed improvement than upper case (by Golang's benchmark)
 func BuildCaseInsensitiveLike(key, value string) builder.Cond {
 	if setting.Database.Type.IsSQLite3() {
 		return builder.Like{"LOWER(" + key + ")", util.ToLowerASCII(value)}
@@ -23,7 +27,7 @@ func BuildCaseInsensitiveLike(key, value string) builder.Cond {
 }
 
 // BuildCaseInsensitiveIn returns a condition to check if the given value is in the given values case-insensitively.
-// Handles especially SQLite correctly as UPPER there only transforms ASCII letters.
+// See BuildCaseInsensitiveLike for more details
 func BuildCaseInsensitiveIn(key string, values []string) builder.Cond {
 	uppers := make([]string, len(values))
 	transform := strings.ToLower
