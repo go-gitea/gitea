@@ -53,6 +53,7 @@ var (
 		DisableDownloadSourceArchives           bool
 		AllowForkWithoutMaximumLimit            bool
 		AllowForkIntoSameOwner                  bool
+		ForgeDirs                               []string `ini:"FORGE_DIRS"`
 
 		// StreamArchives makes Gitea stream git archive files to the client directly instead of creating an archive first.
 		// Ideally all users should use this streaming method. However, at the moment we don't know whether there are
@@ -173,6 +174,7 @@ var (
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
 		AllowForkWithoutMaximumLimit:            true,
+		ForgeDirs:                               []string{".gitea", ".github"},
 		StreamArchives:                          true,
 
 		// Repository editor settings
@@ -312,6 +314,18 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 	} else if err = rootCfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
+
+	validDirs := make([]string, 0, len(Repository.ForgeDirs))
+	for _, dir := range Repository.ForgeDirs {
+		dir = strings.TrimSpace(dir)
+		if dir != "" {
+			validDirs = append(validDirs, dir)
+		}
+	}
+	if len(validDirs) == 0 {
+		log.Fatal("[repository] FORGE_DIRS must contain at least one entry")
+	}
+	Repository.ForgeDirs = validDirs
 
 	if !rootCfg.Section("packages").Key("ENABLED").MustBool(Packages.Enabled) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")

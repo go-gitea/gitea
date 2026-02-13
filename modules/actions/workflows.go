@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
@@ -36,26 +37,43 @@ func init() {
 	}
 }
 
+// getWorkflowPaths returns the configured workflow directory paths (e.g. ".gitea/workflows").
+func getWorkflowPaths() []string {
+	paths := make([]string, len(setting.Repository.ForgeDirs))
+	for i, dir := range setting.Repository.ForgeDirs {
+		paths[i] = dir + "/workflows"
+	}
+	return paths
+}
+
 func IsWorkflow(path string) bool {
 	if (!strings.HasSuffix(path, ".yaml")) && (!strings.HasSuffix(path, ".yml")) {
 		return false
 	}
 
-	return strings.HasPrefix(path, ".gitea/workflows") || strings.HasPrefix(path, ".github/workflows")
+	for _, workflowPath := range getWorkflowPaths() {
+		if strings.HasPrefix(path, workflowPath) {
+			return true
+		}
+	}
+	return false
 }
 
 func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
-	rpath := ".gitea/workflows"
-	tree, err := commit.SubTree(rpath)
-	if _, ok := err.(git.ErrNotExist); ok {
-		rpath = ".github/workflows"
-		tree, err = commit.SubTree(rpath)
+	var tree *git.Tree
+	var err error
+	var workflowPath string
+	for _, workflowPath = range getWorkflowPaths() {
+		tree, err = commit.SubTree(workflowPath)
+		if err == nil {
+			break
+		}
+		if _, ok := err.(git.ErrNotExist); !ok {
+			return "", nil, err
+		}
 	}
-	if _, ok := err.(git.ErrNotExist); ok {
+	if tree == nil {
 		return "", nil, nil
-	}
-	if err != nil {
-		return "", nil, err
 	}
 
 	entries, err := tree.ListEntriesRecursiveFast()
@@ -69,7 +87,7 @@ func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
 			ret = append(ret, entry)
 		}
 	}
-	return rpath, ret, nil
+	return workflowPath, ret, nil
 }
 
 func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {

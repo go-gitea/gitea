@@ -7,11 +7,76 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestIsWorkflow(t *testing.T) {
+	oldDirs := setting.Repository.ForgeDirs
+	defer func() {
+		setting.Repository.ForgeDirs = oldDirs
+	}()
+
+	tests := []struct {
+		name     string
+		dirs     []string
+		path     string
+		expected bool
+	}{
+		{
+			name:     "default with yml extension",
+			dirs:     []string{".gitea", ".github"},
+			path:     ".gitea/workflows/test.yml",
+			expected: true,
+		},
+		{
+			name:     "default with yaml extension",
+			dirs:     []string{".gitea", ".github"},
+			path:     ".github/workflows/test.yaml",
+			expected: true,
+		},
+		{
+			name:     "only gitea configured, github path rejected",
+			dirs:     []string{".gitea"},
+			path:     ".github/workflows/test.yml",
+			expected: false,
+		},
+		{
+			name:     "only github configured, gitea path rejected",
+			dirs:     []string{".github"},
+			path:     ".gitea/workflows/test.yml",
+			expected: false,
+		},
+		{
+			name:     "custom forge dir",
+			dirs:     []string{".custom"},
+			path:     ".custom/workflows/deploy.yml",
+			expected: true,
+		},
+		{
+			name:     "non-workflow file",
+			dirs:     []string{".gitea", ".github"},
+			path:     ".gitea/workflows/readme.md",
+			expected: false,
+		},
+		{
+			name:     "unrelated path",
+			dirs:     []string{".gitea", ".github"},
+			path:     "src/main.go",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setting.Repository.ForgeDirs = tt.dirs
+			assert.Equal(t, tt.expected, IsWorkflow(tt.path))
+		})
+	}
+}
 
 func TestDetectMatched(t *testing.T) {
 	testCases := []struct {
