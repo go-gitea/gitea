@@ -400,3 +400,59 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
 }
+
+func GetCommitPullRequests(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/commits/{sha}/pulls repository repoGetCommitPullRequests
+	// ---
+	// summary: Get the merged pull requests of the commit
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: path
+	//   description: SHA of the commit to get
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullRequestList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	prs, err := issues_model.GetPullRequestsByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.PathParam("sha"))
+	if err != nil {
+		if issues_model.IsErrPullRequestNotExist(err) {
+			ctx.APIError(http.StatusNotFound, err)
+		} else {
+			ctx.APIErrorInternal(err)
+		}
+		return
+	}
+
+	for _, pr := range prs {
+		if err = pr.LoadBaseRepo(ctx); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+		if err = pr.LoadHeadRepo(ctx); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
+	}
+	baseRepo := ctx.Repo.Repository
+	apiPRs, err := convert.ToAPIPullRequests(ctx, baseRepo, prs, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.JSON(http.StatusOK, apiPRs)
+}

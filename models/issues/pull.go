@@ -1002,3 +1002,26 @@ func GetPullRequestByMergedCommit(ctx context.Context, repoID int64, sha string)
 
 	return pr, nil
 }
+
+func GetPullRequestsByMergedCommit(ctx context.Context, repoID int64, sha string) (PullRequestList, error) {
+	prs := PullRequestList{}
+	err := db.GetEngine(ctx).Where("base_repo_id = ? AND merged_commit_id = ?", repoID, sha).Find(&prs)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(prs) == 0 {
+		return nil, ErrPullRequestNotExist{0, 0, 0, repoID, "", ""}
+	}
+
+	for _, pr := range prs {
+		if err := pr.LoadAttributes(ctx); err != nil {
+			return nil, err
+		}
+		if err := pr.LoadIssue(ctx); err != nil {
+			return nil, err
+		}
+	}
+
+	return prs, nil
+}

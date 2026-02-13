@@ -1393,6 +1393,7 @@ func Routes() *web.Router {
 						g.MatchPath("GET", "/<ref:*>/status", repo.GetCombinedCommitStatusByRef)
 						g.MatchPath("GET", "/<ref:*>/statuses", repo.GetCommitStatusesByRef)
 						g.MatchPath("GET", "/<sha>/pull", repo.GetCommitPullRequest)
+						g.MatchPath("GET", "/<sha>/pulls", repo.GetCommitPullRequests)
 					})
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
