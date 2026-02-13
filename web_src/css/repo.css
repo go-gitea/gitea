@@ -2089,7 +2089,6 @@ tbody.commit-list {
   border-radius: var(--border-radius);
   box-shadow: inset 0 -1px 0 var(--color-secondary);
   pointer-events: none;
-  z-index: 1;
 }
 
 /* Override Fomantic UI action input styles for file search - need high specificity */

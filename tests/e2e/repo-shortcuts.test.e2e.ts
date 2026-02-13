@@ -1,6 +1,3 @@
-// Copyright 2026 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
-
 import {test, expect} from '@playwright/test';
 import {login_user, load_logged_in_context} from './utils_e2e.ts';
 
@@ -15,10 +12,9 @@ test.describe('Repository Keyboard Shortcuts', () => {
 
     // Navigate to a repository page with file listing
     await page.goto('/user2/repo1');
-    await page.waitForLoadState('networkidle'); // eslint-disable-line playwright/no-networkidle
 
     // Verify the file search input exists and has the keyboard hint
-    const fileSearchInput = page.locator('.repo-file-search-container input');
+    const fileSearchInput = page.getByPlaceholder('Go to file');
     await expect(fileSearchInput).toBeVisible();
 
     // Verify the keyboard hint is visible
@@ -39,10 +35,9 @@ test.describe('Repository Keyboard Shortcuts', () => {
 
     // Navigate to a repository page
     await page.goto('/user2/repo1');
-    await page.waitForLoadState('networkidle'); // eslint-disable-line playwright/no-networkidle
 
     // Focus on file search first
-    const fileSearchInput = page.locator('.repo-file-search-container input');
+    const fileSearchInput = page.getByPlaceholder('Go to file');
     await fileSearchInput.click();
 
     // Type something including 't'
@@ -59,10 +54,9 @@ test.describe('Repository Keyboard Shortcuts', () => {
 
     // Navigate to repo home page where code search is available
     await page.goto('/user2/repo1');
-    await page.waitForLoadState('networkidle'); // eslint-disable-line playwright/no-networkidle
 
     // The code search input is in the sidebar
-    const codeSearchInput = page.locator('.code-search-input');
+    const codeSearchInput = page.getByPlaceholder('Search code…');
     await expect(codeSearchInput).toBeVisible();
 
     // Verify the keyboard hint is visible
@@ -83,10 +77,9 @@ test.describe('Repository Keyboard Shortcuts', () => {
 
     // Navigate to a repository page
     await page.goto('/user2/repo1');
-    await page.waitForLoadState('networkidle'); // eslint-disable-line playwright/no-networkidle
 
     // Check file search kbd hint
-    const fileSearchInput = page.locator('.repo-file-search-container input');
+    const fileSearchInput = page.getByPlaceholder('Go to file');
     const fileKbdHint = page.locator('.repo-file-search-input-wrapper kbd');
 
     // Initially the hint should be visible
@@ -106,9 +99,8 @@ test.describe('Repository Keyboard Shortcuts', () => {
 
     // Navigate to a repository page
     await page.goto('/user2/repo1');
-    await page.waitForLoadState('networkidle'); // eslint-disable-line playwright/no-networkidle
 
-    const codeSearchInput = page.locator('.code-search-input');
+    const codeSearchInput = page.getByPlaceholder('Search code…');
     await expect(codeSearchInput).toBeVisible();
 
     const codeKbdHint = page.locator('.repo-code-search-input-wrapper .repo-search-shortcut-hint');
@@ -130,9 +122,8 @@ test.describe('Repository Keyboard Shortcuts', () => {
 
     // Navigate to a repository page
     await page.goto('/user2/repo1');
-    await page.waitForLoadState('networkidle'); // eslint-disable-line playwright/no-networkidle
 
-    const fileSearchInput = page.locator('.repo-file-search-container input');
+    const fileSearchInput = page.getByPlaceholder('Go to file');
 
     // Click somewhere else first to ensure nothing is focused
     await page.locator('body').click();
