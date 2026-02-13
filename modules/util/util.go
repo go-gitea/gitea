@@ -101,6 +101,16 @@ func ToUpperASCII(s string) string {
 	return string(b)
 }
 
+func ToLowerASCII(s string) string {
+	b := []byte(s)
+	for i, c := range b {
+		if 'A' <= c && c <= 'Z' {
+			b[i] += 'a' - 'A'
+		}
+	}
+	return string(b)
+}
+
 // ToTitleCase returns s with all english words capitalized
 func ToTitleCase(s string) string {
 	// `cases.Title` is not thread-safe, do not use global shared variable for it

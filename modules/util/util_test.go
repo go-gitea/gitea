@@ -207,6 +207,22 @@ func BenchmarkToUpper(b *testing.B) {
 	}
 }
 
+func TestToLowerASCII(t *testing.T) {
+	for _, tc := range upperTests {
+		assert.Equal(t, ToLowerASCII(tc.out), tc.in)
+	}
+}
+
+func BenchmarkToLower(b *testing.B) {
+	for _, tc := range upperTests {
+		b.Run(tc.in, func(b *testing.B) {
+			for b.Loop() {
+				ToLowerASCII(tc.out)
+			}
+		})
+	}
+}
+
 func TestToTitleCase(t *testing.T) {
 	assert.Equal(t, `Foo Bar Baz`, ToTitleCase(`foo bar baz`))
 	assert.Equal(t, `Foo Bar Baz`, ToTitleCase(`FOO BAR BAZ`))
