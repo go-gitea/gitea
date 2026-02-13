@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -27,12 +28,22 @@ func (repo *Repository) GetTagCommitID(name string) (string, error) {
 
 // GetCommit returns commit object of by ID string.
 func (repo *Repository) GetCommit(commitID string) (*Commit, error) {
+	if commit, ok := repo.commitCache[commitID]; ok {
+		log.Debug("repo commitCache hit: [%s:%s:%s]", repo.Path, commitID)
+		return commit, nil
+	}
+
 	id, err := repo.ConvertToGitID(commitID)
 	if err != nil {
 		return nil, err
 	}
 
-	return repo.getCommit(id)
+	commit, err := repo.getCommit(id)
+	if err != nil {
+		return nil, err
+	}
+	repo.commitCache[commitID] = commit
+	return commit, nil
 }
 
 // GetBranchCommit returns the last commit of given branch.
