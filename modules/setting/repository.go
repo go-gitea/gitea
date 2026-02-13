@@ -315,17 +315,17 @@ func loadRepositoryFrom(rootCfg ConfigProvider) {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
-	validDirs := make([]string, 0, len(Repository.ForgeDirs))
+	forgeDirs := make([]string, 0, len(Repository.ForgeDirs))
 	for _, dir := range Repository.ForgeDirs {
 		dir = strings.TrimSpace(dir)
 		if dir != "" {
-			validDirs = append(validDirs, dir)
+			forgeDirs = append(forgeDirs, dir)
 		}
 	}
-	if len(validDirs) == 0 {
+	if len(forgeDirs) == 0 {
 		log.Fatal("[repository] FORGE_DIRS must contain at least one entry")
 	}
-	Repository.ForgeDirs = validDirs
+	Repository.ForgeDirs = forgeDirs
 
 	if !rootCfg.Section("packages").Key("ENABLED").MustBool(Packages.Enabled) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
