@@ -6,10 +6,8 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -51,10 +49,11 @@ type LicenseEntry struct {
 	LicenseText string `json:"licenseText"`
 }
 
-// getDepModules returns the set of module paths that are actual dependencies
-// (imported by non-test code), excluding tool and test-only transitive deps.
-func getDepModules(goCmd string) map[string]bool {
-	cmd := exec.Command(goCmd, "list", "-deps", "-f", "{{if .Module}}{{.Module.Path}}{{end}}", "./...")
+// getModules returns all dependency modules with their local directory paths
+// using a single go list command.
+func getModules(goCmd string) []ModuleInfo {
+	cmd := exec.Command(goCmd, "list", "-deps", "-f",
+		"{{if .Module}}{{.Module.Path}}\t{{.Module.Dir}}\t{{.Module.Main}}{{end}}", "./...")
 	cmd.Stderr = os.Stderr
 	// Use GOOS=linux with CGO to ensure we capture all platform-specific
 	// dependencies, matching the CI environment.
@@ -65,38 +64,23 @@ func getDepModules(goCmd string) map[string]bool {
 		os.Exit(1)
 	}
 
-	modules := make(map[string]bool)
+	seen := make(map[string]bool)
+	var modules []ModuleInfo
 	for _, line := range strings.Split(string(output), "\n") {
 		line = strings.TrimSpace(line)
-		if line != "" {
-			modules[line] = true
+		if line == "" {
+			continue
 		}
-	}
-	return modules
-}
-
-// getModules returns all modules with their local directory paths from the module cache.
-func getModules(goCmd string) []ModuleInfo {
-	cmd := exec.Command(goCmd, "list", "-m", "-json", "all")
-	cmd.Stderr = os.Stderr
-	output, err := cmd.Output()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to run 'go list -m -json all': %v\n", err)
-		os.Exit(1)
-	}
-
-	var modules []ModuleInfo
-	dec := json.NewDecoder(bytes.NewReader(output))
-	for {
-		var mod ModuleInfo
-		if err := dec.Decode(&mod); err != nil {
-			if err == io.EOF {
-				break
-			}
-			fmt.Fprintf(os.Stderr, "failed to decode module info: %v\n", err)
-			os.Exit(1)
+		parts := strings.Split(line, "\t")
+		if len(parts) != 3 || seen[parts[0]] {
+			continue
 		}
-		modules = append(modules, mod)
+		seen[parts[0]] = true
+		modules = append(modules, ModuleInfo{
+			Path: parts[0],
+			Dir:  parts[1],
+			Main: parts[2] == "true",
+		})
 	}
 	return modules
 }
@@ -160,8 +144,7 @@ func getTrackedFiles(dir string) map[string]bool {
 // findSubdirLicenses walks the main module's directory tree to find license
 // files in subdirectories (not the root), which indicate bundled code with
 // separate copyright attribution.
-func findSubdirLicenses(mod ModuleInfo) []LicenseEntry {
-	trackedFiles := getTrackedFiles(mod.Dir)
+func findSubdirLicenses(mod ModuleInfo, trackedFiles map[string]bool) []LicenseEntry {
 	var entries []LicenseEntry
 	err := filepath.WalkDir(mod.Dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -225,14 +208,14 @@ func main() {
 		goCmd = env
 	}
 
-	// Run the two expensive go list commands in parallel.
-	var depModules map[string]bool
+	// Run git ls-files concurrently with go list.
+	var trackedFiles map[string]bool
 	var modules []ModuleInfo
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		depModules = getDepModules(goCmd)
+		trackedFiles = getTrackedFiles(".")
 	}()
 	go func() {
 		defer wg.Done()
@@ -242,19 +225,10 @@ func main() {
 
 	var entries []LicenseEntry
 	for _, mod := range modules {
-		if mod.Dir == "" {
-			continue
-		}
-
 		if mod.Main {
 			// For the main module, scan subdirectories for license files
 			// that indicate bundled third-party code with separate copyright.
-			entries = append(entries, findSubdirLicenses(mod)...)
-			continue
-		}
-
-		// Skip modules that are not actual dependencies (tool deps, test-only transitive deps).
-		if !depModules[mod.Path] {
+			entries = append(entries, findSubdirLicenses(mod, trackedFiles)...)
 			continue
 		}
 
