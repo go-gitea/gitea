@@ -13,7 +13,7 @@ import (
 )
 
 // BuildCaseInsensitiveLike returns a case-insensitive LIKE condition for the given key and value.
-// Handles especially SQLite correctly as UPPER there only transforms ASCII letters.
+// Handles especially SQLite correctly as LOWER there only transforms ASCII letters.
 // PostgreSQL uses ILIKE for pattern matching.
 // Other databases use LOWER(column) + LOWER(value) for case-insensitive matching.
 func BuildCaseInsensitiveLike(key, value string) builder.Cond {
