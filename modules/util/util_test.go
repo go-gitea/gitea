@@ -182,8 +182,9 @@ var lowerTests = []StringTest{
 	{"", ""},
 	{"ABC", "abc"},
 	{"AbC123_", "abc123_"},
-	{"LONG\u0250string\u0250WITH\u0250non-ascii\u2C6FCHARS\u0080\uFFFF", "long\u0250string\u0250with\u0250nonascii\u2C6Fchars\u0080\uFFFF"},
-	{"LéL", "lél"},
+	{"LONG\u0250string\u0250WITH\u0250non-ascii\u2C6FCHARS\u0080\uFFFF", "long\u0250string\u0250with\u0250non-ascii\u2C6Fchars\u0080\uFFFF"},
+	{"lél", "lél"},
+	{"LÉL", "lÉl"},
 }
 
 func TestToLowerASCII(t *testing.T) {
