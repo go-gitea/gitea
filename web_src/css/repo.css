@@ -1969,10 +1969,6 @@ tbody.commit-list {
   padding-right: 0.5em; /* To match the alignment with the "required" label */
 }
 
-.search-fullname {
-  color: var(--color-text-light-2);
-}
-
 #issue-pins {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

@@ -138,9 +138,9 @@ function initDropdownUserRemoteSearch(el: Element) {
         // the content is provided by backend IssuePosters handler
         processedResults.length = 0;
         for (const item of resp.results) {
-          let nameHtml = html`<img class="ui avatar tw-align-middle" src="${item.avatar_link}" aria-hidden="true" alt width="20" height="20"><span class="gt-ellipsis">`;
-          nameHtml += item.full_name ? html`<span class="search-fullname">${item.full_name}</span>` : html`${item.username}`;
-          nameHtml += html`</span>`;
+          const avatarImg = `<img class="ui avatar tw-align-middle" src="${item.avatar_link}" aria-hidden="true" alt width="20" height="20">`;
+          const fullName = item.full_name ? item.full_name : item.username;
+          const nameHtml = html`${avatarImg}<span class="gt-ellipsis">${fullName}</span>`;
           if (selectedUsername.toLowerCase() === item.username.toLowerCase()) selectedUsername = item.username;
           processedResults.push({value: item.username, name: nameHtml});
         }
