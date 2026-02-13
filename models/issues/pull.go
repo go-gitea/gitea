@@ -1011,7 +1011,7 @@ func GetPullRequestsByMergedCommit(ctx context.Context, repoID int64, sha string
 	}
 
 	if len(prs) == 0 {
-		return nil, ErrPullRequestNotExist{0, 0, 0, repoID, "", ""}
+		return prs, nil
 	}
 
 	for _, pr := range prs {

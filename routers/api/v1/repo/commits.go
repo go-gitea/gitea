@@ -404,7 +404,7 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 func GetCommitPullRequests(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/commits/{sha}/pulls repository repoGetCommitPullRequests
 	// ---
-	// summary: Get the merged pull requests of the commit
+	// summary: Get the pull requests of the commit
 	// produces:
 	// - application/json
 	// parameters:
@@ -426,15 +426,14 @@ func GetCommitPullRequests(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
 	prs, err := issues_model.GetPullRequestsByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.PathParam("sha"))
 	if err != nil {
-		if issues_model.IsErrPullRequestNotExist(err) {
-			ctx.APIError(http.StatusNotFound, err)
-		} else {
-			ctx.APIErrorInternal(err)
-		}
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	if len(prs) == 0 {
+		ctx.JSON(http.StatusOK, []*api.PullRequest{})
 		return
 	}
 
