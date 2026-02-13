@@ -33,10 +33,29 @@ func logVerbose(msg string, args ...any) {
 }
 
 func passThroughCmd(cmd string, args []string) error {
+	// Validate command to prevent code injection - only allow known safe commands
+	allowedCommands := map[string]bool{
+		"gofmt": true,
+		"go":    true,
+	}
+
+	if !allowedCommands[cmd] {
+		log.Fatalf("command not allowed: %s", cmd)
+	}
+
 	foundCmd, err := exec.LookPath(cmd)
 	if err != nil {
 		log.Fatalf("can not find cmd: %s", cmd)
 	}
+
+	// Validate arguments to prevent injection of malicious flags or commands
+	for _, arg := range args {
+		// Prevent arguments that could lead to command execution
+		if strings.Contains(arg, ";") || strings.Contains(arg, "|") || strings.Contains(arg, "&") {
+			log.Fatalf("potentially dangerous argument detected: %s", arg)
+		}
+	}
+
 	c := exec.Cmd{
 		Path:   foundCmd,
 		Args:   append([]string{cmd}, args...),
