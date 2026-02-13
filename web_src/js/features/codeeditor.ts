@@ -38,6 +38,7 @@ const baseOptions: MonacoOpts = {
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6, alwaysConsumeMouseWheel: false},
   scrollBeyondLastLine: false,
   automaticLayout: true,
+  editContext: false, // https://github.com/microsoft/monaco-editor/issues/5081
 };
 
 function getEditorconfig(input: HTMLInputElement): EditorConfig | null {
