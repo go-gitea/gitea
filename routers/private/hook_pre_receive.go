@@ -497,7 +497,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 		// Use the new GetActionsUserRepoPermission to respect token permission settings
 		// Passing 0 as taskID will trigger extraction from ctx.user
 		if taskID == 0 {
-			log.Warn("HookPreReceive: ActionsUser with ID 0, defaulting to permissive")
+			log.Warn("HookPreReceive: ActionsUser with task ID 0, falling back to repository default Actions configuration")
 		}
 
 		userPerm, err := access_model.GetActionsUserRepoPermission(ctx, ctx.Repo.Repository, ctx.user, taskID)
