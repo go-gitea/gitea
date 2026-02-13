@@ -671,6 +671,10 @@ td .commit-summary {
   display: block;
 }
 
+.repository.view.issue .comment-list .event > .badge {
+  align-self: flex-start;
+}
+
 .repository.view.issue .comment-list .event > .avatar-with-link {
   align-self: flex-start;
   height: 32px;
