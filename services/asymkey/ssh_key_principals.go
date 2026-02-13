@@ -14,24 +14,6 @@ import (
 
 // AddPrincipalKey adds new principal to database and authorized_principals file.
 func AddPrincipalKey(ctx context.Context, ownerID int64, content string, authSourceID int64) (*asymkey_model.PublicKey, error) {
-	dbCtx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
-
-	// Principals cannot be duplicated.
-	has, err := db.GetEngine(dbCtx).
-		Where("content = ? AND type = ?", content, asymkey_model.KeyTypePrincipal).
-		Get(new(asymkey_model.PublicKey))
-	if err != nil {
-		return nil, err
-	} else if has {
-		return nil, asymkey_model.ErrKeyAlreadyExist{
-			Content: content,
-		}
-	}
-
 	key := &asymkey_model.PublicKey{
 		OwnerID:       ownerID,
 		Name:          content,
@@ -40,15 +22,27 @@ func AddPrincipalKey(ctx context.Context, ownerID int64, content string, authSou
 		Type:          asymkey_model.KeyTypePrincipal,
 		LoginSourceID: authSourceID,
 	}
-	if err = db.Insert(dbCtx, key); err != nil {
-		return nil, fmt.Errorf("addKey: %w", err)
-	}
 
-	if err = committer.Commit(); err != nil {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
+		// Principals cannot be duplicated.
+		has, err := db.GetEngine(ctx).
+			Where("content = ? AND type = ?", content, asymkey_model.KeyTypePrincipal).
+			Get(new(asymkey_model.PublicKey))
+		if err != nil {
+			return err
+		} else if has {
+			return asymkey_model.ErrKeyAlreadyExist{
+				Content: content,
+			}
+		}
+
+		if err = db.Insert(ctx, key); err != nil {
+			return fmt.Errorf("addKey: %w", err)
+		}
+		return nil
+	}); err != nil {
 		return nil, err
 	}
-
-	committer.Close()
 
 	return key, RewriteAllPrincipalKeys(ctx)
 }

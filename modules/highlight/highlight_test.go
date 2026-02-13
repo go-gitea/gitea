@@ -108,13 +108,19 @@ c=2
 			),
 			lexerName: "Python",
 		},
+		{
+			name:      "test.sql",
+			code:      "--\nSELECT",
+			want:      []template.HTML{"<span class=\"c1\">--\n</span>", `<span class="k">SELECT</span>`},
+			lexerName: "SQL",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out, lexerName, err := File(tt.name, "", []byte(tt.code))
+			out, lexerName, err := RenderFullFile(tt.name, "", []byte(tt.code))
 			assert.NoError(t, err)
-			assert.EqualValues(t, tt.want, out)
+			assert.Equal(t, tt.want, out)
 			assert.Equal(t, tt.lexerName, lexerName)
 		})
 	}
@@ -176,8 +182,26 @@ c=2`),
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			out := PlainText([]byte(tt.code))
-			assert.EqualValues(t, tt.want, out)
+			out := RenderPlainText([]byte(tt.code))
+			assert.Equal(t, tt.want, out)
 		})
 	}
+}
+
+func TestUnsafeSplitHighlightedLines(t *testing.T) {
+	ret := UnsafeSplitHighlightedLines("")
+	assert.Empty(t, ret)
+
+	ret = UnsafeSplitHighlightedLines("a")
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "a", string(ret[0]))
+
+	ret = UnsafeSplitHighlightedLines("\n")
+	assert.Len(t, ret, 1)
+	assert.Equal(t, "\n", string(ret[0]))
+
+	ret = UnsafeSplitHighlightedLines("<span>a</span>\n<span>b\n</span>")
+	assert.Len(t, ret, 2)
+	assert.Equal(t, "<span>a</span>\n", string(ret[0]))
+	assert.Equal(t, "<span>b\n</span>", string(ret[1]))
 }

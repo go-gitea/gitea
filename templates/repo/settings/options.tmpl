@@ -6,11 +6,10 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="update">
 				<div class="required field {{if .Err_RepoName}}error{{end}}">
 					<label>{{ctx.Locale.Tr "repo.repo_name"}}</label>
-					<input name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" autofocus required>
+					<input name="repo_name" value="{{.Repository.Name}}" data-repo-name="{{.Repository.Name}}" required>
 				</div>
 				<div class="inline field">
 					<label>{{ctx.Locale.Tr "repo.repo_size"}}</label>
@@ -38,10 +37,8 @@
 
 			<div class="divider"></div>
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
-				{{.CsrfTokenHtml}}
 				<div class="inline field">
-					<label for="avatar">{{ctx.Locale.Tr "settings.choose_new_avatar"}}</label>
-					<input name="avatar" type="file" accept="image/png,image/jpeg,image/gif,image/webp">
+					{{template "shared/avatar_upload_crop" dict "LabelText" (ctx.Locale.Tr "settings.choose_new_avatar")}}
 				</div>
 				<div class="field">
 					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_avatar"}}</button>
@@ -73,18 +70,18 @@
 				{{else}}
 					{{if $newMirrorsEntirelyEnabled}}
 						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs"}}
-						<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pushing-to-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+						<a target="_blank" href="https://docs.gitea.com/usage/repo-mirror#pushing-to-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
 						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.pull_mirror_instructions"}}
-						<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_pull_section"}}</a><br>
+						<a target="_blank" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_pull_section"}}</a><br>
 					{{else if $onlyNewPushMirrorsEnabled}}
 						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_pull_mirror.instructions"}}
 						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
-						<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
+						<a target="_blank" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br>
 					{{else if $onlyNewPullMirrorsEnabled}}
 						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.instructions"}}
 						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.pull_mirror_warning"}}
 						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.more_information_if_disabled"}}
-						<a target="_blank" rel="noopener noreferrer" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
+						<a target="_blank" href="https://docs.gitea.com/usage/repo-mirror#pulling-from-a-remote-repository">{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.doc_link_title"}}</a><br><br>
 						{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.disabled_push_mirror.info"}}
 						{{if $existingPushMirror}}
 							{{ctx.Locale.Tr "repo.settings.mirror_settings.docs.can_still_use"}}
@@ -118,9 +115,8 @@
 								<td>{{.PullMirror.RemoteAddress}}</td>
 								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 								<td>{{DateUtils.FullTime .PullMirror.UpdatedUnix}}</td>
-								<td class="right aligned">
+								<td class="tw-text-right">
 									<form method="post" class="tw-inline-block">
-										{{.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="mirror-sync">
 										<button class="ui primary tiny button inline">{{ctx.Locale.Tr "repo.settings.sync_mirror"}}</button>
 									</form>
@@ -130,7 +126,6 @@
 								<td colspan="4">
 									<form class="ui form" method="post">
 										{{template "base/disable_form_autofill"}}
-										{{.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="mirror">
 										<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
 											<label>{{ctx.Locale.Tr "repo.mirror_prune"}}</label>
@@ -204,9 +199,18 @@
 							{{range .PushMirrors}}
 							<tr>
 								<td class="tw-break-anywhere">{{.RemoteAddress}}</td>
-								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-								<td>{{if .LastUpdateUnix}}{{DateUtils.FullTime .LastUpdateUnix}}{{else}}{{ctx.Locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error"}}</div>{{end}}</td>
-								<td class="right aligned">
+								<td>{{ctx.Locale.Tr "repo.settings.mirror_settings.direction.push"}} ({{.Interval}})</td>
+								<td>
+									<span class="flex-text-block">
+										{{if .LastUpdateUnix}}
+											{{DateUtils.FullTime .LastUpdateUnix}}
+										{{else}}
+											{{ctx.Locale.Tr "never"}}
+										{{end}}
+										{{if .LastError}}<span class="ui red label" data-tooltip-content="{{.LastError}}">{{ctx.Locale.Tr "error_title"}}</span>{{end}}
+									</span>
+								</td>
+								<td class="tw-text-right">
 									<button
 										class="ui tiny button show-modal"
 										data-modal="#push-mirror-edit-modal"
@@ -218,13 +222,11 @@
 										{{svg "octicon-pencil" 14}}
 									</button>
 									<form method="post" class="tw-inline-block">
-										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="push-mirror-sync">
 										<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 										<button class="ui primary tiny button" data-tooltip-content="{{ctx.Locale.Tr "repo.settings.sync_mirror"}}">{{svg "octicon-sync" 14}}</button>
 									</form>
 									<form method="post" class="tw-inline-block">
-										{{$.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="push-mirror-remove">
 										<input type="hidden" name="push_mirror_id" value="{{.ID}}">
 										<button class="ui basic red tiny button" data-tooltip-content="{{ctx.Locale.Tr "remove"}}">{{svg "octicon-trash" 14}}</button>
@@ -241,7 +243,6 @@
 									<td colspan="4">
 										<form class="ui form" method="post">
 											{{template "base/disable_form_autofill"}}
-											{{.CsrfTokenHtml}}
 											<input type="hidden" name="action" value="push-mirror-add">
 											<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
 												<label for="push_mirror_address">{{ctx.Locale.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
@@ -286,12 +287,12 @@
 			</div>
 		{{end}}
 
+		{{/* FIXME: need to split the "Advance Settings" by units, there are too many options here */}}
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "repo.settings.advanced_settings"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" method="post">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="advanced">
 
 				{{$isCodeEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeCode}}
@@ -328,16 +329,6 @@
 						<div class="inline field">
 							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_branch_name"}}</label>
 							<input name="default_wiki_branch" value="{{.Repository.DefaultWikiBranch}}">
-						</div>
-						<div class="inline field">
-							{{$unitInternalWiki := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeWiki}}
-							<label>{{ctx.Locale.Tr "repo.settings.default_wiki_everyone_access"}}</label>
-							<select name="default_wiki_everyone_access" class="ui selection dropdown">
-								{{/* everyone access mode is different from others, none means it is unset and won't be applied */}}
-								<option value="none" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 0) "selected"}}>{{ctx.Locale.Tr "settings.permission_not_set"}}</option>
-								<option value="read" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 1) "selected"}}>{{ctx.Locale.Tr "settings.permission_read"}}</option>
-								<option value="write" {{Iif (eq $unitInternalWiki.EveryoneAccessMode 2) "selected"}}>{{ctx.Locale.Tr "settings.permission_write"}}</option>
-							</select>
 						</div>
 					</div>
 					<div class="field">
@@ -511,18 +502,6 @@
 					</div>
 				</div>
 
-				{{if .EnableActions}}
-					{{$isActionsEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypeActions}}
-					{{$isActionsGlobalDisabled := ctx.Consts.RepoUnitTypeActions.UnitGlobalDisabled}}
-					<div class="inline field">
-						<label>{{ctx.Locale.Tr "actions.actions"}}</label>
-							<div class="ui checkbox{{if $isActionsGlobalDisabled}} disabled{{end}}"{{if $isActionsGlobalDisabled}} data-tooltip-content="{{ctx.Locale.Tr "repo.unit_disabled"}}"{{end}}>
-							<input class="enable-system" name="enable_actions" type="checkbox" {{if $isActionsEnabled}}checked{{end}}>
-							<label>{{ctx.Locale.Tr "repo.settings.actions_desc"}}</label>
-						</div>
-					</div>
-				{{end}}
-
 				{{if not .IsMirror}}
 					<div class="divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled ctx ctx.Consts.RepoUnitTypePullRequests}}
@@ -617,6 +596,20 @@
 							</div>
 						</div>
 						<div class="field">
+							<label>{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch"}}</label>
+							<div class="ui search selection dropdown">
+								<input type="hidden" name="default_target_branch" value="{{$prUnit.PullRequestsConfig.DefaultTargetBranch}}">
+								<div class="default text"></div>
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+								<div class="menu">
+									<div class="item" data-value="">{{ctx.Locale.Tr "repo.settings.pulls.default_target_branch_default" $.Repository.DefaultBranch}}</div>
+									{{range $branchName := $.Branches}}
+										<div class="item" data-value="{{$branchName}}">{{$branchName}}</div>
+									{{end}}
+								</div>
+							</div>
+						</div>
+						<div class="field">
 							<div class="ui checkbox">
 								<input name="default_allow_maintainer_edit" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.DefaultAllowMaintainerEdit)}}checked{{end}}>
 								<label>{{ctx.Locale.Tr "repo.settings.pulls.default_allow_edits_from_maintainers"}}</label>
@@ -661,7 +654,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" method="post">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="signing">
 				<div class="field">
 					<label>{{ctx.Locale.Tr "repo.settings.trust_model"}}</label><br>
@@ -708,7 +700,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" method="post">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="admin">
 				<div class="field">
 					<div class="ui checkbox">
@@ -724,7 +715,6 @@
 
 			<div class="divider"></div>
 			<form class="ui form" method="post">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="admin_index">
 				{{if .IsRepoIndexerEnabled}}
 					<h4 class="ui header">{{ctx.Locale.Tr "repo.settings.admin_code_indexer"}}</h4>
@@ -733,7 +723,7 @@
 						<span class="field">
 							{{if .CodeIndexerStatus}}
 								<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.CodeIndexerStatus.CommitSha}}">
-									<span class="shortsha">{{ShortSha .CodeIndexerStatus.CommitSha}}</span>
+									{{ShortSha .CodeIndexerStatus.CommitSha}}
 								</a>
 							{{else}}
 									<span>{{ctx.Locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>
@@ -752,7 +742,7 @@
 					<span class="field">
 						{{if and .StatsIndexerStatus .StatsIndexerStatus.CommitSha}}
 							<a rel="nofollow" class="ui sha label" href="{{.RepoLink}}/commit/{{.StatsIndexerStatus.CommitSha}}">
-								<span class="shortsha">{{ShortSha .StatsIndexerStatus.CommitSha}}</span>
+								{{ShortSha .StatsIndexerStatus.CommitSha}}
 							</a>
 						{{else}}
 							<span>{{ctx.Locale.Tr "repo.settings.admin_indexer_unindexed"}}</span>
@@ -804,7 +794,7 @@
 						</div>
 					</div>
 				{{end}}
-				{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
+				{{if .CanConvertFork}}
 					<div class="flex-item">
 						<div class="flex-item-main">
 							<div class="flex-item-title">{{ctx.Locale.Tr "repo.settings.convert_fork"}}</div>
@@ -829,7 +819,6 @@
 					<div class="flex-item-trailing">
 						{{if .RepoTransfer}}
 							<form class="ui form" action="{{.Link}}" method="post">
-								{{.CsrfTokenHtml}}
 								<input type="hidden" name="action" value="cancel_transfer">
 								<button class="ui red button">{{ctx.Locale.Tr "repo.settings.transfer_abort"}}</button>
 							</form>
@@ -897,7 +886,6 @@
 					{{ctx.Locale.Tr "repo.settings.convert_notices_1"}}
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
-					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="convert">
 					<div class="field">
 						<label>
@@ -910,7 +898,7 @@
 						<input name="repo_name" required maxlength="100">
 					</div>
 
-					<div class="text right actions">
+					<div class="actions">
 						<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 						<button class="ui red button">{{ctx.Locale.Tr "repo.settings.convert_confirm"}}</button>
 					</div>
@@ -918,7 +906,7 @@
 			</div>
 		</div>
 	{{end}}
-	{{if and .Repository.IsFork .Repository.Owner.CanCreateRepo}}
+	{{if .CanConvertFork}}
 		<div class="ui small modal" id="convert-fork-repo-modal">
 			<div class="header">
 				{{ctx.Locale.Tr "repo.settings.convert_fork"}}
@@ -928,7 +916,6 @@
 					{{ctx.Locale.Tr "repo.settings.convert_fork_notices_1"}}
 				</div>
 				<form class="ui form" action="{{.Link}}" method="post">
-					{{.CsrfTokenHtml}}
 					<input type="hidden" name="action" value="convert_fork">
 					<div class="field">
 						<label>
@@ -941,7 +928,7 @@
 						<input name="repo_name" required>
 					</div>
 
-					<div class="text right actions">
+					<div class="actions">
 						<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 						<button class="ui red button">{{ctx.Locale.Tr "repo.settings.convert_fork_confirm"}}</button>
 					</div>
@@ -961,7 +948,6 @@
 				{{ctx.Locale.Tr "repo.settings.transfer_notices_4"}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="transfer">
 				<div class="field">
 					<label>
@@ -978,7 +964,7 @@
 					<input id="new_owner_name" name="new_owner_name" required>
 				</div>
 
-				<div class="text right actions">
+				<div class="actions">
 					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.transfer_perform"}}</button>
 				</div>
@@ -999,7 +985,6 @@
 				{{end}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="delete">
 				<div class="field">
 					<label>
@@ -1012,7 +997,7 @@
 					<input id="repo_name_to_delete" name="repo_name" required>
 				</div>
 
-				<div class="text right actions">
+				<div class="actions">
 					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.confirm_delete"}}</button>
 				</div>
@@ -1040,7 +1025,6 @@
 					{{end}}
 			</div>
 			<form action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="visibility">
 				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
 				{{template "base/modal_actions_confirm" .}}
@@ -1059,7 +1043,6 @@
 				{{ctx.Locale.Tr "repo.settings.wiki_delete_notices_1" .Repository.Name}}
 			</div>
 			<form class="ui form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="delete-wiki">
 				<div class="field">
 					<label>
@@ -1072,7 +1055,7 @@
 					<input name="repo_name" required>
 				</div>
 
-				<div class="text right actions">
+				<div class="actions">
 					<button class="ui cancel button">{{ctx.Locale.Tr "settings.cancel"}}</button>
 					<button class="ui red button">{{ctx.Locale.Tr "repo.settings.confirm_wiki_delete"}}</button>
 				</div>
@@ -1100,7 +1083,6 @@
 				</p>
 			</div>
 			<form action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="{{if .Repository.IsArchived}}unarchive{{else}}archive{{end}}">
 				<input type="hidden" name="repo_id" value="{{.Repository.ID}}">
 				{{template "base/modal_actions_confirm" .}}

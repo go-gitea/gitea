@@ -30,7 +30,7 @@ func (dc dingtalkConvertor) Create(p *api.CreatePayload) (DingtalkPayload, error
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
-	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
+	return createDingtalkPayload(title, title, "view ref "+refName, p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
 }
 
 // Delete implements PayloadConvertor Delete method
@@ -39,14 +39,14 @@ func (dc dingtalkConvertor) Delete(p *api.DeletePayload) (DingtalkPayload, error
 	refName := git.RefName(p.Ref).ShortName()
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
-	return createDingtalkPayload(title, title, fmt.Sprintf("view ref %s", refName), p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
+	return createDingtalkPayload(title, title, "view ref "+refName, p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName)), nil
 }
 
 // Fork implements PayloadConvertor Fork method
 func (dc dingtalkConvertor) Fork(p *api.ForkPayload) (DingtalkPayload, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
-	return createDingtalkPayload(title, title, fmt.Sprintf("view forked repo %s", p.Repo.FullName), p.Repo.HTMLURL), nil
+	return createDingtalkPayload(title, title, "view forked repo "+p.Repo.FullName, p.Repo.HTMLURL), nil
 }
 
 // Push implements PayloadConvertor Push method
@@ -72,22 +72,22 @@ func (dc dingtalkConvertor) Push(p *api.PushPayload) (DingtalkPayload, error) {
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
 
-	var text string
+	var text strings.Builder
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
 		var authorName string
 		if commit.Author != nil {
 			authorName = " - " + commit.Author.Name
 		}
-		text += fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n")) + authorName
+		text.WriteString(fmt.Sprintf("[%s](%s) %s", commit.ID[:7], commit.URL,
+			strings.TrimRight(commit.Message, "\r\n")) + authorName)
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\r\n"
+			text.WriteString("\r\n")
 		}
 	}
 
-	return createDingtalkPayload(title, text, linkText, titleLink), nil
+	return createDingtalkPayload(title, text.String(), linkText, titleLink), nil
 }
 
 // Issue implements PayloadConvertor Issue method
@@ -170,6 +170,24 @@ func (dc dingtalkConvertor) Package(p *api.PackagePayload) (DingtalkPayload, err
 	return createDingtalkPayload(text, text, "view package", p.Package.HTMLURL), nil
 }
 
+func (dc dingtalkConvertor) Status(p *api.CommitStatusPayload) (DingtalkPayload, error) {
+	text, _ := getStatusPayloadInfo(p, noneLinkFormatter, true)
+
+	return createDingtalkPayload(text, text, "Status Changed", p.TargetURL), nil
+}
+
+func (dingtalkConvertor) WorkflowRun(p *api.WorkflowRunPayload) (DingtalkPayload, error) {
+	text, _ := getWorkflowRunPayloadInfo(p, noneLinkFormatter, true)
+
+	return createDingtalkPayload(text, text, "Workflow Run", p.WorkflowRun.HTMLURL), nil
+}
+
+func (dingtalkConvertor) WorkflowJob(p *api.WorkflowJobPayload) (DingtalkPayload, error) {
+	text, _ := getWorkflowJobPayloadInfo(p, noneLinkFormatter, true)
+
+	return createDingtalkPayload(text, text, "Workflow Job", p.WorkflowJob.HTMLURL), nil
+}
+
 func createDingtalkPayload(title, text, singleTitle, singleURL string) DingtalkPayload {
 	return DingtalkPayload{
 		MsgType: "actionCard",
@@ -189,4 +207,8 @@ func createDingtalkPayload(title, text, singleTitle, singleURL string) DingtalkP
 func newDingtalkRequest(_ context.Context, w *webhook_model.Webhook, t *webhook_model.HookTask) (*http.Request, []byte, error) {
 	var pc payloadConvertor[DingtalkPayload] = dingtalkConvertor{}
 	return newJSONRequest(pc, w, t, true)
+}
+
+func init() {
+	RegisterWebhookRequester(webhook_module.DINGTALK, newDingtalkRequest)
 }

@@ -6,16 +6,52 @@ package markup
 import (
 	"context"
 	"html/template"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
-// ProcessorHelper is a helper for the rendering processors (it could be renamed to RenderHelper in the future).
-// The main purpose of this helper is to decouple some functions which are not directly available in this package.
-type ProcessorHelper struct {
-	IsUsernameMentionable func(ctx context.Context, username string) bool
+const (
+	LinkTypeDefault = ""
+	LinkTypeRoot    = "/:root"  // the link is relative to the AppSubURL(ROOT_URL)
+	LinkTypeMedia   = "/:media" // the link should be used to access media files (images, videos)
+	LinkTypeRaw     = "/:raw"   // not really useful, mainly for environment GITEA_PREFIX_RAW for external renders
+)
 
-	ElementDir string // the direction of the elements, eg: "ltr", "rtl", "auto", default to no direction attribute
+type RenderHelper interface {
+	CleanUp()
 
-	RenderRepoFileCodePreview func(ctx context.Context, options RenderCodePreviewOptions) (template.HTML, error)
+	// TODO: such dependency is not ideal. We should decouple the processors step by step.
+	// It should make the render choose different processors for different purposes,
+	// but not make processors to guess "is it rendering a comment or a wiki?" or "does it need to check commit ID?"
+
+	IsCommitIDExisting(commitID string) bool
+	ResolveLink(link, preferLinkType string) string
 }
 
-var DefaultProcessorHelper ProcessorHelper
+// RenderHelperFuncs is used to decouple cycle-import
+// At the moment there are different packages:
+// modules/markup: basic markup rendering
+// models/renderhelper: need to access models and git repo, and models/issues needs it
+// services/markup: some real helper functions could only be provided here because it needs to access various services & templates
+type RenderHelperFuncs struct {
+	IsUsernameMentionable     func(ctx context.Context, username string) bool
+	RenderRepoFileCodePreview func(ctx context.Context, options RenderCodePreviewOptions) (template.HTML, error)
+	RenderRepoIssueIconTitle  func(ctx context.Context, options RenderIssueIconTitleOptions) (template.HTML, error)
+}
+
+var DefaultRenderHelperFuncs *RenderHelperFuncs
+
+type SimpleRenderHelper struct{}
+
+func (r *SimpleRenderHelper) CleanUp() {}
+
+func (r *SimpleRenderHelper) IsCommitIDExisting(commitID string) bool {
+	return false
+}
+
+func (r *SimpleRenderHelper) ResolveLink(link, preferLinkType string) string {
+	_, link = ParseRenderedLink(link, preferLinkType)
+	return resolveLinkRelative(context.Background(), setting.AppSubURL+"/", "", link, false)
+}
+
+var _ RenderHelper = (*SimpleRenderHelper)(nil)

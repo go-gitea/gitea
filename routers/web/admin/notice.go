@@ -10,14 +10,14 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	system_model "code.gitea.io/gitea/models/system"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
-	tplNotices base.TplName = "admin/notice"
+	tplNotices templates.TplName = "admin/notice"
 )
 
 // Notices show notices for admin
@@ -26,10 +26,7 @@ func Notices(ctx *context.Context) {
 	ctx.Data["PageIsAdminNotices"] = true
 
 	total := system_model.CountNotices(ctx)
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	notices, err := system_model.Notices(ctx, page, setting.UI.Admin.NoticePagingNum)
 	if err != nil {

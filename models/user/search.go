@@ -6,6 +6,7 @@ package user
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -17,12 +18,29 @@ import (
 	"xorm.io/xorm"
 )
 
+// AdminUserOrderByMap represents all possible admin user search orders
+// This should only be used for admin API endpoints as we should not expose "updated" ordering which could expose recent user activity including logins.
+var AdminUserOrderByMap = map[string]map[string]db.SearchOrderBy{
+	"asc": {
+		"name":    db.SearchOrderByAlphabetically,
+		"created": db.SearchOrderByOldest,
+		"updated": db.SearchOrderByLeastUpdated,
+		"id":      db.SearchOrderByID,
+	},
+	"desc": {
+		"name":    db.SearchOrderByAlphabeticallyReverse,
+		"created": db.SearchOrderByNewest,
+		"updated": db.SearchOrderByRecentUpdated,
+		"id":      db.SearchOrderByIDReverse,
+	},
+}
+
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
 	db.ListOptions
 
 	Keyword       string
-	Type          UserType
+	Types         []UserType
 	UID           int64
 	LoginName     string // this option should be used only for admin user
 	SourceID      int64  // this option should be used only for admin user
@@ -39,21 +57,20 @@ type SearchUserOptions struct {
 	IsTwoFactorEnabled optional.Option[bool]
 	IsProhibitLogin    optional.Option[bool]
 	IncludeReserved    bool
-
-	ExtraParamStrings map[string]string
 }
 
 func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Session {
 	var cond builder.Cond
-	cond = builder.Eq{"type": opts.Type}
+	cond = builder.In("type", opts.Types)
 	if opts.IncludeReserved {
-		if opts.Type == UserTypeIndividual {
+		switch {
+		case slices.Contains(opts.Types, UserTypeIndividual):
 			cond = cond.Or(builder.Eq{"type": UserTypeUserReserved}).Or(
 				builder.Eq{"type": UserTypeBot},
 			).Or(
 				builder.Eq{"type": UserTypeRemoteUser},
 			)
-		} else if opts.Type == UserTypeOrganization {
+		case slices.Contains(opts.Types, UserTypeOrganization):
 			cond = cond.Or(builder.Eq{"type": UserTypeOrganizationReserved})
 		}
 	}
@@ -138,7 +155,7 @@ func (opts *SearchUserOptions) toSearchQueryBase(ctx context.Context) *xorm.Sess
 
 // SearchUsers takes options i.e. keyword and part of user name to search,
 // it returns results in given range and number of total results.
-func SearchUsers(ctx context.Context, opts *SearchUserOptions) (users []*User, _ int64, _ error) {
+func SearchUsers(ctx context.Context, opts SearchUserOptions) (users []*User, _ int64, _ error) {
 	sessCount := opts.toSearchQueryBase(ctx)
 	defer sessCount.Close()
 	count, err := sessCount.Count(new(User))
@@ -152,8 +169,8 @@ func SearchUsers(ctx context.Context, opts *SearchUserOptions) (users []*User, _
 
 	sessQuery := opts.toSearchQueryBase(ctx).OrderBy(opts.OrderBy.String())
 	defer sessQuery.Close()
-	if opts.Page != 0 {
-		sessQuery = db.SetSessionPagination(sessQuery, opts)
+	if opts.Page > 0 {
+		sessQuery = db.SetSessionPagination(sessQuery, &opts)
 	}
 
 	// the sql may contain JOIN, so we must only select User related columns

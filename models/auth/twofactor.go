@@ -111,11 +111,11 @@ func (t *TwoFactor) SetSecret(secretString string) error {
 func (t *TwoFactor) ValidateTOTP(passcode string) (bool, error) {
 	decodedStoredSecret, err := base64.StdEncoding.DecodeString(t.Secret)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("ValidateTOTP invalid base64: %w", err)
 	}
 	secretBytes, err := secret.AesDecrypt(t.getEncryptionKey(), decodedStoredSecret)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("ValidateTOTP unable to decrypt (maybe SECRET_KEY is wrong): %w", err)
 	}
 	secretStr := string(secretBytes)
 	return totp.Validate(passcode, secretStr), nil
@@ -163,4 +163,14 @@ func DeleteTwoFactorByID(ctx context.Context, id, userID int64) error {
 		return ErrTwoFactorNotEnrolled{userID}
 	}
 	return nil
+}
+
+func HasTwoFactorOrWebAuthn(ctx context.Context, id int64) (bool, error) {
+	has, err := HasTwoFactorByUID(ctx, id)
+	if err != nil {
+		return false, err
+	} else if has {
+		return true, nil
+	}
+	return HasWebAuthnRegistrationsByUID(ctx, id)
 }

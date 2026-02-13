@@ -5,6 +5,7 @@ package markup
 
 import (
 	"strings"
+	"unicode"
 
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/setting"
@@ -13,15 +14,13 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-func createEmoji(content, class, name string) *html.Node {
+func createEmoji(ctx *RenderContext, content, name string) *html.Node {
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
-	if class != "" {
-		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
-	}
+	span.Attr = append(span.Attr, ctx.RenderInternal.NodeSafeAttr("class", "emoji"))
 	if name != "" {
 		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: name})
 	}
@@ -35,13 +34,13 @@ func createEmoji(content, class, name string) *html.Node {
 	return span
 }
 
-func createCustomEmoji(alias string) *html.Node {
+func createCustomEmoji(ctx *RenderContext, alias string) *html.Node {
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
-	span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: "emoji"})
+	span.Attr = append(span.Attr, ctx.RenderInternal.NodeSafeAttr("class", "emoji"))
 	span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
 
 	img := &html.Node{
@@ -62,32 +61,37 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 	start := 0
 	next := node.NextSibling
 	for node != nil && node != next && start < len(node.Data) {
-		m := emojiShortCodeRegex.FindStringSubmatchIndex(node.Data[start:])
+		m := globalVars().emojiShortCodeRegex.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
 			return
 		}
 		m[0] += start
 		m[1] += start
-
 		start = m[1]
 
 		alias := node.Data[m[0]:m[1]]
-		alias = strings.ReplaceAll(alias, ":", "")
-		converted := emoji.FromAlias(alias)
-		if converted == nil {
-			// check if this is a custom reaction
-			if _, exist := setting.UI.CustomEmojisMap[alias]; exist {
-				replaceContent(node, m[0], m[1], createCustomEmoji(alias))
-				node = node.NextSibling.NextSibling
-				start = 0
-				continue
-			}
+
+		var nextChar byte
+		if m[1] < len(node.Data) {
+			nextChar = node.Data[m[1]]
+		}
+		if nextChar == ':' || unicode.IsLetter(rune(nextChar)) || unicode.IsDigit(rune(nextChar)) {
 			continue
 		}
 
-		replaceContent(node, m[0], m[1], createEmoji(converted.Emoji, "emoji", converted.Description))
-		node = node.NextSibling.NextSibling
-		start = 0
+		alias = strings.Trim(alias, ":")
+		converted := emoji.FromAlias(alias)
+		if converted != nil {
+			// standard emoji
+			replaceContent(node, m[0], m[1], createEmoji(ctx, converted.Emoji, converted.Description))
+			node = node.NextSibling.NextSibling
+			start = 0 // restart searching start since node has changed
+		} else if _, exist := setting.UI.CustomEmojisMap[alias]; exist {
+			// custom reaction
+			replaceContent(node, m[0], m[1], createCustomEmoji(ctx, alias))
+			node = node.NextSibling.NextSibling
+			start = 0 // restart searching start since node has changed
+		}
 	}
 }
 
@@ -107,7 +111,7 @@ func emojiProcessor(ctx *RenderContext, node *html.Node) {
 		start = m[1]
 		val := emoji.FromCode(codepoint)
 		if val != nil {
-			replaceContent(node, m[0], m[1], createEmoji(codepoint, "emoji", val.Description))
+			replaceContent(node, m[0], m[1], createEmoji(ctx, codepoint, val.Description))
 			node = node.NextSibling.NextSibling
 			start = 0
 		}

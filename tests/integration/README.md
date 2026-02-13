@@ -60,7 +60,7 @@ docker run -e "POSTGRES_DB=test" -e "POSTGRES_USER=postgres" -e "POSTGRES_PASSWO
 ```
 Setup minio inside docker
 ```
-docker run --rm -p 9000:9000 -e MINIO_ROOT_USER=123456 -e MINIO_ROOT_PASSWORD=12345678 --name minio bitnami/minio:2023.8.31
+docker run --rm -p 9000:9000 -e MINIO_ROOT_USER=123456 -e MINIO_ROOT_PASSWORD=12345678 --name minio bitnamilegacy/minio:2023.8.31
 ```
 Start tests based on the database container
 ```
@@ -99,18 +99,8 @@ We appreciate that some testing machines may not be very powerful and
 the default timeouts for declaring a slow test or a slow clean-up flush
 may not be appropriate.
 
-You can either:
-
-* Within the test ini file set the following section:
-
-```ini
-[integration-tests]
-SLOW_TEST = 10s ; 10s is the default value
-SLOW_FLUSH = 5S ; 5s is the default value
-```
-
-* Set the following environment variables:
+You can set the following environment variables:
 
 ```bash
-GITEA_SLOW_TEST_TIME="10s" GITEA_SLOW_FLUSH_TIME="5s" make test-sqlite
+GITEA_TEST_SLOW_RUN="10s" GITEA_TEST_SLOW_FLUSH="1s" make test-sqlite
 ```

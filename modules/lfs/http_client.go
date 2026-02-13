@@ -70,9 +70,16 @@ func (c *HTTPClient) transferNames() []string {
 func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Pointer) (*BatchResponse, error) {
 	log.Trace("BATCH operation with objects: %v", objects)
 
-	url := fmt.Sprintf("%s/objects/batch", c.endpoint)
+	url := c.endpoint + "/objects/batch"
 
+	// Original:  In some lfs server implementations, they require the ref attribute. #32838
+	// `ref` is an "optional object describing the server ref that the objects belong to"
+	// but some (incorrect) lfs servers like aliyun require it, so maybe adding an empty ref here doesn't break the correct ones.
+	// https://github.com/git-lfs/git-lfs/blob/a32a02b44bf8a511aa14f047627c49e1a7fd5021/docs/api/batch.md?plain=1#L37
+	//
+	// UPDATE: it can't use "empty ref" here because it breaks others like https://github.com/go-gitea/gitea/issues/33453
 	request := &BatchRequest{operation, c.transferNames(), nil, objects}
+
 	payload := new(bytes.Buffer)
 	err := json.NewEncoder(payload).Encode(request)
 	if err != nil {
@@ -236,6 +243,7 @@ func createRequest(ctx context.Context, method, url string, headers map[string]s
 		req.Header.Set(key, value)
 	}
 	req.Header.Set("Accept", AcceptHeader)
+	req.Header.Set("User-Agent", UserAgentHeader)
 
 	return req, nil
 }

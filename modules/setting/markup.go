@@ -6,8 +6,10 @@ package setting
 import (
 	"regexp"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ExternalMarkupRenderers represents the external markup renderers
@@ -23,30 +25,44 @@ const (
 	RenderContentModeIframe      = "iframe"
 )
 
+type MarkdownRenderOptions struct {
+	NewLineHardBreak  bool
+	ShortIssuePattern bool // Actually it is a "markup" option because it is used in "post processor"
+}
+
+type MarkdownMathCodeBlockOptions struct {
+	ParseInlineDollar        bool
+	ParseInlineParentheses   bool
+	ParseBlockDollar         bool
+	ParseBlockSquareBrackets bool
+}
+
 // Markdown settings
 var Markdown = struct {
-	EnableHardLineBreakInComments  bool
-	EnableHardLineBreakInDocuments bool
-	CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
-	FileExtensions                 []string
-	EnableMath                     bool
+	RenderOptionsComment  MarkdownRenderOptions `ini:"-"`
+	RenderOptionsWiki     MarkdownRenderOptions `ini:"-"`
+	RenderOptionsRepoFile MarkdownRenderOptions `ini:"-"`
+
+	CustomURLSchemes []string `ini:"CUSTOM_URL_SCHEMES"` // Actually it is a "markup" option because it is used in "post processor"
+	FileNamePatterns []string `ini:"-"`
+
+	EnableMath             bool
+	MathCodeBlockDetection []string
+	MathCodeBlockOptions   MarkdownMathCodeBlockOptions `ini:"-"`
 }{
-	EnableHardLineBreakInComments:  true,
-	EnableHardLineBreakInDocuments: false,
-	FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd,.livemd", ","),
-	EnableMath:                     true,
+	EnableMath: true,
 }
 
 // MarkupRenderer defines the external parser configured in ini
 type MarkupRenderer struct {
-	Enabled              bool
 	MarkupName           string
 	Command              string
-	FileExtensions       []string
+	FilePatterns         []string
 	IsInputFile          bool
 	NeedPostProcess      bool
 	MarkupSanitizerRules []MarkupSanitizerRule
 	RenderContentMode    string
+	RenderContentSandbox string
 }
 
 // MarkupSanitizerRule defines the policy for whitelisting attributes on
@@ -54,14 +70,71 @@ type MarkupRenderer struct {
 type MarkupSanitizerRule struct {
 	Element            string
 	AllowAttr          string
-	Regexp             *regexp.Regexp
+	Regexp             string
 	AllowDataURIImages bool
 }
 
 func loadMarkupFrom(rootCfg ConfigProvider) {
 	mustMapSetting(rootCfg, "markdown", &Markdown)
 
-	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
+	markdownFileExtensions := rootCfg.Section("markdown").Key("FILE_EXTENSIONS").Strings(",")
+	if len(markdownFileExtensions) == 0 || len(markdownFileExtensions) == 1 && markdownFileExtensions[0] == "" {
+		markdownFileExtensions = []string{".md", ".markdown", ".mdown", ".mkd", ".livemd"}
+	}
+	Markdown.FileNamePatterns = fileExtensionsToPatterns("markdown", markdownFileExtensions)
+
+	const none = "none"
+
+	const renderOptionShortIssuePattern = "short-issue-pattern"
+	const renderOptionNewLineHardBreak = "new-line-hard-break"
+	cfgMarkdown := rootCfg.Section("markdown")
+	parseMarkdownRenderOptions := func(key string, defaults []string) (ret MarkdownRenderOptions) {
+		options := cfgMarkdown.Key(key).Strings(",")
+		options = util.IfEmpty(options, defaults)
+		for _, opt := range options {
+			switch opt {
+			case renderOptionShortIssuePattern:
+				ret.ShortIssuePattern = true
+			case renderOptionNewLineHardBreak:
+				ret.NewLineHardBreak = true
+			case none:
+				ret = MarkdownRenderOptions{}
+			case "":
+			default:
+				log.Error("Unknown markdown render option in %s: %s", key, opt)
+			}
+		}
+		return ret
+	}
+	Markdown.RenderOptionsComment = parseMarkdownRenderOptions("RENDER_OPTIONS_COMMENT", []string{renderOptionShortIssuePattern, renderOptionNewLineHardBreak})
+	Markdown.RenderOptionsWiki = parseMarkdownRenderOptions("RENDER_OPTIONS_WIKI", []string{renderOptionShortIssuePattern})
+	Markdown.RenderOptionsRepoFile = parseMarkdownRenderOptions("RENDER_OPTIONS_REPO_FILE", nil)
+
+	const mathCodeInlineDollar = "inline-dollar"
+	const mathCodeInlineParentheses = "inline-parentheses"
+	const mathCodeBlockDollar = "block-dollar"
+	const mathCodeBlockSquareBrackets = "block-square-brackets"
+	Markdown.MathCodeBlockDetection = util.IfEmpty(Markdown.MathCodeBlockDetection, []string{mathCodeInlineDollar, mathCodeBlockDollar})
+	Markdown.MathCodeBlockOptions = MarkdownMathCodeBlockOptions{}
+	for _, s := range Markdown.MathCodeBlockDetection {
+		switch s {
+		case mathCodeInlineDollar:
+			Markdown.MathCodeBlockOptions.ParseInlineDollar = true
+		case mathCodeInlineParentheses:
+			Markdown.MathCodeBlockOptions.ParseInlineParentheses = true
+		case mathCodeBlockDollar:
+			Markdown.MathCodeBlockOptions.ParseBlockDollar = true
+		case mathCodeBlockSquareBrackets:
+			Markdown.MathCodeBlockOptions.ParseBlockSquareBrackets = true
+		case none:
+			Markdown.MathCodeBlockOptions = MarkdownMathCodeBlockOptions{}
+		case "":
+		default:
+			log.Error("Unknown math code block detection option: %s", s)
+		}
+	}
+
+	MermaidMaxSourceCharacters = rootCfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(50000)
 	ExternalMarkupRenderers = make([]*MarkupRenderer, 0, 10)
 	ExternalSanitizerRules = make([]MarkupSanitizerRule, 0, 10)
 
@@ -83,8 +156,8 @@ func loadMarkupFrom(rootCfg ConfigProvider) {
 func newMarkupSanitizer(name string, sec ConfigSection) {
 	rule, ok := createMarkupSanitizerRule(name, sec)
 	if ok {
-		if strings.HasPrefix(name, "sanitizer.") {
-			names := strings.SplitN(strings.TrimPrefix(name, "sanitizer."), ".", 2)
+		if after, found := strings.CutPrefix(name, "sanitizer."); found {
+			names := strings.SplitN(after, ".", 2)
 			name = names[0]
 		}
 		for _, renderer := range ExternalMarkupRenderers {
@@ -117,15 +190,24 @@ func createMarkupSanitizerRule(name string, sec ConfigSection) (MarkupSanitizerR
 
 		regexpStr := sec.Key("REGEXP").Value()
 		if regexpStr != "" {
-			// Validate when parsing the config that this is a valid regular
-			// expression. Then we can use regexp.MustCompile(...) later.
-			compiled, err := regexp.Compile(regexpStr)
+			hasPrefix := strings.HasPrefix(regexpStr, "^")
+			hasSuffix := strings.HasSuffix(regexpStr, "$")
+			if !hasPrefix || !hasSuffix {
+				log.Error("In markup.%s: REGEXP must start with ^ and end with $ to be strict", name)
+				// to avoid breaking existing user configurations and satisfy the strict requirement in addSanitizerRules
+				if !hasPrefix {
+					regexpStr = "^.*" + regexpStr
+				}
+				if !hasSuffix {
+					regexpStr += ".*$"
+				}
+			}
+			_, err := regexp.Compile(regexpStr)
 			if err != nil {
 				log.Error("In markup.%s: REGEXP (%s) failed to compile: %v", name, regexpStr, err)
 				return rule, false
 			}
-
-			rule.Regexp = compiled
+			rule.Regexp = regexpStr
 		}
 
 		ok = true
@@ -139,21 +221,30 @@ func createMarkupSanitizerRule(name string, sec ConfigSection) (MarkupSanitizerR
 	return rule, true
 }
 
-func newMarkupRenderer(name string, sec ConfigSection) {
-	extensionReg := regexp.MustCompile(`\.\w`)
+var extensionReg = sync.OnceValue(func() *regexp.Regexp {
+	return regexp.MustCompile(`^(\.[-\w]+)+$`)
+})
 
-	extensions := sec.Key("FILE_EXTENSIONS").Strings(",")
-	exts := make([]string, 0, len(extensions))
+func fileExtensionsToPatterns(sectionName string, extensions []string) []string {
+	patterns := make([]string, 0, len(extensions))
 	for _, extension := range extensions {
-		if !extensionReg.MatchString(extension) {
-			log.Warn(sec.Name() + " file extension " + extension + " is invalid. Extension ignored")
+		if !extensionReg().MatchString(extension) {
+			log.Warn("Config section %s file extension %s is invalid. Extension ignored", sectionName, extension)
 		} else {
-			exts = append(exts, extension)
+			patterns = append(patterns, "*"+extension)
 		}
 	}
+	return patterns
+}
 
-	if len(exts) == 0 {
-		log.Warn(sec.Name() + " file extension is empty, markup " + name + " ignored")
+func newMarkupRenderer(name string, sec ConfigSection) {
+	if !sec.Key("ENABLED").MustBool(false) {
+		return
+	}
+
+	fileNamePatterns := fileExtensionsToPatterns(name, sec.Key("FILE_EXTENSIONS").Strings(","))
+	if len(fileNamePatterns) == 0 {
+		log.Warn("Config section %s file extension is empty, markup render is ignored", name)
 		return
 	}
 
@@ -178,13 +269,23 @@ func newMarkupRenderer(name string, sec ConfigSection) {
 		renderContentMode = RenderContentModeSanitized
 	}
 
+	// ATTENTION! at the moment, only a safe set like "allow-scripts" are allowed for sandbox mode.
+	// "allow-same-origin" should NEVER be used, it leads to XSS attack: makes the JS in iframe can access parent window's config and send requests with user's credentials.
+	renderContentSandbox := sec.Key("RENDER_CONTENT_SANDBOX").MustString("allow-scripts allow-popups")
+	if renderContentSandbox == "disabled" {
+		renderContentSandbox = ""
+	}
+
 	ExternalMarkupRenderers = append(ExternalMarkupRenderers, &MarkupRenderer{
-		Enabled:           sec.Key("ENABLED").MustBool(false),
-		MarkupName:        name,
-		FileExtensions:    exts,
-		Command:           command,
-		IsInputFile:       sec.Key("IS_INPUT_FILE").MustBool(false),
-		NeedPostProcess:   sec.Key("NEED_POSTPROCESS").MustBool(true),
-		RenderContentMode: renderContentMode,
+		MarkupName:   name,
+		FilePatterns: fileNamePatterns,
+		Command:      command,
+		IsInputFile:  sec.Key("IS_INPUT_FILE").MustBool(false),
+
+		RenderContentMode:    renderContentMode,
+		RenderContentSandbox: renderContentSandbox,
+
+		// if no sanitizer is needed, no post process is needed
+		NeedPostProcess: sec.Key("NEED_POST_PROCESS").MustBool(renderContentMode == RenderContentModeSanitized),
 	})
 }

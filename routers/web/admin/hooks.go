@@ -7,15 +7,15 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
 )
 
 const (
 	// tplAdminHooks template path to render hook settings
-	tplAdminHooks base.TplName = "admin/hooks"
+	tplAdminHooks templates.TplName = "admin/hooks"
 )
 
 // DefaultOrSystemWebhooks renders both admin default and system webhook list pages

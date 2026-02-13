@@ -17,11 +17,11 @@ func CountBadSequences(_ context.Context) (int64, error) {
 		return 0, nil
 	}
 
-	sess := x.NewSession()
+	sess := xormEngine.NewSession()
 	defer sess.Close()
 
 	var sequences []string
-	schema := x.Dialect().URI().Schema
+	schema := xormEngine.Dialect().URI().Schema
 
 	sess.Engine().SetSchema("")
 	if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE 'tmp_recreate__%_id_seq%' AND sequence_catalog = ?", setting.Database.Name).Find(&sequences); err != nil {
@@ -38,7 +38,7 @@ func FixBadSequences(_ context.Context) error {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := xormEngine.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

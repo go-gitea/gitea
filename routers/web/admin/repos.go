@@ -4,7 +4,6 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -12,18 +11,18 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
-	tplRepos          base.TplName = "admin/repo/list"
-	tplUnadoptedRepos base.TplName = "admin/repo/unadopted"
+	tplRepos          templates.TplName = "admin/repo/list"
+	tplUnadoptedRepos templates.TplName = "admin/repo/unadopted"
 )
 
 // Repos show all the repositories
@@ -84,8 +83,7 @@ func UnadoptedRepos(ctx *context.Context) {
 
 	if !doSearch {
 		pager := context.NewPagination(0, opts.PageSize, opts.Page, 5)
-		pager.SetDefaultParams(ctx)
-		pager.AddParamString("search", fmt.Sprint(doSearch))
+		pager.AddParamFromRequest(ctx.Req)
 		ctx.Data["Page"] = pager
 		ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 		return
@@ -99,8 +97,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	}
 	ctx.Data["Dirs"] = repoNames
 	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParamString("search", fmt.Sprint(doSearch))
+	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplUnadoptedRepos)
 }
@@ -137,12 +134,12 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
 	}
-	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName))
+	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName)))
 	if err != nil {
 		ctx.ServerError("IsDir", err)
 		return
 	}
-	if has || !isDir {
+	if has || !exist {
 		// Fallthrough to failure mode
 	} else if action == "adopt" {
 		if _, err := repo_service.AdoptRepository(ctx, ctx.Doer, ctxUser, repo_service.CreateRepoOptions{

@@ -13,7 +13,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
-	"path/filepath"
+	"path"
 	"regexp"
 	"sort"
 	"strconv"
@@ -22,9 +22,9 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/context"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -44,18 +44,13 @@ const (
 
 var (
 	errInvalidParameters = errors.New("request parameters are invalid")
-	illegalCharacters    = regexp.MustCompile(`[\\/:"<>|?\*]`)
+	illegalCharacters    = regexp.MustCompile(`[\\/:"<>|?*]`)
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		// The maven client does not present the error message to the user. Log it for users with access to server logs.
-		if status == http.StatusBadRequest || status == http.StatusInternalServerError {
-			log.Error(message)
-		}
-
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	// Maven client doesn't present the error message to end users; site admin can check the server logs that outputted by ProcessErrorForUser
+	ctx.PlainText(status, message)
 }
 
 // DownloadPackageFile serves the content of a package
@@ -83,14 +78,20 @@ func handlePackageFile(ctx *context.Context, serveContent bool) {
 }
 
 func serveMavenMetadata(ctx *context.Context, params parameters) {
-	// /com/foo/project/maven-metadata.xml[.md5/.sha1/.sha256/.sha512]
-
-	packageName := params.GroupID + "-" + params.ArtifactID
-	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, packageName)
+	// path pattern: /com/foo/project/maven-metadata.xml[.md5/.sha1/.sha256/.sha512]
+	// in case there are legacy package names ("GroupID-ArtifactID") we need to check both, new packages always use ":" as separator("GroupID:ArtifactID")
+	pvsLegacy, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, params.toInternalPackageNameLegacy())
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, params.toInternalPackageName())
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	pvs = append(pvsLegacy, pvs...)
+
 	if len(pvs) == 0 {
 		apiError(ctx, http.StatusNotFound, packages_model.ErrPackageNotExist)
 		return
@@ -107,7 +108,7 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 		return pds[i].Version.CreatedUnix < pds[j].Version.CreatedUnix
 	})
 
-	xmlMetadata, err := xml.Marshal(createMetadataResponse(pds))
+	xmlMetadata, err := xml.Marshal(createMetadataResponse(pds, params.GroupID, params.ArtifactID))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -116,10 +117,10 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 
 	latest := pds[len(pds)-1]
 	// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
-	lastModifed := latest.Version.CreatedUnix.AsTime().UTC().Format(http.TimeFormat)
-	ctx.Resp.Header().Set("Last-Modified", lastModifed)
+	lastModified := latest.Version.CreatedUnix.AsTime().UTC().Format(http.TimeFormat)
+	ctx.Resp.Header().Set("Last-Modified", lastModified)
 
-	ext := strings.ToLower(filepath.Ext(params.Filename))
+	ext := strings.ToLower(path.Ext(params.Filename))
 	if isChecksumExtension(ext) {
 		var hash []byte
 		switch ext {
@@ -147,11 +148,12 @@ func serveMavenMetadata(ctx *context.Context, params parameters) {
 }
 
 func servePackageFile(ctx *context.Context, params parameters, serveContent bool) {
-	packageName := params.GroupID + "-" + params.ArtifactID
-
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, packageName, params.Version)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, params.toInternalPackageName(), params.Version)
+	if errors.Is(err, util.ErrNotExist) {
+		pv, err = packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, params.toInternalPackageNameLegacy(), params.Version)
+	}
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -161,14 +163,14 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 
 	filename := params.Filename
 
-	ext := strings.ToLower(filepath.Ext(filename))
+	ext := strings.ToLower(path.Ext(filename))
 	if isChecksumExtension(ext) {
 		filename = filename[:len(filename)-len(ext)]
 	}
 
 	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, filename, packages_model.EmptyFileKey)
 	if err != nil {
-		if err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 		} else {
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -215,7 +217,7 @@ func servePackageFile(ctx *context.Context, params parameters, serveContent bool
 		return
 	}
 
-	s, u, _, err := packages_service.GetPackageBlobStream(ctx, pf, pb, nil)
+	s, u, _, err := packages_service.OpenBlobForDownload(ctx, pf, pb, ctx.Req.Method, nil)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -238,15 +240,17 @@ func UploadPackageFile(ctx *context.Context) {
 		return
 	}
 
-	log.Trace("Parameters: %+v", params)
-
 	// Ignore the package index /<name>/maven-metadata.xml
 	if params.IsMeta && params.Version == "" {
 		ctx.Status(http.StatusOK)
 		return
 	}
 
-	packageName := params.GroupID + "-" + params.ArtifactID
+	packageName := params.toInternalPackageName()
+	if ctx.FormBool("use_legacy_package_name") {
+		// for testing purpose only
+		packageName = params.toInternalPackageNameLegacy()
+	}
 
 	// for the same package, only one upload at a time
 	releaser, err := globallock.Lock(ctx, mavenPkgNameKey(packageName))
@@ -274,13 +278,26 @@ func UploadPackageFile(ctx *context.Context) {
 		Creator:          ctx.Doer,
 	}
 
-	ext := filepath.Ext(params.Filename)
+	// old maven package uses "groupId-artifactId" as package name, so we need to update to the new format "groupId:artifactId"
+	legacyPackage, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, params.toInternalPackageNameLegacy())
+	if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	} else if legacyPackage != nil {
+		err = packages_model.UpdatePackageNameByID(ctx, ctx.Package.Owner.ID, packages_model.TypeMaven, legacyPackage.ID, packageName)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	ext := path.Ext(params.Filename)
 
 	// Do not upload checksum files but compare the hashes.
 	if isChecksumExtension(ext) {
 		pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
 		if err != nil {
-			if err == packages_model.ErrPackageNotExist {
+			if errors.Is(err, packages_model.ErrPackageNotExist) {
 				apiError(ctx, http.StatusNotFound, err)
 				return
 			}
@@ -289,7 +306,7 @@ func UploadPackageFile(ctx *context.Context) {
 		}
 		pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, params.Filename[:len(params.Filename)-len(ext)], packages_model.EmptyFileKey)
 		if err != nil {
-			if err == packages_model.ErrPackageFileNotExist {
+			if errors.Is(err, packages_model.ErrPackageFileNotExist) {
 				apiError(ctx, http.StatusNotFound, err)
 				return
 			}
@@ -343,7 +360,7 @@ func UploadPackageFile(ctx *context.Context) {
 
 		if pvci.Metadata != nil {
 			pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
-			if err != nil && err != packages_model.ErrPackageNotExist {
+			if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
@@ -399,8 +416,25 @@ type parameters struct {
 	IsMeta     bool
 }
 
+func (p *parameters) toInternalPackageName() string {
+	// there cuold be 2 choices: "/" or ":"
+	// Maven says: "groupId:artifactId:version" in their document: https://maven.apache.org/pom.html#Maven_Coordinates
+	// but it would be slightly ugly in URL: "/-/packages/maven/group-id%3Aartifact-id"
+	return p.GroupID + ":" + p.ArtifactID
+}
+
+func (p *parameters) toInternalPackageNameLegacy() string {
+	return p.GroupID + "-" + p.ArtifactID
+}
+
 func extractPathParameters(ctx *context.Context) (parameters, error) {
 	parts := strings.Split(ctx.PathParam("*"), "/")
+
+	// formats:
+	// * /com/group/id/artifactId/maven-metadata.xml[.md5|.sha1|.sha256|.sha512]
+	// * /com/group/id/artifactId/version-SNAPSHOT/maven-metadata.xml[.md5|.sha1|.sha256|.sha512]
+	// * /com/group/id/artifactId/version/any-file
+	// * /com/group/id/artifactId/version-SNAPSHOT/any-file
 
 	p := parameters{
 		Filename: parts[len(parts)-1],

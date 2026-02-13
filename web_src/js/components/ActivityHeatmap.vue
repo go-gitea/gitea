@@ -1,11 +1,11 @@
 <script lang="ts" setup>
 // TODO: Switch to upstream after https://github.com/razorness/vue3-calendar-heatmap/pull/34 is merged
 import {CalendarHeatmap} from '@silverwind/vue3-calendar-heatmap';
-import {onMounted, ref} from 'vue';
+import {onMounted, shallowRef} from 'vue';
 import type {Value as HeatmapValue, Locale as HeatmapLocale} from '@silverwind/vue3-calendar-heatmap';
 
 defineProps<{
-  values?: HeatmapValue[];
+  values: HeatmapValue[];
   locale: {
     textTotalContributions: string;
     heatMapLocale: Partial<HeatmapLocale>;
@@ -24,11 +24,11 @@ const colorRange = [
   'var(--color-primary-dark-4)',
 ];
 
-const endDate = ref(new Date());
+const endDate = shallowRef(new Date());
 
 onMounted(() => {
   // work around issue with first legend color being rendered twice and legend cut off
-  const legend = document.querySelector<HTMLElement>('.vch__external-legend-wrapper');
+  const legend = document.querySelector<HTMLElement>('.vch__external-legend-wrapper')!;
   legend.setAttribute('viewBox', '12 0 80 10');
   legend.style.marginRight = '-12px';
 });
@@ -53,9 +53,6 @@ function handleDayClick(e: Event & {date: Date}) {
 }
 </script>
 <template>
-  <div class="total-contributions">
-    {{ locale.textTotalContributions }}
-  </div>
   <calendar-heatmap
     :locale="locale.heatMapLocale"
     :no-data-text="locale.noDataText"
@@ -65,5 +62,7 @@ function handleDayClick(e: Event & {date: Date}) {
     :range-color="colorRange"
     @day-click="handleDayClick($event)"
     :tippy-props="{theme: 'tooltip'}"
-  />
+  >
+    <template #vch__legend-left>{{ locale.textTotalContributions }}</template>
+  </calendar-heatmap>
 </template>

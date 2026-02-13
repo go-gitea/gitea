@@ -26,7 +26,7 @@
   fork_id: 0
   is_template: false
   template_id: 0
-  size: 8478
+  size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
 
@@ -110,6 +110,8 @@
   num_closed_milestones: 0
   num_projects: 0
   num_closed_projects: 1
+  num_action_runs: 4
+  num_closed_action_runs: 3
   is_private: false
   is_empty: false
   is_archived: false
@@ -1693,19 +1695,6 @@
   size: 0
   is_fsck_enabled: true
   close_issues_via_commit_in_any_branch: false
-
--
-  id: 59
-  owner_id: 2
-  owner_name: user2
-  lower_name: test_commit_revert
-  name: test_commit_revert
-  default_branch: main
-  is_empty: false
-  is_archived: false
-  is_private: true
-  status: 0
-  num_issues: 0
 
 -
   id: 60

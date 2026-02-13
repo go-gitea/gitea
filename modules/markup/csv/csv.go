@@ -7,7 +7,6 @@ import (
 	"bufio"
 	"html"
 	"io"
-	"regexp"
 	"strconv"
 
 	"code.gitea.io/gitea/modules/csv"
@@ -21,25 +20,21 @@ func init() {
 	markup.RegisterRenderer(Renderer{})
 }
 
-// Renderer implements markup.Renderer for csv files
 type Renderer struct{}
 
-// Name implements markup.Renderer
 func (Renderer) Name() string {
 	return "csv"
 }
 
-// Extensions implements markup.Renderer
-func (Renderer) Extensions() []string {
-	return []string{".csv", ".tsv"}
+func (Renderer) FileNamePatterns() []string {
+	return []string{"*.csv", "*.tsv"}
 }
 
-// SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{
-		{Element: "table", AllowAttr: "class", Regexp: regexp.MustCompile(`data-table`)},
-		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
-		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
+		{Element: "table", AllowAttr: "class", Regexp: `^data-table$`},
+		{Element: "th", AllowAttr: "class", Regexp: `^line-num$`},
+		{Element: "td", AllowAttr: "class", Regexp: `^line-num$`},
 	}
 }
 
@@ -51,13 +46,13 @@ func writeField(w io.Writer, element, class, field string) error {
 		return err
 	}
 	if len(class) > 0 {
-		if _, err := io.WriteString(w, " class=\""); err != nil {
+		if _, err := io.WriteString(w, ` class="`); err != nil {
 			return err
 		}
 		if _, err := io.WriteString(w, class); err != nil {
 			return err
 		}
-		if _, err := io.WriteString(w, "\""); err != nil {
+		if _, err := io.WriteString(w, `"`); err != nil {
 			return err
 		}
 	}
@@ -134,10 +129,10 @@ func (r Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.W
 	// Check if maxRows or maxSize is reached, and if true, warn.
 	if (row >= maxRows && maxRows != 0) || (rd.InputOffset() >= maxSize && maxSize != 0) {
 		warn := `<table class="data-table"><tr><td>`
-		rawLink := ` <a href="` + ctx.Links.RawLink() + `/` + util.PathEscapeSegments(ctx.RelativePath) + `">`
+		rawLink := ` <a href="` + ctx.RenderHelper.ResolveLink(util.PathEscapeSegments(ctx.RenderOptions.RelativePath), markup.LinkTypeRaw) + `">`
 
 		// Try to get the user translation
-		if locale, ok := ctx.Ctx.Value(translation.ContextKey).(translation.Locale); ok {
+		if locale, ok := ctx.Value(translation.ContextKey).(translation.Locale); ok {
 			warn += locale.TrString("repo.file_too_large")
 			rawLink += locale.TrString("repo.file_view_raw")
 		} else {

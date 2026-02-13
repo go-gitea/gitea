@@ -5,7 +5,6 @@
   list-style-type: none;
   margin: 1em 0;
   padding: 0;
-  font-size: 1em;
 }
 
 .ui.list:first-child {
@@ -124,12 +123,6 @@
 .ui.list > .item a,
 .ui.list .list > .item a {
   cursor: pointer;
-}
-
-.ui.list .list > .item [class*="right floated"],
-.ui.list > .item [class*="right floated"] {
-  float: right;
-  margin: 0 0 0 1em;
 }
 
 .ui.menu .ui.list > .item,

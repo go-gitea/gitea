@@ -21,7 +21,8 @@ func TestFileBackedBuffer(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		buf, err := CreateFromReader(strings.NewReader(c.Data), c.MaxMemorySize)
+		buf := New(c.MaxMemorySize, t.TempDir())
+		_, err := io.Copy(buf, strings.NewReader(c.Data))
 		assert.NoError(t, err)
 
 		assert.EqualValues(t, len(c.Data), buf.Size())

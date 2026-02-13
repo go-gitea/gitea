@@ -507,7 +507,7 @@ func runTestCase(t *testing.T, testCase *requiredScopeTestCase, user *user_model
 				} else if minRequiredLevel == auth_model.Write {
 					unauthorizedLevel = auth_model.Read
 				} else {
-					assert.FailNow(t, "Invalid test case: Unknown access token scope level: %v", minRequiredLevel)
+					assert.FailNow(t, "Invalid test case", "Unknown access token scope level: %v", minRequiredLevel)
 				}
 			}
 

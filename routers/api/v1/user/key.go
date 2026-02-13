@@ -1,11 +1,12 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package user
 
 import (
 	std_ctx "context"
-	"fmt"
+	"errors"
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -24,9 +25,10 @@ import (
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
 func appendPrivateInformation(ctx std_ctx.Context, apiKey *api.PublicKey, key *asymkey_model.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
-	if key.Type == asymkey_model.KeyTypeDeploy {
+	switch key.Type {
+	case asymkey_model.KeyTypeDeploy:
 		apiKey.KeyType = "deploy"
-	} else if key.Type == asymkey_model.KeyTypeUser {
+	case asymkey_model.KeyTypeUser:
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
@@ -38,7 +40,7 @@ func appendPrivateInformation(ctx std_ctx.Context, apiKey *api.PublicKey, key *a
 			}
 			apiKey.Owner = convert.ToUser(ctx, user, user)
 		}
-	} else {
+	default:
 		apiKey.KeyType = "unknown"
 	}
 	apiKey.ReadOnly = key.Mode == perm.AccessModeRead
@@ -52,11 +54,11 @@ func composePublicKeysAPILink() string {
 func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	var keys []*asymkey_model.PublicKey
 	var err error
-	var count int
+	var count int64
 
 	fingerprint := ctx.FormString("fingerprint")
 	username := ctx.PathParam("username")
-
+	listOptions := utils.GetListOptions(ctx)
 	if fingerprint != "" {
 		var userID int64 // Unrestricted
 		// Querying not just listing
@@ -64,24 +66,22 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 			// Restrict to provided uid
 			userID = user.ID
 		}
-		keys, err = db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		keys, count, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+			ListOptions: listOptions,
 			OwnerID:     userID,
 			Fingerprint: fingerprint,
 		})
-		count = len(keys)
 	} else {
-		var total int64
 		// Use ListPublicKeys
-		keys, total, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
-			ListOptions: utils.GetListOptions(ctx),
+		keys, count, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+			ListOptions: listOptions,
 			OwnerID:     user.ID,
 			NotKeytype:  asymkey_model.KeyTypePrincipal,
 		})
-		count = int(total)
 	}
 
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListPublicKeys", err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 
@@ -94,7 +94,8 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 		}
 	}
 
-	ctx.SetTotalCountHeader(int64(count))
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 
@@ -135,7 +136,7 @@ func ListPublicKeys(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose public keys are to be listed
 	//   type: string
 	//   required: true
 	// - name: fingerprint
@@ -179,12 +180,12 @@ func GetPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.PathParamInt64(":id"))
+	key, err := asymkey_model.GetPublicKeyByID(ctx, ctx.PathParamInt64("id"))
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetPublicKeyByID", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
@@ -200,7 +201,7 @@ func GetPublicKey(ctx *context.APIContext) {
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
-		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("Not Found", errors.New("ssh keys setting is not allowed to be visited"))
 		return
 	}
 
@@ -210,7 +211,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 		return
 	}
 
-	key, err := asymkey_model.AddPublicKey(ctx, uid, form.Title, content, 0)
+	key, err := asymkey_model.AddPublicKey(ctx, uid, form.Title, content, 0, false)
 	if err != nil {
 		repo.HandleAddKeyError(ctx, err)
 		return
@@ -270,31 +271,31 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageSSHKeys) {
-		ctx.NotFound("Not Found", fmt.Errorf("ssh keys setting is not allowed to be visited"))
+		ctx.APIErrorNotFound("Not Found", errors.New("ssh keys setting is not allowed to be visited"))
 		return
 	}
 
-	id := ctx.PathParamInt64(":id")
+	id := ctx.PathParamInt64("id")
 	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(ctx, id)
 	if err != nil {
 		if asymkey_model.IsErrKeyNotExist(err) {
-			ctx.NotFound()
+			ctx.APIErrorNotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "PublicKeyIsExternallyManaged", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}
 
 	if externallyManaged {
-		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
+		ctx.APIError(http.StatusForbidden, "SSH Key is externally managed for this user")
 		return
 	}
 
 	if err := asymkey_service.DeletePublicKey(ctx, ctx.Doer, id); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
-			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
+			ctx.APIError(http.StatusForbidden, "You do not have access to this key")
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeletePublicKey", err)
+			ctx.APIErrorInternal(err)
 		}
 		return
 	}

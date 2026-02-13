@@ -1,5 +1,4 @@
-{{template "base/head" .}}
-<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
+{{template "devtest/devtest-header"}}
 <div class="page-content devtest ui container">
 	<div>
 		<h1>Link</h1>
@@ -10,16 +9,16 @@
 			<a class="silenced" href="#">silenced</a>
 		</div>
 		<h1>Button</h1>
-		<div>
-			Style:
-			<label><input type="checkbox" name="button-style-compact" value="compact">compact</label>
-			<label><input type="radio" name="button-style-size" value="">(normal)</label>
-			<label><input type="radio" name="button-style-size" value="tiny">tiny</label>
-			<label><input type="radio" name="button-style-size" value="mini">mini</label>
+		".ui.button" styles:
+		<div class="flex-text-block tw-gap-4">
+			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="">(normal)</label>
+			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="small">small</label>
+			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="tiny">tiny</label>
+			<label class="gt-checkbox"><input type="radio" name="button-style-size" value="mini">mini</label>
 		</div>
-		<div>
-			State:
-			<label><input type="checkbox" name="button-state-disabled" value="disabled">disabled</label>
+		<div class="flex-text-block tw-gap-4">
+			<label class="gt-checkbox"><input type="checkbox" name="button-style-compact" value="compact">compact</label>
+			<label class="gt-checkbox"><input type="checkbox" name="button-state-disabled" value="disabled">disabled</label>
 		</div>
 		<div id="devtest-button-samples">
 			<ul class="button-sample-groups">
@@ -46,14 +45,16 @@
 					</div>
 				</li>
 			</ul>
-			<script type="module">
-				const $buttons = $('#devtest-button-samples').find('button.ui');
+			<script>
+				document.addEventListener('gitea:index-ready', () => {
+					const $buttons = $('#devtest-button-samples').find('button.ui');
 
-				const $buttonStyles = $('input[name*="button-style"]');
-				$buttonStyles.on('click', () => $buttonStyles.map((_ ,el) => $buttons.toggleClass(el.value, el.checked)));
+					const $buttonStyles = $('input[name*="button-style"]');
+					$buttonStyles.on('click', () => $buttonStyles.map((_, el) => $buttons.toggleClass(el.value, el.checked)));
 
-				const $buttonStates = $('input[name*="button-state"]');
-				$buttonStates.on('click', () => $buttonStates.map((_ ,el) => $buttons.prop(el.value, el.checked)));
+					const $buttonStates = $('input[name*="button-state"]');
+					$buttonStates.on('click', () => $buttonStates.map((_, el) => $buttons.prop(el.value, el.checked)));
+				});
 			</script>
 		</div>
 	</div>
@@ -184,8 +185,7 @@
 
 	<div>
 		<h1>ComboMarkdownEditor</h1>
-		<div>ps: no JS code attached, so just a layout</div>
-		{{template "shared/combomarkdowneditor" .}}
+		{{template "shared/combomarkdowneditor" dict "MarkdownPreviewContext" "/owner/path"}}
 	</div>
 
 	<h1>Tailwind CSS Demo</h1>
@@ -193,4 +193,4 @@
 		<button class="{{if true}}tw-bg-red{{end}} tw-p-5 tw-border tw-rounded hover:tw-bg-blue active:tw-bg-yellow">Button</button>
 	</div>
 </div>
-{{template "base/footer" .}}
+{{template "devtest/devtest-footer"}}

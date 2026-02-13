@@ -3,52 +3,35 @@
 	{{range .Issues}}
 		<div class="flex-item">
 
-			<div class="flex-item-icon">
-				{{if $.CanWriteIssuesOrPulls}}
-				<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-4" data-issue-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
-				{{end}}
-				{{template "shared/issueicon" .}}
+			<div class="flex-item-leading">
+				{{/* using some tw helpers is the only way to align the checkbox */}}
+				<div class="flex-text-inline tw-mt-[2px]">
+					{{if $.CanWriteIssuesOrPulls}}
+						<input type="checkbox" autocomplete="off" class="issue-checkbox tw-mr-[14px]" data-issue-id={{.ID}} aria-label="{{ctx.Locale.Tr "repo.issues.action_check"}} &quot;{{.Title}}&quot;">
+					{{end}}
+					{{template "shared/issueicon" .}}
+				</div>
 			</div>
 
 			<div class="flex-item-main">
 				<div class="flex-item-header">
 					<div class="flex-item-title">
-						<a class="tw-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{ctx.RenderUtils.RenderEmoji .Title | RenderCodeBlock}}</a>
+						<a class="tw-no-underline issue-title" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{.Title | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
 						{{if .IsPull}}
 							{{if (index $.CommitStatuses .PullRequest.ID)}}
 								{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID)}}
 							{{end}}
 						{{end}}
-						<span class="labels-list tw-ml-1">
+						<span class="labels-list">
 							{{range .Labels}}
 								<a href="?q={{$.Keyword}}&type={{$.ViewType}}&state={{$.State}}&labels={{.ID}}{{if ne $.listType "milestone"}}&milestone={{$.MilestoneID}}{{end}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}{{if $.ShowArchivedLabels}}&archived=true{{end}}">{{ctx.RenderUtils.RenderLabel .}}</a>
 							{{end}}
 						</span>
 					</div>
-					{{if or .TotalTrackedTime .Assignees .NumComments}}
-					<div class="flex-item-trailing">
-						{{if .TotalTrackedTime}}
-						<div class="text grey flex-text-block">
-								{{svg "octicon-clock" 16}}
-								{{.TotalTrackedTime | Sec2Time}}
-						</div>
-						{{end}}
-						{{if .Assignees}}
-						<div class="text grey">
-							{{range .Assignees}}
-								<a class="ui assignee tw-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
-									{{ctx.AvatarUtils.Avatar . 20}}
-								</a>
-							{{end}}
-						</div>
-						{{end}}
-						{{if .NumComments}}
-						<div class="text grey">
-							<a class="tw-no-underline muted flex-text-block" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
-								{{svg "octicon-comment" 16}}{{.NumComments}}
-							</a>
-						</div>
-						{{end}}
+					{{if .TotalTrackedTime}}
+					<div class="text grey flex-text-block">
+							{{svg "octicon-clock" 16}}
+							{{.TotalTrackedTime | Sec2Hour}}
 					</div>
 					{{end}}
 				</div>
@@ -99,7 +82,7 @@
 							<span class="gt-ellipsis">{{.Project.Title}}</span>
 						</a>
 					{{end}}
-					{{if .Ref}}
+					{{if .Ref}}{{/* TODO: RemoveIssueRef: see "repo/issue/branch_selector_field.tmpl" */}}
 						<a class="ref flex-text-inline tw-max-w-[300px]" {{if $.RepoLink}}href="{{index $.IssueRefURLs .ID}}"{{else}}href="{{.Repo.Link}}{{index $.IssueRefURLs .ID}}"{{end}}>
 							{{svg "octicon-git-branch" 14}}
 							<span class="gt-ellipsis">{{index $.IssueRefEndNames .ID}}</span>
@@ -152,6 +135,31 @@
 					{{end}}
 				</div>
 			</div>
+			{{if or .Assignees .NumComments}}
+			<div class="flex-item-trailing">
+				{{if .Assignees}}
+				<div class="text grey">
+					{{range .Assignees}}
+						<a class="ui assignee tw-no-underline" href="{{.HomeLink}}" data-tooltip-content="{{.GetDisplayName}}">
+							{{ctx.AvatarUtils.Avatar . 20}}
+						</a>
+					{{end}}
+				</div>
+				{{end}}
+				{{if .NumComments}}
+				<div class="text grey">
+					<a class="tw-no-underline muted flex-text-block" href="{{if .Link}}{{.Link}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						{{svg "octicon-comment" 16}}{{.NumComments}}
+					</a>
+				</div>
+				{{end}}
+			</div>
+			{{end}}
+		</div>
+	{{else}}
+		<div class="tw-text-center tw-p-8">
+			<h3 class="tw-my-4">{{ctx.Locale.Tr "repo.issues.filter_no_results"}}</h3>
+			<p class="tw-text-placeholder-text">{{ctx.Locale.Tr "repo.issues.filter_no_results_placeholder"}}</p>
 		</div>
 	{{end}}
 	{{if .IssueIndexerUnavailable}}

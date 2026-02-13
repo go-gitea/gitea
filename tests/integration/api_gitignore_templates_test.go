@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"fmt"
 	"net/http"
 	"testing"
 
@@ -38,7 +37,7 @@ func TestAPIGetGitignoreTemplateInfo(t *testing.T) {
 	// Use the first template for the test
 	templateName := repo_module.Gitignores[0]
 
-	urlStr := fmt.Sprintf("/api/v1/gitignore/templates/%s", templateName)
+	urlStr := "/api/v1/gitignore/templates/" + templateName
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
 

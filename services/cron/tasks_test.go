@@ -12,7 +12,7 @@ import (
 )
 
 func TestAddTaskToScheduler(t *testing.T) {
-	assert.Len(t, scheduler.Jobs(), 0)
+	assert.Empty(t, scheduler.Jobs())
 	defer scheduler.Clear()
 
 	// no seconds

@@ -36,6 +36,7 @@ var OrderByMap = map[string]map[string]db.SearchOrderBy{
 var OrderByFlatMap = map[string]db.SearchOrderBy{
 	"newest":                OrderByMap["desc"]["created"],
 	"oldest":                OrderByMap["asc"]["created"],
+	"recentupdate":          OrderByMap["desc"]["updated"],
 	"leastupdate":           OrderByMap["asc"]["updated"],
 	"reversealphabetically": OrderByMap["desc"]["alpha"],
 	"alphabetically":        OrderByMap["asc"]["alpha"],

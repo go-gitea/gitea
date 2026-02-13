@@ -4,7 +4,7 @@ export async function initCaptcha() {
   const captchaEl = document.querySelector('#captcha');
   if (!captchaEl) return;
 
-  const siteKey = captchaEl.getAttribute('data-sitekey');
+  const siteKey = captchaEl.getAttribute('data-sitekey')!;
   const isDark = isDarkTheme();
 
   const params = {
@@ -34,11 +34,17 @@ export async function initCaptcha() {
       break;
     }
     case 'm-captcha': {
-      const {default: mCaptcha} = await import(/* webpackChunkName: "mcaptcha-vanilla-glue" */'@mcaptcha/vanilla-glue');
-      mCaptcha.INPUT_NAME = 'm-captcha-response';
-      const instanceURL = captchaEl.getAttribute('data-instance-url');
+      const mCaptcha = await import(/* webpackChunkName: "mcaptcha-vanilla-glue" */'@mcaptcha/vanilla-glue');
 
-      mCaptcha.default({
+      // FIXME: the mCaptcha code is not right, it's a miracle that the wrong code could run
+      // * the "vanilla-glue" has some problems with es6 module.
+      // * the INPUT_NAME is a "const", it should not be changed.
+      // * the "mCaptcha.default" is actually the "Widget".
+
+      mCaptcha.INPUT_NAME = 'm-captcha-response';
+      const instanceURL = captchaEl.getAttribute('data-instance-url')!;
+
+      new mCaptcha.default({
         siteKey: {
           instanceUrl: new URL(instanceURL),
           key: siteKey,

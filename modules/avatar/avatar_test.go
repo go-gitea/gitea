@@ -94,8 +94,8 @@ func Test_ProcessAvatarImage(t *testing.T) {
 	assert.NotEqual(t, origin, result)
 	decoded, err := png.Decode(bytes.NewReader(result))
 	assert.NoError(t, err)
-	assert.EqualValues(t, scaledSize, decoded.Bounds().Max.X)
-	assert.EqualValues(t, scaledSize, decoded.Bounds().Max.Y)
+	assert.Equal(t, scaledSize, decoded.Bounds().Max.X)
+	assert.Equal(t, scaledSize, decoded.Bounds().Max.Y)
 
 	// if origin image is smaller than the default size, use the origin image
 	origin = newImgData(1)

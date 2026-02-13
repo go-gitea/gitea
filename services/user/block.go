@@ -6,7 +6,6 @@ package user
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	org_model "code.gitea.io/gitea/models/organization"
@@ -118,10 +117,10 @@ func BlockUser(ctx context.Context, doer, blocker, blockee *user_model.User, not
 		}
 
 		// cancel each other repository transfers
-		if err := cancelRepositoryTransfers(ctx, blocker, blockee); err != nil {
+		if err := cancelRepositoryTransfers(ctx, doer, blocker, blockee); err != nil {
 			return err
 		}
-		if err := cancelRepositoryTransfers(ctx, blockee, blocker); err != nil {
+		if err := cancelRepositoryTransfers(ctx, doer, blockee, blocker); err != nil {
 			return err
 		}
 
@@ -193,8 +192,8 @@ func unwatchRepos(ctx context.Context, watcher, repoOwner *user_model.User) erro
 	}
 }
 
-func cancelRepositoryTransfers(ctx context.Context, sender, recipient *user_model.User) error {
-	transfers, err := models.GetPendingRepositoryTransfers(ctx, &models.PendingRepositoryTransferOptions{
+func cancelRepositoryTransfers(ctx context.Context, doer, sender, recipient *user_model.User) error {
+	transfers, err := repo_model.GetPendingRepositoryTransfers(ctx, &repo_model.PendingRepositoryTransferOptions{
 		SenderID:    sender.ID,
 		RecipientID: recipient.ID,
 	})
@@ -203,12 +202,7 @@ func cancelRepositoryTransfers(ctx context.Context, sender, recipient *user_mode
 	}
 
 	for _, transfer := range transfers {
-		repo, err := repo_model.GetRepositoryByID(ctx, transfer.RepoID)
-		if err != nil {
-			return err
-		}
-
-		if err := repo_service.CancelRepositoryTransfer(ctx, repo); err != nil {
+		if err := repo_service.CancelRepositoryTransfer(ctx, transfer, doer); err != nil {
 			return err
 		}
 	}

@@ -4,13 +4,11 @@
 package markup
 
 import (
-	"io"
 	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/net/html"
@@ -18,12 +16,14 @@ import (
 )
 
 type anyHashPatternResult struct {
-	PosStart  int
-	PosEnd    int
-	FullURL   string
-	CommitID  string
-	SubPath   string
-	QueryHash string
+	PosStart    int
+	PosEnd      int
+	FullURL     string
+	CommitID    string
+	CommitExt   string
+	SubPath     string
+	QueryParams string
+	QueryHash   string
 }
 
 func createCodeLink(href, content, class string) *html.Node {
@@ -45,7 +45,6 @@ func createCodeLink(href, content, class string) *html.Node {
 	code := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Code.String(),
-		Attr: []html.Attribute{{Key: "class", Val: "nohighlight"}},
 	}
 
 	code.AppendChild(text)
@@ -54,37 +53,51 @@ func createCodeLink(href, content, class string) *html.Node {
 }
 
 func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
-	m := anyHashPattern.FindStringSubmatchIndex(s)
+	m := globalVars().anyHashPattern.FindStringSubmatchIndex(s)
 	if m == nil {
 		return ret, false
 	}
 
-	ret.PosStart, ret.PosEnd = m[0], m[1]
+	pos := 0
+
+	ret.PosStart, ret.PosEnd = m[pos], m[pos+1]
+	pos += 2
+
 	ret.FullURL = s[ret.PosStart:ret.PosEnd]
 	if strings.HasSuffix(ret.FullURL, ".") {
 		// if url ends in '.', it's very likely that it is not part of the actual url but used to finish a sentence.
 		ret.PosEnd--
 		ret.FullURL = ret.FullURL[:len(ret.FullURL)-1]
-		for i := 0; i < len(m); i++ {
+		for i := range m {
 			m[i] = min(m[i], ret.PosEnd)
 		}
 	}
 
-	ret.CommitID = s[m[2]:m[3]]
-	if m[5] > 0 {
-		ret.SubPath = s[m[4]:m[5]]
-	}
+	ret.CommitID = s[m[pos]:m[pos+1]]
+	pos += 2
 
-	lastStart, lastEnd := m[len(m)-2], m[len(m)-1]
-	if lastEnd > 0 {
-		ret.QueryHash = s[lastStart:lastEnd][1:]
+	ret.CommitExt = s[m[pos]:m[pos+1]]
+	pos += 4
+
+	if m[pos] > 0 {
+		ret.SubPath = s[m[pos]:m[pos+1]]
+	}
+	pos += 2
+
+	if m[pos] > 0 {
+		ret.QueryParams = s[m[pos]:m[pos+1]]
+	}
+	pos += 2
+
+	if m[pos] > 0 {
+		ret.QueryHash = s[m[pos]:m[pos+1]][1:]
 	}
 	return ret, true
 }
 
 // fullHashPatternProcessor renders SHA containing URLs
 func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil {
+	if ctx.RenderOptions.Metas == nil {
 		return
 	}
 	nodeStop := node.NextSibling
@@ -99,6 +112,9 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 			continue
 		}
 		text := base.ShortSha(ret.CommitID)
+		if ret.CommitExt != "" {
+			text += ret.CommitExt
+		}
 		if ret.SubPath != "" {
 			text += ret.SubPath
 		}
@@ -111,7 +127,7 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 }
 
 func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil {
+	if ctx.RenderOptions.Metas == nil {
 		return
 	}
 	nodeStop := node.NextSibling
@@ -120,7 +136,7 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 			node = node.NextSibling
 			continue
 		}
-		m := comparePattern.FindStringSubmatchIndex(node.Data)
+		m := globalVars().comparePattern.FindStringSubmatchIndex(node.Data)
 		if m == nil || slices.Contains(m[:8], -1) { // ensure that every group (m[0]...m[7]) has a match
 			node = node.NextSibling
 			continue
@@ -163,17 +179,14 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 // hashCurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
 func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
-	if ctx.Metas == nil || ctx.Metas["user"] == "" || ctx.Metas["repo"] == "" || (ctx.Repo == nil && ctx.GitRepo == nil) {
+	if ctx.RenderOptions.Metas == nil || ctx.RenderOptions.Metas["user"] == "" || ctx.RenderOptions.Metas["repo"] == "" || ctx.RenderHelper == nil {
 		return
 	}
 
 	start := 0
 	next := node.NextSibling
-	if ctx.ShaExistCache == nil {
-		ctx.ShaExistCache = make(map[string]bool)
-	}
 	for node != nil && node != next && start < len(node.Data) {
-		m := hashCurrentPattern.FindStringSubmatchIndex(node.Data[start:])
+		m := globalVars().hashCurrentPattern.FindStringSubmatchIndex(node.Data[start:])
 		if m == nil {
 			return
 		}
@@ -189,37 +202,32 @@ func hashCurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		// as used by git and github for linking and thus we have to do similar.
 		// Because of this, we check to make sure that a matched hash is actually
 		// a commit in the repository before making it a link.
-
-		// check cache first
-		exist, inCache := ctx.ShaExistCache[hash]
-		if !inCache {
-			if ctx.GitRepo == nil {
-				var err error
-				var closer io.Closer
-				ctx.GitRepo, closer, err = gitrepo.RepositoryFromContextOrOpen(ctx.Ctx, ctx.Repo)
-				if err != nil {
-					log.Error("unable to open repository: %s Error: %v", gitrepo.RepoGitURL(ctx.Repo), err)
-					return
-				}
-				ctx.AddCancel(func() {
-					_ = closer.Close()
-					ctx.GitRepo = nil
-				})
-			}
-
-			// Don't use IsObjectExist since it doesn't support short hashs with gogit edition.
-			exist = ctx.GitRepo.IsReferenceExist(hash)
-			ctx.ShaExistCache[hash] = exist
-		}
-
-		if !exist {
+		if !ctx.RenderHelper.IsCommitIDExisting(hash) {
 			start = m[3]
 			continue
 		}
 
-		link := util.URLJoin(ctx.Links.Prefix(), ctx.Metas["user"], ctx.Metas["repo"], "commit", hash)
+		link := "/:root/" + util.URLJoin(ctx.RenderOptions.Metas["user"], ctx.RenderOptions.Metas["repo"], "commit", hash)
 		replaceContent(node, m[2], m[3], createCodeLink(link, base.ShortSha(hash), "commit"))
 		start = 0
+		node = node.NextSibling.NextSibling
+	}
+}
+
+func commitCrossReferencePatternProcessor(ctx *RenderContext, node *html.Node) {
+	next := node.NextSibling
+
+	for node != nil && node != next {
+		found, ref := references.FindRenderizableCommitCrossReference(node.Data)
+		if !found {
+			return
+		}
+
+		refText := ref.Owner + "/" + ref.Name + "@" + base.ShortSha(ref.CommitSha)
+		linkHref := "/:root/" + util.URLJoin(ref.Owner, ref.Name, "commit", ref.CommitSha)
+		link := createLink(ctx, linkHref, refText, "commit")
+
+		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
 		node = node.NextSibling.NextSibling
 	}
 }

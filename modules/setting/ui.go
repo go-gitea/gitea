@@ -28,10 +28,14 @@ var UI = struct {
 	DefaultShowFullName     bool
 	DefaultTheme            string
 	Themes                  []string
+	FileIconTheme           string
+	FolderIconTheme         string
 	Reactions               []string
 	ReactionsLookup         container.Set[string] `ini:"-"`
 	CustomEmojis            []string
 	CustomEmojisMap         map[string]string `ini:"-"`
+	EnabledEmojis           []string
+	EnabledEmojisSet        container.Set[string] `ini:"-"`
 	SearchRepoDescription   bool
 	OnlyShowRelevantRepos   bool
 	ExploreDefaultSort      string `ini:"EXPLORE_PAGING_DEFAULT_SORT"`
@@ -63,6 +67,7 @@ var UI = struct {
 	} `ini:"ui.admin"`
 	User struct {
 		RepoPagingNum int
+		OrgPagingNum  int
 	} `ini:"ui.user"`
 	Meta struct {
 		Author      string
@@ -83,9 +88,12 @@ var UI = struct {
 	ReactionMaxUserNum:      10,
 	MaxDisplayFileSize:      8388608,
 	DefaultTheme:            `gitea-auto`,
+	FileIconTheme:           `material`,
+	FolderIconTheme:         `basic`,
 	Reactions:               []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 	CustomEmojis:            []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
 	CustomEmojisMap:         map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
+	ExploreDefaultSort:      "recentupdate",
 	PreferredTimestampTense: "mixed",
 
 	AmbiguousUnicodeDetection: true,
@@ -126,8 +134,10 @@ var UI = struct {
 	},
 	User: struct {
 		RepoPagingNum int
+		OrgPagingNum  int
 	}{
 		RepoPagingNum: 15,
+		OrgPagingNum:  15,
 	},
 	Meta: struct {
 		Author      string
@@ -163,4 +173,5 @@ func loadUIFrom(rootCfg ConfigProvider) {
 	for _, emoji := range UI.CustomEmojis {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
+	UI.EnabledEmojisSet = container.SetOf(UI.EnabledEmojis...)
 }

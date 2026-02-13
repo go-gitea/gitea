@@ -8,24 +8,27 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
+	"time"
 
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/gtprof"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
 
 	"github.com/felixge/fgprof"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // PIDFile could be set from build tag
@@ -115,21 +118,31 @@ func showWebStartupMessage(msg string) {
 	log.Info("* CustomPath: %s", setting.CustomPath)
 	log.Info("* ConfigFile: %s", setting.CustomConf)
 	log.Info("%s", msg) // show startup message
+
+	if setting.CORSConfig.Enabled {
+		log.Info("CORS Service Enabled")
+	}
+	if setting.DefaultUILocation != time.Local {
+		log.Info("Default UI Location is %v", setting.DefaultUILocation.String())
+	}
+	if setting.MailService != nil {
+		log.Info("Mail Service Enabled: RegisterEmailConfirm=%v, Service.EnableNotifyMail=%v", setting.Service.RegisterEmailConfirm, setting.Service.EnableNotifyMail)
+	}
 }
 
-func serveInstall(ctx *cli.Context) error {
+func serveInstall(cmd *cli.Command) error {
 	showWebStartupMessage("Prepare to run install page")
 
 	routers.InitWebInstallPage(graceful.GetManager().HammerContext())
 
 	// Flag for port number in case first time run conflict
-	if ctx.IsSet("port") {
-		if err := setPort(ctx.String("port")); err != nil {
+	if cmd.IsSet("port") {
+		if err := setPort(cmd.String("port")); err != nil {
 			return err
 		}
 	}
-	if ctx.IsSet("install-port") {
-		if err := setPort(ctx.String("install-port")); err != nil {
+	if cmd.IsSet("install-port") {
+		if err := setPort(cmd.String("install-port")); err != nil {
 			return err
 		}
 	}
@@ -143,14 +156,13 @@ func serveInstall(ctx *cli.Context) error {
 	case <-graceful.GetManager().IsShutdown():
 		<-graceful.GetManager().Done()
 		log.Info("PID: %d Gitea Web Finished", os.Getpid())
-		log.GetManager().Close()
 		return err
 	default:
 	}
 	return nil
 }
 
-func serveInstalled(ctx *cli.Context) error {
+func serveInstalled(c *cli.Command) error {
 	setting.InitCfgProvider(setting.CustomConf)
 	setting.LoadCommonSettings()
 	setting.MustInstalled()
@@ -200,39 +212,49 @@ func serveInstalled(ctx *cli.Context) error {
 		log.Fatal("Can not find APP_DATA_PATH %q", setting.AppDataPath)
 	}
 
+	// the AppDataTempDir is fully managed by us with a safe sub-path
+	// so it's safe to automatically remove the outdated files
+	setting.AppDataTempDir("").RemoveOutdated(3 * 24 * time.Hour)
+
 	// Override the provided port number within the configuration
-	if ctx.IsSet("port") {
-		if err := setPort(ctx.String("port")); err != nil {
+	if c.IsSet("port") {
+		if err := setPort(c.String("port")); err != nil {
 			return err
 		}
 	}
+
+	gtprof.EnableBuiltinTracer(util.Iif(setting.IsProd, 2000*time.Millisecond, 100*time.Millisecond))
 
 	// Set up Chi routes
 	webRoutes := routers.NormalRoutes()
 	err := listen(webRoutes, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
-	log.GetManager().Close()
 	return err
 }
 
 func servePprof() {
-	http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
-	_, _, finished := process.GetManager().AddTypedContext(context.Background(), "Web: PProf Server", process.SystemProcessType, true)
-	// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment it's not worth to introduce a configurable option for it.
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	mux.Handle("/debug/fgprof", fgprof.Handler())
+	// FIXME: it should use a proper context
+	_, _, finished := process.GetManager().AddTypedContext(context.TODO(), "Web: PProf Server", process.SystemProcessType, true)
+	// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment, it's not worth introducing a configurable option for it.
 	log.Info("Starting pprof server on localhost:6060")
-	log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", nil))
+	log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", mux))
 	finished()
 }
 
-func runWeb(ctx *cli.Context) error {
-	defer func() {
-		if panicked := recover(); panicked != nil {
-			log.Fatal("PANIC: %v\n%s", panicked, log.Stack(2))
-		}
-	}()
+func runWeb(ctx context.Context, cmd *cli.Command) error {
+	if subCmdName, valid := isValidDefaultSubCommand(cmd); !valid {
+		return fmt.Errorf("unknown command: %s", subCmdName)
+	}
 
-	managerCtx, cancel := context.WithCancel(context.Background())
+	managerCtx, cancel := context.WithCancel(ctx)
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
@@ -243,12 +265,16 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Set pid file setting
-	if ctx.IsSet("pid") {
-		createPIDFile(ctx.String("pid"))
+	if cmd.IsSet("pid") {
+		createPIDFile(cmd.String("pid"))
 	}
 
+	// init the HTML renderer and load templates, if error happens, it will report the error immediately and exit with error log
+	// in dev mode, it won't exit, but watch the template files for changes
+	_ = templates.PageRenderer()
+
 	if !setting.InstallLock {
-		if err := serveInstall(ctx); err != nil {
+		if err := serveInstall(cmd); err != nil {
 			return err
 		}
 	} else {
@@ -259,7 +285,7 @@ func runWeb(ctx *cli.Context) error {
 		go servePprof()
 	}
 
-	return serveInstalled(ctx)
+	return serveInstalled(cmd)
 }
 
 func setPort(port string) error {

@@ -5,45 +5,54 @@ package files
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch string, treeNames []string) (*api.FilesResponse, error) {
-	files := []*api.ContentsResponse{}
-	for _, file := range treeNames {
-		fileContents, _ := GetContents(ctx, repo, file, branch, false) // ok if fails, then will be nil
+func GetContentsListFromTreePaths(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, treePaths []string) (files []*api.ContentsResponse) {
+	var size int64
+	for _, treePath := range treePaths {
+		// ok if fails, then will be nil
+		fileContents, _ := GetFileContents(ctx, repo, gitRepo, refCommit, GetContentsOrListOptions{
+			TreePath:                 treePath,
+			IncludeSingleFileContent: true,
+			IncludeCommitMetadata:    true,
+		})
+		if fileContents != nil && fileContents.Content != nil && *fileContents.Content != "" {
+			// if content isn't empty (e.g., due to the single blob being too large), add file size to response size
+			size += int64(len(*fileContents.Content))
+		}
+		if size > setting.API.DefaultMaxResponseSize {
+			break // stop if max response size would be exceeded
+		}
 		files = append(files, fileContents)
+		if len(files) == setting.API.DefaultPagingNum {
+			break // stop if paging num reached
+		}
 	}
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(ctx, commit)
+	return files
+}
+
+func GetFilesResponseFromCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, refCommit *utils.RefCommit, treeNames []string) (*api.FilesResponse, error) {
+	files := GetContentsListFromTreePaths(ctx, repo, gitRepo, refCommit, treeNames)
+	fileCommitResponse, _ := GetFileCommitResponse(repo, refCommit.Commit) // ok if fails, then will be nil
+	verification := GetPayloadCommitVerification(ctx, refCommit.Commit)
 	filesResponse := &api.FilesResponse{
 		Files:        files,
 		Commit:       fileCommitResponse,
 		Verification: verification,
 	}
 	return filesResponse, nil
-}
-
-// GetFileResponseFromCommit Constructs a FileResponse from a Commit object
-func GetFileResponseFromCommit(ctx context.Context, repo *repo_model.Repository, commit *git.Commit, branch, treeName string) (*api.FileResponse, error) {
-	fileContents, _ := GetContents(ctx, repo, treeName, branch, false) // ok if fails, then will be nil
-	fileCommitResponse, _ := GetFileCommitResponse(repo, commit)       // ok if fails, then will be nil
-	verification := GetPayloadCommitVerification(ctx, commit)
-	fileResponse := &api.FileResponse{
-		Content:      fileContents,
-		Commit:       fileCommitResponse,
-		Verification: verification,
-	}
-	return fileResponse, nil
 }
 
 // constructs a FileResponse with the file at the index from FilesResponse
@@ -63,10 +72,10 @@ func GetFileResponseFromFilesResponse(filesResponse *api.FilesResponse, index in
 // GetFileCommitResponse Constructs a FileCommitResponse from a Commit object
 func GetFileCommitResponse(repo *repo_model.Repository, commit *git.Commit) (*api.FileCommitResponse, error) {
 	if repo == nil {
-		return nil, fmt.Errorf("repo cannot be nil")
+		return nil, errors.New("repo cannot be nil")
 	}
 	if commit == nil {
-		return nil, fmt.Errorf("commit cannot be nil")
+		return nil, errors.New("commit cannot be nil")
 	}
 	commitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()))
 	commitTreeURL, _ := url.Parse(repo.APIURL() + "/git/trees/" + url.PathEscape(commit.Tree.ID.String()))
@@ -111,60 +120,36 @@ func GetFileCommitResponse(repo *repo_model.Repository, commit *git.Commit) (*ap
 	return fileCommit, nil
 }
 
-// GetAuthorAndCommitterUsers Gets the author and committer user objects from the IdentityOptions
-func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *user_model.User) (authorUser, committerUser *user_model.User) {
-	// Committer and author are optional. If they are not the doer (not same email address)
-	// then we use bogus User objects for them to store their FullName and Email.
-	// If only one of the two are provided, we set both of them to it.
-	// If neither are provided, both are the doer.
-	if committer != nil && committer.Email != "" {
-		if doer != nil && strings.EqualFold(doer.Email, committer.Email) {
-			committerUser = doer // the committer is the doer, so will use their user object
-			if committer.Name != "" {
-				committerUser.FullName = committer.Name
-			}
-		} else {
-			committerUser = &user_model.User{
-				FullName: committer.Name,
-				Email:    committer.Email,
-			}
-		}
-	}
-	if author != nil && author.Email != "" {
-		if doer != nil && strings.EqualFold(doer.Email, author.Email) {
-			authorUser = doer // the author is the doer, so will use their user object
-			if authorUser.Name != "" {
-				authorUser.FullName = author.Name
-			}
-		} else {
-			authorUser = &user_model.User{
-				FullName: author.Name,
-				Email:    author.Email,
-			}
-		}
-	}
-	if authorUser == nil {
-		if committerUser != nil {
-			authorUser = committerUser // No valid author was given so use the committer
-		} else if doer != nil {
-			authorUser = doer // No valid author was given and no valid committer so use the doer
-		}
-	}
-	if committerUser == nil {
-		committerUser = authorUser // No valid committer so use the author as the committer (was set to a valid user above)
-	}
-	return authorUser, committerUser
+// ErrFilenameInvalid represents a "FilenameInvalid" kind of error.
+type ErrFilenameInvalid struct {
+	Path string
 }
 
-// CleanUploadFileName Trims a filename and returns empty string if it is a .git directory
-func CleanUploadFileName(name string) string {
-	// Rebase the filename
+// IsErrFilenameInvalid checks if an error is an ErrFilenameInvalid.
+func IsErrFilenameInvalid(err error) bool {
+	_, ok := err.(ErrFilenameInvalid)
+	return ok
+}
+
+func (err ErrFilenameInvalid) Error() string {
+	return fmt.Sprintf("path contains a malformed path component [path: %s]", err.Path)
+}
+
+func (err ErrFilenameInvalid) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
+// CleanGitTreePath cleans a tree path for git, it returns an empty string the path is invalid (e.g.: contains ".git" part)
+func CleanGitTreePath(name string) string {
 	name = util.PathJoinRel(name)
 	// Git disallows any filenames to have a .git directory in them.
-	for _, part := range strings.Split(name, "/") {
-		if strings.ToLower(part) == ".git" {
+	for part := range strings.SplitSeq(name, "/") {
+		if strings.EqualFold(part, ".git") {
 			return ""
 		}
+	}
+	if name == "." {
+		name = ""
 	}
 	return name
 }

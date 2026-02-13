@@ -4,6 +4,8 @@
 	<div class="ui container">
 	{{template "base/alert" .}}
 
+	{{template "repo/code/recently_pushed_new_branches" dict "RecentBranchesPromptData" .RecentBranchesPromptData}}
+
 	{{if .PinnedIssues}}
 		<div id="issue-pins" {{if .IsRepoAdmin}}data-is-repo-admin{{end}}>
 			{{range .PinnedIssues}}
@@ -14,18 +16,20 @@
 		</div>
 	{{end}}
 
-		<div class="list-header">
-			{{template "repo/issue/navbar" .}}
+		<div class="list-header flex-text-block">
 			{{template "repo/issue/search" .}}
+			<a class="ui small button" href="{{.RepoLink}}/labels">{{ctx.Locale.Tr "repo.labels"}}</a>
+			<a class="ui small button" href="{{.RepoLink}}/milestones">{{ctx.Locale.Tr "repo.milestones"}}</a>
 			{{if not .Repository.IsArchived}}
 				{{if .PageIsIssueList}}
 					<a class="ui small primary button issue-list-new" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{ctx.Locale.Tr "repo.issues.new"}}</a>
 				{{else}}
-					<a class="ui small primary button new-pr-button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
+					<a class="ui small primary button new-pr-button issue-list-new {{if not .PullRequestCtx.CanCreateNewPull}}disabled{{end}}" href="{{.PullRequestCtx.MakeDefaultCompareLink .Repository.DefaultBranch}}">{{ctx.Locale.Tr "repo.pulls.new"}}</a>
 				{{end}}
 			{{else}}
+				{{/* archived, view compare page only */}}
 				{{if not .PageIsIssueList}}
-					<a class="ui small primary small button issue-list-new{{if not .PullRequestCtx.Allowed}} disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.PullRequestCtx.BaseRepo.Link}}/compare/{{.PullRequestCtx.BaseRepo.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{ctx.Locale.Tr "action.compare_commits_general"}}</a>
+					<a class="ui small primary small button issue-list-new" href="{{.PullRequestCtx.MakeDefaultCompareLink .Repository.DefaultBranch}}">{{ctx.Locale.Tr "action.compare_commits_general"}}</a>
 				{{end}}
 			{{end}}
 		</div>
@@ -40,7 +44,7 @@
 					<div class="ui compact tiny secondary menu">
 						<span class="item" data-tooltip-content='{{ctx.Locale.Tr "tracked_time_summary"}}'>
 							{{svg "octicon-clock"}}
-							{{.TotalTrackedTime | Sec2Time}}
+							{{.TotalTrackedTime | Sec2Hour}}
 						</span>
 					</div>
 				{{end}}

@@ -1,5 +1,4 @@
-{{template "base/head" .}}
-<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
+{{template "devtest/devtest-header"}}
 <div class="page-content devtest ui container">
 	<div>
 		<h2>Dropdown</h2>
@@ -76,12 +75,12 @@
 		<h2>Selection</h2>
 		<div>
 			{{/* the "selection" class is optional, it will be added by JS automatically */}}
-			<select class="ui dropdown selection ellipsis-items-nowrap">
+			<select class="ui dropdown selection ellipsis-text-items">
 				<option>a</option>
 				<option>abcdefuvwxyz</option>
 				<option>loooooooooooooooooooooooooooooooooooooooooooooooooooooooooong</option>
 			</select>
-			<select class="ui dropdown ellipsis-items-nowrap tw-max-w-[8em]">
+			<select class="ui dropdown ellipsis-text-items tw-max-w-[8em]">
 				<option>loooooooooooooooooooooooooooooooooooooooooooooooooooooooooong</option>
 				<option>abcdefuvwxyz</option>
 				<option>a</option>
@@ -128,4 +127,4 @@
 		</div>
 	</div>
 </div>
-{{template "base/footer" .}}
+{{template "devtest/devtest-footer"}}

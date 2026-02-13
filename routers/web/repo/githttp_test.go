@@ -37,6 +37,6 @@ func TestContainsParentDirectorySeparator(t *testing.T) {
 	}
 
 	for i := range tests {
-		assert.EqualValues(t, tests[i].b, containsParentDirectorySeparator(tests[i].v))
+		assert.Equal(t, tests[i].b, containsParentDirectorySeparator(tests[i].v))
 	}
 }

@@ -5,7 +5,7 @@ package migrations
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"net/url"
 	"strconv"
 	"strings"
@@ -18,7 +18,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/codecommit"
 	"github.com/aws/aws-sdk-go-v2/service/codecommit/types"
-	"github.com/aws/aws-sdk-go/aws"
 )
 
 var (
@@ -42,13 +41,13 @@ func (c *CodeCommitDownloaderFactory) New(ctx context.Context, opts base.Migrate
 
 	hostElems := strings.Split(u.Host, ".")
 	if len(hostElems) != 4 {
-		return nil, fmt.Errorf("cannot get the region from clone URL")
+		return nil, errors.New("cannot get the region from clone URL")
 	}
 	region := hostElems[1]
 
 	pathElems := strings.Split(u.Path, "/")
 	if len(pathElems) == 0 {
-		return nil, fmt.Errorf("cannot get the repo name from clone URL")
+		return nil, errors.New("cannot get the repo name from clone URL")
 	}
 	repoName := pathElems[len(pathElems)-1]
 
@@ -62,9 +61,8 @@ func (c *CodeCommitDownloaderFactory) GitServiceType() structs.GitServiceType {
 	return structs.CodeCommitService
 }
 
-func NewCodeCommitDownloader(ctx context.Context, repoName, baseURL, accessKeyID, secretAccessKey, region string) *CodeCommitDownloader {
+func NewCodeCommitDownloader(_ context.Context, repoName, baseURL, accessKeyID, secretAccessKey, region string) *CodeCommitDownloader {
 	downloader := CodeCommitDownloader{
-		ctx:      ctx,
 		repoName: repoName,
 		baseURL:  baseURL,
 		codeCommitClient: codecommit.New(codecommit.Options{
@@ -79,22 +77,16 @@ func NewCodeCommitDownloader(ctx context.Context, repoName, baseURL, accessKeyID
 // CodeCommitDownloader implements a downloader for AWS CodeCommit
 type CodeCommitDownloader struct {
 	base.NullDownloader
-	ctx               context.Context
 	codeCommitClient  *codecommit.Client
 	repoName          string
 	baseURL           string
 	allPullRequestIDs []string
 }
 
-// SetContext set context
-func (c *CodeCommitDownloader) SetContext(ctx context.Context) {
-	c.ctx = ctx
-}
-
 // GetRepoInfo returns a repository information
-func (c *CodeCommitDownloader) GetRepoInfo() (*base.Repository, error) {
-	output, err := c.codeCommitClient.GetRepository(c.ctx, &codecommit.GetRepositoryInput{
-		RepositoryName: aws.String(c.repoName),
+func (c *CodeCommitDownloader) GetRepoInfo(ctx context.Context) (*base.Repository, error) {
+	output, err := c.codeCommitClient.GetRepository(ctx, &codecommit.GetRepositoryInput{
+		RepositoryName: new(c.repoName),
 	})
 	if err != nil {
 		return nil, err
@@ -117,16 +109,16 @@ func (c *CodeCommitDownloader) GetRepoInfo() (*base.Repository, error) {
 }
 
 // GetComments returns comments of an issue or PR
-func (c *CodeCommitDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+func (c *CodeCommitDownloader) GetComments(ctx context.Context, commentable base.Commentable) ([]*base.Comment, bool, error) {
 	var (
 		nextToken *string
 		comments  []*base.Comment
 	)
 
 	for {
-		resp, err := c.codeCommitClient.GetCommentsForPullRequest(c.ctx, &codecommit.GetCommentsForPullRequestInput{
+		resp, err := c.codeCommitClient.GetCommentsForPullRequest(ctx, &codecommit.GetCommentsForPullRequestInput{
 			NextToken:     nextToken,
-			PullRequestId: aws.String(strconv.FormatInt(commentable.GetForeignIndex(), 10)),
+			PullRequestId: new(strconv.FormatInt(commentable.GetForeignIndex(), 10)),
 		})
 		if err != nil {
 			return nil, false, err
@@ -155,23 +147,20 @@ func (c *CodeCommitDownloader) GetComments(commentable base.Commentable) ([]*bas
 }
 
 // GetPullRequests returns pull requests according page and perPage
-func (c *CodeCommitDownloader) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
-	allPullRequestIDs, err := c.getAllPullRequestIDs()
+func (c *CodeCommitDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*base.PullRequest, bool, error) {
+	allPullRequestIDs, err := c.getAllPullRequestIDs(ctx)
 	if err != nil {
 		return nil, false, err
 	}
 
 	startIndex := (page - 1) * perPage
-	endIndex := page * perPage
-	if endIndex > len(allPullRequestIDs) {
-		endIndex = len(allPullRequestIDs)
-	}
+	endIndex := min(page*perPage, len(allPullRequestIDs))
 	batch := allPullRequestIDs[startIndex:endIndex]
 
 	prs := make([]*base.PullRequest, 0, len(batch))
 	for _, id := range batch {
-		output, err := c.codeCommitClient.GetPullRequest(c.ctx, &codecommit.GetPullRequestInput{
-			PullRequestId: aws.String(id),
+		output, err := c.codeCommitClient.GetPullRequest(ctx, &codecommit.GetPullRequestInput{
+			PullRequestId: new(id),
 		})
 		if err != nil {
 			return nil, false, err
@@ -187,11 +176,15 @@ func (c *CodeCommitDownloader) GetPullRequests(page, perPage int) ([]*base.PullR
 			continue
 		}
 		target := orig.PullRequestTargets[0]
+		description := ""
+		if orig.Description != nil {
+			description = *orig.Description
+		}
 		pr := &base.PullRequest{
 			Number:     number,
 			Title:      *orig.Title,
 			PosterName: c.getUsernameFromARN(*orig.AuthorArn),
-			Content:    *orig.Description,
+			Content:    description,
 			State:      "open",
 			Created:    *orig.CreationDate,
 			Updated:    *orig.LastActivityDate,
@@ -213,6 +206,10 @@ func (c *CodeCommitDownloader) GetPullRequests(page, perPage int) ([]*base.PullR
 			pr.State = "closed"
 			pr.Closed = orig.LastActivityDate
 		}
+		if pr.Merged {
+			pr.MergeCommitSHA = *target.MergeMetadata.MergeCommitId
+			pr.MergedTime = orig.LastActivityDate
+		}
 
 		_ = CheckAndEnsureSafePR(pr, c.baseURL, c)
 		prs = append(prs, pr)
@@ -231,7 +228,7 @@ func (c *CodeCommitDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr st
 	return u.String(), nil
 }
 
-func (c *CodeCommitDownloader) getAllPullRequestIDs() ([]string, error) {
+func (c *CodeCommitDownloader) getAllPullRequestIDs(ctx context.Context) ([]string, error) {
 	if len(c.allPullRequestIDs) > 0 {
 		return c.allPullRequestIDs, nil
 	}
@@ -242,8 +239,8 @@ func (c *CodeCommitDownloader) getAllPullRequestIDs() ([]string, error) {
 	)
 
 	for {
-		output, err := c.codeCommitClient.ListPullRequests(c.ctx, &codecommit.ListPullRequestsInput{
-			RepositoryName: aws.String(c.repoName),
+		output, err := c.codeCommitClient.ListPullRequests(ctx, &codecommit.ListPullRequestsInput{
+			RepositoryName: new(c.repoName),
 			NextToken:      nextToken,
 		})
 		if err != nil {

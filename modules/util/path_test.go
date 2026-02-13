@@ -5,10 +5,12 @@ package util
 
 import (
 	"net/url"
+	"os"
 	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFileURLToPath(t *testing.T) {
@@ -209,4 +211,22 @@ func TestCleanPath(t *testing.T) {
 	for _, c := range cases {
 		assert.Equal(t, c.expected, FilePathJoinAbs(c.elems[0], c.elems[1:]...), "case: %v", c.elems)
 	}
+}
+
+func TestListDirRecursively(t *testing.T) {
+	tmpDir := t.TempDir()
+	_ = os.WriteFile(tmpDir+"/.config", nil, 0o644)
+	_ = os.Mkdir(tmpDir+"/d1", 0o755)
+	_ = os.WriteFile(tmpDir+"/d1/f-d1", nil, 0o644)
+	_ = os.Mkdir(tmpDir+"/d1/s1", 0o755)
+	_ = os.WriteFile(tmpDir+"/d1/s1/f-d1s1", nil, 0o644)
+	_ = os.Mkdir(tmpDir+"/d2", 0o755)
+
+	res, err := ListDirRecursively(tmpDir, &ListDirOptions{IncludeDir: true})
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{".config", "d1/", "d1/f-d1", "d1/s1/", "d1/s1/f-d1s1", "d2/"}, res)
+
+	res, err = ListDirRecursively(tmpDir, &ListDirOptions{SkipCommonHiddenNames: true})
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []string{"d1/f-d1", "d1/s1/f-d1s1"}, res)
 }

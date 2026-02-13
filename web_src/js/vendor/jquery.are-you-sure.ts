@@ -2,6 +2,8 @@
 // Fork of the upstream module. The only changes are:
 // * use export to make it work with ES6 modules.
 // * the addition of `const` to make it strict mode compatible.
+// * ignore forms with "ignore-dirty" class, ignore hidden forms (closest('.tw-hidden'))
+// * extract the dirty check logic into a separate function
 
 /*!
  * jQuery Plugin: Are-You-Sure (Dirty Form Detection)
@@ -15,6 +17,9 @@
  * Version: 1.9.0
  * Date:    13th August 2014
  */
+
+const dataKeyAysSettings = 'ays-settings';
+
 export function initAreYouSure($) {
 
   $.fn.areYouSure = function(options) {
@@ -123,6 +128,7 @@ export function initAreYouSure($) {
       $(fields).unbind(settings.fieldEvents, checkForm);
       $(fields).bind(settings.fieldEvents, checkForm);
       $form.data("ays-orig-field-count", $(fields).length);
+      $form.data(dataKeyAysSettings, settings);
       setDirtyStatus($form, false);
     };
 
@@ -161,10 +167,8 @@ export function initAreYouSure($) {
     if (!settings.silent && !window.aysUnloadSet) {
       window.aysUnloadSet = true;
       $(window).bind('beforeunload', function() {
-        const $dirtyForms = $("form").filter('.' + settings.dirtyClass);
-        if ($dirtyForms.length == 0) {
-          return;
-        }
+        if (!shouldTriggerAreYouSure(settings)) return;
+
         // Prevent multiple prompts - seen on Chrome and IE
         if (navigator.userAgent.toLowerCase().match(/msie|chrome/)) {
           if (window.aysHasPrompted) {
@@ -194,4 +198,30 @@ export function initAreYouSure($) {
       initForm($form);
     });
   };
+}
+
+export function applyAreYouSure(selectorOrEl: string|Element|$, opts = {}) {
+  $(selectorOrEl).areYouSure(opts);
+}
+
+export function reinitializeAreYouSure(selectorOrEl: string|Element|$) {
+  $(selectorOrEl).trigger('reinitialize.areYouSure');
+}
+
+export function ignoreAreYouSure(selectorOrEl: string|Element|$) {
+  // here we should only add "ignore-dirty" but not remove "dirty".
+  // because when using "enter" to submit a form, the "dirty" class will appear again before reloading.
+  $(selectorOrEl).addClass('ignore-dirty');
+}
+
+export function shouldTriggerAreYouSure(): boolean {
+  const forms = document.querySelectorAll('form:not(.ignore-dirty)');
+  for (const form of forms) {
+    const settings = $(form).data(dataKeyAysSettings);
+    if (!settings) continue;
+    if (!form.matches('.' + settings.dirtyClass)) continue;
+    if (form.closest('.tw-hidden')) continue;
+    return true;
+  }
+  return false;
 }

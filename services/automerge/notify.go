@@ -12,6 +12,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/services/automergequeue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -45,7 +46,7 @@ func (n *automergeNotifier) PullReviewDismiss(ctx context.Context, doer *user_mo
 		return
 	}
 	// as reviews could have blocked a pending automerge let's recheck
-	StartPRCheckAndAutoMerge(ctx, review.Issue.PullRequest)
+	automergequeue.StartPRCheckAndAutoMerge(ctx, review.Issue.PullRequest)
 }
 
 func (n *automergeNotifier) CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, commit *repository.PushCommit, sender *user_model.User, status *git_model.CommitStatus) {

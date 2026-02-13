@@ -1,9 +1,9 @@
 <div class="bottom-reactions" data-action-url="{{$.ActionURL}}">
 {{range $key, $value := .Reactions}}
 	{{$hasReacted := $value.HasUser ctx.RootData.SignedUserID}}
-	<a role="button" class="ui label basic{{if $hasReacted}} primary{{end}}{{if not ctx.RootData.IsSigned}} disabled{{end}} comment-reaction-button"
-		data-tooltip-content
-		title="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{ctx.Locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
+	<a role="button" class="ui label basic{{if $hasReacted}} primary{{end}}{{if not ctx.RootData.IsSigned}} disabled{{end}}"
+		data-global-click="onCommentReactionButtonClick"
+		data-tooltip-content title="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{ctx.Locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
 		aria-label="{{$value.GetFirstUsers}}{{if gt ($value.GetMoreUserCount) 0}} {{ctx.Locale.Tr "repo.reactions_more" $value.GetMoreUserCount}}{{end}}"
 		data-tooltip-placement="bottom-start"
 		data-reaction-content="{{$key}}" data-has-reacted="{{$hasReacted}}">

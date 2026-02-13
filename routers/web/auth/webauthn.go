@@ -11,23 +11,22 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	wa "code.gitea.io/gitea/modules/auth/webauthn"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
-	"code.gitea.io/gitea/services/externalaccount"
 
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 )
 
-var tplWebAuthn base.TplName = "user/auth/webauthn"
+var tplWebAuthn templates.TplName = "user/auth/webauthn"
 
 // WebAuthn shows the WebAuthn login page
 func WebAuthn(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("twofa")
 
-	if CheckAutoLogin(ctx) {
+	if performAutoLogin(ctx) {
 		return
 	}
 
@@ -50,6 +49,11 @@ func WebAuthn(ctx *context.Context) {
 
 // WebAuthnPasskeyAssertion submits a WebAuthn challenge for the passkey login to the browser
 func WebAuthnPasskeyAssertion(ctx *context.Context) {
+	if !setting.Service.EnablePasskeyAuth {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
 	assertion, sessionData, err := wa.WebAuthn.BeginDiscoverableLogin()
 	if err != nil {
 		ctx.ServerError("webauthn.BeginDiscoverableLogin", err)
@@ -66,6 +70,11 @@ func WebAuthnPasskeyAssertion(ctx *context.Context) {
 
 // WebAuthnPasskeyLogin handles the WebAuthn login process using a Passkey
 func WebAuthnPasskeyLogin(ctx *context.Context) {
+	if !setting.Service.EnablePasskeyAuth {
+		ctx.HTTPError(http.StatusForbidden)
+		return
+	}
+
 	sessionData, okData := ctx.Session.Get("webauthnPasskeyAssertion").(*webauthn.SessionData)
 	if !okData || sessionData == nil {
 		ctx.ServerError("ctx.Session.Get", errors.New("not in WebAuthn session"))
@@ -76,8 +85,17 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 	}()
 
 	// Validate the parsed response.
+
+	// ParseCredentialRequestResponse+ValidateDiscoverableLogin equals to FinishDiscoverableLogin, but we need to ParseCredentialRequestResponse first to get flags
 	var user *user_model.User
-	cred, err := wa.WebAuthn.FinishDiscoverableLogin(func(rawID, userHandle []byte) (webauthn.User, error) {
+	parsedResponse, err := protocol.ParseCredentialRequestResponse(ctx.Req)
+	if err != nil {
+		// Failed authentication attempt.
+		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
+		ctx.Status(http.StatusForbidden)
+		return
+	}
+	cred, err := wa.WebAuthn.ValidateDiscoverableLogin(func(rawID, userHandle []byte) (webauthn.User, error) {
 		userID, n := binary.Varint(userHandle)
 		if n <= 0 {
 			return nil, errors.New("invalid rawID")
@@ -89,8 +107,8 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 			return nil, err
 		}
 
-		return (*wa.User)(user), nil
-	}, *sessionData, ctx.Req)
+		return wa.NewWebAuthnUser(ctx, user, parsedResponse.Response.AuthenticatorData.Flags), nil
+	}, *sessionData, parsedResponse)
 	if err != nil {
 		// Failed authentication attempt.
 		log.Info("Failed authentication attempt for passkey from %s: %v", ctx.RemoteAddr(), err)
@@ -131,19 +149,15 @@ func WebAuthnPasskeyLogin(ctx *context.Context) {
 
 	// Now handle account linking if that's requested
 	if ctx.Session.Get("linkAccount") != nil {
-		if err := externalaccount.LinkAccountFromStore(ctx, ctx.Session, user); err != nil {
+		if err := linkAccountFromContext(ctx, user); err != nil {
 			ctx.ServerError("LinkAccountFromStore", err)
 			return
 		}
 	}
 
 	remember := false // TODO: implement remember me
-	redirect := handleSignInFull(ctx, user, remember, false)
-	if redirect == "" {
-		redirect = setting.AppSubURL + "/"
-	}
-
-	ctx.JSONRedirect(redirect)
+	handleSignInFull(ctx, user, remember)
+	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))
 }
 
 // WebAuthnLoginAssertion submits a WebAuthn challenge to the browser
@@ -171,7 +185,8 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user))
+	webAuthnUser := wa.NewWebAuthnUser(ctx, user)
+	assertion, sessionData, err := wa.WebAuthn.BeginLogin(webAuthnUser)
 	if err != nil {
 		ctx.ServerError("webauthn.BeginLogin", err)
 		return
@@ -216,7 +231,8 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 
 	// Validate the parsed response.
-	cred, err := wa.WebAuthn.ValidateLogin((*wa.User)(user), *sessionData, parsedResponse)
+	webAuthnUser := wa.NewWebAuthnUser(ctx, user, parsedResponse.Response.AuthenticatorData.Flags)
+	cred, err := wa.WebAuthn.ValidateLogin(webAuthnUser, *sessionData, parsedResponse)
 	if err != nil {
 		// Failed authentication attempt.
 		log.Info("Failed authentication attempt for %s from %s: %v", user.Name, ctx.RemoteAddr(), err)
@@ -247,18 +263,14 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 
 	// Now handle account linking if that's requested
 	if ctx.Session.Get("linkAccount") != nil {
-		if err := externalaccount.LinkAccountFromStore(ctx, ctx.Session, user); err != nil {
+		if err := linkAccountFromContext(ctx, user); err != nil {
 			ctx.ServerError("LinkAccountFromStore", err)
 			return
 		}
 	}
 
 	remember := ctx.Session.Get("twofaRemember").(bool)
-	redirect := handleSignInFull(ctx, user, remember, false)
-	if redirect == "" {
-		redirect = setting.AppSubURL + "/"
-	}
+	handleSignInFull(ctx, user, remember)
 	_ = ctx.Session.Delete("twofaUid")
-
-	ctx.JSONRedirect(redirect)
+	ctx.JSONRedirect(consumeAuthRedirectLink(ctx))
 }

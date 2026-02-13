@@ -5,19 +5,17 @@ package auth
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -26,9 +24,9 @@ import (
 
 var (
 	// tplMustChangePassword template for updating a user's password
-	tplMustChangePassword base.TplName = "user/auth/change_passwd"
-	tplForgotPassword     base.TplName = "user/auth/forgot_passwd"
-	tplResetPassword      base.TplName = "user/auth/reset_passwd"
+	tplMustChangePassword templates.TplName = "user/auth/change_passwd"
+	tplForgotPassword     templates.TplName = "user/auth/forgot_passwd"
+	tplResetPassword      templates.TplName = "user/auth/reset_passwd"
 )
 
 // ForgotPasswd render the forget password page
@@ -53,7 +51,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("auth.forgot_password_title")
 
 	if setting.MailService == nil {
-		ctx.NotFound("ForgotPasswdPost", nil)
+		ctx.NotFound(nil)
 		return
 	}
 	ctx.Data["IsResetRequest"] = true
@@ -108,21 +106,21 @@ func commonResetPassword(ctx *context.Context) (*user_model.User, *auth.TwoFacto
 	}
 
 	if len(code) == 0 {
-		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", fmt.Sprintf("%s/user/forgot_password", setting.AppSubURL)), true)
+		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", setting.AppSubURL+"/user/forgot_password"), true)
 		return nil, nil
 	}
 
 	// Fail early, don't frustrate the user
-	u := user_model.VerifyUserActiveCode(ctx, code)
+	u := user_model.VerifyUserTimeLimitCode(ctx, &user_model.TimeLimitCodeOptions{Purpose: user_model.TimeLimitCodeResetPassword}, code)
 	if u == nil {
-		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", fmt.Sprintf("%s/user/forgot_password", setting.AppSubURL)), true)
+		ctx.Flash.Error(ctx.Tr("auth.invalid_code_forgot_password", setting.AppSubURL+"/user/forgot_password"), true)
 		return nil, nil
 	}
 
 	twofa, err := auth.GetTwoFactorByUID(ctx, u.ID)
 	if err != nil {
 		if !auth.IsErrTwoFactorNotEnrolled(err) {
-			ctx.Error(http.StatusInternalServerError, "CommonResetPassword", err.Error())
+			ctx.HTTPError(http.StatusInternalServerError, "CommonResetPassword", err.Error())
 			return nil, nil
 		}
 	} else {
@@ -181,7 +179,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			passcode := ctx.FormString("passcode")
 			ok, err := twofa.ValidateTOTP(passcode)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "ValidateTOTP", err.Error())
+				ctx.HTTPError(http.StatusInternalServerError, "ValidateTOTP", err.Error())
 				return
 			}
 			if !ok || twofa.LastUsedPasscode == passcode {
@@ -237,7 +235,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			return
 		}
 
-		handleSignInFull(ctx, u, remember, false)
+		handleSignInFull(ctx, u, remember)
 		if ctx.Written() {
 			return
 		}
@@ -309,11 +307,5 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	log.Trace("User updated password: %s", ctx.Doer.Name)
 
-	if redirectTo := ctx.GetSiteCookie("redirect_to"); redirectTo != "" {
-		middleware.DeleteRedirectToCookie(ctx.Resp)
-		ctx.RedirectToCurrentSite(redirectTo)
-		return
-	}
-
-	ctx.Redirect(setting.AppSubURL + "/")
+	redirectAfterAuth(ctx)
 }

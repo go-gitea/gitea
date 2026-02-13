@@ -5,7 +5,7 @@ package internal
 
 import (
 	"context"
-	"fmt"
+	"errors"
 )
 
 // Indexer defines an basic indexer interface
@@ -27,11 +27,11 @@ func NewDummyIndexer() Indexer {
 type dummyIndexer struct{}
 
 func (d *dummyIndexer) Init(ctx context.Context) (bool, error) {
-	return false, fmt.Errorf("indexer is not ready")
+	return false, errors.New("indexer is not ready")
 }
 
 func (d *dummyIndexer) Ping(ctx context.Context) error {
-	return fmt.Errorf("indexer is not ready")
+	return errors.New("indexer is not ready")
 }
 
 func (d *dummyIndexer) Close() {}

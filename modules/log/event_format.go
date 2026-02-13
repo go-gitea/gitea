@@ -13,10 +13,9 @@ import (
 type Event struct {
 	Time time.Time
 
-	GoroutinePid string
-	Caller       string
-	Filename     string
-	Line         int
+	Caller   string
+	Filename string
+	Line     int
 
 	Level Level
 
@@ -110,10 +109,10 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 			buf = append(buf, ' ')
 		}
 		if flags&(Ltime|Lmicroseconds) != 0 {
-			hour, min, sec := t.Clock()
+			hour, minNum, sec := t.Clock()
 			buf = itoa(buf, hour, 2)
 			buf = append(buf, ':')
-			buf = itoa(buf, min, 2)
+			buf = itoa(buf, minNum, 2)
 			buf = append(buf, ':')
 			buf = itoa(buf, sec, 2)
 			if flags&Lmicroseconds != 0 {
@@ -126,15 +125,19 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 			buf = append(buf, resetBytes...)
 		}
 	}
-	if flags&(Lshortfile|Llongfile) != 0 {
+	if flags&(Lshortfile|Llongfile) != 0 && event.Filename != "" {
 		if mode.Colorize {
 			buf = append(buf, fgGreenBytes...)
 		}
 		file := event.Filename
 		if flags&Lmedfile == Lmedfile {
-			startIndex := len(file) - 20
-			if startIndex > 0 {
-				file = "..." + file[startIndex:]
+			fileLen := len(file)
+			const softLimit = 20
+			if fileLen > softLimit {
+				slashIndex := strings.LastIndexByte(file[:fileLen-softLimit], '/')
+				if slashIndex != -1 {
+					file = ".../" + file[slashIndex+1:]
+				}
 			}
 		} else if flags&Lshortfile != 0 {
 			startIndex := strings.LastIndexByte(file, '/')
@@ -158,14 +161,22 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 		if mode.Colorize {
 			buf = append(buf, fgGreenBytes...)
 		}
-		funcname := event.Caller
+		funcName := event.Caller
+		shortFuncName := funcName
 		if flags&Lshortfuncname != 0 {
-			lastIndex := strings.LastIndexByte(funcname, '.')
-			if lastIndex > 0 && len(funcname) > lastIndex+1 {
-				funcname = funcname[lastIndex+1:]
+			// funcName = "code.gitea.io/gitea/modules/foo/bar.MyFunc.func1.2()"
+			slashPos := strings.LastIndexByte(funcName, '/')
+			dotPos := strings.IndexByte(funcName[slashPos+1:], '.')
+			if dotPos > 0 {
+				// shortFuncName = "MyFunc.func1.2()"
+				shortFuncName = funcName[slashPos+1+dotPos+1:]
+				if strings.Contains(shortFuncName, ".") {
+					shortFuncName = strings.ReplaceAll(shortFuncName, ".func", ".")
+				}
 			}
+			funcName = shortFuncName
 		}
-		buf = append(buf, funcname...)
+		buf = append(buf, funcName...)
 		if mode.Colorize {
 			buf = append(buf, resetBytes...)
 		}
@@ -201,7 +212,7 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 			}
 		}
 		if hasColorValue {
-			msg = []byte(fmt.Sprintf(msgFormat, msgArgs...))
+			msg = fmt.Appendf(nil, msgFormat, msgArgs...)
 		}
 	}
 	// try to re-use the pre-formatted simple text message
@@ -218,23 +229,22 @@ func EventFormatTextMessage(mode *WriterMode, event *Event, msgFormat string, ms
 	}
 
 	if flags&Lgopid == Lgopid {
-		if event.GoroutinePid != "" {
-			buf = append(buf, '[')
-			if mode.Colorize {
-				buf = append(buf, ColorBytes(FgHiYellow)...)
-			}
-			buf = append(buf, event.GoroutinePid...)
-			if mode.Colorize {
-				buf = append(buf, resetBytes...)
-			}
-			buf = append(buf, ']', ' ')
+		deprecatedGoroutinePid := "no-gopid" // use a dummy value to avoid breaking the log format
+		buf = append(buf, '[')
+		if mode.Colorize {
+			buf = append(buf, ColorBytes(FgHiYellow)...)
 		}
+		buf = append(buf, deprecatedGoroutinePid...)
+		if mode.Colorize {
+			buf = append(buf, resetBytes...)
+		}
+		buf = append(buf, ']', ' ')
 	}
 	buf = append(buf, msg...)
 
 	if event.Stacktrace != "" && mode.StacktraceLevel <= event.Level {
-		lines := bytes.Split([]byte(event.Stacktrace), []byte("\n"))
-		for _, line := range lines {
+		lines := bytes.SplitSeq([]byte(event.Stacktrace), []byte("\n"))
+		for line := range lines {
 			buf = append(buf, "\n\t"...)
 			buf = append(buf, line...)
 		}

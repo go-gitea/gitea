@@ -9,7 +9,6 @@
 </h2>
 {{template "base/alert" .}}
 <form class="ui form" action="{{.Link}}" method="post">
-	{{.CsrfTokenHtml}}
 	<div>
 		<input type="hidden" id="redirect" name="redirect" value="{{.redirect}}">
 		<div class="field {{if .Err_Title}}error{{end}}">
@@ -18,7 +17,16 @@
 		</div>
 		<div class="field">
 			<label>{{ctx.Locale.Tr "repo.projects.description"}}</label>
-			<textarea name="content" placeholder="{{ctx.Locale.Tr "repo.projects.description_placeholder"}}">{{.content}}</textarea>
+			{{/* TODO: repo-level project and org-level project have different behaviors to render */}}
+			{{/* the "Repository" is nil when the project is org-level */}}
+			{{template "shared/combomarkdowneditor" (dict
+				"MarkdownPreviewInRepo" $.Repository
+				"MarkdownPreviewContext" (Iif $.Repository "" .HomeLink)
+				"MarkdownPreviewMode" (Iif $.Repository "comment")
+				"TextareaName" "content"
+				"TextareaContent" .content
+				"TextareaPlaceholder" (ctx.Locale.Tr "repo.projects.description_placeholder")
+			)}}
 		</div>
 
 		{{if not .PageIsEditProjects}}
@@ -55,7 +63,7 @@
 		</div>
 	</div>
 	<div class="divider"></div>
-	<div class="tw-text-right">
+	<div class="flex-text-block tw-justify-end">
 		<a class="ui cancel button" href="{{$.CancelLink}}">
 			{{ctx.Locale.Tr "repo.milestones.cancel"}}
 		</a>

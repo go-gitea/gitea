@@ -6,7 +6,6 @@ package private
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -24,13 +23,13 @@ type RestoreParams struct {
 func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units []string, validation bool) ResponseExtra {
 	reqURL := setting.LocalURL + "api/internal/restore_repo"
 
-	req := newInternalRequest(ctx, reqURL, "POST", RestoreParams{
+	req := newInternalRequestAPI(ctx, reqURL, "POST", RestoreParams{
 		RepoDir:    repoDir,
 		OwnerName:  ownerName,
 		RepoName:   repoName,
 		Units:      units,
 		Validation: validation,
 	})
-	req.SetTimeout(3*time.Second, 0) // since the request will spend much time, don't timeout
+	req.SetReadWriteTimeout(0) // since the request will spend much time, don't timeout
 	return requestJSONClientMsg(req, fmt.Sprintf("Restore repo %s/%s successfully", ownerName, repoName))
 }

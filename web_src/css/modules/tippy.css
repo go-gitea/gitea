@@ -28,6 +28,10 @@
   z-index: 1;
 }
 
+.tippy-box[data-theme="default"] {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+
 /* bare theme, no styling at all, except box-shadow */
 .tippy-box[data-theme="bare"] {
   border: none;
@@ -77,8 +81,10 @@
   align-items: center;
   padding: 9px 18px;
   color: inherit;
+  background: inherit;
   text-decoration: none;
   gap: 10px;
+  width: 100%;
 }
 
 .tippy-box[data-theme="menu"] .item:hover {
@@ -86,6 +92,10 @@
 }
 
 .tippy-box[data-theme="menu"] .item:focus {
+  background: var(--color-hover);
+}
+
+.tippy-box[data-theme="menu"] .item.active {
   background: var(--color-active);
 }
 

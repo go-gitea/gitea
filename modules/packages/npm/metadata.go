@@ -12,15 +12,16 @@ type Metadata struct {
 	Name                    string            `json:"name,omitempty"`
 	Description             string            `json:"description,omitempty"`
 	Author                  string            `json:"author,omitempty"`
-	License                 string            `json:"license,omitempty"`
+	License                 License           `json:"license,omitempty"`
 	ProjectURL              string            `json:"project_url,omitempty"`
 	Keywords                []string          `json:"keywords,omitempty"`
 	Dependencies            map[string]string `json:"dependencies,omitempty"`
 	BundleDependencies      []string          `json:"bundleDependencies,omitempty"`
 	DevelopmentDependencies map[string]string `json:"development_dependencies,omitempty"`
 	PeerDependencies        map[string]string `json:"peer_dependencies,omitempty"`
+	PeerDependenciesMeta    map[string]any    `json:"peer_dependencies_meta,omitempty"`
 	OptionalDependencies    map[string]string `json:"optional_dependencies,omitempty"`
 	Bin                     map[string]string `json:"bin,omitempty"`
 	Readme                  string            `json:"readme,omitempty"`
-	Repository              Repository        `json:"repository,omitempty"`
+	Repository              Repository        `json:"repository"`
 }

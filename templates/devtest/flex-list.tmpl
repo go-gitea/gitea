@@ -1,5 +1,4 @@
-{{template "base/head" .}}
-<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/devtest.css?v={{AssetVersion}}">
+{{template "devtest/devtest-header"}}
 <div class="page-content devtest">
 	<div class="ui container">
 		<h1>Flex List (standalone)</h1>
@@ -69,7 +68,7 @@
 							<a class="text primary" href="{{$.Link}}">
 								gitea-org / gitea
 							</a>
-							<span data-tooltip-content="{{ctx.Locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
+							<span class="flex-text-inline" data-tooltip-content="{{ctx.Locale.Tr "repo.fork"}}">{{svg "octicon-repo-forked"}}</span>
 						</div>
 						<div class="flex-item-trailing">
 							<a class="muted" href="{{$.Link}}">
@@ -112,4 +111,4 @@
 		</div>
 	</div>
 </div>
-{{template "base/footer" .}}
+{{template "devtest/devtest-footer"}}

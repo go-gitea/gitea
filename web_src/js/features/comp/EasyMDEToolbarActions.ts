@@ -1,100 +1,102 @@
 import {svg} from '../../svg.ts';
+import type EasyMDE from 'easymde';
+import type {ComboMarkdownEditor} from './ComboMarkdownEditor.ts';
 
-export function easyMDEToolbarActions(EasyMDE, editor) {
-  const actions = {
+export function easyMDEToolbarActions(easyMde: typeof EasyMDE, editor: ComboMarkdownEditor): Record<string, Partial<EasyMDE.ToolbarIcon | string>> {
+  const actions: Record<string, Partial<EasyMDE.ToolbarIcon> | string> = {
     '|': '|',
     'heading-1': {
-      action: EasyMDE.toggleHeading1,
+      action: easyMde.toggleHeading1,
       icon: svg('octicon-heading'),
       title: 'Heading 1',
     },
     'heading-2': {
-      action: EasyMDE.toggleHeading2,
+      action: easyMde.toggleHeading2,
       icon: svg('octicon-heading'),
       title: 'Heading 2',
     },
     'heading-3': {
-      action: EasyMDE.toggleHeading3,
+      action: easyMde.toggleHeading3,
       icon: svg('octicon-heading'),
       title: 'Heading 3',
     },
     'heading-smaller': {
-      action: EasyMDE.toggleHeadingSmaller,
+      action: easyMde.toggleHeadingSmaller,
       icon: svg('octicon-heading'),
       title: 'Decrease Heading',
     },
     'heading-bigger': {
-      action: EasyMDE.toggleHeadingBigger,
+      action: easyMde.toggleHeadingBigger,
       icon: svg('octicon-heading'),
       title: 'Increase Heading',
     },
     'bold': {
-      action: EasyMDE.toggleBold,
+      action: easyMde.toggleBold,
       icon: svg('octicon-bold'),
       title: 'Bold',
     },
     'italic': {
-      action: EasyMDE.toggleItalic,
+      action: easyMde.toggleItalic,
       icon: svg('octicon-italic'),
       title: 'Italic',
     },
     'strikethrough': {
-      action: EasyMDE.toggleStrikethrough,
+      action: easyMde.toggleStrikethrough,
       icon: svg('octicon-strikethrough'),
       title: 'Strikethrough',
     },
     'quote': {
-      action: EasyMDE.toggleBlockquote,
+      action: easyMde.toggleBlockquote,
       icon: svg('octicon-quote'),
       title: 'Quote',
     },
     'code': {
-      action: EasyMDE.toggleCodeBlock,
+      action: easyMde.toggleCodeBlock,
       icon: svg('octicon-code'),
       title: 'Code',
     },
     'link': {
-      action: EasyMDE.drawLink,
+      action: easyMde.drawLink,
       icon: svg('octicon-link'),
       title: 'Link',
     },
     'unordered-list': {
-      action: EasyMDE.toggleUnorderedList,
+      action: easyMde.toggleUnorderedList,
       icon: svg('octicon-list-unordered'),
       title: 'Unordered List',
     },
     'ordered-list': {
-      action: EasyMDE.toggleOrderedList,
+      action: easyMde.toggleOrderedList,
       icon: svg('octicon-list-ordered'),
       title: 'Ordered List',
     },
     'image': {
-      action: EasyMDE.drawImage,
+      action: easyMde.drawImage,
       icon: svg('octicon-image'),
       title: 'Image',
     },
     'table': {
-      action: EasyMDE.drawTable,
+      action: easyMde.drawTable,
       icon: svg('octicon-table'),
       title: 'Table',
     },
     'horizontal-rule': {
-      action: EasyMDE.drawHorizontalRule,
+      action: easyMde.drawHorizontalRule,
       icon: svg('octicon-horizontal-rule'),
       title: 'Horizontal Rule',
     },
     'preview': {
-      action: EasyMDE.togglePreview,
+      action: easyMde.togglePreview,
       icon: svg('octicon-eye'),
       title: 'Preview',
     },
     'fullscreen': {
-      action: EasyMDE.toggleFullScreen,
+      action: easyMde.toggleFullScreen,
       icon: svg('octicon-screen-full'),
       title: 'Fullscreen',
     },
     'side-by-side': {
-      action: EasyMDE.toggleSideBySide,
+      action: easyMde.toggleSideBySide,
       icon: svg('octicon-columns'),
       title: 'Side by Side',
     },

@@ -30,7 +30,7 @@ const (
 	LUTC                              // if Ldate or Ltime is set, use UTC rather than the local time zone
 	Llevelinitial                     // Initial character of the provided level in brackets, eg. [I] for info
 	Llevel                            // Provided level in brackets [INFO]
-	Lgopid                            // the Goroutine-PID of the context
+	Lgopid                            // the Goroutine-PID of the context, deprecated and it is always a const value
 
 	Lmedfile  = Lshortfile | Llongfile                                    // last 20 characters of the filename
 	LstdFlags = Ldate | Ltime | Lmedfile | Lshortfuncname | Llevelinitial // default
@@ -123,7 +123,7 @@ func FlagsFromString(from string, def ...uint32) Flags {
 		return Flags{defined: true, flags: def[0]}
 	}
 	flags := uint32(0)
-	for _, flag := range strings.Split(strings.ToLower(from), ",") {
+	for flag := range strings.SplitSeq(strings.ToLower(from), ",") {
 		flags |= flagFromString[strings.TrimSpace(flag)]
 	}
 	return Flags{defined: true, flags: flags}

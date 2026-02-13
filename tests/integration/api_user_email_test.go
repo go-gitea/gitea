@@ -28,7 +28,7 @@ func TestAPIListEmails(t *testing.T) {
 	var emails []*api.Email
 	DecodeJSON(t, resp, &emails)
 
-	assert.EqualValues(t, []*api.Email{
+	assert.Equal(t, []*api.Email{
 		{
 			Email:    "user2@example.com",
 			Verified: true,
@@ -66,7 +66,7 @@ func TestAPIAddEmail(t *testing.T) {
 
 	var emails []*api.Email
 	DecodeJSON(t, resp, &emails)
-	assert.EqualValues(t, []*api.Email{
+	assert.Equal(t, []*api.Email{
 		{
 			Email:    "user2@example.com",
 			Verified: true,
@@ -119,7 +119,7 @@ func TestAPIDeleteEmail(t *testing.T) {
 
 	var emails []*api.Email
 	DecodeJSON(t, resp, &emails)
-	assert.EqualValues(t, []*api.Email{
+	assert.Equal(t, []*api.Email{
 		{
 			Email:    "user2@example.com",
 			Verified: true,

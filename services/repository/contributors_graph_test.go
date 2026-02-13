@@ -7,7 +7,6 @@ import (
 	"slices"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/cache"
@@ -18,8 +17,9 @@ import (
 
 func TestRepository_ContributorsGraph(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
-	assert.NoError(t, repo.LoadOwner(db.DefaultContext))
+	assert.NoError(t, repo.LoadOwner(t.Context()))
 	mockCache, err := cache.NewStringCache(setting.Cache{})
 	assert.NoError(t, err)
 
@@ -37,16 +37,16 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 		keys = append(keys, k)
 	}
 	slices.Sort(keys)
-	assert.EqualValues(t, []string{
+	assert.Equal(t, []string{
 		"ethantkoenig@gmail.com",
 		"jimmy.praet@telenet.be",
 		"jon@allspice.io",
 		"total", // generated summary
 	}, keys)
 
-	assert.EqualValues(t, &ContributorData{
+	assert.Equal(t, &ContributorData{
 		Name:         "Ethan Koenig",
-		AvatarLink:   "https://secure.gravatar.com/avatar/b42fb195faa8c61b8d88abfefe30e9e3?d=identicon",
+		AvatarLink:   "/assets/img/avatar_default.png",
 		TotalCommits: 1,
 		Weeks: map[int64]*WeekData{
 			1511654400000: {
@@ -57,7 +57,7 @@ func TestRepository_ContributorsGraph(t *testing.T) {
 			},
 		},
 	}, data["ethantkoenig@gmail.com"])
-	assert.EqualValues(t, &ContributorData{
+	assert.Equal(t, &ContributorData{
 		Name:         "Total",
 		AvatarLink:   "",
 		TotalCommits: 3,

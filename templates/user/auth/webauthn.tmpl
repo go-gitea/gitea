@@ -1,7 +1,7 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content user signin webauthn-prompt">
 	<div class="ui page grid">
-		<div class="column center aligned">
+		<div class="column tw-text-center">
 			{{template "user/auth/webauthn_error" .}}
 			<h3 class="ui top attached header">{{ctx.Locale.Tr "twofa"}}</h3>
 			<div class="ui attached segment">

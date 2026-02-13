@@ -3,12 +3,13 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<form class="ui edit form" method="post" action="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}">
-			{{.CsrfTokenHtml}}
-			<input type="hidden" name="last_commit" value="{{.last_commit}}">
-			<input type="hidden" name="page_has_posted" value="{{.PageHasPosted}}">
+		<form class="ui edit form form-fetch-action" method="post" action="{{.CommitFormOptions.TargetFormAction}}"
+					data-text-empty-confirm-header="{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}"
+					data-text-empty-confirm-content="{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}"
+		>
+			{{template "repo/editor/common_top" .}}
 			<div class="repo-editor-header">
-				<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
+				<div class="breadcrumb">
 					{{ctx.Locale.Tr "repo.editor.patching"}}
 					<a class="section" href="{{$.RepoLink}}">{{.Repository.FullName}}</a>
 					<div class="breadcrumb-divider">:</div>
@@ -19,39 +20,24 @@
 				</div>
 			</div>
 			<div class="field">
-				<div class="ui compact small menu small-menu-items repo-editor-menu">
-					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
+				<div class="ui top attached header">
+					<div class="flex-text-block tw-justify-between tw-flex-wrap">
+						<div class="ui compact small menu small-menu-items repo-editor-menu tw-self-start">
+							<a class="active item" data-tab="write">{{svg "octicon-code" 16 "tw-mr-1"}}{{ctx.Locale.Tr "repo.editor.new_patch"}}</a>
+						</div>
+						{{template "repo/editor/options" dict "CodeEditorConfig" $.CodeEditorConfig}}
+					</div>
 				</div>
-				<div class="ui active tab segment tw-rounded tw-p-0" data-tab="write">
-					<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
-						data-context="{{.RepoLink}}"
-						data-line-wrap-extensions="{{.LineWrapExtensions}}">
-{{.FileContent}}</textarea>
-					<div class="editor-loading is-loading"></div>
+				<div class="ui bottom attached segment tw-p-0">
+					<div class="ui active tab tw-rounded-b" data-tab="write">
+						<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
+							data-context="{{.RepoLink}}">{{.FileContent}}</textarea>
+						<div class="editor-loading is-loading"></div>
+					</div>
 				</div>
 			</div>
 			{{template "repo/editor/commit_form" .}}
 		</form>
-	</div>
-
-	<div class="ui g-modal-confirm modal" id="edit-empty-content-modal">
-		<div class="header">
-			{{svg "octicon-file"}}
-			{{ctx.Locale.Tr "repo.editor.commit_empty_file_header"}}
-		</div>
-		<div class="center content">
-			<p>{{ctx.Locale.Tr "repo.editor.commit_empty_file_text"}}</p>
-		</div>
-		<div class="actions">
-			<button class="ui cancel button">
-				{{svg "octicon-x"}}
-				{{ctx.Locale.Tr "repo.editor.cancel"}}
-			</button>
-			<button class="ui primary ok button">
-				{{svg "fontawesome-save"}}
-				{{ctx.Locale.Tr "repo.editor.commit_changes"}}
-			</button>
-		</div>
 	</div>
 </div>
 {{template "base/footer" .}}

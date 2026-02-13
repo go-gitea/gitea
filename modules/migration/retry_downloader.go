@@ -13,57 +13,49 @@ var _ Downloader = &RetryDownloader{}
 // RetryDownloader retry the downloads
 type RetryDownloader struct {
 	Downloader
-	ctx        context.Context
 	RetryTimes int // the total execute times
 	RetryDelay int // time to delay seconds
 }
 
 // NewRetryDownloader creates a retry downloader
-func NewRetryDownloader(ctx context.Context, downloader Downloader, retryTimes, retryDelay int) *RetryDownloader {
+func NewRetryDownloader(downloader Downloader, retryTimes, retryDelay int) *RetryDownloader {
 	return &RetryDownloader{
 		Downloader: downloader,
-		ctx:        ctx,
 		RetryTimes: retryTimes,
 		RetryDelay: retryDelay,
 	}
 }
 
-func (d *RetryDownloader) retry(work func() error) error {
+func (d *RetryDownloader) retry(ctx context.Context, work func(context.Context) error) error {
 	var (
 		times = d.RetryTimes
 		err   error
 	)
 	for ; times > 0; times-- {
-		if err = work(); err == nil {
+		if err = work(ctx); err == nil {
 			return nil
 		}
 		if IsErrNotSupported(err) {
 			return err
 		}
 		select {
-		case <-d.ctx.Done():
-			return d.ctx.Err()
+		case <-ctx.Done():
+			return ctx.Err()
 		case <-time.After(time.Second * time.Duration(d.RetryDelay)):
 		}
 	}
 	return err
 }
 
-// SetContext set context
-func (d *RetryDownloader) SetContext(ctx context.Context) {
-	d.ctx = ctx
-	d.Downloader.SetContext(ctx)
-}
-
 // GetRepoInfo returns a repository information with retry
-func (d *RetryDownloader) GetRepoInfo() (*Repository, error) {
+func (d *RetryDownloader) GetRepoInfo(ctx context.Context) (*Repository, error) {
 	var (
 		repo *Repository
 		err  error
 	)
 
-	err = d.retry(func() error {
-		repo, err = d.Downloader.GetRepoInfo()
+	err = d.retry(ctx, func(ctx context.Context) error {
+		repo, err = d.Downloader.GetRepoInfo(ctx)
 		return err
 	})
 
@@ -71,14 +63,14 @@ func (d *RetryDownloader) GetRepoInfo() (*Repository, error) {
 }
 
 // GetTopics returns a repository's topics with retry
-func (d *RetryDownloader) GetTopics() ([]string, error) {
+func (d *RetryDownloader) GetTopics(ctx context.Context) ([]string, error) {
 	var (
 		topics []string
 		err    error
 	)
 
-	err = d.retry(func() error {
-		topics, err = d.Downloader.GetTopics()
+	err = d.retry(ctx, func(ctx context.Context) error {
+		topics, err = d.Downloader.GetTopics(ctx)
 		return err
 	})
 
@@ -86,14 +78,14 @@ func (d *RetryDownloader) GetTopics() ([]string, error) {
 }
 
 // GetMilestones returns a repository's milestones with retry
-func (d *RetryDownloader) GetMilestones() ([]*Milestone, error) {
+func (d *RetryDownloader) GetMilestones(ctx context.Context) ([]*Milestone, error) {
 	var (
 		milestones []*Milestone
 		err        error
 	)
 
-	err = d.retry(func() error {
-		milestones, err = d.Downloader.GetMilestones()
+	err = d.retry(ctx, func(ctx context.Context) error {
+		milestones, err = d.Downloader.GetMilestones(ctx)
 		return err
 	})
 
@@ -101,14 +93,14 @@ func (d *RetryDownloader) GetMilestones() ([]*Milestone, error) {
 }
 
 // GetReleases returns a repository's releases with retry
-func (d *RetryDownloader) GetReleases() ([]*Release, error) {
+func (d *RetryDownloader) GetReleases(ctx context.Context) ([]*Release, error) {
 	var (
 		releases []*Release
 		err      error
 	)
 
-	err = d.retry(func() error {
-		releases, err = d.Downloader.GetReleases()
+	err = d.retry(ctx, func(ctx context.Context) error {
+		releases, err = d.Downloader.GetReleases(ctx)
 		return err
 	})
 
@@ -116,14 +108,14 @@ func (d *RetryDownloader) GetReleases() ([]*Release, error) {
 }
 
 // GetLabels returns a repository's labels with retry
-func (d *RetryDownloader) GetLabels() ([]*Label, error) {
+func (d *RetryDownloader) GetLabels(ctx context.Context) ([]*Label, error) {
 	var (
 		labels []*Label
 		err    error
 	)
 
-	err = d.retry(func() error {
-		labels, err = d.Downloader.GetLabels()
+	err = d.retry(ctx, func(ctx context.Context) error {
+		labels, err = d.Downloader.GetLabels(ctx)
 		return err
 	})
 
@@ -131,15 +123,15 @@ func (d *RetryDownloader) GetLabels() ([]*Label, error) {
 }
 
 // GetIssues returns a repository's issues with retry
-func (d *RetryDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
+func (d *RetryDownloader) GetIssues(ctx context.Context, page, perPage int) ([]*Issue, bool, error) {
 	var (
 		issues []*Issue
 		isEnd  bool
 		err    error
 	)
 
-	err = d.retry(func() error {
-		issues, isEnd, err = d.Downloader.GetIssues(page, perPage)
+	err = d.retry(ctx, func(ctx context.Context) error {
+		issues, isEnd, err = d.Downloader.GetIssues(ctx, page, perPage)
 		return err
 	})
 
@@ -147,15 +139,15 @@ func (d *RetryDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
 }
 
 // GetComments returns a repository's comments with retry
-func (d *RetryDownloader) GetComments(commentable Commentable) ([]*Comment, bool, error) {
+func (d *RetryDownloader) GetComments(ctx context.Context, commentable Commentable) ([]*Comment, bool, error) {
 	var (
 		comments []*Comment
 		isEnd    bool
 		err      error
 	)
 
-	err = d.retry(func() error {
-		comments, isEnd, err = d.Downloader.GetComments(commentable)
+	err = d.retry(ctx, func(context.Context) error {
+		comments, isEnd, err = d.Downloader.GetComments(ctx, commentable)
 		return err
 	})
 
@@ -163,15 +155,15 @@ func (d *RetryDownloader) GetComments(commentable Commentable) ([]*Comment, bool
 }
 
 // GetPullRequests returns a repository's pull requests with retry
-func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bool, error) {
+func (d *RetryDownloader) GetPullRequests(ctx context.Context, page, perPage int) ([]*PullRequest, bool, error) {
 	var (
 		prs   []*PullRequest
 		err   error
 		isEnd bool
 	)
 
-	err = d.retry(func() error {
-		prs, isEnd, err = d.Downloader.GetPullRequests(page, perPage)
+	err = d.retry(ctx, func(ctx context.Context) error {
+		prs, isEnd, err = d.Downloader.GetPullRequests(ctx, page, perPage)
 		return err
 	})
 
@@ -179,14 +171,13 @@ func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bo
 }
 
 // GetReviews returns pull requests reviews
-func (d *RetryDownloader) GetReviews(reviewable Reviewable) ([]*Review, error) {
+func (d *RetryDownloader) GetReviews(ctx context.Context, reviewable Reviewable) ([]*Review, error) {
 	var (
 		reviews []*Review
 		err     error
 	)
-
-	err = d.retry(func() error {
-		reviews, err = d.Downloader.GetReviews(reviewable)
+	err = d.retry(ctx, func(ctx context.Context) error {
+		reviews, err = d.Downloader.GetReviews(ctx, reviewable)
 		return err
 	})
 

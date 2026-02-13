@@ -1,23 +1,28 @@
 import {throttle} from 'throttle-debounce';
 import {createTippy} from '../modules/tippy.ts';
-import {isDocumentFragmentOrElementNode} from '../utils/dom.ts';
+import {addDelegatedEventListener, isDocumentFragmentOrElementNode} from '../utils/dom.ts';
 import octiconKebabHorizontal from '../../../public/assets/img/svg/octicon-kebab-horizontal.svg';
 
 window.customElements.define('overflow-menu', class extends HTMLElement {
   tippyContent: HTMLDivElement;
   tippyItems: Array<HTMLElement>;
-  button: HTMLButtonElement;
+  button: HTMLButtonElement | null;
   menuItemsEl: HTMLElement;
   resizeObserver: ResizeObserver;
   mutationObserver: MutationObserver;
   lastWidth: number;
 
-  updateItems = throttle(100, () => { // eslint-disable-line unicorn/consistent-function-scoping -- https://github.com/sindresorhus/eslint-plugin-unicorn/issues/2088
+  updateButtonActivationState() {
+    if (!this.button || !this.tippyContent) return;
+    this.button.classList.toggle('active', Boolean(this.tippyContent.querySelector('.item.active')));
+  }
+
+  updateItems = throttle(100, () => {
     if (!this.tippyContent) {
       const div = document.createElement('div');
-      div.classList.add('tippy-target');
       div.tabIndex = -1; // for initial focus, programmatic focus only
       div.addEventListener('keydown', (e) => {
+        if (e.isComposing) return;
         if (e.key === 'Tab') {
           const items = this.tippyContent.querySelectorAll<HTMLElement>('[role="menuitem"]');
           if (e.shiftKey) {
@@ -34,8 +39,8 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
         } else if (e.key === 'Escape') {
           e.preventDefault();
           e.stopPropagation();
-          this.button._tippy.hide();
-          this.button.focus();
+          this.button?._tippy.hide();
+          this.button?.focus();
         } else if (e.key === ' ' || e.code === 'Enter') {
           if (document.activeElement?.matches('[role="menuitem"]')) {
             e.preventDefault();
@@ -46,7 +51,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           if (document.activeElement?.matches('.tippy-target')) {
             e.preventDefault();
             e.stopPropagation();
-            document.activeElement.querySelector<HTMLElement>('[role="menuitem"]:first-of-type').focus();
+            document.activeElement.querySelector<HTMLElement>('[role="menuitem"]:first-of-type')?.focus();
           } else if (document.activeElement?.matches('[role="menuitem"]')) {
             e.preventDefault();
             e.stopPropagation();
@@ -56,7 +61,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           if (document.activeElement?.matches('.tippy-target')) {
             e.preventDefault();
             e.stopPropagation();
-            document.activeElement.querySelector<HTMLElement>('[role="menuitem"]:last-of-type').focus();
+            document.activeElement.querySelector<HTMLElement>('[role="menuitem"]:last-of-type')?.focus();
           } else if (document.activeElement?.matches('[role="menuitem"]')) {
             e.preventDefault();
             e.stopPropagation();
@@ -64,9 +69,10 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
           }
         }
       });
-      this.append(div);
+      div.classList.add('tippy-target');
+      this.handleItemClick(div, '.tippy-target > .item');
       this.tippyContent = div;
-    }
+    } // end if: no tippyContent and create a new one
 
     const itemFlexSpace = this.menuItemsEl.querySelector<HTMLSpanElement>('.item-flex-space');
     const itemOverFlowMenuButton = this.querySelector<HTMLButtonElement>('.overflow-menu-button');
@@ -88,7 +94,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     const menuRight = this.offsetLeft + this.offsetWidth;
     const menuItems = this.menuItemsEl.querySelectorAll<HTMLElement>('.item, .item-flex-space');
     let afterFlexSpace = false;
-    for (const item of menuItems) {
+    for (const [idx, item] of menuItems.entries()) {
       if (item.classList.contains('item-flex-space')) {
         afterFlexSpace = true;
         continue;
@@ -96,7 +102,10 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       if (afterFlexSpace) item.setAttribute('data-after-flex-space', 'true');
       const itemRight = item.offsetLeft + item.offsetWidth;
       if (menuRight - itemRight < 38) { // roughly the width of .overflow-menu-button with some extra space
-        this.tippyItems.push(item);
+        const onlyLastItem = idx === menuItems.length - 1 && this.tippyItems.length === 0;
+        const lastItemFit = onlyLastItem && menuRight - itemRight > 0;
+        const moveToPopup = !onlyLastItem || !lastItemFit;
+        if (moveToPopup) this.tippyItems.push(item);
       }
     }
     itemFlexSpace?.style.removeProperty('display');
@@ -107,6 +116,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       const btn = this.querySelector('.overflow-menu-button');
       btn?._tippy?.destroy();
       btn?.remove();
+      this.button = null;
       return;
     }
 
@@ -126,18 +136,17 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
     // update existing tippy
     if (this.button?._tippy) {
       this.button._tippy.setContent(this.tippyContent);
+      this.updateButtonActivationState();
       return;
     }
 
     // create button initially
-    const btn = document.createElement('button');
-    btn.classList.add('overflow-menu-button');
-    btn.setAttribute('aria-label', window.config.i18n.more_items);
-    btn.innerHTML = octiconKebabHorizontal;
-    this.append(btn);
-    this.button = btn;
-
-    createTippy(btn, {
+    this.button = document.createElement('button');
+    this.button.classList.add('overflow-menu-button');
+    this.button.setAttribute('aria-label', window.config.i18n.more_items);
+    this.button.innerHTML = octiconKebabHorizontal;
+    this.append(this.button);
+    createTippy(this.button, {
       trigger: 'click',
       hideOnClick: true,
       interactive: true,
@@ -151,6 +160,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
         }, 0);
       },
     });
+    this.updateButtonActivationState();
   });
 
   init() {
@@ -161,7 +171,7 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       for (const item of this.querySelectorAll('.item')) {
         for (const child of item.childNodes) {
           if (child.nodeType === Node.TEXT_NODE) {
-            const text = child.textContent.trim(); // whitespace is insignificant inside flexbox
+            const text = child.textContent?.trim(); // whitespace is insignificant inside flexbox
             if (!text) continue;
             const span = document.createElement('span');
             span.classList.add('resize-for-semibold');
@@ -187,6 +197,14 @@ window.customElements.define('overflow-menu', class extends HTMLElement {
       }
     });
     this.resizeObserver.observe(this);
+    this.handleItemClick(this, '.overflow-menu-items > .item');
+  }
+
+  handleItemClick(el: Element, selector: string) {
+    addDelegatedEventListener(el, 'click', selector, () => {
+      this.button?._tippy?.hide();
+      this.updateButtonActivationState();
+    });
   }
 
   connectedCallback() {

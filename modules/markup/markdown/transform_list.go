@@ -72,7 +72,7 @@ func (g *ASTTransformer) transformList(_ *markup.RenderContext, v *ast.List, rc 
 			}
 			newChild := NewTaskCheckBoxListItem(listItem)
 			newChild.IsChecked = taskCheckBox.IsChecked
-			newChild.SetAttributeString("class", []byte("task-list-item"))
+			newChild.SetAttributeString(g.renderInternal.SafeAttr("class"), []byte(g.renderInternal.SafeValue("task-list-item")))
 			segments := newChild.FirstChild().Lines()
 			if segments.Len() > 0 {
 				segment := segments.At(0)

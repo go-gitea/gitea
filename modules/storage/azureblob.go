@@ -70,7 +70,7 @@ func (a *azureBlobObject) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		offset += a.offset
 	case io.SeekEnd:
-		offset = a.Size - offset
+		offset = a.Size + offset
 	default:
 		return 0, errors.New("Seek: invalid whence")
 	}
@@ -247,9 +247,10 @@ func (a *AzureBlobStorage) Delete(path string) error {
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (a *AzureBlobStorage) URL(path, name string, reqParams url.Values) (*url.URL, error) {
+func (a *AzureBlobStorage) URL(path, name, _ string, reqParams url.Values) (*url.URL, error) {
 	blobClient := a.getBlobClient(path)
 
+	// TODO: OBJECT-STORAGE-CONTENT-TYPE: "browser inline rendering images/PDF" needs proper Content-Type header from storage
 	startTime := time.Now()
 	u, err := blobClient.GetSASURL(sas.BlobPermissions{
 		Read: true,
