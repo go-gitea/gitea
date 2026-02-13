@@ -343,23 +343,19 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 
 	if job.TaskID != 0 {
 		if task == nil {
-			var has bool
-			task, has, err = db.GetByID[actions_model.ActionTask](ctx, job.TaskID)
+			task, _, err = db.GetByID[actions_model.ActionTask](ctx, job.TaskID)
 			if err != nil {
 				return nil, err
-			}
-			if !has {
-				task = nil
 			}
 		}
 
 		if task != nil {
 			if task.Steps == nil {
-				tSteps, err := actions_model.GetTaskStepsByTaskID(ctx, task.ID)
+				task.Steps, err = actions_model.GetTaskStepsByTaskID(ctx, task.ID)
 				if err != nil {
 					return nil, err
 				}
-				task.Steps = tSteps
+				task.Steps = util.SliceNilAsEmpty(task.Steps)
 			}
 			runnerID = task.RunnerID
 			if runner, ok, _ := db.GetByID[actions_model.ActionRunner](ctx, runnerID); ok {
@@ -396,7 +392,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		Conclusion:  conclusion,
 		RunnerID:    runnerID,
 		RunnerName:  runnerName,
-		Steps:       steps,
+		Steps:       util.SliceNilAsEmpty(steps),
 		CreatedAt:   job.Created.AsTime().UTC(),
 		StartedAt:   job.Started.AsTime().UTC(),
 		CompletedAt: job.Stopped.AsTime().UTC(),
