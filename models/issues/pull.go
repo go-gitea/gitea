@@ -1010,7 +1010,5 @@ func GetPullRequestsByMergedCommit(ctx context.Context, repoID int64, sha string
 		return nil, err
 	}
 
-
-
 	return prs, nil
 }
