@@ -596,3 +596,27 @@ func getUserTeamIDsQueryBuilder(orgID, userID int64) *builder.Builder {
 			"team_user.uid":    userID,
 		})
 }
+
+// CanUserSeeAllTeams returns true if user can see all teams in organization
+func (org *Organization) CanUserSeeAllTeams(ctx context.Context, userID int64) (bool, error) {
+	isOwner, err := org.IsOwnedBy(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+	if isOwner {
+		return true, nil
+	}
+
+	teams, err := org.GetUserTeams(ctx, userID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, team := range teams {
+		if team.IncludesAllRepositories && team.HasAdminAccess() {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}

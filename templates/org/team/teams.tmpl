@@ -12,7 +12,7 @@
 		<div class="ui secondary filter menu tw-mx-0">
 			<form class="ui form ignore-dirty tw-flex-1" method="get">
 				<div class="ui fluid action input">
-					<input name="q" value="{{$.Keyword}}" placeholder="{{ctx.Locale.Tr "search.team_kind"}}" autofocus>
+					<input type="search" name="q" value="{{$.Keyword}}" placeholder="{{ctx.Locale.Tr "search.team_kind"}}" maxlength="255" spellcheck="false" autofocus>
 					<button class="ui primary button" type="submit">{{svg "octicon-search"}}</button>
 				</div>
 			</form>
