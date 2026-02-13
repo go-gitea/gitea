@@ -133,22 +133,22 @@ func (at ActionType) InActions(actions ...string) bool {
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
 type Action struct {
-	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 `xorm:"INDEX"` // Receiver user id.
-	OpType      ActionType
-	ActUserID   int64            // Action user id.
-	ActUser     *user_model.User `xorm:"-"`
-	RepoID      int64
-	Repo        *repo_model.Repository `xorm:"-"`
-	CommentID   int64                  `xorm:"INDEX"`
-	Comment     *issues_model.Comment  `xorm:"-"`
-	Issue       *issues_model.Issue    `xorm:"-"` // get the issue id from content
-	IsDeleted   bool                   `xorm:"NOT NULL DEFAULT false"`
-	RefName     string
-	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
-	Content     string             `xorm:"TEXT"`
-	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
-	OriginalUnix timeutil.TimeStamp `xorm:"INDEX"` // Original timestamp (e.g., commit author date)
+	ID	int64	`xorm:"pk autoincr"`
+	UserID	int64	`xorm:"INDEX"`	// Receiver user id.
+	OpType	ActionType
+	ActUserID	int64	// Action user id.
+	ActUser	*user_model.User	`xorm:"-"`
+	RepoID	int64
+	Repo	*repo_model.Repository	`xorm:"-"`
+	CommentID	int64	`xorm:"INDEX"`
+	Comment	*issues_model.Comment	`xorm:"-"`
+	Issue	*issues_model.Issue	`xorm:"-"`	// get the issue id from content
+	IsDeleted	bool	`xorm:"NOT NULL DEFAULT false"`
+	RefName	string
+	IsPrivate	bool	`xorm:"NOT NULL DEFAULT false"`
+	Content	string	`xorm:"TEXT"`
+	CreatedUnix	timeutil.TimeStamp	`xorm:"created"`
+	OriginalUnix	timeutil.TimeStamp	`xorm:"INDEX"`	// Original timestamp (e.g., commit author date)
 }
 
 func init() {
