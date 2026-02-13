@@ -113,7 +113,12 @@ func EmailPost(ctx *context.Context) {
 
 	// Make email address primary.
 	if ctx.FormString("_method") == "PRIMARY" {
-		if err := user_model.MakeActiveEmailPrimary(ctx, ctx.FormInt64("id")); err != nil {
+		if err := user_model.MakeActiveEmailPrimary(ctx, ctx.Doer.ID, ctx.FormInt64("id")); err != nil {
+			if user_model.IsErrEmailAddressNotExist(err) {
+				ctx.Flash.Error(ctx.Tr("settings.email_primary_not_found"))
+				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+				return
+			}
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}

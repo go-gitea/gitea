@@ -76,8 +76,8 @@ func TestDiffWithHighlight(t *testing.T) {
 	})
 
 	t.Run("ComplexDiff1", func(t *testing.T) {
-		oldCode, _ := highlight.RenderCodeFast("a.go", "Go", `xxx || yyy`)
-		newCode, _ := highlight.RenderCodeFast("a.go", "Go", `bot&xxx || bot&yyy`)
+		oldCode, _, _ := highlight.RenderCodeSlowGuess("a.go", "Go", `xxx || yyy`)
+		newCode, _, _ := highlight.RenderCodeSlowGuess("a.go", "Go", `bot&xxx || bot&yyy`)
 		hcd := newHighlightCodeDiff()
 		out := hcd.diffLineWithHighlight(DiffLineAdd, oldCode, newCode)
 		assert.Equal(t, strings.ReplaceAll(`
