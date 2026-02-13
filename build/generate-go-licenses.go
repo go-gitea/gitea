@@ -14,13 +14,20 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
+	"sync"
 )
 
 // regexp is based on go-license, excluding README and NOTICE
 // https://github.com/google/go-licenses/blob/master/licenses/find.go
 var licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING).*$`)
+
+// ignoredModulePaths are module paths to exclude from the license output.
+var ignoredModulePaths = map[string]bool{
+	"code.gitea.io/gitea/options/license": true,
+}
 
 var excludedExt = map[string]bool{
 	".gitignore": true,
@@ -49,6 +56,9 @@ type LicenseEntry struct {
 func getDepModules(goCmd string) map[string]bool {
 	cmd := exec.Command(goCmd, "list", "-deps", "-f", "{{if .Module}}{{.Module.Path}}{{end}}", "./...")
 	cmd.Stderr = os.Stderr
+	// Use GOOS=linux with CGO to ensure we capture all platform-specific
+	// dependencies, matching the CI environment.
+	cmd.Env = append(os.Environ(), "GOOS=linux", "GOARCH=amd64", "CGO_ENABLED=1")
 	output, err := cmd.Output()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to run 'go list -deps': %v\n", err)
@@ -65,7 +75,33 @@ func getDepModules(goCmd string) map[string]bool {
 	return modules
 }
 
-// findLicenseFiles scans a directory for license files and returns entries.
+// getModules returns all modules with their local directory paths from the module cache.
+func getModules(goCmd string) []ModuleInfo {
+	cmd := exec.Command(goCmd, "list", "-m", "-json", "all")
+	cmd.Stderr = os.Stderr
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to run 'go list -m -json all': %v\n", err)
+		os.Exit(1)
+	}
+
+	var modules []ModuleInfo
+	dec := json.NewDecoder(bytes.NewReader(output))
+	for {
+		var mod ModuleInfo
+		if err := dec.Decode(&mod); err != nil {
+			if err == io.EOF {
+				break
+			}
+			fmt.Fprintf(os.Stderr, "failed to decode module info: %v\n", err)
+			os.Exit(1)
+		}
+		modules = append(modules, mod)
+	}
+	return modules
+}
+
+// findLicenseFiles scans a module's root directory for license files and returns entries.
 func findLicenseFiles(dir, modulePath string) []LicenseEntry {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
@@ -101,10 +137,31 @@ func findLicenseFiles(dir, modulePath string) []LicenseEntry {
 	return entries
 }
 
+// getTrackedFiles returns the set of files tracked by git, relative to the
+// given directory. This is used to exclude gitignored files from license scanning.
+func getTrackedFiles(dir string) map[string]bool {
+	cmd := exec.Command("git", "ls-files")
+	cmd.Dir = dir
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "warning: failed to run 'git ls-files': %v\n", err)
+		return nil
+	}
+	files := make(map[string]bool)
+	for _, line := range strings.Split(string(output), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			files[filepath.FromSlash(line)] = true
+		}
+	}
+	return files
+}
+
 // findSubdirLicenses walks the main module's directory tree to find license
 // files in subdirectories (not the root), which indicate bundled code with
 // separate copyright attribution.
 func findSubdirLicenses(mod ModuleInfo) []LicenseEntry {
+	trackedFiles := getTrackedFiles(mod.Dir)
 	var entries []LicenseEntry
 	err := filepath.WalkDir(mod.Dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -113,7 +170,7 @@ func findSubdirLicenses(mod ModuleInfo) []LicenseEntry {
 		// Skip hidden directories and common non-source directories.
 		if d.IsDir() {
 			name := d.Name()
-			if strings.HasPrefix(name, ".") || name == "node_modules" || name == "vendor" || name == "testdata" {
+			if strings.HasPrefix(name, ".") || name == "node_modules" || name == "vendor" || name == "internal" || name == "testdata" {
 				return filepath.SkipDir
 			}
 			return nil
@@ -127,6 +184,13 @@ func findSubdirLicenses(mod ModuleInfo) []LicenseEntry {
 		}
 		if excludedExt[strings.ToLower(filepath.Ext(d.Name()))] {
 			return nil
+		}
+		// Skip gitignored files to ensure consistent output across environments.
+		if trackedFiles != nil {
+			rel, _ := filepath.Rel(mod.Dir, path)
+			if !trackedFiles[rel] {
+				return nil
+			}
 		}
 		content, err := os.ReadFile(path)
 		if err != nil {
@@ -161,33 +225,20 @@ func main() {
 		goCmd = env
 	}
 
-	// Get the set of modules that are actual non-test dependencies,
-	// excluding tool dependencies and test-only transitive deps.
-	depModules := getDepModules(goCmd)
-
-	// Get all modules with their local directory paths from the module cache.
-	cmd := exec.Command(goCmd, "list", "-m", "-json", "all")
-	cmd.Stderr = os.Stderr
-	output, err := cmd.Output()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to run 'go list -m -json all': %v\n", err)
-		os.Exit(1)
-	}
-
-	// Parse streaming JSON (multiple JSON objects concatenated).
+	// Run the two expensive go list commands in parallel.
+	var depModules map[string]bool
 	var modules []ModuleInfo
-	dec := json.NewDecoder(bytes.NewReader(output))
-	for {
-		var mod ModuleInfo
-		if err := dec.Decode(&mod); err != nil {
-			if err == io.EOF {
-				break
-			}
-			fmt.Fprintf(os.Stderr, "failed to decode module info: %v\n", err)
-			os.Exit(1)
-		}
-		modules = append(modules, mod)
-	}
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		depModules = getDepModules(goCmd)
+	}()
+	go func() {
+		defer wg.Done()
+		modules = getModules(goCmd)
+	}()
+	wg.Wait()
 
 	var entries []LicenseEntry
 	for _, mod := range modules {
@@ -210,6 +261,10 @@ func main() {
 		// Scan the module root directory for license files.
 		entries = append(entries, findLicenseFiles(mod.Dir, mod.Path)...)
 	}
+
+	entries = slices.DeleteFunc(entries, func(e LicenseEntry) bool {
+		return ignoredModulePaths[e.Name]
+	})
 
 	sort.Slice(entries, func(i, j int) bool {
 		return entries[i].Path < entries[j].Path
