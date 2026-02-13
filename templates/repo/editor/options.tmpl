@@ -1,0 +1,30 @@
+{{$indentStyle := $.CodeEditorConfig.IndentStyle}}
+{{$indentSize := or $.CodeEditorConfig.IndentSize 4}}
+{{$lineWrapOn := $.CodeEditorConfig.LineWrapOn}}
+<div class="flex-text-block code-editor-options">
+	<div class="native-select">
+		<select class="js-indent-style-select" aria-label="{{ctx.Locale.Tr "text_indent_style"}}">
+			<optgroup label="{{ctx.Locale.Tr "text_indent_style"}}">
+				<option{{if eq $indentStyle "space"}} selected{{end}} value="space">{{ctx.Locale.Tr "characters_spaces"}}</option>
+				<option{{if eq $indentStyle "tab"}} selected{{end}} value="tab">{{ctx.Locale.Tr "characters_tabs"}}</option>
+			</optgroup>
+		</select>
+	</div>
+	<div class="native-select">
+		<select class="js-indent-size-select" aria-label="{{ctx.Locale.Tr "text_indent_size"}}">
+			<optgroup label="{{ctx.Locale.Tr "text_indent_size"}}">
+				<option{{if eq $indentSize 2}} selected{{end}} value="2">2</option>
+				<option{{if eq $indentSize 4}} selected{{end}} value="4">4</option>
+				<option{{if eq $indentSize 8}} selected{{end}} value="8">8</option>
+			</optgroup>
+		</select>
+	</div>
+	<div class="native-select">
+		<select class="js-line-wrap-select" aria-label="{{ctx.Locale.Tr "text_line_wrap_mode"}}">
+			<optgroup label="{{ctx.Locale.Tr "text_line_wrap_mode"}}">
+				<option{{if $lineWrapOn}} selected{{end}} value="on">{{ctx.Locale.Tr "text_line_wrap"}}</option>
+				<option{{if not $lineWrapOn}} selected{{end}} value="off">{{ctx.Locale.Tr "text_line_nowrap"}}</option>
+			</optgroup>
+		</select>
+	</div>
+</div>
