@@ -1203,13 +1203,11 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 	for _, email := range emails {
 		emailLower := strings.ToLower(email)
 		needCheckEmails.Add(emailLower)
-		if noReplyUserNameLower, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
-			name, idstr, hasPlus := strings.Cut(noReplyUserNameLower, "+")
-			if hasPlus {
-				if id, err := strconv.ParseInt(idstr, 10, 64); err == nil {
-					needCheckUserIDs.Add(id)
-				}
-			} else {
+		if localPart, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
+			name, id := parseLocalPartToNameId(localPart)
+			if id != 0 {
+				needCheckUserIDs.Add(id)
+			} else if name != "" {
 				needCheckUserNames.Add(name)
 			}
 		}
@@ -1266,24 +1264,30 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 			continue
 		}
 
-		noReplyUserNameLower, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix)
+		localPart, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix)
 		if !ok {
 			continue
 		}
-
-		name, id, hasPlus := strings.Cut(noReplyUserNameLower, "+")
-		if hasPlus {
-			if id, err := strconv.ParseInt(id, 10, 64); err == nil {
-				if user, ok := usersByIDs[id]; ok {
-					results[emailLower] = user
-				}
-			}
+		name, id := parseLocalPartToNameId(localPart)
+		if user, ok := usersByIDs[id]; ok {
+			results[emailLower] = user
 		} else if user, ok := usersByName[name]; ok {
 			results[emailLower] = user
 		}
 	}
 
 	return &EmailUserMap{results}, nil
+}
+
+// parseLocalPartToNameId attempts to unparse local-part of email that's in format user+id
+// returns user and id if possible
+func parseLocalPartToNameId(localPart string) (string, int64) {
+	var id int64
+	name, idstr, hasPlus := strings.Cut(localPart, "+")
+	if hasPlus {
+		id, _ = strconv.ParseInt(idstr, 10, 64)
+	}
+	return name, id
 }
 
 // GetUserByEmail returns the user object by given e-mail if exists.
@@ -1304,17 +1308,12 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Finally, if email address is the protected email address:
-	if before, ok := strings.CutSuffix(email, strings.ToLower("@"+setting.Service.NoReplyAddress)); ok {
-		// check if the email is in format user+id@noreplyaddress
-		username, id, isAlias := strings.Cut(before, "+")
-		if isAlias {
-			id, err := strconv.ParseInt(id, 10, 64)
-			if err != nil {
-				return nil, ErrUserNotExist{Name: email}
-			}
+	if localPart, ok := strings.CutSuffix(email, strings.ToLower("@"+setting.Service.NoReplyAddress)); ok {
+		name, id := parseLocalPartToNameId(localPart)
+		if id != 0 {
 			return GetUserByID(ctx, id)
 		}
-		return GetUserByName(ctx, username)
+		return GetUserByName(ctx, name)
 	}
 
 	return nil, ErrUserNotExist{Name: email}
