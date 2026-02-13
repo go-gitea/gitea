@@ -7,4 +7,4 @@
 - Before committing new `.go` files, add the current year into the copyright header
 - Before committing any files, remove all trailing whitespace from source code lines
 - Never force-push to pull request branches
-- Always indicate authorship in issue and pull request comments
+- Always start issue and pull request comments with an authorship attribution
