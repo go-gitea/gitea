@@ -56,13 +56,10 @@ func passThroughCmd(cmd string, args []string) error {
 		}
 	}
 
-	c := exec.Cmd{
-		Path:   foundCmd,
-		Args:   append([]string{cmd}, args...),
-		Stdin:  os.Stdin,
-		Stdout: os.Stdout,
-		Stderr: os.Stderr,
-	}
+	c := exec.Command(foundCmd, args...)
+	c.Stdin = os.Stdin
+	c.Stdout = os.Stdout
+	c.Stderr = os.Stderr
 	return c.Run()
 }
 
