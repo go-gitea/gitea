@@ -20,9 +20,6 @@ func BuildCaseInsensitiveLike(key, value string) builder.Cond {
 	if setting.Database.Type.IsSQLite3() {
 		return builder.Like{"LOWER(" + key + ")", util.ToLowerASCII(value)}
 	}
-	if setting.Database.Type.IsPostgreSQL() {
-		return builder.Expr(key+" ILIKE ?", value)
-	}
 	return builder.Like{"LOWER(" + key + ")", strings.ToLower(value)}
 }
 
