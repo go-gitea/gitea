@@ -19,7 +19,7 @@ func TestStringContent(t *testing.T) {
 
 func TestRelativePath(t *testing.T) {
 	p := Pointer{Oid: "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393"}
-	expected := path.Join("4d", "7a", "214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
+	expected := path.Join("4d", "7a", "4d7a214614ab2935c943f9e0ff69d22eadbb8f32b1258daaa5e2ca24d17e2393")
 	assert.Equal(t, expected, p.RelativePath())
 
 	p2 := Pointer{Oid: "4d7a"}

@@ -106,7 +106,7 @@ func (p Pointer) RelativePath() string {
 		return p.Oid
 	}
 
-	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid[4:])
+	return path.Join(p.Oid[0:2], p.Oid[2:4], p.Oid)
 }
 
 func (p Pointer) LogString() string {
