@@ -15,6 +15,7 @@ import (
 
 	ap "github.com/go-ap/activitypub"
 	"github.com/go-ap/jsonld"
+	"golang.org/x/text/language"
 )
 
 // Person function returns the Person actor for a user
@@ -39,14 +40,14 @@ func Person(ctx *context.APIContext) {
 	person := ap.PersonNew(ap.IRI(link))
 
 	person.Name = ap.NaturalLanguageValuesNew()
-	err := person.Name.Set("en", ap.Content(ctx.ContextUser.FullName))
+	err := person.Name.Set(ap.LangRef(language.Make("en")), ap.Content(ctx.ContextUser.FullName))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
 	person.PreferredUsername = ap.NaturalLanguageValuesNew()
-	err = person.PreferredUsername.Set("en", ap.Content(ctx.ContextUser.Name))
+	err = person.PreferredUsername.Set(ap.LangRef(language.Make("en")), ap.Content(ctx.ContextUser.Name))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

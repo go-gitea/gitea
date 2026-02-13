@@ -833,7 +833,12 @@ node_modules: pnpm-lock.yaml
 	@touch .venv
 
 .PHONY: update
-update: update-js update-py ## update js and py dependencies
+update: update-go update-js update-py ## update dependencies
+
+.PHONY: update-go
+update-go:  ## update go dependencies
+	$(GO) get -u ./...
+	$(MAKE) tidy
 
 .PHONY: update-js
 update-js: node_modules ## update js dependencies

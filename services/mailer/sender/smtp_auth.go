@@ -47,7 +47,7 @@ type ntlmAuth struct {
 
 // NtlmAuth SMTP AUTH NTLM Auth Handler
 func NtlmAuth(username, password string) smtp.Auth {
-	user, domain, domainNeeded := ntlmssp.GetDomain(username)
+	user, domain, domainNeeded := ntlmssp.GetDomain(username) //nolint:staticcheck // need more time to refactor
 	return &ntlmAuth{user, password, domain, domainNeeded}
 }
 
@@ -63,7 +63,7 @@ func (a *ntlmAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 		if len(fromServer) == 0 {
 			return nil, errors.New("ntlm ChallengeMessage is empty")
 		}
-		authenticateMessage, err := ntlmssp.ProcessChallenge(fromServer, a.username, a.password, a.domainNeeded)
+		authenticateMessage, err := ntlmssp.ProcessChallenge(fromServer, a.username, a.password, a.domainNeeded) //nolint:staticcheck // need more time to refactor
 		return authenticateMessage, err
 	}
 	return nil, nil
