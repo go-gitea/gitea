@@ -204,7 +204,7 @@ select.ui.dropdown {
 .ui.selection.dropdown {
   cursor: pointer;
   overflow-wrap: break-word;
-  line-height: 1;
+  line-height: 1em;
   white-space: normal;
   outline: 0;
   transform: rotateZ(0deg);
@@ -231,7 +231,7 @@ select.ui.dropdown {
   position: absolute;
   width: auto;
   height: auto;
-  line-height: 1.21428571;
+  line-height: 1.21428571em;
   top: 0.78571429em;
   right: 1em;
   z-index: 3;
@@ -389,12 +389,12 @@ select.ui.dropdown {
 }
 
 .ui.search.selection.dropdown > input.search {
-  line-height: 1.21428571;
+  line-height: 1.21428571em;
   padding: 0.67857143em 3.2em 0.67857143em 1em;
 }
 
 .ui.search.selection.dropdown > span.sizer {
-  line-height: 1.21428571;
+  line-height: 1.21428571em;
   padding: 0.67857143em 3.2em 0.67857143em 1em;
   display: none;
   white-space: pre;
@@ -497,7 +497,7 @@ select.ui.dropdown {
   padding: 0;
   max-width: 100%;
   margin: 0.45238095em 0 0.45238095em 0.64285714em;
-  line-height: 1.21428571;
+  line-height: 1.21428571em;
 }
 
 .ui.multiple.dropdown > .text.default {
@@ -526,7 +526,7 @@ select.ui.dropdown {
   left: 0;
   padding: inherit;
   margin: 0.45238095em 0 0.45238095em 0.64285714em;
-  line-height: 1.21428571;
+  line-height: 1.21428571em;
 }
 
 .ui.multiple.search.dropdown > .label ~ .text {
@@ -539,7 +539,7 @@ select.ui.dropdown {
   max-width: 100%;
   margin: 0.45238095em 0 0.45238095em 0.64285714em;
   width: 2.2em;
-  line-height: 1.21428571;
+  line-height: 1.21428571em;
 }
 
 .ui.dropdown .menu .active.item {
