@@ -437,16 +437,7 @@ func GetCommitPullRequests(ctx *context.APIContext) {
 		return
 	}
 
-	for _, pr := range prs {
-		if err = pr.LoadBaseRepo(ctx); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-		if err = pr.LoadHeadRepo(ctx); err != nil {
-			ctx.APIErrorInternal(err)
-			return
-		}
-	}
+
 	baseRepo := ctx.Repo.Repository
 	apiPRs, err := convert.ToAPIPullRequests(ctx, baseRepo, prs, ctx.Doer)
 	if err != nil {

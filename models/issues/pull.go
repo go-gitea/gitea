@@ -1010,18 +1010,7 @@ func GetPullRequestsByMergedCommit(ctx context.Context, repoID int64, sha string
 		return nil, err
 	}
 
-	if len(prs) == 0 {
-		return prs, nil
-	}
 
-	for _, pr := range prs {
-		if err := pr.LoadAttributes(ctx); err != nil {
-			return nil, err
-		}
-		if err := pr.LoadIssue(ctx); err != nil {
-			return nil, err
-		}
-	}
 
 	return prs, nil
 }
