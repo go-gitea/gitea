@@ -474,3 +474,45 @@ func (a *actionNotifier) NewRelease(ctx context.Context, rel *repo_model.Release
 		log.Error("NotifyWatchers: %v", err)
 	}
 }
+
+func (a *actionNotifier) PullRequestReviewRequest(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
+	if !isRequest {
+		return
+	}
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("issue.LoadRepo: %v", err)
+		return
+	}
+	if err := NotifyWatchers(ctx, &activities_model.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    activities_model.ActionPullRequestReviewRequest,
+		RepoID:    issue.RepoID,
+		Repo:      issue.Repo,
+		IsPrivate: issue.Repo.IsPrivate,
+		Content:   fmt.Sprintf("%d|%s", issue.Index, reviewer.Name),
+	}); err != nil {
+		log.Error("NotifyWatchers: %v", err)
+	}
+}
+
+func (a *actionNotifier) IssueChangeAssignee(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
+	if removed {
+		return
+	}
+	if err := issue.LoadRepo(ctx); err != nil {
+		log.Error("issue.LoadRepo: %v", err)
+		return
+	}
+	if err := NotifyWatchers(ctx, &activities_model.Action{
+		ActUserID: doer.ID,
+		ActUser:   doer,
+		OpType:    activities_model.ActionIssueChangeAssignee,
+		RepoID:    issue.RepoID,
+		Repo:      issue.Repo,
+		IsPrivate: issue.Repo.IsPrivate,
+		Content:   fmt.Sprintf("%d|%s", issue.Index, assignee.Name),
+	}); err != nil {
+		log.Error("NotifyWatchers: %v", err)
+	}
+}

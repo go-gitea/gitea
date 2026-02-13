@@ -62,6 +62,8 @@ const (
 	ActionPullReviewDismissed                             // 25
 	ActionPullRequestReadyForReview                       // 26
 	ActionAutoMergePullRequest                            // 27
+	ActionPullRequestReviewRequest                        // 28
+	ActionIssueChangeAssignee                             // 29
 )
 
 func (at ActionType) String() string {
@@ -120,6 +122,10 @@ func (at ActionType) String() string {
 		return "pull_request_ready_for_review"
 	case ActionAutoMergePullRequest:
 		return "auto_merge_pull_request"
+	case ActionPullRequestReviewRequest:
+		return "pull_request_review_request"
+	case ActionIssueChangeAssignee:
+		return "issue_change_assignee"
 	default:
 		return "action-" + strconv.Itoa(int(at))
 	}
