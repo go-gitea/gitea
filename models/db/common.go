@@ -30,7 +30,7 @@ func BuildCaseInsensitiveLike(key, value string) builder.Cond {
 // Handles especially SQLite correctly as UPPER there only transforms ASCII letters.
 func BuildCaseInsensitiveIn(key string, values []string) builder.Cond {
 	uppers := make([]string, len(values))
-	transform := strings.ToUpper
+	transform := strings.ToLower
 	if setting.Database.Type.IsSQLite3() {
 		transform = util.ToLowerASCII
 	}
