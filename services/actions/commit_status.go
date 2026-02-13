@@ -131,6 +131,9 @@ func getCommitStatusEventNameAndCommitID(ctx context.Context, run *actions_model
 			}
 			parentRun, err := actions_model.GetRunByRepoAndID(ctx, currentRun.RepoID, payload.WorkflowRun.ID)
 			if err != nil {
+				if errors.Is(err, util.ErrNotExist) {
+					return "", "", nil
+				}
 				return "", "", fmt.Errorf("GetRunByRepoAndID: %w", err)
 			}
 			if parentRun.Event != webhook_module.HookEventWorkflowRun {
