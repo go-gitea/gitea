@@ -188,6 +188,7 @@ func TestUserSettingsUpdateEmail(t *testing.T) {
 		req := NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
 			"_method": "PRIMARY",
 			"id":      "9999",
+			"_csrf":   GetUserCSRFToken(t, session),
 		})
 		resp := session.MakeRequest(t, req, http.StatusSeeOther)
 		assert.Equal(t, "/user/settings/account", resp.Header().Get("Location"))
@@ -202,6 +203,7 @@ func TestUserSettingsUpdateEmail(t *testing.T) {
 		req := NewRequestWithValues(t, "POST", "/user/settings/account/email", map[string]string{
 			"_method": "PRIMARY",
 			"id":      "6",
+			"_csrf":   GetUserCSRFToken(t, session),
 		})
 		resp := session.MakeRequest(t, req, http.StatusSeeOther)
 		assert.Equal(t, "/user/settings/account", resp.Header().Get("Location"))
