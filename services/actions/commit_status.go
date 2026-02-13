@@ -36,7 +36,7 @@ func CreateCommitStatusForRunJobs(ctx context.Context, run *actions_model.Action
 
 	event, commitID, err := getCommitStatusEventNameAndCommitID(ctx, run)
 	if err != nil {
-		log.Error("GetCommitStatusEventNameAndSHA: %v", err)
+		log.Error("getCommitStatusEventNameAndCommitID: %v", err)
 	}
 	if event == "" || commitID == "" {
 		return // unsupported event, or no commit id, or error occurs, do nothing
