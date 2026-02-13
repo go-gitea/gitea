@@ -194,8 +194,8 @@ watch([searchQuery, filteredFiles], async () => {
 .repo-file-search-input-wrapper input {
   padding-right: 32px !important;
   border-right: 1px solid var(--color-input-border) !important;
-  border-top-right-radius: 0.28571429rem !important;
-  border-bottom-right-radius: 0.28571429rem !important;
+  border-top-right-radius: var(--border-radius) !important;
+  border-bottom-right-radius: var(--border-radius) !important;
 }
 
 .repo-file-search-input-wrapper input:focus {
