@@ -22,8 +22,8 @@ import (
 // https://github.com/google/go-licenses/blob/master/licenses/find.go
 var licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING).*$`)
 
-// ignoredModulePaths are module paths to exclude from the license output.
-var ignoredModulePaths = map[string]bool{
+// ignoredNames are LicenseEntry.Name values to exclude from the output.
+var ignoredNames = map[string]bool{
 	"code.gitea.io/gitea/options/license": true,
 }
 
@@ -237,7 +237,7 @@ func main() {
 	}
 
 	entries = slices.DeleteFunc(entries, func(e LicenseEntry) bool {
-		return ignoredModulePaths[e.Name]
+		return ignoredNames[e.Name]
 	})
 
 	sort.Slice(entries, func(i, j int) bool {
