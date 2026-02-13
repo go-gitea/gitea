@@ -437,7 +437,6 @@ func GetCommitPullRequests(ctx *context.APIContext) {
 		return
 	}
 
-
 	baseRepo := ctx.Repo.Repository
 	apiPRs, err := convert.ToAPIPullRequests(ctx, baseRepo, prs, ctx.Doer)
 	if err != nil {
