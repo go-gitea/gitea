@@ -758,6 +758,7 @@
   "settings.add_email": "Add Email Address",
   "settings.add_openid": "Add OpenID URI",
   "settings.add_email_confirmation_sent": "A confirmation email has been sent to \"%s\". Please check your inbox within the next %s to confirm your email address.",
+  "settings.email_primary_not_found": "The selected email address could not be found.",
   "settings.add_email_success": "The new email address has been added.",
   "settings.email_preference_set_success": "Email preference has been set successfully.",
   "settings.add_openid_success": "The new OpenID address has been added.",
