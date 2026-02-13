@@ -147,7 +147,7 @@ type Action struct {
 	RefName     string
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 	OriginalUnix timeutil.TimeStamp `xorm:"INDEX"` // Original timestamp (e.g., commit author date)
 }
 
