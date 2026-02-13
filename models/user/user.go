@@ -1204,7 +1204,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 		emailLower := strings.ToLower(email)
 		needCheckEmails.Add(emailLower)
 		if localPart, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
-			name, id := parseLocalPartToNameId(localPart)
+			name, id := parseLocalPartToNameID(localPart)
 			if id != 0 {
 				needCheckUserIDs.Add(id)
 			} else if name != "" {
@@ -1268,7 +1268,7 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 		if !ok {
 			continue
 		}
-		name, id := parseLocalPartToNameId(localPart)
+		name, id := parseLocalPartToNameID(localPart)
 		if user, ok := usersByIDs[id]; ok {
 			results[emailLower] = user
 		} else if user, ok := usersByName[name]; ok {
@@ -1279,9 +1279,9 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 	return &EmailUserMap{results}, nil
 }
 
-// parseLocalPartToNameId attempts to unparse local-part of email that's in format user+id
+// parseLocalPartToNameID attempts to unparse local-part of email that's in format user+id
 // returns user and id if possible
-func parseLocalPartToNameId(localPart string) (string, int64) {
+func parseLocalPartToNameID(localPart string) (string, int64) {
 	var id int64
 	name, idstr, hasPlus := strings.Cut(localPart, "+")
 	if hasPlus {
@@ -1309,7 +1309,7 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 
 	// Finally, if email address is the protected email address:
 	if localPart, ok := strings.CutSuffix(email, strings.ToLower("@"+setting.Service.NoReplyAddress)); ok {
-		name, id := parseLocalPartToNameId(localPart)
+		name, id := parseLocalPartToNameID(localPart)
 		if id != 0 {
 			return GetUserByID(ctx, id)
 		}
