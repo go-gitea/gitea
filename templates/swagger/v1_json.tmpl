@@ -7507,7 +7507,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get the pull requests of the commit",
+        "summary": "Get the pull requests associated with a commit",
         "operationId": "repoGetCommitPullRequests",
         "parameters": [
           {
@@ -7535,6 +7535,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/PullRequestList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
