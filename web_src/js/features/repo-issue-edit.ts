@@ -97,7 +97,8 @@ async function tryOnEditContent(e: Event) {
     cancelButton.addEventListener('click', cancelAndReset);
     form.addEventListener('submit', saveAndRefresh);
   }
-
+  // when the content has changed on server side, there is no sycn, and this page doesn't have the latest content,
+  // the editor still show the old content, server will reject end user's submit by "data-content-version" check
   comboMarkdownEditor.value(rawContent.textContent);
   comboMarkdownEditor.switchTabToEditor();
   comboMarkdownEditor.focus();
