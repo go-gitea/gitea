@@ -90,7 +90,7 @@ function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
   for (const elem of elems) {
     if (isElemVisible(elem as HTMLElement)) {
       elem.querySelector<HTMLElement>('[autofocus]')?.focus();
-      if (elem instanceof HTMLInputElement) handleInputAutoFocusEnd(elem);
+      handleInputAutoFocusEnd(elem);
     }
   }
 }
