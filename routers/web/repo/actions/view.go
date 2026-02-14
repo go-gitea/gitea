@@ -318,27 +318,22 @@ func convertToViewModel(ctx *context_module.Context, cursors []LogCursor, task *
 	var viewJobs []*ViewJobStep
 	var logs []*ViewStepLog
 
-	steps := actions.FullSteps(task)
-
-	// Parse workflow to identify unnamed steps that need a "Run" prefix.
-	// FullSteps prepends a "Set up job" step, so workflow step index is i-1.
-	var hasName []bool
+	// Add "Run" prefix for unnamed steps
 	if task.Job != nil {
 		if wj, err := task.Job.ParseJob(); err == nil {
-			hasName = make([]bool, len(wj.Steps))
-			for i, ws := range wj.Steps {
-				hasName[i] = ws.Name != ""
+			for i, step := range task.Steps {
+				if i < len(wj.Steps) && wj.Steps[i].Name == "" {
+					step.Name = ctx.Locale.TrString("actions.runs.run", step.Name)
+				}
 			}
 		}
 	}
 
-	for i, v := range steps {
-		summary := v.Name
-		if wi := i - 1; wi >= 0 && wi < len(hasName) && !hasName[wi] {
-			summary = ctx.Locale.TrString("actions.runs.run", summary)
-		}
+	steps := actions.FullSteps(task)
+
+	for _, v := range steps {
 		viewJobs = append(viewJobs, &ViewJobStep{
-			Summary:  summary,
+			Summary:  v.Name,
 			Duration: v.Duration().String(),
 			Status:   v.Status.String(),
 		})
