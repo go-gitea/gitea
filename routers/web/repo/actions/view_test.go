@@ -18,8 +18,9 @@ func TestConvertToViewModel(t *testing.T) {
 	task := &actions_model.ActionTask{
 		Status: actions_model.StatusSuccess,
 		Steps: []*actions_model.ActionTaskStep{
-			{Name: "Run step-name", Index: 0, Status: actions_model.StatusSuccess, LogLength: 1, Stopped: timeutil.TimeStamp(1)},
+			{Name: "Run step-name", Index: 0, Status: actions_model.StatusSuccess, LogLength: 1, Started: timeutil.TimeStamp(1), Stopped: timeutil.TimeStamp(5)},
 		},
+		Stopped: timeutil.TimeStamp(20),
 	}
 
 	viewJobSteps, _, err := convertToViewModel(t.Context(), translation.MockLocale{}, nil, task)
@@ -33,12 +34,12 @@ func TestConvertToViewModel(t *testing.T) {
 		},
 		{
 			Summary:  "Run step-name",
-			Duration: "0s",
+			Duration: "4s",
 			Status:   "success",
 		},
 		{
 			Summary:  "Complete job",
-			Duration: "-1s",
+			Duration: "15s",
 			Status:   "success",
 		},
 	}
