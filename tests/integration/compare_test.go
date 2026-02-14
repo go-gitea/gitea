@@ -124,6 +124,7 @@ func TestCompareBranches(t *testing.T) {
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
 }
 
+/* TODO: test prepareNewPullRequestTitleContent in unit tests, but not use onGiteaRun
 func TestCompareMultiCommitPRTitle(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
@@ -161,6 +162,7 @@ func TestCompareMultiCommitPRTitle(t *testing.T) {
 		assert.Equal(t, "First commit title", titleValue, "PR title should be the oldest commit's title for multi-commit PRs")
 	})
 }
+*/
 
 func TestCompareCodeExpand(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {

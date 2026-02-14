@@ -426,6 +426,33 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	return compareInfo
 }
 
+func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses) (title, content string) {
+	title = ci.HeadRef.ShortName()
+
+	if len(commits) >= 0 {
+		c := commits[len(commits)-1]
+		title = strings.TrimSpace(c.UserCommit.Summary())
+	}
+
+	if len(commits) == 1 {
+		c := commits[0]
+		title = strings.TrimSpace(c.UserCommit.Summary())
+		_, content, _ = strings.Cut(strings.TrimSpace(c.UserCommit.Message()), "\n")
+		content = strings.TrimSpace(content)
+	}
+
+	var titleTrailer string
+	title, titleTrailer = util.EllipsisDisplayStringX(title, 255)
+	if titleTrailer != "" {
+		if content != "" {
+			content = fmt.Sprintf("%s\n\n%s", titleTrailer, content)
+		} else {
+			content = titleTrailer + "\n"
+		}
+	}
+	return title, content
+}
+
 // PrepareCompareDiff renders compare diff page
 func PrepareCompareDiff(
 	ctx *context.Context,
@@ -539,33 +566,7 @@ func PrepareCompareDiff(
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
-	title := ci.HeadRef.ShortName()
-	if len(commits) == 1 {
-		c := commits[0]
-		title = strings.TrimSpace(c.UserCommit.Summary())
-
-		body := strings.Split(strings.TrimSpace(c.UserCommit.Message()), "\n")
-		if len(body) > 1 {
-			ctx.Data["content"] = strings.Join(body[1:], "\n")
-		}
-	} else if len(commits) > 1 {
-		c := commits[len(commits)-1]
-		title = strings.TrimSpace(c.UserCommit.Summary())
-	}
-
-	if len(title) > 255 {
-		var trailer string
-		title, trailer = util.EllipsisDisplayStringX(title, 255)
-		if len(trailer) > 0 {
-			if ctx.Data["content"] != nil {
-				ctx.Data["content"] = fmt.Sprintf("%s\n\n%s", trailer, ctx.Data["content"])
-			} else {
-				ctx.Data["content"] = trailer + "\n"
-			}
-		}
-	}
-
-	ctx.Data["title"] = title
+	ctx.Data["title"], ctx.Data["content"] = prepareNewPullRequestTitleContent(ci, commits)
 	ctx.Data["Username"] = ci.HeadRepo.OwnerName
 	ctx.Data["Reponame"] = ci.HeadRepo.Name
 
