@@ -80,35 +80,3 @@ func GetTotalContributionsInHeatmap(hdata []*UserHeatmapData) int64 {
 	}
 	return total
 }
-
-// heatmapDataJSON converts UserHeatmapData to a [][2]int64 format and computes
-// total contributions.
-func heatmapDataJSON(hdata []*UserHeatmapData) ([][2]int64, int64) {
-	result := make([][2]int64, len(hdata))
-	var total int64
-	for i, v := range hdata {
-		result[i] = [2]int64{int64(v.Timestamp), v.Contributions}
-		total += v.Contributions
-	}
-	return result, total
-}
-
-// GetUserHeatmapDataByUserJSON returns heatmap data as [][2]int64 and total contributions
-func GetUserHeatmapDataByUserJSON(ctx context.Context, user, doer *user_model.User) ([][2]int64, int64, error) {
-	hdata, err := getUserHeatmapData(ctx, user, nil, doer)
-	if err != nil {
-		return nil, 0, err
-	}
-	data, total := heatmapDataJSON(hdata)
-	return data, total, nil
-}
-
-// GetUserHeatmapDataByUserTeamJSON returns heatmap data as [][2]int64 and total contributions
-func GetUserHeatmapDataByUserTeamJSON(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User) ([][2]int64, int64, error) {
-	hdata, err := getUserHeatmapData(ctx, user, team, doer)
-	if err != nil {
-		return nil, 0, err
-	}
-	data, total := heatmapDataJSON(hdata)
-	return data, total, nil
-}

@@ -162,14 +162,18 @@ func DashboardHeatmap(ctx *context.Context) {
 		return
 	}
 
-	data, total, err := activities_model.GetUserHeatmapDataByUserTeamJSON(ctx, ctxUser, ctx.Org.Team, ctx.Doer)
+	hdata, err := activities_model.GetUserHeatmapDataByUserTeam(ctx, ctxUser, ctx.Org.Team, ctx.Doer)
 	if err != nil {
-		ctx.ServerError("GetUserHeatmapDataByUserTeamJSON", err)
+		ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
 		return
+	}
+	data := make([][2]int64, len(hdata))
+	for i, v := range hdata {
+		data[i] = [2]int64{int64(v.Timestamp), v.Contributions}
 	}
 	ctx.JSON(http.StatusOK, map[string]any{
 		"heatmapData":        data,
-		"totalContributions": total,
+		"totalContributions": activities_model.GetTotalContributionsInHeatmap(hdata),
 	})
 }
 
