@@ -148,11 +148,11 @@ export default defineComponent({
       menuVisible: false,
       isFullScreen: false,
       timeVisible: {
-        'log-time-stamp': actionsLogShowTimestamps ?? false,
-        'log-time-seconds': actionsLogShowSeconds ?? false,
+        'log-time-stamp': actionsLogShowTimestamps,
+        'log-time-seconds': actionsLogShowSeconds,
       },
-      optionAlwaysAutoScroll: autoScroll ?? false,
-      optionAlwaysExpandRunning: expandRunning ?? false,
+      optionAlwaysAutoScroll: autoScroll,
+      optionAlwaysExpandRunning: expandRunning,
 
       // provided by backend
       run: {
