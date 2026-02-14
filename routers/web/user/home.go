@@ -115,9 +115,9 @@ func Dashboard(ctx *context.Context) {
 		heatmapURL := setting.AppSubURL + "/user/heatmap"
 		if ctx.Org.Organization != nil {
 			if ctx.Org.Team != nil {
-				heatmapURL = setting.AppSubURL + "/" + ctx.Org.Organization.Name + "/dashboard/" + ctx.Org.Team.Name + "/heatmap"
+				heatmapURL = setting.AppSubURL + "/org/" + ctx.Org.Organization.Name + "/dashboard/" + ctx.Org.Team.Name + "/heatmap"
 			} else {
-				heatmapURL = setting.AppSubURL + "/" + ctx.Org.Organization.Name + "/dashboard/heatmap"
+				heatmapURL = setting.AppSubURL + "/org/" + ctx.Org.Organization.Name + "/dashboard/heatmap"
 			}
 		}
 		ctx.Data["HeatmapURL"] = heatmapURL
