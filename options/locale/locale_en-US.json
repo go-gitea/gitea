@@ -3689,7 +3689,6 @@
   "actions.runs.no_runs": "The workflow has no runs yet.",
   "actions.runs.empty_commit_message": "(empty commit message)",
   "actions.runs.expire_log_message": "Logs have been purged because they were too old.",
-  "actions.runs.run": "Run %s",
   "actions.runs.delete": "Delete workflow run",
   "actions.runs.cancel": "Cancel workflow run",
   "actions.runs.delete.description": "Are you sure you want to permanently delete this workflow run? This action cannot be undone.",

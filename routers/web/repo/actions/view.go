@@ -318,30 +318,11 @@ func convertToViewModel(ctx *context_module.Context, cursors []LogCursor, task *
 	var viewJobs []*ViewJobStep
 	var logs []*ViewStepLog
 
-	// Build a lookup of which steps have an explicit name in the workflow YAML.
-	// Steps without a name get a localized "Run <command>" prefix for display.
-	var hasName []bool
-	if task.Job != nil {
-		if wj, err := task.Job.ParseJob(); err == nil {
-			hasName = make([]bool, len(wj.Steps))
-			for i, step := range wj.Steps {
-				hasName[i] = step.Name != ""
-			}
-		}
-	}
-
 	steps := actions.FullSteps(task)
 
-	for i, v := range steps {
-		summary := v.Name
-		// FullSteps prepends a "Set up job" step and appends a "Complete job"
-		// step, so real task steps are at indices 1..len(task.Steps).
-		stepIdx := i - 1
-		if stepIdx >= 0 && stepIdx < len(hasName) && !hasName[stepIdx] {
-			summary = ctx.Locale.TrString("actions.runs.run", summary)
-		}
+	for _, v := range steps {
 		viewJobs = append(viewJobs, &ViewJobStep{
-			Summary:  summary,
+			Summary:  v.Name,
 			Duration: v.Duration().String(),
 			Status:   v.Status.String(),
 		})

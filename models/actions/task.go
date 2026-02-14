@@ -293,7 +293,11 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if len(workflowJob.Steps) > 0 {
 		steps := make([]*ActionTaskStep, len(workflowJob.Steps))
 		for i, v := range workflowJob.Steps {
-			name := util.EllipsisDisplayString(v.String(), 255)
+			name := v.String()
+			if v.Name == "" {
+				name = "Run " + name
+			}
+			name = util.EllipsisDisplayString(name, 255)
 			steps[i] = &ActionTaskStep{
 				Name:   name,
 				TaskID: task.ID,
