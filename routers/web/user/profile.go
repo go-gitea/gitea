@@ -326,13 +326,10 @@ func Heatmap(ctx *context.Context) {
 		ctx.ServerError("GetUserHeatmapDataByUser", err)
 		return
 	}
-	data := make([][2]int64, len(hdata))
-	for i, v := range hdata {
-		data[i] = [2]int64{int64(v.Timestamp), v.Contributions}
-	}
+	data, total := activities_model.HeatmapDataToJSON(hdata)
 	ctx.JSON(http.StatusOK, map[string]any{
 		"heatmapData":        data,
-		"totalContributions": activities_model.GetTotalContributionsInHeatmap(hdata),
+		"totalContributions": total,
 	})
 }
 

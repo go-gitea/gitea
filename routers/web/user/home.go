@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"slices"
 	"sort"
@@ -112,16 +111,11 @@ func Dashboard(ctx *context.Context) {
 
 	if setting.Service.EnableUserHeatmap {
 		ctx.Data["EnableHeatmap"] = true
-		// Build the heatmap URL based on the dashboard context (personal vs org/team)
-		heatmapURL := setting.AppSubURL + "/user/heatmap"
-		if ctx.Org.Organization != nil {
-			if ctx.Org.Team != nil {
-				heatmapURL = ctx.Org.Organization.OrganisationLink() + "/dashboard/" + url.PathEscape(ctx.Org.Team.Name) + "/heatmap"
-			} else {
-				heatmapURL = ctx.Org.Organization.OrganisationLink() + "/dashboard/heatmap"
-			}
+		heatmapPath := ctx.Req.URL.Path + "/heatmap"
+		if ctx.Org.Organization == nil {
+			heatmapPath = "/user/heatmap"
 		}
-		ctx.Data["HeatmapURL"] = heatmapURL
+		ctx.Data["HeatmapURL"] = setting.AppSubURL + heatmapPath
 	}
 
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
@@ -167,13 +161,10 @@ func DashboardHeatmap(ctx *context.Context) {
 		ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
 		return
 	}
-	data := make([][2]int64, len(hdata))
-	for i, v := range hdata {
-		data[i] = [2]int64{int64(v.Timestamp), v.Contributions}
-	}
+	data, total := activities_model.HeatmapDataToJSON(hdata)
 	ctx.JSON(http.StatusOK, map[string]any{
 		"heatmapData":        data,
-		"totalContributions": activities_model.GetTotalContributionsInHeatmap(hdata),
+		"totalContributions": total,
 	})
 }
 
