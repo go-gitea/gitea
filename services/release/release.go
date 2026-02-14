@@ -138,8 +138,6 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		rel.CreatedUnix = timeutil.TimeStampNow()
 		rel.Title = util.EllipsisDisplayString(rel.Title, 255)
-		// Trim '--' prefix to prevent command line argument vulnerability.
-		rel.TagName = strings.TrimPrefix(rel.TagName, "--")
 		rel.LowerTagName = strings.ToLower(rel.TagName)
 		if commit != nil {
 			rel.Sha1 = commit.ID.String()
@@ -245,7 +243,8 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			Repo:         repo,
 			PublisherID:  doer.ID,
 			Publisher:    doer,
-			TagName:      strings.TrimPrefix(tagName, "--"), // Trim '--' prefix to prevent command line argument vulnerability.
+			TagName:      tagName,
+			LowerTagName: strings.ToLower(tagName),
 			Target:       targetBranchOrCommit,
 			IsDraft:      false,
 			IsPrerelease: false,
@@ -254,7 +253,6 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			Sha1:         commit.ID.String(),
 		}
 
-		rel.LowerTagName = strings.ToLower(rel.TagName)
 		if err := db.Insert(ctx, rel); err != nil {
 			return err
 		}
@@ -310,8 +308,6 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		// Trim '--' prefix to prevent command line argument vulnerability.
-		rel.TagName = strings.TrimPrefix(rel.TagName, "--")
 		rel.LowerTagName = strings.ToLower(rel.TagName)
 		if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 			return err
