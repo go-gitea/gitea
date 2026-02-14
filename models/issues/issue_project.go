@@ -114,13 +114,13 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			if _, err := projectDB.Where("issue_id=?", issue.ID).In("project_id", oldProjectIDs).Delete(&project_model.ProjectIssue{}); err != nil {
 				return err
 			}
-			for _, pID := range oldProjectIDs {
+			for _, projectID := range oldProjectIDs {
 				if _, err := CreateComment(ctx, &CreateCommentOptions{
 					Type:         CommentTypeProject,
 					Doer:         doer,
 					Repo:         issue.Repo,
 					Issue:        issue,
-					OldProjectID: pID,
+					OldProjectID: projectID,
 					ProjectID:    0,
 				}); err != nil {
 					return err
@@ -160,7 +160,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 
 			pi = append(pi, &project_model.ProjectIssue{
 				IssueID:         issue.ID,
-				ProjectID:       pID,
+				ProjectID:       projectID,
 				ProjectColumnID: newColumnID,
 				Sorting:         newSorting,
 			})
@@ -171,7 +171,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 				Repo:         issue.Repo,
 				Issue:        issue,
 				OldProjectID: 0,
-				ProjectID:    pID,
+				ProjectID:    projectID,
 			}); err != nil {
 				return err
 			}
