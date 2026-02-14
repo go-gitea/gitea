@@ -144,28 +144,35 @@ func Dashboard(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
+func writeHeatmapJSON(ctx *context.Context, hdata []*activities_model.UserHeatmapData, err error) {
+	if err != nil {
+		ctx.ServerError("GetUserHeatmapData", err)
+		return
+	}
+	data := make([][2]int64, len(hdata))
+	var total int64
+	for i, v := range hdata {
+		data[i] = [2]int64{int64(v.Timestamp), v.Contributions}
+		total += v.Contributions
+	}
+	ctx.JSON(http.StatusOK, map[string]any{
+		"heatmapData":        data,
+		"totalContributions": total,
+	})
+}
+
 // DashboardHeatmap returns heatmap data for the dashboard as JSON
 func DashboardHeatmap(ctx *context.Context) {
 	if !setting.Service.EnableUserHeatmap {
 		ctx.NotFound(nil)
 		return
 	}
-
 	ctxUser := getDashboardContextUser(ctx)
 	if ctx.Written() {
 		return
 	}
-
 	hdata, err := activities_model.GetUserHeatmapDataByUserTeam(ctx, ctxUser, ctx.Org.Team, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
-		return
-	}
-	data, total := activities_model.HeatmapDataToJSON(hdata)
-	ctx.JSON(http.StatusOK, map[string]any{
-		"heatmapData":        data,
-		"totalContributions": total,
-	})
+	writeHeatmapJSON(ctx, hdata, err)
 }
 
 // Milestones render the user milestones page

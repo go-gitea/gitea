@@ -320,17 +320,8 @@ func Heatmap(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-
 	hdata, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
-	if err != nil {
-		ctx.ServerError("GetUserHeatmapDataByUser", err)
-		return
-	}
-	data, total := activities_model.HeatmapDataToJSON(hdata)
-	ctx.JSON(http.StatusOK, map[string]any{
-		"heatmapData":        data,
-		"totalContributions": total,
-	})
+	writeHeatmapJSON(ctx, hdata, err)
 }
 
 // ActionUserFollow is for follow/unfollow user request

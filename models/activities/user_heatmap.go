@@ -80,15 +80,3 @@ func GetTotalContributionsInHeatmap(hdata []*UserHeatmapData) int64 {
 	}
 	return total
 }
-
-// HeatmapDataToJSON converts UserHeatmapData to a slim [][2]int64 format
-// and returns the total contributions count.
-func HeatmapDataToJSON(hdata []*UserHeatmapData) ([][2]int64, int64) {
-	data := make([][2]int64, len(hdata))
-	var total int64
-	for i, v := range hdata {
-		data[i] = [2]int64{int64(v.Timestamp), v.Contributions}
-		total += v.Contributions
-	}
-	return data, total
-}
