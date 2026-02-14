@@ -124,46 +124,6 @@ func TestCompareBranches(t *testing.T) {
 	inspectCompare(t, htmlDoc, diffCount, diffChanges)
 }
 
-/* TODO: test prepareNewPullRequestTitleContent in unit tests, but not use onGiteaRun
-func TestCompareMultiCommitPRTitle(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
-		repo, err := repo_service.CreateRepositoryDirectly(t.Context(), user1, user1, repo_service.CreateRepoOptions{
-			Name:          "test_multi_commit_pr_title",
-			Readme:        "Default",
-			AutoInit:      true,
-			DefaultBranch: "main",
-		}, true)
-		assert.NoError(t, err)
-
-		session := loginUser(t, user1.Name)
-
-		// Create a new branch with a first commit with a known summary
-		testEditorActionEdit(t, session, user1.Name, repo.Name, "_edit", "main", "README.md", map[string]string{
-			"content":         "first edit\n",
-			"commit_choice":   "commit-to-new-branch",
-			"new_branch_name": "multi-commit-branch",
-			"commit_summary":  "First commit title",
-		})
-		// Add a second commit with a different summary
-		testEditorActionEdit(t, session, user1.Name, repo.Name, "_edit", "multi-commit-branch", "README.md", map[string]string{
-			"content":        "second edit\n",
-			"commit_choice":  "direct",
-			"commit_summary": "Second commit title",
-		})
-
-		// Open the compare page for creating a PR
-		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/compare/main...multi-commit-branch", user1.Name, repo.Name))
-		resp := session.MakeRequest(t, req, http.StatusOK)
-		htmlDoc := NewHTMLParser(t, resp.Body)
-
-		// The title should be the first (oldest) commit's summary
-		titleValue := htmlDoc.GetInputValueByName("title")
-		assert.Equal(t, "First commit title", titleValue, "PR title should be the oldest commit's title for multi-commit PRs")
-	})
-}
-*/
-
 func TestCompareCodeExpand(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})

@@ -120,7 +120,7 @@ const InputAutoFocusEndInitName = 'initInputAutoFocusEnd';
 
 export function handleInputAutoFocusEnd(el: HTMLInputElement) {
   if (el.getAttribute('data-global-init') !== InputAutoFocusEndInitName) return;
-  el.focus();
+  el.focus(); // expects only one such element on one page. If there are many, then the last one gets the focus.
   el.setSelectionRange(el.value.length, el.value.length);
 }
 
