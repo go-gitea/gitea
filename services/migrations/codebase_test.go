@@ -54,12 +54,12 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 	assertMilestonesEqual(t, []*base.Milestone{
 		{
 			Title:    "Milestone1",
-			Deadline: timePtr(time.Date(2021, time.September, 16, 0, 0, 0, 0, time.UTC)),
+			Deadline: new(time.Date(2021, time.September, 16, 0, 0, 0, 0, time.UTC)),
 		},
 		{
 			Title:    "Milestone2",
-			Deadline: timePtr(time.Date(2021, time.September, 17, 0, 0, 0, 0, time.UTC)),
-			Closed:   timePtr(time.Date(2021, time.September, 17, 0, 0, 0, 0, time.UTC)),
+			Deadline: new(time.Date(2021, time.September, 17, 0, 0, 0, 0, time.UTC)),
+			Closed:   new(time.Date(2021, time.September, 17, 0, 0, 0, 0, time.UTC)),
 			State:    "closed",
 		},
 	}, milestones)

@@ -273,13 +273,19 @@ func GetArchive(ctx *context.APIContext) {
 	//   description: the git reference for download with attached archive format (e.g. master.zip)
 	//   type: string
 	//   required: true
+	// - name: path
+	//   in: query
+	//   type: array
+	//   items:
+	//     type: string
+	//   description: subpath of the repository to download
+	//   collectionFormat: multi
 	// responses:
 	//   200:
 	//     description: success
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
-	serveRepoArchive(ctx, ctx.PathParam("*"))
+	serveRepoArchive(ctx, ctx.PathParam("*"), ctx.FormStrings("path"))
 }
 
 // GetEditorconfig get editor config of a repository
@@ -370,11 +376,11 @@ func ReqChangeRepoFileOptionsAndCheck(ctx *context.APIContext) {
 		},
 		Signoff: commonOpts.Signoff,
 	}
-	if commonOpts.Dates.Author.IsZero() {
-		commonOpts.Dates.Author = time.Now()
+	if changeFileOpts.Dates.Author.IsZero() {
+		changeFileOpts.Dates.Author = time.Now()
 	}
-	if commonOpts.Dates.Committer.IsZero() {
-		commonOpts.Dates.Committer = time.Now()
+	if changeFileOpts.Dates.Committer.IsZero() {
+		changeFileOpts.Dates.Committer = time.Now()
 	}
 	ctx.Data["__APIChangeRepoFilesOptions"] = changeFileOpts
 }
@@ -525,7 +531,7 @@ func CreateFile(ctx *context.APIContext) {
 func UpdateFile(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/contents/{filepath} repository repoUpdateFile
 	// ---
-	// summary: Update a file in a repository
+	// summary: Update a file in a repository if SHA is set, or create the file if SHA is not set
 	// consumes:
 	// - application/json
 	// produces:
@@ -554,6 +560,8 @@ func UpdateFile(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/FileResponse"
+	//   "201":
+	//     "$ref": "#/responses/FileResponse"
 	//   "403":
 	//     "$ref": "#/responses/error"
 	//   "404":
@@ -572,8 +580,9 @@ func UpdateFile(ctx *context.APIContext) {
 		ctx.APIError(http.StatusUnprocessableEntity, err)
 		return
 	}
+	willCreate := apiOpts.SHA == ""
 	opts.Files = append(opts.Files, &files_service.ChangeRepoFile{
-		Operation:     "update",
+		Operation:     util.Iif(willCreate, "create", "update"),
 		ContentReader: contentReader,
 		SHA:           apiOpts.SHA,
 		FromTreePath:  apiOpts.FromPath,
@@ -587,7 +596,7 @@ func UpdateFile(ctx *context.APIContext) {
 		handleChangeRepoFilesError(ctx, err)
 	} else {
 		fileResponse := files_service.GetFileResponseFromFilesResponse(filesResponse, 0)
-		ctx.JSON(http.StatusOK, fileResponse)
+		ctx.JSON(util.Iif(willCreate, http.StatusCreated, http.StatusOK), fileResponse)
 	}
 }
 
@@ -605,10 +614,6 @@ func handleChangeRepoFilesError(ctx *context.APIContext, err error) {
 		files_service.IsErrFilePathInvalid(err) || files_service.IsErrRepoFileAlreadyExists(err) ||
 		files_service.IsErrCommitIDDoesNotMatch(err) || files_service.IsErrSHAOrCommitIDNotProvided(err) {
 		ctx.APIError(http.StatusUnprocessableEntity, err)
-		return
-	}
-	if git.IsErrBranchNotExist(err) || files_service.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
-		ctx.APIError(http.StatusNotFound, err)
 		return
 	}
 	if errors.Is(err, util.ErrNotExist) {

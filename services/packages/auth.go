@@ -23,21 +23,24 @@ type packageClaims struct {
 	PackageMeta
 }
 type PackageMeta struct {
-	UserID int64
-	Scope  auth_model.AccessTokenScope
+	UserID            int64
+	Scope             auth_model.AccessTokenScope
+	ActionsUserTaskID int64
 }
 
 func CreateAuthorizationToken(u *user_model.User, packageScope auth_model.AccessTokenScope) (string, error) {
 	now := time.Now()
 
+	actionsUserTaskID, _ := user_model.GetActionsUserTaskID(u)
 	claims := packageClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
 			NotBefore: jwt.NewNumericDate(now),
 		},
 		PackageMeta: PackageMeta{
-			UserID: u.ID,
-			Scope:  packageScope,
+			UserID:            u.ID,
+			Scope:             packageScope,
+			ActionsUserTaskID: actionsUserTaskID,
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

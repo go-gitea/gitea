@@ -43,7 +43,6 @@
 						{{ctx.Locale.Tr "repo.settings.lfs_delete_warning"}}
 					</p>
 					<form class="ui form" action="{{$.Link}}/delete/{{.Oid}}" method="post">
-						{{$.CsrfTokenHtml}}
 						{{template "base/modal_actions_confirm"}}
 					</form>
 				</div>

@@ -131,14 +131,14 @@ func (m msteamsConvertor) Push(p *api.PushPayload) (MSTeamsPayload, error) {
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
 
-	var text string
+	var text strings.Builder
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
-		text += fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL,
-			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name)
+		text.WriteString(fmt.Sprintf("[%s](%s) %s - %s", commit.ID[:7], commit.URL,
+			strings.TrimRight(commit.Message, "\r\n"), commit.Author.Name))
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "\n\n"
+			text.WriteString("\n\n")
 		}
 	}
 
@@ -146,7 +146,7 @@ func (m msteamsConvertor) Push(p *api.PushPayload) (MSTeamsPayload, error) {
 		p.Repo,
 		p.Sender,
 		title,
-		text,
+		text.String(),
 		titleLink,
 		greenColor,
 		&MSTeamsFact{"Commit count:", strconv.Itoa(p.TotalCommits)},

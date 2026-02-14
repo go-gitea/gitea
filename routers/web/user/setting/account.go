@@ -57,7 +57,7 @@ func AccountPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.ChangePasswordForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
 
@@ -107,13 +107,18 @@ func EmailPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.AddEmailForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
 
 	// Make email address primary.
 	if ctx.FormString("_method") == "PRIMARY" {
-		if err := user_model.MakeActiveEmailPrimary(ctx, ctx.FormInt64("id")); err != nil {
+		if err := user_model.MakeActiveEmailPrimary(ctx, ctx.Doer.ID, ctx.FormInt64("id")); err != nil {
+			if user_model.IsErrEmailAddressNotExist(err) {
+				ctx.Flash.Error(ctx.Tr("settings.email_primary_not_found"))
+				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+				return
+			}
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}
@@ -237,7 +242,7 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
 

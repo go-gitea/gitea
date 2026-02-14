@@ -37,11 +37,46 @@ import (
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
 
-// PullRequest contains information to make a pull request
-type PullRequest struct {
-	BaseRepo *repo_model.Repository
-	Allowed  bool // it only used by the web tmpl: "PullRequestCtx.Allowed"
-	SameRepo bool // it only used by the web tmpl: "PullRequestCtx.SameRepo"
+// PullRequestContext contains context information for making a new pull request
+type PullRequestContext struct {
+	ctx *Context
+
+	baseRepo, headRepo *repo_model.Repository
+
+	canCreateNewPull    *bool
+	defaultTargetBranch *string
+}
+
+func (prc *PullRequestContext) SameRepo() bool {
+	return prc.baseRepo != nil && prc.headRepo != nil && prc.baseRepo.ID == prc.headRepo.ID
+}
+
+func (prc *PullRequestContext) CanCreateNewPull() bool {
+	if prc.canCreateNewPull != nil {
+		return *prc.canCreateNewPull
+	}
+	ctx := prc.ctx
+	// People who have push access or have forked repository can propose a new pull request.
+	can := prc.baseRepo.CanContentChange() &&
+		(ctx.Repo.CanWrite(unit_model.TypeCode) || (ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID)))
+	prc.canCreateNewPull = &can
+	return can
+}
+
+func (prc *PullRequestContext) MakeDefaultCompareLink(headBranch string) string {
+	return prc.baseRepo.Link() + "/compare/" +
+		util.PathEscapeSegments(prc.DefaultTargetBranch()) + "..." +
+		util.Iif(prc.SameRepo(), "", util.PathEscapeSegments(prc.headRepo.OwnerName)+":") +
+		util.PathEscapeSegments(headBranch)
+}
+
+func (prc *PullRequestContext) DefaultTargetBranch() string {
+	if prc.defaultTargetBranch != nil {
+		return *prc.defaultTargetBranch
+	}
+	branchName := prc.baseRepo.GetPullRequestTargetBranch(prc.ctx)
+	prc.defaultTargetBranch = &branchName
+	return branchName
 }
 
 // Repository contains information to operate a repository
@@ -64,7 +99,7 @@ type Repository struct {
 	CommitID     string
 	CommitsCount int64
 
-	PullRequest *PullRequest
+	PullRequestCtx *PullRequestContext
 }
 
 // CanWriteToBranch checks if the branch is writable by the user
@@ -140,7 +175,13 @@ func PrepareCommitFormOptions(ctx *Context, doer *user_model.User, targetRepo *r
 		protectionRequireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, targetRepo.RepoPath(), doer, targetRepo.RepoPath(), refName.String())
+	targetGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, targetRepo)
+	if err != nil {
+		return nil, err
+	}
+	defer closer.Close()
+
+	willSign, signKey, _, err := asymkey_service.SignCRUDAction(ctx, doer, targetGitRepo, refName.String())
 	wontSignReason := ""
 	if asymkey_service.IsErrWontSign(err) {
 		wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
@@ -202,14 +243,14 @@ func (r *Repository) CanCreateIssueDependencies(ctx context.Context, user *user_
 }
 
 // GetCommitsCount returns cached commit count for current view
-func (r *Repository) GetCommitsCount() (int64, error) {
+func (r *Repository) GetCommitsCount(ctx context.Context) (int64, error) {
 	if r.Commit == nil {
 		return 0, nil
 	}
 	contextName := r.RefFullName.ShortName()
 	isRef := r.RefFullName.IsBranch() || r.RefFullName.IsTag()
 	return cache.GetInt64(r.Repository.GetCommitsCountCacheKey(contextName, isRef), func() (int64, error) {
-		return r.Commit.CommitsCount()
+		return gitrepo.CommitsCountOfCommit(ctx, r.Repository, r.Commit.ID.String())
 	})
 }
 
@@ -219,11 +260,10 @@ func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, 
 
 	return cache.GetInt64(cacheKey, func() (int64, error) {
 		if len(branches) == 0 {
-			return git.AllCommitsCount(ctx, r.Repository.RepoPath(), hidePRRefs, files...)
+			return gitrepo.AllCommitsCount(ctx, r.Repository, hidePRRefs, files...)
 		}
-		return git.CommitsCount(ctx,
-			git.CommitsCountOptions{
-				RepoPath: r.Repository.RepoPath(),
+		return gitrepo.CommitsCount(ctx, r.Repository,
+			gitrepo.CommitsCountOptions{
 				Revision: branches,
 				RelPath:  files,
 			})
@@ -413,6 +453,12 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
 }
 
+func InitRepoPullRequestCtx(ctx *Context, base, head *repo_model.Repository) {
+	ctx.Repo.PullRequestCtx = &PullRequestContext{ctx: ctx}
+	ctx.Repo.PullRequestCtx.baseRepo, ctx.Repo.PullRequestCtx.headRepo = base, head
+	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequestCtx
+}
+
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) {
 	if ctx.Data["Repository"] != nil {
@@ -444,7 +490,7 @@ func RepoAssignment(ctx *Context) {
 				}
 
 				if redirectUserID, err := user_model.LookupUserRedirect(ctx, userName); err == nil {
-					RedirectToUser(ctx.Base, userName, redirectUserID)
+					RedirectToUser(ctx.Base, ctx.Doer, userName, redirectUserID)
 				} else if user_model.IsErrUserRedirectNotExist(err) {
 					ctx.NotFound(nil)
 				} else {
@@ -537,6 +583,7 @@ func RepoAssignment(ctx *Context) {
 	}
 
 	ctx.Data["Title"] = repo.Owner.Name + "/" + repo.Name
+	ctx.Data["PageTitleCommon"] = repo.Name + " - " + setting.AppName
 	ctx.Data["Repository"] = repo
 	ctx.Data["Owner"] = ctx.Repo.Repository.Owner
 	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
@@ -660,28 +707,16 @@ func RepoAssignment(ctx *Context) {
 
 	ctx.Data["BranchesCount"] = branchesTotal
 
-	// People who have push access or have forked repository can propose a new pull request.
-	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
-		(ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID))
-	canCompare := false
-
-	// Pull request is allowed if this is a fork repository
-	// and base repository accepts pull requests.
+	// Pull request is allowed if this is a fork repository, and base repository accepts pull requests.
 	if repo.BaseRepo != nil && repo.BaseRepo.AllowsPulls(ctx) {
-		canCompare = true
+		// TODO: this (and below) "BaseRepo" var is not clear and should be removed in the future
 		ctx.Data["BaseRepo"] = repo.BaseRepo
-		ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
-		ctx.Repo.PullRequest.Allowed = canPush
+		InitRepoPullRequestCtx(ctx, repo.BaseRepo, repo)
 	} else if repo.AllowsPulls(ctx) {
 		// Or, this is repository accepts pull requests between branches.
-		canCompare = true
 		ctx.Data["BaseRepo"] = repo
-		ctx.Repo.PullRequest.BaseRepo = repo
-		ctx.Repo.PullRequest.Allowed = canPush
-		ctx.Repo.PullRequest.SameRepo = true
+		InitRepoPullRequestCtx(ctx, repo, repo)
 	}
-	ctx.Data["CanCompareOrPull"] = canCompare
-	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
 		repoTransfer, err := repo_model.GetPendingRepositoryTransfer(ctx, ctx.Repo.Repository)
@@ -820,7 +855,7 @@ func RepoRefByDefaultBranch() func(*Context) {
 		ctx.Repo.RefFullName = git.RefNameFromBranch(ctx.Repo.Repository.DefaultBranch)
 		ctx.Repo.BranchName = ctx.Repo.Repository.DefaultBranch
 		ctx.Repo.Commit, _ = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.BranchName)
-		ctx.Repo.CommitsCount, _ = ctx.Repo.GetCommitsCount()
+		ctx.Repo.CommitsCount, _ = ctx.Repo.GetCommitsCount(ctx)
 		ctx.Data["RefFullName"] = ctx.Repo.RefFullName
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
@@ -857,7 +892,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 				if err == nil && len(brs) != 0 {
 					refShortName = brs[0]
 				} else if len(brs) == 0 {
-					log.Error("No branches in non-empty repository %s", ctx.Repo.GitRepo.Path)
+					log.Error("No branches in non-empty repository %s", ctx.Repo.Repository.RelativePath())
 				} else {
 					log.Error("GetBranches error: %v", err)
 				}
@@ -969,7 +1004,7 @@ func RepoRefByType(detectRefType git.RefType) func(*Context) {
 
 		ctx.Data["CanCreateBranch"] = ctx.Repo.CanCreateBranch() // only used by the branch selector dropdown: AllowCreateNewRef
 
-		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+		ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount(ctx)
 		if err != nil {
 			ctx.ServerError("GetCommitsCount", err)
 			return

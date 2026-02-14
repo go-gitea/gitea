@@ -114,7 +114,7 @@ func TestFindRenamedBranch(t *testing.T) {
 	assert.True(t, exist)
 	assert.Equal(t, "master", branch.To)
 
-	_, exist, err = git_model.FindRenamedBranch(t.Context(), 1, "unknow")
+	_, exist, err = git_model.FindRenamedBranch(t.Context(), 1, "unknown")
 	assert.NoError(t, err)
 	assert.False(t, exist)
 }

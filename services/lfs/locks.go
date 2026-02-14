@@ -90,7 +90,7 @@ func GetListLockHandler(ctx *context.Context) {
 			})
 			return
 		}
-		lock, err := git_model.GetLFSLockByID(ctx, v)
+		lock, err := git_model.GetLFSLockByIDAndRepo(ctx, v, repository.ID)
 		if err != nil && !git_model.IsErrLFSLockNotExist(err) {
 			log.Error("Unable to get lock with ID[%s]: Error: %v", v, err)
 		}
@@ -184,13 +184,6 @@ func PostLockHandler(ctx *context.Context) {
 			ctx.JSON(http.StatusConflict, api.LFSLockError{
 				Lock:    convert.ToLFSLock(ctx, lock),
 				Message: "already created lock",
-			})
-			return
-		}
-		if git_model.IsErrLFSUnauthorizedAction(err) {
-			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
-			ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
-				Message: "You must have push access to create locks : " + err.Error(),
 			})
 			return
 		}
@@ -317,13 +310,6 @@ func UnLockHandler(ctx *context.Context) {
 
 	lock, err := git_model.DeleteLFSLockByID(ctx, ctx.PathParamInt64("lid"), repository, ctx.Doer, req.Force)
 	if err != nil {
-		if git_model.IsErrLFSUnauthorizedAction(err) {
-			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="gitea-lfs"`)
-			ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
-				Message: "You must have push access to delete locks : " + err.Error(),
-			})
-			return
-		}
 		log.Error("Unable to DeleteLFSLockByID[%d] by user %-v with force %t: Error: %v", ctx.PathParamInt64("lid"), ctx.Doer, req.Force, err)
 		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
 			Message: "unable to delete lock : Internal Server Error",

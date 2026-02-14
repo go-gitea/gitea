@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup"
@@ -21,14 +20,11 @@ import (
 	"code.gitea.io/gitea/modules/templates/eval"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
-	"code.gitea.io/gitea/services/webtheme"
 )
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() template.FuncMap {
 	return map[string]any{
-		"ctx": func() any { return nil }, // template context function
-
 		"DumpVar": dumpVar,
 		"NIL":     func() any { return nil },
 
@@ -130,7 +126,6 @@ func NewFuncMap() template.FuncMap {
 		"DisableWebhooks": func() bool {
 			return setting.DisableWebhooks
 		},
-		"UserThemeName": userThemeName,
 		"NotificationSettings": func() map[string]any {
 			return map[string]any{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
@@ -215,16 +210,6 @@ func isTemplateTruthy(v any) bool {
 func evalTokens(tokens ...any) (any, error) {
 	n, err := eval.Expr(tokens...)
 	return n.Value, err
-}
-
-func userThemeName(user *user_model.User) string {
-	if user == nil || user.Theme == "" {
-		return setting.UI.DefaultTheme
-	}
-	if webtheme.IsThemeAvailable(user.Theme) {
-		return user.Theme
-	}
-	return setting.UI.DefaultTheme
 }
 
 func isQueryParamEmpty(v any) bool {

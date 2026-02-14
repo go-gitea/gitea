@@ -28,7 +28,7 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	defer cancel()
 
 	// Determine the old merge-base before the rebase - we use this for LFS push later on
-	oldMergeBase, _, _ := gitcmd.NewCommand("merge-base").AddDashesAndList(baseBranch, trackingBranch).
+	oldMergeBase, _, _ := gitcmd.NewCommand("merge-base").AddDashesAndList(tmpRepoBaseBranch, tmpRepoTrackingBranch).
 		WithDir(mergeCtx.tmpBasePath).RunStdString(ctx)
 	oldMergeBase = strings.TrimSpace(oldMergeBase)
 
@@ -42,11 +42,11 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 		// It's questionable about where this should go - either after or before the push
 		// I think in the interests of data safety - failures to push to the lfs should prevent
 		// the push as you can always re-rebase.
-		if err := LFSPush(ctx, mergeCtx.tmpBasePath, baseBranch, oldMergeBase, &issues_model.PullRequest{
+		if err := LFSPush(ctx, mergeCtx.tmpBasePath, tmpRepoBaseBranch, oldMergeBase, &issues_model.PullRequest{
 			HeadRepoID: pr.BaseRepoID,
 			BaseRepoID: pr.HeadRepoID,
 		}); err != nil {
-			log.Error("Unable to push lfs objects between %s and %s up to head branch in %-v: %v", baseBranch, oldMergeBase, pr, err)
+			log.Error("Unable to push lfs objects between %s and %s up to head branch in %-v: %v", tmpRepoBaseBranch, oldMergeBase, pr, err)
 			return err
 		}
 	}
@@ -65,13 +65,12 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 	}
 
 	pushCmd := gitcmd.NewCommand("push", "-f", "head_repo").
-		AddDynamicArguments(stagingBranch + ":" + git.BranchPrefix + pr.HeadBranch)
+		AddDynamicArguments(tmpRepoStagingBranch + ":" + git.BranchPrefix + pr.HeadBranch)
 
 	// Push back to the head repository.
 	// TODO: this cause an api call to "/api/internal/hook/post-receive/...",
 	//       that prevents us from doint the whole merge in one db transaction
 	mergeCtx.outbuf.Reset()
-	mergeCtx.errbuf.Reset()
 
 	if err := pushCmd.
 		WithEnv(repo_module.FullPushingEnvironment(
@@ -80,30 +79,28 @@ func updateHeadByRebaseOnToBase(ctx context.Context, pr *issues_model.PullReques
 			pr.HeadRepo,
 			pr.HeadRepo.Name,
 			pr.ID,
+			pr.Index,
 		)).
 		WithDir(mergeCtx.tmpBasePath).
-		WithStdout(mergeCtx.outbuf).
-		WithStderr(mergeCtx.errbuf).
-		Run(ctx); err != nil {
-		if strings.Contains(mergeCtx.errbuf.String(), "non-fast-forward") {
+		WithStdoutBuffer(mergeCtx.outbuf).
+		RunWithStderr(ctx); err != nil {
+		if strings.Contains(err.Stderr(), "non-fast-forward") {
 			return &git.ErrPushOutOfDate{
 				StdOut: mergeCtx.outbuf.String(),
-				StdErr: mergeCtx.errbuf.String(),
+				StdErr: err.Stderr(),
 				Err:    err,
 			}
-		} else if strings.Contains(mergeCtx.errbuf.String(), "! [remote rejected]") {
+		} else if strings.Contains(err.Stderr(), "! [remote rejected]") {
 			err := &git.ErrPushRejected{
 				StdOut: mergeCtx.outbuf.String(),
-				StdErr: mergeCtx.errbuf.String(),
+				StdErr: err.Stderr(),
 				Err:    err,
 			}
 			err.GenerateMessage()
 			return err
 		}
-		return fmt.Errorf("git push: %s", mergeCtx.errbuf.String())
+		return fmt.Errorf("git push: %s", err.Stderr())
 	}
 	mergeCtx.outbuf.Reset()
-	mergeCtx.errbuf.Reset()
-
 	return nil
 }

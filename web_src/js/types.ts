@@ -1,3 +1,7 @@
+export type IntervalId = ReturnType<typeof setInterval>;
+
+export type Intent = 'error' | 'warning' | 'info';
+
 export type MentionValue = {
   key: string,
   value: string,
@@ -5,26 +9,6 @@ export type MentionValue = {
   fullname: string,
   avatar: string,
 };
-
-export type Config = {
-  appUrl: string,
-  appSubUrl: string,
-  assetVersionEncoded: string,
-  assetUrlPrefix: string,
-  runModeIsProd: boolean,
-  customEmojis: Record<string, string>,
-  csrfToken: string,
-  pageData: Record<string, any>,
-  notificationSettings: Record<string, any>,
-  enableTimeTracking: boolean,
-  mentionValues?: MentionValue[],
-  mermaidMaxSourceCharacters: number,
-  i18n: Record<string, string>,
-};
-
-export type IntervalId = ReturnType<typeof setInterval>;
-
-export type Intent = 'error' | 'warning' | 'info';
 
 export type RequestData = string | FormData | URLSearchParams | Record<string, any>;
 
@@ -41,7 +25,7 @@ export type IssuePathInfo = {
   ownerName: string,
   repoName: string,
   pathType: string,
-  indexString?: string,
+  indexString: string,
 };
 
 export type IssuePageInfo = {
@@ -52,14 +36,20 @@ export type IssuePageInfo = {
 };
 
 export type Issue = {
-  id: number;
-  number: number;
-  title: string;
-  state: 'open' | 'closed';
+  id: number,
+  number: number,
+  title: string,
+  body: string,
+  state: 'open' | 'closed',
+  created_at: string,
   pull_request?: {
     draft: boolean;
     merged: boolean;
-  };
+  },
+  repository: {
+    full_name: string,
+  },
+  labels: Array<string>,
 };
 
 export type FomanticInitFunction = {

@@ -80,7 +80,7 @@ The more detailed and specific you are, the faster we can fix the issue. \
 It is really helpful if you can reproduce your problem on a site running on the latest commits, i.e. <https://demo.gitea.com>, as perhaps your problem has already been fixed on a current version. \
 Please follow the guidelines described in [How to Report Bugs Effectively](http://www.chiark.greenend.org.uk/~sgtatham/bugs.html) for your report.
 
-Please be kind, remember that Gitea comes at no cost to you, and you're getting free help.
+Please be kind—remember that Gitea comes at no cost to you, and you're getting free help.
 
 ### Types of issues
 
@@ -166,19 +166,19 @@ Here's how to run the test suite:
 
 - code lint
 
-|                       |                                                                   |
-| :-------------------- | :---------------------------------------------------------------- |
+|                       |                                                                              |
+| :-------------------- | :--------------------------------------------------------------------------- |
 |``make lint``          | lint everything (not needed if you only change the front- **or** backend)    |
-|``make lint-frontend`` | lint frontend files  |
-|``make lint-backend``  | lint backend files   |
+|``make lint-frontend`` | lint frontend files                                                          |
+|``make lint-backend``  | lint backend files                                                           |
 
 - run tests (we suggest running them on Linux)
 
-|  Command                               | Action                                           |              |
-| :------------------------------------- | :----------------------------------------------- | ------------ |
-|``make test[\#SpecificTestName]``       |  run unit test(s)  | |
-|``make test-sqlite[\#SpecificTestName]``|  run [integration](tests/integration) test(s) for SQLite |[More details](tests/integration/README.md)  |
-|``make test-e2e-sqlite[\#SpecificTestName]``|  run [end-to-end](tests/e2e) test(s) for SQLite |[More details](tests/e2e/README.md)  |
+|  Command                                    | Action                                                   |                                             |
+| :------------------------------------------ | :------------------------------------------------------- | ------------------------------------------- |
+|``make test[\#SpecificTestName]``            |  run unit test(s)                                        |                                             |
+|``make test-sqlite[\#SpecificTestName]``     |  run [integration](tests/integration) test(s) for SQLite | [More details](tests/integration/README.md) |
+|``make test-e2e-sqlite[\#SpecificTestName]`` |  run [end-to-end](tests/e2e) test(s) for SQLite          | [More details](tests/e2e/README.md)         |
 
 ## Translation
 

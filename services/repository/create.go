@@ -69,9 +69,10 @@ func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir 
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, _, err := gitcmd.NewCommand("clone").AddDynamicArguments(repo.RepoPath(), tmpDir).
-		WithEnv(env).RunStdString(ctx); err != nil {
-		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)
+	if err := gitrepo.CloneRepoToLocal(ctx, repo, tmpDir, git.CloneRepoOptions{
+		Env: env,
+	}); err != nil {
+		log.Error("Failed to clone from %v into %s\nError: %v", repo, tmpDir, err)
 		return fmt.Errorf("git clone: %w", err)
 	}
 
@@ -264,8 +265,8 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	// WARNING: Don't override all later err with local variables
 	defer func() {
 		if err != nil {
-			// we can not use the ctx because it maybe canceled or timeout
-			cleanupRepository(repo.ID)
+			// we can not use `ctx` because it may be canceled or timed out
+			cleanupRepository(repo)
 		}
 	}()
 
@@ -314,7 +315,7 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 		licenses = append(licenses, opts.License)
 
 		var stdout string
-		stdout, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("rev-parse", "HEAD"))
+		stdout, _, err = gitrepo.RunCmdString(ctx, repo, gitcmd.NewCommand("rev-parse", "HEAD"))
 		if err != nil {
 			log.Error("CreateRepository(git rev-parse HEAD) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 			return nil, fmt.Errorf("CreateRepository(git rev-parse HEAD): %w", err)
@@ -460,11 +461,11 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 	return nil
 }
 
-func cleanupRepository(repoID int64) {
-	if errDelete := DeleteRepositoryDirectly(graceful.GetManager().ShutdownContext(), repoID); errDelete != nil {
+func cleanupRepository(repo *repo_model.Repository) {
+	ctx := graceful.GetManager().ShutdownContext()
+	if errDelete := DeleteRepositoryDirectly(ctx, repo.ID); errDelete != nil {
 		log.Error("cleanupRepository failed: %v", errDelete)
-		// add system notice
-		if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when cleanup repository: %v", errDelete); err != nil {
+		if err := system_model.CreateRepositoryNotice("DeleteRepositoryDirectly failed when cleanup repository (%s)", repo.FullName(), errDelete); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
@@ -475,7 +476,7 @@ func updateGitRepoAfterCreate(ctx context.Context, repo *repo_model.Repository) 
 		return fmt.Errorf("checkDaemonExportOK: %w", err)
 	}
 
-	if stdout, err := gitrepo.RunCmdString(ctx, repo,
+	if stdout, _, err := gitrepo.RunCmdString(ctx, repo,
 		gitcmd.NewCommand("update-server-info")); err != nil {
 		log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
 		return fmt.Errorf("CreateRepository(git update-server-info): %w", err)

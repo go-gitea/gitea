@@ -229,10 +229,6 @@ func RelativePath(ownerName, repoName string) string {
 	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".git"
 }
 
-func RelativeWikiPath(ownerName, repoName string) string {
-	return strings.ToLower(ownerName) + "/" + strings.ToLower(repoName) + ".wiki.git"
-}
-
 // RelativePath should be an unix style path like username/reponame.git
 func (repo *Repository) RelativePath() string {
 	return RelativePath(repo.OwnerName, repo.Name)
@@ -243,12 +239,6 @@ type StorageRepo string
 // RelativePath should be an unix style path like username/reponame.git
 func (sr StorageRepo) RelativePath() string {
 	return string(sr)
-}
-
-// WikiStorageRepo returns the storage repo for the wiki
-// The wiki repository should have the same object format as the code repository
-func (repo *Repository) WikiStorageRepo() StorageRepo {
-	return StorageRepo(RelativeWikiPath(repo.OwnerName, repo.Name))
 }
 
 // SanitizedOriginalURL returns a sanitized OriginalURL
@@ -623,16 +613,13 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 	return fmt.Sprintf("%s/%s/compare/%s...%s", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), util.PathEscapeSegments(oldCommitID), util.PathEscapeSegments(newCommitID))
 }
 
-func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, branchName string) string {
-	if baseRepo == nil {
-		baseRepo = repo
-	}
+func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, baseBranch, branchName string) string {
 	var cmpBranchEscaped string
 	if repo.ID != baseRepo.ID {
 		cmpBranchEscaped = fmt.Sprintf("%s/%s:", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name))
 	}
 	cmpBranchEscaped = fmt.Sprintf("%s%s", cmpBranchEscaped, util.PathEscapeSegments(branchName))
-	return fmt.Sprintf("%s/compare/%s...%s", baseRepo.Link(), util.PathEscapeSegments(baseRepo.DefaultBranch), cmpBranchEscaped)
+	return fmt.Sprintf("%s/compare/%s...%s", baseRepo.Link(), util.PathEscapeSegments(baseBranch), cmpBranchEscaped)
 }
 
 // IsOwnedBy returns true when user owns this repository
@@ -877,16 +864,6 @@ func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repos
 		return repos, nil
 	}
 	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
-}
-
-// IsRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
-func IsRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
-	has, err := IsRepositoryModelExist(ctx, u, repoName)
-	if err != nil {
-		return false, err
-	}
-	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
-	return has || isDir, err
 }
 
 func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {

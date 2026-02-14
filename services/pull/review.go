@@ -8,8 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -17,15 +15,25 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
+func isErrBlameNotFoundOrNotEnoughLines(err error) bool {
+	stdErr, ok := gitcmd.ErrorAsStderr(err)
+	if !ok {
+		return false
+	}
+	notFound := strings.HasPrefix(stdErr, "fatal: no such path")
+	notEnoughLines := strings.HasPrefix(stdErr, "fatal: file ") && strings.Contains(stdErr, " has only ") && strings.Contains(stdErr, " lines?")
+	return notFound || notEnoughLines
+}
 
 // ErrDismissRequestOnClosedPR represents an error when an user tries to dismiss a review associated to a closed or merged PR.
 type ErrDismissRequestOnClosedPR struct{}
@@ -66,7 +74,7 @@ func lineBlame(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Re
 func checkInvalidation(ctx context.Context, c *issues_model.Comment, repo *repo_model.Repository, gitRepo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := lineBlame(ctx, repo, gitRepo, branch, c.TreePath, uint(c.UnsignedLine()))
-	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
+	if isErrBlameNotFoundOrNotEnoughLines(err) {
 		c.Invalidated = true
 		return issues_model.UpdateCommentInvalidate(ctx, c)
 	}
@@ -250,7 +258,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 			commit, err := lineBlame(ctx, pr.BaseRepo, gitRepo, head, treePath, uint(line))
 			if err == nil {
 				commitID = commit.ID.String()
-			} else if !(strings.Contains(err.Error(), "exit status 128 - fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
+			} else if !isErrBlameNotFoundOrNotEnoughLines(err) {
 				return nil, fmt.Errorf("LineBlame[%s, %s, %s, %d]: %w", pr.GetGitHeadRefName(), gitRepo.Path, treePath, line, err)
 			}
 		}
@@ -265,23 +273,22 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 		if len(commitID) == 0 {
 			commitID = headCommitID
 		}
-		reader, writer := io.Pipe()
-		defer func() {
-			_ = reader.Close()
-			_ = writer.Close()
-		}()
-		go func() {
-			if err := git.GetRepoRawDiffForFile(gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, treePath, writer); err != nil {
-				_ = writer.CloseWithError(fmt.Errorf("GetRawDiffForLine[%s, %s, %s, %s]: %w", gitRepo.Path, pr.MergeBase, headCommitID, treePath, err))
-				return
-			}
-			_ = writer.Close()
-		}()
 
-		patch, err = git.CutDiffAroundLine(reader, int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
+		patch, err = git.GetFileDiffCutAroundLine(
+			gitRepo, pr.MergeBase, headCommitID, treePath,
+			int64((&issues_model.Comment{Line: line}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines,
+		)
 		if err != nil {
-			log.Error("Error whilst generating patch: %v", err)
 			return nil, err
+		}
+
+		// If patch is still empty (unchanged line), generate code context
+		if patch == "" && commitID != "" {
+			patch, err = gitdiff.GeneratePatchForUnchangedLine(gitRepo, commitID, treePath, line, setting.UI.CodeCommentLines)
+			if err != nil {
+				// Log the error but don't fail comment creation
+				log.Debug("Unable to generate patch for unchanged line (file=%s, line=%d, commit=%s): %v", treePath, line, commitID, err)
+			}
 		}
 	}
 	return issues_model.CreateComment(ctx, &issues_model.CreateCommentOptions{
@@ -323,7 +330,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 		if headCommitID == commitID {
 			stale = false
 		} else {
-			stale, err = checkIfPRContentChanged(ctx, pr, commitID, headCommitID)
+			stale, _, err = checkIfPRContentChanged(ctx, pr, commitID, headCommitID)
 			if err != nil {
 				return nil, nil, err
 			}

@@ -80,6 +80,8 @@ import octiconTrash from '../../public/assets/img/svg/octicon-trash.svg';
 import octiconTriangleDown from '../../public/assets/img/svg/octicon-triangle-down.svg';
 import octiconX from '../../public/assets/img/svg/octicon-x.svg';
 import octiconXCircleFill from '../../public/assets/img/svg/octicon-x-circle-fill.svg';
+import octiconZoomIn from '../../public/assets/img/svg/octicon-zoom-in.svg';
+import octiconZoomOut from '../../public/assets/img/svg/octicon-zoom-out.svg';
 
 const svgs = {
   'gitea-double-chevron-left': giteaDoubleChevronLeft,
@@ -161,6 +163,8 @@ const svgs = {
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-x': octiconX,
   'octicon-x-circle-fill': octiconXCircleFill,
+  'octicon-zoom-in': octiconZoomIn,
+  'octicon-zoom-out': octiconZoomOut,
 };
 
 export type SvgName = keyof typeof svgs;
@@ -181,7 +185,7 @@ export function svg(name: SvgName, size = 16, classNames?: string | string[]): s
     svgNode.setAttribute('width', String(size));
     svgNode.setAttribute('height', String(size));
   }
-  if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean));
+  if (className) svgNode.classList.add(...className.split(/\s+/).filter(Boolean as unknown as <T>(x: T | boolean) => x is T));
   return serializeXml(svgNode);
 }
 

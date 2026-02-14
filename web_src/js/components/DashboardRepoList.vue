@@ -110,9 +110,9 @@ export default defineComponent({
   },
 
   mounted() {
-    const el = document.querySelector('#dashboard-repo-list');
+    const el = document.querySelector('#dashboard-repo-list')!;
     this.changeReposFilter(this.reposFilter);
-    fomanticQuery(el.querySelector('.ui.dropdown')).dropdown();
+    fomanticQuery(el.querySelector('.ui.dropdown')!).dropdown();
 
     this.textArchivedFilterTitles = {
       'archived': this.textShowOnlyArchived,
@@ -307,6 +307,7 @@ export default defineComponent({
     },
 
     async reposFilterKeyControl(e: KeyboardEvent) {
+      if (e.isComposing) return;
       switch (e.key) {
         case 'Enter':
           document.querySelector<HTMLAnchorElement>('.repo-owner-name-list li.active a')?.click();

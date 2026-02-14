@@ -17,7 +17,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -109,79 +108,34 @@ func IsErrWontSign(err error) bool {
 	return ok
 }
 
-// SigningKey returns the KeyID and git Signature for the repo
-func SigningKey(ctx context.Context, repoPath string) (*git.SigningKey, *git.Signature) {
-	if setting.Repository.Signing.SigningKey == "none" {
-		return nil, nil
-	}
-
-	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
-		// Can ignore the error here as it means that commit.gpgsign is not set
-		value, _, _ := gitcmd.NewCommand("config", "--get", "commit.gpgsign").WithDir(repoPath).RunStdString(ctx)
-		sign, valid := git.ParseBool(strings.TrimSpace(value))
-		if !sign || !valid {
-			return nil, nil
-		}
-
-		format, _, _ := gitcmd.NewCommand("config", "--default", git.SigningKeyFormatOpenPGP, "--get", "gpg.format").WithDir(repoPath).RunStdString(ctx)
-		signingKey, _, _ := gitcmd.NewCommand("config", "--get", "user.signingkey").WithDir(repoPath).RunStdString(ctx)
-		signingName, _, _ := gitcmd.NewCommand("config", "--get", "user.name").WithDir(repoPath).RunStdString(ctx)
-		signingEmail, _, _ := gitcmd.NewCommand("config", "--get", "user.email").WithDir(repoPath).RunStdString(ctx)
-
-		if strings.TrimSpace(signingKey) == "" {
-			return nil, nil
-		}
-
-		return &git.SigningKey{
-				KeyID:  strings.TrimSpace(signingKey),
-				Format: strings.TrimSpace(format),
-			}, &git.Signature{
-				Name:  strings.TrimSpace(signingName),
-				Email: strings.TrimSpace(signingEmail),
-			}
-	}
-
-	if setting.Repository.Signing.SigningKey == "" {
-		return nil, nil
-	}
-
-	return &git.SigningKey{
-			KeyID:  setting.Repository.Signing.SigningKey,
-			Format: setting.Repository.Signing.SigningFormat,
-		}, &git.Signature{
-			Name:  setting.Repository.Signing.SigningName,
-			Email: setting.Repository.Signing.SigningEmail,
-		}
-}
-
-// PublicSigningKey gets the public signing key within a provided repository directory
-func PublicSigningKey(ctx context.Context, repoPath string) (content, format string, err error) {
-	signingKey, _ := SigningKey(ctx, repoPath)
+// PublicSigningKey gets the public signing key of the entire instance
+func PublicSigningKey(ctx context.Context) (content, format string, err error) {
+	signingKey, _ := git.GetSigningKey(ctx)
 	if signingKey == nil {
 		return "", "", nil
 	}
 	if signingKey.Format == git.SigningKeyFormatSSH {
 		content, err := os.ReadFile(signingKey.KeyID)
 		if err != nil {
-			log.Error("Unable to read SSH public key file in %s: %s, %v", repoPath, signingKey, err)
+			log.Error("Unable to read SSH public key file: %s, %v", signingKey, err)
 			return "", signingKey.Format, err
 		}
 		return string(content), signingKey.Format, nil
 	}
 
-	content, stderr, err := process.GetManager().ExecDir(ctx, -1, repoPath,
+	content, stderr, err := process.GetManager().ExecDir(ctx, -1, setting.Git.HomePath,
 		"gpg --export -a", "gpg", "--export", "-a", signingKey.KeyID)
 	if err != nil {
-		log.Error("Unable to get default signing key in %s: %s, %s, %v", repoPath, signingKey, stderr, err)
+		log.Error("Unable to get default signing key: %s, %s, %v", signingKey, stderr, err)
 		return "", signingKey.Format, err
 	}
 	return content, signingKey.Format, nil
 }
 
 // SignInitialCommit determines if we should sign the initial commit to this repository
-func SignInitialCommit(ctx context.Context, repoPath string, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
+func SignInitialCommit(ctx context.Context, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.InitialCommit)
-	signingKey, sig := SigningKey(ctx, repoPath)
+	signingKey, sig := git.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -215,10 +169,9 @@ Loop:
 }
 
 // SignWikiCommit determines if we should sign the commits to this repository wiki
-func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
-	repoWikiPath := repo.WikiPath()
+func SignWikiCommit(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, u *user_model.User) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
-	signingKey, sig := SigningKey(ctx, repoWikiPath)
+	signingKey, sig := gitrepo.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -247,11 +200,6 @@ Loop:
 				return false, nil, nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := gitrepo.OpenRepository(ctx, repo.WikiStorageRepo())
-			if err != nil {
-				return false, nil, nil, err
-			}
-			defer gitRepo.Close()
 			commit, err := gitRepo.GetCommit("HEAD")
 			if err != nil {
 				return false, nil, nil, err
@@ -269,9 +217,9 @@ Loop:
 }
 
 // SignCRUDAction determines if we should sign a CRUD commit to this repository
-func SignCRUDAction(ctx context.Context, repoPath string, u *user_model.User, tmpBasePath, parentCommit string) (bool, *git.SigningKey, *git.Signature, error) {
+func SignCRUDAction(ctx context.Context, u *user_model.User, gitRepo *git.Repository, parentCommit string) (bool, *git.SigningKey, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.CRUDActions)
-	signingKey, sig := SigningKey(ctx, repoPath)
+	signingKey, sig := git.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
@@ -300,11 +248,6 @@ Loop:
 				return false, nil, nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
-			if err != nil {
-				return false, nil, nil, err
-			}
-			defer gitRepo.Close()
 			isEmpty, err := gitRepo.IsEmpty()
 			if err != nil {
 				return false, nil, nil, err
@@ -328,21 +271,27 @@ Loop:
 }
 
 // SignMerge determines if we should sign a PR merge commit to the base repository
-func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.User, tmpBasePath, baseCommit, headCommit string) (bool, *git.SigningKey, *git.Signature, error) {
+func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.User, gitRepo *git.Repository) (bool, *git.SigningKey, *git.Signature, error) {
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to get Base Repo for pull request")
 		return false, nil, nil, err
 	}
 	repo := pr.BaseRepo
 
-	signingKey, signer := SigningKey(ctx, repo.RepoPath())
+	baseCommit, err := gitRepo.GetCommit(pr.BaseBranch)
+	if err != nil {
+		return false, nil, nil, err
+	}
+	headCommit, err := gitRepo.GetCommit(pr.GetGitHeadRefName())
+	if err != nil {
+		return false, nil, nil, err
+	}
+
+	signingKey, signer := gitrepo.GetSigningKey(ctx)
 	if signingKey == nil {
 		return false, nil, nil, &ErrWontSign{noKey}
 	}
 	rules := signingModeFromStrings(setting.Repository.Signing.Merges)
-
-	var gitRepo *git.Repository
-	var err error
 
 Loop:
 	for _, rule := range rules {
@@ -379,59 +328,26 @@ Loop:
 				return false, nil, nil, &ErrWontSign{approved}
 			}
 		case baseSigned:
-			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
-				if err != nil {
-					return false, nil, nil, err
-				}
-				defer gitRepo.Close()
-			}
-			commit, err := gitRepo.GetCommit(baseCommit)
-			if err != nil {
-				return false, nil, nil, err
-			}
-			verification := ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, baseCommit)
 			if !verification.Verified {
 				return false, nil, nil, &ErrWontSign{baseSigned}
 			}
 		case headSigned:
-			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
-				if err != nil {
-					return false, nil, nil, err
-				}
-				defer gitRepo.Close()
-			}
-			commit, err := gitRepo.GetCommit(headCommit)
-			if err != nil {
-				return false, nil, nil, err
-			}
-			verification := ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, headCommit)
 			if !verification.Verified {
 				return false, nil, nil, &ErrWontSign{headSigned}
 			}
 		case commitsSigned:
-			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(ctx, tmpBasePath)
-				if err != nil {
-					return false, nil, nil, err
-				}
-				defer gitRepo.Close()
-			}
-			commit, err := gitRepo.GetCommit(headCommit)
-			if err != nil {
-				return false, nil, nil, err
-			}
-			verification := ParseCommitWithSignature(ctx, commit)
+			verification := ParseCommitWithSignature(ctx, headCommit)
 			if !verification.Verified {
 				return false, nil, nil, &ErrWontSign{commitsSigned}
 			}
 			// need to work out merge-base
-			mergeBaseCommit, _, err := gitRepo.GetMergeBase("", baseCommit, headCommit)
+			mergeBaseCommit, err := gitrepo.MergeBase(ctx, pr.BaseRepo, baseCommit.ID.String(), headCommit.ID.String())
 			if err != nil {
 				return false, nil, nil, err
 			}
-			commitList, err := commit.CommitsBeforeUntil(mergeBaseCommit)
+			commitList, err := headCommit.CommitsBeforeUntil(mergeBaseCommit)
 			if err != nil {
 				return false, nil, nil, err
 			}

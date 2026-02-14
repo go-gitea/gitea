@@ -56,7 +56,7 @@ func Profile(ctx *context.Context) {
 
 // ProfilePost response for change user's profile
 func ProfilePost(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsProfile"] = true
 	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 	ctx.Data["DisableGravatar"] = setting.Config().Picture.DisableGravatar.Value(ctx)
@@ -75,7 +75,7 @@ func ProfilePost(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return
 		}
-		if err := user_service.RenameUser(ctx, ctx.Doer, form.Name); err != nil {
+		if err := user_service.RenameUser(ctx, ctx.Doer, form.Name, ctx.Doer); err != nil {
 			switch {
 			case user_model.IsErrUserIsNotLocal(err):
 				ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
@@ -360,7 +360,7 @@ func Appearance(ctx *context.Context) {
 // UpdateUIThemePost is used to update users' specific theme
 func UpdateUIThemePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateThemeForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if ctx.HasError() {
@@ -369,7 +369,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if !webtheme.IsThemeAvailable(form.Theme) {
+	if webtheme.GetThemeMetaInfo(form.Theme) == nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
@@ -390,7 +390,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 // UpdateUserLang update a user's language
 func UpdateUserLang(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateLanguageForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if form.Language != "" {

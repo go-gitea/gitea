@@ -5,6 +5,8 @@ package integration
 
 import (
 	"net/url"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -23,7 +25,8 @@ import (
 
 func TestGitLFSSSH(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		dstPath := t.TempDir()
+		localRepoForUpload := filepath.Join(t.TempDir(), "test-upload")
+		localRepoForDownload := filepath.Join(t.TempDir(), "test-download")
 		apiTestContext := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteUser)
 
 		var mu sync.Mutex
@@ -37,7 +40,7 @@ func TestGitLFSSSH(t *testing.T) {
 		withKeyFile(t, "my-testing-key", func(keyFile string) {
 			t.Run("CreateUserKey", doAPICreateUserKey(apiTestContext, "test-key", keyFile))
 			cloneURL := createSSHUrl(apiTestContext.GitPath(), u)
-			t.Run("Clone", doGitClone(dstPath, cloneURL))
+			t.Run("CloneOrigin", doGitClone(localRepoForUpload, cloneURL))
 
 			cfg, err := setting.CfgProvider.PrepareSaving()
 			require.NoError(t, err)
@@ -46,10 +49,15 @@ func TestGitLFSSSH(t *testing.T) {
 			require.NoError(t, cfg.Save())
 
 			_, _, cmdErr := gitcmd.NewCommand("config", "lfs.sshtransfer", "always").
-				WithDir(dstPath).
+				WithDir(localRepoForUpload).
 				RunStdString(t.Context())
 			assert.NoError(t, cmdErr)
-			lfsCommitAndPushTest(t, dstPath, 10)
+			pushedFiles := lfsCommitAndPushTest(t, localRepoForUpload, 10)
+
+			t.Run("CloneLFS", doGitClone(localRepoForDownload, cloneURL))
+			content, err := os.ReadFile(filepath.Join(localRepoForDownload, pushedFiles[0]))
+			assert.NoError(t, err)
+			assert.Len(t, content, 10)
 		})
 
 		countBatch := slices.ContainsFunc(routerCalls, func(s string) bool {
@@ -58,12 +66,16 @@ func TestGitLFSSSH(t *testing.T) {
 		countUpload := slices.ContainsFunc(routerCalls, func(s string) bool {
 			return strings.Contains(s, "PUT /api/internal/repo/user2/repo1.git/info/lfs/objects/")
 		})
+		countDownload := slices.ContainsFunc(routerCalls, func(s string) bool {
+			return strings.Contains(s, "GET /api/internal/repo/user2/repo1.git/info/lfs/objects/")
+		})
 		nonAPIRequests := slices.ContainsFunc(routerCalls, func(s string) bool {
 			fields := strings.Fields(s)
 			return !strings.HasPrefix(fields[1], "/api/")
 		})
 		assert.NotZero(t, countBatch)
 		assert.NotZero(t, countUpload)
+		assert.NotZero(t, countDownload)
 		assert.Zero(t, nonAPIRequests)
 	})
 }

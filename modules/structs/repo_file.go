@@ -24,13 +24,6 @@ type FileOptions struct {
 	Signoff bool `json:"signoff"`
 }
 
-type FileOptionsWithSHA struct {
-	FileOptions
-	// the blob ID (SHA) for the file that already exists, it is required for changing existing files
-	// required: true
-	SHA string `json:"sha" binding:"Required"`
-}
-
 func (f *FileOptions) GetFileOptions() *FileOptions {
 	return f
 }
@@ -41,7 +34,7 @@ type FileOptionsInterface interface {
 
 var _ FileOptionsInterface = (*FileOptions)(nil)
 
-// CreateFileOptions options for creating files
+// CreateFileOptions options for creating a file
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type CreateFileOptions struct {
 	FileOptions
@@ -50,16 +43,21 @@ type CreateFileOptions struct {
 	ContentBase64 string `json:"content"`
 }
 
-// DeleteFileOptions options for deleting files (used for other File structs below)
+// DeleteFileOptions options for deleting a file
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type DeleteFileOptions struct {
-	FileOptionsWithSHA
+	FileOptions
+	// the blob ID (SHA) for the file to delete
+	// required: true
+	SHA string `json:"sha" binding:"Required"`
 }
 
-// UpdateFileOptions options for updating files
+// UpdateFileOptions options for updating or creating a file
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type UpdateFileOptions struct {
-	FileOptionsWithSHA
+	FileOptions
+	// the blob ID (SHA) for the file that already exists to update, or leave it empty to create a new file
+	SHA string `json:"sha"`
 	// content must be base64 encoded
 	// required: true
 	ContentBase64 string `json:"content"`

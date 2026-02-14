@@ -28,7 +28,7 @@
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
   animation: isloadingspin 1000ms infinite linear;
-  border-width: 4px;
+  border-width: 3px;
   border-style: solid;
   border-color: var(--color-secondary) var(--color-secondary) var(--color-secondary-dark-8) var(--color-secondary-dark-8);
   border-radius: var(--border-radius-full);
@@ -82,15 +82,6 @@ code.language-math.is-loading::after {
   }
 }
 
-@keyframes fadeout {
-  0% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
 /* 1p5 means 1-point-5. it can't use "pulse" here, otherwise the animation is not right (maybe due to some conflicts */
 @keyframes pulse-1p5 {
   0% {
@@ -116,14 +107,12 @@ code.language-math.is-loading::after {
   animation-timing-function: ease-in-out;
 }
 
-/* FIXME: `octicon-sync` is counterclockwise, so this animation is also counterclockwise, it looks somewhat strange.
-Ideally in the future we should use a better image for clockwise animation. */
-.circular-spin {
-  animation: circular-spin-keyframes 1s linear infinite;
+.rotate-clockwise {
+  animation: rotate-clockwise-keyframes 1s linear infinite;
 }
 
-@keyframes circular-spin-keyframes {
+@keyframes rotate-clockwise-keyframes {
   100% {
-    transform: rotate(-360deg);
+    transform: rotate(360deg);
   }
 }

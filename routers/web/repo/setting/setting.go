@@ -28,8 +28,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
+	repo_router "code.gitea.io/gitea/routers/web/repo"
 	actions_service "code.gitea.io/gitea/services/actions"
-	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
@@ -62,7 +62,7 @@ func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 	ctx.Data["CanConvertFork"] = ctx.Repo.Repository.IsFork && ctx.Doer.CanCreateRepoIn(ctx.Repo.Repository.Owner)
 
-	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
+	signing, _ := gitrepo.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
@@ -89,6 +89,11 @@ func SettingsCtxData(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PushMirrors"] = pushMirrors
+
+	repo_router.PrepareBranchList(ctx)
+	if ctx.Written() {
+		return
+	}
 }
 
 // Settings show a repository's settings page
@@ -105,7 +110,7 @@ func SettingsPost(ctx *context.Context) {
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 
-	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
+	signing, _ := gitrepo.GetSigningKey(ctx)
 	ctx.Data["SigningKeyAvailable"] = signing != nil
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
@@ -207,11 +212,6 @@ func handleSettingsPostUpdate(ctx *context.Context) {
 	repo.Description = form.Description
 	repo.Website = form.Website
 	repo.IsTemplate = form.Template
-
-	// Visibility of forked repository is forced sync with base repository.
-	if repo.IsFork {
-		form.Private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
-	}
 
 	if err := repo_service.UpdateRepository(ctx, repo, false); err != nil {
 		ctx.ServerError("UpdateRepository", err)
@@ -614,12 +614,6 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
 	}
 
-	if form.EnableActions && !unit_model.TypeActions.UnitGlobalDisabled() {
-		units = append(units, newRepoUnit(repo, unit_model.TypeActions, nil))
-	} else if !unit_model.TypeActions.UnitGlobalDisabled() {
-		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeActions)
-	}
-
 	if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		units = append(units, newRepoUnit(repo, unit_model.TypePullRequests, &repo_model.PullRequestsConfig{
 			IgnoreWhitespaceConflicts:     form.PullsIgnoreWhitespace,
@@ -634,6 +628,7 @@ func handleSettingsPostAdvanced(ctx *context.Context) {
 			DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 			DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 			DefaultAllowMaintainerEdit:    form.DefaultAllowMaintainerEdit,
+			DefaultTargetBranch:           strings.TrimSpace(form.DefaultTargetBranch),
 		}))
 	} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)

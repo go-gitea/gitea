@@ -193,7 +193,7 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
 	// Get last change information.
 	lastCommit, err := wikiRepo.GetCommitByPath(pageFilename)
@@ -333,6 +333,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		pages = append(pages, wiki_service.ToWikiPageMetaData(wikiName, c, ctx.Repo.Repository))
 	}
 
+	ctx.SetLinkHeader(len(entries), limit)
 	ctx.SetTotalCountHeader(int64(len(entries)))
 	ctx.JSON(http.StatusOK, pages)
 }
@@ -429,7 +430,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
 	page := max(ctx.FormInt("page"), 1)
 
@@ -445,6 +446,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 		return
 	}
 
+	// FIXME: SetLinkHeader missing
 	ctx.SetTotalCountHeader(commitsCount)
 	ctx.JSON(http.StatusOK, convert.ToWikiCommitList(commitsHistory, commitsCount))
 }
