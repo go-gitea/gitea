@@ -11,5 +11,6 @@ func AddTokenPermissionsToActionRunJob(x *xorm.Engine) error {
 	type ActionRunJob struct {
 		TokenPermissions string `xorm:"TEXT"`
 	}
-	return x.SyncWithOptions(&xorm.SyncOptions{IgnoreDropIndices: true}, new(ActionRunJob))
+	_, err := x.SyncWithOptions(xorm.SyncOptions{IgnoreDropIndices: true}, new(ActionRunJob))
+	return err
 }
