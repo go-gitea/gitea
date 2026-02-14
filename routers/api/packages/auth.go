@@ -1,7 +1,7 @@
-// Copyright 2022 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package container
+package packages
 
 import (
 	"net/http"
@@ -14,14 +14,16 @@ import (
 
 var _ auth.Method = &Auth{}
 
-type Auth struct{}
+// Auth is for conan and container
+type Auth struct {
+	AllowGhostUser bool
+}
 
 func (a *Auth) Name() string {
-	return "container"
+	return "packages"
 }
 
 // Verify extracts the user from the Bearer token
-// If it's an anonymous session, a ghost user is returned
 func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) (*user_model.User, error) {
 	packageMeta, err := packages.ParseAuthorizationRequest(req)
 	if err != nil {
@@ -33,9 +35,20 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil, nil
 	}
 
-	u, err := user_model.GetPossibleUserByID(req.Context(), packageMeta.UserID)
-	if err != nil {
-		return nil, err
+	var u *user_model.User
+	switch packageMeta.UserID {
+	case user_model.GhostUserID:
+		if !a.AllowGhostUser {
+			return nil, nil
+		}
+		u = user_model.NewGhostUser()
+	case user_model.ActionsUserID:
+		u = user_model.NewActionsUserWithTaskID(packageMeta.ActionsUserTaskID)
+	default:
+		u, err = user_model.GetUserByID(req.Context(), packageMeta.UserID)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if packageMeta.Scope != "" {

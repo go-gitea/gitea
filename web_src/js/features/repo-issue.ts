@@ -82,6 +82,7 @@ function initRepoIssueLabelFilter(elDropdown: HTMLElement) {
   });
   // alt(or option) + enter to exclude selected label
   elDropdown.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.isComposing) return;
     if (e.altKey && e.key === 'Enter') {
       const selectedItem = elDropdown.querySelector('.label-filter-query-item.selected');
       if (selectedItem) excludeLabel(e, selectedItem);

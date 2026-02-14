@@ -158,16 +158,16 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 			if link.Href == "#" {
 				link.Href = srcLink
 			}
-			titleExtra = ctx.Locale.Tr("action.mirror_sync_push", act.GetRepoAbsoluteLink(ctx), srcLink, act.GetBranch(), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.mirror_sync_push", act.GetRepoAbsoluteLink(ctx), srcLink, act.RefName, act.ShortRepoPath(ctx))
 		case activities_model.ActionMirrorSyncCreate:
 			srcLink := toSrcLink(ctx, act)
 			if link.Href == "#" {
 				link.Href = srcLink
 			}
-			titleExtra = ctx.Locale.Tr("action.mirror_sync_create", act.GetRepoAbsoluteLink(ctx), srcLink, act.GetBranch(), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.mirror_sync_create", act.GetRepoAbsoluteLink(ctx), srcLink, act.RefName, act.ShortRepoPath(ctx))
 		case activities_model.ActionMirrorSyncDelete:
 			link.Href = act.GetRepoAbsoluteLink(ctx)
-			titleExtra = ctx.Locale.Tr("action.mirror_sync_delete", act.GetRepoAbsoluteLink(ctx), act.GetBranch(), act.ShortRepoPath(ctx))
+			titleExtra = ctx.Locale.Tr("action.mirror_sync_delete", act.GetRepoAbsoluteLink(ctx), act.RefName, act.ShortRepoPath(ctx))
 		case activities_model.ActionApprovePullRequest:
 			pullLink := toPullLink(ctx, act)
 			titleExtra = ctx.Locale.Tr("action.approve_pull_request", pullLink, act.GetIssueInfos()[0], act.ShortRepoPath(ctx))
