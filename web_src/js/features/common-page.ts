@@ -118,6 +118,20 @@ function attachInputDirAuto(el: Partial<HTMLInputElement | HTMLTextAreaElement>)
 
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
+  // Use IntersectionObserver because the element may be initially hidden (e.g. the
+  // PR form on the compare page) where a direct focus() call would be a no-op.
+  registerGlobalInitFunc('initInputAutoFocusEnd', (el: HTMLInputElement) => {
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          observer.disconnect();
+          el.focus();
+          el.setSelectionRange(el.value.length, el.value.length);
+        }
+      }
+    });
+    observer.observe(el);
+  });
 }
 
 /**
