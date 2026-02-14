@@ -429,14 +429,13 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses) (title, content string) {
 	title = ci.HeadRef.ShortName()
 
-	if len(commits) >= 0 {
+	if len(commits) > 0 {
 		c := commits[len(commits)-1]
 		title = strings.TrimSpace(c.UserCommit.Summary())
 	}
 
 	if len(commits) == 1 {
 		c := commits[0]
-		title = strings.TrimSpace(c.UserCommit.Summary())
 		_, content, _ = strings.Cut(strings.TrimSpace(c.UserCommit.Message()), "\n")
 		content = strings.TrimSpace(content)
 	}

@@ -116,22 +116,17 @@ function attachInputDirAuto(el: Partial<HTMLInputElement | HTMLTextAreaElement>)
   }
 }
 
+const InputAutoFocusEndInitName = 'initInputAutoFocusEnd';
+
+export function handleInputAutoFocusEnd(el: HTMLInputElement) {
+  if (el.getAttribute('data-global-init') !== InputAutoFocusEndInitName) return;
+  el.focus();
+  el.setSelectionRange(el.value.length, el.value.length);
+}
+
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
-  // Autofocuses a element when it becomes visible and set the text cursor to the end of the element
-  // If multiple elements are present on the same page, the last one to become visible wins
-  registerGlobalInitFunc('initInputAutoFocusEnd', (el: HTMLInputElement) => {
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (entry.isIntersecting) {
-          observer.disconnect();
-          el.focus();
-          el.setSelectionRange(el.value.length, el.value.length);
-        }
-      }
-    });
-    observer.observe(el);
-  });
+  registerGlobalInitFunc(InputAutoFocusEndInitName, handleInputAutoFocusEnd);
 }
 
 /**
