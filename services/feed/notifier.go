@@ -22,6 +22,23 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
+// buildCommitDates extracts commit timestamps for heatmap display, filtering out
+// commits with zero or negative timestamps (e.g. zero-value time.Time).
+func buildCommitDates(commits []*repository.PushCommit) []activities_model.CommitDateEntry {
+	dates := make([]activities_model.CommitDateEntry, 0, len(commits))
+	for _, c := range commits {
+		timestamp := timeutil.TimeStamp(c.Timestamp.Unix())
+		if timestamp <= 0 {
+			continue
+		}
+		dates = append(dates, activities_model.CommitDateEntry{
+			Sha1:      c.Sha1,
+			Timestamp: timestamp,
+		})
+	}
+	return dates
+}
+
 type actionNotifier struct {
 	notify_service.NullNotifier
 }
@@ -350,17 +367,7 @@ func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.Use
 	}
 
 	// Populate commit dates for heatmap (will be inserted by notifyWatchers)
-	if len(commits.Commits) > 0 {
-		action.CommitDates = make([]struct {
-			Sha1      string
-			Timestamp timeutil.TimeStamp
-		}, len(commits.Commits))
-
-		for i, commit := range commits.Commits {
-			action.CommitDates[i].Sha1 = commit.Sha1
-			action.CommitDates[i].Timestamp = timeutil.TimeStamp(commit.Timestamp.Unix())
-		}
-	}
+	action.CommitDates = buildCommitDates(commits.Commits)
 
 	if err = NotifyWatchers(ctx, action); err != nil {
 		log.Error("NotifyWatchers: %v", err)
@@ -430,17 +437,7 @@ func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model
 	}
 
 	// Populate commit dates for heatmap (will be inserted by notifyWatchers)
-	if len(commits.Commits) > 0 {
-		action.CommitDates = make([]struct {
-			Sha1      string
-			Timestamp timeutil.TimeStamp
-		}, len(commits.Commits))
-
-		for i, commit := range commits.Commits {
-			action.CommitDates[i].Sha1 = commit.Sha1
-			action.CommitDates[i].Timestamp = timeutil.TimeStamp(commit.Timestamp.Unix())
-		}
-	}
+	action.CommitDates = buildCommitDates(commits.Commits)
 
 	if err = NotifyWatchers(ctx, action); err != nil {
 		log.Error("NotifyWatchers: %v", err)

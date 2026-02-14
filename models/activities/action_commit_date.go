@@ -10,6 +10,13 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
+// CommitDateEntry holds a commit SHA and its author timestamp for heatmap display.
+// Used to pass commit date data from the notifier to the feed system without persisting it on Action.
+type CommitDateEntry struct {
+	Sha1      string
+	Timestamp timeutil.TimeStamp
+}
+
 // ActionCommitDate represents a commit's author date for heatmap display
 type ActionCommitDate struct {
 	ID              int64              `xorm:"pk autoincr"`
@@ -23,23 +30,18 @@ func init() {
 }
 
 // InsertActionCommitDates inserts commit date records for an action
-func InsertActionCommitDates(
-	ctx context.Context, actionID int64, commits []struct {
-		Sha1      string
-		Timestamp timeutil.TimeStamp
-	},
-) error {
+func InsertActionCommitDates(ctx context.Context, actionID int64, commits []CommitDateEntry) error {
 	if len(commits) == 0 {
 		return nil
 	}
 
-	records := make([]*ActionCommitDate, len(commits))
-	for i, commit := range commits {
-		records[i] = &ActionCommitDate{
+	records := make([]*ActionCommitDate, 0, len(commits))
+	for _, commit := range commits {
+		records = append(records, &ActionCommitDate{
 			ActionID:        actionID,
 			CommitSha1:      commit.Sha1,
 			CommitTimestamp: commit.Timestamp,
-		}
+		})
 	}
 
 	_, err := db.GetEngine(ctx).Insert(&records)

@@ -149,12 +149,9 @@ type Action struct {
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 
-	// CommitDates holds per-commit timestamps for heatmap display (not persisted to DB)
+	// CommitDates holds per-commit timestamps for heatmap display (not persisted to DB).
 	// Only populated for push actions. Inserted into action_commit_date table by notifyWatchers.
-	CommitDates []struct {
-		Sha1      string
-		Timestamp timeutil.TimeStamp
-	} `xorm:"-"`
+	CommitDates []CommitDateEntry `xorm:"-"`
 }
 
 func init() {
