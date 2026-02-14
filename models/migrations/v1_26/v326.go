@@ -1,20 +1,17 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package v1_26
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
-// AddOriginalUnixToAction adds original_unix column to action table
-// for storing the original timestamp of content (e.g., commit author date).
-// This allows the heatmap to display commits on their actual dates
-// rather than the push date.
-func AddOriginalUnixToAction(x *xorm.Engine) error {
-	type Action struct {
-		OriginalUnix int64 `xorm:"INDEX"`
-	}
+type ActionCommitDate struct {
+	ID              int64  `xorm:"pk autoincr"`
+	ActionID        int64  `xorm:"INDEX"`
+	CommitSha1      string `xorm:"VARCHAR(64)"`
+	CommitTimestamp int64  `xorm:"INDEX"`
+}
 
-	return x.Sync(new(Action))
+func CreateActionCommitDateTable(x *xorm.Engine) error {
+	return x.Sync(new(ActionCommitDate))
 }

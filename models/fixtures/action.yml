@@ -80,5 +80,4 @@
   act_user_id: 2
   repo_id: 2 # private
   is_private: true
-  created_unix: 1603228283 # Oct 20, 2020 (same as id:1 push date)
-  original_unix: 1602622800 # Oct 13, 2020 ~21:00 UTC (actual commit date)
+  created_unix: 1603228283 # Oct 20, 2020 (push date)

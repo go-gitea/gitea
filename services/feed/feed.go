@@ -52,6 +52,15 @@ func notifyWatchers(ctx context.Context, act *activities_model.Action, watchers 
 		return fmt.Errorf("insert new actioner: %w", err)
 	}
 
+	// Insert commit dates for the actor's action (if provided)
+	// This must happen here (right after actor insert, within the transaction)
+	// to ensure we have the correct act.ID before it gets overwritten by org/watcher inserts.
+	if len(act.CommitDates) > 0 {
+		if err := activities_model.InsertActionCommitDates(ctx, act.ID, act.CommitDates); err != nil {
+			return fmt.Errorf("insert action commit dates: %w", err)
+		}
+	}
+
 	// Add feed for organization
 	if act.Repo.Owner.IsOrganization() && act.ActUserID != act.Repo.Owner.ID {
 		act.ID = 0

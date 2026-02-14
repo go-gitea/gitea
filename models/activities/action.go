@@ -133,22 +133,28 @@ func (at ActionType) InActions(actions ...string) bool {
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
 type Action struct {
-	ID           int64 `xorm:"pk autoincr"`
-	UserID       int64 `xorm:"INDEX"` // Receiver user id.
-	OpType       ActionType
-	ActUserID    int64            // Action user id.
-	ActUser      *user_model.User `xorm:"-"`
-	RepoID       int64
-	Repo         *repo_model.Repository `xorm:"-"`
-	CommentID    int64                  `xorm:"INDEX"`
-	Comment      *issues_model.Comment  `xorm:"-"`
-	Issue        *issues_model.Issue    `xorm:"-"` // get the issue id from content
-	IsDeleted    bool                   `xorm:"NOT NULL DEFAULT false"`
-	RefName      string
-	IsPrivate    bool               `xorm:"NOT NULL DEFAULT false"`
-	Content      string             `xorm:"TEXT"`
-	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
-	OriginalUnix timeutil.TimeStamp `xorm:"INDEX"` // Original timestamp (e.g., commit author date)
+	ID          int64 `xorm:"pk autoincr"`
+	UserID      int64 `xorm:"INDEX"` // Receiver user id.
+	OpType      ActionType
+	ActUserID   int64            // Action user id.
+	ActUser     *user_model.User `xorm:"-"`
+	RepoID      int64
+	Repo        *repo_model.Repository `xorm:"-"`
+	CommentID   int64                  `xorm:"INDEX"`
+	Comment     *issues_model.Comment  `xorm:"-"`
+	Issue       *issues_model.Issue    `xorm:"-"` // get the issue id from content
+	IsDeleted   bool                   `xorm:"NOT NULL DEFAULT false"`
+	RefName     string
+	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
+	Content     string             `xorm:"TEXT"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+
+	// CommitDates holds per-commit timestamps for heatmap display (not persisted to DB)
+	// Only populated for push actions. Inserted into action_commit_date table by notifyWatchers.
+	CommitDates []struct {
+		Sha1      string
+		Timestamp timeutil.TimeStamp
+	} `xorm:"-"`
 }
 
 func init() {
@@ -564,7 +570,7 @@ func DeleteOldActions(ctx context.Context, olderThan time.Duration) (err error) 
 	cutoff := time.Now().Add(-olderThan).Unix()
 
 	// Delete associated commit date records first
-	_, err = e.Where("action_id IN (SELECT id FROM `action` WHERE created_unix < ?)", cutoff).Delete(&ActionCommitDate{})
+	_, err = e.Where("action_id IN (SELECT id FROM action WHERE created_unix < ?)", cutoff).Delete(&ActionCommitDate{})
 	if err != nil {
 		return err
 	}

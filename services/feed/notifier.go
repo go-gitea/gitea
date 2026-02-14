@@ -338,43 +338,32 @@ func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.Use
 		return
 	}
 
-	var originalUnix timeutil.TimeStamp
-	if len(commits.Commits) > 0 {
-		originalUnix = timeutil.TimeStamp(commits.Commits[0].Timestamp.Unix())
-	}
-
 	action := &activities_model.Action{
-		ActUserID:    pusher.ID,
-		ActUser:      pusher,
-		OpType:       opType,
-		Content:      string(data),
-		RepoID:       repo.ID,
-		Repo:         repo,
-		RefName:      opts.RefFullName.String(),
-		IsPrivate:    repo.IsPrivate,
-		OriginalUnix: originalUnix,
+		ActUserID: pusher.ID,
+		ActUser:   pusher,
+		OpType:    opType,
+		Content:   string(data),
+		RepoID:    repo.ID,
+		Repo:      repo,
+		RefName:   opts.RefFullName.String(),
+		IsPrivate: repo.IsPrivate,
 	}
 
-	if err = NotifyWatchers(ctx, action); err != nil {
-		log.Error("NotifyWatchers: %v", err)
-		return
-	}
-
-	// Populate action_commit_date table with per-commit timestamps
-	if action.ID > 0 && len(commits.Commits) > 0 {
-		commitDates := make([]struct {
+	// Populate commit dates for heatmap (will be inserted by notifyWatchers)
+	if len(commits.Commits) > 0 {
+		action.CommitDates = make([]struct {
 			Sha1      string
 			Timestamp timeutil.TimeStamp
 		}, len(commits.Commits))
 
 		for i, commit := range commits.Commits {
-			commitDates[i].Sha1 = commit.Sha1
-			commitDates[i].Timestamp = timeutil.TimeStamp(commit.Timestamp.Unix())
+			action.CommitDates[i].Sha1 = commit.Sha1
+			action.CommitDates[i].Timestamp = timeutil.TimeStamp(commit.Timestamp.Unix())
 		}
+	}
 
-		if err := activities_model.InsertActionCommitDates(ctx, action.ID, commitDates); err != nil {
-			log.Error("InsertActionCommitDates: %v", err)
-		}
+	if err = NotifyWatchers(ctx, action); err != nil {
+		log.Error("NotifyWatchers: %v", err)
 	}
 }
 
@@ -429,43 +418,32 @@ func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model
 		return
 	}
 
-	var originalUnix timeutil.TimeStamp
-	if len(commits.Commits) > 0 {
-		originalUnix = timeutil.TimeStamp(commits.Commits[0].Timestamp.Unix())
-	}
-
 	action := &activities_model.Action{
-		ActUserID:    repo.OwnerID,
-		ActUser:      repo.MustOwner(ctx),
-		OpType:       activities_model.ActionMirrorSyncPush,
-		Content:      string(data),
-		RepoID:       repo.ID,
-		Repo:         repo,
-		IsPrivate:    repo.IsPrivate,
-		RefName:      opts.RefFullName.String(),
-		OriginalUnix: originalUnix,
+		ActUserID: repo.OwnerID,
+		ActUser:   repo.MustOwner(ctx),
+		OpType:    activities_model.ActionMirrorSyncPush,
+		Content:   string(data),
+		RepoID:    repo.ID,
+		Repo:      repo,
+		IsPrivate: repo.IsPrivate,
+		RefName:   opts.RefFullName.String(),
 	}
 
-	if err = NotifyWatchers(ctx, action); err != nil {
-		log.Error("NotifyWatchers: %v", err)
-		return
-	}
-
-	// Populate action_commit_date table with per-commit timestamps
-	if action.ID > 0 && len(commits.Commits) > 0 {
-		commitDates := make([]struct {
+	// Populate commit dates for heatmap (will be inserted by notifyWatchers)
+	if len(commits.Commits) > 0 {
+		action.CommitDates = make([]struct {
 			Sha1      string
 			Timestamp timeutil.TimeStamp
 		}, len(commits.Commits))
 
 		for i, commit := range commits.Commits {
-			commitDates[i].Sha1 = commit.Sha1
-			commitDates[i].Timestamp = timeutil.TimeStamp(commit.Timestamp.Unix())
+			action.CommitDates[i].Sha1 = commit.Sha1
+			action.CommitDates[i].Timestamp = timeutil.TimeStamp(commit.Timestamp.Unix())
 		}
+	}
 
-		if err := activities_model.InsertActionCommitDates(ctx, action.ID, commitDates); err != nil {
-			log.Error("InsertActionCommitDates: %v", err)
-		}
+	if err = NotifyWatchers(ctx, action); err != nil {
+		log.Error("NotifyWatchers: %v", err)
 	}
 }
 
