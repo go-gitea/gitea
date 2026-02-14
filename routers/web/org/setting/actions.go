@@ -46,18 +46,10 @@ func ActionsGeneralSettings(ctx *context.Context) {
 	// Load Allowed Repositories
 	var allowedRepos []*repo_model.Repository
 	if len(actionsCfg.AllowedCrossRepoIDs) > 0 {
-		// Since the list shouldn't be too long, we can loop.
-		// Ideally use GetRepositoriesByIDs but simple loop is fine for now.
-		for _, id := range actionsCfg.AllowedCrossRepoIDs {
-			repo, err := repo_model.GetRepositoryByID(ctx, id)
-			if err != nil {
-				if repo_model.IsErrRepoNotExist(err) {
-					continue
-				}
-				ctx.ServerError("GetRepositoryByID", err)
-				return
-			}
-			allowedRepos = append(allowedRepos, repo)
+		allowedRepos, err = repo_model.GetRepositoriesByIDs(ctx, actionsCfg.AllowedCrossRepoIDs)
+		if err != nil {
+			ctx.ServerError("GetRepositoriesByIDs", err)
+			return
 		}
 	}
 	ctx.Data["AllowedRepos"] = allowedRepos

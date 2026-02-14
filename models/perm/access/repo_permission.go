@@ -374,13 +374,6 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	if isSameRepo {
 		perm = maxPerm
 	} else {
-		// maxReadOnly is true in this case so maxPerm is between none and readonly
-		// Public repo allows read access
-		if botPerm.AccessMode >= perm_model.AccessModeRead {
-			perm = maxPerm
-			return perm, nil
-		}
-
 		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
 		if err != nil || !exist {
 			return perm, err
@@ -396,19 +389,28 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			if err != nil {
 				return perm, err
 			}
-			if orgCfg.IsRepoAllowedCrossAccess(repo.ID) {
-				// Access allowed by Org policy
-				// No access if maxPerm is none for used unit
-				perm = maxPerm
+			if !orgCfg.IsRepoAllowedCrossAccess(repo.ID) {
+				// Access explicitly denied by Org policy for same-org cross-repo access
+				// Even if the repo is public, we respect the org policy for tokens generated within the same org
 				return perm, nil
 			}
+			// Access allowed by Org policy
+			perm = maxPerm
+			return perm, nil
+		}
+
+		// Not same org OR not an organization
+		// Public repo allows read access
+		if botPerm.AccessMode >= perm_model.AccessModeRead {
+			perm = maxPerm
+			return perm, nil
 		}
 
 		// Check Collaborative Owner and explicit Bot permissions
 		// We allow access if:
 		// 1. It's a collaborative owner relationship
 		// 2. The Actions Bot user has been explicitly granted access and repository is private
-		// 3. The repository is public (and not explicitly blocked by Org policy above)
+		// 3. The repository is public (handled by botPerm above)
 
 		if taskRepo.IsPrivate && actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) {
 			// No access if maxPerm is none for used unit

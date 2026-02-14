@@ -19,7 +19,7 @@ export function initActionsPermissionsTable(): void {
     }
 
     if (modeSection) {
-      modeSection.style.opacity = shouldDisable ? '0.5' : '1';
+      modeSection.classList.toggle('tw-opacity-50', shouldDisable);
     }
 
     if (enableMaxCheckbox) {
@@ -27,7 +27,7 @@ export function initActionsPermissionsTable(): void {
     }
 
     if (tableSection) {
-      tableSection.style.opacity = shouldDisable ? '0.5' : '1';
+      tableSection.classList.toggle('tw-opacity-50', shouldDisable);
     }
 
     // Disable table if layout is disabled OR max permissions not enabled
@@ -39,12 +39,12 @@ export function initActionsPermissionsTable(): void {
       for (const input of inputs) {
         input.disabled = tableDisabled;
       }
-      permTable.style.display = isMaxEnabled ? '' : 'none';
-      if (shouldDisable) {
-        permTable.style.opacity = '0.5';
+      if (isMaxEnabled) {
+        permTable.classList.remove('tw-hidden');
       } else {
-        permTable.style.opacity = '1';
+        permTable.classList.add('tw-hidden');
       }
+      permTable.classList.toggle('tw-opacity-50', shouldDisable);
     }
   }
 
@@ -69,7 +69,11 @@ export function initActionsPermissionsTable(): void {
     function updateCrossRepoState(): void {
       const selectedMode = document.querySelector<HTMLInputElement>('input[name="cross_repo_mode"]:checked');
       const isSelected = selectedMode?.value === 'selected';
-      allowedReposSection!.style.display = isSelected ? '' : 'none';
+      if (isSelected) {
+        allowedReposSection!.classList.remove('tw-hidden');
+      } else {
+        allowedReposSection!.classList.add('tw-hidden');
+      }
     }
 
     for (const radio of crossRepoRadios) {

@@ -554,10 +554,20 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 					cfgUnit := job.Run.Repo.MustGetUnit(ctx, unit.TypeActions)
 					cfg := cfgUnit.ActionsConfig()
 
-					defaultPerms := cfg.GetDefaultTokenPermissions()
+					effectiveCfg := cfg
+					if !cfg.OverrideOrgConfig && job.Run.Repo.OwnerID != 0 {
+						if err := job.Run.Repo.LoadOwner(ctx); err == nil && job.Run.Repo.Owner.IsOrganization() {
+							orgUnit, err := job.Run.Repo.Owner.GetUnit(ctx, unit.TypeActions)
+							if err == nil {
+								effectiveCfg = orgUnit.ActionsConfig()
+							}
+						}
+					}
+
+					defaultPerms := effectiveCfg.GetDefaultTokenPermissions()
 					workflowPerms := actions_service.ParseWorkflowPermissions(flow, defaultPerms)
 					jobPerms := actions_service.ParseJobPermissions(wfJob, workflowPerms)
-					finalPerms := cfg.ClampPermissions(jobPerms)
+					finalPerms := effectiveCfg.ClampPermissions(jobPerms)
 					if job.Run.IsForkPullRequest {
 						finalPerms = finalPerms.ClampPermissions(repo_model.GetReadOnlyPermissions())
 					}
