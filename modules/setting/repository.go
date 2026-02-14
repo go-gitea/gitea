@@ -173,8 +173,7 @@ var (
 		DisableStars:                            false,
 		DefaultBranch:                           "main",
 		AllowForkWithoutMaximumLimit:            true,
-
-		StreamArchives: true,
+		StreamArchives:                          true,
 
 		// Repository editor settings
 		Editor: struct {
