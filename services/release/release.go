@@ -79,19 +79,21 @@ func createGitTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.
 	}
 
 	if len(msg) > 0 {
-		err = gitRepo.CreateAnnotatedTag(rel.TagName, msg, rel.Sha1)
-		if strings.Contains(err.Error(), "is not a valid tag name") {
-			return ErrInvalidTagName{
-				TagName: rel.TagName,
+		if err = gitRepo.CreateAnnotatedTag(rel.TagName, msg, rel.Sha1); err != nil {
+			if strings.Contains(err.Error(), "is not a valid tag name") {
+				return ErrInvalidTagName{
+					TagName: rel.TagName,
+				}
 			}
 		}
 		return err
 	}
 
-	err = gitRepo.CreateTag(rel.TagName, rel.Sha1)
-	if strings.Contains(err.Error(), "is not a valid tag name") {
-		return ErrInvalidTagName{
-			TagName: rel.TagName,
+	if err = gitRepo.CreateTag(rel.TagName, rel.Sha1); err != nil {
+		if strings.Contains(err.Error(), "is not a valid tag name") {
+			return ErrInvalidTagName{
+				TagName: rel.TagName,
+			}
 		}
 	}
 	return err
@@ -123,13 +125,13 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 			if err != nil {
 				return err
 			}
-			needsCreateTag = false
+			needsCreateTag = true
 		} else {
 			commit, err = gitRepo.GetTagCommit(rel.TagName)
 			if err != nil {
 				return err
 			}
-			needsCreateTag = true
+			needsCreateTag = false
 		}
 	}
 
@@ -283,27 +285,27 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 
+	rel.Repo = oldRelease.Repo
 	needsCreateTag := oldRelease.IsDraft && !rel.IsDraft
-	if needsCreateTag {
+	if !rel.IsDraft {
 		if !gitrepo.IsTagExist(ctx, rel.Repo, rel.TagName) {
 			commit, err := gitRepo.GetCommit(rel.Target)
 			if err != nil {
 				return err
 			}
-			needsCreateTag = true
+
 			rel.Sha1 = commit.ID.String()
 			rel.NumCommits, err = gitrepo.CommitsCountOfCommit(ctx, rel.Repo, commit.ID.String())
 			if err != nil {
 				return fmt.Errorf("CommitsCount: %w", err)
 			}
-		} else {
+			needsCreateTag = true
+		} else { // validate the git tag exists
+			_, err = gitRepo.GetTagCommit(rel.TagName)
+			if err != nil {
+				return err
+			}
 			needsCreateTag = false
-		}
-	} else {
-		// validate the git tag exists
-		_, err = gitRepo.GetTagCommit(rel.TagName)
-		if err != nil {
-			return err
 		}
 	}
 
