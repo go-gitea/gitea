@@ -101,8 +101,8 @@ func createGitTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.
 
 // CreateRelease creates a new release of repository.
 func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, attachmentUUIDs []string, msg string) error {
-	if err := rel.LoadAttributes(ctx); err != nil {
-		return err
+	if rel.Repo == nil || rel.Publisher == nil {
+		return errors.New("repo or publisher is not loaded")
 	}
 	if err := rel.Repo.MustNotBeArchived(); err != nil {
 		return err
