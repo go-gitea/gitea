@@ -1,18 +1,57 @@
 # User heatmap commit records for heatmap testing
 # These store individual commit timestamps per user/repo for accurate heatmap display
 
-# For user 2 repo 2 (push with 2 commits on different dates)
-# The push was on Oct 20, 2020 (1603228283) but commits were on Oct 13 and Oct 20
+# For user 2 repo 2: push with 3 commits (2 unique 900s buckets)
+# Bucket 1602622800: 1 commit, Bucket 1603227600: 2 commits
 -
   id: 1
   user_id: 2
   repo_id: 2
   commit_sha1: "abcdef1234567890abcdef1234567890abcdef12"
-  commit_timestamp: 1602622800 # Oct 13, 2020, 21:00:00 UTC
+  commit_timestamp: 1602622800
 
 -
   id: 2
   user_id: 2
   repo_id: 2
   commit_sha1: "1234567890abcdef1234567890abcdef12345678"
-  commit_timestamp: 1603227600 # Oct 20, 2020, 19:00:00 UTC
+  commit_timestamp: 1603227600
+
+-
+  id: 3
+  user_id: 2
+  repo_id: 2
+  commit_sha1: "fedcba0987654321fedcba0987654321fedcba09"
+  commit_timestamp: 1603228283
+
+# For user 16 repo 22: 1 commit (collaborator in private repo)
+# Bucket 1603267200: 1 commit
+-
+  id: 4
+  user_id: 16
+  repo_id: 22
+  commit_sha1: "aabb112233445566778899aabb112233445566cc"
+  commit_timestamp: 1603267200
+
+# For user 10: commits across repos 6 (private), 7 (private), 8 (public)
+# Bucket 1603009800: 1 commit, Bucket 1603010700: 2 commits
+-
+  id: 5
+  user_id: 10
+  repo_id: 6
+  commit_sha1: "1111111111111111111111111111111111111111"
+  commit_timestamp: 1603010100
+
+-
+  id: 6
+  user_id: 10
+  repo_id: 7
+  commit_sha1: "2222222222222222222222222222222222222222"
+  commit_timestamp: 1603011300
+
+-
+  id: 7
+  user_id: 10
+  repo_id: 8
+  commit_sha1: "3333333333333333333333333333333333333333"
+  commit_timestamp: 1603011540

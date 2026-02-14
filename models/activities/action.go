@@ -148,7 +148,6 @@ type Action struct {
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
-
 }
 
 func init() {
