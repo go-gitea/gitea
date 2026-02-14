@@ -7,8 +7,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync/atomic"
-	"time"
 
 	"code.gitea.io/gitea/modules/tailmsg"
 )
@@ -72,12 +70,16 @@ func (t *traceBuiltinSpan) end() {
 	if t.ts.parent == nil {
 		// TODO: debug purpose only
 		// TODO: it should distinguish between http response network lag and actual processing time
-		threshold := time.Duration(traceBuiltinThreshold.Load())
-		if threshold != 0 && t.ts.endTime.Sub(t.ts.startTime) > threshold {
+		opts := tracerOptions.Load()
+		if opts == nil {
+			return
+		}
+		if t.ts.endTime.Sub(t.ts.startTime) > opts.BuiltinThreshold {
 			sb := &strings.Builder{}
 			t.toString(sb, 0)
 			tailmsg.GetManager().GetTraceRecorder().Record(sb.String())
 		}
+		otelRecordTrace(t)
 	}
 }
 
@@ -87,10 +89,4 @@ func (t *traceBuiltinStarter) start(ctx context.Context, traceSpan *TraceSpan, i
 
 func init() {
 	globalTraceStarters = append(globalTraceStarters, &traceBuiltinStarter{})
-}
-
-var traceBuiltinThreshold atomic.Int64
-
-func EnableBuiltinTracer(threshold time.Duration) {
-	traceBuiltinThreshold.Store(int64(threshold))
 }

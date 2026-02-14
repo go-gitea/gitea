@@ -217,6 +217,9 @@ func LoadSettings() {
 	loadProjectFrom(CfgProvider)
 	loadMimeTypeMapFrom(CfgProvider)
 	loadFederationFrom(CfgProvider)
+	if err := loadOtelExporterFrom(CfgProvider); err != nil {
+		log.Fatal("Unable to load otel_exporter settings: %v", err)
+	}
 }
 
 // LoadSettingsForInstall initializes the settings for install
