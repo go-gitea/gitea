@@ -15,9 +15,9 @@ import (
 )
 
 func TestIsWorkflow(t *testing.T) {
-	oldDirs := setting.Repository.ForgeDirs
+	oldDirs := setting.Actions.WorkflowDirs
 	defer func() {
-		setting.Repository.ForgeDirs = oldDirs
+		setting.Actions.WorkflowDirs = oldDirs
 	}()
 
 	tests := []struct {
@@ -28,43 +28,43 @@ func TestIsWorkflow(t *testing.T) {
 	}{
 		{
 			name:     "default with yml extension",
-			dirs:     []string{".gitea", ".github"},
+			dirs:     []string{".gitea/workflows", ".github/workflows"},
 			path:     ".gitea/workflows/test.yml",
 			expected: true,
 		},
 		{
 			name:     "default with yaml extension",
-			dirs:     []string{".gitea", ".github"},
+			dirs:     []string{".gitea/workflows", ".github/workflows"},
 			path:     ".github/workflows/test.yaml",
 			expected: true,
 		},
 		{
 			name:     "only gitea configured, github path rejected",
-			dirs:     []string{".gitea"},
+			dirs:     []string{".gitea/workflows"},
 			path:     ".github/workflows/test.yml",
 			expected: false,
 		},
 		{
 			name:     "only github configured, gitea path rejected",
-			dirs:     []string{".github"},
+			dirs:     []string{".github/workflows"},
 			path:     ".gitea/workflows/test.yml",
 			expected: false,
 		},
 		{
-			name:     "custom forge dir",
-			dirs:     []string{".custom"},
+			name:     "custom workflow dir",
+			dirs:     []string{".custom/workflows"},
 			path:     ".custom/workflows/deploy.yml",
 			expected: true,
 		},
 		{
 			name:     "non-workflow file",
-			dirs:     []string{".gitea", ".github"},
+			dirs:     []string{".gitea/workflows", ".github/workflows"},
 			path:     ".gitea/workflows/readme.md",
 			expected: false,
 		},
 		{
 			name:     "unrelated path",
-			dirs:     []string{".gitea", ".github"},
+			dirs:     []string{".gitea/workflows", ".github/workflows"},
 			path:     "src/main.go",
 			expected: false,
 		},
@@ -72,7 +72,7 @@ func TestIsWorkflow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			setting.Repository.ForgeDirs = tt.dirs
+			setting.Actions.WorkflowDirs = tt.dirs
 			assert.Equal(t, tt.expected, IsWorkflow(tt.path))
 		})
 	}

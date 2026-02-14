@@ -39,11 +39,7 @@ func init() {
 
 // getWorkflowPaths returns the configured workflow directory paths (e.g. ".gitea/workflows").
 func getWorkflowPaths() []string {
-	paths := make([]string, len(setting.Repository.ForgeDirs))
-	for i, dir := range setting.Repository.ForgeDirs {
-		paths[i] = dir + "/workflows"
-	}
-	return paths
+	return setting.Actions.WorkflowDirs
 }
 
 func IsWorkflow(path string) bool {

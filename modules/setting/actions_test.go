@@ -97,6 +97,49 @@ STORAGE_TYPE = minio
 	assert.Equal(t, "actions_artifacts", filepath.Base(Actions.ArtifactStorage.Path))
 }
 
+func Test_WorkflowDirs(t *testing.T) {
+	oldActions := Actions
+	defer func() {
+		Actions = oldActions
+	}()
+
+	tests := []struct {
+		name     string
+		iniStr   string
+		wantDirs []string
+	}{
+		{
+			name:     "default",
+			iniStr:   `[actions]`,
+			wantDirs: []string{".gitea/workflows", ".github/workflows"},
+		},
+		{
+			name:     "single dir",
+			iniStr:   "[actions]\nWORKFLOW_DIRS = .github/workflows",
+			wantDirs: []string{".github/workflows"},
+		},
+		{
+			name:     "custom order",
+			iniStr:   "[actions]\nWORKFLOW_DIRS = .github/workflows,.gitea/workflows",
+			wantDirs: []string{".github/workflows", ".gitea/workflows"},
+		},
+		{
+			name:     "whitespace trimming",
+			iniStr:   "[actions]\nWORKFLOW_DIRS = .gitea/workflows , .github/workflows ",
+			wantDirs: []string{".gitea/workflows", ".github/workflows"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := NewConfigProviderFromData(tt.iniStr)
+			require.NoError(t, err)
+			require.NoError(t, loadActionsFrom(cfg))
+			assert.Equal(t, tt.wantDirs, Actions.WorkflowDirs)
+		})
+	}
+}
+
 func Test_getDefaultActionsURLForActions(t *testing.T) {
 	oldActions := Actions
 	oldAppURL := AppURL
