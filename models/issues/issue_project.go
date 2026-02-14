@@ -24,7 +24,10 @@ func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
 
 func (issue *Issue) projectIDs(ctx context.Context) []int64 {
 	var ids []int64
-	if err := db.GetEngine(ctx).Table("project_issue").Where("issue_id=?", issue.ID).Select("project_id").Find(&ids); err != nil {
+
+	has, err = db.GetEngine(ctx).Table("project_issue").Where("issue_id=?", issue.ID).Select("project_id").Find(&ids);
+
+	if err != nil || !has {
 		return nil
 	}
 
@@ -137,11 +140,11 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 
 		pi := make([]*project_model.ProjectIssue, 0, len(newProjectIDs))
 
-		for _, pID := range newProjectIDs {
-			if pID == 0 {
+		for _, projectID := range newProjectIDs {
+			if projectID == 0 {
 				continue
 			}
-			newProject, err := project_model.GetProjectByID(ctx, pID)
+			newProject, err := project_model.GetProjectByID(ctx, projectID)
 			if err != nil {
 				return err
 			}
