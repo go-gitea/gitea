@@ -7,7 +7,7 @@
 		</div>
 		<div class="tw-mr-4">
 			{{if not .result.UpdatedUnix.IsZero}}
-					<span class="ui grey text">{{ctx.Locale.Tr "explore.code_last_indexed_at" (TimeSinceUnix .result.UpdatedUnix ctx.Locale)}}</span>
+					<span class="ui grey text">{{ctx.Locale.Tr "explore.code_last_indexed_at" (DateUtils.TimeSince .result.UpdatedUnix)}}</span>
 			{{end}}
 		</div>
 </div>

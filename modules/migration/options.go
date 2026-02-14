@@ -38,4 +38,7 @@ type MigrateOptions struct {
 	ReleaseAssets   bool
 	MigrateToRepoID int64
 	MirrorInterval  string `json:"mirror_interval"`
+
+	AWSAccessKeyID     string
+	AWSSecretAccessKey string
 }

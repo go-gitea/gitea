@@ -1,12 +1,18 @@
-{{range .RecentlyPushedNewBranches}}
-	<div class="ui positive message tw-flex tw-items-center">
+{{/* Template Attributes:
+* RecentBranchesPromptData
+*/}}
+{{$data := .RecentBranchesPromptData}}
+{{if $data}}
+	{{range $recentBranch := $data.RecentlyPushedNewBranches}}
+	<div class="ui positive message flex-text-block">
 		<div class="tw-flex-1">
-			{{$timeSince := TimeSince .CommitTime.AsTime ctx.Locale}}
-			{{$branchLink := HTMLFormat `<a href="%s/src/branch/%s">%s</a>` $.RepoLink (PathEscapeSegments .Name) .Name}}
+			{{$timeSince := DateUtils.TimeSince $recentBranch.CommitTime}}
+			{{$branchLink := HTMLFormat `<a href="%s">%s</a>` $recentBranch.BranchLink .BranchDisplayName}}
 			{{ctx.Locale.Tr "repo.pulls.recently_pushed_new_branches" $branchLink $timeSince}}
 		</div>
-		<a role="button" class="ui compact positive button tw-m-0" href="{{$.Repository.ComposeBranchCompareURL $.Repository.BaseRepo .Name}}">
+		<a role="button" class="ui compact green button" href="{{QueryBuild $recentBranch.BranchCompareURL "expand" 1}}">
 			{{ctx.Locale.Tr "repo.pulls.compare_changes"}}
 		</a>
 	</div>
+	{{end}}
 {{end}}

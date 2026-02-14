@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/modules/optional"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -121,9 +119,9 @@ func Test_NormalizeEOL(t *testing.T) {
 }
 
 func Test_RandomInt(t *testing.T) {
-	int, err := CryptoRandomInt(255)
-	assert.True(t, int >= 0)
-	assert.True(t, int <= 255)
+	randInt, err := CryptoRandomInt(255)
+	assert.GreaterOrEqual(t, randInt, int64(0))
+	assert.LessOrEqual(t, randInt, int64(255))
 	assert.NoError(t, err)
 }
 
@@ -175,68 +173,55 @@ func Test_RandomBytes(t *testing.T) {
 	assert.NotEqual(t, bytes3, bytes4)
 }
 
-func TestOptionalBoolParse(t *testing.T) {
-	assert.Equal(t, optional.None[bool](), OptionalBoolParse(""))
-	assert.Equal(t, optional.None[bool](), OptionalBoolParse("x"))
-
-	assert.Equal(t, optional.Some(false), OptionalBoolParse("0"))
-	assert.Equal(t, optional.Some(false), OptionalBoolParse("f"))
-	assert.Equal(t, optional.Some(false), OptionalBoolParse("False"))
-
-	assert.Equal(t, optional.Some(true), OptionalBoolParse("1"))
-	assert.Equal(t, optional.Some(true), OptionalBoolParse("t"))
-	assert.Equal(t, optional.Some(true), OptionalBoolParse("True"))
-}
-
 // Test case for any function which accepts and returns a single string.
 type StringTest struct {
 	in, out string
 }
 
-var upperTests = []StringTest{
+var lowerTests = []StringTest{
 	{"", ""},
-	{"ONLYUPPER", "ONLYUPPER"},
-	{"abc", "ABC"},
-	{"AbC123", "ABC123"},
-	{"azAZ09_", "AZAZ09_"},
-	{"longStrinGwitHmixofsmaLLandcAps", "LONGSTRINGWITHMIXOFSMALLANDCAPS"},
-	{"long\u0250string\u0250with\u0250nonascii\u2C6Fchars", "LONG\u0250STRING\u0250WITH\u0250NONASCII\u2C6FCHARS"},
-	{"\u0250\u0250\u0250\u0250\u0250", "\u0250\u0250\u0250\u0250\u0250"},
-	{"a\u0080\U0010FFFF", "A\u0080\U0010FFFF"},
-	{"lél", "LéL"},
+	{"ABC", "abc"},
+	{"AbC123_", "abc123_"},
+	{"LONG\u0250string\u0250WITH\u0250non-ascii\u2C6FCHARS\u0080\uFFFF", "long\u0250string\u0250with\u0250non-ascii\u2C6Fchars\u0080\uFFFF"},
+	{"lél", "lél"},
+	{"LÉL", "lÉl"},
 }
 
-func TestToUpperASCII(t *testing.T) {
-	for _, tc := range upperTests {
-		assert.Equal(t, ToUpperASCII(tc.in), tc.out)
+func TestToLowerASCII(t *testing.T) {
+	for _, tc := range lowerTests {
+		assert.Equal(t, ToLowerASCII(tc.in), tc.out)
 	}
 }
 
-func BenchmarkToUpper(b *testing.B) {
-	for _, tc := range upperTests {
+func BenchmarkToLower(b *testing.B) {
+	for _, tc := range lowerTests {
 		b.Run(tc.in, func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				ToUpperASCII(tc.in)
+			for b.Loop() {
+				ToLowerASCII(tc.in)
 			}
 		})
 	}
 }
 
 func TestToTitleCase(t *testing.T) {
-	assert.Equal(t, ToTitleCase(`foo bar baz`), `Foo Bar Baz`)
-	assert.Equal(t, ToTitleCase(`FOO BAR BAZ`), `Foo Bar Baz`)
-}
-
-func TestToPointer(t *testing.T) {
-	assert.Equal(t, "abc", *ToPointer("abc"))
-	assert.Equal(t, 123, *ToPointer(123))
-	abc := "abc"
-	assert.False(t, &abc == ToPointer(abc))
-	val123 := 123
-	assert.False(t, &val123 == ToPointer(val123))
+	assert.Equal(t, `Foo Bar Baz`, ToTitleCase(`foo bar baz`))
+	assert.Equal(t, `Foo Bar Baz`, ToTitleCase(`FOO BAR BAZ`))
 }
 
 func TestReserveLineBreakForTextarea(t *testing.T) {
-	assert.Equal(t, ReserveLineBreakForTextarea("test\r\ndata"), "test\ndata")
-	assert.Equal(t, ReserveLineBreakForTextarea("test\r\ndata\r\n"), "test\ndata\n")
+	assert.Equal(t, "test\ndata", ReserveLineBreakForTextarea("test\r\ndata"))
+	assert.Equal(t, "test\ndata\n", ReserveLineBreakForTextarea("test\r\ndata\r\n"))
+}
+
+func TestOptionalArg(t *testing.T) {
+	foo := func(_ any, optArg ...int) int {
+		return OptionalArg(optArg)
+	}
+	bar := func(_ any, optArg ...int) int {
+		return OptionalArg(optArg, 42)
+	}
+	assert.Equal(t, 0, foo(nil))
+	assert.Equal(t, 100, foo(nil, 100))
+	assert.Equal(t, 42, bar(nil))
+	assert.Equal(t, 100, bar(nil, 100))
 }

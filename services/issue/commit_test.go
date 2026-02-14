@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -61,7 +60,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(db.DefaultContext, user, repo, pushCommits, repo.DefaultBranch))
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
@@ -88,7 +87,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1}, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(db.DefaultContext, user, repo, pushCommits, "non-existing-branch"))
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, "non-existing-branch"))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
@@ -114,7 +113,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 1}, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(db.DefaultContext, user, repo, pushCommits, repo.DefaultBranch))
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
@@ -140,7 +139,7 @@ func TestUpdateIssuesCommit_Colon(t *testing.T) {
 	issueBean := &issues_model.Issue{RepoID: repo.ID, Index: 4}
 
 	unittest.AssertNotExistsBean(t, &issues_model.Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(db.DefaultContext, user, repo, pushCommits, repo.DefaultBranch))
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }
@@ -173,7 +172,7 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(db.DefaultContext, user, repo, pushCommits, "non-existing-branch"))
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, "non-existing-branch"))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
@@ -208,7 +207,7 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(db.DefaultContext, user, repo, pushCommits, repo.DefaultBranch))
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
@@ -243,7 +242,7 @@ func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
 
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(db.DefaultContext, user, repo, pushCommits, repo.DefaultBranch))
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
@@ -293,9 +292,65 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, commentBean2)
 	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
-	assert.NoError(t, UpdateIssuesCommit(db.DefaultContext, user, repo, pushCommits, repo.DefaultBranch))
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, commentBean2)
 	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
+	unittest.CheckConsistencyFor(t, &activities_model.Action{})
+}
+
+func TestUpdateIssuesCommit_SelfReference(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+	// Test that a PR merge commit that references its own PR does not create a self-reference comment
+	// PR #2 (issue_id=2) has merged_commit_id: 1a8823cd1a9549fde083f992f6b9b87a7ab74fb3
+	pushCommits := []*repository.PushCommit{
+		{
+			Sha1:           "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3",
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User Two",
+			AuthorEmail:    "user2@example.com",
+			AuthorName:     "User Two",
+			Message:        "Merge pull request 'issue2' (#2) from branch1 into master",
+		},
+	}
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	selfRefCommentBean := &issues_model.Comment{
+		Type:      issues_model.CommentTypeCommitRef,
+		CommitSHA: "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3",
+		PosterID:  user.ID,
+		IssueID:   2,
+	}
+
+	unittest.AssertNotExistsBean(t, selfRefCommentBean)
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits, repo.DefaultBranch))
+	unittest.AssertNotExistsBean(t, selfRefCommentBean)
+	unittest.CheckConsistencyFor(t, &activities_model.Action{})
+
+	// Test that normal commit references are still created
+	pushCommits2 := []*repository.PushCommit{
+		{
+			Sha1:           "abcdef9876543210",
+			CommitterEmail: "user2@example.com",
+			CommitterName:  "User Two",
+			AuthorEmail:    "user2@example.com",
+			AuthorName:     "User Two",
+			Message:        "Fix bug, refs #1",
+		},
+	}
+
+	otherRefCommentBean := &issues_model.Comment{
+		Type:      issues_model.CommentTypeCommitRef,
+		CommitSHA: "abcdef9876543210",
+		PosterID:  user.ID,
+		IssueID:   1,
+	}
+
+	unittest.AssertNotExistsBean(t, otherRefCommentBean)
+	assert.NoError(t, UpdateIssuesCommit(t.Context(), user, repo, pushCommits2, repo.DefaultBranch))
+	unittest.AssertExistsAndLoadBean(t, otherRefCommentBean)
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }

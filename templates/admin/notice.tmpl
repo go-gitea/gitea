@@ -3,7 +3,7 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.notices.system_notice_list"}} ({{ctx.Locale.Tr "admin.total" .Total}})
 		</h4>
-		<table class="ui attached segment select selectable striped table unstackable g-table-auto-ellipsis">
+		<table class="ui attached segment select selectable table unstackable g-table-auto-ellipsis">
 			<thead>
 				<tr>
 					<th></th>
@@ -21,9 +21,11 @@
 						<td>{{.ID}}</td>
 						<td>{{ctx.Locale.Tr .TrStr}}</td>
 						<td class="view-detail auto-ellipsis tw-w-4/5"><span class="notice-description">{{.Description}}</span></td>
-						<td nowrap>{{DateTime "short" .CreatedUnix}}</td>
+						<td nowrap>{{DateUtils.AbsoluteShort .CreatedUnix}}</td>
 						<td class="view-detail"><a href="#">{{svg "octicon-note" 16}}</a></td>
 					</tr>
+				{{else}}
+					<tr><td class="tw-text-center" colspan="6">{{ctx.Locale.Tr "no_results_found"}}</td></tr>
 				{{end}}
 			</tbody>
 			{{if .Notices}}
@@ -31,11 +33,10 @@
 						<tr>
 							<th></th>
 							<th colspan="5">
-								<form class="tw-float-right" method="post" action="{{AppSubUrl}}/admin/notices/empty">
-									{{.CsrfTokenHtml}}
+								<form class="tw-float-right" method="post" action="{{AppSubUrl}}/-/admin/notices/empty">
 									<button type="submit" class="ui red small button">{{ctx.Locale.Tr "admin.notices.delete_all"}}</button>
 								</form>
-								<div class="ui floating upward dropdown small button">{{/* TODO: Make this dropdown accessible */}}
+								<div class="ui floating upward dropdown small button">
 									<span class="text">{{ctx.Locale.Tr "admin.notices.operations"}}</span>
 									<div class="menu">
 										<div class="item select action" data-action="select-all">
@@ -49,7 +50,7 @@
 										</div>
 									</div>
 								</div>
-								<button class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="?page={{.Page.Paginater.Current}}">
+								<button class="ui small button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="?page={{.Page.Paginater.Current}}">
 									<span class="text">{{ctx.Locale.Tr "admin.notices.delete_selected"}}</span>
 								</button>
 							</th>
@@ -62,10 +63,7 @@
 
 <div class="ui modal admin" id="detail-modal">
 	<div class="header">{{ctx.Locale.Tr "admin.notices.view_detail_header"}}</div>
-	<div class="content">
-		<div class="sub header"></div>
-		<pre></pre>
-	</div>
+	<div class="content"><pre></pre></div>
 </div>
 
 {{template "admin/layout_footer" .}}

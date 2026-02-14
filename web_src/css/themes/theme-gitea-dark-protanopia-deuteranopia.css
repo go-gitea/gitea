@@ -1,0 +1,19 @@
+@import "./theme-gitea-dark.css";
+
+gitea-theme-meta-info {
+  --theme-display-name: "Dark";
+  --theme-colorblind-type: "red-green";
+  --theme-color-scheme: "dark";
+}
+
+/* red/green colorblind-friendly colors */
+:root {
+  --color-diff-added-fg: #58a6ff;
+  --color-diff-added-linenum-bg: #243d5d;
+  --color-diff-added-row-bg: #132339;
+  --color-diff-added-word-bg: #214d87;
+  --color-diff-removed-fg: #f0883e;
+  --color-diff-removed-linenum-bg: #5b361c;
+  --color-diff-removed-row-bg: #3c2419;
+  --color-diff-removed-word-bg: #824e1f;
+}

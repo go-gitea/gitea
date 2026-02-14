@@ -58,11 +58,32 @@ type PackageMetadata struct {
 	Time           map[string]time.Time               `json:"time,omitempty"`
 	Homepage       string                             `json:"homepage,omitempty"`
 	Keywords       []string                           `json:"keywords,omitempty"`
-	Repository     Repository                         `json:"repository,omitempty"`
+	Repository     Repository                         `json:"repository"`
 	Author         User                               `json:"author"`
 	ReadmeFilename string                             `json:"readmeFilename,omitempty"`
 	Users          map[string]bool                    `json:"users,omitempty"`
-	License        string                             `json:"license,omitempty"`
+	License        License                            `json:"license,omitempty"`
+}
+
+type License string
+
+func (l *License) UnmarshalJSON(data []byte) error {
+	switch data[0] {
+	case '"':
+		var value string
+		if err := json.Unmarshal(data, &value); err != nil {
+			return err
+		}
+		*l = License(value)
+	case '{':
+		var values map[string]any
+		if err := json.Unmarshal(data, &values); err != nil {
+			return err
+		}
+		value, _ := values["type"].(string)
+		*l = License(value)
+	}
+	return nil
 }
 
 // PackageMetadataVersion documentation: https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
@@ -74,12 +95,14 @@ type PackageMetadataVersion struct {
 	Description          string              `json:"description"`
 	Author               User                `json:"author"`
 	Homepage             string              `json:"homepage,omitempty"`
-	License              string              `json:"license,omitempty"`
-	Repository           Repository          `json:"repository,omitempty"`
+	License              License             `json:"license,omitempty"`
+	Repository           Repository          `json:"repository"`
 	Keywords             []string            `json:"keywords,omitempty"`
 	Dependencies         map[string]string   `json:"dependencies,omitempty"`
+	BundleDependencies   []string            `json:"bundleDependencies,omitempty"`
 	DevDependencies      map[string]string   `json:"devDependencies,omitempty"`
 	PeerDependencies     map[string]string   `json:"peerDependencies,omitempty"`
+	PeerDependenciesMeta map[string]any      `json:"peerDependenciesMeta,omitempty"`
 	Bin                  map[string]string   `json:"bin,omitempty"`
 	OptionalDependencies map[string]string   `json:"optionalDependencies,omitempty"`
 	Readme               string              `json:"readme,omitempty"`
@@ -218,8 +241,10 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				ProjectURL:              meta.Homepage,
 				Keywords:                meta.Keywords,
 				Dependencies:            meta.Dependencies,
+				BundleDependencies:      meta.BundleDependencies,
 				DevelopmentDependencies: meta.DevDependencies,
 				PeerDependencies:        meta.PeerDependencies,
+				PeerDependenciesMeta:    meta.PeerDependenciesMeta,
 				OptionalDependencies:    meta.OptionalDependencies,
 				Bin:                     meta.Bin,
 				Readme:                  meta.Readme,

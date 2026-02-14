@@ -21,7 +21,7 @@ import (
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // these flags will be set by the build flags
@@ -42,8 +42,9 @@ func main() {
 		log.GetManager().Close()
 		os.Exit(code)
 	}
-	app := cmd.NewMainApp(Version, formatBuiltWith())
+	app := cmd.NewMainApp(cmd.AppVersion{Version: Version, Extra: formatBuiltWith()})
 	_ = cmd.RunMainApp(app, os.Args...) // all errors should have been handled by the RunMainApp
+	// flush the queued logs before exiting, it is a MUST, otherwise there will be log loss
 	log.GetManager().Close()
 }
 

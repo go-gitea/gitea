@@ -1,12 +1,11 @@
 // Copyright 2024 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_22 //nolint
+package v1_22
 
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations/base"
 	"code.gitea.io/gitea/models/project"
 
@@ -15,7 +14,7 @@ import (
 
 func Test_CheckProjectColumnsConsistency(t *testing.T) {
 	// Prepare and load the testing database
-	x, deferable := base.PrepareTestEnv(t, 0, new(project.Project), new(project.Board))
+	x, deferable := base.PrepareTestEnv(t, 0, new(project.Project), new(project.Column))
 	defer deferable()
 	if x == nil || t.Failed() {
 		return
@@ -23,22 +22,22 @@ func Test_CheckProjectColumnsConsistency(t *testing.T) {
 
 	assert.NoError(t, CheckProjectColumnsConsistency(x))
 
-	// check if default board was added
-	var defaultBoard project.Board
-	has, err := x.Where("project_id=? AND `default` = ?", 1, true).Get(&defaultBoard)
+	// check if default column was added
+	var defaultColumn project.Column
+	has, err := x.Where("project_id=? AND `default` = ?", 1, true).Get(&defaultColumn)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.Equal(t, int64(1), defaultBoard.ProjectID)
-	assert.True(t, defaultBoard.Default)
+	assert.Equal(t, int64(1), defaultColumn.ProjectID)
+	assert.True(t, defaultColumn.Default)
 
 	// check if multiple defaults, previous were removed and last will be kept
-	expectDefaultBoard, err := project.GetBoard(db.DefaultContext, 2)
+	expectDefaultColumn, err := project.GetColumn(t.Context(), 2)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(2), expectDefaultBoard.ProjectID)
-	assert.False(t, expectDefaultBoard.Default)
+	assert.Equal(t, int64(2), expectDefaultColumn.ProjectID)
+	assert.False(t, expectDefaultColumn.Default)
 
-	expectNonDefaultBoard, err := project.GetBoard(db.DefaultContext, 3)
+	expectNonDefaultColumn, err := project.GetColumn(t.Context(), 3)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(2), expectNonDefaultBoard.ProjectID)
-	assert.True(t, expectNonDefaultBoard.Default)
+	assert.Equal(t, int64(2), expectNonDefaultColumn.ProjectID)
+	assert.True(t, expectNonDefaultColumn.Default)
 }

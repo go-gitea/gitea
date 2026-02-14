@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-type normalizeVarsStruct struct {
+type globalVarsStruct struct {
 	reXMLDoc,
 	reComment,
 	reAttrXMLNs,
@@ -18,26 +18,23 @@ type normalizeVarsStruct struct {
 	reAttrClassPrefix *regexp.Regexp
 }
 
-var (
-	normalizeVars     *normalizeVarsStruct
-	normalizeVarsOnce sync.Once
-)
+var globalVars = sync.OnceValue(func() *globalVarsStruct {
+	return &globalVarsStruct{
+		reXMLDoc:  regexp.MustCompile(`(?s)<\?xml.*?>`),
+		reComment: regexp.MustCompile(`(?s)<!--.*?-->`),
+
+		reAttrXMLNs:       regexp.MustCompile(`(?s)\s+xmlns\s*=\s*"[^"]*"`),
+		reAttrSize:        regexp.MustCompile(`(?s)\s+(width|height)\s*=\s*"[^"]+"`),
+		reAttrClassPrefix: regexp.MustCompile(`(?s)\s+class\s*=\s*"`),
+	}
+})
 
 // Normalize normalizes the SVG content: set default width/height, remove unnecessary tags/attributes
 // It's designed to work with valid SVG content. For invalid SVG content, the returned content is not guaranteed.
 func Normalize(data []byte, size int) []byte {
-	normalizeVarsOnce.Do(func() {
-		normalizeVars = &normalizeVarsStruct{
-			reXMLDoc:  regexp.MustCompile(`(?s)<\?xml.*?>`),
-			reComment: regexp.MustCompile(`(?s)<!--.*?-->`),
-
-			reAttrXMLNs:       regexp.MustCompile(`(?s)\s+xmlns\s*=\s*"[^"]*"`),
-			reAttrSize:        regexp.MustCompile(`(?s)\s+(width|height)\s*=\s*"[^"]+"`),
-			reAttrClassPrefix: regexp.MustCompile(`(?s)\s+class\s*=\s*"`),
-		}
-	})
-	data = normalizeVars.reXMLDoc.ReplaceAll(data, nil)
-	data = normalizeVars.reComment.ReplaceAll(data, nil)
+	vars := globalVars()
+	data = vars.reXMLDoc.ReplaceAll(data, nil)
+	data = vars.reComment.ReplaceAll(data, nil)
 
 	data = bytes.TrimSpace(data)
 	svgTag, svgRemaining, ok := bytes.Cut(data, []byte(">"))
@@ -45,9 +42,9 @@ func Normalize(data []byte, size int) []byte {
 		return data
 	}
 	normalized := bytes.Clone(svgTag)
-	normalized = normalizeVars.reAttrXMLNs.ReplaceAll(normalized, nil)
-	normalized = normalizeVars.reAttrSize.ReplaceAll(normalized, nil)
-	normalized = normalizeVars.reAttrClassPrefix.ReplaceAll(normalized, []byte(` class="`))
+	normalized = vars.reAttrXMLNs.ReplaceAll(normalized, nil)
+	normalized = vars.reAttrSize.ReplaceAll(normalized, nil)
+	normalized = vars.reAttrClassPrefix.ReplaceAll(normalized, []byte(` class="`))
 	normalized = bytes.TrimSpace(normalized)
 	normalized = fmt.Appendf(normalized, ` width="%d" height="%d"`, size, size)
 	if !bytes.Contains(normalized, []byte(` class="`)) {

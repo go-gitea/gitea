@@ -5,11 +5,14 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
+	"os"
 	"path"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -163,6 +166,11 @@ func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, file
 	return attach, nil
 }
 
+func GetUnlinkedAttachmentsByUserID(ctx context.Context, userID int64) ([]*Attachment, error) {
+	attachments := make([]*Attachment, 0, 10)
+	return attachments, db.GetEngine(ctx).Where("uploader_id = ? AND issue_id = 0 AND release_id = 0 AND comment_id = 0", userID).Find(&attachments)
+}
+
 // DeleteAttachment deletes the given attachment and optionally the associated file.
 func DeleteAttachment(ctx context.Context, a *Attachment, remove bool) error {
 	_, err := DeleteAttachments(ctx, []*Attachment{a}, remove)
@@ -188,7 +196,10 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bo
 	if remove {
 		for i, a := range attachments {
 			if err := storage.Attachments.Delete(a.RelativePath()); err != nil {
-				return i, err
+				if !errors.Is(err, os.ErrNotExist) {
+					return i, err
+				}
+				log.Warn("Attachment file not found when deleting: %s", a.RelativePath())
 			}
 		}
 	}
@@ -218,7 +229,7 @@ func DeleteAttachmentsByComment(ctx context.Context, commentID int64, remove boo
 // UpdateAttachmentByUUID Updates attachment via uuid
 func UpdateAttachmentByUUID(ctx context.Context, attach *Attachment, cols ...string) error {
 	if attach.UUID == "" {
-		return fmt.Errorf("attachment uuid should be not blank")
+		return errors.New("attachment uuid should be not blank")
 	}
 	_, err := db.GetEngine(ctx).Where("uuid=?", attach.UUID).Cols(cols...).Update(attach)
 	return err

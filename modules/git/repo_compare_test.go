@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/git/gitcmd"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +22,7 @@ func TestGetFormatPatch(t *testing.T) {
 		return
 	}
 
-	repo, err := openRepositoryWithDefaultContext(clonedPath)
+	repo, err := OpenRepository(t.Context(), clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -28,7 +30,7 @@ func TestGetFormatPatch(t *testing.T) {
 	defer repo.Close()
 
 	rd := &bytes.Buffer{}
-	err = repo.GetPatch("8d92fc95^", "8d92fc95", rd)
+	err = repo.GetPatch("8d92fc95^...8d92fc95", rd)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -48,7 +50,7 @@ func TestGetFormatPatch(t *testing.T) {
 func TestReadPatch(t *testing.T) {
 	// Ensure we can read the patch files
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	repo, err := OpenRepository(t.Context(), bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -72,7 +74,7 @@ func TestReadPatch(t *testing.T) {
 	assert.Empty(t, noFile)
 	assert.Empty(t, noCommit)
 	assert.Len(t, oldCommit, 40)
-	assert.True(t, oldCommit == "6e8e2a6f9efd71dbe6917816343ed8415ad696c3")
+	assert.Equal(t, "6e8e2a6f9efd71dbe6917816343ed8415ad696c3", oldCommit)
 }
 
 func TestReadWritePullHead(t *testing.T) {
@@ -86,7 +88,7 @@ func TestReadWritePullHead(t *testing.T) {
 		return
 	}
 
-	repo, err := openRepositoryWithDefaultContext(clonedPath)
+	repo, err := OpenRepository(t.Context(), clonedPath)
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -99,7 +101,10 @@ func TestReadWritePullHead(t *testing.T) {
 
 	// Write a fake sha1 with only 40 zeros
 	newCommit := "feaf4ba6bc635fec442f46ddd4512416ec43c2c2"
-	err = repo.SetReference(PullPrefix+"1/head", newCommit)
+	_, _, err = gitcmd.NewCommand("update-ref").
+		AddDynamicArguments(PullPrefix+"1/head", newCommit).
+		WithDir(repo.Path).
+		RunStdString(t.Context())
 	if err != nil {
 		assert.NoError(t, err)
 		return
@@ -113,16 +118,19 @@ func TestReadWritePullHead(t *testing.T) {
 	}
 
 	assert.Len(t, headContents, 40)
-	assert.True(t, headContents == newCommit)
+	assert.Equal(t, headContents, newCommit)
 
 	// Remove file after the test
-	err = repo.RemoveReference(PullPrefix + "1/head")
+	_, _, err = gitcmd.NewCommand("update-ref", "--no-deref", "-d").
+		AddDynamicArguments(PullPrefix + "1/head").
+		WithDir(repo.Path).
+		RunStdString(t.Context())
 	assert.NoError(t, err)
 }
 
 func TestGetCommitFilesChanged(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
+	repo, err := OpenRepository(t.Context(), bareRepo1Path)
 	assert.NoError(t, err)
 	defer repo.Close()
 

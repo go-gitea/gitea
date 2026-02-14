@@ -5,28 +5,73 @@ package agit
 
 import (
 	"context"
+	"encoding/base64"
+	"errors"
 	"fmt"
-	"os"
-	"strconv"
 	"strings"
 
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
+func parseAgitPushOptionValue(s string) string {
+	if base64Value, ok := strings.CutPrefix(s, "{base64}"); ok {
+		decoded, err := base64.StdEncoding.DecodeString(base64Value)
+		return util.Iif(err == nil, string(decoded), s)
+	}
+	return s
+}
+
+func GetAgitBranchInfo(ctx context.Context, repoID int64, baseBranchName string) (string, string, error) {
+	baseBranchExist, err := git_model.IsBranchExist(ctx, repoID, baseBranchName)
+	if err != nil {
+		return "", "", err
+	}
+	if baseBranchExist {
+		return baseBranchName, "", nil
+	}
+
+	// try match <target-branch>/<topic-branch>
+	// refs/for have been trimmed to get baseBranchName
+	for p, v := range baseBranchName {
+		if v != '/' {
+			continue
+		}
+
+		baseBranchExist, err := git_model.IsBranchExist(ctx, repoID, baseBranchName[:p])
+		if err != nil {
+			return "", "", err
+		}
+		if baseBranchExist {
+			return baseBranchName[:p], baseBranchName[p+1:], nil
+		}
+	}
+
+	return "", "", util.NewNotExistErrorf("base branch does not exist")
+}
+
 // ProcReceive handle proc receive work
 func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
+	forcePush := opts.GitPushOptions.Bool(private.GitPushOptionForcePush)
 	topicBranch := opts.GitPushOptions["topic"]
-	forcePush, _ := strconv.ParseBool(opts.GitPushOptions["force-push"])
-	title := strings.TrimSpace(opts.GitPushOptions["title"])
-	description := strings.TrimSpace(opts.GitPushOptions["description"]) // TODO: Add more options?
+
+	// some options are base64-encoded with "{base64}" prefix if they contain new lines
+	// other agit push options like "issue", "reviewer" and "cc" are not supported
+	title := parseAgitPushOptionValue(opts.GitPushOptions["title"])
+	description := parseAgitPushOptionValue(opts.GitPushOptions["description"])
+
 	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
 	userName := strings.ToLower(opts.UserName)
 
@@ -54,20 +99,22 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		baseBranchName := opts.RefFullNames[i].ForBranchName()
-		curentTopicBranch := ""
-		if !gitRepo.IsBranchExist(baseBranchName) {
-			// try match refs/for/<target-branch>/<topic-branch>
-			for p, v := range baseBranchName {
-				if v == '/' && gitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
-					curentTopicBranch = baseBranchName[p+1:]
-					baseBranchName = baseBranchName[:p]
-					break
-				}
+		baseBranchName, currentTopicBranch, err := GetAgitBranchInfo(ctx, repo.ID, opts.RefFullNames[i].ForBranchName())
+		if err != nil {
+			if !errors.Is(err, util.ErrNotExist) {
+				return nil, fmt.Errorf("failed to get branch information. Error: %w", err)
 			}
+			// If branch does not exist, we can continue
+			results = append(results, private.HookProcReceiveRefResult{
+				OriginalRef: opts.RefFullNames[i],
+				OldOID:      opts.OldCommitIDs[i],
+				NewOID:      opts.NewCommitIDs[i],
+				Err:         "base-branch does not exist",
+			})
+			continue
 		}
 
-		if len(topicBranch) == 0 && len(curentTopicBranch) == 0 {
+		if len(topicBranch) == 0 && len(currentTopicBranch) == 0 {
 			results = append(results, private.HookProcReceiveRefResult{
 				OriginalRef: opts.RefFullNames[i],
 				OldOID:      opts.OldCommitIDs[i],
@@ -77,18 +124,18 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		if len(curentTopicBranch) == 0 {
-			curentTopicBranch = topicBranch
+		if len(currentTopicBranch) == 0 {
+			currentTopicBranch = topicBranch
 		}
 
 		// because different user maybe want to use same topic,
 		// So it's better to make sure the topic branch name
-		// has user name prefix
+		// has username prefix
 		var headBranch string
-		if !strings.HasPrefix(curentTopicBranch, userName+"/") {
-			headBranch = userName + "/" + curentTopicBranch
+		if !strings.HasPrefix(currentTopicBranch, userName+"/") {
+			headBranch = userName + "/" + currentTopicBranch
 		} else {
-			headBranch = curentTopicBranch
+			headBranch = currentTopicBranch
 		}
 
 		pr, err := issues_model.GetUnmergedPullRequest(ctx, repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
@@ -137,18 +184,26 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 				Type:         issues_model.PullRequestGitea,
 				Flow:         issues_model.PullRequestFlowAGit,
 			}
-
-			if err := pull_service.NewPullRequest(ctx, repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
+			prOpts := &pull_service.NewPullRequestOptions{
+				Repo:        repo,
+				Issue:       prIssue,
+				PullRequest: pr,
+			}
+			if err := pull_service.NewPullRequest(ctx, prOpts); err != nil {
 				return nil, err
 			}
 
 			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
 
 			results = append(results, private.HookProcReceiveRefResult{
-				Ref:         pr.GetGitRefName(),
-				OriginalRef: opts.RefFullNames[i],
-				OldOID:      objectFormat.EmptyObjectID().String(),
-				NewOID:      opts.NewCommitIDs[i],
+				Ref:               pr.GetGitHeadRefName(),
+				OriginalRef:       opts.RefFullNames[i],
+				OldOID:            objectFormat.EmptyObjectID().String(),
+				NewOID:            opts.NewCommitIDs[i],
+				IsCreatePR:        false, // AGit always creates a pull request so there is no point in prompting user to create one
+				URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
+				ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
+				HeadBranch:        headBranch,
 			})
 			continue
 		}
@@ -158,7 +213,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			return nil, fmt.Errorf("unable to load base repository for PR[%d] Error: %w", pr.ID, err)
 		}
 
-		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
+		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitHeadRefName())
 		if err != nil {
 			return nil, fmt.Errorf("unable to get ref commit id in base repository for PR[%d] Error: %w", pr.ID, err)
 		}
@@ -173,10 +228,11 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		if !forcePush {
-			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1").
-				AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]).
-				RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
+		if !forcePush.Value() {
+			output, _, err := gitrepo.RunCmdString(ctx, repo,
+				gitcmd.NewCommand("rev-list", "--max-count=1").
+					AddDynamicArguments(oldCommitID, "^"+opts.NewCommitIDs[i]),
+			)
 			if err != nil {
 				return nil, fmt.Errorf("failed to detect force push: %w", err)
 			} else if len(output) > 0 {
@@ -190,17 +246,43 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			}
 		}
 
+		// Store old commit ID for review staleness checking
+		oldHeadCommitID := pr.HeadCommitID
+
 		pr.HeadCommitID = opts.NewCommitIDs[i]
 		if err = pull_service.UpdateRef(ctx, pr); err != nil {
 			return nil, fmt.Errorf("failed to update pull ref. Error: %w", err)
 		}
 
-		pull_service.AddToTaskQueue(ctx, pr)
+		// Mark existing reviews as stale when PR content changes (same as regular GitHub flow)
+		if oldHeadCommitID != opts.NewCommitIDs[i] {
+			if err := issues_model.MarkReviewsAsStale(ctx, pr.IssueID); err != nil {
+				log.Error("MarkReviewsAsStale: %v", err)
+			}
+
+			// Dismiss all approval reviews if protected branch rule item enabled
+			pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+			if err != nil {
+				log.Error("GetFirstMatchProtectedBranchRule: %v", err)
+			}
+			if pb != nil && pb.DismissStaleApprovals {
+				if err := pull_service.DismissApprovalReviews(ctx, pusher, pr); err != nil {
+					log.Error("DismissApprovalReviews: %v", err)
+				}
+			}
+
+			// Mark reviews for the new commit as not stale
+			if err := issues_model.MarkReviewsAsNotStale(ctx, pr.IssueID, opts.NewCommitIDs[i]); err != nil {
+				log.Error("MarkReviewsAsNotStale: %v", err)
+			}
+		}
+
+		pull_service.StartPullRequestCheckImmediately(ctx, pr)
 		err = pr.LoadIssue(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load pull issue. Error: %w", err)
 		}
-		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
+		comment, err := pull_service.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i], forcePush.Value())
 		if err == nil && comment != nil {
 			notify_service.PullRequestPushCommits(ctx, pusher, pr, comment)
 		}
@@ -208,11 +290,14 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 		isForcePush := comment != nil && comment.IsForcePush
 
 		results = append(results, private.HookProcReceiveRefResult{
-			OldOID:      oldCommitID,
-			NewOID:      opts.NewCommitIDs[i],
-			Ref:         pr.GetGitRefName(),
-			OriginalRef: opts.RefFullNames[i],
-			IsForcePush: isForcePush,
+			OldOID:            oldCommitID,
+			NewOID:            opts.NewCommitIDs[i],
+			Ref:               pr.GetGitHeadRefName(),
+			OriginalRef:       opts.RefFullNames[i],
+			IsForcePush:       isForcePush,
+			IsCreatePR:        false,
+			URL:               fmt.Sprintf("%s/pulls/%d", repo.HTMLURL(), pr.Index),
+			ShouldShowMessage: setting.Git.PullRequestPushMessage && repo.AllowsPulls(ctx),
 		})
 	}
 

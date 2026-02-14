@@ -35,7 +35,7 @@ func (o *Option[T]) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
-func (o Option[T]) MarshalYAML() (interface{}, error) {
+func (o Option[T]) MarshalYAML() (any, error) {
 	if !o.Has() {
 		return nil, nil
 	}

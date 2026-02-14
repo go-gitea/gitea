@@ -85,11 +85,24 @@ func NewMinioStorage(ctx context.Context, cfg *setting.Storage) (ObjectStorage, 
 
 	log.Info("Creating Minio storage at %s:%s with base path %s", config.Endpoint, config.Bucket, config.BasePath)
 
+	var lookup minio.BucketLookupType
+	switch config.BucketLookUpType {
+	case "auto", "":
+		lookup = minio.BucketLookupAuto
+	case "dns":
+		lookup = minio.BucketLookupDNS
+	case "path":
+		lookup = minio.BucketLookupPath
+	default:
+		return nil, fmt.Errorf("invalid minio bucket lookup type: %s", config.BucketLookUpType)
+	}
+
 	minioClient, err := minio.New(config.Endpoint, &minio.Options{
-		Creds:     credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, ""),
-		Secure:    config.UseSSL,
-		Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
-		Region:    config.Location,
+		Creds:        buildMinioCredentials(config),
+		Secure:       config.UseSSL,
+		Transport:    &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: config.InsecureSkipVerify}},
+		Region:       config.Location,
+		BucketLookup: lookup,
 	})
 	if err != nil {
 		return nil, convertMinioErr(err)
@@ -150,6 +163,37 @@ func (m *MinioStorage) buildMinioDirPrefix(p string) string {
 		p = "" // object store doesn't use slash for root path
 	}
 	return p
+}
+
+func buildMinioCredentials(config setting.MinioStorageConfig) *credentials.Credentials {
+	// If static credentials are provided, use those
+	if config.AccessKeyID != "" {
+		return credentials.NewStaticV4(config.AccessKeyID, config.SecretAccessKey, "")
+	}
+
+	// Otherwise, fallback to a credentials chain for S3 access
+	chain := []credentials.Provider{
+		// configure based upon MINIO_ prefixed environment variables
+		&credentials.EnvMinio{},
+		// configure based upon AWS_ prefixed environment variables
+		&credentials.EnvAWS{},
+		// read credentials from MINIO_SHARED_CREDENTIALS_FILE
+		// environment variable, or default json config files
+		&credentials.FileMinioClient{},
+		// read credentials from AWS_SHARED_CREDENTIALS_FILE
+		// environment variable, or default credentials file
+		&credentials.FileAWSCredentials{},
+		// read IAM role from EC2 metadata endpoint if available
+		&credentials.IAM{
+			// passing in an empty Endpoint lets the IAM Provider
+			// decide which endpoint to resolve internally
+			Endpoint: config.IamEndpoint,
+			Client: &http.Client{
+				Transport: http.DefaultTransport,
+			},
+		},
+	}
+	return credentials.NewChainCredentials(chain)
 }
 
 // Open opens a file
@@ -235,11 +279,44 @@ func (m *MinioStorage) Delete(path string) error {
 }
 
 // URL gets the redirect URL to a file. The presigned link is valid for 5 minutes.
-func (m *MinioStorage) URL(path, name string) (*url.URL, error) {
-	reqParams := make(url.Values)
-	// TODO it may be good to embed images with 'inline' like ServeData does, but we don't want to have to read the file, do we?
-	reqParams.Set("response-content-disposition", "attachment; filename=\""+quoteEscaper.Replace(name)+"\"")
-	u, err := m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(path), 5*time.Minute, reqParams)
+func (m *MinioStorage) URL(storePath, name, method string, serveDirectReqParams url.Values) (*url.URL, error) {
+	// copy serveDirectReqParams
+	reqParams, err := url.ParseQuery(serveDirectReqParams.Encode())
+	if err != nil {
+		return nil, err
+	}
+
+	// Here we might not know the real filename, and it's quite inefficient to detect the mine type by pre-fetching the object head.
+	// So we just do a quick detection by extension name, at least if works for the "View Raw File" for an LFS file on the Web UI.
+	// Detect content type by extension name, only support the well-known safe types for inline rendering.
+	// TODO: OBJECT-STORAGE-CONTENT-TYPE: need a complete solution and refactor for Azure in the future
+	ext := path.Ext(name)
+	inlineExtMimeTypes := map[string]string{
+		".png":  "image/png",
+		".jpg":  "image/jpeg",
+		".jpeg": "image/jpeg",
+		".gif":  "image/gif",
+		".webp": "image/webp",
+		".avif": "image/avif",
+		// ATTENTION! Don't support unsafe types like HTML/SVG due to security concerns: they can contain JS code, and maybe they need proper Content-Security-Policy
+		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context, it seems fine to render it inline
+		".pdf": "application/pdf",
+
+		// TODO: refactor with "modules/public/mime_types.go", for example: "DetectWellKnownSafeInlineMimeType"
+	}
+	if mimeType, ok := inlineExtMimeTypes[ext]; ok {
+		reqParams.Set("response-content-type", mimeType)
+		reqParams.Set("response-content-disposition", "inline")
+	} else {
+		reqParams.Set("response-content-disposition", fmt.Sprintf(`attachment; filename="%s"`, quoteEscaper.Replace(name)))
+	}
+
+	expires := 5 * time.Minute
+	if method == http.MethodHead {
+		u, err := m.client.PresignedHeadObject(m.ctx, m.bucket, m.buildMinioPath(storePath), expires, reqParams)
+		return u, convertMinioErr(err)
+	}
+	u, err := m.client.PresignedGetObject(m.ctx, m.bucket, m.buildMinioPath(storePath), expires, reqParams)
 	return u, convertMinioErr(err)
 }
 

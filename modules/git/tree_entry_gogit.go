@@ -12,29 +12,21 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
-// TreeEntry the leaf in the git tree
-type TreeEntry struct {
-	ID ObjectID
-
-	gogitTreeEntry *object.TreeEntry
-	ptree          *Tree
-
-	size     int64
-	sized    bool
-	fullName string
+// gogitFileModeToEntryMode converts go-git filemode to EntryMode
+func gogitFileModeToEntryMode(mode filemode.FileMode) EntryMode {
+	return EntryMode(mode)
 }
 
-// Name returns the name of the entry
-func (te *TreeEntry) Name() string {
-	if te.fullName != "" {
-		return te.fullName
+func entryModeToGogitFileMode(mode EntryMode) filemode.FileMode {
+	return filemode.FileMode(mode)
+}
+
+func (te *TreeEntry) toGogitTreeEntry() *object.TreeEntry {
+	return &object.TreeEntry{
+		Name: te.name,
+		Mode: entryModeToGogitFileMode(te.entryMode),
+		Hash: plumbing.Hash(te.ID.RawValue()),
 	}
-	return te.gogitTreeEntry.Name
-}
-
-// Mode returns the mode of the entry
-func (te *TreeEntry) Mode() EntryMode {
-	return EntryMode(te.gogitTreeEntry.Mode)
 }
 
 // Size returns the size of the entry
@@ -45,7 +37,11 @@ func (te *TreeEntry) Size() int64 {
 		return te.size
 	}
 
-	file, err := te.ptree.gogitTree.TreeEntryFile(te.gogitTreeEntry)
+	ptreeGogitTree, err := te.ptree.gogitTreeObject()
+	if err != nil {
+		return 0
+	}
+	file, err := ptreeGogitTree.TreeEntryFile(te.toGogitTreeEntry())
 	if err != nil {
 		return 0
 	}
@@ -55,41 +51,11 @@ func (te *TreeEntry) Size() int64 {
 	return te.size
 }
 
-// IsSubModule if the entry is a sub module
-func (te *TreeEntry) IsSubModule() bool {
-	return te.gogitTreeEntry.Mode == filemode.Submodule
-}
-
-// IsDir if the entry is a sub dir
-func (te *TreeEntry) IsDir() bool {
-	return te.gogitTreeEntry.Mode == filemode.Dir
-}
-
-// IsLink if the entry is a symlink
-func (te *TreeEntry) IsLink() bool {
-	return te.gogitTreeEntry.Mode == filemode.Symlink
-}
-
-// IsRegular if the entry is a regular file
-func (te *TreeEntry) IsRegular() bool {
-	return te.gogitTreeEntry.Mode == filemode.Regular
-}
-
-// IsExecutable if the entry is an executable file (not necessarily binary)
-func (te *TreeEntry) IsExecutable() bool {
-	return te.gogitTreeEntry.Mode == filemode.Executable
-}
-
 // Blob returns the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
-	encodedObj, err := te.ptree.repo.gogitRepo.Storer.EncodedObject(plumbing.AnyObject, te.gogitTreeEntry.Hash)
-	if err != nil {
-		return nil
-	}
-
 	return &Blob{
-		ID:              ParseGogitHash(te.gogitTreeEntry.Hash),
-		gogitEncodedObj: encodedObj,
-		name:            te.Name(),
+		ID:   te.ID,
+		repo: te.ptree.repo,
+		name: te.Name(),
 	}
 }

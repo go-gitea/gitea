@@ -17,11 +17,13 @@ import (
 	"time"
 
 	charsetModule "code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
+
+	"github.com/klauspost/compress/gzhttp"
 )
 
 type ServeHeaderOptions struct {
@@ -30,6 +32,7 @@ type ServeHeaderOptions struct {
 	ContentLength      *int64
 	Disposition        string // defaults to "attachment"
 	Filename           string
+	CacheIsPublic      bool
 	CacheDuration      time.Duration // defaults to 5 minutes
 	LastModified       time.Time
 }
@@ -38,7 +41,12 @@ type ServeHeaderOptions struct {
 func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 	header := w.Header()
 
-	contentType := typesniffer.ApplicationOctetStream
+	skipCompressionExts := container.SetOf(".gz", ".bz2", ".zip", ".xz", ".zst", ".deb", ".apk", ".jar", ".png", ".jpg", ".webp")
+	if skipCompressionExts.Contains(strings.ToLower(path.Ext(opts.Filename))) {
+		w.Header().Add(gzhttp.HeaderNoCompression, "1")
+	}
+
+	contentType := typesniffer.MimeTypeApplicationOctetStream
 	if opts.ContentType != "" {
 		if opts.ContentTypeCharset != "" {
 			contentType = opts.ContentType + "; charset=" + strings.ToLower(opts.ContentTypeCharset)
@@ -64,31 +72,28 @@ func ServeSetHeaders(w http.ResponseWriter, opts *ServeHeaderOptions) {
 		header.Set("Access-Control-Expose-Headers", "Content-Disposition")
 	}
 
-	duration := opts.CacheDuration
-	if duration == 0 {
-		duration = 5 * time.Minute
-	}
-	httpcache.SetCacheControlInHeader(header, duration)
+	httpcache.SetCacheControlInHeader(header, &httpcache.CacheControlOptions{
+		IsPublic:    opts.CacheIsPublic,
+		MaxAge:      opts.CacheDuration,
+		NoTransform: true,
+	})
 
 	if !opts.LastModified.IsZero() {
+		// http.TimeFormat required a UTC time, refer to https://pkg.go.dev/net/http#TimeFormat
 		header.Set("Last-Modified", opts.LastModified.UTC().Format(http.TimeFormat))
 	}
 }
 
 // ServeData download file from io.Reader
-func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath string, mineBuf []byte) {
+func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, mineBuf []byte, opts *ServeHeaderOptions) {
 	// do not set "Content-Length", because the length could only be set by callers, and it needs to support range requests
-	opts := &ServeHeaderOptions{
-		Filename: path.Base(filePath),
-	}
-
 	sniffedType := typesniffer.DetectContentType(mineBuf)
 
 	// the "render" parameter came from year 2016: 638dd24c, it doesn't have clear meaning, so I think it could be removed later
 	isPlain := sniffedType.IsText() || r.FormValue("render") != ""
 
 	if setting.MimeTypeMap.Enabled {
-		fileExtension := strings.ToLower(filepath.Ext(filePath))
+		fileExtension := strings.ToLower(filepath.Ext(opts.Filename))
 		opts.ContentType = setting.MimeTypeMap.Map[fileExtension]
 	}
 
@@ -98,16 +103,12 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath stri
 		} else if isPlain {
 			opts.ContentType = "text/plain"
 		} else {
-			opts.ContentType = typesniffer.ApplicationOctetStream
+			opts.ContentType = typesniffer.MimeTypeApplicationOctetStream
 		}
 	}
 
 	if isPlain {
-		charset, err := charsetModule.DetectEncoding(mineBuf)
-		if err != nil {
-			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", filePath, err)
-			charset = "utf-8"
-		}
+		charset, _ := charsetModule.DetectEncoding(mineBuf)
 		opts.ContentTypeCharset = strings.ToLower(charset)
 	}
 
@@ -120,6 +121,7 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath stri
 		// no sandbox attribute for pdf as it breaks rendering in at least safari. this
 		// should generally be safe as scripts inside PDF can not escape the PDF document
 		// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
+		// HINT: PDF-RENDER-SANDBOX: PDF won't render in sandboxed context
 		w.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
 	}
 
@@ -133,7 +135,7 @@ func setServeHeadersByFile(r *http.Request, w http.ResponseWriter, filePath stri
 
 const mimeDetectionBufferLen = 1024
 
-func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath string, size int64, reader io.Reader) {
+func ServeContentByReader(r *http.Request, w http.ResponseWriter, size int64, reader io.Reader, opts *ServeHeaderOptions) {
 	buf := make([]byte, mimeDetectionBufferLen)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
@@ -143,7 +145,7 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath strin
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	setServeHeadersByFile(r, w, filePath, buf)
+	setServeHeadersByFile(r, w, buf, opts)
 
 	// reset the reader to the beginning
 	reader = io.MultiReader(bytes.NewReader(buf), reader)
@@ -206,7 +208,7 @@ func ServeContentByReader(r *http.Request, w http.ResponseWriter, filePath strin
 	_, _ = io.CopyN(w, reader, partialLength) // just like http.ServeContent, not necessary to handle the error
 }
 
-func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, filePath string, modTime *time.Time, reader io.ReadSeeker) {
+func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, modTime *time.Time, reader io.ReadSeeker, opts *ServeHeaderOptions) {
 	buf := make([]byte, mimeDetectionBufferLen)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
@@ -220,9 +222,9 @@ func ServeContentByReadSeeker(r *http.Request, w http.ResponseWriter, filePath s
 	if n >= 0 {
 		buf = buf[:n]
 	}
-	setServeHeadersByFile(r, w, filePath, buf)
+	setServeHeadersByFile(r, w, buf, opts)
 	if modTime == nil {
 		modTime = &time.Time{}
 	}
-	http.ServeContent(w, r, path.Base(filePath), *modTime, reader)
+	http.ServeContent(w, r, opts.Filename, *modTime, reader)
 }

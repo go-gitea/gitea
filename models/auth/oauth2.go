@@ -8,9 +8,11 @@ import (
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"net"
 	"net/url"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -36,10 +38,11 @@ type OAuth2Application struct {
 	// https://datatracker.ietf.org/doc/html/rfc6749#section-2.1
 	// "Authorization servers MUST record the client type in the client registration details"
 	// https://datatracker.ietf.org/doc/html/rfc8252#section-8.4
-	ConfidentialClient bool               `xorm:"NOT NULL DEFAULT TRUE"`
-	RedirectURIs       []string           `xorm:"redirect_uris JSON TEXT"`
-	CreatedUnix        timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix        timeutil.TimeStamp `xorm:"INDEX updated"`
+	ConfidentialClient         bool               `xorm:"NOT NULL DEFAULT TRUE"`
+	SkipSecondaryAuthorization bool               `xorm:"NOT NULL DEFAULT FALSE"`
+	RedirectURIs               []string           `xorm:"redirect_uris JSON TEXT"`
+	CreatedUnix                timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix                timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func init() {
@@ -137,6 +140,11 @@ func (app *OAuth2Application) TableName() string {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
+	// OAuth2 requires the redirect URI to be an exact match, no dynamic parts are allowed.
+	// https://stackoverflow.com/questions/55524480/should-dynamic-query-parameters-be-present-in-the-redirection-uri-for-an-oauth2
+	// https://www.rfc-editor.org/rfc/rfc6819#section-5.2.3.3
+	// https://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+	// https://datatracker.ietf.org/doc/html/draft-ietf-oauth-security-topics-12#section-3.1
 	contains := func(s string) bool {
 		s = strings.TrimSuffix(strings.ToLower(s), "/")
 		for _, u := range app.RedirectURIs {
@@ -245,21 +253,23 @@ func GetOAuth2ApplicationByID(ctx context.Context, id int64) (app *OAuth2Applica
 
 // CreateOAuth2ApplicationOptions holds options to create an oauth2 application
 type CreateOAuth2ApplicationOptions struct {
-	Name               string
-	UserID             int64
-	ConfidentialClient bool
-	RedirectURIs       []string
+	Name                       string
+	UserID                     int64
+	ConfidentialClient         bool
+	SkipSecondaryAuthorization bool
+	RedirectURIs               []string
 }
 
 // CreateOAuth2Application inserts a new oauth2 application
 func CreateOAuth2Application(ctx context.Context, opts CreateOAuth2ApplicationOptions) (*OAuth2Application, error) {
 	clientID := uuid.New().String()
 	app := &OAuth2Application{
-		UID:                opts.UserID,
-		Name:               opts.Name,
-		ClientID:           clientID,
-		RedirectURIs:       opts.RedirectURIs,
-		ConfidentialClient: opts.ConfidentialClient,
+		UID:                        opts.UserID,
+		Name:                       opts.Name,
+		ClientID:                   clientID,
+		RedirectURIs:               opts.RedirectURIs,
+		ConfidentialClient:         opts.ConfidentialClient,
+		SkipSecondaryAuthorization: opts.SkipSecondaryAuthorization,
 	}
 	if err := db.Insert(ctx, app); err != nil {
 		return nil, err
@@ -269,47 +279,45 @@ func CreateOAuth2Application(ctx context.Context, opts CreateOAuth2ApplicationOp
 
 // UpdateOAuth2ApplicationOptions holds options to update an oauth2 application
 type UpdateOAuth2ApplicationOptions struct {
-	ID                 int64
-	Name               string
-	UserID             int64
-	ConfidentialClient bool
-	RedirectURIs       []string
+	ID                         int64
+	Name                       string
+	UserID                     int64
+	ConfidentialClient         bool
+	SkipSecondaryAuthorization bool
+	RedirectURIs               []string
 }
 
 // UpdateOAuth2Application updates an oauth2 application
 func UpdateOAuth2Application(ctx context.Context, opts UpdateOAuth2ApplicationOptions) (*OAuth2Application, error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) (*OAuth2Application, error) {
+		app, err := GetOAuth2ApplicationByID(ctx, opts.ID)
+		if err != nil {
+			return nil, err
+		}
+		if app.UID != opts.UserID {
+			return nil, errors.New("UID mismatch")
+		}
+		builtinApps := BuiltinApplications()
+		if _, builtin := builtinApps[app.ClientID]; builtin {
+			return nil, fmt.Errorf("failed to edit OAuth2 application: application is locked: %s", app.ClientID)
+		}
 
-	app, err := GetOAuth2ApplicationByID(ctx, opts.ID)
-	if err != nil {
-		return nil, err
-	}
-	if app.UID != opts.UserID {
-		return nil, fmt.Errorf("UID mismatch")
-	}
-	builtinApps := BuiltinApplications()
-	if _, builtin := builtinApps[app.ClientID]; builtin {
-		return nil, fmt.Errorf("failed to edit OAuth2 application: application is locked: %s", app.ClientID)
-	}
+		app.Name = opts.Name
+		app.RedirectURIs = opts.RedirectURIs
+		app.ConfidentialClient = opts.ConfidentialClient
+		app.SkipSecondaryAuthorization = opts.SkipSecondaryAuthorization
 
-	app.Name = opts.Name
-	app.RedirectURIs = opts.RedirectURIs
-	app.ConfidentialClient = opts.ConfidentialClient
+		if err = updateOAuth2Application(ctx, app); err != nil {
+			return nil, err
+		}
+		app.ClientSecret = ""
 
-	if err = updateOAuth2Application(ctx, app); err != nil {
-		return nil, err
-	}
-	app.ClientSecret = ""
-
-	return app, committer.Commit()
+		return app, nil
+	})
 }
 
 func updateOAuth2Application(ctx context.Context, app *OAuth2Application) error {
-	if _, err := db.GetEngine(ctx).ID(app.ID).UseBool("confidential_client").Update(app); err != nil {
+	if _, err := db.GetEngine(ctx).ID(app.ID).UseBool("confidential_client", "skip_secondary_authorization").Update(app); err != nil {
 		return err
 	}
 	return nil
@@ -346,23 +354,17 @@ func deleteOAuth2Application(ctx context.Context, id, userid int64) error {
 
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
 func DeleteOAuth2Application(ctx context.Context, id, userid int64) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	app, err := GetOAuth2ApplicationByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	builtinApps := BuiltinApplications()
-	if _, builtin := builtinApps[app.ClientID]; builtin {
-		return fmt.Errorf("failed to delete OAuth2 application: application is locked: %s", app.ClientID)
-	}
-	if err := deleteOAuth2Application(ctx, id, userid); err != nil {
-		return err
-	}
-	return committer.Commit()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		app, err := GetOAuth2ApplicationByID(ctx, id)
+		if err != nil {
+			return err
+		}
+		builtinApps := BuiltinApplications()
+		if _, builtin := builtinApps[app.ClientID]; builtin {
+			return fmt.Errorf("failed to delete OAuth2 application: application is locked: %s", app.ClientID)
+		}
+		return deleteOAuth2Application(ctx, id, userid)
+	})
 }
 
 //////////////////////////////////////////////////////
@@ -500,12 +502,7 @@ func (grant *OAuth2Grant) IncreaseCounter(ctx context.Context) error {
 
 // ScopeContains returns true if the grant scope contains the specified scope
 func (grant *OAuth2Grant) ScopeContains(scope string) bool {
-	for _, currentScope := range strings.Split(grant.Scope, " ") {
-		if scope == currentScope {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(strings.Split(grant.Scope, " "), scope)
 }
 
 // SetNonce updates the current nonce value of a grant
@@ -605,8 +602,8 @@ func (err ErrOAuthApplicationNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// GetActiveOAuth2SourceByName returns a OAuth2 AuthSource based on the given name
-func GetActiveOAuth2SourceByName(ctx context.Context, name string) (*Source, error) {
+// GetActiveOAuth2SourceByAuthName returns a OAuth2 AuthSource based on the given name
+func GetActiveOAuth2SourceByAuthName(ctx context.Context, name string) (*Source, error) {
 	authSource := new(Source)
 	has, err := db.GetEngine(ctx).Where("name = ? and type = ? and is_active = ?", name, OAuth2, true).Get(authSource)
 	if err != nil {

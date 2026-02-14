@@ -14,8 +14,8 @@ import (
 
 // UpdatePublicKeyInRepo update public key and deploy key updates
 func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
-	keyID := ctx.ParamsInt64(":id")
-	repoID := ctx.ParamsInt64(":repoid")
+	keyID := ctx.PathParamInt64("id")
+	repoID := ctx.PathParamInt64("repoid")
 	if err := asymkey_model.UpdatePublicKeyUpdated(ctx, keyID); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
@@ -45,7 +45,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	ctx.PlainText(http.StatusOK, "success")
 }
 
-// AuthorizedPublicKeyByContent searches content as prefix (leak e-mail part)
+// AuthorizedPublicKeyByContent searches content as prefix (without comment part)
 // and returns public key found.
 func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
 	content := ctx.FormString("content")
@@ -57,5 +57,14 @@ func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
 		})
 		return
 	}
-	ctx.PlainText(http.StatusOK, publicKey.AuthorizedString())
+
+	authorizedString, err := asymkey_model.AuthorizedStringForKey(publicKey)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err:     err.Error(),
+			UserMsg: "invalid public key",
+		})
+		return
+	}
+	ctx.PlainText(http.StatusOK, authorizedString)
 }

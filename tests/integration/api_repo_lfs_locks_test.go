@@ -105,14 +105,14 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	for _, test := range tests {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks", test.repo.FullName()), map[string]string{"path": test.path})
-		req.Header.Set("Accept", lfs.MediaType)
+		req.Header.Set("Accept", lfs.AcceptHeader)
 		req.Header.Set("Content-Type", lfs.MediaType)
 		resp := session.MakeRequest(t, req, test.httpResult)
 		if len(test.addTime) > 0 {
 			var lfsLock api.LFSLockResponse
 			DecodeJSON(t, resp, &lfsLock)
 			assert.Equal(t, test.user.Name, lfsLock.Lock.Owner.Name)
-			assert.EqualValues(t, lfsLock.Lock.LockedAt.Format(time.RFC3339), lfsLock.Lock.LockedAt.Format(time.RFC3339Nano)) // locked at should be rounded to second
+			assert.Equal(t, lfsLock.Lock.LockedAt.Format(time.RFC3339), lfsLock.Lock.LockedAt.Format(time.RFC3339Nano)) // locked at should be rounded to second
 			for _, id := range test.addTime {
 				resultsTests[id].locksTimes = append(resultsTests[id].locksTimes, time.Now())
 			}
@@ -123,19 +123,19 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	for _, test := range resultsTests {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
-		req.Header.Set("Accept", lfs.MediaType)
+		req.Header.Set("Accept", lfs.AcceptHeader)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocks api.LFSLockList
 		DecodeJSON(t, resp, &lfsLocks)
 		assert.Len(t, lfsLocks.Locks, test.totalCount)
 		for i, lock := range lfsLocks.Locks {
-			assert.EqualValues(t, test.locksOwners[i].Name, lock.Owner.Name)
+			assert.Equal(t, test.locksOwners[i].Name, lock.Owner.Name)
 			assert.WithinDuration(t, test.locksTimes[i], lock.LockedAt, 10*time.Second)
-			assert.EqualValues(t, lock.LockedAt.Format(time.RFC3339), lock.LockedAt.Format(time.RFC3339Nano)) // locked at should be rounded to second
+			assert.Equal(t, lock.LockedAt.Format(time.RFC3339), lock.LockedAt.Format(time.RFC3339Nano)) // locked at should be rounded to second
 		}
 
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/verify", test.repo.FullName()), map[string]string{})
-		req.Header.Set("Accept", lfs.MediaType)
+		req.Header.Set("Accept", lfs.AcceptHeader)
 		req.Header.Set("Content-Type", lfs.MediaType)
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocksVerify api.LFSLockListVerify
@@ -143,7 +143,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 		assert.Len(t, lfsLocksVerify.Ours, test.oursCount)
 		assert.Len(t, lfsLocksVerify.Theirs, test.theirsCount)
 		for _, lock := range lfsLocksVerify.Ours {
-			assert.EqualValues(t, test.user.Name, lock.Owner.Name)
+			assert.Equal(t, test.user.Name, lock.Owner.Name)
 			deleteTests = append(deleteTests, struct {
 				user   *user_model.User
 				repo   *repo_model.Repository
@@ -159,7 +159,7 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	for _, test := range deleteTests {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/%s.git/info/lfs/locks/%s/unlock", test.repo.FullName(), test.lockID), map[string]string{})
-		req.Header.Set("Accept", lfs.MediaType)
+		req.Header.Set("Accept", lfs.AcceptHeader)
 		req.Header.Set("Content-Type", lfs.MediaType)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLockRep api.LFSLockResponse
@@ -172,10 +172,10 @@ func TestAPILFSLocksLogged(t *testing.T) {
 	for _, test := range resultsTests {
 		session := loginUser(t, test.user.Name)
 		req := NewRequestf(t, "GET", "/%s.git/info/lfs/locks", test.repo.FullName())
-		req.Header.Set("Accept", lfs.MediaType)
+		req.Header.Set("Accept", lfs.AcceptHeader)
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		var lfsLocks api.LFSLockList
 		DecodeJSON(t, resp, &lfsLocks)
-		assert.Len(t, lfsLocks.Locks, 0)
+		assert.Empty(t, lfsLocks.Locks)
 	}
 }

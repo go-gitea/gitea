@@ -4,6 +4,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"testing"
@@ -19,11 +20,11 @@ func TestAdminViewUsers(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/admin/users")
+	req := NewRequest(t, "GET", "/-/admin/users")
 	session.MakeRequest(t, req, http.StatusOK)
 
 	session = loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/admin/users")
+	req = NewRequest(t, "GET", "/-/admin/users")
 	session.MakeRequest(t, req, http.StatusForbidden)
 }
 
@@ -31,11 +32,11 @@ func TestAdminViewUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	req := NewRequest(t, "GET", "/admin/users/1")
+	req := NewRequest(t, "GET", "/-/admin/users/1")
 	session.MakeRequest(t, req, http.StatusOK)
 
 	session = loginUser(t, "user2")
-	req = NewRequest(t, "GET", "/admin/users/1")
+	req = NewRequest(t, "GET", "/-/admin/users/1")
 	session.MakeRequest(t, req, http.StatusForbidden)
 }
 
@@ -51,9 +52,7 @@ func testSuccessfullEdit(t *testing.T, formData user_model.User) {
 
 func makeRequest(t *testing.T, formData user_model.User, headerCode int) {
 	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/users/"+strconv.Itoa(int(formData.ID))+"/edit")
-	req := NewRequestWithValues(t, "POST", "/admin/users/"+strconv.Itoa(int(formData.ID))+"/edit", map[string]string{
-		"_csrf":      csrf,
+	req := NewRequestWithValues(t, "POST", "/-/admin/users/"+strconv.Itoa(int(formData.ID))+"/edit", map[string]string{
 		"user_name":  formData.Name,
 		"login_name": formData.LoginName,
 		"login_type": "0-0",
@@ -72,12 +71,34 @@ func TestAdminDeleteUser(t *testing.T) {
 
 	session := loginUser(t, "user1")
 
-	csrf := GetCSRF(t, session, "/admin/users/8/edit")
-	req := NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
-		"_csrf": csrf,
-	})
-	session.MakeRequest(t, req, http.StatusSeeOther)
+	usersToDelete := []struct {
+		userID int64
+		purge  bool
+	}{
+		{
+			userID: 2,
+			purge:  true,
+		},
+		{
+			userID: 8,
+		},
+	}
 
-	assertUserDeleted(t, 8)
-	unittest.CheckConsistencyFor(t, &user_model.User{})
+	for _, entry := range usersToDelete {
+		t.Run(fmt.Sprintf("DeleteUser%d", entry.userID), func(t *testing.T) {
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: entry.userID})
+			assert.NotNil(t, user)
+
+			var query string
+			if entry.purge {
+				query = "?purge=true"
+			}
+
+			req := NewRequest(t, "POST", fmt.Sprintf("/-/admin/users/%d/delete%s", entry.userID, query))
+			session.MakeRequest(t, req, http.StatusSeeOther)
+
+			assertUserDeleted(t, entry.userID)
+			unittest.CheckConsistencyFor(t, &user_model.User{})
+		})
+	}
 }

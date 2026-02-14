@@ -1,0 +1,71 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest ui container">
+	{{$longCode := "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}}
+	<div class="tw-flex">
+		<div class="tw-w-[50%] tw-p-4">
+			<div class="markup render-content">
+				Inline <code>code</code> content
+			</div>
+
+			<div class="divider"></div>
+
+			<div class="markup render-content">
+				<p>content before</p>
+				<pre><code>Very long line with no code block or container: {{$longCode}}</code></pre>
+				<p>content after</p>
+			</div>
+
+			<div class="divider"></div>
+
+			<div class="markup render-content">
+				<p>content before</p>
+				<div class="code-block-container code-overflow-wrap">
+					<pre class="code-block"><code>Very long line with wrap: {{$longCode}}</code></pre>
+				</div>
+				<p>content after</p>
+			</div>
+
+			<div class="divider"></div>
+
+			<div class="markup render-content">
+				<p>content before</p>
+				<div class="code-block-container code-overflow-scroll">
+					<pre class="code-block"><code>Short line in scroll container</code></pre>
+				</div>
+				<div class="code-block-container code-overflow-scroll">
+					<pre class="code-block"><code>Very long line with scroll: {{$longCode}}</code></pre>
+				</div>
+				<p>content after</p>
+			</div>
+		</div>
+
+		<div class="tw-w-[50%] tw-p-4">
+			<div class="markup render-content">
+				<p>content before</p>
+				<div class="code-block-container">
+					<pre class="code-block"><code class="language-math">
+	\lim\limits_{n\rightarrow\infty}{\left(1+\frac{1}{n}\right)^n}
+					</code></pre>
+				</div>
+				<p>content after</p>
+			</div>
+
+			<div class="divider"></div>
+
+			<div class="markup render-content">
+				<p>content before</p>
+				<div class="code-block-container">
+					<pre class="code-block"><code class="language-mermaid is-loading">
+	graph LR
+			A[Square Rect] -- Link text --> B((Circle))
+			A --> C(Round Rect)
+			B --> D{Rhombus}
+			C --> D
+					</code></pre>
+				</div>
+				<p>content after</p>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}

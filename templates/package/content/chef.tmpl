@@ -20,7 +20,7 @@
 		<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			{{if .PackageDescriptor.Metadata.Description}}<p>{{.PackageDescriptor.Metadata.Description}}</p>{{end}}
-			{{if .PackageDescriptor.Metadata.LongDescription}}{{RenderMarkdownToHtml $.Context .PackageDescriptor.Metadata.LongDescription}}{{end}}
+			{{if .PackageDescriptor.Metadata.LongDescription}}{{ctx.RenderUtils.MarkdownToHtml .PackageDescriptor.Metadata.LongDescription}}{{end}}
 		</div>
 	{{end}}
 

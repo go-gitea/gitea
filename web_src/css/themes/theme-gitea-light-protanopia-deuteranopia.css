@@ -1,0 +1,19 @@
+@import "./theme-gitea-light.css";
+
+gitea-theme-meta-info {
+  --theme-display-name: "Light";
+  --theme-colorblind-type: "red-green";
+  --theme-color-scheme: "light";
+}
+
+/* red/green colorblind-friendly colors */
+:root {
+  --color-diff-added-fg: #2185d0;
+  --color-diff-added-linenum-bg: #b6e3ff;
+  --color-diff-added-row-bg: #ddf4ff;
+  --color-diff-added-word-bg: #b6e3ff;
+  --color-diff-removed-fg: #fc6500;
+  --color-diff-removed-linenum-bg: #ffd8b5;
+  --color-diff-removed-row-bg: #fff1e5;
+  --color-diff-removed-word-bg: #ffd8b5;
+}

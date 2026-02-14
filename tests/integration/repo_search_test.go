@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
@@ -17,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func resultFilenames(t testing.TB, doc *HTMLDoc) []string {
+func resultFilenames(doc *HTMLDoc) []string {
 	filenameSelections := doc.doc.Find(".repository.search").Find(".repo-search-result").Find(".header").Find("span.file")
 	result := make([]string, filenameSelections.Length())
 	filenameSelections.Each(func(i int, selection *goquery.Selection) {
@@ -29,7 +28,7 @@ func resultFilenames(t testing.TB, doc *HTMLDoc) []string {
 func TestSearchRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	repo, err := repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "repo1")
 	assert.NoError(t, err)
 
 	code_indexer.UpdateRepoIndexer(repo)
@@ -39,7 +38,7 @@ func TestSearchRepo(t *testing.T) {
 	setting.Indexer.IncludePatterns = setting.IndexerGlobFromString("**.txt")
 	setting.Indexer.ExcludePatterns = setting.IndexerGlobFromString("**/y/**")
 
-	repo, err = repo_model.GetRepositoryByOwnerAndName(db.DefaultContext, "user2", "glob")
+	repo, err = repo_model.GetRepositoryByOwnerAndName(t.Context(), "user2", "glob")
 	assert.NoError(t, err)
 
 	code_indexer.UpdateRepoIndexer(repo)
@@ -56,6 +55,6 @@ func testSearch(t *testing.T, url string, expected []string) {
 	req := NewRequest(t, "GET", url)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	filenames := resultFilenames(t, NewHTMLParser(t, resp.Body))
-	assert.EqualValues(t, expected, filenames)
+	filenames := resultFilenames(NewHTMLParser(t, resp.Body))
+	assert.Equal(t, expected, filenames)
 }

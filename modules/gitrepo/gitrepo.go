@@ -5,25 +5,28 @@ package gitrepo
 
 import (
 	"context"
+	"fmt"
 	"io"
+	"io/fs"
+	"os"
 	"path/filepath"
-	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
+// Repository represents a git repository which stored in a disk
 type Repository interface {
-	GetName() string
-	GetOwnerName() string
+	RelativePath() string // We don't assume how the directory structure of the repository is, so we only need the relative path
 }
 
-func repoPath(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".git")
-}
-
-func wikiPath(repo Repository) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(repo.GetOwnerName()), strings.ToLower(repo.GetName())+".wiki.git")
+// repoPath resolves the Repository.RelativePath (which is a unix-style path like "username/reponame.git")
+// to a local filesystem path according to setting.RepoRootPath
+var repoPath = func(repo Repository) string {
+	return filepath.Join(setting.RepoRootPath, filepath.FromSlash(repo.RelativePath()))
 }
 
 // OpenRepository opens the repository at the given relative path with the provided context.
@@ -31,73 +34,95 @@ func OpenRepository(ctx context.Context, repo Repository) (*git.Repository, erro
 	return git.OpenRepository(ctx, repoPath(repo))
 }
 
-func OpenWikiRepository(ctx context.Context, repo Repository) (*git.Repository, error) {
-	return git.OpenRepository(ctx, wikiPath(repo))
-}
-
 // contextKey is a value for use with context.WithValue.
 type contextKey struct {
-	name string
+	repoPath string
 }
-
-// RepositoryContextKey is a context key. It is used with context.Value() to get the current Repository for the context
-var RepositoryContextKey = &contextKey{"repository"}
-
-// RepositoryFromContext attempts to get the repository from the context
-func repositoryFromContext(ctx context.Context, repo Repository) *git.Repository {
-	value := ctx.Value(RepositoryContextKey)
-	if value == nil {
-		return nil
-	}
-
-	if gitRepo, ok := value.(*git.Repository); ok && gitRepo != nil {
-		if gitRepo.Path == repoPath(repo) {
-			return gitRepo
-		}
-	}
-
-	return nil
-}
-
-type nopCloser func()
-
-func (nopCloser) Close() error { return nil }
 
 // RepositoryFromContextOrOpen attempts to get the repository from the context or just opens it
+// The caller must call "defer gitRepo.Close()"
 func RepositoryFromContextOrOpen(ctx context.Context, repo Repository) (*git.Repository, io.Closer, error) {
-	gitRepo := repositoryFromContext(ctx, repo)
-	if gitRepo != nil {
-		return gitRepo, nopCloser(nil), nil
+	reqCtx := reqctx.FromContext(ctx)
+	if reqCtx != nil {
+		gitRepo, err := RepositoryFromRequestContextOrOpen(reqCtx, repo)
+		return gitRepo, util.NopCloser{}, err
 	}
-
 	gitRepo, err := OpenRepository(ctx, repo)
 	return gitRepo, gitRepo, err
 }
 
-// repositoryFromContextPath attempts to get the repository from the context
-func repositoryFromContextPath(ctx context.Context, path string) *git.Repository {
-	value := ctx.Value(RepositoryContextKey)
-	if value == nil {
-		return nil
+// RepositoryFromRequestContextOrOpen opens the repository at the given relative path in the provided request context.
+// Caller shouldn't close the git repo manually, the git repo will be automatically closed when the request context is done.
+func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Repository) (*git.Repository, error) {
+	ck := contextKey{repoPath: repoPath(repo)}
+	if gitRepo, ok := ctx.Value(ck).(*git.Repository); ok {
+		return gitRepo, nil
+	}
+	gitRepo, err := git.OpenRepository(ctx, ck.repoPath)
+	if err != nil {
+		return nil, err
+	}
+	ctx.AddCloser(gitRepo)
+	ctx.SetContextValue(ck, gitRepo)
+	return gitRepo, nil
+}
+
+// IsRepositoryExist returns true if the repository directory exists in the disk
+func IsRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
+	return util.IsExist(repoPath(repo))
+}
+
+// DeleteRepository deletes the repository directory from the disk, it will return
+// nil if the repository does not exist.
+func DeleteRepository(ctx context.Context, repo Repository) error {
+	return util.RemoveAll(repoPath(repo))
+}
+
+// RenameRepository renames a repository's name on disk
+func RenameRepository(ctx context.Context, repo, newRepo Repository) error {
+	dstDir := repoPath(newRepo)
+	if err := os.MkdirAll(filepath.Dir(dstDir), os.ModePerm); err != nil {
+		return fmt.Errorf("Failed to create dir %s: %w", filepath.Dir(dstDir), err)
 	}
 
-	if repo, ok := value.(*git.Repository); ok && repo != nil {
-		if repo.Path == path {
-			return repo
-		}
+	if err := util.Rename(repoPath(repo), dstDir); err != nil {
+		return fmt.Errorf("rename repository directory: %w", err)
 	}
-
 	return nil
 }
 
-// RepositoryFromContextOrOpenPath attempts to get the repository from the context or just opens it
-// Deprecated: Use RepositoryFromContextOrOpen instead
-func RepositoryFromContextOrOpenPath(ctx context.Context, path string) (*git.Repository, io.Closer, error) {
-	gitRepo := repositoryFromContextPath(ctx, path)
-	if gitRepo != nil {
-		return gitRepo, nopCloser(nil), nil
-	}
+func InitRepository(ctx context.Context, repo Repository, objectFormatName string) error {
+	return git.InitRepository(ctx, repoPath(repo), true, objectFormatName)
+}
 
-	gitRepo, err := git.OpenRepository(ctx, path)
-	return gitRepo, gitRepo, err
+func UpdateServerInfo(ctx context.Context, repo Repository) error {
+	_, _, err := RunCmdBytes(ctx, repo, gitcmd.NewCommand("update-server-info"))
+	return err
+}
+
+func GetRepoFS(repo Repository) fs.FS {
+	return os.DirFS(repoPath(repo))
+}
+
+func IsRepoFileExist(ctx context.Context, repo Repository, relativeFilePath string) (bool, error) {
+	absoluteFilePath := filepath.Join(repoPath(repo), relativeFilePath)
+	return util.IsExist(absoluteFilePath)
+}
+
+func IsRepoDirExist(ctx context.Context, repo Repository, relativeDirPath string) (bool, error) {
+	absoluteDirPath := filepath.Join(repoPath(repo), relativeDirPath)
+	return util.IsDir(absoluteDirPath)
+}
+
+func RemoveRepoFileOrDir(ctx context.Context, repo Repository, relativeFileOrDirPath string) error {
+	absoluteFilePath := filepath.Join(repoPath(repo), relativeFileOrDirPath)
+	return util.Remove(absoluteFilePath)
+}
+
+func CreateRepoFile(ctx context.Context, repo Repository, relativeFilePath string) (io.WriteCloser, error) {
+	absoluteFilePath := filepath.Join(repoPath(repo), relativeFilePath)
+	if err := os.MkdirAll(filepath.Dir(absoluteFilePath), os.ModePerm); err != nil {
+		return nil, err
+	}
+	return os.Create(absoluteFilePath)
 }

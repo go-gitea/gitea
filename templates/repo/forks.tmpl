@@ -1,18 +1,12 @@
 {{template "base/head" .}}
 <div role="main" aria-label="{{.Title}}" class="page-content repository forks">
 	{{template "repo/header" .}}
-	<div class="ui container">
+	<div class="ui container fork-list">
 		<h2 class="ui dividing header">
 			{{ctx.Locale.Tr "repo.forks"}}
 		</h2>
-		{{range .Forks}}
-			<div class="tw-flex tw-items-center tw-py-2">
-				<span class="tw-mr-1">{{ctx.AvatarUtils.Avatar .Owner}}</span>
-				<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a> / <a href="{{.Link}}">{{.Name}}</a>
-			</div>
-		{{end}}
+		{{template "shared/repo/list" .}}
+		{{template "base/paginate" .}}
 	</div>
-
-	{{template "base/paginate" .}}
 </div>
 {{template "base/footer" .}}

@@ -1,11 +1,9 @@
 {{template "base/head" .ctxData}}
 <div role="main" aria-label="{{.ctxData.Title}}" class="page-content {{.pageClass}}">
-	<div class="ui container">
-		{{template "base/alert" .ctxData}}
-	</div>
 	<div class="ui container fluid padded flex-container">
 		{{template "admin/navbar" .ctxData}}
 		<div class="flex-container-main">
+			{{template "base/alert" .ctxData}}
 			{{/* block: admin-setting-content */}}
 
 {{if false}}{{/* to make html structure "likely" complete to prevent IDE warnings */}}

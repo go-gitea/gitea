@@ -4,12 +4,10 @@
 package activities_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
@@ -65,15 +63,13 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 	for _, tc := range testCases {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.userID})
 
-		doer := &user_model.User{ID: tc.doerID}
-		_, err := unittest.LoadBeanIfExists(doer)
-		assert.NoError(t, err)
-		if tc.doerID == 0 {
-			doer = nil
+		var doer *user_model.User
+		if tc.doerID != 0 {
+			doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.doerID})
 		}
 
 		// get the action for comparison
-		actions, count, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
+		actions, count, err := activities_model.GetFeeds(t.Context(), activities_model.GetFeedsOptions{
 			RequestedUser:   user,
 			Actor:           doer,
 			IncludePrivate:  true,
@@ -83,7 +79,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Get the heatmap and compare
-		heatmap, err := activities_model.GetUserHeatmapDataByUser(db.DefaultContext, user, doer)
+		heatmap, err := activities_model.GetUserHeatmapDataByUser(t.Context(), user, doer)
 		var contributions int
 		for _, hm := range heatmap {
 			contributions += int(hm.Contributions)
@@ -91,11 +87,11 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, actions, contributions, "invalid action count: did the test data became too old?")
 		assert.Equal(t, count, int64(contributions))
-		assert.Equal(t, tc.CountResult, contributions, fmt.Sprintf("testcase '%s'", tc.desc))
+		assert.Equal(t, tc.CountResult, contributions, "testcase '%s'", tc.desc)
 
 		// Test JSON rendering
 		jsonData, err := json.Marshal(heatmap)
 		assert.NoError(t, err)
-		assert.Equal(t, tc.JSONResult, string(jsonData))
+		assert.JSONEq(t, tc.JSONResult, string(jsonData))
 	}
 }

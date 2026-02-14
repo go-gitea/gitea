@@ -71,14 +71,14 @@ func GetHook(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	hook, err := utils.GetOwnerHook(ctx, ctx.ContextUser.ID, ctx.ParamsInt64("id"))
+	hook, err := utils.GetOwnerHook(ctx, ctx.ContextUser.ID, ctx.PathParamInt64("id"))
 	if err != nil {
 		return
 	}
 
 	apiHook, err := webhook_service.ToHook(ctx.ContextUser.HomeLink(), hook)
 	if err != nil {
-		ctx.InternalServerError(err)
+		ctx.APIErrorInternal(err)
 		return
 	}
 	ctx.JSON(http.StatusOK, apiHook)
@@ -152,7 +152,7 @@ func EditHook(ctx *context.APIContext) {
 		ctx,
 		ctx.ContextUser,
 		web.GetForm(ctx).(*api.EditHookOption),
-		ctx.ParamsInt64("id"),
+		ctx.PathParamInt64("id"),
 	)
 }
 
@@ -184,6 +184,6 @@ func DeleteHook(ctx *context.APIContext) {
 	utils.DeleteOwnerHook(
 		ctx,
 		ctx.ContextUser,
-		ctx.ParamsInt64("id"),
+		ctx.PathParamInt64("id"),
 	)
 }

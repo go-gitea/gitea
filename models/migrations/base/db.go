@@ -5,21 +5,14 @@ package base
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
-	"os"
-	"path"
 	"reflect"
 	"regexp"
 	"strings"
-	"time"
 
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
@@ -52,7 +45,7 @@ func RecreateTable(sess *xorm.Session, bean any) error {
 	// TODO: This will not work if there are foreign keys
 
 	tableName := sess.Engine().TableName(bean)
-	tempTableName := fmt.Sprintf("tmp_recreate__%s", tableName)
+	tempTableName := "tmp_recreate__" + tableName
 
 	// We need to move the old table away and create a new one with the correct columns
 	// We will need to do this in stages to prevent data loss
@@ -82,7 +75,7 @@ func RecreateTable(sess *xorm.Session, bean any) error {
 	}
 	newTableColumns := table.Columns()
 	if len(newTableColumns) == 0 {
-		return fmt.Errorf("no columns in new table")
+		return errors.New("no columns in new table")
 	}
 	hasID := false
 	for _, column := range newTableColumns {
@@ -177,7 +170,6 @@ func RecreateTable(sess *xorm.Session, bean any) error {
 			log.Error("Unable to recreate uniques on table %s. Error: %v", tableName, err)
 			return err
 		}
-
 	case setting.Database.Type.IsMySQL():
 		// MySQL will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
@@ -228,7 +220,6 @@ func RecreateTable(sess *xorm.Session, bean any) error {
 				return err
 			}
 			sequenceMap[sequence] = sequenceData
-
 		}
 
 		// CASCADE causes postgres to drop all the constraints on the old table
@@ -293,9 +284,7 @@ func RecreateTable(sess *xorm.Session, bean any) error {
 					return err
 				}
 			}
-
 		}
-
 	case setting.Database.Type.IsMSSQL():
 		// MSSQL will drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s`", tableName)); err != nil {
@@ -308,7 +297,6 @@ func RecreateTable(sess *xorm.Session, bean any) error {
 			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
 			return err
 		}
-
 	default:
 		log.Fatal("Unrecognized DB")
 	}
@@ -518,116 +506,5 @@ func ModifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
 	if _, err := x.Exec(alterSQL); err != nil {
 		return err
 	}
-	return nil
-}
-
-func removeAllWithRetry(dir string) error {
-	var err error
-	for i := 0; i < 20; i++ {
-		err = os.RemoveAll(dir)
-		if err == nil {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
-	return err
-}
-
-func newXORMEngine() (*xorm.Engine, error) {
-	if err := db.InitEngine(context.Background()); err != nil {
-		return nil, err
-	}
-	x := unittest.GetXORMEngine()
-	return x, nil
-}
-
-func deleteDB() error {
-	switch {
-	case setting.Database.Type.IsSQLite3():
-		if err := util.Remove(setting.Database.Path); err != nil {
-			return err
-		}
-		return os.MkdirAll(path.Dir(setting.Database.Path), os.ModePerm)
-
-	case setting.Database.Type.IsMySQL():
-		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		if _, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name)); err != nil {
-			return err
-		}
-
-		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", setting.Database.Name)); err != nil {
-			return err
-		}
-		return nil
-	case setting.Database.Type.IsPostgreSQL():
-		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		if _, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name)); err != nil {
-			return err
-		}
-
-		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", setting.Database.Name)); err != nil {
-			return err
-		}
-		db.Close()
-
-		// Check if we need to setup a specific schema
-		if len(setting.Database.Schema) != 0 {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
-			if err != nil {
-				return err
-			}
-			defer db.Close()
-
-			schrows, err := db.Query(fmt.Sprintf("SELECT 1 FROM information_schema.schemata WHERE schema_name = '%s'", setting.Database.Schema))
-			if err != nil {
-				return err
-			}
-			defer schrows.Close()
-
-			if !schrows.Next() {
-				// Create and setup a DB schema
-				_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %s", setting.Database.Schema))
-				if err != nil {
-					return err
-				}
-			}
-
-			// Make the user's default search path the created schema; this will affect new connections
-			_, err = db.Exec(fmt.Sprintf(`ALTER USER "%s" SET search_path = %s`, setting.Database.User, setting.Database.Schema))
-			if err != nil {
-				return err
-			}
-			return nil
-		}
-	case setting.Database.Type.IsMSSQL():
-		host, port := setting.ParseMSSQLHostPort(setting.Database.Host)
-		db, err := sql.Open("mssql", fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;",
-			host, port, "master", setting.Database.User, setting.Database.Passwd))
-		if err != nil {
-			return err
-		}
-		defer db.Close()
-
-		if _, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS [%s]", setting.Database.Name)); err != nil {
-			return err
-		}
-		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE [%s]", setting.Database.Name)); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }

@@ -45,3 +45,8 @@ func TestToSnakeCase(t *testing.T) {
 		assert.Equal(t, expected, ToSnakeCase(input))
 	}
 }
+
+func TestSplitTrimSpace(t *testing.T) {
+	assert.Equal(t, []string{"a", "b", "c"}, SplitTrimSpace("a\nb\nc", "\n"))
+	assert.Equal(t, []string{"a", "b"}, SplitTrimSpace("\r\na\n\r\nb\n\n", "\n"))
+}

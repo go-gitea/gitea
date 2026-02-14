@@ -1,49 +1,171 @@
-<script>
-import {SvgIcon} from '../svg.js';
+<script lang="ts">
+import {SvgIcon} from '../svg.ts';
 import ActionRunStatus from './ActionRunStatus.vue';
-import {createApp} from 'vue';
-import {toggleElem} from '../utils/dom.js';
-import {formatDatetime} from '../utils/time.js';
-import {renderAnsi} from '../render/ansi.js';
-import {GET, POST, DELETE} from '../modules/fetch.js';
+import {defineComponent, type PropType} from 'vue';
+import {addDelegatedEventListener, createElementFromAttrs, toggleElem} from '../utils/dom.ts';
+import {formatDatetime} from '../utils/time.ts';
+import {renderAnsi} from '../render/ansi.ts';
+import {POST, DELETE} from '../modules/fetch.ts';
+import type {IntervalId} from '../types.ts';
+import {toggleFullScreen} from '../utils.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 
-const sfc = {
+// see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
+type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+
+type StepContainerElement = HTMLElement & {
+  // To remember the last active logs container, for example: a batch of logs only starts a group but doesn't end it,
+  // then the following batches of logs should still use the same group (active logs container).
+  // maybe it can be refactored to decouple from the HTML element in the future.
+  _stepLogsActiveContainer?: HTMLElement;
+}
+
+export type LogLine = {
+  index: number;
+  timestamp: number;
+  message: string;
+};
+
+
+type LogLineCommandName = 'group' | 'endgroup' | 'command' | 'error' | 'hidden';
+type LogLineCommand = {
+  name: LogLineCommandName,
+  prefix: string,
+}
+
+// How GitHub Actions logs work:
+// * Workflow command outputs log commands like "::group::the-title", "::add-matcher::...."
+// * Workflow runner parses and processes the commands to "##[group]", apply "matchers", hide secrets, etc.
+// * The reported logs are the processed logs.
+// HOWEVER: Gitea runner does not completely process those commands. Many works are done by the frontend at the moment.
+const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
+  '::group::': 'group',
+  '##[group]': 'group',
+  '::endgroup::': 'endgroup',
+  '##[endgroup]': 'endgroup',
+
+  '##[error]': 'error',
+  '[command]': 'command',
+
+  // https://github.com/actions/toolkit/blob/master/docs/commands.md
+  // https://github.com/actions/runner/blob/main/docs/adrs/0276-problem-matchers.md#registration
+  '::add-matcher::': 'hidden',
+  '##[add-matcher]': 'hidden',
+  '::remove-matcher': 'hidden', // it has arguments
+};
+
+
+type Job = {
+  id: number;
+  name: string;
+  status: RunStatus;
+  canRerun: boolean;
+  duration: string;
+}
+
+type Step = {
+  summary: string,
+  duration: string,
+  status: RunStatus,
+}
+
+type JobStepState = {
+  cursor: string|null,
+  expanded: boolean,
+  manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
+}
+
+export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
+  // TODO: in the future it can be refactored to be a general parser that can parse arguments, drop the "prefix match"
+  for (const prefix in LogLinePrefixCommandMap) {
+    if (line.message.startsWith(prefix)) {
+      return {name: LogLinePrefixCommandMap[prefix], prefix};
+    }
+  }
+  return null;
+}
+
+export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
+  const logMsgAttrs = {class: 'log-msg'};
+  if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd?.name}`; // make it easier to add styles to some commands like "error"
+
+  // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
+  // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
+  const msgContent = cmd ? line.message.substring(cmd.prefix.length) : line.message;
+
+  const logMsg = createElementFromAttrs('span', logMsgAttrs);
+  logMsg.innerHTML = renderAnsi(msgContent);
+  return logMsg;
+}
+
+function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
+  const rect = el.getBoundingClientRect();
+  // only check whether bottom is in viewport, because the log element can be a log group which is usually tall
+  return 0 <= rect.bottom && rect.bottom <= window.innerHeight + extraViewPortHeight;
+}
+
+type LocaleStorageOptions = {
+  autoScroll: boolean;
+  expandRunning: boolean;
+};
+
+export default defineComponent({
   name: 'RepoActionView',
   components: {
     SvgIcon,
     ActionRunStatus,
   },
   props: {
-    runIndex: String,
-    jobIndex: String,
-    actionsURL: String,
-    locale: Object,
+    runIndex: {
+      type: String,
+      default: '',
+    },
+    jobIndex: {
+      type: String,
+      default: '',
+    },
+    actionsURL: {
+      type: String,
+      default: '',
+    },
+    locale: {
+      type: Object as PropType<Record<string, any>>,
+      default: null,
+    },
   },
 
   data() {
+    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false};
+    const {autoScroll, expandRunning} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
     return {
       // internal state
-      loading: false,
-      intervalID: null,
-      currentJobStepsStates: [],
-      artifacts: [],
-      onHoverRerunIndex: -1,
+      loadingAbortController: null as AbortController | null,
+      intervalID: null as IntervalId | null,
+      currentJobStepsStates: [] as Array<JobStepState>,
+      artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
       isFullScreen: false,
       timeVisible: {
         'log-time-stamp': false,
         'log-time-seconds': false,
       },
+      optionAlwaysAutoScroll: autoScroll ?? false,
+      optionAlwaysExpandRunning: expandRunning ?? false,
 
       // provided by backend
       run: {
         link: '',
         title: '',
-        status: '',
+        titleHTML: '',
+        status: '' as RunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
         canCancel: false,
         canApprove: false,
         canRerun: false,
+        canDeleteArtifact: false,
         done: false,
+        workflowID: '',
+        workflowLink: '',
+        isSchedule: false,
         jobs: [
           // {
           //   id: 0,
@@ -52,7 +174,7 @@ const sfc = {
           //   canRerun: false,
           //   duration: '',
           // },
-        ],
+        ] as Array<Job>,
         commit: {
           localeCommit: '',
           localePushedBy: '',
@@ -65,6 +187,7 @@ const sfc = {
           branch: {
             name: '',
             link: '',
+            isDeleted: false,
           },
         },
       },
@@ -77,16 +200,38 @@ const sfc = {
           //   duration: '',
           //   status: '',
           // }
-        ],
+        ] as Array<Step>,
       },
     };
+  },
+
+  watch: {
+    optionAlwaysAutoScroll() {
+      this.saveLocaleStorageOptions();
+    },
+    optionAlwaysExpandRunning() {
+      this.saveLocaleStorageOptions();
+    },
   },
 
   async mounted() {
     // load job data and then auto-reload periodically
     // need to await first loadJob so this.currentJobStepsStates is initialized and can be used in hashChangeListener
     await this.loadJob();
-    this.intervalID = setInterval(this.loadJob, 1000);
+
+    // auto-scroll to the bottom of the log group when it is opened
+    // "toggle" event doesn't bubble, so we need to use 'click' event delegation to handle it
+    addDelegatedEventListener(this.elStepsContainer(), 'click', 'summary.job-log-group-summary', (el, _) => {
+      if (!this.optionAlwaysAutoScroll) return;
+      const elJobLogGroup = el.closest('details.job-log-group') as HTMLDetailsElement;
+      setTimeout(() => {
+        if (elJobLogGroup.open && !isLogElementInViewport(elJobLogGroup)) {
+          elJobLogGroup.scrollIntoView({behavior: 'smooth', block: 'end'});
+        }
+      }, 0);
+    });
+
+    this.intervalID = setInterval(() => this.loadJob(), 1000);
     document.body.addEventListener('click', this.closeDropdown);
     this.hashChangeListener();
     window.addEventListener('hashchange', this.hashChangeListener);
@@ -107,39 +252,49 @@ const sfc = {
   },
 
   methods: {
-    // get the active container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
-    getLogsContainer(idx) {
-      const el = this.$refs.logs[idx];
+    saveLocaleStorageOptions() {
+      const opts: LocaleStorageOptions = {autoScroll: this.optionAlwaysAutoScroll, expandRunning: this.optionAlwaysExpandRunning};
+      localUserSettings.setJsonObject('actions-view-options', opts);
+    },
+
+    // get the job step logs container ('.job-step-logs')
+    getJobStepLogsContainer(stepIndex: number): StepContainerElement {
+      return (this.$refs.logs as any)[stepIndex];
+    },
+
+    // get the active logs container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
+    getActiveLogsContainer(stepIndex: number): StepContainerElement {
+      const el = this.getJobStepLogsContainer(stepIndex);
       return el._stepLogsActiveContainer ?? el;
     },
     // begin a log group
-    beginLogGroup(idx) {
-      const el = this.$refs.logs[idx];
-
-      const elJobLogGroup = document.createElement('div');
-      elJobLogGroup.classList.add('job-log-group');
-
-      const elJobLogGroupSummary = document.createElement('div');
-      elJobLogGroupSummary.classList.add('job-log-group-summary');
-
-      const elJobLogList = document.createElement('div');
-      elJobLogList.classList.add('job-log-list');
-
-      elJobLogGroup.append(elJobLogGroupSummary);
-      elJobLogGroup.append(elJobLogList);
+    beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
+      const el = (this.$refs.logs as any)[stepIndex] as StepContainerElement;
+      const elJobLogGroupSummary = createElementFromAttrs('summary', {class: 'job-log-group-summary'},
+        this.createLogLine(stepIndex, startTime, line, cmd),
+      );
+      const elJobLogList = createElementFromAttrs('div', {class: 'job-log-list'});
+      const elJobLogGroup = createElementFromAttrs('details', {class: 'job-log-group'},
+        elJobLogGroupSummary,
+        elJobLogList,
+      );
+      el.append(elJobLogGroup);
       el._stepLogsActiveContainer = elJobLogList;
     },
     // end a log group
-    endLogGroup(idx) {
-      const el = this.$refs.logs[idx];
+    endLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
+      const el = (this.$refs.logs as any)[stepIndex];
       el._stepLogsActiveContainer = null;
+      el.append(this.createLogLine(stepIndex, startTime, line, cmd));
     },
 
     // show/hide the step logs for a step
-    toggleStepLogs(idx) {
+    toggleStepLogs(idx: number) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
-        this.loadJob(); // try to load the data immediately instead of waiting for next timer interval
+        this.loadJobForce(); // try to load the data immediately instead of waiting for next timer interval
+      } else if (this.currentJob.steps[idx].status === 'running') {
+        this.currentJobStepsStates[idx].manuallyCollapsed = true;
       }
     },
     // cancel a run
@@ -151,62 +306,65 @@ const sfc = {
       POST(`${this.run.link}/approve`);
     },
 
-    createLogLine(line, startTime, stepIndex) {
-      const div = document.createElement('div');
-      div.classList.add('job-log-line');
-      div.setAttribute('id', `jobstep-${stepIndex}-${line.index}`);
-      div._jobLogTime = line.timestamp;
+    createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand | null) {
+      const lineNum = createElementFromAttrs('a', {class: 'line-num muted', href: `#jobstep-${stepIndex}-${line.index}`},
+        String(line.index),
+      );
 
-      const lineNumber = document.createElement('a');
-      lineNumber.classList.add('line-num', 'muted');
-      lineNumber.textContent = line.index;
-      lineNumber.setAttribute('href', `#jobstep-${stepIndex}-${line.index}`);
-      div.append(lineNumber);
+      const logTimeStamp = createElementFromAttrs('span', {class: 'log-time-stamp'},
+        formatDatetime(new Date(line.timestamp * 1000)), // for "Show timestamps"
+      );
 
-      // for "Show timestamps"
-      const logTimeStamp = document.createElement('span');
-      logTimeStamp.className = 'log-time-stamp';
-      const date = new Date(parseFloat(line.timestamp * 1000));
-      const timeStamp = formatDatetime(date);
-      logTimeStamp.textContent = timeStamp;
+      const logMsg = createLogLineMessage(line, cmd);
+      const seconds = Math.floor(line.timestamp - startTime);
+      const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
+        `${seconds}s`, // for "Show seconds"
+      );
+
       toggleElem(logTimeStamp, this.timeVisible['log-time-stamp']);
-      // for "Show seconds"
-      const logTimeSeconds = document.createElement('span');
-      logTimeSeconds.className = 'log-time-seconds';
-      const seconds = Math.floor(parseFloat(line.timestamp) - parseFloat(startTime));
-      logTimeSeconds.textContent = `${seconds}s`;
       toggleElem(logTimeSeconds, this.timeVisible['log-time-seconds']);
 
-      const logMessage = document.createElement('span');
-      logMessage.className = 'log-msg';
-      logMessage.innerHTML = renderAnsi(line.message);
-      div.append(logTimeStamp);
-      div.append(logMessage);
-      div.append(logTimeSeconds);
-
-      return div;
+      return createElementFromAttrs('div', {id: `jobstep-${stepIndex}-${line.index}`, class: 'job-log-line'},
+        lineNum, logTimeStamp, logMsg, logTimeSeconds,
+      );
     },
 
-    appendLogs(stepIndex, logLines, startTime) {
+    shouldAutoScroll(stepIndex: number): boolean {
+      if (!this.optionAlwaysAutoScroll) return false;
+      const el = this.getJobStepLogsContainer(stepIndex);
+      // if the logs container is empty, then auto-scroll if the step is expanded
+      if (!el.lastChild) return this.currentJobStepsStates[stepIndex].expanded;
+      // use extraViewPortHeight to tolerate some extra "virtual view port" height (for example: the last line is partially visible)
+      return isLogElementInViewport(el.lastChild as Element, {extraViewPortHeight: 5});
+    },
+
+    appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
       for (const line of logLines) {
-        // TODO: group support: ##[group]GroupTitle , ##[endgroup]
-        const el = this.getLogsContainer(stepIndex);
-        el.append(this.createLogLine(line, startTime, stepIndex));
+        const cmd = parseLogLineCommand(line);
+        switch (cmd?.name) {
+          case 'hidden':
+            continue;
+          case 'group':
+            this.beginLogGroup(stepIndex, startTime, line, cmd);
+            continue;
+          case 'endgroup':
+            this.endLogGroup(stepIndex, startTime, line, cmd);
+            continue;
+        }
+        // the active logs container may change during the loop, for example: entering and leaving a group
+        const el = this.getActiveLogsContainer(stepIndex);
+        el.append(this.createLogLine(stepIndex, startTime, line, cmd));
       }
     },
 
-    async fetchArtifacts() {
-      const resp = await GET(`${this.actionsURL}/runs/${this.runIndex}/artifacts`);
-      return await resp.json();
-    },
-
-    async deleteArtifact(name) {
+    async deleteArtifact(name: string) {
       if (!window.confirm(this.locale.confirmDeleteArtifact.replace('%s', name))) return;
+      // TODO: should escape the "name"?
       await DELETE(`${this.run.link}/artifacts/${name}`);
-      await this.loadJob();
+      await this.loadJobForce();
     },
 
-    async fetchJob() {
+    async fetchJobData(abortController: AbortController) {
       const logCursors = this.currentJobStepsStates.map((it, idx) => {
         // cursor is used to indicate the last position of the logs
         // it's only used by backend, frontend just reads it and passes it back, it and can be any type.
@@ -214,61 +372,88 @@ const sfc = {
         return {step: idx, cursor: it.cursor, expanded: it.expanded};
       });
       const resp = await POST(`${this.actionsURL}/runs/${this.runIndex}/jobs/${this.jobIndex}`, {
+        signal: abortController.signal,
         data: {logCursors},
       });
       return await resp.json();
     },
 
+    async loadJobForce() {
+      this.loadingAbortController?.abort();
+      this.loadingAbortController = null;
+      await this.loadJob();
+    },
+
     async loadJob() {
-      if (this.loading) return;
+      if (this.loadingAbortController) return;
+      const abortController = new AbortController();
+      this.loadingAbortController = abortController;
       try {
-        this.loading = true;
+        const job = await this.fetchJobData(abortController);
+        if (this.loadingAbortController !== abortController) return;
 
-        let job, artifacts;
-        try {
-          [job, artifacts] = await Promise.all([
-            this.fetchJob(),
-            this.fetchArtifacts(), // refresh artifacts if upload-artifact step done
-          ]);
-        } catch (err) {
-          if (err instanceof TypeError) return; // avoid network error while unloading page
-          throw err;
-        }
-
-        this.artifacts = artifacts['artifacts'] || [];
-
-        // save the state to Vue data, then the UI will be updated
+        this.artifacts = job.artifacts || [];
         this.run = job.state.run;
         this.currentJob = job.state.currentJob;
 
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJob.steps.length; i++) {
+          const autoExpand = this.optionAlwaysExpandRunning && this.currentJob.steps[i].status === 'running';
           if (!this.currentJobStepsStates[i]) {
             // initial states for job steps
-            this.currentJobStepsStates[i] = {cursor: null, expanded: false};
+            this.currentJobStepsStates[i] = {cursor: null, expanded: autoExpand,  manuallyCollapsed: false};
+          } else {
+            // if the step is not manually collapsed by user, then auto-expand it if option is enabled
+            if (autoExpand && !this.currentJobStepsStates[i].manuallyCollapsed) {
+              this.currentJobStepsStates[i].expanded = true;
+            }
           }
         }
-        // append logs to the UI
-        for (const logs of job.logs.stepsLog) {
-          // save the cursor, it will be passed to backend next time
-          this.currentJobStepsStates[logs.step].cursor = logs.cursor;
-          this.appendLogs(logs.step, logs.lines, logs.started);
+
+        // find the step indexes that need to auto-scroll
+        const autoScrollStepIndexes = new Map<number, boolean>();
+        for (const logs of job.logs.stepsLog ?? []) {
+          if (autoScrollStepIndexes.has(logs.step)) continue;
+          autoScrollStepIndexes.set(logs.step, this.shouldAutoScroll(logs.step));
         }
 
+        // append logs to the UI
+        for (const logs of job.logs.stepsLog ?? []) {
+          // save the cursor, it will be passed to backend next time
+          this.currentJobStepsStates[logs.step].cursor = logs.cursor;
+          this.appendLogs(logs.step, logs.started, logs.lines);
+        }
+
+        // auto-scroll to the last log line of the last step
+        let autoScrollJobStepElement: StepContainerElement | undefined;
+        for (let stepIndex = 0; stepIndex < this.currentJob.steps.length; stepIndex++) {
+          if (!autoScrollStepIndexes.get(stepIndex)) continue;
+          autoScrollJobStepElement = this.getJobStepLogsContainer(stepIndex);
+        }
+        const lastLogElem = autoScrollJobStepElement?.lastElementChild;
+        if (lastLogElem && !isLogElementInViewport(lastLogElem)) {
+          lastLogElem.scrollIntoView({behavior: 'smooth', block: 'end'});
+        }
+
+        // clear the interval timer if the job is done
         if (this.run.done && this.intervalID) {
           clearInterval(this.intervalID);
           this.intervalID = null;
         }
+      } catch (e) {
+        // avoid network error while unloading page, and ignore "abort" error
+        if (e instanceof TypeError || abortController.signal.aborted) return;
+        throw e;
       } finally {
-        this.loading = false;
+        if (this.loadingAbortController === abortController) this.loadingAbortController = null;
       }
     },
 
-    isDone(status) {
+    isDone(status: RunStatus) {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
     },
 
-    isExpandable(status) {
+    isExpandable(status: RunStatus) {
       return ['success', 'running', 'failure', 'cancelled'].includes(status);
     },
 
@@ -276,100 +461,50 @@ const sfc = {
       if (this.menuVisible) this.menuVisible = false;
     },
 
-    toggleTimeDisplay(type) {
+    elStepsContainer(): HTMLElement {
+      return this.$refs.stepsContainer as HTMLElement;
+    },
+
+    toggleTimeDisplay(type: 'seconds' | 'stamp') {
       this.timeVisible[`log-time-${type}`] = !this.timeVisible[`log-time-${type}`];
-      for (const el of this.$refs.steps.querySelectorAll(`.log-time-${type}`)) {
+      for (const el of this.elStepsContainer().querySelectorAll(`.log-time-${type}`)) {
         toggleElem(el, this.timeVisible[`log-time-${type}`]);
       }
     },
 
     toggleFullScreen() {
       this.isFullScreen = !this.isFullScreen;
-      const fullScreenEl = document.querySelector('.action-view-right');
-      const outerEl = document.querySelector('.full.height');
-      const actionBodyEl = document.querySelector('.action-view-body');
-      const headerEl = document.querySelector('#navbar');
-      const contentEl = document.querySelector('.page-content.repository');
-      const footerEl = document.querySelector('.page-footer');
-      toggleElem(headerEl, !this.isFullScreen);
-      toggleElem(contentEl, !this.isFullScreen);
-      toggleElem(footerEl, !this.isFullScreen);
-      // move .action-view-right to new parent
-      if (this.isFullScreen) {
-        outerEl.append(fullScreenEl);
-      } else {
-        actionBodyEl.append(fullScreenEl);
-      }
+      toggleFullScreen('.action-view-right', this.isFullScreen, '.action-view-body');
     },
+
     async hashChangeListener() {
       const selectedLogStep = window.location.hash;
       if (!selectedLogStep) return;
       const [_, step, _line] = selectedLogStep.split('-');
-      if (!this.currentJobStepsStates[step]) return;
-      if (!this.currentJobStepsStates[step].expanded && this.currentJobStepsStates[step].cursor === null) {
-        this.currentJobStepsStates[step].expanded = true;
+      const stepNum = Number(step);
+      if (!this.currentJobStepsStates[stepNum]) return;
+      if (!this.currentJobStepsStates[stepNum].expanded && this.currentJobStepsStates[stepNum].cursor === null) {
+        this.currentJobStepsStates[stepNum].expanded = true;
         // need to await for load job if the step log is loaded for the first time
         // so logline can be selected by querySelector
         await this.loadJob();
       }
-      const logLine = this.$refs.steps.querySelector(selectedLogStep);
+      const logLine = this.elStepsContainer().querySelector(selectedLogStep);
       if (!logLine) return;
-      logLine.querySelector('.line-num').click();
+      logLine.querySelector<HTMLAnchorElement>('.line-num')!.click();
     },
   },
-};
-
-export default sfc;
-
-export function initRepositoryActionView() {
-  const el = document.getElementById('repo-action-view');
-  if (!el) return;
-
-  // TODO: the parent element's full height doesn't work well now,
-  // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
-  const parentFullHeight = document.querySelector('body > div.full.height');
-  if (parentFullHeight) parentFullHeight.style.paddingBottom = '0';
-
-  const view = createApp(sfc, {
-    runIndex: el.getAttribute('data-run-index'),
-    jobIndex: el.getAttribute('data-job-index'),
-    actionsURL: el.getAttribute('data-actions-url'),
-    locale: {
-      approve: el.getAttribute('data-locale-approve'),
-      cancel: el.getAttribute('data-locale-cancel'),
-      rerun: el.getAttribute('data-locale-rerun'),
-      artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
-      areYouSure: el.getAttribute('data-locale-are-you-sure'),
-      confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
-      rerun_all: el.getAttribute('data-locale-rerun-all'),
-      showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
-      showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),
-      showFullScreen: el.getAttribute('data-locale-show-full-screen'),
-      downloadLogs: el.getAttribute('data-locale-download-logs'),
-      status: {
-        unknown: el.getAttribute('data-locale-status-unknown'),
-        waiting: el.getAttribute('data-locale-status-waiting'),
-        running: el.getAttribute('data-locale-status-running'),
-        success: el.getAttribute('data-locale-status-success'),
-        failure: el.getAttribute('data-locale-status-failure'),
-        cancelled: el.getAttribute('data-locale-status-cancelled'),
-        skipped: el.getAttribute('data-locale-status-skipped'),
-        blocked: el.getAttribute('data-locale-status-blocked'),
-      },
-    },
-  });
-  view.mount(el);
-}
+});
 </script>
 <template>
-  <div class="ui container action-view-container">
+  <!-- make the view container full width to make users easier to read logs -->
+  <div class="ui fluid container">
     <div class="action-view-header">
       <div class="action-info-summary">
         <div class="action-info-summary-title">
           <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
-          <h2 class="action-info-summary-title-text">
-            {{ run.title }}
-          </h2>
+          <!-- eslint-disable-next-line vue/no-v-html -->
+          <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
         <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
           {{ locale.approve }}
@@ -377,17 +512,24 @@ export function initRepositoryActionView() {
         <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
           {{ locale.cancel }}
         </button>
-        <button class="ui basic small compact button tw-mr-0 link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+        <button class="ui basic small compact button link-action tw-shrink-0" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
           {{ locale.rerun_all }}
         </button>
       </div>
       <div class="action-commit-summary">
-        {{ run.commit.localeCommit }}
-        <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
-        {{ run.commit.localePushedBy }}
-        <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
-        <span class="ui label" v-if="run.commit.shortSHA">
-          <a :href="run.commit.branch.link">{{ run.commit.branch.name }}</a>
+        <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
+        <template v-if="run.isSchedule">
+          {{ locale.scheduled }}
+        </template>
+        <template v-else>
+          {{ locale.commit }}
+          <a class="muted" :href="run.commit.link">{{ run.commit.shortSHA }}</a>
+          {{ locale.pushedBy }}
+          <a class="muted" :href="run.commit.pusher.link">{{ run.commit.pusher.displayName }}</a>
+        </template>
+        <span class="ui label tw-max-w-full" v-if="run.commit.shortSHA">
+          <span v-if="run.commit.branch.isDeleted" class="gt-ellipsis tw-line-through" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</span>
+          <a v-else class="gt-ellipsis" :href="run.commit.branch.link" :data-tooltip-content="run.commit.branch.name">{{ run.commit.branch.name }}</a>
         </span>
       </div>
     </div>
@@ -395,13 +537,13 @@ export function initRepositoryActionView() {
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id" @mouseenter="onHoverRerunIndex = job.id" @mouseleave="onHoverRerunIndex = -1">
+            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
               </div>
               <span class="job-brief-item-right">
-                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun && onHoverRerunIndex === job.id"/>
+                <SvgIcon name="octicon-sync" role="button" :data-tooltip-content="locale.rerun" class="job-brief-rerun tw-mx-2 link-action interact-fg" :data-url="`${run.link}/jobs/${index}/rerun`" v-if="job.canRerun"/>
                 <span class="step-summary-duration">{{ job.duration }}</span>
               </span>
             </a>
@@ -412,22 +554,32 @@ export function initRepositoryActionView() {
             {{ locale.artifactsTitle }}
           </div>
           <ul class="job-artifacts-list">
-            <li class="job-artifacts-item" v-for="artifact in artifacts" :key="artifact.name">
-              <a class="job-artifacts-link" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
-                <SvgIcon name="octicon-file" class="ui text black job-artifacts-icon"/>{{ artifact.name }}
-              </a>
-              <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)" class="job-artifacts-delete">
-                <SvgIcon name="octicon-trash" class="ui text black job-artifacts-icon"/>
-              </a>
-            </li>
+            <template v-for="artifact in artifacts" :key="artifact.name">
+              <li class="job-artifacts-item">
+                <template v-if="artifact.status !== 'expired'">
+                  <a class="flex-text-inline" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
+                    <SvgIcon name="octicon-file" class="text black"/>
+                    <span class="gt-ellipsis">{{ artifact.name }}</span>
+                  </a>
+                  <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
+                    <SvgIcon name="octicon-trash" class="text black"/>
+                  </a>
+                </template>
+                <span v-else class="flex-text-inline text light grey">
+                  <SvgIcon name="octicon-file"/>
+                  <span class="gt-ellipsis">{{ artifact.name }}</span>
+                  <span class="ui label text light grey tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
+                </span>
+              </li>
+            </template>
           </ul>
         </div>
       </div>
 
       <div class="action-view-right">
         <div class="job-info-header">
-          <div class="job-info-header-left">
-            <h3 class="job-info-header-title">
+          <div class="job-info-header-left gt-ellipsis">
+            <h3 class="job-info-header-title gt-ellipsis">
               {{ currentJob.title }}
             </h3>
             <p class="job-info-header-detail">
@@ -436,7 +588,7 @@ export function initRepositoryActionView() {
           </div>
           <div class="job-info-header-right">
             <div class="ui top right pointing dropdown custom jump item" @click.stop="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-              <button class="btn gt-interact-bg tw-p-2">
+              <button class="ui button tw-px-3">
                 <SvgIcon name="octicon-gear" :size="18"/>
               </button>
               <div class="menu transition action-job-menu" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
@@ -452,6 +604,17 @@ export function initRepositoryActionView() {
                   <i class="icon"><SvgIcon :name="isFullScreen ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
                   {{ locale.showFullScreen }}
                 </a>
+
+                <div class="divider"/>
+                <a class="item" @click="optionAlwaysAutoScroll = !optionAlwaysAutoScroll">
+                  <i class="icon"><SvgIcon :name="optionAlwaysAutoScroll ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+                  {{ locale.logsAlwaysAutoScroll }}
+                </a>
+                <a class="item" @click="optionAlwaysExpandRunning = !optionAlwaysExpandRunning">
+                  <i class="icon"><SvgIcon :name="optionAlwaysExpandRunning ? 'octicon-check' : 'gitea-empty-checkbox'"/></i>
+                  {{ locale.logsAlwaysExpandRunning }}
+                </a>
+
                 <div class="divider"/>
                 <a :class="['item', !currentJob.steps.length ? 'disabled' : '']" :href="run.link+'/jobs/'+jobIndex+'/logs'" target="_blank">
                   <i class="icon"><SvgIcon name="octicon-download"/></i>
@@ -461,13 +624,14 @@ export function initRepositoryActionView() {
             </div>
           </div>
         </div>
-        <div class="job-step-container" ref="steps" v-if="currentJob.steps.length">
+        <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
+        <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
                 currentJobStepsStates[i].cursor === null means the log is loaded for the first time
               -->
-              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="octicon-sync" class="tw-mr-2 job-status-rotate"/>
+              <SvgIcon v-if="isDone(run.status) && currentJobStepsStates[i].expanded && currentJobStepsStates[i].cursor === null" name="gitea-running" class="tw-mr-2 rotate-clockwise"/>
               <SvgIcon v-else :name="currentJobStepsStates[i].expanded ? 'octicon-chevron-down': 'octicon-chevron-right'" :class="['tw-mr-2', !isExpandable(jobStep.status) && 'tw-invisible']"/>
               <ActionRunStatus :status="jobStep.status" class="tw-mr-2"/>
 
@@ -503,22 +667,40 @@ export function initRepositoryActionView() {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .action-info-summary-title {
   display: flex;
+  align-items: center;
+  gap: 0.5em;
 }
 
 .action-info-summary-title-text {
   font-size: 20px;
-  margin: 0 0 0 8px;
+  margin: 0;
   flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.action-info-summary .ui.button {
+  margin: 0;
+  white-space: nowrap;
 }
 
 .action-commit-summary {
   display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 5px;
-  margin: 0 0 0 28px;
+  margin-left: 28px;
+}
+
+@media (max-width: 767.98px) {
+  .action-commit-summary {
+    margin-left: 0;
+    margin-top: 8px;
+  }
 }
 
 /* ================ */
@@ -531,6 +713,14 @@ export function initRepositoryActionView() {
   top: 12px;
   max-height: 100vh;
   overflow-y: auto;
+  background: var(--color-body);
+  z-index: 2; /* above .job-info-header */
+}
+
+@media (max-width: 767.98px) {
+  .action-view-left {
+    position: static; /* can not sticky because multiple jobs would overlap into right view */
+  }
 }
 
 .job-artifacts-title {
@@ -545,15 +735,12 @@ export function initRepositoryActionView() {
   padding: 6px;
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
 .job-artifacts-list {
   padding-left: 12px;
   list-style: none;
-}
-
-.job-artifacts-icon {
-  padding-right: 3px;
 }
 
 .job-brief-list {
@@ -588,11 +775,6 @@ export function initRepositoryActionView() {
 
 .job-brief-item .job-brief-rerun {
   cursor: pointer;
-  transition: transform 0.2s;
-}
-
-.job-brief-item .job-brief-rerun:hover {
-  transform: scale(130%);
 }
 
 .job-brief-item .job-brief-item-left {
@@ -692,7 +874,9 @@ export function initRepositoryActionView() {
   position: sticky;
   top: 0;
   height: 60px;
-  z-index: 1;
+  z-index: 1; /* above .job-step-container */
+  background: var(--color-console-bg);
+  border-radius: 3px;
 }
 
 .job-info-header:has(+ .job-step-container) {
@@ -708,6 +892,10 @@ export function initRepositoryActionView() {
 .job-info-header .job-info-header-detail {
   color: var(--color-console-fg-subtle);
   font-size: 12px;
+}
+
+.job-info-header-left {
+  flex: 1;
 }
 
 .job-step-container {
@@ -730,7 +918,7 @@ export function initRepositoryActionView() {
 
 .job-step-container .job-step-summary.step-expandable:hover {
   color: var(--color-console-fg);
-  background-color: var(--color-console-hover-bg);
+  background: var(--color-console-hover-bg);
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -748,33 +936,21 @@ export function initRepositoryActionView() {
   top: 60px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 767.98px) {
   .action-view-body {
     flex-direction: column;
   }
   .action-view-left, .action-view-right {
     width: 100%;
   }
-
   .action-view-left {
     max-width: none;
-    overflow-y: hidden;
   }
 }
 </style>
 
-<style>
+<style> /* eslint-disable-line vue-scoped-css/enforce-style-type */
 /* some elements are not managed by vue, so we need to use global style */
-.job-status-rotate {
-  animation: job-status-rotate-keyframes 1s linear infinite;
-}
-
-@keyframes job-status-rotate-keyframes {
-  100% {
-    transform: rotate(-360deg);
-  }
-}
-
 .job-step-section {
   margin: 10px;
 }
@@ -822,11 +998,19 @@ export function initRepositoryActionView() {
   white-space: nowrap;
 }
 
-.job-step-section .job-step-logs .job-log-line .log-msg {
+.job-step-logs .job-log-line .log-msg {
   flex: 1;
-  word-break: break-all;
   white-space: break-spaces;
   margin-left: 10px;
+  overflow-wrap: anywhere;
+}
+
+.job-step-logs .job-log-line .log-cmd-command {
+  color: var(--color-ansi-blue);
+}
+
+.job-step-logs .job-log-line .log-cmd-error {
+  color: var(--color-ansi-red);
 }
 
 /* selectors here are intentionally exact to only match fullscreen */
@@ -847,15 +1031,18 @@ export function initRepositoryActionView() {
   border-radius: 0;
 }
 
-/* TODO: group support
-
-.job-log-group {
-
+.job-log-group .job-log-list .job-log-line .log-msg {
+  margin-left: 2em;
 }
+
 .job-log-group-summary {
-
+  position: relative;
 }
-.job-log-list {
 
-} */
+.job-log-group-summary > .job-log-line {
+  position: absolute;
+  inset: 0;
+  z-index: -1; /* to avoid hiding the triangle of the "details" element */
+  overflow: hidden;
+}
 </style>

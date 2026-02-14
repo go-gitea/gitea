@@ -11,7 +11,7 @@ body:
       value: |
         1. Please speak English, this is the language all maintainers can speak and write.
         2. Please ask questions or configuration/deploy problems on our Discord
-           server (https://discord.gg/gitea) or forum (https://discourse.gitea.io).
+           server (https://discord.gg/gitea) or forum (https://forum.gitea.com).
         3. Make sure you are using the latest release and
            take a moment to check that your issue hasn't been reported before.
         4. Make sure it's not mentioned in the FAQ (https://docs.gitea.com/help/faq)
@@ -37,7 +37,7 @@ body:
       label: Can you reproduce the bug on the Gitea demo site?
       description: |
         If so, please provide a URL in the Description field
-        URL of Gitea demo: https://try.gitea.io
+        URL of Gitea demo: https://demo.gitea.com
       options:
         - "Yes"
         - "No"
@@ -74,7 +74,7 @@ body:
     attributes:
       label: How are you running Gitea?
       description: |
-        Please include information on whether you built Gitea yourself, used one of our downloads, are using https://try.gitea.io or are using some other package
+        Please include information on whether you built Gitea yourself, used one of our downloads, are using https://demo.gitea.com or are using some other package
         Please also tell us how you are running Gitea, e.g. if it is being run from docker, a command-line, systemd etc.
         If you are using a package or systemd tell us what distribution you are using
     validations:

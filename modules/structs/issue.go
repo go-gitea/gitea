@@ -17,7 +17,7 @@ import (
 type StateType string
 
 const (
-	// StateOpen pr is opend
+	// StateOpen pr is opened
 	StateOpen StateType = "open"
 	// StateClosed pr is closed
 	StateClosed StateType = "closed"
@@ -30,6 +30,7 @@ type PullRequestMeta struct {
 	HasMerged        bool       `json:"merged"`
 	Merged           *time.Time `json:"merged_at"`
 	IsWorkInProgress bool       `json:"draft"`
+	HTMLURL          string     `json:"html_url"`
 }
 
 // RepositoryMeta basic repository information
@@ -74,6 +75,8 @@ type Issue struct {
 	Closed *time.Time `json:"closed_at"`
 	// swagger:strfmt date-time
 	Deadline *time.Time `json:"due_date"`
+
+	TimeEstimate int64 `json:"time_estimate"`
 
 	PullRequest *PullRequestMeta `json:"pull_request"`
 	Repo        *RepositoryMeta  `json:"repository"`
@@ -176,19 +179,20 @@ const (
 // IssueTemplate represents an issue template for a repository
 // swagger:model
 type IssueTemplate struct {
-	Name     string              `json:"name" yaml:"name"`
-	Title    string              `json:"title" yaml:"title"`
-	About    string              `json:"about" yaml:"about"` // Using "description" in a template file is compatible
-	Labels   IssueTemplateLabels `json:"labels" yaml:"labels"`
-	Ref      string              `json:"ref" yaml:"ref"`
-	Content  string              `json:"content" yaml:"-"`
-	Fields   []*IssueFormField   `json:"body" yaml:"body"`
-	FileName string              `json:"file_name" yaml:"-"`
+	Name      string                   `json:"name" yaml:"name"`
+	Title     string                   `json:"title" yaml:"title"`
+	About     string                   `json:"about" yaml:"about"` // Using "description" in a template file is compatible
+	Labels    IssueTemplateStringSlice `json:"labels" yaml:"labels"`
+	Assignees IssueTemplateStringSlice `json:"assignees" yaml:"assignees"`
+	Ref       string                   `json:"ref" yaml:"ref"`
+	Content   string                   `json:"content" yaml:"-"`
+	Fields    []*IssueFormField        `json:"body" yaml:"body"`
+	FileName  string                   `json:"file_name" yaml:"-"`
 }
 
-type IssueTemplateLabels []string
+type IssueTemplateStringSlice []string
 
-func (l *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
+func (l *IssueTemplateStringSlice) UnmarshalYAML(value *yaml.Node) error {
 	var labels []string
 	if value.IsZero() {
 		*l = labels
@@ -201,7 +205,7 @@ func (l *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
 		if err != nil {
 			return err
 		}
-		for _, v := range strings.Split(str, ",") {
+		for v := range strings.SplitSeq(str, ",") {
 			if v = strings.TrimSpace(v); v == "" {
 				continue
 			}
@@ -216,7 +220,7 @@ func (l *IssueTemplateLabels) UnmarshalYAML(value *yaml.Node) error {
 		*l = labels
 		return nil
 	}
-	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateLabels", value.Line, value.ShortTag())
+	return fmt.Errorf("line %d: cannot unmarshal %s into IssueTemplateStringSlice", value.Line, value.ShortTag())
 }
 
 type IssueConfigContactLink struct {
@@ -260,7 +264,13 @@ func (it IssueTemplate) Type() IssueTemplateType {
 // IssueMeta basic issue information
 // swagger:model
 type IssueMeta struct {
-	Index int64  `json:"index"`
+	Index int64 `json:"index"`
+	// owner of the issue's repo
 	Owner string `json:"owner"`
 	Name  string `json:"repo"`
+}
+
+// LockIssueOption options to lock an issue
+type LockIssueOption struct {
+	Reason string `json:"lock_reason"`
 }

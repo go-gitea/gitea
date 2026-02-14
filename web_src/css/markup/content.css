@@ -1,8 +1,8 @@
 .markup {
   overflow: hidden;
-  font-size: 16px;
+  font-size: 14px; /* 14px for comments, overridden to 16px for .file-view below. */
   line-height: 1.5 !important;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .markup > *:first-child {
@@ -134,6 +134,13 @@
   margin-bottom: 16px;
 }
 
+/* override p:last-child from base.css.
+Fomantic assumes that <p>/<hX> elements only have margins between elements, but not for the first's top or last's bottom.
+In markup content, we always use bottom margin for all elements */
+.markup p:last-child {
+  margin-bottom: 16px;
+}
+
 .markup hr {
   height: 4px;
   padding: 0;
@@ -204,10 +211,7 @@
 
 .markup input[type="checkbox"]::after {
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  right: 0;
+  inset: 0;
   pointer-events: none;
   background: var(--color-text);
   mask-size: cover;
@@ -284,7 +288,6 @@
 .markup table {
   display: block;
   width: 100%;
-  width: max-content;
   max-width: 100%;
   overflow: auto;
 }
@@ -313,10 +316,19 @@
   box-sizing: initial;
 }
 
+.file-view.markup {
+  padding: 1em 2em;
+  font-size: 16px;
+}
+
+.file-view.markup:has(.file-not-rendered-prompt) {
+  padding: 0; /* let the file-not-rendered-prompt layout itself */
+}
+
 /* this background ensures images can break <hr>. We can only do this on
    cases where the background is known and not transparent. */
-.markup.file-view img,
-.markup.file-view video,
+.file-view.markup img,
+.file-view.markup video,
 .comment-body .markup img, /* regular comment */
 .comment-body .markup video,
 .comment-content .markup img, /* code comment */
@@ -334,11 +346,6 @@
 .markup img[align="left"],
 .markup video[align="left"] {
   padding-right: 28px;
-}
-
-.markup .emoji {
-  max-width: none;
-  vertical-align: text-top;
 }
 
 .markup span.frame {
@@ -432,13 +439,13 @@
   text-align: right;
 }
 
-.markup code:not(.code-inner),
+.markup code,
 .markup tt {
   padding: 0.2em 0.4em;
   margin: 0;
   font-size: 85%;
   white-space: break-spaces;
-  background-color: var(--color-markup-code-block);
+  background-color: var(--color-markup-code-inline);
   border-radius: var(--border-radius);
 }
 
@@ -452,14 +459,25 @@
 }
 
 .markup pre > code {
-  padding: 0;
-  margin: 0;
   font-size: 100%;
+}
+
+.markup .code-block,
+.markup .code-block-container {
+  position: relative;
+}
+
+.markup .code-block-container.code-overflow-wrap pre > code {
   white-space: pre-wrap;
-  word-break: break-all;
-  overflow-wrap: break-word;
-  background: transparent;
-  border: 0;
+}
+
+.markup .code-block-container.code-overflow-scroll pre {
+  overflow-x: auto;
+}
+
+.markup .code-block-container.code-overflow-scroll pre > code {
+  white-space: pre;
+  overflow-wrap: normal;
 }
 
 .markup .highlight {
@@ -480,16 +498,11 @@
   word-break: normal;
 }
 
-.markup pre {
-  word-wrap: normal;
-}
-
 .markup pre code,
 .markup pre tt {
   display: inline;
   padding: 0;
   line-height: inherit;
-  word-wrap: normal;
   background-color: transparent;
   border: 0;
 }
@@ -508,7 +521,7 @@
   line-height: 10px;
   color: var(--color-text-light);
   vertical-align: middle;
-  background-color: var(--color-markup-code-block);
+  background-color: var(--color-markup-code-inline);
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
   box-shadow: inset 0 -1px 0 var(--color-secondary);
@@ -520,21 +533,24 @@
   padding-left: 2em;
 }
 
-.file-revisions-btn {
-  display: block;
-  float: left;
-  margin-bottom: 2px !important;
-  padding: 11px !important;
-  margin-right: 10px !important;
+.markup details.frontmatter-content summary {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  margin-bottom: 0.25em;
 }
 
-.file-revisions-btn i {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
+.markup details.frontmatter-content svg {
+  vertical-align: middle;
+  margin: 0 0.25em;
 }
 
-.markup-render {
+.external-render-iframe {
+  width: 100%;
+  height: max(300px, 80vh);
+}
+
+.markup-content-iframe {
   display: block;
   border: none;
   width: 100%;
@@ -584,4 +600,41 @@
 .file-view.markup.orgmode li.checked > p,
 .file-view.markup.orgmode li.indeterminate > p {
   display: inline-block;
+}
+
+/* auto-hide-control is a control element or a container for control elements,
+   it floats over the code-block and only shows when the code-block is hovered. */
+.markup .auto-hide-control {
+  position: absolute;
+  z-index: 1;
+  visibility: hidden; /* prevent from click events even opacity=0 */
+  opacity: 0;
+  transition: var(--transition-hover-fade);
+}
+
+/* all rendered code-block elements are in their container,
+the manually written code-block elements on "packages" pages don't have the container */
+.markup .code-block-container:hover .auto-hide-control,
+.markup .code-block:hover .auto-hide-control {
+  visibility: visible;
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .markup .auto-hide-control {
+    visibility: visible;
+    opacity: 1;
+  }
+}
+
+/* can not use regular transparent button colors for hover and active states
+   because we need opaque colors here as code can appear behind the button */
+.markup .auto-hide-control.ui.button:hover,
+.markup .auto-hide-control .ui.button:hover {
+  background: var(--color-secondary) !important;
+}
+
+.markup .auto-hide-control.ui.button:active,
+.markup .auto-hide-control .ui.button:active {
+  background: var(--color-secondary-dark-1) !important;
 }

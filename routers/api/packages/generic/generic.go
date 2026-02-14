@@ -11,7 +11,6 @@ import (
 	"unicode"
 
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/context"
@@ -24,27 +23,27 @@ var (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.PlainText(status, message)
 }
 
 // DownloadPackageFile serves the specific generic package.
 func DownloadPackageFile(ctx *context.Context) {
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeGeneric,
-			Name:        ctx.Params("packagename"),
-			Version:     ctx.Params("packageversion"),
+			Name:        ctx.PathParam("packagename"),
+			Version:     ctx.PathParam("packageversion"),
 		},
 		&packages_service.PackageFileInfo{
-			Filename: ctx.Params("filename"),
+			Filename: ctx.PathParam("filename"),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -71,8 +70,8 @@ func isValidFileName(filename string) bool {
 // UploadPackage uploads the specific generic package.
 // Duplicated packages get rejected.
 func UploadPackage(ctx *context.Context) {
-	packageName := ctx.Params("packagename")
-	filename := ctx.Params("filename")
+	packageName := ctx.PathParam("packagename")
+	filename := ctx.PathParam("filename")
 
 	if !isValidPackageName(packageName) {
 		apiError(ctx, http.StatusBadRequest, errors.New("invalid package name"))
@@ -84,24 +83,23 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	packageVersion := ctx.Params("packageversion")
+	packageVersion := ctx.PathParam("packageversion")
 	if packageVersion != strings.TrimSpace(packageVersion) {
 		apiError(ctx, http.StatusBadRequest, errors.New("invalid package version"))
 		return
 	}
 
-	upload, close, err := ctx.UploadStream()
+	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if close {
+	if needToClose {
 		defer upload.Close()
 	}
 
 	buf, err := packages_module.CreateHashedBufferFromReader(upload)
 	if err != nil {
-		log.Error("Error creating hashed buffer: %v", err)
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -150,12 +148,12 @@ func DeletePackage(ctx *context.Context) {
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeGeneric,
-			Name:        ctx.Params("packagename"),
-			Version:     ctx.Params("packageversion"),
+			Name:        ctx.PathParam("packagename"),
+			Version:     ctx.PathParam("packageversion"),
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
@@ -169,12 +167,12 @@ func DeletePackage(ctx *context.Context) {
 // DeletePackageFile deletes the specific file of a generic package.
 func DeletePackageFile(ctx *context.Context) {
 	pv, pf, err := func() (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, ctx.Params("packagename"), ctx.Params("packageversion"))
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, ctx.PathParam("packagename"), ctx.PathParam("packageversion"))
 		if err != nil {
 			return nil, nil, err
 		}
 
-		pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, ctx.Params("filename"), packages_model.EmptyFileKey)
+		pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, ctx.PathParam("filename"), packages_model.EmptyFileKey)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -182,7 +180,7 @@ func DeletePackageFile(ctx *context.Context) {
 		return pv, pf, nil
 	}()
 	if err != nil {
-		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
 			return
 		}

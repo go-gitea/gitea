@@ -35,9 +35,9 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	// Allow PAM sources with `@` in their name, like from Active Directory
 	username := pamLogin
 	email := pamLogin
-	idx := strings.Index(pamLogin, "@")
-	if idx > -1 {
-		username = pamLogin[:idx]
+	before, _, ok := strings.Cut(pamLogin, "@")
+	if ok {
+		username = before
 	}
 	if user_model.ValidateEmail(email) != nil {
 		if source.EmailDomain != "" {
@@ -56,21 +56,16 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 		Email:       email,
 		Passwd:      password,
 		LoginType:   auth.PAM,
-		LoginSource: source.authSource.ID,
+		LoginSource: source.AuthSource.ID,
 		LoginName:   userName, // This is what the user typed in
 	}
 	overwriteDefault := &user_model.CreateUserOverwriteOptions{
 		IsActive: optional.Some(true),
 	}
 
-	if err := user_model.CreateUser(ctx, user, overwriteDefault); err != nil {
+	if err := user_model.CreateUser(ctx, user, &user_model.Meta{}, overwriteDefault); err != nil {
 		return user, err
 	}
 
 	return user, nil
-}
-
-// IsSkipLocalTwoFA returns if this source should skip local 2fa for password authentication
-func (source *Source) IsSkipLocalTwoFA() bool {
-	return source.SkipLocalTwoFA
 }

@@ -1,4 +1,4 @@
-{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings sshkeys")}}
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings")}}
 	<div class="user-setting-content">
 
 		<!-- Theme -->
@@ -6,39 +6,33 @@
 			{{ctx.Locale.Tr "settings.manage_themes"}}
 		</h4>
 		<div class="ui attached segment">
-			<div class="ui email list">
-				<div class="item">
-					{{ctx.Locale.Tr "settings.theme_desc"}}
-				</div>
-
 			<form class="ui form" action="{{.Link}}/theme" method="post">
-				{{.CsrfTokenHtml}}
-					<div class="field">
-						<label for="ui">{{ctx.Locale.Tr "settings.ui"}}</label>
-						<div class="ui selection dropdown" id="ui">
-							<input name="theme" type="hidden" value="{{.SignedUser.Theme}}">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="text">
-								{{range $i,$a := .AllThemes}}
-									{{if eq $.SignedUser.Theme $a}}{{$a}}{{end}}
-								{{end}}
-							</div>
-
-							<div class="menu">
-							{{range $i,$a := .AllThemes}}
-								<div class="item{{if eq $.SignedUser.Theme $a}} active selected{{end}}" data-value="{{$a}}">
-									{{$a}}
+				<div class="field">
+					{{ctx.Locale.Tr "settings.theme_desc"}}
+					<a class="muted" target="_blank" href="https://github.com/go-gitea/gitea/blob/main/web_src/css/themes/" data-tooltip-content="{{ctx.Locale.Tr "settings.theme_colorblindness_prompt"}}">
+						{{svg "octicon-question"}} {{ctx.Locale.Tr "settings.theme_colorblindness_help"}}
+					</a>
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "settings.ui"}}</label>
+					<div class="ui selection dropdown">
+						<input type="hidden" name="theme" value="{{$.SignedUser.Theme}}">
+						<div class="text"></div> {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu flex-items-menu">
+							{{range $theme := .AllThemes}}
+								{{$extraIconName := $theme.GetExtraIconName}}
+								<div class="item" data-value="{{$theme.InternalName}}">
+									{{$theme.DisplayName}} {{svg $extraIconName}}
+									<div class="description">{{$theme.GetDescription}}</div>
 								</div>
 							{{end}}
-							</div>
 						</div>
 					</div>
-
+				</div>
 				<div class="field">
 					<button class="ui primary button">{{ctx.Locale.Tr "settings.update_theme"}}</button>
 				</div>
 			</form>
-			</div>
 		</div>
 
 		<!-- Language -->
@@ -47,7 +41,6 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/language" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="field">
 					<div class="ui language selection dropdown" id="language">
 						<input name="language" type="hidden" value="{{.SignedUser.Language}}">
@@ -75,7 +68,6 @@
 				{{ctx.Locale.Tr "settings.hidden_comment_types_description"}}
 			</p>
 			<form class="ui form" action="{{.Link}}/hidden_comments" method="post">
-				{{.CsrfTokenHtml}}
 				<div class="inline field">
 					<div class="ui checkbox" data-tooltip-content="{{ctx.Locale.Tr "settings.hidden_comment_types.ref_tooltip"}}">
 						<input name="reference" type="checkbox" {{if(call .IsCommentTypeGroupChecked "reference")}}checked{{end}}>

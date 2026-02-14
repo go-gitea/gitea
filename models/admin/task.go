@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -44,7 +45,7 @@ func init() {
 // TranslatableMessage represents JSON struct that can be translated with a Locale
 type TranslatableMessage struct {
 	Format string
-	Args   []any `json:"omitempty"`
+	Args   []any `json:",omitempty"`
 }
 
 // LoadRepo loads repository of the task
@@ -123,17 +124,17 @@ func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 		// decrypt credentials
 		if opts.CloneAddrEncrypted != "" {
 			if opts.CloneAddr, err = secret.DecryptSecret(setting.SecretKey, opts.CloneAddrEncrypted); err != nil {
-				return nil, err
+				log.Error("Unable to decrypt CloneAddr, maybe SECRET_KEY is wrong: %v", err)
 			}
 		}
 		if opts.AuthPasswordEncrypted != "" {
 			if opts.AuthPassword, err = secret.DecryptSecret(setting.SecretKey, opts.AuthPasswordEncrypted); err != nil {
-				return nil, err
+				log.Error("Unable to decrypt AuthPassword, maybe SECRET_KEY is wrong: %v", err)
 			}
 		}
 		if opts.AuthTokenEncrypted != "" {
 			if opts.AuthToken, err = secret.DecryptSecret(setting.SecretKey, opts.AuthTokenEncrypted); err != nil {
-				return nil, err
+				log.Error("Unable to decrypt AuthToken, maybe SECRET_KEY is wrong: %v", err)
 			}
 		}
 
@@ -177,27 +178,6 @@ func GetMigratingTask(ctx context.Context, repoID int64) (*Task, error) {
 		return nil, ErrTaskDoesNotExist{0, repoID, task.Type}
 	}
 	return &task, nil
-}
-
-// GetMigratingTaskByID returns the migrating task by repo's id
-func GetMigratingTaskByID(ctx context.Context, id, doerID int64) (*Task, *migration.MigrateOptions, error) {
-	task := Task{
-		ID:     id,
-		DoerID: doerID,
-		Type:   structs.TaskTypeMigrateRepo,
-	}
-	has, err := db.GetEngine(ctx).Get(&task)
-	if err != nil {
-		return nil, nil, err
-	} else if !has {
-		return nil, nil, ErrTaskDoesNotExist{id, 0, task.Type}
-	}
-
-	var opts migration.MigrateOptions
-	if err := json.Unmarshal([]byte(task.PayloadContent), &opts); err != nil {
-		return nil, nil, err
-	}
-	return &task, &opts, nil
 }
 
 // CreateTask creates a task on database

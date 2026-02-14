@@ -1,4 +1,8 @@
-{{if eq .PackageDescriptor.Package.Type "maven"}}
+{{if and (eq .PackageDescriptor.Package.Type "maven") (not .PackageDescriptor.Metadata)}}
+	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">{{ctx.Locale.Tr "packages.no_metadata"}}</div>
+{{end}}
+{{if and (eq .PackageDescriptor.Package.Type "maven") .PackageDescriptor.Metadata}}
 	<h4 class="ui top attached header">{{ctx.Locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
@@ -7,7 +11,7 @@
 				<div class="markup"><pre class="code-block"><code>&lt;repositories&gt;
 	&lt;repository&gt;
 		&lt;id&gt;gitea&lt;/id&gt;
-			&lt;url&gt;<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/maven"></origin-url>&lt;/url&gt;
+		&lt;url&gt;<origin-url data-url="{{AppSubUrl}}/api/packages/{{.PackageDescriptor.Owner.Name}}/maven"></origin-url>&lt;/url&gt;
 	&lt;/repository&gt;
 &lt;/repositories&gt;
 

@@ -14,6 +14,13 @@ import (
 type BaseProvider struct {
 	name        string
 	displayName string
+
+	// TODO: maybe some providers also support SSH public keys, then they can set this to true
+	supportSSHPublicKey bool
+}
+
+func (b *BaseProvider) SupportSSHPublicKey() bool {
+	return b.supportSSHPublicKey
 }
 
 // Name provides the technical name for this provider

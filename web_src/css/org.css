@@ -1,102 +1,9 @@
-#create-page-form form {
-  margin: auto;
-}
-
-#create-page-form form .ui.message {
-  text-align: center;
-}
-
-@media (min-width: 768px) {
-  #create-page-form form {
-    width: 800px !important;
-  }
-  #create-page-form form .header {
-    padding-left: 280px !important;
-  }
-  #create-page-form form .inline.field > label {
-    text-align: right;
-    width: 250px !important;
-    word-wrap: break-word;
-  }
-  #create-page-form form .help {
-    margin-left: 265px !important;
-  }
-  #create-page-form form .optional .title {
-    margin-left: 250px !important;
-  }
-  #create-page-form form .inline.field > input,
-  #create-page-form form .inline.field > textarea {
-    width: 50%;
-  }
-}
-
-@media (max-width: 767.98px) {
-  #create-page-form form .optional .title {
-    margin-left: 15px;
-  }
-  #create-page-form form .inline.field > label {
-    display: block;
-  }
-}
-
 .organization .head .ui.header .ui.right {
   margin-top: 5px;
 }
 
-.organization.new.org form {
-  margin: auto;
-}
-
-.organization.new.org form .ui.message {
-  text-align: center;
-}
-
-@media (min-width: 768px) {
-  .organization.new.org form {
-    width: 800px !important;
-  }
-  .organization.new.org form .header {
-    padding-left: 280px !important;
-  }
-  .organization.new.org form .inline.field > label {
-    text-align: right;
-    width: 250px !important;
-    word-wrap: break-word;
-  }
-  .organization.new.org form .help {
-    margin-left: 265px !important;
-  }
-  .organization.new.org form .optional .title {
-    margin-left: 250px !important;
-  }
-  .organization.new.org form .inline.field > input,
-  .organization.new.org form .inline.field > textarea {
-    width: 50%;
-  }
-}
-
-@media (max-width: 767.98px) {
-  .organization.new.org form .optional .title {
-    margin-left: 15px;
-  }
-  .organization.new.org form .inline.field > label {
-    display: block;
-  }
-}
-
-.organization.new.org form .header {
-  padding-left: 0 !important;
-  text-align: center;
-}
-
 .page-content.organization .org-avatar {
   margin-right: 15px;
-}
-
-.page-content.organization #org-info {
-  overflow-wrap: anywhere;
-  flex: 1;
-  word-break: break-all;
 }
 
 .page-content.organization #org-info .ui.header {
@@ -127,8 +34,6 @@
 }
 
 .page-content.organization .members .ui.avatar {
-  width: 48px;
-  height: 48px;
   margin-right: 5px;
   margin-bottom: 5px;
 }

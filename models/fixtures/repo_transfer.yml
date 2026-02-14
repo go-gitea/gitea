@@ -21,3 +21,11 @@
   repo_id: 32
   created_unix: 1553610671
   updated_unix: 1553610671
+
+-
+  id: 4
+  doer_id: 3
+  recipient_id: 1
+  repo_id: 5
+  created_unix: 1553610671
+  updated_unix: 1553610671

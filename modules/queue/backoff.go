@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-const (
+var (
 	backoffBegin = 50 * time.Millisecond
 	backoffUpper = 2 * time.Second
 )
@@ -17,6 +17,14 @@ type (
 	backoffFuncRetErr[T any] func() (retry bool, ret T, err error)
 	backoffFuncErr           func() (retry bool, err error)
 )
+
+func mockBackoffDuration(d time.Duration) func() {
+	oldBegin, oldUpper := backoffBegin, backoffUpper
+	backoffBegin, backoffUpper = d, d
+	return func() {
+		backoffBegin, backoffUpper = oldBegin, oldUpper
+	}
+}
 
 func backoffRetErr[T any](ctx context.Context, begin, upper time.Duration, end <-chan time.Time, fn backoffFuncRetErr[T]) (ret T, err error) {
 	d := begin

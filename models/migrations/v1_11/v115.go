@@ -1,7 +1,7 @@
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_11 //nolint
+package v1_11
 
 import (
 	"crypto/md5"
@@ -146,7 +146,7 @@ func copyOldAvatarToNewLocation(userID int64, oldAvatar string) (string, error) 
 		return "", fmt.Errorf("io.ReadAll: %w", err)
 	}
 
-	newAvatar := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", userID, md5.Sum(data)))))
+	newAvatar := fmt.Sprintf("%x", md5.Sum(fmt.Appendf(nil, "%d-%x", userID, md5.Sum(data))))
 	if newAvatar == oldAvatar {
 		return newAvatar, nil
 	}

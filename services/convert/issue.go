@@ -10,41 +10,46 @@ import (
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/label"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
-func ToIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, issue, WebAssetDownloadURL)
+func ToIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
+	return toIssue(ctx, doer, issue, WebAssetDownloadURL)
 }
 
 // ToAPIIssue converts an Issue to API format
 // it assumes some fields assigned with values:
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
-func ToAPIIssue(ctx context.Context, issue *issues_model.Issue) *api.Issue {
-	return toIssue(ctx, issue, APIAssetDownloadURL)
+func ToAPIIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue) *api.Issue {
+	return toIssue(ctx, doer, issue, APIAssetDownloadURL)
 }
 
-func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
-	if err := issue.LoadLabels(ctx); err != nil {
-		return &api.Issue{}
-	}
+func toIssue(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, getDownloadURL func(repo *repo_model.Repository, attach *repo_model.Attachment) string) *api.Issue {
 	if err := issue.LoadPoster(ctx); err != nil {
 		return &api.Issue{}
 	}
 	if err := issue.LoadRepo(ctx); err != nil {
 		return &api.Issue{}
 	}
+	if err := issue.LoadAttachments(ctx); err != nil {
+		return &api.Issue{}
+	}
+	if err := issue.LoadPinOrder(ctx); err != nil {
+		return &api.Issue{}
+	}
 
 	apiIssue := &api.Issue{
 		ID:          issue.ID,
 		Index:       issue.Index,
-		Poster:      ToUser(ctx, issue.Poster, nil),
+		Poster:      ToUser(ctx, issue.Poster, doer),
 		Title:       issue.Title,
 		Body:        issue.Content,
 		Attachments: toAttachments(issue.Repo, issue.Attachments, getDownloadURL),
@@ -54,7 +59,9 @@ func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func
 		Comments:    issue.NumComments,
 		Created:     issue.CreatedUnix.AsTime(),
 		Updated:     issue.UpdatedUnix.AsTime(),
-		PinOrder:    issue.PinOrder,
+		PinOrder:    util.Iif(issue.PinOrder == -1, 0, issue.PinOrder), // -1 means loaded with no pin order
+
+		TimeEstimate: issue.TimeEstimate,
 	}
 
 	if issue.Repo != nil {
@@ -62,8 +69,11 @@ func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func
 			return &api.Issue{}
 		}
 		apiIssue.URL = issue.APIURL(ctx)
-		apiIssue.HTMLURL = issue.HTMLURL()
-		apiIssue.Labels = ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner)
+		apiIssue.HTMLURL = issue.HTMLURL(ctx)
+		if err := issue.LoadLabels(ctx); err != nil {
+			return &api.Issue{}
+		}
+		apiIssue.Labels = util.SliceNilAsEmpty(ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner))
 		apiIssue.Repo = &api.RepositoryMeta{
 			ID:       issue.Repo.ID,
 			Name:     issue.Repo.Name,
@@ -104,6 +114,8 @@ func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func
 			if issue.PullRequest.HasMerged {
 				apiIssue.PullRequest.Merged = issue.PullRequest.MergedUnix.AsTimePtr()
 			}
+			// Add pr's html url
+			apiIssue.PullRequest.HTMLURL = issue.HTMLURL(ctx)
 		}
 	}
 	if issue.DeadlineUnix != 0 {
@@ -114,25 +126,27 @@ func toIssue(ctx context.Context, issue *issues_model.Issue, getDownloadURL func
 }
 
 // ToIssueList converts an IssueList to API format
-func ToIssueList(ctx context.Context, il issues_model.IssueList) []*api.Issue {
+func ToIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
+	_ = il.LoadPinOrder(ctx)
 	for i := range il {
-		result[i] = ToIssue(ctx, il[i])
+		result[i] = ToIssue(ctx, doer, il[i])
 	}
 	return result
 }
 
 // ToAPIIssueList converts an IssueList to API format
-func ToAPIIssueList(ctx context.Context, il issues_model.IssueList) []*api.Issue {
+func ToAPIIssueList(ctx context.Context, doer *user_model.User, il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
+	_ = il.LoadPinOrder(ctx)
 	for i := range il {
-		result[i] = ToAPIIssue(ctx, il[i])
+		result[i] = ToAPIIssue(ctx, doer, il[i])
 	}
 	return result
 }
 
 // ToTrackedTime converts TrackedTime to API format
-func ToTrackedTime(ctx context.Context, t *issues_model.TrackedTime) (apiT *api.TrackedTime) {
+func ToTrackedTime(ctx context.Context, doer *user_model.User, t *issues_model.TrackedTime) (apiT *api.TrackedTime) {
 	apiT = &api.TrackedTime{
 		ID:      t.ID,
 		IssueID: t.IssueID,
@@ -141,7 +155,7 @@ func ToTrackedTime(ctx context.Context, t *issues_model.TrackedTime) (apiT *api.
 		Created: t.Created,
 	}
 	if t.Issue != nil {
-		apiT.Issue = ToAPIIssue(ctx, t.Issue)
+		apiT.Issue = ToAPIIssue(ctx, doer, t.Issue)
 	}
 	if t.User != nil {
 		apiT.UserName = t.User.Name
@@ -150,11 +164,12 @@ func ToTrackedTime(ctx context.Context, t *issues_model.TrackedTime) (apiT *api.
 }
 
 // ToStopWatches convert Stopwatch list to api.StopWatches
-func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.StopWatches, error) {
+func ToStopWatches(ctx context.Context, doer *user_model.User, sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
 
 	issueCache := make(map[int64]*issues_model.Issue)
 	repoCache := make(map[int64]*repo_model.Repository)
+	permCache := make(map[int64]access_model.Permission)
 	var (
 		issue *issues_model.Issue
 		repo  *repo_model.Repository
@@ -169,19 +184,36 @@ func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.Stop
 			if err != nil {
 				return nil, err
 			}
+			issueCache[sw.IssueID] = issue
 		}
 		repo, ok = repoCache[issue.RepoID]
 		if !ok {
 			repo, err = repo_model.GetRepositoryByID(ctx, issue.RepoID)
 			if err != nil {
-				return nil, err
+				log.Error("GetRepositoryByID(%d): %v", issue.RepoID, err)
+				continue
 			}
+			repoCache[issue.RepoID] = repo
+		}
+
+		// ADD: Check user permissions
+		perm, ok := permCache[repo.ID]
+		if !ok {
+			perm, err = access_model.GetUserRepoPermission(ctx, repo, doer)
+			if err != nil {
+				continue
+			}
+			permCache[repo.ID] = perm
+		}
+
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+			continue
 		}
 
 		result = append(result, api.StopWatch{
 			Created:       sw.CreatedUnix.AsTime(),
 			Seconds:       sw.Seconds(),
-			Duration:      sw.Duration(),
+			Duration:      util.SecToHours(sw.Seconds()),
 			IssueIndex:    issue.Index,
 			IssueTitle:    issue.Title,
 			RepoOwnerName: repo.OwnerName,
@@ -192,10 +224,10 @@ func ToStopWatches(ctx context.Context, sws []*issues_model.Stopwatch) (api.Stop
 }
 
 // ToTrackedTimeList converts TrackedTimeList to API format
-func ToTrackedTimeList(ctx context.Context, tl issues_model.TrackedTimeList) api.TrackedTimeList {
+func ToTrackedTimeList(ctx context.Context, doer *user_model.User, tl issues_model.TrackedTimeList) api.TrackedTimeList {
 	result := make([]*api.TrackedTime, 0, len(tl))
 	for _, t := range tl {
-		result = append(result, ToTrackedTime(ctx, t))
+		result = append(result, ToTrackedTime(ctx, doer, t))
 	}
 	return result
 }
@@ -211,19 +243,21 @@ func ToLabel(label *issues_model.Label, repo *repo_model.Repository, org *user_m
 		IsArchived:  label.IsArchived(),
 	}
 
+	labelBelongsToRepo := label.BelongsToRepo()
+
 	// calculate URL
-	if label.BelongsToRepo() && repo != nil {
-		if repo != nil {
-			result.URL = fmt.Sprintf("%s/labels/%d", repo.APIURL(), label.ID)
-		} else {
-			log.Error("ToLabel did not get repo to calculate url for label with id '%d'", label.ID)
-		}
+	if labelBelongsToRepo && repo != nil {
+		result.URL = fmt.Sprintf("%s/labels/%d", repo.APIURL(), label.ID)
 	} else { // BelongsToOrg
 		if org != nil {
 			result.URL = fmt.Sprintf("%sapi/v1/orgs/%s/labels/%d", setting.AppURL, url.PathEscape(org.Name), label.ID)
 		} else {
 			log.Error("ToLabel did not get org to calculate url for label with id '%d'", label.ID)
 		}
+	}
+
+	if labelBelongsToRepo && repo == nil {
+		log.Error("ToLabel did not get repo to calculate url for label with id '%d'", label.ID)
 	}
 
 	return result
@@ -253,7 +287,7 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 	if m.IsClosed {
 		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()
 	}
-	if m.DeadlineUnix.Year() < 9999 {
+	if m.DeadlineUnix > 0 {
 		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone

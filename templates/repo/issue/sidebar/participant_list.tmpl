@@ -1,0 +1,11 @@
+{{if .Participants}}
+	<div class="divider"></div>
+	<span class="text"><strong>{{ctx.Locale.Tr "repo.issues.num_participants" .NumParticipants}}</strong></span>
+	<div class="ui list tw-flex tw-flex-wrap">
+		{{range .Participants}}
+			<a {{if gt .ID 0}}href="{{.HomeLink}}"{{end}} data-tooltip-content="{{.GetDisplayName}}">
+				{{ctx.AvatarUtils.Avatar . 20 "tw-my-0.5 tw-mr-1"}}
+			</a>
+		{{end}}
+	</div>
+{{end}}

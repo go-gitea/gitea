@@ -20,7 +20,7 @@ type ErrBadAddressType struct {
 }
 
 func (e *ErrBadAddressType) Error() string {
-	return fmt.Sprintf("Unexpected proxy header address type: %s", e.Address)
+	return "Unexpected proxy header address type: " + e.Address
 }
 
 // ErrBadRemote is an error demonstrating a bad proxy header with bad Remote

@@ -5,7 +5,6 @@
 			{{if gt .NumAssociatable 0}}
 				<div class="ui right">
 					<form class="ui form" method="post" action="{{$.Link}}/associate">
-						{{.CsrfTokenHtml}}
 						{{range .Pointers}}
 							{{if .Associatable}}
 								<input type="hidden" name="oid" value="{{.Oid}} {{.Size}}">
@@ -37,13 +36,13 @@
 								</a>
 							</td>
 							<td>
-								<a {{if and .Exists .InRepo}}href="{{$.LFSFilesLink}}/show/{{.Oid}}" rel="nofollow" target="_blank"{{end}} title="{{.Oid}}" class="ui brown button tw-font-mono">
+								<a {{if and .Exists .InRepo}}href="{{$.LFSFilesLink}}/show/{{.Oid}}" rel="nofollow" target="_blank"{{end}} title="{{.Oid}}" class="ui button tw-font-mono">
 									{{ShortSha .Oid}}
 								</a>
 							</td>
-							<td>{{if .InRepo}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td>{{if .Exists}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
-							<td>{{if .Accessible}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
+							<td>{{svg (Iif .InRepo "octicon-check" "octicon-x")}}</td>
+							<td>{{svg (Iif .Exists "octicon-check" "octicon-x")}}</td>
+							<td>{{svg (Iif .Accessible "octicon-check" "octicon-x")}}</td>
 							<td class="tw-text-right">
 								<a class="ui primary button" href="{{$.LFSFilesLink}}/find?oid={{.Oid}}&size={{.Size}}&sha={{.SHA}}">{{ctx.Locale.Tr "repo.settings.lfs_findcommits"}}</a>
 							</td>

@@ -10,16 +10,16 @@
 	</div>
 	{{if .IsDiffCompare}}
 		<div class="commits-table-right tw-whitespace-nowrap">
-			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label tw-mx-0">{{if not .BaseIsCommit}}{{if .BaseIsBranch}}{{svg "octicon-git-branch"}}{{else if .BaseIsTag}}{{svg "octicon-tag"}}{{end}}{{.BaseBranch}}{{else}}{{ShortSha .BaseBranch}}{{end}}</a>
-			...
-			<a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID | PathEscape}}" class="ui green sha label tw-mx-0">{{if not .HeadIsCommit}}{{if .HeadIsBranch}}{{svg "octicon-git-branch"}}{{else if .HeadIsTag}}{{svg "octicon-tag"}}{{end}}{{.HeadBranch}}{{else}}{{ShortSha .HeadBranch}}{{end}}</a>
+			<a href="{{$.CommitRepoLink}}/commit/{{.BeforeCommitID | PathEscape}}" class="ui green sha label tw-mx-0">{{template "repo/commits_ref_name" .CompareInfo.BaseRef}}</a>
+			{{$.CompareInfo.CompareSeparator}}
+			<a href="{{$.CommitRepoLink}}/commit/{{.AfterCommitID | PathEscape}}" class="ui green sha label tw-mx-0">{{template "repo/commits_ref_name" .CompareInfo.HeadRef}}</a>
 		</div>
 	{{end}}
 </h4>
 
 {{if .PageIsCommits}}
 	<div class="ui attached segment">
-		<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/search">
+		<form class="ignore-dirty" action="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/search">
 			<div class="ui small fluid action input">
 				{{template "shared/search/input" dict "Value" .Keyword "Placeholder" (ctx.Locale.Tr "search.commit_kind")}}
 				{{template "repo/commits_search_dropdown" .}}

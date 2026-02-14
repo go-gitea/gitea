@@ -13,8 +13,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// Security settings
+
 var (
-	// Security settings
 	InstallLock                        bool
 	SecretKey                          string
 	InternalToken                      string // internal access token
@@ -27,7 +28,7 @@ var (
 	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
 	ImportLocalPaths                   bool
-	DisableGitHooks                    bool
+	DisableGitHooks                    = true
 	DisableWebhooks                    bool
 	OnlyAllowPushIfGiteaEnvironmentSet bool
 	PasswordComplexity                 []string
@@ -35,8 +36,8 @@ var (
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
 	DisableQueryAuthToken              bool
-	CSRFCookieName                     = "_csrf"
-	CSRFCookieHTTPOnly                 = true
+	RecordUserSignupMetadata           = false
+	TwoFactorAuthEnforced              = false
 	XFrameOptions                      string
 	UseXFrameOptions                   bool
 )
@@ -110,7 +111,7 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832
 		// Until it supports rotating an existing secret key, we shouldn't move users off of the widely used default value
-		SecretKey = "!#@FDEWREWR&*(" //nolint:gosec
+		SecretKey = "!#@FDEWREWR&*("
 	}
 
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
@@ -138,12 +139,25 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 		log.Fatal("The provided password hash algorithm was invalid: %s", sec.Key("PASSWORD_HASH_ALGO").MustString(""))
 	}
 
-	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
-	XFrameOptions = sec.Key("X_FRAME_OPTIONS").MustString("SAMEORIGIN")
+	deprecatedSetting(rootCfg, "cors", "X_FRAME_OPTIONS", "security", "X_FRAME_OPTIONS", "v1.24.0")
+	if val := rootCfg.Section("cors").Key("X_FRAME_OPTIONS").String(); val != "" {
+		XFrameOptions = val
+	} else {
+		XFrameOptions = sec.Key("X_FRAME_OPTIONS").MustString("SAMEORIGIN")
+	}
 	UseXFrameOptions = XFrameOptions != "false"
+
+	twoFactorAuth := sec.Key("TWO_FACTOR_AUTH").String()
+	switch twoFactorAuth {
+	case "":
+	case "enforced":
+		TwoFactorAuthEnforced = true
+	default:
+		log.Fatal("Invalid two-factor auth option: %s", twoFactorAuth)
+	}
 
 	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN")
 	if InstallLock && InternalToken == "" {
@@ -168,6 +182,8 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 
 	// TODO: default value should be true in future releases
 	DisableQueryAuthToken = sec.Key("DISABLE_QUERY_AUTH_TOKEN").MustBool(false)
+
+	RecordUserSignupMetadata = sec.Key("RECORD_USER_SIGNUP_METADATA").MustBool(false)
 
 	// warn if the setting is set to false explicitly
 	if sectionHasDisableQueryAuthToken && !DisableQueryAuthToken {

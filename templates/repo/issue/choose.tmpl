@@ -10,11 +10,11 @@
 		{{range .IssueTemplates}}
 			<div class="ui attached segment">
 				<div class="ui two column grid">
-					<div class="column left aligned">
+					<div class="column">
 						<strong>{{.Name}}</strong>
 						<br>{{.About}}
 					</div>
-					<div class="column right aligned">
+					<div class="column tw-text-right">
 						<a href="{{$.RepoLink}}/issues/new?template={{.FileName}}{{if $.milestone}}&milestone={{$.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui primary button">{{ctx.Locale.Tr "repo.issues.choose.get_started"}}</a>
 					</div>
 				</div>
@@ -23,11 +23,11 @@
 		{{range .IssueConfig.ContactLinks}}
 			<div class="ui attached segment">
 				<div class="ui two column grid">
-					<div class="column left aligned">
+					<div class="column">
 						<strong>{{.Name}}</strong>
 						<br>{{.About}}
 					</div>
-					<div class="column right aligned">
+					<div class="column tw-text-right">
 						<a href="{{.URL}}" class="ui primary button">{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.issues.choose.open_external_link"}}</a>
 					</div>
 				</div>
@@ -36,11 +36,11 @@
 		{{if .IssueConfig.BlankIssuesEnabled}}
 			<div class="ui attached segment">
 				<div class="ui two column grid">
-					<div class="column left aligned">
+					<div class="column">
 						<strong>{{ctx.Locale.Tr "repo.issues.choose.blank"}}</strong>
 						<br/>{{ctx.Locale.Tr "repo.issues.choose.blank_about"}}
 					</div>
-					<div class="column right aligned">
+					<div class="column tw-text-right">
 						<a href="{{.RepoLink}}/issues/new?{{if .milestone}}&milestone={{.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui primary button">{{ctx.Locale.Tr "repo.issues.choose.get_started"}}</a>
 					</div>
 				</div>

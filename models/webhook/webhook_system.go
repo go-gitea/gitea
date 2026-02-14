@@ -9,7 +9,33 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/optional"
+
+	"xorm.io/builder"
 )
+
+// ListSystemWebhookOptions options for listing system or default webhooks
+type ListSystemWebhookOptions struct {
+	db.ListOptions
+	IsActive optional.Option[bool]
+	IsSystem optional.Option[bool]
+}
+
+func (opts ListSystemWebhookOptions) ToConds() builder.Cond {
+	cond := builder.NewCond()
+	cond = cond.And(builder.Eq{"webhook.repo_id": 0}, builder.Eq{"webhook.owner_id": 0})
+	if opts.IsActive.Has() {
+		cond = cond.And(builder.Eq{"webhook.is_active": opts.IsActive.Value()})
+	}
+	if opts.IsSystem.Has() {
+		cond = cond.And(builder.Eq{"is_system_webhook": opts.IsSystem.Value()})
+	}
+	return cond
+}
+
+// GetGlobalWebhooks returns global (default and/or system) webhooks
+func GetGlobalWebhooks(ctx context.Context, opts *ListSystemWebhookOptions) ([]*Webhook, int64, error) {
+	return db.FindAndCount[Webhook](ctx, opts)
+}
 
 // GetDefaultWebhooks returns all admin-default webhooks.
 func GetDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {

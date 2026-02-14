@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
 )
@@ -41,7 +43,12 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 		restricted = user.IsRestricted
 	}
 
-	if !restricted && !repo.IsPrivate {
+	if err := repo.LoadOwner(ctx); err != nil {
+		return mode, err
+	}
+
+	repoIsFullyPublic := !setting.Service.RequireSignInViewStrict && repo.Owner.Visibility == structs.VisibleTypePublic && !repo.IsPrivate
+	if (restricted && repoIsFullyPublic) || (!restricted && !repo.IsPrivate) {
 		mode = perm.AccessModeRead
 	}
 
@@ -63,13 +70,11 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 }
 
 func maxAccessMode(modes ...perm.AccessMode) perm.AccessMode {
-	max := perm.AccessModeNone
+	maxMode := perm.AccessModeNone
 	for _, mode := range modes {
-		if mode > max {
-			max = mode
-		}
+		maxMode = max(maxMode, mode)
 	}
-	return max
+	return maxMode
 }
 
 type userAccess struct {

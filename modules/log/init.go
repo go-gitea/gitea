@@ -35,10 +35,10 @@ func init() {
 	}
 }
 
-func newProcessTypedContext(parent context.Context, desc string) (ctx context.Context, cancel context.CancelFunc) {
+func newProcessTypedContext(parent context.Context, desc string) (context.Context, context.CancelFunc) {
 	// the "process manager" also calls "log.Trace()" to output logs, so if we want to create new contexts by the manager, we need to disable the trace temporarily
 	process.TraceLogDisable(true)
 	defer process.TraceLogDisable(false)
-	ctx, _, cancel = process.GetManager().AddTypedContext(parent, desc, process.SystemProcessType, false)
-	return ctx, cancel
+	ctx, _, finished := process.GetManager().AddTypedContext(parent, desc, process.SystemProcessType, false)
+	return ctx, context.CancelFunc(finished)
 }

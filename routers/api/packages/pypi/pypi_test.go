@@ -36,3 +36,13 @@ func TestIsValidNameAndVersion(t *testing.T) {
 	assert.False(t, isValidNameAndVersion("test-name", "1.0.1aa"))
 	assert.False(t, isValidNameAndVersion("test-name", "1.0.0-alpha.beta"))
 }
+
+func TestNormalizeLabel(t *testing.T) {
+	// Cases fetched from https://packaging.python.org/en/latest/specifications/well-known-project-urls/#label-normalization.
+	assert.Equal(t, "homepage", normalizeLabel("Homepage"))
+	assert.Equal(t, "homepage", normalizeLabel("Home-page"))
+	assert.Equal(t, "homepage", normalizeLabel("Home page"))
+	assert.Equal(t, "changelog", normalizeLabel("Change_Log"))
+	assert.Equal(t, "whatsnew", normalizeLabel("What's New?"))
+	assert.Equal(t, "github", normalizeLabel("github"))
+}
