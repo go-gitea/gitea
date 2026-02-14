@@ -73,7 +73,7 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 
 	return hdata, db.GetEngine(ctx).
 		Table("user_heatmap_commit").
-		Select(groupBy+" AS timestamp, count(*) as contributions").
+		Select(groupBy + " AS timestamp, count(*) as contributions").
 		Where(cond).
 		GroupBy(groupByName).
 		OrderBy("timestamp").
