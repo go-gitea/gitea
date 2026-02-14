@@ -82,8 +82,7 @@ func GetTotalContributionsInHeatmap(hdata []*UserHeatmapData) int64 {
 }
 
 // heatmapDataJSON converts UserHeatmapData to a [][2]int64 format and computes
-// total contributions in a single pass. The format serializes as
-// [[timestamp,count],...] instead of [{"timestamp":N,"contributions":N},...].
+// total contributions.
 func heatmapDataJSON(hdata []*UserHeatmapData) ([][2]int64, int64) {
 	result := make([][2]int64, len(hdata))
 	var total int64
