@@ -557,9 +557,9 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 					effectiveCfg := cfg
 					if !cfg.OverrideOrgConfig && job.Run.Repo.OwnerID != 0 {
 						if err := job.Run.Repo.LoadOwner(ctx); err == nil && job.Run.Repo.Owner.IsOrganization() {
-							orgUnit, err := job.Run.Repo.Owner.GetUnit(ctx, unit.TypeActions)
+							orgCfg, err := actions_model.GetOrgActionsConfig(ctx, job.Run.Repo.OwnerID)
 							if err == nil {
-								effectiveCfg = orgUnit.ActionsConfig()
+								effectiveCfg = orgCfg
 							}
 						}
 					}
