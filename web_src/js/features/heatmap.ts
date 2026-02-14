@@ -4,7 +4,7 @@ import {translateMonth, translateDay} from '../utils.ts';
 import {GET} from '../modules/fetch.ts';
 
 type HeatmapResponse = {
-  heatmapData: Array<[number, number]>;
+  heatmapData: Array<[number, number]>; // [[1617235200, 2]] = [unix timestamp, count]
   totalContributions: number;
 };
 
