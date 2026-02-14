@@ -10,6 +10,7 @@ export async function initHeatmap() {
   try {
     const url = el.getAttribute('data-heatmap-url')!;
     const resp = await GET(url);
+    if (!resp.ok) throw new Error(`Failed to load heatmap data: ${resp.status} ${resp.statusText}`);
     const {heatmapData, totalContributions} = await resp.json() as {heatmapData: [number, number][], totalContributions: number};
 
     const heatmap: Record<string, number> = {};

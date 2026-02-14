@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"sort"
@@ -115,9 +116,9 @@ func Dashboard(ctx *context.Context) {
 		heatmapURL := setting.AppSubURL + "/user/heatmap"
 		if ctx.Org.Organization != nil {
 			if ctx.Org.Team != nil {
-				heatmapURL = setting.AppSubURL + "/org/" + ctx.Org.Organization.Name + "/dashboard/" + ctx.Org.Team.Name + "/heatmap"
+				heatmapURL = ctx.Org.Organization.OrganisationLink() + "/dashboard/" + url.PathEscape(ctx.Org.Team.Name) + "/heatmap"
 			} else {
-				heatmapURL = setting.AppSubURL + "/org/" + ctx.Org.Organization.Name + "/dashboard/heatmap"
+				heatmapURL = ctx.Org.Organization.OrganisationLink() + "/dashboard/heatmap"
 			}
 		}
 		ctx.Data["HeatmapURL"] = heatmapURL

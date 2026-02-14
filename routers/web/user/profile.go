@@ -163,7 +163,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	case "activity":
 		if setting.Service.EnableUserHeatmap && activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
 			ctx.Data["EnableHeatmap"] = true
-			ctx.Data["HeatmapURL"] = setting.AppSubURL + "/" + ctx.ContextUser.Name + "/-/heatmap"
+			ctx.Data["HeatmapURL"] = ctx.ContextUser.HomeLink() + "/-/heatmap"
 		}
 
 		date := ctx.FormString("date")
