@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"strings"
 	"testing"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -45,7 +46,7 @@ func TestAttachCommentsToLines(t *testing.T) {
 }
 
 func TestNewPullRequestTitleContent(t *testing.T) {
-	ci := &git_service.CompareInfo{HeadRef: "refs/head/head-branch"}
+	ci := &git_service.CompareInfo{HeadRef: "refs/heads/head-branch"}
 
 	mockCommit := func(msg string) *git_model.SignCommitWithStatuses {
 		return &git_model.SignCommitWithStatuses{
@@ -60,12 +61,16 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	}
 
 	title, content := prepareNewPullRequestTitleContent(ci, nil)
-	assert.Equal(t, "refs/head/head-branch", title)
+	assert.Equal(t, "head-branch", title)
 	assert.Empty(t, content)
 
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title-only")})
 	assert.Equal(t, "title-only", title)
 	assert.Empty(t, content)
+
+	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title-" + strings.Repeat("a", 255))})
+	assert.Equal(t, "title-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa…", title)
+	assert.Equal(t, "…aaaaaaaaa\n", content)
 
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{mockCommit("title\nbody")})
 	assert.Equal(t, "title", title)
@@ -76,5 +81,5 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 		mockCommit("title2\nbody2"),
 	})
 	assert.Equal(t, "title2", title)
-	assert.Equal(t, "", content)
+	assert.Empty(t, content)
 }

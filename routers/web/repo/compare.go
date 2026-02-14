@@ -441,6 +441,7 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 	}
 
 	var titleTrailer string
+	// TODO: 255 doesn't seem to be a good limit for title, just keep the old behavior
 	title, titleTrailer = util.EllipsisDisplayStringX(title, 255)
 	if titleTrailer != "" {
 		if content != "" {
