@@ -430,6 +430,7 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 	title = ci.HeadRef.ShortName()
 
 	if len(commits) > 0 {
+		// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
 		c := commits[len(commits)-1]
 		title = strings.TrimSpace(c.UserCommit.Summary())
 	}

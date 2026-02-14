@@ -77,9 +77,10 @@ func TestNewPullRequestTitleContent(t *testing.T) {
 	assert.Equal(t, "body", content)
 
 	title, content = prepareNewPullRequestTitleContent(ci, []*git_model.SignCommitWithStatuses{
-		mockCommit("title1\nbody1"),
+		// ordered from newest to oldest
 		mockCommit("title2\nbody2"),
+		mockCommit("title1\nbody1"),
 	})
-	assert.Equal(t, "title2", title)
+	assert.Equal(t, "title1", title)
 	assert.Empty(t, content)
 }
