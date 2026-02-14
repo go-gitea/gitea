@@ -400,8 +400,8 @@ func prepareMigrationTasks() []*migration {
 		newMigration(323, "Add support for actions concurrency", v1_26.AddActionsConcurrency),
 		newMigration(324, "Fix closed milestone completeness for milestones with no issues", v1_26.FixClosedMilestoneCompleteness),
 		newMigration(325, "Fix missed repo_id when migrate attachments", v1_26.FixMissedRepoIDWhenMigrateAttachments),
-		newMigration(326, "Create action_commit_date table", v1_26.CreateActionCommitDateTable),
-		newMigration(327, "Backfill action_commit_date from existing push actions", v1_26.BackfillActionCommitDates),
+		newMigration(326, "Create user_heatmap_commit table", v1_26.CreateUserHeatmapCommitTable),
+		newMigration(327, "Backfill user_heatmap_commit from existing push actions", v1_26.BackfillUserHeatmapCommits),
 	}
 	return preparedMigrations
 }

@@ -1,16 +1,18 @@
-# Action commit date records for heatmap testing
-# These map action_id to individual commit timestamps for accurate heatmap display
+# User heatmap commit records for heatmap testing
+# These store individual commit timestamps per user/repo for accurate heatmap display
 
-# For action id:10 (user 2 push with 2 commits on different dates)
+# For user 2 repo 2 (push with 2 commits on different dates)
 # The push was on Oct 20, 2020 (1603228283) but commits were on Oct 13 and Oct 20
 -
   id: 1
-  action_id: 10
+  user_id: 2
+  repo_id: 2
   commit_sha1: "abcdef1234567890abcdef1234567890abcdef12"
   commit_timestamp: 1602622800 # Oct 13, 2020, 21:00:00 UTC
 
 -
   id: 2
-  action_id: 10
+  user_id: 2
+  repo_id: 2
   commit_sha1: "1234567890abcdef1234567890abcdef12345678"
   commit_timestamp: 1603227600 # Oct 20, 2020, 19:00:00 UTC

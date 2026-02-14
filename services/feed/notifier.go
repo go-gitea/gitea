@@ -22,21 +22,17 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
-// buildCommitDates extracts commit timestamps for heatmap display, filtering out
-// commits with zero or negative timestamps (e.g. zero-value time.Time).
-func buildCommitDates(commits []*repository.PushCommit) []activities_model.CommitDateEntry {
-	dates := make([]activities_model.CommitDateEntry, 0, len(commits))
+// buildHeatmapCommits extracts commit timestamps for heatmap display.
+// Filtering of zero/negative timestamps is handled by InsertUserHeatmapCommits.
+func buildHeatmapCommits(commits []*repository.PushCommit) []activities_model.UserHeatmapCommit {
+	records := make([]activities_model.UserHeatmapCommit, 0, len(commits))
 	for _, c := range commits {
-		timestamp := timeutil.TimeStamp(c.Timestamp.Unix())
-		if timestamp <= 0 {
-			continue
-		}
-		dates = append(dates, activities_model.CommitDateEntry{
-			Sha1:      c.Sha1,
-			Timestamp: timestamp,
+		records = append(records, activities_model.UserHeatmapCommit{
+			CommitSha1:      c.Sha1,
+			CommitTimestamp: timeutil.TimeStamp(c.Timestamp.Unix()),
 		})
 	}
-	return dates
+	return records
 }
 
 type actionNotifier struct {
@@ -366,11 +362,15 @@ func (a *actionNotifier) PushCommits(ctx context.Context, pusher *user_model.Use
 		IsPrivate: repo.IsPrivate,
 	}
 
-	// Populate commit dates for heatmap (will be inserted by notifyWatchers)
-	action.CommitDates = buildCommitDates(commits.Commits)
-
 	if err = NotifyWatchers(ctx, action); err != nil {
 		log.Error("NotifyWatchers: %v", err)
+	}
+
+	// Insert commit timestamps into heatmap table (decoupled from action)
+	if heatmapCommits := buildHeatmapCommits(commits.Commits); len(heatmapCommits) > 0 {
+		if err := activities_model.InsertUserHeatmapCommits(ctx, pusher.ID, repo.ID, heatmapCommits); err != nil {
+			log.Error("InsertUserHeatmapCommits: %v", err)
+		}
 	}
 }
 
@@ -436,11 +436,15 @@ func (a *actionNotifier) SyncPushCommits(ctx context.Context, pusher *user_model
 		RefName:   opts.RefFullName.String(),
 	}
 
-	// Populate commit dates for heatmap (will be inserted by notifyWatchers)
-	action.CommitDates = buildCommitDates(commits.Commits)
-
 	if err = NotifyWatchers(ctx, action); err != nil {
 		log.Error("NotifyWatchers: %v", err)
+	}
+
+	// Insert commit timestamps into heatmap table (decoupled from action)
+	if heatmapCommits := buildHeatmapCommits(commits.Commits); len(heatmapCommits) > 0 {
+		if err := activities_model.InsertUserHeatmapCommits(ctx, repo.OwnerID, repo.ID, heatmapCommits); err != nil {
+			log.Error("InsertUserHeatmapCommits: %v", err)
+		}
 	}
 }
 

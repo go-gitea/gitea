@@ -8,9 +8,12 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // UserHeatmapData represents the data needed to create a heatmap
@@ -38,40 +41,40 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 
 	// Group by 15 minute intervals which will allow the client to accurately shift the timestamp to their timezone.
 	// The interval is based on the fact that there are timezones such as UTC +5:30 and UTC +12:45.
-	// For push actions with commit data, use commit timestamps from action_commit_date table.
-	// For other actions or pushes without commit data, fall back to created_unix.
-	groupBy := "CASE WHEN action_commit_date.commit_timestamp IS NOT NULL THEN action_commit_date.commit_timestamp / 900 * 900 ELSE created_unix / 900 * 900 END"
+	groupBy := "commit_timestamp / 900 * 900"
 	groupByName := "timestamp" // We need this extra case because mssql doesn't allow grouping by alias
 	switch {
 	case setting.Database.Type.IsMySQL():
-		groupBy = "CASE WHEN action_commit_date.commit_timestamp IS NOT NULL THEN action_commit_date.commit_timestamp DIV 900 * 900 ELSE created_unix DIV 900 * 900 END"
+		groupBy = "commit_timestamp DIV 900 * 900"
 	case setting.Database.Type.IsMSSQL():
 		groupByName = groupBy
 	}
 
-	cond, err := ActivityQueryCondition(ctx, GetFeedsOptions{
-		RequestedUser:  user,
-		RequestedTeam:  team,
-		Actor:          doer,
-		IncludePrivate: true, // don't filter by private, as we already filter by repo access
-		IncludeDeleted: true,
-		// * Heatmaps for individual users only include actions that the user themself did.
-		// * For organizations actions by all users that were made in owned
-		//   repositories are counted.
-		OnlyPerformedBy: !user.IsOrganization(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	cutoff := timeutil.TimeStampNow() - (366+7)*86400 // (366+7) days to include the first week for the heatmap
 
+	cond := builder.NewCond()
+	cond = cond.And(builder.Eq{"user_id": user.ID})
+	cond = cond.And(builder.Gt{"commit_timestamp": cutoff})
+
+	// Filter by accessible repos for the viewer
+	if doer == nil || !doer.IsAdmin {
+		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(doer)))
+	}
+
+	// Filter by team repos if applicable
+	if team != nil {
+		env := repo_model.AccessibleTeamReposEnv(organization.OrgFromUser(user), team)
+		teamRepoIDs, err := env.RepoIDs(ctx)
+		if err != nil {
+			return nil, err
+		}
+		cond = cond.And(builder.In("repo_id", teamRepoIDs))
+	}
+
 	return hdata, db.GetEngine(ctx).
-		Table("action").
+		Table("user_heatmap_commit").
 		Select(groupBy+" AS timestamp, count(*) as contributions").
-		Join("LEFT", "action_commit_date", "action_commit_date.action_id = action.id").
 		Where(cond).
-		And("(action_commit_date.commit_timestamp > ? OR (action_commit_date.commit_timestamp IS NULL AND created_unix > ?))", cutoff, cutoff).
 		GroupBy(groupByName).
 		OrderBy("timestamp").
 		Find(&hdata)

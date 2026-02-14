@@ -10,46 +10,50 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// CommitDateEntry holds a commit SHA and its author timestamp for heatmap display.
-// Used to pass commit date data from the notifier to the feed system without persisting it on Action.
-type CommitDateEntry struct {
-	Sha1      string
-	Timestamp timeutil.TimeStamp
-}
-
-// ActionCommitDate represents a commit's author date for heatmap display
-type ActionCommitDate struct {
+// UserHeatmapCommit stores an individual commit's author timestamp for heatmap display.
+// Decoupled from the action table — keyed by user and repo instead of action ID.
+type UserHeatmapCommit struct {
 	ID              int64              `xorm:"pk autoincr"`
-	ActionID        int64              `xorm:"INDEX"`
+	UserID          int64              `xorm:"INDEX"`
+	RepoID          int64              `xorm:"INDEX"`
 	CommitSha1      string             `xorm:"VARCHAR(64)"`
 	CommitTimestamp timeutil.TimeStamp `xorm:"INDEX"`
 }
 
 func init() {
-	db.RegisterModel(new(ActionCommitDate))
+	db.RegisterModel(new(UserHeatmapCommit))
 }
 
-// InsertActionCommitDates inserts commit date records for an action
-func InsertActionCommitDates(ctx context.Context, actionID int64, commits []CommitDateEntry) error {
+// InsertUserHeatmapCommits inserts commit date records for heatmap display,
+// filtering out commits with zero or negative timestamps.
+func InsertUserHeatmapCommits(ctx context.Context, userID, repoID int64, commits []UserHeatmapCommit) error {
 	if len(commits) == 0 {
 		return nil
 	}
 
-	records := make([]*ActionCommitDate, 0, len(commits))
-	for _, commit := range commits {
-		records = append(records, &ActionCommitDate{
-			ActionID:        actionID,
-			CommitSha1:      commit.Sha1,
-			CommitTimestamp: commit.Timestamp,
+	records := make([]*UserHeatmapCommit, 0, len(commits))
+	for i := range commits {
+		if commits[i].CommitTimestamp <= 0 {
+			continue
+		}
+		records = append(records, &UserHeatmapCommit{
+			UserID:          userID,
+			RepoID:          repoID,
+			CommitSha1:      commits[i].CommitSha1,
+			CommitTimestamp: commits[i].CommitTimestamp,
 		})
+	}
+
+	if len(records) == 0 {
+		return nil
 	}
 
 	_, err := db.GetEngine(ctx).Insert(&records)
 	return err
 }
 
-// DeleteActionCommitDates removes commit date records for an action
-func DeleteActionCommitDates(ctx context.Context, actionID int64) error {
-	_, err := db.GetEngine(ctx).Where("action_id = ?", actionID).Delete(new(ActionCommitDate))
+// DeleteUserHeatmapCommitsByRepo removes all heatmap commit records for a repo.
+func DeleteUserHeatmapCommitsByRepo(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Delete(new(UserHeatmapCommit))
 	return err
 }

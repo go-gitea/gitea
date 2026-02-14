@@ -5,13 +5,14 @@ package v1_26
 
 import "xorm.io/xorm"
 
-type ActionCommitDate struct {
+type UserHeatmapCommit struct {
 	ID              int64  `xorm:"pk autoincr"`
-	ActionID        int64  `xorm:"INDEX"`
+	UserID          int64  `xorm:"INDEX"`
+	RepoID          int64  `xorm:"INDEX"`
 	CommitSha1      string `xorm:"VARCHAR(64)"`
 	CommitTimestamp int64  `xorm:"INDEX"`
 }
 
-func CreateActionCommitDateTable(x *xorm.Engine) error {
-	return x.Sync(new(ActionCommitDate))
+func CreateUserHeatmapCommitTable(x *xorm.Engine) error {
+	return x.Sync(new(UserHeatmapCommit))
 }

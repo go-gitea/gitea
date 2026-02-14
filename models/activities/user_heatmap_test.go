@@ -25,11 +25,11 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		JSONResult  string
 	}{
 		{
-			"self looks at action in private repo (includes commits from action_commit_date)",
+			"self looks at action in private repo (includes commits from user_heatmap_commit)",
 			2, 2, 3, `[{"timestamp":1602622800,"contributions":1},{"timestamp":1603227600,"contributions":2}]`,
 		},
 		{
-			"admin looks at action in private repo (includes commits from action_commit_date)",
+			"admin looks at action in private repo (includes commits from user_heatmap_commit)",
 			2, 1, 3, `[{"timestamp":1602622800,"contributions":1},{"timestamp":1603227600,"contributions":2}]`,
 		},
 		{

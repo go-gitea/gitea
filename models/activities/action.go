@@ -149,9 +149,6 @@ type Action struct {
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 
-	// CommitDates holds per-commit timestamps for heatmap display (not persisted to DB).
-	// Only populated for push actions. Inserted into action_commit_date table by notifyWatchers.
-	CommitDates []CommitDateEntry `xorm:"-"`
 }
 
 func init() {
@@ -566,13 +563,6 @@ func DeleteOldActions(ctx context.Context, olderThan time.Duration) (err error) 
 	e := db.GetEngine(ctx)
 	cutoff := time.Now().Add(-olderThan).Unix()
 
-	// Delete associated commit date records first
-	_, err = e.Where("action_id IN (SELECT id FROM action WHERE created_unix < ?)", cutoff).Delete(&ActionCommitDate{})
-	if err != nil {
-		return err
-	}
-
-	// Delete old actions
 	_, err = e.Where("created_unix < ?", cutoff).Delete(&Action{})
 	return err
 }
@@ -598,20 +588,6 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) 
 			break
 		}
 
-		// Query action IDs before deleting
-		actionIDs := make([]int64, 0, len(commentIDs))
-		if err := e.Table("action").Select("id").In("comment_id", commentIDs).Find(&actionIDs); err != nil {
-			return err
-		}
-
-		// Delete associated commit date records
-		if len(actionIDs) > 0 {
-			if _, err := e.In("action_id", actionIDs).Delete(&ActionCommitDate{}); err != nil {
-				return err
-			}
-		}
-
-		// Delete the actions
 		if _, err = e.In("comment_id", commentIDs).Delete(&Action{}); err != nil {
 			return err
 		}
@@ -619,24 +595,6 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID, issueIndex int64) 
 		lastCommentID = commentIDs[len(commentIDs)-1]
 	}
 
-	// Query action IDs for issue create/PR create actions before deleting
-	actionIDs := make([]int64, 0)
-	if err := e.Table("action").Select("id").
-		Where("repo_id = ?", repoID).
-		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
-		Where("content LIKE ?", strconv.FormatInt(issueIndex, 10)+"|%"). // "IssueIndex|content..."
-		Find(&actionIDs); err != nil {
-		return err
-	}
-
-	// Delete associated commit date records
-	if len(actionIDs) > 0 {
-		if _, err := e.In("action_id", actionIDs).Delete(&ActionCommitDate{}); err != nil {
-			return err
-		}
-	}
-
-	// Delete the actions
 	_, err := e.Where("repo_id = ?", repoID).
 		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
 		Where("content LIKE ?", strconv.FormatInt(issueIndex, 10)+"|%"). // "IssueIndex|content..."
