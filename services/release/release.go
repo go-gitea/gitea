@@ -284,7 +284,9 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 
 	rel.Repo = oldRelease.Repo
-	needsCreateTag := oldRelease.IsDraft && !rel.IsDraft
+	isConvertFromDraft := oldRelease.IsDraft && !rel.IsDraft
+	isConvertedFromTag := oldRelease.IsTag && !rel.IsTag
+	needsCreateTag := false
 	if !rel.IsDraft {
 		if !gitrepo.IsTagExist(ctx, rel.Repo, rel.TagName) {
 			commit, err := gitRepo.GetCommit(rel.Target)
@@ -303,7 +305,6 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 			if err != nil {
 				return err
 			}
-			needsCreateTag = false
 		}
 	}
 
@@ -384,7 +385,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 
 	if !rel.IsDraft {
-		if needsCreateTag {
+		if !isConvertFromDraft && !isConvertedFromTag {
 			notify_service.UpdateRelease(ctx, doer, rel)
 		} else {
 			notify_service.NewRelease(ctx, rel)
