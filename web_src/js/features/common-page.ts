@@ -123,7 +123,7 @@ function doInputAutoFocusEnd(el: HTMLInputElement) {
   el.setSelectionRange(el.value.length, el.value.length);
 }
 
-export function handleInputAutoFocusEnd(el: HTMLElement) {
+export function handleInputAutoFocusEnd(el: Element) {
   queryElems(el, `[data-global-init="${InputAutoFocusEndInitName}"]`, doInputAutoFocusEnd);
 }
 
