@@ -424,6 +424,14 @@ func GetCommitPullRequests(ctx *context.APIContext) {
 	//   description: SHA of the commit to get
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
@@ -453,7 +461,9 @@ func GetCommitPullRequests(ctx *context.APIContext) {
 
 	branches, err := gitRepo.GetBranchesContaining(sha)
 	if err != nil {
-		// If the commit doesn't exist or git errors, just proceed with merged results
+		// Intentionally ignoring errors here (e.g., invalid SHA, non-existent commit).
+		// This matches GitHub API behavior which returns 200 OK with an empty array
+		// rather than an error for unknown commits.
 		branches = nil
 	}
 
@@ -480,7 +490,23 @@ func GetCommitPullRequests(ctx *context.APIContext) {
 		}
 	}
 
+	totalCount := int64(len(allPRs))
+
+	// Apply pagination
+	listOptions := utils.GetListOptions(ctx)
+	start := (listOptions.Page - 1) * listOptions.PageSize
+	end := start + listOptions.PageSize
+	if start >= len(allPRs) {
+		allPRs = issues_model.PullRequestList{}
+	} else {
+		if end > len(allPRs) {
+			end = len(allPRs)
+		}
+		allPRs = allPRs[start:end]
+	}
+
 	if len(allPRs) == 0 {
+		ctx.SetTotalCountHeader(totalCount)
 		ctx.JSON(http.StatusOK, []*api.PullRequest{})
 		return
 	}
@@ -491,5 +517,6 @@ func GetCommitPullRequests(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	ctx.SetTotalCountHeader(totalCount)
 	ctx.JSON(http.StatusOK, apiPRs)
 }
