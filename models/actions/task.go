@@ -20,6 +20,7 @@ import (
 
 	runnerv1 "code.gitea.io/actions-proto-go/runner/v1"
 	lru "github.com/hashicorp/golang-lru/v2"
+	"github.com/nektos/act/pkg/jobparser"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"xorm.io/builder"
 )
@@ -214,6 +215,17 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 	return nil, errNotExist
 }
 
+func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
+	if step.Name != "" {
+		name = step.Name // the step has an explicit name
+	} else {
+		// for unnamed step, its "String()" method tries to get a display name by its "name", "uses", "run" or "id" (last fallback)
+		// we add the "Run " prefix for unnamed steps for better display
+		name = "Run " + step.String()
+	}
+	return util.EllipsisDisplayString(name, limit) // database column has a length limit
+}
+
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
@@ -293,13 +305,8 @@ func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask
 	if len(workflowJob.Steps) > 0 {
 		steps := make([]*ActionTaskStep, len(workflowJob.Steps))
 		for i, v := range workflowJob.Steps {
-			name := v.String()
-			if v.Name == "" {
-				name = "Run " + name
-			}
-			name = util.EllipsisDisplayString(name, 255)
 			steps[i] = &ActionTaskStep{
-				Name:   name,
+				Name:   makeTaskStepDisplayName(v, 255),
 				TaskID: task.ID,
 				Index:  int64(i),
 				RepoID: task.RepoID,
