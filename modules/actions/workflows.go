@@ -37,8 +37,8 @@ func init() {
 	}
 }
 
-// getWorkflowPaths returns the configured workflow directory paths (e.g. ".gitea/workflows").
-func getWorkflowPaths() []string {
+// getWorkflowDirs returns the configured workflow directories (e.g. ".gitea/workflows").
+func getWorkflowDirs() []string {
 	return setting.Actions.WorkflowDirs
 }
 
@@ -47,8 +47,8 @@ func IsWorkflow(path string) bool {
 		return false
 	}
 
-	for _, workflowPath := range getWorkflowPaths() {
-		if strings.HasPrefix(path, workflowPath) {
+	for _, workflowDir := range getWorkflowDirs() {
+		if strings.HasPrefix(path, workflowDir) {
 			return true
 		}
 	}
@@ -58,9 +58,9 @@ func IsWorkflow(path string) bool {
 func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
 	var tree *git.Tree
 	var err error
-	var workflowPath string
-	for _, workflowPath = range getWorkflowPaths() {
-		tree, err = commit.SubTree(workflowPath)
+	var workflowDir string
+	for _, workflowDir = range getWorkflowDirs() {
+		tree, err = commit.SubTree(workflowDir)
 		if err == nil {
 			break
 		}
@@ -83,7 +83,7 @@ func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
 			ret = append(ret, entry)
 		}
 	}
-	return workflowPath, ret, nil
+	return workflowDir, ret, nil
 }
 
 func GetContentFromEntry(entry *git.TreeEntry) ([]byte, error) {
