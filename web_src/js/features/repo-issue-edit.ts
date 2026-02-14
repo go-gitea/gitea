@@ -98,10 +98,7 @@ async function tryOnEditContent(e: Event) {
     form.addEventListener('submit', saveAndRefresh);
   }
 
-  // FIXME: ideally here should reload content and attachment list from backend for existing editor, to avoid losing data
-  if (!comboMarkdownEditor.value()) {
-    comboMarkdownEditor.value(rawContent.textContent);
-  }
+  comboMarkdownEditor.value(rawContent.textContent);
   comboMarkdownEditor.switchTabToEditor();
   comboMarkdownEditor.focus();
   triggerUploadStateChanged(comboMarkdownEditor.container);
