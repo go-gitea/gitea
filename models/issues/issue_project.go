@@ -23,14 +23,20 @@ func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
 }
 
 func (issue *Issue) projectIDs(ctx context.Context) []int64 {
-	var ids []int64
-
-	has, err = db.GetEngine(ctx).Table("project_issue").Where("issue_id=?", issue.ID).Select("project_id").Find(&ids);
-
-	if err != nil || !has {
+	var pis []project_model.ProjectIssue
+	if err := db.GetEngine(ctx).Table("project_issue").Where("issue_id = ?", issue.ID).Cols("project_id").Find(&pis); err != nil {
+		// on error, treat as no associated projects
 		return nil
 	}
 
+	if len(pis) == 0 {
+		return nil
+	}
+
+	ids := make([]int64, 0, len(pis))
+	for _, pi := range pis {
+		ids = append(ids, pi.ProjectID)
+	}
 	return ids
 }
 
