@@ -523,6 +523,20 @@ func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err e
 	return len(stdout) > 0, err
 }
 
+// GetBranchesContaining returns all local branch names that contain the given commit.
+func (repo *Repository) GetBranchesContaining(commitID string) ([]string, error) {
+	stdout, _, err := gitcmd.NewCommand("for-each-ref", "--format=%(refname:strip=2)").
+		AddOptionValues("--contains", commitID, BranchPrefix).
+		WithDir(repo.Path).
+		RunStdString(repo.Ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	branches := strings.Fields(stdout)
+	return branches, nil
+}
+
 // GetCommitBranchStart returns the commit where the branch diverged
 func (repo *Repository) GetCommitBranchStart(env []string, branch, endCommitID string) (string, error) {
 	cmd := gitcmd.NewCommand("log", prettyLogFormat)

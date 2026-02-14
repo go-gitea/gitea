@@ -1012,3 +1012,24 @@ func GetPullRequestsByMergedCommit(ctx context.Context, repoID int64, sha string
 
 	return prs, nil
 }
+
+// GetPullRequestsByHeadBranch returns all pull requests whose head branch is one
+// of the given branch names and whose head repo matches the given repo ID.
+// This is used to find PRs that contain a specific commit by first determining
+// which branches contain the commit via git, then matching to PRs in the DB.
+func GetPullRequestsByHeadBranch(ctx context.Context, repoID int64, branches []string) (PullRequestList, error) {
+	if len(branches) == 0 {
+		return nil, nil
+	}
+
+	prs := PullRequestList{}
+	err := db.GetEngine(ctx).
+		Where("head_repo_id = ?", repoID).
+		In("head_branch", branches).
+		Find(&prs)
+	if err != nil {
+		return nil, err
+	}
+
+	return prs, nil
+}

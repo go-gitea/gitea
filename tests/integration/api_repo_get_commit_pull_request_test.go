@@ -23,58 +23,58 @@ func TestAPIReposGetCommitPullRequests(t *testing.T) {
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeReadRepository)
 
-	// Test with a commit that has an associated merged PR
-	t.Run("ValidMergedCommit", func(t *testing.T) {
-		// Use the actual merged commit SHA from your test fixtures
+	// Helper: query the /pulls endpoint and decode the response
+	getCommitPRs := func(t *testing.T, sha string, expectedStatus int) []*api.PullRequest {
+		t.Helper()
+		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/%s/pulls", user.Name, sha).
+			AddTokenAuth(token)
+		resp := MakeRequest(t, req, expectedStatus)
+
+		var prs []*api.PullRequest
+		DecodeJSON(t, resp, &prs)
+		return prs
+	}
+
+	t.Run("MergedCommit", func(t *testing.T) {
+		// PR #1 (fixture id=1) has merged_commit_id = 1a8823cd1a9549fde083f992f6b9b87a7ab74fb3
+		// This tests the DB-level lookup by merged_commit_id
 		mergedCommitSHA := "1a8823cd1a9549fde083f992f6b9b87a7ab74fb3"
 
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/%s/pulls", user.Name, mergedCommitSHA).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
+		prs := getCommitPRs(t, mergedCommitSHA, http.StatusOK)
 
-		var pullRequests []*api.PullRequest
-		DecodeJSON(t, resp, &pullRequests)
-
-		assert.NotEmpty(t, pullRequests, "Should find at least one PR for this commit")
-		// Verify the PR details match expectations
-		assert.Equal(t, int64(2), pullRequests[0].Index)
-		assert.Equal(t, "master", pullRequests[0].Base.Name)
+		assert.NotEmpty(t, prs, "Should find the PR by its merge commit SHA")
+		assert.Equal(t, int64(2), prs[0].Index, "Should be PR index 2 (fixture PR #1)")
+		assert.Equal(t, "master", prs[0].Base.Name)
 	})
 
-	t.Run("CommitWithNoPRs", func(t *testing.T) {
-		// Use a valid commit that was never part of a PR — returns empty array
-		commitWithoutPR := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	t.Run("CommitInPRBranch", func(t *testing.T) {
+		// Commit 5c050d3b is on branch2 (PR #2, fixture id=2) and pr-to-update (PR #5, fixture id=5)
+		// This tests the git branch containment strategy
+		commitOnBranch := "5c050d3b6d2db231ab1f64e324f1b6b9a0b181c2"
 
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/%s/pulls", user.Name, commitWithoutPR).
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
+		prs := getCommitPRs(t, commitOnBranch, http.StatusOK)
 
-		var pullRequests []*api.PullRequest
-		DecodeJSON(t, resp, &pullRequests)
+		assert.NotEmpty(t, prs, "Should find PRs whose branches contain this commit")
 
-		assert.Empty(t, pullRequests, "Should return empty array for commit without PRs")
+		// Verify we found at least the PR with head_branch=branch2
+		foundPR2 := false
+		for _, pr := range prs {
+			if pr.Index == 3 { // PR #2 has issue_id=3 so index=3
+				foundPR2 = true
+				assert.Equal(t, "branch2", pr.Head.Name)
+			}
+		}
+		assert.True(t, foundPR2, "Expected to find PR with head_branch=branch2")
 	})
 
 	t.Run("InvalidCommitSHA", func(t *testing.T) {
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/%s/pulls", user.Name, "invalidsha").
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		var pullRequests []*api.PullRequest
-		DecodeJSON(t, resp, &pullRequests)
-
-		assert.Empty(t, pullRequests)
+		prs := getCommitPRs(t, "invalidsha", http.StatusOK)
+		assert.Empty(t, prs, "Should return empty array for invalid SHA")
 	})
 
 	t.Run("NonexistentCommit", func(t *testing.T) {
 		// Valid SHA format but doesn't exist in repo
-		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/commits/%s/pulls", user.Name, "0000000000000000000000000000000000000000").
-			AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		var pullRequests []*api.PullRequest
-		DecodeJSON(t, resp, &pullRequests)
-
-		assert.Empty(t, pullRequests)
+		prs := getCommitPRs(t, "0000000000000000000000000000000000000000", http.StatusOK)
+		assert.Empty(t, prs, "Should return empty array for nonexistent commit")
 	})
 }

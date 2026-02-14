@@ -11,6 +11,7 @@ import (
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -404,7 +405,7 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 func GetCommitPullRequests(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/commits/{sha}/pulls repository repoGetCommitPullRequests
 	// ---
-	// summary: Get the pull requests of the commit
+	// summary: Get the pull requests associated with a commit
 	// produces:
 	// - application/json
 	// parameters:
@@ -426,19 +427,66 @@ func GetCommitPullRequests(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/PullRequestList"
-	prs, err := issues_model.GetPullRequestsByMergedCommit(ctx, ctx.Repo.Repository.ID, ctx.PathParam("sha"))
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if !ctx.Repo.CanRead(unit.TypePullRequests) {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	sha := ctx.PathParam("sha")
+
+	// Strategy 1: Find PRs where this commit is the merge commit
+	mergedPRs, err := issues_model.GetPullRequestsByMergedCommit(ctx, ctx.Repo.Repository.ID, sha)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	if len(prs) == 0 {
+	// Strategy 2: Find branches containing this commit, then match to PRs
+	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	branches, err := gitRepo.GetBranchesContaining(sha)
+	if err != nil {
+		// If the commit doesn't exist or git errors, just proceed with merged results
+		branches = nil
+	}
+
+	branchPRs, err := issues_model.GetPullRequestsByHeadBranch(ctx, ctx.Repo.Repository.ID, branches)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	// Combine and deduplicate
+	seen := make(map[int64]bool, len(mergedPRs))
+	allPRs := make(issues_model.PullRequestList, 0, len(mergedPRs)+len(branchPRs))
+
+	for _, pr := range mergedPRs {
+		if !seen[pr.ID] {
+			seen[pr.ID] = true
+			allPRs = append(allPRs, pr)
+		}
+	}
+	for _, pr := range branchPRs {
+		if !seen[pr.ID] {
+			seen[pr.ID] = true
+			allPRs = append(allPRs, pr)
+		}
+	}
+
+	if len(allPRs) == 0 {
 		ctx.JSON(http.StatusOK, []*api.PullRequest{})
 		return
 	}
 
 	baseRepo := ctx.Repo.Repository
-	apiPRs, err := convert.ToAPIPullRequests(ctx, baseRepo, prs, ctx.Doer)
+	apiPRs, err := convert.ToAPIPullRequests(ctx, baseRepo, allPRs, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
