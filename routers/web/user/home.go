@@ -111,11 +111,11 @@ func Dashboard(ctx *context.Context) {
 
 	if setting.Service.EnableUserHeatmap {
 		ctx.Data["EnableHeatmap"] = true
-		heatmapPath := ctx.Req.URL.Path + "/heatmap"
+		heatmapURL := ctx.Req.URL.Path + "/-/heatmap"
 		if ctx.Org.Organization == nil {
-			heatmapPath = "/user/heatmap"
+			heatmapURL = "/user/heatmap"
 		}
-		ctx.Data["HeatmapURL"] = setting.AppSubURL + heatmapPath
+		ctx.Data["HeatmapURL"] = setting.AppSubURL + heatmapURL
 	}
 
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
