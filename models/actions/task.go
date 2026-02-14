@@ -215,15 +215,17 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 	return nil, errNotExist
 }
 
-func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
-	if step.Name != "" {
-		name = step.Name // the step has an explicit name
-	} else {
-		// for unnamed step, its "String()" method tries to get a display name by its "name", "uses", "run" or "id" (last fallback)
-		// we add the "Run " prefix for unnamed steps for better display
-		name = "Run " + step.String()
+func makeTaskStepDisplayName(step *jobparser.Step, limit int) string {
+	var name string
+	switch {
+	case step.Name != "":
+		name = step.Name
+	case step.Uses != "":
+		name = "Run " + step.Uses
+	case step.Run != "":
+		name = "Run " + step.Run
 	}
-	return util.EllipsisDisplayString(name, limit) // database column has a length limit
+	return util.EllipsisDisplayString(name, limit)
 }
 
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
