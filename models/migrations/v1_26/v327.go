@@ -26,14 +26,10 @@ func BackfillActionCommitDates(x *xorm.Engine) error {
 	const batchSize = 100
 	const actionCommitRepo = 5 // ActionCommitRepo operation type
 
-	// Only backfill actions within the heatmap window (373 days = 366 + 7 days buffer)
-	// Older actions won't be displayed in the heatmap anyway
-	cutoff := time.Now().AddDate(0, 0, -373).Unix()
-
 	// Process actions in batches
 	var lastID int64
 	for {
-		// Query batch of recent push actions only
+		// Query batch of push actions
 		type ActionRow struct {
 			ID      int64  `xorm:"id"`
 			Content string `xorm:"content"`
@@ -44,7 +40,6 @@ func BackfillActionCommitDates(x *xorm.Engine) error {
 			Select("id, content").
 			Where("op_type = ?", actionCommitRepo).
 			And("id > ?", lastID).
-			And("created_unix > ?", cutoff).
 			And("content != ''").
 			OrderBy("id").
 			Limit(batchSize).
