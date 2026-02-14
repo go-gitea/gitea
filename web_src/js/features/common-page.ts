@@ -118,19 +118,13 @@ function attachInputDirAuto(el: Partial<HTMLInputElement | HTMLTextAreaElement>)
 
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
-  // Use IntersectionObserver because the element may be initially hidden (e.g. the
-  // PR form on the compare page) where a direct focus() call would be a no-op.
-  // Expects only one such element on one page. If there are many, then the last one gets the focus.
-  // We don't use "autoFocus" attribute in HTML because it doesn't work when the element is initially hidden.
-  // FIXME: it should not do focus if other element already gets focused by user interaction
-  let lastEl: HTMLInputElement;
+  // Autofocuses a element when it becomes visible and set the text cursor to the end of the element
+  // If multiple elements are present on the same page, the last one to become visible wins
   registerGlobalInitFunc('initInputAutoFocusEnd', (el: HTMLInputElement) => {
-    lastEl = el;
     const observer = new IntersectionObserver((entries) => {
       for (const entry of entries) {
         if (entry.isIntersecting) {
           observer.disconnect();
-          if (el !== lastEl) return;
           el.focus();
           el.setSelectionRange(el.value.length, el.value.length);
         }
