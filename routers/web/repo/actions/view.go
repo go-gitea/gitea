@@ -323,7 +323,7 @@ func convertToViewModel(ctx *context_module.Context, cursors []LogCursor, task *
 		if wj, err := task.Job.ParseJob(); err == nil {
 			for i, step := range task.Steps {
 				if i < len(wj.Steps) && wj.Steps[i].Name == "" {
-					step.Name = ctx.Locale.TrString("actions.runs.run_prefix", step.Name)
+					step.Name = ctx.Locale.TrString("actions.runs.run", step.Name)
 				}
 			}
 		}

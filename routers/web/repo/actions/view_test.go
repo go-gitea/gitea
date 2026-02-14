@@ -51,10 +51,10 @@ jobs:
 	}
 	assert.Equal(t, []string{
 		"Set up job",
-		"actions.runs.run_prefix:actions/checkout@v4", // uses: without name gets prefix
-		"actions.runs.run_prefix:make build",          // run: without name gets prefix
-		"Run tests",                                   // run: with name unchanged
-		"actions.runs.run_prefix:echo done",           // run: without name gets prefix
+		"actions.runs.run:actions/checkout@v4", // uses: without name gets prefix
+		"actions.runs.run:make build",          // run: without name gets prefix
+		"Run tests",                            // run: with name unchanged
+		"actions.runs.run:echo done",           // run: without name gets prefix
 		"Complete job",
 	}, summaries)
 }
