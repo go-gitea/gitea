@@ -129,7 +129,7 @@ export function handleInputAutoFocusEnd(el: Element) {
 
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
-  registerGlobalInitFunc(InputAutoFocusEndInitName, handleInputAutoFocusEnd);
+  registerGlobalInitFunc(InputAutoFocusEndInitName, doInputAutoFocusEnd);
 }
 
 /**
