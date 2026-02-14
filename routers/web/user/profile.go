@@ -161,15 +161,9 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		ctx.Data["Cards"] = following
 		total = int(numFollowing)
 	case "activity":
-		// prepare heatmap data
-		if setting.Service.EnableUserHeatmap {
-			data, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
-			if err != nil {
-				ctx.ServerError("GetUserHeatmapDataByUser", err)
-				return
-			}
-			ctx.Data["HeatmapData"] = data
-			ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
+		if setting.Service.EnableUserHeatmap && activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
+			ctx.Data["EnableHeatmap"] = true
+			ctx.Data["HeatmapURL"] = setting.AppSubURL + "/" + ctx.ContextUser.Name + "/-/heatmap"
 		}
 
 		date := ctx.FormString("date")
@@ -318,6 +312,24 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	pager := context.NewPagination(total, pagingNum, page, 5)
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
+}
+
+// Heatmap returns heatmap data for a user profile as JSON
+func Heatmap(ctx *context.Context) {
+	if !setting.Service.EnableUserHeatmap || !activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
+		ctx.NotFound(nil)
+		return
+	}
+
+	data, total, err := activities_model.GetUserHeatmapDataByUserJSON(ctx, ctx.ContextUser, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("GetUserHeatmapDataByUserJSON", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]any{
+		"heatmapData":        data,
+		"totalContributions": total,
+	})
 }
 
 // ActionUserFollow is for follow/unfollow user request

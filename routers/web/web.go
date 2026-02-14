@@ -509,6 +509,7 @@ func registerWebRoutes(m *web.Router) {
 
 	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
+	m.Get("/user/heatmap", reqSignIn, user.DashboardHeatmap)
 
 	// ***** START: User *****
 	// "user/login" doesn't need signOut, then logged-in users can still access this route for redirection purposes by "/user/login?redirec_to=..."
@@ -887,6 +888,8 @@ func registerWebRoutes(m *web.Router) {
 
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
+			m.Get("/dashboard/heatmap", user.DashboardHeatmap)
+			m.Get("/dashboard/{team}/heatmap", user.DashboardHeatmap)
 			m.Get("/dashboard/{team}", user.Dashboard)
 			m.Get("/issues", user.Issues)
 			m.Get("/issues/{team}", user.Issues)
@@ -1024,6 +1027,7 @@ func registerWebRoutes(m *web.Router) {
 		}
 
 		m.Get("/repositories", org.Repositories)
+		m.Get("/heatmap", user.Heatmap)
 
 		m.Group("/projects", func() {
 			m.Group("", func() {

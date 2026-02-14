@@ -110,13 +110,17 @@ func Dashboard(ctx *context.Context) {
 	}
 
 	if setting.Service.EnableUserHeatmap {
-		data, err := activities_model.GetUserHeatmapDataByUserTeam(ctx, ctxUser, ctx.Org.Team, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
-			return
+		ctx.Data["EnableHeatmap"] = true
+		// Build the heatmap URL based on the dashboard context (personal vs org/team)
+		heatmapURL := setting.AppSubURL + "/user/heatmap"
+		if ctx.Org.Organization != nil {
+			if ctx.Org.Team != nil {
+				heatmapURL = setting.AppSubURL + "/" + ctx.Org.Organization.Name + "/dashboard/" + ctx.Org.Team.Name + "/heatmap"
+			} else {
+				heatmapURL = setting.AppSubURL + "/" + ctx.Org.Organization.Name + "/dashboard/heatmap"
+			}
 		}
-		ctx.Data["HeatmapData"] = data
-		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
+		ctx.Data["HeatmapURL"] = heatmapURL
 	}
 
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
@@ -143,6 +147,29 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Feeds"] = feeds
 
 	ctx.HTML(http.StatusOK, tplDashboard)
+}
+
+// DashboardHeatmap returns heatmap data for the dashboard as JSON
+func DashboardHeatmap(ctx *context.Context) {
+	if !setting.Service.EnableUserHeatmap {
+		ctx.NotFound(nil)
+		return
+	}
+
+	ctxUser := getDashboardContextUser(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	data, total, err := activities_model.GetUserHeatmapDataByUserTeamJSON(ctx, ctxUser, ctx.Org.Team, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("GetUserHeatmapDataByUserTeamJSON", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, map[string]any{
+		"heatmapData":        data,
+		"totalContributions": total,
+	})
 }
 
 // Milestones render the user milestones page
