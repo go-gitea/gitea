@@ -3,6 +3,11 @@ import ActivityHeatmap from '../components/ActivityHeatmap.vue';
 import {translateMonth, translateDay} from '../utils.ts';
 import {GET} from '../modules/fetch.ts';
 
+type HeatmapResponse = {
+  heatmapData: Array<[number, number]>;
+  totalContributions: number;
+};
+
 export async function initHeatmap() {
   const el = document.querySelector<HTMLElement>('#user-heatmap');
   if (!el) return;
@@ -11,7 +16,7 @@ export async function initHeatmap() {
     const url = el.getAttribute('data-heatmap-url')!;
     const resp = await GET(url);
     if (!resp.ok) throw new Error(`Failed to load heatmap data: ${resp.status} ${resp.statusText}`);
-    const {heatmapData, totalContributions} = await resp.json() as {heatmapData: [number, number][], totalContributions: number};
+    const {heatmapData, totalContributions} = await resp.json() as HeatmapResponse;
 
     const heatmap: Record<string, number> = {};
     for (const [timestamp, contributions] of heatmapData) {
