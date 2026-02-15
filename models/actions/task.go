@@ -223,6 +223,7 @@ func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 		name = step.Uses
 	} else if step.Run != "" {
 		// match GitHub's behavior: "Run " + first line of the script
+		// https://github.com/actions/runner/blob/66800900843747f37591b077091dd2c8cf2c1796/src/Runner.Worker/Handlers/ScriptHandler.cs#L45-L58
 		firstLine := strings.TrimLeft(step.Run, " \t\r\n")
 		if i := strings.IndexAny(firstLine, "\r\n"); i >= 0 {
 			firstLine = firstLine[:i]
