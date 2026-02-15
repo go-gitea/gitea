@@ -62,6 +62,20 @@ func renderCommentMarkdown(ctx *context.Context, act *activities_model.Action, c
 	return rendered
 }
 
+// renderCommentPreview truncates, renders and appends an ellipsis for feed previews.
+// Returns empty string when comment is empty.
+func renderCommentPreview(ctx *context.Context, act *activities_model.Action, comment string) string {
+	if len(comment) == 0 {
+		return ""
+	}
+	preview, truncated := templates.TruncateToPreviewLines(comment)
+	result := string(renderCommentMarkdown(ctx, act, preview))
+	if truncated {
+		result += "\n…"
+	}
+	return result
+}
+
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
 func feedActionsToFeedItems(ctx *context.Context, actions activities_model.ActionList) (items []*feeds.Item, err error) {
 	renderUtils := templates.NewRenderUtils(ctx)
@@ -224,20 +238,18 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx))
 			case activities_model.ActionCommentIssue, activities_model.ActionApprovePullRequest, activities_model.ActionRejectPullRequest, activities_model.ActionCommentPull:
 				desc = act.GetIssueTitle(ctx)
-				comment := act.GetCommentPreview()
-				if len(comment) != 0 {
-					preview, truncated := templates.TruncateToPreviewLines(comment)
-					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, preview))
-					if truncated {
-						desc += "\n…"
-					}
+				if rendered := renderCommentPreview(ctx, act, act.GetCommentPreview()); len(rendered) != 0 {
+					desc += "\n\n" + rendered
 				}
 			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
 			case activities_model.ActionCloseIssue, activities_model.ActionReopenIssue, activities_model.ActionClosePullRequest, activities_model.ActionReopenPullRequest:
 				desc = act.GetIssueTitle(ctx)
 			case activities_model.ActionPullReviewDismissed:
-				desc = ctx.Locale.TrString("action.review_dismissed_reason") + "\n\n" + act.GetCommentPreview()
+				desc = ctx.Locale.TrString("action.review_dismissed_reason")
+				if rendered := renderCommentPreview(ctx, act, act.GetCommentPreview()); len(rendered) != 0 {
+					desc += "\n\n" + rendered
+				}
 			}
 		}
 		if len(content) == 0 {

@@ -266,20 +266,20 @@ func TestMarkdownToHTMLWithPreviewLimit(t *testing.T) {
 
 	t.Run("short input has no truncation indicator", func(t *testing.T) {
 		out := string(newTestRenderUtils(t).MarkdownToHTMLWithPreviewLimit("hello"))
-		assert.NotContains(t, out, `<span class="text grey">`)
+		assert.NotContains(t, out, `<span class="tw-text-text-light">`)
 		assert.Contains(t, out, "hello")
 	})
 
 	t.Run("truncated input has indicator", func(t *testing.T) {
 		input := "1\n2\n3\n4\n5\n6"
 		out := string(newTestRenderUtils(t).MarkdownToHTMLWithPreviewLimit(input))
-		assert.Contains(t, out, `<span class="text grey">…</span>`)
+		assert.Contains(t, out, `<span class="tw-text-text-light">…</span>`)
 	})
 
 	t.Run("exactly MaxPreviewChars not truncated", func(t *testing.T) {
 		input := strings.Repeat("\U0001f600", MaxPreviewChars)
 		out := string(newTestRenderUtils(t).MarkdownToHTMLWithPreviewLimit(input))
-		assert.NotContains(t, out, `<span class="text grey">`)
+		assert.NotContains(t, out, `<span class="tw-text-text-light">`)
 	})
 }
 

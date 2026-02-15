@@ -280,7 +280,7 @@ func (ut *RenderUtils) MarkdownToHTMLWithPreviewLimit(input string) template.HTM
 	}
 
 	if truncated {
-		output = template.HTML(string(output) + `<span class="text grey">…</span>`)
+		output = template.HTML(string(output) + `<span class="tw-text-text-light">…</span>`)
 	}
 	return output
 }
