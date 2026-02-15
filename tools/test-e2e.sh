@@ -42,7 +42,7 @@ E2E_EMAIL="e2e@test.gitea.io"
 E2E_PASSWORD="password"
 if ! curl -sf --max-time 5 "$E2E_URL/api/v1/users/$E2E_USER" > /dev/null 2>&1; then
   echo "Creating e2e test user..."
-  if ${EXECUTABLE:-./gitea} admin user create --username "$E2E_USER" --email "$E2E_EMAIL" --password "$E2E_PASSWORD" --must-change-password=false 2>/dev/null; then
+  if ${EXECUTABLE:-./gitea} admin user create --username "$E2E_USER" --email "$E2E_EMAIL" --password "$E2E_PASSWORD" --must-change-password=false; then
     echo "User '$E2E_USER' created"
   else
     echo "error: failed to create user '$E2E_USER'" >&2

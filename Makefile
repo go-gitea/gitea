@@ -556,7 +556,7 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 .PHONY: test-e2e
 test-e2e: deps-frontend
 	@$(NODE_VARS) pnpm exec playwright install --with-deps chromium $(PLAYWRIGHT_FLAGS)
-	EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(E2E_FLAGS)
+	EXECUTABLE=./$(EXECUTABLE) ./tools/test-e2e.sh $(E2E_FLAGS)
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
