@@ -69,7 +69,7 @@ done
 
 # Create e2e test user if it does not already exist
 E2E_USER="e2e"
-E2E_EMAIL="e2e@test.gitea.io"
+E2E_EMAIL="e2e@e2e.gitea.com"
 E2E_PASSWORD="password"
 if ! curl -sf --max-time 5 "$E2E_URL/api/v1/users/$E2E_USER" > /dev/null 2>&1; then
   echo "Creating e2e test user..."
