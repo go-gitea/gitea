@@ -7,16 +7,15 @@ export default defineConfig({
   testMatch: /.*\.test\.ts/,
   forbidOnly: Boolean(env.CI),
   reporter: 'list',
-  timeout: env.CI ? 30000 : 10000,
+  timeout: env.CI ? 6000 : 2000,
   expect: {
-    timeout: env.CI ? 15000 : 5000,
+    timeout: env.CI ? 3000 : 1000,
   },
   use: {
-    baseURL: env.E2E_URL?.replace?.(/\/$/g, '') || 'http://localhost:3000',
+    baseURL: env.E2E_URL?.replace?.(/\/$/g, ''),
     locale: 'en-US',
-    trace: 'off',
-    screenshot: 'off',
-    video: 'off',
+    actionTimeout: env.CI ? 3000 : 1000,
+    navigationTimeout: env.CI ? 6000 : 2000,
   },
   projects: [
     {

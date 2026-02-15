@@ -1,0 +1,15 @@
+import {env} from 'node:process';
+import {test, expect} from '@playwright/test';
+import {login, deleteRepoApi} from './utils.ts';
+
+test('create a repository', async ({page}) => {
+  const repoName = `e2e-repo-${Date.now()}`;
+  await login(page);
+  await page.goto('/repo/create');
+  await page.getByLabel('Repository Name').fill(repoName);
+  await page.getByRole('button', {name: 'Create Repository'}).click();
+  await expect(page).toHaveURL(new RegExp(`/${env.E2E_USER}/${repoName}$`));
+
+  // cleanup
+  await deleteRepoApi(page.request, env.E2E_USER!, repoName);
+});
