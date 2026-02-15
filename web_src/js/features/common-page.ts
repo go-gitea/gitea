@@ -1,7 +1,7 @@
 import {GET, POST} from '../modules/fetch.ts';
 import {showGlobalErrorMessage} from '../bootstrap.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
+import {addDelegatedEventListener, isElemVisible, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
@@ -116,20 +116,36 @@ function attachInputDirAuto(el: Partial<HTMLInputElement | HTMLTextAreaElement>)
   }
 }
 
-const InputAutoFocusEndInitName = 'initInputAutoFocusEnd';
-
-function doInputAutoFocusEnd(el: HTMLInputElement) {
-  el.focus(); // expects only one such element on one page. If there are many, then the last one gets the focus.
+function setSelectionEnd(el: HTMLInputElement | HTMLTextAreaElement) {
   el.setSelectionRange(el.value.length, el.value.length);
-}
-
-export function handleInputAutoFocusEnd(el: Element) {
-  queryElems(el, `[data-global-init="${InputAutoFocusEndInitName}"]`, doInputAutoFocusEnd);
 }
 
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
-  registerGlobalInitFunc(InputAutoFocusEndInitName, doInputAutoFocusEnd);
+  registerGlobalSelectorFunc('[data-autofocus-end]', (el) => {
+    if (!isElemVisible(el)) return;
+    el.focus();
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      setSelectionEnd(el);
+    }
+  });
+
+  // when a show-panel button is clicked, focus the [data-autofocus-on-show-panel] element
+  // inside the shown panel. This handler runs after initGlobalButtons has already made the panel visible.
+  addDelegatedEventListener(document, 'click', '.show-panel', (el) => {
+    const panelSel = el.getAttribute('data-panel');
+    if (!panelSel) return;
+    for (const panel of document.querySelectorAll<HTMLElement>(panelSel)) {
+      if (!isElemVisible(panel)) continue;
+      const focusEl = panel.querySelector<HTMLInputElement>('[data-autofocus-on-show-panel]');
+      if (focusEl) {
+        focusEl.focus();
+        if (focusEl.hasAttribute('data-autofocus-end')) {
+          setSelectionEnd(focusEl);
+        }
+      }
+    }
+  });
 }
 
 /**
