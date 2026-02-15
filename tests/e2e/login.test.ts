@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test';
-import {login, logout, login_user} from './utils.ts';
+import {login, logout} from './utils.ts';
 
 test('homepage', async ({page}) => {
   const response = await page.goto('/');
@@ -8,8 +8,9 @@ test('homepage', async ({page}) => {
 });
 
 test('logged in user', async ({browser}) => {
-  const context = await login_user(browser, 'e2e');
+  const context = await browser.newContext();
   const page = await context.newPage();
+  await login(page, 'e2e');
   const response = await page.goto('/');
   expect(response?.status()).toBe(200);
 });

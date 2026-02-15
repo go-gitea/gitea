@@ -44,4 +44,6 @@ if ! curl -sf --max-time 5 "$GITEA_TEST_SERVER_URL/api/v1/users/$E2E_USER" > /de
 fi
 
 export GITEA_TEST_SERVER_URL
+export E2E_USER
+export E2E_PASSWORD
 exec pnpm exec playwright test "$@"
