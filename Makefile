@@ -1,19 +1,3 @@
-ifeq ($(USE_REPO_TEST_DIR),1)
-
-# This rule replaces the whole Makefile when we're trying to use /tmp repository temporary files
-location = $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
-self := $(location)
-
-%:
-	@tmpdir=`mktemp --tmpdir -d` ; \
-	echo Using temporary directory $$tmpdir for test repositories ; \
-	USE_REPO_TEST_DIR= $(MAKE) -f $(self) --no-print-directory REPO_TEST_DIR=$$tmpdir/ $@ ; \
-	STATUS=$$? ; rm -r "$$tmpdir" ; exit $$STATUS
-
-else
-
-# This is the "normal" part of the Makefile
-
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
@@ -907,9 +891,6 @@ generate-manpage: ## generate manpage
 docker:
 	docker build --disable-content-trust=false -t $(DOCKER_REF) .
 # support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
-
-# This endif closes the if at the top of the file
-endif
 
 # Disable parallel execution because it would break some targets that don't
 # specify exact dependencies like 'backend' which does currently not depend

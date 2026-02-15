@@ -63,7 +63,7 @@ jobs:
           RACE_ENABLED: true
           TEST_TAGS: gogit
           TEST_LDAP: 1
-          USE_REPO_TEST_DIR: 1
+          REPO_TEST_DIR: /tmp/gitea-test/
 
   test-sqlite:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -90,7 +90,7 @@ jobs:
           TAGS: bindata gogit sqlite sqlite_unlock_notify
           RACE_ENABLED: true
           TEST_TAGS: gogit sqlite sqlite_unlock_notify
-          USE_REPO_TEST_DIR: 1
+          REPO_TEST_DIR: /tmp/gitea-test/
 
   test-unit:
     if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.actions == 'true'
@@ -206,7 +206,7 @@ jobs:
         env:
           TAGS: bindata
           RACE_ENABLED: true
-          USE_REPO_TEST_DIR: 1
+          REPO_TEST_DIR: /tmp/gitea-test/
           TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
 
   test-mssql:
@@ -246,4 +246,4 @@ jobs:
         timeout-minutes: 50
         env:
           TAGS: bindata
-          USE_REPO_TEST_DIR: 1
+          REPO_TEST_DIR: /tmp/gitea-test/
