@@ -7,7 +7,6 @@ import (
 	gocontext "context"
 	"encoding/csv"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -436,7 +435,7 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 	}
 
 	if len(commits) == 1 {
-		// FIXME: GIT-COMMIT-MESSAGE-ENCODING: this logic is not right
+		// FIXME: GIT-COMMIT-MESSAGE-ENCODING: try to convert the encoding for commit message explicitly, ideally it should be done by a git commit struct method
 		c := commits[0]
 		_, content, _ = strings.Cut(strings.TrimSpace(c.UserCommit.CommitMessage), "\n")
 		content = strings.TrimSpace(content)
@@ -448,7 +447,7 @@ func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*g
 	title, titleTrailer = util.EllipsisDisplayStringX(title, 255)
 	if titleTrailer != "" {
 		if content != "" {
-			content = fmt.Sprintf("%s\n\n%s", titleTrailer, content)
+			content = titleTrailer + "\n\n" + content
 		} else {
 			content = titleTrailer + "\n"
 		}
