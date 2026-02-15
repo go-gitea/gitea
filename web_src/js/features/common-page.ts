@@ -1,7 +1,7 @@
 import {GET, POST} from '../modules/fetch.ts';
 import {showGlobalErrorMessage} from '../bootstrap.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
-import {addDelegatedEventListener, isElemVisible, queryElems} from '../utils/dom.ts';
+import {addDelegatedEventListener, queryElems} from '../utils/dom.ts';
 import {registerGlobalInitFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {initAvatarUploaderWithCropper} from './comp/Cropper.ts';
 import {initCompSearchRepoBox} from './comp/SearchRepoBox.ts';
@@ -120,31 +120,19 @@ function setSelectionEnd(el: HTMLInputElement | HTMLTextAreaElement) {
   el.setSelectionRange(el.value.length, el.value.length);
 }
 
+export function autoFocusEnd(container: Element) {
+  const el = container.querySelector<HTMLInputElement>('[data-global-init="autoFocusEnd"]');
+  if (el) {
+    el.focus();
+    setSelectionEnd(el);
+  }
+}
+
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
-
-  // handles [data-autofocus-end], moves the cursor to end after native autofocus
-  registerGlobalSelectorFunc('[data-autofocus-end]', (el) => {
-    if (document.activeElement === el) {
-      setSelectionEnd(el as HTMLInputElement | HTMLTextAreaElement);
-    }
-  });
-
-  // handles [data-autofocus-on-show-panel], when a show-panel button is clicked, focus the element
-  // inside the shown panel. This handler runs after initGlobalButtons has already made the panel visible.
-  addDelegatedEventListener(document, 'click', '.show-panel', (el) => {
-    const panelSel = el.getAttribute('data-panel');
-    if (!panelSel) return;
-    for (const panel of document.querySelectorAll<HTMLElement>(panelSel)) {
-      if (!isElemVisible(panel)) continue;
-      const focusEl = panel.querySelector<HTMLInputElement>('[data-autofocus-on-show-panel]');
-      if (focusEl) {
-        focusEl.focus();
-        if (focusEl.hasAttribute('data-autofocus-end')) {
-          setSelectionEnd(focusEl);
-        }
-      }
-    }
+  registerGlobalInitFunc('autoFocusEnd', (el: HTMLInputElement) => {
+    // on page load, native autofocus has already focused the element, just set cursor to end
+    if (document.activeElement === el) setSelectionEnd(el);
   });
 }
 

@@ -2,6 +2,7 @@ import {POST} from '../modules/fetch.ts';
 import {addDelegatedEventListener, hideElem, isElemVisible, showElem, toggleElem} from '../utils/dom.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {camelize} from 'vue';
+import {autoFocusEnd} from './common-page.ts';
 
 export function initGlobalButtonClickOnEnter(): void {
   addDelegatedEventListener(document, 'keypress', 'div.ui.button, span.ui.button', (el, e: KeyboardEvent) => {
@@ -89,6 +90,7 @@ function onShowPanelClick(el: HTMLElement, e: MouseEvent) {
   for (const elem of elems) {
     if (isElemVisible(elem as HTMLElement)) {
       elem.querySelector<HTMLElement>('[autofocus]')?.focus();
+      autoFocusEnd(elem);
     }
   }
 }
