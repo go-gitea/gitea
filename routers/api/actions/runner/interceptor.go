@@ -41,16 +41,27 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			}
 			return nil, status.Error(codes.Internal, err.Error())
 		}
+
 		if subtle.ConstantTimeCompare([]byte(runner.TokenHash), []byte(auth_model.HashToken(token, runner.TokenSalt))) != 1 {
 			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 		}
 
 		cols := []string{"last_online"}
-		runner.LastOnline = timeutil.TimeStampNow()
+
 		if methodName == "UpdateTask" || methodName == "UpdateLog" {
+			if runner.Deleted > 0 && timeutil.TimeStampNow()-runner.Deleted > timeutil.TimeStamp(10) {
+				return nil, status.Error(codes.Internal, "Runner is deleted")
+			}
+
 			runner.LastActive = timeutil.TimeStampNow()
 			cols = append(cols, "last_active")
+
+		} else if runner.Deleted != 0 {
+			return nil, status.Error(codes.Internal, "Runner is deleted")
 		}
+
+		runner.LastOnline = timeutil.TimeStampNow()
+
 		if err := actions_model.UpdateRunner(ctx, runner, cols...); err != nil {
 			log.Error("can't update runner status: %v", err)
 		}

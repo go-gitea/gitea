@@ -255,7 +255,7 @@ func (opts FindRunnerOptions) ToOrders() string {
 // GetRunnerByUUID returns a runner via uuid
 func GetRunnerByUUID(ctx context.Context, uuid string) (*ActionRunner, error) {
 	var runner ActionRunner
-	has, err := db.GetEngine(ctx).Where("uuid=?", uuid).Get(&runner)
+	has, err := db.GetEngine(ctx).Where("uuid=?", uuid).Unscoped().Get(&runner)
 	if err != nil {
 		return nil, err
 	} else if !has {

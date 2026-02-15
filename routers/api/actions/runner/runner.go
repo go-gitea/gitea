@@ -289,7 +289,7 @@ func (s *Service) UpdateLog(
 		}
 	}
 
-	if err := actions_model.UpdateTask(ctx, task, "log_indexes", "log_length", "log_size", "log_in_storage"); err != nil {
+	if err := actions_model.UpdateTask(ctx, task, "status", "log_indexes", "log_length", "log_size", "log_in_storage"); err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
 	if remove != nil {
