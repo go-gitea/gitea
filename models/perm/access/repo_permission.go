@@ -389,18 +389,15 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			if err != nil {
 				return perm, err
 			}
-			if !orgCfg.IsRepoAllowedCrossAccess(repo.ID) {
-				// Access explicitly denied by Org policy for same-org cross-repo access
-				// Even if the repo is public, we respect the org policy for tokens generated within the same org
+			if orgCfg.IsRepoAllowedCrossAccess(repo.ID) {
+				// Access allowed by Org policy (grants access to private repos)
+				perm = maxPerm
 				return perm, nil
 			}
-			// Access allowed by Org policy
-			perm = maxPerm
-			return perm, nil
+			// Fall through to allow public repository read access via botPerm check below
 		}
 
-		// Not same org OR not an organization
-		// Public repo allows read access
+		// Check if the repo is public or the Bot has explicit access
 		if botPerm.AccessMode >= perm_model.AccessModeRead {
 			perm = maxPerm
 			return perm, nil

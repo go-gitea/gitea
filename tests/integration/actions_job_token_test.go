@@ -409,6 +409,27 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		testCtx.ExpectedCode = http.StatusNotFound
 		t.Run("Cross-Repo Access Denied (Disabled)", doAPIGetRepository(testCtx, nil))
 
+		// Case C: Public Repository Access -> Should Succeed even if cross-repo is disabled
+		bFalse := false
+		repoCID := createRepoInOrg("repo-C")
+		// Make it public via API
+		req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", orgName, "repo-C"), &structs.EditRepoOption{
+			Private: &bFalse,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusOK)
+		enableActions(repoCID)
+
+		testCtxC := APITestContext{
+			Session:      emptyTestSession(t),
+			Token:        task.Token,
+			Username:     orgName,
+			Reponame:     "repo-C",
+			ExpectedCode: http.StatusOK,
+		}
+		t.Run("Cross-Repo Access Allowed for Public Repo (Disabled Policy)", doAPIGetRepository(testCtxC, func(t *testing.T, r structs.Repository) {
+			assert.Equal(t, "repo-C", r.Name)
+		}))
+
 		// 6. Test Cross-Repo Package Access
 		t.Run("Cross-Repo Package Access", func(t *testing.T) {
 			packageName := "cross-test-pkg"
