@@ -1,6 +1,11 @@
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
-import type {Page} from '@playwright/test';
+import type {Locator, Page} from '@playwright/test';
+
+export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {
+  await trigger.click();
+  await page.getByText(itemText).click();
+}
 
 export async function login(page: Page) {
   await page.goto('/user/login');
@@ -11,7 +16,7 @@ export async function login(page: Page) {
 }
 
 export async function logout(page: Page) {
-  await page.getByLabel('Profile and Settings…').click();
-  await page.getByText('Sign Out').click();
+  const navbar = page.getByRole('navigation', {name: 'Navigation Bar'});
+  await clickDropdownItem(page, navbar.getByTitle(env.E2E_USER!), 'Sign Out');
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeVisible();
 }
