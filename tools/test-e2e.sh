@@ -20,14 +20,23 @@ else
   GITEA_TEST_SERVER_URL="$ROOT_URL"
 fi
 
+# Normalize URL: trim trailing slash to avoid double slashes when appending paths
+GITEA_TEST_SERVER_URL="${GITEA_TEST_SERVER_URL%/}"
+
 echo "Using Gitea server: $GITEA_TEST_SERVER_URL"
 
-# Verify server is reachable
-if ! curl -sf --max-time 5 "$GITEA_TEST_SERVER_URL" > /dev/null 2>&1; then
-  echo "error: Gitea server at $GITEA_TEST_SERVER_URL is not reachable" >&2
-  echo "Start Gitea first: ${EXECUTABLE:-./gitea}" >&2
-  exit 1
-fi
+# Verify server is reachable, retry for up to 2 minutes for slow startup
+MAX_WAIT=120
+ELAPSED=0
+while ! curl -sf --max-time 5 "$GITEA_TEST_SERVER_URL" > /dev/null 2>&1; do
+  if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
+    echo "error: Gitea server at $GITEA_TEST_SERVER_URL is not reachable after ${MAX_WAIT}s" >&2
+    echo "Start Gitea first: ${EXECUTABLE:-./gitea}" >&2
+    exit 1
+  fi
+  sleep 2
+  ELAPSED=$((ELAPSED + 2))
+done
 
 # Create e2e test user if it does not already exist
 E2E_USER="e2e"

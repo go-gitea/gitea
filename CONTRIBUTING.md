@@ -178,7 +178,7 @@ Here's how to run the test suite:
 | :------------------------------------------ | :------------------------------------------------------- | ------------------------------------------- |
 |``make test[\#SpecificTestName]``            |  run unit test(s)                                        |                                             |
 |``make test-sqlite[\#SpecificTestName]``     |  run [integration](tests/integration) test(s) for SQLite | [More details](tests/integration/README.md) |
-|``make test-e2e``                            |  run [end-to-end](tests/e2e) test(s) using Playwright    |                                             |
+|``make test-e2e``                            |  run [end-to-end](tests/e2e) test(s) using Playwright    | Requires a running Gitea server             |
 
 ## Translation
 
