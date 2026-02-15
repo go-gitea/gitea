@@ -21,6 +21,11 @@ import (
 // https://github.com/google/go-licenses/blob/master/licenses/find.go
 var licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING).*$`)
 
+// primaryLicenseRe matches exact primary license filenames without suffixes.
+// When a directory has both primary and variant files (e.g. LICENSE and
+// LICENSE.docs), only the primary files are kept.
+var primaryLicenseRe = regexp.MustCompile(`^(?i)(LICEN[SC]E|COPYING)$`)
+
 // ignoredNames are LicenseEntry.Name values to exclude from the output.
 var ignoredNames = map[string]bool{
 	"code.gitea.io/gitea":                 true,
@@ -162,6 +167,24 @@ func scanDirForLicenses(dir, modulePath, moduleRoot string) []LicenseEntry {
 			LicenseText: string(content),
 		})
 	}
+
+	// When multiple license files exist, prefer primary files (e.g. LICENSE)
+	// over variants with suffixes (e.g. LICENSE.docs, LICENSE-2.0.txt).
+	// If no primary file exists, keep only the first variant.
+	if len(entries) > 1 {
+		var primary []LicenseEntry
+		for _, e := range entries {
+			fileName := e.Path[strings.LastIndex(e.Path, "/")+1:]
+			if primaryLicenseRe.MatchString(fileName) {
+				primary = append(primary, e)
+			}
+		}
+		if len(primary) > 0 {
+			return primary
+		}
+		return entries[:1]
+	}
+
 	return entries
 }
 
