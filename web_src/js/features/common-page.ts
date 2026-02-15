@@ -116,24 +116,28 @@ function attachInputDirAuto(el: Partial<HTMLInputElement | HTMLTextAreaElement>)
   }
 }
 
-function setSelectionEnd(el: HTMLInputElement | HTMLTextAreaElement) {
+function autoFocusEnd(el: HTMLInputElement | HTMLTextAreaElement) {
+  el.focus();
   el.setSelectionRange(el.value.length, el.value.length);
 }
 
-export function autoFocusEnd(container: Element) {
+export function applyAutoFocus(container: Element) {
+  // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/autofocus
+  // "autofocus" is a well-defined behavior: when a container (e.g.: dialog) becomes visible, apply the "autofocus" behavior
+  // Fomantic UI already supports it for its modal dialog, we need to cover more cases (e.g.: ".show-panel" button)
+  container.querySelector<HTMLElement>('[autofocus]')?.focus();
+  // Also, apply our autoFocusEnd behavior
   const el = container.querySelector<HTMLInputElement>('[data-global-init="autoFocusEnd"]');
-  if (el) {
-    el.focus();
-    setSelectionEnd(el);
-  }
+  if (el) autoFocusEnd(el);
 }
 
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
-  registerGlobalInitFunc('autoFocusEnd', (el: HTMLInputElement) => {
-    el.focus();
-    setSelectionEnd(el);
-  });
+
+  // autoFocusEnd is used for autofocus an input/textarea and move the cursor to the end of the text.
+  // It is useful for "New Issue"/"New PR" pages when the title is pre-filled with prefix text (e.g.: from template or commit message)
+  // The native "autofocus" isn't used because there is a delay between "focused (DOM rendering)" and "move cursor to end (our JS)", it causes flickers.
+  registerGlobalInitFunc('autoFocusEnd', autoFocusEnd);
 }
 
 /**
