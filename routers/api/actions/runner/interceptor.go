@@ -41,7 +41,6 @@ var withRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			}
 			return nil, status.Error(codes.Internal, err.Error())
 		}
-
 		if subtle.ConstantTimeCompare([]byte(runner.TokenHash), []byte(auth_model.HashToken(token, runner.TokenSalt))) != 1 {
 			return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 		}
