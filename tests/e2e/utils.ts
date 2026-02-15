@@ -11,7 +11,7 @@ export async function login(page: Page) {
 }
 
 export async function logout(page: Page) {
-  await page.getByText('Sign Out').dispatchEvent('click');
-  await page.waitForURL('**/');
+  await page.getByLabel('Profile and Settings…').click();
+  await page.getByText('Sign Out').click();
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeVisible();
 }
