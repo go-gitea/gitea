@@ -1,6 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
+EXECUTABLE="./${EXECUTABLE}"
+
 # Determine the Gitea server URL, either from E2E_URL env var or from custom/conf/app.ini
 if [ -z "${E2E_URL:-}" ]; then
   INI_FILE="custom/conf/app.ini"
