@@ -28,7 +28,7 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 			jobStep: &jobparser.Step{
 				Uses: "actions/checkout@v4",
 			},
-			expected: "actions/checkout@v4",
+			expected: "Run actions/check…",
 		},
 		{
 			name: "single-line run",
@@ -63,7 +63,7 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 			jobStep: &jobparser.Step{
 				ID: "step-id",
 			},
-			expected: "step-id",
+			expected: "Run step-id",
 		},
 		{
 			name: "very long name",
