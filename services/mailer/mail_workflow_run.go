@@ -156,7 +156,7 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 	if !run.Status.IsDone() || run.Status.IsSkipped() {
 		return nil
 	}
-	if sender.IsGiteaActions() || sender.IsGhost() || !sender.IsMailable() {
+	if !sender.IsMailable() {
 		return nil
 	}
 
