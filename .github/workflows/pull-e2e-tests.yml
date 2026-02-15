@@ -37,7 +37,6 @@ jobs:
           TAGS: bindata sqlite sqlite_unlock_notify
       - run: make deps-frontend
       - run: make frontend
-      - run: make playwright
       - run: |
           mkdir -p custom/conf
           cat <<'EOF' > custom/conf/app.ini
