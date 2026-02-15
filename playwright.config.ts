@@ -11,7 +11,7 @@ export default defineConfig({
     timeout: env.CI ? 15000 : 5000,
   },
   use: {
-    baseURL: env.GITEA_TEST_SERVER_URL?.replace?.(/\/$/g, '') || 'http://localhost:3000',
+    baseURL: env.E2E_URL?.replace?.(/\/$/g, '') || 'http://localhost:3000',
     locale: 'en-US',
     trace: 'off',
     screenshot: 'off',

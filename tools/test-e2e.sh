@@ -1,15 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
-# Determine the Gitea server URL, either from GITEA_URL env var or from custom/conf/app.ini
-if [ -n "${GITEA_URL:-}" ]; then
-  GITEA_TEST_SERVER_URL="$GITEA_URL"
-else
+# Determine the Gitea server URL, either from E2E_URL env var or from custom/conf/app.ini
+if [ -z "${E2E_URL:-}" ]; then
   INI_FILE="custom/conf/app.ini"
   if [ ! -f "$INI_FILE" ]; then
-    echo "error: $INI_FILE not found and GITEA_URL not set" >&2
-    echo "Either start Gitea with a config or set GITEA_URL explicitly:" >&2
-    echo "  GITEA_URL=http://localhost:3000 make test-e2e" >&2
+    echo "error: $INI_FILE not found and E2E_URL not set" >&2
+    echo "Either start Gitea with a config or set E2E_URL explicitly:" >&2
+    echo "  E2E_URL=http://localhost:3000 make test-e2e" >&2
     exit 1
   fi
   ROOT_URL=$(sed -n 's/^ROOT_URL\s*=\s*//p' "$INI_FILE" | tr -d '[:space:]')
@@ -17,20 +15,20 @@ else
     echo "error: ROOT_URL not found in $INI_FILE" >&2
     exit 1
   fi
-  GITEA_TEST_SERVER_URL="$ROOT_URL"
+  E2E_URL="$ROOT_URL"
 fi
 
 # Normalize URL: trim trailing slash to avoid double slashes when appending paths
-GITEA_TEST_SERVER_URL="${GITEA_TEST_SERVER_URL%/}"
+E2E_URL="${E2E_URL%/}"
 
-echo "Using Gitea server: $GITEA_TEST_SERVER_URL"
+echo "Using Gitea server: $E2E_URL"
 
 # Verify server is reachable, retry for up to 2 minutes for slow startup
 MAX_WAIT=120
 ELAPSED=0
-while ! curl -sf --max-time 5 "$GITEA_TEST_SERVER_URL" > /dev/null 2>&1; do
+while ! curl -sf --max-time 5 "$E2E_URL" > /dev/null 2>&1; do
   if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
-    echo "error: Gitea server at $GITEA_TEST_SERVER_URL is not reachable after ${MAX_WAIT}s" >&2
+    echo "error: Gitea server at $E2E_URL is not reachable after ${MAX_WAIT}s" >&2
     echo "Start Gitea first: ${EXECUTABLE:-./gitea}" >&2
     exit 1
   fi
@@ -42,7 +40,7 @@ done
 E2E_USER="e2e"
 E2E_EMAIL="e2e@test.gitea.io"
 E2E_PASSWORD="password"
-if ! curl -sf --max-time 5 "$GITEA_TEST_SERVER_URL/api/v1/users/$E2E_USER" > /dev/null 2>&1; then
+if ! curl -sf --max-time 5 "$E2E_URL/api/v1/users/$E2E_USER" > /dev/null 2>&1; then
   echo "Creating e2e test user..."
   if ${EXECUTABLE:-./gitea} admin user create --username "$E2E_USER" --email "$E2E_EMAIL" --password "$E2E_PASSWORD" --must-change-password=false 2>/dev/null; then
     echo "User '$E2E_USER' created"
@@ -52,7 +50,8 @@ if ! curl -sf --max-time 5 "$GITEA_TEST_SERVER_URL/api/v1/users/$E2E_USER" > /de
   fi
 fi
 
-export GITEA_TEST_SERVER_URL
+export E2E_URL
 export E2E_USER
 export E2E_PASSWORD
+
 exec pnpm exec playwright test "$@"

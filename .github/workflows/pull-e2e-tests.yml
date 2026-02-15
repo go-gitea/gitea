@@ -51,5 +51,5 @@ jobs:
           INSTALL_LOCK = true
           EOF
       - run: ./gitea web &
-      - run: GITEA_URL=http://localhost:3000 make test-e2e
+      - run: E2E_URL=http://localhost:3000 make test-e2e
         timeout-minutes: 10
