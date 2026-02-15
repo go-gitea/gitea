@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/nektos/act/pkg/jobparser"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // ExtractRawStrategies extracts strategy definitions from the raw workflow content
@@ -183,7 +183,7 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		workflowYAML,
 		jobparser.WithVars(mergedVars),
 		jobparser.WithGitContext(giteaCtx.ToGitHubContext()),
-		// jobparser.WithJobOutputs(jobOutputs),
+		jobparser.WithJobOutputs(jobOutputs),
 		jobparser.WithJobResults(jobResults),
 	)
 	parseTime := time.Since(parseStartTime)

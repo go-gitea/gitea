@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // Load project data from file, with optional validation
