@@ -123,8 +123,8 @@ function setSelectionEnd(el: HTMLInputElement | HTMLTextAreaElement) {
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
 
-  // move the selection to end after native autofocus, which has already focused
-  // the element by the time this JS runs
+  // handles [data-autofocus-end], moves the selection to end after native autofocus, which has already
+  // focused the element by the time this JS runs
   registerGlobalSelectorFunc('[data-autofocus-end]', (el) => {
     if (!isElemVisible(el)) return;
     if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
@@ -132,7 +132,7 @@ export function initGlobalInput() {
     }
   });
 
-  // when a show-panel button is clicked, focus the [data-autofocus-on-show-panel] element
+  // handles [data-autofocus-on-show-panel], when a show-panel button is clicked, focus the element
   // inside the shown panel. This handler runs after initGlobalButtons has already made the panel visible.
   addDelegatedEventListener(document, 'click', '.show-panel', (el) => {
     const panelSel = el.getAttribute('data-panel');
