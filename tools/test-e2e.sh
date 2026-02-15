@@ -31,7 +31,7 @@ ELAPSED=0
 while ! curl -sf --max-time 5 "$E2E_URL" > /dev/null 2>&1; do
   if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
     echo "error: Gitea server at $E2E_URL is not reachable after ${MAX_WAIT}s" >&2
-    echo "Start Gitea first: ${EXECUTABLE}" >&2
+    echo "Start Gitea first: ./${EXECUTABLE}" >&2
     exit 1
   fi
   sleep 2
@@ -44,7 +44,7 @@ E2E_EMAIL="e2e@test.gitea.io"
 E2E_PASSWORD="password"
 if ! curl -sf --max-time 5 "$E2E_URL/api/v1/users/$E2E_USER" > /dev/null 2>&1; then
   echo "Creating e2e test user..."
-  if "$EXECUTABLE" admin user create --username "$E2E_USER" --email "$E2E_EMAIL" --password "$E2E_PASSWORD" --must-change-password=false; then
+  if "./$EXECUTABLE" admin user create --username "$E2E_USER" --email "$E2E_EMAIL" --password "$E2E_PASSWORD" --must-change-password=false; then
     echo "User '$E2E_USER' created"
   else
     echo "error: failed to create user '$E2E_USER'" >&2
