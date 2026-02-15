@@ -67,6 +67,7 @@ cpu.out
 /indexers
 /log
 /public/assets/img/avatar
+/tests/e2e-output
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
 /tests/*.ini

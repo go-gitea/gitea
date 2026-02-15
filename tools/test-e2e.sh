@@ -23,13 +23,41 @@ E2E_URL="${E2E_URL%/}"
 
 echo "Using Gitea server: $E2E_URL"
 
+SERVER_PID=""
+cleanup() {
+  if [ -n "$SERVER_PID" ]; then
+    echo "Stopping temporary Gitea server (PID $SERVER_PID)..."
+    kill "$SERVER_PID" 2>/dev/null || true
+    wait "$SERVER_PID" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+
+# For local development, if no gitea server is running, start a temporary one.
+if [ -z "${CI:-}" ] && ! curl -sf --max-time 5 "$E2E_URL" > /dev/null 2>&1; then
+  if [ ! -x "./$EXECUTABLE" ]; then
+    echo "error: ./$EXECUTABLE not found or not executable, run 'make backend' first" >&2
+    exit 1
+  fi
+  echo "Starting temporary Gitea server..."
+  if [ -n "${E2E_DEBUG:-}" ]; then
+    "./$EXECUTABLE" web &
+  else
+    "./$EXECUTABLE" web > /dev/null 2>&1 &
+  fi
+  SERVER_PID=$!
+fi
+
 # Verify server is reachable, retry for up to 2 minutes for slow startup
 MAX_WAIT=120
 ELAPSED=0
 while ! curl -sf --max-time 5 "$E2E_URL" > /dev/null 2>&1; do
+  if [ -n "$SERVER_PID" ] && ! kill -0 "$SERVER_PID" 2>/dev/null; then
+    echo "error: Gitea server process exited unexpectedly" >&2
+    exit 1
+  fi
   if [ "$ELAPSED" -ge "$MAX_WAIT" ]; then
     echo "error: Gitea server at $E2E_URL is not reachable after ${MAX_WAIT}s" >&2
-    echo "Start Gitea first: ./${EXECUTABLE}" >&2
     exit 1
   fi
   sleep 2
@@ -54,4 +82,4 @@ export E2E_URL
 export E2E_USER
 export E2E_PASSWORD
 
-exec pnpm exec playwright test "$@"
+pnpm exec playwright test "$@"

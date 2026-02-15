@@ -178,7 +178,15 @@ Here's how to run the test suite:
 | :------------------------------------------ | :------------------------------------------------------- | ------------------------------------------- |
 |``make test[\#SpecificTestName]``            |  run unit test(s)                                        |                                             |
 |``make test-sqlite[\#SpecificTestName]``     |  run [integration](tests/integration) test(s) for SQLite | [More details](tests/integration/README.md) |
-|``make test-e2e``                            |  run [end-to-end](tests/e2e) test(s) using Playwright    | Requires a running Gitea server             |
+|``make test-e2e``                            |  run [end-to-end](tests/e2e) test(s) using Playwright    |                                             |
+
+- e2e test environment variables
+
+|  Variable       | Description                                                                 |
+| :-------------- | :-------------------------------------------------------------------------- |
+|``E2E_URL``      | URL of the Gitea server to test against (default: read from ``app.ini``)    |
+|``E2E_DEBUG``    | When set, show Gitea server output (only for auto-started server)           |
+|``E2E_FLAGS``    | Additional flags passed to Playwright (e.g. ``--headed --debug``)           |
 
 ## Translation
 

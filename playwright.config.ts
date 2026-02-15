@@ -3,6 +3,7 @@ import {defineConfig, devices} from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e/',
+  outputDir: './tests/e2e-output/',
   testMatch: /.*\.test\.ts/,
   forbidOnly: Boolean(env.CI),
   reporter: 'list',
