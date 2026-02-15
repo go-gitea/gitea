@@ -68,7 +68,7 @@
 				<div class="ui form tw-flex">
 					<div data-global-init="initSearchRepoBox" data-uid="{{.Org.AsUser.ID}}" class="ui search tw-flex-1">
 						<div class="ui input">
-							<input class="prompt" name="repo_name" placeholder="{{ctx.Locale.Tr "search.search_repo"}}" autocomplete="off" required>
+							<input class="prompt" name="repo_name" placeholder="{{ctx.Locale.Tr "search.search_repo"}}" autocomplete="off">
 						</div>
 					</div>
 					<button class="ui green button tw-ml-2" type="submit" formaction="{{$.Link}}/allowed_repos/add">{{ctx.Locale.Tr "add"}}</button>
