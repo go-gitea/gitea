@@ -16,7 +16,7 @@ export async function login(page: Page) {
 }
 
 export async function logout(page: Page) {
-  await page.context().clearCookies();
+  await page.context().clearCookies(); // workarkound issues related to fomantic dropdown
   await page.goto('/');
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeVisible();
 }
