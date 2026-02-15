@@ -10,7 +10,7 @@ test('homepage', async ({page}) => {
 test('logged in user', async ({browser}) => {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await login(page, 'e2e');
+  await login(page);
   const response = await page.goto('/');
   expect(response?.status()).toBe(200);
 });
