@@ -913,6 +913,7 @@ export default defineConfig([
     files: ['tests/e2e/*.test.ts'],
     rules: {
       ...playwright.configs['flat/recommended'].rules,
+      'playwright/no-raw-locators': [2],
     },
   },
   {
