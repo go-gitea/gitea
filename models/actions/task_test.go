@@ -17,18 +17,53 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "with name",
+			name: "explicit name",
 			jobStep: &jobparser.Step{
 				Name: "Test Step",
 			},
 			expected: "Test Step",
 		},
 		{
-			name: "without name",
+			name: "uses step",
 			jobStep: &jobparser.Step{
-				ID: "test-step-id",
+				Uses: "actions/checkout@v4",
 			},
-			expected: "Run test-step-id",
+			expected: "actions/checkout@v4",
+		},
+		{
+			name: "single-line run",
+			jobStep: &jobparser.Step{
+				Run: "echo hello",
+			},
+			expected: "Run echo hello",
+		},
+		{
+			name: "multi-line run",
+			jobStep: &jobparser.Step{
+				Run: "echo hello\necho world",
+			},
+			expected: "Run echo hello",
+		},
+		{
+			name: "multi-line run block scalar", // run: |\n  echo hello\n  echo world\n
+			jobStep: &jobparser.Step{
+				Run: "echo hello\necho world\n",
+			},
+			expected: "Run echo hello",
+		},
+		{
+			name: "multi-line run with leading newline",
+			jobStep: &jobparser.Step{
+				Run: "\n  echo hello\n  echo world",
+			},
+			expected: "Run echo hello",
+		},
+		{
+			name: "fallback to id",
+			jobStep: &jobparser.Step{
+				ID: "step-id",
+			},
+			expected: "step-id",
 		},
 		{
 			name: "very long name",
@@ -38,9 +73,9 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 			expected: "abcdeabcdeabcdeab…",
 		},
 		{
-			name: "very long id",
+			name: "very long run",
 			jobStep: &jobparser.Step{
-				ID: "abcdeabcdeabcdeabcdeabcdeabcde",
+				Run: "abcdeabcdeabcdeabcdeabcdeabcde",
 			},
 			expected: "Run abcdeabcdeabc…",
 		},

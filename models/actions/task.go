@@ -8,6 +8,7 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
@@ -217,11 +218,18 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 
 func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 	if step.Name != "" {
-		name = step.Name // the step has an explicit name
+		name = step.Name
+	} else if step.Uses != "" {
+		name = step.Uses
+	} else if step.Run != "" {
+		// match GitHub's behavior: "Run " + first line of the script
+		firstLine := strings.TrimLeft(step.Run, " \t\r\n")
+		if i := strings.IndexAny(firstLine, "\r\n"); i >= 0 {
+			firstLine = firstLine[:i]
+		}
+		name = "Run " + firstLine
 	} else {
-		// for unnamed step, its "String()" method tries to get a display name by its "name", "uses", "run" or "id" (last fallback)
-		// we add the "Run " prefix for unnamed steps for better display
-		name = "Run " + step.String()
+		name = step.ID
 	}
 	return util.EllipsisDisplayString(name, limit) // database column has a length limit
 }
