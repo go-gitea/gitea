@@ -27,6 +27,7 @@ func TestParseRawPermissions_ReadAll(t *testing.T) {
 	assert.Equal(t, perm.AccessModeRead, result.Packages)
 	assert.Equal(t, perm.AccessModeRead, result.Actions)
 	assert.Equal(t, perm.AccessModeRead, result.Wiki)
+	assert.Equal(t, perm.AccessModeRead, result.Projects)
 }
 
 func TestParseRawPermissions_WriteAll(t *testing.T) {
@@ -43,6 +44,7 @@ func TestParseRawPermissions_WriteAll(t *testing.T) {
 	assert.Equal(t, perm.AccessModeWrite, result.Packages)
 	assert.Equal(t, perm.AccessModeWrite, result.Actions)
 	assert.Equal(t, perm.AccessModeWrite, result.Wiki)
+	assert.Equal(t, perm.AccessModeWrite, result.Projects)
 }
 
 func TestParseRawPermissions_IndividualScopes(t *testing.T) {
@@ -53,6 +55,7 @@ pull-requests: none
 packages: write
 actions: read
 wiki: write
+projects: none
 `
 	var rawPerms yaml.Node
 	err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
@@ -65,6 +68,7 @@ wiki: write
 		Packages:     perm.AccessModeNone,
 		Actions:      perm.AccessModeNone,
 		Wiki:         perm.AccessModeNone,
+		Projects:     perm.AccessModeNone,
 	}
 	result := parseRawPermissions(&rawPerms, defaultPerms)
 
@@ -74,6 +78,7 @@ wiki: write
 	assert.Equal(t, perm.AccessModeWrite, result.Packages)
 	assert.Equal(t, perm.AccessModeRead, result.Actions)
 	assert.Equal(t, perm.AccessModeWrite, result.Wiki)
+	assert.Equal(t, perm.AccessModeNone, result.Projects)
 }
 
 func TestParseRawPermissions_PartialOverride(t *testing.T) {
@@ -186,6 +191,7 @@ func TestMarshalUnmarshalTokenPermissions(t *testing.T) {
 		Packages:     perm.AccessModeWrite,
 		Actions:      perm.AccessModeRead,
 		Wiki:         perm.AccessModeWrite,
+		Projects:     perm.AccessModeRead,
 	}
 
 	// Marshal
