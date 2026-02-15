@@ -15,7 +15,6 @@ import (
 	"slices"
 	"sort"
 	"strings"
-	"sync"
 )
 
 // regexp is based on go-license, excluding README and NOTICE
@@ -38,9 +37,9 @@ var excludedExt = map[string]bool{
 }
 
 type ModuleInfo struct {
-	Path string `json:"Path"`
-	Dir  string `json:"Dir"`
-	Main bool   `json:"Main"`
+	Path string
+	Dir  string
+	Main bool
 }
 
 type LicenseEntry struct {
@@ -121,30 +120,10 @@ func findLicenseFiles(dir, modulePath string) []LicenseEntry {
 	return entries
 }
 
-// getTrackedFiles returns the set of files tracked by git, relative to the
-// given directory. This is used to exclude gitignored files from license scanning.
-func getTrackedFiles(dir string) map[string]bool {
-	cmd := exec.Command("git", "ls-files")
-	cmd.Dir = dir
-	output, err := cmd.Output()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "warning: failed to run 'git ls-files': %v\n", err)
-		return nil
-	}
-	files := make(map[string]bool)
-	for _, line := range strings.Split(string(output), "\n") {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			files[filepath.FromSlash(line)] = true
-		}
-	}
-	return files
-}
-
 // findSubdirLicenses walks the main module's directory tree to find license
 // files in subdirectories (not the root), which indicate bundled code with
 // separate copyright attribution.
-func findSubdirLicenses(mod ModuleInfo, trackedFiles map[string]bool) []LicenseEntry {
+func findSubdirLicenses(mod ModuleInfo) []LicenseEntry {
 	var entries []LicenseEntry
 	err := filepath.WalkDir(mod.Dir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
@@ -153,7 +132,7 @@ func findSubdirLicenses(mod ModuleInfo, trackedFiles map[string]bool) []LicenseE
 		// Skip hidden directories and common non-source directories.
 		if d.IsDir() {
 			name := d.Name()
-			if strings.HasPrefix(name, ".") || name == "node_modules" || name == "vendor" || name == "internal" || name == "testdata" {
+			if strings.HasPrefix(name, ".") || name == "node_modules" || name == "vendor" || name == "internal" || name == "public" || name == "testdata" {
 				return filepath.SkipDir
 			}
 			return nil
@@ -167,13 +146,6 @@ func findSubdirLicenses(mod ModuleInfo, trackedFiles map[string]bool) []LicenseE
 		}
 		if excludedExt[strings.ToLower(filepath.Ext(d.Name()))] {
 			return nil
-		}
-		// Skip gitignored files to ensure consistent output across environments.
-		if trackedFiles != nil {
-			rel, _ := filepath.Rel(mod.Dir, path)
-			if !trackedFiles[rel] {
-				return nil
-			}
 		}
 		content, err := os.ReadFile(path)
 		if err != nil {
@@ -208,27 +180,14 @@ func main() {
 		goCmd = env
 	}
 
-	// Run git ls-files concurrently with go list.
-	var trackedFiles map[string]bool
-	var modules []ModuleInfo
-	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
-		trackedFiles = getTrackedFiles(".")
-	}()
-	go func() {
-		defer wg.Done()
-		modules = getModules(goCmd)
-	}()
-	wg.Wait()
+	modules := getModules(goCmd)
 
 	var entries []LicenseEntry
 	for _, mod := range modules {
 		if mod.Main {
 			// For the main module, scan subdirectories for license files
 			// that indicate bundled third-party code with separate copyright.
-			entries = append(entries, findSubdirLicenses(mod, trackedFiles)...)
+			entries = append(entries, findSubdirLicenses(mod)...)
 			continue
 		}
 
@@ -249,12 +208,13 @@ func main() {
 		panic(err)
 	}
 
-	// Ensure file has a final newline.
+	// Ensure file has a final newline
 	if jsonBytes[len(jsonBytes)-1] != '\n' {
 		jsonBytes = append(jsonBytes, '\n')
 	}
 
-	if err := os.WriteFile(out, jsonBytes, 0o644); err != nil {
+	err = os.WriteFile(out, jsonBytes, 0o644)
+	if err != nil {
 		panic(err)
 	}
 }
