@@ -23,6 +23,9 @@ E2E_URL="${E2E_URL%/}"
 
 echo "Using Gitea server: $E2E_URL"
 
+# Disable CAPTCHA for e2e tests
+export GITEA__service__ENABLE_CAPTCHA=false
+
 SERVER_PID=""
 cleanup() {
   if [ -n "$SERVER_PID" ]; then
@@ -70,7 +73,7 @@ E2E_EMAIL="e2e@test.gitea.io"
 E2E_PASSWORD="password"
 if ! curl -sf --max-time 5 "$E2E_URL/api/v1/users/$E2E_USER" > /dev/null 2>&1; then
   echo "Creating e2e test user..."
-  if "./$EXECUTABLE" admin user create --username "$E2E_USER" --email "$E2E_EMAIL" --password "$E2E_PASSWORD" --must-change-password=false; then
+  if "./$EXECUTABLE" admin user create --username "$E2E_USER" --email "$E2E_EMAIL" --password "$E2E_PASSWORD" --must-change-password=false --admin; then
     echo "User '$E2E_USER' created"
   else
     echo "error: failed to create user '$E2E_USER'" >&2
