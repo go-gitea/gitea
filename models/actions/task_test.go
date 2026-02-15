@@ -4,6 +4,7 @@
 package actions
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/nektos/act/pkg/jobparser"
@@ -28,7 +29,7 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 			jobStep: &jobparser.Step{
 				Uses: "actions/checkout@v4",
 			},
-			expected: "Run actions/check…",
+			expected: "Run actions/checkout@v4",
 		},
 		{
 			name: "single-line run",
@@ -66,23 +67,23 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 			expected: "Run step-id",
 		},
 		{
-			name: "very long name",
+			name: "very long name truncated",
 			jobStep: &jobparser.Step{
-				Name: "abcdeabcdeabcdeabcdeabcdeabcde",
+				Name: strings.Repeat("a", 300),
 			},
-			expected: "abcdeabcdeabcdeab…",
+			expected: strings.Repeat("a", 252) + "…",
 		},
 		{
-			name: "very long run",
+			name: "very long run truncated",
 			jobStep: &jobparser.Step{
-				Run: "abcdeabcdeabcdeabcdeabcdeabcde",
+				Run: strings.Repeat("a", 300),
 			},
-			expected: "Run abcdeabcdeabc…",
+			expected: "Run " + strings.Repeat("a", 248) + "…",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := makeTaskStepDisplayName(tt.jobStep, 20)
+			result := makeTaskStepDisplayName(tt.jobStep, 255)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
