@@ -555,8 +555,8 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
 playwright: deps-frontend
-	@# on GitHub Actions CI, playwright system deps are pre-installed
-	@$(NODE_VARS) pnpm exec playwright install $(if $(CI),,--with-deps) chromium $(PLAYWRIGHT_FLAGS)
+	@# on GitHub Actions VMs, playwright's system deps are pre-installed
+	@$(NODE_VARS) pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
 test-e2e: playwright
