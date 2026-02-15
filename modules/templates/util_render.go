@@ -246,6 +246,45 @@ func (ut *RenderUtils) MarkdownToHtml(input string) template.HTML { //nolint:rev
 	return output
 }
 
+// MaxPreviewLines is the maximum number of lines shown in feed previews.
+const MaxPreviewLines = 5
+
+// MaxPreviewChars is the character budget for feed previews.
+const MaxPreviewChars = 1000
+
+// TruncateToPreviewLines returns the first MaxPreviewLines lines capped at MaxPreviewChars runes.
+func TruncateToPreviewLines(input string) (string, bool) {
+	truncated := false
+
+	if runes := []rune(input); len(runes) > MaxPreviewChars {
+		input = string(runes[:MaxPreviewChars])
+		truncated = true
+	}
+
+	lines := strings.SplitN(input, "\n", MaxPreviewLines+1)
+	if len(lines) > MaxPreviewLines {
+		truncated = true
+	}
+
+	preview := strings.Join(lines[:min(len(lines), MaxPreviewLines)], "\n")
+	return preview, truncated
+}
+
+// MarkdownToHTMLWithPreviewLimit renders a truncated markdown preview safe for feeds.
+func (ut *RenderUtils) MarkdownToHTMLWithPreviewLimit(input string) template.HTML {
+	preview, truncated := TruncateToPreviewLines(input)
+
+	output, err := markdown.RenderString(markup.NewRenderContext(ut.ctx).WithMetas(markup.ComposeSimpleDocumentMetas()), preview)
+	if err != nil {
+		log.Error("RenderString: %v", err)
+	}
+
+	if truncated {
+		output = template.HTML(string(output) + `<span class="text grey">…</span>`)
+	}
+	return output
+}
+
 func (ut *RenderUtils) RenderLabels(labels []*issues_model.Label, repoLink string, issue *issues_model.Issue) template.HTML {
 	isPullRequest := issue != nil && issue.IsPull
 	baseLink := fmt.Sprintf("%s/%s", repoLink, util.Iif(isPullRequest, "pulls", "issues"))

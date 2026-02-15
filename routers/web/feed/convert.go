@@ -224,16 +224,20 @@ func feedActionsToFeedItems(ctx *context.Context, actions activities_model.Actio
 				content = renderCommentMarkdown(ctx, act, act.GetIssueContent(ctx))
 			case activities_model.ActionCommentIssue, activities_model.ActionApprovePullRequest, activities_model.ActionRejectPullRequest, activities_model.ActionCommentPull:
 				desc = act.GetIssueTitle(ctx)
-				comment := act.GetIssueInfos()[1]
+				comment := act.GetCommentPreview()
 				if len(comment) != 0 {
-					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, comment))
+					preview, truncated := templates.TruncateToPreviewLines(comment)
+					desc += "\n\n" + string(renderCommentMarkdown(ctx, act, preview))
+					if truncated {
+						desc += "\n…"
+					}
 				}
 			case activities_model.ActionMergePullRequest, activities_model.ActionAutoMergePullRequest:
 				desc = act.GetIssueInfos()[1]
 			case activities_model.ActionCloseIssue, activities_model.ActionReopenIssue, activities_model.ActionClosePullRequest, activities_model.ActionReopenPullRequest:
 				desc = act.GetIssueTitle(ctx)
 			case activities_model.ActionPullReviewDismissed:
-				desc = ctx.Locale.TrString("action.review_dismissed_reason") + "\n\n" + act.GetIssueInfos()[2]
+				desc = ctx.Locale.TrString("action.review_dismissed_reason") + "\n\n" + act.GetCommentPreview()
 			}
 		}
 		if len(content) == 0 {
