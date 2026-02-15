@@ -496,10 +496,10 @@ func (u *User) ShortName(length int) string {
 	return util.EllipsisDisplayString(u.Name, length)
 }
 
-// IsMailable checks if a user is eligible
-// to receive emails.
+// IsMailable checks if a user is eligible to receive emails.
+// System users like Ghost and Gitea Actions are excluded.
 func (u *User) IsMailable() bool {
-	return u.IsActive
+	return u.IsActive && !u.IsGiteaActions() && !u.IsGhost()
 }
 
 // IsUserExist checks if given username exist,
