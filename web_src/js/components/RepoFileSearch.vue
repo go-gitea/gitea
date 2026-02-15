@@ -23,8 +23,6 @@ const allFiles = ref<string[]>([]);
 const selectedIndex = ref(0);
 const isLoadingFileList = ref(false);
 const hasLoadedFileList = ref(false);
-const isInputFocused = ref(false);
-
 const showPopup = computed(() => searchQuery.value.length > 0);
 
 const filteredFiles = computed(() => {
@@ -150,11 +148,10 @@ watch([searchQuery, filteredFiles], async () => {
       <input
         ref="searchInput" :placeholder="placeholder" autocomplete="off"
         role="combobox" aria-autocomplete="list" :aria-expanded="searchQuery ? 'true' : 'false'"
-        data-global-keyboard-shortcut="t" aria-keyshortcuts="t"
+        aria-keyshortcuts="t"
         @input="handleSearchInput" @keydown="handleKeyDown"
-        @focus="isInputFocused = true" @blur="isInputFocused = false"
       >
-      <kbd v-show="!searchQuery && !isInputFocused" class="repo-file-search-shortcut-hint" aria-hidden="true">T</kbd>
+      <kbd data-global-keyboard-shortcut="t" class="repo-file-search-shortcut-hint" aria-hidden="true">T</kbd>
     </div>
 
     <Teleport to="body">
@@ -216,11 +213,6 @@ watch([searchQuery, filteredFiles], async () => {
   border: 1px solid var(--color-secondary);
   border-radius: 3px;
   pointer-events: none;
-}
-
-/* Hide kbd when input is focused so it doesn't interfere with focus border */
-.repo-file-search-input-wrapper input:focus + .repo-file-search-shortcut-hint {
-  display: none;
 }
 
 .file-search-popup {

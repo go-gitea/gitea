@@ -89,7 +89,7 @@ test.describe('Repository Keyboard Shortcuts', () => {
     await fileSearchInput.click();
     await page.keyboard.type('test');
 
-    // The hint should now be hidden (Vue component handles this with v-show)
+    // The hint should now be hidden (generic handler hides kbd on focus)
     await expect(fileKbdHint).toBeHidden();
   });
 

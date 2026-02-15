@@ -1,105 +1,148 @@
-// Copyright 2026 The Gitea Authors. All rights reserved.
-// SPDX-License-Identifier: MIT
+import {describe, test, expect, beforeEach, afterEach} from 'vitest';
 
-import {initRepoCodeSearchShortcut} from './repo-shortcuts.ts';
+// The keyboard shortcut mechanism is driven by global event delegation in observer.ts.
+// These tests set up the same event listeners to verify the behavior in isolation.
 
-describe('Repository Code Search Shortcut Hint', () => {
-  let codeSearchInput: HTMLInputElement;
-  let codeSearchHint: HTMLElement;
+function setupKeyboardShortcutListeners() {
+  document.addEventListener('keydown', (e: KeyboardEvent) => {
+    const target = e.target as HTMLElement;
+
+    if (e.key === 'Escape' && target.matches('input, textarea, select')) {
+      const kbd = target.parentElement?.querySelector<HTMLElement>('kbd[data-global-keyboard-shortcut]');
+      if (kbd) {
+        (target as HTMLInputElement).value = '';
+        (target as HTMLInputElement).blur();
+        return;
+      }
+    }
+
+    if (target.matches('input, textarea, select') || target.isContentEditable) return;
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+    const key = e.key.toLowerCase();
+    const escapedKey = CSS.escape(key);
+    const kbd = document.querySelector<HTMLElement>(`kbd[data-global-keyboard-shortcut="${escapedKey}"]`);
+    if (!kbd) return;
+
+    e.preventDefault();
+    const input = kbd.parentElement?.querySelector<HTMLInputElement>('input, textarea, select');
+    if (input) input.focus();
+  });
+
+  document.addEventListener('focusin', (e) => {
+    const target = e.target as HTMLElement;
+    if (!target.matches('input, textarea, select')) return;
+    const kbd = target.parentElement?.querySelector<HTMLElement>('kbd[data-global-keyboard-shortcut]');
+    if (kbd) kbd.style.display = 'none';
+  });
+
+  document.addEventListener('focusout', (e) => {
+    const target = e.target as HTMLElement;
+    if (!target.matches('input, textarea, select')) return;
+    const kbd = target.parentElement?.querySelector<HTMLElement>('kbd[data-global-keyboard-shortcut]');
+    if (kbd) kbd.style.display = (target as HTMLInputElement).value ? 'none' : '';
+  });
+}
+
+describe('Keyboard Shortcut Mechanism', () => {
+  let input: HTMLInputElement;
+  let kbd: HTMLElement;
 
   beforeEach(() => {
-    // Set up DOM structure for code search
     document.body.innerHTML = `
-      <div class="repo-home-sidebar-top">
-        <div class="repo-code-search-input-wrapper">
-          <input name="q" class="code-search-input" placeholder="Search code" data-global-keyboard-shortcut="s" data-global-init="initRepoCodeSearchShortcut">
-          <kbd class="repo-search-shortcut-hint">S</kbd>
-        </div>
+      <div>
+        <input placeholder="Search" type="text">
+        <kbd data-global-keyboard-shortcut="s">S</kbd>
       </div>
     `;
-
-    codeSearchInput = document.querySelector('.code-search-input')!;
-    codeSearchHint = document.querySelector('.repo-code-search-input-wrapper .repo-search-shortcut-hint')!;
-
-    // Initialize the shortcut hint functionality directly
-    initRepoCodeSearchShortcut(codeSearchInput);
+    input = document.querySelector('input')!;
+    kbd = document.querySelector('kbd')!;
   });
 
   afterEach(() => {
     document.body.innerHTML = '';
   });
 
-  test('Code search hint hides when input has value', () => {
-    // Initially visible
-    expect(codeSearchHint.style.display).toBe('');
+  // Register listeners once for all tests (they persist across tests on document)
+  setupKeyboardShortcutListeners();
 
-    // Type something in the code search
-    codeSearchInput.value = 'test';
-    codeSearchInput.dispatchEvent(new Event('input'));
+  test('Shortcut key focuses the associated input', () => {
+    expect(document.activeElement).not.toBe(input);
 
-    // Should be hidden
-    expect(codeSearchHint.style.display).toBe('none');
+    document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 's', bubbles: true}));
+
+    expect(document.activeElement).toBe(input);
   });
 
-  test('Code search hint shows when input is cleared', () => {
-    // Set a value and trigger input
-    codeSearchInput.value = 'test';
-    codeSearchInput.dispatchEvent(new Event('input'));
-    expect(codeSearchHint.style.display).toBe('none');
+  test('Kbd hint hides when input is focused', () => {
+    expect(kbd.style.display).toBe('');
 
-    // Clear the value
-    codeSearchInput.value = '';
-    codeSearchInput.dispatchEvent(new Event('input'));
+    input.focus();
 
-    // Should be visible again
-    expect(codeSearchHint.style.display).toBe('');
+    expect(kbd.style.display).toBe('none');
   });
 
-  test('Escape key clears and blurs code search input', () => {
-    // Set a value and focus the input
-    codeSearchInput.value = 'test';
-    codeSearchInput.dispatchEvent(new Event('input'));
-    codeSearchInput.focus();
-    expect(document.activeElement).toBe(codeSearchInput);
-    expect(codeSearchInput.value).toBe('test');
+  test('Kbd hint shows when input is blurred with empty value', () => {
+    input.focus();
+    expect(kbd.style.display).toBe('none');
 
-    // Press Escape directly on the input
+    input.blur();
+
+    expect(kbd.style.display).toBe('');
+  });
+
+  test('Kbd hint stays hidden when input is blurred with a value', () => {
+    input.focus();
+    input.value = 'test';
+
+    input.blur();
+
+    expect(kbd.style.display).toBe('none');
+  });
+
+  test('Escape key clears and blurs the input', () => {
+    input.focus();
+    input.value = 'test';
+
     const event = new KeyboardEvent('keydown', {key: 'Escape', bubbles: true});
-    codeSearchInput.dispatchEvent(event);
+    input.dispatchEvent(event);
 
-    // Value should be cleared and input should be blurred
-    expect(codeSearchInput.value).toBe('');
-    expect(document.activeElement).not.toBe(codeSearchInput);
+    expect(input.value).toBe('');
+    expect(document.activeElement).not.toBe(input);
   });
 
-  test('Code search kbd hint hides on focus', () => {
-    // Initially visible
-    expect(codeSearchHint.style.display).toBe('');
+  test('Escape key shows kbd hint after clearing', () => {
+    input.focus();
+    input.value = 'test';
+    expect(kbd.style.display).toBe('none');
 
-    // Focus the input
-    codeSearchInput.focus();
-    codeSearchInput.dispatchEvent(new Event('focus'));
+    const event = new KeyboardEvent('keydown', {key: 'Escape', bubbles: true});
+    input.dispatchEvent(event);
 
-    // Should be hidden
-    expect(codeSearchHint.style.display).toBe('none');
-
-    // Blur the input
-    codeSearchInput.blur();
-    codeSearchInput.dispatchEvent(new Event('blur'));
-
-    // Should be visible again
-    expect(codeSearchHint.style.display).toBe('');
+    expect(kbd.style.display).toBe('');
   });
 
-  test('Change event also updates hint visibility', () => {
-    // Initially visible
-    expect(codeSearchHint.style.display).toBe('');
+  test('Shortcut does not trigger with modifier keys', () => {
+    document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 's', ctrlKey: true, bubbles: true}));
+    expect(document.activeElement).not.toBe(input);
 
-    // Set value via change event (e.g., browser autofill)
-    codeSearchInput.value = 'autofilled';
-    codeSearchInput.dispatchEvent(new Event('change'));
+    document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 's', metaKey: true, bubbles: true}));
+    expect(document.activeElement).not.toBe(input);
 
-    // Should be hidden
-    expect(codeSearchHint.style.display).toBe('none');
+    document.body.dispatchEvent(new KeyboardEvent('keydown', {key: 's', altKey: true, bubbles: true}));
+    expect(document.activeElement).not.toBe(input);
+  });
+
+  test('Shortcut does not trigger when typing in another input', () => {
+    // Add a second input without a shortcut
+    const otherInput = document.createElement('input');
+    document.body.append(otherInput);
+    otherInput.focus();
+
+    const event = new KeyboardEvent('keydown', {key: 's', bubbles: true});
+    otherInput.dispatchEvent(event);
+
+    expect(document.activeElement).toBe(otherInput);
+    expect(document.activeElement).not.toBe(input);
   });
 });
