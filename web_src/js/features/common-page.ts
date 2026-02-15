@@ -131,8 +131,8 @@ export function autoFocusEnd(container: Element) {
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
   registerGlobalInitFunc('autoFocusEnd', (el: HTMLInputElement) => {
-    // on page load, native autofocus has already focused the element, just set cursor to end
-    if (document.activeElement === el) setSelectionEnd(el);
+    el.focus();
+    setSelectionEnd(el);
   });
 }
 
