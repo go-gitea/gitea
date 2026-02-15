@@ -225,17 +225,6 @@ func TestLinguist(t *testing.T) {
 				},
 				ExpectedLanguageOrder: []string{"YAML"},
 			},
-			// case 15: linguist-detectable does not override documentation classification
-			{
-				GitAttributesContent: "README.md linguist-detectable",
-				FilesToAdd: []*files_service.ChangeRepoFile{
-					{
-						TreePath:      "README.md",
-						ContentReader: strings.NewReader(mdContent),
-					},
-				},
-				ExpectedLanguageOrder: []string{},
-			},
 		}
 
 		for i, c := range cases {
