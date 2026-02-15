@@ -218,7 +218,7 @@ func GetRunningTaskByToken(ctx context.Context, token string) (*ActionTask, erro
 
 func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 	if step.Name != "" {
-		name = step.Name
+		name = step.Name // the step has an explicit name
 	} else if step.Uses != "" {
 		name = step.Uses
 	} else if step.Run != "" {
