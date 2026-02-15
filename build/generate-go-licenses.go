@@ -23,6 +23,7 @@ var licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING).*$`)
 
 // ignoredNames are LicenseEntry.Name values to exclude from the output.
 var ignoredNames = map[string]bool{
+	"code.gitea.io/gitea":                true,
 	"code.gitea.io/gitea/options/license": true,
 }
 
@@ -37,9 +38,9 @@ var excludedExt = map[string]bool{
 }
 
 type ModuleInfo struct {
-	Path string
-	Dir  string
-	Main bool
+	Path    string
+	Dir     string
+	PkgDirs []string // directories of packages imported from this module
 }
 
 type LicenseEntry struct {
@@ -49,10 +50,10 @@ type LicenseEntry struct {
 }
 
 // getModules returns all dependency modules with their local directory paths
-// using a single go list command.
+// and the package directories used from each module.
 func getModules(goCmd string) []ModuleInfo {
 	cmd := exec.Command(goCmd, "list", "-deps", "-f",
-		"{{if .Module}}{{.Module.Path}}\t{{.Module.Dir}}\t{{.Module.Main}}{{end}}", "./...")
+		"{{if .Module}}{{.Module.Path}}\t{{.Module.Dir}}\t{{.Dir}}{{end}}", "./...")
 	cmd.Stderr = os.Stderr
 	// Use GOOS=linux with CGO to ensure we capture all platform-specific
 	// dependencies, matching the CI environment.
@@ -63,32 +64,66 @@ func getModules(goCmd string) []ModuleInfo {
 		os.Exit(1)
 	}
 
-	seen := make(map[string]bool)
 	var modules []ModuleInfo
+	seen := make(map[string]int) // module path -> index in modules
 	for _, line := range strings.Split(string(output), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
 		}
 		parts := strings.Split(line, "\t")
-		if len(parts) != 3 || seen[parts[0]] {
+		if len(parts) != 3 {
 			continue
 		}
-		seen[parts[0]] = true
-		modules = append(modules, ModuleInfo{
-			Path: parts[0],
-			Dir:  parts[1],
-			Main: parts[2] == "true",
-		})
+		modPath, modDir, pkgDir := parts[0], parts[1], parts[2]
+		if idx, ok := seen[modPath]; ok {
+			modules[idx].PkgDirs = append(modules[idx].PkgDirs, pkgDir)
+		} else {
+			seen[modPath] = len(modules)
+			modules = append(modules, ModuleInfo{
+				Path:    modPath,
+				Dir:     modDir,
+				PkgDirs: []string{pkgDir},
+			})
+		}
 	}
 	return modules
 }
 
-// findLicenseFiles scans a module's root directory for license files and returns entries.
-func findLicenseFiles(dir, modulePath string) []LicenseEntry {
+// findLicenseFiles scans a module's root directory and its used package
+// directories for license files. Subdirectory licenses are only included
+// if their text differs from the root license(s).
+func findLicenseFiles(mod ModuleInfo) []LicenseEntry {
+	var entries []LicenseEntry
+	rootTexts := make(map[string]bool)
+
+	// First, collect root-level license files.
+	entries = append(entries, scanDirForLicenses(mod.Dir, mod.Path, "")...)
+	for _, e := range entries {
+		rootTexts[e.LicenseText] = true
+	}
+
+	// Then check each package directory for license files with different text.
+	seen := map[string]bool{mod.Dir: true}
+	for _, pkgDir := range mod.PkgDirs {
+		if seen[pkgDir] {
+			continue
+		}
+		seen[pkgDir] = true
+		for _, e := range scanDirForLicenses(pkgDir, mod.Path, mod.Dir) {
+			if !rootTexts[e.LicenseText] {
+				entries = append(entries, e)
+			}
+		}
+	}
+	return entries
+}
+
+// scanDirForLicenses reads a single directory for license files and returns entries.
+// If moduleRoot is non-empty, paths are made relative to it.
+func scanDirForLicenses(dir, modulePath, moduleRoot string) []LicenseEntry {
 	dirEntries, err := os.ReadDir(dir)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "warning: failed to read directory %s for %s: %v\n", dir, modulePath, err)
 		return nil
 	}
 
@@ -107,62 +142,25 @@ func findLicenseFiles(dir, modulePath string) []LicenseEntry {
 
 		content, err := os.ReadFile(filepath.Join(dir, name))
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "warning: failed to read %s/%s: %v\n", modulePath, name, err)
 			continue
 		}
 
-		entries = append(entries, LicenseEntry{
-			Name:        modulePath,
-			Path:        modulePath + "/" + name,
-			LicenseText: string(content),
-		})
-	}
-	return entries
-}
-
-// findSubdirLicenses walks the main module's directory tree to find license
-// files in subdirectories (not the root), which indicate bundled code with
-// separate copyright attribution.
-func findSubdirLicenses(mod ModuleInfo) []LicenseEntry {
-	var entries []LicenseEntry
-	err := filepath.WalkDir(mod.Dir, func(path string, d os.DirEntry, err error) error {
-		if err != nil {
-			return nil
-		}
-		// Skip hidden directories and common non-source directories.
-		if d.IsDir() {
-			name := d.Name()
-			if strings.HasPrefix(name, ".") || name == "node_modules" || name == "vendor" || name == "internal" || name == "public" || name == "testdata" {
-				return filepath.SkipDir
+		entryName := modulePath
+		entryPath := modulePath + "/" + name
+		if moduleRoot != "" {
+			rel, _ := filepath.Rel(moduleRoot, dir)
+			if rel != "." {
+				relSlash := filepath.ToSlash(rel)
+				entryName = modulePath + "/" + relSlash
+				entryPath = modulePath + "/" + relSlash + "/" + name
 			}
-			return nil
 		}
-		// Skip files in the root directory (that's the main module's own license).
-		if filepath.Dir(path) == mod.Dir {
-			return nil
-		}
-		if !licenseRe.MatchString(d.Name()) {
-			return nil
-		}
-		if excludedExt[strings.ToLower(filepath.Ext(d.Name()))] {
-			return nil
-		}
-		content, err := os.ReadFile(path)
-		if err != nil {
-			return nil
-		}
-		rel, _ := filepath.Rel(mod.Dir, path)
-		entryPath := mod.Path + "/" + filepath.ToSlash(rel)
-		entryName := mod.Path + "/" + filepath.ToSlash(filepath.Dir(rel))
+
 		entries = append(entries, LicenseEntry{
 			Name:        entryName,
 			Path:        entryPath,
 			LicenseText: string(content),
 		})
-		return nil
-	})
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "warning: failed to walk main module directory: %v\n", err)
 	}
 	return entries
 }
@@ -184,15 +182,7 @@ func main() {
 
 	var entries []LicenseEntry
 	for _, mod := range modules {
-		if mod.Main {
-			// For the main module, scan subdirectories for license files
-			// that indicate bundled third-party code with separate copyright.
-			entries = append(entries, findSubdirLicenses(mod)...)
-			continue
-		}
-
-		// Scan the module root directory for license files.
-		entries = append(entries, findLicenseFiles(mod.Dir, mod.Path)...)
+		entries = append(entries, findLicenseFiles(mod)...)
 	}
 
 	entries = slices.DeleteFunc(entries, func(e LicenseEntry) bool {
