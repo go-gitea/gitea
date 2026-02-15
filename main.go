@@ -44,6 +44,7 @@ func main() {
 	}
 	app := cmd.NewMainApp(cmd.AppVersion{Version: Version, Extra: formatBuiltWith()})
 	_ = cmd.RunMainApp(app, os.Args...) // all errors should have been handled by the RunMainApp
+	// flush the queued logs before exiting, it is a MUST, otherwise there will be log loss
 	log.GetManager().Close()
 }
 

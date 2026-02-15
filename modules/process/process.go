@@ -4,7 +4,6 @@
 package process
 
 import (
-	"context"
 	"time"
 )
 
@@ -21,7 +20,7 @@ type process struct {
 	ParentPID   IDType
 	Description string
 	Start       time.Time
-	Cancel      context.CancelFunc
+	Cancel      CancelCauseFunc
 	Type        string
 }
 

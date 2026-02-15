@@ -15,16 +15,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
 
 func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubURL, newBranchName string, expectedStatus int) string {
-	csrf := GetUserCSRFToken(t, session)
 	req := NewRequestWithValues(t, "POST", path.Join(user, repo, "branches/_new", oldRefSubURL), map[string]string{
-		"_csrf":           csrf,
 		"new_branch_name": newBranchName,
 	})
 	resp := session.MakeRequest(t, req, expectedStatus)
@@ -126,17 +123,6 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 	}
 }
 
-func TestCreateBranchInvalidCSRF(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	session := loginUser(t, "user2")
-	req := NewRequestWithValues(t, "POST", "user2/repo1/branches/_new/branch/master", map[string]string{
-		"_csrf":           "fake_csrf",
-		"new_branch_name": "test",
-	})
-	resp := session.MakeRequest(t, req, http.StatusBadRequest)
-	assert.Contains(t, resp.Body.String(), "Invalid CSRF token")
-}
-
 func prepareRecentlyPushedBranchTest(t *testing.T, headSession *TestSession, baseRepo, headRepo *repo_model.Repository) {
 	refSubURL := "branch/" + headRepo.DefaultBranch
 	baseRepoPath := baseRepo.OwnerName + "/" + baseRepo.Name
@@ -218,13 +204,19 @@ func prepareRepoPR(t *testing.T, baseSession, headSession *TestSession, baseRepo
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "merged-pr", http.StatusSeeOther)
 	prID = testCreatePullToDefaultBranch(t, baseSession, baseRepo, headRepo, "merged-pr", "merged pr")
 	testAPINewFile(t, headSession, headRepo.OwnerName, headRepo.Name, "merged-pr", fmt.Sprintf("new-commit-%s.txt", headRepo.Name), "new-commit")
-	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, repo_model.MergeStyleRebaseMerge, false)
+	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, MergeOptions{
+		Style:        repo_model.MergeStyleRebaseMerge,
+		DeleteBranch: false,
+	})
 
 	// create merged PR with deleted branch
 	testCreateBranch(t, headSession, headRepo.OwnerName, headRepo.Name, "branch/new-commit", "merged-pr-deleted", http.StatusSeeOther)
 	prID = testCreatePullToDefaultBranch(t, baseSession, baseRepo, headRepo, "merged-pr-deleted", "merged pr with deleted branch")
 	testAPINewFile(t, headSession, headRepo.OwnerName, headRepo.Name, "merged-pr-deleted", fmt.Sprintf("new-commit-%s-2.txt", headRepo.Name), "new-commit")
-	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, repo_model.MergeStyleRebaseMerge, true)
+	testPullMerge(t, baseSession, baseRepo.OwnerName, baseRepo.Name, prID, MergeOptions{
+		Style:        repo_model.MergeStyleRebaseMerge,
+		DeleteBranch: true,
+	})
 }
 
 func checkRecentlyPushedNewBranches(t *testing.T, session *TestSession, repoPath string, expected []string) {

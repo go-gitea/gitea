@@ -4,12 +4,25 @@ import {pathEscapeSegments} from '../utils/url.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
 import {html} from '../utils/html.ts';
 
+export type FileTreeItem = {
+  entryName: string;
+  entryMode: 'blob' | 'exec' | 'tree' | 'commit' | 'symlink' | 'unknown';
+  entryIcon: string;
+  entryIconOpen: string;
+  fullPath: string;
+  submoduleUrl?: string;
+  children?: Array<FileTreeItem>;
+};
+
 export function createViewFileTreeStore(props: {repoLink: string, treePath: string, currentRefNameSubURL: string}) {
   const store = reactive({
-    rootFiles: [],
+    rootFiles: [] as Array<FileTreeItem>,
     selectedItem: props.treePath,
 
     async loadChildren(treePath: string, subPath: string = '') {
+      // there is no git ref if no commits were made yet (an empty repo)
+      if (!props.currentRefNameSubURL) return null;
+
       const response = await GET(`${props.repoLink}/tree-view/${props.currentRefNameSubURL}/${pathEscapeSegments(treePath)}?sub_path=${encodeURIComponent(subPath)}`);
       const json = await response.json();
       const poolSvgs = [];
@@ -17,7 +30,7 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
         if (!document.querySelector(`.global-svg-icon-pool #${svgId}`)) poolSvgs.push(svgContent);
       }
       if (poolSvgs.length) {
-        const svgContainer = createElementFromHTML(html`<div class="global-svg-icon-pool tw-hidden"></div>`);
+        const svgContainer = createElementFromHTML(html`<div class="global-svg-icon-pool svg-icon-container"></div>`);
         svgContainer.innerHTML = poolSvgs.join('');
         document.body.append(svgContainer);
       }
@@ -25,14 +38,21 @@ export function createViewFileTreeStore(props: {repoLink: string, treePath: stri
     },
 
     async loadViewContent(url: string) {
-      url = url.includes('?') ? url.replace('?', '?only_content=true') : `${url}?only_content=true`;
-      const response = await GET(url);
-      document.querySelector('.repo-view-content').innerHTML = await response.text();
+      const u = new URL(url, window.origin);
+      u.searchParams.set('only_content', 'true');
+      const response = await GET(u.href);
+      const elViewContent = document.querySelector('.repo-view-content')!;
+      elViewContent.innerHTML = await response.text();
+      const elViewContentData = elViewContent.querySelector('.repo-view-content-data');
+      if (!elViewContentData) return; // if error occurs, there is no such element
+      const t1 = elViewContentData.getAttribute('data-document-title');
+      const t2 = elViewContentData.getAttribute('data-document-title-common');
+      document.title = `${t1} - ${t2}`; // follow the format in head.tmpl: <head><title>...</title></head>
     },
 
     async navigateTreeView(treePath: string) {
       const url = store.buildTreePathWebUrl(treePath);
-      window.history.pushState({treePath, url}, null, url);
+      window.history.pushState({treePath, url}, '', url);
       store.selectedItem = treePath;
       await store.loadViewContent(url);
     },

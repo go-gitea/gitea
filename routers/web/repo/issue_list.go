@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/shared/issue"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -45,15 +46,7 @@ func SearchIssues(ctx *context.Context) {
 		return
 	}
 
-	var isClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isClosed = optional.Some(true)
-	case "all":
-		isClosed = optional.None[bool]()
-	default:
-		isClosed = optional.Some(false)
-	}
+	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
 	var (
 		repoIDs   []int64
@@ -268,15 +261,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		return
 	}
 
-	var isClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isClosed = optional.Some(true)
-	case "all":
-		isClosed = optional.None[bool]()
-	default:
-		isClosed = optional.Some(false)
-	}
+	isClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
 
 	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
@@ -477,14 +462,7 @@ func renderMilestones(ctx *context.Context) {
 		return
 	}
 
-	openMilestones, closedMilestones := issues_model.MilestoneList{}, issues_model.MilestoneList{}
-	for _, milestone := range milestones {
-		if milestone.IsClosed {
-			closedMilestones = append(closedMilestones, milestone)
-		} else {
-			openMilestones = append(openMilestones, milestone)
-		}
-	}
+	openMilestones, closedMilestones := issues_model.MilestoneList(milestones).SplitByOpenClosed()
 	ctx.Data["OpenMilestones"] = openMilestones
 	ctx.Data["ClosedMilestones"] = closedMilestones
 }
@@ -580,17 +558,10 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		}
 	}
 
-	var isShowClosed optional.Option[bool]
-	switch ctx.FormString("state") {
-	case "closed":
-		isShowClosed = optional.Some(true)
-	case "all":
-		isShowClosed = optional.None[bool]()
-	default:
-		isShowClosed = optional.Some(false)
-	}
+	isShowClosed := common.ParseIssueFilterStateIsClosed(ctx.FormString("state"))
+
 	// if there are closed issues and no open issues, default to showing all issues
-	if len(ctx.FormString("state")) == 0 && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
+	if ctx.FormString("state") == "" && issueStats.OpenCount == 0 && issueStats.ClosedCount != 0 {
 		isShowClosed = optional.None[bool]()
 	}
 

@@ -21,10 +21,10 @@ import (
 func (source *Source) Authenticate(ctx context.Context, user *user_model.User, userName, password string) (*user_model.User, error) {
 	// Verify allowed domains.
 	if len(source.AllowedDomains) > 0 {
-		idx := strings.Index(userName, "@")
-		if idx == -1 {
+		_, after, ok := strings.Cut(userName, "@")
+		if !ok {
 			return nil, user_model.ErrUserNotExist{Name: userName}
-		} else if !util.SliceContainsString(strings.Split(source.AllowedDomains, ","), userName[idx+1:], true) {
+		} else if !util.SliceContainsString(strings.Split(source.AllowedDomains, ","), after, true) {
 			return nil, user_model.ErrUserNotExist{Name: userName}
 		}
 	}
@@ -61,9 +61,9 @@ func (source *Source) Authenticate(ctx context.Context, user *user_model.User, u
 	}
 
 	username := userName
-	idx := strings.Index(userName, "@")
-	if idx > -1 {
-		username = userName[:idx]
+	before, _, ok := strings.Cut(userName, "@")
+	if ok {
+		username = before
 	}
 
 	user = &user_model.User{

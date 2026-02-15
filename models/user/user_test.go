@@ -51,12 +51,27 @@ func TestOAuth2Application_LoadUser(t *testing.T) {
 
 func TestUserEmails(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
+	defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
 	t.Run("GetUserEmailsByNames", func(t *testing.T) {
-		// ignore none active user email
+		// ignore not active user email
 		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "user9"}))
 		assert.ElementsMatch(t, []string{"user8@example.com", "user5@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "user5"}))
 		assert.ElementsMatch(t, []string{"user8@example.com"}, user_model.GetUserEmailsByNames(t.Context(), []string{"user8", "org7"}))
 	})
+
+	cases := []struct {
+		Email string
+		UID   int64
+	}{
+		{"UseR1@example.com", 1},
+		{"user1-2@example.COM", 1},
+		{"USER2@" + setting.Service.NoReplyAddress, 2},
+		{"user2+2@" + setting.Service.NoReplyAddress, 2},
+		{"oldUser2UsernameWhichDoesNotMatterForQuery+2@" + setting.Service.NoReplyAddress, 2},
+		{"badUser+99999@" + setting.Service.NoReplyAddress, 0},
+		{"user4@example.com", 4},
+		{"no-such", 0},
+	}
 	t.Run("GetUsersByEmails", func(t *testing.T) {
 		defer test.MockVariableValue(&setting.Service.NoReplyAddress, "NoReply.gitea.internal")()
 		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
@@ -70,15 +85,27 @@ func TestUserEmails(t *testing.T) {
 			require.NotNil(t, user)
 			assert.Equal(t, uid, user.ID)
 		}
-		cases := []struct {
-			Email string
-			UID   int64
-		}{
-			{"UseR1@example.com", 1},
-			{"user1-2@example.COM", 1},
-			{"USER2@" + setting.Service.NoReplyAddress, 2},
-			{"user4@example.com", 4},
-			{"no-such", 0},
+		for _, c := range cases {
+			t.Run(c.Email, func(t *testing.T) {
+				testGetUserByEmail(t, c.Email, c.UID)
+			})
+		}
+
+		t.Run("NoReplyConflict", func(t *testing.T) {
+			setting.Service.NoReplyAddress = "example.com"
+			testGetUserByEmail(t, "user1-2@example.COM", 1)
+		})
+	})
+	t.Run("GetUserByEmail", func(t *testing.T) {
+		testGetUserByEmail := func(t *testing.T, email string, uid int64) {
+			user, err := user_model.GetUserByEmail(t.Context(), email)
+			if uid == 0 {
+				require.Error(t, err)
+				assert.Nil(t, user)
+			} else {
+				require.NotNil(t, user)
+				assert.Equal(t, uid, user.ID)
+			}
 		}
 		for _, c := range cases {
 			t.Run(c.Email, func(t *testing.T) {
@@ -126,7 +153,7 @@ func TestSearchUsers(t *testing.T) {
 
 	// test orgs
 	testOrgSuccess := func(opts user_model.SearchUserOptions, expectedOrgIDs []int64) {
-		opts.Type = user_model.UserTypeOrganization
+		opts.Types = []user_model.UserType{user_model.UserTypeOrganization}
 		testSuccess(opts, expectedOrgIDs)
 	}
 
@@ -150,7 +177,7 @@ func TestSearchUsers(t *testing.T) {
 
 	// test users
 	testUserSuccess := func(opts user_model.SearchUserOptions, expectedUserIDs []int64) {
-		opts.Type = user_model.UserTypeIndividual
+		opts.Types = []user_model.UserType{user_model.UserTypeIndividual}
 		testSuccess(opts, expectedUserIDs)
 	}
 
@@ -648,33 +675,36 @@ func TestGetInactiveUsers(t *testing.T) {
 func TestCanCreateRepo(t *testing.T) {
 	defer test.MockVariableValue(&setting.Repository.MaxCreationLimit)()
 	const noLimit = -1
-	doerNormal := &user_model.User{}
-	doerAdmin := &user_model.User{IsAdmin: true}
+	doerActions := user_model.NewActionsUser()
+	doerNormal := &user_model.User{ID: 2}
+	doerAdmin := &user_model.User{ID: 1, IsAdmin: true}
 	t.Run("NoGlobalLimit", func(t *testing.T) {
 		setting.Repository.MaxCreationLimit = noLimit
 
-		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
-		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
-		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
+		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: noLimit}))
 
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.False(t, doerActions.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.False(t, doerAdmin.CanCreateRepoIn(doerActions))
 	})
 
 	t.Run("GlobalLimit50", func(t *testing.T) {
 		setting.Repository.MaxCreationLimit = 50
 
-		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
-		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: noLimit})) // limited by global limit
-		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
-		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
-		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: 100}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 60, MaxRepoCreation: noLimit})) // limited by global limit
+		assert.False(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerNormal.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 60, MaxRepoCreation: 100}))
 
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: noLimit}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: noLimit}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 0}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 10, MaxRepoCreation: 100}))
-		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{NumRepos: 60, MaxRepoCreation: 100}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: noLimit}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 60, MaxRepoCreation: noLimit}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 0}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 10, MaxRepoCreation: 100}))
+		assert.True(t, doerAdmin.CanCreateRepoIn(&user_model.User{ID: 2, NumRepos: 60, MaxRepoCreation: 100}))
 	})
 }

@@ -58,26 +58,27 @@ type Repository struct {
 	Fork        bool   `json:"fork"`
 	Template    bool   `json:"template"`
 	// the original repository if this repository is a fork, otherwise null
-	Parent        *Repository `json:"parent,omitempty"`
-	Mirror        bool        `json:"mirror"`
-	Size          int         `json:"size"`
-	Language      string      `json:"language"`
-	LanguagesURL  string      `json:"languages_url"`
-	HTMLURL       string      `json:"html_url"`
-	URL           string      `json:"url"`
-	Link          string      `json:"link"`
-	SSHURL        string      `json:"ssh_url"`
-	CloneURL      string      `json:"clone_url"`
-	OriginalURL   string      `json:"original_url"`
-	Website       string      `json:"website"`
-	Stars         int         `json:"stars_count"`
-	Forks         int         `json:"forks_count"`
-	Watchers      int         `json:"watchers_count"`
-	OpenIssues    int         `json:"open_issues_count"`
-	OpenPulls     int         `json:"open_pr_counter"`
-	Releases      int         `json:"release_counter"`
-	DefaultBranch string      `json:"default_branch"`
-	Archived      bool        `json:"archived"`
+	Parent              *Repository `json:"parent,omitempty"`
+	Mirror              bool        `json:"mirror"`
+	Size                int         `json:"size"`
+	Language            string      `json:"language"`
+	LanguagesURL        string      `json:"languages_url"`
+	HTMLURL             string      `json:"html_url"`
+	URL                 string      `json:"url"`
+	Link                string      `json:"link"`
+	SSHURL              string      `json:"ssh_url"`
+	CloneURL            string      `json:"clone_url"`
+	OriginalURL         string      `json:"original_url"`
+	Website             string      `json:"website"`
+	Stars               int         `json:"stars_count"`
+	Forks               int         `json:"forks_count"`
+	Watchers            int         `json:"watchers_count"`
+	OpenIssues          int         `json:"open_issues_count"`
+	OpenPulls           int         `json:"open_pr_counter"`
+	Releases            int         `json:"release_counter"`
+	DefaultBranch       string      `json:"default_branch"`
+	DefaultTargetBranch string      `json:"default_target_branch,omitempty"`
+	Archived            bool        `json:"archived"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
@@ -290,6 +291,21 @@ type RenameBranchRepoOption struct {
 	// required: true
 	// unique: true
 	Name string `json:"name" binding:"Required;GitRefName;MaxSize(100)"`
+}
+
+// UpdateBranchRepoOption options when updating a branch reference in a repository
+// swagger:model
+type UpdateBranchRepoOption struct {
+	// New commit SHA (or any ref) the branch should point to
+	//
+	// required: true
+	NewCommitID string `json:"new_commit_id" binding:"Required"`
+
+	// Expected old commit SHA of the branch; if provided it must match the current tip
+	OldCommitID string `json:"old_commit_id"`
+
+	// Force update even if the change is not a fast-forward
+	Force bool `json:"force"`
 }
 
 // TransferRepoOption options when transfer a repository's ownership

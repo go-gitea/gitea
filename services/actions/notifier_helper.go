@@ -27,9 +27,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	"code.gitea.io/gitea/services/convert"
-	notify_service "code.gitea.io/gitea/services/notify"
 
-	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 )
 
@@ -236,12 +234,12 @@ func notify(ctx context.Context, input *notifyInput) error {
 	}
 
 	if shouldDetectSchedules {
-		if err := handleSchedules(ctx, schedules, commit, input, ref.String()); err != nil {
+		if err := handleSchedules(ctx, schedules, commit, input, ref); err != nil {
 			return err
 		}
 	}
 
-	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref.String())
+	return handleWorkflows(ctx, detectedWorkflows, commit, input, ref)
 }
 
 func skipWorkflows(ctx context.Context, input *notifyInput, commit *git.Commit) bool {
@@ -293,7 +291,7 @@ func handleWorkflows(
 	detectedWorkflows []*actions_module.DetectedWorkflow,
 	commit *git.Commit,
 	input *notifyInput,
-	ref string,
+	ref git.RefName,
 ) error {
 	if len(detectedWorkflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find workflows", input.Repo.RelativePath(), commit.ID)
@@ -329,7 +327,7 @@ func handleWorkflows(
 			WorkflowID:        dwf.EntryName,
 			TriggerUserID:     input.Doer.ID,
 			TriggerUser:       input.Doer,
-			Ref:               ref,
+			Ref:               ref.String(),
 			CommitSHA:         commit.ID.String(),
 			IsForkPullRequest: isForkPullRequest,
 			Event:             input.Event,
@@ -346,65 +344,9 @@ func handleWorkflows(
 
 		run.NeedApproval = need
 
-		if err := run.LoadAttributes(ctx); err != nil {
-			log.Error("LoadAttributes: %v", err)
+		if err := PrepareRunAndInsert(ctx, dwf.Content, run, nil); err != nil {
+			log.Error("PrepareRunAndInsert: %v", err)
 			continue
-		}
-
-		vars, err := actions_model.GetVariablesOfRun(ctx, run)
-		if err != nil {
-			log.Error("GetVariablesOfRun: %v", err)
-			continue
-		}
-
-		giteaCtx := GenerateGiteaContext(run, nil)
-
-		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
-		if err != nil {
-			log.Error("jobparser.Parse: %v", err)
-			continue
-		}
-
-		if len(jobs) > 0 && jobs[0].RunName != "" {
-			run.Title = jobs[0].RunName
-		}
-
-		// cancel running jobs if the event is push or pull_request_sync
-		if run.Event == webhook_module.HookEventPush ||
-			run.Event == webhook_module.HookEventPullRequestSync {
-			if err := CancelPreviousJobs(
-				ctx,
-				run.RepoID,
-				run.Ref,
-				run.WorkflowID,
-				run.Event,
-			); err != nil {
-				log.Error("CancelPreviousJobs: %v", err)
-			}
-		}
-
-		if err := actions_model.InsertRun(ctx, run, jobs); err != nil {
-			log.Error("InsertRun: %v", err)
-			continue
-		}
-
-		alljobs, err := db.Find[actions_model.ActionRunJob](ctx, actions_model.FindRunJobOptions{RunID: run.ID})
-		if err != nil {
-			log.Error("FindRunJobs: %v", err)
-			continue
-		}
-		CreateCommitStatus(ctx, alljobs...)
-		if len(alljobs) > 0 {
-			job := alljobs[0]
-			err := job.LoadRun(ctx)
-			if err != nil {
-				log.Error("LoadRun: %v", err)
-				continue
-			}
-			notify_service.WorkflowRunStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job.Run)
-		}
-		for _, job := range alljobs {
-			notify_service.WorkflowJobStatusUpdate(ctx, input.Repo, input.Doer, job, nil)
 		}
 	}
 	return nil
@@ -500,13 +442,9 @@ func handleSchedules(
 	detectedWorkflows []*actions_module.DetectedWorkflow,
 	commit *git.Commit,
 	input *notifyInput,
-	ref string,
+	ref git.RefName,
 ) error {
-	branch, err := commit.GetBranchName()
-	if err != nil {
-		return err
-	}
-	if branch != input.Repo.DefaultBranch {
+	if ref.BranchName() != input.Repo.DefaultBranch {
 		log.Trace("commit branch is not default branch in repo")
 		return nil
 	}
@@ -552,30 +490,12 @@ func handleSchedules(
 			WorkflowID:    dwf.EntryName,
 			TriggerUserID: user_model.ActionsUserID,
 			TriggerUser:   user_model.NewActionsUser(),
-			Ref:           ref,
+			Ref:           ref.String(),
 			CommitSHA:     commit.ID.String(),
 			Event:         input.Event,
 			EventPayload:  string(p),
 			Specs:         schedules,
 			Content:       dwf.Content,
-		}
-
-		vars, err := actions_model.GetVariablesOfRun(ctx, run.ToActionRun())
-		if err != nil {
-			log.Error("GetVariablesOfRun: %v", err)
-			continue
-		}
-
-		giteaCtx := GenerateGiteaContext(run.ToActionRun(), nil)
-
-		jobs, err := jobparser.Parse(dwf.Content, jobparser.WithVars(vars), jobparser.WithGitContext(giteaCtx.ToGitHubContext()))
-		if err != nil {
-			log.Error("jobparser.Parse: %v", err)
-			continue
-		}
-
-		if len(jobs) > 0 && jobs[0].RunName != "" {
-			run.Title = jobs[0].RunName
 		}
 
 		crons = append(crons, run)
@@ -614,5 +534,5 @@ func DetectAndHandleSchedules(ctx context.Context, repo *repo_model.Repository) 
 	// so we use action user as the Doer of the notifyInput
 	notifyInput := newNotifyInputForSchedules(repo)
 
-	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, repo.DefaultBranch)
+	return handleSchedules(ctx, scheduleWorkflows, commit, notifyInput, git.RefNameFromBranch(repo.DefaultBranch))
 }

@@ -25,8 +25,6 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-const DefaultRemote = "origin"
-
 func getWikiWorkingLockKey(repoID int64) string {
 	return fmt.Sprintf("wiki_working_%d", repoID)
 }
@@ -120,7 +118,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		cloneOpts.Branch = repo.DefaultWikiBranch
 	}
 
-	if err := git.Clone(ctx, repo.WikiPath(), basePath, cloneOpts); err != nil {
+	if err := gitrepo.CloneRepoToLocal(ctx, repo.WikiStorageRepo(), basePath, cloneOpts); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
 		return fmt.Errorf("failed to clone repository: %s (%w)", repo.FullName(), err)
 	}
@@ -135,7 +133,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if hasDefaultBranch {
 		if err := gitRepo.ReadTreeToIndex("HEAD"); err != nil {
 			log.Error("Unable to read HEAD tree to index in: %s %v", basePath, err)
-			return fmt.Errorf("fnable to read HEAD tree to index in: %s %w", basePath, err)
+			return fmt.Errorf("unable to read HEAD tree to index in: %s %w", basePath, err)
 		}
 	}
 
@@ -172,7 +170,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	// FIXME: The wiki doesn't have lfs support at present - if this changes need to check attributes here
 
-	objectHash, err := gitRepo.HashObject(strings.NewReader(content))
+	objectHash, err := gitRepo.HashObjectBytes([]byte(content))
 	if err != nil {
 		log.Error("HashObject failed: %v", err)
 		return err
@@ -195,7 +193,13 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
+	originalGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo.WikiStorageRepo())
+	if err != nil {
+		return fmt.Errorf("unable to open wiki repository: %w", err)
+	}
+	defer closer.Close()
+
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, originalGitRepo, doer)
 	if sign {
 		commitTreeOpts.Key = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -214,14 +218,14 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
-		Remote: DefaultRemote,
+	if err := gitrepo.PushFromLocal(ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, repo.DefaultWikiBranch),
 		Env: repo_module.FullPushingEnvironment(
 			doer,
 			doer,
 			repo,
 			repo.Name+".wiki",
+			0,
 			0,
 		),
 	}); err != nil {
@@ -269,7 +273,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	}
 	defer cleanup()
 
-	if err := git.Clone(ctx, repo.WikiPath(), basePath, git.CloneRepoOptions{
+	if err := gitrepo.CloneRepoToLocal(ctx, repo.WikiStorageRepo(), basePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 		Branch: repo.DefaultWikiBranch,
@@ -317,7 +321,13 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, doer)
+	originalGitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, repo.WikiStorageRepo())
+	if err != nil {
+		return fmt.Errorf("unable to open wiki repository: %w", err)
+	}
+	defer closer.Close()
+
+	sign, signingKey, signer, _ := asymkey_service.SignWikiCommit(ctx, repo, originalGitRepo, doer)
 	if sign {
 		commitTreeOpts.Key = signingKey
 		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
@@ -332,14 +342,14 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return err
 	}
 
-	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
-		Remote: DefaultRemote,
+	if err := gitrepo.PushFromLocal(gitRepo.Ctx, basePath, repo.WikiStorageRepo(), git.PushOptions{
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, repo.DefaultWikiBranch),
 		Env: repo_module.FullPushingEnvironment(
 			doer,
 			doer,
 			repo,
 			repo.Name+".wiki",
+			0,
 			0,
 		),
 	}); err != nil {
@@ -359,7 +369,7 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 	}
 
 	if err := gitrepo.DeleteRepository(ctx, repo.WikiStorageRepo()); err != nil {
-		desc := fmt.Sprintf("Delete wiki repository files [%s]: %v", repo.FullName(), err)
+		desc := fmt.Sprintf("Delete wiki repository files (%s): %v", repo.FullName(), err)
 		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
 		if err = system_model.CreateNotice(graceful.GetManager().ShutdownContext(), system_model.NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)

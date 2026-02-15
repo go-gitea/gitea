@@ -3,7 +3,6 @@
 	<div class="content">
 		<div class="ui warning message">{{ctx.Locale.Tr "user.block.info"}}</div>
 		<form class="ui form modal-form" method="post">
-			{{.CsrfTokenHtml}}
 			<input type="hidden" name="action" value="block" />
 			<input type="hidden" name="blockee" class="modal-blockee" />
 			<div class="field">

@@ -149,7 +149,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "Get an global actions runner registration token",
+        "summary": "Get a global actions runner registration token",
         "operationId": "adminCreateRunnerRegistrationToken",
         "responses": {
           "200": {
@@ -166,7 +166,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "Get an global runner",
+        "summary": "Get a global runner",
         "operationId": "getAdminRunner",
         "parameters": [
           {
@@ -196,7 +196,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "Delete an global runner",
+        "summary": "Delete a global runner",
         "operationId": "deleteAdminRunner",
         "parameters": [
           {
@@ -624,7 +624,7 @@
         "tags": [
           "admin"
         ],
-        "summary": "Get an global actions runner registration token",
+        "summary": "Get a global actions runner registration token",
         "operationId": "adminGetRunnerRegistrationToken",
         "responses": {
           "200": {
@@ -781,6 +781,60 @@
             "description": "page size of results",
             "name": "limit",
             "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort users by attribute. Supported values are \"name\", \"created\", \"updated\" and \"id\". Default is \"name\"",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "sort order, either \"asc\" (ascending) or \"desc\" (descending). Default is \"asc\", ignored if \"sort\" is not specified.",
+            "name": "order",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "search term (username, full name, email)",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "visibility filter. Supported values are \"public\", \"limited\" and \"private\".",
+            "name": "visibility",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter active users",
+            "name": "is_active",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter admin users",
+            "name": "is_admin",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter restricted users",
+            "name": "is_restricted",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter 2FA enabled users",
+            "name": "is_2fa_enabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "filter login prohibited users",
+            "name": "is_prohibit_login",
+            "in": "query"
           }
         ],
         "responses": {
@@ -789,6 +843,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -4179,13 +4236,6 @@
             "in": "query"
           },
           {
-            "type": "integer",
-            "format": "int64",
-            "description": "Repository ID to prioritize in the results",
-            "name": "priority_repo_id",
-            "in": "query"
-          },
-          {
             "enum": [
               "issues",
               "pulls"
@@ -6206,6 +6256,16 @@
             "name": "archive",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "subpath of the repository to download",
+            "name": "path",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6747,6 +6807,66 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Update a branch reference to a new commit",
+        "operationId": "repoUpdateBranch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the branch",
+            "name": "branch",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpdateBranchRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "$ref": "#/responses/conflict"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
           }
         }
       },
@@ -7634,7 +7754,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Update a file in a repository",
+        "summary": "Update a file in a repository if SHA is set, or create the file if SHA is not set",
         "operationId": "repoUpdateFile",
         "parameters": [
           {
@@ -7669,6 +7789,9 @@
         ],
         "responses": {
           "200": {
+            "$ref": "#/responses/FileResponse"
+          },
+          "201": {
             "$ref": "#/responses/FileResponse"
           },
           "403": {
@@ -9569,6 +9692,9 @@
           "404": {
             "$ref": "#/responses/error"
           },
+          "413": {
+            "$ref": "#/responses/error"
+          },
           "422": {
             "$ref": "#/responses/validationError"
           },
@@ -10192,6 +10318,9 @@
             "$ref": "#/responses/error"
           },
           "404": {
+            "$ref": "#/responses/error"
+          },
+          "413": {
             "$ref": "#/responses/error"
           },
           "422": {
@@ -13578,6 +13707,106 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/comments/{id}/resolve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Resolve a pull request review comment",
+        "operationId": "repoResolvePullReviewComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/pulls/comments/{id}/unresolve": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Unresolve a pull request review comment",
+        "operationId": "repoUnresolvePullReviewComment",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "id of the review comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "400": {
+            "$ref": "#/responses/validationError"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/pinned": {
       "get": {
         "produces": [
@@ -15510,6 +15739,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "413": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -22877,7 +23109,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CreateFileOptions": {
-      "description": "CreateFileOptions options for creating files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "description": "CreateFileOptions options for creating a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
       "required": [
         "content"
@@ -23298,6 +23530,11 @@
       "description": "CreatePullRequestOption options when creating a pull request",
       "type": "object",
       "properties": {
+        "allow_maintainer_edit": {
+          "description": "Whether maintainers can edit the pull request",
+          "type": "boolean",
+          "x-go-name": "AllowMaintainerEdit"
+        },
         "assignee": {
           "description": "The primary assignee username",
           "type": "string",
@@ -23399,7 +23636,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "CreatePullReviewOptions": {
-      "description": "CreatePullReviewOptions are options to create a pull review",
+      "description": "CreatePullReviewOptions are options to create a pull request review",
       "type": "object",
       "properties": {
         "body": {
@@ -23895,7 +24132,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "DeleteFileOptions": {
-      "description": "DeleteFileOptions options for deleting files (used for other File structs below)\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "description": "DeleteFileOptions options for deleting a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
       "type": "object",
       "required": [
         "sha"
@@ -23931,7 +24168,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "the blob ID (SHA) for the file that already exists, it is required for changing existing files",
+          "description": "the blob ID (SHA) for the file to delete",
           "type": "string",
           "x-go-name": "SHA"
         },
@@ -23996,7 +24233,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "DismissPullReviewOptions": {
-      "description": "DismissPullReviewOptions are options to dismiss a pull review",
+      "description": "DismissPullReviewOptions are options to dismiss a pull request review",
       "type": "object",
       "properties": {
         "message": {
@@ -27508,7 +27745,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "PullReviewRequestOptions": {
-      "description": "PullReviewRequestOptions are options to add or remove pull review requests",
+      "description": "PullReviewRequestOptions are options to add or remove pull request review requests",
       "type": "object",
       "properties": {
         "reviewers": {
@@ -27910,6 +28147,10 @@
           "type": "string",
           "x-go-name": "DefaultMergeStyle"
         },
+        "default_target_branch": {
+          "type": "string",
+          "x-go-name": "DefaultTargetBranch"
+        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -28252,7 +28493,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "SubmitPullReviewOptions": {
-      "description": "SubmitPullReviewOptions are options to submit a pending pull review",
+      "description": "SubmitPullReviewOptions are options to submit a pending pull request review",
       "type": "object",
       "properties": {
         "body": {
@@ -28690,11 +28931,35 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "UpdateFileOptions": {
-      "description": "UpdateFileOptions options for updating files\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+    "UpdateBranchRepoOption": {
+      "description": "UpdateBranchRepoOption options when updating a branch reference in a repository",
       "type": "object",
       "required": [
-        "sha",
+        "new_commit_id"
+      ],
+      "properties": {
+        "force": {
+          "description": "Force update even if the change is not a fast-forward",
+          "type": "boolean",
+          "x-go-name": "Force"
+        },
+        "new_commit_id": {
+          "description": "New commit SHA (or any ref) the branch should point to",
+          "type": "string",
+          "x-go-name": "NewCommitID"
+        },
+        "old_commit_id": {
+          "description": "Expected old commit SHA of the branch; if provided it must match the current tip",
+          "type": "string",
+          "x-go-name": "OldCommitID"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpdateFileOptions": {
+      "description": "UpdateFileOptions options for updating or creating a file\nNote: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)",
+      "type": "object",
+      "required": [
         "content"
       ],
       "properties": {
@@ -28738,7 +29003,7 @@
           "x-go-name": "NewBranchName"
         },
         "sha": {
-          "description": "the blob ID (SHA) for the file that already exists, it is required for changing existing files",
+          "description": "the blob ID (SHA) for the file that already exists to update, or leave it empty to create a new file",
           "type": "string",
           "x-go-name": "SHA"
         },

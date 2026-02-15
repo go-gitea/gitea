@@ -92,9 +92,5 @@ func TestAPIUserSecrets(t *testing.T) {
 		req = NewRequest(t, "DELETE", url).
 			AddTokenAuth(token)
 		MakeRequest(t, req, http.StatusNotFound)
-
-		req = NewRequest(t, "DELETE", "/api/v1/user/actions/secrets/000").
-			AddTokenAuth(token)
-		MakeRequest(t, req, http.StatusBadRequest)
 	})
 }

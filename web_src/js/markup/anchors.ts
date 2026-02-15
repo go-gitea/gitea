@@ -1,5 +1,20 @@
 import {svg} from '../svg.ts';
 
+// Rendered content from users have IDs prefixed with `user-content-` to avoid conflicts with other IDs on the page.
+// - security concern: elements with IDs can affect frontend logic, for example: sending requests.
+// To make end users have better experience, the prefixes are stripped from the href attributes of links.
+// The same as GitHub: backend generates anchor `id="user-content-faq"` but the link shown to users is `href="#faq"`.
+//
+// At the moment, the anchor processing works like this:
+// - backend adds `user-content-` prefix for elements like `<h1 id>` and `<a href>`
+// - js adds the `user-content-` prefix to user-generated `<a name>` targets
+// - js intercepts the hash navigation on page load and whenever a link is clicked
+//   to add the prefix so the correct prefixed `id`/`name` element is focused
+//
+// TODO: ideally, backend should be able to generate elements with necessary anchors,
+// backend doesn't need to add the prefix to `href`, then frontend doesn't need to spend
+// time on adding new elements or removing the prefixes.
+
 const addPrefix = (str: string): string => `user-content-${str}`;
 const removePrefix = (str: string): string => str.replace(/^user-content-/, '');
 const hasPrefix = (str: string): boolean => str.startsWith('user-content-');
@@ -7,7 +22,7 @@ const hasPrefix = (str: string): boolean => str.startsWith('user-content-');
 // scroll to anchor while respecting the `user-content` prefix that exists on the target
 function scrollToAnchor(encodedId?: string): void {
   // FIXME: need to rewrite this function with new a better markup anchor generation logic, too many tricks here
-  let elemId: string;
+  let elemId: string | undefined;
   try {
     elemId = decodeURIComponent(encodedId ?? '');
   } catch {} // ignore the errors, since the "encodedId" is from user's input
@@ -44,7 +59,7 @@ export function initMarkupAnchors(): void {
     // remove `user-content-` prefix from links so they don't show in url bar when clicked
     for (const a of markupEl.querySelectorAll<HTMLAnchorElement>('a[href^="#"]')) {
       const href = a.getAttribute('href');
-      if (!href.startsWith('#user-content-')) continue;
+      if (!href?.startsWith('#user-content-')) continue;
       a.setAttribute('href', `#${removePrefix(href.substring(1))}`);
     }
 

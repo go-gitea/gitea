@@ -4,19 +4,22 @@
 package markup
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"html/template"
 	"io"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/markup/internal"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/yuin/goldmark/ast"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -52,6 +55,23 @@ type RenderOptions struct {
 
 	// used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 	InStandalonePage bool
+
+	// EnableHeadingIDGeneration controls whether to auto-generate IDs for HTML headings without id attribute.
+	// This should be enabled for repository files and wiki pages, but disabled for comments to avoid duplicate IDs.
+	EnableHeadingIDGeneration bool
+}
+
+type TocShowInSectionType string
+
+const (
+	TocShowInSidebar TocShowInSectionType = "sidebar"
+	TocShowInMain    TocShowInSectionType = "main"
+)
+
+type TocHeadingItem struct {
+	HeadingLevel int
+	AnchorID     string
+	InnerText    string
 }
 
 // RenderContext represents a render context
@@ -61,7 +81,8 @@ type RenderContext struct {
 	// the context might be used by the "render" function, but it might also be used by "postProcess" function
 	usedByRender bool
 
-	SidebarTocNode ast.Node
+	TocShowInSection TocShowInSectionType
+	TocHeadingItems  []*TocHeadingItem
 
 	RenderHelper   RenderHelper
 	RenderOptions  RenderOptions
@@ -110,6 +131,11 @@ func (ctx *RenderContext) WithInStandalonePage(v bool) *RenderContext {
 	return ctx
 }
 
+func (ctx *RenderContext) WithEnableHeadingIDGeneration(v bool) *RenderContext {
+	ctx.RenderOptions.EnableHeadingIDGeneration = v
+	return ctx
+}
+
 func (ctx *RenderContext) WithUseAbsoluteLink(v bool) *RenderContext {
 	ctx.RenderOptions.UseAbsoluteLink = v
 	return ctx
@@ -120,31 +146,45 @@ func (ctx *RenderContext) WithHelper(helper RenderHelper) *RenderContext {
 	return ctx
 }
 
-// Render renders markup file to HTML with all specific handling stuff.
-func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
+func (ctx *RenderContext) DetectMarkupRenderer(prefetchBuf []byte) Renderer {
 	if ctx.RenderOptions.MarkupType == "" && ctx.RenderOptions.RelativePath != "" {
-		ctx.RenderOptions.MarkupType = DetectMarkupTypeByFileName(ctx.RenderOptions.RelativePath)
-		if ctx.RenderOptions.MarkupType == "" {
-			return util.NewInvalidArgumentErrorf("unsupported file to render: %q", ctx.RenderOptions.RelativePath)
+		var sniffedType typesniffer.SniffedType
+		if len(prefetchBuf) > 0 {
+			sniffedType = typesniffer.DetectContentType(prefetchBuf)
 		}
+		ctx.RenderOptions.MarkupType = DetectRendererTypeByPrefetch(ctx.RenderOptions.RelativePath, sniffedType, prefetchBuf)
 	}
+	return renderers[ctx.RenderOptions.MarkupType]
+}
 
-	renderer := renderers[ctx.RenderOptions.MarkupType]
+func (ctx *RenderContext) DetectMarkupRendererByReader(in io.Reader) (Renderer, io.Reader, error) {
+	prefetchBuf := make([]byte, 512)
+	n, err := util.ReadAtMost(in, prefetchBuf)
+	if err != nil && err != io.EOF {
+		return nil, nil, err
+	}
+	prefetchBuf = prefetchBuf[:n]
+	renderer := ctx.DetectMarkupRenderer(prefetchBuf)
 	if renderer == nil {
-		return util.NewInvalidArgumentErrorf("unsupported markup type: %q", ctx.RenderOptions.MarkupType)
+		return nil, nil, util.NewInvalidArgumentErrorf("unable to find a render")
 	}
+	return renderer, io.MultiReader(bytes.NewReader(prefetchBuf), in), nil
+}
 
-	if ctx.RenderOptions.RelativePath != "" {
-		if externalRender, ok := renderer.(ExternalRenderer); ok && externalRender.DisplayInIFrame() {
-			if !ctx.RenderOptions.InStandalonePage {
-				// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
-				// otherwise, a <iframe> should be outputted to embed the external rendered page
-				return renderIFrame(ctx, output)
-			}
-		}
+func RendererNeedPostProcess(renderer Renderer) bool {
+	if r, ok := renderer.(PostProcessRenderer); ok && r.NeedPostProcess() {
+		return true
 	}
+	return false
+}
 
-	return render(ctx, renderer, input, output)
+// Render renders markup file to HTML with all specific handling stuff.
+func Render(rctx *RenderContext, origInput io.Reader, output io.Writer) error {
+	renderer, input, err := rctx.DetectMarkupRendererByReader(origInput)
+	if err != nil {
+		return err
+	}
+	return RenderWithRenderer(rctx, renderer, input, output)
 }
 
 // RenderString renders Markup string to HTML with all specific handling stuff and return string
@@ -156,24 +196,20 @@ func RenderString(ctx *RenderContext, content string) (string, error) {
 	return buf.String(), nil
 }
 
-func renderIFrame(ctx *RenderContext, output io.Writer) error {
-	// set height="0" ahead, otherwise the scrollHeight would be max(150, realHeight)
-	// at the moment, only "allow-scripts" is allowed for sandbox mode.
-	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
-	// TODO: when using dark theme, if the rendered content doesn't have proper style, the default text color is black, which is not easy to read
-	_, err := io.WriteString(output, fmt.Sprintf(`
-<iframe src="%s/%s/%s/render/%s/%s"
-name="giteaExternalRender"
-onload="this.height=giteaExternalRender.document.documentElement.scrollHeight"
-width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
-sandbox="allow-scripts"
-></iframe>`,
-		setting.AppSubURL,
+func renderIFrame(ctx *RenderContext, sandbox string, output io.Writer) error {
+	src := fmt.Sprintf("%s/%s/%s/render/%s/%s", setting.AppSubURL,
 		url.PathEscape(ctx.RenderOptions.Metas["user"]),
 		url.PathEscape(ctx.RenderOptions.Metas["repo"]),
-		ctx.RenderOptions.Metas["RefTypeNameSubURL"],
-		url.PathEscape(ctx.RenderOptions.RelativePath),
-	))
+		util.PathEscapeSegments(ctx.RenderOptions.Metas["RefTypeNameSubURL"]),
+		util.PathEscapeSegments(ctx.RenderOptions.RelativePath),
+	)
+
+	var sandboxAttrValue template.HTML
+	if sandbox != "" {
+		sandboxAttrValue = htmlutil.HTMLFormat(`sandbox="%s"`, sandbox)
+	}
+	iframe := htmlutil.HTMLFormat(`<iframe data-src="%s" class="external-render-iframe" %s></iframe>`, src, sandboxAttrValue)
+	_, err := io.WriteString(output, string(iframe))
 	return err
 }
 
@@ -185,13 +221,34 @@ func pipes() (io.ReadCloser, io.WriteCloser, func()) {
 	}
 }
 
-func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+func getExternalRendererOptions(renderer Renderer) (ret ExternalRendererOptions, _ bool) {
+	if externalRender, ok := renderer.(ExternalRenderer); ok {
+		return externalRender.GetExternalRendererOptions(), true
+	}
+	return ret, false
+}
+
+func RenderWithRenderer(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+	var extraHeadHTML template.HTML
+	if extOpts, ok := getExternalRendererOptions(renderer); ok && extOpts.DisplayInIframe {
+		if !ctx.RenderOptions.InStandalonePage {
+			// for an external "DisplayInIFrame" render, it could only output its content in a standalone page
+			// otherwise, a <iframe> should be outputted to embed the external rendered page
+			return renderIFrame(ctx, extOpts.ContentSandbox, output)
+		}
+		// else: this is a standalone page, fallthrough to the real rendering, and add extra JS/CSS
+		extraStyleHref := setting.AppSubURL + "/assets/css/external-render-iframe.css"
+		extraScriptSrc := setting.AppSubURL + "/assets/js/external-render-iframe.js"
+		// "<script>" must go before "<link>", to make Golang's http.DetectContentType() can still recognize the content as "text/html"
+		extraHeadHTML = htmlutil.HTMLFormat(`<script src="%s"></script><link rel="stylesheet" href="%s">`, extraScriptSrc, extraStyleHref)
+	}
+
 	ctx.usedByRender = true
 	if ctx.RenderHelper != nil {
 		defer ctx.RenderHelper.CleanUp()
 	}
 
-	finalProcessor := ctx.RenderInternal.Init(output)
+	finalProcessor := ctx.RenderInternal.Init(output, extraHeadHTML)
 	defer finalProcessor.Close()
 
 	// input -> (pw1=pr1) -> renderer -> (pw2=pr2) -> SanitizeReader -> finalProcessor -> output
@@ -202,7 +259,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 	eg, _ := errgroup.WithContext(ctx)
 	var pw2 io.WriteCloser = util.NopCloser{Writer: finalProcessor}
 
-	if r, ok := renderer.(ExternalRenderer); !ok || !r.SanitizerDisabled() {
+	if r, ok := renderer.(ExternalRenderer); !ok || !r.GetExternalRendererOptions().SanitizerDisabled {
 		var pr2 io.ReadCloser
 		var close2 func()
 		pr2, pw2, close2 = pipes()
@@ -214,7 +271,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 	}
 
 	eg.Go(func() (err error) {
-		if r, ok := renderer.(PostProcessRenderer); ok && r.NeedPostProcess() {
+		if RendererNeedPostProcess(renderer) {
 			err = PostProcessDefault(ctx, pr1, pw2)
 		} else {
 			_, err = io.Copy(pw2, pr1)
@@ -239,12 +296,14 @@ func Init(renderHelpFuncs *RenderHelperFuncs) {
 	}
 
 	// since setting maybe changed extensions, this will reload all renderer extensions mapping
-	extRenderers = make(map[string]Renderer)
+	fileNameRenderers = make(map[string]Renderer)
 	for _, renderer := range renderers {
-		for _, ext := range renderer.Extensions() {
-			extRenderers[strings.ToLower(ext)] = renderer
+		for _, pattern := range renderer.FileNamePatterns() {
+			fileNameRenderers[pattern] = renderer
 		}
 	}
+
+	RefreshFileNamePatterns()
 }
 
 func ComposeSimpleDocumentMetas() map[string]string {

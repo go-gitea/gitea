@@ -11,22 +11,16 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 // GetTreeEntryByPath get the tree entries according the sub dir
 func (t *Tree) GetTreeEntryByPath(relpath string) (*TreeEntry, error) {
 	if len(relpath) == 0 {
 		return &TreeEntry{
-			ID: t.ID,
-			// Type: ObjectTree,
-			ptree: t,
-			gogitTreeEntry: &object.TreeEntry{
-				Name: "",
-				Mode: filemode.Dir,
-				Hash: plumbing.Hash(t.ID.RawValue()),
-			},
+			ID:        t.ID,
+			ptree:     t,
+			name:      "",
+			entryMode: EntryModeTree,
 		}, nil
 	}
 

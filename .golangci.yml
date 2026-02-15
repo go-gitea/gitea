@@ -6,14 +6,17 @@ linters:
   default: none
   enable:
     - bidichk
+    - bodyclose
     - depguard
     - dupl
     - errcheck
     - forbidigo
+    - gocheckcompilerdirectives
     - gocritic
     - govet
     - ineffassign
     - mirror
+    - modernize
     - nakedret
     - nolintlint
     - perfsprint
@@ -45,6 +48,10 @@ linters:
               desc: do not use the ini package, use gitea's config system instead
             - pkg: gitea.com/go-chi/cache
               desc: do not use the go-chi cache package, use gitea's cache system
+            - pkg: github.com/pkg/errors
+              desc: use builtin errors package instead
+            - pkg: github.com/go-ap/errors
+              desc: use builtin errors package instead
     nolintlint:
       allow-unused: false
       require-explanation: true
@@ -55,6 +62,7 @@ linters:
       disabled-checks:
         - ifElseChain
         - singleCaseSwitch # Every time this occurred in the code, there was no other way.
+        - deprecatedComment # conflicts with go-swagger comments
     revive:
       severity: error
       rules:
@@ -107,6 +115,12 @@ linters:
         - require-error
     usetesting:
       os-temp-dir: true
+    perfsprint:
+      concat-loop: false
+    govet:
+      enable:
+        - nilness
+        - unusedwrite
   exclusions:
     generated: lax
     presets:
@@ -153,6 +167,7 @@ linters:
         text: '(?i)exitAfterDefer:'
     paths:
       - node_modules
+      - .venv
       - public
       - web_src
       - third_party$
@@ -172,6 +187,7 @@ formatters:
     generated: lax
     paths:
       - node_modules
+      - .venv
       - public
       - web_src
       - third_party$

@@ -14,12 +14,13 @@ import (
 )
 
 func NewDiffPatch(ctx *context.Context) {
-	prepareEditorCommitFormOptions(ctx, "_diffpatch")
+	prepareEditorPage(ctx, "_diffpatch")
 	if ctx.Written() {
 		return
 	}
 
 	ctx.Data["PageIsPatch"] = true
+	ctx.Data["CodeEditorConfig"] = CodeEditorConfig{} // not really editing a file, so no need to fill in the config
 	ctx.HTML(http.StatusOK, tplPatchFile)
 }
 
@@ -41,7 +42,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 		Committer:    parsed.GitCommitter,
 	})
 	if err != nil {
-		err = util.ErrorWrapLocale(err, "repo.editor.fail_to_apply_patch")
+		err = util.ErrorWrapTranslatable(err, "repo.editor.fail_to_apply_patch")
 	}
 	if err != nil {
 		editorHandleFileOperationError(ctx, parsed.NewBranchName, err)

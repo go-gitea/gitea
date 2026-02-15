@@ -56,10 +56,11 @@ describe('Repository Branch Settings', () => {
     vi.mocked(POST).mockResolvedValue({ok: true} as Response);
 
     // Mock createSortable to capture and execute the onEnd callback
-    vi.mocked(createSortable).mockImplementation(async (_el: Element, options: SortableOptions) => {
-      options.onEnd(new Event('SortableEvent') as SortableEvent);
-      // @ts-expect-error: mock is incomplete
-      return {destroy: vi.fn()} as Sortable;
+    vi.mocked(createSortable).mockImplementation(async (_el: HTMLElement, options: SortableOptions | undefined) => {
+      if (options?.onEnd) {
+        options.onEnd(new Event('SortableEvent') as SortableEvent);
+      }
+      return {destroy: vi.fn()} as unknown as Sortable;
     });
 
     initRepoSettingsBranchesDrag();

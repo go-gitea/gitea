@@ -53,7 +53,8 @@ func SyncRepoTags(ctx context.Context, repoID int64) error {
 	}
 	defer gitRepo.Close()
 
-	return SyncReleasesWithTags(ctx, repo, gitRepo)
+	_, err = SyncReleasesWithTags(ctx, repo, gitRepo)
+	return err
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
@@ -62,7 +63,9 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 	pointerChan := make(chan lfs.PointerBlob)
 	errChan := make(chan error, 1)
-	go lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan, errChan)
+	go func() {
+		errChan <- lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan)
+	}()
 
 	downloadObjects := func(pointers []lfs.Pointer) error {
 		err := lfsClient.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
@@ -150,13 +153,12 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 		}
 	}
 
-	err, has := <-errChan
-	if has {
+	err := <-errChan
+	if err != nil {
 		log.Error("Repo[%-v]: Error enumerating LFS objects for repository: %v", repo, err)
-		return err
 	}
 
-	return nil
+	return err
 }
 
 // shortRelease to reduce load memory, this struct can replace repo_model.Release
@@ -177,13 +179,14 @@ func (shortRelease) TableName() string {
 // upstream. Hence, after each sync we want the release set to be
 // identical to the upstream tag set. This is much more efficient for
 // repositories like https://github.com/vim/vim (with over 13000 tags).
-func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) error {
+func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository) ([]*SyncResult, error) {
 	log.Debug("SyncReleasesWithTags: in Repo[%d:%s/%s]", repo.ID, repo.OwnerName, repo.Name)
 	tags, _, err := gitRepo.GetTagInfos(0, 0)
 	if err != nil {
-		return fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+		return nil, fmt.Errorf("unable to GetTagInfos in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
 	var added, deleted, updated int
+	var syncResults []*SyncResult
 	err = db.WithTx(ctx, func(ctx context.Context) error {
 		dbReleases, err := db.Find[shortRelease](ctx, repo_model.FindReleasesOptions{
 			RepoID:        repo.ID,
@@ -194,7 +197,45 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 			return fmt.Errorf("unable to FindReleases in pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
 
+		dbReleasesByID := make(map[int64]*shortRelease, len(dbReleases))
+		dbReleasesByTag := make(map[string]*shortRelease, len(dbReleases))
+		for _, release := range dbReleases {
+			dbReleasesByID[release.ID] = release
+			dbReleasesByTag[release.TagName] = release
+		}
+
 		inserts, deletes, updates := calcSync(tags, dbReleases)
+		syncResults = make([]*SyncResult, 0, len(inserts)+len(deletes)+len(updates))
+		for _, tag := range inserts {
+			syncResults = append(syncResults, &SyncResult{
+				RefName:     git.RefNameFromTag(tag.Name),
+				OldCommitID: "",
+				NewCommitID: tag.Object.String(),
+			})
+		}
+		for _, deleteID := range deletes {
+			release := dbReleasesByID[deleteID]
+			if release == nil {
+				continue
+			}
+			syncResults = append(syncResults, &SyncResult{
+				RefName:     git.RefNameFromTag(release.TagName),
+				OldCommitID: release.Sha1,
+				NewCommitID: "",
+			})
+		}
+		for _, tag := range updates {
+			release := dbReleasesByTag[tag.Name]
+			oldSha := ""
+			if release != nil {
+				oldSha = release.Sha1
+			}
+			syncResults = append(syncResults, &SyncResult{
+				RefName:     git.RefNameFromTag(tag.Name),
+				OldCommitID: oldSha,
+				NewCommitID: tag.Object.String(),
+			})
+		}
 		//
 		// make release set identical to upstream tags
 		//
@@ -233,15 +274,15 @@ func SyncReleasesWithTags(ctx context.Context, repo *repo_model.Repository, gitR
 				return fmt.Errorf("unable to update tag %s for pull-mirror Repo[%d:%s/%s]: %w", tag.Name, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 		}
-		added, deleted, updated = len(deletes), len(updates), len(inserts)
+		added, deleted, updated = len(inserts), len(deletes), len(updates)
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("unable to rebuild release table for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
+		return nil, fmt.Errorf("unable to rebuild release table for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 	}
 
 	log.Trace("SyncReleasesWithTags: %d tags added, %d tags deleted, %d tags updated", added, deleted, updated)
-	return nil
+	return syncResults, nil
 }
 
 func calcSync(destTags []*git.Tag, dbTags []*shortRelease) ([]*git.Tag, []int64, []*git.Tag) {

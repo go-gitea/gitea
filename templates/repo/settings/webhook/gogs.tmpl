@@ -2,7 +2,6 @@
 	<p>{{ctx.Locale.Tr "repo.settings.add_web_hook_desc" "https://docs.gitea.com/usage/webhooks" (ctx.Locale.Tr "repo.settings.web_hook_name_gogs")}}</p>
 	<form class="ui form" action="{{.BaseLink}}/gogs/{{or .Webhook.ID "new"}}" method="post">
 		{{template "base/disable_form_autofill"}}
-		{{.CsrfTokenHtml}}
 		<div class="required field {{if .Err_PayloadURL}}error{{end}}">
 			<label for="payload_url">{{ctx.Locale.Tr "repo.settings.payload_url"}}</label>
 			<input id="payload_url" name="payload_url" type="url" value="{{.Webhook.URL}}" autofocus required>

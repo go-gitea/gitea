@@ -225,16 +225,11 @@ func loginUser(t testing.TB, userName string) *TestSession {
 
 func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
 	t.Helper()
-	req := NewRequest(t, "GET", "/user/login")
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	doc := NewHTMLParser(t, resp.Body)
-	req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
-		"_csrf":     doc.GetCSRF(),
+	req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
 		"user_name": userName,
 		"password":  password,
 	})
-	resp = MakeRequest(t, req, http.StatusSeeOther)
+	resp := MakeRequest(t, req, http.StatusSeeOther)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -256,7 +251,6 @@ var tokenCounter int64
 func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
 	urlValues := url.Values{}
-	urlValues.Add("_csrf", GetUserCSRFToken(t, session))
 	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
 	for _, scope := range scopes {
 		urlValues.Add("scope-dummy", string(scope)) // it only needs to start with "scope-" to be accepted
@@ -271,8 +265,8 @@ type RequestWrapper struct {
 	*http.Request
 }
 
-func (req *RequestWrapper) AddBasicAuth(username string) *RequestWrapper {
-	req.Request.SetBasicAuth(username, userPassword)
+func (req *RequestWrapper) AddBasicAuth(username string, password ...string) *RequestWrapper {
+	req.Request.SetBasicAuth(username, util.OptionalArg(password, userPassword))
 	return req
 }
 
@@ -338,7 +332,7 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *Re
 	return &RequestWrapper{req}
 }
 
-const NoExpectedStatus = -1
+const NoExpectedStatus = 0
 
 func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
@@ -435,21 +429,4 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 	assert.NoError(t, schemaValidationErr)
 	assert.Empty(t, result.Errors())
 	assert.True(t, result.Valid())
-}
-
-// GetUserCSRFToken returns CSRF token for current user
-func GetUserCSRFToken(t testing.TB, session *TestSession) string {
-	t.Helper()
-	cookie := session.GetSiteCookie("_csrf")
-	require.NotEmpty(t, cookie)
-	return cookie
-}
-
-// GetUserCSRFToken returns CSRF token for anonymous user (not logged in)
-func GetAnonymousCSRFToken(t testing.TB, session *TestSession) string {
-	t.Helper()
-	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
-	csrfToken := NewHTMLParser(t, resp.Body).GetCSRF()
-	require.NotEmpty(t, csrfToken)
-	return csrfToken
 }
