@@ -123,11 +123,13 @@ function autoFocusEnd(el: HTMLInputElement | HTMLTextAreaElement) {
 
 export function applyAutoFocus(container: Element) {
   // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/autofocus
-  // "autofocus" is a well-defined behavior: when a container (e.g.: dialog) becomes visible, apply the "autofocus" behavior
+  // "autofocus" behavior is defined by the standard: when a container (e.g.: dialog) becomes visible, focus the element with "autofocus" attribute
   // Fomantic UI already supports it for its modal dialog, we need to cover more cases (e.g.: ".show-panel" button)
+  // Here is just a simple support, we don't expect more than one element that need "autofocus" appearing in the same container
   container.querySelector<HTMLElement>('[autofocus]')?.focus();
   // Also, apply our autoFocusEnd behavior
-  const el = container.querySelector<HTMLInputElement>('[data-global-init="autoFocusEnd"]');
+  // TODO: GLOBAL-INIT-MULTIPLE-FUNCTIONS: use "~=" operator in case we would extend the "data-global-init" to support more functions in the future.
+  const el = container.querySelector<HTMLInputElement>('[data-global-init~="autoFocusEnd"]');
   if (el) autoFocusEnd(el);
 }
 
