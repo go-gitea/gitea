@@ -149,18 +149,18 @@ func composeAndSendActionsWorkflowRunStatusEmail(ctx context.Context, repo *repo
 	return nil
 }
 
-func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo_model.Repository, run *actions_model.ActionRun) error {
+func MailActionsTrigger(ctx context.Context, recipient *user_model.User, repo *repo_model.Repository, run *actions_model.ActionRun) error {
 	if setting.MailService == nil {
 		return nil
 	}
 	if !run.Status.IsDone() || run.Status.IsSkipped() {
 		return nil
 	}
-	if !sender.IsMailable() {
+	if !recipient.IsMailable() {
 		return nil
 	}
 
-	notifyPref, err := user_model.GetUserSetting(ctx, sender.ID,
+	notifyPref, err := user_model.GetUserSetting(ctx, recipient.ID,
 		user_model.SettingsKeyEmailNotificationGiteaActions, user_model.SettingEmailNotificationGiteaActionsFailureOnly)
 	if err != nil {
 		return err
@@ -175,5 +175,5 @@ func MailActionsTrigger(ctx context.Context, sender *user_model.User, repo *repo
 	}
 
 	log.Debug("MailActionsTrigger: Initiate email composition")
-	return composeAndSendActionsWorkflowRunStatusEmail(ctx, repo, run, sender, []*user_model.User{sender})
+	return composeAndSendActionsWorkflowRunStatusEmail(ctx, repo, run, recipient, []*user_model.User{recipient})
 }
