@@ -16,6 +16,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -39,6 +40,7 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/alecthomas/chroma/v2"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
@@ -81,6 +83,8 @@ type DiffLine struct {
 
 // DiffLineSectionInfo represents diff line section meta data
 type DiffLineSectionInfo struct {
+	language *diffVarMutable[string]
+
 	Path string
 
 	// These line "idx" are 1-based line numbers
@@ -121,8 +125,14 @@ type DiffHTMLOperation struct {
 // BlobExcerptChunkSize represent max lines of excerpt
 const BlobExcerptChunkSize = 20
 
-// MaxDiffHighlightEntireFileSize is the maximum file size that will be highlighted with "entire file diff"
-const MaxDiffHighlightEntireFileSize = 1 * 1024 * 1024
+// Chroma seems extremely slow when highlighting large files, it might take dozens or hundreds of milliseconds.
+// When fully highlighting a diff with a lot of large files, it would take many seconds or even dozens of seconds.
+// So, don't highlight the entire file if it's too large, or highlighting takes too long.
+// When there is no full-file highlighting, the legacy "line-by-line" highlighting is still applied as the fallback.
+const (
+	MaxFullFileHighlightSizeLimit = 256 * 1024
+	MaxFullFileHighlightTimeLimit = 2 * time.Second
+)
 
 // GetType returns the type of DiffLine.
 func (d *DiffLine) GetType() int {
@@ -165,16 +175,19 @@ func (d *DiffLine) GetLineTypeMarker() string {
 }
 
 func (d *DiffLine) getBlobExcerptQuery() string {
-	query := fmt.Sprintf(
+	language := ""
+	if d.SectionInfo.language != nil { // for normal cases, it can't be nil, this check is only for some tests
+		language = d.SectionInfo.language.value
+	}
+	return fmt.Sprintf(
 		"last_left=%d&last_right=%d&"+
 			"left=%d&right=%d&"+
 			"left_hunk_size=%d&right_hunk_size=%d&"+
-			"path=%s",
+			"path=%s&filelang=%s",
 		d.SectionInfo.LastLeftIdx, d.SectionInfo.LastRightIdx,
 		d.SectionInfo.LeftIdx, d.SectionInfo.RightIdx,
 		d.SectionInfo.LeftHunkSize, d.SectionInfo.RightHunkSize,
-		url.QueryEscape(d.SectionInfo.Path))
-	return query
+		url.QueryEscape(d.SectionInfo.Path), url.QueryEscape(language))
 }
 
 func (d *DiffLine) GetExpandDirection() string {
@@ -266,11 +279,12 @@ func FillHiddenCommentIDsForDiffLine(line *DiffLine, lineComments map[int64][]*i
 	line.SectionInfo.HiddenCommentIDs = hiddenCommentIDs
 }
 
-func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
+func newDiffLineSectionInfo(curFile *DiffFile, line string, lastLeftIdx, lastRightIdx int) *DiffLineSectionInfo {
 	leftLine, leftHunk, rightLine, rightHunk := git.ParseDiffHunkString(line)
 
 	return &DiffLineSectionInfo{
-		Path:          treePath,
+		Path:          curFile.Name,
+		language:      &curFile.language,
 		LastLeftIdx:   lastLeftIdx,
 		LastRightIdx:  lastRightIdx,
 		LeftIdx:       leftLine,
@@ -290,7 +304,11 @@ func getLineContent(content string, locale translation.Locale) DiffInline {
 
 // DiffSection represents a section of a DiffFile.
 type DiffSection struct {
-	file     *DiffFile
+	language              *diffVarMutable[string]
+	highlightedLeftLines  *diffVarMutable[map[int]template.HTML]
+	highlightedRightLines *diffVarMutable[map[int]template.HTML]
+	highlightLexer        *diffVarMutable[chroma.Lexer]
+
 	FileName string
 	Lines    []*DiffLine
 }
@@ -331,17 +349,19 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 	if setting.Git.DisableDiffHighlight {
 		return template.HTML(html.EscapeString(diffLine.Content[1:]))
 	}
-	h, _ = highlight.RenderCodeFast(diffSection.FileName, fileLanguage, diffLine.Content[1:])
-	return h
+	if diffSection.highlightLexer.value == nil {
+		diffSection.highlightLexer.value = highlight.DetectChromaLexerByFileName(diffSection.FileName, fileLanguage)
+	}
+	return highlight.RenderCodeByLexer(diffSection.highlightLexer.value, diffLine.Content[1:])
 }
 
 func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInline {
 	var fileLanguage string
 	var highlightedLeftLines, highlightedRightLines map[int]template.HTML
 	// when a "diff section" is manually prepared by ExcerptBlob, it doesn't have "file" information
-	if diffSection.file != nil {
-		fileLanguage = diffSection.file.Language
-		highlightedLeftLines, highlightedRightLines = diffSection.file.highlightedLeftLines, diffSection.file.highlightedRightLines
+	if diffSection.language != nil {
+		fileLanguage = diffSection.language.value
+		highlightedLeftLines, highlightedRightLines = diffSection.highlightedLeftLines.value, diffSection.highlightedRightLines.value
 	}
 
 	var lineHTML template.HTML
@@ -375,6 +395,12 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
 func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, locale translation.Locale) DiffInline {
+	defer func() {
+		if err := recover(); err != nil {
+			// the logic is too complex in this function, help to catch any panic because Golang template doesn't print the stack
+			log.Error("panic in GetComputedInlineDiffFor: %v\nStack: %s", err, log.Stack(2))
+		}
+	}()
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
@@ -390,6 +416,11 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, loc
 		// no idea why it needs that check, it seems that the "if" should be always true, so try to simplify the code
 		return diffSection.getDiffLineForRender(DiffLinePlain, nil, diffLine, locale)
 	}
+}
+
+// diffVarMutable is a wrapper to make a variable mutable to be shared across structs
+type diffVarMutable[T any] struct {
+	value T
 }
 
 // DiffFile represents a file diff.
@@ -418,7 +449,6 @@ type DiffFile struct {
 	IsIncompleteLineTooLong bool
 
 	// will be filled by the extra loop in GitDiffForRender
-	Language          string
 	IsGenerated       bool
 	IsVendored        bool
 	SubmoduleDiffInfo *SubmoduleDiffInfo // IsSubmodule==true, then there must be a SubmoduleDiffInfo
@@ -430,9 +460,11 @@ type DiffFile struct {
 	IsViewed                  bool // User specific
 	HasChangedSinceLastReview bool // User specific
 
-	// for render purpose only, will be filled by the extra loop in GitDiffForRender
-	highlightedLeftLines  map[int]template.HTML
-	highlightedRightLines map[int]template.HTML
+	// for render purpose only, will be filled by the extra loop in GitDiffForRender, the maps of lines are 0-based
+	language              diffVarMutable[string]
+	highlightRender       diffVarMutable[chroma.Lexer] // cache render (atm: lexer) for current file, only detect once for line-by-line mode
+	highlightedLeftLines  diffVarMutable[map[int]template.HTML]
+	highlightedRightLines diffVarMutable[map[int]template.HTML]
 }
 
 // GetType returns type of diff file.
@@ -469,6 +501,7 @@ func (diffFile *DiffFile) GetTailSectionAndLimitedContent(leftCommit, rightCommi
 		Type:    DiffLineSection,
 		Content: " ",
 		SectionInfo: &DiffLineSectionInfo{
+			language:     &diffFile.language,
 			Path:         diffFile.Name,
 			LastLeftIdx:  lastLine.LeftIdx,
 			LastRightIdx: lastLine.RightIdx,
@@ -549,7 +582,7 @@ func getCommitFileLineCountAndLimitedContent(commit *git.Commit, filePath string
 	if err != nil {
 		return 0, nil
 	}
-	w := &limitByteWriter{limit: MaxDiffHighlightEntireFileSize + 1}
+	w := &limitByteWriter{limit: MaxFullFileHighlightSizeLimit + 1}
 	lineCount, err = blob.GetBlobLineCount(w)
 	if err != nil {
 		return 0, nil
@@ -907,6 +940,15 @@ func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 	return line, err
 }
 
+func newDiffSectionForDiffFile(curFile *DiffFile) *DiffSection {
+	return &DiffSection{
+		language:              &curFile.language,
+		highlightLexer:        &curFile.highlightRender,
+		highlightedLeftLines:  &curFile.highlightedLeftLines,
+		highlightedRightLines: &curFile.highlightedRightLines,
+	}
+}
+
 func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (lineBytes []byte, isFragment bool, err error) {
 	sb := strings.Builder{}
 
@@ -964,12 +1006,12 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			line := sb.String()
 
 			// Create a new section to represent this hunk
-			curSection = &DiffSection{file: curFile}
+			curSection = newDiffSectionForDiffFile(curFile)
 			lastLeftIdx = -1
 			curFile.Sections = append(curFile.Sections, curSection)
 
 			// FIXME: the "-1" can't be right, these "line idx" are all 1-based, maybe there are other bugs that covers this bug.
-			lineSectionInfo := getDiffLineSectionInfo(curFile.Name, line, leftLine-1, rightLine-1)
+			lineSectionInfo := newDiffLineSectionInfo(curFile, line, leftLine-1, rightLine-1)
 			diffLine := &DiffLine{
 				Type:        DiffLineSection,
 				Content:     line,
@@ -1004,7 +1046,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			rightLine++
 			if curSection == nil {
 				// Create a new section to represent this hunk
-				curSection = &DiffSection{file: curFile}
+				curSection = newDiffSectionForDiffFile(curFile)
 				curFile.Sections = append(curFile.Sections, curSection)
 				lastLeftIdx = -1
 			}
@@ -1037,7 +1079,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			}
 			if curSection == nil {
 				// Create a new section to represent this hunk
-				curSection = &DiffSection{file: curFile}
+				curSection = newDiffSectionForDiffFile(curFile)
 				curFile.Sections = append(curFile.Sections, curSection)
 				lastLeftIdx = -1
 			}
@@ -1064,7 +1106,7 @@ func parseHunks(ctx context.Context, curFile *DiffFile, maxLines, maxLineCharact
 			lastLeftIdx = -1
 			if curSection == nil {
 				// Create a new section to represent this hunk
-				curSection = &DiffSection{file: curFile}
+				curSection = newDiffSectionForDiffFile(curFile)
 				curFile.Sections = append(curFile.Sections, curSection)
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
@@ -1294,6 +1336,8 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		return nil, err
 	}
 
+	startTime := time.Now()
+
 	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage, attribute.Diff})
 	if err != nil {
 		return nil, err
@@ -1309,7 +1353,7 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 			isVendored, isGenerated = attrs.GetVendored(), attrs.GetGenerated()
 			language := attrs.GetLanguage()
 			if language.Has() {
-				diffFile.Language = language.Value()
+				diffFile.language.value = language.Value()
 			}
 			attrDiff = attrs.Get(attribute.Diff).ToString()
 		}
@@ -1333,13 +1377,14 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 
-		shouldFullFileHighlight := !setting.Git.DisableDiffHighlight && attrDiff.Value() == ""
+		shouldFullFileHighlight := attrDiff.Value() == "" // only do highlight if no custom diff command
+		shouldFullFileHighlight = shouldFullFileHighlight && time.Since(startTime) < MaxFullFileHighlightTimeLimit
 		if shouldFullFileHighlight {
-			if limitedContent.LeftContent != nil && limitedContent.LeftContent.buf.Len() < MaxDiffHighlightEntireFileSize {
-				diffFile.highlightedLeftLines = highlightCodeLines(diffFile, true /* left */, limitedContent.LeftContent.buf.Bytes())
+			if limitedContent.LeftContent != nil {
+				diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, limitedContent.LeftContent.buf.Bytes())
 			}
-			if limitedContent.RightContent != nil && limitedContent.RightContent.buf.Len() < MaxDiffHighlightEntireFileSize {
-				diffFile.highlightedRightLines = highlightCodeLines(diffFile, false /* right */, limitedContent.RightContent.buf.Bytes())
+			if limitedContent.RightContent != nil {
+				diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(diffFile, false /* right */, limitedContent.RightContent.buf.Bytes())
 			}
 		}
 	}
@@ -1347,13 +1392,27 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 	return diff, nil
 }
 
-func highlightCodeLines(diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
+func FillDiffFileHighlightLinesByContent(diffFile *DiffFile, left, right []byte) {
+	diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, left)
+	diffFile.highlightedRightLines.value = highlightCodeLinesForDiffFile(diffFile, false /* right */, right)
+}
+
+func highlightCodeLinesForDiffFile(diffFile *DiffFile, isLeft bool, rawContent []byte) map[int]template.HTML {
+	return highlightCodeLines(diffFile.Name, diffFile.language.value, diffFile.Sections, isLeft, rawContent)
+}
+
+func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool, rawContent []byte) map[int]template.HTML {
+	if setting.Git.DisableDiffHighlight || len(rawContent) > MaxFullFileHighlightSizeLimit {
+		return nil
+	}
+
 	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
-	highlightedNewContent, _ := highlight.RenderCodeFast(diffFile.Name, diffFile.Language, content)
+	lexer := highlight.DetectChromaLexerByFileName(name, lang)
+	highlightedNewContent := highlight.RenderCodeByLexer(lexer, content)
 	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
 	lines := make(map[int]template.HTML, len(unsafeLines))
 	// only save the highlighted lines we need, but not the whole file, to save memory
-	for _, sec := range diffFile.Sections {
+	for _, sec := range sections {
 		for _, ln := range sec.Lines {
 			lineIdx := ln.LeftIdx
 			if !isLeft {

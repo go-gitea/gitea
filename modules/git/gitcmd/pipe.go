@@ -9,6 +9,14 @@ import (
 )
 
 type PipeBufferReader interface {
+	// Read should be used in the same goroutine as command's Wait
+	// When Reader in one goroutine, command's Wait in another goroutine, then the command exits, the pipe will be closed:
+	// * If the Reader goroutine reads faster, it will read all remaining data and then get io.EOF
+	//   * But this io.EOF doesn't mean the Reader has gotten complete data, the data might still be corrupted
+	// * If the Reader goroutine reads slower, it will get os.ErrClosed because the os.Pipe is closed ahead when the command exits
+	//
+	// When using 2 goroutines, no clear solution to distinguish these two cases or make Reader knows whether the data is complete
+	// It should avoid using Reader in a different goroutine than the command if the Read error needs to be handled.
 	Read(p []byte) (n int, err error)
 	Bytes() []byte
 }
