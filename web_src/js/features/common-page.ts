@@ -123,12 +123,10 @@ function setSelectionEnd(el: HTMLInputElement | HTMLTextAreaElement) {
 export function initGlobalInput() {
   registerGlobalSelectorFunc('input, textarea', attachInputDirAuto);
 
-  // handles [data-autofocus-end], moves the selection to end after native autofocus, which has already
-  // focused the element by the time this JS runs
+  // handles [data-autofocus-end], moves the cursor to end after native autofocus
   registerGlobalSelectorFunc('[data-autofocus-end]', (el) => {
-    if (!isElemVisible(el)) return;
-    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
-      setSelectionEnd(el);
+    if (document.activeElement === el) {
+      setSelectionEnd(el as HTMLInputElement | HTMLTextAreaElement);
     }
   });
 
