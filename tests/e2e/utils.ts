@@ -17,6 +17,11 @@ export async function login(page: Page) {
 
 export async function logout(page: Page) {
   const navbar = page.getByRole('navigation', {name: 'Navigation Bar'});
-  await clickDropdownItem(page, navbar.getByTitle(env.E2E_USER!), 'Sign Out');
+  await navbar.getByTitle(env.E2E_USER!).click();
+  await Promise.all([
+    page.waitForResponse((resp) => resp.url().includes('/user/logout')),
+    page.getByText('Sign Out').click(),
+  ]);
+  await page.goto('/');
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeVisible();
 }
