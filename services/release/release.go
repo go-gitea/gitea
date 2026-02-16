@@ -66,7 +66,7 @@ func (err ErrProtectedTagName) Unwrap() error {
 
 // createGitTag creates a git tag for the release, if the tag already exists, it will return an error.
 // sha1 should not be empty, and it should be a valid commit SHA, otherwise it will return an error.
-func createGitTag(ctx context.Context, gitRepo *git.Repository, repoID, publisherID int64, tagName, sha1 string, msg string) error {
+func createGitTag(ctx context.Context, gitRepo *git.Repository, repoID, publisherID int64, tagName, sha1, msg string) error {
 	if sha1 == "" {
 		return errors.New("release commit sha1 is empty")
 	}
