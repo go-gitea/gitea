@@ -60,6 +60,13 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 			expected: "Run echo hello",
 		},
 		{
+			name: "multi-line run with CRLF",
+			jobStep: &jobparser.Step{
+				Run: "echo hello\r\necho world",
+			},
+			expected: "Run echo hello",
+		},
+		{
 			name: "fallback to id",
 			jobStep: &jobparser.Step{
 				ID: "step-id",
