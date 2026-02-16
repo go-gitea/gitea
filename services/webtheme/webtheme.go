@@ -17,10 +17,11 @@ import (
 )
 
 var (
-	availableThemes   []*ThemeMetaInfo
-	availableThemeMap map[string]*ThemeMetaInfo
-	themeOnce         sync.Once
-	themeDevMu        sync.Mutex
+	availableThemes      []*ThemeMetaInfo
+	availableThemeMap    map[string]*ThemeMetaInfo
+	themeOnce            sync.Once
+	themeDevMu           sync.Mutex
+	themesLoadedFromDisk bool
 )
 
 const (
@@ -132,6 +133,7 @@ func parseThemeMetaInfo(fileName, cssContent string) *ThemeMetaInfo {
 
 func initThemes() {
 	availableThemes = nil
+	themesLoadedFromDisk = false
 	defer func() {
 		availableThemeMap = map[string]*ThemeMetaInfo{}
 		for _, theme := range availableThemes {
@@ -182,13 +184,15 @@ func initThemes() {
 			setting.LogStartupProblem(1, log.ERROR, "No theme candidate in asset files, but Gitea requires there should be at least one usable theme")
 		}
 		availableThemes = []*ThemeMetaInfo{defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)}
+	} else {
+		themesLoadedFromDisk = true
 	}
 }
 
 // loadThemes returns the current themes and theme map. In dev mode, themes are
-// reloaded from disk on each call to continue discovering them as they are built
-// which is necessary during `make watch` where the backend build usually finishes
-// before the frontend build.
+// reloaded from disk until at least one real theme is found, to handle `make
+// watch` where the backend build usually finishes before the frontend build.
+// Once themes are discovered they are cached permanently.
 func loadThemes() ([]*ThemeMetaInfo, map[string]*ThemeMetaInfo) {
 	if setting.IsProd {
 		themeOnce.Do(initThemes)
@@ -196,7 +200,9 @@ func loadThemes() ([]*ThemeMetaInfo, map[string]*ThemeMetaInfo) {
 	}
 	themeDevMu.Lock()
 	defer themeDevMu.Unlock()
-	initThemes()
+	if !themesLoadedFromDisk {
+		initThemes()
+	}
 	return availableThemes, availableThemeMap
 }
 
