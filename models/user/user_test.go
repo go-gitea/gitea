@@ -66,9 +66,9 @@ func TestUserEmails(t *testing.T) {
 		{"UseR1@example.com", 1},
 		{"user1-2@example.COM", 1},
 		{"USER2@" + setting.Service.NoReplyAddress, 2},
-		{"user2+2@" + setting.Service.NoReplyAddress, 2},
-		{"oldUser2UsernameWhichDoesNotMatterForQuery+2@" + setting.Service.NoReplyAddress, 2},
-		{"badUser+99999@" + setting.Service.NoReplyAddress, 0},
+		{"2+user2@" + setting.Service.NoReplyAddress, 2},
+		{"2+oldUser2UsernameWhichDoesNotMatterForQuery@" + setting.Service.NoReplyAddress, 2},
+		{"99999+badUser@" + setting.Service.NoReplyAddress, 0},
 		{"user4@example.com", 4},
 		{"no-such", 0},
 	}
