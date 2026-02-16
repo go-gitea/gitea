@@ -192,12 +192,13 @@ func getAvailableThemes() (themeList []*ThemeMetaInfo, themeMap map[string]*Them
 
 	themeMu.Lock()
 	defer themeMu.Unlock()
+	// no need to double-check "availableThemes.themeList" since the loading isn't really slow, to keep code simple
 	themeList, themeMap = loadThemesFromAssets()
 	hasAvailableThemes := len(themeList) > 0
 	if !hasAvailableThemes {
 		defaultTheme := defaultThemeMetaInfoByInternalName(setting.UI.DefaultTheme)
-		themeList = append(themeList, defaultTheme)
-		themeMap[setting.UI.DefaultTheme] = defaultTheme
+		themeList = []*ThemeMetaInfo{defaultTheme}
+		themeMap = map[string]*ThemeMetaInfo{setting.UI.DefaultTheme: defaultTheme}
 	}
 
 	if setting.IsProd {
