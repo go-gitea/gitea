@@ -3,7 +3,7 @@ import {expect} from '@playwright/test';
 import type {APIRequestContext, Locator, Page} from '@playwright/test';
 
 export function apiBaseUrl() {
-  return env.E2E_URL?.replace(/\/$/g, '') || 'http://localhost:3000';
+  return env.E2E_URL?.replace(/\/$/g, '');
 }
 
 export function apiHeaders() {
