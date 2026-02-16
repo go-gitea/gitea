@@ -177,7 +177,7 @@ const (
 	ActionsTokenPermissionModePermissive ActionsTokenPermissionMode = "permissive"
 	// ActionsTokenPermissionModeRestricted - read access by default
 	ActionsTokenPermissionModeRestricted ActionsTokenPermissionMode = "restricted"
-	// ActionsTokenPermissionModeCustom - custom permissions defined by MaxTokenPermissions (reserved for future use)
+	// ActionsTokenPermissionModeCustom - custom permissions defined by MaxTokenPermissions
 	ActionsTokenPermissionModeCustom ActionsTokenPermissionMode = "custom"
 )
 

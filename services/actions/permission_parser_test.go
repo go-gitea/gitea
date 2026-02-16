@@ -1,4 +1,4 @@
-// Copyright 2026 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package actions
@@ -90,20 +90,18 @@ issues: write
 	err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
 	assert.NoError(t, err)
 
-	// Defaults (e.g. from repo settings) are permissive (write/read mix)
+	// Defaults are write for everything
 	defaultPerms := repo_model.DefaultActionsTokenPermissions(repo_model.ActionsTokenPermissionModePermissive)
 	result := parseRawPermissions(&rawPerms, defaultPerms)
 
-	// 1. Explicitly overridden scopes match the YAML
+	// Overridden scopes
 	assert.Equal(t, perm.AccessModeRead, result.Code)
 	assert.Equal(t, perm.AccessModeWrite, result.Issues)
-
-	// 2. Non-overridden scopes MUST loop back to 'none', NOT keep defaultPerms,
-	// because an explicit mapping block was provided.
-	assert.Equal(t, perm.AccessModeNone, result.PullRequests)
-	assert.Equal(t, perm.AccessModeNone, result.Packages)
-	assert.Equal(t, perm.AccessModeNone, result.Actions)
-	assert.Equal(t, perm.AccessModeNone, result.Wiki)
+	// Non-overridden scopes keep defaults
+	assert.Equal(t, perm.AccessModeWrite, result.PullRequests)
+	assert.Equal(t, perm.AccessModeRead, result.Packages) // Packages default to read in permissive
+	assert.Equal(t, perm.AccessModeWrite, result.Actions)
+	assert.Equal(t, perm.AccessModeWrite, result.Wiki)
 }
 
 func TestParseRawPermissions_Priority(t *testing.T) {

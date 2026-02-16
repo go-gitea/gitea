@@ -713,7 +713,7 @@ jobs:
 				} else if jobID == "job-none-perms" {
 					// Should match 'none' -> Read/Write Forbidden
 					testCtx.ExpectedCode = http.StatusForbidden
-					t.Run("Job [none-perms] Create File (Should Fail)", doAPICreateFile(testCtx, "fail-noneperms.txt", &structs.CreateFileOptions{
+					t.Run("Job [read-only] Create File (Should Fail)", doAPICreateFile(testCtx, "fail-readonly.txt", &structs.CreateFileOptions{
 						ContentBase64: base64.StdEncoding.EncodeToString([]byte("fail")),
 					}))
 
