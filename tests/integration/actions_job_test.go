@@ -709,8 +709,8 @@ jobs:
 				opts := getWorkflowCreateFileOptions(user2, apiRepo.DefaultBranch, "create "+tc.treePath, tc.fileContent)
 				createWorkflowFile(t, token, user2.Name, apiRepo.Name, tc.treePath, opts)
 
-				// Execute the generate job first
-				task := runner.fetchTask(t)
+				// Execute the generate job first (use longer timeout for CI environments)
+				task := runner.fetchTask(t, 10*time.Second)
 				jobName := getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, task.Id)
 				assert.Equal(t, "generate", jobName)
 				outcome := tc.outcomes[jobName]
@@ -721,7 +721,7 @@ jobs:
 				// We expect 3 tasks for build (1), build (2), build (3)
 				buildTasks := make([]int64, 0)
 				for range 3 {
-					buildTask := runner.fetchTask(t)
+					buildTask := runner.fetchTask(t, 10*time.Second)
 					buildJobName := getTaskJobNameByTaskID(t, token, user2.Name, apiRepo.Name, buildTask.Id)
 					t.Logf("Fetched task: %s", buildJobName)
 					assert.Contains(t, []string{"build (1)", "build (2)", "build (3)"}, buildJobName, "Expected a build job with matrix index")

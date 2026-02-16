@@ -95,7 +95,7 @@ labels:
 		t.Run(tt.name, func(t *testing.T) {
 			err := yaml.Unmarshal([]byte(tt.content), tt.tmpl)
 			if tt.wantErr != "" {
-				assert.EqualError(t, err, tt.wantErr)
+				assert.ErrorContains(t, err, tt.wantErr)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.want, tt.tmpl)

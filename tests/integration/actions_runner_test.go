@@ -12,6 +12,7 @@ import (
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/stretchr/testify/require"
 
 	pingv1 "code.gitea.io/actions-proto-go/ping/v1"
 	"code.gitea.io/actions-proto-go/ping/v1/pingv1connect"
@@ -94,7 +95,7 @@ func (r *mockRunner) registerAsRepoRunner(t *testing.T, ownerName, repoName, run
 
 func (r *mockRunner) fetchTask(t *testing.T, timeout ...time.Duration) *runnerv1.Task {
 	task := r.tryFetchTask(t, timeout...)
-	assert.NotNil(t, task, "failed to fetch a task")
+	require.NotNil(t, task, "failed to fetch a task")
 	return task
 }
 
