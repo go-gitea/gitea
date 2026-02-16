@@ -8,12 +8,15 @@ import {html} from './utils/html.ts';
 // This file must be imported before any lazy-loading is being attempted.
 window.__webpack_public_path__ = `${window.config?.assetUrlPrefix ?? '/assets'}/`;
 
-function shouldIgnoreError(err: Error) {
-  const ignorePatterns = [
-    '/assets/js/monaco.', // https://github.com/go-gitea/gitea/issues/30861 , https://github.com/microsoft/monaco-editor/issues/4496
+export function shouldIgnoreError(err: Error) {
+  const ignorePatterns: Array<RegExp> = [
+    // https://github.com/go-gitea/gitea/issues/30861
+    // https://github.com/microsoft/monaco-editor/issues/4496
+    // https://github.com/microsoft/monaco-editor/issues/4679
+    /\/assets\/js\/.*monaco/,
   ];
   for (const pattern of ignorePatterns) {
-    if (err.stack?.includes(pattern)) return true;
+    if (pattern.test(err.stack ?? '')) return true;
   }
   return false;
 }

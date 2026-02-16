@@ -90,12 +90,12 @@ func CryptoRandomBytes(length int64) ([]byte, error) {
 	return buf, err
 }
 
-// ToUpperASCII returns s with all ASCII letters mapped to their upper case.
-func ToUpperASCII(s string) string {
+// ToLowerASCII returns s with all ASCII letters mapped to their lower case.
+func ToLowerASCII(s string) string {
 	b := []byte(s)
 	for i, c := range b {
-		if 'a' <= c && c <= 'z' {
-			b[i] -= 'a' - 'A'
+		if 'A' <= c && c <= 'Z' {
+			b[i] += 'a' - 'A'
 		}
 	}
 	return string(b)
