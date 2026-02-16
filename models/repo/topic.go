@@ -257,7 +257,7 @@ func DeleteTopic(ctx context.Context, repoID int64, topicName string) (*Topic, e
 	}
 	if topic == nil {
 		// Repo doesn't have topic, can't be removed
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the topic does not exist
 	}
 
 	return db.WithTx2(ctx, func(ctx context.Context) (*Topic, error) {
