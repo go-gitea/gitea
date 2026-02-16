@@ -71,6 +71,14 @@ func testActionsJobTokenAccess(u *url.URL, isFork bool) func(t *testing.T) {
 		err = actions_model.UpdateTask(t.Context(), task, "token_hash", "token_salt", "token_last_eight", "status", "is_fork_pull_request")
 		require.NoError(t, err)
 
+		// Also update the run for fork clamping check
+		if isFork {
+			require.NoError(t, task.LoadJob(t.Context()))
+			require.NoError(t, task.Job.LoadRun(t.Context()))
+			task.Job.Run.IsForkPullRequest = true
+			require.NoError(t, actions_model.UpdateRun(t.Context(), task.Job.Run, "is_fork_pull_request"))
+		}
+
 		session := emptyTestSession(t)
 		context := APITestContext{
 			Session:  session,
@@ -116,16 +124,10 @@ func TestActionsJobTokenAccessLFS(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		httpContext := NewAPITestContext(t, "user2", "repo-lfs-test", auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
 		t.Run("Create Repository", doAPICreateRepository(httpContext, false, func(t *testing.T, repository structs.Repository) {
-			task := &actions_model.ActionTask{}
-			require.NoError(t, task.GenerateToken())
-			task.Status = actions_model.StatusRunning
-			task.IsForkPullRequest = false
-			task.RepoID = repository.ID
-			err := db.Insert(t.Context(), task)
-			require.NoError(t, err)
+			task := createActionTask(t, repository.ID, false)
 
 			// Enable Actions unit for the repository
-			err = db.Insert(t.Context(), &repo_model.RepoUnit{
+			err := db.Insert(t.Context(), &repo_model.RepoUnit{
 				RepoID: repository.ID,
 				Type:   unit_model.TypeActions,
 				Config: &repo_model.ActionsConfig{},
@@ -372,13 +374,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		enableActions(repoBID)
 
 		// 4. Create Task in Repo A
-		task := &actions_model.ActionTask{
-			RepoID:            repoAID,
-			Status:            actions_model.StatusRunning,
-			IsForkPullRequest: false,
-		}
-		require.NoError(t, task.GenerateToken())
-		require.NoError(t, db.Insert(t.Context(), task))
+		task := createActionTask(t, repoAID, false)
 
 		// 5. Verify Access to Repo B (Target)
 		testCtx := APITestContext{
@@ -523,13 +519,7 @@ func TestActionsTokenPermissionsWorkflowScenario(t *testing.T) {
 			require.NoError(t, err)
 
 			// Step 3: Create an Actions task (simulates a running workflow)
-			task := &actions_model.ActionTask{
-				RepoID:            repository.ID,
-				Status:            actions_model.StatusRunning,
-				IsForkPullRequest: false,
-			}
-			require.NoError(t, task.GenerateToken())
-			require.NoError(t, db.Insert(t.Context(), task))
+			task := createActionTask(t, repository.ID, false)
 
 			// Step 4: Use the GITEA_TOKEN to create a file via API (exactly as the reviewer's workflow did)
 			session := emptyTestSession(t)
@@ -910,4 +900,45 @@ jobs:
 			require.NotEmpty(t, resp.Content.SHA)
 		}))
 	})
+}
+
+func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.ActionTask {
+	run := &actions_model.ActionRun{
+		RepoID:            repoID,
+		Status:            actions_model.StatusRunning,
+		IsForkPullRequest: isFork,
+		WorkflowID:        "test.yaml",
+		TriggerUserID:     1,
+		Ref:               "refs/heads/main",
+		CommitSHA:         "c2d72f548424103f01ee1dc02889c1e2bff816b0",
+		Event:             "push",
+		TriggerEvent:      "push",
+	}
+	require.NoError(t, db.Insert(t.Context(), run))
+
+	job := &actions_model.ActionRunJob{
+		RunID:             run.ID,
+		RepoID:            repoID,
+		Status:            actions_model.StatusRunning,
+		IsForkPullRequest: isFork,
+		JobID:             "test_job",
+		Name:              "test_job",
+	}
+	require.NoError(t, db.Insert(t.Context(), job))
+
+	task := &actions_model.ActionTask{
+		JobID:             job.ID,
+		RepoID:            repoID,
+		Status:            actions_model.StatusRunning,
+		IsForkPullRequest: isFork,
+	}
+	require.NoError(t, task.GenerateToken())
+	require.NoError(t, db.Insert(t.Context(), task))
+
+	job.TaskID = task.ID
+	_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "task_id")
+	require.NoError(t, err)
+
+	task.Job = job
+	return task
 }
