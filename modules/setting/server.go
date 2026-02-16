@@ -143,6 +143,11 @@ type DNSProviderConfig struct {
 	Cloudflare struct {
 		APIToken string
 	}
+	Route53 struct {
+		AccessKeyID     string
+		SecretAccessKey string
+		HostedZoneID    string
+	}
 	RFC2136 struct {
 		KeyName string
 		KeyAlg  string
@@ -279,6 +284,10 @@ func loadServerFrom(rootCfg ConfigProvider) {
 			cfg.AcmeDNS.Subdomain = sec.Key("ACME_DNS_ACMEDNS_SUBDOMAIN").MustString("")
 			// cloudflare
 			cfg.Cloudflare.APIToken = sec.Key("ACME_DNS_CLOUDFLARE_API_TOKEN").MustString("")
+			// route53
+			cfg.Route53.AccessKeyID = sec.Key("ACME_DNS_ROUTE53_ACCESS_KEY").MustString("")
+			cfg.Route53.SecretAccessKey = sec.Key("ACME_DNS_ROUTE53_SECRET_KEY").MustString("")
+			cfg.Route53.HostedZoneID = sec.Key("ACME_DNS_ROUTE53_ZONE_ID").MustString("")
 			// rfc2136
 			cfg.RFC2136.KeyName = sec.Key("ACME_DNS_RFC2136_KEY_NAME").MustString("")
 			cfg.RFC2136.KeyAlg = sec.Key("ACME_DNS_RFC2136_KEY_ALG").MustString("")

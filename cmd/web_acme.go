@@ -23,6 +23,7 @@ import (
 	"github.com/libdns/acmedns"
 	"github.com/libdns/cloudflare"
 	"github.com/libdns/rfc2136"
+	"github.com/libdns/route53"
 )
 
 func getCARoot(path string) (*x509.CertPool, error) {
@@ -66,6 +67,12 @@ func getDNSProvider(acmeDNSProviderConfig setting.DNSProviderConfig) (certmagic.
 			KeyAlg:  acmeDNSProviderConfig.RFC2136.KeyAlg,
 			Key:     acmeDNSProviderConfig.RFC2136.Key,
 			Server:  acmeDNSProviderConfig.RFC2136.Server,
+		}, nil
+	case "route53":
+		return &route53.Provider{
+			AccessKeyId:     acmeDNSProviderConfig.Route53.AccessKeyID,
+			SecretAccessKey: acmeDNSProviderConfig.Route53.SecretAccessKey,
+			HostedZoneID:    acmeDNSProviderConfig.Route53.HostedZoneID,
 		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported ACME DNS provider: %s", acmeDNSProviderConfig.Provider)
