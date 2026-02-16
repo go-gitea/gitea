@@ -3289,6 +3289,12 @@
   "admin.config.picture_service": "Picture Service",
   "admin.config.disable_gravatar": "Disable Gravatar",
   "admin.config.enable_federated_avatar": "Enable Federated Avatars",
+  "admin.config.agent_config": "AI Agent Enrollment",
+  "admin.config.agent_enrollment_enabled": "Enable agent enrollment endpoint",
+  "admin.config.agent_auto_create_repo": "Auto-create bootstrap repository",
+  "admin.config.agent_auto_create_repo_private": "Bootstrap repository is private",
+  "admin.config.agent_enrollment_allowed_cidrs": "Allowed source CIDRs / groups",
+  "admin.config.agent_enrollment_allowed_cidrs_desc": "Comma-separated CIDRs, host patterns, or built-ins like private, loopback, external. Leave empty to allow all.",
   "admin.config.open_with_editor_app_help": "The \"Open with\" editors for the clone menu. If left empty, the default will be used. Expand to see the default.",
   "admin.config.git_guide_remote_name": "Repository remote name for git commands in the guide",
   "admin.config.git_config": "Git Configuration",
@@ -3743,5 +3749,9 @@
   "git.filemode.normal_file": "Regular",
   "git.filemode.executable_file": "Executable",
   "git.filemode.symbolic_link": "Symlink",
-  "git.filemode.submodule": "Submodule"
+  "git.filemode.submodule": "Submodule",
+  "admin.config.agent_require_internal_token": "Require internal token",
+  "admin.config.agent_require_internal_token_desc": "Require X-Internal-Token on enrollment requests in addition to CIDR filtering.",
+  "admin.config.agent_auto_create_repo_name": "Bootstrap repository name",
+  "admin.config.agent_auto_create_repo_name_desc": "Repository name created for newly enrolled agents (default: initial)."
 }

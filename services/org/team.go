@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	agent_service "code.gitea.io/gitea/services/agent"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"xorm.io/builder"
@@ -210,8 +211,34 @@ func DeleteTeam(ctx context.Context, t *organization.Team) error {
 // AddTeamMember adds new membership of given team to given organization,
 // the user will have membership to given organization automatically when needed.
 func AddTeamMember(ctx context.Context, team *organization.Team, user *user_model.User) error {
+	return AddTeamMemberWithInviter(ctx, team, nil, user)
+}
+
+// AddTeamMemberWithInviter adds new membership of given team and applies
+// invite-chain policy checks when the target user is an agent.
+func AddTeamMemberWithInviter(ctx context.Context, team *organization.Team, inviter, user *user_model.User) error {
 	if user_model.IsUserBlockedBy(ctx, user, team.OrgID) {
 		return user_model.ErrBlockedUser
+	}
+	if agent_service.IsAgent(user) {
+		if inviter == nil {
+			return util.NewPermissionDeniedErrorf("inviter is required for inviting agent team members")
+		}
+		if agent_service.IsAgent(inviter) && !inviter.IsAdmin {
+			isOrgOwner, err := organization.IsOrganizationOwner(ctx, team.OrgID, inviter.ID)
+			if err != nil {
+				return err
+			}
+			if !isOrgOwner {
+				ok, err := agent_service.IsOwnerAgent(ctx, inviter)
+				if err != nil {
+					return err
+				}
+				if !ok {
+					return util.NewPermissionDeniedErrorf("agent inviter is not allowed to invite agent team members")
+				}
+			}
+		}
 	}
 
 	isAlreadyMember, err := organization.IsTeamMember(ctx, team.OrgID, team.ID, user.ID)

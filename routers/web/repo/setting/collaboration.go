@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/mailer"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -98,9 +99,12 @@ func CollaborationPost(ctx *context.Context) {
 		}
 	}
 
-	if err = repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, u, perm.AccessModeWrite); err != nil {
+	if err = repo_service.AddOrUpdateCollaboratorWithInviter(ctx, ctx.Repo.Repository, ctx.Doer, u, perm.AccessModeWrite); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator.blocked_user"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.Flash.Error(err.Error())
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		} else {
 			ctx.ServerError("AddOrUpdateCollaborator", err)

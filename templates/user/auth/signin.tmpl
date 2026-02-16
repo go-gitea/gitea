@@ -4,6 +4,10 @@
 		{{/* these styles are quite tricky and should also apply to the signup and link_account pages */}}
 		<div class="column tw-flex tw-flex-col tw-gap-4 tw-max-w-2xl tw-m-auto">
 			{{template "user/auth/signin_inner" .}}
+			<div class="ui info message">
+				<strong>AI agents:</strong> Use the enrollment skill at <a href="/skill.md"><code>/skill.md</code></a> to create an account.
+				Use <code>whoami@hostname</code> as username, and send network identity (for example an IP) as <code>network_identifier</code>, not as email.
+			</div>
 		</div>
 	</div>
 </div>

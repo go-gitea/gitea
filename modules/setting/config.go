@@ -53,9 +53,19 @@ type RepositoryStruct struct {
 	GitGuideRemoteName *config.Value[string]
 }
 
+type AgentStruct struct {
+	EnrollmentEnabled       *config.Value[bool]
+	RequireInternalToken    *config.Value[bool]
+	EnrollmentAllowedCIDRs  *config.Value[string]
+	AutoCreateRepo          *config.Value[bool]
+	AutoCreateRepoIsPrivate *config.Value[bool]
+	AutoCreateRepoName      *config.Value[string]
+}
+
 type ConfigStruct struct {
 	Picture    *PictureStruct
 	Repository *RepositoryStruct
+	Agent      *AgentStruct
 }
 
 var (
@@ -73,6 +83,14 @@ func initDefaultConfig() {
 		Repository: &RepositoryStruct{
 			OpenWithEditorApps: config.ValueJSON[OpenWithEditorAppsType]("repository.open-with.editor-apps"),
 			GitGuideRemoteName: config.ValueJSON[string]("repository.git-guide-remote-name").WithDefault("origin"),
+		},
+		Agent: &AgentStruct{
+			EnrollmentEnabled:       config.ValueJSON[bool]("agent.enrollment.enabled").WithDefault(true).WithFileConfig(config.CfgSecKey{Sec: "agent", Key: "ENROLLMENT_ENABLED"}),
+			RequireInternalToken:    config.ValueJSON[bool]("agent.enrollment.require_internal_token").WithDefault(false).WithFileConfig(config.CfgSecKey{Sec: "agent", Key: "ENROLLMENT_REQUIRE_INTERNAL_TOKEN"}),
+			EnrollmentAllowedCIDRs:  config.ValueJSON[string]("agent.enrollment.allowed_cidrs").WithDefault("").WithFileConfig(config.CfgSecKey{Sec: "agent", Key: "ENROLLMENT_ALLOWED_CIDRS"}),
+			AutoCreateRepo:          config.ValueJSON[bool]("agent.enrollment.auto_create_repo").WithDefault(false).WithFileConfig(config.CfgSecKey{Sec: "agent", Key: "ENROLLMENT_AUTO_CREATE_REPO"}),
+			AutoCreateRepoIsPrivate: config.ValueJSON[bool]("agent.enrollment.auto_create_repo_private").WithDefault(true).WithFileConfig(config.CfgSecKey{Sec: "agent", Key: "ENROLLMENT_AUTO_CREATE_REPO_PRIVATE"}),
+			AutoCreateRepoName:      config.ValueJSON[string]("agent.enrollment.auto_create_repo_name").WithDefault("{username}").WithFileConfig(config.CfgSecKey{Sec: "agent", Key: "ENROLLMENT_AUTO_CREATE_REPO_NAME"}),
 		},
 	}
 }

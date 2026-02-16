@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/context"
@@ -184,8 +185,10 @@ func AddOrUpdateCollaborator(ctx *context.APIContext) {
 		p = perm.ParseAccessMode(*form.Permission, perm.AccessModeRead, perm.AccessModeWrite, perm.AccessModeAdmin)
 	}
 
-	if err := repo_service.AddOrUpdateCollaborator(ctx, ctx.Repo.Repository, collaborator, p); err != nil {
+	if err := repo_service.AddOrUpdateCollaboratorWithInviter(ctx, ctx.Repo.Repository, ctx.Doer, collaborator, p); err != nil {
 		if errors.Is(err, user_model.ErrBlockedUser) {
+			ctx.APIError(http.StatusForbidden, err)
+		} else if errors.Is(err, util.ErrPermissionDenied) {
 			ctx.APIError(http.StatusForbidden, err)
 		} else {
 			ctx.APIErrorInternal(err)

@@ -14,11 +14,19 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
+	agent_service "code.gitea.io/gitea/services/agent"
 
 	"xorm.io/builder"
 )
 
 func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User, mode perm.AccessMode) error {
+	return AddOrUpdateCollaboratorWithInviter(ctx, repo, nil, u, mode)
+}
+
+// AddOrUpdateCollaboratorWithInviter adds or updates a collaborator and applies
+// additional invite policy checks when the target is an agent user.
+func AddOrUpdateCollaboratorWithInviter(ctx context.Context, repo *repo_model.Repository, inviter, u *user_model.User, mode perm.AccessMode) error {
 	// only allow valid access modes, read, write and admin
 	if mode < perm.AccessModeRead || mode > perm.AccessModeAdmin {
 		return perm.ErrInvalidAccessMode
@@ -30,6 +38,20 @@ func AddOrUpdateCollaborator(ctx context.Context, repo *repo_model.Repository, u
 
 	if user_model.IsUserBlockedBy(ctx, u, repo.OwnerID) || user_model.IsUserBlockedBy(ctx, repo.Owner, u.ID) {
 		return user_model.ErrBlockedUser
+	}
+	if agent_service.IsAgent(u) {
+		if inviter == nil {
+			return util.NewPermissionDeniedErrorf("inviter is required for inviting agent collaborators")
+		}
+		if agent_service.IsAgent(inviter) && !inviter.IsAdmin && inviter.ID != repo.OwnerID {
+			ok, err := agent_service.IsOwnerAgent(ctx, inviter)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return util.NewPermissionDeniedErrorf("agent inviter is not allowed to invite agent collaborators")
+			}
+		}
 	}
 
 	return db.WithTx(ctx, func(ctx context.Context) error {

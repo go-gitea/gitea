@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
@@ -75,7 +76,7 @@ func TeamsAction(ctx *context.Context) {
 			ctx.HTTPError(http.StatusNotFound)
 			return
 		}
-		err = org_service.AddTeamMember(ctx, ctx.Org.Team, ctx.Doer)
+		err = org_service.AddTeamMemberWithInviter(ctx, ctx.Org.Team, ctx.Doer, ctx.Doer)
 	case "leave":
 		err = org_service.RemoveTeamMember(ctx, ctx.Org.Team, ctx.Doer)
 		if err != nil {
@@ -159,7 +160,7 @@ func TeamsAction(ctx *context.Context) {
 		if ctx.Org.Team.IsMember(ctx, u.ID) {
 			ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 		} else {
-			err = org_service.AddTeamMember(ctx, ctx.Org.Team, u)
+			err = org_service.AddTeamMemberWithInviter(ctx, ctx.Org.Team, ctx.Doer, u)
 		}
 
 		page = "team"
@@ -189,6 +190,8 @@ func TeamsAction(ctx *context.Context) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 		} else if errors.Is(err, user_model.ErrBlockedUser) {
 			ctx.Flash.Error(ctx.Tr("org.teams.members.blocked_user"))
+		} else if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.Flash.Error(err.Error())
 		} else {
 			log.Error("Action(%s): %v", ctx.PathParam("action"), err)
 			ctx.JSON(http.StatusOK, map[string]any{
@@ -587,7 +590,7 @@ func TeamInvite(ctx *context.Context) {
 
 // TeamInvitePost handles the team invitation
 func TeamInvitePost(ctx *context.Context) {
-	invite, org, team, _, err := getTeamInviteFromContext(ctx)
+	invite, org, team, inviter, err := getTeamInviteFromContext(ctx)
 	if err != nil {
 		if org_model.IsErrTeamInviteNotFound(err) {
 			ctx.NotFound(err)
@@ -597,7 +600,11 @@ func TeamInvitePost(ctx *context.Context) {
 		return
 	}
 
-	if err := org_service.AddTeamMember(ctx, team, ctx.Doer); err != nil {
+	if err := org_service.AddTeamMemberWithInviter(ctx, team, inviter, ctx.Doer); err != nil {
+		if errors.Is(err, util.ErrPermissionDenied) {
+			ctx.HTTPError(http.StatusForbidden, err.Error())
+			return
+		}
 		ctx.ServerError("AddTeamMember", err)
 		return
 	}

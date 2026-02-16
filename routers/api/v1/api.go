@@ -85,6 +85,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/activitypub"
 	"code.gitea.io/gitea/routers/api/v1/admin"
+	agent_router "code.gitea.io/gitea/routers/api/v1/agent"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
@@ -1155,6 +1156,9 @@ func Routes() *web.Router {
 		// requires repo scope
 		// FIXME: Don't expose repository id outside of the system
 		m.Combo("/repositories/{id}", reqToken(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository)).Get(repo.GetByID)
+
+		// Agent enrollment: guarded by internal token header.
+		m.Post("/agents/enroll", bind(api.AgentEnrollOption{}), agent_router.Enroll)
 
 		// Repos (requires repo scope)
 		m.Group("/repos", func() {

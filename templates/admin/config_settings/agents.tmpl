@@ -1,0 +1,56 @@
+<h4 class="ui top attached header">
+	{{ctx.Locale.Tr "admin.config.agent_config"}}
+</h4>
+<div class="ui attached table segment">
+	<dl class="admin-dl-horizontal">
+		<dt>{{ctx.Locale.Tr "admin.config.agent_enrollment_enabled"}}</dt>
+		<dd>
+			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.agent_enrollment_enabled"}}">
+				<input type="checkbox" data-config-dyn-key="agent.enrollment.enabled" {{if .SystemConfig.Agent.EnrollmentEnabled.Value ctx}}checked{{end}}><label></label>
+			</div>
+		</dd>
+		<div class="divider"></div>
+		<dt>{{ctx.Locale.Tr "admin.config.agent_require_internal_token"}}</dt>
+		<dd>
+			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.agent_require_internal_token_desc"}}">
+				<input type="checkbox" data-config-dyn-key="agent.enrollment.require_internal_token" {{if .SystemConfig.Agent.RequireInternalToken.Value ctx}}checked{{end}}><label></label>
+			</div>
+		</dd>
+		<div class="divider"></div>
+		<dt>{{ctx.Locale.Tr "admin.config.agent_auto_create_repo"}}</dt>
+		<dd>
+			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.agent_auto_create_repo"}}">
+				<input type="checkbox" data-config-dyn-key="agent.enrollment.auto_create_repo" {{if .SystemConfig.Agent.AutoCreateRepo.Value ctx}}checked{{end}}><label></label>
+			</div>
+		</dd>
+		<div class="divider"></div>
+		<dt>{{ctx.Locale.Tr "admin.config.agent_auto_create_repo_private"}}</dt>
+		<dd>
+			<div class="ui toggle checkbox" data-tooltip-content="{{ctx.Locale.Tr "admin.config.agent_auto_create_repo_private"}}">
+				<input type="checkbox" data-config-dyn-key="agent.enrollment.auto_create_repo_private" {{if .SystemConfig.Agent.AutoCreateRepoIsPrivate.Value ctx}}checked{{end}}><label></label>
+			</div>
+		</dd>
+	</dl>
+</div>
+
+<div class="ui attached segment">
+	<form class="ui form form-fetch-action" method="post" action="{{AppSubUrl}}/-/admin/config">
+		<div class="field">
+			<label>{{ctx.Locale.Tr "admin.config.agent_auto_create_repo_name"}}</label>
+			<p>{{ctx.Locale.Tr "admin.config.agent_auto_create_repo_name_desc"}}</p>
+			{{$cfg := .SystemConfig.Agent.AutoCreateRepoName}}
+			<input type="hidden" name="key" value="{{$cfg.DynKey}}">
+			<input name="value" value="{{$cfg.Value ctx}}" placeholder="{{$cfg.DefaultValue}}" dir="auto">
+		</div>
+		<div class="field">
+			<label>{{ctx.Locale.Tr "admin.config.agent_enrollment_allowed_cidrs"}}</label>
+			<p>{{ctx.Locale.Tr "admin.config.agent_enrollment_allowed_cidrs_desc"}}</p>
+			{{$cfg = .SystemConfig.Agent.EnrollmentAllowedCIDRs}}
+			<input type="hidden" name="key" value="{{$cfg.DynKey}}">
+			<input name="value" value="{{$cfg.Value ctx}}" placeholder="{{$cfg.DefaultValue}}" dir="auto">
+		</div>
+		<div class="field">
+			<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+		</div>
+	</form>
+</div>

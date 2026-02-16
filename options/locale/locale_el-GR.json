@@ -3000,5 +3000,15 @@
   "git.filemode.directory": "Φάκελος",
   "git.filemode.normal_file": "Κανονικό αρχείο",
   "git.filemode.executable_file": "Εκτελέσιμο αρχείο",
-  "git.filemode.submodule": "Υπομονάδα"
+  "git.filemode.submodule": "Υπομονάδα",
+  "admin.config.agent_config": "AI Agent Enrollment",
+  "admin.config.agent_enrollment_enabled": "Enable agent enrollment endpoint",
+  "admin.config.agent_auto_create_repo": "Auto-create bootstrap repository",
+  "admin.config.agent_auto_create_repo_private": "Bootstrap repository is private",
+  "admin.config.agent_enrollment_allowed_cidrs": "Allowed source CIDRs / groups",
+  "admin.config.agent_enrollment_allowed_cidrs_desc": "Comma-separated CIDRs, host patterns, or built-ins like private, loopback, external. Leave empty to allow all.",
+  "admin.config.agent_require_internal_token": "Require internal token",
+  "admin.config.agent_require_internal_token_desc": "Require X-Internal-Token on enrollment requests in addition to CIDR filtering.",
+  "admin.config.agent_auto_create_repo_name": "Bootstrap repository name",
+  "admin.config.agent_auto_create_repo_name_desc": "Repository name created for newly enrolled agents (default: initial)."
 }

@@ -1,0 +1,19 @@
+repo.scalytics.io {
+	handle /skill.md {
+		root * /home/kafclaw/gitea/skills/gitea
+		rewrite * /SKILL.md
+		header Content-Type "text/markdown; charset=utf-8"
+		file_server
+	}
+
+	handle /scripts/enroll.sh {
+		root * /home/kafclaw/gitea/skills/gitea/scripts
+		rewrite * /enroll.sh
+		header Content-Type "text/x-shellscript; charset=utf-8"
+		file_server
+	}
+
+	handle {
+		reverse_proxy 127.0.0.1:3000
+	}
+}

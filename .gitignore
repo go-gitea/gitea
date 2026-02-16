@@ -128,3 +128,18 @@ prime/
 
 # A Makefile for custom make targets
 Makefile.local
+
+# Agent enrollment local/private deployment files
+/contrib/agent-enrollment/Caddyfile.local
+/contrib/agent-enrollment/*.local
+/contrib/agent-enrollment/*.private
+/contrib/agent-enrollment/.env
+/contrib/agent-enrollment/.env.*
+/skills/gitea/.env
+/skills/gitea/.env.*
+/skills/agent-enroll/.env
+/skills/agent-enroll/.env.*
+/skills/gitea/internal_token
+/skills/gitea/internal_token.*
+/skills/agent-enroll/internal_token
+/skills/agent-enroll/internal_token.*
