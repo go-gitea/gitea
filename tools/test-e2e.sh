@@ -10,6 +10,7 @@ if [ -z "${E2E_URL:-}" ]; then
     echo "  E2E_URL=http://localhost:3000 make test-e2e" >&2
     exit 1
   fi
+  # Note: this does not respect INI sections, assumes ROOT_URL only appears under [server]
   ROOT_URL=$(sed -n 's/^ROOT_URL\s*=\s*//p' "$INI_FILE" | tr -d '[:space:]')
   if [ -z "$ROOT_URL" ]; then
     echo "error: ROOT_URL not found in $INI_FILE" >&2

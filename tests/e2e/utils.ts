@@ -15,7 +15,7 @@ async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => numb
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const response = await fn();
     if (response.ok()) return;
-    if (response.status() === 500 && attempt < maxAttempts - 1) {
+    if ([500, 502, 503].includes(response.status()) && attempt < maxAttempts - 1) {
       const jitter = Math.random() * 500;
       await new Promise((resolve) => globalThis.setTimeout(resolve, 1000 * (attempt + 1) + jitter));
       continue;
@@ -57,7 +57,7 @@ export async function login(page: Page) {
 }
 
 export async function logout(page: Page) {
-  await page.context().clearCookies(); // workarkound issues related to fomantic dropdown
+  await page.context().clearCookies(); // workaround issues related to fomantic dropdown
   await page.goto('/');
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeVisible();
 }

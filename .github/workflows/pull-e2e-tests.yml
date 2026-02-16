@@ -47,6 +47,9 @@ jobs:
           HTTP_PORT = 3000
           ROOT_URL = http://localhost:3000
 
+          [service]
+          ENABLE_CAPTCHA = false
+
           [security]
           INSTALL_LOCK = true
           EOF
