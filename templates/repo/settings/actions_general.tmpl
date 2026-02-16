@@ -29,8 +29,6 @@
 	</h4>
 	<div class="ui attached segment">
 		<form class="ui form" action="{{.RepoLink}}/settings/actions/general/token_permissions" method="post">
-			{{.CsrfTokenHtml}}
-
 			{{if .IsInOrg}}
 			<!-- Override Organization Configuration -->
 			<div class="field">
