@@ -421,7 +421,18 @@ func Rerun(ctx *context_module.Context) {
 	// can not rerun job when workflow is disabled
 	cfgUnit := ctx.Repo.Repository.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
-	if cfg.IsWorkflowDisabled(run.WorkflowID) {
+
+	effectiveCfg := cfg
+	if !cfg.OverrideOrgConfig && ctx.Repo.Repository.OwnerID != 0 {
+		if err := ctx.Repo.Repository.LoadOwner(ctx); err == nil && ctx.Repo.Repository.Owner.IsOrganization() {
+			orgCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Repo.Repository.OwnerID)
+			if err == nil {
+				effectiveCfg = orgCfg
+			}
+		}
+	}
+
+	if effectiveCfg.IsWorkflowDisabled(run.WorkflowID) {
 		ctx.JSONError(ctx.Locale.Tr("actions.workflow.disabled"))
 		return
 	}
@@ -536,8 +547,23 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 		}
 	}
 
+	if err := job.LoadAttributes(ctx); err != nil {
+		return err
+	}
+
+	// Recalculate token permissions on rerun to ensure updated parser logic is applied
+	var workflow jobparser.SingleWorkflow
+	if err := yaml.Unmarshal([]byte(job.WorkflowPayload), &workflow); err == nil {
+		_, jobItem := workflow.Job()
+		if perms := actions_service.ExtractJobPermissionsFromWorkflow(&workflow, jobItem); perms != nil {
+			job.TokenPermissions = repo_model.MarshalTokenPermissions(*perms)
+		} else {
+			job.TokenPermissions = ""
+		}
+	}
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"}
+		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated", "token_permissions"}
 		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, updateCols...)
 		return err
 	}); err != nil {
