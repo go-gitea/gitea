@@ -1193,7 +1193,7 @@ func (eum *EmailUserMap) GetByEmail(email string) *User {
 
 func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
 	if len(emails) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil when there are no emails to look up
 	}
 
 	needCheckEmails := make(container.Set[string])
