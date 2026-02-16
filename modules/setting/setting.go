@@ -101,6 +101,8 @@ func MustInstalled() {
 }
 
 func LoadCommonSettings() {
+	StartupProblems = StartupProblems[:0]
+	clear(configuredPaths)
 	if err := loadCommonSettingsFrom(CfgProvider); err != nil {
 		log.Fatal("Unable to load settings from config: %v", err)
 	}
