@@ -22,6 +22,7 @@ RUN apk --no-cache add \
     git
 
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
+# See the comments in Dockerfile
 COPY --exclude=.git/ . .
 COPY --from=frontend-build /src/public/assets public/assets
 

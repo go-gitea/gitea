@@ -22,6 +22,8 @@ RUN apk --no-cache add \
     git
 
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
+# Use COPY instead of bind mount for the working directory to ensure a clean, reproducible build context.
+# ".git" directory is mounted separately later only for version data extraction.
 COPY --exclude=.git/ . .
 COPY --from=frontend-build /src/public/assets public/assets
 
