@@ -64,35 +64,40 @@ func (err ErrProtectedTagName) Unwrap() error {
 	return util.ErrPermissionDenied
 }
 
-func createGitTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Release, msg string) error {
-	protectedTags, err := git_model.GetProtectedTags(ctx, rel.RepoID)
+// createGitTag creates a git tag for the release, if the tag already exists, it will return an error.
+// sha1 should not be empty, and it should be a valid commit SHA, otherwise it will return an error.
+func createGitTag(ctx context.Context, gitRepo *git.Repository, repoID, publisherID int64, tagName, sha1 string, msg string) error {
+	if sha1 == "" {
+		return errors.New("release commit sha1 is empty")
+	}
+	protectedTags, err := git_model.GetProtectedTags(ctx, repoID)
 	if err != nil {
 		return fmt.Errorf("GetProtectedTags: %w", err)
 	}
 
-	if isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, protectedTags, rel.TagName, rel.PublisherID); err != nil {
+	if isAllowed, err := git_model.IsUserAllowedToControlTag(ctx, protectedTags, tagName, publisherID); err != nil {
 		return err
 	} else if !isAllowed {
 		return ErrProtectedTagName{
-			TagName: rel.TagName,
+			TagName: tagName,
 		}
 	}
 
 	if len(msg) > 0 {
-		if err = gitRepo.CreateAnnotatedTag(rel.TagName, msg, rel.Sha1); err != nil {
+		if err = gitRepo.CreateAnnotatedTag(tagName, msg, sha1); err != nil {
 			if strings.Contains(err.Error(), "is not a valid tag name") {
 				return ErrInvalidTagName{
-					TagName: rel.TagName,
+					TagName: tagName,
 				}
 			}
 		}
 		return err
 	}
 
-	if err = gitRepo.CreateTag(rel.TagName, rel.Sha1); err != nil {
+	if err = gitRepo.CreateTag(tagName, sha1); err != nil {
 		if strings.Contains(err.Error(), "is not a valid tag name") {
 			return ErrInvalidTagName{
-				TagName: rel.TagName,
+				TagName: tagName,
 			}
 		}
 	}
@@ -162,7 +167,7 @@ func CreateRelease(ctx context.Context, gitRepo *git.Repository, rel *repo_model
 		}
 
 		if needsCreateTag {
-			err = createGitTag(ctx, gitRepo, rel, msg)
+			err = createGitTag(ctx, gitRepo, rel.RepoID, rel.PublisherID, rel.TagName, rel.Sha1, msg)
 		}
 		return err
 	}); err != nil {
@@ -257,7 +262,7 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 			return err
 		}
 
-		return createGitTag(ctx, gitRepo, rel, msg)
+		return createGitTag(ctx, gitRepo, rel.RepoID, rel.PublisherID, rel.TagName, rel.Sha1, msg)
 	})
 }
 
@@ -310,6 +315,9 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		rel.LowerTagName = strings.ToLower(rel.TagName)
+		if oldRelease.IsDraft { // if it's a draft release, we should update CreatedUnix to current time
+			rel.CreatedUnix = timeutil.TimeStampNow()
+		}
 		if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 			return err
 		}
@@ -366,7 +374,7 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		}
 
 		if needsCreateTag {
-			return createGitTag(ctx, gitRepo, rel, "")
+			return createGitTag(ctx, gitRepo, rel.RepoID, rel.PublisherID, rel.TagName, rel.Sha1, "")
 		}
 
 		return nil

@@ -270,7 +270,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.Empty(t, release.Attachments)
 }
 
-func TestRelease_createTag(t *testing.T) {
+func TestRelease_createGitTag(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -280,76 +280,11 @@ func TestRelease_createTag(t *testing.T) {
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	// Test a changed release
-	release := &repo_model.Release{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		PublisherID:  user.ID,
-		Publisher:    user,
-		TagName:      "v2.1.1",
-		Target:       "master",
-		Title:        "v2.1.1 is released",
-		Note:         "v2.1.1 is released",
-		IsDraft:      false,
-		IsPrerelease: false,
-		IsTag:        false,
-	}
-	err = createGitTag(t.Context(), gitRepo, release, "")
+	commitID, err := gitRepo.GetBranchCommitID("master")
 	assert.NoError(t, err)
-	assert.NotEmpty(t, release.CreatedUnix)
-	releaseCreatedUnix := release.CreatedUnix
-	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
-	release.Note = "Changed note"
-	err = createGitTag(t.Context(), gitRepo, release, "")
-	assert.NoError(t, err)
-	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
-	// Test a changed draft
-	release = &repo_model.Release{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		PublisherID:  user.ID,
-		Publisher:    user,
-		TagName:      "v2.2.1",
-		Target:       "65f1bf2",
-		Title:        "v2.2.1 is draft",
-		Note:         "v2.2.1 is draft",
-		IsDraft:      true,
-		IsPrerelease: false,
-		IsTag:        false,
-	}
-	err = createGitTag(t.Context(), gitRepo, release, "")
+	err = createGitTag(t.Context(), gitRepo, repo.ID, user.ID, "v2.1.1", commitID, "")
 	assert.NoError(t, err)
-	releaseCreatedUnix = release.CreatedUnix
-	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
-	release.Title = "Changed title"
-	err = createGitTag(t.Context(), gitRepo, release, "")
-	assert.NoError(t, err)
-	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
-
-	// Test a changed pre-release
-	release = &repo_model.Release{
-		RepoID:       repo.ID,
-		Repo:         repo,
-		PublisherID:  user.ID,
-		Publisher:    user,
-		TagName:      "v2.3.1",
-		Target:       "65f1bf2",
-		Title:        "v2.3.1 is pre-released",
-		Note:         "v2.3.1 is pre-released",
-		IsDraft:      false,
-		IsPrerelease: true,
-		IsTag:        false,
-	}
-	err = createGitTag(t.Context(), gitRepo, release, "")
-	assert.NoError(t, err)
-	releaseCreatedUnix = release.CreatedUnix
-	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
-	release.Title = "Changed title"
-	release.Note = "Changed note"
-	err = createGitTag(t.Context(), gitRepo, release, "")
-	assert.NoError(t, err)
-	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 }
 
 func TestCreateNewTag(t *testing.T) {
