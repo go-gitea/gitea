@@ -269,67 +269,31 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		return perm, err
 	}
 
+	if err := task.LoadJob(ctx); err != nil {
+		return perm, err
+	}
+
+	var taskRepo *repo_model.Repository
+	if task.RepoID != repo.ID {
+		if err := task.Job.LoadRepo(ctx); err != nil {
+			return perm, err
+		}
+		taskRepo = task.Job.Repo
+	} else {
+		taskRepo = repo
+	}
+
+	// Compute effective permissions for this job against the target repo
+	effectivePerms, err := actions_model.ComputeJobTokenPermissions(ctx, task.Job, repo)
+	if err != nil {
+		return perm, err
+	}
+
 	if err := repo.LoadUnits(ctx); err != nil {
 		return perm, err
 	}
 
-	if err := repo.LoadOwner(ctx); err != nil {
-		return perm, err
-	}
-
-	actionsUnit, err := repo.GetUnit(ctx, unit.TypeActions)
-	if err != nil {
-		// If Actions unit doesn't exist, return empty permission
-		if repo_model.IsErrUnitTypeNotExist(err) {
-			return perm, nil
-		}
-		return perm, err
-	}
-	actionsCfg := actionsUnit.ActionsConfig()
-
-	// First check if job has explicit permissions stored from workflow YAML
-	var effectivePerms repo_model.ActionsTokenPermissions
-	var jobLoaded bool
-
-	// Only attempt to load job if JobID is set (non-zero)
-	if task.JobID != 0 {
-		if err := task.LoadJob(ctx); err == nil {
-			jobLoaded = true
-		} else {
-			// If loading job fails (e.g. resource doesn't exist), log it but fall back to repo permissions
-			// This prevents 500 errors if the task has a broken job link
-			log.Warn("GetActionsUserRepoPermission: failed to load job %d for task %d: %v", task.JobID, task.ID, err)
-		}
-	}
-
-	if jobLoaded && task.Job != nil && task.Job.TokenPermissions != "" {
-		// Use permissions parsed from workflow YAML (already clamped by repo max settings during insertion)
-		effectivePerms, err = repo_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
-		if err != nil {
-			// Fall back to repository settings if unmarshal fails
-			effectivePerms = actionsCfg.GetDefaultTokenPermissions()
-		}
-	} else {
-		// No workflow permissions or job not found, use repository settings
-		effectivePerms = actionsCfg.GetDefaultTokenPermissions()
-	}
-
-	// ALWAYS clamp at runtime against current configuration (prevents escalation if settings changed)
-	if !actionsCfg.OverrideOrgConfig && repo.Owner.IsOrganization() {
-		orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
-		if err == nil {
-			effectivePerms = orgCfg.ClampPermissions(effectivePerms)
-		}
-	}
-	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
-
 	isSameRepo := task.RepoID == repo.ID
-	maxReadOnly := task.IsForkPullRequest || !isSameRepo
-
-	if maxReadOnly {
-		// Clamp to readonly for PR from forks or cross-repo access
-		effectivePerms = effectivePerms.ClampPermissions(repo_model.GetReadOnlyPermissions())
-	}
 
 	var maxPerm Permission
 
@@ -374,16 +338,11 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 	if isSameRepo {
 		perm = maxPerm
 	} else {
-		taskRepo, exist, err := db.GetByID[repo_model.Repository](ctx, task.RepoID)
-		if err != nil || !exist {
-			return perm, err
-		}
-
-		// Check Organization Cross-Repo Access Policy
 		if err := repo.LoadOwner(ctx); err != nil {
 			return perm, err
 		}
 
+		// Check Organization Cross-Repo Access Policy
 		if repo.OwnerID == taskRepo.OwnerID && repo.Owner.IsOrganization() {
 			orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
 			if err != nil {
@@ -409,10 +368,14 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		// 2. The Actions Bot user has been explicitly granted access and repository is private
 		// 3. The repository is public (handled by botPerm above)
 
-		if taskRepo.IsPrivate && actionsCfg.IsCollaborativeOwner(taskRepo.OwnerID) {
-			// No access if maxPerm is none for used unit
-			perm = maxPerm
-			return perm, nil
+		if taskRepo.IsPrivate {
+			actionsUnit, err := repo.GetUnit(ctx, unit.TypeActions)
+			if err != nil {
+				log.Warn("GetActionsUserRepoPermission: failed to load actions unit for repo %d: %v", repo.ID, err)
+			} else if actionsUnit != nil && actionsUnit.ActionsConfig().IsCollaborativeOwner(taskRepo.OwnerID) {
+				perm = maxPerm
+				return perm, nil
+			}
 		}
 	}
 
