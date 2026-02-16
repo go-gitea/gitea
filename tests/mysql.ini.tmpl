@@ -32,7 +32,7 @@ TYPE = immediate
 TYPE = immediate
 
 [repository]
-ROOT = {{REPO_TEST_DIR}}tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/gitea-repositories
+ROOT = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/gitea-repositories
 
 [repository.local]
 LOCAL_COPY_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/tmp/local-repo
@@ -86,7 +86,7 @@ PROVIDER_CONFIG = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/data/sessions
 
 [log]
 MODE                 = {{TEST_LOGGER}}
-ROOT_PATH            = {{REPO_TEST_DIR}}mysql-log
+ROOT_PATH            = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/log
 ENABLE_SSH_LOG       = true
 logger.xorm.MODE     = file
 
