@@ -211,7 +211,9 @@ func getAvailableThemes() (themeList []*ThemeMetaInfo, themeMap map[string]*Them
 		return themeList, themeMap
 	}
 
-	// in dev mode, only store the loaded themes if it is not empty, in case the frontend is still being built
+	// In dev mode, only store the loaded themes if the list is not empty, in case the frontend is still being built.
+	// TBH, there still could be a data-race that the themes are only partially built then the list is incomplete for first time loading.
+	// Such edge case can be handled by checking whether the loaded themes are the same in a period or there is a flag file, but it is an over-kill, so, no.
 	if hasAvailableThemes {
 		availableThemes = &themeCollection{themeList, themeMap}
 	}
