@@ -43,7 +43,7 @@ func IsWorkflow(path string) bool {
 	}
 
 	for _, workflowDir := range setting.Actions.WorkflowDirs {
-		if strings.HasPrefix(path, workflowDir) {
+		if strings.HasPrefix(path, workflowDir+"/") {
 			return true
 		}
 	}
@@ -59,7 +59,7 @@ func ListWorkflows(commit *git.Commit) (string, git.Entries, error) {
 		if err == nil {
 			break
 		}
-		if _, ok := err.(git.ErrNotExist); !ok {
+		if !git.IsErrNotExist(err) {
 			return "", nil, err
 		}
 	}

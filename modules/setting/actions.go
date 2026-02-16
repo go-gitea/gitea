@@ -125,9 +125,12 @@ func loadActionsFrom(rootCfg ConfigProvider) error {
 	workflowDirs := make([]string, 0, len(Actions.WorkflowDirs))
 	for _, dir := range Actions.WorkflowDirs {
 		dir = strings.TrimSpace(dir)
-		if dir != "" {
-			workflowDirs = append(workflowDirs, dir)
+		if dir == "" {
+			continue
 		}
+		dir = strings.ReplaceAll(dir, `\`, `/`)
+		dir = strings.TrimRight(dir, "/")
+		workflowDirs = append(workflowDirs, dir)
 	}
 	if len(workflowDirs) == 0 {
 		return errors.New("[actions] WORKFLOW_DIRS must contain at least one entry")

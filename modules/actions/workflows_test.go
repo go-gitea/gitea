@@ -63,6 +63,12 @@ func TestIsWorkflow(t *testing.T) {
 			expected: false,
 		},
 		{
+			name:     "directory boundary",
+			dirs:     []string{".gitea/workflows"},
+			path:     ".gitea/workflows2/test.yml",
+			expected: false,
+		},
+		{
 			name:     "unrelated path",
 			dirs:     []string{".gitea/workflows", ".github/workflows"},
 			path:     "src/main.go",

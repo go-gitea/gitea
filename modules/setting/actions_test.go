@@ -107,6 +107,7 @@ func Test_WorkflowDirs(t *testing.T) {
 		name     string
 		iniStr   string
 		wantDirs []string
+		wantErr  bool
 	}{
 		{
 			name:     "default",
@@ -128,13 +129,28 @@ func Test_WorkflowDirs(t *testing.T) {
 			iniStr:   "[actions]\nWORKFLOW_DIRS = .gitea/workflows , .github/workflows ",
 			wantDirs: []string{".gitea/workflows", ".github/workflows"},
 		},
+		{
+			name:     "trailing slash normalization",
+			iniStr:   "[actions]\nWORKFLOW_DIRS = .gitea/workflows/,.github/workflows/",
+			wantDirs: []string{".gitea/workflows", ".github/workflows"},
+		},
+		{
+			name:    "only commas and whitespace",
+			iniStr:  "[actions]\nWORKFLOW_DIRS = , , ,",
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg, err := NewConfigProviderFromData(tt.iniStr)
 			require.NoError(t, err)
-			require.NoError(t, loadActionsFrom(cfg))
+			err = loadActionsFrom(cfg)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantDirs, Actions.WorkflowDirs)
 		})
 	}
