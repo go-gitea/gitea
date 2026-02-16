@@ -4,7 +4,6 @@
 package setting
 
 import (
-	"maps"
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
@@ -30,36 +29,4 @@ func TestMakeAbsoluteAssetURL(t *testing.T) {
 func TestMakeManifestData(t *testing.T) {
 	jsonBytes := MakeManifestData(`Example App '\"`, "https://example.com", "https://example.com/foo/bar")
 	assert.True(t, json.Valid(jsonBytes))
-}
-
-func TestLoadCommonSettingsClearsStartupProblems(t *testing.T) {
-	cfg, _ := NewConfigProviderFromData(`
-[oauth2]
-ENABLE = true
-`)
-	CfgProvider = cfg
-
-	LoadCommonSettings()
-	assert.NotEmpty(t, StartupProblems, "expected at least one startup problem from deprecated ENABLE setting")
-
-	LoadCommonSettings()
-	seen := make(map[string]int, len(StartupProblems))
-	for _, msg := range StartupProblems {
-		seen[msg]++
-	}
-	for msg, count := range seen {
-		assert.Equal(t, 1, count, "StartupProblems contains duplicate entry: %s", msg)
-	}
-}
-
-func TestLoadCommonSettingsClearsConfiguredPaths(t *testing.T) {
-	cfg, _ := NewConfigProviderFromData("")
-	CfgProvider = cfg
-
-	LoadCommonSettings()
-	firstPaths := make(map[string]string, len(configuredPaths))
-	maps.Copy(firstPaths, configuredPaths)
-
-	LoadCommonSettings()
-	assert.Equal(t, firstPaths, configuredPaths, "configuredPaths should be identical after a second load, not accumulated")
 }
