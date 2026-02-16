@@ -101,6 +101,10 @@ func MustInstalled() {
 }
 
 func LoadCommonSettings() {
+	// FIXME: the config is loaded twice during startup, maybe it is caused by the changed behavior of the cli framework, or some abuses from our code.
+	// 1. cmd/main.go -> InitWorkPathAndCommonConfig -> LoadCommonSettings()
+	// 2. cmd/web.go -> serveInstalled -> LoadCommonSettings()
+	// Either clarify the config loading order, or migrate to a dependency-injection framework
 	StartupProblems = StartupProblems[:0]
 	clear(configuredPaths)
 	if err := loadCommonSettingsFrom(CfgProvider); err != nil {
