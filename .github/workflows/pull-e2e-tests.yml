@@ -59,3 +59,4 @@ jobs:
         timeout-minutes: 10
         env:
           FORCE_COLOR: 1
+          TAGS: bindata sqlite sqlite_unlock_notify
