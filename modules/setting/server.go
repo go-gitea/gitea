@@ -133,6 +133,22 @@ type AcmeConfig struct {
 type DNSProviderConfig struct {
 	Provider string
 	TTL      int
+
+	AcmeDNS struct {
+		ServerURL string
+		Username  string
+		Password  string
+		Subdomain string
+	}
+	Cloudflare struct {
+		APIToken string
+	}
+	RFC2136 struct {
+		KeyName string
+		KeyAlg  string
+		Key     string
+		Server  string
+	}
 }
 
 // MakeManifestData generates web app manifest JSON
@@ -254,6 +270,20 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 			// provider name (simple string, e.g. "cloudflare", "route53", "acmedns", "rfc2136")
 			cfg.Provider = sec.Key("ACME_DNS_PROVIDER").MustString("")
+
+			// TODO: Sould we get these provider-specific keys if provider is not set? Or should we just ignore them?
+			// acmedns keys
+			cfg.AcmeDNS.ServerURL = sec.Key("ACME_DNS_ACMEDNS_SERVER_URL").MustString("")
+			cfg.AcmeDNS.Username = sec.Key("ACME_DNS_ACMEDNS_USERNAME").MustString("")
+			cfg.AcmeDNS.Password = sec.Key("ACME_DNS_ACMEDNS_PASSWORD").MustString("")
+			cfg.AcmeDNS.Subdomain = sec.Key("ACME_DNS_ACMEDNS_SUBDOMAIN").MustString("")
+			// cloudflare
+			cfg.Cloudflare.APIToken = sec.Key("ACME_DNS_CLOUDFLARE_API_TOKEN").MustString("")
+			// rfc2136
+			cfg.RFC2136.KeyName = sec.Key("ACME_DNS_RFC2136_KEY_NAME").MustString("")
+			cfg.RFC2136.KeyAlg = sec.Key("ACME_DNS_RFC2136_KEY_ALG").MustString("")
+			cfg.RFC2136.Key = sec.Key("ACME_DNS_RFC2136_KEY").MustString("")
+			cfg.RFC2136.Server = sec.Key("ACME_DNS_RFC2136_SERVER").MustString("")
 
 			Acme.DNSProvider = cfg
 		} else {

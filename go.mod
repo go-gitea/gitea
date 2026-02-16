@@ -77,6 +77,9 @@ require (
 	github.com/klauspost/compress v1.18.3
 	github.com/klauspost/cpuid/v2 v2.3.0
 	github.com/lib/pq v1.11.1
+	github.com/libdns/acmedns v0.5.0
+	github.com/libdns/cloudflare v0.2.2
+	github.com/libdns/rfc2136 v1.0.1
 	github.com/markbates/goth v1.82.0
 	github.com/mattn/go-isatty v0.0.20
 	github.com/mattn/go-sqlite3 v1.14.33

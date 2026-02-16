@@ -20,6 +20,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/caddyserver/certmagic"
+	"github.com/libdns/acmedns"
+	"github.com/libdns/cloudflare"
+	"github.com/libdns/rfc2136"
 )
 
 func getCARoot(path string) (*x509.CertPool, error) {
@@ -42,6 +45,28 @@ func getCARoot(path string) (*x509.CertPool, error) {
 
 func getDNSProvider(acmeDNSProviderConfig setting.DNSProviderConfig) (certmagic.DNSProvider, error) {
 	switch strings.ToLower(acmeDNSProviderConfig.Provider) {
+	case "acmedns":
+		ServerURL := acmeDNSProviderConfig.AcmeDNS.ServerURL
+		if ServerURL == "" {
+			ServerURL = "https://auth.acme-dns.io"
+		}
+		return &acmedns.Provider{
+			ServerURL: ServerURL,
+			Username:  acmeDNSProviderConfig.AcmeDNS.Username,
+			Password:  acmeDNSProviderConfig.AcmeDNS.Password,
+			Subdomain: acmeDNSProviderConfig.AcmeDNS.Subdomain,
+		}, nil
+	case "cloudflare":
+		return &cloudflare.Provider{
+			APIToken: acmeDNSProviderConfig.Cloudflare.APIToken,
+		}, nil
+	case "rfc2136":
+		return &rfc2136.Provider{
+			KeyName: acmeDNSProviderConfig.RFC2136.KeyName,
+			KeyAlg:  acmeDNSProviderConfig.RFC2136.KeyAlg,
+			Key:     acmeDNSProviderConfig.RFC2136.Key,
+			Server:  acmeDNSProviderConfig.RFC2136.Server,
+		}, nil
 	default:
 		return nil, fmt.Errorf("unsupported ACME DNS provider: %s", acmeDNSProviderConfig.Provider)
 	}
