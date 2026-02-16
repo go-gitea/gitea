@@ -213,7 +213,7 @@ func (u *User) SetLastLogin() {
 
 // GetPlaceholderEmail returns an noreply email
 func (u *User) GetPlaceholderEmail() string {
-	return fmt.Sprintf("%s+%d@%s", u.LowerName, u.ID, setting.Service.NoReplyAddress)
+	return fmt.Sprintf("%d+%s@%s", u.ID, u.LowerName, setting.Service.NoReplyAddress)
 }
 
 // GetEmail returns a noreply email, if the user has set to keep his
@@ -1279,13 +1279,15 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 	return &EmailUserMap{results}, nil
 }
 
-// parseLocalPartToNameID attempts to unparse local-part of email that's in format user+id
+// parseLocalPartToNameID attempts to unparse local-part of email that's in format id+user
 // returns user and id if possible
 func parseLocalPartToNameID(localPart string) (string, int64) {
 	var id int64
-	name, idstr, hasPlus := strings.Cut(localPart, "+")
+	idstr, name, hasPlus := strings.Cut(localPart, "+")
 	if hasPlus {
 		id, _ = strconv.ParseInt(idstr, 10, 64)
+	} else {
+		name = idstr
 	}
 	return name, id
 }
