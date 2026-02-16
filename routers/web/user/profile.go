@@ -103,6 +103,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		repos   []*repo_model.Repository
 		count   int64
 		total   int
+		curRows int
 		orderBy db.SearchOrderBy
 	)
 
@@ -175,7 +176,7 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
 		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-		items, count, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
+		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
@@ -193,8 +194,8 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		}
 		ctx.Data["Feeds"] = items
 		ctx.Data["Date"] = date
-
-		total = int(count)
+		curRows = len(items)
+		total = feedCount
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		ctx.Data["ShowRepoOwnerOnList"] = true
@@ -316,6 +317,9 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	}
 
 	pager := context.NewPagination(total, pagingNum, page, 5)
+	if tab == "activity" {
+		pager.WithCurRows(curRows)
+	}
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 }
