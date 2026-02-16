@@ -101,12 +101,7 @@ var (
 	UnixSocketPermission       uint32
 	EnablePprof                bool
 	PprofDataPath              string
-	EnableAcme                 bool
-	AcmeTOS                    bool
-	AcmeLiveDirectory          string
-	AcmeEmail                  string
-	AcmeURL                    string
-	AcmeCARoot                 string
+	Acme                       AcmeConfig
 	SSLMinimumVersion          string
 	SSLMaximumVersion          string
 	SSLCurvePreferences        []string
@@ -121,6 +116,24 @@ var (
 
 	ManifestData string
 )
+
+// AcmeConfig holds the configuration for ACME (Let's Encrypt)
+type AcmeConfig struct {
+	Enabled       bool
+	TOS           bool
+	LiveDirectory string
+	Email         string
+	URL           string
+	CARoot        string
+	DNSProvider   DNSProviderConfig
+}
+
+// DNSProviderConfig holds the configuration for ACME DNS provider, including the provider name
+// and the TTL to use for DNS01 records (default 60 seconds).
+type DNSProviderConfig struct {
+	Provider string
+	TTL      int
+}
 
 // MakeManifestData generates web app manifest JSON
 func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
@@ -192,14 +205,14 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	// DEPRECATED should not be removed because users maybe upgrade from lower version to the latest version
 	// if these are removed, the warning will not be shown
 	if sec.HasKey("ENABLE_ACME") {
-		EnableAcme = sec.Key("ENABLE_ACME").MustBool(false)
+		Acme.Enabled = sec.Key("ENABLE_ACME").MustBool(false)
 	} else {
 		deprecatedSetting(rootCfg, "server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME", "v1.19.0")
-		EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
+		Acme.Enabled = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
 	}
 
 	protocolCfg := sec.Key("PROTOCOL").String()
-	if protocolCfg != "https" && EnableAcme {
+	if protocolCfg != "https" && Acme.Enabled {
 		log.Fatal("ACME could only be used with HTTPS protocol")
 	}
 
@@ -208,33 +221,41 @@ func loadServerFrom(rootCfg ConfigProvider) {
 		Protocol = HTTP
 	case "https":
 		Protocol = HTTPS
-		if EnableAcme {
-			AcmeURL = sec.Key("ACME_URL").MustString("")
-			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
+		if Acme.Enabled {
+			Acme.URL = sec.Key("ACME_URL").MustString("")
+			Acme.CARoot = sec.Key("ACME_CA_ROOT").MustString("")
 
 			if sec.HasKey("ACME_ACCEPTTOS") {
-				AcmeTOS = sec.Key("ACME_ACCEPTTOS").MustBool(false)
+				Acme.TOS = sec.Key("ACME_ACCEPTTOS").MustBool(false)
 			} else {
 				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_ACCEPTTOS", "server", "ACME_ACCEPTTOS", "v1.19.0")
-				AcmeTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
+				Acme.TOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
 			}
-			if !AcmeTOS {
+			if !Acme.TOS {
 				log.Fatal("ACME TOS is not accepted (ACME_ACCEPTTOS).")
 			}
 
 			if sec.HasKey("ACME_DIRECTORY") {
-				AcmeLiveDirectory = sec.Key("ACME_DIRECTORY").MustString("https")
+				Acme.LiveDirectory = sec.Key("ACME_DIRECTORY").MustString("https")
 			} else {
 				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY", "v1.19.0")
-				AcmeLiveDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
+				Acme.LiveDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
 			}
 
 			if sec.HasKey("ACME_EMAIL") {
-				AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
+				Acme.Email = sec.Key("ACME_EMAIL").MustString("")
 			} else {
 				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL", "v1.19.0")
-				AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
+				Acme.Email = sec.Key("LETSENCRYPT_EMAIL").MustString("")
 			}
+
+			ttl := sec.Key("ACME_DNS_TTL").MustInt(60)
+			cfg := DNSProviderConfig{TTL: ttl}
+
+			// provider name (simple string, e.g. "cloudflare", "route53", "acmedns", "rfc2136")
+			cfg.Provider = sec.Key("ACME_DNS_PROVIDER").MustString("")
+
+			Acme.DNSProvider = cfg
 		} else {
 			CertFile = sec.Key("CERT_FILE").String()
 			KeyFile = sec.Key("KEY_FILE").String()

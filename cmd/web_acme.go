@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -39,6 +40,13 @@ func getCARoot(path string) (*x509.CertPool, error) {
 	return certPool, nil
 }
 
+func getDNSProvider(acmeDNSProviderConfig setting.DNSProviderConfig) (certmagic.DNSProvider, error) {
+	switch strings.ToLower(acmeDNSProviderConfig.Provider) {
+	default:
+		return nil, fmt.Errorf("unsupported ACME DNS provider: %s", acmeDNSProviderConfig.Provider)
+	}
+}
+
 func runACME(listenAddr string, m http.Handler) error {
 	// If HTTP Challenge enabled, needs to be serving on port 80. For TLSALPN needs 443.
 	// Due to docker port mapping this can't be checked programmatically
@@ -57,36 +65,58 @@ func runACME(listenAddr string, m http.Handler) error {
 
 	// Try to use private CA root if provided, otherwise defaults to system's trust
 	var certPool *x509.CertPool
-	if setting.AcmeCARoot != "" {
+	if setting.Acme.CARoot != "" {
 		var err error
-		certPool, err = getCARoot(setting.AcmeCARoot)
+		certPool, err = getCARoot(setting.Acme.CARoot)
 		if err != nil {
 			log.Warn("Failed to parse CA Root certificate, using default CA trust: %v", err)
 		}
 	}
+
 	// FIXME: this path is not right, it uses "AppWorkPath" incorrectly, and writes the data into "AppWorkPath/https"
 	// Ideally it should migrate to AppDataPath write to "AppDataPath/https"
 	// And one more thing, no idea why we should set the global default variables here
 	// But it seems that the current ACME code needs these global variables to make renew work.
 	// Otherwise, "renew" will use incorrect storage path
 	oldDefaultACME := certmagic.DefaultACME
-	certmagic.Default.Storage = &certmagic.FileStorage{Path: setting.AcmeLiveDirectory}
+	certmagic.Default.Storage = &certmagic.FileStorage{Path: setting.Acme.LiveDirectory}
 	certmagic.DefaultACME = certmagic.ACMEIssuer{
 		// try to use the default values provided by DefaultACME
-		CA:        util.IfZero(setting.AcmeURL, oldDefaultACME.CA),
+		CA:        util.IfZero(setting.Acme.URL, oldDefaultACME.CA),
 		TestCA:    oldDefaultACME.TestCA,
 		Logger:    oldDefaultACME.Logger,
 		HTTPProxy: oldDefaultACME.HTTPProxy,
 
-		TrustedRoots:            certPool,
-		Email:                   setting.AcmeEmail,
-		Agreed:                  setting.AcmeTOS,
-		DisableHTTPChallenge:    !enableHTTPChallenge,
-		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
-		ListenHost:              setting.HTTPAddr,
-		AltTLSALPNPort:          altTLSALPNPort,
-		AltHTTPPort:             altHTTPPort,
+		TrustedRoots:   certPool,
+		Email:          setting.Acme.Email,
+		Agreed:         setting.Acme.TOS,
+		ListenHost:     setting.HTTPAddr,
+		AltTLSALPNPort: altTLSALPNPort,
+		AltHTTPPort:    altHTTPPort,
 	}
+	if setting.Acme.DNSProvider.Provider != "" {
+		dnsprovider, err := getDNSProvider(setting.Acme.DNSProvider)
+		if err != nil {
+			return err
+		}
+
+		ttl := setting.Acme.DNSProvider.TTL
+		if ttl <= 0 {
+			ttl = 60
+		}
+
+		certmagic.DefaultACME.DNS01Solver = &certmagic.DNS01Solver{
+			DNSManager: certmagic.DNSManager{
+				DNSProvider: dnsprovider,
+				TTL:         time.Duration(ttl) * time.Second,
+				Logger:      oldDefaultACME.Logger,
+			},
+		}
+		enableHTTPChallenge = false
+		enableTLSALPNChallenge = false
+	}
+	certmagic.DefaultACME.DisableHTTPChallenge = !enableHTTPChallenge
+	certmagic.DefaultACME.DisableTLSALPNChallenge = !enableTLSALPNChallenge
 
 	magic := certmagic.NewDefault()
 	myACME := certmagic.NewACMEIssuer(magic, certmagic.DefaultACME)

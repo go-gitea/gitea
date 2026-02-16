@@ -343,7 +343,7 @@ func listen(m http.Handler, handleRedirector bool) error {
 		}
 		err = runHTTP("tcp", listenAddr, "Web", m, setting.UseProxyProtocol)
 	case setting.HTTPS:
-		if setting.EnableAcme {
+		if setting.Acme.Enabled {
 			err = runACME(listenAddr, m)
 			break
 		}
