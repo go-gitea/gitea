@@ -6,6 +6,7 @@ package pull
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -61,27 +62,51 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 	}
 
 	var data issues_model.PushActionContent
-	if opts.IsForcePush {
-		data.CommitIDs = []string{oldCommitID, newCommitID}
-		data.IsForcePush = true
-	} else {
-		data.CommitIDs, err = getCommitIDsFromRepo(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
-		if err != nil {
-			return nil, err
-		}
-		// It maybe an empty pull request. Only non-empty pull request need to create push comment
-		if len(data.CommitIDs) == 0 {
-			return nil, nil //nolint:nilnil // return nil because no comment needs to be created
-		}
-	}
-
-	dataJSON, err := json.Marshal(data)
+	data.CommitIDs, err = getCommitIDsFromRepo(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
 	if err != nil {
 		return nil, err
 	}
+	// It maybe an empty pull request. Only non-empty pull request need to create push comment
+	if len(data.CommitIDs) == 0 && !isForcePush {
+		return nil, nil //nolint:nilnil // return nil because no comment needs to be created
+	}
 
-	opts.Content = string(dataJSON)
-	comment, err = issues_model.CreateComment(ctx, opts)
+	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
+		if isForcePush {
+			if _, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
+				And("type = ?", issues_model.CommentTypePullRequestPush).
+				NoAutoCondition().
+				Delete(new(issues_model.Comment)); err != nil {
+				return nil, err
+			}
+		}
 
-	return comment, err
+		if len(data.CommitIDs) > 0 {
+			dataJSON, err := json.Marshal(data)
+			if err != nil {
+				return nil, err
+			}
+			opts.Content = string(dataJSON)
+			comment, err = issues_model.CreateComment(ctx, opts)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if opts.IsForcePush { // if it's a force push, we needs to add a force push comment
+			data.CommitIDs = []string{oldCommitID, newCommitID}
+			data.IsForcePush = true
+			dataJSON, err := json.Marshal(data)
+			if err != nil {
+				return nil, err
+			}
+			opts.Content = string(dataJSON)
+			comment, err = issues_model.CreateComment(ctx, opts)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		return comment, err
+	})
 }
