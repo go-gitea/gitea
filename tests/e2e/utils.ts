@@ -43,10 +43,10 @@ export async function clickDropdownItem(page: Page, trigger: Locator, itemText: 
   await page.getByText(itemText).click();
 }
 
-export async function login(page: Page) {
+export async function login(page: Page, username = env.E2E_USER!, password = env.E2E_PASSWORD!) {
   await page.goto('/user/login');
-  await page.getByLabel('Username or Email Address').fill(env.E2E_USER!);
-  await page.getByLabel('Password').fill(env.E2E_PASSWORD!);
+  await page.getByLabel('Username or Email Address').fill(username);
+  await page.getByLabel('Password').fill(password);
   await page.getByRole('button', {name: 'Sign In'}).click();
   await expect(page.getByRole('link', {name: 'Sign In'})).toBeHidden();
 }

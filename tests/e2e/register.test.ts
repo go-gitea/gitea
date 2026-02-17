@@ -46,11 +46,7 @@ test('register then login', async ({page}) => {
 
   // Logout then login with the newly created account
   await logout(page);
-  await page.goto('/user/login');
-  await page.getByLabel('Username or Email Address').fill(username);
-  await page.getByLabel('Password').fill(password);
-  await page.getByRole('button', {name: 'Sign In'}).click();
-  await expect(page.getByRole('link', {name: 'Sign In'})).toBeHidden();
+  await login(page, username, password);
 
   // Clean up: login as admin and delete the user via site administration
   await logout(page);
