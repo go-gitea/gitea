@@ -159,6 +159,53 @@ func TestRenameBranch(t *testing.T) {
 	})
 }
 
+func TestRenameBranchProtectedRuleConflict(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	master := unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "master"})
+
+	devBranch := &git_model.Branch{
+		RepoID:        repo1.ID,
+		Name:          "dev",
+		CommitID:      master.CommitID,
+		CommitMessage: master.CommitMessage,
+		CommitTime:    master.CommitTime,
+		PusherID:      master.PusherID,
+	}
+	assert.NoError(t, db.Insert(t.Context(), devBranch))
+
+	pbDev := git_model.ProtectedBranch{
+		RepoID:   repo1.ID,
+		RuleName: "dev",
+		CanPush:  true,
+	}
+	assert.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo1, &pbDev, git_model.WhitelistOptions{}))
+
+	pbMain := git_model.ProtectedBranch{
+		RepoID:   repo1.ID,
+		RuleName: "main",
+		CanPush:  true,
+	}
+	assert.NoError(t, git_model.UpdateProtectBranch(t.Context(), repo1, &pbMain, git_model.WhitelistOptions{}))
+
+	assert.NoError(t, git_model.RenameBranch(t.Context(), repo1, "dev", "main", func(ctx context.Context, isDefault bool) error {
+		return nil
+	}))
+
+	unittest.AssertNotExistsBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "dev"})
+	unittest.AssertExistsAndLoadBean(t, &git_model.Branch{RepoID: repo1.ID, Name: "main"})
+
+	protectedDev, err := git_model.GetProtectedBranchRuleByName(t.Context(), repo1.ID, "dev")
+	assert.NoError(t, err)
+	assert.NotNil(t, protectedDev)
+	assert.Equal(t, pbDev.ID, protectedDev.ID)
+
+	protectedMainByID, err := git_model.GetProtectedBranchRuleByID(t.Context(), repo1.ID, pbMain.ID)
+	assert.NoError(t, err)
+	assert.NotNil(t, protectedMainByID)
+	assert.Equal(t, "main", protectedMainByID.RuleName)
+}
+
 func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
