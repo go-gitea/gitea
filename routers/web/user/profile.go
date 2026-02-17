@@ -314,16 +314,6 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 	ctx.Data["Page"] = pager
 }
 
-// Heatmap returns heatmap data for a user profile as JSON
-func Heatmap(ctx *context.Context) {
-	if !setting.Service.EnableUserHeatmap || !activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
-		ctx.NotFound(nil)
-		return
-	}
-	hdata, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
-	writeHeatmapJSON(ctx, hdata, err)
-}
-
 // ActionUserFollow is for follow/unfollow user request
 func ActionUserFollow(ctx *context.Context) {
 	var err error

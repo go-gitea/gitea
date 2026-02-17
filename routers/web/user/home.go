@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"net/url"
 	"regexp"
 	"slices"
 	"sort"
@@ -55,8 +54,8 @@ const (
 	tplProfile    templates.TplName = "user/profile"
 )
 
-// getDashboardContextUser finds out which context user dashboard is being viewed as .
-func getDashboardContextUser(ctx *context.Context) *user_model.User {
+// prepareDashboardContextUserOrgTeams finds out which context user dashboard is being viewed as .
+func prepareDashboardContextUserOrgTeams(ctx *context.Context) *user_model.User {
 	ctxUser := ctx.Doer
 	orgName := ctx.PathParam("org")
 	if len(orgName) > 0 {
@@ -77,7 +76,7 @@ func getDashboardContextUser(ctx *context.Context) *user_model.User {
 
 // Dashboard render the dashboard page
 func Dashboard(ctx *context.Context) {
-	ctxUser := getDashboardContextUser(ctx)
+	ctxUser := prepareDashboardContextUserOrgTeams(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -110,18 +109,7 @@ func Dashboard(ctx *context.Context) {
 		"uid":         uid,
 	}
 
-	if setting.Service.EnableUserHeatmap {
-		ctx.Data["EnableHeatmap"] = true
-		if ctx.Org.Organization != nil {
-			heatmapURL := ctx.Org.Organization.OrganisationLink() + "/dashboard"
-			if ctx.Org.Team != nil {
-				heatmapURL += "/" + url.PathEscape(ctx.Org.Team.LowerName)
-			}
-			ctx.Data["HeatmapURL"] = heatmapURL + "/-/heatmap"
-		} else {
-			ctx.Data["HeatmapURL"] = ctx.Doer.HomeLink() + "/-/heatmap"
-		}
-	}
+	prepareHeatmapURL(ctx)
 
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
@@ -149,37 +137,6 @@ func Dashboard(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
-func writeHeatmapJSON(ctx *context.Context, hdata []*activities_model.UserHeatmapData, err error) {
-	if err != nil {
-		ctx.ServerError("GetUserHeatmapData", err)
-		return
-	}
-	data := make([][2]int64, len(hdata))
-	var total int64
-	for i, v := range hdata {
-		data[i] = [2]int64{int64(v.Timestamp), v.Contributions}
-		total += v.Contributions
-	}
-	ctx.JSON(http.StatusOK, map[string]any{
-		"heatmapData":        data,
-		"totalContributions": total,
-	})
-}
-
-// DashboardHeatmap returns heatmap data for the dashboard as JSON
-func DashboardHeatmap(ctx *context.Context) {
-	if !setting.Service.EnableUserHeatmap {
-		ctx.NotFound(nil)
-		return
-	}
-	ctxUser := getDashboardContextUser(ctx)
-	if ctx.Written() {
-		return
-	}
-	hdata, err := activities_model.GetUserHeatmapDataByUserTeam(ctx, ctxUser, ctx.Org.Team, ctx.Doer)
-	writeHeatmapJSON(ctx, hdata, err)
-}
-
 // Milestones render the user milestones page
 func Milestones(ctx *context.Context) {
 	if unit.TypeIssues.UnitGlobalDisabled() && unit.TypePullRequests.UnitGlobalDisabled() {
@@ -191,7 +148,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("milestones")
 	ctx.Data["PageIsMilestonesDashboard"] = true
 
-	ctxUser := getDashboardContextUser(ctx)
+	ctxUser := prepareDashboardContextUserOrgTeams(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -406,7 +363,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Return with NotFound or ServerError if unsuccessful.
 	// ----------------------------------------------------
 
-	ctxUser := getDashboardContextUser(ctx)
+	ctxUser := prepareDashboardContextUserOrgTeams(ctx)
 	if ctx.Written() {
 		return
 	}
