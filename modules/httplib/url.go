@@ -24,6 +24,10 @@ func urlIsRelative(s string, u *url.URL) bool {
 	if len(s) > 1 && (s[0] == '/' || s[0] == '\\') && (s[1] == '/' || s[1] == '\\') {
 		return false
 	}
+	// Backslashes (including encoded) can be normalized by browsers into slashes and allow open redirects.
+	if strings.Contains(s, "\\") || strings.Contains(strings.ToLower(s), "%5c") {
+		return false
+	}
 	return u != nil && u.Scheme == "" && u.Host == ""
 }
 

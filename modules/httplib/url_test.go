@@ -32,6 +32,9 @@ func TestIsRelativeURL(t *testing.T) {
 		"\\\\",
 		"/\\",
 		"\\/",
+		"/a/../\\example.com",
+		"/%5cexample.com",
+		"/a/../%5cexample.com",
 		"mailto:a@b.com",
 		"https://test.com",
 	}
