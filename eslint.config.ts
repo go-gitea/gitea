@@ -910,7 +910,7 @@ export default defineConfig([
   },
   {
     ...playwright.configs['flat/recommended'],
-    files: ['tests/e2e/*.test.ts'],
+    files: ['tests/e2e/**/*.test.ts'],
     rules: {
       ...playwright.configs['flat/recommended'].rules,
     },
