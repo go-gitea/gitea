@@ -214,7 +214,10 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 	}
 
 	for _, issue := range issues {
-		projectIDs := issue.projectIDs(ctx)
+		projectIDs, err := issue.projectIDs(ctx)
+		if err != nil {
+			return err
+		}
 		for _, i := range projectIDs {
 			if projectMaps[i] != nil {
 				issue.Projects = append(issue.Projects, projectMaps[i])
