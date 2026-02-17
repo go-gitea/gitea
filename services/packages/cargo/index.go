@@ -152,7 +152,7 @@ func BuildPackageIndex(ctx context.Context, p *packages_model.Package) (*bytes.B
 		return nil, fmt.Errorf("SearchVersions[%s]: %w", p.Name, err)
 	}
 	if len(pvs) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the package has no versions
 	}
 
 	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)

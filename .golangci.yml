@@ -18,6 +18,7 @@ linters:
     - mirror
     - modernize
     - nakedret
+    - nilnil
     - nolintlint
     - perfsprint
     - revive
