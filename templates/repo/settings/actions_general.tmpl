@@ -23,6 +23,34 @@
 	</div>
 
 {{if and .EnableActions (.Permission.CanRead ctx.Consts.RepoUnitTypeActions)}}
+	<h4 class="ui top attached header">
+		{{ctx.Locale.Tr "actions.general.token_permissions"}}
+	</h4>
+	<div class="ui attached segment">
+		<form class="ui form" action="{{.Link}}/token_permissions" method="post">
+			{{.CsrfTokenHtml}}
+			<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions_desc"}}</p>
+			<div class="grouped fields">
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="default_token_permission" value="permissive" {{if or (not .DefaultTokenPermission) (eq .DefaultTokenPermission "permissive")}}checked{{end}}>
+						<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions_permissive"}}</strong> - {{ctx.Locale.Tr "actions.general.token_permissions_permissive_desc"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="default_token_permission" value="restricted" {{if eq .DefaultTokenPermission "restricted"}}checked{{end}}>
+						<label><strong>{{ctx.Locale.Tr "actions.general.token_permissions_restricted"}}</strong> - {{ctx.Locale.Tr "actions.general.token_permissions_restricted_desc"}}</label>
+					</div>
+				</div>
+			</div>
+			<div class="divider"></div>
+			<div class="field">
+				<button class="ui primary button">{{ctx.Locale.Tr "repo.settings.update_settings"}}</button>
+			</div>
+		</form>
+	</div>
+
 	{{if .Repository.IsPrivate}}
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.general.collaborative_owners_management"}}

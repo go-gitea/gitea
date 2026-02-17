@@ -34,8 +34,10 @@ func ActionsGeneralSettings(ctx *context.Context) {
 		return
 	}
 
+	actionsCfg := actionsUnit.ActionsConfig()
+
 	if ctx.Repo.Repository.IsPrivate {
-		collaborativeOwnerIDs := actionsUnit.ActionsConfig().CollaborativeOwnerIDs
+		collaborativeOwnerIDs := actionsCfg.CollaborativeOwnerIDs
 		collaborativeOwners, err := user_model.GetUsersByIDs(ctx, collaborativeOwnerIDs)
 		if err != nil {
 			ctx.ServerError("GetUsersByIDs", err)
@@ -43,6 +45,8 @@ func ActionsGeneralSettings(ctx *context.Context) {
 		}
 		ctx.Data["CollaborativeOwners"] = collaborativeOwners
 	}
+
+	ctx.Data["DefaultTokenPermission"] = string(actionsCfg.DefaultTokenPermission)
 
 	ctx.HTML(http.StatusOK, tplRepoActionsGeneralSettings)
 }
@@ -61,6 +65,33 @@ func ActionsUnitPost(ctx *context.Context) {
 
 	if err != nil {
 		ctx.ServerError("UpdateRepositoryUnits", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+	ctx.Redirect(redirectURL)
+}
+
+func TokenPermissionsPost(ctx *context.Context) {
+	redirectURL := ctx.Repo.RepoLink + "/settings/actions/general"
+
+	actionsUnit, err := ctx.Repo.Repository.GetUnit(ctx, unit_model.TypeActions)
+	if err != nil {
+		ctx.ServerError("GetUnit", err)
+		return
+	}
+
+	actionsCfg := actionsUnit.ActionsConfig()
+	mode := repo_model.ActionsTokenPermissionMode(ctx.FormString("default_token_permission"))
+	switch mode {
+	case repo_model.ActionsTokenPermissionPermissive, repo_model.ActionsTokenPermissionRestricted:
+		actionsCfg.DefaultTokenPermission = mode
+	default:
+		actionsCfg.DefaultTokenPermission = repo_model.ActionsTokenPermissionPermissive
+	}
+
+	if err := repo_model.UpdateRepoUnit(ctx, actionsUnit); err != nil {
+		ctx.ServerError("UpdateRepoUnit", err)
 		return
 	}
 

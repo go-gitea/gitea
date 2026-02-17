@@ -299,7 +299,56 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 		return perm, err
 	}
 	perm.SetUnitsWithDefaultAccessMode(repo.Units, accessMode)
+
+	// Apply token permissions from the job if available.
+	// This allows workflow/job-level permissions to restrict the token below the default.
+	if err := task.LoadJob(ctx); err != nil {
+		return perm, err
+	}
+	if task.Job != nil && task.Job.TokenPermissions != "" {
+		tokenPerms, err := actions_model.UnmarshalTokenPermissions(task.Job.TokenPermissions)
+		if err != nil {
+			log.Error("UnmarshalTokenPermissions for task %d: %v", task.ID, err)
+			// On error, fall through with default permissions
+		} else if tokenPerms != nil {
+			applyTokenPermissions(&perm, tokenPerms)
+		}
+	}
+
 	return perm, nil
+}
+
+// applyTokenPermissions restricts the Permission object based on the token permissions.
+// Token permissions can only reduce permissions, never increase them beyond what the base access mode allows.
+func applyTokenPermissions(perm *Permission, tokenPerms actions_model.TokenPermissions) {
+	if perm.unitsMode == nil {
+		// Convert from default access mode to explicit unit modes so we can restrict individual units
+		perm.unitsMode = make(map[unit.Type]perm_model.AccessMode)
+		for _, u := range perm.units {
+			perm.unitsMode[u.Type] = perm.AccessMode
+		}
+	}
+
+	for _, u := range perm.units {
+		scope, ok := actions_model.UnitTypeToScope(u.Type)
+		if !ok {
+			continue
+		}
+		level, exists := tokenPerms[scope]
+		if !exists {
+			// Scope not mentioned in token permissions means no access
+			// (GitHub behavior: unmentioned scopes get none when permissions are explicitly set)
+			perm.unitsMode[u.Type] = perm_model.AccessModeNone
+			continue
+		}
+		tokenAccessMode := actions_model.PermissionLevelToAccessMode(level)
+		// Token permissions can only restrict, not elevate
+		if currentMode, ok := perm.unitsMode[u.Type]; ok {
+			perm.unitsMode[u.Type] = min(currentMode, tokenAccessMode)
+		} else {
+			perm.unitsMode[u.Type] = min(perm.AccessMode, tokenAccessMode)
+		}
+	}
 }
 
 // GetUserRepoPermission returns the user permissions to the repository

@@ -51,6 +51,11 @@ type ActionRunJob struct {
 	ConcurrencyGroup  string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"` // evaluated concurrency.group
 	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`                      // evaluated concurrency.cancel-in-progress
 
+	// TokenPermissions stores the computed permissions for the job's automatic token.
+	// This is a JSON string mapping scope names to permission levels (e.g., {"contents":"write","issues":"read"}).
+	// Empty string means use default (full access for backward compatibility).
+	TokenPermissions string `xorm:"TEXT"`
+
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`

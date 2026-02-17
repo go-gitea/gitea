@@ -536,8 +536,33 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 		}
 	}
 
+	// Recompute token permissions on rerun (repo settings may have changed)
+	if err := job.LoadRepo(ctx); err != nil {
+		return fmt.Errorf("load repo: %w", err)
+	}
+	var repoActionsConfig *repo_model.ActionsConfig
+	actionsUnit, err := job.Repo.GetUnit(ctx, unit.TypeActions)
+	if err != nil && !repo_model.IsErrUnitTypeNotExist(err) {
+		return fmt.Errorf("get actions unit: %w", err)
+	}
+	if actionsUnit != nil {
+		repoActionsConfig = actionsUnit.ActionsConfig()
+	}
+	tokenPerms, permErr := actions_service.ComputeJobPermissionsFromWorkflowPayload(
+		repoActionsConfig,
+		job.WorkflowPayload,
+		job.IsForkPullRequest,
+	)
+	if permErr != nil {
+		log.Error("ComputeJobPermissionsFromWorkflowPayload for rerun job %d: %v", job.ID, permErr)
+	} else if tokenPerms != nil {
+		job.TokenPermissions, _ = actions_model.MarshalTokenPermissions(tokenPerms)
+	} else {
+		job.TokenPermissions = ""
+	}
+
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"}
+		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated", "token_permissions"}
 		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, updateCols...)
 		return err
 	}); err != nil {

@@ -9,6 +9,9 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	unit_model "code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
@@ -101,11 +104,40 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 			return err
 		}
 
+		// Load the repo's actions config for computing token permissions
+		var repoActionsConfig *repo_model.ActionsConfig
+		actionsUnit, err := run.Repo.GetUnit(ctx, unit_model.TypeActions)
+		if err != nil && !repo_model.IsErrUnitTypeNotExist(err) {
+			return err
+		}
+		if actionsUnit != nil {
+			repoActionsConfig = actionsUnit.ActionsConfig()
+		}
+
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
 		for _, v := range jobs {
 			id, job := v.Job()
 			needs := job.Needs()
+
+			// Compute token permissions before erasing needs (we need the full job structure)
+			tokenPermsStr := ""
+			tokenPerms, permErr := ComputeJobPermissions(
+				repoActionsConfig,
+				&v.RawPermissions,
+				&job.RawPermissions,
+				run.IsForkPullRequest,
+			)
+			if permErr != nil {
+				log.Error("ComputeJobPermissions for job %q in run %d: %v", id, run.ID, permErr)
+				// On error, leave tokenPermsStr empty (means use default full access for backward compat)
+			} else if tokenPerms != nil {
+				tokenPermsStr, err = actions_model.MarshalTokenPermissions(tokenPerms)
+				if err != nil {
+					log.Error("MarshalTokenPermissions for job %q in run %d: %v", id, run.ID, err)
+				}
+			}
+
 			if err := v.SetJob(id, job.EraseNeeds()); err != nil {
 				return err
 			}
@@ -125,6 +157,7 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				JobID:             id,
 				Needs:             needs,
 				RunsOn:            job.RunsOn(),
+				TokenPermissions:  tokenPermsStr,
 				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
 			}
 			// check job concurrency

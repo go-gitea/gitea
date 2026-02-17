@@ -169,11 +169,25 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 	return MergeStyleMerge
 }
 
+// ActionsTokenPermissionMode represents the default token permission mode
+type ActionsTokenPermissionMode string
+
+const (
+	// ActionsTokenPermissionPermissive grants write access to all scopes by default (backward compatible)
+	ActionsTokenPermissionPermissive ActionsTokenPermissionMode = "permissive"
+	// ActionsTokenPermissionRestricted grants read access only to contents and packages, none to other scopes
+	ActionsTokenPermissionRestricted ActionsTokenPermissionMode = "restricted"
+)
+
 type ActionsConfig struct {
 	DisabledWorkflows []string
 	// CollaborativeOwnerIDs is a list of owner IDs used to share actions from private repos.
 	// Only workflows from the private repos whose owners are in CollaborativeOwnerIDs can access the current repo's actions.
 	CollaborativeOwnerIDs []int64
+	// DefaultTokenPermission controls the default permission mode for Actions automatic tokens.
+	// "permissive" (default): write access to all scopes.
+	// "restricted": read access only to contents and packages, none to other scopes.
+	DefaultTokenPermission ActionsTokenPermissionMode
 }
 
 func (cfg *ActionsConfig) EnableWorkflow(file string) {
