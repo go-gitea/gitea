@@ -83,3 +83,30 @@ func TestToStopWatchesRespectsPermissions(t *testing.T) {
 	assert.Len(t, visibleAdmin, 2)
 	assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{visibleAdmin[0].RepoName, visibleAdmin[1].RepoName})
 }
+
+func TestToTrackedTimeListRespectsPermissions(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	publicIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1})
+	privateIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 3})
+
+	regularUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	publicTT := &issues_model.TrackedTime{IssueID: publicIssue.ID, UserID: regularUser.ID, Time: 3600}
+	privateTT := &issues_model.TrackedTime{IssueID: privateIssue.ID, UserID: regularUser.ID, Time: 1800}
+	assert.NoError(t, db.Insert(ctx, publicTT))
+	assert.NoError(t, db.Insert(ctx, privateTT))
+
+	trackedTimes := issues_model.TrackedTimeList{publicTT, privateTT}
+	assert.NoError(t, trackedTimes.LoadAttributes(ctx))
+
+	visible := ToTrackedTimeList(ctx, regularUser, trackedTimes)
+	assert.Len(t, visible, 1)
+	assert.Equal(t, "repo1", visible[0].Issue.Repo.Name)
+
+	visibleAdmin := ToTrackedTimeList(ctx, adminUser, trackedTimes)
+	assert.Len(t, visibleAdmin, 2)
+	assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{visibleAdmin[0].Issue.Repo.Name, visibleAdmin[1].Issue.Repo.Name})
+}
