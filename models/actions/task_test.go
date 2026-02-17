@@ -39,30 +39,9 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 			expected: "Run echo hello",
 		},
 		{
-			name: "multi-line run",
+			name: "multi-line run block scalar",
 			jobStep: &jobparser.Step{
-				Run: "echo hello\necho world",
-			},
-			expected: "Run echo hello",
-		},
-		{
-			name: "multi-line run block scalar", // run: |\n  echo hello\n  echo world\n
-			jobStep: &jobparser.Step{
-				Run: "\necho hello\necho world\n",
-			},
-			expected: "Run echo hello",
-		},
-		{
-			name: "multi-line run with leading newline",
-			jobStep: &jobparser.Step{
-				Run: "\n  echo hello\n  echo world",
-			},
-			expected: "Run echo hello",
-		},
-		{
-			name: "multi-line run with CRLF",
-			jobStep: &jobparser.Step{
-				Run: "echo hello\r\necho world",
+				Run: "\n  echo hello  \r\n  echo world  \n  ",
 			},
 			expected: "Run echo hello",
 		},
