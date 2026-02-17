@@ -77,6 +77,7 @@ Contributions made with the assistance of AI tools are welcome, but contributors
 3. Manually test the changes and add appropriate automated tests where feasible.
 4. Only use AI to assist in contributions that you understand well enough to respond to feedback without relying on AI.
 5. Indicate AI-generated content in issue and pull requests descriptions and comments. Specify which model was used.
+6. Do not use AI to reply to questions about your issue or pull request. The questions are for you, not an AI model.
 
 Maintainers reserve the right to close pull requests and issues that appear to be low-quality AI-generated content. We welcome new contributors, but cannot sustain the effort of supporting contributors who primarily defer to AI rather than engaging substantively with the review process.
 
