@@ -8,8 +8,6 @@ test('update profile biography', async ({page}) => {
   await page.getByLabel('Biography').fill(bio);
   await page.getByRole('button', {name: 'Update Profile'}).click();
   await expect(page.getByLabel('Biography')).toHaveValue(bio);
-
-  // cleanup: clear the biography
   await page.getByLabel('Biography').fill('');
   await page.getByRole('button', {name: 'Update Profile'}).click();
   await expect(page.getByLabel('Biography')).toHaveValue('');
