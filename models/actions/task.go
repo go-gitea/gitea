@@ -225,7 +225,7 @@ func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 		// for multi-line "run" scripts, only use the first line to match GitHub's behavior
 		// https://github.com/actions/runner/blob/66800900843747f37591b077091dd2c8cf2c1796/src/Runner.Worker/Handlers/ScriptHandler.cs#L45-L58
 		runStr, _, _ := strings.Cut(strings.TrimSpace(step.Run), "\n")
-		name = "Run " + util.IfZero(strings.TrimRight(runStr, "\r"), step.String())
+		name = "Run " + util.IfZero(strings.TrimSpace(runStr), step.String())
 	}
 	return util.EllipsisDisplayString(name, limit) // database column has a length limit
 }
