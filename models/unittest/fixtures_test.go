@@ -16,7 +16,7 @@ import (
 )
 
 var NewFixturesLoaderVendor = func(e *xorm.Engine, opts unittest.FixturesOptions) (unittest.FixturesLoader, error) {
-	return nil, nil
+	return nil, nil //nolint:nilnil // no vendor fixtures loader configured
 }
 
 /*

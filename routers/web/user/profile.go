@@ -162,15 +162,9 @@ func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.R
 		ctx.Data["Cards"] = following
 		total = int(numFollowing)
 	case "activity":
-		// prepare heatmap data
-		if setting.Service.EnableUserHeatmap {
-			data, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
-			if err != nil {
-				ctx.ServerError("GetUserHeatmapDataByUser", err)
-				return
-			}
-			ctx.Data["HeatmapData"] = data
-			ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
+		if setting.Service.EnableUserHeatmap && activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
+			ctx.Data["EnableHeatmap"] = true
+			ctx.Data["HeatmapURL"] = ctx.ContextUser.HomeLink() + "/-/heatmap"
 		}
 
 		date := ctx.FormString("date")

@@ -21,7 +21,8 @@ const mapKeyLowerPrefix = "lower/"
 // chromaLexers is fully managed by us to do fast lookup for chroma lexers by file name or language name
 // Don't use lexers.Get because it is very slow in many cases (iterate all rules, filepath glob match, etc.)
 var chromaLexers = sync.OnceValue(func() (ret struct {
-	conflictingExtLangMap map[string]string
+	conflictingExtLangMap   map[string]string
+	conflictingAliasLangMap map[string]string
 
 	lowerNameMap map[string]chroma.Lexer // lexer name (lang name) in lower-case
 	fileBaseMap  map[string]chroma.Lexer
@@ -36,9 +37,9 @@ var chromaLexers = sync.OnceValue(func() (ret struct {
 	ret.fileBaseMap = make(map[string]chroma.Lexer)
 	ret.fileExtMap = make(map[string]chroma.Lexer)
 
-	// Chroma has overlaps in file extension for different languages,
+	// Chroma has conflicts in file extension for different languages,
 	// When we need to do fast render, there is no way to detect the language by content,
-	// So we can only choose some default languages for the overlapped file extensions.
+	// So we can only choose some default languages for the conflicted file extensions.
 	ret.conflictingExtLangMap = map[string]string{
 		".as":      "ActionScript 3", // ActionScript
 		".asm":     "NASM",           // TASM, NASM, RGBDS Assembly, Z80 Assembly
@@ -71,12 +72,17 @@ var chromaLexers = sync.OnceValue(func() (ret struct {
 		".v":       "V",            // verilog
 		".xslt":    "HTML",         // XML
 	}
+	// use widely used language names as the default mapping to resolve name alias conflict
+	ret.conflictingAliasLangMap = map[string]string{
+		"hcl": "HCL", // Terraform
+		"v":   "V",   // verilog
+	}
 
 	isPlainPattern := func(key string) bool {
 		return !strings.ContainsAny(key, "*?[]") // only support simple patterns
 	}
 
-	setMapWithLowerKey := func(m map[string]chroma.Lexer, key string, lexer chroma.Lexer) {
+	setFileNameMapWithLowerKey := func(m map[string]chroma.Lexer, key string, lexer chroma.Lexer) {
 		if _, conflict := m[key]; conflict {
 			panic("duplicate key in lexer map: " + key + ", need to add it to conflictingExtLangMap")
 		}
@@ -87,7 +93,7 @@ var chromaLexers = sync.OnceValue(func() (ret struct {
 	processFileName := func(fileName string, lexer chroma.Lexer) bool {
 		if isPlainPattern(fileName) {
 			// full base name match
-			setMapWithLowerKey(ret.fileBaseMap, fileName, lexer)
+			setFileNameMapWithLowerKey(ret.fileBaseMap, fileName, lexer)
 			return true
 		}
 		if strings.HasPrefix(fileName, "*") {
@@ -96,7 +102,7 @@ var chromaLexers = sync.OnceValue(func() (ret struct {
 			if isPlainPattern(fileExt) {
 				presetName := ret.conflictingExtLangMap[fileExt]
 				if presetName == "" || lexer.Config().Name == presetName {
-					setMapWithLowerKey(ret.fileExtMap, fileExt, lexer)
+					setFileNameMapWithLowerKey(ret.fileExtMap, fileExt, lexer)
 				}
 				return true
 			}
@@ -134,13 +140,30 @@ var chromaLexers = sync.OnceValue(func() (ret struct {
 		return patterns
 	}
 
-	// add lexers to our map, for fast lookup
+	processLexerNameAliases := func(lexer chroma.Lexer) {
+		cfg := lexer.Config()
+		lowerName := strings.ToLower(cfg.Name)
+		if _, conflicted := ret.lowerNameMap[lowerName]; conflicted {
+			panic("duplicate language name in lexer map: " + lowerName)
+		}
+		ret.lowerNameMap[lowerName] = lexer
+
+		for _, name := range cfg.Aliases {
+			lowerName := strings.ToLower(name)
+			if overriddenName, overridden := ret.conflictingAliasLangMap[lowerName]; overridden && overriddenName != cfg.Name {
+				continue
+			}
+			if existingLexer, conflict := ret.lowerNameMap[lowerName]; conflict && existingLexer.Config().Name != cfg.Name {
+				panic("duplicate alias in lexer map: " + name + ", conflict between " + existingLexer.Config().Name + " and " + cfg.Name)
+			}
+			ret.lowerNameMap[lowerName] = lexer
+		}
+	}
+
+	// the main loop: build our lookup maps for lexers
 	for _, lexer := range lexers.GlobalLexerRegistry.Lexers {
 		cfg := lexer.Config()
-		ret.lowerNameMap[strings.ToLower(lexer.Config().Name)] = lexer
-		for _, alias := range cfg.Aliases {
-			ret.lowerNameMap[strings.ToLower(alias)] = lexer
-		}
+		processLexerNameAliases(lexer)
 		for _, s := range expandGlobPatterns(cfg.Filenames) {
 			if !processFileName(s, lexer) {
 				panic("unsupported file name pattern in lexer: " + s)
@@ -153,7 +176,12 @@ var chromaLexers = sync.OnceValue(func() (ret struct {
 		}
 	}
 
-	// final check: make sure the default ext-lang mapping is correct, nothing is missing
+	// final check: make sure the default overriding mapping is correct, nothing is missing
+	for lowerName, lexerName := range ret.conflictingAliasLangMap {
+		if lexer, ok := ret.lowerNameMap[lowerName]; !ok || lexer.Config().Name != lexerName {
+			panic("missing default name-lang mapping for: " + lowerName)
+		}
+	}
 	for ext, lexerName := range ret.conflictingExtLangMap {
 		if lexer, ok := ret.fileExtMap[ext]; !ok || lexer.Config().Name != lexerName {
 			panic("missing default ext-lang mapping for: " + ext)
