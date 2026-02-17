@@ -1,6 +1,6 @@
 import tinycolor from 'tinycolor2';
 import {basename, extname, isObject, isDarkTheme} from '../utils.ts';
-import {onInputDebounce} from '../utils/dom.ts';
+import {hideElem, onInputDebounce, showElem} from '../utils/dom.ts';
 import type MonacoNamespace from 'monaco-editor';
 
 type Monaco = typeof MonacoNamespace;
@@ -201,9 +201,9 @@ function togglePreviewDisplay(previewable: boolean): void {
   if (!previewTab) return;
 
   if (previewable) {
-    previewTab.style.display = '';
+    showElem(previewTab);
   } else {
-    previewTab.style.display = 'none';
+    hideElem(previewTab);
     // If the "preview" tab was active, user changes the filename to a non-previewable one,
     // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
     if (previewTab.classList.contains('active')) {
