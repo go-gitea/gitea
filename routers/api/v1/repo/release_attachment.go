@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
-	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -36,8 +35,10 @@ func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {
 		return false
 	}
 	if release.IsDraft {
-		if !ctx.IsSigned || !ctx.Repo.CanWrite(unit_model.TypeReleases) {
-			ctx.APIErrorNotFound()
+		if !canAccessDraftRelease(ctx) {
+			if !ctx.Written() {
+				ctx.APIErrorNotFound()
+			}
 			return false
 		}
 	}
@@ -100,6 +101,23 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
+	release, err := repo_model.GetReleaseByID(ctx, releaseID)
+	if err != nil {
+		if repo_model.IsErrReleaseNotExist(err) {
+			ctx.APIErrorNotFound()
+			return
+		}
+		ctx.APIErrorInternal(err)
+		return
+	}
+	if release.IsDraft {
+		if !canAccessDraftRelease(ctx) {
+			if !ctx.Written() {
+				ctx.APIErrorNotFound()
+			}
+			return
+		}
+	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
 	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
 }
@@ -147,6 +165,14 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	if release.RepoID != ctx.Repo.Repository.ID {
 		ctx.APIErrorNotFound()
 		return
+	}
+	if release.IsDraft {
+		if !canAccessDraftRelease(ctx) {
+			if !ctx.Written() {
+				ctx.APIErrorNotFound()
+			}
+			return
+		}
 	}
 	if err := release.LoadAttributes(ctx); err != nil {
 		ctx.APIErrorInternal(err)
