@@ -113,7 +113,7 @@ func Dashboard(ctx *context.Context) {
 	if setting.Service.EnableUserHeatmap {
 		ctx.Data["EnableHeatmap"] = true
 		if ctx.Org.Organization != nil {
-			heatmapURL := ctx.Org.Organization.HomeLink() + "/dashboard"
+			heatmapURL := ctx.Org.Organization.OrganisationLink() + "/dashboard"
 			if ctx.Org.Team != nil {
 				heatmapURL += "/" + url.PathEscape(ctx.Org.Team.LowerName)
 			}
