@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"sort"
@@ -111,11 +112,15 @@ func Dashboard(ctx *context.Context) {
 
 	if setting.Service.EnableUserHeatmap {
 		ctx.Data["EnableHeatmap"] = true
-		heatmapURL := ctx.Req.URL.Path + "/-/heatmap"
-		if ctx.Org.Organization == nil {
-			heatmapURL = "/user/heatmap"
+		if ctx.Org.Organization != nil {
+			heatmapURL := ctx.Org.Organization.HomeLink() + "/dashboard"
+			if ctx.Org.Team != nil {
+				heatmapURL += "/" + url.PathEscape(ctx.Org.Team.LowerName)
+			}
+			ctx.Data["HeatmapURL"] = heatmapURL + "/-/heatmap"
+		} else {
+			ctx.Data["HeatmapURL"] = ctx.Doer.HomeLink() + "/-/heatmap"
 		}
-		ctx.Data["HeatmapURL"] = setting.AppSubURL + heatmapURL
 	}
 
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
