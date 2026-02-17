@@ -1,6 +1,6 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, deleteRepoApi} from './utils.ts';
+import {login, deleteRepo} from './utils.ts';
 
 test('create a repository', async ({page}) => {
   const repoName = `e2e-repo-${Date.now()}`;
@@ -11,5 +11,5 @@ test('create a repository', async ({page}) => {
   await expect(page).toHaveURL(new RegExp(`/${env.E2E_USER}/${repoName}$`));
 
   // cleanup
-  await deleteRepoApi(page.request, env.E2E_USER!, repoName);
+  await deleteRepo(page, env.E2E_USER!, repoName);
 });

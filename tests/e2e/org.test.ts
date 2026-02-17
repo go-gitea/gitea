@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test';
-import {login, deleteOrgApi} from './utils.ts';
+import {login, deleteOrg} from './utils.ts';
 
 test('create an organization', async ({page}) => {
   const orgName = `e2e-org-${Date.now()}`;
@@ -10,5 +10,5 @@ test('create an organization', async ({page}) => {
   await expect(page).toHaveURL(new RegExp(`/org/${orgName}`));
 
   // cleanup
-  await deleteOrgApi(page.request, orgName);
+  await deleteOrg(page, orgName);
 });
