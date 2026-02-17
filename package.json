@@ -77,6 +77,7 @@
     "@types/jquery": "3.5.33",
     "@types/js-yaml": "4.0.9",
     "@types/katex": "0.16.8",
+    "@types/node": "25.2.3",
     "@types/pdfobject": "2.2.5",
     "@types/sortablejs": "1.15.9",
     "@types/swagger-ui-dist": "3.30.6",
