@@ -373,11 +373,11 @@ function initDiffExpandAllLines() {
   });
 
   // Handle individual expand button clicks
-  addDelegatedEventListener(document, 'click', '.code-expander-button', (btn, e) => {
+  addDelegatedEventListener(document, 'click', '.code-expander-button', async (btn, e) => {
     e.preventDefault();
     const tr = btn.closest('tr');
     const url = btn.getAttribute('data-url');
-    if (tr && url) fetchBlobExcerpt(tr, url);
+    if (tr && url) await fetchBlobExcerpt(tr, url);
   });
 }
 
