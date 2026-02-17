@@ -97,7 +97,7 @@ func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTok
 
 	// Handle mapping: individual permission scopes
 	if node.Kind == yaml.MappingNode {
-		result := defaultPerms // Start with defaults
+		result := repo_model.ActionsTokenPermissions{} // GH Actions: unspecified scopes in explicit block get 'none'
 
 		// Collect all scopes into a map first to handle priority
 		scopes := make(map[string]perm.AccessMode)

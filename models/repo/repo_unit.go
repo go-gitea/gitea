@@ -178,7 +178,7 @@ const (
 	// ActionsTokenPermissionModeRestricted - read access by default
 	ActionsTokenPermissionModeRestricted ActionsTokenPermissionMode = "restricted"
 	// ActionsTokenPermissionModeCustom - custom permissions defined by MaxTokenPermissions
-	ActionsTokenPermissionModeCustom ActionsTokenPermissionMode = "custom"
+	// ActionsTokenPermissionModeCustom ActionsTokenPermissionMode = "custom" // reserved for future use
 )
 
 // ActionsCrossRepoMode defines the mode for cross-repository access
