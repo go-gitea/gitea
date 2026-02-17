@@ -72,7 +72,7 @@ For configuring IDEs for Gitea development, see the [contributed IDE configurati
 
 Contributions made with the assistance of AI tools are welcome, but contributors must use them responsibly.
 
-1. Before prompting, search for previous issues or pull requests and include links to them issues in the prompt.
+1. Before prompting, search for previous issues or pull requests and include links to them in the prompt.
 2. Review AI-generated code closely before submitting a pull request.
 4. Manually test the changes and add appropriate automated tests where feasible.
 3. Only use AI to assist in contributions that you understand well enough to respond to feedback without relying on AI.
