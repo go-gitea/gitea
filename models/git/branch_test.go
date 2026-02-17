@@ -197,8 +197,7 @@ func TestRenameBranchProtectedRuleConflict(t *testing.T) {
 
 	protectedDev, err := git_model.GetProtectedBranchRuleByName(t.Context(), repo1.ID, "dev")
 	assert.NoError(t, err)
-	assert.NotNil(t, protectedDev)
-	assert.Equal(t, pbDev.ID, protectedDev.ID)
+	assert.Nil(t, protectedDev)
 
 	protectedMainByID, err := git_model.GetProtectedBranchRuleByID(t.Context(), repo1.ID, pbMain.ID)
 	assert.NoError(t, err)

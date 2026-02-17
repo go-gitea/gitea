@@ -406,6 +406,11 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 				if _, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch); err != nil {
 					return err
 				}
+			} else {
+				// Delete the old rule since the branch no longer exists and the target already has a rule
+				if _, err = sess.ID(protectedBranch.ID).Delete(&ProtectedBranch{}); err != nil {
+					return err
+				}
 			}
 		} else {
 			// some glob protect rules may match this branch
