@@ -35,7 +35,7 @@ func TestHeatmapEndpoints(t *testing.T) {
 		assert.Positive(t, result["totalContributions"])
 	})
 
-	t.Run("OrgDashboard", func(t *testing.T) {
+	t.Run("UserDashboard", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 		req := NewRequest(t, "GET", "/org/org3/dashboard/-/heatmap")
 		resp := session.MakeRequest(t, req, http.StatusOK)
