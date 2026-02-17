@@ -49,7 +49,7 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 // CreatePushPullComment create push code to pull base comment
 func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *issues_model.PullRequest, oldCommitID, newCommitID string, isForcePush bool) (comment *issues_model.Comment, err error) {
 	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil because no comment needs to be created
 	}
 
 	opts := &issues_model.CreateCommentOptions{
@@ -71,7 +71,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 		}
 		// It maybe an empty pull request. Only non-empty pull request need to create push comment
 		if len(data.CommitIDs) == 0 {
-			return nil, nil
+			return nil, nil //nolint:nilnil // return nil because no comment needs to be created
 		}
 	}
 
