@@ -142,7 +142,7 @@
 -
   id: 804
   title: "use a private action"
-  repo_id: 60
+  repo_id: 6
   owner_id: 40
   workflow_id: "run.yaml"
   index: 189

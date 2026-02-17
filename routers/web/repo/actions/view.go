@@ -34,7 +34,6 @@ import (
 	context_module "code.gitea.io/gitea/services/context"
 	notify_service "code.gitea.io/gitea/services/notify"
 
-	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"gopkg.in/yaml.v3"
 	"xorm.io/builder"
@@ -537,19 +536,8 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 		}
 	}
 
-	// Re-evaluate permissions during rerun
-	if parsedWorkflows, err := jobparser.Parse(job.WorkflowPayload); err == nil && len(parsedWorkflows) == 1 {
-		flow := parsedWorkflows[0]
-		_, workflowJob := flow.Job()
-		if perms := actions_service.ExtractJobPermissionsFromWorkflow(flow, workflowJob); perms != nil {
-			job.TokenPermissions = repo_model.MarshalTokenPermissions(*perms)
-		} else {
-			job.TokenPermissions = ""
-		}
-	}
-
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
-		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated", "token_permissions"}
+		updateCols := []string{"task_id", "status", "started", "stopped", "concurrency_group", "concurrency_cancel", "is_concurrency_evaluated"}
 		_, err := actions_model.UpdateRunJob(ctx, job, builder.Eq{"status": status}, updateCols...)
 		return err
 	}); err != nil {
