@@ -1,6 +1,5 @@
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
-IMPORT := code.gitea.io/gitea
 
 # By default use go's 1.25 experimental json v2 library when building
 # TODO: remove when no longer experimental
@@ -212,7 +211,7 @@ clean: ## delete backend and integration files
 		e2e*.test \
 		tests/integration/gitea-integration-* \
 		tests/integration/indexers-* \
-		tests/mysql.ini tests/pgsql.ini tests/mssql.ini man/ \
+		tests/sqlite.ini tests/mysql.ini tests/pgsql.ini tests/mssql.ini man/ \
 		tests/e2e/gitea-e2e-*/ \
 		tests/e2e/indexers-*/ \
 		tests/e2e/reports/ tests/e2e/test-artifacts/ tests/e2e/test-snapshots/
@@ -647,7 +646,7 @@ migrations.sqlite.test: $(GO_SOURCES) generate-ini-sqlite
 	GITEA_TEST_CONF=tests/sqlite.ini ./migrations.sqlite.test
 
 .PHONY: migrations.individual.mysql.test
-migrations.individual.mysql.test: $(GO_SOURCES)
+migrations.individual.mysql.test: $(GO_SOURCES) generate-ini-mysql
 	GITEA_TEST_CONF=tests/mysql.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
 
 .PHONY: migrations.individual.sqlite.test\#%
@@ -655,7 +654,7 @@ migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
 	GITEA_TEST_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
 
 .PHONY: migrations.individual.pgsql.test
-migrations.individual.pgsql.test: $(GO_SOURCES)
+migrations.individual.pgsql.test: $(GO_SOURCES) generate-ini-pgsql
 	GITEA_TEST_CONF=tests/pgsql.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
 
 .PHONY: migrations.individual.pgsql.test\#%
