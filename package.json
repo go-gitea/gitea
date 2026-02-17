@@ -119,9 +119,6 @@
     "vitest": "4.0.18",
     "vue-tsc": "3.2.4"
   },
-  "browserslist": [
-    "defaults"
-  ],
   "pnpm": {
     "overrides": {
       "array-includes": "npm:@nolyfill/array-includes@^1",
