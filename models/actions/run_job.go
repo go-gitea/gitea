@@ -51,7 +51,7 @@ type ActionRunJob struct {
 	ConcurrencyGroup  string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"` // evaluated concurrency.group
 	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`                      // evaluated concurrency.cancel-in-progress
 
-	RawStrategy string // raw strategy from job YAML's "strategy" section (stored before matrix expansion for deferred evaluation)
+	RawStrategy string `xorm:"TEXT"` // raw strategy from job YAML's "strategy" section (stored before matrix expansion for deferred evaluation)
 
 	// IsMatrixEvaluated is only valid/needed when this job's RawStrategy is not empty and contains a matrix that depends on job outputs.
 	// If the matrix can't be evaluated yet (e.g. job hasn't completed), this field will be false.

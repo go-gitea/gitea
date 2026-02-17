@@ -62,8 +62,8 @@ func ExtractRawStrategies(content []byte) (map[string]string, error) {
 	return strategies, nil
 }
 
-// hasMatrixWithNeeds checks if a job's strategy contains a matrix that depends on job outputs
-func hasMatrixWithNeeds(rawStrategy string) bool {
+// HasMatrixWithNeeds checks if a job's strategy contains a matrix that depends on job outputs
+func HasMatrixWithNeeds(rawStrategy string) bool {
 	if rawStrategy == "" {
 		return false
 	}
@@ -95,9 +95,12 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		return nil, nil
 	}
 
-	if !hasMatrixWithNeeds(job.RawStrategy) {
-		// Mark as evaluated since there's no needs-dependent matrix
+	if !HasMatrixWithNeeds(job.RawStrategy) {
+		// Mark as evaluated since there's no needs-dependent matrix and persist to DB
 		job.IsMatrixEvaluated = true
+		if _, err := actions_model.UpdateRunJob(ctx, job, nil, "is_matrix_evaluated"); err != nil {
+			log.Error("Failed to persist is_matrix_evaluated flag for job %d: %v", job.ID, err)
+		}
 		log.Debug("Matrix re-evaluation skipped for job %d: no needs-dependent matrix found", job.ID)
 		return nil, nil
 	}
@@ -172,9 +175,16 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 	// so that the jobparser can resolve needs.*.outputs.* expressions
 	workflowYAML, err := constructWorkflowWithNeeds(job, taskNeeds)
 	if err != nil {
-		log.Error("Failed to construct workflow for job %d (JobID: %s): %v", job.ID, job.JobID, err)
+		// If we can't construct the workflow, we can't expand the matrix
+		// Mark as evaluated and skip the job to prevent the placeholder from running unexpanded
+		job.IsMatrixEvaluated = true
+		job.Status = actions_model.StatusSkipped
+		if _, dbErr := actions_model.UpdateRunJob(ctx, job, nil, "is_matrix_evaluated", "status"); dbErr != nil {
+			log.Error("Failed to persist is_matrix_evaluated/status flag for job %d after workflow construction failure: %v", job.ID, dbErr)
+		}
+		log.Error("Failed to construct workflow for job %d (JobID: %s): %v, marking as skipped", job.ID, job.JobID, err)
 		GetMatrixMetrics().RecordReevaluation(time.Since(startTime), false, 0)
-		return nil, nil
+		return nil, err
 	}
 
 	// Parse the constructed workflow with job outputs to expand the matrix
@@ -191,8 +201,11 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 
 	if err != nil {
 		// If parsing fails, we can't expand the matrix
-		// Mark as evaluated and skip
+		// Mark as evaluated and persist to DB to avoid repeated parse attempts
 		job.IsMatrixEvaluated = true
+		if _, dbErr := actions_model.UpdateRunJob(ctx, job, nil, "is_matrix_evaluated"); dbErr != nil {
+			log.Error("Failed to persist is_matrix_evaluated flag for job %d after parse failure: %v", job.ID, dbErr)
+		}
 		errMsg := fmt.Sprintf("failed to parse workflow payload for job %d (JobID: %s) during matrix expansion. Error: %v. RawStrategy: %s",
 			job.ID, job.JobID, err, job.RawStrategy)
 		log.Error("Matrix parse error: %s", errMsg)
@@ -201,8 +214,13 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 	}
 
 	if len(jobs) == 0 {
+		// No jobs generated - mark as evaluated and skip the placeholder job
 		job.IsMatrixEvaluated = true
-		log.Debug("No jobs generated from matrix expansion for job %d (JobID: %s)", job.ID, job.JobID)
+		job.Status = actions_model.StatusSkipped
+		if _, err := actions_model.UpdateRunJob(ctx, job, nil, "is_matrix_evaluated", "status"); err != nil {
+			log.Error("Failed to persist is_matrix_evaluated/status flag for job %d: %v", job.ID, err)
+		}
+		log.Debug("No jobs generated from matrix expansion for job %d (JobID: %s), marking as skipped", job.ID, job.JobID)
 		return nil, nil
 	}
 
@@ -250,10 +268,14 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 		newJobs = append(newJobs, newJob)
 	}
 
-	// If no new jobs were created, mark as evaluated
+	// If no new jobs were created, mark as evaluated, skip the placeholder job, and persist to DB
 	if len(newJobs) == 0 {
 		job.IsMatrixEvaluated = true
-		log.Warn("No valid jobs created from matrix expansion for job %d (JobID: %s). Original jobs: %d", job.ID, job.JobID, len(jobs))
+		job.Status = actions_model.StatusSkipped
+		if _, err := actions_model.UpdateRunJob(ctx, job, nil, "is_matrix_evaluated", "status"); err != nil {
+			log.Error("Failed to persist is_matrix_evaluated/status flag for job %d: %v", job.ID, err)
+		}
+		log.Warn("No valid jobs created from matrix expansion for job %d (JobID: %s). Original jobs: %d, marking as skipped", job.ID, job.JobID, len(jobs))
 		return nil, nil
 	}
 
@@ -270,10 +292,11 @@ func ReEvaluateMatrixForJobWithNeeds(ctx context.Context, job *actions_model.Act
 	insertTime := time.Since(insertStartTime)
 	GetMatrixMetrics().RecordInsertTime(insertTime)
 
-	// Mark the original job as evaluated
+	// Mark the original placeholder job as evaluated and skipped so it is never run
 	job.IsMatrixEvaluated = true
-	if _, err := actions_model.UpdateRunJob(ctx, job, nil, "is_matrix_evaluated"); err != nil {
-		log.Error("Failed to update job %d is_matrix_evaluated flag: %v", job.ID, err)
+	job.Status = actions_model.StatusSkipped
+	if _, err := actions_model.UpdateRunJob(ctx, job, nil, "is_matrix_evaluated", "status"); err != nil {
+		log.Error("Failed to update job %d after matrix expansion (is_matrix_evaluated/status): %v", job.ID, err)
 	}
 
 	totalTime := time.Since(startTime)

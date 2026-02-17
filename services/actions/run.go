@@ -9,6 +9,7 @@ import (
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
@@ -102,7 +103,12 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 		}
 
 		// Extract raw strategies from the original workflow before parsing
-		rawStrategies, _ := ExtractRawStrategies(workflowContent)
+		rawStrategies, err := ExtractRawStrategies(workflowContent)
+		if err != nil {
+			log.Warn("Failed to extract raw strategies from workflow: %v", err)
+			// Continue without raw strategies - jobs will work but dynamic matrix won't be supported
+			rawStrategies = nil
+		}
 
 		runJobs := make([]*actions_model.ActionRunJob, 0, len(jobs))
 		var hasWaitingJobs bool
@@ -131,8 +137,9 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 				Status:            util.Iif(shouldBlockJob, actions_model.StatusBlocked, actions_model.StatusWaiting),
 			}
 
-			// Store raw strategy if job has matrix that depends on job outputs
-			if rawStrategy, exists := rawStrategies[id]; exists && len(needs) > 0 {
+			// Store raw strategy only if job has matrix that actually depends on job outputs (needs.*.outputs)
+			// This avoids unnecessary DB storage and later re-evaluation checks for purely static matrices
+			if rawStrategy, exists := rawStrategies[id]; exists && len(needs) > 0 && HasMatrixWithNeeds(rawStrategy) {
 				runJob.RawStrategy = rawStrategy
 				runJob.IsMatrixEvaluated = false
 			}

@@ -32,22 +32,17 @@ type MatrixMetrics struct {
 
 var (
 	matrixMetricsInstance *MatrixMetrics
-	metricsMutex          sync.Mutex
+	metricsOnce           sync.Once
 )
-
 // GetMatrixMetrics returns the global matrix metrics instance
 func GetMatrixMetrics() *MatrixMetrics {
-	if matrixMetricsInstance == nil {
-		metricsMutex.Lock()
-		if matrixMetricsInstance == nil {
-			matrixMetricsInstance = &MatrixMetrics{
-				ReevaluationTimes: make([]time.Duration, 0, 1000),
-				ParseTimes:        make([]time.Duration, 0, 1000),
-				InsertTimes:       make([]time.Duration, 0, 1000),
-			}
+	metricsOnce.Do(func() {
+		matrixMetricsInstance = &MatrixMetrics{
+			ReevaluationTimes: make([]time.Duration, 0, 1000),
+			ParseTimes:        make([]time.Duration, 0, 1000),
+			InsertTimes:       make([]time.Duration, 0, 1000),
 		}
-		metricsMutex.Unlock()
-	}
+	})
 	return matrixMetricsInstance
 }
 

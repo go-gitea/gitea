@@ -8,7 +8,12 @@ import (
 )
 
 func AddMatrixEvaluationColumnsToActionRunJob(x *xorm.Engine) error {
-	return x.Sync(new(ActionRunJobWithMatrixSupport))
+	if _, err := x.SyncWithOptions(xorm.SyncOptions{
+		IgnoreDropIndices: true,
+	}, new(ActionRunJobWithMatrixSupport)); err != nil {
+		return err
+	}
+	return nil
 }
 
 // ActionRunJobWithMatrixSupport is a temporary struct for migration purposes

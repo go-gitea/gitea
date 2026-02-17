@@ -228,7 +228,7 @@ func checkJobsOfRun(ctx context.Context, run *actions_model.ActionRun) (jobs, up
 				} else if n != 1 {
 					return fmt.Errorf("no affected for updating blocked job %v", job.ID)
 				}
-				log.Info("Job %d (JobID: %s) status updated: %s -> %s", job.ID, job.JobID, oldStatus, status)
+				log.Debug("Job %d (JobID: %s) status updated: %s -> %s", job.ID, job.JobID, oldStatus, status)
 				updatedJobs = append(updatedJobs, job)
 			}
 		}
@@ -375,7 +375,12 @@ func (r *jobStatusResolver) resolve(ctx context.Context) map[int64]actions_model
 			resolveMetrics.matrixReevaluated++
 			log.Info("Matrix re-evaluation succeeded for job %d (JobID: %s): created %d new jobs (duration: %dms)",
 				id, actionRunJob.JobID, len(newMatrixJobs), duration)
-			// The new jobs will be picked up in the next resolution iteration
+
+			// Mark the original matrix placeholder job as skipped so it won't be run later.
+			actionRunJob.Status = actions_model.StatusSkipped
+			if _, err := db.GetEngine(ctx).ID(actionRunJob.ID).Cols("status").Update(actionRunJob); err != nil {
+				log.Error("Failed to mark matrix placeholder job %d (JobID: %s) as skipped after re-evaluation: %v", id, actionRunJob.JobID, err)
+			}
 			continue
 		}
 

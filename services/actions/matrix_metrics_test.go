@@ -73,10 +73,16 @@ func BenchmarkMatrixMetricsCollectorCollect(b *testing.B) {
 	}
 
 	collector := NewMatrixMetricsCollector()
-	ch := make(chan prometheus.Metric, 100)
 
 	b.ResetTimer()
 	for b.Loop() {
+		// Use a fresh channel each iteration to avoid filling up the buffer
+		ch := make(chan prometheus.Metric, 100)
 		collector.Collect(ch)
+		// Drain the channel to prevent blocking
+		close(ch)
+		for range ch {
+			// discard metrics
+		}
 	}
 }

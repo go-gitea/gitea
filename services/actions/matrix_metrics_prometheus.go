@@ -30,8 +30,8 @@ type MatrixMetricsCollector struct {
 }
 
 const (
-	namespace = "gitea_"
-	subsystem = "matrix_"
+	namespace = "gitea"
+	subsystem = "matrix"
 )
 
 // newMatrixGauge creates a new Prometheus Gauge with standard matrix metrics naming
