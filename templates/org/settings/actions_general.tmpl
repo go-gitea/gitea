@@ -275,19 +275,19 @@
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.releases"}}</strong>
 							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.releases.description"}}</p>
 						</td>
-						<td style="text-align: center">
+						<td class="tw-text-center">
 							<div class="ui radio checkbox">
 								<input type="radio" name="max_releases" value="none" {{if not ($.MaxTokenPermissions.HasRead "releases")}}checked{{end}}>
 								<label></label>
 							</div>
 						</td>
-						<td style="text-align: center">
+						<td class="tw-text-center">
 							<div class="ui radio checkbox">
 								<input type="radio" name="max_releases" value="read" {{if and ($.MaxTokenPermissions.HasRead "releases") (not ($.MaxTokenPermissions.HasWrite "releases"))}}checked{{end}}>
 								<label></label>
 							</div>
 						</td>
-						<td style="text-align: center">
+						<td class="tw-text-center">
 							<div class="ui radio checkbox">
 								<input type="radio" name="max_releases" value="write" {{if $.MaxTokenPermissions.HasWrite "releases"}}checked{{end}}>
 								<label></label>
@@ -300,19 +300,19 @@
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.projects"}}</strong>
 							<p class="text small grey">{{ctx.Locale.Tr "actions.general.token_permissions.projects.description"}}</p>
 						</td>
-						<td style="text-align: center">
+						<td class="tw-text-center">
 							<div class="ui radio checkbox">
 								<input type="radio" name="max_projects" value="none" {{if not ($.MaxTokenPermissions.HasRead "projects")}}checked{{end}}>
 								<label></label>
 							</div>
 						</td>
-						<td style="text-align: center">
+						<td class="tw-text-center">
 							<div class="ui radio checkbox">
 								<input type="radio" name="max_projects" value="read" {{if and ($.MaxTokenPermissions.HasRead "projects") (not ($.MaxTokenPermissions.HasWrite "projects"))}}checked{{end}}>
 								<label></label>
 							</div>
 						</td>
-						<td style="text-align: center">
+						<td class="tw-text-center">
 							<div class="ui radio checkbox">
 								<input type="radio" name="max_projects" value="write" {{if $.MaxTokenPermissions.HasWrite "projects"}}checked{{end}}>
 								<label></label>
