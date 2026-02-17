@@ -8,7 +8,5 @@ test('README renders on repository page', async ({page}) => {
   await createRepo(page, repoName);
   await page.goto(`/${env.E2E_USER}/${repoName}`);
   await expect(page.locator('#readme')).toContainText(repoName);
-
-  // cleanup
-  await deleteRepo(page, env.E2E_USER!, repoName);
+  await deleteRepo(page, env.E2E_USER, repoName);
 });

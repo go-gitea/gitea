@@ -10,7 +10,5 @@ test('create a milestone', async ({page}) => {
   await page.getByPlaceholder('Title').fill('Test Milestone');
   await page.getByRole('button', {name: 'Create Milestone'}).click();
   await expect(page.locator('.milestone-list')).toContainText('Test Milestone');
-
-  // cleanup
-  await deleteRepo(page, env.E2E_USER!, repoName);
+  await deleteRepo(page, env.E2E_USER, repoName);
 });
