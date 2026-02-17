@@ -9,8 +9,9 @@ import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce
 import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
-import {parseDom, sleep} from '../utils.ts';
+import {parseDom} from '../utils.ts';
 import {registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {svg} from '../svg.ts';
 
 function initRepoDiffFileBox(el: HTMLElement) {
   // switch between "rendered" and "source", for image and CSV files
@@ -24,6 +25,12 @@ function initRepoDiffFileBox(el: HTMLElement) {
     hideElem(queryElemSiblings(target));
     showElem(target);
   }));
+
+  // Hide "expand all" button when there are no expandable sections
+  const expandAllBtn = el.querySelector('.diff-expand-all');
+  if (expandAllBtn && !el.querySelector('.code-expander-button')) {
+    hideElem(expandAllBtn);
+  }
 }
 
 function initRepoDiffConversationForm() {
@@ -247,12 +254,13 @@ async function onLocationHashChange() {
       const commentId = currentHash.substring(issueCommentPrefix.length);
       const expandButton = document.querySelector<HTMLElement>(`.code-expander-button[data-hidden-comment-ids*=",${commentId},"]`);
       if (expandButton) {
-        // avoid infinite loop, do not re-click the button if already clicked
+        // avoid infinite loop, do not re-expand the same button
         const attrAutoLoadClicked = 'data-auto-load-clicked';
         if (expandButton.hasAttribute(attrAutoLoadClicked)) return;
         expandButton.setAttribute(attrAutoLoadClicked, 'true');
-        expandButton.click();
-        await sleep(500); // Wait for HTMX to load the content. FIXME: need to drop htmx in the future
+        const tr = expandButton.closest('tr');
+        const url = expandButton.getAttribute('data-url');
+        if (tr && url) await fetchBlobExcerpt(tr, url);
         continue; // Try again to find the element
       }
     }
@@ -274,6 +282,105 @@ function initRepoDiffHashChangeListener() {
   onLocationHashChange();
 }
 
+const expandAllSavedState = new WeakMap<HTMLElement, HTMLElement>();
+
+async function fetchBlobExcerpt(tr: Element, url: string): Promise<void> {
+  const resp = await GET(url);
+  const text = await resp.text();
+  // Parse <tr> elements in proper table context
+  const tempTbody = document.createElement('tbody');
+  tempTbody.innerHTML = text;
+  const nodes = Array.from(tempTbody.children);
+  tr.replaceWith(...nodes);
+}
+
+async function expandAllLines(btn: HTMLElement, fileBox: HTMLElement) {
+  const fileBody = fileBox.querySelector('.diff-file-body');
+  if (!fileBody) return;
+
+  // Save original state for later collapse
+  const tbody = fileBody.querySelector('table.chroma tbody');
+  if (!tbody) return;
+  expandAllSavedState.set(fileBox, tbody.cloneNode(true) as HTMLElement);
+
+  btn.classList.add('disabled');
+  try {
+    // Loop: expand all collapsed sections until none remain.
+    // Each round fetches all current expander URLs in parallel, replaces their
+    // target <tr> rows with the response rows, then rescans for new expanders
+    // that may have appeared in the inserted content.
+    while (true) {
+      const expanders = collectExpanderButtons(fileBody, true);
+      if (expanders.length === 0) break;
+      await Promise.all(expanders.map(({tr, url}) => fetchBlobExcerpt(tr, url)));
+    }
+  } finally {
+    btn.classList.remove('disabled');
+  }
+
+  // Update button to "collapse" state
+  btn.innerHTML = svg('octicon-fold', 14);
+  btn.setAttribute('data-tooltip-content', btn.getAttribute('data-collapse-tooltip') ?? '');
+}
+
+function collapseExpandedLines(btn: HTMLElement, fileBox: HTMLElement) {
+  const savedTbody = expandAllSavedState.get(fileBox);
+  if (!savedTbody) return;
+
+  const tbody = fileBox.querySelector('.diff-file-body table.chroma tbody');
+  if (tbody) {
+    tbody.replaceWith(savedTbody.cloneNode(true));
+  }
+
+  expandAllSavedState.delete(fileBox);
+
+  // Update button to "expand" state
+  btn.innerHTML = svg('octicon-unfold', 14);
+  btn.setAttribute('data-tooltip-content', btn.getAttribute('data-expand-tooltip') ?? '');
+}
+
+// Collect one expander button per <tr> (skip duplicates from "updown" rows
+// that have both up/down buttons targeting the same row).
+// When fullExpand is true, the direction parameter is rewritten so the backend
+// expands the entire gap in a single response instead of chunk-by-chunk.
+function collectExpanderButtons(container: Element, fullExpand?: boolean): {tr: Element, url: string}[] {
+  const seen = new Set<Element>();
+  const expanders: {tr: Element, url: string}[] = [];
+  for (const btn of container.querySelectorAll<HTMLElement>('.code-expander-button')) {
+    const tr = btn.closest('tr');
+    let url = btn.getAttribute('data-url');
+    if (tr && url && !seen.has(tr)) {
+      seen.add(tr);
+      if (fullExpand) url = url.replace(/direction=[^&]*/, 'direction=full');
+      expanders.push({tr, url});
+    }
+  }
+  return expanders;
+}
+
+function initDiffExpandAllLines() {
+  addDelegatedEventListener(document, 'click', '.diff-expand-all', (btn, e) => {
+    e.preventDefault();
+    if (btn.classList.contains('disabled')) return;
+    const fileBox = btn.closest<HTMLElement>('.diff-file-box');
+    if (!fileBox) return;
+
+    if (expandAllSavedState.has(fileBox)) {
+      collapseExpandedLines(btn, fileBox);
+    } else {
+      expandAllLines(btn, fileBox);
+    }
+  });
+
+  // Handle individual expand button clicks
+  addDelegatedEventListener(document, 'click', '.code-expander-button', (btn, e) => {
+    e.preventDefault();
+    const tr = btn.closest('tr');
+    const url = btn.getAttribute('data-url');
+    if (tr && url) fetchBlobExcerpt(tr, url);
+  });
+}
+
 export function initRepoDiffView() {
   initRepoDiffConversationForm(); // such form appears on the "conversation" page and "diff" page
 
@@ -285,6 +392,7 @@ export function initRepoDiffView() {
   initDiffHeaderPopup();
   initViewedCheckboxListenerFor();
   initExpandAndCollapseFilesButton();
+  initDiffExpandAllLines();
   initRepoDiffHashChangeListener();
 
   registerGlobalSelectorFunc('#diff-file-boxes .diff-file-box', initRepoDiffFileBox);

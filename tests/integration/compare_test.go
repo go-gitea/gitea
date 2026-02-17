@@ -147,12 +147,12 @@ func TestCompareCodeExpand(t *testing.T) {
 		req := NewRequest(t, "GET", "/user1/test_blob_excerpt/compare/main...user2/test_blob_excerpt-fork:forked-branch")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		els := htmlDoc.Find(`button.code-expander-button[hx-get]`)
+		els := htmlDoc.Find(`button.code-expander-button[data-url]`)
 
 		// all the links in the comparison should be to the forked repo&branch
 		assert.NotZero(t, els.Length())
 		for i := 0; i < els.Length(); i++ {
-			link := els.Eq(i).AttrOr("hx-get", "")
+			link := els.Eq(i).AttrOr("data-url", "")
 			assert.True(t, strings.HasPrefix(link, "/user2/test_blob_excerpt-fork/blob_excerpt/"))
 		}
 	})

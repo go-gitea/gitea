@@ -34,6 +34,7 @@ import octiconFileDirectoryOpenFill from '../../public/assets/img/svg/octicon-fi
 import octiconFileSubmodule from '../../public/assets/img/svg/octicon-file-submodule.svg';
 import octiconFileSymlinkFile from '../../public/assets/img/svg/octicon-file-symlink-file.svg';
 import octiconFilter from '../../public/assets/img/svg/octicon-filter.svg';
+import octiconFold from '../../public/assets/img/svg/octicon-fold.svg';
 import octiconGear from '../../public/assets/img/svg/octicon-gear.svg';
 import octiconGitBranch from '../../public/assets/img/svg/octicon-git-branch.svg';
 import octiconGitCommit from '../../public/assets/img/svg/octicon-git-commit.svg';
@@ -78,6 +79,7 @@ import octiconTable from '../../public/assets/img/svg/octicon-table.svg';
 import octiconTag from '../../public/assets/img/svg/octicon-tag.svg';
 import octiconTrash from '../../public/assets/img/svg/octicon-trash.svg';
 import octiconTriangleDown from '../../public/assets/img/svg/octicon-triangle-down.svg';
+import octiconUnfold from '../../public/assets/img/svg/octicon-unfold.svg';
 import octiconX from '../../public/assets/img/svg/octicon-x.svg';
 import octiconXCircleFill from '../../public/assets/img/svg/octicon-x-circle-fill.svg';
 import octiconZoomIn from '../../public/assets/img/svg/octicon-zoom-in.svg';
@@ -117,6 +119,7 @@ const svgs = {
   'octicon-file-submodule': octiconFileSubmodule,
   'octicon-file-symlink-file': octiconFileSymlinkFile,
   'octicon-filter': octiconFilter,
+  'octicon-fold': octiconFold,
   'octicon-gear': octiconGear,
   'octicon-git-branch': octiconGitBranch,
   'octicon-git-commit': octiconGitCommit,
@@ -161,6 +164,7 @@ const svgs = {
   'octicon-tag': octiconTag,
   'octicon-trash': octiconTrash,
   'octicon-triangle-down': octiconTriangleDown,
+  'octicon-unfold': octiconUnfold,
   'octicon-x': octiconX,
   'octicon-x-circle-fill': octiconXCircleFill,
   'octicon-zoom-in': octiconZoomIn,
