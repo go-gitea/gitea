@@ -19,14 +19,14 @@ type UserHeatmapData struct {
 	Contributions int64              `json:"contributions"`
 }
 
-// GetUserHeatmapDataByUser returns an array of UserHeatmapData
+// GetUserHeatmapDataByUser returns an array of UserHeatmapData, it checks whether doer can access user's activity
 func GetUserHeatmapDataByUser(ctx context.Context, user, doer *user_model.User) ([]*UserHeatmapData, error) {
 	return getUserHeatmapData(ctx, user, nil, doer)
 }
 
-// GetUserHeatmapDataByUserTeam returns an array of UserHeatmapData
-func GetUserHeatmapDataByUserTeam(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
-	return getUserHeatmapData(ctx, user, team, doer)
+// GetUserHeatmapDataByOrgTeam returns an array of UserHeatmapData, it checks whether doer can access org's activity
+func GetUserHeatmapDataByOrgTeam(ctx context.Context, org *organization.Organization, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
+	return getUserHeatmapData(ctx, org.AsUser(), team, doer)
 }
 
 func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
@@ -70,13 +70,4 @@ func getUserHeatmapData(ctx context.Context, user *user_model.User, team *organi
 		GroupBy(groupByName).
 		OrderBy("timestamp").
 		Find(&hdata)
-}
-
-// GetTotalContributionsInHeatmap returns the total number of contributions in a heatmap
-func GetTotalContributionsInHeatmap(hdata []*UserHeatmapData) int64 {
-	var total int64
-	for _, v := range hdata {
-		total += v.Contributions
-	}
-	return total
 }
