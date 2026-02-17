@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
@@ -461,14 +462,20 @@ func UpdateIssueProject(ctx *context.Context) {
 	}
 
 	projectIDs, _ := base.StringsToInt64s(strings.Split(ctx.FormString("id"), ","))
+	var failedIssues []int64
 	for _, issue := range issues {
 		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectIDs, 0); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) {
+				failedIssues = append(failedIssues, issue.ID)
 				continue
 			}
 			ctx.ServerError("IssueAssignOrRemoveProject", err)
 			return
 		}
+	}
+
+	if len(failedIssues) > 0 {
+		log.Warn("Failed to assign projects to %d issues due to permission denied: %v", len(failedIssues), failedIssues)
 	}
 
 	ctx.JSONOK()
