@@ -242,7 +242,7 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		return err
 	}
 
-	return db.WithTx(ctx, func(ctx context.Context) error {
+	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		rel := &repo_model.Release{
 			RepoID:       repo.ID,
 			Repo:         repo,
@@ -263,7 +263,26 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		}
 
 		return createGitTag(ctx, gitRepo, rel.RepoID, rel.PublisherID, rel.TagName, rel.Sha1, msg)
-	})
+	}); err != nil {
+		return err
+	}
+
+	objectFormat := git.ObjectFormatFromName(repo.ObjectFormatName)
+	commits := repository.NewPushCommits()
+	commits.HeadCommit = repository.CommitToPushCommit(commit)
+	commits.CompareURL = repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), commit.ID.String())
+
+	refFullName := git.RefNameFromTag(tagName)
+	notify_service.PushCommits(
+		ctx, doer, repo,
+		&repository.PushUpdateOptions{
+			RefFullName: refFullName,
+			OldCommitID: objectFormat.EmptyObjectID().String(),
+			NewCommitID: commit.ID.String(),
+		}, commits)
+	notify_service.CreateRef(ctx, doer, repo, refFullName, commit.ID.String())
+
+	return nil
 }
 
 // UpdateRelease updates information, attachments of a release and will create tag if it's not a draft and tag not exist.
@@ -292,9 +311,10 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	isConvertFromDraft := oldRelease.IsDraft && !rel.IsDraft
 	isConvertedFromTag := oldRelease.IsTag && !rel.IsTag
 	needsCreateTag := false
+	var commit *git.Commit
 	if !rel.IsDraft {
 		if !gitrepo.IsTagExist(ctx, rel.Repo, rel.TagName) {
-			commit, err := gitRepo.GetCommit(rel.Target)
+			commit, err = gitRepo.GetCommit(rel.Target)
 			if err != nil {
 				return err
 			}
@@ -393,6 +413,22 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 	}
 
 	if !rel.IsDraft {
+		if needsCreateTag {
+			objectFormat := git.ObjectFormatFromName(rel.Repo.ObjectFormatName)
+			commits := repository.NewPushCommits()
+			commits.HeadCommit = repository.CommitToPushCommit(commit)
+			commits.CompareURL = rel.Repo.ComposeCompareURL(objectFormat.EmptyObjectID().String(), commit.ID.String())
+
+			refFullName := git.RefNameFromTag(rel.TagName)
+			notify_service.PushCommits(
+				ctx, rel.Publisher, rel.Repo,
+				&repository.PushUpdateOptions{
+					RefFullName: refFullName,
+					OldCommitID: objectFormat.EmptyObjectID().String(),
+					NewCommitID: commit.ID.String(),
+				}, commits)
+			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
+		}
 		if !isConvertFromDraft && !isConvertedFromTag {
 			notify_service.UpdateRelease(ctx, doer, rel)
 		} else {
