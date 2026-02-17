@@ -76,7 +76,7 @@ Contributions made with the assistance of AI tools are welcome, but contributors
 2. Review AI-generated code closely before submitting a pull request.
 3. Manually test the changes and add appropriate automated tests where feasible.
 4. Only use AI to assist in contributions that you understand well enough to respond to feedback without relying on AI.
-5. Always indicate whether issue or pull request was AI-generated.
+5. Always indicate when a issue or pull request was AI-generated and specify the model used.
 6. Do not force-push to a pull request branch after reviews were given.
 
 Maintainers reserve the right to close pull requests and issues that appear to be low-quality AI-generated content. We welcome new contributors, but cannot sustain the effort of supporting contributors who primarily defer to AI rather than engaging substantively with the review process.
