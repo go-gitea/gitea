@@ -22,22 +22,21 @@ func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
 	return err
 }
 
-func (issue *Issue) projectIDs(ctx context.Context) []int64 {
+func (issue *Issue) projectIDs(ctx context.Context) ([]int64, error) {
 	var pis []project_model.ProjectIssue
 	if err := db.GetEngine(ctx).Table("project_issue").Where("issue_id = ?", issue.ID).Cols("project_id").Find(&pis); err != nil {
-		// on error, treat as no associated projects
-		return nil
+		return nil, err
 	}
 
 	if len(pis) == 0 {
-		return nil
+		return []int64{}, nil
 	}
 
 	ids := make([]int64, 0, len(pis))
 	for _, pi := range pis {
 		ids = append(ids, pi.ProjectID)
 	}
-	return ids
+	return ids, nil
 }
 
 // ProjectColumnID return project column id if issue was assigned to one
