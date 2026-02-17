@@ -100,7 +100,10 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *Is
 // If newProjectID is 0, the issue is removed from the project
 func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectIDs []int64, newColumnID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
-		oldProjectIDs := issue.projectIDs(ctx)
+		oldProjectIDs, err := issue.projectIDs(ctx)
+		if err != nil {
+			return err
+		}
 
 		if err := issue.LoadRepo(ctx); err != nil {
 			return err
