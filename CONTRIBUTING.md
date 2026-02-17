@@ -74,8 +74,8 @@ Contributions made with the assistance of AI tools are welcome, but contributors
 
 1. Before prompting, search for previous issues or pull requests and include links to them in the prompt.
 2. Review AI-generated code closely before submitting a pull request.
-4. Manually test the changes and add appropriate automated tests where feasible.
-3. Only use AI to assist in contributions that you understand well enough to respond to feedback without relying on AI.
+3. Manually test the changes and add appropriate automated tests where feasible.
+4. Only use AI to assist in contributions that you understand well enough to respond to feedback without relying on AI.
 
 Maintainers reserve the right to close pull requests and issues that appear to be low-quality AI-generated content. We welcome new contributors, but cannot sustain the effort of supporting contributors who primarily defer to AI rather than engaging substantively with the review process.
 
