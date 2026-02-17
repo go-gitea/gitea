@@ -48,7 +48,7 @@ func TestMakeTaskStepDisplayName(t *testing.T) {
 		{
 			name: "multi-line run block scalar", // run: |\n  echo hello\n  echo world\n
 			jobStep: &jobparser.Step{
-				Run: "echo hello\necho world\n",
+				Run: "\necho hello\necho world\n",
 			},
 			expected: "Run echo hello",
 		},
