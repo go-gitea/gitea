@@ -291,7 +291,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	if err := gitrepo.RunCmdWithStderr(ctx, pr.BaseRepo, cmd); err != nil {
 		if gitcmd.IsErrorExitCode(err, 1) {
 			// prHeadRef is not an ancestor of the base branch
-			return nil, nil
+			return nil, nil //nolint:nilnil // return nil to indicate that the PR head is not merged
 		}
 		// Errors are signaled by a non-zero status that is not 1
 		return nil, fmt.Errorf("%-v git merge-base --is-ancestor: %w", pr, err)

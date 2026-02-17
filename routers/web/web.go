@@ -888,6 +888,8 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/{team}", user.Dashboard)
+			m.Get("/dashboard/-/heatmap", user.DashboardHeatmap)
+			m.Get("/dashboard/-/heatmap/{team}", user.DashboardHeatmap)
 			m.Get("/issues", user.Issues)
 			m.Get("/issues/{team}", user.Issues)
 			m.Get("/pulls", user.Pulls)
@@ -1034,6 +1036,7 @@ func registerWebRoutes(m *web.Router) {
 		}
 
 		m.Get("/repositories", org.Repositories)
+		m.Get("/heatmap", user.DashboardHeatmap)
 
 		m.Group("/projects", func() {
 			m.Group("", func() {
