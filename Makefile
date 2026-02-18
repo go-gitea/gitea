@@ -20,7 +20,6 @@ GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.1
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
-GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.10
 
@@ -132,7 +131,6 @@ SVG_DEST_DIR := public/assets/img/svg
 
 AIR_TMP_DIR := .air
 
-GO_LICENSE_TMP_DIR := .go-licenses
 GO_LICENSE_FILE := assets/go-licenses.json
 
 TAGS ?=
@@ -141,7 +139,7 @@ TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
 
-TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
+TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
 
 GO_DIRS := build cmd models modules routers services tests tools
 WEB_DIRS := web_src/js web_src/css
@@ -455,11 +453,7 @@ tidy-check: tidy
 go-licenses: $(GO_LICENSE_FILE) ## regenerate go licenses
 
 $(GO_LICENSE_FILE): go.mod go.sum
-	@rm -rf $(GO_LICENSE_FILE)
-	$(GO) install $(GO_LICENSES_PACKAGE)
-	-GOOS=linux CGO_ENABLED=1 go-licenses save . --force --save_path=$(GO_LICENSE_TMP_DIR) 2>/dev/null
-	$(GO) run build/generate-go-licenses.go $(GO_LICENSE_TMP_DIR) $(GO_LICENSE_FILE)
-	@rm -rf $(GO_LICENSE_TMP_DIR)
+	GO=$(GO) $(GO) run build/generate-go-licenses.go $(GO_LICENSE_FILE)
 
 generate-ini-sqlite:
 	sed -e 's|{{WORK_PATH}}|$(CURDIR)/tests/$(or $(TEST_TYPE),integration)/gitea-$(or $(TEST_TYPE),integration)-sqlite|g' \
@@ -797,7 +791,6 @@ deps-tools: ## install tool dependencies
 	$(GO) install $(MISSPELL_PACKAGE) & \
 	$(GO) install $(SWAGGER_PACKAGE) & \
 	$(GO) install $(XGO_PACKAGE) & \
-	$(GO) install $(GO_LICENSES_PACKAGE) & \
 	$(GO) install $(GOVULNCHECK_PACKAGE) & \
 	$(GO) install $(ACTIONLINT_PACKAGE) & \
 	wait
