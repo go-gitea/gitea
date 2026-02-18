@@ -84,24 +84,23 @@ func createGitTag(ctx context.Context, gitRepo *git.Repository, repoID, publishe
 	}
 
 	if len(msg) > 0 {
-		if err = gitRepo.CreateAnnotatedTag(tagName, msg, sha1); err != nil {
-			if strings.Contains(err.Error(), "is not a valid tag name") {
-				return ErrInvalidTagName{
-					TagName: tagName,
-				}
-			}
-		}
-		return err
+		err = gitRepo.CreateAnnotatedTag(tagName, msg, sha1)
+	} else {
+		err = gitRepo.CreateTag(tagName, sha1)
 	}
 
-	if err = gitRepo.CreateTag(tagName, sha1); err != nil {
-		if strings.Contains(err.Error(), "is not a valid tag name") {
-			return ErrInvalidTagName{
-				TagName: tagName,
-			}
+	switch {
+	case strings.Contains(err.Error(), "is not a valid tag name"):
+		return ErrInvalidTagName{
+			TagName: tagName,
 		}
+	case strings.Contains(err.Error(), "already exists"):
+		return ErrTagAlreadyExists{
+			TagName: tagName,
+		}
+	default:
+		return err
 	}
-	return err
 }
 
 // CreateRelease creates a new release of repository.
