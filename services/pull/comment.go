@@ -54,11 +54,10 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 	}
 
 	opts := &issues_model.CreateCommentOptions{
-		Type:        issues_model.CommentTypePullRequestPush,
-		Doer:        pusher,
-		Repo:        pr.BaseRepo,
-		IsForcePush: isForcePush,
-		Issue:       pr.Issue,
+		Type:  issues_model.CommentTypePullRequestPush,
+		Doer:  pusher,
+		Repo:  pr.BaseRepo,
+		Issue: pr.Issue,
 	}
 
 	var data issues_model.PushActionContent
@@ -93,7 +92,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 			}
 		}
 
-		if opts.IsForcePush { // if it's a force push, we needs to add a force push comment
+		if isForcePush { // if it's a force push, we needs to add a force push comment
 			data.CommitIDs = []string{oldCommitID, newCommitID}
 			data.IsForcePush = true
 			dataJSON, err := json.Marshal(data)
@@ -101,6 +100,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 				return nil, err
 			}
 			opts.Content = string(dataJSON)
+			opts.IsForcePush = true // FIXME: it seems the field is unnecessary any more because PushActionContent includes IsForcePush field
 			comment, err = issues_model.CreateComment(ctx, opts)
 			if err != nil {
 				return nil, err
