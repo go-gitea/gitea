@@ -320,7 +320,7 @@ async function expandAllLines(btn: HTMLElement, fileBox: HTMLElement) {
 
   // Update button to "collapse" state
   btn.innerHTML = svg('octicon-fold', 14);
-  const collapseTooltip = btn.getAttribute('data-collapse-tooltip') ?? '';
+  const collapseTooltip = btn.getAttribute('data-collapse-tooltip')!;
   btn.setAttribute('data-tooltip-content', collapseTooltip);
   showTemporaryTooltip(btn, collapseTooltip);
 }
@@ -338,7 +338,7 @@ function collapseExpandedLines(btn: HTMLElement, fileBox: HTMLElement) {
 
   // Update button to "expand" state
   btn.innerHTML = svg('octicon-unfold', 14);
-  const expandTooltip = btn.getAttribute('data-expand-tooltip') ?? '';
+  const expandTooltip = btn.getAttribute('data-expand-tooltip')!;
   btn.setAttribute('data-tooltip-content', expandTooltip);
   showTemporaryTooltip(btn, expandTooltip);
 }
