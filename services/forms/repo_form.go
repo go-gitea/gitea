@@ -28,7 +28,7 @@ type CreateRepoForm struct {
 	AutoInit      bool
 	Gitignores    string
 	IssueLabels   string
-	License       string
+	License       string `binding:"MaxSize(100)"`
 	Readme        string
 	Template      bool
 

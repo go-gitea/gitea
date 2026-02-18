@@ -143,7 +143,7 @@ type CreateRepoOption struct {
 	// Gitignores to use
 	Gitignores string `json:"gitignores"`
 	// License to use
-	License string `json:"license"`
+	License string `json:"license" binding:"MaxSize(100)"`
 	// Readme of the repository to create
 	Readme string `json:"readme"`
 	// DefaultBranch of the repository (used when initializes and in template)
