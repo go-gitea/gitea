@@ -10,7 +10,7 @@ import {POST, GET} from '../modules/fetch.ts';
 import {createTippy} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
-import {registerGlobalSelectorFunc} from '../modules/observer.ts';
+import {registerGlobalEventFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
 import {svg} from '../svg.ts';
 
 function initRepoDiffFileBox(el: HTMLElement) {
@@ -258,9 +258,9 @@ async function onLocationHashChange() {
         const attrAutoLoadClicked = 'data-auto-load-clicked';
         if (expandButton.hasAttribute(attrAutoLoadClicked)) return;
         expandButton.setAttribute(attrAutoLoadClicked, 'true');
-        const tr = expandButton.closest('tr');
-        const url = expandButton.getAttribute('data-url');
-        if (tr && url) await fetchBlobExcerpt(tr, url);
+        const tr = expandButton.closest('tr')!;
+        const url = expandButton.getAttribute('data-url')!;
+        await fetchBlobExcerpt(tr, url);
         continue; // Try again to find the element
       }
     }
@@ -282,7 +282,7 @@ function initRepoDiffHashChangeListener() {
   onLocationHashChange();
 }
 
-const expandAllSavedState = new WeakMap<HTMLElement, HTMLElement>();
+const expandAllSavedState = new Map<string, HTMLElement>();
 
 async function fetchBlobExcerpt(tr: Element, url: string): Promise<void> {
   const resp = await GET(url);
@@ -301,7 +301,7 @@ async function expandAllLines(btn: HTMLElement, fileBox: HTMLElement) {
   // Save original state for later collapse
   const tbody = fileBody.querySelector('table.chroma tbody');
   if (!tbody) return;
-  expandAllSavedState.set(fileBox, tbody.cloneNode(true) as HTMLElement);
+  expandAllSavedState.set(fileBox.id, tbody.cloneNode(true) as HTMLElement);
 
   btn.classList.add('disabled');
   try {
@@ -324,7 +324,7 @@ async function expandAllLines(btn: HTMLElement, fileBox: HTMLElement) {
 }
 
 function collapseExpandedLines(btn: HTMLElement, fileBox: HTMLElement) {
-  const savedTbody = expandAllSavedState.get(fileBox);
+  const savedTbody = expandAllSavedState.get(fileBox.id);
   if (!savedTbody) return;
 
   const tbody = fileBox.querySelector('.diff-file-body table.chroma tbody');
@@ -332,7 +332,7 @@ function collapseExpandedLines(btn: HTMLElement, fileBox: HTMLElement) {
     tbody.replaceWith(savedTbody.cloneNode(true));
   }
 
-  expandAllSavedState.delete(fileBox);
+  expandAllSavedState.delete(fileBox.id);
 
   // Update button to "expand" state
   btn.innerHTML = svg('octicon-unfold', 14);
@@ -365,19 +365,17 @@ function initDiffExpandAllLines() {
     const fileBox = btn.closest<HTMLElement>('.diff-file-box');
     if (!fileBox) return;
 
-    if (expandAllSavedState.has(fileBox)) {
+    if (expandAllSavedState.has(fileBox.id)) {
       collapseExpandedLines(btn, fileBox);
     } else {
       expandAllLines(btn, fileBox);
     }
   });
 
-  // Handle individual expand button clicks
-  addDelegatedEventListener(document, 'click', '.code-expander-button', async (btn, e) => {
-    e.preventDefault();
-    const tr = btn.closest('tr');
-    const url = btn.getAttribute('data-url');
-    if (tr && url) await fetchBlobExcerpt(tr, url);
+  registerGlobalEventFunc('click', 'onExpanderButtonClick', (btn: HTMLElement) => {
+    const tr = btn.closest('tr')!;
+    const url = btn.getAttribute('data-url')!;
+    fetchBlobExcerpt(tr, url);
   });
 }
 
