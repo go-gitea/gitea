@@ -24,26 +24,23 @@ async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => numb
   }
 }
 
-export async function createRepo(page: Page, name: string) {
-  await page.goto('/repo/create');
-  await page.locator('input[name="repo_name"]').fill(name);
-  await page.locator('input[name="auto_init"]').check();
-  await page.getByRole('button', {name: 'Create Repository'}).click();
+export async function apiCreateRepo(requestContext: APIRequestContext, {name, autoInit = true}: {name: string; autoInit?: boolean}) {
+  await apiRetry(() => requestContext.post(`${apiBaseUrl()}/api/v1/user/repos`, {
+    headers: apiHeaders(),
+    data: {name, auto_init: autoInit},
+  }), 'apiCreateRepo');
 }
 
-export async function deleteRepo(page: Page, owner: string, name: string) {
-  await page.goto(`/${owner}/${name}/settings`);
-  await page.locator('button[data-modal="#delete-repo-modal"]').click();
-  const modal = page.locator('#delete-repo-modal');
-  await modal.locator('input[name="repo_name"]').fill(name);
-  await modal.getByRole('button', {name: 'Delete Repository'}).click();
-  await page.waitForURL('**/');
+export async function apiDeleteRepo(requestContext: APIRequestContext, owner: string, name: string) {
+  await apiRetry(() => requestContext.delete(`${apiBaseUrl()}/api/v1/repos/${owner}/${name}`, {
+    headers: apiHeaders(),
+  }), 'apiDeleteRepo');
 }
 
-export async function deleteOrgApi(requestContext: APIRequestContext, name: string) {
+export async function apiDeleteOrg(requestContext: APIRequestContext, name: string) {
   await apiRetry(() => requestContext.delete(`${apiBaseUrl()}/api/v1/orgs/${name}`, {
     headers: apiHeaders(),
-  }), 'deleteOrgApi');
+  }), 'apiDeleteOrg');
 }
 
 export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {

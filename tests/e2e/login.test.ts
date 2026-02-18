@@ -6,7 +6,7 @@ test('homepage', async ({page}) => {
   await expect(page.getByRole('img', {name: 'Logo'})).toHaveAttribute('src', '/assets/img/logo.svg');
 });
 
-test('login and logout', async ({page}) => { // eslint-disable-line playwright/expect-expect
+test('login and logout', async ({page}) => {
   await login(page);
   await logout(page);
 });

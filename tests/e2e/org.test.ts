@@ -1,5 +1,5 @@
 import {test, expect} from '@playwright/test';
-import {login, deleteOrgApi} from './utils.ts';
+import {login, apiDeleteOrg} from './utils.ts';
 
 test('create an organization', async ({page}) => {
   const orgName = `e2e-org-${Date.now()}`;
@@ -9,5 +9,5 @@ test('create an organization', async ({page}) => {
   await page.getByRole('button', {name: 'Create Organization'}).click();
   await expect(page).toHaveURL(new RegExp(`/org/${orgName}`));
   // delete via API because of issues related to form-fetch-action
-  await deleteOrgApi(page.request, orgName);
+  await apiDeleteOrg(page.request, orgName);
 });
