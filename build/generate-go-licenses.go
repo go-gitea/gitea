@@ -96,28 +96,33 @@ func getModules(goCmd string) []ModuleInfo {
 }
 
 // findLicenseFiles scans a module's root directory and its used package
-// directories for license files. Subdirectory licenses are only included
-// if their text differs from the root license(s).
+// directories for license files. It also walks up from each package directory
+// to the module root, scanning intermediate directories. Subdirectory licenses
+// are only included if their text differs from the root license(s).
 func findLicenseFiles(mod ModuleInfo) []LicenseEntry {
 	var entries []LicenseEntry
-	rootTexts := make(map[string]bool)
+	seenTexts := make(map[string]bool)
 
 	// First, collect root-level license files.
 	entries = append(entries, scanDirForLicenses(mod.Dir, mod.Path, "")...)
 	for _, e := range entries {
-		rootTexts[e.LicenseText] = true
+		seenTexts[e.LicenseText] = true
 	}
 
-	// Then check each package directory for license files with different text.
-	seen := map[string]bool{mod.Dir: true}
+	// Then check each package directory and all intermediate parent directories
+	// up to the module root for license files with unique text.
+	seenDirs := map[string]bool{mod.Dir: true}
 	for _, pkgDir := range mod.PkgDirs {
-		if seen[pkgDir] {
-			continue
-		}
-		seen[pkgDir] = true
-		for _, e := range scanDirForLicenses(pkgDir, mod.Path, mod.Dir) {
-			if !rootTexts[e.LicenseText] {
-				entries = append(entries, e)
+		for dir := pkgDir; dir != mod.Dir && strings.HasPrefix(dir, mod.Dir); dir = filepath.Dir(dir) {
+			if seenDirs[dir] {
+				continue
+			}
+			seenDirs[dir] = true
+			for _, e := range scanDirForLicenses(dir, mod.Path, mod.Dir) {
+				if !seenTexts[e.LicenseText] {
+					seenTexts[e.LicenseText] = true
+					entries = append(entries, e)
+				}
 			}
 		}
 	}
