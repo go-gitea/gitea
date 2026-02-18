@@ -94,8 +94,8 @@
 													{{$closeTranslationKey = "repo.pulls.close"}}
 												{{end}}
 												<button id="status-button" class="ui red basic button" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
-													<svg viewBox="0 0 16 16" class="text red svg octicon-git-pull-request-closed" aria-hidden="true" width="16" height="16"><path d="M3.25 1A2.25 2.25 0 0 1 4 5.372v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.251 2.251 0 0 1 3.25 1m9.5 5.5a.75.75 0 0 1 .75.75v3.378a2.251 2.251 0 1 1-1.5 0V7.25a.75.75 0 0 1 .75-.75m-2.03-5.273a.75.75 0 0 1 1.06 0l.97.97.97-.97a.748.748 0 0 1 1.265.332.75.75 0 0 1-.205.729l-.97.97.97.97a.75.75 0 0 1-.018 1.042.75.75 0 0 1-1.042.018l-.97-.97-.97.97a.749.749 0 0 1-1.275-.326.75.75 0 0 1 .215-.734l.97-.97-.97-.97a.75.75 0 0 1 0-1.06ZM2.5 3.25a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0M3.25 12a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5m9.5 0a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5"></path></svg>
-													{{ctx.Locale.Tr $closeTranslationKey}}
+													<span class="status-button-icon tw-mr-1">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request-closed"}}{{else}}{{svg "octicon-issue-closed"}}{{end}}</span>
+													<span class="status-button-text">{{ctx.Locale.Tr $closeTranslationKey}}</span>
 												</button>
 											{{end}}
 										{{end}}
