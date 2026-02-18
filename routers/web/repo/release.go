@@ -468,6 +468,8 @@ func NewReleasePost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_invalid"), tplReleaseNew, &form)
 		case release_service.IsErrProtectedTagName(err):
 			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_protected"), tplReleaseNew, &form)
+		case git.IsErrNotExist(err):
+			ctx.RenderWithErr(ctx.Tr("repo.release.tag_target_not_exist", form.Target), tplReleaseNew, &form)
 		default:
 			ctx.ServerError("handleTagReleaseError", err)
 		}
