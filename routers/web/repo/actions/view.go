@@ -36,7 +36,7 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/model"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 	"xorm.io/builder"
 )
 

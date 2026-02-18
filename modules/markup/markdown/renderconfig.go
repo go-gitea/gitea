@@ -10,7 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/yuin/goldmark/ast"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // RenderConfig represents rendering configuration for this file

@@ -11,7 +11,7 @@ import (
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 func nodeToTable(meta *yaml.Node) ast.Node {

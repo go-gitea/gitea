@@ -112,6 +112,7 @@ require (
 	github.com/yuin/goldmark-highlighting/v2 v2.0.0-20230729083705-37449abec8cc
 	github.com/yuin/goldmark-meta v1.1.0
 	gitlab.com/gitlab-org/api/client-go v0.142.4
+	go.yaml.in/yaml/v4 v4.0.0-rc.2
 	golang.org/x/crypto v0.47.0
 	golang.org/x/image v0.35.0
 	golang.org/x/net v0.49.0
@@ -122,7 +123,6 @@ require (
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
 	gopkg.in/ini.v1 v1.67.1
-	gopkg.in/yaml.v3 v3.0.1
 	mvdan.cc/xurls/v2 v2.6.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.13
@@ -285,6 +285,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251029180050-ab9386a59fda // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 ignore (
@@ -294,7 +295,7 @@ ignore (
 
 replace github.com/jaytaylor/html2text => github.com/Necoro/html2text v0.0.0-20250804200300-7bf1ce1c7347
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.261.7-0.20251003180512-ac6e4b751763
+replace github.com/nektos/act => gitea.com/Zpascal/act v0.261.8-0.20260214183821-e8a26f46cc5c
 
 replace git.sr.ht/~mariusor/go-xsd-duration => gitea.com/gitea/go-xsd-duration v0.0.0-20220703122237-02e73435a078
 

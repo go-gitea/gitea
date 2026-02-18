@@ -41,6 +41,7 @@ import (
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
+	actions_service "code.gitea.io/gitea/services/actions"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -250,6 +251,8 @@ func Routes() *web.Router {
 
 	if setting.Metrics.Enabled {
 		prometheus.MustRegister(metrics.NewCollector())
+		// Register matrix re-evaluation metrics
+		prometheus.MustRegister(actions_service.NewMatrixMetricsCollector())
 		routes.Get("/metrics", append(mid, Metrics)...)
 	}
 

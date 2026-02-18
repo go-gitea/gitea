@@ -18,7 +18,7 @@ import (
 
 	"github.com/google/go-github/v74/github"
 	"github.com/urfave/cli/v3"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 const defaultVersion = "v1.18" // to backport to
