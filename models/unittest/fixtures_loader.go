@@ -169,7 +169,7 @@ func (f *fixturesLoaderInternal) Load() error {
 
 func FixturesFileFullPaths(dir string, files []string) (map[string]*FixtureItem, error) {
 	if files != nil && len(files) == 0 {
-		return nil, nil // load nothing
+		return nil, nil //nolint:nilnil // load nothing
 	}
 	files = slices.Clone(files)
 	if len(files) == 0 {
