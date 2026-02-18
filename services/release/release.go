@@ -90,6 +90,8 @@ func createGitTag(ctx context.Context, gitRepo *git.Repository, repoID, publishe
 	}
 
 	switch {
+	case err == nil:
+		return nil
 	case strings.Contains(err.Error(), "is not a valid tag name"):
 		return ErrInvalidTagName{
 			TagName: tagName,
