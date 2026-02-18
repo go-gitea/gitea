@@ -78,13 +78,12 @@ func CreateIssueComment(ctx context.Context, doer *user_model.User, repo *repo_m
 
 	mentions, err := issues_model.FindAndUpdateIssueMentions(ctx, issue, doer, comment.Content)
 	if err != nil {
-		return nil, err
+		log.Error("FindAndUpdateIssueMentions: %v", err)
 	}
 
 	// reload issue to ensure it has the latest data, especially the number of comments
-	issue, err = issues_model.GetIssueByID(ctx, issue.ID)
-	if err != nil {
-		return nil, err
+	if issue, err = issues_model.GetIssueByID(ctx, issue.ID); err != nil {
+		log.Error("GetIssueByID: %v", err)
 	}
 
 	notify_service.CreateIssueComment(ctx, doer, repo, issue, comment, mentions)
