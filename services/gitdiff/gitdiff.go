@@ -16,6 +16,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -39,6 +40,7 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/alecthomas/chroma/v2"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/encoding"
@@ -123,8 +125,14 @@ type DiffHTMLOperation struct {
 // BlobExcerptChunkSize represent max lines of excerpt
 const BlobExcerptChunkSize = 20
 
-// MaxDiffHighlightEntireFileSize is the maximum file size that will be highlighted with "entire file diff"
-const MaxDiffHighlightEntireFileSize = 1 * 1024 * 1024
+// Chroma seems extremely slow when highlighting large files, it might take dozens or hundreds of milliseconds.
+// When fully highlighting a diff with a lot of large files, it would take many seconds or even dozens of seconds.
+// So, don't highlight the entire file if it's too large, or highlighting takes too long.
+// When there is no full-file highlighting, the legacy "line-by-line" highlighting is still applied as the fallback.
+const (
+	MaxFullFileHighlightSizeLimit = 256 * 1024
+	MaxFullFileHighlightTimeLimit = 2 * time.Second
+)
 
 // GetType returns the type of DiffLine.
 func (d *DiffLine) GetType() int {
@@ -299,6 +307,7 @@ type DiffSection struct {
 	language              *diffVarMutable[string]
 	highlightedLeftLines  *diffVarMutable[map[int]template.HTML]
 	highlightedRightLines *diffVarMutable[map[int]template.HTML]
+	highlightLexer        *diffVarMutable[chroma.Lexer]
 
 	FileName string
 	Lines    []*DiffLine
@@ -340,8 +349,10 @@ func (diffSection *DiffSection) getLineContentForRender(lineIdx int, diffLine *D
 	if setting.Git.DisableDiffHighlight {
 		return template.HTML(html.EscapeString(diffLine.Content[1:]))
 	}
-	h, _ = highlight.RenderCodeFast(diffSection.FileName, fileLanguage, diffLine.Content[1:])
-	return h
+	if diffSection.highlightLexer.value == nil {
+		diffSection.highlightLexer.value = highlight.DetectChromaLexerByFileName(diffSection.FileName, fileLanguage)
+	}
+	return highlight.RenderCodeByLexer(diffSection.highlightLexer.value, diffLine.Content[1:])
 }
 
 func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, leftLine, rightLine *DiffLine, locale translation.Locale) DiffInline {
@@ -384,6 +395,12 @@ func (diffSection *DiffSection) getDiffLineForRender(diffLineType DiffLineType, 
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
 func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine, locale translation.Locale) DiffInline {
+	defer func() {
+		if err := recover(); err != nil {
+			// the logic is too complex in this function, help to catch any panic because Golang template doesn't print the stack
+			log.Error("panic in GetComputedInlineDiffFor: %v\nStack: %s", err, log.Stack(2))
+		}
+	}()
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
@@ -445,6 +462,7 @@ type DiffFile struct {
 
 	// for render purpose only, will be filled by the extra loop in GitDiffForRender, the maps of lines are 0-based
 	language              diffVarMutable[string]
+	highlightRender       diffVarMutable[chroma.Lexer] // cache render (atm: lexer) for current file, only detect once for line-by-line mode
 	highlightedLeftLines  diffVarMutable[map[int]template.HTML]
 	highlightedRightLines diffVarMutable[map[int]template.HTML]
 }
@@ -564,7 +582,7 @@ func getCommitFileLineCountAndLimitedContent(commit *git.Commit, filePath string
 	if err != nil {
 		return 0, nil
 	}
-	w := &limitByteWriter{limit: MaxDiffHighlightEntireFileSize + 1}
+	w := &limitByteWriter{limit: MaxFullFileHighlightSizeLimit + 1}
 	lineCount, err = blob.GetBlobLineCount(w)
 	if err != nil {
 		return 0, nil
@@ -925,6 +943,7 @@ func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 func newDiffSectionForDiffFile(curFile *DiffFile) *DiffSection {
 	return &DiffSection{
 		language:              &curFile.language,
+		highlightLexer:        &curFile.highlightRender,
 		highlightedLeftLines:  &curFile.highlightedLeftLines,
 		highlightedRightLines: &curFile.highlightedRightLines,
 	}
@@ -1317,6 +1336,8 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 		return nil, err
 	}
 
+	startTime := time.Now()
+
 	checker, err := attribute.NewBatchChecker(gitRepo, opts.AfterCommitID, []string{attribute.LinguistVendored, attribute.LinguistGenerated, attribute.LinguistLanguage, attribute.GitlabLanguage, attribute.Diff})
 	if err != nil {
 		return nil, err
@@ -1356,7 +1377,8 @@ func GetDiffForRender(ctx context.Context, repoLink string, gitRepo *git.Reposit
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 
-		shouldFullFileHighlight := !setting.Git.DisableDiffHighlight && attrDiff.Value() == ""
+		shouldFullFileHighlight := attrDiff.Value() == "" // only do highlight if no custom diff command
+		shouldFullFileHighlight = shouldFullFileHighlight && time.Since(startTime) < MaxFullFileHighlightTimeLimit
 		if shouldFullFileHighlight {
 			if limitedContent.LeftContent != nil {
 				diffFile.highlightedLeftLines.value = highlightCodeLinesForDiffFile(diffFile, true /* left */, limitedContent.LeftContent.buf.Bytes())
@@ -1380,12 +1402,13 @@ func highlightCodeLinesForDiffFile(diffFile *DiffFile, isLeft bool, rawContent [
 }
 
 func highlightCodeLines(name, lang string, sections []*DiffSection, isLeft bool, rawContent []byte) map[int]template.HTML {
-	if setting.Git.DisableDiffHighlight || len(rawContent) > MaxDiffHighlightEntireFileSize {
+	if setting.Git.DisableDiffHighlight || len(rawContent) > MaxFullFileHighlightSizeLimit {
 		return nil
 	}
 
 	content := util.UnsafeBytesToString(charset.ToUTF8(rawContent, charset.ConvertOpts{}))
-	highlightedNewContent, _ := highlight.RenderCodeFast(name, lang, content)
+	lexer := highlight.DetectChromaLexerByFileName(name, lang)
+	highlightedNewContent := highlight.RenderCodeByLexer(lexer, content)
 	unsafeLines := highlight.UnsafeSplitHighlightedLines(highlightedNewContent)
 	lines := make(map[int]template.HTML, len(unsafeLines))
 	// only save the highlighted lines we need, but not the whole file, to save memory

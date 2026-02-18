@@ -1,6 +1,13 @@
 # syntax=docker/dockerfile:1
-# Build stage
-FROM docker.io/library/golang:1.25-alpine3.23 AS build-env
+# Build frontend on the native platform to avoid QEMU-related issues with esbuild/webpack
+FROM --platform=$BUILDPLATFORM docker.io/library/golang:1.26-alpine3.23 AS frontend-build
+RUN apk --no-cache add build-base git nodejs pnpm
+WORKDIR /src
+COPY --exclude=.git/ . .
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store make frontend
+
+# Build backend for each target platform
+FROM docker.io/library/golang:1.26-alpine3.23 AS build-env
 
 ARG GOPROXY=direct
 
@@ -12,20 +19,18 @@ ARG CGO_EXTRA_CFLAGS
 # Build deps
 RUN apk --no-cache add \
     build-base \
-    git \
-    nodejs \
-    pnpm
+    git
 
 WORKDIR ${GOPATH}/src/code.gitea.io/gitea
 # See the comments in Dockerfile
 COPY --exclude=.git/ . .
+COPY --from=frontend-build /src/public/assets public/assets
 
 # Build gitea, .git mount is required for version data
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target="/root/.cache/go-build" \
-    --mount=type=cache,target=/root/.local/share/pnpm/store \
     --mount=type=bind,source=".git/",target=".git/" \
-    make
+    make backend
 
 COPY docker/rootless /tmp/local
 
