@@ -258,9 +258,7 @@ async function onLocationHashChange() {
         const attrAutoLoadClicked = 'data-auto-load-clicked';
         if (expandButton.hasAttribute(attrAutoLoadClicked)) return;
         expandButton.setAttribute(attrAutoLoadClicked, 'true');
-        const tr = expandButton.closest('tr')!;
-        const url = expandButton.getAttribute('data-url')!;
-        await fetchBlobExcerpt(tr, url);
+        await fetchBlobExcerpt(expandButton.closest('tr')!, expandButton.getAttribute('data-url')!);
         continue; // Try again to find the element
       }
     }
@@ -285,13 +283,13 @@ function initRepoDiffHashChangeListener() {
 const expandAllSavedState = new Map<string, HTMLElement>();
 
 async function fetchBlobExcerpt(tr: Element, url: string): Promise<void> {
-  const resp = await GET(url);
-  const text = await resp.text();
-  // Parse <tr> elements in proper table context
-  const tempTbody = document.createElement('tbody');
-  tempTbody.innerHTML = text;
-  const nodes = Array.from(tempTbody.children);
-  tr.replaceWith(...nodes);
+  try {
+    const tempTbody = document.createElement('tbody');
+    tempTbody.innerHTML = await (await GET(url)).text();
+    tr.replaceWith(...tempTbody.children);
+  } catch (error) {
+    console.error('Error:', error);
+  }
 }
 
 async function expandAllLines(btn: HTMLElement, fileBox: HTMLElement) {
@@ -377,9 +375,7 @@ function initDiffExpandAllLines() {
   });
 
   registerGlobalEventFunc('click', 'onExpanderButtonClick', (btn: HTMLElement) => {
-    const tr = btn.closest('tr')!;
-    const url = btn.getAttribute('data-url')!;
-    fetchBlobExcerpt(tr, url);
+    fetchBlobExcerpt(btn.closest('tr')!, btn.getAttribute('data-url')!);
   });
 }
 
