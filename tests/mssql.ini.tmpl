@@ -12,11 +12,9 @@ SSL_MODE = disable
 
 [indexer]
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH = indexers/repos.bleve
 
 [queue.issue_indexer]
 TYPE = level
-DATADIR = indexers/issues.queue
 
 [queue]
 TYPE = immediate
@@ -29,15 +27,6 @@ TYPE = immediate
 
 [queue.webhook_sender]
 TYPE = immediate
-
-[repository]
-ROOT = gitea-repositories
-
-[repository.local]
-LOCAL_COPY_PATH = tmp/local-repo
-
-[repository.upload]
-TEMP_PATH = tmp/uploads
 
 [repository.signing]
 SIGNING_KEY = none

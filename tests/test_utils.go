@@ -38,7 +38,7 @@ func InitTest(requireGitea bool) {
 
 	setting.LoadDBSetting()
 	if err := storage.Init(); err != nil {
-		testlogger.Fatalf("Init storage failed: %v\n", err)
+		testlogger.Panicf("Init storage failed: %v\n", err)
 	}
 
 	switch {
