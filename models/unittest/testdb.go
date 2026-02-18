@@ -49,9 +49,14 @@ func InitSettingsForTesting() {
 		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
 		_ = os.Remove(setting.CustomConf)
 	}
+	giteaRoot := setting.AppWorkPath
 	setting.InitWorkPathAndCommonConfig(os.Getenv, setting.ArgWorkPathAndCustomConf{
 		CustomConf: setting.CustomConf,
 	})
+	// InitWorkPathAndCommonConfig may override AppWorkPath with WORK_PATH from
+	// the config (a test data directory). StaticRootPath must remain the source
+	// root so that locale files and other static assets are found.
+	setting.StaticRootPath = giteaRoot
 
 	if err := setting.PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
