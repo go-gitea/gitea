@@ -1,6 +1,28 @@
 import {env} from 'node:process';
 import {expect} from '@playwright/test';
-import type {Locator, Page} from '@playwright/test';
+import type {APIRequestContext, Locator, Page} from '@playwright/test';
+
+export function apiBaseUrl() {
+  return env.E2E_URL?.replace(/\/$/g, '');
+}
+
+export function apiHeaders() {
+  return {Authorization: `Basic ${globalThis.btoa(`${env.E2E_USER}:${env.E2E_PASSWORD}`)}`};
+}
+
+async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => number; text: () => Promise<string>}>, label: string) {
+  const maxAttempts = 5;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const response = await fn();
+    if (response.ok()) return;
+    if ([500, 502, 503].includes(response.status()) && attempt < maxAttempts - 1) {
+      const jitter = Math.random() * 500;
+      await new Promise((resolve) => globalThis.setTimeout(resolve, 1000 * (attempt + 1) + jitter));
+      continue;
+    }
+    throw new Error(`${label} failed: ${response.status()} ${await response.text()}`);
+  }
+}
 
 export async function createRepo(page: Page, name: string) {
   await page.goto('/repo/create');
@@ -18,24 +40,10 @@ export async function deleteRepo(page: Page, owner: string, name: string) {
   await page.waitForURL('**/');
 }
 
-export async function deleteOrg(page: Page, name: string) {
-  await page.goto(`/org/${name}/settings`);
-  await page.locator('button[data-modal="#delete-org-modal"]').click();
-  const modal = page.locator('#delete-org-modal');
-  await modal.locator('input[name="org_name"]').fill(name);
-  await modal.getByRole('button', {name: 'Delete This Organization'}).click();
-  await page.waitForURL('**/');
-}
-
-export async function deleteUser(page: Page, username: string) {
-  await page.goto(`/-/admin/users?q=${username}`);
-  const userRow = page.locator('tr', {has: page.locator(`a[href="/${username}"]`)});
-  await userRow.locator('a[data-tooltip-content="Edit"]').click();
-  await page.locator('button[data-modal="#delete-user-modal"]').click();
-  const modal = page.locator('#delete-user-modal');
-  await modal.locator('input[name="purge"]').check();
-  await modal.locator('.ok.button').click();
-  await page.waitForURL('**/-/admin/users');
+export async function deleteOrgApi(requestContext: APIRequestContext, name: string) {
+  await apiRetry(() => requestContext.delete(`${apiBaseUrl()}/api/v1/orgs/${name}`, {
+    headers: apiHeaders(),
+  }), 'deleteOrgApi');
 }
 
 export async function clickDropdownItem(page: Page, trigger: Locator, itemText: string) {

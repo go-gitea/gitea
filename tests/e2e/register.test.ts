@@ -1,5 +1,6 @@
+import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
-import {login, logout, deleteUser} from './utils.ts';
+import {login, logout} from './utils.ts';
 
 test.beforeEach(async ({page}) => {
   await page.goto('/user/sign_up');
@@ -48,10 +49,11 @@ test('register then login', async ({page}) => {
   await logout(page);
   await login(page, username, password);
 
-  // Clean up: login as admin and delete the user via site administration
-  await logout(page);
-  await login(page);
-  await deleteUser(page, username);
+  // delete via API because of issues related to form-fetch-action
+  const response = await page.request.delete(`/api/v1/admin/users/${username}?purge=true`, {
+    headers: {Authorization: `Basic ${btoa(`${env.E2E_USER}:${env.E2E_PASSWORD}`)}`},
+  });
+  expect(response.ok()).toBeTruthy();
 });
 
 test('register with existing username shows error', async ({page}) => {
