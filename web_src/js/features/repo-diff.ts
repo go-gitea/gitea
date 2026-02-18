@@ -283,13 +283,9 @@ function initRepoDiffHashChangeListener() {
 const expandAllSavedState = new Map<string, HTMLElement>();
 
 async function fetchBlobExcerpt(tr: Element, url: string): Promise<void> {
-  try {
-    const tempTbody = document.createElement('tbody');
-    tempTbody.innerHTML = await (await GET(url)).text();
-    tr.replaceWith(...tempTbody.children);
-  } catch (error) {
-    console.error('Error:', error);
-  }
+  const tempTbody = document.createElement('tbody');
+  tempTbody.innerHTML = await (await GET(url)).text();
+  tr.replaceWith(...tempTbody.children);
 }
 
 async function expandAllLines(btn: HTMLElement, fileBox: HTMLElement) {
