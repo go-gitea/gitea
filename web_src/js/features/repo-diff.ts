@@ -7,7 +7,7 @@ import {initImageDiff} from './imagediff.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {submitEventSubmitter, queryElemSiblings, hideElem, showElem, animateOnce, addDelegatedEventListener, createElementFromHTML, queryElems} from '../utils/dom.ts';
 import {POST, GET} from '../modules/fetch.ts';
-import {createTippy} from '../modules/tippy.ts';
+import {createTippy, showTemporaryTooltip} from '../modules/tippy.ts';
 import {invertFileFolding} from './file-fold.ts';
 import {parseDom} from '../utils.ts';
 import {registerGlobalEventFunc, registerGlobalSelectorFunc} from '../modules/observer.ts';
@@ -320,7 +320,9 @@ async function expandAllLines(btn: HTMLElement, fileBox: HTMLElement) {
 
   // Update button to "collapse" state
   btn.innerHTML = svg('octicon-fold', 14);
-  btn.setAttribute('data-tooltip-content', btn.getAttribute('data-collapse-tooltip') ?? '');
+  const collapseTooltip = btn.getAttribute('data-collapse-tooltip') ?? '';
+  btn.setAttribute('data-tooltip-content', collapseTooltip);
+  showTemporaryTooltip(btn, collapseTooltip);
 }
 
 function collapseExpandedLines(btn: HTMLElement, fileBox: HTMLElement) {
@@ -336,7 +338,9 @@ function collapseExpandedLines(btn: HTMLElement, fileBox: HTMLElement) {
 
   // Update button to "expand" state
   btn.innerHTML = svg('octicon-unfold', 14);
-  btn.setAttribute('data-tooltip-content', btn.getAttribute('data-expand-tooltip') ?? '');
+  const expandTooltip = btn.getAttribute('data-expand-tooltip') ?? '';
+  btn.setAttribute('data-tooltip-content', expandTooltip);
+  showTemporaryTooltip(btn, expandTooltip);
 }
 
 // Collect one expander button per <tr> (skip duplicates from "updown" rows
