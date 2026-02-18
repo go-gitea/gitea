@@ -3675,6 +3675,7 @@
   "actions.runs.delete.description": "Tem a certeza que pretende eliminar permanentemente a execução desta sequência de trabalho? Esta operação não poderá ser desfeita.",
   "actions.runs.not_done": "A execução desta sequência de trabalho ainda não terminou.",
   "actions.runs.view_workflow_file": "Ver ficheiro da sequência de trabalho",
+  "actions.runs.dependency_graph": "Gráfico de dependências",
   "actions.workflow.disable": "Desabilitar sequência de trabalho",
   "actions.workflow.disable_success": "A sequência de trabalho '%s' foi desabilitada com sucesso.",
   "actions.workflow.enable": "Habilitar sequência de trabalho",

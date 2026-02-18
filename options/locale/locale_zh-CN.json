@@ -3694,6 +3694,7 @@
   "actions.runs.delete.description": "您确定要永久删除此工作流运行吗？此操作无法撤消。",
   "actions.runs.not_done": "此工作流运行尚未完成。",
   "actions.runs.view_workflow_file": "查看工作流文件",
+  "actions.runs.dependency_graph": "依赖关系图",
   "actions.workflow.disable": "禁用工作流",
   "actions.workflow.disable_success": "工作流「%s」已成功禁用。",
   "actions.workflow.enable": "启用工作流",

@@ -1383,5 +1383,6 @@
   "actions.runners.task_list.repository": "Tároló",
   "actions.runners.status.active": "Aktív",
   "actions.runners.version": "Verzió",
+  "actions.runs.dependency_graph": "Függőségi grafikon",
   "git.filemode.symbolic_link": "Szimbolikus hivatkozás"
 }

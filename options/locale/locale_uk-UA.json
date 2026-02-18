@@ -3144,6 +3144,7 @@
   "actions.runs.delete.description": "Ви впевнені, що хочете остаточно видалити цей робочий процес? Цю дію неможливо скасувати.",
   "actions.runs.not_done": "Виконання цього робочого процесу не завершено.",
   "actions.runs.view_workflow_file": "Перегляд файлу робочого процесу",
+  "actions.runs.dependency_graph": "Графік залежностей",
   "actions.workflow.disable": "Вимкнути робочий процес",
   "actions.workflow.disable_success": "Робочий процес '%s' успішно вимкнено.",
   "actions.workflow.enable": "Увімкнути робочий процес",

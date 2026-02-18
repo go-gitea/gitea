@@ -1474,5 +1474,6 @@
   "actions.runners.labels": "Tunnisteet",
   "actions.runners.task_list.run": "Suorita",
   "actions.runners.task_list.repository": "Repo",
-  "actions.runners.version": "Versio"
+  "actions.runners.version": "Versio",
+  "actions.runs.dependency_graph": "Riippuvuuskaavio"
 }

@@ -2955,6 +2955,7 @@
   "actions.runs.no_workflows": "Пока нет рабочих процессов.",
   "actions.runs.no_runs": "Рабочий поток ещё не запускался.",
   "actions.runs.empty_commit_message": "(пустое сообщение коммита)",
+  "actions.runs.dependency_graph": "Граф зависимостей",
   "actions.workflow.disable": "Выключить рабочий поток",
   "actions.workflow.disable_success": "Рабочий поток «%s» успешно выключен.",
   "actions.workflow.enable": "Включить рабочий поток",

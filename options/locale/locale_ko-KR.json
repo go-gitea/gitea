@@ -1346,5 +1346,6 @@
   "actions.runners.task_list.commit": "커밋",
   "actions.runners.status.active": "사용",
   "actions.runners.version": "버전",
-  "actions.runs.commit": "커밋"
+  "actions.runs.commit": "커밋",
+  "actions.runs.dependency_graph": "의존성 그래프"
 }

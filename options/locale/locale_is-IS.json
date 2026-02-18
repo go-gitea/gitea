@@ -1116,5 +1116,6 @@
   "actions.runners.task_list.commit": "Framlag",
   "actions.runners.status.active": "Virkt",
   "actions.runners.version": "Útgáfa",
-  "actions.runs.commit": "Framlag"
+  "actions.runs.commit": "Framlag",
+  "actions.runs.dependency_graph": "Veflínur"
 }

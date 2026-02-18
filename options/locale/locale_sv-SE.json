@@ -1733,5 +1733,6 @@
   "actions.runners.task_list.run": "Kör",
   "actions.runners.task_list.repository": "Utvecklingskatalog",
   "actions.runners.status.active": "Aktiv",
+  "actions.runs.dependency_graph": "beroendediagram",
   "git.filemode.symbolic_link": "Symbolisk länk"
 }

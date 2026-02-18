@@ -265,8 +265,8 @@ export default defineComponent({
   methods: {
     saveLocaleStorageOptions() {
       const opts: LocaleStorageOptions = {
-        autoScroll: this.optionAlwaysAutoScroll, 
-        expandRunning: this.optionAlwaysExpandRunning, 
+        autoScroll: this.optionAlwaysAutoScroll,
+        expandRunning: this.optionAlwaysExpandRunning,
         showSummary: this.showSummary,
         actionsLogShowSeconds: this.timeVisible['log-time-seconds'],
         actionsLogShowTimestamps: this.timeVisible['log-time-stamp'],
@@ -524,15 +524,20 @@ export default defineComponent({
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
-        <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
-          {{ locale.approve }}
-        </button>
-        <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
-          {{ locale.cancel }}
-        </button>
-        <button class="ui basic small compact button link-action tw-shrink-0" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
-          {{ locale.rerun_all }}
-        </button>
+        <div class="tw-flex tw-space-x-2">
+          <button class="ui basic small compact button primary tw-shrink-0" @click="showSummary = !showSummary" :class="{ active: showSummary }" v-if="run.jobs.length > 1">
+            {{ locale.dependencyGraph }}
+          </button>
+          <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
+            {{ locale.approve }}
+          </button>
+          <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+            {{ locale.cancel }}
+          </button>
+          <button class="ui basic small compact button link-action tw-shrink-0" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+            {{ locale.rerun_all }}
+          </button>
+        </div>
       </div>
       <div class="action-commit-summary">
         <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
@@ -553,16 +558,6 @@ export default defineComponent({
     </div>
     <div class="action-view-body">
       <div class="action-view-left">
-        <div class="summary-toggle">
-          <button
-            class="ui basic small button"
-            @click="showSummary = !showSummary"
-            :class="{ active: showSummary }"
-          >
-            <SvgIcon :name="showSummary ? 'octicon-chevron-down' : 'octicon-chevron-right'"/>
-            Dependency Graph
-          </button>
-        </div>
         <div class="job-group-section">
           <div class="job-brief-list">
             <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">

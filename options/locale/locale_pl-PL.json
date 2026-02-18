@@ -2110,5 +2110,6 @@
   "actions.runners.task_list.repository": "Repozytorium",
   "actions.runners.status.active": "Aktywne",
   "actions.runners.version": "Wersja",
+  "actions.runs.dependency_graph": "Wykres zależności",
   "git.filemode.symbolic_link": "Dowiązanie symboliczne"
 }

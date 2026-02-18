@@ -3268,6 +3268,7 @@
   "actions.runs.no_workflows.documentation": "Další informace o Gitea Actions naleznete v <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"%s\">dokumentaci</a>.",
   "actions.runs.no_runs": "Pracovní postup zatím nebyl spuštěn.",
   "actions.runs.empty_commit_message": "(prázdná zpráva commitu)",
+  "actions.runs.dependency_graph": "Graf závislostí",
   "actions.runs.expire_log_message": "Logy byly vyčištěny, protože byly příliš staré.",
   "actions.workflow.disable": "Zakázat pracovní postup",
   "actions.workflow.disable_success": "Pracovní postup „%s“ byl úspěšně deaktivován.",

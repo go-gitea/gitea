@@ -2228,5 +2228,6 @@
   "actions.runners.status.active": "فعال",
   "actions.runners.version": "نسخه",
   "actions.runs.commit": "کامیت",
+  "actions.runs.dependency_graph": "نمودار وابستگی",
   "git.filemode.symbolic_link": "پیوند نمادین"
 }

@@ -3209,6 +3209,7 @@
   "actions.runs.delete.description": "Bist du sicher, dass du diese Workflow-Ausführung dauerhaft löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.",
   "actions.runs.not_done": "Diese Workflow-Ausführung ist noch nicht abgeschlossen.",
   "actions.runs.view_workflow_file": "Workflow-Datei anzeigen",
+  "actions.runs.dependency_graph": "Abhängigkeitsdiagramm",
   "actions.workflow.disable": "Workflow deaktivieren",
   "actions.workflow.disable_success": "Workflow '%s' erfolgreich deaktiviert.",
   "actions.workflow.enable": "Workflow aktivieren",
