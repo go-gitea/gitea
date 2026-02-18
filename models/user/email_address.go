@@ -215,7 +215,7 @@ func GetEmailAddressByID(ctx context.Context, uid, id int64) (*EmailAddress, err
 	if has, err := db.GetEngine(ctx).ID(id).Get(email); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return email, nil
 }
