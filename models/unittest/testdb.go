@@ -37,7 +37,6 @@ func fatalTestError(fmtStr string, args ...any) {
 
 // InitSettingsForTesting initializes config provider and load common settings for tests
 func InitSettingsForTesting() {
-	setting.IsInTesting = true
 	log.OsExiter = func(code int) {
 		if code != 0 {
 			// non-zero exit code (log.Fatal) shouldn't occur during testing, if it happens, show a full stacktrace for more details
@@ -49,14 +48,9 @@ func InitSettingsForTesting() {
 		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
 		_ = os.Remove(setting.CustomConf)
 	}
-	giteaRoot := setting.AppWorkPath
 	setting.InitWorkPathAndCommonConfig(os.Getenv, setting.ArgWorkPathAndCustomConf{
 		CustomConf: setting.CustomConf,
 	})
-	// InitWorkPathAndCommonConfig may override AppWorkPath with WORK_PATH from
-	// the config (a test data directory). StaticRootPath must remain the source
-	// root so that locale files and other static assets are found.
-	setting.StaticRootPath = giteaRoot
 
 	if err := setting.PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
@@ -86,7 +80,6 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
-	setting.IsInTesting = true
 	setting.AppURL = "https://try.gitea.io/"
 	setting.Domain = "try.gitea.io"
 	setting.RunUser = "runuser"
@@ -110,8 +103,6 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 	defer cleanup2()
 
 	setting.AppDataPath = appDataPath
-	setting.AppWorkPath = giteaRoot
-	setting.StaticRootPath = giteaRoot
 	setting.GravatarSource = "https://secure.gravatar.com/avatar/"
 
 	setting.Attachment.Storage.Path = filepath.Join(setting.AppDataPath, "attachments")
