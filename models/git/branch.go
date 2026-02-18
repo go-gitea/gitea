@@ -397,9 +397,15 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 
 		if protectedBranch != nil {
 			// there is a protect rule for this branch
-			protectedBranch.RuleName = to
-			if _, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch); err != nil {
+			existingRule, err := GetProtectedBranchRuleByName(ctx, repo.ID, to)
+			if err != nil {
 				return err
+			}
+			if existingRule == nil || existingRule.ID == protectedBranch.ID {
+				protectedBranch.RuleName = to
+				if _, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch); err != nil {
+					return err
+				}
 			}
 		} else {
 			// some glob protect rules may match this branch
