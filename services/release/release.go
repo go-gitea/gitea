@@ -421,13 +421,13 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 
 			refFullName := git.RefNameFromTag(rel.TagName)
 			notify_service.PushCommits(
-				ctx, rel.Publisher, rel.Repo,
+				ctx, doer, rel.Repo,
 				&repository.PushUpdateOptions{
 					RefFullName: refFullName,
 					OldCommitID: objectFormat.EmptyObjectID().String(),
 					NewCommitID: commit.ID.String(),
 				}, commits)
-			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
+			notify_service.CreateRef(ctx, doer, rel.Repo, refFullName, commit.ID.String())
 		}
 		if !isConvertFromDraft && !isConvertedFromTag {
 			notify_service.UpdateRelease(ctx, doer, rel)
