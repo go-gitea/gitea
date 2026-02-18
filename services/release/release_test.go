@@ -287,6 +287,73 @@ func TestRelease_createGitTag(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestRelease_createGitTag_InvalidTagName(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	commitID, err := gitRepo.GetBranchCommitID("master")
+	assert.NoError(t, err)
+
+	// Tag names containing spaces are invalid for git refs and should trigger ErrInvalidTagName.
+	err = createGitTag(t.Context(), gitRepo, repo.ID, user.ID, "invalid tag", commitID, "")
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrInvalidTagName)
+}
+
+func TestRelease_createGitTag_ProtectedTag(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	// Load an existing protected tag rule for this repository from the test fixtures.
+	protectedTag := unittest.AssertExistsAndLoadBean(t, &repo_model.ProtectedTag{
+		RepoID: repo.ID,
+	}).(*repo_model.ProtectedTag)
+
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	commitID, err := gitRepo.GetBranchCommitID("master")
+	assert.NoError(t, err)
+
+	// Attempting to create a protected tag should be denied.
+	err = createGitTag(t.Context(), gitRepo, repo.ID, user.ID, protectedTag.Name, commitID, "")
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrProtectedTagName)
+}
+
+func TestRelease_createGitTag_TagAlreadyExists(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	commitID, err := gitRepo.GetBranchCommitID("master")
+	assert.NoError(t, err)
+
+	tagName := "v2.1.2"
+
+	// First creation should succeed.
+	err = createGitTag(t.Context(), gitRepo, repo.ID, user.ID, tagName, commitID, "")
+	assert.NoError(t, err)
+
+	// Creating the same tag again should fail with ErrTagAlreadyExists.
+	err = createGitTag(t.Context(), gitRepo, repo.ID, user.ID, tagName, commitID, "")
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrTagAlreadyExists)
+}
 func TestCreateNewTag(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
