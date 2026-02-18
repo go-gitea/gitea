@@ -140,7 +140,7 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		daemonExportFile := `git-daemon-export-ok`
-		isExist, err := gitrepo.IsRepoFileExist(ctx, repo, daemonExportFile)
+		isExist, err := gitrepo.IsRepoFileExist(repo, daemonExportFile)
 		if err != nil {
 			log.Error("Unable to check if %s:%s exists. Error: %v", repo.FullName(), daemonExportFile, err)
 			return err
@@ -151,11 +151,11 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 			numNeedUpdate++
 			if autofix {
 				if !isPublic && isExist {
-					if err = gitrepo.RemoveRepoFileOrDir(ctx, repo, daemonExportFile); err != nil {
+					if err = gitrepo.RemoveRepoFileOrDir(repo, daemonExportFile); err != nil {
 						log.Error("Failed to remove %s:%s: %v", repo.FullName(), daemonExportFile, err)
 					}
 				} else if isPublic && !isExist {
-					if f, err := gitrepo.CreateRepoFile(ctx, repo, daemonExportFile); err != nil {
+					if f, err := gitrepo.CreateRepoFile(repo, daemonExportFile); err != nil {
 						log.Error("Failed to create %s:%s: %v", repo.FullName(), daemonExportFile, err)
 					} else {
 						f.Close()
@@ -188,7 +188,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 		commitGraphExists := func() (bool, error) {
 			// Check commit-graph exists
 			commitGraphFile := `objects/info/commit-graph`
-			isExist, err := gitrepo.IsRepoFileExist(ctx, repo, commitGraphFile)
+			isExist, err := gitrepo.IsRepoFileExist(repo, commitGraphFile)
 			if err != nil {
 				logger.Error("Unable to check if %s exists. Error: %v", commitGraphFile, err)
 				return false, err
@@ -196,7 +196,7 @@ func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) erro
 
 			if !isExist {
 				commitGraphsDir := `objects/info/commit-graphs`
-				isExist, err = gitrepo.IsRepoDirExist(ctx, repo, commitGraphsDir)
+				isExist, err = gitrepo.IsRepoDirExist(repo, commitGraphsDir)
 				if err != nil {
 					logger.Error("Unable to check if %s exists. Error: %v", commitGraphsDir, err)
 					return false, err

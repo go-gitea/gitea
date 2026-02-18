@@ -68,18 +68,18 @@ func RepositoryFromRequestContextOrOpen(ctx reqctx.RequestContext, repo Reposito
 }
 
 // IsRepositoryExist returns true if the repository directory exists in the disk
-func IsRepositoryExist(ctx context.Context, repo Repository) (bool, error) {
+func IsRepositoryExist(repo Repository) (bool, error) {
 	return util.IsExist(repoPath(repo))
 }
 
 // DeleteRepository deletes the repository directory from the disk, it will return
 // nil if the repository does not exist.
-func DeleteRepository(ctx context.Context, repo Repository) error {
+func DeleteRepository(repo Repository) error {
 	return util.RemoveAll(repoPath(repo))
 }
 
 // RenameRepository renames a repository's name on disk
-func RenameRepository(ctx context.Context, repo, newRepo Repository) error {
+func RenameRepository(repo, newRepo Repository) error {
 	dstDir := repoPath(newRepo)
 	if err := os.MkdirAll(filepath.Dir(dstDir), os.ModePerm); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %w", filepath.Dir(dstDir), err)
@@ -104,25 +104,35 @@ func GetRepoFS(repo Repository) fs.FS {
 	return os.DirFS(repoPath(repo))
 }
 
-func IsRepoFileExist(ctx context.Context, repo Repository, relativeFilePath string) (bool, error) {
+func IsRepoFileExist(repo Repository, relativeFilePath string) (bool, error) {
 	absoluteFilePath := filepath.Join(repoPath(repo), relativeFilePath)
 	return util.IsExist(absoluteFilePath)
 }
 
-func IsRepoDirExist(ctx context.Context, repo Repository, relativeDirPath string) (bool, error) {
+func IsRepoDirExist(repo Repository, relativeDirPath string) (bool, error) {
 	absoluteDirPath := filepath.Join(repoPath(repo), relativeDirPath)
 	return util.IsDir(absoluteDirPath)
 }
 
-func RemoveRepoFileOrDir(ctx context.Context, repo Repository, relativeFileOrDirPath string) error {
+func RemoveRepoFileOrDir(repo Repository, relativeFileOrDirPath string) error {
 	absoluteFilePath := filepath.Join(repoPath(repo), relativeFileOrDirPath)
-	return util.Remove(absoluteFilePath)
+	return util.RemoveAll(absoluteFilePath)
 }
 
-func CreateRepoFile(ctx context.Context, repo Repository, relativeFilePath string) (io.WriteCloser, error) {
+func CreateRepoFile(repo Repository, relativeFilePath string) (io.WriteCloser, error) {
 	absoluteFilePath := filepath.Join(repoPath(repo), relativeFilePath)
 	if err := os.MkdirAll(filepath.Dir(absoluteFilePath), os.ModePerm); err != nil {
 		return nil, err
 	}
 	return os.Create(absoluteFilePath)
+}
+
+func CreateRepositoryDir(repo Repository) error {
+	return os.MkdirAll(repoPath(repo), os.ModePerm)
+}
+
+func CopyRepository(srcRepo, dstRepo Repository) error {
+	srcPath := repoPath(srcRepo)
+	dstPath := repoPath(dstRepo)
+	return util.SyncDirs(srcPath, dstPath)
 }

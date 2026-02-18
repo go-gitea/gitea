@@ -13,6 +13,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -145,10 +146,10 @@ func PrepareAttachmentsStorage(t testing.TB) {
 }
 
 func PrepareGitRepoDirectory(t testing.TB) {
-	if !assert.NotEmpty(t, setting.RepoRootPath) {
+	if !gitrepo.IsRepoStoreConfigured() {
 		return
 	}
-	assert.NoError(t, unittest.SyncDirs(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, gitrepo.SyncLocalToRepoStore(filepath.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta")))
 }
 
 func PrepareArtifactsStorage(t testing.TB) {

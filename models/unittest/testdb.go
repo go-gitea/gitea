@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/setting/config"
@@ -134,8 +135,8 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
-	if err = SyncDirs(filepath.Join(giteaRoot, "tests", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
-		fatalTestError("util.SyncDirs: %v\n", err)
+	if err = gitrepo.SyncLocalToRepoStore(filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")); err != nil {
+		fatalTestError("gitrepo.SyncLocalToRepoStore: %v\n", err)
 	}
 
 	if err = git.InitFull(); err != nil {
@@ -197,6 +198,6 @@ func PrepareTestDatabase() error {
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
 	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
-	assert.NoError(t, SyncDirs(metaPath, setting.RepoRootPath))
+	assert.NoError(t, gitrepo.SyncLocalToRepoStore(metaPath))
 	setting.SetupGiteaTestEnv()
 }

@@ -400,26 +400,21 @@ func TestCantMergeUnrelated(t *testing.T) {
 			OwnerID: user1.ID,
 			Name:    "repo1",
 		})
-		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
-		err := gitcmd.NewCommand("read-tree", "--empty").WithDir(path).Run(t.Context())
+		err := gitrepo.RunCmd(t.Context(), repo1, gitcmd.NewCommand("read-tree", "--empty"))
 		assert.NoError(t, err)
 
-		stdout, _, err := gitcmd.NewCommand("hash-object", "-w", "--stdin").
-			WithDir(path).
-			WithStdinBytes([]byte("Unrelated File")).
-			RunStdString(t.Context())
+		stdout, _, err := gitrepo.RunCmdString(t.Context(), repo1, gitcmd.NewCommand("hash-object", "-w", "--stdin").
+			WithStdinBytes([]byte("Unrelated File")))
 
 		assert.NoError(t, err)
 		sha := strings.TrimSpace(stdout)
 
-		_, _, err = gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
-			AddDynamicArguments("100644", sha, "somewher-over-the-rainbow").
-			WithDir(path).
-			RunStdString(t.Context())
+		err = gitrepo.RunCmd(t.Context(), repo1, gitcmd.NewCommand("update-index", "--add", "--replace", "--cacheinfo").
+			AddDynamicArguments("100644", sha, "somewher-over-the-rainbow"))
 		assert.NoError(t, err)
 
-		treeSha, _, err := gitcmd.NewCommand("write-tree").WithDir(path).RunStdString(t.Context())
+		treeSha, _, err := gitrepo.RunCmdString(t.Context(), repo1, gitcmd.NewCommand("write-tree"))
 		assert.NoError(t, err)
 		treeSha = strings.TrimSpace(treeSha)
 
@@ -438,18 +433,14 @@ func TestCantMergeUnrelated(t *testing.T) {
 		_, _ = messageBytes.WriteString("Unrelated")
 		_, _ = messageBytes.WriteString("\n")
 
-		stdout, _, err = gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
+		stdout, _, err = gitrepo.RunCmdString(t.Context(), repo1, gitcmd.NewCommand("commit-tree").AddDynamicArguments(treeSha).
 			WithEnv(env).
-			WithDir(path).
-			WithStdinBytes(messageBytes.Bytes()).
-			RunStdString(t.Context())
+			WithStdinBytes(messageBytes.Bytes()))
 		assert.NoError(t, err)
 		commitSha := strings.TrimSpace(stdout)
 
-		_, _, err = gitcmd.NewCommand("branch", "unrelated").
-			AddDynamicArguments(commitSha).
-			WithDir(path).
-			RunStdString(t.Context())
+		err = gitrepo.RunCmd(t.Context(), repo1, gitcmd.NewCommand("branch", "unrelated").
+			AddDynamicArguments(commitSha))
 		assert.NoError(t, err)
 
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")

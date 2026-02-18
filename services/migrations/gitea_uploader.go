@@ -589,7 +589,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(ctx context.Context, pr *ba
 		}
 		defer ret.Close()
 
-		f, err := gitrepo.CreateRepoFile(ctx, g.repo, fmt.Sprintf("pulls/%d.patch", pr.Number))
+		f, err := gitrepo.CreateRepoFile(g.repo, fmt.Sprintf("pulls/%d.patch", pr.Number))
 		if err != nil {
 			return err
 		}

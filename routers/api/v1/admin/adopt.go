@@ -99,7 +99,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName)))
+	exist, err := gitrepo.IsRepositoryExist(repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName)))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -161,7 +161,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName)))
+	exist, err := gitrepo.IsRepositoryExist(repo_model.StorageRepo(repo_model.RelativePath(ctxUser.Name, repoName)))
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return

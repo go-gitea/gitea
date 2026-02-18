@@ -109,7 +109,7 @@ func AdoptRepository(ctx context.Context, doer, owner *user_model.User, opts Cre
 }
 
 func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBranch string) (err error) {
-	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	isExist, err := gitrepo.IsRepositoryExist(repo)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repo.FullName(), err)
 		return err
@@ -214,7 +214,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 	}
 
 	relativePath := repo_model.RelativePath(u.Name, repoName)
-	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(relativePath))
+	exist, err := gitrepo.IsRepositoryExist(repo_model.StorageRepo(relativePath))
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", relativePath, err)
 		return err
@@ -235,7 +235,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		}
 	}
 
-	return gitrepo.DeleteRepository(ctx, repo_model.StorageRepo(relativePath))
+	return gitrepo.DeleteRepository(repo_model.StorageRepo(relativePath))
 }
 
 type unadoptedRepositories struct {
@@ -322,18 +322,17 @@ func ListUnadoptedRepositories(ctx context.Context, query string, opts *db.ListO
 	var userName string
 
 	// We're going to iterate by pagesize.
-	root := filepath.Clean(setting.RepoRootPath)
-	if err := filepath.WalkDir(root, func(path string, d os.DirEntry, err error) error {
+	if err := gitrepo.WalkRepoStoreDirs("", func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() || path == root {
+		if !d.IsDir() || path == "" || path == "." {
 			return nil
 		}
 
 		name := d.Name()
 
-		if !strings.ContainsRune(path[len(root)+1:], filepath.Separator) {
+		if !strings.ContainsRune(path, filepath.Separator) {
 			// Got a new user
 			if err = checkUnadoptedRepositories(ctx, userName, repoNamesToCheck, unadopted); err != nil {
 				return err

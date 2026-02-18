@@ -6,23 +6,24 @@ package v1_14
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
 
-// Copy paste from models/repo.go because we cannot import models package
-func repoPath(userName, repoName string) string {
-	return filepath.Join(userPath(userName), strings.ToLower(repoName)+".git")
+type Repository struct {
+	ID        int64
+	OwnerID   int64
+	OwnerName string
+	Name      string
 }
 
-func userPath(userName string) string {
-	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
+func (r *Repository) RelativePath() string {
+	return fmt.Sprintf("%s/%s.git", strings.ToLower(r.OwnerName), strings.ToLower(r.Name))
 }
 
 func FixPublisherIDforTagReleases(ctx context.Context, x *xorm.Engine) error {
@@ -32,13 +33,6 @@ func FixPublisherIDforTagReleases(ctx context.Context, x *xorm.Engine) error {
 		Sha1        string
 		TagName     string
 		PublisherID int64
-	}
-
-	type Repository struct {
-		ID        int64
-		OwnerID   int64
-		OwnerName string
-		Name      string
 	}
 
 	type User struct {
@@ -109,7 +103,7 @@ func FixPublisherIDforTagReleases(ctx context.Context, x *xorm.Engine) error {
 						return err
 					}
 				}
-				gitRepo, err = git.OpenRepository(ctx, repoPath(repo.OwnerName, repo.Name))
+				gitRepo, err = gitrepo.OpenRepository(ctx, repo)
 				if err != nil {
 					log.Error("Error whilst opening git repo for [%d]%s/%s. Error: %v", repo.ID, repo.OwnerName, repo.Name, err)
 					return err
