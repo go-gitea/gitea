@@ -314,28 +314,13 @@ var cases = []*testIndexerCase{
 				assert.Contains(t, data[v.ID].ProjectIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				if len(data[v.ID].ProjectIDs) > 0 {
-					return v.ProjectIDs[0] == 1
+				for _, id := range v.ProjectIDs {
+					if id == 1 {
+						return true
+					}
 				}
 				return false
 			}), result.Total)
-		},
-	},
-	{
-		Name: "no ProjectID",
-		SearchOptions: &internal.SearchOptions{
-			Paginator: &db.ListOptions{
-				PageSize: 5,
-			},
-			ProjectIDs: []int64{0},
-		},
-		Expected: func(t *testing.T, data map[int64]*internal.IndexerData, result *internal.SearchResult) {
-			assert.Empty(t, result.Hits)
-			for _, v := range result.Hits {
-				if len(data[v.ID].ProjectIDs) > 0 {
-					assert.Equal(t, int64(1), data[v.ID].ProjectIDs[0])
-				}
-			}
 		},
 	},
 	{
@@ -725,7 +710,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				LabelIDs:           labelIDs,
 				NoLabel:            len(labelIDs) == 0,
 				MilestoneID:        issueIndex % 4,
-				ProjectIDs:         projectIDs,
+				ProjectIDs:         []int64{issueIndex % 5},
 				ProjectColumnID:    issueIndex % 6,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,

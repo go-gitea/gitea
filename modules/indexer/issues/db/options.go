@@ -65,6 +65,7 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		ReviewRequestedID:  convertID(options.ReviewRequestedID),
 		ReviewedID:         convertID(options.ReviewedID),
 		SubscriberID:       convertID(options.SubscriberID),
+		ProjectIDs:         options.ProjectIDs,
 		ProjectColumnID:    convertID(options.ProjectColumnID),
 		IsClosed:           options.IsClosed,
 		IsPull:             options.IsPull,
@@ -85,10 +86,6 @@ func ToDBOptions(ctx context.Context, options *internal.SearchOptions) (*issue_m
 		opts.MilestoneIDs = []int64{db.NoConditionID}
 	} else {
 		opts.MilestoneIDs = options.MilestoneIDs
-	}
-
-	if len(options.ProjectIDs) > 0 {
-		opts.ProjectIDs = options.ProjectIDs
 	}
 
 	if options.NoLabelOnly {
