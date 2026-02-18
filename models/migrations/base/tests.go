@@ -202,7 +202,6 @@ func LoadTableSchemasMap(t *testing.T, x *xorm.Engine) map[string]*schemas.Table
 
 func mainTest(m *testing.M) int {
 	testlogger.Init()
-	setting.SetupGiteaTestEnv()
 
 	tmpDataPath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("data")
 	if err != nil {

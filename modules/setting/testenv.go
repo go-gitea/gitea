@@ -13,7 +13,17 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-func SetupGiteaTestEnv() string {
+var giteaTestSourceRoot *string
+
+func GetGiteaTestSourceRoot() string {
+	return *giteaTestSourceRoot
+}
+
+func SetupGiteaTestEnv() {
+	if giteaTestSourceRoot != nil {
+		return // already initialized
+	}
+
 	IsInTesting = true
 	giteaRoot := os.Getenv("GITEA_TEST_ROOT")
 	if giteaRoot == "" {
@@ -58,6 +68,5 @@ func SetupGiteaTestEnv() string {
 	// TODO: some git repo hooks (test fixtures) still use these env variables, need to be refactored in the future
 	_ = os.Setenv("GITEA_ROOT", giteaRoot)
 	_ = os.Setenv("GITEA_CONF", giteaConf) // test fixture git hooks use "$GITEA_ROOT/$GITEA_CONF" in their scripts
-
-	return giteaRoot
+	giteaTestSourceRoot = &giteaRoot
 }

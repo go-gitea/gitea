@@ -86,7 +86,7 @@ func testMain(m *testing.M) int {
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
-	tests.InitTest(true)
+	tests.InitTest()
 	testWebRoutes = routers.NormalRoutes()
 
 	err := unittest.InitFixtures(

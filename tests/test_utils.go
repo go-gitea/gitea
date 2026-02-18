@@ -24,11 +24,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func InitTest(requireGitea bool) {
+func InitTest() {
 	testlogger.Init()
-
-	setting.SetupGiteaTestEnv()
-
 	unittest.InitSettingsForTesting()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 

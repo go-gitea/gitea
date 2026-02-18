@@ -29,10 +29,10 @@ import (
 	"xorm.io/xorm/names"
 )
 
-var giteaRoot string
-
 // InitSettingsForTesting initializes config provider and load common settings for tests
 func InitSettingsForTesting() {
+	setting.SetupGiteaTestEnv()
+
 	log.OsExiter = func(code int) {
 		if code != 0 {
 			// non-zero exit code (log.Fatal) shouldn't occur during testing, if it happens, show a full stacktrace for more details
@@ -44,8 +44,12 @@ func InitSettingsForTesting() {
 		setting.CustomConf = filepath.Join(setting.CustomPath, "conf/app-unittest-tmp.ini")
 		_ = os.Remove(setting.CustomConf)
 	}
-	setting.InitCfgProvider(setting.CustomConf)
-	setting.LoadCommonSettings()
+
+	// init paths and config system for testing
+	getTestEnv := func(key string) string {
+		return ""
+	}
+	setting.InitWorkPathAndCommonConfig(getTestEnv, setting.ArgWorkPathAndCustomConf{CustomConf: setting.CustomConf})
 
 	if err := setting.PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
@@ -71,9 +75,8 @@ func MainTest(m *testing.M, testOptsArg ...*TestOptions) {
 
 func mainTest(m *testing.M, testOptsArg ...*TestOptions) int {
 	testOpts := util.OptionalArg(testOptsArg, &TestOptions{})
-	giteaRoot = setting.SetupGiteaTestEnv()
 	InitSettingsForTesting()
-
+	giteaRoot := setting.GetGiteaTestSourceRoot()
 	fixturesOpts := FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: testOpts.FixtureFiles}
 	if err := CreateTestEngine(fixturesOpts); err != nil {
 		testlogger.Panicf("Error creating test engine: %v\n", err)
@@ -192,7 +195,6 @@ func PrepareTestDatabase() error {
 // by tests that use the above MainTest(..) function.
 func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
-	metaPath := filepath.Join(giteaRoot, "tests", "gitea-repositories-meta")
+	metaPath := filepath.Join(setting.GetGiteaTestSourceRoot(), "tests", "gitea-repositories-meta")
 	assert.NoError(t, SyncDirs(metaPath, setting.RepoRootPath))
-	setting.SetupGiteaTestEnv()
 }
