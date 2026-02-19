@@ -642,6 +642,16 @@ func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 	return repo.CanEnablePulls() && repo.UnitEnabled(ctx, unit.TypePullRequests)
 }
 
+// AllowsAgitPullRequests returns true if repository accepts AGit pull requests via refs/for.
+func (repo *Repository) AllowsAgitPullRequests(ctx context.Context) bool {
+	if !repo.AllowsPulls(ctx) {
+		return false
+	}
+
+	prUnit := repo.MustGetUnit(ctx, unit.TypePullRequests)
+	return prUnit.PullRequestsConfig().AllowAgitPullRequests
+}
+
 // CanEnableEditor returns true if repository meets the requirements of web editor.
 // FIXME: most CanEnableEditor calls should be replaced with CanContentChange
 // And all other like CanCreateBranch / CanEnablePulls should also be updated
