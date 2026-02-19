@@ -151,9 +151,9 @@ type CreateRepoOption struct {
 	// TrustModel of the repository
 	// enum: default,collaborator,committer,collaboratorcommitter
 	TrustModel string `json:"trust_model" binding:"In(default,collaborator,committer,collaboratorcommitter)"`
-	// ObjectFormatName of the underlying git repository
+	// ObjectFormatName of the underlying git repository, empty string for default (sha1)
 	// enum: sha1,sha256
-	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6) In(sha1,sha256)"`
+	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
 }
 
 // EditRepoOption options when editing a repository's properties
