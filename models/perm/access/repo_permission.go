@@ -104,7 +104,6 @@ func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
 }
 
 func (p *Permission) SetUnitsWithDefaultAccessMode(units []*repo_model.RepoUnit, mode perm_model.AccessMode) {
-	p.AccessMode = mode
 	p.units = units
 	p.unitsMode = make(map[unit.Type]perm_model.AccessMode)
 	for _, u := range p.units {

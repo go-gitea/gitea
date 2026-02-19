@@ -1,4 +1,4 @@
-// Copyright 2026 The Gitea Authors. All rights reserved.
+// Copyright 2025 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package integration
@@ -645,12 +645,15 @@ jobs:
 				jobID, jobDef := flow.Job()
 				jobName := jobDef.Name
 
-				// Parse workflow-level permissions from the flow
-				workflowPerms := actions_service.ParseWorkflowPermissions(flow, defaultPerms)
-
-				// Parse job-level permissions(jobDef, workflowPerms)
-				jobPerms := actions_service.ParseJobPermissions(jobDef, workflowPerms)
-				finalPerms := cfg.ClampPermissions(jobPerms)
+				// Use the combined explicit extraction logic
+				explicitPerms := actions_service.ExtractJobPermissionsFromWorkflow(flow, jobDef)
+				var finalPerms repo_model.ActionsTokenPermissions
+				if explicitPerms != nil {
+					finalPerms = *explicitPerms
+				} else {
+					finalPerms = defaultPerms
+				}
+				finalPerms = cfg.ClampPermissions(finalPerms)
 				permsJSON := repo_model.MarshalTokenPermissions(finalPerms)
 
 				job := &actions_model.ActionRunJob{

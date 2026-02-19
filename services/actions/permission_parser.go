@@ -11,36 +11,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// ParseWorkflowPermissions extracts workflow-level permissions from a SingleWorkflow
-// Returns the default permissions based on repository settings if no workflow permissions are specified
-func ParseWorkflowPermissions(wf *jobparser.SingleWorkflow, defaultPerms repo_model.ActionsTokenPermissions) repo_model.ActionsTokenPermissions {
-	if wf == nil {
-		return defaultPerms
-	}
-
-	// Check if workflow has RawPermissions
-	rawPerms := wf.RawPermissions
-	if rawPerms.Kind == yaml.ScalarNode && rawPerms.Value == "" {
-		return defaultPerms
-	}
-
-	return parseRawPermissions(&rawPerms, defaultPerms)
-}
-
-// ParseJobPermissions extracts job-level permissions, falling back to workflow defaults
-func ParseJobPermissions(job *jobparser.Job, workflowPerms repo_model.ActionsTokenPermissions) repo_model.ActionsTokenPermissions {
-	if job == nil {
-		return workflowPerms
-	}
-
-	// Check if job has RawPermissions
-	rawPerms := job.RawPermissions
-	if rawPerms.Kind == yaml.ScalarNode && rawPerms.Value == "" {
-		return workflowPerms
-	}
-
-	return parseRawPermissions(&rawPerms, workflowPerms)
-}
 
 // parseRawPermissions parses a YAML permissions node into ActionsTokenPermissions
 func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTokenPermissions) repo_model.ActionsTokenPermissions {
