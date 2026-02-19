@@ -8,6 +8,20 @@ import (
 	"unicode"
 )
 
+// SensitiveURLString is a string that may contain sensitive credentials in URLs
+type SensitiveURLString string
+
+func (s SensitiveURLString) String() string {
+	return string(s)
+}
+
+// SensitivePasswordString is a string that is a sensitive password
+type SensitivePasswordString string
+
+func (s SensitivePasswordString) String() string {
+	return string(s)
+}
+
 type sanitizedError struct {
 	err error
 }

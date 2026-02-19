@@ -26,7 +26,7 @@ type baseRedis struct {
 var _ baseQueue = (*baseRedis)(nil)
 
 func newBaseRedisGeneric(cfg *BaseConfig, unique bool) (baseQueue, error) {
-	client := nosql.GetManager().GetRedisClient(cfg.ConnStr)
+	client := nosql.GetManager().GetRedisClient(string(cfg.ConnStr))
 
 	var err error
 	for range 10 {

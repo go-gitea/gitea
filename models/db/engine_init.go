@@ -34,9 +34,9 @@ func newXORMEngine() (*xorm.Engine, error) {
 	if setting.Database.Type.IsPostgreSQL() && len(setting.Database.Schema) > 0 {
 		// OK whilst we sort out our schema issues - create a schema aware postgres
 		registerPostgresSchemaDriver()
-		engine, err = xorm.NewEngine("postgresschema", connStr)
+		engine, err = xorm.NewEngine("postgresschema", connStr.String())
 	} else {
-		engine, err = xorm.NewEngine(setting.Database.Type.String(), connStr)
+		engine, err = xorm.NewEngine(setting.Database.Type.String(), connStr.String())
 	}
 
 	if err != nil {

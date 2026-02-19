@@ -30,6 +30,6 @@ SERVICE_CONN_STR = addrs=127.0.0.1:6379 db=0
 
 		loadGlobalLockFrom(cfg)
 		assert.Equal(t, "redis", GlobalLock.ServiceType)
-		assert.Equal(t, "addrs=127.0.0.1:6379 db=0", GlobalLock.ServiceConnStr)
+		assert.Equal(t, "addrs=127.0.0.1:6379 db=0", GlobalLock.ServiceConnStr.String())
 	})
 }

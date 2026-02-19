@@ -78,10 +78,10 @@ func prepareLevelDB(cfg *BaseConfig) (conn string, db *leveldb.DB, err error) {
 		}
 		conn = cfg.DataFullDir
 	} else {
-		if !strings.HasPrefix(cfg.ConnStr, "leveldb://") {
+		if !strings.HasPrefix(cfg.ConnStr.String(), "leveldb://") {
 			return "", nil, fmt.Errorf("invalid leveldb connection string: %q", cfg.ConnStr)
 		}
-		conn = cfg.ConnStr
+		conn = cfg.ConnStr.String()
 	}
 	for range 10 {
 		if db, err = nosql.GetManager().GetLevelDB(conn); err == nil {

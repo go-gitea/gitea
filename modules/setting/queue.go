@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // QueueSettings represent the settings for a queue from the ini
@@ -17,8 +18,8 @@ type QueueSettings struct {
 
 	Type    string
 	Datadir string
-	ConnStr string // for leveldb or redis
-	Length  int    // max queue length before blocking
+	ConnStr util.SensitiveURLString // for leveldb or redis
+	Length  int                     // max queue length before blocking
 
 	QueueName, SetName string // the name suffix for storage (db key, redis key), "set" is for unique queue
 
@@ -65,7 +66,7 @@ func GetQueueSettings(rootCfg ConfigProvider, name string) (QueueSettings, error
 			return cfg, nil
 		}
 		if sec.HasKey("CONN_STR") {
-			cfg.ConnStr = sec.Key("CONN_STR").String()
+			cfg.ConnStr = util.SensitiveURLString(sec.Key("CONN_STR").String())
 		}
 	}
 
