@@ -20,6 +20,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -375,11 +376,15 @@ func (pr *PullRequest) getReviewedByLines(ctx context.Context, writer io.Writer)
 	}
 
 	// Note: This doesn't page as we only expect a very limited number of reviews
-	reviews, err := FindLatestReviews(ctx, FindReviewOptions{
+	opts := FindReviewOptions{
 		Types:        []ReviewType{ReviewTypeApprove},
 		IssueID:      pr.IssueID,
 		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
-	})
+	}
+	if setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly {
+		opts.Dismissed = optional.Some(false)
+	}
+	reviews, err := FindLatestReviews(ctx, opts)
 	if err != nil {
 		log.Error("Unable to FindReviews for PR ID %d: %v", pr.ID, err)
 		return err
