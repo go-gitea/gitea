@@ -12,6 +12,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // getCommitIDsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
@@ -63,9 +64,15 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 	var data issues_model.PushActionContent
 	data.CommitIDs, err = getCommitIDsFromRepo(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
 	if err != nil {
-		return nil, err
+		// For force-push events, a missing/unreachable old commit should not prevent
+		// deleting stale push comments or creating the force-push timeline entry.
+		if !isForcePush {
+			return nil, err
+		}
+		log.Error("getCommitIDsFromRepo: %v", err)
 	}
 	// It maybe an empty pull request. Only non-empty pull request need to create push comment
+	// for force push, we always need to delete the old push comment so don't return here.
 	if len(data.CommitIDs) == 0 && !isForcePush {
 		return nil, nil //nolint:nilnil // return nil because no comment needs to be created
 	}
