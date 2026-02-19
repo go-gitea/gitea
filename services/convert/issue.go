@@ -228,22 +228,24 @@ func ToTrackedTimeList(ctx context.Context, doer *user_model.User, tl issues_mod
 	result := make([]*api.TrackedTime, 0, len(tl))
 	permCache := make(map[int64]access_model.Permission)
 	for _, t := range tl {
-		if t.Issue != nil {
-			if err := t.Issue.LoadRepo(ctx); err != nil {
+		// If the issue is not loaded, conservatively skip this entry to avoid bypassing permission checks.
+		if t.Issue == nil {
+			continue
+		}
+		if err := t.Issue.LoadRepo(ctx); err != nil {
+			continue
+		}
+		perm, ok := permCache[t.Issue.RepoID]
+		if !ok {
+			var err error
+			perm, err = access_model.GetUserRepoPermission(ctx, t.Issue.Repo, doer)
+			if err != nil {
 				continue
 			}
-			perm, ok := permCache[t.Issue.RepoID]
-			if !ok {
-				var err error
-				perm, err = access_model.GetUserRepoPermission(ctx, t.Issue.Repo, doer)
-				if err != nil {
-					continue
-				}
-				permCache[t.Issue.RepoID] = perm
-			}
-			if !perm.CanReadIssuesOrPulls(t.Issue.IsPull) {
-				continue
-			}
+			permCache[t.Issue.RepoID] = perm
+		}
+		if !perm.CanReadIssuesOrPulls(t.Issue.IsPull) {
+			continue
 		}
 		result = append(result, ToTrackedTime(ctx, doer, t))
 	}
