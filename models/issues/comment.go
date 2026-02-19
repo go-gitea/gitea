@@ -337,12 +337,6 @@ func init() {
 	db.RegisterModel(new(Comment))
 }
 
-// PushActionContent is content of push pull comment
-type PushActionContent struct {
-	IsForcePush bool     `json:"is_force_push"`
-	CommitIDs   []string `json:"commit_ids"`
-}
-
 // LoadIssue loads the issue reference for the comment
 func (c *Comment) LoadIssue(ctx context.Context) (err error) {
 	if c.Issue != nil {

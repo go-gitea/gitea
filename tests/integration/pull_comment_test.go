@@ -13,7 +13,7 @@ import (
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
-	issues_service "code.gitea.io/gitea/services/issue"
+	pull_service "code.gitea.io/gitea/services/pull"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -70,7 +70,7 @@ func testPullCommentRebase(t *testing.T, u *url.URL, session *TestSession) {
 	})
 	require.NoError(t, err)
 	lastComment := comments[len(comments)-1]
-	assert.NoError(t, issues_service.LoadCommentPushCommits(t.Context(), lastComment))
+	assert.NoError(t, pull_service.LoadCommentPushCommits(t.Context(), lastComment))
 	assert.True(t, lastComment.IsForcePush)
 }
 

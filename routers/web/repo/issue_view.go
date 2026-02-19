@@ -765,7 +765,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			}
 		} else if comment.Type == issues_model.CommentTypePullRequestPush {
 			participants = addParticipant(comment.Poster, participants)
-			if err = issue_service.LoadCommentPushCommits(ctx, comment); err != nil {
+			if err = pull_service.LoadCommentPushCommits(ctx, comment); err != nil {
 				ctx.ServerError("LoadCommentPushCommits", err)
 				return
 			}
