@@ -7,7 +7,7 @@
 				{{svg "octicon-calendar"}} {{DateUtils.AbsoluteLong .Issue.DeadlineUnix}}
 			</div>
 			<div class="flex-text-block">
-				{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
+				{{if and .AllowEditDueDate (not .Repository.IsArchived)}}
 					<a class="issue-due-edit muted" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_edit"}}">{{svg "octicon-pencil"}}</a>
 					<a class="issue-due-remove muted" data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_form_remove"}}">{{svg "octicon-trash"}}</a>
 				{{end}}
@@ -17,7 +17,7 @@
 		{{ctx.Locale.Tr "repo.issues.due_date_not_set"}}
 	{{end}}
 
-	{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
+	{{if and .AllowEditDueDate (not .Repository.IsArchived)}}
 		<form class="ui fluid action input issue-due-form form-fetch-action tw-mt-2 {{if .Issue.DeadlineUnix}}tw-hidden{{end}}"
 					method="post" action="{{AppSubUrl}}/{{PathEscape .Repository.Owner.Name}}/{{PathEscape .Repository.Name}}/issues/{{.Issue.Index}}/deadline"
 		>
