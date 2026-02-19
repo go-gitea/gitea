@@ -100,12 +100,7 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 		return nil, err
 	}
 
-	defaultColumn, err := project.MustDefaultColumn(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	issueColumnMap, err := issues_model.LoadProjectIssueColumnMap(ctx, project.ID, defaultColumn.ID)
+	issueColumnMap, err := issues_model.LoadProjectIssueColumnMap(ctx, project.ID, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +108,7 @@ func LoadIssuesFromProject(ctx context.Context, project *project_model.Project, 
 	results := make(map[int64]issues_model.IssueList)
 	for _, issue := range issueList {
 		projectColumnID, ok := issueColumnMap[issue.ID]
-		if !ok {
+		if !ok || projectColumnID == 0 {
 			continue
 		}
 		if _, ok := results[projectColumnID]; !ok {
