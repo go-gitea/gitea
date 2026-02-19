@@ -101,23 +101,6 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
-	release, err := repo_model.GetReleaseByID(ctx, releaseID)
-	if err != nil {
-		if repo_model.IsErrReleaseNotExist(err) {
-			ctx.APIErrorNotFound()
-			return
-		}
-		ctx.APIErrorInternal(err)
-		return
-	}
-	if release.IsDraft {
-		if !canAccessDraftRelease(ctx) {
-			if !ctx.Written() {
-				ctx.APIErrorNotFound()
-			}
-			return
-		}
-	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
 	ctx.JSON(http.StatusOK, convert.ToAPIAttachment(ctx.Repo.Repository, attach))
 }
