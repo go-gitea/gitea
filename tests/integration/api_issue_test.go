@@ -420,3 +420,70 @@ func TestAPISearchIssuesWithLabels(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 }
+
+func TestAPISearchIssuesCreatedBy(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	defer test.MockVariableValue(&setting.API.DefaultPagingNum, 20)()
+	expectedIssueCount := 20 // 20 is from the fixtures
+
+	link, _ := url.Parse("/api/v1/repos/issues/search")
+	token := getUserToken(t, "user1", auth_model.AccessTokenScopeReadIssue)
+	query := url.Values{}
+	var apiIssues []*api.Issue
+
+	link.RawQuery = query.Encode()
+	req := NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, expectedIssueCount)
+
+	// Auth user, user1 created issues
+	query.Add("created", "1")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 5)
+
+	// Auth user, user1 created pull requests
+	query.Add("type", "pulls")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 3)
+
+	// user1 created issues, using created_by filter
+	query = url.Values{}
+	query.Add("created_by", "user1")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 5)
+
+	// user1 created pull requests, using created_by filter
+	query.Add("type", "pulls")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 3)
+
+	// user2 created issues, using created_by filter
+	query = url.Values{}
+	query.Add("created_by", "user2")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 9)
+
+	// user2 created pull requests, using created_by filter
+	query.Add("type", "pulls")
+	link.RawQuery = query.Encode()
+	req = NewRequest(t, "GET", link.String()).AddTokenAuth(token)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiIssues)
+	assert.Len(t, apiIssues, 3)
+}
