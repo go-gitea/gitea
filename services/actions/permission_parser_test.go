@@ -10,6 +10,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
 
@@ -18,8 +19,8 @@ func TestParseRawPermissions_ReadAll(t *testing.T) {
 	err := yaml.Unmarshal([]byte(`read-all`), &rawPerms)
 	assert.NoError(t, err)
 
-	defaultPerms := repo_model.DefaultActionsTokenPermissions(repo_model.ActionsTokenPermissionModePermissive)
-	result := parseRawPermissions(&rawPerms, defaultPerms)
+	result := parseRawPermissionsExplicit(&rawPerms)
+	require.NotNil(t, result)
 
 	assert.Equal(t, perm.AccessModeRead, result.Code)
 	assert.Equal(t, perm.AccessModeRead, result.Issues)
@@ -35,8 +36,8 @@ func TestParseRawPermissions_WriteAll(t *testing.T) {
 	err := yaml.Unmarshal([]byte(`write-all`), &rawPerms)
 	assert.NoError(t, err)
 
-	defaultPerms := repo_model.DefaultActionsTokenPermissions(repo_model.ActionsTokenPermissionModeRestricted)
-	result := parseRawPermissions(&rawPerms, defaultPerms)
+	result := parseRawPermissionsExplicit(&rawPerms)
+	require.NotNil(t, result)
 
 	assert.Equal(t, perm.AccessModeWrite, result.Code)
 	assert.Equal(t, perm.AccessModeWrite, result.Issues)
@@ -61,16 +62,8 @@ projects: none
 	err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
 	assert.NoError(t, err)
 
-	defaultPerms := repo_model.ActionsTokenPermissions{
-		Code:         perm.AccessModeNone,
-		Issues:       perm.AccessModeNone,
-		PullRequests: perm.AccessModeNone,
-		Packages:     perm.AccessModeNone,
-		Actions:      perm.AccessModeNone,
-		Wiki:         perm.AccessModeNone,
-		Projects:     perm.AccessModeNone,
-	}
-	result := parseRawPermissions(&rawPerms, defaultPerms)
+	result := parseRawPermissionsExplicit(&rawPerms)
+	require.NotNil(t, result)
 
 	assert.Equal(t, perm.AccessModeWrite, result.Code)
 	assert.Equal(t, perm.AccessModeRead, result.Issues)
@@ -79,29 +72,6 @@ projects: none
 	assert.Equal(t, perm.AccessModeRead, result.Actions)
 	assert.Equal(t, perm.AccessModeWrite, result.Wiki)
 	assert.Equal(t, perm.AccessModeNone, result.Projects)
-}
-
-func TestParseRawPermissions_PartialOverride(t *testing.T) {
-	yamlContent := `
-contents: read
-issues: write
-`
-	var rawPerms yaml.Node
-	err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
-	assert.NoError(t, err)
-
-	// Defaults are write for everything
-	defaultPerms := repo_model.DefaultActionsTokenPermissions(repo_model.ActionsTokenPermissionModePermissive)
-	result := parseRawPermissions(&rawPerms, defaultPerms)
-
-	// Overridden scopes
-	assert.Equal(t, perm.AccessModeRead, result.Code)
-	assert.Equal(t, perm.AccessModeWrite, result.Issues)
-	// Non-overridden scopes keep defaults
-	assert.Equal(t, perm.AccessModeWrite, result.PullRequests)
-	assert.Equal(t, perm.AccessModeRead, result.Packages) // Packages default to read in permissive
-	assert.Equal(t, perm.AccessModeWrite, result.Actions)
-	assert.Equal(t, perm.AccessModeWrite, result.Wiki)
 }
 
 func TestParseRawPermissions_Priority(t *testing.T) {
@@ -115,8 +85,8 @@ releases: none
 		err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
 		assert.NoError(t, err)
 
-		defaultPerms := repo_model.ActionsTokenPermissions{}
-		result := parseRawPermissions(&rawPerms, defaultPerms)
+		result := parseRawPermissionsExplicit(&rawPerms)
+		require.NotNil(t, result)
 
 		assert.Equal(t, perm.AccessModeWrite, result.Code)
 		assert.Equal(t, perm.AccessModeNone, result.Releases)
@@ -132,8 +102,8 @@ contents: read
 		err := yaml.Unmarshal([]byte(yamlContent), &rawPerms)
 		assert.NoError(t, err)
 
-		defaultPerms := repo_model.ActionsTokenPermissions{}
-		result := parseRawPermissions(&rawPerms, defaultPerms)
+		result := parseRawPermissionsExplicit(&rawPerms)
+		require.NotNil(t, result)
 
 		// code: none should win over contents: read
 		assert.Equal(t, perm.AccessModeNone, result.Code)
@@ -146,21 +116,17 @@ func TestParseRawPermissions_EmptyNode(t *testing.T) {
 	var rawPerms yaml.Node
 	// Empty node
 
-	defaultPerms := repo_model.DefaultActionsTokenPermissions(repo_model.ActionsTokenPermissionModePermissive)
-	result := parseRawPermissions(&rawPerms, defaultPerms)
+	result := parseRawPermissionsExplicit(&rawPerms)
 
-	// Should return defaults
-	assert.Equal(t, defaultPerms.Code, result.Code)
-	assert.Equal(t, defaultPerms.Issues, result.Issues)
+	// Should return nil for non-explicit
+	assert.Nil(t, result)
 }
 
 func TestParseRawPermissions_NilNode(t *testing.T) {
-	defaultPerms := repo_model.DefaultActionsTokenPermissions(repo_model.ActionsTokenPermissionModePermissive)
-	result := parseRawPermissions(nil, defaultPerms)
+	result := parseRawPermissionsExplicit(nil)
 
-	// Should return defaults
-	assert.Equal(t, defaultPerms.Code, result.Code)
-	assert.Equal(t, defaultPerms.Issues, result.Issues)
+	// Should return nil
+	assert.Nil(t, result)
 }
 
 func TestParseAccessMode(t *testing.T) {

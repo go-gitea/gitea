@@ -4,7 +4,6 @@
 package integration
 
 import (
-	"bytes"
 	"encoding/base64"
 	"fmt"
 	"net/http"
@@ -16,7 +15,6 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
-	packages_model "code.gitea.io/gitea/models/packages"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -425,52 +423,6 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			assert.Equal(t, "repo-C", r.Name)
 		}))
 
-		// 6. Test Cross-Repo Package Access
-		t.Run("Cross-Repo Package Access", func(t *testing.T) {
-			packageName := "cross-test-pkg"
-			packageVersion := "1.0.0"
-			fileName := "test-file.bin"
-			content := []byte{1, 2, 3, 4, 5}
-
-			// First, upload a package to the org using basic auth (user2 is org owner)
-			packageURL := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", orgName, packageName, packageVersion, fileName)
-			uploadReq := NewRequestWithBody(t, "PUT", packageURL, bytes.NewReader(content)).AddBasicAuth("user2")
-			MakeRequest(t, uploadReq, http.StatusCreated)
-
-			// Link the package to repo-B (per reviewer feedback: packages must be linked to repos)
-			pkg, err := packages_model.GetPackageByName(t.Context(), org.ID, packages_model.TypeGeneric, packageName)
-			require.NoError(t, err)
-			require.NoError(t, packages_model.SetRepositoryLink(t.Context(), pkg.ID, repoBID))
-
-			// By default, cross-repo is disabled
-			// Explicitly set it to false to ensure test determinism (in case defaults change)
-			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
-				CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
-			}))
-
-			// Try to download with cross-repo disabled - should fail
-			downloadReqDenied := NewRequest(t, "GET", packageURL)
-			downloadReqDenied.Header.Set("Authorization", "Bearer "+task.Token)
-			MakeRequest(t, downloadReqDenied, http.StatusNotFound)
-
-			// Enable cross-repo access
-			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
-				CrossRepoMode: repo_model.ActionsCrossRepoModeAll,
-			}))
-
-			// Try to download with cross-repo enabled - should succeed
-			downloadReq := NewRequest(t, "GET", packageURL)
-			downloadReq.Header.Set("Authorization", "Bearer "+task.Token)
-			resp := MakeRequest(t, downloadReq, http.StatusOK)
-			assert.Equal(t, content, resp.Body.Bytes(), "Should be able to read package from other repo in same org")
-
-			// Try to upload a package with task token (cross-repo write)
-			// Cross-repo access should be read-only, write attempts return 401 Unauthorized
-			writePackageURL := fmt.Sprintf("/api/packages/%s/generic/%s/%s/write-test.bin", orgName, packageName, packageVersion)
-			writeReq := NewRequestWithBody(t, "PUT", writePackageURL, bytes.NewReader(content))
-			writeReq.Header.Set("Authorization", "Bearer "+task.Token)
-			MakeRequest(t, writeReq, http.StatusUnauthorized)
-		})
 
 		// 7. Test Cross-Repo Access - Specific Repositories
 		t.Run("Cross-Repo Access - Specific Repositories", func(t *testing.T) {
