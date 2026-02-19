@@ -73,7 +73,7 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		// typically return no commits, so only the force-push comment is expected.
 		commits, err := gitRepo.CommitsBetweenNotBase(headCommit, oldCommit, pr.BaseBranch)
 		assert.NoError(t, err)
-		assert.Len(t, commits, 0)
+		assert.Empty(t, commits)
 
 		comments, err = issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
 			IssueID: pr.IssueID,
@@ -150,7 +150,7 @@ func TestCreatePushPullCommentForcePushDeletesOldComments(t *testing.T) {
 		assert.NoError(t, err)
 		// For this scenario we expect at least one commit between head and base
 		// that is not on the base branch, so data.CommitIDs should be non-empty.
-		assert.Greater(t, len(commits), 0)
+		assert.NotEmpty(t, commits)
 
 		comments, err = issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
 			IssueID: pr.IssueID,
