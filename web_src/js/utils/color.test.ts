@@ -1,15 +1,4 @@
-import {colorToHex, contrastColor} from './color.ts';
-
-test('colorToHex', () => {
-  expect(colorToHex('#d73a4a')).toBe('#d73a4a');
-  expect(colorToHex('#ff0000')).toBe('#ff0000');
-  expect(colorToHex('#ffffff')).toBe('#ffffff');
-  expect(colorToHex('#000000')).toBe('#000000');
-  expect(colorToHex('rgb(255, 0, 0)')).toBe('#ff0000');
-  expect(colorToHex('rgba(255, 0, 0, 0.5)')).toBe('#ff0000');
-  expect(colorToHex('rgba(0, 0, 0, 0)')).toBe('#000000');
-  expect(colorToHex('#ff000080')).toBe('#ff0000');
-});
+import {contrastColor} from './color.ts';
 
 test('contrastColor', () => {
   expect(contrastColor('#d73a4a')).toBe('#fff');

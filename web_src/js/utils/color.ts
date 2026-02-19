@@ -16,11 +16,6 @@ function useLightText(backgroundColor: AnyColor): boolean {
  *  contrast ratio. */
 // In the future, the APCA contrast function, or CSS `contrast-color` will be better.
 // https://github.com/color-js/color.js/blob/eb7b53f7a13bb716ec8b28c7a56f052cd599acd9/src/contrast/APCA.js#L42
-/** Converts any color to a 6-digit hex color */
-export function colorToHex(color: AnyColor): string {
-  return colord(color).alpha(1).toHex();
-}
-
 export function contrastColor(backgroundColor: AnyColor): string {
   return useLightText(backgroundColor) ? '#fff' : '#000';
 }
