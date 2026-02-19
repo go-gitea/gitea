@@ -1,3 +1,5 @@
+import {reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+
 export function initActionsPermissionsTable(): void {
   const modeRadios = document.querySelectorAll<HTMLInputElement>('.js-permission-mode-radio');
   const permTable = document.querySelector<HTMLTableElement>('table.js-permissions-table');
@@ -58,7 +60,7 @@ export function initActionsPermissionsTable(): void {
   updateTableState();
   const form = modeRadios[0].closest('form');
   if (form) {
-    (window as any).jQuery?.(form).trigger('reinitialize.areYouSure');
+    reinitializeAreYouSure(form);
   }
 
   // Cross-Repo Access Table Toggle

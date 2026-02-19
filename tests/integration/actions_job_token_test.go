@@ -448,11 +448,10 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 				CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
 			}))
 
-			// FIXME use private repository
-			// // Try to download with cross-repo disabled - should fail
-			// downloadReqDenied := NewRequest(t, "GET", packageURL)
-			// downloadReqDenied.Header.Set("Authorization", "Bearer "+task.Token)
-			// MakeRequest(t, downloadReqDenied, http.StatusForbidden)
+			// Try to download with cross-repo disabled - should fail
+			downloadReqDenied := NewRequest(t, "GET", packageURL)
+			downloadReqDenied.Header.Set("Authorization", "Bearer "+task.Token)
+			MakeRequest(t, downloadReqDenied, http.StatusNotFound)
 
 			// Enable cross-repo access
 			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
