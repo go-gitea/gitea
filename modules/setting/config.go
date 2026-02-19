@@ -54,41 +54,16 @@ type RepositoryStruct struct {
 	GitGuideRemoteName *config.Value[string]
 }
 
-const (
-	InstanceNoticeLevelInfo    = "info"
-	InstanceNoticeLevelSuccess = "success"
-	InstanceNoticeLevelWarning = "warning"
-	InstanceNoticeLevelDanger  = "danger"
-)
-
 type InstanceNotice struct {
 	Enabled bool
 	Message string
-	Level   string
 
 	StartTime int64
 	EndTime   int64
 }
 
 func DefaultInstanceNotice() InstanceNotice {
-	return InstanceNotice{
-		Level: InstanceNoticeLevelInfo,
-	}
-}
-
-func IsValidInstanceNoticeLevel(level string) bool {
-	switch level {
-	case InstanceNoticeLevelInfo, InstanceNoticeLevelSuccess, InstanceNoticeLevelWarning, InstanceNoticeLevelDanger:
-		return true
-	default:
-		return false
-	}
-}
-
-func (n *InstanceNotice) Normalize() {
-	if !IsValidInstanceNoticeLevel(n.Level) {
-		n.Level = InstanceNoticeLevelInfo
-	}
+	return InstanceNotice{}
 }
 
 func (n *InstanceNotice) IsActive(now int64) bool {
@@ -105,9 +80,7 @@ func (n *InstanceNotice) IsActive(now int64) bool {
 }
 
 func GetInstanceNotice(ctx context.Context) InstanceNotice {
-	notice := Config().InstanceNotice.Banner.Value(ctx)
-	notice.Normalize()
-	return notice
+	return Config().InstanceNotice.Banner.Value(ctx)
 }
 
 type InstanceNoticeStruct struct {

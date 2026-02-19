@@ -213,7 +213,6 @@ func parseDatetimeLocalValue(raw string) (int64, error) {
 
 func SetInstanceNotice(ctx *context.Context) {
 	saveInstanceNotice := func(instanceNotice setting.InstanceNotice) {
-		instanceNotice.Normalize()
 		marshaled, err := json.Marshal(instanceNotice)
 		if err != nil {
 			ctx.ServerError("Marshal", err)
@@ -240,7 +239,6 @@ func SetInstanceNotice(ctx *context.Context) {
 
 	enabled := ctx.FormBool("enabled")
 	message := strings.TrimSpace(ctx.FormString("message"))
-	level := strings.TrimSpace(ctx.FormString("level"))
 	startTime, err := parseDatetimeLocalValue(strings.TrimSpace(ctx.FormString("start_time")))
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time"))
@@ -252,9 +250,6 @@ func SetInstanceNotice(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time"))
 		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
 		return
-	}
-	if !setting.IsValidInstanceNoticeLevel(level) {
-		level = setting.InstanceNoticeLevelInfo
 	}
 	if enabled && message == "" {
 		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.message_required"))
@@ -275,7 +270,6 @@ func SetInstanceNotice(ctx *context.Context) {
 	instanceNotice := setting.InstanceNotice{
 		Enabled:   enabled,
 		Message:   message,
-		Level:     level,
 		StartTime: startTime,
 		EndTime:   endTime,
 	}
