@@ -703,15 +703,15 @@ jobs:
 						assert.Equal(t, repository.Name, r.Name)
 					}))
 				} else if jobID == "job-none-perms" {
-					// Should match 'none' -> Read/Write Forbidden
-					testCtx.ExpectedCode = http.StatusForbidden
-					t.Run("Job [read-only] Create File (Should Fail)", doAPICreateFile(testCtx, "fail-readonly.txt", &structs.CreateFileOptions{
+					// Should match 'none' -> Read/Write Forbidden (404 for private repo)
+					testCtx.ExpectedCode = http.StatusNotFound
+					t.Run("Job [none] Create File (Should Fail)", doAPICreateFile(testCtx, "fail-none.txt", &structs.CreateFileOptions{
 						ContentBase64: base64.StdEncoding.EncodeToString([]byte("fail")),
 					}))
 
-					testCtx.ExpectedCode = http.StatusOK
-					t.Run("Job [read-only] Get Repo (Should Succeed)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-						assert.Equal(t, repository.Name, r.Name)
+					testCtx.ExpectedCode = http.StatusNotFound
+					t.Run("Job [none] Get Repo (Should Fail)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+						// Should not reach here if 404
 					}))
 				} else if jobID == "job-override" {
 					// Should have 'contents: write' -> Write Created
