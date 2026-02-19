@@ -47,7 +47,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 }
 
 func (source *Source) refresh(ctx context.Context, provider goth.Provider, u *user_model.ExternalLoginUser) error {
-	log.Trace("Syncing login_source_id=%d external_id=%s expiration=%s", u.LoginSourceID, u.ExternalID, u.ExpiresAt)
+	log.Trace("Syncing login_source_id=%d external_id=%s user_id=%s expiration=%s", u.LoginSourceID, u.ExternalID, u.UserID, u.ExpiresAt)
 
 	shouldDisable := false
 
@@ -62,7 +62,7 @@ func (source *Source) refresh(ctx context.Context, provider goth.Provider, u *us
 	}
 
 	user := &user_model.User{
-		LoginName:   u.ExternalID,
+		ID:          u.UserID,
 		LoginType:   auth.OAuth2,
 		LoginSource: u.LoginSourceID,
 	}
