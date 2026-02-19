@@ -234,6 +234,9 @@ importers:
       '@types/katex':
         specifier: 0.16.8
         version: 0.16.8
+      '@types/node':
+        specifier: 25.2.3
+        version: 25.2.3
       '@types/pdfobject':
         specifier: 2.2.5
         version: 2.2.5
