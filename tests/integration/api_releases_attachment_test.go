@@ -61,6 +61,9 @@ func TestAPIDraftReleaseAttachmentAccess(t *testing.T) {
 	MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(readerToken), http.StatusNotFound)
 	MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(readerToken), http.StatusNotFound)
 
+	ownerReadToken := getUserToken(t, repoOwner.LowerName, auth_model.AccessTokenScopeReadRepository)
+	MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(ownerReadToken), http.StatusNotFound)
+	MakeRequest(t, NewRequest(t, "GET", getURL).AddTokenAuth(ownerReadToken), http.StatusNotFound)
 	ownerToken := getUserToken(t, repoOwner.LowerName, auth_model.AccessTokenScopeWriteRepository)
 	resp := MakeRequest(t, NewRequest(t, "GET", listURL).AddTokenAuth(ownerToken), http.StatusOK)
 	var attachments []*api.Attachment
