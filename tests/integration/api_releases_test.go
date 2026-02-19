@@ -29,12 +29,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIListReleases(t *testing.T) {
+func TestAPIListReleasesWithWriteToken(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeReadRepository)
+	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeWriteRepository)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
 	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
@@ -75,6 +75,54 @@ func TestAPIListReleases(t *testing.T) {
 
 	testFilterByLen(false, url.Values{"draft": {"true"}}, 0, "anon should not see drafts")
 	testFilterByLen(true, url.Values{"draft": {"true"}}, 1, "repo owner should see drafts")
+	testFilterByLen(true, url.Values{"draft": {"false"}}, 2, "exclude drafts")
+	testFilterByLen(true, url.Values{"draft": {"false"}, "pre-release": {"false"}}, 1, "exclude drafts and pre-releases")
+	testFilterByLen(true, url.Values{"pre-release": {"true"}}, 1, "only get pre-release")
+	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
+}
+
+func TestAPIListReleasesWithReadToken(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeReadRepository)
+
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
+	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
+	var apiReleases []*api.Release
+	DecodeJSON(t, resp, &apiReleases)
+	if assert.Len(t, apiReleases, 2) {
+		for _, release := range apiReleases {
+			switch release.ID {
+			case 1:
+				assert.False(t, release.IsDraft)
+				assert.False(t, release.IsPrerelease)
+				assert.True(t, strings.HasSuffix(release.UploadURL, "/api/v1/repos/user2/repo1/releases/1/assets"), release.UploadURL)
+			case 5:
+				assert.False(t, release.IsDraft)
+				assert.True(t, release.IsPrerelease)
+				assert.True(t, strings.HasSuffix(release.UploadURL, "/api/v1/repos/user2/repo1/releases/5/assets"), release.UploadURL)
+			default:
+				assert.NoError(t, fmt.Errorf("unexpected release: %v", release))
+			}
+		}
+	}
+
+	// test filter
+	testFilterByLen := func(auth bool, query url.Values, expectedLength int, msgAndArgs ...string) {
+		link.RawQuery = query.Encode()
+		req := NewRequest(t, "GET", link.String())
+		if auth {
+			req.AddTokenAuth(token)
+		}
+		resp = MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &apiReleases)
+		assert.Len(t, apiReleases, expectedLength, msgAndArgs)
+	}
+
+	testFilterByLen(false, url.Values{"draft": {"true"}}, 0, "anon should not see drafts")
+	testFilterByLen(true, url.Values{"draft": {"true"}}, 0, "repo owner with read token should not see drafts")
 	testFilterByLen(true, url.Values{"draft": {"false"}}, 2, "exclude drafts")
 	testFilterByLen(true, url.Values{"draft": {"false"}, "pre-release": {"false"}}, 1, "exclude drafts and pre-releases")
 	testFilterByLen(true, url.Values{"pre-release": {"true"}}, 1, "only get pre-release")
