@@ -171,16 +171,21 @@
 				{{end}}
 
 				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
+				{{$canBypass := $.CanBypassBranchProtection}}
 
 				{{/* admin can merge without checks, writer can merge when checks succeed */}}
-				{{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
+				{{$canMergeNow := and (or $canBypass (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 				{{/* admin and writer both can make an auto merge schedule */}}
 
 				{{if $canMergeNow}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item">
 							{{svg "octicon-dot-fill"}}
-							{{ctx.Locale.Tr "repo.pulls.required_status_check_administrator"}}
+							{{if $.CanAdminBypassBranchProtection}}
+								{{ctx.Locale.Tr "repo.pulls.required_status_check_administrator"}}
+							{{else}}
+								{{ctx.Locale.Tr "repo.pulls.required_status_check_bypass_allowlist"}}
+							{{end}}
 						</div>
 					{{else}}
 						<div class="item">

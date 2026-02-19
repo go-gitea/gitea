@@ -177,6 +177,9 @@ type ProtectBranchForm struct {
 	EnableMergeWhitelist          bool
 	MergeWhitelistUsers           string
 	MergeWhitelistTeams           string
+	EnableBypassAllowlist         bool
+	BypassAllowlistUsers          string
+	BypassAllowlistTeams          string
 	EnableStatusCheck             bool
 	StatusCheckContexts           string
 	RequiredApprovals             int64
