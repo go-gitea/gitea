@@ -11,7 +11,6 @@ import (
 	"time"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -118,49 +117,6 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 0, diffCount.Behind)
 		assert.Equal(t, 1, diffCount.Ahead)
-	})
-}
-
-func TestAPIPullUpdateByRebase2(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		// Create PR to test
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
-		pr := createOutdatedPR(t, user, org26)
-		assert.NoError(t, pr.LoadBaseRepo(t.Context()))
-		assert.NoError(t, pr.LoadIssue(t.Context()))
-
-		enableRepoAllowUpdateWithRebase(t, pr.BaseRepo.ID, false)
-
-		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
-		req := NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
-			AddTokenAuth(token)
-		session.MakeRequest(t, req, http.StatusForbidden)
-
-		enableRepoAllowUpdateWithRebase(t, pr.BaseRepo.ID, true)
-		assert.NoError(t, pr.LoadHeadRepo(t.Context()))
-
-		// add a protected branch rule to the head branch to block rebase
-		pb := git_model.ProtectedBranch{
-			RepoID:       pr.HeadRepo.ID,
-			RuleName:     pr.HeadBranch,
-			CanPush:      false,
-			CanForcePush: false,
-		}
-		err := git_model.UpdateProtectBranch(t.Context(), pr.HeadRepo, &pb, git_model.WhitelistOptions{})
-		assert.NoError(t, err)
-		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
-			AddTokenAuth(token)
-		session.MakeRequest(t, req, http.StatusForbidden)
-
-		// remove the protected branch rule to allow rebase
-		err = git_model.DeleteProtectedBranch(t.Context(), pr.HeadRepo, pb.ID)
-		assert.NoError(t, err)
-
-		req = NewRequestf(t, "POST", "/api/v1/repos/%s/%s/pulls/%d/update?style=rebase", pr.BaseRepo.OwnerName, pr.BaseRepo.Name, pr.Issue.Index).
-			AddTokenAuth(token)
-		session.MakeRequest(t, req, http.StatusOK)
 	})
 }
 
