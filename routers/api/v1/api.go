@@ -70,6 +70,7 @@ import (
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models/application"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -342,6 +343,14 @@ func tokenRequiresScopes(requiredScopeCategories ...auth_model.AccessTokenScopeC
 
 		// assign to true so that those searching should only filter public repositories/users/organizations
 		ctx.PublicOnly = publicOnly
+	}
+}
+
+func appRequirePermissions(requiredPerms ...application.AppPermRequirement) func(ctx *context.APIContext) {
+	
+
+	return func(ctx *context.APIContext) {
+
 	}
 }
 
@@ -754,6 +763,7 @@ func buildAuthGroup() *auth.Group {
 		&auth.OAuth2{},
 		&auth.HTTPSign{},
 		&auth.Basic{}, // FIXME: this should be removed once we don't allow basic auth in API
+		&auth.JWTAuth{},
 	)
 	if setting.Service.EnableReverseProxyAuthAPI {
 		group.Add(&auth.ReverseProxy{})

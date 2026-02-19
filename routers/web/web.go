@@ -24,6 +24,8 @@ import (
 	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/admin"
+	"code.gitea.io/gitea/routers/web/app"
+	app_setting "code.gitea.io/gitea/routers/web/app/setting"
 	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/routers/web/devtest"
 	"code.gitea.io/gitea/routers/web/events"
@@ -629,6 +631,8 @@ func registerWebRoutes(m *web.Router) {
 			m.Combo("").Get(user_setting.Applications).
 				Post(web.Bind(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
 			m.Post("/delete", user_setting.DeleteApplication)
+
+			m.Post("/gitea_app", web.Bind(forms.NewGiteaAppForm{}), user_setting.GiteaAppPost)
 		})
 
 		m.Combo("/keys").Get(user_setting.Keys).
@@ -1650,6 +1654,26 @@ func registerWebRoutes(m *web.Router) {
 		m.Post("/action/{action:watch|unwatch}", reqSignIn, repo.ActionWatch)
 		m.Post("/action/{action:accept_transfer|reject_transfer}", reqSignIn, repo.ActionTransfer)
 	}, optSignIn, context.RepoAssignment)
+
+	m.Group("/-/apps/{appname}", func() {
+		m.Get("", app.ViewApp)
+		m.Get("/installations", app.ViewAppInstallations)
+	}, optSignIn, context.ApplicationAssignment(context.ApplicationAssignmentOptions{}))
+
+	m.Group("/-/apps/{appname}/settings", func() {
+		m.Get("", app_setting.Profile)
+		m.Get("/security", app_setting.Security)
+	}, reqSignIn, context.ApplicationAssignment(context.ApplicationAssignmentOptions{RequireAdmin: true}))
+
+	m.Group("/-/apps/{appname}", func() {
+		m.Get("", app.ViewApp)
+		m.Get("/installations", app.ViewAppInstallations)
+	}, optSignIn, context.ApplicationAssignment(context.ApplicationAssignmentOptions{}))
+
+	m.Group("/-/apps/{appname}/settings", func() {
+		m.Get("", app_setting.Profile)
+		m.Get("/security", app_setting.Security)
+	}, reqSignIn, context.ApplicationAssignment(context.ApplicationAssignmentOptions{RequireAdmin: true}))
 
 	common.AddOwnerRepoGitLFSRoutes(m, lfsServerEnabled, repo.CorsHandler(), optSignInFromAnyOrigin) // "/{username}/{reponame}/{lfs-paths}": git-lfs support, see also addOwnerRepoGitHTTPRouters
 

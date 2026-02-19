@@ -77,6 +77,9 @@ const (
 	EmailNotificationsAndYourOwn = "andyourown"
 )
 
+type UserExternalData interface {
+}
+
 // User represents the object of individual and member of organization.
 type User struct {
 	ID        int64  `xorm:"pk autoincr"`
@@ -151,6 +154,8 @@ type User struct {
 	DiffViewStyle       string `xorm:"NOT NULL DEFAULT ''"`
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
+
+	ExternalData UserExternalData `xorm:"-"`
 }
 
 // Meta defines the meta information of a user, to be stored in the K/V table

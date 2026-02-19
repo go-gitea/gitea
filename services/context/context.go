@@ -58,9 +58,10 @@ type Context struct {
 
 	ContextUser *user_model.User // the user which is being visited, in most cases it differs from Doer
 
-	Repo    *Repository
-	Org     *Organization
-	Package *Package
+	Repo     *Repository
+	Org      *Organization
+	Package  *Package
+	GiteaApp *Application
 }
 
 type TemplateContext map[string]any

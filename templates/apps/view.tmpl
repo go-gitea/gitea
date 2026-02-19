@@ -1,0 +1,42 @@
+{{template "base/head" .}}
+<div role="main" aria-label="{{.Title}}" class="page-content user profile">
+	<div class="ui container">
+        <div class="ui stackable grid">
+            <div class="ui ten wide column tw-mb-4">
+                <div class="tw-flex tw-gap-4">
+                    <div id="profile-avatar" class="content tw-flex">
+                        <span class="image">
+                            {{ctx.AvatarUtils.Avatar .GiteaApp 100 "org-avatar"}}
+                        </span>
+                    </div>
+
+                    <h1>{{.GiteaApp.Name}}</h1>
+                </div>
+
+                {{if .GiteaApp.ExternalData.RenderedReadme}}
+                    <div class="divider"></div>
+                    <div id="readme_profile" class="render-content markup">{{.GiteaApp.ExternalData.RenderedReadme}}</div>
+                {{end}}
+            </div>
+            <div class="ui six wide column">
+                <div>
+                    <a href="{{.GiteaApp.InstallURL}}" class="ui primary button tw-w-full tw-pt-4">install</a>
+                    {{if .IsAppManager}}
+                        <a href="{{.GiteaApp.SettingsURL}}" class="ui button tw-w-full tw-pt-4">config</a>
+                    {{end}}
+                </div>
+
+                <div class="tw-pt-12">
+                    <p>Developer</p>
+                    <ul class="tw-list-none tw-pl-4">
+                        <li><a href="xxxxxx">xxxxxxxxx</a></li>
+                        <li><a href="xxxxxx">xxxxxxxxx</a></li>
+                        <li><a href="xxxxxx">xxxxxxxxx</a></li>
+                        <li><a href="xxxxxx">xxxxxxxxx</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{template "base/footer" .}}
