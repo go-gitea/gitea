@@ -65,7 +65,6 @@ func (o *VirtualSessionProvider) Read(sid string) (session.RawStore, error) {
 		return nil, fmt.Errorf("check if '%s' exist failed: %w", sid, err)
 	}
 	kv := make(map[any]any)
-	kv["_old_uid"] = "0"
 	return NewVirtualStore(o, sid, kv), nil
 }
 
@@ -160,7 +159,7 @@ func (s *VirtualStore) Release() error {
 	// Now need to lock the provider
 	s.p.lock.Lock()
 	defer s.p.lock.Unlock()
-	if oldUID, ok := s.data["_old_uid"]; (ok && (oldUID != "0" || len(s.data) > 1)) || (!ok && len(s.data) > 0) {
+	if len(s.data) > 0 {
 		// Now ensure that we don't exist!
 		realProvider := s.p.provider
 
