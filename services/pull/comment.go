@@ -99,7 +99,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 			}
 		}
 
-		if isForcePush { // if it's a force push, we needs to add a force push comment
+		if isForcePush { // if it's a force push, we need to add a force push comment
 			data.CommitIDs = []string{oldCommitID, newCommitID}
 			data.IsForcePush = true
 			dataJSON, err := json.Marshal(data)
