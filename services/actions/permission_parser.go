@@ -11,7 +11,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-
 // parseRawPermissions parses a YAML permissions node into ActionsTokenPermissions
 func parseRawPermissions(rawPerms *yaml.Node, defaultPerms repo_model.ActionsTokenPermissions) repo_model.ActionsTokenPermissions {
 	if rawPerms == nil || (rawPerms.Kind == yaml.ScalarNode && rawPerms.Value == "") {
