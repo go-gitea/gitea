@@ -200,7 +200,7 @@ clean-all: clean ## delete backend, frontend and integration files
 
 .PHONY: clean
 clean: ## delete backend and integration files
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST_WILDCARD) \
+	rm -rf $(EXECUTABLE) gitea-e2e $(DIST) $(BINDATA_DEST_WILDCARD) \
 		integrations*.test \
 		tests/integration/gitea-integration-* \
 		tests/integration/indexers-* \
@@ -534,8 +534,9 @@ playwright: deps-frontend
 	@$(NODE_VARS) pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
-test-e2e: playwright $(EXECUTABLE)
-	@EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(E2E_FLAGS)
+test-e2e: playwright
+	$(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TEST_TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o gitea-e2e
+	@EXECUTABLE=gitea-e2e ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite

@@ -3,11 +3,11 @@ import {expect} from '@playwright/test';
 import type {APIRequestContext, Locator, Page} from '@playwright/test';
 
 export function apiBaseUrl() {
-  return env.E2E_URL?.replace(/\/$/g, '');
+  return env.GITEA_TEST_E2E_URL?.replace(/\/$/g, '');
 }
 
 export function apiHeaders() {
-  return {Authorization: `Basic ${globalThis.btoa(`${env.E2E_USER}:${env.E2E_PASSWORD}`)}`};
+  return {Authorization: `Basic ${globalThis.btoa(`${env.GITEA_TEST_E2E_USER}:${env.GITEA_TEST_E2E_PASSWORD}`)}`};
 }
 
 async function apiRetry(fn: () => Promise<{ok: () => boolean; status: () => number; text: () => Promise<string>}>, label: string) {
@@ -48,7 +48,7 @@ export async function clickDropdownItem(page: Page, trigger: Locator, itemText: 
   await page.getByText(itemText).click();
 }
 
-export async function login(page: Page, username = env.E2E_USER, password = env.E2E_PASSWORD) {
+export async function login(page: Page, username = env.GITEA_TEST_E2E_USER, password = env.GITEA_TEST_E2E_PASSWORD) {
   await page.goto('/user/login');
   await page.getByLabel('Username or Email Address').fill(username);
   await page.getByLabel('Password').fill(password);

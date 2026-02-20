@@ -51,13 +51,13 @@ test('register then login', async ({page}) => {
 
   // delete via API because of issues related to form-fetch-action
   const response = await page.request.delete(`/api/v1/admin/users/${username}?purge=true`, {
-    headers: {Authorization: `Basic ${btoa(`${env.E2E_USER}:${env.E2E_PASSWORD}`)}`},
+    headers: {Authorization: `Basic ${btoa(`${env.GITEA_TEST_E2E_USER}:${env.GITEA_TEST_E2E_PASSWORD}`)}`},
   });
   expect(response.ok()).toBeTruthy();
 });
 
 test('register with existing username shows error', async ({page}) => {
-  await page.getByLabel('Username').fill('e2e');
+  await page.getByLabel('Username').fill('e2e-user');
   await page.getByLabel('Email Address').fill('e2e-duplicate@e2e.gitea.com');
   await page.getByLabel('Password', {exact: true}).fill('password123!');
   await page.getByLabel('Confirm Password').fill('password123!');

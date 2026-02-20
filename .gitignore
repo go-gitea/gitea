@@ -55,6 +55,7 @@ cpu.out
 *.log.*.gz
 
 /gitea
+/gitea-e2e
 /gitea-vet
 /debug
 /integrations.test
