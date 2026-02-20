@@ -110,3 +110,33 @@ func TestToTrackedTimeListRespectsPermissions(t *testing.T) {
 	assert.Len(t, visibleAdmin, 2)
 	assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{visibleAdmin[0].Issue.Repo.Name, visibleAdmin[1].Issue.Repo.Name})
 }
+
+func TestToTrackedTimeListSkipsUnloadedIssues(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	publicIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1})
+	regularUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+	publicTT := &issues_model.TrackedTime{IssueID: publicIssue.ID, UserID: regularUser.ID, Time: 3600}
+	assert.NoError(t, db.Insert(ctx, publicTT))
+
+	trackedTimes := issues_model.TrackedTimeList{publicTT}
+	visible := ToTrackedTimeList(ctx, regularUser, trackedTimes)
+	assert.Empty(t, visible)
+}
+
+func TestToTrackedTimeListSkipsRepoLoadErrors(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	regularUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+	trackedTimes := issues_model.TrackedTimeList{
+		{
+			Issue: &issues_model.Issue{RepoID: 999999, IsPull: false},
+		},
+	}
+	visible := ToTrackedTimeList(ctx, regularUser, trackedTimes)
+	assert.Empty(t, visible)
+}
