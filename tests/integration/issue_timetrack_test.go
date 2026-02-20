@@ -24,7 +24,9 @@ func TestIssueTimeDeleteScoped(t *testing.T) {
 
 	session := loginUser(t, issue1.Repo.OwnerName)
 	url := fmt.Sprintf("/%s/%s/issues/%d/times/%d/delete", issue1.Repo.OwnerName, issue1.Repo.Name, issue1.Index, tracked.ID)
-	req := NewRequestWithValues(t, "POST", url, map[string]string{})
+	req := NewRequestWithValues(t, "POST", url, map[string]string{
+		"_csrf": GetUserCSRFToken(t, session),
+	})
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	tracked = unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{ID: tracked.ID})
