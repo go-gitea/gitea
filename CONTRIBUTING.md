@@ -296,12 +296,15 @@ This means that all changes are joined into a single new commit whose message is
 
 ### Reviewing PRs
 
-Maintainers are welcome to review the PRs they are familiar with or interested in. When reviewing, please keep the following in mind:
+Maintainers are encouraged to review pull requests in areas where they have expertise or particular interest. When reviewing, please keep the following principles in mind:
 
-- Verify that the PR summary, tests, and documentation match the change and are complete.
-- Prefer actionable feedback: state what needs to change and why, and separate required changes from suggestions.
-- If you block a PR (request changes), you must provide a clear reason and, when possible, a concrete path to resolve it.
-- Use approvals only when you are satisfied with the current state of the PR.
+- Ensure the PR summary accurately reflects the changes, and verify that the tests and documentation are complete and aligned with the implementation.
+
+- Provide actionable feedback. Clearly explain what needs to be changed and why, and distinguish between required changes and optional suggestions.
+
+- If you request changes (i.e., block a PR), you must provide a clear rationale and, whenever possible, outline a concrete path to resolution. Reviews that do not include sufficient explanation are not constructive and may be disregarded.
+
+- Only approve a PR when you are fully satisfied with its current state.
 
 ### Getting PRs merged
 
