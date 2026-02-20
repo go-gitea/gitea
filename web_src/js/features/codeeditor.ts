@@ -197,15 +197,16 @@ function getFileBasedOptions(filename: string, lineWrapExts: string[]): MonacoOp
 }
 
 function togglePreviewDisplay(previewable: boolean): void {
+  // FIXME: here and below, the selector is too broad, it should only query in the editor related scope
   const previewTab = document.querySelector<HTMLElement>('a[data-tab="preview"]');
-  if (!previewTab) return; // TODO: it shouldn't need such check, previewTab must exist
+  // the "preview tab" exists for "file code editor", but doesn't exist for "git hook editor"
+  if (!previewTab) return;
 
   toggleElem(previewTab, previewable);
   if (!previewable) {
     // If the "preview" tab was active, user changes the filename to a non-previewable one,
     // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
     if (previewTab.classList.contains('active')) {
-      // FIXME: this selector is too broad, it should only query in the editor related scope
       const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
       writeTab?.click(); // TODO: it shouldn't need null-safe operator, writeTab must exist
     }
