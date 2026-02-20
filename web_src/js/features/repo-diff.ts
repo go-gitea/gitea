@@ -299,14 +299,29 @@ async function expandAllLines(btn: HTMLElement, fileBox: HTMLElement) {
 
   btn.classList.add('disabled');
   try {
-    // Loop: expand all collapsed sections until none remain.
-    // Each round fetches all current expander URLs in parallel, replaces their
-    // target <tr> rows with the response rows, then rescans for new expanders
-    // that may have appeared in the inserted content.
-    while (true) {
-      const expanders = collectExpanderButtons(fileBody, true);
-      if (expanders.length === 0) break;
-      await Promise.all(expanders.map(({tr, url}) => fetchBlobExcerpt(tr, url)));
+    const expanders = collectExpanderButtons(fileBody, true);
+    if (expanders.length === 0) return;
+
+    if (expanders.length === 1) {
+      await fetchBlobExcerpt(expanders[0].tr, expanders[0].url);
+    } else {
+      // Batch mode: join per-gap params with commas into a single request
+      const parsed = expanders.map(({url}) => new URL(url, window.location.origin));
+      const batchParams = new URLSearchParams();
+      for (const key of ['last_left', 'last_right', 'left', 'right', 'left_hunk_size', 'right_hunk_size']) {
+        batchParams.set(key, parsed.map((u) => u.searchParams.get(key) ?? '0').join(','));
+      }
+      for (const [key, val] of parsed[0].searchParams) {
+        if (!batchParams.has(key)) batchParams.set(key, val);
+      }
+      batchParams.set('direction', 'full');
+
+      const htmlArray: string[] = await (await GET(`${parsed[0].pathname}?${batchParams}`)).json();
+      for (const [index, html] of htmlArray.entries()) {
+        const tempTbody = document.createElement('tbody');
+        tempTbody.innerHTML = html;
+        expanders[index].tr.replaceWith(...tempTbody.children);
+      }
     }
   } finally {
     btn.classList.remove('disabled');

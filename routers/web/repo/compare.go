@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"bytes"
 	gocontext "context"
 	"encoding/csv"
 	"errors"
@@ -12,6 +13,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -746,6 +748,20 @@ func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64
 	}
 }
 
+// splitInts splits a comma-separated string of integers into a slice.
+func splitInts(s string) ([]int, error) {
+	parts := strings.Split(s, ",")
+	result := make([]int, len(parts))
+	for i, p := range parts {
+		v, err := strconv.Atoi(strings.TrimSpace(p))
+		if err != nil {
+			return nil, err
+		}
+		result[i] = v
+	}
+	return result, nil
+}
+
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
@@ -776,6 +792,13 @@ func ExcerptBlob(ctx *context.Context) {
 			return
 		}
 		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
+	}
+
+	// Batch mode: if last_left contains a comma, treat all per-gap params as
+	// comma-separated lists and return a JSON array of HTML strings.
+	if strings.Contains(ctx.FormString("last_left"), ",") {
+		excerptBlobBatch(ctx, gitRepo, commitID, filePath, opts.Language, diffBlobExcerptData)
+		return
 	}
 
 	commit, err := gitRepo.GetCommit(commitID)
@@ -838,4 +861,129 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
+}
+
+func excerptBlobBatch(ctx *context.Context, gitRepo *git.Repository, commitID, filePath, language string, diffBlobExcerptData *gitdiff.DiffBlobExcerptData) {
+	lastLefts, err := splitInts(ctx.FormString("last_left"))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "invalid last_left values")
+		return
+	}
+	lastRights, err := splitInts(ctx.FormString("last_right"))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "invalid last_right values")
+		return
+	}
+	lefts, err := splitInts(ctx.FormString("left"))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "invalid left values")
+		return
+	}
+	rights, err := splitInts(ctx.FormString("right"))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "invalid right values")
+		return
+	}
+	leftHunkSizes, err := splitInts(ctx.FormString("left_hunk_size"))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "invalid left_hunk_size values")
+		return
+	}
+	rightHunkSizes, err := splitInts(ctx.FormString("right_hunk_size"))
+	if err != nil {
+		ctx.HTTPError(http.StatusBadRequest, "invalid right_hunk_size values")
+		return
+	}
+
+	n := len(lastLefts)
+	if len(lastRights) != n || len(lefts) != n || len(rights) != n || len(leftHunkSizes) != n || len(rightHunkSizes) != n {
+		ctx.HTTPError(http.StatusBadRequest, "all per-gap parameter arrays must have the same length")
+		return
+	}
+
+	commit, err := gitRepo.GetCommit(commitID)
+	if err != nil {
+		ctx.ServerError("GetCommit", err)
+		return
+	}
+	blob, err := commit.Tree.GetBlobByPath(filePath)
+	if err != nil {
+		ctx.ServerError("GetBlobByPath", err)
+		return
+	}
+	reader, err := blob.DataAsync()
+	if err != nil {
+		ctx.ServerError("DataAsync", err)
+		return
+	}
+	blobData, err := io.ReadAll(reader)
+	reader.Close()
+	if err != nil {
+		ctx.ServerError("ReadAll", err)
+		return
+	}
+
+	diffBlobExcerptData.PullIssueIndex = ctx.FormInt64("pull_issue_index")
+	var lineComments map[int64][]*issues_model.Comment
+	if diffBlobExcerptData.PullIssueIndex > 0 {
+		if !ctx.Repo.CanRead(unit.TypePullRequests) {
+			ctx.NotFound(nil)
+			return
+		}
+		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, diffBlobExcerptData.PullIssueIndex)
+		if err != nil {
+			log.Error("GetIssueByIndex error: %v", err)
+		} else if issue.IsPull {
+			ctx.Data["Issue"] = issue
+			ctx.Data["CanBlockUser"] = func(blocker, blockee *user_model.User) bool {
+				return user_service.CanBlockUser(ctx, ctx.Doer, blocker, blockee)
+			}
+			ctx.Data["PageIsPullFiles"] = true
+			ctx.Data["AfterCommitID"] = diffBlobExcerptData.AfterCommitID
+			allComments, err := issues_model.FetchCodeComments(ctx, issue, ctx.Doer, ctx.FormBool("show_outdated"))
+			if err != nil {
+				log.Error("FetchCodeComments error: %v", err)
+			} else {
+				lineComments = allComments[filePath]
+			}
+		}
+	}
+
+	ctx.Data["FileNameHash"] = git.HashFilePathForWebUI(filePath)
+	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
+
+	htmlStrings := make([]string, n)
+	for i := range n {
+		opts := gitdiff.BlobExcerptOptions{
+			LastLeft:      lastLefts[i],
+			LastRight:     lastRights[i],
+			LeftIndex:     lefts[i],
+			RightIndex:    rights[i],
+			LeftHunkSize:  leftHunkSizes[i],
+			RightHunkSize: rightHunkSizes[i],
+			Direction:     "full",
+			Language:      language,
+		}
+
+		section, err := gitdiff.BuildBlobExcerptDiffSection(filePath, bytes.NewReader(blobData), opts)
+		if err != nil {
+			ctx.ServerError("BuildBlobExcerptDiffSection", err)
+			return
+		}
+
+		if lineComments != nil {
+			attachCommentsToLines(section, lineComments)
+			attachHiddenCommentIDs(section, lineComments)
+		}
+
+		ctx.Data["section"] = section
+		html, err := ctx.RenderToHTML(tplBlobExcerpt, ctx.Data)
+		if err != nil {
+			ctx.ServerError("RenderToHTML", err)
+			return
+		}
+		htmlStrings[i] = string(html)
+	}
+
+	ctx.JSON(http.StatusOK, htmlStrings)
 }
