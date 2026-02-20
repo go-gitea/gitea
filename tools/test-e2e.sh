@@ -71,20 +71,23 @@ done
 
 echo "Gitea server is ready at $E2E_URL"
 
-# Create admin test user
-GITEA_TEST_E2E_USER="e2e-user"
-GITEA_TEST_E2E_EMAIL="e2e-user@e2e.gitea.com"
+GITEA_TEST_E2E_DOMAIN="e2e.gitea.com"
+GITEA_TEST_E2E_USER="e2e-admin"
 GITEA_TEST_E2E_PASSWORD="password"
+GITEA_TEST_E2E_EMAIL="$GITEA_TEST_E2E_USER@$GITEA_TEST_E2E_DOMAIN"
+
+# Create admin test user
 "./$EXECUTABLE" admin user create \
   --username "$GITEA_TEST_E2E_USER" \
-  --email "$GITEA_TEST_E2E_EMAIL" \
   --password "$GITEA_TEST_E2E_PASSWORD" \
+  --email "$GITEA_TEST_E2E_EMAIL" \
   --must-change-password=false \
   --admin
 
 export GITEA_TEST_E2E_URL="$E2E_URL"
+export GITEA_TEST_E2E_DOMAIN
 export GITEA_TEST_E2E_USER
-export GITEA_TEST_E2E_EMAIL
 export GITEA_TEST_E2E_PASSWORD
+export GITEA_TEST_E2E_EMAIL
 
 pnpm exec playwright test "$@"

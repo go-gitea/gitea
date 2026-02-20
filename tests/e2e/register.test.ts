@@ -24,7 +24,7 @@ test('register with empty fields shows error', async ({page}) => {
 
 test('register with mismatched passwords shows error', async ({page}) => {
   await page.getByLabel('Username').fill('e2e-register-mismatch');
-  await page.getByLabel('Email Address').fill('e2e-register-mismatch@e2e.gitea.com');
+  await page.getByLabel('Email Address').fill(`e2e-register-mismatch@${env.GITEA_TEST_E2E_DOMAIN}`);
   await page.getByLabel('Password', {exact: true}).fill('password123!');
   await page.getByLabel('Confirm Password').fill('different123!');
   await page.getByRole('button', {name: 'Register Account'}).click();
@@ -33,7 +33,7 @@ test('register with mismatched passwords shows error', async ({page}) => {
 
 test('register then login', async ({page}) => {
   const username = `e2e-register-${Date.now()}`;
-  const email = `${username}@e2e.gitea.com`;
+  const email = `${username}@${env.GITEA_TEST_E2E_DOMAIN}`;
   const password = 'password123!';
 
   await page.getByLabel('Username').fill(username);
@@ -57,8 +57,8 @@ test('register then login', async ({page}) => {
 });
 
 test('register with existing username shows error', async ({page}) => {
-  await page.getByLabel('Username').fill('e2e-user');
-  await page.getByLabel('Email Address').fill('e2e-duplicate@e2e.gitea.com');
+  await page.getByLabel('Username').fill(env.GITEA_TEST_E2E_USER);
+  await page.getByLabel('Email Address').fill(`e2e-duplicate@${env.GITEA_TEST_E2E_DOMAIN}`);
   await page.getByLabel('Password', {exact: true}).fill('password123!');
   await page.getByLabel('Confirm Password').fill('password123!');
   await page.getByRole('button', {name: 'Register Account'}).click();
