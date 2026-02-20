@@ -53,9 +53,11 @@ endif
 ifeq ($(IS_WINDOWS),yes)
 	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
+	EXECUTABLE_E2E ?= gitea-e2e.exe
 else
 	GOFLAGS := -v
 	EXECUTABLE ?= gitea
+	EXECUTABLE_E2E ?= gitea-e2e
 endif
 
 ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
@@ -200,7 +202,7 @@ clean-all: clean ## delete backend, frontend and integration files
 
 .PHONY: clean
 clean: ## delete backend and integration files
-	rm -rf $(EXECUTABLE) gitea-e2e $(DIST) $(BINDATA_DEST_WILDCARD) \
+	rm -rf $(EXECUTABLE) $(EXECUTABLE_E2E) $(DIST) $(BINDATA_DEST_WILDCARD) \
 		integrations*.test \
 		tests/integration/gitea-integration-* \
 		tests/integration/indexers-* \
@@ -534,9 +536,8 @@ playwright: deps-frontend
 	@$(NODE_VARS) pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium $(if $(CI),firefox) $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
-test-e2e: playwright
-	@CGO_ENABLED=1 $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TEST_TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o gitea-e2e
-	@EXECUTABLE=gitea-e2e ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
+test-e2e: playwright $(EXECUTABLE_E2E)
+	@EXECUTABLE=$(EXECUTABLE_E2E) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
@@ -669,6 +670,9 @@ ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
   $(error pam support set via TAGS does not support static builds)
 endif
 	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
+
+$(EXECUTABLE_E2E): $(GO_SOURCES)
+	CGO_ENABLED=1 $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TEST_TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
