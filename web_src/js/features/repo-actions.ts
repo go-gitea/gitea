@@ -8,7 +8,7 @@ export function initRepositoryActionView() {
   // TODO: the parent element's full height doesn't work well now,
   // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
   const parentFullHeight = document.querySelector<HTMLElement>('body > div.full.height');
-  if (parentFullHeight) parentFullHeight.style.paddingBottom = '0';
+  if (parentFullHeight) parentFullHeight.classList.add('tw-pb-0');
 
   const view = createApp(RepoActionView, {
     runIndex: el.getAttribute('data-run-index'),
