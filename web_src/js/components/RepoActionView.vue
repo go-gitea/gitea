@@ -603,7 +603,7 @@ export default defineComponent({
         <WorkflowGraph
           v-if="showSummary && run.jobs.length > 1"
           :jobs="run.jobs"
-          :current-job-id="parseInt(jobIndex)"
+          :current-job-idx="parseInt(jobIndex)"
           class="workflow-graph-container"
         />
 
@@ -867,14 +867,14 @@ export default defineComponent({
 
 .action-view-right {
   flex: 1;
-  color: var(--color-text);
+  color: var(--color-console-fg-subtle);
   max-height: 100%;
   width: 70%;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--color-secondary);
+  border: 1px solid var(--color-console-border);
   border-radius: var(--border-radius);
-  background: var(--color-body);
+  background: var(--color-console-bg);
   align-self: flex-start;
 }
 
@@ -883,17 +883,17 @@ export default defineComponent({
 .action-view-right .ui.button,
 .action-view-right .ui.button:focus {
   background: transparent;
-  color: var(--color-text);
+  color: var(--color-console-fg-subtle);
 }
 
 .action-view-right .ui.button:hover {
-  background: var(--color-hover);
-  color: var(--color-text);
+  background: var(--color-console-hover-bg);
+  color: var(--color-console-fg);
 }
 
 .action-view-right .ui.button:active {
-  background: var(--color-active);
-  color: var(--color-text);
+  background: var(--color-console-active-bg);
+  color: var(--color-console-fg);
 }
 
 /* end fomantic button overrides */
@@ -901,31 +901,31 @@ export default defineComponent({
 /* begin fomantic dropdown menu overrides */
 
 .action-view-right .ui.dropdown .menu {
-  background: var(--color-menu);
-  border-color: var(--color-secondary);
+  background: var(--color-console-menu-bg);
+  border-color: var(--color-console-menu-border);
 }
 
 .action-view-right .ui.dropdown .menu > .item {
-  color: var(--color-text);
+  color: var(--color-console-fg);
 }
 
 .action-view-right .ui.dropdown .menu > .item:hover {
-  color: var(--color-text);
-  background: var(--color-hover);
+  color: var(--color-console-fg);
+  background: var(--color-console-hover-bg);
 }
 
 .action-view-right .ui.dropdown .menu > .item:active {
-  color: var(--color-text);
-  background: var(--color-active);
+  color: var(--color-console-fg);
+  background: var(--color-console-active-bg);
 }
 
 .action-view-right .ui.dropdown .menu > .divider {
-  border-top-color: var(--color-secondary-alpha-30);
+  border-top-color: var(--color-console-menu-border);
 }
 
 .action-view-right .ui.pointing.dropdown > .menu:not(.hidden)::after {
-  background: var(--color-menu);
-  box-shadow: -1px -1px 0 0 var(--color-secondary);
+  background: var(--color-console-menu-bg);
+  box-shadow: -1px -1px 0 0 var(--color-console-menu-border);
 }
 
 /* end fomantic dropdown menu overrides */
@@ -939,7 +939,7 @@ export default defineComponent({
   top: 0;
   height: 60px;
   z-index: 1; /* above .job-step-container */
-  background: var(--color-body);
+  background: var(--color-console-bg);
   border-radius: 3px;
 }
 
@@ -948,13 +948,13 @@ export default defineComponent({
 }
 
 .job-info-header .job-info-header-title {
-  color: var(--color-text);
+  color: var(--color-console-fg);
   font-size: 16px;
   margin: 0;
 }
 
 .job-info-header .job-info-header-detail {
-  color: var(--color-text);
+  color: var(--color-console-fg-subtle);
   font-size: 12px;
 }
 
@@ -965,7 +965,7 @@ export default defineComponent({
 .job-step-container {
   max-height: 100%;
   border-radius: 0 0 var(--border-radius) var(--border-radius);
-  border-top: 1px solid var(--color-secondary);
+  border-top: 1px solid var(--color-console-border);
   z-index: 0;
 }
 
@@ -981,8 +981,8 @@ export default defineComponent({
 }
 
 .job-step-container .job-step-summary.step-expandable:hover {
-  color: var(--color-text);
-  background: var(--color-hover);
+  color: var(--color-console-fg);
+  background: var(--color-console-hover-bg);
 }
 
 .job-step-container .job-step-summary .step-summary-msg {
@@ -994,8 +994,8 @@ export default defineComponent({
 }
 
 .job-step-container .job-step-summary.selected {
-  color: var(--color-text);
-  background-color: var(--color-active);
+  color: var(--color-console-fg);
+  background-color: var(--color-console-active-bg);
   position: sticky;
   top: 60px;
 }
@@ -1031,7 +1031,7 @@ export default defineComponent({
 
 .job-log-line:hover,
 .job-log-line:target {
-  background-color: var(--color-hover);
+  background-color: var(--color-console-hover-bg);
 }
 
 .job-log-line:target {

@@ -35,9 +35,6 @@
       ref="container"
       @wheel="handleWheel"
       @mousedown="handleMouseDown"
-      @mousemove="handleMouseMove"
-      @mouseup="handleMouseUp"
-      @mouseleave="handleMouseLeave"
       :class="{ 'dragging': isDragging }"
     >
       <svg
@@ -66,7 +63,7 @@
           :key="job.id"
           class="job-node-group"
           :class="{
-            'current-job': job.index === currentJobId
+            'current-job': job.index === currentJobIdx
           }"
           @click="onNodeClick(job, $event)"
           @mouseenter="handleNodeMouseEnter(job)"
@@ -79,8 +76,8 @@
             :height="nodeHeight"
             rx="8"
             :fill="getNodeColor(job.status)"
-            :stroke="job.index === currentJobId ? 'var(--color-primary)' : 'var(--color-card-border)'"
-            :stroke-width="job.index === currentJobId ? '3' : '2'"
+            :stroke="job.index === currentJobIdx ? 'var(--color-primary)' : 'var(--color-card-border)'"
+            :stroke-width="job.index === currentJobIdx ? '3' : '2'"
             class="job-rect"
           />
 
@@ -278,7 +275,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 
 interface Job {
   id: number
@@ -310,7 +307,7 @@ interface BezierEdge extends Edge {
 
 const props = defineProps<{
   jobs: Job[]
-  currentJobId?: number
+  currentJobIdx?: number
 }>()
 
 const scale = ref(1)
@@ -322,6 +319,53 @@ const lastMousePos = ref({ x: 0, y: 0 })
 const animationFrameId = ref<number | null>(null)
 const container = ref<HTMLElement | null>(null)
 const hoveredJobId = ref<number | null>(null)
+
+// Генерация ключа для localStorage на основе runId (для всего workflow)
+const getStorageKey = () => {
+  // Получаем runId из URL
+  const runMatch = window.location.pathname.match(/\/runs\/(\d+)/)
+  const runId = runMatch ? runMatch[1] : 'unknown'
+  return `workflow-graph-view-${runId}`
+}
+
+// Загрузка сохраненного состояния из localStorage
+const loadSavedState = () => {
+  try {
+    const saved = localStorage.getItem(getStorageKey())
+    if (saved) {
+      const state = JSON.parse(saved)
+      if (state.scale !== undefined) scale.value = state.scale
+      if (state.translateX !== undefined) translateX.value = state.translateX
+      if (state.translateY !== undefined) translateY.value = state.translateY
+    }
+  } catch (e) {
+    console.error('Failed to load workflow graph state from localStorage:', e)
+  }
+}
+
+// Сохранение текущего состояния в localStorage
+const saveState = () => {
+  try {
+    const state = {
+      scale: scale.value,
+      translateX: translateX.value,
+      translateY: translateY.value
+    }
+    localStorage.setItem(getStorageKey(), JSON.stringify(state))
+  } catch (e) {
+    console.error('Failed to save workflow graph state to localStorage:', e)
+  }
+}
+
+// Загрузка сохраненного состояния при монтировании
+onMounted(() => {
+  loadSavedState()
+})
+
+// Сохранение состояния при изменении translateX, translateY или scale
+watch([translateX, translateY, scale], () => {
+  saveState()
+})
 
 const nodeWidth = computed(() => {
   const maxNameLength = Math.max(...props.jobs.map(j => j.name.length))
@@ -534,9 +578,11 @@ function handleMouseDown(event: MouseEvent) {
   }
 
   document.body.style.userSelect = 'none'
+  document.addEventListener('mouseup', handleMouseUpOnDocument)
+  document.addEventListener('mousemove', handleMouseMoveOnDocument)
 }
 
-function handleMouseMove(event: MouseEvent) {
+function handleMouseMoveOnDocument(event: MouseEvent) {
   if (!isDragging.value) return
 
   if (animationFrameId.value !== null) {
@@ -554,7 +600,9 @@ function handleMouseMove(event: MouseEvent) {
   })
 }
 
-function handleMouseUp() {
+function handleMouseUpOnDocument() {
+  if (!isDragging.value) return
+
   if (animationFrameId.value !== null) {
     cancelAnimationFrame(animationFrameId.value)
     animationFrameId.value = null
@@ -567,10 +615,8 @@ function handleMouseUp() {
   }
 
   document.body.style.userSelect = ''
-}
-
-function handleMouseLeave() {
-  handleMouseUp()
+  document.removeEventListener('mouseup', handleMouseUpOnDocument)
+  document.removeEventListener('mousemove', handleMouseMoveOnDocument)
 }
 
 function handleNodeMouseEnter(job: JobNode) {
@@ -854,7 +900,7 @@ function computeJobLevels(jobs: Job[]): Map<string, number> {
 }
 
 function onNodeClick(job: JobNode, event?: MouseEvent) {
-  if (job.index === props.currentJobId) {
+  if (job.index === props.currentJobIdx) {
     return
   }
 
@@ -893,12 +939,11 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
 
 <style scoped>
 .workflow-graph {
-  margin: 20px 0;
-  padding: 20px;
+  padding: 5px 12px;
   background: var(--color-box-body);
-  border-radius: 12px;
+  /* border-radius: 12px;
   border: 1px solid var(--color-secondary-alpha-20);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); */
   position: relative;
 }
 
@@ -987,8 +1032,7 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
 
 .graph-container {
   overflow: auto;
-  padding: 10px;
-  margin: -10px;
+  padding: 12px;
   border-radius: 8px;
   background: var(--color-body);
   cursor: grab;
@@ -1005,7 +1049,6 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
 
 .graph-svg {
   display: block;
-  transition: transform 0.1s ease;
   will-change: transform;
 }
 
