@@ -1,6 +1,6 @@
 import tinycolor from 'tinycolor2';
 import {basename, extname, isObject, isDarkTheme} from '../utils.ts';
-import {hideElem, onInputDebounce, showElem} from '../utils/dom.ts';
+import {onInputDebounce, toggleElem} from '../utils/dom.ts';
 import type MonacoNamespace from 'monaco-editor';
 
 type Monaco = typeof MonacoNamespace;
@@ -198,17 +198,16 @@ function getFileBasedOptions(filename: string, lineWrapExts: string[]): MonacoOp
 
 function togglePreviewDisplay(previewable: boolean): void {
   const previewTab = document.querySelector<HTMLElement>('a[data-tab="preview"]');
-  if (!previewTab) return;
+  if (!previewTab) return; // TODO: it shouldn't need such check, previewTab must exist
 
-  if (previewable) {
-    showElem(previewTab);
-  } else {
-    hideElem(previewTab);
+  toggleElem(previewTab, previewable);
+  if (!previewable) {
     // If the "preview" tab was active, user changes the filename to a non-previewable one,
     // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
     if (previewTab.classList.contains('active')) {
+      // FIXME: this selector is too broad, it should only query in the editor related scope
       const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
-      writeTab?.click();
+      writeTab?.click(); // TODO: it shouldn't need null-safe operator, writeTab must exist
     }
   }
 }
