@@ -42,7 +42,7 @@ type CreateRepoForm struct {
 	ProtectedBranch bool
 
 	ForkSingleBranch string `binding:"MaxSize(255)"`
-	ObjectFormatName string `binding:"In(sha1,sha256)"`
+	ObjectFormatName string
 }
 
 // Validate validates the fields

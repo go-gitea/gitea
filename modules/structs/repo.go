@@ -150,7 +150,7 @@ type CreateRepoOption struct {
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
 	// TrustModel of the repository
 	// enum: default,collaborator,committer,collaboratorcommitter
-	TrustModel string `json:"trust_model" binding:"In(default,collaborator,committer,collaboratorcommitter)"`
+	TrustModel string `json:"trust_model"`
 	// ObjectFormatName of the underlying git repository, empty string for default (sha1)
 	// enum: sha1,sha256
 	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
