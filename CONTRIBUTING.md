@@ -294,6 +294,15 @@ This reduces unnecessary CI runs. \
 Don't worry about merge commits messing up your commit history as every PR will be squash merged. \
 This means that all changes are joined into a single new commit whose message is as described below.
 
+### Reviewing PRs
+
+Maintainers are welcome to review the PRs they are familiar with or interested in. When reviewing, please keep the following in mind:
+
+- Verify that the PR summary, tests, and documentation match the change and are complete.
+- Prefer actionable feedback: state what needs to change and why, and separate required changes from suggestions.
+- If you block a PR (request changes), you must provide a clear reason and, when possible, a concrete path to resolve it.
+- Use approvals only when you are satisfied with the current state of the PR.
+
 ### Getting PRs merged
 
 Changes to Gitea must be reviewed before they are accepted — no matter who
