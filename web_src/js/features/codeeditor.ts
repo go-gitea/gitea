@@ -1,4 +1,4 @@
-import tinycolor from 'tinycolor2';
+import {colord} from 'colord';
 import {basename, extname, isObject, isDarkTheme} from '../utils.ts';
 import {onInputDebounce, toggleElem} from '../utils/dom.ts';
 import type MonacoNamespace from 'monaco-editor';
@@ -94,7 +94,7 @@ function updateTheme(monaco: Monaco): void {
   // https://github.com/microsoft/monaco-editor/issues/2427
   // also, monaco can only parse 6-digit hex colors, so we convert the colors to that format
   const styles = window.getComputedStyle(document.documentElement);
-  const getColor = (name: string) => tinycolor(styles.getPropertyValue(name).trim()).toString('hex6');
+  const getColor = (name: string) => colord(styles.getPropertyValue(name).trim()).alpha(1).toHex();
 
   monaco.editor.defineTheme('gitea', {
     base: isDarkTheme() ? 'vs-dark' : 'vs',

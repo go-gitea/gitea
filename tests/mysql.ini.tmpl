@@ -1,3 +1,4 @@
+WORK_PATH = {{WORK_PATH}}
 APP_NAME = Gitea: Git with a cup of tea
 RUN_MODE = prod
 
@@ -11,13 +12,11 @@ SSL_MODE = disable
 
 [indexer]
 REPO_INDEXER_ENABLED = true
-REPO_INDEXER_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/indexers/repos.bleve
 ISSUE_INDEXER_TYPE = elasticsearch
 ISSUE_INDEXER_CONN_STR = http://elastic:changeme@elasticsearch:9200
 
 [queue.issue_indexer]
 TYPE = level
-DATADIR = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/indexers/issues.queue
 
 [queue]
 TYPE = immediate
@@ -31,15 +30,6 @@ TYPE = immediate
 [queue.webhook_sender]
 TYPE = immediate
 
-[repository]
-ROOT = {{REPO_TEST_DIR}}tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/gitea-repositories
-
-[repository.local]
-LOCAL_COPY_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/tmp/local-repo
-
-[repository.upload]
-TEMP_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/tmp/uploads
-
 [repository.signing]
 SIGNING_KEY = none
 
@@ -51,7 +41,6 @@ LOCAL_ROOT_URL   = http://127.0.0.1:3001/
 DISABLE_SSH      = false
 SSH_LISTEN_HOST  = localhost
 SSH_PORT         = 2201
-APP_DATA_PATH    = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/data
 BUILTIN_SSH_SERVER_USER = git
 START_SSH_SERVER = true
 OFFLINE_MODE     = false
@@ -63,7 +52,7 @@ SSH_TRUSTED_USER_CA_KEYS = ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCb4DC1dMFnJ6pXW
 [mailer]
 ENABLED = true
 PROTOCOL = dummy
-FROM = mysql-{{TEST_TYPE}}-test@gitea.io
+FROM = mysql-integration-test@gitea.io
 
 [service]
 REGISTER_EMAIL_CONFIRM            = false
@@ -82,11 +71,9 @@ ENABLE_FEDERATED_AVATAR       = false
 
 [session]
 PROVIDER        = file
-PROVIDER_CONFIG = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/data/sessions
 
 [log]
 MODE                 = {{TEST_LOGGER}}
-ROOT_PATH            = {{REPO_TEST_DIR}}mysql-log
 ENABLE_SSH_LOG       = true
 logger.xorm.MODE     = file
 
@@ -102,9 +89,6 @@ INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
 DISABLE_QUERY_AUTH_TOKEN = true
-
-[lfs]
-PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/data/lfs
 
 [packages]
 ENABLED = true
