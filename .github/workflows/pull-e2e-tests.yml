@@ -33,9 +33,9 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - run: make deps-frontend
       - run: make frontend
-      - run: make playwright
       - run: make deps-backend
       - run: make gitea-e2e
+      - run: make playwright
       - run: make test-e2e
         timeout-minutes: 10
         env:
