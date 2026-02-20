@@ -37,7 +37,7 @@ func TestMain(m *testing.M) {
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
-	tests.InitTest(false)
+	tests.InitTest()
 	testE2eWebRoutes = routers.NormalRoutes()
 
 	err := unittest.InitFixtures(
