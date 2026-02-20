@@ -5,7 +5,7 @@ set -euo pipefail
 WORK_DIR=$(mktemp -d)
 
 # Find a random free port
-FREE_PORT=$(node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{console.log(s.address().port);s.close()})")
+FREE_PORT=$(node -e "const s=require('net').createServer();s.listen(0,'127.0.0.1',()=>{process.stdout.write(String(s.address().port));s.close()})")
 
 cleanup() {
   if [ -n "${SERVER_PID:-}" ]; then
