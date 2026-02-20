@@ -203,13 +203,13 @@ function togglePreviewDisplay(previewable: boolean): void {
   if (!previewTab) return;
 
   toggleElem(previewTab, previewable);
-  if (!previewable) {
-    // If the "preview" tab was active, user changes the filename to a non-previewable one,
-    // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
-    if (previewTab.classList.contains('active')) {
-      const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
-      writeTab?.click(); // TODO: it shouldn't need null-safe operator, writeTab must exist
-    }
+  if (previewable) return;
+
+  // If not previewable but the "preview" tab was active (user changes the filename to a non-previewable one),
+  // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
+  if (previewTab.classList.contains('active')) {
+    const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
+    writeTab?.click(); // TODO: it shouldn't need null-safe operator, writeTab must exist
   }
 }
 
