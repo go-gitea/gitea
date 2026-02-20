@@ -535,7 +535,7 @@ playwright: deps-frontend
 
 .PHONY: test-e2e
 test-e2e: playwright
-	$(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TEST_TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o gitea-e2e
+	CGO_ENABLED=1 $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TEST_TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o gitea-e2e
 	@EXECUTABLE=gitea-e2e ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: bench-sqlite
