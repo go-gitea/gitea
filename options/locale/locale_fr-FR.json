@@ -3679,7 +3679,6 @@
   "actions.runs.delete.description": "Êtes-vous sûr de vouloir supprimer définitivement cette exécution ? Cette action ne peut pas être annulée.",
   "actions.runs.not_done": "Cette exécution du flux de travail n’est pas terminée.",
   "actions.runs.view_workflow_file": "Voir le fichier du flux de travail",
-  "actions.runs.dependency_graph": "Graphique des dépendances",
   "actions.workflow.disable": "Désactiver le flux de travail",
   "actions.workflow.disable_success": "Le flux de travail « %s » a bien été désactivé.",
   "actions.workflow.enable": "Activer le flux de travail",

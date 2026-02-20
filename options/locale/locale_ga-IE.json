@@ -3686,7 +3686,6 @@
   "actions.runs.delete.description": "An bhfuil tú cinnte gur mian leat an rith sreabha oibre seo a scriosadh go buan? Ní féidir an gníomh seo a chealú.",
   "actions.runs.not_done": "Níl an rith sreabha oibre seo críochnaithe.",
   "actions.runs.view_workflow_file": "Féach ar chomhad sreabha oibre",
-  "actions.runs.dependency_graph": "Graf na nDéanamh",
   "actions.workflow.disable": "Díchumasaigh sreabhadh oibre",
   "actions.workflow.disable_success": "D'éirigh le sreabhadh oibre '%s' a dhíchumasú.",
   "actions.workflow.enable": "Cumasaigh sreabhadh oibre",

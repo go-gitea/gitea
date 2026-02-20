@@ -2974,7 +2974,6 @@
   "actions.runs.no_workflows": "Δεν υπάρχουν ροές εργασίας ακόμα.",
   "actions.runs.no_runs": "Η ροή εργασίας δεν έχει τρέξει ακόμα.",
   "actions.runs.empty_commit_message": "(κενό μήνυμα υποβολής)",
-  "actions.runs.dependency_graph": "Γράφημα εξαρτήσεων",
   "actions.workflow.disable": "Απενεργοποίηση Ροής Εργασιών",
   "actions.workflow.disable_success": "Η ροή εργασίας '%s' απενεργοποιήθηκε επιτυχώς.",
   "actions.workflow.enable": "Ενεργοποίηση Ροής Εργασίας",

@@ -2189,6 +2189,5 @@
   "actions.runners.status.active": "ක්රියාකාරී",
   "actions.runners.version": "අනුවාදය",
   "actions.runs.commit": "කැප",
-  "actions.runs.dependency_graph": "ආශ්‍රිත ප්‍රස්ථාරය",
   "git.filemode.symbolic_link": "සංකේතාත්මක සබැඳිය"
 }

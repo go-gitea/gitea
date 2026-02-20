@@ -2377,6 +2377,5 @@
   "actions.runners.task_list.run": "Esegui",
   "actions.runners.status.active": "Attivo",
   "actions.runners.version": "Versione",
-  "actions.runs.dependency_graph": "Grafico delle dipendenze",
   "git.filemode.symbolic_link": "Link Simbolico"
 }

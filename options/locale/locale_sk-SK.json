@@ -1160,6 +1160,5 @@
   "actions.runners.task_list.repository": "Repozitár",
   "actions.runners.status.unspecified": "Neznámy",
   "actions.runners.version": "Verzia",
-  "actions.runs.dependency_graph": "Graf závislostí",
   "git.filemode.symbolic_link": "Symbolický odkaz"
 }

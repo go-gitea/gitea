@@ -3014,7 +3014,6 @@
   "actions.runs.no_workflows": "Vēl nav nevienas darbplūsmas.",
   "actions.runs.no_runs": "Darbplūsmai vēl nav nevienas izpildes.",
   "actions.runs.empty_commit_message": "(tukšs revīzijas ziņojums)",
-  "actions.runs.dependency_graph": "Atkarību grafiks",
   "actions.workflow.disable": "Atspējot darbplūsmu",
   "actions.workflow.disable_success": "Darbplūsma '%s' ir veiksmīgi atspējota.",
   "actions.workflow.enable": "Iespējot darbplūsmu",

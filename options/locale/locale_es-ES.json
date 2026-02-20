@@ -2933,7 +2933,6 @@
   "actions.runs.status_no_select": "Todo el estado",
   "actions.runs.no_results": "No hay resultados coincidentes.",
   "actions.runs.no_runs": "El flujo de trabajo no tiene ejecuciones todavía.",
-  "actions.runs.dependency_graph": "Gráfico de dependencias",
   "actions.workflow.disable": "Desactivar fllujo de trabajo",
   "actions.workflow.disable_success": "Flujo de trabajo '%s' deshabilitado correctamente.",
   "actions.workflow.enable": "Activar flujo de trabajo",

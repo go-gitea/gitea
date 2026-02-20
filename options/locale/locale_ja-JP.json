@@ -3694,7 +3694,6 @@
   "actions.runs.delete.description": "このワークフローを完全に削除してもよろしいですか？この操作は元に戻せません。",
   "actions.runs.not_done": "このワークフローの実行は完了していません。",
   "actions.runs.view_workflow_file": "ワークフローファイルを表示",
-  "actions.runs.dependency_graph": "依存関係グラフ",
   "actions.workflow.disable": "ワークフローを無効にする",
   "actions.workflow.disable_success": "ワークフロー '%s' が無効になりました。",
   "actions.workflow.enable": "ワークフローを有効にする",

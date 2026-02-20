@@ -3694,7 +3694,6 @@
   "actions.runs.delete.description": "Bu iş akışı çalışmasını kalıcı olarak silmek istediğinizden emin misiniz? Bu eylem geri alınamaz.",
   "actions.runs.not_done": "Bu iş akışı tamamlanmadı.",
   "actions.runs.view_workflow_file": "İş akışı dosyasını görüntüle",
-  "actions.runs.dependency_graph": "Bağımlılık grafiği",
   "actions.workflow.disable": "İş Akışını Devre Dışı Bırak",
   "actions.workflow.disable_success": "'%s' iş akışı başarıyla devre dışı bırakıldı.",
   "actions.workflow.enable": "İş Akışını Etkinleştir",

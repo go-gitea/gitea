@@ -2093,6 +2093,5 @@
   "actions.runners.task_list.run": "Uitvoeren",
   "actions.runners.task_list.repository": "Opslagplaats",
   "actions.runners.status.active": "Actief",
-  "actions.runners.version": "Versie",
-  "actions.runs.dependency_graph": "Afhankelijkheidsdiagram"
+  "actions.runners.version": "Versie"
 }
