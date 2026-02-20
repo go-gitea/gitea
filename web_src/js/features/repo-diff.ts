@@ -283,8 +283,10 @@ function initRepoDiffHashChangeListener() {
 const expandAllSavedState = new Map<string, HTMLElement>();
 
 async function fetchBlobExcerpt(tr: Element, url: string): Promise<void> {
+  const response = await GET(url);
+  if (!response.ok) throw new Error(`Failed to fetch blob excerpt: ${response.status}`);
   const tempTbody = document.createElement('tbody');
-  tempTbody.innerHTML = await (await GET(url)).text();
+  tempTbody.innerHTML = await response.text();
   tr.replaceWith(...tempTbody.children);
 }
 
@@ -316,13 +318,19 @@ async function expandAllLines(btn: HTMLElement, fileBox: HTMLElement) {
       }
       batchParams.set('direction', 'full');
 
-      const htmlArray: string[] = await (await GET(`${parsed[0].pathname}?${batchParams}`)).json();
+      const response = await GET(`${parsed[0].pathname}?${batchParams}`);
+      if (!response.ok) throw new Error(`Failed to fetch blob excerpts: ${response.status}`);
+      const htmlArray: string[] = await response.json();
       for (const [index, html] of htmlArray.entries()) {
         const tempTbody = document.createElement('tbody');
         tempTbody.innerHTML = html;
         expanders[index].tr.replaceWith(...tempTbody.children);
       }
     }
+  } catch (err) {
+    expandAllSavedState.delete(fileBox.id);
+    showErrorToast(`Failed to expand: ${err.message}`);
+    return;
   } finally {
     btn.classList.remove('disabled');
   }
@@ -385,8 +393,12 @@ function initDiffExpandAllLines() {
     }
   });
 
-  registerGlobalEventFunc('click', 'onExpanderButtonClick', (btn: HTMLElement) => {
-    fetchBlobExcerpt(btn.closest('tr')!, btn.getAttribute('data-url')!);
+  registerGlobalEventFunc('click', 'onExpanderButtonClick', async (btn: HTMLElement) => {
+    try {
+      await fetchBlobExcerpt(btn.closest('tr')!, btn.getAttribute('data-url')!);
+    } catch (err) {
+      showErrorToast(`Failed to expand: ${err.message}`);
+    }
   });
 }
 
