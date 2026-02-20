@@ -89,6 +89,9 @@ importers:
       clippie:
         specifier: 4.1.10
         version: 4.1.10
+      colord:
+        specifier: 2.9.3
+        version: 2.9.3
       compare-versions:
         specifier: 6.1.1
         version: 6.1.1
@@ -164,9 +167,6 @@ importers:
       throttle-debounce:
         specifier: 5.0.2
         version: 5.0.2
-      tinycolor2:
-        specifier: 1.6.0
-        version: 1.6.0
       tippy.js:
         specifier: 6.3.7
         version: 6.3.7
@@ -249,9 +249,6 @@ importers:
       '@types/throttle-debounce':
         specifier: 5.0.2
         version: 5.0.2
-      '@types/tinycolor2':
-        specifier: 1.4.6
-        version: 1.4.6
       '@types/toastify-js':
         specifier: 1.12.4
         version: 1.12.4
@@ -1296,9 +1293,6 @@ packages:
 
   '@types/throttle-debounce@5.0.2':
     resolution: {integrity: sha512-pDzSNulqooSKvSNcksnV72nk8p7gRqN8As71Sp28nov1IgmPKWbOEIwAWvBME5pPTtaXJAvG3O4oc76HlQ4kqQ==}
-
-  '@types/tinycolor2@1.4.6':
-    resolution: {integrity: sha512-iEN8J0BoMnsWBqjVbWH/c0G0Hh7O21lpR2/+PrvAVgWdzL7eexIFm4JN/Wn10PTcmNdtS6U67r499mlWMXOxNw==}
 
   '@types/toastify-js@1.12.4':
     resolution: {integrity: sha512-zfZHU4tKffPCnZRe7pjv/eFKzTVHozKewFCKaCjZ4gFinKgJRz/t0bkZiMCXJxPhv/ZoeDGNOeRD09R0kQZ/nw==}
@@ -4056,9 +4050,6 @@ packages:
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
 
-  tinycolor2@1.6.0:
-    resolution: {integrity: sha512-XPaBkWQJdsf3pLKJV9p4qN/S+fm2Oj8AIPo1BTUhg5oxkvm9+SVEGFdhyOz7tTdUTfvxMiAs4sp6/eZO2Ew+pw==}
-
   tinyexec@1.0.2:
     resolution: {integrity: sha512-W/KYk+NFhkmsYpuHq5JykngiOCnxeVL8v8dFnqxSD8qEEdRfXk1SDM6JzNqcERbcGYj9tMrDQBYV9cjgnunFIg==}
     engines: {node: '>=18'}
@@ -5240,8 +5231,6 @@ snapshots:
       '@types/estree': 1.0.8
 
   '@types/throttle-debounce@5.0.2': {}
-
-  '@types/tinycolor2@1.4.6': {}
 
   '@types/toastify-js@1.12.4': {}
 
@@ -8214,8 +8203,6 @@ snapshots:
   throttle-debounce@5.0.2: {}
 
   tinybench@2.9.0: {}
-
-  tinycolor2@1.6.0: {}
 
   tinyexec@1.0.2: {}
 
