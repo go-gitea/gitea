@@ -258,7 +258,12 @@ async function onLocationHashChange() {
         const attrAutoLoadClicked = 'data-auto-load-clicked';
         if (expandButton.hasAttribute(attrAutoLoadClicked)) return;
         expandButton.setAttribute(attrAutoLoadClicked, 'true');
-        await fetchBlobExcerpt(expandButton.closest('tr')!, expandButton.getAttribute('data-url')!);
+        try {
+          await fetchBlobExcerpt(expandButton.closest('tr')!, expandButton.getAttribute('data-url')!);
+        } catch (err) {
+          showErrorToast(`Failed to expand: ${err.message}`);
+          return;
+        }
         continue; // Try again to find the element
       }
     }
