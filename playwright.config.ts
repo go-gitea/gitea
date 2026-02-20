@@ -25,5 +25,11 @@ export default defineConfig({
         permissions: ['clipboard-read', 'clipboard-write'],
       },
     },
+    ...env.CI ? [{
+      name: 'firefox',
+      use: {
+        ...devices['Desktop Firefox'],
+      },
+    }] : [],
   ],
 });
