@@ -182,10 +182,10 @@ Here's how to run the test suite:
 
 - e2e test environment variables
 
-|  Variable       | Description                                                                 |
-| :-------------- | :-------------------------------------------------------------------------- |
-|``GITEA_TEST_E2E_DEBUG``    | When set, show Gitea server output                                          |
-|``GITEA_TEST_E2E_FLAGS``    | Additional flags passed to Playwright (e.g. ``--headed --debug``)           |
+| Variable                  | Description                                                       |
+| :------------------------ | :---------------------------------------------------------------- |
+| ``GITEA_TEST_E2E_DEBUG``  | When set, show Gitea server output                                |
+| ``GITEA_TEST_E2E_FLAGS``  | Additional flags passed to Playwright (e.g. ``--headed --debug``) |
 
 ## Translation
 
