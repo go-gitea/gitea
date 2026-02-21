@@ -125,6 +125,24 @@ func TestConsistencyUpdateAction(t *testing.T) {
 	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }
 
+func TestGetIssueContentBody(t *testing.T) {
+	tests := []struct {
+		content  string
+		expected string
+	}{
+		{content: "1|simple body", expected: "simple body"},
+		{content: "1|A -->|text| B", expected: "A -->|text| B"},
+		{content: "1|first|second|third", expected: "first|second|third"},
+		{content: "1|", expected: ""},
+		{content: "no-delimiter", expected: ""},
+		{content: "", expected: ""},
+	}
+	for _, test := range tests {
+		action := &activities_model.Action{Content: test.content}
+		assert.Equal(t, test.expected, action.GetIssueContentBody(), "content: %q", test.content)
+	}
+}
+
 func TestDeleteIssueActions(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 

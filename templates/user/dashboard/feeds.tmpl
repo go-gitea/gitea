@@ -108,7 +108,7 @@
 					<span class="text truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "comment_issue" "approve_pull_request" "reject_pull_request" "comment_pull"}}
 					<a href="{{.GetCommentLink ctx}}" class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
-					{{$comment := index .GetIssueInfos 1}}
+					{{$comment := .GetIssueContentBody}}
 					{{if $comment}}
 						<div class="render-content markup tw-text-14">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>
 					{{end}}

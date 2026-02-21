@@ -25,6 +25,41 @@ type actionNotifier struct {
 	notify_service.NullNotifier
 }
 
+// trimUnclosedCodeBlock removes a trailing unclosed fenced code block from a
+// truncated string. When content is cut at an arbitrary character limit, a
+// fenced code block (``` ...) may be left open, producing invalid Markdown that
+// the renderer tries (and fails) to process. This function detects the
+// situation and strips the partial block.
+func trimUnclosedCodeBlock(s string) string {
+	inBlock := false
+	lastOpenIdx := -1
+	i := 0
+	for i < len(s) {
+		lineStart := i
+		lineEnd := strings.Index(s[i:], "\n")
+		var line string
+		if lineEnd == -1 {
+			line = s[i:]
+			i = len(s)
+		} else {
+			line = s[i : i+lineEnd]
+			i = i + lineEnd + 1
+		}
+		if strings.HasPrefix(strings.TrimLeft(line, " "), "```") {
+			if !inBlock {
+				lastOpenIdx = lineStart
+				inBlock = true
+			} else {
+				inBlock = false
+			}
+		}
+	}
+	if inBlock && lastOpenIdx >= 0 {
+		return strings.TrimRight(s[:lastOpenIdx], " \t\n")
+	}
+	return s
+}
+
 var _ notify_service.Notifier = &actionNotifier{}
 
 func Init() error {
@@ -116,6 +151,9 @@ func (a *actionNotifier) CreateIssueComment(ctx context.Context, doer *user_mode
 		if lastSpaceIdx != -1 && (len(truncatedContent)-lastSpaceIdx < 15) {
 			truncatedContent = truncatedContent[:lastSpaceIdx] + "…"
 		}
+	}
+	if truncatedRight != "" {
+		truncatedContent = trimUnclosedCodeBlock(truncatedContent)
 	}
 	act.Content = fmt.Sprintf("%d|%s", issue.Index, truncatedContent)
 

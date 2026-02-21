@@ -372,6 +372,18 @@ func (a *Action) IsIssueEvent() bool {
 	return a.OpType.InActions("comment_issue", "approve_pull_request", "reject_pull_request", "comment_pull", "merge_pull_request")
 }
 
+// GetIssueContentBody returns the comment body from the action content.
+// Unlike GetIssueInfos which splits on "|" into 3 parts, this only splits on
+// the first "|" to preserve any "|" characters within the comment body
+// (e.g. Mermaid diagram syntax like "A -->|text| B").
+func (a *Action) GetIssueContentBody() string {
+	parts := strings.SplitN(a.Content, "|", 2)
+	if len(parts) < 2 {
+		return ""
+	}
+	return parts[1]
+}
+
 // GetIssueInfos returns a list of associated information with the action.
 func (a *Action) GetIssueInfos() []string {
 	// make sure it always returns 3 elements, because there are some access to the a[1] and a[2] without checking the length
