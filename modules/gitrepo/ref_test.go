@@ -1,14 +1,12 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package gitrepo
 
 import (
-	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,7 +14,7 @@ import (
 
 func TestUpdateRefWithOld(t *testing.T) {
 	ctx := t.Context()
-	baseRepoPath := filepath.Join(setting.GetGiteaTestSourceRoot(), "modules/git/tests/repos/repo1_bare")
+	baseRepoPath := "../git/tests/repos/repo1_bare"
 	tempDir := t.TempDir()
 
 	require.NoError(t, git.Clone(ctx, baseRepoPath, tempDir, git.CloneRepoOptions{Bare: true}))

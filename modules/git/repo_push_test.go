@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package git
@@ -37,7 +37,7 @@ func TestPushForceWithLease(t *testing.T) {
 	require.NoError(t, err)
 
 	createCommit(t, workB, "lease-b.txt", "b", "commit-b")
-	require.NoError(t, Push(ctx, workB, PushOptions{Remote: remotePath, Branch: "master"}))
+	require.NoError(t, Push(ctx, workB, PushOptions{Remote: remotePath, Branch: "master", Force: true}))
 
 	remoteRepo, err := OpenRepository(ctx, remotePath)
 	require.NoError(t, err)
