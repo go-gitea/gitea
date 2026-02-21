@@ -100,6 +100,8 @@ var (
 		Release struct {
 			AllowedTypes     string
 			DefaultPagingNum int
+			MaxFileSize      int64
+			MaxFiles         int64
 		} `ini:"repository.release"`
 
 		Signing struct {
@@ -241,9 +243,13 @@ var (
 		Release: struct {
 			AllowedTypes     string
 			DefaultPagingNum int
+			MaxFileSize      int64
+			MaxFiles         int64
 		}{
 			AllowedTypes:     "",
 			DefaultPagingNum: 10,
+			MaxFileSize:      2048, // Same defaults as attachment
+			MaxFiles:         5,
 		},
 
 		// Signing settings

@@ -4,13 +4,11 @@
 package setting
 
 type AttachmentSettingType struct {
-	Storage            *Storage
-	AllowedTypes       string
-	MaxSize            int64
-	ReleaseMaxFileSize int64
-	MaxFiles           int
-	ReleaseMaxFiles    int
-	Enabled            bool
+	Storage      *Storage
+	AllowedTypes string
+	MaxSize      int64
+	MaxFiles     int
+	Enabled      bool
 }
 
 var Attachment AttachmentSettingType
@@ -18,15 +16,9 @@ var Attachment AttachmentSettingType
 func loadAttachmentFrom(rootCfg ConfigProvider) (err error) {
 	Attachment = AttachmentSettingType{
 		AllowedTypes: ".avif,.cpuprofile,.csv,.dmp,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.json,.jsonc,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.patch,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.webp,.xls,.xlsx,.zip",
-
-		// FIXME: this size is used for both "issue attachment" and "release attachment"
-		// The design is not right, these two should be different settings
-		MaxSize:            2048,
-		ReleaseMaxFileSize: 2048,
-
-		MaxFiles:        5,
-		ReleaseMaxFiles: 5,
-		Enabled:         true,
+		MaxSize:      2048,
+		MaxFiles:     5,
+		Enabled:      true,
 	}
 	sec, _ := rootCfg.GetSection("attachment")
 	if sec == nil {
@@ -36,9 +28,7 @@ func loadAttachmentFrom(rootCfg ConfigProvider) (err error) {
 
 	Attachment.AllowedTypes = sec.Key("ALLOWED_TYPES").MustString(Attachment.AllowedTypes)
 	Attachment.MaxSize = sec.Key("MAX_SIZE").MustInt64(Attachment.MaxSize)
-	Attachment.MaxSize = sec.Key("RELEASE_MAX_SIZE").MustInt64(Attachment.MaxSize)
 	Attachment.MaxFiles = sec.Key("MAX_FILES").MustInt(Attachment.MaxFiles)
-	Attachment.MaxFiles = sec.Key("RELEASE_MAX_FILES").MustInt(Attachment.MaxFiles)
 	Attachment.Enabled = sec.Key("ENABLED").MustBool(Attachment.Enabled)
 	Attachment.Storage, err = getStorage(rootCfg, "attachments", "", sec)
 	return err
