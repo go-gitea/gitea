@@ -110,7 +110,7 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
 type LocaleStorageOptions = {
   autoScroll: boolean;
   expandRunning: boolean;
-  showSummary: boolean;
+  showWorkflowGraph: boolean;
   actionsLogShowSeconds: boolean;
   actionsLogShowTimestamps: boolean;
 };
@@ -142,8 +142,8 @@ export default defineComponent({
   },
 
   data() {
-    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false, showSummary: false, actionsLogShowSeconds: false, actionsLogShowTimestamps: false};
-    const {autoScroll, expandRunning, showSummary, actionsLogShowSeconds, actionsLogShowTimestamps} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
+    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false, showWorkflowGraph: false, actionsLogShowSeconds: false, actionsLogShowTimestamps: false};
+    const {autoScroll, expandRunning, showWorkflowGraph, actionsLogShowSeconds, actionsLogShowTimestamps} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
     return {
       // internal state
       loadingAbortController: null as AbortController | null,
@@ -152,7 +152,7 @@ export default defineComponent({
       artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
       isFullScreen: false,
-      showSummary: showSummary ?? false,
+      showWorkflowGraph: showWorkflowGraph ?? false,
       timeVisible: {
         'log-time-stamp': actionsLogShowTimestamps,
         'log-time-seconds': actionsLogShowSeconds,
@@ -220,7 +220,7 @@ export default defineComponent({
     optionAlwaysExpandRunning() {
       this.saveLocaleStorageOptions();
     },
-    showSummary() {
+    showWorkflowGraph() {
       this.saveLocaleStorageOptions();
     },
   },
@@ -267,7 +267,7 @@ export default defineComponent({
       const opts: LocaleStorageOptions = {
         autoScroll: this.optionAlwaysAutoScroll,
         expandRunning: this.optionAlwaysExpandRunning,
-        showSummary: this.showSummary,
+        showWorkflowGraph: this.showWorkflowGraph,
         actionsLogShowSeconds: this.timeVisible['log-time-seconds'],
         actionsLogShowTimestamps: this.timeVisible['log-time-stamp'],
       };
@@ -525,8 +525,8 @@ export default defineComponent({
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
         <div class="tw-flex tw-space-x-2">
-          <button class="ui basic small compact button primary tw-shrink-0" @click="showSummary = !showSummary" :class="{ active: showSummary }" v-if="run.jobs.length > 1">
-            {{ locale.dependencyGraph }}
+          <button class="ui basic small compact button primary tw-shrink-0" @click="showWorkflowGraph = !showWorkflowGraph" :class="{ active: showWorkflowGraph }" v-if="run.jobs.length > 1">
+            {{ locale.workflowGraph }}
           </button>
           <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
             {{ locale.approve }}
@@ -601,7 +601,7 @@ export default defineComponent({
 
       <div class="action-view-right">
         <WorkflowGraph
-          v-if="showSummary && run.jobs.length > 1"
+          v-if="showWorkflowGraph && run.jobs.length > 1"
           :jobs="run.jobs"
           :current-job-idx="parseInt(jobIndex)"
           class="workflow-graph-container"
@@ -717,34 +717,6 @@ export default defineComponent({
   margin: 0;
   flex: 1;
   overflow-wrap: anywhere;
-}
-
-.summary-toggle {
-  margin: 16px 0 8px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-secondary);
-}
-
-.summary-toggle .ui.button {
-  padding: 6px 12px;
-  border: 1px solid var(--color-secondary);
-  border-radius: 6px;
-  background: transparent;
-  color: var(--color-text);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.summary-toggle .ui.button:hover {
-  background: var(--color-hover);
-  border-color: var(--color-secondary);
-}
-
-.summary-toggle .ui.button.active {
-  background: var(--color-secondary-alpha-10);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
 }
 
 .action-info-summary .ui.button {

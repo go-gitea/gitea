@@ -22,7 +22,7 @@ export function initRepositoryActionView() {
       scheduled: el.getAttribute('data-locale-runs-scheduled'),
       commit: el.getAttribute('data-locale-runs-commit'),
       pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
-      dependencyGraph: el.getAttribute('data-locale-runs-dependency-graph'),
+      workflowGraph: el.getAttribute('data-locale-runs-workflow-graph'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),

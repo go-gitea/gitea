@@ -50,13 +50,13 @@ const lastMousePos = ref({ x: 0, y: 0 });
 const animationFrameId = ref<number | null>(null);
 const container = ref<HTMLElement | null>(null);
 const hoveredJobId = ref<number | null>(null);
-const STORAGE_KEY = 'workflow-graph-states';
-const MAX_STORED_STATES = 15;
+const storegeKey = 'workflow-graph-states';
+const maxStoredStates = 15;
 
 const loadSavedState = () => {
   try {
     const currentRunId = getCurrentRunId();
-    const allStates = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const allStates = JSON.parse(localStorage.getItem(storegeKey) || '{}');
     const saved = allStates[currentRunId];
 
     if (saved) {
@@ -83,7 +83,7 @@ const getCurrentRunId = () => {
 const saveState = () => {
   try {
     const currentRunId = getCurrentRunId();
-    const allStates = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') as Record<string, StoredState>;
+    const allStates = JSON.parse(localStorage.getItem(storegeKey) || '{}') as Record<string, StoredState>;
 
     allStates[currentRunId] = {
       scale: scale.value,
@@ -94,10 +94,10 @@ const saveState = () => {
 
     const sortedStates = Object.entries(allStates)
       .sort(([, a], [, b]) => b.timestamp - a.timestamp)
-      .slice(0, MAX_STORED_STATES);
+      .slice(0, maxStoredStates);
 
     const limitedStates = Object.fromEntries(sortedStates);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(limitedStates));
+    localStorage.setItem(storegeKey, JSON.stringify(limitedStates));
   } catch (e) {
     console.error('Failed to save workflow graph state:', e);
   }
@@ -400,11 +400,11 @@ function getNodeColor(status: string): string {
   const statusLower = status;
 
   if (statusLower === 'success' || statusLower === 'completed') {
-    return 'var(--color-green-darker)';
+    return 'var(--color-green-dark-2)';
   } else if (statusLower === 'failure') {
-    return 'var(--color-red-darker)';
+    return 'var(--color-red-dark-2)';
   } else if (statusLower === 'running') {
-    return 'var(--color-yellow-darker)';
+    return 'var(--color-yellow-dark-2)';
   } else if (statusLower === 'blocked') {
     return 'var(--color-purple)';
   }
@@ -1291,7 +1291,7 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
 }
 
 .legend-dot.status-running {
-  background: var(--color-orange);
+  background: var(--color-yellow);
 }
 
 .legend-dot.status-waiting {
