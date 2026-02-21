@@ -1529,6 +1529,8 @@
   "repo.issues.context.edit": "Edit",
   "repo.issues.context.delete": "Delete",
   "repo.issues.no_content": "No description provided.",
+  "repo.issues.project_workflow": "Project workflow",
+  "repo.issues.project_workflow_action": "Workflow %[1]s of Project %[2]s",
   "repo.issues.close": "Close Issue",
   "repo.issues.comment_pull_merged_at": "merged commit %[1]s into %[2]s %[3]s",
   "repo.issues.comment_manually_pull_merged_at": "manually merged commit %[1]s into %[2]s %[3]s",

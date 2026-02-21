@@ -31,13 +31,6 @@ func TestSystemUser(t *testing.T) {
 	require.NotNil(t, u)
 	assert.Equal(t, "Gitea Actions", u.FullName)
 
-	u, err = GetPossibleUserByID(t.Context(), -3)
-	require.NoError(t, err)
-	assert.Equal(t, "project-workflows", u.Name)
-	assert.Equal(t, "project-workflows", u.LowerName)
-	assert.True(t, u.IsProjectWorkflows())
-	assert.True(t, IsProjectWorkflowsUserName("Project-Workflows"))
-
-	_, err = GetPossibleUserByID(t.Context(), -4)
+	_, err = GetPossibleUserByID(t.Context(), -3)
 	require.Error(t, err)
 }

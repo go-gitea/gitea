@@ -345,6 +345,15 @@ func matchWorkflowsFilters(workflow *project_model.Workflow, issue *issues_model
 }
 
 func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflow, issue *issues_model.Issue) {
+	if err := workflow.LoadProject(ctx); err != nil {
+		log.Error("LoadProject: %v", err)
+	}
+	workflowCtx := issues_model.WithProjectWorkflowCommentMeta(ctx, issues_model.ProjectWorkflowCommentMeta{
+		ProjectTitle:         util.Iif(workflow.Project != nil, workflow.Project.Title, ""),
+		ProjectWorkflowID:    workflow.ID,
+		ProjectWorkflowEvent: workflow.WorkflowEvent,
+	})
+	doer := user_model.NewGhostUser()
 	var toAddedLabels, toRemovedLabels []*issues_model.Label
 
 	for _, action := range workflow.WorkflowActions {
@@ -360,7 +369,7 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 				log.Error("GetColumnByIDAndProjectID: %v", err)
 				continue
 			}
-			if err := MoveIssueToAnotherColumn(ctx, user_model.NewProjectWorkflowsUser(), issue, column); err != nil {
+			if err := MoveIssueToAnotherColumn(workflowCtx, doer, issue, column); err != nil {
 				log.Error("MoveIssueToAnotherColumn: %v", err)
 				continue
 			}
@@ -391,14 +400,14 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 		case project_model.WorkflowActionTypeIssueState:
 			if strings.EqualFold(action.Value, "reopen") {
 				if issue.IsClosed {
-					if err := issue_service.ReopenIssue(ctx, issue, user_model.NewProjectWorkflowsUser(), ""); err != nil {
+					if err := issue_service.ReopenIssue(workflowCtx, issue, doer, ""); err != nil {
 						log.Error("ReopenIssue: %v", err)
 						continue
 					}
 				}
 			} else if strings.EqualFold(action.Value, "close") {
 				if !issue.IsClosed {
-					if err := issue_service.CloseIssue(ctx, issue, user_model.NewProjectWorkflowsUser(), ""); err != nil {
+					if err := issue_service.CloseIssue(workflowCtx, issue, doer, ""); err != nil {
 						log.Error("CloseIssue: %v", err)
 						continue
 					}
@@ -410,7 +419,7 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 	}
 
 	if len(toAddedLabels)+len(toRemovedLabels) > 0 {
-		if err := issue_service.AddRemoveLabels(ctx, issue, user_model.NewProjectWorkflowsUser(), toAddedLabels, toRemovedLabels); err != nil {
+		if err := issue_service.AddRemoveLabels(workflowCtx, issue, doer, toAddedLabels, toRemovedLabels); err != nil {
 			log.Error("AddRemoveLabels: %v", err)
 		}
 	}

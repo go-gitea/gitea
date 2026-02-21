@@ -7,5 +7,10 @@
 		<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" .ctxData.Repository.OriginalURL .ctxData.Repository.GetOriginalURLHostname}})</span>
 	{{end}}
 {{else}}
-	{{template "shared/user/authorlink" .comment.Poster}}
+	{{$specialDoerHtml := .comment.MetaSpecialDoerTr ctx.Locale}}
+	{{if $specialDoerHtml}}
+		{{$specialDoerHtml}}
+	{{else}}
+		{{template "shared/user/authorlink" .comment.Poster}}
+	{{end}}
 {{end}}

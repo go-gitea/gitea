@@ -237,6 +237,13 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 type SpecialDoerNameType string
 
 const SpecialDoerNameCodeOwners SpecialDoerNameType = "CODEOWNERS"
+const SpecialDoerNameProjectWorkflow SpecialDoerNameType = "PROJECT_WORKFLOW"
+
+type ProjectWorkflowCommentMeta struct {
+	ProjectTitle         string
+	ProjectWorkflowID    int64
+	ProjectWorkflowEvent project_model.WorkflowEvent
+}
 
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
@@ -244,7 +251,24 @@ type CommentMetaData struct {
 	ProjectColumnTitle string `json:"project_column_title,omitempty"`
 	ProjectTitle       string `json:"project_title,omitempty"`
 
+	ProjectWorkflowID    int64                       `json:"project_workflow_id,omitempty"`
+	ProjectWorkflowEvent project_model.WorkflowEvent `json:"project_workflow_event,omitempty"`
+
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
+}
+
+type commentMetaDataKey struct{}
+
+func WithProjectWorkflowCommentMeta(ctx context.Context, meta ProjectWorkflowCommentMeta) context.Context {
+	if meta.ProjectWorkflowID == 0 {
+		return ctx
+	}
+	return context.WithValue(ctx, commentMetaDataKey{}, meta)
+}
+
+func getProjectWorkflowCommentMeta(ctx context.Context) (ProjectWorkflowCommentMeta, bool) {
+	meta, ok := ctx.Value(commentMetaDataKey{}).(ProjectWorkflowCommentMeta)
+	return meta, ok
 }
 
 // Comment represents a comment in commit and issue page.
@@ -775,8 +799,17 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 	if c.CommentMetaData == nil {
 		return ""
 	}
-	if c.CommentMetaData.SpecialDoerName == SpecialDoerNameCodeOwners {
+	switch c.CommentMetaData.SpecialDoerName {
+	case SpecialDoerNameCodeOwners:
 		return locale.Tr("repo.issues.review.codeowners_rules")
+	case SpecialDoerNameProjectWorkflow:
+		if c.CommentMetaData.ProjectWorkflowID > 0 {
+			return htmlutil.HTMLFormat("%s", locale.Tr("repo.issues.project_workflow_action",
+				htmlutil.HTMLFormat("<span class=\"muted text black tw-font-semibold\">%s</span>", locale.Tr(c.CommentMetaData.ProjectWorkflowEvent.LangKey())),
+				htmlutil.HTMLFormat("<span class=\"muted text black tw-font-semibold\">%s</span>", c.CommentMetaData.ProjectTitle),
+			))
+		}
+		return locale.Tr("repo.issues.project_workflow")
 	}
 	return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)
 }
@@ -822,6 +855,15 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 			commentMetaData = &CommentMetaData{
 				SpecialDoerName: opts.SpecialDoerName,
 			}
+		}
+		if workflowMeta, ok := getProjectWorkflowCommentMeta(ctx); ok {
+			if commentMetaData == nil {
+				commentMetaData = &CommentMetaData{}
+			}
+			commentMetaData.ProjectWorkflowID = workflowMeta.ProjectWorkflowID
+			commentMetaData.ProjectWorkflowEvent = workflowMeta.ProjectWorkflowEvent
+			commentMetaData.ProjectTitle = workflowMeta.ProjectTitle
+			commentMetaData.SpecialDoerName = SpecialDoerNameProjectWorkflow
 		}
 
 		comment := &Comment{

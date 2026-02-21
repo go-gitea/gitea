@@ -564,7 +564,6 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		systemUserNewFuncs: map[int64]func() *User{
 			GhostUserID:            NewGhostUser,
 			ActionsUserID:          NewActionsUser,
-			ProjectWorkflowsUserID: NewProjectWorkflowsUser,
 		},
 	}
 })
