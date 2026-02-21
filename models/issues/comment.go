@@ -236,8 +236,10 @@ func (r RoleInRepo) LocaleHelper(lang translation.Locale) string {
 
 type SpecialDoerNameType string
 
-const SpecialDoerNameCodeOwners SpecialDoerNameType = "CODEOWNERS"
-const SpecialDoerNameProjectWorkflow SpecialDoerNameType = "PROJECT_WORKFLOW"
+const (
+	SpecialDoerNameCodeOwners      SpecialDoerNameType = "CODEOWNERS"
+	SpecialDoerNameProjectWorkflow SpecialDoerNameType = "PROJECT_WORKFLOW"
+)
 
 type ProjectWorkflowCommentMeta struct {
 	ProjectTitle         string
