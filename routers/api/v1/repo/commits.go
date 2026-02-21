@@ -11,6 +11,7 @@ import (
 	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
@@ -399,4 +400,123 @@ func GetCommitPullRequest(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.Doer))
+}
+
+func GetCommitPullRequests(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/commits/{sha}/pulls repository repoGetCommitPullRequests
+	// ---
+	// summary: Get the pull requests associated with a commit
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: path
+	//   description: SHA of the commit to get
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/PullRequestList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if !ctx.Repo.CanRead(unit.TypePullRequests) {
+		ctx.APIErrorNotFound()
+		return
+	}
+
+	sha := ctx.PathParam("sha")
+
+	// Strategy 1: Find PRs where this commit is the merge commit
+	mergedPRs, err := issues_model.GetPullRequestsByMergedCommit(ctx, ctx.Repo.Repository.ID, sha)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	// Strategy 2: Find branches containing this commit, then match to PRs
+	gitRepo, err := gitrepo.RepositoryFromRequestContextOrOpen(ctx, ctx.Repo.Repository)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	branches, err := gitRepo.GetBranchesContaining(sha)
+	if err != nil {
+		// Intentionally ignoring errors here (e.g., invalid SHA, non-existent commit).
+		// This matches GitHub API behavior which returns 200 OK with an empty array
+		// rather than an error for unknown commits.
+		branches = nil
+	}
+
+	branchPRs, err := issues_model.GetPullRequestsByHeadBranch(ctx, ctx.Repo.Repository.ID, branches)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	// Combine and deduplicate
+	seen := make(map[int64]bool, len(mergedPRs))
+	allPRs := make(issues_model.PullRequestList, 0, len(mergedPRs)+len(branchPRs))
+
+	for _, pr := range mergedPRs {
+		if !seen[pr.ID] {
+			seen[pr.ID] = true
+			allPRs = append(allPRs, pr)
+		}
+	}
+	for _, pr := range branchPRs {
+		if !seen[pr.ID] {
+			seen[pr.ID] = true
+			allPRs = append(allPRs, pr)
+		}
+	}
+
+	totalCount := int64(len(allPRs))
+
+	// Apply pagination
+	listOptions := utils.GetListOptions(ctx)
+	start := (listOptions.Page - 1) * listOptions.PageSize
+	end := start + listOptions.PageSize
+	if start >= len(allPRs) {
+		allPRs = issues_model.PullRequestList{}
+	} else {
+		if end > len(allPRs) {
+			end = len(allPRs)
+		}
+		allPRs = allPRs[start:end]
+	}
+
+	if len(allPRs) == 0 {
+		ctx.SetTotalCountHeader(totalCount)
+		ctx.JSON(http.StatusOK, []*api.PullRequest{})
+		return
+	}
+
+	baseRepo := ctx.Repo.Repository
+	apiPRs, err := convert.ToAPIPullRequests(ctx, baseRepo, allPRs, ctx.Doer)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	ctx.SetTotalCountHeader(totalCount)
+	ctx.JSON(http.StatusOK, apiPRs)
 }
