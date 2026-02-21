@@ -59,11 +59,11 @@
 <div class="ui attached segment horizontal segments">
 	{{if .Permission.CanRead ctx.Consts.RepoUnitTypePullRequests}}
 		<a href="#merged-pull-requests" class="ui attached segment text center">
-			<span class="text purple">{{svg "octicon-git-pull-request"}}</span> <strong>{{.Activity.MergedPRCount}}</strong><br>
+			<span class="text purple">{{svg "octicon-git-merge"}}</span> <strong>{{.Activity.MergedPRCount}}</strong><br>
 			{{ctx.Locale.TrN .Activity.MergedPRCount "repo.activity.merged_prs_count_1" "repo.activity.merged_prs_count_n"}}
 		</a>
 		<a href="#proposed-pull-requests" class="ui attached segment text center">
-			<span class="text green">{{svg "octicon-git-branch"}}</span> <strong>{{.Activity.OpenedPRCount}}</strong><br>
+			<span class="text green">{{svg "octicon-git-pull-request"}}</span> <strong>{{.Activity.OpenedPRCount}}</strong><br>
 			{{ctx.Locale.TrN .Activity.OpenedPRCount "repo.activity.opened_prs_count_1" "repo.activity.opened_prs_count_n"}}
 		</a>
 	{{end}}

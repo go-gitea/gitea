@@ -12,17 +12,7 @@
 							<div class="item {{if not $repo}}tw-py-1{{end}}">{{/* if not repo, then there are "adapt" buttons, so the padding shouldn't be that default large*/}}
 								<div class="content">
 									{{if $repo}}
-										{{if $repo.IsPrivate}}
-											<span class="text gold icon">{{svg "octicon-lock"}}</span>
-										{{else if $repo.IsFork}}
-											<span class="icon">{{svg "octicon-repo-forked"}}</span>
-										{{else if $repo.IsMirror}}
-											<span class="icon">{{svg "octicon-mirror"}}</span>
-										{{else if $repo.IsTemplate}}
-											<span class="icon">{{svg "octicon-repo-template"}}</span>
-										{{else}}
-											<span class="icon">{{svg "octicon-repo"}}</span>
-										{{end}}
+										{{template "repo/icon" (dict "Repo" $repo "Size" 16)}}
 										<a class="muted name" href="{{$repo.Link}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
 										<span class="text light-3" {{if not (eq $repo.Size 0)}} data-tooltip-content="{{$repo.SizeDetailsString}}"{{end}}>{{FileSize $repo.Size}}</span>
 										{{if $repo.IsFork}}
@@ -83,17 +73,7 @@
 						{{range .Repos}}
 							<div class="item">
 								<div class="content flex-text-block">
-									{{if .IsPrivate}}
-										{{svg "octicon-lock" 16 "text gold"}}
-									{{else if .IsFork}}
-										{{svg "octicon-repo-forked"}}
-									{{else if .IsMirror}}
-										{{svg "octicon-mirror"}}
-									{{else if .IsTemplate}}
-										{{svg "octicon-repo-template"}}
-									{{else}}
-										{{svg "octicon-repo"}}
-									{{end}}
+									{{template "repo/icon" (dict "Repo" . "Size" 16)}}
 									<a class="name" href="{{.Link}}">{{.OwnerName}}/{{.Name}}</a>
 									<span>{{FileSize .Size}}</span>
 									{{if .IsFork}}

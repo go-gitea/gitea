@@ -415,7 +415,7 @@ export default defineConfig([
       'no-dupe-keys': [2],
       'no-duplicate-case': [2],
       'no-duplicate-imports': [0],
-      'no-else-return': [2],
+      'no-else-return': [0],
       'no-empty-character-class': [2],
       'no-empty-function': [0],
       'no-empty-pattern': [2],

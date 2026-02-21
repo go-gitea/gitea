@@ -54,7 +54,7 @@
 							<td>
 								<a href="{{.HomeLink}}">{{if and DefaultShowFullName .FullName}}{{.FullName}} ({{.Name}}){{else}}{{.Name}}{{end}}</a>
 								{{if .Visibility.IsPrivate}}
-									<span class="text gold">{{svg "octicon-lock"}}</span>
+									{{svg "octicon-lock"}}
 								{{end}}
 								{{if eq .Type 3}}{{/* Reserved organization */}}
 									<span class="ui mini label">{{ctx.Locale.Tr "admin.users.reserved"}}</span>

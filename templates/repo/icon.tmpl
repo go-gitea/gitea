@@ -1,10 +1,20 @@
-{{$avatarLink := (.RelAvatarLink ctx)}}
-{{if $avatarLink}}
-	<img class="ui avatar tw-align-middle" src="{{$avatarLink}}" width="24" height="24" alt aria-hidden="true">
-{{else if $.IsMirror}}
-	{{svg "octicon-mirror" 24}}
-{{else if $.IsFork}}
-	{{svg "octicon-repo-forked" 24}}
+{{/* Template Attributes:
+* Repo (repository object, required): The repo
+* Size (int, required): Icon size in pixels
+* ShowRepoAvatar (boolean, optional): Render the repo's avatar, if one is set
+* ShowRepoOwnerAvatar (boolean, optional): Render the repo's owner avatar
+*
+* Note: Keep the icon logic in sync with web_src/js/utils/mappings.ts
+*/}}
+{{$avatarLink := (.Repo.RelAvatarLink ctx)}}
+{{if .ShowRepoOwnerAvatar}}
+	{{ctx.AvatarUtils.Avatar .Repo.Owner .Size}}
+{{else if and $avatarLink .ShowRepoAvatar}}
+	<img class="ui avatar tw-align-middle" src="{{$avatarLink}}" width="{{.Size}}" height="{{.Size}}" alt aria-hidden="true">
+{{else if .Repo.IsMirror}}
+	{{svg "octicon-mirror" .Size}}
+{{else if .Repo.IsFork}}
+	{{svg "octicon-repo-forked" .Size}}
 {{else}}
-	{{svg "octicon-repo" 24}}
+	{{svg "octicon-repo" .Size}}
 {{end}}
