@@ -1381,10 +1381,6 @@ func Routes() *web.Router {
 					})
 					m.Get("/{base}/*", repo.GetPullRequestByBaseHead)
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
-				m.Group("/statuses", func() { // "/statuses/{sha}" only accepts commit ID
-					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
-						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
-				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)
 					m.PathGroup("/*", func(g *web.RouterPathGroup) {
@@ -1453,6 +1449,12 @@ func Routes() *web.Router {
 				m.Methods("HEAD,GET", "/{ball_type:tarball|zipball|bundle}/*", reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true), repo.DownloadArchive)
 			}, repoAssignment(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryRepository))
+
+		// Commit status can be created by write:commitstatus or write:repository
+		m.Group("/repos/{username}/{reponame}/statuses", func() { // "/statuses/{sha}" only accepts commit ID
+			m.Combo("/{sha}").Get(repo.GetCommitStatuses).
+				Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+		}, reqRepoReader(unit.TypeCode), repoAssignment(), checkTokenPublicOnly(), tokenRequiresScopes(auth_model.AccessTokenScopeCategoryCommitStatus))
 
 		// Artifacts direct download endpoint authenticates via signed url
 		// it is protected by the "sig" parameter (to help to access private repo), so no need to use other middlewares
