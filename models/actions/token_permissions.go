@@ -44,13 +44,13 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 		effectivePerms = actionsCfg.GetDefaultTokenPermissions()
 	}
 
-	if !actionsCfg.OverrideOrgConfig && runRepo.Owner.IsOrganization() {
-		orgCfg, err := GetOrgActionsConfig(ctx, runRepo.OwnerID)
+	if !actionsCfg.OverrideOrgConfig {
+		ownerCfg, err := GetUserActionsConfig(ctx, runRepo.OwnerID)
 		if err == nil {
-			effectivePerms = orgCfg.ClampPermissions(effectivePerms)
+			effectivePerms = ownerCfg.ClampPermissions(effectivePerms)
 		} else {
 			// At minimum log the error to avoid silent privilege escalation if store is unavailable
-			log.Error("GetOrgActionsConfig failed for org %d: %v", runRepo.OwnerID, err)
+			log.Error("GetUserActionsConfig failed for owner %d: %v", runRepo.OwnerID, err)
 		}
 	}
 	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)

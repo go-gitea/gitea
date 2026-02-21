@@ -1,7 +1,7 @@
 // Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package setting
+package actions
 
 import (
 	"net/http"
@@ -15,19 +15,35 @@ import (
 )
 
 const (
-	tplSettingsActionsGeneral templates.TplName = "org/settings/actions_general"
+	tplOrgSettingsActionsGeneral  templates.TplName = "org/settings/actions_general"
+	tplUserSettingsActionsGeneral templates.TplName = "user/settings/actions_general"
 )
 
 // ActionsGeneralSettings renders the actions general settings page
 func ActionsGeneralSettings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
-	ctx.Data["PageIsOrgSettings"] = true
-	ctx.Data["PageIsOrgSettingsActionsGeneral"] = true
 
-	// Load Org Actions Config
-	actionsCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID)
+	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("GetOrgActionsConfig", err)
+		ctx.ServerError("getRunnersCtx", err)
+		return
+	}
+
+	if rCtx.IsOrg {
+		ctx.Data["PageIsOrgSettings"] = true
+		ctx.Data["PageIsOrgSettingsActionsGeneral"] = true
+	} else if rCtx.IsUser {
+		ctx.Data["PageIsUserSettings"] = true
+		ctx.Data["PageIsUserSettingsActionsGeneral"] = true
+	} else {
+		ctx.NotFound(nil)
+		return
+	}
+
+	// Load User/Org Actions Config
+	actionsCfg, err := actions_model.GetUserActionsConfig(ctx, rCtx.OwnerID)
+	if err != nil {
+		ctx.ServerError("GetUserActionsConfig", err)
 		return
 	}
 
@@ -53,20 +69,41 @@ func ActionsGeneralSettings(ctx *context.Context) {
 		}
 	}
 	ctx.Data["AllowedRepos"] = allowedRepos
-	ctx.Data["Link"] = ctx.Org.OrgLink + "/settings/actions/general"
 
-	ctx.HTML(http.StatusOK, tplSettingsActionsGeneral)
+	generalLink := rCtx.RedirectLink + "../general"
+	ctx.Data["Link"] = generalLink
+
+	if rCtx.IsOrg {
+		ctx.HTML(http.StatusOK, tplOrgSettingsActionsGeneral)
+	} else {
+		ctx.HTML(http.StatusOK, tplUserSettingsActionsGeneral)
+	}
 }
 
 // UpdateTokenPermissions responses for actions general settings page
 func UpdateTokenPermissions(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
-	ctx.Data["PageIsOrgSettings"] = true
-	ctx.Data["PageIsOrgSettingsActions"] = true
 
-	actionsCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID)
+	rCtx, err := getRunnersCtx(ctx)
 	if err != nil {
-		ctx.ServerError("GetOrgActionsConfig", err)
+		ctx.ServerError("getRunnersCtx", err)
+		return
+	}
+
+	if rCtx.IsOrg {
+		ctx.Data["PageIsOrgSettings"] = true
+		ctx.Data["PageIsOrgSettingsActions"] = true
+	} else if rCtx.IsUser {
+		ctx.Data["PageIsUserSettings"] = true
+		ctx.Data["PageIsUserSettingsActions"] = true
+	} else {
+		ctx.NotFound(nil)
+		return
+	}
+
+	actionsCfg, err := actions_model.GetUserActionsConfig(ctx, rCtx.OwnerID)
+	if err != nil {
+		ctx.ServerError("GetUserActionsConfig", err)
 		return
 	}
 
@@ -124,72 +161,95 @@ func UpdateTokenPermissions(ctx *context.Context) {
 		actionsCfg.CrossRepoMode = repo_model.ActionsCrossRepoModeNone
 	}
 
-	if err := actions_model.SetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID, actionsCfg); err != nil {
-		ctx.ServerError("SetOrgActionsConfig", err)
+	if err := actions_model.SetUserActionsConfig(ctx, rCtx.OwnerID, actionsCfg); err != nil {
+		ctx.ServerError("SetUserActionsConfig", err)
 		return
 	}
 
-	ctx.Flash.Success(ctx.Tr("org.settings.update_setting_success"))
-	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/general")
+	generalLink := rCtx.RedirectLink + "../general"
+
+	if rCtx.IsOrg {
+		ctx.Flash.Success(ctx.Tr("org.settings.update_setting_success"))
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.update_settings_success"))
+	}
+	ctx.Redirect(generalLink)
 }
 
 // ActionsAllowedReposAdd adds a repository to the allowed list for cross-repo access
 func ActionsAllowedReposAdd(ctx *context.Context) {
 	repoName := ctx.FormString("repo_name")
-	if repoName == "" {
-		ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+
+	rCtx, err := getRunnersCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getRunnersCtx", err)
 		return
 	}
 
-	repo, err := repo_model.GetRepositoryByName(ctx, ctx.Org.Organization.ID, repoName)
+	// Actions config path is up one level from runners
+	actionsLink := rCtx.RedirectLink + ".."
+	generalLink := rCtx.RedirectLink + "../general"
+
+	if repoName == "" {
+		ctx.Redirect(actionsLink)
+		return
+	}
+
+	repo, err := repo_model.GetRepositoryByName(ctx, rCtx.OwnerID, repoName)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("repo.not_exist"))
-			ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+			ctx.Redirect(actionsLink)
 			return
 		}
 		ctx.ServerError("GetRepositoryByName", err)
 		return
 	}
 
-	actionsCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID)
+	actionsCfg, err := actions_model.GetUserActionsConfig(ctx, rCtx.OwnerID)
 	if err != nil {
-		ctx.ServerError("GetOrgActionsConfig", err)
+		ctx.ServerError("GetUserActionsConfig", err)
 		return
 	}
 
 	// Check if already exists
 	if slices.Contains(actionsCfg.AllowedCrossRepoIDs, repo.ID) {
-		ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+		ctx.Redirect(actionsLink)
 		return
 	}
 
 	actionsCfg.AllowedCrossRepoIDs = append(actionsCfg.AllowedCrossRepoIDs, repo.ID)
-	// Ensure mode is set to selected if we are adding specific repos?
-	// Logic: If user adds a repo, they probably want it enabled.
-	// But let's respect the current mode toggle. If "all" or "none" is set, adding a repo updates the list but might not activate "selected" mode unless user explicitly chose "selected".
-	// However, if "selected" is active, this adds to it.
 
-	if err := actions_model.SetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID, actionsCfg); err != nil {
-		ctx.ServerError("SetOrgActionsConfig", err)
+	if err := actions_model.SetUserActionsConfig(ctx, rCtx.OwnerID, actionsCfg); err != nil {
+		ctx.ServerError("SetUserActionsConfig", err)
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/general")
+	ctx.Redirect(generalLink)
 }
 
 // ActionsAllowedReposRemove removes a repository from the allowed list
 func ActionsAllowedReposRemove(ctx *context.Context) {
 	repoID := ctx.FormInt64("repo_id")
-	if repoID == 0 {
-		ctx.Redirect(ctx.Org.OrgLink + "/settings/actions")
+
+	rCtx, err := getRunnersCtx(ctx)
+	if err != nil {
+		ctx.ServerError("getRunnersCtx", err)
 		return
 	}
 
-	actionsCfg, err := actions_model.GetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID)
+	actionsLink := rCtx.RedirectLink + ".."
+	generalLink := rCtx.RedirectLink + "../general"
+
+	if repoID == 0 {
+		ctx.Redirect(actionsLink)
+		return
+	}
+
+	actionsCfg, err := actions_model.GetUserActionsConfig(ctx, rCtx.OwnerID)
 	if err != nil {
-		ctx.ServerError("GetOrgActionsConfig", err)
+		ctx.ServerError("GetUserActionsConfig", err)
 		return
 	}
 
@@ -202,11 +262,11 @@ func ActionsAllowedReposRemove(ctx *context.Context) {
 	}
 	actionsCfg.AllowedCrossRepoIDs = newIDs
 
-	if err := actions_model.SetOrgActionsConfig(ctx, ctx.Org.Organization.AsUser().ID, actionsCfg); err != nil {
-		ctx.ServerError("SetOrgActionsConfig", err)
+	if err := actions_model.SetUserActionsConfig(ctx, rCtx.OwnerID, actionsCfg); err != nil {
+		ctx.ServerError("SetUserActionsConfig", err)
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/general")
+	ctx.Redirect(generalLink)
 }

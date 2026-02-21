@@ -11,10 +11,10 @@ import (
 	"code.gitea.io/gitea/modules/json"
 )
 
-// GetOrgActionsConfig loads the ActionsConfig for an organization from user settings
+// GetUserActionsConfig loads the ActionsConfig for a user or organization from user settings
 // It returns a default config if no setting is found
-func GetOrgActionsConfig(ctx context.Context, orgID int64) (*repo_model.ActionsConfig, error) {
-	val, err := user_model.GetUserSetting(ctx, orgID, "actions.config")
+func GetUserActionsConfig(ctx context.Context, userID int64) (*repo_model.ActionsConfig, error) {
+	val, err := user_model.GetUserSetting(ctx, userID, "actions.config")
 	if err != nil {
 		return nil, err
 	}
@@ -33,12 +33,12 @@ func GetOrgActionsConfig(ctx context.Context, orgID int64) (*repo_model.ActionsC
 	return cfg, nil
 }
 
-// SetOrgActionsConfig saves the ActionsConfig for an organization to user settings
-func SetOrgActionsConfig(ctx context.Context, orgID int64, cfg *repo_model.ActionsConfig) error {
+// SetUserActionsConfig saves the ActionsConfig for a user or organization to user settings
+func SetUserActionsConfig(ctx context.Context, userID int64, cfg *repo_model.ActionsConfig) error {
 	bs, err := json.Marshal(cfg)
 	if err != nil {
 		return err
 	}
 
-	return user_model.SetUserSetting(ctx, orgID, "actions.config", string(bs))
+	return user_model.SetUserSetting(ctx, userID, "actions.config", string(bs))
 }

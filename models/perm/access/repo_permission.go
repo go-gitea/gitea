@@ -341,14 +341,14 @@ func GetActionsUserRepoPermission(ctx context.Context, repo *repo_model.Reposito
 			return perm, err
 		}
 
-		// Check Organization Cross-Repo Access Policy
-		if repo.OwnerID == taskRepo.OwnerID && repo.Owner.IsOrganization() {
-			orgCfg, err := actions_model.GetOrgActionsConfig(ctx, repo.OwnerID)
+		// Check Owner Cross-Repo Access Policy
+		if repo.OwnerID == taskRepo.OwnerID {
+			ownerCfg, err := actions_model.GetUserActionsConfig(ctx, repo.OwnerID)
 			if err != nil {
 				return perm, err
 			}
-			if orgCfg.IsRepoAllowedCrossAccess(repo.ID) {
-				// Access allowed by Org policy (grants access to private repos)
+			if ownerCfg.IsRepoAllowedCrossAccess(repo.ID) {
+				// Access allowed by owner policy (grants access to private repos)
 				perm = maxPerm
 				return perm, nil
 			}

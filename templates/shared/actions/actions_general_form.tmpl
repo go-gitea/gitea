@@ -1,0 +1,321 @@
+			<!-- Cross-Repository Access -->
+			<h5 class="ui header">
+				{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo"}}
+			</h5>
+			<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_desc"}}</p>
+
+			<div class="grouped fields">
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="none" {{if eq .CrossRepoMode .ActionsCrossRepoModeNone}}checked{{end}} class="js-cross-repo-mode">
+						<label>{{ctx.Locale.Tr "disabled"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="all" {{if eq .CrossRepoMode .ActionsCrossRepoModeAll}}checked{{end}} class="js-cross-repo-mode">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_all"}}</label>
+					</div>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="cross_repo_mode" value="selected" {{if eq .CrossRepoMode .ActionsCrossRepoModeSelected}}checked{{end}} class="js-cross-repo-mode">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_selected"}}</label>
+					</div>
+				</div>
+			</div>
+
+			<!-- Allowed Repositories List -->
+			<div id="allowed-repos-section" class="field">
+				<h5 class="ui header">
+					{{ctx.Locale.Tr "actions.general.token_permissions.allowed_repos"}}
+				</h5>
+				<div class="ui attached segment">
+					<div class="flex-list">
+						{{range .AllowedRepos}}
+							<div class="flex-item tw-items-center">
+								<div class="flex-item-leading">
+									{{template "repo/icon" .}}
+								</div>
+								<div class="flex-item-main">
+									<a class="flex-item-title text primary" href="{{.Link}}">
+										{{.FullName}}
+									</a>
+								</div>
+								<div class="flex-item-trailing">
+									<button class="ui red small button" type="submit" formaction="{{$.Link}}/allowed_repos/remove?repo_id={{.ID}}">{{ctx.Locale.Tr "remove"}}</button>
+								</div>
+							</div>
+						{{else}}
+							<div class="flex-item">
+								<span class="text grey">{{ctx.Locale.Tr "org.repos.none"}}</span>
+							</div>
+						{{end}}
+					</div>
+				</div>
+
+				<h5 class="ui header">
+					{{ctx.Locale.Tr "actions.general.token_permissions.add_repo"}}
+				</h5>
+				<div class="ui form tw-flex tw-gap-2">
+					<div data-global-init="initSearchRepoBox" data-uid="{{.OwnerID}}" class="ui search tw-flex-1">
+						<div class="ui input">
+							<input class="prompt" name="repo_name" placeholder="{{ctx.Locale.Tr "search.repo_kind"}}" autocomplete="off">
+						</div>
+					</div>
+					<button class="ui primary button" type="submit" formaction="{{$.Link}}/allowed_repos/add">{{ctx.Locale.Tr "add"}}</button>
+				</div>
+			</div>
+
+			<div class="divider"></div>
+
+			<!-- Default Permission Mode -->
+			<h5 class="ui header">
+				{{ctx.Locale.Tr "actions.general.token_permissions.mode"}}
+			</h5>
+			<div class="grouped fields">
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="token_permission_mode" value="permissive" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}} class="js-permission-mode-radio">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive"}}</label>
+					</div>
+					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive.desc"}}</p>
+				</div>
+				<div class="field">
+					<div class="ui radio checkbox">
+						<input type="radio" name="token_permission_mode" value="restricted" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}} class="js-permission-mode-radio">
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted"}}</label>
+					</div>
+					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted.desc"}}</p>
+				</div>
+			</div>
+
+			<div class="divider"></div>
+
+			<!-- Maximum Permissions Table -->
+			<div id="max-permissions-section">
+				<h5 class="ui header">
+					{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions"}}
+				</h5>
+				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions.desc"}}</p>
+
+				<div class="field">
+					<div class="ui checkbox">
+						<input type="checkbox" name="enable_max_permissions" class="js-enable-max-permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
+						<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
+					</div>
+				</div>
+			</div>
+
+			<table class="ui celled table js-permissions-table">
+				<thead>
+					<tr>
+						<th class="tw-w-2/5">{{ctx.Locale.Tr "units.unit"}}</th>
+						<th class="tw-text-center">{{ctx.Locale.Tr "org.teams.none_access"}}
+							<span class="tw-align-middle" data-tooltip-content="{{ctx.Locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "tw-ml-1"}}</span>
+						</th>
+						<th class="tw-text-center">{{ctx.Locale.Tr "org.teams.read_access"}}
+							<span class="tw-align-middle" data-tooltip-content="{{ctx.Locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "tw-ml-1"}}</span>
+						</th>
+						<th class="tw-text-center">{{ctx.Locale.Tr "org.teams.write_access"}}
+							<span class="tw-align-middle" data-tooltip-content="{{ctx.Locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "tw-ml-1"}}</span>
+						</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<td>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.code"}}</strong>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.code.description"}}</p>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_code" value="none" {{if not ($.MaxTokenPermissions.HasRead "code")}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_code" value="read" {{if and ($.MaxTokenPermissions.HasRead "code") (not ($.MaxTokenPermissions.HasWrite "code"))}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_code" value="write" {{if $.MaxTokenPermissions.HasWrite "code"}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+								<label></label>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.issues"}}</strong>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.issues.description"}}</p>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_issues" value="none" {{if not ($.MaxTokenPermissions.HasRead "issues")}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_issues" value="read" {{if and ($.MaxTokenPermissions.HasRead "issues") (not ($.MaxTokenPermissions.HasWrite "issues"))}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_issues" value="write" {{if $.MaxTokenPermissions.HasWrite "issues"}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+								<label></label>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.pull_requests"}}</strong>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.pull_requests.description"}}</p>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_pull_requests" value="none" {{if not ($.MaxTokenPermissions.HasRead "pull_requests")}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_pull_requests" value="read" {{if and ($.MaxTokenPermissions.HasRead "pull_requests") (not ($.MaxTokenPermissions.HasWrite "pull_requests"))}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_pull_requests" value="write" {{if $.MaxTokenPermissions.HasWrite "pull_requests"}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+								<label></label>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.wiki"}}</strong>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.wiki.description"}}</p>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_wiki" value="none" {{if not ($.MaxTokenPermissions.HasRead "wiki")}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_wiki" value="read" {{if and ($.MaxTokenPermissions.HasRead "wiki") (not ($.MaxTokenPermissions.HasWrite "wiki"))}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_wiki" value="write" {{if $.MaxTokenPermissions.HasWrite "wiki"}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+								<label></label>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.packages"}}</strong>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.packages.description"}}</p>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_packages" value="none" {{if not ($.MaxTokenPermissions.HasRead "packages")}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_packages" value="read" {{if and ($.MaxTokenPermissions.HasRead "packages") (not ($.MaxTokenPermissions.HasWrite "packages"))}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_packages" value="write" {{if $.MaxTokenPermissions.HasWrite "packages"}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+								<label></label>
+							</div>
+						</td>
+					</tr>
+					<tr>
+						<td>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.actions_scope"}}</strong>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.actions_scope.description"}}</p>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_actions" value="none" {{if not ($.MaxTokenPermissions.HasRead "actions")}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_actions" value="read" {{if and ($.MaxTokenPermissions.HasRead "actions") (not ($.MaxTokenPermissions.HasWrite "actions"))}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_actions" value="write" {{if $.MaxTokenPermissions.HasWrite "actions"}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+								<label></label>
+							</div>
+						</td>
+					</tr>
+					<!-- Releases -->
+					<tr>
+						<td>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.releases"}}</strong>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.releases.description"}}</p>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_releases" value="none" {{if not ($.MaxTokenPermissions.HasRead "releases")}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_releases" value="read" {{if and ($.MaxTokenPermissions.HasRead "releases") (not ($.MaxTokenPermissions.HasWrite "releases"))}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_releases" value="write" {{if $.MaxTokenPermissions.HasWrite "releases"}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+								<label></label>
+							</div>
+						</td>
+					</tr>
+					<!-- Projects -->
+					<tr>
+						<td>
+							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.projects"}}</strong>
+							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.projects.description"}}</p>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_projects" value="none" {{if not ($.MaxTokenPermissions.HasRead "projects")}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.none_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_projects" value="read" {{if and ($.MaxTokenPermissions.HasRead "projects") (not ($.MaxTokenPermissions.HasWrite "projects"))}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.read_access"}}">
+								<label></label>
+							</div>
+						</td>
+						<td class="tw-text-center">
+							<div class="ui radio checkbox">
+								<input type="radio" name="max_projects" value="write" {{if $.MaxTokenPermissions.HasWrite "projects"}}checked{{end}} title="{{ctx.Locale.Tr "org.teams.write_access"}}">
+								<label></label>
+							</div>
+						</td>
+					</tr>
+				</tbody>
+			</table>

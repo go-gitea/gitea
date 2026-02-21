@@ -395,7 +395,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 		cfg := &repo_model.ActionsConfig{
 			CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
 		}
-		err = actions_model.SetOrgActionsConfig(t.Context(), org.ID, cfg)
+		err = actions_model.SetUserActionsConfig(t.Context(), org.ID, cfg)
 		require.NoError(t, err)
 
 		// Retry -> Should Fail (404 Not Found)
@@ -423,11 +423,10 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			assert.Equal(t, "repo-C", r.Name)
 		}))
 
-
 		// 7. Test Cross-Repo Access - Specific Repositories
 		t.Run("Cross-Repo Access - Specific Repositories", func(t *testing.T) {
 			// Set mode to Selected with ONLY repo-B
-			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
+			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
 				CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
 				AllowedCrossRepoIDs: []int64{repoBID},
 			}))
@@ -440,7 +439,7 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			})(t)
 
 			// Remove repo-B from allowed list
-			require.NoError(t, actions_model.SetOrgActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
+			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), org.ID, &repo_model.ActionsConfig{
 				CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
 				AllowedCrossRepoIDs: []int64{}, // Empty list
 			}))
@@ -449,6 +448,151 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			testCtx.ExpectedCode = http.StatusNotFound
 			doAPIGetRepository(testCtx, nil)(t)
 		})
+	})
+}
+
+func TestActionsUserCrossRepoAccess(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user2")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+
+		userName := "user2"
+
+		// 1. Create Two Repositories for User
+		createRepoForUser := func(name string) int64 {
+			req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &structs.CreateRepoOption{
+				Name:     name,
+				AutoInit: true,
+				Private:  true, // Must be private for potential restrictions
+			}).AddTokenAuth(token)
+			resp := MakeRequest(t, req, http.StatusCreated)
+			var repo structs.Repository
+			DecodeJSON(t, resp, &repo)
+			return repo.ID
+		}
+
+		repoAID := createRepoForUser("repo-user-A")
+		repoBID := createRepoForUser("repo-user-B")
+
+		// 2. Enable Actions
+		enableActions := func(repoID int64) {
+			err := db.Insert(t.Context(), &repo_model.RepoUnit{
+				RepoID: repoID,
+				Type:   unit_model.TypeActions,
+				Config: &repo_model.ActionsConfig{
+					TokenPermissionMode: repo_model.ActionsTokenPermissionModePermissive,
+				},
+			})
+			require.NoError(t, err)
+		}
+
+		enableActions(repoAID)
+		enableActions(repoBID)
+
+		// 3. Create Task in Repo A
+		task := createActionTask(t, repoAID, false)
+
+		// 4. Verify Access to Repo B (Target)
+		testCtx := APITestContext{
+			Session:  emptyTestSession(t),
+			Token:    task.Token,
+			Username: userName,
+			Reponame: "repo-user-B",
+		}
+
+		// Case A: Default (AllowCrossRepoAccess = true by default now) -> Should Succeed (200) Read-Only
+		testCtx.ExpectedCode = http.StatusOK
+		t.Run("User Cross-Repo Access Allowed (Default)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+			assert.Equal(t, "repo-user-B", r.Name)
+		}))
+
+		userObj := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: userName})
+
+		// Case B: Explicitly Disable AllowCrossRepoAccess
+		cfg := &repo_model.ActionsConfig{
+			CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
+		}
+		err := actions_model.SetUserActionsConfig(t.Context(), userObj.ID, cfg)
+		require.NoError(t, err)
+
+		// Retry -> Should Fail (404 Not Found)
+		testCtx.ExpectedCode = http.StatusNotFound
+		t.Run("User Cross-Repo Access Denied (Disabled)", doAPIGetRepository(testCtx, nil))
+
+		// 5. Test Cross-Repo Access - Specific Repositories
+		t.Run("User Cross-Repo Access - Specific Repositories", func(t *testing.T) {
+			// Set mode to Selected with ONLY repo-user-B
+			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), userObj.ID, &repo_model.ActionsConfig{
+				CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+				AllowedCrossRepoIDs: []int64{repoBID},
+			}))
+
+			// Access to repo-user-B should succeed
+			testCtx.Reponame = "repo-user-B"
+			testCtx.ExpectedCode = http.StatusOK
+			doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+				assert.Equal(t, "repo-user-B", r.Name)
+			})(t)
+
+			// Remove repo-user-B from allowed list
+			require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), userObj.ID, &repo_model.ActionsConfig{
+				CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+				AllowedCrossRepoIDs: []int64{}, // Empty list
+			}))
+
+			// Access to repo-user-B should fail (404)
+			testCtx.ExpectedCode = http.StatusNotFound
+			doAPIGetRepository(testCtx, nil)(t)
+		})
+	})
+}
+
+func TestActionsCrossRepoCleanupOnTransfer(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user2")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+
+		repoName := "repo-to-transfer-for-actions"
+
+		// 1. Create Repository
+		req := NewRequestWithJSON(t, "POST", "/api/v1/user/repos", &structs.CreateRepoOption{
+			Name:     repoName,
+			AutoInit: true,
+			Private:  true,
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var apiRepo structs.Repository
+		DecodeJSON(t, resp, &apiRepo)
+
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
+
+		// 2. Add repo to AllowedCrossRepoIDs for user2
+		require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), user2.ID, &repo_model.ActionsConfig{
+			CrossRepoMode:       repo_model.ActionsCrossRepoModeSelected,
+			AllowedCrossRepoIDs: []int64{apiRepo.ID},
+		}))
+
+		// 3. Verify it is there
+		cfg, err := actions_model.GetUserActionsConfig(t.Context(), user2.ID)
+		require.NoError(t, err)
+		assert.Contains(t, cfg.AllowedCrossRepoIDs, apiRepo.ID)
+
+		// 4. Transfer Repository to user4
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/user2/%s/transfer", repoName), &structs.TransferRepoOption{
+			NewOwner: "user4",
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// Accept transfer as user4
+		session4 := loginUser(t, "user4")
+		token4 := getTokenForLoggedInUser(t, session4, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository)
+		req = NewRequest(t, "POST", fmt.Sprintf("/api/v1/repos/user2/%s/transfer/accept", repoName)).AddTokenAuth(token4)
+		MakeRequest(t, req, http.StatusAccepted)
+
+		// 5. Verify it is removed from user2's config
+		cfg, err = actions_model.GetUserActionsConfig(t.Context(), user2.ID)
+		require.NoError(t, err)
+		assert.NotContains(t, cfg.AllowedCrossRepoIDs, apiRepo.ID)
 	})
 }
 

@@ -32,7 +32,6 @@ import (
 	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
-	org_setting "code.gitea.io/gitea/routers/web/org/setting"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
@@ -655,7 +654,17 @@ func registerWebRoutes(m *web.Router) {
 		}, packagesEnabled)
 
 		m.Group("/actions", func() {
-			m.Get("", user_setting.RedirectToDefaultSetting)
+			m.Get("", func(ctx *context.Context) {
+				ctx.Redirect(setting.AppSubURL + "/user/settings/actions/general")
+			})
+			m.Group("/general", func() {
+				m.Get("", shared_actions.ActionsGeneralSettings)
+				m.Post("", shared_actions.UpdateTokenPermissions)
+				m.Group("/allowed_repos", func() {
+					m.Post("/add", shared_actions.ActionsAllowedReposAdd)
+					m.Post("/remove", shared_actions.ActionsAllowedReposRemove)
+				})
+			})
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
@@ -962,11 +971,11 @@ func registerWebRoutes(m *web.Router) {
 						ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/general")
 					})
 					m.Group("/general", func() {
-						m.Get("", org_setting.ActionsGeneralSettings)
-						m.Post("", org_setting.UpdateTokenPermissions)
+						m.Get("", shared_actions.ActionsGeneralSettings)
+						m.Post("", shared_actions.UpdateTokenPermissions)
 						m.Group("/allowed_repos", func() {
-							m.Post("/add", org_setting.ActionsAllowedReposAdd)
-							m.Post("/remove", org_setting.ActionsAllowedReposRemove)
+							m.Post("/add", shared_actions.ActionsAllowedReposAdd)
+							m.Post("/remove", shared_actions.ActionsAllowedReposRemove)
 						})
 					})
 					addSettingsRunnersRoutes()

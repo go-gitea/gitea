@@ -1,5 +1,4 @@
-{{template "org/settings/layout_head" (dict "ctxData" . "pageClass" "organization settings actions")}}
-<div class="org-setting-content">
+{{template "user/settings/layout_head" (dict "ctxData" . "pageClass" "user settings actions")}}
 	<h4 class="ui top attached header">
 		{{ctx.Locale.Tr "actions.actions"}} - {{ctx.Locale.Tr "settings.general"}}
 	</h4>
@@ -11,5 +10,4 @@
 			</div>
 		</form>
 	</div>
-</div>
-{{template "org/settings/layout_footer" .}}
+{{template "user/settings/layout_footer" .}}
