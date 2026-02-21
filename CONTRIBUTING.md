@@ -4,6 +4,7 @@
 
 - [Contribution Guidelines](#contribution-guidelines)
   - [Introduction](#introduction)
+  - [AI Contribution Policy](#ai-contribution-policy)
   - [Issues](#issues)
     - [How to report issues](#how-to-report-issues)
     - [Types of issues](#types-of-issues)
@@ -66,6 +67,19 @@ It assumes you have followed the [installation instructions](https://docs.gitea.
 Sensitive security-related issues should be reported to [security@gitea.io](mailto:security@gitea.io).
 
 For configuring IDEs for Gitea development, see the [contributed IDE configurations](contrib/ide/).
+
+## AI Contribution Policy
+
+Contributions made with the assistance of AI tools are welcome, but contributors must use them responsibly.
+
+1. Include related issues or pull requests in the prompt so that the AI has ideal context.
+2. Review AI-generated code closely before submitting a pull request.
+3. Manually test the changes and add appropriate automated tests where feasible.
+4. Only use AI to assist in contributions that you understand well enough to respond to feedback without relying on AI.
+5. Indicate AI-generated content in issue and pull requests descriptions and comments. Specify which model was used.
+6. Do not use AI to reply to questions about your issue or pull request. The questions are for you, not an AI model.
+
+Maintainers reserve the right to close pull requests and issues that appear to be low-quality AI-generated content. We welcome new contributors, but cannot sustain the effort of supporting contributors who primarily defer to AI rather than engaging substantively with the review process.
 
 ## Issues
 
