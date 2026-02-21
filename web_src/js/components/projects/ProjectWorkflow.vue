@@ -858,7 +858,7 @@ onUnmounted(() => {
                       </div>
                     </div>
                   </div>
-                  <div v-else class="ui labels">
+                  <div v-else class="ui list labels-list">
                     <span v-if="!store.workflowFilters.labels?.length" class="text-muted">{{ locale.anyLabel }}</span>
                     <span
                       v-for="labelId in store.workflowFilters.labels" :key="labelId"
@@ -923,7 +923,7 @@ onUnmounted(() => {
                       </div>
                     </div>
                   </div>
-                  <div v-else class="ui labels">
+                  <div v-else class="ui list labels-list">
                     <span v-if="!store.workflowActions.addLabels?.length" class="text-muted">{{ locale.none }}</span>
                     <span
                       v-for="labelId in store.workflowActions.addLabels" :key="labelId"
@@ -965,7 +965,7 @@ onUnmounted(() => {
                       </div>
                     </div>
                   </div>
-                  <div v-else class="ui labels">
+                  <div v-else class="ui list labels-list">
                     <span v-if="!store.workflowActions.removeLabels?.length" class="text-muted">{{ locale.none }}</span>
                     <span
                       v-for="labelId in store.workflowActions.removeLabels" :key="labelId"
@@ -1416,17 +1416,6 @@ onUnmounted(() => {
 
 .label-dropdown.ui.dropdown > .text > .ui.label {
   margin: 0.125rem;
-}
-
-.ui.labels {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.ui.labels .ui.label {
-  margin: 0;
 }
 
 .text-muted {

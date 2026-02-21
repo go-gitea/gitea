@@ -806,14 +806,14 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 		return locale.Tr("repo.issues.review.codeowners_rules")
 	case SpecialDoerNameProjectWorkflow:
 		if c.CommentMetaData.ProjectWorkflowID > 0 {
-			return htmlutil.HTMLFormat("%s", locale.Tr("repo.issues.project_workflow_action",
+			return locale.Tr("repo.issues.project_workflow_action",
 				htmlutil.HTMLFormat("<span class=\"muted text black tw-font-semibold\">%s</span>", locale.Tr(c.CommentMetaData.ProjectWorkflowEvent.LangKey())),
 				htmlutil.HTMLFormat("<span class=\"muted text black tw-font-semibold\">%s</span>", c.CommentMetaData.ProjectTitle),
-			))
+			)
 		}
 		return locale.Tr("repo.issues.project_workflow")
 	}
-	return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)
+	return template.HTML(c.CommentMetaData.SpecialDoerName)
 }
 
 func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdStr template.HTML) template.HTML {

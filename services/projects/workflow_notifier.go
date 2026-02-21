@@ -348,8 +348,12 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 	if err := workflow.LoadProject(ctx); err != nil {
 		log.Error("LoadProject: %v", err)
 	}
+	title := ""
+	if workflow.Project != nil {
+		title = workflow.Project.Title
+	}
 	workflowCtx := issues_model.WithProjectWorkflowCommentMeta(ctx, issues_model.ProjectWorkflowCommentMeta{
-		ProjectTitle:         util.Iif(workflow.Project != nil, workflow.Project.Title, ""),
+		ProjectTitle:         title,
 		ProjectWorkflowID:    workflow.ID,
 		ProjectWorkflowEvent: workflow.WorkflowEvent,
 	})

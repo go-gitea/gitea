@@ -1,10 +1,10 @@
 {{if .comment.OriginalAuthor}}
 	<span class="text black">
-		{{svg (MigrationIcon .ctxData.Repository.GetOriginalURLHostname)}}
+		{{svg (MigrationIcon ctx.Repository.GetOriginalURLHostname)}}
 		{{.comment.OriginalAuthor}}
 	</span>
-	{{if .ctxData.Repository.OriginalURL}}
-		<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" .ctxData.Repository.OriginalURL .ctxData.Repository.GetOriginalURLHostname}})</span>
+	{{if ctx.Repository.OriginalURL}}
+		<span class="migrate">({{ctx.Locale.Tr "repo.migrated_from" ctx.Repository.OriginalURL ctx.Repository.GetOriginalURLHostname}})</span>
 	{{end}}
 {{else}}
 	{{$specialDoerHtml := .comment.MetaSpecialDoerTr ctx.Locale}}
