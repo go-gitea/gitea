@@ -100,7 +100,7 @@ var (
 		Release struct {
 			AllowedTypes     string
 			DefaultPagingNum int
-			MaxFileSize      int64
+			FileMaxSize      int64
 			MaxFiles         int64
 		} `ini:"repository.release"`
 
@@ -243,12 +243,12 @@ var (
 		Release: struct {
 			AllowedTypes     string
 			DefaultPagingNum int
-			MaxFileSize      int64
+			FileMaxSize      int64
 			MaxFiles         int64
 		}{
 			AllowedTypes:     "",
 			DefaultPagingNum: 10,
-			MaxFileSize:      2048, // Same defaults as attachment
+			FileMaxSize:      2048, // Same defaults as attachment
 			MaxFiles:         5,
 		},
 
