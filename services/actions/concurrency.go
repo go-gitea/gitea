@@ -8,10 +8,10 @@ import (
 	"fmt"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
-	"github.com/nektos/act/pkg/jobparser"
 	act_model "github.com/nektos/act/pkg/model"
 	"gopkg.in/yaml.v3"
 )
