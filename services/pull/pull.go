@@ -623,17 +623,23 @@ func UpdatePullsRefs(ctx context.Context, repo *repo_model.Repository, update *r
 
 // UpdateRef update refs/pull/id/head directly for agit flow pull request
 func UpdateRef(ctx context.Context, pr *issues_model.PullRequest) (err error) {
-	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
+	return UpdateRefWithOldCommit(ctx, pr, "")
+}
+
+// UpdateRefWithOldCommit updates refs/pull/id/head with optional old commit protection.
+func UpdateRefWithOldCommit(ctx context.Context, pr *issues_model.PullRequest, oldCommitID string) (err error) {
+	log.Trace("UpdateRef[%d]: update pull request ref in base repo '%s'", pr.ID, pr.GetGitHeadRefName())
 	if err := pr.LoadBaseRepo(ctx); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
 
-	if err := gitrepo.UpdateRef(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID); err != nil {
+	if err := gitrepo.UpdateRefWithOld(ctx, pr.BaseRepo, pr.GetGitHeadRefName(), pr.HeadCommitID, oldCommitID); err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
+		return err
 	}
 
-	return err
+	return nil
 }
 
 // retargetBranchPulls change target branch for all pull requests whose base branch is the branch
