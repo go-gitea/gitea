@@ -351,6 +351,7 @@ func CommonRoutes() *web.Router {
 			r.Get("/index.yaml", helm.Index)
 			r.Get("/{filename}", helm.DownloadPackageFile)
 			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
+			r.Post("/api/prov", reqPackageAccess(perm.AccessModeWrite), helm.UploadProvenanceFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/maven", func() {
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)

@@ -209,6 +209,80 @@ func UploadPackage(ctx *context.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
+func UploadProvenanceFile(ctx *context.Context) {
+	upload, needToClose, err := ctx.UploadStream()
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if needToClose {
+		defer upload.Close()
+	}
+
+	buf, err := packages_module.CreateHashedBufferFromReader(upload)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer buf.Close()
+
+	metadata, err := helm_module.ParseProvenanceFile(buf)
+	if err != nil {
+		if errors.Is(err, util.ErrInvalidArgument) || errors.Is(err, io.EOF) {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	if _, err := buf.Seek(0, io.SeekStart); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		ctx,
+		&packages_service.PackageCreationInfo{
+			PackageInfo: packages_service.PackageInfo{
+				Owner:       ctx.Package.Owner,
+				PackageType: packages_model.TypeHelm,
+				Name:        metadata.Name,
+				Version:     metadata.Version,
+			},
+			SemverCompatible: true,
+			Creator:          ctx.Doer,
+			Metadata:         metadata,
+		},
+		&packages_service.PackageFileCreationInfo{
+			PackageFileInfo: packages_service.PackageFileInfo{
+				Filename: createProvenanceFilename(metadata),
+			},
+			Creator:           ctx.Doer,
+			Data:              buf,
+			IsLead:            false,
+			OverwriteExisting: true,
+		},
+	)
+	if err != nil {
+		switch err {
+		case packages_model.ErrDuplicatePackageVersion:
+			apiError(ctx, http.StatusConflict, err)
+		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+			apiError(ctx, http.StatusForbidden, err)
+		default:
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	ctx.Status(http.StatusCreated)
+}
+
 func createFilename(metadata *helm_module.Metadata) string {
 	return strings.ToLower(fmt.Sprintf("%s-%s.tgz", metadata.Name, metadata.Version))
+}
+
+func createProvenanceFilename(metadata *helm_module.Metadata) string {
+	return strings.ToLower(fmt.Sprintf("%s-%s.tgz.prov", metadata.Name, metadata.Version))
 }
