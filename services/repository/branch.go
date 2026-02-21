@@ -596,6 +596,9 @@ func DeleteBranch(ctx context.Context, doer *user_model.User, repo *repo_model.R
 	if err != nil && !errors.Is(err, util.ErrNotExist) {
 		return err
 	}
+	if notExist && branchCommit == nil {
+		return git.ErrBranchNotExist{Name: branchName}
+	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if !notExist {
