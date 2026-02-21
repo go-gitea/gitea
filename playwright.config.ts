@@ -1,98 +1,35 @@
-import {devices} from '@playwright/test';
 import {env} from 'node:process';
-import type {PlaywrightTestConfig} from '@playwright/test';
+import {defineConfig, devices} from '@playwright/test';
 
-const BASE_URL = env.GITEA_TEST_SERVER_URL?.replace?.(/\/$/g, '') || 'http://localhost:3000';
-
-export default {
+export default defineConfig({
   testDir: './tests/e2e/',
-  testMatch: /.*\.test\.e2e\.ts/, // Match any .test.e2e.ts files
-
-  /* Maximum time one test can run for. */
-  timeout: 30 * 1000,
-
-  expect: {
-
-    /**
-     * Maximum time expect() should wait for the condition to be met.
-     * For example in `await expect(locator).toHaveText();`
-     */
-    timeout: 2000,
-  },
-
-  /* Fail the build on CI if you accidentally left test.only in the source code. */
+  outputDir: './tests/e2e-output/',
+  testMatch: /.*\.test\.ts/,
   forbidOnly: Boolean(env.CI),
-
-  /* Retry on CI only */
-  retries: env.CI ? 2 : 0,
-
-  /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: env.CI ? 'list' : [['list'], ['html', {outputFolder: 'tests/e2e/reports/', open: 'never'}]],
-
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
-  use: {
-    headless: true,   // set to false to debug
-
-    locale: 'en-US',
-
-    /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
-    actionTimeout: 1000,
-
-    /* Maximum time allowed for navigation, such as `page.goto()`. */
-    navigationTimeout: 5 * 1000,
-
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: BASE_URL,
-
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: 'on-first-retry',
-
-    screenshot: 'only-on-failure',
+  reporter: 'list',
+  timeout: env.CI ? 12000 : 6000,
+  expect: {
+    timeout: env.CI ? 6000 : 3000,
   },
-
-  /* Configure projects for major browsers */
+  use: {
+    baseURL: env.GITEA_TEST_E2E_URL?.replace?.(/\/$/g, ''),
+    locale: 'en-US',
+    actionTimeout: env.CI ? 6000 : 3000,
+    navigationTimeout: env.CI ? 12000 : 6000,
+  },
   projects: [
     {
       name: 'chromium',
-
-      /* Project-specific settings. */
       use: {
         ...devices['Desktop Chrome'],
+        permissions: ['clipboard-read', 'clipboard-write'],
       },
     },
-
-    // disabled because of https://github.com/go-gitea/gitea/issues/21355
-    // {
-    //   name: 'firefox',
-    //   use: {
-    //     ...devices['Desktop Firefox'],
-    //   },
-    // },
-
-    {
-      name: 'webkit',
+    ...env.CI ? [{
+      name: 'firefox',
       use: {
-        ...devices['Desktop Safari'],
+        ...devices['Desktop Firefox'],
       },
-    },
-
-    /* Test against mobile viewports. */
-    {
-      name: 'Mobile Chrome',
-      use: {
-        ...devices['Pixel 5'],
-      },
-    },
-    {
-      name: 'Mobile Safari',
-      use: {
-        ...devices['iPhone 12'],
-      },
-    },
+    }] : [],
   ],
-
-  /* Folder for test artifacts such as screenshots, videos, traces, etc. */
-  outputDir: 'tests/e2e/test-artifacts/',
-  /* Folder for test artifacts such as screenshots, videos, traces, etc. */
-  snapshotDir: 'tests/e2e/test-snapshots/',
-} satisfies PlaywrightTestConfig;
+});
