@@ -253,6 +253,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	}
 	protectBranch.BlockOnRejectedReviews = f.BlockOnRejectedReviews
 	protectBranch.BlockOnOfficialReviewRequests = f.BlockOnOfficialReviewRequests
+	protectBranch.BlockOnCodeownerReviews = f.BlockOnCodeownerReviews
 	protectBranch.DismissStaleApprovals = f.DismissStaleApprovals
 	protectBranch.IgnoreStaleApprovals = f.IgnoreStaleApprovals
 	protectBranch.RequireSignedCommits = f.RequireSignedCommits
