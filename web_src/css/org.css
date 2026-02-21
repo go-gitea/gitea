@@ -9,8 +9,14 @@
 .page-content.organization #org-info .ui.header {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   font-size: 36px;
   margin-bottom: 0;
+}
+
+.page-content.organization #org-info .ui.header .org-header-actions {
+  margin-left: auto;
+  white-space: nowrap;
 }
 
 .page-content.organization #org-info .desc {
@@ -23,6 +29,37 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+@media (max-width: 767.98px) {
+  .page-content.organization .org-head {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .page-content.organization .org-avatar {
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+
+  .page-content.organization #org-info {
+    align-items: center;
+    text-align: center;
+  }
+
+  .page-content.organization #org-info .ui.header {
+    font-size: 24px;
+    justify-content: center;
+  }
+
+  .page-content.organization #org-info .ui.header .org-header-actions {
+    margin-left: 0;
+    margin-top: 4px;
+  }
+
+  .page-content.organization #org-info .meta {
+    justify-content: center;
+  }
 }
 
 .page-content.organization .ui.top.header .ui.right {
@@ -41,11 +78,13 @@
 .organization.invite #invite-box {
   margin: 50px auto auto;
   width: 500px !important;
+  max-width: 100%;
 }
 
 .organization.invite #invite-box #search-user-box input {
   margin-left: 0;
   width: 300px;
+  max-width: 100%;
 }
 
 .organization.invite #invite-box .ui.button {
