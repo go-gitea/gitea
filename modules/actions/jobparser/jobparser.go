@@ -9,10 +9,9 @@ import (
 	"sort"
 	"strings"
 
-	"go.yaml.in/yaml/v4"
-
 	"github.com/nektos/act/pkg/exprparser"
 	"github.com/nektos/act/pkg/model"
+	"go.yaml.in/yaml/v4"
 )
 
 func Parse(content []byte, options ...ParseOption) ([]*SingleWorkflow, error) {

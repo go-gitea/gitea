@@ -6,7 +6,6 @@ package jobparser
 import (
 	"github.com/nektos/act/pkg/exprparser"
 	"github.com/nektos/act/pkg/model"
-
 	"go.yaml.in/yaml/v4"
 )
 
