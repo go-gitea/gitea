@@ -41,6 +41,7 @@ type OAuth2Application struct {
 	ConfidentialClient         bool               `xorm:"NOT NULL DEFAULT TRUE"`
 	SkipSecondaryAuthorization bool               `xorm:"NOT NULL DEFAULT FALSE"`
 	RedirectURIs               []string           `xorm:"redirect_uris JSON TEXT"`
+	EnableDeviceFlow           bool               `xorm:"NOT NULL DEFAULT FALSE"`
 	CreatedUnix                timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix                timeutil.TimeStamp `xorm:"INDEX updated"`
 }
@@ -49,30 +50,36 @@ func init() {
 	db.RegisterModel(new(OAuth2Application))
 	db.RegisterModel(new(OAuth2AuthorizationCode))
 	db.RegisterModel(new(OAuth2Grant))
+	db.RegisterModel(new(OAuth2Device))
+	db.RegisterModel(new(OAuth2DeviceGrant))
 }
 
 type BuiltinOAuth2Application struct {
-	ConfigName   string
-	DisplayName  string
-	RedirectURIs []string
+	ConfigName       string
+	DisplayName      string
+	RedirectURIs     []string
+	EnableDeviceFlow bool
 }
 
 func BuiltinApplications() map[string]*BuiltinOAuth2Application {
 	m := make(map[string]*BuiltinOAuth2Application)
 	m["a4792ccc-144e-407e-86c9-5e7d8d9c3269"] = &BuiltinOAuth2Application{
-		ConfigName:   "git-credential-oauth",
-		DisplayName:  "git-credential-oauth",
-		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+		ConfigName:       "git-credential-oauth",
+		DisplayName:      "git-credential-oauth",
+		RedirectURIs:     []string{"http://127.0.0.1", "https://127.0.0.1"},
+		EnableDeviceFlow: true,
 	}
 	m["e90ee53c-94e2-48ac-9358-a874fb9e0662"] = &BuiltinOAuth2Application{
-		ConfigName:   "git-credential-manager",
-		DisplayName:  "Git Credential Manager",
-		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+		ConfigName:       "git-credential-manager",
+		DisplayName:      "Git Credential Manager",
+		RedirectURIs:     []string{"http://127.0.0.1", "https://127.0.0.1"},
+		EnableDeviceFlow: true,
 	}
 	m["d57cb8c4-630c-4168-8324-ec79935e18d4"] = &BuiltinOAuth2Application{
-		ConfigName:   "tea",
-		DisplayName:  "tea",
-		RedirectURIs: []string{"http://127.0.0.1", "https://127.0.0.1"},
+		ConfigName:       "tea",
+		DisplayName:      "tea",
+		RedirectURIs:     []string{"http://127.0.0.1", "https://127.0.0.1"},
+		EnableDeviceFlow: true,
 	}
 	return m
 }
@@ -117,14 +124,26 @@ func Init(ctx context.Context) error {
 			if err := deleteOAuth2Application(ctx, app.ID, 0); err != nil {
 				return err
 			}
+
+			continue
+		}
+
+		app.EnableDeviceFlow = builtinApps[app.ClientID].EnableDeviceFlow
+		app.RedirectURIs = builtinApps[app.ClientID].RedirectURIs
+		app.Name = builtinApps[app.ClientID].DisplayName
+
+		_, err := db.GetEngine(ctx).ID(app.ID).UseBool("enable_device_flow").Cols("name", "redirect_uris", "enable_device_flow").Update(app)
+		if err != nil {
+			return err
 		}
 	}
 	for clientID := range clientIDsToAdd {
 		builtinApp := builtinApps[clientID]
 		if err := db.Insert(ctx, &OAuth2Application{
-			Name:         builtinApp.DisplayName,
-			ClientID:     clientID,
-			RedirectURIs: builtinApp.RedirectURIs,
+			Name:             builtinApp.DisplayName,
+			ClientID:         clientID,
+			RedirectURIs:     builtinApp.RedirectURIs,
+			EnableDeviceFlow: builtinApp.EnableDeviceFlow,
 		}); err != nil {
 			return err
 		}
@@ -258,6 +277,7 @@ type CreateOAuth2ApplicationOptions struct {
 	ConfidentialClient         bool
 	SkipSecondaryAuthorization bool
 	RedirectURIs               []string
+	EnableDeviceFlow           bool
 }
 
 // CreateOAuth2Application inserts a new oauth2 application
@@ -270,6 +290,7 @@ func CreateOAuth2Application(ctx context.Context, opts CreateOAuth2ApplicationOp
 		RedirectURIs:               opts.RedirectURIs,
 		ConfidentialClient:         opts.ConfidentialClient,
 		SkipSecondaryAuthorization: opts.SkipSecondaryAuthorization,
+		EnableDeviceFlow:           opts.EnableDeviceFlow,
 	}
 	if err := db.Insert(ctx, app); err != nil {
 		return nil, err
@@ -285,6 +306,7 @@ type UpdateOAuth2ApplicationOptions struct {
 	ConfidentialClient         bool
 	SkipSecondaryAuthorization bool
 	RedirectURIs               []string
+	EnableDeviceFlow           bool
 }
 
 // UpdateOAuth2Application updates an oauth2 application
@@ -306,6 +328,7 @@ func UpdateOAuth2Application(ctx context.Context, opts UpdateOAuth2ApplicationOp
 		app.RedirectURIs = opts.RedirectURIs
 		app.ConfidentialClient = opts.ConfidentialClient
 		app.SkipSecondaryAuthorization = opts.SkipSecondaryAuthorization
+		app.EnableDeviceFlow = opts.EnableDeviceFlow
 
 		if err = updateOAuth2Application(ctx, app); err != nil {
 			return nil, err
@@ -317,7 +340,7 @@ func UpdateOAuth2Application(ctx context.Context, opts UpdateOAuth2ApplicationOp
 }
 
 func updateOAuth2Application(ctx context.Context, app *OAuth2Application) error {
-	if _, err := db.GetEngine(ctx).ID(app.ID).UseBool("confidential_client", "skip_secondary_authorization").Update(app); err != nil {
+	if _, err := db.GetEngine(ctx).ID(app.ID).UseBool("confidential_client", "skip_secondary_authorization", "enable_device_flow").Update(app); err != nil {
 		return err
 	}
 	return nil
@@ -457,9 +480,44 @@ type OAuth2Grant struct {
 	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
 }
 
+type IOAuth2Grant interface {
+	IncreaseCounter(ctx context.Context) error
+	GetID() int64
+	GetCounter() int64
+	ScopeContains(scope string) bool
+	GetApplicationID() int64
+	GetUserID() int64
+	GetNonce() string
+	GetScope() string
+}
+
 // TableName sets the table name to `oauth2_grant`
 func (grant *OAuth2Grant) TableName() string {
 	return "oauth2_grant"
+}
+
+func (grant *OAuth2Grant) GetApplicationID() int64 {
+	return grant.ApplicationID
+}
+
+func (grant *OAuth2Grant) GetUserID() int64 {
+	return grant.UserID
+}
+
+func (grant *OAuth2Grant) GetNonce() string {
+	return grant.Nonce
+}
+
+func (grant *OAuth2Grant) GetID() int64 {
+	return grant.ID
+}
+
+func (grant *OAuth2Grant) GetCounter() int64 {
+	return grant.Counter
+}
+
+func (grant *OAuth2Grant) GetScope() string {
+	return grant.Scope
 }
 
 // GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the database
