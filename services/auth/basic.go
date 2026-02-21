@@ -40,25 +40,21 @@ func (b *Basic) Name() string {
 	return BasicMethodName
 }
 
-// Verify extracts and validates Basic data (username and password/token) from the
-// "Authorization" header of the request and returns the corresponding user object for that
-// name/token on successful validation.
-// Returns nil if header is empty or validation fails.
-func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
+func (b *Basic) parseAuthBasic(req *http.Request) (ret struct{ authToken, uname, passwd string }) {
 	// Basic authentication should only fire on API, Feed, Download, Archives or on Git or LFSPaths
 	// Not all feed (rss/atom) clients feature the ability to add cookies or headers, so we need to allow basic auth for feeds
 	detector := newAuthPathDetector(req)
 	if !detector.isAPIPath() && !detector.isFeedRequest(req) && !detector.isContainerPath() && !detector.isAttachmentDownload() && !detector.isArchivePath() && !detector.isGitRawOrAttachOrLFSPath() {
-		return nil, nil
+		return ret
 	}
 
 	authHeader := req.Header.Get("Authorization")
 	if authHeader == "" {
-		return nil, nil
+		return ret
 	}
 	parsed, ok := httpauth.ParseAuthorizationHeader(authHeader)
 	if !ok || parsed.BasicAuth == nil {
-		return nil, nil
+		return ret
 	}
 	uname, passwd := parsed.BasicAuth.Username, parsed.BasicAuth.Password
 
@@ -73,7 +69,12 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	} else {
 		log.Trace("Basic Authorization: Attempting login with username as token")
 	}
+	ret.authToken, ret.uname, ret.passwd = authToken, uname, passwd
+	return ret
+}
 
+// VerifyAuthToken only the access token provided as parameter, used by other auth methods that want to reuse access token verification logic
+func (b *Basic) VerifyAuthToken(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore, authToken string) (*user_model.User, error) {
 	// get oauth2 token's user's ID
 	_, uid := GetOAuthAccessTokenScopeAndUserID(req.Context(), authToken)
 	if uid != 0 {
@@ -117,16 +118,29 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	task, err := actions_model.GetRunningTaskByToken(req.Context(), authToken)
 	if err == nil && task != nil {
 		log.Trace("Basic Authorization: Valid AccessToken for task[%d]", task.ID)
-
 		store.GetData()["LoginMethod"] = ActionTokenMethodName
-		store.GetData()["IsActionsToken"] = true
-		store.GetData()["ActionsTaskID"] = task.ID
+		return user_model.NewActionsUserWithTaskID(task.ID), nil
+	}
+	return nil, nil //nolint:nilnil // the auth method is not applicable
+}
 
-		return user_model.NewActionsUser(), nil
+// Verify extracts and validates Basic data (username and password/token) from the
+// "Authorization" header of the request and returns the corresponding user object for that
+// name/token on successful validation.
+// Returns nil if header is empty or validation fails.
+func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) (*user_model.User, error) {
+	parseBasicRet := b.parseAuthBasic(req)
+	authToken, uname, passwd := parseBasicRet.authToken, parseBasicRet.uname, parseBasicRet.passwd
+	if authToken == "" && uname == "" {
+		return nil, nil //nolint:nilnil // the auth method is not applicable
+	}
+	u, err := b.VerifyAuthToken(req, w, store, sess, authToken)
+	if u != nil || err != nil {
+		return u, err
 	}
 
 	if !setting.Service.EnableBasicAuth {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	log.Trace("Basic Authorization: Attempting SignIn for %s", uname)

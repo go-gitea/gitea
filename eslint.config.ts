@@ -15,10 +15,22 @@ import vue from 'eslint-plugin-vue';
 import vueScopedCss from 'eslint-plugin-vue-scoped-css';
 import wc from 'eslint-plugin-wc';
 import {defineConfig, globalIgnores} from 'eslint/config';
+import type {ESLint} from 'eslint';
 
 const jsExts = ['js', 'mjs', 'cjs'] as const;
 const tsExts = ['ts', 'mts', 'cts'] as const;
-const restrictedSyntax = ['WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'];
+
+const restrictedGlobals = [
+  {name: 'localStorage', message: 'Use `modules/user-settings.ts` instead.'},
+  {name: 'fetch', message: 'Use `modules/fetch.ts` instead.'},
+];
+
+const restrictedProperties = [
+  {object: 'window', property: 'localStorage', message: 'Use `modules/user-settings.ts` instead.'},
+  {object: 'globalThis', property: 'localStorage', message: 'Use `modules/user-settings.ts` instead.'},
+  {object: 'window', property: 'fetch', message: 'Use `modules/fetch.ts` instead.'},
+  {object: 'globalThis', property: 'fetch', message: 'Use `modules/fetch.ts` instead.'},
+];
 
 export default defineConfig([
   globalIgnores([
@@ -32,10 +44,6 @@ export default defineConfig([
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
       parser: typescriptParser,
       parserOptions: {
         sourceType: 'module',
@@ -55,8 +63,7 @@ export default defineConfig([
       '@stylistic': stylistic,
       '@typescript-eslint': typescriptPlugin.plugin,
       'array-func': arrayFunc,
-      // @ts-expect-error -- https://github.com/un-ts/eslint-plugin-import-x/issues/203
-      'import-x': importPlugin,
+      'import-x': importPlugin as unknown as ESLint.Plugin, // https://github.com/un-ts/eslint-plugin-import-x/issues/203
       regexp,
       sonarjs,
       unicorn,
@@ -69,7 +76,7 @@ export default defineConfig([
       'import-x/resolver': {'typescript': true},
     },
     rules: {
-      '@eslint-community/eslint-comments/disable-enable-pair': [2],
+      '@eslint-community/eslint-comments/disable-enable-pair': [0],
       '@eslint-community/eslint-comments/no-aggregating-enable': [2],
       '@eslint-community/eslint-comments/no-duplicate-disable': [2],
       '@eslint-community/eslint-comments/no-restricted-disable': [0],
@@ -149,7 +156,7 @@ export default defineConfig([
       '@typescript-eslint/adjacent-overload-signatures': [0],
       '@typescript-eslint/array-type': [0],
       '@typescript-eslint/await-thenable': [2],
-      '@typescript-eslint/ban-ts-comment': [2, {'ts-expect-error': false, 'ts-ignore': true, 'ts-nocheck': false, 'ts-check': false}],
+      '@typescript-eslint/ban-ts-comment': [2, {'ts-expect-error': true, 'ts-ignore': true, 'ts-nocheck': false, 'ts-check': false}],
       '@typescript-eslint/ban-tslint-comment': [0],
       '@typescript-eslint/class-literal-property-style': [0],
       '@typescript-eslint/class-methods-use-this': [0],
@@ -204,7 +211,7 @@ export default defineConfig([
       '@typescript-eslint/no-non-null-asserted-nullish-coalescing': [0],
       '@typescript-eslint/no-non-null-asserted-optional-chain': [2],
       '@typescript-eslint/no-non-null-assertion': [0],
-      '@typescript-eslint/no-redeclare': [0],
+      '@typescript-eslint/no-redeclare': [2],
       '@typescript-eslint/no-redundant-type-constituents': [2],
       '@typescript-eslint/no-require-imports': [2],
       '@typescript-eslint/no-restricted-imports': [0],
@@ -233,7 +240,7 @@ export default defineConfig([
       '@typescript-eslint/no-unused-vars': [2, {vars: 'all', args: 'all', caughtErrors: 'all', ignoreRestSiblings: false, argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_'}],
       '@typescript-eslint/no-use-before-define': [2, {functions: false, classes: true, variables: true, allowNamedExports: true, typedefs: false, enums: false, ignoreTypeReferences: true}],
       '@typescript-eslint/no-useless-constructor': [0],
-      '@typescript-eslint/no-useless-default-assignment': [0], // https://github.com/typescript-eslint/typescript-eslint/issues/11847
+      '@typescript-eslint/no-useless-default-assignment': [2],
       '@typescript-eslint/no-useless-empty-export': [0],
       '@typescript-eslint/no-wrapper-object-types': [2],
       '@typescript-eslint/non-nullable-type-assertion-style': [0],
@@ -264,6 +271,7 @@ export default defineConfig([
       '@typescript-eslint/restrict-template-expressions': [0],
       '@typescript-eslint/return-await': [0],
       '@typescript-eslint/strict-boolean-expressions': [0],
+      '@typescript-eslint/strict-void-return': [0],
       '@typescript-eslint/switch-exhaustiveness-check': [0],
       '@typescript-eslint/triple-slash-reference': [2],
       '@typescript-eslint/typedef': [0],
@@ -334,7 +342,7 @@ export default defineConfig([
       'import-x/first': [2],
       'import-x/group-exports': [0],
       'import-x/max-dependencies': [0],
-      'import-x/named': [2],
+      'import-x/named': [0],
       'import-x/namespace': [0],
       'import-x/newline-after-import': [0],
       'import-x/no-absolute-path': [0],
@@ -362,7 +370,7 @@ export default defineConfig([
       'import-x/no-self-import': [2],
       'import-x/no-unassigned-import': [0],
       'import-x/no-unresolved': [2, {commonjs: true, ignore: ['\\?.+$']}],
-      // 'import-x/no-unused-modules': [2, {unusedExports: true}], // not compatible with eslint 9
+      'import-x/no-unused-modules': [0], // incompatible with eslint 9
       'import-x/no-useless-path-segments': [2, {commonjs: true}],
       'import-x/no-webpack-loader-syntax': [2],
       'import-x/order': [0],
@@ -429,7 +437,7 @@ export default defineConfig([
       'no-import-assign': [2],
       'no-inline-comments': [0],
       'no-inner-declarations': [2],
-      'no-invalid-regexp': [2],
+      'no-invalid-regexp': [0], // handled by regexp/no-invalid-regexp
       'no-invalid-this': [0],
       'no-irregular-whitespace': [2],
       'no-iterator': [2],
@@ -543,7 +551,7 @@ export default defineConfig([
       'no-new-func': [0], // handled by @typescript-eslint/no-implied-eval
       'no-new-native-nonconstructor': [2],
       'no-new-object': [2],
-      'no-new-symbol': [2],
+      'no-new-symbol': [0], // handled by no-new-native-nonconstructor
       'no-new-wrappers': [2],
       'no-new': [0],
       'no-nonoctal-decimal-escape': [2],
@@ -558,9 +566,10 @@ export default defineConfig([
       'no-redeclare': [0], // must be disabled for typescript overloads
       'no-regex-spaces': [2],
       'no-restricted-exports': [0],
-      'no-restricted-globals': [2, 'addEventListener', 'blur', 'close', 'closed', 'confirm', 'defaultStatus', 'defaultstatus', 'error', 'event', 'external', 'find', 'focus', 'frameElement', 'frames', 'history', 'innerHeight', 'innerWidth', 'isFinite', 'isNaN', 'length', 'locationbar', 'menubar', 'moveBy', 'moveTo', 'name', 'onblur', 'onerror', 'onfocus', 'onload', 'onresize', 'onunload', 'open', 'opener', 'opera', 'outerHeight', 'outerWidth', 'pageXOffset', 'pageYOffset', 'parent', 'print', 'removeEventListener', 'resizeBy', 'resizeTo', 'screen', 'screenLeft', 'screenTop', 'screenX', 'screenY', 'scroll', 'scrollbars', 'scrollBy', 'scrollTo', 'scrollX', 'scrollY', 'status', 'statusbar', 'stop', 'toolbar', 'top'],
+      'no-restricted-globals': [2, ...restrictedGlobals],
+      'no-restricted-properties': [2, ...restrictedProperties],
       'no-restricted-imports': [0],
-      'no-restricted-syntax': [2, ...restrictedSyntax, {selector: 'CallExpression[callee.name="fetch"]', message: 'use modules/fetch.ts instead'}],
+      'no-restricted-syntax': [2, 'WithStatement', 'ForInStatement', 'LabeledStatement', 'SequenceExpression'],
       'no-return-assign': [0],
       'no-script-url': [2],
       'no-self-assign': [2, {props: true}],
@@ -573,7 +582,7 @@ export default defineConfig([
       'no-template-curly-in-string': [2],
       'no-ternary': [0],
       'no-this-before-super': [2],
-      'no-throw-literal': [2],
+      'no-throw-literal': [0], // handled by @typescript-eslint/only-throw-error
       'no-undef-init': [2],
       'no-undef': [2], // it is still needed by eslint & IDE to prompt undefined names in real time
       'no-undefined': [0],
@@ -591,7 +600,7 @@ export default defineConfig([
       'no-unused-vars': [0], // handled by @typescript-eslint/no-unused-vars
       'no-use-before-define': [0], // handled by @typescript-eslint/no-use-before-define
       'no-useless-assignment': [2],
-      'no-useless-backreference': [2],
+      'no-useless-backreference': [0], // handled by regexp/no-useless-backreference
       'no-useless-call': [2],
       'no-useless-catch': [2],
       'no-useless-computed-key': [2],
@@ -599,7 +608,7 @@ export default defineConfig([
       'no-useless-constructor': [2],
       'no-useless-escape': [2],
       'no-useless-rename': [2],
-      'no-useless-return': [2],
+      'no-useless-return': [0], // handled by sonarjs/no-redundant-jump
       'no-var': [2],
       'no-void': [2],
       'no-warning-comments': [0],
@@ -608,7 +617,7 @@ export default defineConfig([
       'one-var-declaration-per-line': [0],
       'one-var': [0],
       'operator-assignment': [2, 'always'],
-      'operator-linebreak': [2, 'after'],
+      'operator-linebreak': [0], // handled by @stylistic/operator-linebreak
       'prefer-arrow-callback': [2, {allowNamedFunctions: true, allowUnboundThis: true}],
       'prefer-const': [2, {destructuring: 'all', ignoreReadBeforeAssign: true}],
       'prefer-destructuring': [0],
@@ -688,7 +697,7 @@ export default defineConfig([
       'regexp/prefer-question-quantifier': [2],
       'regexp/prefer-range': [2],
       'regexp/prefer-regexp-exec': [2],
-      'regexp/prefer-regexp-test': [2],
+      'regexp/prefer-regexp-test': [0], // handled by unicorn/prefer-regexp-test
       'regexp/prefer-result-array-groups': [0],
       'regexp/prefer-set-operation': [2],
       'regexp/prefer-star-quantifier': [2],
@@ -718,7 +727,7 @@ export default defineConfig([
       'sonarjs/no-empty-collection': [2],
       'sonarjs/no-extra-arguments': [2],
       'sonarjs/no-gratuitous-expressions': [2],
-      'sonarjs/no-identical-conditions': [2],
+      'sonarjs/no-identical-conditions': [0], // handled by no-dupe-else-if
       'sonarjs/no-identical-expressions': [2],
       'sonarjs/no-identical-functions': [2, 5],
       'sonarjs/no-ignored-return': [2],
@@ -731,7 +740,7 @@ export default defineConfig([
       'sonarjs/no-small-switch': [0],
       'sonarjs/no-unused-collection': [2],
       'sonarjs/no-use-of-empty-return-value': [2],
-      'sonarjs/no-useless-catch': [2],
+      'sonarjs/no-useless-catch': [0], // handled by no-useless-catch
       'sonarjs/non-existent-operator': [2],
       'sonarjs/prefer-immediate-return': [0],
       'sonarjs/prefer-object-literal': [0],
@@ -758,6 +767,7 @@ export default defineConfig([
       'unicorn/filename-case': [0],
       'unicorn/import-index': [0],
       'unicorn/import-style': [0],
+      'unicorn/isolated-functions': [2, {functions: []}],
       'unicorn/new-for-builtins': [2],
       'unicorn/no-abusive-eslint-disable': [0],
       'unicorn/no-anonymous-default-export': [0],
@@ -797,7 +807,7 @@ export default defineConfig([
       'unicorn/no-unnecessary-await': [2],
       'unicorn/no-unnecessary-polyfills': [2],
       'unicorn/no-unreadable-array-destructuring': [0],
-      'unicorn/no-unreadable-iife': [2],
+      'unicorn/no-unreadable-iife': [0],
       'unicorn/no-unused-properties': [2],
       'unicorn/no-useless-collection-argument': [2],
       'unicorn/no-useless-fallback-in-spread': [2],
@@ -810,7 +820,7 @@ export default defineConfig([
       'unicorn/number-literal-case': [0],
       'unicorn/numeric-separators-style': [0],
       'unicorn/prefer-add-event-listener': [2],
-      'unicorn/prefer-array-find': [2],
+      'unicorn/prefer-array-find': [0], // handled by @typescript-eslint/prefer-find
       'unicorn/prefer-array-flat': [2],
       'unicorn/prefer-array-flat-map': [2],
       'unicorn/prefer-array-index-of': [2],
@@ -827,7 +837,7 @@ export default defineConfig([
       'unicorn/prefer-event-target': [2],
       'unicorn/prefer-export-from': [0],
       'unicorn/prefer-global-this': [0],
-      'unicorn/prefer-includes': [2],
+      'unicorn/prefer-includes': [0], // handled by @typescript-eslint/prefer-includes
       'unicorn/prefer-json-parse-buffer': [0],
       'unicorn/prefer-keyboard-event-key': [2],
       'unicorn/prefer-logical-operator-over-ternary': [2],
@@ -854,7 +864,7 @@ export default defineConfig([
       'unicorn/prefer-string-raw': [0],
       'unicorn/prefer-string-replace-all': [0],
       'unicorn/prefer-string-slice': [0],
-      'unicorn/prefer-string-starts-ends-with': [2],
+      'unicorn/prefer-string-starts-ends-with': [0], // handled by @typescript-eslint/prefer-string-starts-ends-with
       'unicorn/prefer-string-trim-start-end': [2],
       'unicorn/prefer-structured-clone': [2],
       'unicorn/prefer-switch': [0],
@@ -915,8 +925,7 @@ export default defineConfig([
     },
     extends: [
       vue.configs['flat/recommended'],
-      // @ts-expect-error
-      vueScopedCss.configs['flat/recommended'],
+      vueScopedCss.configs['flat/recommended'] as any,
     ],
     rules: {
       'vue/attributes-order': [0],
@@ -924,12 +933,6 @@ export default defineConfig([
       'vue/max-attributes-per-line': [0],
       'vue/singleline-html-element-content-newline': [0],
       'vue/require-typed-ref': [2],
-    },
-  },
-  {
-    files: ['web_src/js/modules/fetch.ts', 'web_src/js/standalone/**/*'],
-    rules: {
-      'no-restricted-syntax': [2, ...restrictedSyntax],
     },
   },
   {
@@ -985,42 +988,23 @@ export default defineConfig([
       'vitest/require-to-throw-message': [0],
       'vitest/require-top-level-describe': [0],
       'vitest/valid-describe-callback': [2],
-      'vitest/valid-expect': [2],
+      'vitest/valid-expect': [2, {maxArgs: 2}],
       'vitest/valid-title': [2],
-    },
-  },
-  {
-    files: ['web_src/js/types.ts'],
-    rules: {
-      'import-x/no-unused-modules': [0],
     },
   },
   {
     files: ['**/*.d.ts'],
     rules: {
-      'import-x/no-unused-modules': [0],
       '@typescript-eslint/consistent-type-definitions': [0],
       '@typescript-eslint/consistent-type-imports': [0],
     },
   },
   {
-    files: ['*.config.*'],
-    rules: {
-      'import-x/no-unused-modules': [0],
-    },
-  },
-  {
-    files: ['web_src/**/*', 'docs/**/*'],
-    languageOptions: {globals: globals.browser},
+    files: ['*', 'tools/**/*'],
+    languageOptions: {globals: globals.nodeBuiltin},
   },
   {
     files: ['web_src/**/*'],
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        __webpack_public_path__: true,
-        process: false, // https://github.com/webpack/webpack/issues/15833
-      },
-    },
+    languageOptions: {globals: {...globals.browser, ...globals.webpack}},
   },
 ]);

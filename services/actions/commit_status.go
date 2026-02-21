@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"path"
 	"strconv"
+	"strings"
 
 	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
@@ -114,6 +115,21 @@ func getCommitStatusEventNameAndCommitID(run *actions_model.ActionRun) (event, c
 			return "", "", errors.New("head of pull request is missing in event payload")
 		}
 		commitID = payload.PullRequest.Head.Sha
+	case // pull_request_review events share the same PullRequestPayload as pull_request
+		webhook_module.HookEventPullRequestReviewApproved,
+		webhook_module.HookEventPullRequestReviewRejected,
+		webhook_module.HookEventPullRequestReviewComment:
+		event = run.TriggerEvent
+		payload, err := run.GetPullRequestEventPayload()
+		if err != nil {
+			return "", "", fmt.Errorf("GetPullRequestEventPayload: %w", err)
+		}
+		if payload.PullRequest == nil {
+			return "", "", errors.New("pull request is missing in event payload")
+		} else if payload.PullRequest.Head == nil {
+			return "", "", errors.New("head of pull request is missing in event payload")
+		}
+		commitID = payload.PullRequest.Head.Sha
 	case webhook_module.HookEventRelease:
 		event = string(run.Event)
 		commitID = run.CommitSHA
@@ -129,6 +145,7 @@ func createCommitStatus(ctx context.Context, repo *repo_model.Repository, event,
 		runName = wfs[0].Name
 	}
 	ctxName := fmt.Sprintf("%s / %s (%s)", runName, job.Name, event)
+	ctxName = strings.TrimSpace(ctxName) // git_model.NewCommitStatus also trims spaces
 	state := toCommitStatus(job.Status)
 	if statuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, commitID, db.ListOptionsAll); err == nil {
 		for _, v := range statuses {

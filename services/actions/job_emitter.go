@@ -114,7 +114,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 			}
 		}
 		if runUpdated {
-			NotifyWorkflowRunStatusUpdateWithReload(ctx, jobs[0])
+			NotifyWorkflowRunStatusUpdateWithReload(ctx, js[0])
 		}
 	}
 	return nil
@@ -123,7 +123,7 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 // findBlockedRunByConcurrency finds the blocked concurrent run in a repo and returns `nil, nil` when there is no blocked run.
 func findBlockedRunByConcurrency(ctx context.Context, repoID int64, concurrencyGroup string) (*actions_model.ActionRun, error) {
 	if concurrencyGroup == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that no blocked run exists
 	}
 	cRuns, cJobs, err := actions_model.GetConcurrentRunsAndJobs(ctx, repoID, concurrencyGroup, []actions_model.Status{actions_model.StatusBlocked})
 	if err != nil {

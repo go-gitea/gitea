@@ -229,13 +229,13 @@ func GetColumn(ctx context.Context, columnID int64) (*Column, error) {
 	return column, nil
 }
 
-func GetColumnByProjectIDAndColumnID(ctx context.Context, projectID, columnID int64) (*Column, error) {
+func GetColumnByIDAndProjectID(ctx context.Context, columnID, projectID int64) (*Column, error) {
 	column := new(Column)
-	has, err := db.GetEngine(ctx).Where("project_id=? AND id=?", projectID, columnID).Get(column)
+	has, err := db.GetEngine(ctx).ID(columnID).And("project_id=?", projectID).Get(column)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrProjectColumnNotExist{ProjectID: projectID, ColumnID: columnID}
+		return nil, ErrProjectColumnNotExist{ColumnID: columnID}
 	}
 
 	return column, nil

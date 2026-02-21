@@ -323,6 +323,19 @@ func GetProjectByName(ctx context.Context, repoID int64, name string) (*Project,
 	return p, nil
 }
 
+// GetProjectByIDAndOwner returns the projects in a repository
+func GetProjectByIDAndOwner(ctx context.Context, id, ownerID int64) (*Project, error) {
+	p := new(Project)
+	has, err := db.GetEngine(ctx).ID(id).And("owner_id = ?", ownerID).Get(p)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrProjectNotExist{ID: id}
+	}
+
+	return p, nil
+}
+
 // GetProjectForRepoByID returns the projects in a repository
 func GetProjectForRepoByID(ctx context.Context, repoID, id int64) (*Project, error) {
 	p := new(Project)

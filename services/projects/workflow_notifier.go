@@ -355,9 +355,9 @@ func executeWorkflowActions(ctx context.Context, workflow *project_model.Workflo
 				log.Error("Invalid column ID: %s", action.Value)
 				continue
 			}
-			column, err := project_model.GetColumnByProjectIDAndColumnID(ctx, issue.Project.ID, columnID)
+			column, err := project_model.GetColumnByIDAndProjectID(ctx, columnID, issue.Project.ID)
 			if err != nil {
-				log.Error("GetColumnByProjectIDAndColumnID: %v", err)
+				log.Error("GetColumnByIDAndProjectID: %v", err)
 				continue
 			}
 			if err := MoveIssueToAnotherColumn(ctx, user_model.NewProjectWorkflowsUser(), issue, column); err != nil {

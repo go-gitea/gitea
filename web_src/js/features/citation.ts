@@ -1,17 +1,14 @@
 import {getCurrentLocale} from '../utils.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
+import {localUserSettings} from '../modules/user-settings.ts';
 
 const {pageData} = window.config;
 
 async function initInputCitationValue(citationCopyApa: HTMLButtonElement, citationCopyBibtex: HTMLButtonElement) {
   const [{Cite, plugins}] = await Promise.all([
-    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
-    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),
-    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-bibtex" */'@citation-js/plugin-bibtex'),
-    // @ts-expect-error: module exports no types
     import(/* webpackChunkName: "citation-js-csl" */'@citation-js/plugin-csl'),
   ]);
   const {citationFileContent} = pageData;
@@ -38,7 +35,7 @@ export async function initCitationFileCopyContent() {
   if ((!citationCopyApa && !citationCopyBibtex) || !inputContent) return;
 
   const updateUi = () => {
-    const isBibtex = (localStorage.getItem('citation-copy-format') || defaultCitationFormat) === 'bibtex';
+    const isBibtex = localUserSettings.getString('citation-copy-format', defaultCitationFormat) === 'bibtex';
     const copyContent = (isBibtex ? citationCopyBibtex : citationCopyApa).getAttribute('data-text')!;
     inputContent.value = copyContent;
     citationCopyBibtex.classList.toggle('primary', isBibtex);
@@ -55,12 +52,12 @@ export async function initCitationFileCopyContent() {
     updateUi();
 
     citationCopyApa.addEventListener('click', () => {
-      localStorage.setItem('citation-copy-format', 'apa');
+      localUserSettings.setString('citation-copy-format', 'apa');
       updateUi();
     });
 
     citationCopyBibtex.addEventListener('click', () => {
-      localStorage.setItem('citation-copy-format', 'bibtex');
+      localUserSettings.setString('citation-copy-format', 'bibtex');
       updateUi();
     });
 

@@ -1,25 +1,18 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package v1_26
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func AddProjectWorkflow(x *xorm.Engine) error {
-	type ProjectWorkflow struct {
-		ID              int64
-		ProjectID       int64 `xorm:"INDEX"`
-		WorkflowEvent   string
-		WorkflowFilters string             `xorm:"TEXT JSON"`
-		WorkflowActions string             `xorm:"TEXT JSON"`
-		Enabled         bool               `xorm:"DEFAULT true"`
-		CreatedUnix     timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix     timeutil.TimeStamp `xorm:"updated"`
+func FixMissedRepoIDWhenMigrateAttachments(x *xorm.Engine) error {
+	_, err := x.Exec("UPDATE `attachment` SET `repo_id` = (SELECT `repo_id` FROM `issue` WHERE `issue`.`id` = `attachment`.`issue_id`) WHERE `issue_id` > 0 AND (`repo_id` IS NULL OR `repo_id` = 0);")
+	if err != nil {
+		return err
 	}
 
-	return x.Sync(&ProjectWorkflow{})
+	_, err = x.Exec("UPDATE `attachment` SET `repo_id` = (SELECT `repo_id` FROM `release` WHERE `release`.`id` = `attachment`.`release_id`) WHERE `release_id` > 0 AND (`repo_id` IS NULL OR `repo_id` = 0);")
+	return err
 }

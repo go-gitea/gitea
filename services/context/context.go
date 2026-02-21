@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -128,7 +129,7 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 
 		Cache: cache.GetCache(),
 		Link:  setting.AppSubURL + strings.TrimSuffix(base.Req.URL.EscapedPath(), "/"),
-		Repo:  &Repository{PullRequest: &PullRequest{}},
+		Repo:  &Repository{},
 		Org:   &Organization{},
 	}
 	ctx.TemplateContext = NewTemplateContextForWeb(ctx)
@@ -137,15 +138,32 @@ func NewWebContext(base *Base, render Render, session session.Store) *Context {
 	return ctx
 }
 
-// Contexter initializes a classic context for a request.
-func Contexter() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func ContexterInstallPage(data map[string]any) func(next http.Handler) http.Handler {
+	rnd := templates.PageRenderer()
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			base := NewBaseContext(resp, req)
 			ctx := NewWebContext(base, rnd, session.GetContextSession(req))
 			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
-			ctx.Data["CurrentURL"] = setting.AppSubURL + req.URL.RequestURI()
+			ctx.Data.MergeFrom(reqctx.ContextData{
+				"Title":         ctx.Locale.Tr("install.install"),
+				"PageIsInstall": true,
+				"AllLangs":      translation.AllLangs(),
+			})
+			ctx.Data.MergeFrom(data)
+			next.ServeHTTP(resp, ctx.Req)
+		})
+	}
+}
+
+// Contexter initializes a classic context for a request.
+func Contexter() func(next http.Handler) http.Handler {
+	rnd := templates.PageRenderer()
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			base := NewBaseContext(resp, req)
+			ctx := NewWebContext(base, rnd, session.GetContextSession(req))
+			ctx.Data.MergeFrom(middleware.CommonTemplateContextData())
 			ctx.Data["Link"] = ctx.Link
 
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules

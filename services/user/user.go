@@ -239,6 +239,11 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		if err := deleteUser(ctx, u, purge); err != nil {
 			return fmt.Errorf("DeleteUser: %w", err)
 		}
+
+		// Finally delete any unlinked attachments, this will also delete the attached files
+		if err := deleteUserUnlinkedAttachments(ctx, u); err != nil {
+			return fmt.Errorf("deleteUserUnlinkedAttachments: %w", err)
+		}
 		return nil
 	}); err != nil {
 		return err
@@ -266,6 +271,19 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 	}
 
+	return nil
+}
+
+func deleteUserUnlinkedAttachments(ctx context.Context, u *user_model.User) error {
+	attachments, err := repo_model.GetUnlinkedAttachmentsByUserID(ctx, u.ID)
+	if err != nil {
+		return fmt.Errorf("GetUnlinkedAttachmentsByUserID: %w", err)
+	}
+	for _, attach := range attachments {
+		if err := repo_model.DeleteAttachment(ctx, attach, true); err != nil {
+			return fmt.Errorf("DeleteAttachment ID[%d]: %w", attach.ID, err)
+		}
+	}
 	return nil
 }
 

@@ -49,7 +49,7 @@ func convertFormToFilters(ctx stdCtx.Context, project *project_model.Project, fo
 			if strValue, ok := value.(string); ok && strValue != "" {
 				strValueInt, _ := strconv.ParseInt(strValue, 10, 64)
 				if strValueInt > 0 {
-					col, _ := project_model.GetColumnByProjectIDAndColumnID(ctx, project.ID, strValueInt)
+					col, _ := project_model.GetColumnByIDAndProjectID(ctx, strValueInt, project.ID)
 					if col == nil {
 						continue
 					}
@@ -83,7 +83,7 @@ func convertFormToActions(ctx stdCtx.Context, project *project_model.Project, fo
 			if colValue, ok := value.(string); ok {
 				colValueInt, _ := strconv.ParseInt(colValue, 10, 64)
 				if colValueInt > 0 {
-					col, _ := project_model.GetColumnByProjectIDAndColumnID(ctx, project.ID, colValueInt)
+					col, _ := project_model.GetColumnByIDAndProjectID(ctx, colValueInt, project.ID)
 					if col == nil {
 						continue
 					}

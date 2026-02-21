@@ -89,7 +89,6 @@ cpu.out
 /vendor
 /VERSION
 /.air
-/.go-licenses
 
 # Files and folders that were previously generated
 /public/assets/img/webpack
@@ -121,8 +120,6 @@ prime/
 /.goosehints
 /.windsurfrules
 /.github/copilot-instructions.md
-/AGENT.md
-/CLAUDE.md
 /llms.txt
 
 # Ignore worktrees when working on multiple branches
