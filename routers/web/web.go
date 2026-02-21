@@ -658,11 +658,11 @@ func registerWebRoutes(m *web.Router) {
 				ctx.Redirect(setting.AppSubURL + "/user/settings/actions/general")
 			})
 			m.Group("/general", func() {
-				m.Get("", shared_actions.ActionsGeneralSettings)
+				m.Get("", shared_actions.GeneralSettings)
 				m.Post("", shared_actions.UpdateTokenPermissions)
 				m.Group("/allowed_repos", func() {
-					m.Post("/add", shared_actions.ActionsAllowedReposAdd)
-					m.Post("/remove", shared_actions.ActionsAllowedReposRemove)
+					m.Post("/add", shared_actions.AllowedReposAdd)
+					m.Post("/remove", shared_actions.AllowedReposRemove)
 				})
 			})
 			addSettingsRunnersRoutes()
@@ -971,11 +971,11 @@ func registerWebRoutes(m *web.Router) {
 						ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/general")
 					})
 					m.Group("/general", func() {
-						m.Get("", shared_actions.ActionsGeneralSettings)
+						m.Get("", shared_actions.GeneralSettings)
 						m.Post("", shared_actions.UpdateTokenPermissions)
 						m.Group("/allowed_repos", func() {
-							m.Post("/add", shared_actions.ActionsAllowedReposAdd)
-							m.Post("/remove", shared_actions.ActionsAllowedReposRemove)
+							m.Post("/add", shared_actions.AllowedReposAdd)
+							m.Post("/remove", shared_actions.AllowedReposRemove)
 						})
 					})
 					addSettingsRunnersRoutes()

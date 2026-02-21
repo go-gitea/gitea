@@ -19,8 +19,8 @@ const (
 	tplUserSettingsActionsGeneral templates.TplName = "user/settings/actions_general"
 )
 
-// ActionsGeneralSettings renders the actions general settings page
-func ActionsGeneralSettings(ctx *context.Context) {
+// GeneralSettings renders the actions general settings page
+func GeneralSettings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
 
 	rCtx, err := getRunnersCtx(ctx)
@@ -176,8 +176,8 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	ctx.Redirect(generalLink)
 }
 
-// ActionsAllowedReposAdd adds a repository to the allowed list for cross-repo access
-func ActionsAllowedReposAdd(ctx *context.Context) {
+// AllowedReposAdd adds a repository to the allowed list for cross-repo access
+func AllowedReposAdd(ctx *context.Context) {
 	repoName := ctx.FormString("repo_name")
 
 	rCtx, err := getRunnersCtx(ctx)
@@ -229,8 +229,8 @@ func ActionsAllowedReposAdd(ctx *context.Context) {
 	ctx.Redirect(generalLink)
 }
 
-// ActionsAllowedReposRemove removes a repository from the allowed list
-func ActionsAllowedReposRemove(ctx *context.Context) {
+// AllowedReposRemove removes a repository from the allowed list
+func AllowedReposRemove(ctx *context.Context) {
 	repoID := ctx.FormInt64("repo_id")
 
 	rCtx, err := getRunnersCtx(ctx)
