@@ -1073,7 +1073,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusOK, &api.RunDetails{
 		WorkflowRunID: runID,
-		HTMLURL:       fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.Repository.HTMLURL(), workflowRun.Index),
+		HTMLURL:       fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.Repository.HTMLURL(ctx), workflowRun.Index),
 		RunURL:        fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.Repository.APIURL(), runID),
 	})
 }
