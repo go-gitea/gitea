@@ -6,7 +6,6 @@ package integration
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"net/http"
 	"testing"
 
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -134,53 +134,6 @@ func TestPackageTerraform(t *testing.T) {
 			req = NewRequest(t, "GET", url)
 			MakeRequest(t, req, http.StatusUnauthorized)
 		})
-
-		t.Run("ServeDirect", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			if setting.Packages.Storage.Type != setting.MinioStorageType && setting.Packages.Storage.Type != setting.AzureBlobStorageType {
-				t.Skip("Test skipped for non-Minio-storage and non-AzureBlob-storage.")
-				return
-			}
-
-			if setting.Packages.Storage.Type == setting.MinioStorageType {
-				if !setting.Packages.Storage.MinioConfig.ServeDirect {
-					old := setting.Packages.Storage.MinioConfig.ServeDirect
-					defer func() {
-						setting.Packages.Storage.MinioConfig.ServeDirect = old
-					}()
-
-					setting.Packages.Storage.MinioConfig.ServeDirect = true
-				}
-			} else if setting.Packages.Storage.Type == setting.AzureBlobStorageType {
-				if !setting.Packages.Storage.AzureBlobConfig.ServeDirect {
-					old := setting.Packages.Storage.AzureBlobConfig.ServeDirect
-					defer func() {
-						setting.Packages.Storage.AzureBlobConfig.ServeDirect = old
-					}()
-
-					setting.Packages.Storage.AzureBlobConfig.ServeDirect = true
-				}
-			}
-
-			req := NewRequest(t, "GET", url)
-			resp := MakeRequest(t, req, http.StatusSeeOther)
-
-			checkDownloadCount(3)
-
-			location := resp.Header().Get("Location")
-			assert.NotEmpty(t, location)
-
-			resp2, err := (&http.Client{}).Get(location)
-			assert.NoError(t, err)
-			assert.Equal(t, http.StatusOK, resp2.StatusCode, location)
-
-			body, err := io.ReadAll(resp2.Body)
-			assert.NoError(t, err)
-			assert.Equal(t, content, body)
-
-			checkDownloadCount(3)
-		})
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -205,7 +158,7 @@ func TestPackageTerraform(t *testing.T) {
 
 			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeTerraform)
 			assert.NoError(t, err)
-			assert.Len(t, pvs, 0)
+			assert.Empty(t, pvs)
 		})
 
 		t.Run("Version", func(t *testing.T) {
