@@ -74,6 +74,7 @@ type FindRunOptions struct {
 	Status           []Status
 	ConcurrencyGroup string
 	CommitSHA        string
+	OnlyRoot         bool // only list top-level runs (exclude child runs)
 }
 
 func (opts FindRunOptions) ToConds() builder.Cond {
@@ -107,6 +108,9 @@ func (opts FindRunOptions) ToConds() builder.Cond {
 			panic("Invalid FindRunOptions: repo_id is required")
 		}
 		cond = cond.And(builder.Eq{"`action_run`.concurrency_group": opts.ConcurrencyGroup})
+	}
+	if opts.OnlyRoot {
+		cond = cond.And(builder.Eq{"`action_run`.parent_job_id": 0})
 	}
 	return cond
 }

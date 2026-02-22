@@ -19,7 +19,7 @@ import (
 	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
 	"github.com/nektos/act/pkg/workflowpattern"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 type DetectedWorkflow struct {

@@ -93,6 +93,17 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 	for _, job := range updatedJobs {
 		_ = job.LoadAttributes(ctx)
 		notify_service.WorkflowJobStatusUpdate(ctx, job.Run.Repo, job.Run.TriggerUser, job, nil)
+
+		if job.ChildRunID == -1 && job.Status == actions_model.StatusWaiting {
+			if err := expandReusableWorkflow(ctx, job); err != nil {
+				log.Error("expand reusable workflow child run for job %d: %v", job.ID, err)
+			}
+		} else if job.ChildRunID > 0 {
+			// job status may be StatusWaiting or StatusSkipped when calling rerunReusableWorkflowRun
+			if err := rerunReusableWorkflowRun(ctx, job); err != nil {
+				log.Error("rerun reusable workflow child run %d for job %d: %v", job.ChildRunID, job.ID, err)
+			}
+		}
 	}
 	runJobs := make(map[int64][]*actions_model.ActionRunJob)
 	for _, job := range jobs {
@@ -115,6 +126,18 @@ func checkJobsByRunID(ctx context.Context, runID int64) error {
 		}
 		if runUpdated {
 			NotifyWorkflowRunStatusUpdateWithReload(ctx, js[0])
+		}
+	}
+	if run.ParentJobID > 0 {
+		run, err = actions_model.GetRunByRepoAndID(ctx, run.RepoID, run.ID)
+		if err != nil {
+			return fmt.Errorf("GetRunByRepoAndID: %w", err)
+		}
+		if err := run.LoadParentJob(ctx); err != nil {
+			return fmt.Errorf("LoadParentJob: %w", err)
+		}
+		if err := EmitJobsIfReadyByRun(run.ParentJob.RunID); err != nil {
+			return fmt.Errorf("EmitJobsIfReadyByRun: %w", err)
 		}
 	}
 	return nil

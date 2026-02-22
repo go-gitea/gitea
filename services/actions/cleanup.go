@@ -179,38 +179,18 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 
 	repoID := run.RepoID
 
-	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+	recordsToDelete, tasks, runIDs, err := collectRunDeleteRecords(ctx, repoID, run)
 	if err != nil {
 		return err
 	}
-	jobIDs := container.FilterSlice(jobs, func(j *actions_model.ActionRunJob) (int64, bool) {
-		return j.ID, true
-	})
-	tasks := make(actions_model.TaskList, 0)
-	if len(jobIDs) > 0 {
-		if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).In("job_id", jobIDs).Find(&tasks); err != nil {
+
+	artifacts := make([]actions_model.ActionArtifact, 0)
+	if len(runIDs) > 0 {
+		if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).In("run_id", runIDs).Find(&artifacts); err != nil {
 			return err
 		}
 	}
 
-	artifacts, err := db.Find[actions_model.ActionArtifact](ctx, actions_model.FindArtifactsOptions{
-		RepoID: repoID,
-		RunID:  run.ID,
-	})
-	if err != nil {
-		return err
-	}
-
-	var recordsToDelete []any
-
-	recordsToDelete = append(recordsToDelete, &actions_model.ActionRun{
-		RepoID: repoID,
-		ID:     run.ID,
-	})
-	recordsToDelete = append(recordsToDelete, &actions_model.ActionRunJob{
-		RepoID: repoID,
-		RunID:  run.ID,
-	})
 	for _, tas := range tasks {
 		recordsToDelete = append(recordsToDelete, &actions_model.ActionTask{
 			RepoID: repoID,
@@ -224,11 +204,6 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 			TaskID: tas.ID,
 		})
 	}
-	recordsToDelete = append(recordsToDelete, &actions_model.ActionArtifact{
-		RepoID: repoID,
-		RunID:  run.ID,
-	})
-
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		// TODO: Deleting task records could break current ephemeral runner implementation. This is a temporary workaround suggested by ChristopherHX.
 		// Since you delete potentially the only task an ephemeral act_runner has ever run, please delete the affected runners first.
@@ -257,4 +232,59 @@ func DeleteRun(ctx context.Context, run *actions_model.ActionRun) error {
 	}
 
 	return nil
+}
+
+func collectRunDeleteRecords(ctx context.Context, repoID int64, run *actions_model.ActionRun) ([]any, actions_model.TaskList, []int64, error) {
+	if !run.Status.IsDone() {
+		return nil, nil, nil, errors.New("run is not done")
+	}
+
+	runIDs := []int64{run.ID}
+
+	recordsToDelete := make([]any, 0)
+	recordsToDelete = append(recordsToDelete, &actions_model.ActionRun{
+		RepoID: repoID,
+		ID:     run.ID,
+	})
+	recordsToDelete = append(recordsToDelete, &actions_model.ActionRunJob{
+		RepoID: repoID,
+		RunID:  run.ID,
+	})
+	recordsToDelete = append(recordsToDelete, &actions_model.ActionArtifact{
+		RepoID: repoID,
+		RunID:  run.ID,
+	})
+
+	jobs, err := actions_model.GetRunJobsByRunID(ctx, run.ID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	jobIDs := container.FilterSlice(jobs, func(j *actions_model.ActionRunJob) (int64, bool) {
+		return j.ID, true
+	})
+	tasks := make(actions_model.TaskList, 0)
+	if len(jobIDs) > 0 {
+		if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).In("job_id", jobIDs).Find(&tasks); err != nil {
+			return nil, nil, nil, err
+		}
+	}
+
+	for _, job := range jobs {
+		if job.ChildRunID <= 0 {
+			continue
+		}
+		childRun, err := actions_model.GetRunByRepoAndID(ctx, repoID, job.ChildRunID)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		childRecords, childTasks, childRunIDs, err := collectRunDeleteRecords(ctx, repoID, childRun)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		recordsToDelete = append(recordsToDelete, childRecords...)
+		tasks = append(tasks, childTasks...)
+		runIDs = append(runIDs, childRunIDs...)
+	}
+
+	return recordsToDelete, tasks, runIDs, nil
 }
