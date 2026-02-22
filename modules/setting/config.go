@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"context"
 	"strings"
 	"sync"
 
@@ -53,9 +54,43 @@ type RepositoryStruct struct {
 	GitGuideRemoteName *config.Value[string]
 }
 
+type InstanceNotice struct {
+	Enabled bool
+	Message string
+
+	StartTime int64
+	EndTime   int64
+}
+
+func DefaultInstanceNotice() InstanceNotice {
+	return InstanceNotice{}
+}
+
+func (n *InstanceNotice) IsActive(now int64) bool {
+	if !n.Enabled || n.Message == "" {
+		return false
+	}
+	if n.StartTime > 0 && now < n.StartTime {
+		return false
+	}
+	if n.EndTime > 0 && now > n.EndTime {
+		return false
+	}
+	return true
+}
+
+func GetInstanceNotice(ctx context.Context) InstanceNotice {
+	return Config().InstanceNotice.Banner.Value(ctx)
+}
+
+type InstanceNoticeStruct struct {
+	Banner *config.Value[InstanceNotice]
+}
+
 type ConfigStruct struct {
-	Picture    *PictureStruct
-	Repository *RepositoryStruct
+	Picture        *PictureStruct
+	Repository     *RepositoryStruct
+	InstanceNotice *InstanceNoticeStruct
 }
 
 var (
@@ -73,6 +108,9 @@ func initDefaultConfig() {
 		Repository: &RepositoryStruct{
 			OpenWithEditorApps: config.ValueJSON[OpenWithEditorAppsType]("repository.open-with.editor-apps"),
 			GitGuideRemoteName: config.ValueJSON[string]("repository.git-guide-remote-name").WithDefault("origin"),
+		},
+		InstanceNotice: &InstanceNoticeStruct{
+			Banner: config.ValueJSON[InstanceNotice]("instance.notice").WithDefault(DefaultInstanceNotice()),
 		},
 	}
 }

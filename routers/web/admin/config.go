@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
+	"unicode/utf8"
 
 	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
@@ -28,6 +30,8 @@ import (
 const (
 	tplConfig         templates.TplName = "admin/config"
 	tplConfigSettings templates.TplName = "admin/config_settings/config_settings"
+
+	instanceNoticeMessageMaxLength = 2000
 )
 
 // SendTestMail send test mail to confirm mail service is OK
@@ -145,7 +149,6 @@ func Config(ctx *context.Context) {
 	ctx.Data["Service"] = setting.Service
 	ctx.Data["DbCfg"] = setting.Database
 	ctx.Data["Webhook"] = setting.Webhook
-
 	ctx.Data["MailerEnabled"] = false
 	if setting.MailService != nil {
 		ctx.Data["MailerEnabled"] = true
@@ -187,11 +190,103 @@ func Config(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplConfig)
 }
 
+func parseDatetimeLocalValue(raw string) (int64, error) {
+	if raw == "" {
+		return 0, nil
+	}
+	tm, err := time.ParseInLocation("2006-01-02T15:04", raw, setting.DefaultUILocation)
+	if err != nil {
+		return 0, err
+	}
+	return tm.Unix(), nil
+}
+
+func SetInstanceNotice(ctx *context.Context) {
+	saveInstanceNotice := func(instanceNotice setting.InstanceNotice) {
+		marshaled, err := json.Marshal(instanceNotice)
+		if err != nil {
+			ctx.ServerError("Marshal", err)
+			return
+		}
+		if err := system_model.SetSettings(ctx, map[string]string{
+			setting.Config().InstanceNotice.Banner.DynKey(): string(marshaled),
+		}); err != nil {
+			ctx.ServerError("SetSettings", err)
+			return
+		}
+		config.GetDynGetter().InvalidateCache()
+	}
+
+	if ctx.FormString("action") == "delete" {
+		saveInstanceNotice(setting.DefaultInstanceNotice())
+		if ctx.Written() {
+			return
+		}
+		ctx.Flash.Success(ctx.Tr("admin.config.instance_notice.delete_success"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
+		return
+	}
+
+	enabled := ctx.FormBool("enabled")
+	message := strings.TrimSpace(ctx.FormString("message"))
+	startTime, err := parseDatetimeLocalValue(strings.TrimSpace(ctx.FormString("start_time")))
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
+		return
+	}
+	endTime, err := parseDatetimeLocalValue(strings.TrimSpace(ctx.FormString("end_time")))
+	if err != nil {
+		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
+		return
+	}
+	if enabled && message == "" {
+		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.message_required"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
+		return
+	}
+	if utf8.RuneCountInString(message) > instanceNoticeMessageMaxLength {
+		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.message_too_long", instanceNoticeMessageMaxLength))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
+		return
+	}
+	if startTime > 0 && endTime > 0 && endTime < startTime {
+		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time_range"))
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
+		return
+	}
+
+	instanceNotice := setting.InstanceNotice{
+		Enabled:   enabled,
+		Message:   message,
+		StartTime: startTime,
+		EndTime:   endTime,
+	}
+
+	saveInstanceNotice(instanceNotice)
+	if ctx.Written() {
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("admin.config.instance_notice.save_success"))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
+}
+
 func ConfigSettings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config_settings")
 	ctx.Data["PageIsAdminConfig"] = true
 	ctx.Data["PageIsAdminConfigSettings"] = true
 	ctx.Data["DefaultOpenWithEditorAppsString"] = setting.DefaultOpenWithEditorApps().ToTextareaString()
+	instanceNotice := setting.GetInstanceNotice(ctx)
+	ctx.Data["InstanceNotice"] = instanceNotice
+	ctx.Data["InstanceNoticeMessageMaxLength"] = instanceNoticeMessageMaxLength
+	if instanceNotice.StartTime > 0 {
+		ctx.Data["InstanceNoticeStartTime"] = time.Unix(instanceNotice.StartTime, 0).In(setting.DefaultUILocation).Format("2006-01-02T15:04")
+	}
+	if instanceNotice.EndTime > 0 {
+		ctx.Data["InstanceNoticeEndTime"] = time.Unix(instanceNotice.EndTime, 0).In(setting.DefaultUILocation).Format("2006-01-02T15:04")
+	}
 	ctx.HTML(http.StatusOK, tplConfigSettings)
 }
 

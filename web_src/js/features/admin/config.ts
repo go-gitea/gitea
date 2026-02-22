@@ -1,7 +1,49 @@
 import {showTemporaryTooltip} from '../../modules/tippy.ts';
 import {POST} from '../../modules/fetch.ts';
+import {html, htmlRaw} from '../../utils/html.ts';
 
 const {appSubUrl} = window.config;
+
+function initInstanceNoticePreview(elAdminConfig: HTMLDivElement): void {
+  const form = elAdminConfig.querySelector<HTMLFormElement>('form[action$="/-/admin/config/instance_notice"]');
+  if (!form) return;
+
+  const inputMessage = form.querySelector<HTMLTextAreaElement>('textarea[name="message"]');
+  const previewContent = elAdminConfig.querySelector<HTMLDivElement>('#instance-notice-preview-content');
+  if (!inputMessage || !previewContent) return;
+
+  let renderRequesting = false;
+  let pendingRender = false;
+  const renderPreviewMarkdown = async () => {
+    if (renderRequesting) {
+      pendingRender = true;
+      return;
+    }
+    renderRequesting = true;
+    try {
+      while (true) {
+        pendingRender = false;
+        const formData = new FormData();
+        formData.append('mode', 'comment');
+        formData.append('text', inputMessage.value);
+        try {
+          const response = await POST(`${appSubUrl}/-/markup`, {data: formData});
+          const rendered = await response.text();
+          previewContent.innerHTML = html`${htmlRaw(rendered)}`;
+        } catch (error) {
+          console.error('Error rendering instance notice preview:', error);
+        }
+        if (!pendingRender) break;
+      }
+    } finally {
+      renderRequesting = false;
+    }
+  };
+
+  inputMessage.addEventListener('input', () => {
+    renderPreviewMarkdown();
+  });
+}
 
 export function initAdminConfigs(): void {
   const elAdminConfig = document.querySelector<HTMLDivElement>('.page-content.admin.config');
@@ -21,4 +63,6 @@ export function initAdminConfigs(): void {
       }
     });
   }
+
+  initInstanceNoticePreview(elAdminConfig);
 }
