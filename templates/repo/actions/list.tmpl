@@ -26,7 +26,7 @@
 			</div>
 			<div class="flex-container-main">
 				<div class="ui top attached header tw-flex tw-items-center tw-justify-between">
-					<span class="tw-text-base tw-font-semibold">{{ctx.Locale.Tr "actions.runs.workflow_run_count" .Page.Paginater.Total}}</span>
+					<span class="tw-text-base tw-font-semibold">{{ctx.Locale.TrN .Page.Paginater.Total "actions.runs.workflow_run_count_1" "actions.runs.workflow_run_count_n" .Page.Paginater.Total}}</span>
 					<div class="ui secondary filter menu tw-flex tw-items-center tw-m-0">
 					<!-- Actor -->
 					<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">
