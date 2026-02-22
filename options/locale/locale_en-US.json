@@ -2562,6 +2562,8 @@
   "repo.diff.load": "Load Diff",
   "repo.diff.generated": "Generated",
   "repo.diff.vendored": "Vendored",
+  "repo.diff.expand_all": "Expand all",
+  "repo.diff.collapse_expanded": "Collapse expanded",
   "repo.diff.comment.add_line_comment": "Add line comment",
   "repo.diff.comment.placeholder": "Leave a comment",
   "repo.diff.comment.add_single_comment": "Add single comment",
