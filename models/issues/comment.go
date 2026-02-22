@@ -812,6 +812,7 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 		}
 		return res
 	default:
+		// don't trust the content of SpecialDoerName, it might not be fully controlled by us
 		return htmlutil.HTMLFormat("%s", c.CommentMetaData.SpecialDoerName)
 	}
 }
