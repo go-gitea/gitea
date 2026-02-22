@@ -6,14 +6,18 @@ package terraform
 import (
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"unicode"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/globallock"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	"code.gitea.io/gitea/services/context"
@@ -30,15 +34,43 @@ func apiError(ctx *context.Context, status int, obj any) {
 	ctx.PlainText(status, message)
 }
 
-// DownloadPackageFile serves the specific terraform package.
-func DownloadPackageFile(ctx *context.Context) {
+// GetTerraformState serves the latest version of the state
+func GetTerraformState(ctx *context.Context) {
+	stateName := ctx.PathParam("name")
+	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeTerraform,
+		Name:       packages_model.SearchValue{ExactMatch: true, Value: stateName},
+		IsInternal: optional.Some(false),
+		Sort:       packages_model.SortCreatedDesc,
+	})
+	if err != nil {
+		// TODO: should this be some other fail? When does this error out?
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
+	log.Info("GetTerraformState: %v", pvs[0].Version)
+	streamState(ctx, stateName, pvs[0].Version)
+}
+
+// GetTerraformStateBySerial serves a specific version of terraform state.
+func GetTerraformStateBySerial(ctx *context.Context) {
+	streamState(ctx, ctx.PathParam("name"), ctx.PathParam("serial"))
+}
+
+// streamState serves the terraform state file
+func streamState(ctx *context.Context, name, serial string) {
 	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeTerraform,
-			Name:        ctx.PathParam("packagename"),
-			Version:     ctx.PathParam("filename"),
+			Name:        name,
+			Version:     serial,
 		},
 		&packages_service.PackageFileInfo{
 			Filename: "tfstate",
@@ -71,18 +103,18 @@ func isValidFileName(filename string) bool {
 		filename != "." && filename != ".."
 }
 
-// UploadPackage uploads the specific terraform package.
-func UploadPackage(ctx *context.Context) {
-	packageName := ctx.PathParam("packagename")
-	filename := ctx.PathParam("filename")
+type TFState struct {
+	Version          int    `json:"version"`
+	TerraformVersion string `json:"terraform_version"`
+	Serial           uint64 `json:"serial"`
+}
+
+// UploadState uploads the specific terraform package.
+func UploadState(ctx *context.Context) {
+	packageName := ctx.PathParam("name")
 
 	if !isValidPackageName(packageName) {
 		apiError(ctx, http.StatusBadRequest, errors.New("invalid package name"))
-		return
-	}
-
-	if !isValidFileName(filename) {
-		apiError(ctx, http.StatusBadRequest, errors.New("invalid filename"))
 		return
 	}
 
@@ -103,6 +135,18 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
+	var state *TFState
+	err = json.NewDecoder(buf).Decode(&state)
+	if err != nil {
+		log.Error("Error decoding json: %v", err)
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	if _, err := buf.Seek(0, io.SeekStart); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
@@ -110,7 +154,7 @@ func UploadPackage(ctx *context.Context) {
 				Owner:       ctx.Package.Owner,
 				PackageType: packages_model.TypeTerraform,
 				Name:        packageName,
-				Version:     filename,
+				Version:     strconv.FormatUint(state.Serial, 10),
 			},
 			Creator: ctx.Doer,
 		},
@@ -163,8 +207,8 @@ func DeletePackage(ctx *context.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// DeletePackageFile deletes the specific file of a terraform package.
-func DeletePackageFile(ctx *context.Context) {
+// DeleteState deletes the specific file of a terraform package.
+func DeleteState(ctx *context.Context) {
 	pv, pf, err := func() (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
 		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, ctx.PathParam("packagename"), ctx.PathParam("filename"))
 		if err != nil {
@@ -208,20 +252,28 @@ func DeletePackageFile(ctx *context.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// LockPackage locks the specific terraform state.
-func LockPackage(ctx *context.Context) {
-	packageName := ctx.PathParam("packagename")
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName, ctx.PathParam("filename"))
+func DeleteStateBySerial(ctx *context.Context) {
+	serial := ctx.PathParam("serial")
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, ctx.PathParam("name"), serial)
 	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
+		// TODO: check for not exist
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	ok, _, err := globallock.TryLock(ctx, fmt.Sprintf("%s/%s", packageName, pv.LowerVersion))
+	err = packages_service.DeletePackageVersionAndReferences(ctx, pv)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	ctx.Status(http.StatusNoContent)
+}
+
+// LockState locks the specific terraform state.
+func LockState(ctx *context.Context) {
+	packageName := ctx.PathParam("name")
+
+	ok, _, err := globallock.TryLock(ctx, fmt.Sprintf("%d/%s", ctx.Package.Owner.ID, packageName))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -234,20 +286,11 @@ func LockPackage(ctx *context.Context) {
 	ctx.Status(http.StatusOK)
 }
 
-// UnlockPackage unlock the specific terraform state.
-func UnlockPackage(ctx *context.Context) {
-	packageName := ctx.PathParam("packagename")
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName, ctx.PathParam("filename"))
-	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
+// UnlockState unlock the specific terraform state.
+func UnlockState(ctx *context.Context) {
+	packageName := ctx.PathParam("name")
 
-	_ = globallock.Unlock(ctx, fmt.Sprintf("%s/%s", packageName, pv.LowerVersion))
+	_ = globallock.Unlock(ctx, fmt.Sprintf("%d/%s", ctx.Package.Owner.ID, packageName))
 
 	ctx.Status(http.StatusOK)
 }
