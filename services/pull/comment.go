@@ -79,6 +79,8 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *iss
 
 	return db.WithTx2(ctx, func(ctx context.Context) (*issues_model.Comment, error) {
 		if isForcePush {
+			// Push commits comment should not have history, cross references, reactions and other
+			// plain comment related records, so that we just need to delete the comment itself.
 			if _, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
 				And("type = ?", issues_model.CommentTypePullRequestPush).
 				NoAutoCondition().
