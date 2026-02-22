@@ -192,7 +192,7 @@
 								{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 									{{if .DBBranch.IsDeleted}}
 										<button class="btn interact-bg tw-p-2 link-action restore-branch-button" data-url="{{$.Link}}/restore?branch_id={{.DBBranch.ID}}&name={{.DBBranch.Name}}&page={{$.Page.Paginater.Current}}" data-tooltip-content="{{ctx.Locale.Tr "repo.branch.restore" (.DBBranch.Name)}}">
-											<span class="text blue">
+											<span class="tw-text-blue">
 												{{svg "octicon-reply"}}
 											</span>
 										</button>
@@ -250,7 +250,7 @@
 	<form class="ui form" action="{{$.Repository.Link}}/branches/rename" method="post">
 		<div class="content">
 			<div class="field default-branch-warning">
-				<span class="text red">{{ctx.Locale.Tr "repo.branch.warning_rename_default_branch"}}</span>
+				<span class="tw-text-red">{{ctx.Locale.Tr "repo.branch.warning_rename_default_branch"}}</span>
 			</div>
 			<div class="field">
 				<span class="text" data-rename-branch-to="{{ctx.Locale.Tr "repo.branch.rename_branch_to"}}"></span>
