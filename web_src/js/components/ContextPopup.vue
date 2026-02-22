@@ -53,7 +53,7 @@ onMounted(async () => {
         on {{ createdAt }}
       </div>
       <div class="flex-text-block">
-        <svg-icon :name="getIssueIcon(issue)" :class="['text', getIssueColor(issue)]"/>
+        <svg-icon :name="getIssueIcon(issue)" :class="getIssueColor(issue)"/>
         <span class="issue-title tw-font-semibold tw-break-anywhere">
           {{ issue.title }}
           <span class="index">#{{ issue.number }}</span>
