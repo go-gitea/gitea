@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
@@ -136,19 +137,16 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo string, opts ne
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
 	assert.True(t, exists, "The template has changed")
-	var labelIDsBuf strings.Builder
-	for i, id := range opts.LabelIDs {
-		labelIDsBuf.WriteString(strconv.FormatInt(id, 10))
-		if i < len(opts.LabelIDs)-1 {
-			labelIDsBuf.WriteRune(',')
-		}
-	}
+
+	labelIDs := container.FilterSlice(opts.LabelIDs, func(id int64) (string, bool) {
+		return strconv.FormatInt(id, 10), id != 0
+	})
 
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"title":      opts.Title,
 		"content":    opts.Content,
 		"project_id": strconv.FormatInt(opts.ProjectID, 10),
-		"label_ids":  labelIDsBuf.String(),
+		"label_ids":  strings.Join(labelIDs, ","),
 	})
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
