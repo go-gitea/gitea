@@ -908,9 +908,9 @@ jobs:
 		})
 		assert.NotNil(t, run)
 
+		// Now trigger with rundetails
 		values.Set("return_run_details", "true")
 
-		// Now trigger with rundetails
 		req = NewRequestWithURLValues(t, "POST", fmt.Sprintf("/api/v1/repos/%s/actions/workflows/dispatch.yml/dispatches", repo.FullName()), values).
 			AddTokenAuth(token)
 		resp := MakeRequest(t, req, http.StatusOK)
