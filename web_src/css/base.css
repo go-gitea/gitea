@@ -43,8 +43,8 @@
   --gap-block: 0.5rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
 
   --color-transparency-grid-light: #fff;
-  --color-transparency-grid-dark: #ddd;
-  --background-view-image: repeating-conic-gradient(var(--color-transparency-grid-dark) 0 25%, var(--color-transparency-grid-light) 0 50%) 0 0 / 16px 16px;
+  --color-transparency-grid-dark: #e2e2e2;
+  --background-view-image: repeating-conic-gradient(var(--color-transparency-grid-dark) 0 25%, var(--color-transparency-grid-light) 0 50%) 0 0 / 18px 18px;
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
