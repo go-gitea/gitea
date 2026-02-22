@@ -238,7 +238,7 @@ type SpecialDoerNameType string
 
 const (
 	SpecialDoerNameCodeOwners      SpecialDoerNameType = "CODEOWNERS"
-	SpecialDoerNameProjectWorkflow SpecialDoerNameType = "PROJECT_WORKFLOW"
+	SpecialDoerNameProjectWorkflow SpecialDoerNameType = "ProjectWorkflow"
 )
 
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
