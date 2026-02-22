@@ -8,6 +8,7 @@ import {renderAnsi} from '../render/ansi.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
+import WorkflowGraph from './WorkflowGraph.vue'
 import {localUserSettings} from '../modules/user-settings.ts';
 
 // see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
@@ -57,9 +58,11 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
 
 type Job = {
   id: number;
+  job_id: string;
   name: string;
   status: RunStatus;
   canRerun: boolean;
+  needs?: string[];
   duration: string;
 }
 
@@ -107,6 +110,7 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
 type LocaleStorageOptions = {
   autoScroll: boolean;
   expandRunning: boolean;
+  showWorkflowGraph: boolean;
   actionsLogShowSeconds: boolean;
   actionsLogShowTimestamps: boolean;
 };
@@ -116,6 +120,7 @@ export default defineComponent({
   components: {
     SvgIcon,
     ActionRunStatus,
+    WorkflowGraph
   },
   props: {
     runIndex: {
@@ -137,8 +142,8 @@ export default defineComponent({
   },
 
   data() {
-    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false, actionsLogShowSeconds: false, actionsLogShowTimestamps: false};
-    const {autoScroll, expandRunning, actionsLogShowSeconds, actionsLogShowTimestamps} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
+    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false, showWorkflowGraph: false, actionsLogShowSeconds: false, actionsLogShowTimestamps: false};
+    const {autoScroll, expandRunning, showWorkflowGraph, actionsLogShowSeconds, actionsLogShowTimestamps} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
     return {
       // internal state
       loadingAbortController: null as AbortController | null,
@@ -147,6 +152,7 @@ export default defineComponent({
       artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
       isFullScreen: false,
+      showWorkflowGraph: showWorkflowGraph ?? false,
       timeVisible: {
         'log-time-stamp': actionsLogShowTimestamps,
         'log-time-seconds': actionsLogShowSeconds,
@@ -214,6 +220,9 @@ export default defineComponent({
     optionAlwaysExpandRunning() {
       this.saveLocaleStorageOptions();
     },
+    showWorkflowGraph() {
+      this.saveLocaleStorageOptions();
+    },
   },
 
   async mounted() {
@@ -258,6 +267,7 @@ export default defineComponent({
       const opts: LocaleStorageOptions = {
         autoScroll: this.optionAlwaysAutoScroll,
         expandRunning: this.optionAlwaysExpandRunning,
+        showWorkflowGraph: this.showWorkflowGraph,
         actionsLogShowSeconds: this.timeVisible['log-time-seconds'],
         actionsLogShowTimestamps: this.timeVisible['log-time-stamp'],
       };
@@ -514,15 +524,20 @@ export default defineComponent({
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
-        <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
-          {{ locale.approve }}
-        </button>
-        <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
-          {{ locale.cancel }}
-        </button>
-        <button class="ui basic small compact button link-action tw-shrink-0" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
-          {{ locale.rerun_all }}
-        </button>
+        <div class="tw-flex tw-space-x-2">
+          <button class="ui basic small compact button primary tw-shrink-0" @click="showWorkflowGraph = !showWorkflowGraph" :class="{ active: showWorkflowGraph }" v-if="run.jobs.length > 1">
+            {{ locale.workflowGraph }}
+          </button>
+          <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
+            {{ locale.approve }}
+          </button>
+          <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+            {{ locale.cancel }}
+          </button>
+          <button class="ui basic small compact button link-action tw-shrink-0" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+            {{ locale.rerun_all }}
+          </button>
+        </div>
       </div>
       <div class="action-commit-summary">
         <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
@@ -585,7 +600,16 @@ export default defineComponent({
       </div>
 
       <div class="action-view-right">
-        <div class="job-info-header">
+        <WorkflowGraph
+          v-if="showWorkflowGraph && run.jobs.length > 1"
+          :jobs="run.jobs"
+          :current-job-idx="parseInt(jobIndex)"
+          class="workflow-graph-container"
+        />
+
+        <div
+          class="job-info-header"
+        >
           <div class="job-info-header-left gt-ellipsis">
             <h3 class="job-info-header-title gt-ellipsis">
               {{ currentJob.title }}
@@ -633,7 +657,11 @@ export default defineComponent({
           </div>
         </div>
         <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
-        <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
+        <div
+          class="job-step-container"
+          ref="stepsContainer"
+          v-show="currentJob.steps.length"
+        >
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
