@@ -29,7 +29,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	notify_service "code.gitea.io/gitea/services/notify"
 
-	"github.com/nektos/act/pkg/jobparser"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"github.com/nektos/act/pkg/model"
 )
 
