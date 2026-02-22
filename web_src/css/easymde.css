@@ -327,7 +327,7 @@
   display: inline-block;
   width: 0;
   border-left: none;
-  border-right: 1px solid var(--color-secondary);
+  border-right: 1px solid var(--color-input-border);
   color: transparent;
   text-indent: -10px;
   margin: 0 6px;
