@@ -1,9 +1,8 @@
 			<!-- Cross-Repository Access -->
-			<h5 class="ui header">
-				{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo"}}
-			</h5>
-			<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_desc"}}</p>
-
+			<div class="field">
+				<label>{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo"}}</label>
+				<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.cross_repo_desc"}}</div>
+			</div>
 			<div class="grouped fields">
 				<div class="field">
 					<div class="ui radio checkbox">
@@ -70,40 +69,37 @@
 			<div class="divider"></div>
 
 			<!-- Default Permission Mode -->
-			<h5 class="ui header">
-				{{ctx.Locale.Tr "actions.general.token_permissions.mode"}}
-			</h5>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode"}}</label>
+			</div>
 			<div class="grouped fields">
 				<div class="field">
 					<div class="ui radio checkbox">
 						<input type="radio" name="token_permission_mode" value="permissive" {{if eq .TokenPermissionMode .TokenPermissionModePermissive}}checked{{end}} class="js-permission-mode-radio">
 						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive"}}</label>
+						<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive.desc"}}</div>
 					</div>
-					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.permissive.desc"}}</p>
 				</div>
 				<div class="field">
 					<div class="ui radio checkbox">
 						<input type="radio" name="token_permission_mode" value="restricted" {{if eq .TokenPermissionMode .TokenPermissionModeRestricted}}checked{{end}} class="js-permission-mode-radio">
 						<label>{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted"}}</label>
+						<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted.desc"}}</div>
 					</div>
-					<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.mode.restricted.desc"}}</p>
 				</div>
 			</div>
 
 			<div class="divider"></div>
 
 			<!-- Maximum Permissions Table -->
-			<div id="max-permissions-section">
-				<h5 class="ui header">
-					{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions"}}
-				</h5>
-				<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions.desc"}}</p>
-
-				<div class="field">
-					<div class="ui checkbox">
-						<input type="checkbox" name="enable_max_permissions" class="js-enable-max-permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
-						<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
-					</div>
+			<div class="field">
+				<label>{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions"}}</label>
+				<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.max_permissions.desc"}}</div>
+			</div>
+			<div class="field" id="max-permissions-section">
+				<div class="ui checkbox">
+					<input type="checkbox" name="enable_max_permissions" class="js-enable-max-permissions" {{if .EnableMaxTokenPermissions}}checked{{end}}>
+					<label>{{ctx.Locale.Tr "actions.general.token_permissions.customize_max_permissions"}}</label>
 				</div>
 			</div>
 
@@ -126,7 +122,7 @@
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.code"}}</strong>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.code.description"}}</p>
+							<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.code.description"}}</div>
 						</td>
 						<td class="tw-text-center">
 							<div class="ui radio checkbox">
@@ -150,7 +146,7 @@
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.issues"}}</strong>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.issues.description"}}</p>
+							<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.issues.description"}}</div>
 						</td>
 						<td class="tw-text-center">
 							<div class="ui radio checkbox">
@@ -174,7 +170,7 @@
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.pull_requests"}}</strong>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.pull_requests.description"}}</p>
+							<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.pull_requests.description"}}</div>
 						</td>
 						<td class="tw-text-center">
 							<div class="ui radio checkbox">
@@ -198,7 +194,7 @@
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.wiki"}}</strong>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.wiki.description"}}</p>
+							<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.wiki.description"}}</div>
 						</td>
 						<td class="tw-text-center">
 							<div class="ui radio checkbox">
@@ -222,7 +218,7 @@
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.packages"}}</strong>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.packages.description"}}</p>
+							<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.packages.description"}}</div>
 						</td>
 						<td class="tw-text-center">
 							<div class="ui radio checkbox">
@@ -246,7 +242,7 @@
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.actions_scope"}}</strong>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.actions_scope.description"}}</p>
+							<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.actions_scope.description"}}</div>
 						</td>
 						<td class="tw-text-center">
 							<div class="ui radio checkbox">
@@ -271,7 +267,7 @@
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.releases"}}</strong>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.releases.description"}}</p>
+							<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.releases.description"}}</div>
 						</td>
 						<td class="tw-text-center">
 							<div class="ui radio checkbox">
@@ -296,7 +292,7 @@
 					<tr>
 						<td>
 							<strong>{{ctx.Locale.Tr "actions.general.token_permissions.projects"}}</strong>
-							<p class="help">{{ctx.Locale.Tr "actions.general.token_permissions.projects.description"}}</p>
+							<div class="help">{{ctx.Locale.Tr "actions.general.token_permissions.projects.description"}}</div>
 						</td>
 						<td class="tw-text-center">
 							<div class="ui radio checkbox">
