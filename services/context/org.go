@@ -179,24 +179,44 @@ func OrgAssignment(orgAssignmentOpts OrgAssignmentOptions) func(ctx *Context) {
 				return
 			}
 
-			if shouldSeeAllTeams {
-				ctx.Org.Teams, err = org.LoadTeams(ctx)
-				if err != nil {
-					ctx.ServerError("LoadTeams", err)
-					return
-				}
-			} else {
-				ctx.Org.Teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
-				if err != nil {
-					ctx.ServerError("GetUserTeams", err)
-					return
-				}
+			countOpts := &organization.SearchTeamOptions{
+				OrgID: org.ID,
 			}
-			ctx.Data["NumTeams"] = len(ctx.Org.Teams)
+			if !shouldSeeAllTeams {
+				countOpts.UserID = ctx.Doer.ID
+			}
+			numTeams, err := organization.CountTeam(ctx, countOpts)
+			if err != nil {
+				ctx.ServerError("CountTeam", err)
+				return
+			}
+			ctx.Data["NumTeams"] = numTeams
 		}
 
 		teamName := ctx.PathParam("team")
 		if len(teamName) > 0 {
+			if ctx.Org.Teams == nil && ctx.Org.IsMember {
+				shouldSeeAllTeams, err := org.CanUserSeeAllTeams(ctx, ctx.Doer)
+				if err != nil {
+					ctx.ServerError("CanUserSeeAllTeams", err)
+					return
+				}
+
+				if shouldSeeAllTeams {
+					ctx.Org.Teams, err = org.LoadTeams(ctx)
+					if err != nil {
+						ctx.ServerError("LoadTeams", err)
+						return
+					}
+				} else {
+					ctx.Org.Teams, err = org.GetUserTeams(ctx, ctx.Doer.ID)
+					if err != nil {
+						ctx.ServerError("GetUserTeams", err)
+						return
+					}
+				}
+			}
+
 			teamExists := false
 			for _, team := range ctx.Org.Teams {
 				if strings.EqualFold(team.LowerName, teamName) {
