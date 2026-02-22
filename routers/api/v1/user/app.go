@@ -30,7 +30,7 @@ func ListAccessTokens(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of to user whose access tokens are to be listed
 	//   type: string
 	//   required: true
 	// - name: page
@@ -62,6 +62,8 @@ func ListAccessTokens(ctx *context.APIContext) {
 			Name:           tokens[i].Name,
 			TokenLastEight: tokens[i].TokenLastEight,
 			Scopes:         tokens[i].Scope.StringSlice(),
+			Created:        tokens[i].CreatedUnix.AsTime(),
+			Updated:        tokens[i].UpdatedUnix.AsTime(),
 		}
 	}
 
@@ -81,7 +83,7 @@ func CreateAccessToken(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose token is to be created
 	//   required: true
 	//   type: string
 	// - name: body
@@ -147,7 +149,7 @@ func DeleteAccessToken(ctx *context.APIContext) {
 	// parameters:
 	// - name: username
 	//   in: path
-	//   description: username of user
+	//   description: username of the user whose token is to be deleted
 	//   type: string
 	//   required: true
 	// - name: token

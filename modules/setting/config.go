@@ -4,6 +4,7 @@
 package setting
 
 import (
+	"strings"
 	"sync"
 
 	"code.gitea.io/gitea/modules/log"
@@ -23,11 +24,11 @@ type OpenWithEditorApp struct {
 type OpenWithEditorAppsType []OpenWithEditorApp
 
 func (t OpenWithEditorAppsType) ToTextareaString() string {
-	ret := ""
+	var ret strings.Builder
 	for _, app := range t {
-		ret += app.DisplayName + " = " + app.OpenURL + "\n"
+		ret.WriteString(app.DisplayName + " = " + app.OpenURL + "\n")
 	}
-	return ret
+	return ret.String()
 }
 
 func DefaultOpenWithEditorApps() OpenWithEditorAppsType {
@@ -49,6 +50,7 @@ func DefaultOpenWithEditorApps() OpenWithEditorAppsType {
 
 type RepositoryStruct struct {
 	OpenWithEditorApps *config.Value[OpenWithEditorAppsType]
+	GitGuideRemoteName *config.Value[string]
 }
 
 type ConfigStruct struct {
@@ -70,6 +72,7 @@ func initDefaultConfig() {
 		},
 		Repository: &RepositoryStruct{
 			OpenWithEditorApps: config.ValueJSON[OpenWithEditorAppsType]("repository.open-with.editor-apps"),
+			GitGuideRemoteName: config.ValueJSON[string]("repository.git-guide-remote-name").WithDefault("origin"),
 		},
 	}
 }

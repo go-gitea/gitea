@@ -63,21 +63,9 @@ func userProfile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.ContextUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
 
-	// prepare heatmap data
-	if setting.Service.EnableUserHeatmap {
-		data, err := activities_model.GetUserHeatmapDataByUser(ctx, ctx.ContextUser, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("GetUserHeatmapDataByUser", err)
-			return
-		}
-		ctx.Data["HeatmapData"] = data
-		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
-	}
-
 	profileDbRepo, profileReadmeBlob := shared_user.FindOwnerProfileReadme(ctx, ctx.Doer)
 
-	showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
-	prepareUserProfileTabData(ctx, showPrivate, profileDbRepo, profileReadmeBlob)
+	prepareUserProfileTabData(ctx, profileDbRepo, profileReadmeBlob)
 
 	// prepare the user nav header data after "prepareUserProfileTabData" to avoid re-querying the NumFollowers & NumFollowing
 	// because ctx.Data["NumFollowers"] and "NumFollowing" logic duplicates in both of them
@@ -90,7 +78,7 @@ func userProfile(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplProfile)
 }
 
-func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDbRepo *repo_model.Repository, profileReadme *git.Blob) {
+func prepareUserProfileTabData(ctx *context.Context, profileDbRepo *repo_model.Repository, profileReadme *git.Blob) {
 	// if there is a profile readme, default to "overview" page, otherwise, default to "repositories" page
 	// if there is not a profile readme, the overview tab should be treated as the repositories tab
 	tab := ctx.FormString("tab")
@@ -115,6 +103,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		repos   []*repo_model.Repository
 		count   int64
 		total   int
+		curRows int
 		orderBy db.SearchOrderBy
 	)
 
@@ -173,9 +162,15 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		ctx.Data["Cards"] = following
 		total = int(numFollowing)
 	case "activity":
+		if setting.Service.EnableUserHeatmap && activities_model.ActivityReadable(ctx.ContextUser, ctx.Doer) {
+			ctx.Data["EnableHeatmap"] = true
+			ctx.Data["HeatmapURL"] = ctx.ContextUser.HomeLink() + "/-/heatmap"
+		}
+
 		date := ctx.FormString("date")
 		pagingNum = setting.UI.FeedPagingNum
-		items, count, err := feed_service.GetFeeds(ctx, activities_model.GetFeedsOptions{
+		showPrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+		items, feedCount, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
@@ -193,11 +188,12 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		}
 		ctx.Data["Feeds"] = items
 		ctx.Data["Date"] = date
-
-		total = int(count)
+		curRows = len(items)
+		total = feedCount
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
-		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		ctx.Data["ShowRepoOwnerOnList"] = true
+		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,
 				Page:     page,
@@ -224,7 +220,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 
 		total = int(count)
 	case "watching":
-		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,
 				Page:     page,
@@ -265,8 +261,8 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		}
 	case "organizations":
 		orgs, count, err := db.FindAndCount[organization.Organization](ctx, organization.FindOrgOptions{
-			UserID:         ctx.ContextUser.ID,
-			IncludePrivate: showPrivate,
+			UserID:            ctx.ContextUser.ID,
+			IncludeVisibility: organization.DoerViewOtherVisibility(ctx.Doer, ctx.ContextUser),
 			ListOptions: db.ListOptions{
 				Page:     page,
 				PageSize: pagingNum,
@@ -279,7 +275,7 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 		ctx.Data["Cards"] = orgs
 		total = int(count)
 	default: // default to "repositories"
-		repos, count, err = repo_model.SearchRepository(ctx, &repo_model.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(ctx, repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: pagingNum,
 				Page:     page,
@@ -315,6 +311,9 @@ func prepareUserProfileTabData(ctx *context.Context, showPrivate bool, profileDb
 	}
 
 	pager := context.NewPagination(total, pagingNum, page, 5)
+	if tab == "activity" {
+		pager.WithCurRows(curRows)
+	}
 	pager.AddParamFromRequest(ctx.Req)
 	ctx.Data["Page"] = pager
 }

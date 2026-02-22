@@ -6,7 +6,6 @@ package private
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -21,13 +20,13 @@ import (
 
 func TestHandlePullRequestMerging(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr, err := issues_model.GetUnmergedPullRequest(db.DefaultContext, 1, 1, "branch2", "master", issues_model.PullRequestFlowGithub)
+	pr, err := issues_model.GetUnmergedPullRequest(t.Context(), 1, 1, "branch2", "master", issues_model.PullRequestFlowGithub)
 	assert.NoError(t, err)
-	assert.NoError(t, pr.LoadBaseRepo(db.DefaultContext))
+	assert.NoError(t, pr.LoadBaseRepo(t.Context()))
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	err = pull_model.ScheduleAutoMerge(db.DefaultContext, user1, pr.ID, repo_model.MergeStyleSquash, "squash merge a pr", false)
+	err = pull_model.ScheduleAutoMerge(t.Context(), user1, pr.ID, repo_model.MergeStyleSquash, "squash merge a pr", false)
 	assert.NoError(t, err)
 
 	autoMerge := unittest.AssertExistsAndLoadBean(t, &pull_model.AutoMerge{PullID: pr.ID})
@@ -40,7 +39,7 @@ func TestHandlePullRequestMerging(t *testing.T) {
 		{NewCommitID: "01234567"},
 	})
 	assert.Empty(t, resp.Body.String())
-	pr, err = issues_model.GetPullRequestByID(db.DefaultContext, pr.ID)
+	pr, err = issues_model.GetPullRequestByID(t.Context(), pr.ID)
 	assert.NoError(t, err)
 	assert.True(t, pr.HasMerged)
 	assert.Equal(t, "01234567", pr.MergedCommitID)

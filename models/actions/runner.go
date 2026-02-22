@@ -5,6 +5,7 @@ package actions
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -13,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/shared/types"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -172,6 +174,13 @@ func (r *ActionRunner) GenerateToken() (err error) {
 	return err
 }
 
+// CanMatchLabels checks whether the runner's labels can match a job's "runs-on"
+// See https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#jobsjob_idruns-on
+func (r *ActionRunner) CanMatchLabels(jobRunsOn []string) bool {
+	runnerLabelSet := container.SetOf(r.AgentLabels...)
+	return runnerLabelSet.Contains(jobRunsOn...) // match all labels
+}
+
 func init() {
 	db.RegisterModel(&ActionRunner{})
 }
@@ -295,6 +304,23 @@ func DeleteRunner(ctx context.Context, id int64) error {
 	}
 
 	_, err := db.DeleteByID[ActionRunner](ctx, id)
+	return err
+}
+
+// DeleteEphemeralRunner deletes a ephemeral runner by given ID.
+func DeleteEphemeralRunner(ctx context.Context, id int64) error {
+	runner, err := GetRunnerByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, util.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	if !runner.Ephemeral {
+		return nil
+	}
+
+	_, err = db.DeleteByID[ActionRunner](ctx, id)
 	return err
 }
 

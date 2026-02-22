@@ -43,7 +43,7 @@ func validateRunID(ctx *ArtifactContext) (*actions.ActionTask, int64, bool) {
 	return task, runID, true
 }
 
-func validateRunIDV4(ctx *ArtifactContext, rawRunID string) (*actions.ActionTask, int64, bool) { //nolint:unparam
+func validateRunIDV4(ctx *ArtifactContext, rawRunID string) (*actions.ActionTask, int64, bool) { //nolint:unparam // ActionTask is never used
 	task := ctx.ActionTask
 	runID, err := strconv.ParseInt(rawRunID, 10, 64)
 	if err != nil || task.Job.RunID != runID {

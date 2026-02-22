@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/attribute"
 	"code.gitea.io/gitea/modules/git/pipeline"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -45,10 +46,7 @@ func LFSFiles(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	total, err := git_model.CountLFSMetaObjects(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("LFSFiles", err)
@@ -77,10 +75,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	total, err := git_model.CountLFSLockByRepoID(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("LFSLocks", err)
@@ -118,7 +113,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	defer cleanup()
 
-	if err := git.Clone(ctx, ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
+	if err := gitrepo.CloneRepoToLocal(ctx, ctx.Repo.Repository, tmpBasePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 	}); err != nil {
@@ -273,9 +268,10 @@ func LFSFileGet(ctx *context.Context) {
 	buf = buf[:n]
 
 	st := typesniffer.DetectContentType(buf)
+	// FIXME: there is no IsPlainText set, but template uses it
 	ctx.Data["IsTextFile"] = st.IsText()
 	ctx.Data["FileSize"] = meta.Size
-	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/%s.git/info/lfs/objects/%s/%s", setting.AppURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid), "direct")
+	ctx.Data["RawFileLink"] = fmt.Sprintf("%s/%s/%s.git/info/lfs/objects/%s", setting.AppSubURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid))
 	switch {
 	case st.IsRepresentableAsText():
 		if meta.Size >= setting.UI.MaxDisplayFileSize {
@@ -315,8 +311,6 @@ func LFSFileGet(ctx *context.Context) {
 		}
 		ctx.Data["LineNums"] = gotemplate.HTML(output.String())
 
-	case st.IsPDF():
-		ctx.Data["IsPDFFile"] = true
 	case st.IsVideo():
 		ctx.Data["IsVideoFile"] = true
 	case st.IsAudio():
@@ -413,7 +407,9 @@ func LFSPointerFiles(ctx *context.Context) {
 	err = func() error {
 		pointerChan := make(chan lfs.PointerBlob)
 		errChan := make(chan error, 1)
-		go lfs.SearchPointerBlobs(ctx, ctx.Repo.GitRepo, pointerChan, errChan)
+		go func() {
+			errChan <- lfs.SearchPointerBlobs(ctx, ctx.Repo.GitRepo, pointerChan)
+		}()
 
 		numPointers := 0
 		var numAssociated, numNoExist, numAssociatable int
@@ -489,11 +485,6 @@ func LFSPointerFiles(ctx *context.Context) {
 			results = append(results, result)
 		}
 
-		err, has := <-errChan
-		if has {
-			return err
-		}
-
 		ctx.Data["Pointers"] = results
 		ctx.Data["NumPointers"] = numPointers
 		ctx.Data["NumAssociated"] = numAssociated
@@ -501,7 +492,8 @@ func LFSPointerFiles(ctx *context.Context) {
 		ctx.Data["NumNoExist"] = numNoExist
 		ctx.Data["NumNotAssociated"] = numPointers - numAssociated
 
-		return nil
+		err := <-errChan
+		return err
 	}()
 	if err != nil {
 		ctx.ServerError("LFSPointerFiles", err)

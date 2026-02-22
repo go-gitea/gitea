@@ -1,24 +1,13 @@
 // Copyright 2020 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-package v1_14 //nolint
+package v1_14
 
 import (
 	"xorm.io/xorm"
 )
 
 func FixRepoTopics(x *xorm.Engine) error {
-	type Topic struct { //nolint:unused
-		ID        int64  `xorm:"pk autoincr"`
-		Name      string `xorm:"UNIQUE VARCHAR(25)"`
-		RepoCount int
-	}
-
-	type RepoTopic struct { //nolint:unused
-		RepoID  int64 `xorm:"pk"`
-		TopicID int64 `xorm:"pk"`
-	}
-
 	type Repository struct {
 		ID     int64    `xorm:"pk autoincr"`
 		Topics []string `xorm:"TEXT JSON"`

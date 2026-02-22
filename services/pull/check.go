@@ -1,5 +1,4 @@
-// Copyright 2019 The Gitea Authors.
-// All rights reserved.
+// Copyright 2019 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package pull
@@ -16,10 +15,12 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/globallock"
 	"code.gitea.io/gitea/modules/graceful"
@@ -29,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/automergequeue"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -48,7 +50,7 @@ var (
 
 func markPullRequestStatusAsChecking(ctx context.Context, pr *issues_model.PullRequest) bool {
 	pr.Status = issues_model.PullRequestStatusChecking
-	err := pr.UpdateColsIfNotMerged(ctx, "status")
+	_, err := pr.UpdateColsIfNotMerged(ctx, "status")
 	if err != nil {
 		log.Error("UpdateColsIfNotMerged failed, pr: %-v, err: %v", pr, err)
 		return false
@@ -230,7 +232,13 @@ func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer 
 		return true, nil
 	}
 
-	sign, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+	gitRepo, closer, err := gitrepo.RepositoryFromContextOrOpen(ctx, pr.BaseRepo)
+	if err != nil {
+		return false, err
+	}
+	defer closer.Close()
+
+	sign, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, gitRepo)
 
 	return sign, err
 }
@@ -238,7 +246,7 @@ func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer 
 // markPullRequestAsMergeable checks if pull request is possible to leaving checking status,
 // and set to be either conflict or mergeable.
 func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullRequest) {
-	// If status has not been changed to conflict by testPullRequestTmpRepoBranchMergeable then we are mergeable
+	// If the status has not been changed to conflict by the conflict checking functions then we are mergeable
 	if pr.Status == issues_model.PullRequestStatusChecking {
 		pr.Status = issues_model.PullRequestStatusMergeable
 	}
@@ -254,9 +262,19 @@ func markPullRequestAsMergeable(ctx context.Context, pr *issues_model.PullReques
 		return
 	}
 
-	if err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
+	if _, err := pr.UpdateColsIfNotMerged(ctx, "merge_base", "status", "conflicted_files", "changed_protected_files"); err != nil {
 		log.Error("Update[%-v]: %v", pr, err)
 	}
+
+	// if there is a scheduled merge for this pull request, start the auto merge check (again)
+	exist, _, err := pull.GetScheduledMergeByPullID(ctx, pr.ID)
+	if err != nil {
+		log.Error("GetScheduledMergeByPullID[%-v]: %v", pr, err)
+		return
+	} else if !exist {
+		return
+	}
+	automergequeue.StartPRCheckAndAutoMerge(ctx, pr)
 }
 
 // getMergeCommit checks if a pull request has been merged
@@ -266,15 +284,14 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 		return nil, fmt.Errorf("unable to load base repo for %s: %w", pr, err)
 	}
 
-	prHeadRef := pr.GetGitRefName()
+	prHeadRef := pr.GetGitHeadRefName()
 
 	// Check if the pull request is merged into BaseBranch
-	if _, _, err := git.NewCommand("merge-base", "--is-ancestor").
-		AddDynamicArguments(prHeadRef, pr.BaseBranch).
-		RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()}); err != nil {
-		if strings.Contains(err.Error(), "exit status 1") {
+	cmd := gitcmd.NewCommand("merge-base", "--is-ancestor").AddDynamicArguments(prHeadRef, pr.BaseBranch)
+	if err := gitrepo.RunCmdWithStderr(ctx, pr.BaseRepo, cmd); err != nil {
+		if gitcmd.IsErrorExitCode(err, 1) {
 			// prHeadRef is not an ancestor of the base branch
-			return nil, nil
+			return nil, nil //nolint:nilnil // return nil to indicate that the PR head is not merged
 		}
 		// Errors are signaled by a non-zero status that is not 1
 		return nil, fmt.Errorf("%-v git merge-base --is-ancestor: %w", pr, err)
@@ -283,7 +300,7 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	// If merge-base successfully exits then prHeadRef is an ancestor of pr.BaseBranch
 
 	// Find the head commit id
-	prHeadCommitID, err := git.GetFullCommitID(ctx, pr.BaseRepo.RepoPath(), prHeadRef)
+	prHeadCommitID, err := gitrepo.GetFullCommitID(ctx, pr.BaseRepo, prHeadRef)
 	if err != nil {
 		return nil, fmt.Errorf("GetFullCommitID(%s) in %s: %w", prHeadRef, pr.BaseRepo.FullName(), err)
 	}
@@ -297,9 +314,9 @@ func getMergeCommit(ctx context.Context, pr *issues_model.PullRequest) (*git.Com
 	objectFormat := git.ObjectFormatFromName(pr.BaseRepo.ObjectFormatName)
 
 	// Get the commit from BaseBranch where the pull request got merged
-	mergeCommit, _, err := git.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse").
-		AddDynamicArguments(prHeadCommitID+".."+pr.BaseBranch).
-		RunStdString(ctx, &git.RunOpts{Dir: pr.BaseRepo.RepoPath()})
+	mergeCommit, _, err := gitrepo.RunCmdString(ctx, pr.BaseRepo,
+		gitcmd.NewCommand("rev-list", "--ancestry-path", "--merges", "--reverse").
+			AddDynamicArguments(prHeadCommitID+".."+pr.BaseBranch))
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %w", err)
 	} else if len(mergeCommit) < objectFormat.FullLength() {
@@ -425,8 +442,8 @@ func checkPullRequestMergeable(id int64) {
 		return
 	}
 
-	if err := testPullRequestBranchMergeable(pr); err != nil {
-		log.Error("testPullRequestTmpRepoBranchMergeable[%-v]: %v", pr, err)
+	if err := checkPullRequestBranchMergeable(ctx, pr); err != nil {
+		log.Error("checkPullRequestBranchMergeable[%-v]: %v", pr, err)
 		pr.Status = issues_model.PullRequestStatusError
 		if err := pr.UpdateCols(ctx, "status"); err != nil {
 			log.Error("update pr [%-v] status to PullRequestStatusError failed: %v", pr, err)

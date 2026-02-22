@@ -8,6 +8,8 @@
 		data-pull-link="{{.Issue.Link}}"
 	{{end}}
 >
+	{{$statusCheckData := .StatusCheckData}}
+	{{$requiredStatusCheckState := $statusCheckData.RequiredChecksState}}
 	<div class="timeline-avatar text {{if .Issue.PullRequest.HasMerged}}purple
 	{{- else if .Issue.IsClosed}}grey
 	{{- else if .IsPullWorkInProgress}}grey
@@ -18,8 +20,8 @@
 	{{- else if .IsBlockedByOfficialReviewRequests}}red
 	{{- else if .IsBlockedByOutdatedBranch}}red
 	{{- else if .IsBlockedByChangedProtectedFiles}}red
-	{{- else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsFailure .RequiredStatusCheckState.IsError)}}red
-	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) .RequiredStatusCheckState.IsPending .RequiredStatusCheckState.IsWarning)}}yellow
+	{{- else if and .EnableStatusCheck (or $requiredStatusCheckState.IsFailure $requiredStatusCheckState.IsError)}}red
+	{{- else if and .EnableStatusCheck (or (not $.LatestCommitStatus) $requiredStatusCheckState.IsPending $requiredStatusCheckState.IsWarning)}}yellow
 	{{- else if and .AllowMerge .RequireSigned (not .WillSign)}}red
 	{{- else if .Issue.PullRequest.IsChecking}}yellow
 	{{- else if .Issue.PullRequest.IsEmpty}}grey
@@ -31,14 +33,13 @@
 		{{template "repo/pulls/status" (dict
 			"CommitStatus" .LatestCommitStatus
 			"CommitStatuses" .LatestCommitStatuses
-			"MissingRequiredChecks" .MissingRequiredChecks
 			"ShowHideChecks" true
-			"is_context_required" .is_context_required
+			"StatusCheckData" $statusCheckData
 		)}}
 		</div>
 		{{end}}
 		{{$showGeneralMergeForm := false}}
-		<div class="ui attached segment merge-section {{if not $.LatestCommitStatus}}no-header{{end}} flex-items-block">
+		<div class="ui attached segment merge-section {{if not $.LatestCommitStatus}}avatar-content-left-arrow{{end}} flex-items-block">
 			{{if .Issue.PullRequest.HasMerged}}
 				{{if .IsPullBranchDeletable}}
 					<div class="item item-section text tw-flex-1">
@@ -51,7 +52,7 @@
 							</div>
 						</div>
 						<div class="item-section-right">
-							<button class="delete-button ui button" data-url="{{.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
+							<button class="ui button link-action delete-branch-after-merge" data-url="{{.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
 						</div>
 					</div>
 				{{end}}
@@ -69,7 +70,7 @@
 					</div>
 					{{if and .IsPullBranchDeletable (not .IsPullRequestBroken)}}
 						<div class="item-section-right">
-							<button class="delete-button ui button" data-url="{{.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
+							<button class="ui button link-action delete-branch-after-merge" data-url="{{.DeleteBranchLink}}">{{ctx.Locale.Tr "repo.branch.delete_html"}}</button>
 						</div>
 					{{end}}
 				</div>
@@ -81,6 +82,8 @@
 				<ul>
 					{{range .ConflictedFiles}}
 					<li>{{.}}</li>
+					{{else}}
+					<li>{{ctx.Locale.Tr "repo.pulls.files_conflicted_no_listed_files"}}</li>
 					{{end}}
 				</ul>
 			{{else if .IsPullRequestBroken}}
@@ -95,7 +98,7 @@
 						{{ctx.Locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
 					</div>
 					{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
-						<button class="ui compact button toggle-wip" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
+						<button class="ui compact button" data-global-init="initPullRequestWipToggle" data-title="{{.Issue.Title}}" data-wip-prefix="{{.WorkInProgressPrefix}}" data-update-url="{{.Issue.Link}}/title">
 							{{ctx.Locale.Tr "repo.pulls.remove_prefix" .WorkInProgressPrefix}}
 						</button>
 					{{end}}
@@ -103,7 +106,7 @@
 				{{template "repo/issue/view_content/update_branch_by_merge" $}}
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item">
-					{{svg "octicon-sync" 16 "circular-spin"}}
+					{{svg "gitea-running" 16 "rotate-clockwise"}}
 					{{ctx.Locale.Tr "repo.pulls.is_checking"}}
 				</div>
 			{{else if .Issue.PullRequest.IsAncestor}}
@@ -146,12 +149,12 @@
 						<li>{{.}}</li>
 						{{end}}
 					</ul>
-				{{else if and .EnableStatusCheck (or .RequiredStatusCheckState.IsError .RequiredStatusCheckState.IsFailure)}}
+				{{else if and .EnableStatusCheck (or $requiredStatusCheckState.IsError $requiredStatusCheckState.IsFailure)}}
 					<div class="item">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.required_status_check_failed"}}
 					</div>
-				{{else if and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess)}}
+				{{else if and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess)}}
 					<div class="item">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.required_status_check_missing"}}
@@ -167,7 +170,7 @@
 					</div>
 				{{end}}
 
-				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
+				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
 
 				{{/* admin can merge without checks, writer can merge when checks succeed */}}
 				{{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
@@ -188,7 +191,7 @@
 					{{if .WillSign}}
 						<div class="item">
 							{{svg "octicon-lock" 16 "text green"}}
-							{{ctx.Locale.Tr "repo.signing.will_sign" .SigningKey}}
+							{{ctx.Locale.Tr "repo.signing.will_sign" .SigningKeyMergeDisplay}}
 						</div>
 					{{else if .IsSigned}}
 						<div class="item">
@@ -352,7 +355,7 @@
 						<li>{{.}}</li>
 						{{end}}
 					</ul>
-				{{else if and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess)}}
+				{{else if and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess)}}
 					<div class="item text red">
 						{{svg "octicon-x"}}
 						{{ctx.Locale.Tr "repo.pulls.required_status_check_failed"}}
@@ -385,7 +388,6 @@
 			{{if and $.StillCanManualMerge (not $showGeneralMergeForm)}}
 				<div class="divider"></div>
 				<form class="ui form form-fetch-action" action="{{.Issue.Link}}/merge" method="post">{{/* another similar form is in PullRequestMergeForm.vue*/}}
-					{{.CsrfTokenHtml}}
 					<div class="field">
 						<input type="text" name="merge_commit_id" placeholder="{{ctx.Locale.Tr "repo.pulls.merge_commit_id"}}">
 					</div>

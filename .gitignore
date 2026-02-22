@@ -22,6 +22,12 @@ _test
 .vscode
 __debug_bin*
 
+# Visual Studio
+/.vs/
+
+# mise version managment tool
+mise.toml
+
 *.cgo1.go
 *.cgo2.c
 _cgo_defun.c
@@ -39,20 +45,17 @@ _testmain.go
 coverage.all
 cpu.out
 
-/modules/migration/bindata.go
-/modules/migration/bindata.go.hash
-/modules/options/bindata.go
-/modules/options/bindata.go.hash
-/modules/public/bindata.go
-/modules/public/bindata.go.hash
-/modules/templates/bindata.go
-/modules/templates/bindata.go.hash
+/modules/migration/bindata.*
+/modules/options/bindata.*
+/modules/public/bindata.*
+/modules/templates/bindata.*
 
 *.db
 *.log
 *.log.*.gz
 
 /gitea
+/gitea-e2e
 /gitea-vet
 /debug
 /integrations.test
@@ -65,13 +68,9 @@ cpu.out
 /indexers
 /log
 /public/assets/img/avatar
+/tests/e2e-output
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
-/tests/e2e/gitea-e2e-*
-/tests/e2e/indexers-*
-/tests/e2e/reports
-/tests/e2e/test-artifacts
-/tests/e2e/test-snapshots
 /tests/*.ini
 /tests/**/*.git/**/*.sample
 /node_modules
@@ -79,6 +78,7 @@ cpu.out
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
+/.pnpm-store
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
@@ -86,7 +86,6 @@ cpu.out
 /vendor
 /VERSION
 /.air
-/.go-licenses
 
 # Files and folders that were previously generated
 /public/assets/img/webpack
@@ -110,3 +109,18 @@ prime/
 
 # Manpage
 /man
+
+# Ignore AI/LLM instruction files
+/.claude/
+/.cursorrules
+/.cursor/
+/.goosehints
+/.windsurfrules
+/.github/copilot-instructions.md
+/llms.txt
+
+# Ignore worktrees when working on multiple branches
+.worktrees/
+
+# A Makefile for custom make targets
+Makefile.local

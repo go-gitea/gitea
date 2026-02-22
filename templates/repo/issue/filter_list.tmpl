@@ -3,42 +3,12 @@
 {{template "repo/issue/filter_item_label" dict "Labels" .Labels "QueryLink" $queryLink "SupportArchivedLabel" true}}
 
 {{if not .Milestone}}
-<!-- Milestone -->
-<div class="item ui dropdown jump {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}}">
-	<span class="text">
-		{{ctx.Locale.Tr "repo.issues.filter_milestone"}}
-	</span>
-	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-	<div class="menu">
-		<div class="ui icon search input">
-			<i class="icon">{{svg "octicon-search" 16}}</i>
-			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_milestone"}}">
-		</div>
-		<div class="divider"></div>
-		<a class="{{if not $.MilestoneID}}active selected {{end}}item" href="{{QueryBuild $queryLink "milestone" 0}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_all"}}</a>
-		<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID -1}}active selected {{end}}{{end}}item" href="{{QueryBuild $queryLink "milestone" -1}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_none"}}</a>
-		{{if .OpenMilestones}}
-			<div class="divider"></div>
-			<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
-			{{range .OpenMilestones}}
-			<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{QueryBuild $queryLink "milestone" .ID}}">
-				{{svg "octicon-milestone" 16 "mr-2"}}
-				{{.Name}}
-			</a>
-			{{end}}
-		{{end}}
-		{{if .ClosedMilestones}}
-			<div class="divider"></div>
-			<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_closed"}}</div>
-			{{range .ClosedMilestones}}
-			<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{QueryBuild $queryLink "milestone" .ID}}">
-				{{svg "octicon-milestone" 16 "mr-2"}}
-				{{.Name}}
-			</a>
-			{{end}}
-		{{end}}
-	</div>
-</div>
+{{template "repo/issue/filter_item_milestone" dict
+	"QueryLink" $queryLink
+	"MilestoneID" $.MilestoneID
+	"OpenMilestones" .OpenMilestones
+	"ClosedMilestones" .ClosedMilestones
+}}
 {{end}}
 
 <!-- Project -->
@@ -106,7 +76,7 @@
 		</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 		<div class="menu">
-			<a class="{{if eq .ViewType "all"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "all"}}">{{ctx.Locale.Tr "repo.issues.filter_type.all_issues"}}</a>
+			<a class="{{if eq .ViewType "all"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "all"}}">{{if .PageIsPullList}}{{ctx.Locale.Tr "repo.issues.filter_type.all_pull_requests"}}{{else}}{{ctx.Locale.Tr "repo.issues.filter_type.all_issues"}}{{end}}</a>
 			<a class="{{if eq .ViewType "assigned"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "assigned"}}">{{ctx.Locale.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
 			<a class="{{if eq .ViewType "created_by"}}active {{end}}item" href="{{QueryBuild $queryLink "type" "created_by"}}">{{ctx.Locale.Tr "repo.issues.filter_type.created_by_you"}}</a>
 			{{if .PageIsPullList}}
@@ -133,11 +103,13 @@
 		<a class="{{if eq .SortType "leastcomment"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "leastcomment"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
 		<a class="{{if eq .SortType "nearduedate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "nearduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
 		<a class="{{if eq .SortType "farduedate"}}active {{end}}item" href="{{QueryBuild $queryLink "sort" "farduedate"}}">{{ctx.Locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
-		<div class="divider"></div>
-		<div class="header">{{ctx.Locale.Tr "repo.issues.filter_label"}}</div>
-		{{range $scope := .ExclusiveLabelScopes}}
-			{{$sortType := (printf "scope-%s" $scope)}}
-			<a class="{{if eq $.SortType $sortType}}active {{end}}item" href="{{QueryBuild $queryLink "sort" $sortType}}">{{$scope}}</a>
+		{{if .ExclusiveLabelScopes}}
+			<div class="divider"></div>
+			<div class="header">{{ctx.Locale.Tr "repo.issues.filter_label"}}</div>
+			{{range $scope := .ExclusiveLabelScopes}}
+				{{$sortType := (printf "scope-%s" $scope)}}
+				<a class="{{if eq $.SortType $sortType}}active {{end}}item" href="{{QueryBuild $queryLink "sort" $sortType}}">{{$scope}}</a>
+			{{end}}
 		{{end}}
 	</div>
 </div>

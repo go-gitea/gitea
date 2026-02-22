@@ -59,7 +59,7 @@ func getRunnersCtx(ctx *context.Context) (*runnersCtx, error) {
 	if ctx.Data["PageIsOrgSettings"] == true {
 		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 			ctx.ServerError("RenderUserOrgHeader", err)
-			return nil, nil
+			return nil, nil //nolint:nilnil // error is already handled by ctx.ServerError
 		}
 		return &runnersCtx{
 			RepoID:             0,
@@ -108,10 +108,7 @@ func Runners(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	opts := actions_model.FindRunnerOptions{
 		ListOptions: db.ListOptions{
@@ -179,10 +176,7 @@ func RunnersEdit(ctx *context.Context) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	runnerID := ctx.PathParamInt64("runnerid")
 	ownerID := rCtx.OwnerID

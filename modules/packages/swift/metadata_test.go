@@ -97,9 +97,48 @@ func TestParsePackage(t *testing.T) {
 		assert.Equal(t, packageDescription, p.Metadata.Description)
 		assert.ElementsMatch(t, []string{"swift", "package"}, p.Metadata.Keywords)
 		assert.Equal(t, packageLicense, p.Metadata.License)
+		assert.Equal(t, packageAuthor, p.Metadata.Author.Name)
 		assert.Equal(t, packageAuthor, p.Metadata.Author.GivenName)
 		assert.Equal(t, packageRepositoryURL, p.Metadata.RepositoryURL)
 		assert.ElementsMatch(t, []string{packageRepositoryURL}, p.RepositoryURLs)
+	})
+
+	t.Run("WithExplicitNameField", func(t *testing.T) {
+		data := createArchive(map[string][]byte{
+			"Package.swift": []byte("// swift-tools-version:5.7\n//\n//  Package.swift"),
+		})
+
+		authorName := "John Doe"
+		p, err := ParsePackage(
+			data,
+			data.Size(),
+			strings.NewReader(`{"name":"`+packageName+`","version":"`+packageVersion+`","description":"`+packageDescription+`","author":{"name":"`+authorName+`","givenName":"John","familyName":"Doe"}}`),
+		)
+		assert.NotNil(t, p)
+		assert.NoError(t, err)
+
+		assert.Equal(t, authorName, p.Metadata.Author.Name)
+		assert.Equal(t, "John", p.Metadata.Author.GivenName)
+		assert.Equal(t, "Doe", p.Metadata.Author.FamilyName)
+	})
+
+	t.Run("NameFieldGeneration", func(t *testing.T) {
+		data := createArchive(map[string][]byte{
+			"Package.swift": []byte("// swift-tools-version:5.7\n//\n//  Package.swift"),
+		})
+
+		// Test with only individual name components - Name should be auto-generated
+		p, err := ParsePackage(
+			data,
+			data.Size(),
+			strings.NewReader(`{"author":{"givenName":"John","middleName":"Q","familyName":"Doe"}}`),
+		)
+		assert.NotNil(t, p)
+		assert.NoError(t, err)
+		assert.Equal(t, "John Q Doe", p.Metadata.Author.Name)
+		assert.Equal(t, "John", p.Metadata.Author.GivenName)
+		assert.Equal(t, "Q", p.Metadata.Author.MiddleName)
+		assert.Equal(t, "Doe", p.Metadata.Author.FamilyName)
 	})
 }
 
@@ -140,5 +179,45 @@ func TestTrimmedVersionString(t *testing.T) {
 
 	for _, c := range cases {
 		assert.Equal(t, c.Expected, TrimmedVersionString(c.Version))
+	}
+}
+
+func TestPersonNameString(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Person   Person
+		Expected string
+	}{
+		{
+			Name:     "GivenNameOnly",
+			Person:   Person{GivenName: "John"},
+			Expected: "John",
+		},
+		{
+			Name:     "GivenAndFamily",
+			Person:   Person{GivenName: "John", FamilyName: "Doe"},
+			Expected: "John Doe",
+		},
+		{
+			Name:     "FullName",
+			Person:   Person{GivenName: "John", MiddleName: "Q", FamilyName: "Doe"},
+			Expected: "John Q Doe",
+		},
+		{
+			Name:     "MiddleAndFamily",
+			Person:   Person{MiddleName: "Q", FamilyName: "Doe"},
+			Expected: "Q Doe",
+		},
+		{
+			Name:     "Empty",
+			Person:   Person{},
+			Expected: "",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.Name, func(t *testing.T) {
+			assert.Equal(t, c.Expected, c.Person.String())
+		})
 	}
 }

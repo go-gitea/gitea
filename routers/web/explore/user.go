@@ -32,9 +32,9 @@ func isKeywordValid(keyword string) bool {
 }
 
 // RenderUserSearch render user search page
-func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, tplName templates.TplName) {
+func RenderUserSearch(ctx *context.Context, opts user_model.SearchUserOptions, tplName templates.TplName) {
 	// Sitemap index for sitemap paths
-	opts.Page = int(ctx.PathParamInt64("idx"))
+	opts.Page = ctx.PathParamInt("idx")
 	isSitemap := ctx.PathParam("idx") != ""
 	if opts.Page <= 1 {
 		opts.Page = ctx.FormInt("page")
@@ -103,7 +103,7 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 	if isSitemap {
 		m := sitemap.NewSitemap()
 		for _, item := range users {
-			m.Add(sitemap.URL{URL: item.HTMLURL(), LastMod: item.UpdatedUnix.AsTimePtr()})
+			m.Add(sitemap.URL{URL: item.HTMLURL(ctx), LastMod: item.UpdatedUnix.AsTimePtr()})
 		}
 		ctx.Resp.Header().Set("Content-Type", "text/xml")
 		if _, err := m.WriteTo(ctx.Resp); err != nil {
@@ -134,7 +134,7 @@ func Users(ctx *context.Context) {
 	}
 	ctx.Data["OrganizationsPageIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
 	ctx.Data["CodePageIsDisabled"] = setting.Service.Explore.DisableCodePage
-	ctx.Data["Title"] = ctx.Tr("explore")
+	ctx.Data["Title"] = ctx.Tr("explore_title")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreUsers"] = true
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
@@ -151,9 +151,9 @@ func Users(ctx *context.Context) {
 		ctx.SetFormString("sort", sortOrder)
 	}
 
-	RenderUserSearch(ctx, &user_model.SearchUserOptions{
+	RenderUserSearch(ctx, user_model.SearchUserOptions{
 		Actor:       ctx.Doer,
-		Type:        user_model.UserTypeIndividual,
+		Types:       []user_model.UserType{user_model.UserTypeIndividual},
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		IsActive:    optional.Some(true),
 		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},

@@ -6,9 +6,43 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
-	"strings"
 )
+
+const (
+	commitHeaderGpgsig       = "gpgsig"
+	commitHeaderGpgsigSha256 = "gpgsig-sha256"
+)
+
+func assignCommitFields(gitRepo *Repository, commit *Commit, headerKey string, headerValue []byte) error {
+	if len(headerValue) > 0 && headerValue[len(headerValue)-1] == '\n' {
+		headerValue = headerValue[:len(headerValue)-1] // remove trailing newline
+	}
+	switch headerKey {
+	case "tree":
+		objID, err := NewIDFromString(string(headerValue))
+		if err != nil {
+			return fmt.Errorf("invalid tree ID %q: %w", string(headerValue), err)
+		}
+		commit.Tree = *NewTree(gitRepo, objID)
+	case "parent":
+		objID, err := NewIDFromString(string(headerValue))
+		if err != nil {
+			return fmt.Errorf("invalid parent ID %q: %w", string(headerValue), err)
+		}
+		commit.Parents = append(commit.Parents, objID)
+	case "author":
+		commit.Author.Decode(headerValue)
+	case "committer":
+		commit.Committer.Decode(headerValue)
+	case commitHeaderGpgsig, commitHeaderGpgsigSha256:
+		// if there are duplicate "gpgsig" and "gpgsig-sha256" headers, then the signature must have already been invalid
+		// so we don't need to handle duplicate headers here
+		commit.Signature = &CommitSignature{Signature: string(headerValue)}
+	}
+	return nil
+}
 
 // CommitFromReader will generate a Commit from a provided reader
 // We need this to interpret commits from cat-file or cat-file --batch
@@ -21,90 +55,46 @@ func CommitFromReader(gitRepo *Repository, objectID ObjectID, reader io.Reader) 
 		Committer: &Signature{},
 	}
 
-	payloadSB := new(strings.Builder)
-	signatureSB := new(strings.Builder)
-	messageSB := new(strings.Builder)
-	message := false
-	pgpsig := false
-
-	bufReader, ok := reader.(*bufio.Reader)
-	if !ok {
-		bufReader = bufio.NewReader(reader)
-	}
-
-readLoop:
+	bufReader := bufio.NewReader(reader)
+	inHeader := true
+	var payloadSB, messageSB bytes.Buffer
+	var headerKey string
+	var headerValue []byte
 	for {
 		line, err := bufReader.ReadBytes('\n')
-		if err != nil {
-			if err == io.EOF {
-				if message {
-					_, _ = messageSB.Write(line)
+		if err != nil && err != io.EOF {
+			return nil, fmt.Errorf("unable to read commit %q: %w", objectID.String(), err)
+		}
+		if len(line) == 0 {
+			break
+		}
+
+		if inHeader {
+			inHeader = !(len(line) == 1 && line[0] == '\n') // still in header if line is not just a newline
+			k, v, _ := bytes.Cut(line, []byte{' '})
+			if len(k) != 0 || !inHeader {
+				if headerKey != "" {
+					if err = assignCommitFields(gitRepo, commit, headerKey, headerValue); err != nil {
+						return nil, fmt.Errorf("unable to parse commit %q: %w", objectID.String(), err)
+					}
 				}
-				_, _ = payloadSB.Write(line)
-				break readLoop
+				headerKey = string(k) // it also resets the headerValue to empty string if not inHeader
+				headerValue = v
+			} else {
+				headerValue = append(headerValue, v...)
 			}
-			return nil, err
-		}
-		if pgpsig {
-			if len(line) > 0 && line[0] == ' ' {
-				_, _ = signatureSB.Write(line[1:])
-				continue
-			}
-			pgpsig = false
-		}
-
-		if !message {
-			// This is probably not correct but is copied from go-gits interpretation...
-			trimmed := bytes.TrimSpace(line)
-			if len(trimmed) == 0 {
-				message = true
+			if headerKey != commitHeaderGpgsig && headerKey != commitHeaderGpgsigSha256 {
 				_, _ = payloadSB.Write(line)
-				continue
-			}
-
-			split := bytes.SplitN(trimmed, []byte{' '}, 2)
-			var data []byte
-			if len(split) > 1 {
-				data = split[1]
-			}
-
-			switch string(split[0]) {
-			case "tree":
-				commit.Tree = *NewTree(gitRepo, MustIDFromString(string(data)))
-				_, _ = payloadSB.Write(line)
-			case "parent":
-				commit.Parents = append(commit.Parents, MustIDFromString(string(data)))
-				_, _ = payloadSB.Write(line)
-			case "author":
-				commit.Author = &Signature{}
-				commit.Author.Decode(data)
-				_, _ = payloadSB.Write(line)
-			case "committer":
-				commit.Committer = &Signature{}
-				commit.Committer.Decode(data)
-				_, _ = payloadSB.Write(line)
-			case "encoding":
-				_, _ = payloadSB.Write(line)
-			case "gpgsig":
-				fallthrough
-			case "gpgsig-sha256": // FIXME: no intertop, so only 1 exists at present.
-				_, _ = signatureSB.Write(data)
-				_ = signatureSB.WriteByte('\n')
-				pgpsig = true
 			}
 		} else {
 			_, _ = messageSB.Write(line)
 			_, _ = payloadSB.Write(line)
 		}
 	}
-	commit.CommitMessage = messageSB.String()
-	commit.Signature = &CommitSignature{
-		Signature: signatureSB.String(),
-		Payload:   payloadSB.String(),
-	}
-	if len(commit.Signature.Signature) == 0 {
-		commit.Signature = nil
-	}
 
+	commit.CommitMessage = messageSB.String()
+	if commit.Signature != nil {
+		commit.Signature.Payload = payloadSB.String()
+	}
 	return commit, nil
 }

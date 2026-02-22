@@ -7,12 +7,11 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +24,7 @@ func TestForkRepository(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	fork, err := ForkRepository(git.DefaultContext, user, user, ForkRepoOptions{
+	fork, err := ForkRepository(t.Context(), user, user, ForkRepoOptions{
 		BaseRepo:    repo,
 		Name:        "test",
 		Description: "test",
@@ -38,10 +37,10 @@ func TestForkRepository(t *testing.T) {
 	assert.False(t, repo_model.IsErrReachLimitOfRepo(err))
 
 	// change AllowForkWithoutMaximumLimit to false for the test
-	setting.Repository.AllowForkWithoutMaximumLimit = false
+	defer test.MockVariableValue(&setting.Repository.AllowForkWithoutMaximumLimit, false)()
 	// user has reached maximum limit of repositories
 	user.MaxRepoCreation = 0
-	fork2, err := ForkRepository(git.DefaultContext, user, user, ForkRepoOptions{
+	fork2, err := ForkRepository(t.Context(), user, user, ForkRepoOptions{
 		BaseRepo:    repo,
 		Name:        "test",
 		Description: "test",
@@ -57,7 +56,7 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
-	fork, err := ForkRepository(git.DefaultContext, user2, user2, ForkRepoOptions{
+	fork, err := ForkRepository(t.Context(), user2, user2, ForkRepoOptions{
 		BaseRepo: repo10,
 		Name:     "test",
 	})
@@ -68,14 +67,14 @@ func TestForkRepositoryCleanup(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, exist)
 
-	err = DeleteRepositoryDirectly(db.DefaultContext, user2, fork.ID)
+	err = DeleteRepositoryDirectly(t.Context(), fork.ID)
 	assert.NoError(t, err)
 
 	// a failed creating because some mock data
 	// create the repository directory so that the creation will fail after database record created.
 	assert.NoError(t, os.MkdirAll(repo_model.RepoPath(user2.Name, "test"), os.ModePerm))
 
-	fork2, err := ForkRepository(db.DefaultContext, user2, user2, ForkRepoOptions{
+	fork2, err := ForkRepository(t.Context(), user2, user2, ForkRepoOptions{
 		BaseRepo: repo10,
 		Name:     "test",
 	})

@@ -66,7 +66,7 @@ $.fn.dropdown = function(parameters) {
         moduleNamespace = 'module-' + namespace,
 
         $module         = $(this),
-        $context        = $(settings.context),
+        $context        = (typeof settings.context === 'string') ? $(document).find(settings.context) : $(settings.context), // GITEA-PATCH: use "jQuery.find(selector)" instead of "jQuery(selector)"
         $text           = $module.find(selector.text),
         $search         = $module.find(selector.search),
         $sizer          = $module.find(selector.sizer),
@@ -407,6 +407,9 @@ $.fn.dropdown = function(parameters) {
                 .html( templates.dropdown(selectValues, fields, settings.preserveHTML, settings.className) )
                 .insertBefore($input)
               ;
+
+              $module.attr('data-tooltip-content', $input.attr('data-tooltip-content') ?? null); // GITEA-PATCH: convert "select" to "dropdown" with attrs
+
               if($input.hasClass(className.multiple) && $input.prop('multiple') === false) {
                 module.error(error.missingMultiple);
                 $input.prop('multiple', true);
@@ -525,6 +528,7 @@ $.fn.dropdown = function(parameters) {
               return true;
             }
             if(settings.onShow.call(element) !== false) {
+              $module.fomanticExt.onDropdownAfterFiltered.call(element); // GITEA-PATCH: callback to correctly handle the filtered items
               module.animate.show(function() {
                 if( module.can.click() ) {
                   module.bind.intent();
@@ -752,7 +756,7 @@ $.fn.dropdown = function(parameters) {
               if(module.is.searchSelection() && module.can.show() && module.is.focusedOnSearch() ) {
                 module.show();
               }
-              settings.onAfterFiltered.call(element); // GITEA-PATCH: callback to correctly handle the filtered items
+              $module.fomanticExt.onDropdownAfterFiltered.call(element); // GITEA-PATCH: callback to correctly handle the filtered items
             }
           ;
           if(settings.useLabels && module.has.maxSelections()) {
@@ -3993,8 +3997,6 @@ $.fn.dropdown.settings = {
   onShow        : function(){},
   onHide        : function(){},
 
-  onAfterFiltered: function(){}, // GITEA-PATCH: callback to correctly handle the filtered items
-
   /* Component */
   name           : 'Dropdown',
   namespace      : 'dropdown',
@@ -4080,7 +4082,7 @@ $.fn.dropdown.settings = {
     search       : 'input.search, .menu > .search > input, .menu input.search',
     sizer        : '> span.sizer',
     text         : '> .text:not(.icon)',
-    unselectable : '.disabled, .filtered',
+    unselectable : '.disabled, .filtered, .tw-hidden', // GITEA-PATCH: tw-hidden hides the item so it is also unselectable
     clearIcon    : '> .remove.icon'
   },
 

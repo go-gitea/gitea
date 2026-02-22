@@ -1,5 +1,5 @@
 import {debounce} from 'throttle-debounce';
-import type {Promisable} from 'type-fest';
+import type {Promisable} from '../types.ts';
 import type $ from 'jquery';
 import {isInFrontendUnitTest} from './testhelper.ts';
 
@@ -7,26 +7,25 @@ type ArrayLikeIterable<T> = ArrayLike<T> & Iterable<T>; // for NodeListOf and Ar
 type ElementArg = Element | string | ArrayLikeIterable<Element> | ReturnType<typeof $>;
 type ElementsCallback<T extends Element> = (el: T) => Promisable<any>;
 type ElementsCallbackWithArgs = (el: Element, ...args: any[]) => Promisable<any>;
-export type DOMEvent<E extends Event, T extends Element = HTMLElement> = E & { target: Partial<T>; };
 
-function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]) {
+function elementsCall(el: ElementArg, func: ElementsCallbackWithArgs, ...args: any[]): ArrayLikeIterable<Element> {
   if (typeof el === 'string' || el instanceof String) {
     el = document.querySelectorAll(el as string);
   }
   if (el instanceof Node) {
     func(el, ...args);
+    return [el];
   } else if (el.length !== undefined) {
     // this works for: NodeList, HTMLCollection, Array, jQuery
-    for (const e of (el as ArrayLikeIterable<Element>)) {
-      func(e, ...args);
-    }
-  } else {
-    throw new Error('invalid argument to be shown/hidden');
+    const elems = el as ArrayLikeIterable<Element>;
+    for (const elem of elems) func(elem, ...args);
+    return elems;
   }
+  throw new Error('invalid argument to be shown/hidden');
 }
 
-export function toggleClass(el: ElementArg, className: string, force?: boolean) {
-  elementsCall(el, (e: Element) => {
+export function toggleElemClass(el: ElementArg, className: string, force?: boolean): ArrayLikeIterable<Element> {
+  return elementsCall(el, (e: Element) => {
     if (force === true) {
       e.classList.add(className);
     } else if (force === false) {
@@ -43,23 +42,16 @@ export function toggleClass(el: ElementArg, className: string, force?: boolean) 
  * @param el ElementArg
  * @param force force=true to show or force=false to hide, undefined to toggle
  */
-export function toggleElem(el: ElementArg, force?: boolean) {
-  toggleClass(el, 'tw-hidden', force === undefined ? force : !force);
+export function toggleElem(el: ElementArg, force?: boolean): ArrayLikeIterable<Element> {
+  return toggleElemClass(el, 'tw-hidden', force === undefined ? force : !force);
 }
 
-export function showElem(el: ElementArg) {
-  toggleElem(el, true);
+export function showElem(el: ElementArg): ArrayLikeIterable<Element> {
+  return toggleElem(el, true);
 }
 
-export function hideElem(el: ElementArg) {
-  toggleElem(el, false);
-}
-
-export function isElemHidden(el: ElementArg) {
-  const res: boolean[] = [];
-  elementsCall(el, (e) => res.push(e.classList.contains('tw-hidden')));
-  if (res.length > 1) throw new Error(`isElemHidden doesn't work for multiple elements`);
-  return res[0];
+export function hideElem(el: ElementArg): ArrayLikeIterable<Element> {
+  return toggleElem(el, false);
 }
 
 function applyElemsCallback<T extends Element>(elems: ArrayLikeIterable<T>, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
@@ -72,13 +64,14 @@ function applyElemsCallback<T extends Element>(elems: ArrayLikeIterable<T>, fn?:
 }
 
 export function queryElemSiblings<T extends Element>(el: Element, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
+  if (!el.parentNode) return [];
   const elems = Array.from(el.parentNode.children) as T[];
   return applyElemsCallback<T>(elems.filter((child: Element) => {
     return child !== el && child.matches(selector);
   }), fn);
 }
 
-// it works like jQuery.children: only the direct children are selected
+/** it works like jQuery.children: only the direct children are selected */
 export function queryElemChildren<T extends Element>(parent: Element | ParentNode, selector = '*', fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   if (isInFrontendUnitTest()) {
     // https://github.com/capricorn86/happy-dom/issues/1620 : ":scope" doesn't work
@@ -88,7 +81,7 @@ export function queryElemChildren<T extends Element>(parent: Element | ParentNod
   return applyElemsCallback<T>(parent.querySelectorAll(`:scope > ${selector}`), fn);
 }
 
-// it works like parent.querySelectorAll: all descendants are selected
+/** it works like parent.querySelectorAll: all descendants are selected */
 // in the future, all "queryElems(document, ...)" should be refactored to use a more specific parent if the targets are not for page-level components.
 export function queryElems<T extends HTMLElement>(parent: Element | ParentNode, selector: string, fn?: ElementsCallback<T>): ArrayLikeIterable<T> {
   return applyElemsCallback<T>(parent.querySelectorAll(selector), fn);
@@ -102,8 +95,8 @@ export function onDomReady(cb: () => Promisable<void>) {
   }
 }
 
-// checks whether an element is owned by the current document, and whether it is a document fragment or element node
-// if it is, it means it is a "normal" element managed by us, which can be modified safely.
+/** checks whether an element is owned by the current document, and whether it is a document fragment or element node
+ *  if it is, it means it is a "normal" element managed by us, which can be modified safely. */
 export function isDocumentFragmentOrElementNode(el: Node) {
   try {
     return el.ownerDocument === document && el.nodeType === Node.ELEMENT_NODE || el.nodeType === Node.DOCUMENT_FRAGMENT_NODE;
@@ -113,8 +106,8 @@ export function isDocumentFragmentOrElementNode(el: Node) {
   }
 }
 
-// autosize a textarea to fit content. Based on
-// https://github.com/github/textarea-autosize
+/** autosize a textarea to fit content. */
+// Based on https://github.com/github/textarea-autosize
 // ---------------------------------------------------------------------
 // Copyright (c) 2018 GitHub, Inc.
 //
@@ -132,10 +125,10 @@ export function isDocumentFragmentOrElementNode(el: Node) {
 export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 0}: {viewportMarginBottom?: number} = {}) {
   let isUserResized = false;
   // lastStyleHeight and initialStyleHeight are CSS values like '100px'
-  let lastMouseX: number;
-  let lastMouseY: number;
-  let lastStyleHeight: string;
-  let initialStyleHeight: string;
+  let lastMouseX: number | undefined;
+  let lastMouseY: number | undefined;
+  let lastStyleHeight: string | undefined;
+  let initialStyleHeight: string | undefined;
 
   function onUserResize(event: MouseEvent) {
     if (isUserResized) return;
@@ -160,7 +153,8 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       el = el.offsetParent as HTMLTextAreaElement;
     }
 
-    const top = offsetTop - document.defaultView.scrollY;
+    const scrollY = document.defaultView ? document.defaultView.scrollY : 0;
+    const top = offsetTop - scrollY;
     const bottom = document.documentElement.clientHeight - (top + textarea.offsetHeight);
     return {top, bottom};
   }
@@ -168,6 +162,7 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
   function resizeToFit() {
     if (isUserResized) return;
     if (textarea.offsetWidth <= 0 && textarea.offsetHeight <= 0) return;
+    const previousMargin = textarea.style.marginBottom;
 
     try {
       const {top, bottom} = overflowOffset();
@@ -183,6 +178,9 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       const curHeight = parseFloat(computedStyle.height);
       const maxHeight = curHeight + bottom - adjustedViewportMarginBottom;
 
+      // In Firefox, setting auto height momentarily may cause the page to scroll up
+      // unexpectedly, prevent this by setting a temporary margin.
+      textarea.style.marginBottom = `${textarea.clientHeight}px`;
       textarea.style.height = 'auto';
       let newHeight = textarea.scrollHeight + borderAddOn;
 
@@ -203,6 +201,12 @@ export function autosize(textarea: HTMLTextAreaElement, {viewportMarginBottom = 
       textarea.style.height = `${newHeight}px`;
       lastStyleHeight = textarea.style.height;
     } finally {
+      // restore previous margin
+      if (previousMargin) {
+        textarea.style.marginBottom = previousMargin;
+      } else {
+        textarea.style.removeProperty('margin-bottom');
+      }
       // ensure that the textarea is fully scrolled to the end, when the cursor
       // is at the end during an input event
       if (textarea.selectionStart === textarea.selectionEnd &&
@@ -243,8 +247,8 @@ export function onInputDebounce(fn: () => Promisable<any>) {
 
 type LoadableElement = HTMLEmbedElement | HTMLIFrameElement | HTMLImageElement | HTMLScriptElement | HTMLTrackElement;
 
-// Set the `src` attribute on an element and returns a promise that resolves once the element
-// has loaded or errored.
+/** Set the `src` attribute on an element and returns a promise that resolves once the element
+ *  has loaded or errored. */
 export function loadElem(el: LoadableElement, src: string) {
   return new Promise((resolve) => {
     el.addEventListener('load', () => resolve(true), {once: true});
@@ -262,10 +266,10 @@ export function submitEventSubmitter(e: any) {
   return needSubmitEventPolyfill ? (e.target._submitter || null) : e.submitter;
 }
 
-function submitEventPolyfillListener(e: DOMEvent<Event>) {
-  const form = e.target.closest('form');
+function submitEventPolyfillListener(e: Event) {
+  const form = (e.target as HTMLElement).closest('form');
   if (!form) return;
-  form._submitter = e.target.closest('button:not([type]), button[type="submit"], input[type="submit"]');
+  form._submitter = (e.target as HTMLElement).closest('button:not([type]), button[type="submit"], input[type="submit"]');
 }
 
 export function initSubmitEventPolyfill() {
@@ -275,55 +279,29 @@ export function initSubmitEventPolyfill() {
   document.body.addEventListener('focus', submitEventPolyfillListener);
 }
 
-/**
- * Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
- * Note: This function doesn't account for all possible visibility scenarios.
- */
-export function isElemVisible(element: HTMLElement): boolean {
-  if (!element) return false;
-  // checking element.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
-  return Boolean((element.offsetWidth || element.offsetHeight || element.getClientRects().length) && element.style.display !== 'none');
+export function isElemVisible(el: HTMLElement): boolean {
+  // Check if an element is visible, equivalent to jQuery's `:visible` pseudo.
+  // This function DOESN'T account for all possible visibility scenarios, its behavior is covered by the tests of "querySingleVisibleElem"
+  if (!el) return false;
+  // checking el.style.display is not necessary for browsers, but it is required by some tests with happy-dom because happy-dom doesn't really do layout
+  return Boolean(!el.classList.contains('tw-hidden') && (el.offsetWidth || el.offsetHeight || el.getClientRects().length) && el.style.display !== 'none');
 }
 
-// replace selected text in a textarea while preserving editor history, e.g. CTRL-Z works after this
-export function replaceTextareaSelection(textarea: HTMLTextAreaElement, text: string) {
-  const before = textarea.value.slice(0, textarea.selectionStart ?? undefined);
-  const after = textarea.value.slice(textarea.selectionEnd ?? undefined);
-  let success = true;
-
-  textarea.contentEditable = 'true';
-  try {
-    success = document.execCommand('insertText', false, text); // eslint-disable-line @typescript-eslint/no-deprecated
-  } catch {
-    success = false;
-  }
-  textarea.contentEditable = 'false';
-
-  if (success && !textarea.value.slice(0, textarea.selectionStart ?? undefined).endsWith(text)) {
-    success = false;
-  }
-
-  if (!success) {
-    textarea.value = `${before}${text}${after}`;
-    textarea.dispatchEvent(new CustomEvent('change', {bubbles: true, cancelable: true}));
-  }
-}
-
-// Warning: Do not enter any unsanitized variables here
 export function createElementFromHTML<T extends HTMLElement>(htmlString: string): T {
   htmlString = htmlString.trim();
-  // some tags like "tr" are special, it must use a correct parent container to create
+  // There is no way to create some elements without a proper parent, jQuery's approach: https://github.com/jquery/jquery/blob/main/src/manipulation/wrapMap.js
+  // eslint-disable-next-line github/unescaped-html-literal
   if (htmlString.startsWith('<tr')) {
     const container = document.createElement('table');
     container.innerHTML = htmlString;
-    return container.querySelector<T>('tr');
+    return container.querySelector<T>('tr')!;
   }
   const div = document.createElement('div');
   div.innerHTML = htmlString;
   return div.firstChild as T;
 }
 
-export function createElementFromAttrs(tagName: string, attrs: Record<string, any>, ...children: (Node|string)[]): HTMLElement {
+export function createElementFromAttrs<T extends HTMLElement>(tagName: string, attrs: Record<string, any> | null, ...children: (Node | string)[]): T {
   const el = document.createElement(tagName);
   for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;
@@ -336,7 +314,7 @@ export function createElementFromAttrs(tagName: string, attrs: Record<string, an
   for (const child of children) {
     el.append(child instanceof Node ? child : document.createTextNode(child));
   }
-  return el;
+  return el as T;
 }
 
 export function animateOnce(el: Element, animationClassName: string): Promise<void> {
@@ -362,9 +340,19 @@ export function addDelegatedEventListener<T extends HTMLElement, E extends Event
     const elem = (e.target as HTMLElement).closest(selector);
     // It strictly checks "parent contains the target elem" to avoid side effects of selector running on outside the parent.
     // Keep in mind that the elem could have been removed from parent by other event handlers before this event handler is called.
-    // For example: tippy popup item, the tippy popup could be hidden and removed from DOM before this.
-    // It is caller's responsibility make sure the elem is still in parent's DOM when this event handler is called.
+    // For example, tippy popup item, the tippy popup could be hidden and removed from DOM before this.
+    // It is the caller's responsibility to make sure the elem is still in parent's DOM when this event handler is called.
     if (!elem || (parent !== document && !parent.contains(elem))) return;
     listener(elem as T, e as E);
   }, options);
+}
+
+/** Returns whether a click event is a left-click without any modifiers held */
+export function isPlainClick(e: MouseEvent) {
+  return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
+}
+
+let elemIdCounter = 0;
+export function generateElemId(prefix: string = ''): string {
+  return `${prefix}${elemIdCounter++}`;
 }

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/util"
 
@@ -16,12 +17,14 @@ import (
 )
 
 type anyHashPatternResult struct {
-	PosStart  int
-	PosEnd    int
-	FullURL   string
-	CommitID  string
-	SubPath   string
-	QueryHash string
+	PosStart    int
+	PosEnd      int
+	FullURL     string
+	CommitID    string
+	CommitExt   string
+	SubPath     string
+	QueryParams string
+	QueryHash   string
 }
 
 func createCodeLink(href, content, class string) *html.Node {
@@ -56,25 +59,39 @@ func anyHashPatternExtract(s string) (ret anyHashPatternResult, ok bool) {
 		return ret, false
 	}
 
-	ret.PosStart, ret.PosEnd = m[0], m[1]
+	pos := 0
+
+	ret.PosStart, ret.PosEnd = m[pos], m[pos+1]
+	pos += 2
+
 	ret.FullURL = s[ret.PosStart:ret.PosEnd]
 	if strings.HasSuffix(ret.FullURL, ".") {
 		// if url ends in '.', it's very likely that it is not part of the actual url but used to finish a sentence.
 		ret.PosEnd--
 		ret.FullURL = ret.FullURL[:len(ret.FullURL)-1]
-		for i := 0; i < len(m); i++ {
+		for i := range m {
 			m[i] = min(m[i], ret.PosEnd)
 		}
 	}
 
-	ret.CommitID = s[m[2]:m[3]]
-	if m[5] > 0 {
-		ret.SubPath = s[m[4]:m[5]]
-	}
+	ret.CommitID = s[m[pos]:m[pos+1]]
+	pos += 2
 
-	lastStart, lastEnd := m[len(m)-2], m[len(m)-1]
-	if lastEnd > 0 {
-		ret.QueryHash = s[lastStart:lastEnd][1:]
+	ret.CommitExt = s[m[pos]:m[pos+1]]
+	pos += 4
+
+	if m[pos] > 0 {
+		ret.SubPath = s[m[pos]:m[pos+1]]
+	}
+	pos += 2
+
+	if m[pos] > 0 {
+		ret.QueryParams = s[m[pos]:m[pos+1]]
+	}
+	pos += 2
+
+	if m[pos] > 0 {
+		ret.QueryHash = s[m[pos]:m[pos+1]][1:]
 	}
 	return ret, true
 }
@@ -96,11 +113,19 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 			continue
 		}
 		text := base.ShortSha(ret.CommitID)
+		if ret.CommitExt != "" {
+			text += ret.CommitExt
+		}
 		if ret.SubPath != "" {
 			text += ret.SubPath
 		}
 		if ret.QueryHash != "" {
 			text += " (" + ret.QueryHash + ")"
+		}
+		// only turn commit links to the current instance into hash link
+		if !httplib.IsCurrentGiteaSiteURL(ctx, ret.FullURL) {
+			node = node.NextSibling
+			continue
 		}
 		replaceContent(node, ret.PosStart, ret.PosEnd, createCodeLink(ret.FullURL, text, "commit"))
 		node = node.NextSibling.NextSibling
@@ -146,6 +171,12 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 			} else if text2 != "" {
 				text2 = text2[:len(text2)-1]
 			}
+		}
+
+		// only turn compare links to the current instance into hash link
+		if !httplib.IsCurrentGiteaSiteURL(ctx, urlFull) {
+			node = node.NextSibling
+			continue
 		}
 
 		text := text1 + textDots + text2

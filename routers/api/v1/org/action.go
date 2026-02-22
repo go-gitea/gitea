@@ -67,6 +67,7 @@ func (Action) ListActionsSecrets(ctx *context.APIContext) {
 		}
 	}
 
+	ctx.SetLinkHeader(int(count), opts.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiSecrets)
 }
@@ -240,9 +241,10 @@ func (Action) ListVariables(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	listOptions := utils.GetListOptions(ctx)
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
 		OwnerID:     ctx.Org.Organization.ID,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -259,7 +261,7 @@ func (Action) ListVariables(ctx *context.APIContext) {
 			Description: v.Description,
 		}
 	}
-
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, variables)
 }
@@ -384,13 +386,13 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/CreateVariableOption"
 	// responses:
 	//   "201":
-	//     description: response when creating an org-level variable
-	//   "204":
-	//     description: response when creating an org-level variable
+	//     description: successfully created the org-level variable
 	//   "400":
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     description: variable name already exists.
+	//   "500":
+	//     "$ref": "#/responses/error"
 
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
@@ -419,7 +421,7 @@ func (Action) CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(http.StatusCreated)
 }
 
 // UpdateVariable update an org-level variable
@@ -568,6 +570,96 @@ func (Action) DeleteRunner(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, ctx.Org.Organization.ID, 0, ctx.PathParamInt64("runner_id"))
+}
+
+func (Action) ListWorkflowJobs(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/actions/jobs organization getOrgWorkflowJobs
+	// ---
+	// summary: Get org-level workflow jobs
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowJobsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.ListJobs(ctx, ctx.Org.Organization.ID, 0, 0)
+}
+
+func (Action) ListWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /orgs/{org}/actions/runs organization getOrgWorkflowRuns
+	// ---
+	// summary: Get org-level workflow runs
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// - name: event
+	//   in: query
+	//   description: workflow event name
+	//   type: string
+	//   required: false
+	// - name: branch
+	//   in: query
+	//   description: workflow branch
+	//   type: string
+	//   required: false
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: actor
+	//   in: query
+	//   description: triggered by user
+	//   type: string
+	//   required: false
+	// - name: head_sha
+	//   in: query
+	//   description: triggering sha of the workflow run
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRunsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.ListRuns(ctx, ctx.Org.Organization.ID, 0)
 }
 
 var _ actions_service.API = new(Action)

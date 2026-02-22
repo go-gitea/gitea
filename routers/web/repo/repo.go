@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
@@ -71,7 +70,7 @@ func CommitInfoCache(ctx *context.Context) {
 		ctx.ServerError("GetBranchCommit", err)
 		return
 	}
-	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount()
+	ctx.Repo.CommitsCount, err = ctx.Repo.GetCommitsCount(ctx)
 	if err != nil {
 		ctx.ServerError("GetCommitsCount", err)
 		return
@@ -88,7 +87,7 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	}
 
 	var orgsAvailable []*organization.Organization
-	for i := 0; i < len(orgs); i++ {
+	for i := range orgs {
 		if ctx.Doer.CanCreateRepoIn(orgs[i].AsUser()) {
 			orgsAvailable = append(orgsAvailable, orgs[i])
 		}
@@ -365,65 +364,39 @@ func RedirectDownload(ctx *context.Context) {
 
 // Download an archive of a repository
 func Download(ctx *context.Context) {
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"), ctx.FormStrings("path"))
 	if err != nil {
-		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
+		if errors.Is(err, util.ErrInvalidArgument) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
-		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
+		} else if errors.Is(err, util.ErrNotExist) {
 			ctx.HTTPError(http.StatusNotFound, err.Error())
 		} else {
 			ctx.ServerError("archiver_service.NewRequest", err)
 		}
 		return
 	}
-
-	archiver, err := aReq.Await(ctx)
+	err = archiver_service.ServeRepoArchive(ctx.Base, aReq)
 	if err != nil {
-		ctx.ServerError("archiver.Await", err)
-		return
-	}
-
-	download(ctx, aReq.GetArchiveName(), archiver)
-}
-
-func download(ctx *context.Context, archiveName string, archiver *repo_model.RepoArchiver) {
-	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
-
-	// Add nix format link header so tarballs lock correctly:
-	// https://github.com/nixos/nix/blob/56763ff918eb308db23080e560ed2ea3e00c80a7/doc/manual/src/protocols/tarball-fetcher.md
-	ctx.Resp.Header().Add("Link", fmt.Sprintf(`<%s/archive/%s.tar.gz?rev=%s>; rel="immutable"`,
-		ctx.Repo.Repository.APIURL(),
-		archiver.CommitID, archiver.CommitID))
-
-	rPath := archiver.RelativePath()
-	if setting.RepoArchive.Storage.ServeDirect() {
-		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.RepoArchives.URL(rPath, downloadName, nil)
-		if u != nil && err == nil {
-			ctx.Redirect(u.String())
-			return
+		if errors.Is(err, util.ErrInvalidArgument) {
+			ctx.HTTPError(http.StatusBadRequest, err.Error())
+		} else {
+			ctx.ServerError("archiver_service.ServeRepoArchive", err)
 		}
 	}
-
-	// If we have matched and access to release or issue
-	fr, err := storage.RepoArchives.Open(rPath)
-	if err != nil {
-		ctx.ServerError("Open", err)
-		return
-	}
-	defer fr.Close()
-
-	ctx.ServeContent(fr, &context.ServeHeaderOptions{
-		Filename:     downloadName,
-		LastModified: archiver.CreatedUnix.AsLocalTime(),
-	})
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
 // a request that's already in-progress, but the archiver service will just
 // kind of drop it on the floor if this is the case.
 func InitiateDownload(ctx *context.Context) {
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, ctx.PathParam("*"))
+	paths := ctx.FormStrings("path")
+	if setting.Repository.StreamArchives || len(paths) > 0 {
+		ctx.JSON(http.StatusOK, map[string]any{
+			"complete": true,
+		})
+		return
+	}
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.PathParam("*"), paths)
 	if err != nil {
 		ctx.HTTPError(http.StatusBadRequest, "invalid archive request")
 		return
@@ -433,7 +406,7 @@ func InitiateDownload(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.Repo.ID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		ctx.ServerError("archiver_service.StartArchive", err)
 		return
@@ -461,7 +434,7 @@ func SearchRepo(ctx *context.Context) {
 	if page <= 0 {
 		page = 1
 	}
-	opts := &repo_model.SearchRepoOptions{
+	opts := repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),

@@ -72,96 +72,90 @@ func AddGPGKey(ctx context.Context, ownerID int64, content, token, signature str
 		return nil, err
 	}
 
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) ([]*GPGKey, error) {
+		keys := make([]*GPGKey, 0, len(ekeys))
 
-	keys := make([]*GPGKey, 0, len(ekeys))
-
-	verified := false
-	// Handle provided signature
-	if signature != "" {
-		signer, err := openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token), strings.NewReader(signature), nil)
-		if err != nil {
-			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\n"), strings.NewReader(signature), nil)
-		}
-		if err != nil {
-			signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\r\n"), strings.NewReader(signature), nil)
-		}
-		if err != nil {
-			log.Error("Unable to validate token signature. Error: %v", err)
-			return nil, ErrGPGInvalidTokenSignature{
-				ID:      ekeys[0].PrimaryKey.KeyIdString(),
-				Wrapped: err,
+		verified := false
+		// Handle provided signature
+		if signature != "" {
+			signer, err := openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token), strings.NewReader(signature), nil)
+			if err != nil {
+				signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\n"), strings.NewReader(signature), nil)
 			}
+			if err != nil {
+				signer, err = openpgp.CheckArmoredDetachedSignature(ekeys, strings.NewReader(token+"\r\n"), strings.NewReader(signature), nil)
+			}
+			if err != nil {
+				log.Debug("AddGPGKey CheckArmoredDetachedSignature failed: %v", err)
+				return nil, ErrGPGInvalidTokenSignature{
+					ID:      ekeys[0].PrimaryKey.KeyIdString(),
+					Wrapped: err,
+				}
+			}
+			ekeys = []*openpgp.Entity{signer}
+			verified = true
 		}
-		ekeys = []*openpgp.Entity{signer}
-		verified = true
-	}
 
-	if len(ekeys) > 1 {
-		id2key := map[string]*openpgp.Entity{}
-		newEKeys := make([]*openpgp.Entity, 0, len(ekeys))
-		for _, ekey := range ekeys {
-			id := ekey.PrimaryKey.KeyIdString()
-			if original, has := id2key[id]; has {
-				// Coalesce this with the other one
-				for _, subkey := range ekey.Subkeys {
-					if subkey.PublicKey == nil {
-						continue
-					}
-					found := false
-
-					for _, originalSubkey := range original.Subkeys {
-						if originalSubkey.PublicKey == nil {
+		if len(ekeys) > 1 {
+			id2key := map[string]*openpgp.Entity{}
+			newEKeys := make([]*openpgp.Entity, 0, len(ekeys))
+			for _, ekey := range ekeys {
+				id := ekey.PrimaryKey.KeyIdString()
+				if original, has := id2key[id]; has {
+					// Coalesce this with the other one
+					for _, subkey := range ekey.Subkeys {
+						if subkey.PublicKey == nil {
 							continue
 						}
-						if originalSubkey.PublicKey.KeyId == subkey.PublicKey.KeyId {
-							found = true
-							break
+						found := false
+
+						for _, originalSubkey := range original.Subkeys {
+							if originalSubkey.PublicKey == nil {
+								continue
+							}
+							if originalSubkey.PublicKey.KeyId == subkey.PublicKey.KeyId {
+								found = true
+								break
+							}
+						}
+						if !found {
+							original.Subkeys = append(original.Subkeys, subkey)
 						}
 					}
-					if !found {
-						original.Subkeys = append(original.Subkeys, subkey)
+					for name, identity := range ekey.Identities {
+						if _, has := original.Identities[name]; has {
+							continue
+						}
+						original.Identities[name] = identity
 					}
+					continue
 				}
-				for name, identity := range ekey.Identities {
-					if _, has := original.Identities[name]; has {
-						continue
-					}
-					original.Identities[name] = identity
-				}
-				continue
+				id2key[id] = ekey
+				newEKeys = append(newEKeys, ekey)
 			}
-			id2key[id] = ekey
-			newEKeys = append(newEKeys, ekey)
-		}
-		ekeys = newEKeys
-	}
-
-	for _, ekey := range ekeys {
-		// Key ID cannot be duplicated.
-		has, err := db.GetEngine(ctx).Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
-			Get(new(GPGKey))
-		if err != nil {
-			return nil, err
-		} else if has {
-			return nil, ErrGPGKeyIDAlreadyUsed{ekey.PrimaryKey.KeyIdString()}
+			ekeys = newEKeys
 		}
 
-		// Get DB session
+		for _, ekey := range ekeys {
+			// Key ID cannot be duplicated.
+			has, err := db.GetEngine(ctx).Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
+				Get(new(GPGKey))
+			if err != nil {
+				return nil, err
+			} else if has {
+				return nil, ErrGPGKeyIDAlreadyUsed{ekey.PrimaryKey.KeyIdString()}
+			}
 
-		key, err := parseGPGKey(ctx, ownerID, ekey, verified)
-		if err != nil {
-			return nil, err
-		}
+			key, err := parseGPGKey(ctx, ownerID, ekey, verified)
+			if err != nil {
+				return nil, err
+			}
 
-		if err = addGPGKey(ctx, key, content); err != nil {
-			return nil, err
+			if err = addGPGKey(ctx, key, content); err != nil {
+				return nil, err
+			}
+			keys = append(keys, key)
 		}
-		keys = append(keys, key)
-	}
-	return keys, committer.Commit()
+		return keys, nil
+	})
 }

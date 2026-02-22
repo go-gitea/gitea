@@ -4,6 +4,7 @@
 package context
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"io"
@@ -17,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/reqctx"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
@@ -40,6 +42,22 @@ type Base struct {
 
 	// Locale is mainly for Web context, although the API context also uses it in some cases: message response, form validation
 	Locale translation.Locale
+}
+
+var ParseMultipartFormMaxMemory = int64(32 << 20)
+
+func (b *Base) ParseMultipartForm() bool {
+	err := b.Req.ParseMultipartForm(ParseMultipartFormMaxMemory)
+	if err != nil {
+		// TODO: all errors caused by client side should be ignored (connection closed).
+		if !errors.Is(err, io.EOF) && !errors.Is(err, io.ErrUnexpectedEOF) {
+			// Errors caused by server side (disk full) should be logged.
+			log.Error("Failed to parse request multipart form for %s: %v", b.Req.RequestURI, err)
+		}
+		b.HTTPError(http.StatusInternalServerError, "failed to parse request multipart form")
+		return false
+	}
+	return true
 }
 
 // AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
@@ -83,6 +101,7 @@ func (b *Base) RespHeader() http.Header {
 }
 
 // HTTPError returned an error to web browser
+// FIXME: many calls to this HTTPError are not right: it shouldn't expose err.Error() directly, it doesn't accept more than one content
 func (b *Base) HTTPError(status int, contents ...string) {
 	v := http.StatusText(status)
 	if len(contents) > 0 {
@@ -129,10 +148,7 @@ func (b *Base) PlainText(status int, text string) {
 
 // Redirect redirects the request
 func (b *Base) Redirect(location string, status ...int) {
-	code := http.StatusSeeOther
-	if len(status) == 1 {
-		code = status[0]
-	}
+	code := util.OptionalArg(status, http.StatusSeeOther)
 
 	if !httplib.IsRelativeURL(location) {
 		// Some browsers (Safari) have buggy behavior for Cookie + Cache + External Redirection, eg: /my-path => https://other/path

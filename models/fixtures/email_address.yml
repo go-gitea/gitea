@@ -81,7 +81,7 @@
 -
   id: 11
   uid: 4
-  email: user4@example.com
+  email: User4@Example.Com
   lower_email: user4@example.com
   is_activated: true
   is_primary: true

@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models/db"
@@ -13,7 +14,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	shared_label "code.gitea.io/gitea/routers/web/shared/label"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -100,13 +103,8 @@ func RetrieveLabelsForList(ctx *context.Context) {
 
 // NewLabel create new label for repository
 func NewLabel(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	ctx.Data["Title"] = ctx.Tr("repo.labels")
-	ctx.Data["PageIsLabels"] = true
-
-	if ctx.HasError() {
-		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
-		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
+	form := shared_label.GetLabelEditForm(ctx)
+	if ctx.Written() {
 		return
 	}
 
@@ -122,34 +120,36 @@ func NewLabel(ctx *context.Context) {
 		ctx.ServerError("NewLabel", err)
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/labels")
 }
 
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	l, err := issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, form.ID)
-	if err != nil {
-		switch {
-		case issues_model.IsErrRepoLabelNotExist(err):
-			ctx.HTTPError(http.StatusNotFound)
-		default:
-			ctx.ServerError("UpdateLabel", err)
-		}
+	form := shared_label.GetLabelEditForm(ctx)
+	if ctx.Written() {
 		return
 	}
+
+	l, err := issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, form.ID)
+	if errors.Is(err, util.ErrNotExist) {
+		ctx.JSONErrorNotFound()
+		return
+	} else if err != nil {
+		ctx.ServerError("GetLabelInRepoByID", err)
+		return
+	}
+
 	l.Name = form.Title
 	l.Exclusive = form.Exclusive
 	l.ExclusiveOrder = form.ExclusiveOrder
 	l.Description = form.Description
 	l.Color = form.Color
-
 	l.SetArchived(form.IsArchived)
 	if err := issues_model.UpdateLabel(ctx, l); err != nil {
 		ctx.ServerError("UpdateLabel", err)
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
+	ctx.JSONRedirect(ctx.Repo.RepoLink + "/labels")
 }
 
 // DeleteLabel delete a label

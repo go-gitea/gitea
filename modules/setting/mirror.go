@@ -48,11 +48,7 @@ func loadMirrorFrom(rootCfg ConfigProvider) {
 		Mirror.MinInterval = 1 * time.Minute
 	}
 	if Mirror.DefaultInterval < Mirror.MinInterval {
-		if time.Hour*8 < Mirror.MinInterval {
-			Mirror.DefaultInterval = Mirror.MinInterval
-		} else {
-			Mirror.DefaultInterval = time.Hour * 8
-		}
+		Mirror.DefaultInterval = max(time.Hour*8, Mirror.MinInterval)
 		log.Warn("Mirror.DefaultInterval is less than Mirror.MinInterval, set to %s", Mirror.DefaultInterval.String())
 	}
 }

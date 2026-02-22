@@ -36,15 +36,6 @@ _testmain.go
 coverage.all
 cpu.out
 
-/modules/migration/bindata.go
-/modules/migration/bindata.go.hash
-/modules/options/bindata.go
-/modules/options/bindata.go.hash
-/modules/public/bindata.go
-/modules/public/bindata.go.hash
-/modules/templates/bindata.go
-/modules/templates/bindata.go.hash
-
 *.db
 *.log
 
@@ -74,6 +65,7 @@ cpu.out
 /yarn.lock
 /yarn-error.log
 /npm-debug.log*
+/pnpm-debug.log*
 /public/assets/js
 /public/assets/css
 /public/assets/fonts
@@ -82,6 +74,9 @@ cpu.out
 /VERSION
 /.air
 /.go-licenses
+/Dockerfile
+/Dockerfile.rootless
+/.venv
 
 # Files and folders that were previously generated
 /public/assets/img/webpack

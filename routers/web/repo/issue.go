@@ -109,11 +109,6 @@ func MustAllowPulls(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-
-	// User can send pull request if owns a forked repository.
-	if ctx.IsSigned && repo_model.HasForkedRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
-		ctx.Repo.PullRequest.Allowed = true
-	}
 }
 
 func retrieveProjectsInternal(ctx *context.Context, repo *repo_model.Repository) (open, closed []*project_model.Project) {
@@ -212,7 +207,7 @@ func getActionIssues(ctx *context.Context) issues_model.IssueList {
 		return nil
 	}
 	issueIDs := make([]int64, 0, 10)
-	for _, stringIssueID := range strings.Split(commaSeparatedIssueIDs, ",") {
+	for stringIssueID := range strings.SplitSeq(commaSeparatedIssueIDs, ",") {
 		issueID, err := strconv.ParseInt(stringIssueID, 10, 64)
 		if err != nil {
 			ctx.ServerError("ParseInt", err)
@@ -364,7 +359,9 @@ func UpdateIssueContent(ctx *context.Context) {
 		}
 	}
 
-	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
+		FootnoteContextID: "0",
+	})
 	content, err := markdown.RenderString(rctx, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -418,6 +415,16 @@ func UpdateIssueMilestone(ctx *context.Context) {
 			continue
 		}
 		issue.MilestoneID = milestoneID
+		if milestoneID > 0 {
+			var err error
+			issue.Milestone, err = issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
+			if err != nil {
+				ctx.ServerError("GetMilestoneByRepoID", err)
+				return
+			}
+		} else {
+			issue.Milestone = nil
+		}
 		if err := issue_service.ChangeMilestoneAssign(ctx, issue, ctx.Doer, oldMilestoneID); err != nil {
 			ctx.ServerError("ChangeMilestoneAssign", err)
 			return

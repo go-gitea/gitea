@@ -167,6 +167,11 @@
   text-overflow: ellipsis;
 }
 
+.ui.selectable.table > tbody > tr:hover,
+.ui.table tbody tr td.selectable:hover {
+  background: var(--color-hover);
+}
+
 .ui.attached.table {
   top: 0;
   bottom: 0;
@@ -189,11 +194,6 @@
 }
 .ui[class*="bottom attached"].table:last-child {
   margin-bottom: 0;
-}
-
-.ui.striped.table > tr:nth-child(2n),
-.ui.striped.table > tbody > tr:nth-child(2n) {
-  background: var(--color-light);
 }
 
 .ui.table[class*="single line"],
@@ -286,33 +286,9 @@
 .ui.basic.table > tr > td {
   background: transparent;
 }
-.ui.basic.striped.table > tbody > tr:nth-child(2n) {
-  background: var(--color-light);
-}
 
 .ui[class*="very basic"].table {
   border: none;
-}
-.ui[class*="very basic"].table:not(.striped) > tr > th:first-child,
-.ui[class*="very basic"].table:not(.striped) > thead > tr > th:first-child,
-.ui[class*="very basic"].table:not(.striped) > tbody > tr > th:first-child,
-.ui[class*="very basic"].table:not(.striped) > tfoot > tr > th:first-child,
-.ui[class*="very basic"].table:not(.striped) > tr > td:first-child,
-.ui[class*="very basic"].table:not(.striped) > tbody > tr > td:first-child,
-.ui[class*="very basic"].table:not(.striped) > tfoot > tr > td:first-child {
-  padding-left: 0;
-}
-.ui[class*="very basic"].table:not(.striped) > tr > th:last-child,
-.ui[class*="very basic"].table:not(.striped) > thead > tr > th:last-child,
-.ui[class*="very basic"].table:not(.striped) > tbody > tr > th:last-child,
-.ui[class*="very basic"].table:not(.striped) > tfoot > tr > th:last-child,
-.ui[class*="very basic"].table:not(.striped) > tr > td:last-child,
-.ui[class*="very basic"].table:not(.striped) > tbody > tr > td:last-child,
-.ui[class*="very basic"].table:not(.striped) > tfoot > tr > td:last-child {
-  padding-right: 0;
-}
-.ui[class*="very basic"].table:not(.striped) > thead > tr:first-child > th {
-  padding-top: 0;
 }
 
 .ui.celled.table > tr > th,

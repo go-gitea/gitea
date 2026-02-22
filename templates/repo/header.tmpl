@@ -41,7 +41,6 @@
 				<div class="flex-text-block tw-flex-wrap">
 					{{if $.RepoTransfer}}
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
-							{{$.CsrfTokenHtml}}
 							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.accept_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_accept"}}{{end}}">
 								<button type="submit" class="ui compact small basic button {{if $.CanUserAcceptOrRejectTransfer}}primary {{end}} ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
 									{{ctx.Locale.Tr "repo.transfer.accept"}}
@@ -49,7 +48,6 @@
 							</div>
 						</form>
 						<form method="post" action="{{$.RepoLink}}/action/reject_transfer?redirect_to={{$.RepoLink}}">
-							{{$.CsrfTokenHtml}}
 							<div class="flex-text-inline" data-tooltip-content="{{if $.CanUserAcceptOrRejectTransfer}}{{ctx.Locale.Tr "repo.transfer.reject_desc" $.RepoTransfer.Recipient.DisplayName}}{{else}}{{ctx.Locale.Tr "repo.transfer.no_permission_to_reject"}}{{end}}">
 								<button type="submit" class="ui compact small basic button {{if $.CanUserAcceptOrRejectTransfer}}red {{end}}ok small"{{if not $.CanUserAcceptOrRejectTransfer}} disabled{{end}}>
 									{{ctx.Locale.Tr "repo.transfer.reject"}}
@@ -123,7 +121,7 @@
 		{{if $.PullMirror}}
 			<div class="fork-flag">
 				{{ctx.Locale.Tr "repo.mirror_from"}}
-				<a target="_blank" rel="noopener noreferrer" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
+				<a target="_blank" href="{{$.PullMirror.RemoteAddress}}">{{$.PullMirror.RemoteAddress}}</a>
 				{{if $.PullMirror.UpdatedUnix}}{{ctx.Locale.Tr "repo.mirror_sync"}} {{DateUtils.TimeSince $.PullMirror.UpdatedUnix}}{{end}}
 			</div>
 		{{end}}
@@ -151,7 +149,7 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalTracker}}
-						<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank" rel="noopener noreferrer">
+						<a class="{{if .PageIsIssueList}}active {{end}}item" href="{{.RepoExternalIssuesLink}}" target="_blank">
 							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.issues"}}
 						</a>
 					{{end}}
@@ -206,7 +204,7 @@
 					{{end}}
 
 					{{if .Permission.CanRead ctx.Consts.RepoUnitTypeExternalWiki}}
-						<a class="item" href="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank" rel="noopener noreferrer">
+						<a class="item" href="{{(.Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypeExternalWiki).ExternalWikiConfig.ExternalWikiURL}}" target="_blank">
 							{{svg "octicon-link-external"}} {{ctx.Locale.Tr "repo.wiki"}}
 						</a>
 					{{end}}
@@ -226,11 +224,19 @@
 						</a>
 					{{end}}
 				</div>
-			{{else if .Permission.IsAdmin}}
+			{{else}}
 				<div class="overflow-menu-items">
+					{{if(and .Repository.IsBeingCreated (.Permission.CanRead ctx.Consts.RepoUnitTypeCode))}}
+					<a class="{{if not .PageIsRepoSettings}}active {{end}}item" href="{{.RepoLink}}">
+						{{svg "octicon-clock"}} {{ctx.Locale.Tr "repo.migration_status"}}
+					</a>
+					{{end}}
+
+					{{if .Permission.IsAdmin}}
 					<a class="{{if .PageIsRepoSettings}}active {{end}} item" href="{{.RepoLink}}/settings">
 						{{svg "octicon-tools"}} {{ctx.Locale.Tr "repo.settings"}}
 					</a>
+					{{end}}
 				</div>
 			{{end}}
 		</overflow-menu>

@@ -8,10 +8,12 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -116,6 +118,16 @@ func GetAllCommits(ctx *context.APIContext) {
 	//   in: query
 	//   description: filepath of a file/dir
 	//   type: string
+	// - name: since
+	//   in: query
+	//   description: Only commits after this date will be returned (ISO 8601 format)
+	//   type: string
+	//   format: date-time
+	// - name: until
+	//   in: query
+	//   description: Only commits before this date will be returned (ISO 8601 format)
+	//   type: string
+	//   format: date-time
 	// - name: stat
 	//   in: query
 	//   description: include diff stats for every commit (disable for speedup, default 'true')
@@ -147,6 +159,23 @@ func GetAllCommits(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	//   "409":
 	//     "$ref": "#/responses/EmptyRepository"
+
+	since := ctx.FormString("since")
+	until := ctx.FormString("until")
+
+	// Validate since/until as ISO 8601 (RFC3339)
+	if since != "" {
+		if _, err := time.Parse(time.RFC3339, since); err != nil {
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid 'since' format, expected ISO 8601 (RFC3339)")
+			return
+		}
+	}
+	if until != "" {
+		if _, err := time.Parse(time.RFC3339, until); err != nil {
+			ctx.APIError(http.StatusUnprocessableEntity, "invalid 'until' format, expected ISO 8601 (RFC3339)")
+			return
+		}
+	}
 
 	if ctx.Repo.Repository.IsEmpty {
 		ctx.JSON(http.StatusConflict, api.APIError{
@@ -194,10 +223,11 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Total commit count
-		commitsCountTotal, err = git.CommitsCount(ctx.Repo.GitRepo.Ctx, git.CommitsCountOptions{
-			RepoPath: ctx.Repo.GitRepo.Path,
+		commitsCountTotal, err = gitrepo.CommitsCount(ctx, ctx.Repo.Repository, gitrepo.CommitsCountOptions{
 			Not:      not,
 			Revision: []string{baseCommit.ID.String()},
+			Since:    since,
+			Until:    until,
 		})
 		if err != nil {
 			ctx.APIErrorInternal(err)
@@ -205,7 +235,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		}
 
 		// Query commits
-		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not)
+		commits, err = baseCommit.CommitsByRange(listOptions.Page, listOptions.PageSize, not, since, until)
 		if err != nil {
 			ctx.APIErrorInternal(err)
 			return
@@ -215,12 +245,13 @@ func GetAllCommits(ctx *context.APIContext) {
 			sha = ctx.Repo.Repository.DefaultBranch
 		}
 
-		commitsCountTotal, err = git.CommitsCount(ctx,
-			git.CommitsCountOptions{
-				RepoPath: ctx.Repo.GitRepo.Path,
+		commitsCountTotal, err = gitrepo.CommitsCount(ctx, ctx.Repo.Repository,
+			gitrepo.CommitsCountOptions{
 				Not:      not,
 				Revision: []string{sha},
 				RelPath:  []string{path},
+				Since:    since,
+				Until:    until,
 			})
 
 		if err != nil {
@@ -237,6 +268,8 @@ func GetAllCommits(ctx *context.APIContext) {
 				File:     path,
 				Not:      not,
 				Page:     listOptions.Page,
+				Since:    since,
+				Until:    until,
 			})
 		if err != nil {
 			ctx.APIErrorInternal(err)

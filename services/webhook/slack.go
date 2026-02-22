@@ -173,6 +173,12 @@ func (s slackConvertor) Status(p *api.CommitStatusPayload) (SlackPayload, error)
 	return s.createPayload(text, nil), nil
 }
 
+func (s slackConvertor) WorkflowRun(p *api.WorkflowRunPayload) (SlackPayload, error) {
+	text, _ := getWorkflowRunPayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
 func (s slackConvertor) WorkflowJob(p *api.WorkflowJobPayload) (SlackPayload, error) {
 	text, _ := getWorkflowJobPayloadInfo(p, SlackLinkFormatter, true)
 
@@ -202,13 +208,13 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 	branchLink := SlackLinkToRef(p.Repo.HTMLURL, p.Ref)
 	text := fmt.Sprintf("[%s:%s] %s pushed by %s", repoLink, branchLink, commitString, p.Pusher.UserName)
 
-	var attachmentText string
+	var attachmentText strings.Builder
 	// for each commit, generate attachment text
 	for i, commit := range p.Commits {
-		attachmentText += fmt.Sprintf("%s: %s - %s", SlackLinkFormatter(commit.URL, commit.ID[:7]), SlackShortTextFormatter(commit.Message), SlackTextFormatter(commit.Author.Name))
+		attachmentText.WriteString(fmt.Sprintf("%s: %s - %s", SlackLinkFormatter(commit.URL, commit.ID[:7]), SlackShortTextFormatter(commit.Message), SlackTextFormatter(commit.Author.Name)))
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			attachmentText += "\n"
+			attachmentText.WriteString("\n")
 		}
 	}
 
@@ -216,7 +222,7 @@ func (s slackConvertor) Push(p *api.PushPayload) (SlackPayload, error) {
 		Color:     s.Color,
 		Title:     p.Repo.HTMLURL,
 		TitleLink: p.Repo.HTMLURL,
-		Text:      attachmentText,
+		Text:      attachmentText.String(),
 	}}), nil
 }
 

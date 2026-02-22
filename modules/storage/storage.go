@@ -59,11 +59,15 @@ type Object interface {
 // ObjectStorage represents an object storage to handle a bucket and files
 type ObjectStorage interface {
 	Open(path string) (Object, error)
-	// Save store a object, if size is unknown set -1
+
+	// Save store an object, if size is unknown set -1
+	// NOTICE: Some storage SDK will close the Reader after saving if it is also a Closer,
+	// DO NOT use the reader anymore after Save, or wrap it to a non-Closer reader.
 	Save(path string, r io.Reader, size int64) (int64, error)
+
 	Stat(path string) (os.FileInfo, error)
 	Delete(path string) error
-	URL(path, name string, reqParams url.Values) (*url.URL, error)
+	URL(path, name, method string, reqParams url.Values) (*url.URL, error)
 	IterateObjects(path string, iterator func(path string, obj Object) error) error
 }
 

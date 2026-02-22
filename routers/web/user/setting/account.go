@@ -35,7 +35,7 @@ const (
 
 // Account renders change user's password, user's email and user suicide page
 func Account(ctx *context.Context) {
-	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials, setting.UserFeatureDeletion) && !setting.Service.EnableNotifyMail {
+	if user_model.IsFeatureDisabledWithLoginType(ctx.Doer, setting.UserFeatureManageCredentials, setting.UserFeatureDeletion) {
 		ctx.NotFound(errors.New("account setting are not allowed to be changed"))
 		return
 	}
@@ -43,7 +43,6 @@ func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings.account")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
-	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
 
 	loadAccountData(ctx)
 
@@ -58,10 +57,9 @@ func AccountPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.ChangePasswordForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
-	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
 
 	if ctx.HasError() {
 		loadAccountData(ctx)
@@ -109,14 +107,18 @@ func EmailPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.AddEmailForm)
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
-	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
 
 	// Make email address primary.
 	if ctx.FormString("_method") == "PRIMARY" {
-		if err := user_model.MakeActiveEmailPrimary(ctx, ctx.FormInt64("id")); err != nil {
+		if err := user_model.MakeActiveEmailPrimary(ctx, ctx.Doer.ID, ctx.FormInt64("id")); err != nil {
+			if user_model.IsErrEmailAddressNotExist(err) {
+				ctx.Flash.Error(ctx.Tr("settings.email_primary_not_found"))
+				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+				return
+			}
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}
@@ -169,30 +171,6 @@ func EmailPost(ctx *context.Context) {
 		}
 
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-		return
-	}
-	// Set Email Notification Preference
-	if ctx.FormString("_method") == "NOTIFICATION" {
-		preference := ctx.FormString("preference")
-		if !(preference == user_model.EmailNotificationsEnabled ||
-			preference == user_model.EmailNotificationsOnMention ||
-			preference == user_model.EmailNotificationsDisabled ||
-			preference == user_model.EmailNotificationsAndYourOwn) {
-			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.Doer.Name)
-			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
-			return
-		}
-		opts := &user.UpdateOptions{
-			EmailNotificationsPreference: optional.Some(preference),
-		}
-		if err := user.UpdateUser(ctx, ctx.Doer, opts); err != nil {
-			log.Error("Set Email Notifications failed: %v", err)
-			ctx.ServerError("UpdateUser", err)
-			return
-		}
-		log.Trace("Email notifications preference made %s: %s", preference, ctx.Doer.Name)
-		ctx.Flash.Success(ctx.Tr("settings.email_preference_set_success"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
@@ -264,10 +242,9 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["Title"] = ctx.Tr("settings_title")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
-	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
 
 	if _, _, err := auth.UserSignIn(ctx, ctx.Doer.Name, ctx.FormString("password")); err != nil {
 		switch {
@@ -342,7 +319,6 @@ func loadAccountData(ctx *context.Context) {
 		emails[i] = &email
 	}
 	ctx.Data["Emails"] = emails
-	ctx.Data["EmailNotificationsPreference"] = ctx.Doer.EmailNotificationsPreference
 	ctx.Data["ActivationsPending"] = pendingActivation
 	ctx.Data["CanAddEmails"] = !pendingActivation || !setting.Service.RegisterEmailConfirm
 	ctx.Data["UserDisabledFeatures"] = user_model.DisabledFeaturesWithLoginType(ctx.Doer)

@@ -1,6 +1,6 @@
 import {updateIssuesMeta} from './repo-common.ts';
-import {toggleElem, isElemHidden, queryElems} from '../utils/dom.ts';
-import {htmlEscape} from 'escape-goat';
+import {toggleElem, queryElems, isElemVisible} from '../utils/dom.ts';
+import {html} from '../utils/html.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {createSortable} from '../modules/sortable.ts';
@@ -33,9 +33,9 @@ function initRepoIssueListCheckboxes() {
     toggleElem('#issue-filters', !anyChecked);
     toggleElem('#issue-actions', anyChecked);
     // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
-    const panels = document.querySelectorAll('#issue-filters, #issue-actions');
-    const visiblePanel = Array.from(panels).find((el) => !isElemHidden(el));
-    const toolbarLeft = visiblePanel.querySelector('.issue-list-toolbar-left');
+    const panels = document.querySelectorAll<HTMLElement>('#issue-filters, #issue-actions');
+    const visiblePanel = Array.from(panels).find((el) => isElemVisible(el))!;
+    const toolbarLeft = visiblePanel.querySelector('.issue-list-toolbar-left')!;
     toolbarLeft.prepend(issueSelectAll);
   };
 
@@ -54,12 +54,12 @@ function initRepoIssueListCheckboxes() {
     async (e: MouseEvent) => {
       e.preventDefault();
 
-      const url = el.getAttribute('data-url');
-      let action = el.getAttribute('data-action');
-      let elementId = el.getAttribute('data-element-id');
+      const url = el.getAttribute('data-url')!;
+      let action = el.getAttribute('data-action')!;
+      let elementId = el.getAttribute('data-element-id')!;
       const issueIDList: string[] = [];
       for (const el of document.querySelectorAll('.issue-checkbox:checked')) {
-        issueIDList.push(el.getAttribute('data-issue-id'));
+        issueIDList.push(el.getAttribute('data-issue-id')!);
       }
       const issueIDs = issueIDList.join(',');
       if (!issueIDs) return;
@@ -77,7 +77,7 @@ function initRepoIssueListCheckboxes() {
 
       // for delete
       if (action === 'delete') {
-        const confirmText = el.getAttribute('data-action-delete-confirm');
+        const confirmText = el.getAttribute('data-action-delete-confirm')!;
         if (!await confirmModal({content: confirmText, confirmButtonColor: 'red'})) {
           return;
         }
@@ -95,12 +95,12 @@ function initRepoIssueListCheckboxes() {
 
 function initDropdownUserRemoteSearch(el: Element) {
   let searchUrl = el.getAttribute('data-search-url');
-  const actionJumpUrl = el.getAttribute('data-action-jump-url');
+  const actionJumpUrl = el.getAttribute('data-action-jump-url')!;
   let selectedUsername = el.getAttribute('data-selected-username') || '';
   const $searchDropdown = fomanticQuery(el);
-  const elMenu = el.querySelector('.menu');
-  const elSearchInput = el.querySelector<HTMLInputElement>('.ui.search input');
-  const elItemFromInput = el.querySelector('.menu > .item-from-input');
+  const elMenu = el.querySelector('.menu')!;
+  const elSearchInput = el.querySelector<HTMLInputElement>('.ui.search input')!;
+  const elItemFromInput = el.querySelector('.menu > .item-from-input')!;
 
   $searchDropdown.dropdown('setting', {
     fullTextSearch: true,
@@ -138,10 +138,10 @@ function initDropdownUserRemoteSearch(el: Element) {
         // the content is provided by backend IssuePosters handler
         processedResults.length = 0;
         for (const item of resp.results) {
-          let html = `<img class="ui avatar tw-align-middle" src="${htmlEscape(item.avatar_link)}" aria-hidden="true" alt width="20" height="20"><span class="gt-ellipsis">${htmlEscape(item.username)}</span>`;
-          if (item.full_name) html += `<span class="search-fullname tw-ml-2">${htmlEscape(item.full_name)}</span>`;
+          let nameHtml = html`<img class="ui avatar tw-align-middle" src="${item.avatar_link}" aria-hidden="true" alt width="20" height="20"><span class="gt-ellipsis">${item.username}</span>`;
+          if (item.full_name) nameHtml += html`<span class="search-fullname tw-ml-2">${item.full_name}</span>`;
           if (selectedUsername.toLowerCase() === item.username.toLowerCase()) selectedUsername = item.username;
-          processedResults.push({value: item.username, name: html});
+          processedResults.push({value: item.username, name: nameHtml});
         }
         resp.results = processedResults;
         return resp;
@@ -183,25 +183,25 @@ function initPinRemoveButton() {
       const id = Number(el.getAttribute('data-issue-id'));
 
       // Send the unpin request
-      const response = await DELETE(el.getAttribute('data-unpin-url'));
+      const response = await DELETE(el.getAttribute('data-unpin-url')!);
       if (response.ok) {
         // Delete the tooltip
         el._tippy.destroy();
         // Remove the Card
-        el.closest(`div.issue-card[data-issue-id="${id}"]`).remove();
+        el.closest(`div.issue-card[data-issue-id="${id}"]`)!.remove();
       }
     });
   }
 }
 
 async function pinMoveEnd(e: SortableEvent) {
-  const url = e.item.getAttribute('data-move-url');
+  const url = e.item.getAttribute('data-move-url')!;
   const id = Number(e.item.getAttribute('data-issue-id'));
-  await POST(url, {data: {id, position: e.newIndex + 1}});
+  await POST(url, {data: {id, position: e.newIndex! + 1}});
 }
 
 async function initIssuePinSort() {
-  const pinDiv = document.querySelector('#issue-pins');
+  const pinDiv = document.querySelector<HTMLElement>('#issue-pins');
 
   if (pinDiv === null) return;
 

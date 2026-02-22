@@ -1,7 +1,7 @@
 <footer class="page-footer" role="group" aria-label="{{ctx.Locale.Tr "aria.footer"}}">
 	<div class="left-links" role="contentinfo" aria-label="{{ctx.Locale.Tr "aria.footer.software"}}">
 		{{if ShowFooterPoweredBy}}
-			<a target="_blank" rel="noopener noreferrer" href="https://about.gitea.com">{{ctx.Locale.Tr "powered_by" "Gitea"}}</a>
+			<a target="_blank" href="https://about.gitea.com">{{ctx.Locale.Tr "powered_by" "Gitea"}}</a>
 		{{end}}
 		{{if (or .ShowFooterVersion .PageIsAdmin)}}
 			{{ctx.Locale.Tr "version"}}:
@@ -17,6 +17,10 @@
 		{{end}}
 	</div>
 	<div class="right-links" role="group" aria-label="{{ctx.Locale.Tr "aria.footer.links"}}">
+		<div class="ui dropdown custom" id="footer-theme-selector">
+			<span class="default-text">{{ctx.RenderUtils.RenderThemeItem ctx.CurrentWebTheme 16}}</span>
+			<div class="menu theme-menu"></div>
+		</div>
 		<div class="ui dropdown upward">
 			<span class="flex-text-inline">{{svg "octicon-globe" 14}} {{ctx.Locale.LangName}}</span>
 			<div class="menu language-menu">

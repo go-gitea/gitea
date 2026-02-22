@@ -54,8 +54,8 @@ const (
 	tplProfile    templates.TplName = "user/profile"
 )
 
-// getDashboardContextUser finds out which context user dashboard is being viewed as .
-func getDashboardContextUser(ctx *context.Context) *user_model.User {
+// prepareDashboardContextUserOrgTeams finds out which context user dashboard is being viewed as .
+func prepareDashboardContextUserOrgTeams(ctx *context.Context) *user_model.User {
 	ctxUser := ctx.Doer
 	orgName := ctx.PathParam("org")
 	if len(orgName) > 0 {
@@ -76,7 +76,7 @@ func getDashboardContextUser(ctx *context.Context) *user_model.User {
 
 // Dashboard render the dashboard page
 func Dashboard(ctx *context.Context) {
-	ctxUser := getDashboardContextUser(ctx)
+	ctxUser := prepareDashboardContextUserOrgTeams(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -109,15 +109,7 @@ func Dashboard(ctx *context.Context) {
 		"uid":         uid,
 	}
 
-	if setting.Service.EnableUserHeatmap {
-		data, err := activities_model.GetUserHeatmapDataByUserTeam(ctx, ctxUser, ctx.Org.Team, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("GetUserHeatmapDataByUserTeam", err)
-			return
-		}
-		ctx.Data["HeatmapData"] = data
-		ctx.Data["HeatmapTotalContributions"] = activities_model.GetTotalContributionsInHeatmap(data)
-	}
+	prepareHeatmapURL(ctx)
 
 	feeds, count, err := feed_service.GetFeedsForDashboard(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctxUser,
@@ -156,7 +148,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("milestones")
 	ctx.Data["PageIsMilestonesDashboard"] = true
 
-	ctxUser := getDashboardContextUser(ctx)
+	ctxUser := prepareDashboardContextUserOrgTeams(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -176,7 +168,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	var (
-		userRepoCond = repo_model.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
+		userRepoCond = repo_model.SearchRepositoryCondition(repoOpts) // all repo condition user could visit
 		repoCond     = userRepoCond
 		repoIDs      []int64
 
@@ -197,7 +189,7 @@ func Milestones(ctx *context.Context) {
 			reposQuery = reposQuery[1 : len(reposQuery)-1]
 			// for each ID (delimiter ",") add to int to repoIDs
 
-			for _, rID := range strings.Split(reposQuery, ",") {
+			for rID := range strings.SplitSeq(reposQuery, ",") {
 				// Ensure nonempty string entries
 				if rID != "" && rID != "0" {
 					rIDint64, err := strconv.ParseInt(rID, 10, 64)
@@ -242,7 +234,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, &repoOpts, userRepoCond, false)
+	showRepos, _, err := repo_model.SearchRepositoryByCondition(ctx, repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
@@ -371,7 +363,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Return with NotFound or ServerError if unsuccessful.
 	// ----------------------------------------------------
 
-	ctxUser := getDashboardContextUser(ctx)
+	ctxUser := prepareDashboardContextUserOrgTeams(ctx)
 	if ctx.Written() {
 		return
 	}
@@ -461,7 +453,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// As team:
 	// - Team org's owns the repository.
 	// - Team has read permission to repository.
-	repoOpts := &repo_model.SearchRepoOptions{
+	repoOpts := repo_model.SearchRepoOptions{
 		Actor:       ctx.Doer,
 		OwnerID:     ctxUser.ID,
 		Private:     true,
@@ -520,10 +512,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	opts.IsClosed = optional.Some(isShowClosed)
 
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	opts.Paginator = &db.ListOptions{
 		Page:     page,
 		PageSize: setting.UI.IssuePagingNum,
@@ -663,6 +652,8 @@ func ShowSSHKeys(ctx *context.Context) {
 	}
 
 	var buf bytes.Buffer
+	// "authorized_keys" file format: "#" followed by comment line per key
+	buf.WriteString("# Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified.\n")
 	for i := range keys {
 		buf.WriteString(keys[i].OmitEmail())
 		buf.WriteString("\n")
@@ -698,6 +689,8 @@ func ShowGPGKeys(ctx *context.Context) {
 	var buf bytes.Buffer
 
 	headers := make(map[string]string)
+	// https://www.rfc-editor.org/rfc/rfc4880
+	headers["Comment"] = "Gitea isn't a key server. The keys are exported as the user uploaded and might not have been fully verified."
 	if len(failedEntitiesID) > 0 { // If some key need re-import to be exported
 		headers["Note"] = "The keys with the following IDs couldn't be exported and need to be reuploaded " + strings.Join(failedEntitiesID, ", ")
 	} else if len(entities) == 0 {

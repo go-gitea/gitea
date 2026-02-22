@@ -333,7 +333,7 @@ func sshConnectionFailed(conn net.Conn, err error) {
 	log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
 }
 
-// Listen starts a SSH server listens on given port.
+// Listen starts an SSH server listening on given port.
 func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	srv := ssh.Server{
 		Addr:             net.JoinHostPort(host, strconv.Itoa(port)),

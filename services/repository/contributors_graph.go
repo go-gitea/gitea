@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/git/gitcmd"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -116,27 +116,17 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 	if err != nil {
 		return nil, err
 	}
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		return nil, err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
 
-	gitCmd := git.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
+	gitCmd := gitcmd.NewCommand("log", "--shortstat", "--no-merges", "--pretty=format:---%n%aN%n%aE%n%as", "--reverse")
 	// AddOptionFormat("--max-count=%d", limit)
 	gitCmd.AddDynamicArguments(baseCommit.ID.String())
 
+	stdoutReader, stdoutReaderClose := gitCmd.MakeStdoutPipe()
+	defer stdoutReaderClose()
+
 	var extendedCommitStats []*ExtendedCommitStats
-	stderr := new(strings.Builder)
-	err = gitCmd.Run(repo.Ctx, &git.RunOpts{
-		Dir:    repo.Path,
-		Stdout: stdoutWriter,
-		Stderr: stderr,
-		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
-			_ = stdoutWriter.Close()
+	err = gitCmd.WithDir(repo.Path).
+		WithPipelineFunc(func(ctx gitcmd.Context) error {
 			scanner := bufio.NewScanner(stdoutReader)
 
 			for scanner.Scan() {
@@ -188,12 +178,11 @@ func getExtendedCommitStats(repo *git.Repository, revision string /*, limit int 
 				}
 				extendedCommitStats = append(extendedCommitStats, res)
 			}
-			_ = stdoutReader.Close()
 			return nil
-		},
-	})
+		}).
+		RunWithStderr(repo.Ctx)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get ContributorsCommitStats for repository.\nError: %w\nStderr: %s", err, stderr)
+		return nil, fmt.Errorf("ContributorsCommitStats: %w", err)
 	}
 
 	return extendedCommitStats, nil

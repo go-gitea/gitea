@@ -26,9 +26,8 @@ import (
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.PlainText(status, message)
-	})
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	ctx.PlainText(status, message)
 }
 
 // https://dnf.readthedocs.io/en/latest/conf_ref.html
@@ -96,13 +95,14 @@ func GetRepositoryFile(ctx *context.Context) {
 		return
 	}
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageVersion(
 		ctx,
 		pv,
 		&packages_service.PackageFileInfo{
 			Filename:     ctx.PathParam("filename"),
 			CompositeKey: ctx.PathParam("group"),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {
@@ -220,7 +220,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	name := ctx.PathParam("name")
 	version := ctx.PathParam("version")
 
-	s, u, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+	s, u, pf, err := packages_service.OpenFileForDownloadByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
@@ -232,6 +232,7 @@ func DownloadPackageFile(ctx *context.Context) {
 			Filename:     fmt.Sprintf("%s-%s.%s.rpm", name, version, ctx.PathParam("architecture")),
 			CompositeKey: ctx.PathParam("group"),
 		},
+		ctx.Req.Method,
 	)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) {

@@ -97,7 +97,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetSupportedOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers(ctx)
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
@@ -107,7 +107,9 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
-	ctx.Data["oauth2_provider"] = oauth2providers[0].Name()
+	if len(oauth2providers) > 0 {
+		ctx.Data["oauth2_provider"] = oauth2providers[0].Name()
+	}
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
@@ -134,6 +136,7 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		AttributesInBind:      form.AttributesInBind,
 		AttributeSSHPublicKey: form.AttributeSSHPublicKey,
 		AttributeAvatar:       form.AttributeAvatar,
+		SSHKeysAreVerified:    form.SSHKeysAreVerified,
 		SearchPageSize:        pageSize,
 		Filter:                form.Filter,
 		GroupsEnabled:         form.GroupsEnabled,
@@ -177,7 +180,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		customURLMapping = nil
 	}
 	var scopes []string
-	for _, s := range strings.Split(form.Oauth2Scopes, ",") {
+	for s := range strings.SplitSeq(form.Oauth2Scopes, ",") {
 		s = strings.TrimSpace(s)
 		if s != "" {
 			scopes = append(scopes, s)
@@ -199,6 +202,9 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		AdminGroup:                    form.Oauth2AdminGroup,
 		GroupTeamMap:                  form.Oauth2GroupTeamMap,
 		GroupTeamMapRemoval:           form.Oauth2GroupTeamMapRemoval,
+
+		SSHPublicKeyClaimName: form.Oauth2SSHPublicKeyClaimName,
+		FullNameClaimName:     form.Oauth2FullNameClaimName,
 	}
 }
 
@@ -237,7 +243,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetSupportedOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers(ctx)
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	ctx.Data["SSPIAutoCreateUsers"] = true
@@ -329,7 +335,7 @@ func EditAuthSource(ctx *context.Context) {
 
 	ctx.Data["SecurityProtocols"] = securityProtocols
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetSupportedOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers(ctx)
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))
@@ -363,7 +369,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	ctx.Data["SMTPAuths"] = smtp.Authenticators
-	oauth2providers := oauth2.GetSupportedOAuth2Providers()
+	oauth2providers := oauth2.GetSupportedOAuth2Providers(ctx)
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
 	source, err := auth.GetSourceByID(ctx, ctx.PathParamInt64("authid"))

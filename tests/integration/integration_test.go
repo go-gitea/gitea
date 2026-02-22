@@ -1,7 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo
 package integration
 
 import (
@@ -27,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -79,14 +79,14 @@ func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
 	}
 }
 
-func TestMain(m *testing.M) {
+func testMain(m *testing.M) int {
 	defer log.GetManager().Close()
 
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
-	tests.InitTest(true)
+	tests.InitTest()
 	testWebRoutes = routers.NormalRoutes()
 
 	err := unittest.InitFixtures(
@@ -95,8 +95,7 @@ func TestMain(m *testing.M) {
 		},
 	)
 	if err != nil {
-		fmt.Printf("Error initializing test database: %v\n", err)
-		os.Exit(1)
+		testlogger.Panicf("InitFixtures: %v", err)
 	}
 
 	// FIXME: the console logger is deleted by mistake, so if there is any `log.Fatal`, developers won't see any error message.
@@ -104,15 +103,16 @@ func TestMain(m *testing.M) {
 	exitCode := m.Run()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
-		fmt.Printf("util.RemoveAll: %v\n", err)
-		os.Exit(1)
+		log.Error("Failed to remove indexer path: %v", err)
 	}
 	if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
-		fmt.Printf("Unable to remove repo indexer: %v\n", err)
-		os.Exit(1)
+		log.Error("Failed to remove indexer path: %v", err)
 	}
+	return exitCode
+}
 
-	os.Exit(exitCode)
+func TestMain(m *testing.M) {
+	os.Exit(testMain(m))
 }
 
 type TestSession struct {
@@ -148,6 +148,9 @@ func (s *TestSession) GetCookieFlashMessage() *middleware.Flash {
 
 func (s *TestSession) MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
+	if s == nil {
+		return MakeRequest(t, rw, expectedStatus)
+	}
 	req := rw.Request
 	baseURL, err := url.Parse(setting.AppURL)
 	assert.NoError(t, err)
@@ -222,16 +225,11 @@ func loginUser(t testing.TB, userName string) *TestSession {
 
 func loginUserWithPassword(t testing.TB, userName, password string) *TestSession {
 	t.Helper()
-	req := NewRequest(t, "GET", "/user/login")
-	resp := MakeRequest(t, req, http.StatusOK)
-
-	doc := NewHTMLParser(t, resp.Body)
-	req = NewRequestWithValues(t, "POST", "/user/login", map[string]string{
-		"_csrf":     doc.GetCSRF(),
+	req := NewRequestWithValues(t, "POST", "/user/login", map[string]string{
 		"user_name": userName,
 		"password":  password,
 	})
-	resp = MakeRequest(t, req, http.StatusSeeOther)
+	resp := MakeRequest(t, req, http.StatusSeeOther)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -253,7 +251,6 @@ var tokenCounter int64
 func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...auth.AccessTokenScope) string {
 	t.Helper()
 	urlValues := url.Values{}
-	urlValues.Add("_csrf", GetUserCSRFToken(t, session))
 	urlValues.Add("name", fmt.Sprintf("api-testing-token-%d", atomic.AddInt64(&tokenCounter, 1)))
 	for _, scope := range scopes {
 		urlValues.Add("scope-dummy", string(scope)) // it only needs to start with "scope-" to be accepted
@@ -268,8 +265,8 @@ type RequestWrapper struct {
 	*http.Request
 }
 
-func (req *RequestWrapper) AddBasicAuth(username string) *RequestWrapper {
-	req.Request.SetBasicAuth(username, userPassword)
+func (req *RequestWrapper) AddBasicAuth(username string, password ...string) *RequestWrapper {
+	req.Request.SetBasicAuth(username, util.OptionalArg(password, userPassword))
 	return req
 }
 
@@ -335,7 +332,7 @@ func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *Re
 	return &RequestWrapper{req}
 }
 
-const NoExpectedStatus = -1
+const NoExpectedStatus = 0
 
 func MakeRequest(t testing.TB, rw *RequestWrapper, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
@@ -410,7 +407,8 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v any) {
 	t.Helper()
 
-	decoder := json.NewDecoder(resp.Body)
+	// FIXME: JSON-KEY-CASE: for testing purpose only, because many structs don't provide `json` tags, they just use capitalized field names
+	decoder := json.NewDecoderCaseInsensitive(resp.Body)
 	require.NoError(t, decoder.Decode(v))
 }
 
@@ -431,21 +429,4 @@ func VerifyJSONSchema(t testing.TB, resp *httptest.ResponseRecorder, schemaFile 
 	assert.NoError(t, schemaValidationErr)
 	assert.Empty(t, result.Errors())
 	assert.True(t, result.Valid())
-}
-
-// GetUserCSRFToken returns CSRF token for current user
-func GetUserCSRFToken(t testing.TB, session *TestSession) string {
-	t.Helper()
-	cookie := session.GetSiteCookie("_csrf")
-	require.NotEmpty(t, cookie)
-	return cookie
-}
-
-// GetUserCSRFToken returns CSRF token for anonymous user (not logged in)
-func GetAnonymousCSRFToken(t testing.TB, session *TestSession) string {
-	t.Helper()
-	resp := session.MakeRequest(t, NewRequest(t, "GET", "/user/login"), http.StatusOK)
-	csrfToken := NewHTMLParser(t, resp.Body).GetCSRF()
-	require.NotEmpty(t, csrfToken)
-	return csrfToken
 }

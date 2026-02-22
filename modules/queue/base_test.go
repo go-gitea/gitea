@@ -87,7 +87,7 @@ func testQueueBasic(t *testing.T, newFn func(cfg *BaseConfig) (baseQueue, error)
 
 		// test blocking push if queue is full
 		for i := 0; i < cfg.Length; i++ {
-			err = q.PushItem(ctx, []byte(fmt.Sprintf("item-%d", i)))
+			err = q.PushItem(ctx, fmt.Appendf(nil, "item-%d", i))
 			assert.NoError(t, err)
 		}
 		ctxTimed, cancel = context.WithTimeout(ctx, 10*time.Millisecond)

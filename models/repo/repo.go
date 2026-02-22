@@ -64,18 +64,18 @@ func (err ErrRepoIsArchived) Error() string {
 }
 
 type globalVarsStruct struct {
-	validRepoNamePattern   *regexp.Regexp
-	invalidRepoNamePattern *regexp.Regexp
-	reservedRepoNames      []string
-	reservedRepoPatterns   []string
+	validRepoNamePattern     *regexp.Regexp
+	invalidRepoNamePattern   *regexp.Regexp
+	reservedRepoNames        []string
+	reservedRepoNamePatterns []string
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
 	return &globalVarsStruct{
-		validRepoNamePattern:   regexp.MustCompile(`[-.\w]+`),
-		invalidRepoNamePattern: regexp.MustCompile(`[.]{2,}`),
-		reservedRepoNames:      []string{".", "..", "-"},
-		reservedRepoPatterns:   []string{"*.git", "*.wiki", "*.rss", "*.atom"},
+		validRepoNamePattern:     regexp.MustCompile(`^[-.\w]+$`),
+		invalidRepoNamePattern:   regexp.MustCompile(`[.]{2,}`),
+		reservedRepoNames:        []string{".", "..", "-"},
+		reservedRepoNamePatterns: []string{"*.wiki", "*.git", "*.rss", "*.atom"},
 	}
 })
 
@@ -86,7 +86,16 @@ func IsUsableRepoName(name string) error {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}
-	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoPatterns, name)
+	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoNamePatterns, name)
+}
+
+// IsValidSSHAccessRepoName is like IsUsableRepoName, but it allows "*.wiki" because wiki repo needs to be accessed in SSH code
+func IsValidSSHAccessRepoName(name string) bool {
+	vars := globalVars()
+	if !vars.validRepoNamePattern.MatchString(name) || vars.invalidRepoNamePattern.MatchString(name) {
+		return false
+	}
+	return db.IsUsableName(vars.reservedRepoNames, vars.reservedRepoNamePatterns[1:], name) == nil
 }
 
 // TrustModelType defines the types of trust model for this repository
@@ -232,10 +241,6 @@ func (sr StorageRepo) RelativePath() string {
 	return string(sr)
 }
 
-func (repo *Repository) WikiStorageRepo() StorageRepo {
-	return StorageRepo(strings.ToLower(repo.OwnerName) + "/" + strings.ToLower(repo.Name) + ".wiki.git")
-}
-
 // SanitizedOriginalURL returns a sanitized OriginalURL
 func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
@@ -354,10 +359,8 @@ func (repo *Repository) FullName() string {
 
 // HTMLURL returns the repository HTML URL
 func (repo *Repository) HTMLURL(ctxs ...context.Context) string {
-	ctx := context.TODO()
-	if len(ctxs) > 0 {
-		ctx = ctxs[0]
-	}
+	// FIXME: this HTMLURL is still used in mail templates, so the "ctx" is not provided.
+	ctx := util.OptionalArg(ctxs, context.TODO())
 	return httplib.MakeAbsoluteURL(ctx, repo.Link())
 }
 
@@ -592,7 +595,7 @@ func (repo *Repository) IsGenerated() bool {
 
 // RepoPath returns repository path by given user and repository name.
 func RepoPath(userName, repoName string) string { //revive:disable-line:exported
-	return filepath.Join(user_model.UserPath(userName), strings.ToLower(repoName)+".git")
+	return filepath.Join(setting.RepoRootPath, filepath.Clean(strings.ToLower(userName)), filepath.Clean(strings.ToLower(repoName)+".git"))
 }
 
 // RepoPath returns the repository path
@@ -610,16 +613,13 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 	return fmt.Sprintf("%s/%s/compare/%s...%s", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), util.PathEscapeSegments(oldCommitID), util.PathEscapeSegments(newCommitID))
 }
 
-func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, branchName string) string {
-	if baseRepo == nil {
-		baseRepo = repo
-	}
+func (repo *Repository) ComposeBranchCompareURL(baseRepo *Repository, baseBranch, branchName string) string {
 	var cmpBranchEscaped string
 	if repo.ID != baseRepo.ID {
 		cmpBranchEscaped = fmt.Sprintf("%s/%s:", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name))
 	}
 	cmpBranchEscaped = fmt.Sprintf("%s%s", cmpBranchEscaped, util.PathEscapeSegments(branchName))
-	return fmt.Sprintf("%s/compare/%s...%s", baseRepo.Link(), util.PathEscapeSegments(baseRepo.DefaultBranch), cmpBranchEscaped)
+	return fmt.Sprintf("%s/compare/%s...%s", baseRepo.Link(), util.PathEscapeSegments(baseBranch), cmpBranchEscaped)
 }
 
 // IsOwnedBy returns true when user owns this repository
@@ -643,8 +643,14 @@ func (repo *Repository) AllowsPulls(ctx context.Context) bool {
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
+// FIXME: most CanEnableEditor calls should be replaced with CanContentChange
+// And all other like CanCreateBranch / CanEnablePulls should also be updated
 func (repo *Repository) CanEnableEditor() bool {
-	return !repo.IsMirror
+	return repo.CanContentChange()
+}
+
+func (repo *Repository) CanContentChange() bool {
+	return !repo.IsMirror && !repo.IsArchived
 }
 
 // DescriptionHTML does special handles to description and return HTML string.
@@ -860,16 +866,6 @@ func GetRepositoriesMapByIDs(ctx context.Context, ids []int64) (map[int64]*Repos
 	return repos, db.GetEngine(ctx).In("id", ids).Find(&repos)
 }
 
-// IsRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
-func IsRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
-	has, err := IsRepositoryModelExist(ctx, u, repoName)
-	if err != nil {
-		return false, err
-	}
-	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
-	return has || isDir, err
-}
-
 func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
 	return db.GetEngine(ctx).Get(&Repository{
 		OwnerID:   u.ID,
@@ -882,7 +878,7 @@ func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName st
 // non-generated repositories, and TemplateRepo will be left untouched)
 func GetTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error) {
 	if !repo.IsGenerated() {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil for non-generated repositories
 	}
 
 	return GetRepositoryByID(ctx, repo.TemplateID)

@@ -76,7 +76,7 @@
 								{{else}}
 									<a class="link-action flex-text-inline" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x" 14}}{{ctx.Locale.Tr "repo.milestones.close"}}</a>
 								{{end}}
-								<a class="delete-button flex-text-inline" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
+								<a class="link-action flex-text-inline text red" href data-modal-confirm="#repo-milestone-delete-modal" data-url="{{$.RepoLink}}/milestones/delete?id={{.ID}}">{{svg "octicon-trash" 14}}{{ctx.Locale.Tr "repo.issues.label_delete"}}</a>
 							</div>
 						{{end}}
 					</div>
@@ -92,15 +92,11 @@
 </div>
 
 {{if or .CanWriteIssues .CanWritePulls}}
-	<div class="ui g-modal-confirm delete modal">
-		<div class="header">
-			{{svg "octicon-trash"}}
-			{{ctx.Locale.Tr "repo.milestones.deletion"}}
-		</div>
-		<div class="content">
-			<p>{{ctx.Locale.Tr "repo.milestones.deletion_desc"}}</p>
-		</div>
+	<div class="ui small modal" id="repo-milestone-delete-modal">
+		<div class="header">{{svg "octicon-trash"}} {{ctx.Locale.Tr "repo.milestones.deletion"}}</div>
+		<div class="content"><p>{{ctx.Locale.Tr "repo.milestones.deletion_desc"}}</p></div>
 		{{template "base/modal_actions_confirm" .}}
 	</div>
 {{end}}
+
 {{template "base/footer" .}}

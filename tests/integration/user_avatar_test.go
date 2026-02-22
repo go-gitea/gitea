@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
@@ -36,7 +35,6 @@ func TestUserAvatar(t *testing.T) {
 	}
 
 	session := loginUser(t, "user2")
-	csrf := GetUserCSRFToken(t, session)
 
 	imgData := &bytes.Buffer{}
 
@@ -67,14 +65,13 @@ func TestUserAvatar(t *testing.T) {
 	}
 
 	req := NewRequestWithBody(t, "POST", "/user/settings/avatar", body)
-	req.Header.Add("X-Csrf-Token", csrf)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the repo3, is an org
 
-	req = NewRequest(t, "GET", user2.AvatarLinkWithSize(db.DefaultContext, 0))
+	req = NewRequest(t, "GET", user2.AvatarLinkWithSize(t.Context(), 0))
 	_ = session.MakeRequest(t, req, http.StatusOK)
 
 	testGetAvatarRedirect(t, user2)

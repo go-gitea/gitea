@@ -5,6 +5,7 @@ package explore
 
 import (
 	"net/http"
+	"slices"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -30,7 +31,7 @@ func Code(ctx *context.Context) {
 	ctx.Data["UsersPageIsDisabled"] = setting.Service.Explore.DisableUsersPage
 	ctx.Data["OrganizationsPageIsDisabled"] = setting.Service.Explore.DisableOrganizationsPage
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["Title"] = ctx.Tr("explore")
+	ctx.Data["Title"] = ctx.Tr("explore_title")
 	ctx.Data["PageIsExplore"] = true
 	ctx.Data["PageIsExploreCode"] = true
 	ctx.Data["PageIsViewCode"] = true
@@ -93,14 +94,7 @@ func Code(ctx *context.Context) {
 
 		loadRepoIDs := make([]int64, 0, len(searchResults))
 		for _, result := range searchResults {
-			var find bool
-			for _, id := range loadRepoIDs {
-				if id == result.RepoID {
-					find = true
-					break
-				}
-			}
-			if !find {
+			if !slices.Contains(loadRepoIDs, result.RepoID) {
 				loadRepoIDs = append(loadRepoIDs, result.RepoID)
 			}
 		}

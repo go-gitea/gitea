@@ -6,15 +6,19 @@ linters:
   default: none
   enable:
     - bidichk
+    - bodyclose
     - depguard
     - dupl
     - errcheck
     - forbidigo
+    - gocheckcompilerdirectives
     - gocritic
     - govet
     - ineffassign
     - mirror
+    - modernize
     - nakedret
+    - nilnil
     - nolintlint
     - perfsprint
     - revive
@@ -45,44 +49,48 @@ linters:
               desc: do not use the ini package, use gitea's config system instead
             - pkg: gitea.com/go-chi/cache
               desc: do not use the go-chi cache package, use gitea's cache system
+            - pkg: github.com/pkg/errors
+              desc: use builtin errors package instead
+            - pkg: github.com/go-ap/errors
+              desc: use builtin errors package instead
+    nolintlint:
+      allow-unused: false
+      require-explanation: true
+      require-specific: true
     gocritic:
+      enabled-checks:
+        - equalFold
       disabled-checks:
         - ifElseChain
         - singleCaseSwitch # Every time this occurred in the code, there was no other way.
+        - deprecatedComment # conflicts with go-swagger comments
     revive:
       severity: error
       rules:
-        - name: atomic
-        - name: bare-return
         - name: blank-imports
         - name: constant-logical-expr
         - name: context-as-argument
         - name: context-keys-type
         - name: dot-imports
-        - name: duplicated-imports
         - name: empty-lines
-        - name: error-naming
         - name: error-return
         - name: error-strings
-        - name: errorf
         - name: exported
         - name: identical-branches
         - name: if-return
         - name: increment-decrement
-        - name: indent-error-flow
         - name: modifies-value-receiver
         - name: package-comments
-        - name: range
-        - name: receiver-naming
         - name: redefines-builtin-id
-        - name: string-of-int
         - name: superfluous-else
         - name: time-naming
-        - name: unconditional-recursion
         - name: unexported-return
-        - name: unreachable-code
         - name: var-declaration
         - name: var-naming
+          arguments:
+            - [] # AllowList - do not remove as args for the rule are positional and won't work without lists first
+            - [] # DenyList
+            - - skip-package-name-checks: true # supress errors from underscore in migration packages
     staticcheck:
       checks:
         - all
@@ -97,6 +105,12 @@ linters:
         - require-error
     usetesting:
       os-temp-dir: true
+    perfsprint:
+      concat-loop: false
+    govet:
+      enable:
+        - nilness
+        - unusedwrite
   exclusions:
     generated: lax
     presets:
@@ -108,16 +122,12 @@ linters:
       - linters:
           - dupl
           - errcheck
-          - gocyclo
-          - gosec
           - staticcheck
           - unparam
         path: _test\.go
       - linters:
           - dupl
           - errcheck
-          - gocyclo
-          - gosec
         path: models/migrations/v
       - linters:
           - forbidigo
@@ -129,7 +139,6 @@ linters:
           - gocritic
         text: (?i)`ID' should not be capitalized
       - linters:
-          - deadcode
           - unused
         text: (?i)swagger
       - linters:
@@ -143,6 +152,7 @@ linters:
         text: '(?i)exitAfterDefer:'
     paths:
       - node_modules
+      - .venv
       - public
       - web_src
       - third_party$
@@ -162,6 +172,7 @@ formatters:
     generated: lax
     paths:
       - node_modules
+      - .venv
       - public
       - web_src
       - third_party$

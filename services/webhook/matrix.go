@@ -173,18 +173,19 @@ func (m matrixConvertor) Push(p *api.PushPayload) (MatrixPayload, error) {
 
 	repoLink := htmlLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
 	branchLink := MatrixLinkToRef(p.Repo.HTMLURL, p.Ref)
-	text := fmt.Sprintf("[%s] %s pushed %s to %s:<br>", repoLink, p.Pusher.UserName, commitDesc, branchLink)
+	var text strings.Builder
+	text.WriteString(fmt.Sprintf("[%s] %s pushed %s to %s:<br>", repoLink, p.Pusher.UserName, commitDesc, branchLink))
 
 	// for each commit, generate a new line text
 	for i, commit := range p.Commits {
-		text += fmt.Sprintf("%s: %s - %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), commit.Message, commit.Author.Name)
+		text.WriteString(fmt.Sprintf("%s: %s - %s", htmlLinkFormatter(commit.URL, commit.ID[:7]), commit.Message, commit.Author.Name))
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
-			text += "<br>"
+			text.WriteString("<br>")
 		}
 	}
 
-	return m.newPayload(text, p.Commits...)
+	return m.newPayload(text.String(), p.Commits...)
 }
 
 // PullRequest implements payloadConvertor PullRequest method
@@ -252,6 +253,12 @@ func (m matrixConvertor) Status(p *api.CommitStatusPayload) (MatrixPayload, erro
 	return m.newPayload(text)
 }
 
+func (m matrixConvertor) WorkflowRun(p *api.WorkflowRunPayload) (MatrixPayload, error) {
+	text, _ := getWorkflowRunPayloadInfo(p, htmlLinkFormatter, true)
+
+	return m.newPayload(text)
+}
+
 func (m matrixConvertor) WorkflowJob(p *api.WorkflowJobPayload) (MatrixPayload, error) {
 	text, _ := getWorkflowJobPayloadInfo(p, htmlLinkFormatter, true)
 
@@ -268,6 +275,7 @@ func getMessageBody(htmlText string) string {
 
 // getMatrixTxnID computes the transaction ID to ensure idempotency
 func getMatrixTxnID(payload []byte) (string, error) {
+	payload = bytes.TrimSpace(payload)
 	if len(payload) >= matrixPayloadSizeLimit {
 		return "", fmt.Errorf("getMatrixTxnID: payload size %d > %d", len(payload), matrixPayloadSizeLimit)
 	}

@@ -10,7 +10,6 @@
 			{{end}}
 		</div>
 		<form class="ui form" action="?action={{if .PageIsWikiEdit}}_edit{{else}}_new{{end}}" method="post">
-			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<input name="title" value="{{.title}}" aria-label="{{ctx.Locale.Tr "repo.wiki.page_title"}}" placeholder="{{ctx.Locale.Tr "repo.wiki.page_title"}}" autofocus required>
 			</div>
@@ -18,7 +17,7 @@
 				{{ctx.Locale.Tr "repo.wiki.page_name_desc"}}
 			</div>
 
-			{{$content := .content}}
+			{{$content := .WikiEditContent}}
 			{{if not .PageIsWikiEdit}}
 				{{$content = ctx.Locale.Tr "repo.wiki.welcome"}}
 			{{end}}

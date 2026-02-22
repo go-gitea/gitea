@@ -405,14 +405,14 @@ func (issue *Issue) APIURL(ctx context.Context) string {
 }
 
 // HTMLURL returns the absolute URL to this issue.
-func (issue *Issue) HTMLURL() string {
+func (issue *Issue) HTMLURL(ctx context.Context) string {
 	var path string
 	if issue.IsPull {
 		path = "pulls"
 	} else {
 		path = "issues"
 	}
-	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(), path, issue.Index)
+	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(ctx), path, issue.Index)
 }
 
 // Link returns the issue's relative URL.
@@ -498,7 +498,7 @@ func (issue *Issue) GetLastComment(ctx context.Context) (*Comment, error) {
 		return nil, err
 	}
 	if !exist {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return &c, nil
 }
@@ -682,7 +682,7 @@ func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 }
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by
-func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptions) (issueDeps []*DependencyInfo, err error) {
+func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptions) (issueDeps []*DependencyInfo, total int64, err error) {
 	sess := db.GetEngine(ctx).
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
@@ -693,13 +693,13 @@ func (issue *Issue) BlockedByDependencies(ctx context.Context, opts db.ListOptio
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 	}
-	err = sess.Find(&issueDeps)
+	total, err = sess.FindAndCount(&issueDeps)
 
 	for _, depInfo := range issueDeps {
 		depInfo.Issue.Repo = &depInfo.Repository
 	}
 
-	return issueDeps, err
+	return issueDeps, total, err
 }
 
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
@@ -755,18 +755,14 @@ func (issue *Issue) HasOriginalAuthor() bool {
 
 // InsertIssues insert issues to database
 func InsertIssues(ctx context.Context, issues ...*Issue) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	for _, issue := range issues {
-		if err := insertIssue(ctx, issue); err != nil {
-			return err
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		for _, issue := range issues {
+			if err := insertIssue(ctx, issue); err != nil {
+				return err
+			}
 		}
-	}
-	return committer.Commit()
+		return nil
+	})
 }
 
 func insertIssue(ctx context.Context, issue *Issue) error {

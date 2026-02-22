@@ -17,18 +17,17 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/gitrepo"
+	"code.gitea.io/gitea/modules/glob"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
-
-	"github.com/gobwas/glob"
 )
 
 func deleteFailedAdoptRepository(repoID int64) error {
-	return db.WithTx(db.DefaultContext, func(ctx context.Context) error {
+	return db.WithTx(graceful.GetManager().ShutdownContext(), func(ctx context.Context) error {
 		if err := deleteDBRepository(ctx, repoID); err != nil {
 			return fmt.Errorf("deleteDBRepository: %w", err)
 		}
@@ -75,7 +74,7 @@ func AdoptRepository(ctx context.Context, doer, owner *user_model.User, opts Cre
 	// WARNING: Don't override all later err with local variables
 	defer func() {
 		if err != nil {
-			// we can not use the ctx because it maybe canceled or timeout
+			// we can not use `ctx` because it may be canceled or timed out
 			if errDel := deleteFailedAdoptRepository(repo.ID); errDel != nil {
 				log.Error("Failed to delete repository %s that could not be adopted: %v", repo.FullName(), errDel)
 			}
@@ -100,7 +99,7 @@ func AdoptRepository(ctx context.Context, doer, owner *user_model.User, opts Cre
 
 	// 4 - update repository status
 	repo.Status = repo_model.RepositoryReady
-	if err = repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+	if err = repo_model.UpdateRepositoryColsWithAutoTime(ctx, repo, "status"); err != nil {
 		return nil, fmt.Errorf("UpdateRepositoryCols: %w", err)
 	}
 
@@ -148,11 +147,11 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 	}
 	defer gitRepo.Close()
 
-	if _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, 0); err != nil {
+	if _, _, err = repo_module.SyncRepoBranchesWithRepo(ctx, repo, gitRepo, 0); err != nil {
 		return fmt.Errorf("SyncRepoBranchesWithRepo: %w", err)
 	}
 
-	if err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
+	if _, err = repo_module.SyncReleasesWithTags(ctx, repo, gitRepo); err != nil {
 		return fmt.Errorf("SyncReleasesWithTags: %w", err)
 	}
 
@@ -196,8 +195,13 @@ func adoptRepository(ctx context.Context, repo *repo_model.Repository, defaultBr
 			return fmt.Errorf("setDefaultBranch: %w", err)
 		}
 	}
-	if err = updateRepository(ctx, repo, false); err != nil {
-		return fmt.Errorf("updateRepository: %w", err)
+
+	if err = repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "is_empty", "default_branch"); err != nil {
+		return fmt.Errorf("UpdateRepositoryCols: %w", err)
+	}
+
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
 	}
 
 	return nil
@@ -209,13 +213,13 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		return err
 	}
 
-	repoPath := repo_model.RepoPath(u.Name, repoName)
-	isExist, err := util.IsExist(repoPath)
+	relativePath := repo_model.RelativePath(u.Name, repoName)
+	exist, err := gitrepo.IsRepositoryExist(ctx, repo_model.StorageRepo(relativePath))
 	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		log.Error("Unable to check if %s exists. Error: %v", relativePath, err)
 		return err
 	}
-	if !isExist {
+	if !exist {
 		return repo_model.ErrRepoNotExist{
 			OwnerName: u.Name,
 			Name:      repoName,
@@ -231,7 +235,7 @@ func DeleteUnadoptedRepository(ctx context.Context, doer, u *user_model.User, re
 		}
 	}
 
-	return util.RemoveAll(repoPath)
+	return gitrepo.DeleteRepository(ctx, repo_model.StorageRepo(relativePath))
 }
 
 type unadoptedRepositories struct {
@@ -260,7 +264,7 @@ func checkUnadoptedRepositories(ctx context.Context, userName string, repoNamesT
 		}
 		return err
 	}
-	repos, _, err := repo_model.GetUserRepositories(ctx, &repo_model.SearchRepoOptions{
+	repos, _, err := repo_model.GetUserRepositories(ctx, repo_model.SearchRepoOptions{
 		Actor:   ctxUser,
 		Private: true,
 		ListOptions: db.ListOptions{

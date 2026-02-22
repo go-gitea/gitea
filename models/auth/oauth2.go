@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"slices"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -208,7 +209,7 @@ func (app *OAuth2Application) GetGrantByUserID(ctx context.Context, userID int64
 	if has, err := db.GetEngine(ctx).Where("user_id = ? AND application_id = ?", userID, app.ID).Get(grant); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return grant, nil
 }
@@ -288,35 +289,31 @@ type UpdateOAuth2ApplicationOptions struct {
 
 // UpdateOAuth2Application updates an oauth2 application
 func UpdateOAuth2Application(ctx context.Context, opts UpdateOAuth2ApplicationOptions) (*OAuth2Application, error) {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer committer.Close()
+	return db.WithTx2(ctx, func(ctx context.Context) (*OAuth2Application, error) {
+		app, err := GetOAuth2ApplicationByID(ctx, opts.ID)
+		if err != nil {
+			return nil, err
+		}
+		if app.UID != opts.UserID {
+			return nil, errors.New("UID mismatch")
+		}
+		builtinApps := BuiltinApplications()
+		if _, builtin := builtinApps[app.ClientID]; builtin {
+			return nil, fmt.Errorf("failed to edit OAuth2 application: application is locked: %s", app.ClientID)
+		}
 
-	app, err := GetOAuth2ApplicationByID(ctx, opts.ID)
-	if err != nil {
-		return nil, err
-	}
-	if app.UID != opts.UserID {
-		return nil, errors.New("UID mismatch")
-	}
-	builtinApps := BuiltinApplications()
-	if _, builtin := builtinApps[app.ClientID]; builtin {
-		return nil, fmt.Errorf("failed to edit OAuth2 application: application is locked: %s", app.ClientID)
-	}
+		app.Name = opts.Name
+		app.RedirectURIs = opts.RedirectURIs
+		app.ConfidentialClient = opts.ConfidentialClient
+		app.SkipSecondaryAuthorization = opts.SkipSecondaryAuthorization
 
-	app.Name = opts.Name
-	app.RedirectURIs = opts.RedirectURIs
-	app.ConfidentialClient = opts.ConfidentialClient
-	app.SkipSecondaryAuthorization = opts.SkipSecondaryAuthorization
+		if err = updateOAuth2Application(ctx, app); err != nil {
+			return nil, err
+		}
+		app.ClientSecret = ""
 
-	if err = updateOAuth2Application(ctx, app); err != nil {
-		return nil, err
-	}
-	app.ClientSecret = ""
-
-	return app, committer.Commit()
+		return app, nil
+	})
 }
 
 func updateOAuth2Application(ctx context.Context, app *OAuth2Application) error {
@@ -357,23 +354,17 @@ func deleteOAuth2Application(ctx context.Context, id, userid int64) error {
 
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
 func DeleteOAuth2Application(ctx context.Context, id, userid int64) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	app, err := GetOAuth2ApplicationByID(ctx, id)
-	if err != nil {
-		return err
-	}
-	builtinApps := BuiltinApplications()
-	if _, builtin := builtinApps[app.ClientID]; builtin {
-		return fmt.Errorf("failed to delete OAuth2 application: application is locked: %s", app.ClientID)
-	}
-	if err := deleteOAuth2Application(ctx, id, userid); err != nil {
-		return err
-	}
-	return committer.Commit()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		app, err := GetOAuth2ApplicationByID(ctx, id)
+		if err != nil {
+			return err
+		}
+		builtinApps := BuiltinApplications()
+		if _, builtin := builtinApps[app.ClientID]; builtin {
+			return fmt.Errorf("failed to delete OAuth2 application: application is locked: %s", app.ClientID)
+		}
+		return deleteOAuth2Application(ctx, id, userid)
+	})
 }
 
 //////////////////////////////////////////////////////
@@ -440,13 +431,13 @@ func GetOAuth2AuthorizationByCode(ctx context.Context, code string) (auth *OAuth
 	if has, err := db.GetEngine(ctx).Where("code = ?", code).Get(auth); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	auth.Grant = new(OAuth2Grant)
 	if has, err := db.GetEngine(ctx).ID(auth.GrantID).Get(auth.Grant); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return auth, nil
 }
@@ -511,12 +502,7 @@ func (grant *OAuth2Grant) IncreaseCounter(ctx context.Context) error {
 
 // ScopeContains returns true if the grant scope contains the specified scope
 func (grant *OAuth2Grant) ScopeContains(scope string) bool {
-	for _, currentScope := range strings.Split(grant.Scope, " ") {
-		if scope == currentScope {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(strings.Split(grant.Scope, " "), scope)
 }
 
 // SetNonce updates the current nonce value of a grant
@@ -535,7 +521,7 @@ func GetOAuth2GrantByID(ctx context.Context, id int64) (grant *OAuth2Grant, err 
 	if has, err := db.GetEngine(ctx).ID(id).Get(grant); err != nil {
 		return nil, err
 	} else if !has {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 	}
 	return grant, err
 }
@@ -616,8 +602,8 @@ func (err ErrOAuthApplicationNotFound) Unwrap() error {
 	return util.ErrNotExist
 }
 
-// GetActiveOAuth2SourceByName returns a OAuth2 AuthSource based on the given name
-func GetActiveOAuth2SourceByName(ctx context.Context, name string) (*Source, error) {
+// GetActiveOAuth2SourceByAuthName returns a OAuth2 AuthSource based on the given name
+func GetActiveOAuth2SourceByAuthName(ctx context.Context, name string) (*Source, error) {
 	authSource := new(Source)
 	has, err := db.GetEngine(ctx).Where("name = ? and type = ? and is_active = ?", name, OAuth2, true).Get(authSource)
 	if err != nil {

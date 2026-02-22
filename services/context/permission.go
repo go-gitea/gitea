@@ -5,6 +5,7 @@ package context
 
 import (
 	"net/http"
+	"slices"
 
 	auth_model "code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -34,10 +35,8 @@ func CanWriteToBranch() func(ctx *Context) {
 // RequireUnitWriter returns a middleware for requiring repository write to one of the unit permission
 func RequireUnitWriter(unitTypes ...unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
-		for _, unitType := range unitTypes {
-			if ctx.Repo.CanWrite(unitType) {
-				return
-			}
+		if slices.ContainsFunc(unitTypes, ctx.Repo.CanWrite) {
+			return
 		}
 		ctx.NotFound(nil)
 	}

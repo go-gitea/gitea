@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -72,24 +71,24 @@ dependencies:
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeHelm)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeHelm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
 		assert.NotNil(t, pd.SemVer)
 		assert.IsType(t, &helm_module.Metadata{}, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, filename, pfs[0].Name)
 		assert.True(t, pfs[0].IsLead)
 
-		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
@@ -102,7 +101,7 @@ dependencies:
 		defer tests.PrintCurrentTest(t)()
 
 		checkDownloadCount := func(count int64) {
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeHelm)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeHelm)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 			assert.Equal(t, count, pvs[0].DownloadCount)

@@ -38,10 +38,7 @@ func Milestones(ctx *context.Context) {
 	isShowClosed := ctx.FormString("state") == "closed"
 	sortType := ctx.FormString("sort")
 	keyword := ctx.FormTrim("q")
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	miles, total, err := db.FindAndCount[issues_model.Milestone](ctx, issues_model.FindMilestoneOptions{
 		ListOptions: db.ListOptions{

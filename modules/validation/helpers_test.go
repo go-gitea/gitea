@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -47,7 +48,7 @@ func Test_IsValidURL(t *testing.T) {
 }
 
 func Test_IsValidExternalURL(t *testing.T) {
-	setting.AppURL = "https://try.gitea.io/"
+	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/")()
 
 	cases := []struct {
 		description string
@@ -89,7 +90,7 @@ func Test_IsValidExternalURL(t *testing.T) {
 }
 
 func Test_IsValidExternalTrackerURLFormat(t *testing.T) {
-	setting.AppURL = "https://try.gitea.io/"
+	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/")()
 
 	cases := []struct {
 		description string

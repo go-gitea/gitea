@@ -9,9 +9,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
@@ -19,31 +22,45 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/oauth2_provider"
 	"code.gitea.io/gitea/tests"
 
+	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestAuthorizeNoClientID(t *testing.T) {
+func TestOAuth2Provider(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+
+	t.Run("AuthorizeNoClientID", testAuthorizeNoClientID)
+	t.Run("AuthorizeUnregisteredRedirect", testAuthorizeUnregisteredRedirect)
+	t.Run("AuthorizeUnsupportedResponseType", testAuthorizeUnsupportedResponseType)
+	t.Run("AuthorizeUnsupportedCodeChallengeMethod", testAuthorizeUnsupportedCodeChallengeMethod)
+	t.Run("AuthorizeLoginRedirect", testAuthorizeLoginRedirect)
+
+	t.Run("OAuth2WellKnown", testOAuth2WellKnown)
+}
+
+func testAuthorizeNoClientID(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize")
 	ctx := loginUser(t, "user2")
 	resp := ctx.MakeRequest(t, req, http.StatusBadRequest)
 	assert.Contains(t, resp.Body.String(), "Client ID not registered")
 }
 
-func TestAuthorizeUnregisteredRedirect(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAuthorizeUnregisteredRedirect(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=UNREGISTERED&response_type=code&state=thestate")
 	ctx := loginUser(t, "user1")
 	resp := ctx.MakeRequest(t, req, http.StatusBadRequest)
 	assert.Contains(t, resp.Body.String(), "Unregistered Redirect URI")
 }
 
-func TestAuthorizeUnsupportedResponseType(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAuthorizeUnsupportedResponseType(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=a&response_type=UNEXPECTED&state=thestate")
 	ctx := loginUser(t, "user1")
 	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
@@ -53,8 +70,7 @@ func TestAuthorizeUnsupportedResponseType(t *testing.T) {
 	assert.Equal(t, "Only code response type is supported.", u.Query().Get("error_description"))
 }
 
-func TestAuthorizeUnsupportedCodeChallengeMethod(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAuthorizeUnsupportedCodeChallengeMethod(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=a&response_type=code&state=thestate&code_challenge_method=UNEXPECTED")
 	ctx := loginUser(t, "user1")
 	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
@@ -64,8 +80,7 @@ func TestAuthorizeUnsupportedCodeChallengeMethod(t *testing.T) {
 	assert.Equal(t, "unsupported code challenge method", u.Query().Get("error_description"))
 }
 
-func TestAuthorizeLoginRedirect(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
+func testAuthorizeLoginRedirect(t *testing.T) {
 	req := NewRequest(t, "GET", "/login/oauth/authorize")
 	assert.Contains(t, MakeRequest(t, req, http.StatusSeeOther).Body.String(), "/user/login")
 }
@@ -78,7 +93,44 @@ func TestAuthorizeShow(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	AssertHTMLElement(t, htmlDoc, "#authorize-app", true)
-	htmlDoc.GetCSRF()
+}
+
+func TestAuthorizeGrantS256RequiresVerifier(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	ctx := loginUser(t, "user4")
+	codeChallenge := "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg"
+	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=a&response_type=code&state=thestate&code_challenge_method=S256&code_challenge="+url.QueryEscape(codeChallenge))
+	resp := ctx.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	AssertHTMLElement(t, htmlDoc, "#authorize-app", true)
+
+	grantReq := NewRequestWithValues(t, "POST", "/login/oauth/grant", map[string]string{
+		"client_id":    "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"state":        "thestate",
+		"scope":        "",
+		"nonce":        "",
+		"redirect_uri": "a",
+		"granted":      "true",
+	})
+	grantResp := ctx.MakeRequest(t, grantReq, http.StatusSeeOther)
+	u, err := grantResp.Result().Location()
+	assert.NoError(t, err)
+	code := u.Query().Get("code")
+	assert.NotEmpty(t, code)
+
+	accessReq := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		"redirect_uri":  "a",
+		"code":          code,
+	})
+	accessResp := MakeRequest(t, accessReq, http.StatusBadRequest)
+	parsedError := new(oauth2_provider.AccessTokenError)
+	assert.NoError(t, json.Unmarshal(accessResp.Body.Bytes(), parsedError))
+	assert.Equal(t, "unauthorized_client", string(parsedError.ErrorCode))
+	assert.Equal(t, "failed PKCE code challenge", parsedError.ErrorDescription)
 }
 
 func TestAuthorizeRedirectWithExistingGrant(t *testing.T) {
@@ -512,7 +564,7 @@ func TestOAuth_GrantScopesReadUserFailRepos(t *testing.T) {
 		Scope:         "openid read:user",
 	}
 
-	err := db.Insert(db.DefaultContext, grant)
+	err := db.Insert(t.Context(), grant)
 	require.NoError(t, err)
 
 	assert.Contains(t, grant.Scope, "openid read:user")
@@ -593,7 +645,7 @@ func TestOAuth_GrantScopesReadRepositoryFailOrganization(t *testing.T) {
 		Scope:         "openid read:user read:repository",
 	}
 
-	err := db.Insert(db.DefaultContext, grant)
+	err := db.Insert(t.Context(), grant)
 	require.NoError(t, err)
 
 	assert.Contains(t, grant.Scope, "openid read:user read:repository")
@@ -733,7 +785,7 @@ func TestOAuth_GrantScopesClaimPublicOnlyGroups(t *testing.T) {
 		Scope:         "openid groups read:user public-only",
 	}
 
-	err := db.Insert(db.DefaultContext, grant)
+	err := db.Insert(t.Context(), grant)
 	require.NoError(t, err)
 
 	assert.ElementsMatch(t, []string{"openid", "groups", "read:user", "public-only"}, strings.Split(grant.Scope, " "))
@@ -834,7 +886,7 @@ func TestOAuth_GrantScopesClaimAllGroups(t *testing.T) {
 		Scope:         "openid groups",
 	}
 
-	err := db.Insert(db.DefaultContext, grant)
+	err := db.Insert(t.Context(), grant)
 	require.NoError(t, err)
 
 	assert.ElementsMatch(t, []string{"openid", "groups"}, strings.Split(grant.Scope, " "))
@@ -901,5 +953,141 @@ func TestOAuth_GrantScopesClaimAllGroups(t *testing.T) {
 	} {
 		assert.Contains(t, claims.Groups, group)
 		assert.Contains(t, userinfoParsed.Groups, group)
+	}
+}
+
+func testOAuth2WellKnown(t *testing.T) {
+	defer test.MockVariableValue(&setting.AppURL, "https://try.gitea.io/")()
+	urlOpenidConfiguration := "/.well-known/openid-configuration"
+
+	t.Run("WellKnown", func(t *testing.T) {
+		req := NewRequest(t, "GET", urlOpenidConfiguration)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var respMap map[string]any
+		DecodeJSON(t, resp, &respMap)
+		assert.Equal(t, "https://try.gitea.io", respMap["issuer"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/access_token", respMap["token_endpoint"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/keys", respMap["jwks_uri"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/userinfo", respMap["userinfo_endpoint"])
+		assert.Equal(t, "https://try.gitea.io/login/oauth/introspect", respMap["introspection_endpoint"])
+		assert.Equal(t, []any{"RS256"}, respMap["id_token_signing_alg_values_supported"])
+	})
+
+	t.Run("WellKnownWithIssuer", func(t *testing.T) {
+		defer test.MockVariableValue(&setting.OAuth2.JWTClaimIssuer, "https://try.gitea.io/")()
+		req := NewRequest(t, "GET", urlOpenidConfiguration)
+		resp := MakeRequest(t, req, http.StatusOK)
+		var respMap map[string]any
+		DecodeJSON(t, resp, &respMap)
+		assert.Equal(t, "https://try.gitea.io/", respMap["issuer"]) // has trailing by JWTClaimIssuer
+		assert.Equal(t, "https://try.gitea.io/login/oauth/authorize", respMap["authorization_endpoint"])
+	})
+
+	defer test.MockVariableValue(&setting.OAuth2.Enabled, false)()
+	MakeRequest(t, NewRequest(t, "GET", urlOpenidConfiguration), http.StatusNotFound)
+}
+
+func addOAuth2Source(t *testing.T, authName string, cfg oauth2.Source) {
+	cfg.Provider = util.IfZero(cfg.Provider, "gitea")
+	err := auth_model.CreateSource(t.Context(), &auth_model.Source{
+		Type:     auth_model.OAuth2,
+		Name:     authName,
+		IsActive: true,
+		Cfg:      &cfg,
+	})
+	require.NoError(t, err)
+}
+
+func TestSignInOauthCallbackSyncSSHKeys(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	var mockServer *httptest.Server
+	mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/.well-known/openid-configuration":
+			_, _ = w.Write([]byte(`{
+				"issuer": "` + mockServer.URL + `",
+				"authorization_endpoint": "` + mockServer.URL + `/authorize",
+				"token_endpoint": "` + mockServer.URL + `/token",
+				"userinfo_endpoint": "` + mockServer.URL + `/userinfo"
+			}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer mockServer.Close()
+
+	ctx := t.Context()
+	oauth2Source := oauth2.Source{
+		Provider:                      "openidConnect",
+		ClientID:                      "test-client-id",
+		SSHPublicKeyClaimName:         "sshpubkey",
+		FullNameClaimName:             "name",
+		OpenIDConnectAutoDiscoveryURL: mockServer.URL + "/.well-known/openid-configuration",
+	}
+	addOAuth2Source(t, "test-oidc-source", oauth2Source)
+	authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(ctx, "test-oidc-source")
+	require.NoError(t, err)
+
+	sshKey1 := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAICV0MGX/W9IvLA4FXpIuUcdDcbj5KX4syHgsTy7soVgf"
+	sshKey2 := "sk-ssh-ed25519@openssh.com AAAAGnNrLXNzaC1lZDI1NTE5QG9wZW5zc2guY29tAAAAIE7kM1R02+4ertDKGKEDcKG0s+2vyDDcIvceJ0Gqv5f1AAAABHNzaDo="
+	sshKey3 := "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEHjnNEfE88W1pvBLdV3otv28x760gdmPao3lVD5uAt9"
+	cases := []struct {
+		testName           string
+		mockFullName       string
+		mockRawData        map[string]any
+		expectedSSHPubKeys []string
+	}{
+		{
+			testName:           "Login1",
+			mockFullName:       "FullName1",
+			mockRawData:        map[string]any{"sshpubkey": []any{sshKey1 + " any-comment"}},
+			expectedSSHPubKeys: []string{sshKey1},
+		},
+		{
+			testName:           "Login2",
+			mockFullName:       "FullName2",
+			mockRawData:        map[string]any{"sshpubkey": []any{sshKey2 + " any-comment", sshKey3}},
+			expectedSSHPubKeys: []string{sshKey2, sshKey3},
+		},
+		{
+			testName:           "Login3",
+			mockFullName:       "FullName3",
+			mockRawData:        map[string]any{},
+			expectedSSHPubKeys: []string{},
+		},
+	}
+
+	session := emptyTestSession(t)
+	for _, c := range cases {
+		t.Run(c.testName, func(t *testing.T) {
+			defer test.MockVariableValue(&setting.OAuth2Client.Username, "")()
+			defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
+			defer test.MockVariableValue(&gothic.CompleteUserAuth, func(res http.ResponseWriter, req *http.Request) (goth.User, error) {
+				return goth.User{
+					Provider: authSource.Cfg.(*oauth2.Source).Provider,
+					UserID:   "oidc-userid",
+					Email:    "oidc-email@example.com",
+					RawData:  c.mockRawData,
+					Name:     c.mockFullName,
+				}, nil
+			})()
+			req := NewRequest(t, "GET", "/user/oauth2/test-oidc-source/callback?code=XYZ&state=XYZ")
+			session.MakeRequest(t, req, http.StatusSeeOther)
+			user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "oidc-userid"})
+			keys, _, err := db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+				ListOptions:   db.ListOptionsAll,
+				OwnerID:       user.ID,
+				LoginSourceID: authSource.ID,
+			})
+			require.NoError(t, err)
+			var sshPubKeys []string
+			for _, key := range keys {
+				sshPubKeys = append(sshPubKeys, key.Content)
+			}
+			assert.ElementsMatch(t, c.expectedSSHPubKeys, sshPubKeys)
+			assert.Equal(t, c.mockFullName, user.FullName)
+		})
 	}
 }

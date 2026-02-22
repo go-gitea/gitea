@@ -34,7 +34,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		permissionInRepo.SetUnitsWithDefaultAccessMode(repo.Units, permissionInRepo.AccessMode)
 	}
 
-	// TODO: ideally we should pass "doer" into "ToRepo" to to make CloneLink could generate user-related links
+	// TODO: ideally we should pass "doer" into "ToRepo" to make CloneLink could generate user-related links
 	// And passing "doer" in will also fix other FIXMEs in this file.
 	cloneLink := repo.CloneLinkGeneral(ctx) // no doer at the moment
 	permission := &api.Permission{
@@ -98,9 +98,12 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	allowSquash := false
 	allowFastForwardOnly := false
 	allowRebaseUpdate := false
+	allowManualMerge := true
+	autodetectManualMerge := false
 	defaultDeleteBranchAfterMerge := false
 	defaultMergeStyle := repo_model.MergeStyleMerge
 	defaultAllowMaintainerEdit := false
+	defaultTargetBranch := ""
 	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
@@ -111,9 +114,12 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		allowSquash = config.AllowSquash
 		allowFastForwardOnly = config.AllowFastForwardOnly
 		allowRebaseUpdate = config.AllowRebaseUpdate
+		allowManualMerge = config.AllowManualMerge
+		autodetectManualMerge = config.AutodetectManualMerge
 		defaultDeleteBranchAfterMerge = config.DefaultDeleteBranchAfterMerge
 		defaultMergeStyle = config.GetDefaultMergeStyle()
 		defaultAllowMaintainerEdit = config.DefaultAllowMaintainerEdit
+		defaultTargetBranch = config.DefaultTargetBranch
 	}
 	hasProjects := false
 	projectsMode := repo_model.ProjectsModeAll
@@ -123,20 +129,10 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		projectsMode = config.ProjectsMode
 	}
 
-	hasReleases := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypeReleases); err == nil {
-		hasReleases = true
-	}
-
-	hasPackages := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypePackages); err == nil {
-		hasPackages = true
-	}
-
-	hasActions := false
-	if _, err := repo.GetUnit(ctx, unit_model.TypeActions); err == nil {
-		hasActions = true
-	}
+	hasCode := repo.UnitEnabled(ctx, unit_model.TypeCode)
+	hasReleases := repo.UnitEnabled(ctx, unit_model.TypeReleases)
+	hasPackages := repo.UnitEnabled(ctx, unit_model.TypePackages)
+	hasActions := repo.UnitEnabled(ctx, unit_model.TypeActions)
 
 	if err := repo.LoadOwner(ctx); err != nil {
 		return nil
@@ -217,6 +213,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		Updated:                       repo.UpdatedUnix.AsTime(),
 		ArchivedAt:                    repo.ArchivedUnix.AsTime(),
 		Permissions:                   permission,
+		HasCode:                       hasCode,
 		HasIssues:                     hasIssues,
 		ExternalTracker:               externalTracker,
 		InternalTracker:               internalTracker,
@@ -235,9 +232,12 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		AllowSquash:                   allowSquash,
 		AllowFastForwardOnly:          allowFastForwardOnly,
 		AllowRebaseUpdate:             allowRebaseUpdate,
+		AllowManualMerge:              allowManualMerge,
+		AutodetectManualMerge:         autodetectManualMerge,
 		DefaultDeleteBranchAfterMerge: defaultDeleteBranchAfterMerge,
 		DefaultMergeStyle:             string(defaultMergeStyle),
 		DefaultAllowMaintainerEdit:    defaultAllowMaintainerEdit,
+		DefaultTargetBranch:           defaultTargetBranch,
 		AvatarURL:                     repo.AvatarLink(ctx),
 		Internal:                      !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		MirrorInterval:                mirrorInterval,
@@ -245,7 +245,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 		RepoTransfer:                  transfer,
 		Topics:                        util.SliceNilAsEmpty(repo.Topics),
 		ObjectFormatName:              repo.ObjectFormatName,
-		Licenses:                      repoLicenses.StringList(),
+		Licenses:                      util.SliceNilAsEmpty(repoLicenses.StringList()),
 	}
 }
 

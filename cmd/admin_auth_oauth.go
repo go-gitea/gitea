@@ -4,6 +4,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -12,11 +13,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
-var (
-	oauthCLIFlags = []cli.Flag{
+func oauthCLIFlags() []cli.Flag {
+	return []cli.Flag{
 		&cli.StringFlag{
 			Name:  "name",
 			Value: "",
@@ -87,6 +88,14 @@ var (
 			Usage: "Scopes to request when to authenticate against this OAuth2 source",
 		},
 		&cli.StringFlag{
+			Name:  "ssh-public-key-claim-name",
+			Usage: "Claim name that provides SSH public keys",
+		},
+		&cli.StringFlag{
+			Name:  "full-name-claim-name",
+			Usage: "Claim name that provides user's full name",
+		},
+		&cli.StringFlag{
 			Name:  "required-claim-name",
 			Value: "",
 			Usage: "Claim name that has to be set to allow users to login with this source",
@@ -121,23 +130,34 @@ var (
 			Usage: "Activate automatic team membership removal depending on groups",
 		},
 	}
+}
 
-	microcmdAuthAddOauth = &cli.Command{
-		Name:   "add-oauth",
-		Usage:  "Add new Oauth authentication source",
-		Action: runAddOauth,
-		Flags:  oauthCLIFlags,
+func microcmdAuthAddOauth() *cli.Command {
+	return &cli.Command{
+		Name:  "add-oauth",
+		Usage: "Add new Oauth authentication source",
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().runAddOauth(ctx, cmd)
+		},
+		Flags: oauthCLIFlags(),
 	}
+}
 
-	microcmdAuthUpdateOauth = &cli.Command{
-		Name:   "update-oauth",
-		Usage:  "Update existing Oauth authentication source",
-		Action: runUpdateOauth,
-		Flags:  append(oauthCLIFlags[:1], append([]cli.Flag{idFlag}, oauthCLIFlags[1:]...)...),
+func microcmdAuthUpdateOauth() *cli.Command {
+	return &cli.Command{
+		Name:  "update-oauth",
+		Usage: "Update existing Oauth authentication source",
+		Action: func(ctx context.Context, cmd *cli.Command) error {
+			return newAuthService().runUpdateOauth(ctx, cmd)
+		},
+		Flags: append(oauthCLIFlags()[:1], append([]cli.Flag{&cli.Int64Flag{
+			Name:  "id",
+			Usage: "ID of authentication source",
+		}}, oauthCLIFlags()[1:]...)...),
 	}
-)
+}
 
-func parseOAuth2Config(c *cli.Context) *oauth2.Source {
+func parseOAuth2Config(c *cli.Command) *oauth2.Source {
 	var customURLMapping *oauth2.CustomURLMapping
 	if c.IsSet("use-custom-urls") {
 		customURLMapping = &oauth2.CustomURLMapping{
@@ -165,14 +185,13 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		RestrictedGroup:               c.String("restricted-group"),
 		GroupTeamMap:                  c.String("group-team-map"),
 		GroupTeamMapRemoval:           c.Bool("group-team-map-removal"),
+		SSHPublicKeyClaimName:         c.String("ssh-public-key-claim-name"),
+		FullNameClaimName:             c.String("full-name-claim-name"),
 	}
 }
 
-func runAddOauth(c *cli.Context) error {
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(ctx); err != nil {
+func (a *authService) runAddOauth(ctx context.Context, c *cli.Command) error {
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
@@ -184,7 +203,7 @@ func runAddOauth(c *cli.Context) error {
 		}
 	}
 
-	return auth_model.CreateSource(ctx, &auth_model.Source{
+	return a.createAuthSource(ctx, &auth_model.Source{
 		Type:            auth_model.OAuth2,
 		Name:            c.String("name"),
 		IsActive:        true,
@@ -193,19 +212,16 @@ func runAddOauth(c *cli.Context) error {
 	})
 }
 
-func runUpdateOauth(c *cli.Context) error {
+func (a *authService) runUpdateOauth(ctx context.Context, c *cli.Command) error {
 	if !c.IsSet("id") {
 		return errors.New("--id flag is missing")
 	}
 
-	ctx, cancel := installSignals()
-	defer cancel()
-
-	if err := initDB(ctx); err != nil {
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
-	source, err := auth_model.GetSourceByID(ctx, c.Int64("id"))
+	source, err := a.getAuthSourceByID(ctx, c.Int64("id"))
 	if err != nil {
 		return err
 	}
@@ -262,6 +278,12 @@ func runUpdateOauth(c *cli.Context) error {
 	if c.IsSet("group-team-map-removal") {
 		oAuth2Config.GroupTeamMapRemoval = c.Bool("group-team-map-removal")
 	}
+	if c.IsSet("ssh-public-key-claim-name") {
+		oAuth2Config.SSHPublicKeyClaimName = c.String("ssh-public-key-claim-name")
+	}
+	if c.IsSet("full-name-claim-name") {
+		oAuth2Config.FullNameClaimName = c.String("full-name-claim-name")
+	}
 
 	// update custom URL mapping
 	customURLMapping := &oauth2.CustomURLMapping{}
@@ -296,5 +318,5 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 	source.TwoFactorPolicy = util.Iif(c.Bool("skip-local-2fa"), "skip", "")
-	return auth_model.UpdateSource(ctx, source)
+	return a.updateAuthSource(ctx, source)
 }

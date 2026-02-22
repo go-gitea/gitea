@@ -1,20 +1,20 @@
 import {decode, encode} from 'uint8-to-base64';
 import type {IssuePageInfo, IssuePathInfo, RepoOwnerPathInfo} from './types.ts';
-import {toggleClass, toggleElem} from './utils/dom.ts';
+import {toggleElemClass, toggleElem} from './utils/dom.ts';
 
-// transform /path/to/file.ext to /path/to
+/** transform /path/to/file.ext to /path/to */
 export function dirname(path: string): string {
   const lastSlashIndex = path.lastIndexOf('/');
   return lastSlashIndex < 0 ? '' : path.substring(0, lastSlashIndex);
 }
 
-// transform /path/to/file.ext to file.ext
+/** transform /path/to/file.ext to file.ext */
 export function basename(path: string): string {
   const lastSlashIndex = path.lastIndexOf('/');
   return lastSlashIndex < 0 ? path : path.substring(lastSlashIndex + 1);
 }
 
-// transform /path/to/file.ext to .ext
+/** transform /path/to/file.ext to .ext */
 export function extname(path: string): string {
   const lastSlashIndex = path.lastIndexOf('/');
   const lastPointIndex = path.lastIndexOf('.');
@@ -22,20 +22,34 @@ export function extname(path: string): string {
   return lastPointIndex < 0 ? '' : path.substring(lastPointIndex);
 }
 
-// test whether a variable is an object
-export function isObject(obj: any): boolean {
+/** test whether a variable is an object */
+export function isObject<T = Record<string, any>>(obj: any): obj is T {
   return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
-// returns whether a dark theme is enabled
+/** returns whether a dark theme is enabled */
 export function isDarkTheme(): boolean {
   const style = window.getComputedStyle(document.documentElement);
   return style.getPropertyValue('--is-dark-theme').trim().toLowerCase() === 'true';
 }
 
-// strip <tags> from a string
+/** strip <tags> from a string */
 export function stripTags(text: string): string {
-  return text.replace(/<[^>]*>?/g, '');
+  let prev = '';
+  while (prev !== text) {
+    prev = text;
+    text = text.replace(/<[^>]*>?/g, '');
+  }
+  return text;
+}
+
+export function urlQueryEscape(s: string) {
+  // See "TestQueryEscape" in backend
+  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/encodeURIComponent#encoding_for_rfc3986
+  return encodeURIComponent(s).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
 }
 
 export function parseIssueHref(href: string): IssuePathInfo {
@@ -55,43 +69,47 @@ export function parseRepoOwnerPathInfo(pathname: string): RepoOwnerPathInfo {
 export function parseIssuePageInfo(): IssuePageInfo {
   const el = document.querySelector('#issue-page-info');
   return {
-    issueNumber: parseInt(el?.getAttribute('data-issue-index')),
+    issueNumber: parseInt(el?.getAttribute('data-issue-index') || ''),
     issueDependencySearchType: el?.getAttribute('data-issue-dependency-search-type') || '',
-    repoId: parseInt(el?.getAttribute('data-issue-repo-id')),
+    repoId: parseInt(el?.getAttribute('data-issue-repo-id') || ''),
     repoLink: el?.getAttribute('data-issue-repo-link') || '',
   };
 }
 
-// parse a URL, either relative '/path' or absolute 'https://localhost/path'
+/** parse a URL, either relative '/path' or absolute 'https://localhost/path' */
 export function parseUrl(str: string): URL {
   return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
 }
 
-// return current locale chosen by user
+/** return current locale chosen by user */
 export function getCurrentLocale(): string {
   return document.documentElement.lang;
 }
 
-// given a month (0-11), returns it in the documents language
+/** given a month (0-11), returns it in the documents language */
 export function translateMonth(month: number) {
   return new Date(Date.UTC(2022, month, 12)).toLocaleString(getCurrentLocale(), {month: 'short', timeZone: 'UTC'});
 }
 
-// given a weekday (0-6, Sunday to Saturday), returns it in the documents language
+/** given a weekday (0-6, Sunday to Saturday), returns it in the documents language */
 export function translateDay(day: number) {
   return new Date(Date.UTC(2022, 7, day)).toLocaleString(getCurrentLocale(), {weekday: 'short', timeZone: 'UTC'});
 }
 
-// convert a Blob to a DataURI
+/** convert a Blob to a DataURI */
 export function blobToDataURI(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     try {
       const reader = new FileReader();
       reader.addEventListener('load', (e) => {
-        resolve(e.target.result as string);
+        if (e.target) {
+          resolve(e.target.result as string);
+        } else {
+          reject(new Error('blobToDataURI: FileReader failed'));
+        }
       });
       reader.addEventListener('error', () => {
-        reject(new Error('FileReader failed'));
+        reject(new Error('blobToDataURI: FileReader error'));
       });
       reader.readAsDataURL(blob);
     } catch (err) {
@@ -100,7 +118,7 @@ export function blobToDataURI(blob: Blob): Promise<string> {
   });
 }
 
-// convert image Blob to another mime-type format.
+/** convert image Blob to another mime-type format. */
 export function convertImage(blob: Blob, mime: string): Promise<Blob> {
   return new Promise(async (resolve, reject) => {
     try {
@@ -111,9 +129,10 @@ export function convertImage(blob: Blob, mime: string): Promise<Blob> {
           canvas.width = img.naturalWidth;
           canvas.height = img.naturalHeight;
           const context = canvas.getContext('2d');
+          if (!context) return reject(new Error('convertImage: no context'));
           context.drawImage(img, 0, 0);
           canvas.toBlob((blob) => {
-            if (!(blob instanceof Blob)) return reject(new Error('imageBlobToPng failed'));
+            if (!(blob instanceof Blob)) return reject(new Error('convertImage: toBlob failed'));
             resolve(blob);
           }, mime);
         } catch (err) {
@@ -121,7 +140,7 @@ export function convertImage(blob: Blob, mime: string): Promise<Blob> {
         }
       });
       img.addEventListener('error', () => {
-        reject(new Error('imageBlobToPng failed'));
+        reject(new Error('convertImage: image failed to load'));
       });
       img.src = await blobToDataURI(blob);
     } catch (err) {
@@ -143,7 +162,7 @@ export function toAbsoluteUrl(url: string): string {
   return `${window.location.origin}${url}`;
 }
 
-// Encode an Uint8Array into a URLEncoded base64 string.
+/** Encode an Uint8Array into a URLEncoded base64 string. */
 export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
   return encode(uint8Array)
     .replace(/\+/g, '-')
@@ -151,7 +170,7 @@ export function encodeURLEncodedBase64(uint8Array: Uint8Array): string {
     .replace(/=/g, '');
 }
 
-// Decode a URLEncoded base64 to an Uint8Array.
+/** Decode a URLEncoded base64 to an Uint8Array. */
 export function decodeURLEncodedBase64(base64url: string): Uint8Array {
   return decode(base64url
     .replace(/_/g, '/')
@@ -174,27 +193,26 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export function isImageFile({name, type}: {name?: string, type?: string}): boolean {
-  return /\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/');
+  return Boolean(/\.(avif|jpe?g|png|gif|webp|svg|heic)$/i.test(name || '') || type?.startsWith('image/'));
 }
 
 export function isVideoFile({name, type}: {name?: string, type?: string}): boolean {
-  return /\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/');
+  return Boolean(/\.(mpe?g|mp4|mkv|webm)$/i.test(name || '') || type?.startsWith('video/'));
 }
 
 export function toggleFullScreen(fullscreenElementsSelector: string, isFullScreen: boolean, sourceParentSelector?: string): void {
   // hide other elements
-  const headerEl = document.querySelector('#navbar');
-  const contentEl = document.querySelector('.page-content');
-  const footerEl = document.querySelector('.page-footer');
+  const headerEl = document.querySelector('#navbar')!;
+  const contentEl = document.querySelector('.page-content')!;
+  const footerEl = document.querySelector('.page-footer')!;
   toggleElem(headerEl, !isFullScreen);
   toggleElem(contentEl, !isFullScreen);
   toggleElem(footerEl, !isFullScreen);
 
-  const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector) : contentEl;
-
-  const fullScreenEl = document.querySelector(fullscreenElementsSelector);
-  const outerEl = document.querySelector('.full.height');
-  toggleClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
+  const sourceParentEl = sourceParentSelector ? document.querySelector(sourceParentSelector)! : contentEl;
+  const fullScreenEl = document.querySelector(fullscreenElementsSelector)!;
+  const outerEl = document.querySelector('.full.height')!;
+  toggleElemClass(fullscreenElementsSelector, 'fullscreen', isFullScreen);
   if (isFullScreen) {
     outerEl.append(fullScreenEl);
   } else {

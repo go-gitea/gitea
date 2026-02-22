@@ -56,65 +56,54 @@ func CreateScheduleTask(ctx context.Context, rows []*ActionSchedule) error {
 		return nil
 	}
 
-	// Begin transaction
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	// Loop through each schedule row
-	for _, row := range rows {
-		row.Title = util.EllipsisDisplayString(row.Title, 255)
-		// Create new schedule row
-		if err = db.Insert(ctx, row); err != nil {
-			return err
-		}
-
-		// Loop through each schedule spec and create a new spec row
-		now := time.Now()
-
-		for _, spec := range row.Specs {
-			specRow := &ActionScheduleSpec{
-				RepoID:     row.RepoID,
-				ScheduleID: row.ID,
-				Spec:       spec,
-			}
-			// Parse the spec and check for errors
-			schedule, err := specRow.Parse()
-			if err != nil {
-				continue // skip to the next spec if there's an error
-			}
-
-			specRow.Next = timeutil.TimeStamp(schedule.Next(now).Unix())
-
-			// Insert the new schedule spec row
-			if err = db.Insert(ctx, specRow); err != nil {
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		// Loop through each schedule row
+		for _, row := range rows {
+			row.Title = util.EllipsisDisplayString(row.Title, 255)
+			// Create new schedule row
+			if err := db.Insert(ctx, row); err != nil {
 				return err
 			}
-		}
-	}
 
-	// Commit transaction
-	return committer.Commit()
+			// Loop through each schedule spec and create a new spec row
+			now := time.Now()
+
+			for _, spec := range row.Specs {
+				specRow := &ActionScheduleSpec{
+					RepoID:     row.RepoID,
+					ScheduleID: row.ID,
+					Spec:       spec,
+				}
+				// Parse the spec and check for errors
+				schedule, err := specRow.Parse()
+				if err != nil {
+					continue // skip to the next spec if there's an error
+				}
+
+				specRow.Next = timeutil.TimeStamp(schedule.Next(now).Unix())
+
+				// Insert the new schedule spec row
+				if err = db.Insert(ctx, specRow); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
 }
 
 func DeleteScheduleTaskByRepo(ctx context.Context, id int64) error {
-	ctx, committer, err := db.TxContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
+	return db.WithTx(ctx, func(ctx context.Context) error {
+		if _, err := db.GetEngine(ctx).Delete(&ActionSchedule{RepoID: id}); err != nil {
+			return err
+		}
 
-	if _, err := db.GetEngine(ctx).Delete(&ActionSchedule{RepoID: id}); err != nil {
-		return err
-	}
+		if _, err := db.GetEngine(ctx).Delete(&ActionScheduleSpec{RepoID: id}); err != nil {
+			return err
+		}
 
-	if _, err := db.GetEngine(ctx).Delete(&ActionScheduleSpec{RepoID: id}); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+		return nil
+	})
 }
 
 func CleanRepoScheduleTasks(ctx context.Context, repo *repo_model.Repository) ([]*ActionRunJob, error) {

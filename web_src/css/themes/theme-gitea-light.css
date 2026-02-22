@@ -3,6 +3,7 @@
 
 gitea-theme-meta-info {
   --theme-display-name: "Light";
+  --theme-color-scheme: "light";
 }
 
 :root {
@@ -147,12 +148,14 @@ gitea-theme-meta-info {
   --color-grey-light: #7c838a;
   --color-gold: #a1882b;
   --color-white: #ffffff;
+  --color-diff-added-fg: #21ba45;
   --color-diff-added-linenum-bg: #d1f8d9;
   --color-diff-added-row-bg: #e6ffed;
   --color-diff-added-row-border: #e6ffed;
   --color-diff-added-word-bg: #acf2bd;
   --color-diff-moved-row-bg: #f1f8d1;
   --color-diff-moved-row-border: #d0e27f;
+  --color-diff-removed-fg: #db2828;
   --color-diff-removed-linenum-bg: #ffcecb;
   --color-diff-removed-row-bg: #ffeef0;
   --color-diff-removed-row-border: #f1c0c0;
@@ -185,6 +188,7 @@ gitea-theme-meta-info {
   --color-orange-badge-bg: #f2711c1a;
   --color-orange-badge-hover-bg: #f2711c4d;
   --color-git: #f05133;
+  --color-logo: #609926;
   /* target-based colors */
   --color-body: #ffffff;
   --color-box-header: #f1f3f5;
@@ -242,6 +246,7 @@ gitea-theme-meta-info {
   --color-highlight-fg: #eed200;
   --color-highlight-bg: #fffbdd;
   --color-overlay-backdrop: #080808c0;
+  --color-danger: var(--color-red);
   accent-color: var(--color-accent);
   color-scheme: light;
 }

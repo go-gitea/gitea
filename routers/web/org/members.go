@@ -28,10 +28,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgMembers"] = true
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	opts := &organization.FindOrgMembersOpts{
 		Doer:  ctx.Doer,

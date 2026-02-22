@@ -46,7 +46,7 @@ func (g *ASTTransformer) extractBlockquoteAttentionEmphasis(firstParagraph ast.N
 	if !ok {
 		return "", nil
 	}
-	val1 := string(node1.Text(reader.Source())) //nolint:staticcheck
+	val1 := string(node1.Text(reader.Source())) //nolint:staticcheck // Text is deprecated
 	attentionType := strings.ToLower(val1)
 	if g.attentionTypes.Contains(attentionType) {
 		return attentionType, []ast.Node{node1}

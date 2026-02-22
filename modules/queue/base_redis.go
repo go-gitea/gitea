@@ -29,7 +29,7 @@ func newBaseRedisGeneric(cfg *BaseConfig, unique bool) (baseQueue, error) {
 	client := nosql.GetManager().GetRedisClient(cfg.ConnStr)
 
 	var err error
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		err = client.Ping(graceful.GetManager().ShutdownContext()).Err()
 		if err == nil {
 			break

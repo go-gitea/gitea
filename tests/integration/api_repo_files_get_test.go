@@ -13,7 +13,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
@@ -43,7 +42,7 @@ func TestAPIGetRequestedFiles(t *testing.T) {
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
 
-	gitRepo, err := gitrepo.OpenRepository(git.DefaultContext, repo1)
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), repo1)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	lastCommit, _ := gitRepo.GetCommitByPath("README.md")

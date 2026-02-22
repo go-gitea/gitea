@@ -8,7 +8,7 @@ export function initRepositoryActionView() {
   // TODO: the parent element's full height doesn't work well now,
   // but we can not pollute the global style at the moment, only fix the height problem for pages with this component
   const parentFullHeight = document.querySelector<HTMLElement>('body > div.full.height');
-  if (parentFullHeight) parentFullHeight.style.paddingBottom = '0';
+  if (parentFullHeight) parentFullHeight.classList.add('tw-pb-0');
 
   const view = createApp(RepoActionView, {
     runIndex: el.getAttribute('data-run-index'),
@@ -24,6 +24,7 @@ export function initRepositoryActionView() {
       pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
+      artifactExpired: el.getAttribute('data-locale-artifact-expired'),
       confirmDeleteArtifact: el.getAttribute('data-locale-confirm-delete-artifact'),
       showTimeStamps: el.getAttribute('data-locale-show-timestamps'),
       showLogSeconds: el.getAttribute('data-locale-show-log-seconds'),

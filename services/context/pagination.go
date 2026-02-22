@@ -8,8 +8,10 @@ import (
 	"html/template"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/paginator"
 )
 
@@ -33,8 +35,8 @@ func (p *Pagination) WithCurRows(n int) *Pagination {
 	return p
 }
 
-func (p *Pagination) AddParamFromRequest(req *http.Request) {
-	for key, values := range req.URL.Query() {
+func (p *Pagination) AddParamFromQuery(q url.Values) {
+	for key, values := range q {
 		if key == "page" || len(values) == 0 || (len(values) == 1 && values[0] == "") {
 			continue
 		}
@@ -43,6 +45,18 @@ func (p *Pagination) AddParamFromRequest(req *http.Request) {
 			p.urlParams = append(p.urlParams, urlParam)
 		}
 	}
+}
+
+func (p *Pagination) AddParamFromRequest(req *http.Request) {
+	p.AddParamFromQuery(req.URL.Query())
+}
+
+func (p *Pagination) RemoveParam(keys container.Set[string]) {
+	p.urlParams = slices.DeleteFunc(p.urlParams, func(s string) bool {
+		k, _, _ := strings.Cut(s, "=")
+		k, _ = url.QueryUnescape(k)
+		return keys.Contains(k)
+	})
 }
 
 // GetParams returns the configured URL params

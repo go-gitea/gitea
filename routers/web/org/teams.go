@@ -283,11 +283,22 @@ func NewTeam(ctx *context.Context) {
 }
 
 // FIXME: TEAM-UNIT-PERMISSION: this design is not right, when a new unit is added in the future,
-// admin team won't inherit the correct admin permission for the new unit.
+// The existing teams won't inherit the correct admin permission for the new unit.
+// The full history is like this:
+// 1. There was only "team", no "team unit", so "team.authorize" was used to determine the team permission.
+// 2. Later, "team unit" was introduced, then the usage of "team.authorize" became inconsistent, and causes various bugs.
+//   - Sometimes, "team.authorize" is used to determine the team permission, e.g. admin, owner
+//   - Sometimes, "team unit" is used not really used and "team unit" is used.
+//   - Some functions like `GetTeamsWithAccessToAnyRepoUnit` use both.
+//
+// 3. After introducing "team unit" and more unclear changes, it becomes difficult to maintain team permissions.
+//   - Org owner need to click the permission for each unit, but can't just set a common "write" permission for all units.
+//
+// Ideally, "team.authorize=write" should mean the team has write access to all units including newly (future) added ones.
 func getUnitPerms(forms url.Values, teamPermission perm.AccessMode) map[unit_model.Type]perm.AccessMode {
 	unitPerms := make(map[unit_model.Type]perm.AccessMode)
 	for _, ut := range unit_model.AllRepoUnitTypes {
-		// Default accessmode is none
+		// Default access mode is none
 		unitPerms[ut] = perm.AccessModeNone
 
 		v, ok := forms[fmt.Sprintf("unit_%d", ut)]

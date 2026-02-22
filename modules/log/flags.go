@@ -123,7 +123,7 @@ func FlagsFromString(from string, def ...uint32) Flags {
 		return Flags{defined: true, flags: def[0]}
 	}
 	flags := uint32(0)
-	for _, flag := range strings.Split(strings.ToLower(from), ",") {
+	for flag := range strings.SplitSeq(strings.ToLower(from), ",") {
 		flags |= flagFromString[strings.TrimSpace(flag)]
 	}
 	return Flags{defined: true, flags: flags}

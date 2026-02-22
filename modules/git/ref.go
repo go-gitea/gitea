@@ -109,8 +109,8 @@ func (ref RefName) IsFor() bool {
 }
 
 func (ref RefName) nameWithoutPrefix(prefix string) string {
-	if strings.HasPrefix(string(ref), prefix) {
-		return strings.TrimPrefix(string(ref), prefix)
+	if after, ok := strings.CutPrefix(string(ref), prefix); ok {
+		return after
 	}
 	return ""
 }
@@ -219,4 +219,15 @@ func (ref RefName) RefWebLinkPath() string {
 		return ""
 	}
 	return string(refType) + "/" + util.PathEscapeSegments(ref.ShortName())
+}
+
+func ParseRefSuffix(ref string) (string, string) {
+	// Partially support https://git-scm.com/docs/gitrevisions
+	if idx := strings.Index(ref, "@{"); idx != -1 {
+		return ref[:idx], ref[idx:]
+	}
+	if idx := strings.Index(ref, "^"); idx != -1 {
+		return ref[:idx], ref[idx:]
+	}
+	return ref, ""
 }

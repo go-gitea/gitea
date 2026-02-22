@@ -6,7 +6,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -90,6 +89,17 @@ func AcceptTransferOwnership(ctx context.Context, repo *repo_model.Repository, d
 	return nil
 }
 
+// isRepositoryModelOrDirExist returns true if the repository with given name under user has already existed.
+func isRepositoryModelOrDirExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
+	has, err := repo_model.IsRepositoryModelExist(ctx, u, repoName)
+	if err != nil {
+		return false, err
+	}
+	repo := repo_model.StorageRepo(repo_model.RelativePath(u.Name, repoName))
+	isExist, err := gitrepo.IsRepositoryExist(ctx, repo)
+	return has || isExist, err
+}
+
 // transferOwnership transfers all corresponding repository items from old user to new one.
 func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName string, repo *repo_model.Repository, teams []*organization.Team) (err error) {
 	repoRenamed := false
@@ -107,16 +117,18 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		}
 
 		if repoRenamed {
-			if err := util.Rename(repo_model.RepoPath(newOwnerName, repo.Name), repo_model.RepoPath(oldOwnerName, repo.Name)); err != nil {
+			oldRelativePath, newRelativePath := repo_model.RelativePath(newOwnerName, repo.Name), repo_model.RelativePath(oldOwnerName, repo.Name)
+			if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
 				log.Critical("Unable to move repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
-					repo_model.RepoPath(newOwnerName, repo.Name), repo_model.RepoPath(oldOwnerName, repo.Name), err)
+					oldRelativePath, newRelativePath, err)
 			}
 		}
 
 		if wikiRenamed {
-			if err := util.Rename(repo_model.WikiPath(newOwnerName, repo.Name), repo_model.WikiPath(oldOwnerName, repo.Name)); err != nil {
+			oldRelativePath, newRelativePath := repo_model.RelativeWikiPath(newOwnerName, repo.Name), repo_model.RelativeWikiPath(oldOwnerName, repo.Name)
+			if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
 				log.Critical("Unable to move wiki for repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name,
-					repo_model.WikiPath(newOwnerName, repo.Name), repo_model.WikiPath(oldOwnerName, repo.Name), err)
+					oldRelativePath, newRelativePath, err)
 			}
 		}
 
@@ -141,7 +153,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	newOwnerName = newOwner.Name // ensure capitalisation matches
 
 	// Check if new owner has repository with same name.
-	if has, err := repo_model.IsRepositoryModelOrDirExist(ctx, newOwner, repo.Name); err != nil {
+	if has, err := isRepositoryModelOrDirExist(ctx, newOwner, repo.Name); err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
@@ -160,7 +172,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	repo.OwnerName = newOwner.Name
 
 	// Update repository.
-	if err := repo_model.UpdateRepositoryCols(ctx, repo, "owner_id", "owner_name"); err != nil {
+	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "owner_id", "owner_name"); err != nil {
 		return fmt.Errorf("update owner: %w", err)
 	}
 
@@ -278,23 +290,19 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	}
 
 	// Rename remote repository to new path and delete local copy.
-	dir := user_model.UserPath(newOwner.Name)
-	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %w", dir, err)
-	}
-
-	if err := util.Rename(repo_model.RepoPath(oldOwner.Name, repo.Name), repo_model.RepoPath(newOwner.Name, repo.Name)); err != nil {
+	oldRelativePath, newRelativePath := repo_model.RelativePath(oldOwner.Name, repo.Name), repo_model.RelativePath(newOwner.Name, repo.Name)
+	if err := gitrepo.RenameRepository(ctx, repo_model.StorageRepo(oldRelativePath), repo_model.StorageRepo(newRelativePath)); err != nil {
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 	repoRenamed = true
 
 	// Rename remote wiki repository to new path and delete local copy.
-	wikiPath := repo_model.WikiPath(oldOwner.Name, repo.Name)
-	if isExist, err := util.IsExist(wikiPath); err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
+	wikiStorageRepo := repo_model.StorageRepo(repo_model.RelativeWikiPath(oldOwner.Name, repo.Name))
+	if isExist, err := gitrepo.IsRepositoryExist(ctx, wikiStorageRepo); err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", wikiStorageRepo.RelativePath(), err)
 		return err
 	} else if isExist {
-		if err := util.Rename(wikiPath, repo_model.WikiPath(newOwner.Name, repo.Name)); err != nil {
+		if err := gitrepo.RenameRepository(ctx, wikiStorageRepo, repo_model.StorageRepo(repo_model.RelativeWikiPath(newOwner.Name, repo.Name))); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 		wikiRenamed = true
@@ -304,7 +312,7 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 		return fmt.Errorf("deleteRepositoryTransfer: %w", err)
 	}
 	repo.Status = repo_model.RepositoryReady
-	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "status"); err != nil {
 		return err
 	}
 
@@ -343,7 +351,7 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryModelOrDirExist(ctx, repo.Owner, newRepoName)
+	has, err := isRepositoryModelOrDirExist(ctx, repo.Owner, newRepoName)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %w", err)
 	} else if has {
@@ -358,14 +366,9 @@ func changeRepositoryName(ctx context.Context, repo *repo_model.Repository, newR
 		return fmt.Errorf("rename repository directory: %w", err)
 	}
 
-	wikiPath := repo.WikiPath()
-	isExist, err := util.IsExist(wikiPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
-		return err
-	}
-	if isExist {
-		if err = util.Rename(wikiPath, repo_model.WikiPath(repo.Owner.Name, newRepoName)); err != nil {
+	if HasWiki(ctx, repo) {
+		if err = gitrepo.RenameRepository(ctx, repo.WikiStorageRepo(), repo_model.StorageRepo(
+			repo_model.RelativeWikiPath(repo.OwnerName, newRepoName))); err != nil {
 			return fmt.Errorf("rename repository wiki: %w", err)
 		}
 	}
@@ -495,7 +498,7 @@ func RejectRepositoryTransfer(ctx context.Context, repo *repo_model.Repository, 
 		}
 
 		repo.Status = repo_model.RepositoryReady
-		if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repo, "status"); err != nil {
 			return err
 		}
 
@@ -543,7 +546,7 @@ func CancelRepositoryTransfer(ctx context.Context, repoTransfer *repo_model.Repo
 		}
 
 		repoTransfer.Repo.Status = repo_model.RepositoryReady
-		if err := repo_model.UpdateRepositoryCols(ctx, repoTransfer.Repo, "status"); err != nil {
+		if err := repo_model.UpdateRepositoryColsNoAutoTime(ctx, repoTransfer.Repo, "status"); err != nil {
 			return err
 		}
 

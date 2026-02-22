@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
-	"net/url"
 	"sort"
+	"strconv"
 
 	activities_model "code.gitea.io/gitea/models/activities"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -24,7 +25,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web/middleware"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/context/upload"
@@ -407,7 +408,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	ctx.Data["Reference"] = issue.Ref
-	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + url.QueryEscape(ctx.Data["Link"].(string))
+	ctx.Data["SignInLink"] = middleware.RedirectLinkUserLogin(ctx.Req)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(unit.TypeProjects)
@@ -435,6 +436,9 @@ func ViewIssue(ctx *context.Context) {
 
 func ViewPullMergeBox(ctx *context.Context) {
 	issue := prepareIssueViewLoad(ctx)
+	if ctx.Written() {
+		return
+	}
 	if !issue.IsPull {
 		ctx.NotFound(nil)
 		return
@@ -442,6 +446,10 @@ func ViewPullMergeBox(ctx *context.Context) {
 	preparePullViewPullInfo(ctx, issue)
 	preparePullViewReviewAndMerge(ctx, issue)
 	ctx.Data["PullMergeBoxReloading"] = issue.PullRequest.IsChecking()
+
+	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
+	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.HTML(http.StatusOK, tplPullMergeBox)
 }
 
@@ -461,7 +469,7 @@ func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
 	// Get Dependencies
-	blockedBy, err := issue.BlockedByDependencies(ctx, db.ListOptions{})
+	blockedBy, _, err := issue.BlockedByDependencies(ctx, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("BlockedByDependencies", err)
 		return
@@ -487,9 +495,9 @@ func preparePullViewSigning(ctx *context.Context, issue *issues_model.Issue) {
 	pull := issue.PullRequest
 	ctx.Data["WillSign"] = false
 	if ctx.Doer != nil {
-		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, pull.BaseRepo.RepoPath(), pull.BaseBranch, pull.GetGitRefName())
+		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo)
 		ctx.Data["WillSign"] = sign
-		ctx.Data["SigningKey"] = key
+		ctx.Data["SigningKeyMergeDisplay"] = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {
 			if asymkey_service.IsErrWontSign(err) {
 				ctx.Data["WontSignReason"] = err.(*asymkey_service.ErrWontSign).Reason
@@ -557,8 +565,10 @@ func preparePullViewDeleteBranch(ctx *context.Context, issue *issues_model.Issue
 	pull := issue.PullRequest
 	isPullBranchDeletable := canDelete &&
 		pull.HeadRepo != nil &&
-		gitrepo.IsBranchExist(ctx, pull.HeadRepo, pull.HeadBranch) &&
 		(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
+	if isPullBranchDeletable {
+		isPullBranchDeletable, _ = git_model.IsBranchExist(ctx, pull.HeadRepo.ID, pull.HeadBranch)
+	}
 
 	if isPullBranchDeletable && pull.HasMerged {
 		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pull.HeadRepoID, pull.HeadBranch)
@@ -624,7 +634,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 		comment.Issue = issue
 
 		if comment.Type == issues_model.CommentTypeComment || comment.Type == issues_model.CommentTypeReview {
-			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo)
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+				FootnoteContextID: strconv.FormatInt(comment.ID, 10),
+			})
 			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -700,7 +712,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 				}
 			}
 		} else if comment.Type.HasContentSupport() {
-			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo)
+			rctx := renderhelper.NewRenderContextRepoComment(ctx, issue.Repo, renderhelper.RepoCommentOptions{
+				FootnoteContextID: strconv.FormatInt(comment.ID, 10),
+			})
 			comment.RenderedContent, err = markdown.RenderString(rctx, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -757,6 +771,9 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 			}
 			if !ctx.Repo.CanRead(unit.TypeActions) {
 				for _, commit := range comment.Commits {
+					if commit.Status == nil {
+						continue
+					}
 					commit.Status.HideActionsURL(ctx)
 					git_model.CommitStatusesHideActionsURL(ctx, commit.Statuses)
 				}
@@ -981,7 +998,9 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {
 	var err error
-	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository)
+	rctx := renderhelper.NewRenderContextRepoComment(ctx, ctx.Repo.Repository, renderhelper.RepoCommentOptions{
+		FootnoteContextID: "0", // Set footnote context ID to 0 for the issue content
+	})
 	issue.RenderedContent, err = markdown.RenderString(rctx, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

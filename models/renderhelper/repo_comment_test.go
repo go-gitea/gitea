@@ -72,4 +72,11 @@ func TestRepoComment(t *testing.T) {
 <a href="/user2/repo1/commit/1234/image" target="_blank" rel="nofollow noopener"><img src="/user2/repo1/commit/1234/image" alt="./image"/></a></p>
 `, rendered)
 	})
+
+	t.Run("NoRepo", func(t *testing.T) {
+		rctx := NewRenderContextRepoComment(t.Context(), nil).WithMarkupType(markdown.MarkupName)
+		rendered, err := markup.RenderString(rctx, "any")
+		assert.NoError(t, err)
+		assert.Equal(t, "<p>any</p>\n", rendered)
+	})
 }

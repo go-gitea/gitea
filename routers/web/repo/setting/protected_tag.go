@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -148,15 +149,15 @@ func setTagsContext(ctx *context.Context) error {
 	}
 	ctx.Data["ProtectedTags"] = protectedTags
 
-	users, err := access_model.GetRepoReaders(ctx, ctx.Repo.Repository)
+	users, err := access_model.GetUsersWithUnitAccess(ctx, ctx.Repo.Repository, perm.AccessModeRead, unit.TypePullRequests)
 	if err != nil {
-		ctx.ServerError("Repo.Repository.GetReaders", err)
+		ctx.ServerError("GetUsersWithUnitAccess", err)
 		return err
 	}
 	ctx.Data["Users"] = users
 
 	if ctx.Repo.Owner.IsOrganization() {
-		teams, err := organization.OrgFromUser(ctx.Repo.Owner).TeamsWithAccessToRepo(ctx, ctx.Repo.Repository.ID, perm.AccessModeRead)
+		teams, err := organization.GetTeamsWithAccessToAnyRepoUnit(ctx, ctx.Repo.Owner.ID, ctx.Repo.Repository.ID, perm.AccessModeRead, unit.TypeCode, unit.TypePullRequests)
 		if err != nil {
 			ctx.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return err

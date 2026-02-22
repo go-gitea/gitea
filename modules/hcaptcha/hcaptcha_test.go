@@ -4,8 +4,10 @@
 package hcaptcha
 
 import (
+	"errors"
+	"io"
 	"net/http"
-	"os"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
@@ -17,8 +19,31 @@ const (
 	dummyToken   = "10000000-aaaa-bbbb-cccc-000000000001"
 )
 
-func TestMain(m *testing.M) {
-	os.Exit(m.Run())
+type mockTransport struct{}
+
+func (mockTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.String() != verifyURL {
+		return nil, errors.New("unsupported url")
+	}
+
+	body, err := io.ReadAll(req.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	bodyValues, err := url.ParseQuery(string(body))
+	if err != nil {
+		return nil, err
+	}
+
+	var responseText string
+	if bodyValues.Get("response") == dummyToken {
+		responseText = `{"success":true,"credit":false,"hostname":"dummy-key-pass","challenge_ts":"2025-10-08T16:02:56.136Z"}`
+	} else {
+		responseText = `{"success":false,"error-codes":["invalid-input-response"]}`
+	}
+
+	return &http.Response{Request: req, Body: io.NopCloser(strings.NewReader(responseText))}, nil
 }
 
 func TestCaptcha(t *testing.T) {
@@ -54,7 +79,8 @@ func TestCaptcha(t *testing.T) {
 	for _, tc := range tt {
 		t.Run(tc.Name, func(t *testing.T) {
 			client, err := New(tc.Secret, WithHTTP(&http.Client{
-				Timeout: time.Second * 5,
+				Timeout:   time.Second * 5,
+				Transport: mockTransport{},
 			}))
 			if err != nil {
 				// The only error that can be returned from creating a client

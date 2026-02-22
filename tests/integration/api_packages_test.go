@@ -15,9 +15,9 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -119,7 +119,7 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("RepositoryLink", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		_, err := packages_model.GetPackageByName(db.DefaultContext, user.ID, packages_model.TypeGeneric, packageName)
+		_, err := packages_model.GetPackageByName(t.Context(), user.ID, packages_model.TypeGeneric, packageName)
 		assert.NoError(t, err)
 
 		// no repository link
@@ -132,7 +132,7 @@ func TestPackageAPI(t *testing.T) {
 		assert.Nil(t, ap1.Repository)
 
 		// create a repository
-		newRepo, err := repo_service.CreateRepository(db.DefaultContext, user, user, repo_service.CreateRepoOptions{
+		newRepo, err := repo_service.CreateRepository(t.Context(), user, user, repo_service.CreateRepoOptions{
 			Name: "repo4",
 		})
 		assert.NoError(t, err)
@@ -168,7 +168,7 @@ func TestPackageAPI(t *testing.T) {
 
 		// force link to a repository the currently logged-in user doesn't have access to
 		privateRepoID := int64(6)
-		assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, ap1.ID, privateRepoID))
+		assert.NoError(t, packages_model.SetRepositoryLink(t.Context(), ap1.ID, privateRepoID))
 
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)).AddTokenAuth(tokenReadPackage)
 		resp = MakeRequest(t, req, http.StatusOK)
@@ -177,7 +177,7 @@ func TestPackageAPI(t *testing.T) {
 		DecodeJSON(t, resp, &ap4)
 		assert.Nil(t, ap4.Repository)
 
-		assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, privateRepoID))
+		assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(t.Context(), privateRepoID))
 	})
 
 	t.Run("ListPackageFiles", func(t *testing.T) {
@@ -534,21 +534,21 @@ func TestPackageCleanup(t *testing.T) {
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
+		pbs, err := packages_model.FindExpiredUnreferencedBlobs(t.Context(), duration)
 		assert.NoError(t, err)
 		assert.NotEmpty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeContainer, "cleanup-test", container_module.UploadVersion)
 		assert.NoError(t, err)
 
-		err = packages_cleanup_service.CleanupTask(db.DefaultContext, duration)
+		err = packages_cleanup_service.CleanupTask(t.Context(), duration)
 		assert.NoError(t, err)
 
-		pbs, err = packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, duration)
+		pbs, err = packages_model.FindExpiredUnreferencedBlobs(t.Context(), duration)
 		assert.NoError(t, err)
 		assert.Empty(t, pbs)
 
-		_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, "cleanup-test", container_model.UploadVersion)
+		_, err = packages_model.GetInternalVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeContainer, "cleanup-test", container_module.UploadVersion)
 		assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
 	})
 
@@ -636,12 +636,16 @@ func TestPackageCleanup(t *testing.T) {
 			},
 			{
 				Name: "Mixed",
-				Versions: []version{
-					{Version: "keep", ShouldExist: true, Created: time.Now().Add(time.Duration(10000)).Unix()},
-					{Version: "dummy", ShouldExist: true, Created: 1},
-					{Version: "test-3", ShouldExist: true},
-					{Version: "test-4", ShouldExist: false, Created: 1},
-				},
+				Versions: func(limit, removeDays int) []version {
+					aa := []version{
+						{Version: "keep", ShouldExist: true, Created: time.Now().Add(time.Duration(10000)).Unix()},
+						{Version: "dummy", ShouldExist: true, Created: 1},
+					}
+					for i := range limit {
+						aa = append(aa, version{Version: fmt.Sprintf("test-%v", i+3), ShouldExist: util.Iif(i < removeDays, true, false), Created: time.Now().AddDate(0, 0, -i).Unix()})
+					}
+					return aa
+				}(220, 7),
 				Rule: &packages_model.PackageCleanupRule{
 					Enabled:       true,
 					KeepCount:     1,
@@ -663,9 +667,9 @@ func TestPackageCleanup(t *testing.T) {
 					MakeRequest(t, req, http.StatusCreated)
 
 					if v.Created != 0 {
-						pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeGeneric, "package", v.Version)
+						pv, err := packages_model.GetVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeGeneric, "package", v.Version)
 						assert.NoError(t, err)
-						_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE package_version SET created_unix = ? WHERE id = ?", v.Created, pv.ID)
+						_, err = db.GetEngine(t.Context()).Exec("UPDATE package_version SET created_unix = ? WHERE id = ?", v.Created, pv.ID)
 						assert.NoError(t, err)
 					}
 				}
@@ -673,24 +677,24 @@ func TestPackageCleanup(t *testing.T) {
 				c.Rule.OwnerID = user.ID
 				c.Rule.Type = packages_model.TypeGeneric
 
-				pcr, err := packages_model.InsertCleanupRule(db.DefaultContext, c.Rule)
+				pcr, err := packages_model.InsertCleanupRule(t.Context(), c.Rule)
 				assert.NoError(t, err)
 
-				err = packages_cleanup_service.CleanupTask(db.DefaultContext, duration)
+				err = packages_cleanup_service.CleanupTask(t.Context(), duration)
 				assert.NoError(t, err)
 
 				for _, v := range c.Versions {
-					pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeGeneric, "package", v.Version)
+					pv, err := packages_model.GetVersionByNameAndVersion(t.Context(), user.ID, packages_model.TypeGeneric, "package", v.Version)
 					if v.ShouldExist {
 						assert.NoError(t, err)
-						err = packages_service.DeletePackageVersionAndReferences(db.DefaultContext, pv)
+						err = packages_service.DeletePackageVersionAndReferences(t.Context(), pv)
 						assert.NoError(t, err)
 					} else {
-						assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
+						assert.ErrorIs(t, err, packages_model.ErrPackageNotExist, v.Version)
 					}
 				}
 
-				assert.NoError(t, packages_model.DeleteCleanupRuleByID(db.DefaultContext, pcr.ID))
+				assert.NoError(t, packages_model.DeleteCleanupRuleByID(t.Context(), pcr.ID))
 			})
 		}
 	})

@@ -10,7 +10,6 @@
 				</form>
 			{{else if .IsOrganizationOwner}}
 				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/action/join">
-					{{$.CsrfTokenHtml}}
 					<input type="hidden" name="page" value="team">
 					<button type="submit" class="ui primary tiny button" name="uid" value="{{$.SignedUser.ID}}">{{ctx.Locale.Tr "org.teams.join"}}</button>
 				</form>
@@ -90,7 +89,7 @@
 		{{ctx.Locale.Tr "org.teams.leave"}}
 	</div>
 	<div class="content">
-		<p>{{ctx.Locale.Tr "org.teams.leave.detail" (`<span class="name"></span>`|SafeHTML)}}</p>
+		<p>{{ctx.Locale.Tr "org.teams.leave.detail" (HTMLFormat `<span class="%s"></span>` "name")}}</p>
 	</div>
 	{{template "base/modal_actions_confirm" .}}
 </div>

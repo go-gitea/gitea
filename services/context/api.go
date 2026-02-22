@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -220,16 +221,15 @@ func APIContexter() func(http.Handler) http.Handler {
 			ctx := &APIContext{
 				Base:  base,
 				Cache: cache.GetCache(),
-				Repo:  &Repository{PullRequest: &PullRequest{}},
+				Repo:  &Repository{},
 				Org:   &APIOrganization{},
 			}
 
 			ctx.SetContextValue(apiContextKey, ctx)
 
-			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
+			// FIXME: GLOBAL-PARSE-FORM: see more details in another FIXME comment
 			if ctx.Req.Method == http.MethodPost && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
-				if err := ctx.Req.ParseMultipartForm(setting.Attachment.MaxSize << 20); err != nil && !strings.Contains(err.Error(), "EOF") { // 32MB max size
-					ctx.APIErrorInternal(err)
+				if !ctx.ParseMultipartForm() {
 					return
 				}
 			}
@@ -245,7 +245,7 @@ func APIContexter() func(http.Handler) http.Handler {
 // APIErrorNotFound handles 404s for APIContext
 // String will replace message, errors will be added to a slice
 func (ctx *APIContext) APIErrorNotFound(objs ...any) {
-	message := ctx.Locale.TrString("error.not_found")
+	var message string
 	var errs []string
 	for _, obj := range objs {
 		// Ignore nil
@@ -259,9 +259,8 @@ func (ctx *APIContext) APIErrorNotFound(objs ...any) {
 			message = obj.(string)
 		}
 	}
-
 	ctx.JSON(http.StatusNotFound, map[string]any{
-		"message": message,
+		"message": util.IfZero(message, "not found"), // do not use locale in API
 		"url":     setting.API.SwaggerURL,
 		"errors":  errs,
 	})
@@ -365,11 +364,5 @@ func (ctx *APIContext) IsUserRepoAdmin() bool {
 
 // IsUserRepoWriter returns true if current user has "write" privilege in current repo
 func (ctx *APIContext) IsUserRepoWriter(unitTypes []unit.Type) bool {
-	for _, unitType := range unitTypes {
-		if ctx.Repo.CanWrite(unitType) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(unitTypes, ctx.Repo.CanWrite)
 }

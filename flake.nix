@@ -1,43 +1,94 @@
 {
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
   outputs =
-    { nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (
-      system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in
-      {
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            # generic
-            git
-            git-lfs
-            gnumake
-            gnused
-            gnutar
-            gzip
+    { nixpkgs, ... }:
+    let
+      supportedSystems = [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "x86_64-linux"
+      ];
 
-            # frontend
-            nodejs_22
+      forEachSupportedSystem =
+        f:
+        nixpkgs.lib.genAttrs supportedSystems (
+          system:
+          let
+            pkgs = import nixpkgs {
+              inherit system;
+            };
+          in
+          f { inherit pkgs; }
+        );
+    in
+    {
+      devShells = forEachSupportedSystem (
+        { pkgs, ... }:
+        {
+          default =
+            let
+              inherit (pkgs) lib;
 
-            # linting
-            python312
-            poetry
+              # only bump toolchain versions here
+              go = pkgs.go_1_25;
+              nodejs = pkgs.nodejs_24;
+              python3 = pkgs.python312;
+              pnpm = pkgs.pnpm_10;
 
-            # backend
-            go_1_24
-            gofumpt
-            sqlite
-          ];
-          shellHook = ''
-            export GO="${pkgs.go_1_24}/bin/go"
-            export GOROOT="${pkgs.go_1_24}/share/go"
-          '';
-        };
-      }
-    );
+              # Platform-specific dependencies
+              linuxOnlyInputs = lib.optionals pkgs.stdenv.isLinux [
+                pkgs.glibc.static
+              ];
+
+              linuxOnlyEnv = lib.optionalAttrs pkgs.stdenv.isLinux {
+                CFLAGS = "-I${pkgs.glibc.static.dev}/include";
+                LDFLAGS = "-L ${pkgs.glibc.static}/lib";
+              };
+            in
+            pkgs.mkShell {
+              packages =
+                with pkgs;
+                [
+                  # generic
+                  git
+                  git-lfs
+                  gnumake
+                  gnused
+                  gnutar
+                  gzip
+                  zip
+
+                  # frontend
+                  nodejs
+                  pnpm
+                  cairo
+                  pixman
+                  pkg-config
+
+                  # linting
+                  python3
+                  uv
+
+                  # backend
+                  go
+                  gofumpt
+                  sqlite
+                ]
+                ++ linuxOnlyInputs;
+
+              env = {
+                GO = "${go}/bin/go";
+                GOROOT = "${go}/share/go";
+
+                TAGS = "sqlite sqlite_unlock_notify";
+                STATIC = "true";
+              }
+              // linuxOnlyEnv;
+            };
+        }
+      );
+    };
 }

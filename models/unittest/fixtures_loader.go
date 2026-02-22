@@ -169,7 +169,7 @@ func (f *fixturesLoaderInternal) Load() error {
 
 func FixturesFileFullPaths(dir string, files []string) (map[string]*FixtureItem, error) {
 	if files != nil && len(files) == 0 {
-		return nil, nil // load nothing
+		return nil, nil //nolint:nilnil // load nothing
 	}
 	files = slices.Clone(files)
 	if len(files) == 0 {
@@ -218,7 +218,7 @@ func NewFixturesLoader(x *xorm.Engine, opts FixturesOptions) (FixturesLoader, er
 	xormBeans, _ := db.NamesToBean()
 	f.xormTableNames = map[string]bool{}
 	for _, bean := range xormBeans {
-		f.xormTableNames[db.TableName(bean)] = true
+		f.xormTableNames[x.TableName(bean)] = true
 	}
 
 	return f, nil

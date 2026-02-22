@@ -71,6 +71,7 @@ func TestRender_Commits(t *testing.T) {
 }
 
 func TestRender_CrossReferences(t *testing.T) {
+	defer testModule.MockVariableValue(&setting.AppURL, markup.TestAppURL)()
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
@@ -98,10 +99,20 @@ func TestRender_CrossReferences(t *testing.T) {
 		util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
 		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
 
-	inputURL := "https://host/a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
+	inputURL := setting.AppURL + "a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
 	test(
 		inputURL,
 		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
+
+	inputURL = setting.AppURL + "repo/owner/archive/0123456789012345678901234567890123456789.tar.gz"
+	test(
+		inputURL,
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.tar.gz</code></a></p>`)
+
+	inputURL = setting.AppURL + "owner/repo/commit/0123456789012345678901234567890123456789.patch?key=val"
+	test(
+		inputURL,
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.patch</code></a></p>`)
 }
 
 func TestRender_links(t *testing.T) {
@@ -357,12 +368,9 @@ func TestRender_emoji(t *testing.T) {
 		`<p><span class="emoji" aria-label="smiling face with sunglasses">😎</span><span class="emoji" aria-label="zany face">🤪</span><span class="emoji" aria-label="locked with key">🔐</span><span class="emoji" aria-label="money-mouth face">🤑</span><span class="emoji" aria-label="red question mark">❓</span></p>`)
 
 	// should match nothing
-	test(
-		"2001:0db8:85a3:0000:0000:8a2e:0370:7334",
-		`<p>2001:0db8:85a3:0000:0000:8a2e:0370:7334</p>`)
-	test(
-		":not exist:",
-		`<p>:not exist:</p>`)
+	test(":100:200", `<p>:100:200</p>`)
+	test("std::thread::something", `<p>std::thread::something</p>`)
+	test(":not exist:", `<p>:not exist:</p>`)
 }
 
 func TestRender_ShortLinks(t *testing.T) {
@@ -525,6 +533,10 @@ func TestPostProcess(t *testing.T) {
 	test("<script>a</script>", `&lt;script&gt;a&lt;/script&gt;`)
 	test("<STYLE>a", `&lt;STYLE&gt;a`)
 	test("<style>a</STYLE>", `&lt;style&gt;a&lt;/STYLE&gt;`)
+
+	// other special tags, our special behavior
+	test("<?php\nfoo", "&lt;?php\nfoo")
+	test("<%asp\nfoo", "&lt;%asp\nfoo")
 }
 
 func TestIssue16020(t *testing.T) {
@@ -564,13 +576,15 @@ func TestFuzz(t *testing.T) {
 }
 
 func TestIssue18471(t *testing.T) {
-	data := `http://domain/org/repo/compare/783b039...da951ce`
+	defer testModule.MockVariableValue(&setting.AppURL, markup.TestAppURL)()
+
+	data := markup.TestAppURL + `org/repo/compare/783b039...da951ce`
 
 	var res strings.Builder
 	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
+	assert.Equal(t, `<a href="`+markup.TestAppURL+`org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
 }
 
 func TestIsFullURL(t *testing.T) {

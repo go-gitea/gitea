@@ -20,7 +20,7 @@ type SessionStore session.Store
 // Method represents an authentication method (plugin) for HTTP requests.
 type Method interface {
 	// Verify tries to verify the authentication data contained in the request.
-	// If verification is successful returns either an existing user object (with id > 0)
+	// If verification succeeds, it returns either an existing user object (with id > 0)
 	// or a new user object (with id = 0) populated with the information that was found
 	// in the authentication data (username or email).
 	// Second argument returns err if verification fails, otherwise

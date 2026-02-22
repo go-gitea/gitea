@@ -135,7 +135,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			if err == nil && isAttributeSSHPublicKeySet {
 				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.AuthSource.Name, usr.Name)
-				if asymkey_model.AddPublicKeysBySource(ctx, usr, source.AuthSource, su.SSHPublicKey) {
+				if asymkey_model.AddPublicKeysBySource(ctx, usr, source.AuthSource, su.SSHPublicKey, source.SSHKeysAreVerified) {
 					sshKeysNeedUpdate = true
 				}
 			}
@@ -145,7 +145,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
-			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, usr, source.AuthSource, su.SSHPublicKey) {
+			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(ctx, usr, source.AuthSource, su.SSHPublicKey, source.SSHKeysAreVerified) {
 				sshKeysNeedUpdate = true
 			}
 
@@ -162,7 +162,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					IsActive: optional.Some(true),
 				}
 				if source.AdminFilter != "" {
-					opts.IsAdmin = optional.Some(su.IsAdmin)
+					opts.IsAdmin = user_service.UpdateOptionFieldFromSync(su.IsAdmin)
 				}
 				// Change existing restricted flag only if RestrictedFilter option is set
 				if !su.IsAdmin && source.RestrictedFilter != "" {
@@ -178,8 +178,9 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 			}
 
-			if usr.IsUploadAvatarChanged(su.Avatar) {
-				if err == nil && source.AttributeAvatar != "" {
+			if source.AttributeAvatar != "" {
+				if len(su.Avatar) > 0 && usr.IsUploadAvatarChanged(su.Avatar) {
+					log.Trace("SyncExternalUsers[%s]: Uploading new avatar for %s", source.AuthSource.Name, usr.Name)
 					_ = user_service.UploadAvatar(ctx, usr, su.Avatar)
 				}
 			}

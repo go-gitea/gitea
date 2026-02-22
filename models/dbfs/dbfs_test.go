@@ -9,8 +9,6 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +24,7 @@ func TestDbfsBasic(t *testing.T) {
 	defer changeDefaultFileBlockSize(4)()
 
 	// test basic write/read
-	f, err := OpenFile(db.DefaultContext, "test.txt", os.O_RDWR|os.O_CREATE)
+	f, err := OpenFile(t.Context(), "test.txt", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
 
 	n, err := f.Write([]byte("0123456789")) // blocks: 0123 4567 89
@@ -95,25 +93,25 @@ func TestDbfsBasic(t *testing.T) {
 	assert.NoError(t, f.Close())
 
 	// test rename
-	err = Rename(db.DefaultContext, "test.txt", "test2.txt")
+	err = Rename(t.Context(), "test.txt", "test2.txt")
 	assert.NoError(t, err)
 
-	_, err = OpenFile(db.DefaultContext, "test.txt", os.O_RDONLY)
+	_, err = OpenFile(t.Context(), "test.txt", os.O_RDONLY)
 	assert.Error(t, err)
 
-	f, err = OpenFile(db.DefaultContext, "test2.txt", os.O_RDONLY)
+	f, err = OpenFile(t.Context(), "test2.txt", os.O_RDONLY)
 	assert.NoError(t, err)
 	assert.NoError(t, f.Close())
 
 	// test remove
-	err = Remove(db.DefaultContext, "test2.txt")
+	err = Remove(t.Context(), "test2.txt")
 	assert.NoError(t, err)
 
-	_, err = OpenFile(db.DefaultContext, "test2.txt", os.O_RDONLY)
+	_, err = OpenFile(t.Context(), "test2.txt", os.O_RDONLY)
 	assert.Error(t, err)
 
 	// test stat
-	f, err = OpenFile(db.DefaultContext, "test/test.txt", os.O_RDWR|os.O_CREATE)
+	f, err = OpenFile(t.Context(), "test/test.txt", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
 	stat, err := f.Stat()
 	assert.NoError(t, err)
@@ -129,11 +127,11 @@ func TestDbfsBasic(t *testing.T) {
 func TestDbfsReadWrite(t *testing.T) {
 	defer changeDefaultFileBlockSize(4)()
 
-	f1, err := OpenFile(db.DefaultContext, "test.log", os.O_RDWR|os.O_CREATE)
+	f1, err := OpenFile(t.Context(), "test.log", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
 	defer f1.Close()
 
-	f2, err := OpenFile(db.DefaultContext, "test.log", os.O_RDONLY)
+	f2, err := OpenFile(t.Context(), "test.log", os.O_RDONLY)
 	assert.NoError(t, err)
 	defer f2.Close()
 
@@ -161,7 +159,7 @@ func TestDbfsReadWrite(t *testing.T) {
 func TestDbfsSeekWrite(t *testing.T) {
 	defer changeDefaultFileBlockSize(4)()
 
-	f, err := OpenFile(db.DefaultContext, "test2.log", os.O_RDWR|os.O_CREATE)
+	f, err := OpenFile(t.Context(), "test2.log", os.O_RDWR|os.O_CREATE)
 	assert.NoError(t, err)
 	defer f.Close()
 
@@ -180,7 +178,7 @@ func TestDbfsSeekWrite(t *testing.T) {
 	_, err = f.Write([]byte("333"))
 	assert.NoError(t, err)
 
-	fr, err := OpenFile(db.DefaultContext, "test2.log", os.O_RDONLY)
+	fr, err := OpenFile(t.Context(), "test2.log", os.O_RDONLY)
 	assert.NoError(t, err)
 	defer f.Close()
 

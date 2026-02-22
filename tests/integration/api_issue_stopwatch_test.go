@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -48,7 +47,7 @@ func TestAPIStopStopWatches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
-	_ = issue.LoadRepo(db.DefaultContext)
+	_ = issue.LoadRepo(t.Context())
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
@@ -65,7 +64,7 @@ func TestAPICancelStopWatches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
-	_ = issue.LoadRepo(db.DefaultContext)
+	_ = issue.LoadRepo(t.Context())
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
@@ -82,7 +81,7 @@ func TestAPIStartStopWatches(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
-	_ = issue.LoadRepo(db.DefaultContext)
+	_ = issue.LoadRepo(t.Context())
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 

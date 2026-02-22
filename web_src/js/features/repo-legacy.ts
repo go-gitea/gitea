@@ -30,8 +30,8 @@ export function initBranchSelectorTabs() {
   for (const elSelectBranch of elSelectBranches) {
     queryElems(elSelectBranch, '.reference.column', (el) => el.addEventListener('click', () => {
       hideElem(elSelectBranch.querySelectorAll('.scrolling.reference-list-menu'));
-      showElem(el.getAttribute('data-target'));
-      queryElemChildren(el.parentNode, '.branch-tag-item', (el) => el.classList.remove('active'));
+      showElem(el.getAttribute('data-target')!);
+      queryElemChildren(el.parentNode!, '.branch-tag-item', (el) => el.classList.remove('active'));
       el.classList.add('active');
     }));
   }

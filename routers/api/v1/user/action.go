@@ -12,6 +12,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/shared"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	actions_service "code.gitea.io/gitea/services/actions"
 	"code.gitea.io/gitea/services/context"
@@ -127,13 +128,11 @@ func CreateVariable(ctx *context.APIContext) {
 	//     "$ref": "#/definitions/CreateVariableOption"
 	// responses:
 	//   "201":
-	//     description: response when creating a variable
-	//   "204":
-	//     description: response when creating a variable
+	//     description: successfully created the user-level variable
 	//   "400":
 	//     "$ref": "#/responses/error"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
+	//   "409":
+	//     description: variable name already exists.
 
 	opt := web.GetForm(ctx).(*api.CreateVariableOption)
 
@@ -162,7 +161,7 @@ func CreateVariable(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	ctx.Status(http.StatusCreated)
 }
 
 // UpdateVariable update a user-level variable which is created by current doer
@@ -334,10 +333,10 @@ func ListVariables(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
+	listOptions := utils.GetListOptions(ctx)
 	vars, count, err := db.FindAndCount[actions_model.ActionVariable](ctx, &actions_model.FindVariablesOpts{
 		OwnerID:     ctx.Doer.ID,
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 	})
 	if err != nil {
 		ctx.APIErrorInternal(err)
@@ -355,6 +354,90 @@ func ListVariables(ctx *context.APIContext) {
 		}
 	}
 
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, variables)
+}
+
+// ListWorkflowRuns lists workflow runs
+func ListWorkflowRuns(ctx *context.APIContext) {
+	// swagger:operation GET /user/actions/runs user getUserWorkflowRuns
+	// ---
+	// summary: Get workflow runs
+	// parameters:
+	// - name: event
+	//   in: query
+	//   description: workflow event name
+	//   type: string
+	//   required: false
+	// - name: branch
+	//   in: query
+	//   description: workflow branch
+	//   type: string
+	//   required: false
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: actor
+	//   in: query
+	//   description: triggered by user
+	//   type: string
+	//   required: false
+	// - name: head_sha
+	//   in: query
+	//   description: triggering sha of the workflow run
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowRunsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.ListRuns(ctx, ctx.Doer.ID, 0)
+}
+
+// ListWorkflowJobs lists workflow jobs
+func ListWorkflowJobs(ctx *context.APIContext) {
+	// swagger:operation GET /user/actions/jobs user getUserWorkflowJobs
+	// ---
+	// summary: Get workflow jobs
+	// parameters:
+	// - name: status
+	//   in: query
+	//   description: workflow status (pending, queued, in_progress, failure, success, skipped)
+	//   type: string
+	//   required: false
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// produces:
+	// - application/json
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/WorkflowJobsList"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	shared.ListJobs(ctx, ctx.Doer.ID, 0, 0)
 }

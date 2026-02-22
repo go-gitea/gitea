@@ -4,6 +4,9 @@ import {GET, POST} from '../modules/fetch.ts';
 
 const {appSubUrl} = window.config;
 
+/** One of the possible values for the `data-webauthn-error-msg` attribute on the webauthn error message element */
+type ErrorType = 'general' | 'insecure' | 'browser' | 'unable-to-process' | 'duplicated' | 'unknown';
+
 export async function initUserAuthWebAuthn() {
   const elPrompt = document.querySelector('.user.signin.webauthn-prompt');
   const elSignInPasskeyBtn = document.querySelector('.signin-passkey');
@@ -11,13 +14,9 @@ export async function initUserAuthWebAuthn() {
     return;
   }
 
-  // webauthn is only supported on secure contexts
-  if (!window.isSecureContext) {
-    hideElem(elSignInPasskeyBtn);
-    return;
-  }
-
-  if (!detectWebAuthnSupport()) {
+  const errorType = detectWebAuthnSupport();
+  if (errorType) {
+    if (elSignInPasskeyBtn) hideElem(elSignInPasskeyBtn);
     return;
   }
 
@@ -54,7 +53,7 @@ async function loginPasskey() {
     const clientDataJSON = new Uint8Array(credResp.clientDataJSON);
     const rawId = new Uint8Array(credential.rawId);
     const sig = new Uint8Array(credResp.signature);
-    const userHandle = new Uint8Array(credResp.userHandle);
+    const userHandle = new Uint8Array(credResp.userHandle ?? []);
 
     const res = await POST(`${appSubUrl}/user/webauthn/passkey/login`, {
       data: {
@@ -182,8 +181,8 @@ async function webauthnRegistered(newCredential: any) { // TODO: Credential type
   window.location.reload();
 }
 
-function webAuthnError(errorType: string, message:string = '') {
-  const elErrorMsg = document.querySelector(`#webauthn-error-msg`);
+function webAuthnError(errorType: ErrorType, message:string = '') {
+  const elErrorMsg = document.querySelector(`#webauthn-error-msg`)!;
 
   if (errorType === 'general') {
     elErrorMsg.textContent = message || 'unknown error';
@@ -199,25 +198,26 @@ function webAuthnError(errorType: string, message:string = '') {
   showElem('#webauthn-error');
 }
 
-function detectWebAuthnSupport() {
+/** Returns the error type or `null` when there was no error. */
+function detectWebAuthnSupport(): ErrorType | null {
   if (!window.isSecureContext) {
-    webAuthnError('insecure');
-    return false;
+    return 'insecure';
   }
 
   if (typeof window.PublicKeyCredential !== 'function') {
-    webAuthnError('browser');
-    return false;
+    return 'browser';
   }
 
-  return true;
+  return null;
 }
 
 export function initUserAuthWebAuthnRegister() {
   const elRegister = document.querySelector<HTMLInputElement>('#register-webauthn');
   if (!elRegister) return;
 
-  if (!detectWebAuthnSupport()) {
+  const errorType = detectWebAuthnSupport();
+  if (errorType) {
+    webAuthnError(errorType);
     elRegister.disabled = true;
     return;
   }
@@ -228,7 +228,7 @@ export function initUserAuthWebAuthnRegister() {
 }
 
 async function webAuthnRegisterRequest() {
-  const elNickname = document.querySelector<HTMLInputElement>('#nickname');
+  const elNickname = document.querySelector<HTMLInputElement>('#nickname')!;
 
   const formData = new FormData();
   formData.append('name', elNickname.value);
@@ -246,7 +246,7 @@ async function webAuthnRegisterRequest() {
   }
 
   const options = await res.json();
-  elNickname.closest('div.field').classList.remove('error');
+  elNickname.closest('div.field')!.classList.remove('error');
 
   options.publicKey.challenge = decodeURLEncodedBase64(options.publicKey.challenge);
   options.publicKey.user.id = decodeURLEncodedBase64(options.publicKey.user.id);

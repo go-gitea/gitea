@@ -21,14 +21,13 @@ import (
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
 
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 )
 
 // these flags will be set by the build flags
 var (
-	Version     = "development" // program version for this build
-	Tags        = ""            // the Golang build tags
-	MakeVersion = ""            // "make" program version if built with make
+	Version = "development" // program version for this build
+	Tags    = ""            // the Golang build tags
 )
 
 func init() {
@@ -44,14 +43,12 @@ func main() {
 	}
 	app := cmd.NewMainApp(cmd.AppVersion{Version: Version, Extra: formatBuiltWith()})
 	_ = cmd.RunMainApp(app, os.Args...) // all errors should have been handled by the RunMainApp
+	// flush the queued logs before exiting, it is a MUST, otherwise there will be log loss
 	log.GetManager().Close()
 }
 
 func formatBuiltWith() string {
 	version := runtime.Version()
-	if len(MakeVersion) > 0 {
-		version = MakeVersion + ", " + runtime.Version()
-	}
 	if len(Tags) == 0 {
 		return " built with " + version
 	}

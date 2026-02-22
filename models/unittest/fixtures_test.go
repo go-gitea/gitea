@@ -4,19 +4,20 @@
 package unittest_test
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/require"
 	"xorm.io/xorm"
 )
 
 var NewFixturesLoaderVendor = func(e *xorm.Engine, opts unittest.FixturesOptions) (unittest.FixturesLoader, error) {
-	return nil, nil
+	return nil, nil //nolint:nilnil // no vendor fixtures loader configured
 }
 
 /*
@@ -58,9 +59,15 @@ func NewFixturesLoaderVendorGoTestfixtures(e *xorm.Engine, opts unittest.Fixture
 }
 */
 
+func TestMain(m *testing.M) {
+	setting.SetupGiteaTestEnv()
+	os.Exit(m.Run())
+}
+
 func prepareTestFixturesLoaders(t testing.TB) unittest.FixturesOptions {
 	_ = user_model.User{}
-	opts := unittest.FixturesOptions{Dir: filepath.Join(test.SetupGiteaRoot(), "models", "fixtures"), Files: []string{
+	giteaRoot := setting.GetGiteaTestSourceRoot()
+	opts := unittest.FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: []string{
 		"user.yml",
 	}}
 	require.NoError(t, unittest.CreateTestEngine(opts))

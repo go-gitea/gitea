@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/commitstatus"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -33,7 +34,6 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 		url := path.Join("user1", "repo1", "compare", "master...status1")
 		req := NewRequestWithValues(t, "POST", url,
 			map[string]string{
-				"_csrf": GetUserCSRFToken(t, session),
 				"title": "pull request from status1",
 			},
 		)
@@ -55,20 +55,20 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 
 		commitID := path.Base(commitURL)
 
-		statusList := []api.CommitStatusState{
-			api.CommitStatusPending,
-			api.CommitStatusError,
-			api.CommitStatusFailure,
-			api.CommitStatusSuccess,
-			api.CommitStatusWarning,
+		statusList := []commitstatus.CommitStatusState{
+			commitstatus.CommitStatusPending,
+			commitstatus.CommitStatusError,
+			commitstatus.CommitStatusFailure,
+			commitstatus.CommitStatusSuccess,
+			commitstatus.CommitStatusWarning,
 		}
 
-		statesIcons := map[api.CommitStatusState]string{
-			api.CommitStatusPending: "octicon-dot-fill",
-			api.CommitStatusSuccess: "octicon-check",
-			api.CommitStatusError:   "gitea-exclamation",
-			api.CommitStatusFailure: "octicon-x",
-			api.CommitStatusWarning: "gitea-exclamation",
+		statesIcons := map[commitstatus.CommitStatusState]string{
+			commitstatus.CommitStatusPending: "octicon-dot-fill",
+			commitstatus.CommitStatusSuccess: "octicon-check",
+			commitstatus.CommitStatusError:   "gitea-exclamation",
+			commitstatus.CommitStatusFailure: "octicon-x",
+			commitstatus.CommitStatusWarning: "gitea-exclamation",
 		}
 
 		testCtx := NewAPITestContext(t, "user1", "repo1", auth_model.AccessTokenScopeWriteRepository)
@@ -76,12 +76,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 		// Update commit status, and check if icon is updated as well
 		for _, status := range statusList {
 			// Call API to add status for commit
-			t.Run("CreateStatus", doAPICreateCommitStatus(testCtx, commitID, api.CreateStatusOption{
-				State:       status,
-				TargetURL:   "http://test.ci/",
-				Description: "",
-				Context:     "testci",
-			}))
+			t.Run("CreateStatus", doAPICreateCommitStatusTest(testCtx, commitID, status, "testci"))
 
 			req = NewRequest(t, "GET", "/user1/repo1/pulls/1/commits")
 			resp = session.MakeRequest(t, req, http.StatusOK)
@@ -99,23 +94,19 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user1", Name: "repo1"})
 		css := unittest.AssertExistsAndLoadBean(t, &git_model.CommitStatusSummary{RepoID: repo1.ID, SHA: commitID})
-		assert.Equal(t, api.CommitStatusWarning, css.State)
+		assert.Equal(t, commitstatus.CommitStatusSuccess, css.State)
 	})
 }
 
-func doAPICreateCommitStatus(ctx APITestContext, commitID string, data api.CreateStatusOption) func(*testing.T) {
+func doAPICreateCommitStatusTest(ctx APITestContext, ref string, state commitstatus.CommitStatusState, statusContext string) func(*testing.T) {
 	return func(t *testing.T) {
-		req := NewRequestWithJSON(
-			t,
-			http.MethodPost,
-			fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s", ctx.Username, ctx.Reponame, commitID),
-			data,
-		).AddTokenAuth(ctx.Token)
-		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
-			return
-		}
-		ctx.Session.MakeRequest(t, req, http.StatusCreated)
+		link := fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s", ctx.Username, ctx.Reponame, url.PathEscape(ref))
+		req := NewRequestWithJSON(t, http.MethodPost, link, api.CreateStatusOption{
+			State:     state,
+			TargetURL: "http://test.ci/",
+			Context:   statusContext,
+		}).AddTokenAuth(ctx.Token)
+		ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 	}
 }
 
@@ -128,12 +119,11 @@ func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1", "")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "status1", "README.md", "status1")
-		testEditFileToNewBranch(t, session, "user1", "repo1", "status1", "status1", "README.md", "# repo1\n\nDescription for repo1")
+		testEditFile(t, session, "user1", "repo1", "status1", "README.md", "# repo1\n\nDescription for repo1")
 
 		url := path.Join("user1", "repo1", "compare", "master...status1")
 		req := NewRequestWithValues(t, "POST", url,
 			map[string]string{
-				"_csrf": GetUserCSRFToken(t, session),
 				"title": "pull request from status1",
 			},
 		)
@@ -156,7 +146,6 @@ func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
 		url := path.Join("user1", "repo1", "compare", "master...status1")
 		req := NewRequestWithValues(t, "POST", url,
 			map[string]string{
-				"_csrf": GetUserCSRFToken(t, session),
 				"title": "pull request from status1",
 			},
 		)

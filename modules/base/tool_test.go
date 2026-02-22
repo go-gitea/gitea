@@ -26,25 +26,6 @@ func TestShortSha(t *testing.T) {
 	assert.Equal(t, "veryverylo", ShortSha("veryverylong"))
 }
 
-func TestBasicAuthDecode(t *testing.T) {
-	_, _, err := BasicAuthDecode("?")
-	assert.Equal(t, "illegal base64 data at input byte 0", err.Error())
-
-	user, pass, err := BasicAuthDecode("Zm9vOmJhcg==")
-	assert.NoError(t, err)
-	assert.Equal(t, "foo", user)
-	assert.Equal(t, "bar", pass)
-
-	_, _, err = BasicAuthDecode("aW52YWxpZA==")
-	assert.Error(t, err)
-
-	_, _, err = BasicAuthDecode("invalid")
-	assert.Error(t, err)
-
-	_, _, err = BasicAuthDecode("YWxpY2U=") // "alice", no colon
-	assert.Error(t, err)
-}
-
 func TestVerifyTimeLimitCode(t *testing.T) {
 	defer test.MockVariableValue(&setting.InstallLock, true)()
 	initGeneralSecret := func(secret string) {

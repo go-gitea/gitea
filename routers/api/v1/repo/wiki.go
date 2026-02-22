@@ -193,7 +193,7 @@ func getWikiPage(ctx *context.APIContext, wikiName wiki_service.WebPath) *api.Wi
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
 	// Get last change information.
 	lastCommit, err := wikiRepo.GetCommitByPath(pageFilename)
@@ -298,10 +298,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		return
 	}
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 	limit := ctx.FormInt("limit")
 	if limit <= 1 {
 		limit = setting.API.DefaultPagingNum
@@ -336,6 +333,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		pages = append(pages, wiki_service.ToWikiPageMetaData(wikiName, c, ctx.Repo.Repository))
 	}
 
+	ctx.SetLinkHeader(len(entries), limit)
 	ctx.SetTotalCountHeader(int64(len(entries)))
 	ctx.JSON(http.StatusOK, pages)
 }
@@ -432,12 +430,9 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount(ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
+	commitsCount, _ := gitrepo.FileCommitsCount(ctx, ctx.Repo.Repository.WikiStorageRepo(), ctx.Repo.Repository.DefaultWikiBranch, pageFilename)
 
-	page := ctx.FormInt("page")
-	if page <= 1 {
-		page = 1
-	}
+	page := max(ctx.FormInt("page"), 1)
 
 	// get Commit Count
 	commitsHistory, err := wikiRepo.CommitsByFileAndRange(
@@ -451,6 +446,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 		return
 	}
 
+	// FIXME: SetLinkHeader missing
 	ctx.SetTotalCountHeader(commitsCount)
 	ctx.JSON(http.StatusOK, convert.ToWikiCommitList(commitsHistory, commitsCount))
 }
@@ -505,7 +501,7 @@ func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) string {
 	if blob.Size() > setting.API.DefaultMaxBlobSize {
 		return ""
 	}
-	content, err := blob.GetBlobContentBase64()
+	content, err := blob.GetBlobContentBase64(nil)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return ""

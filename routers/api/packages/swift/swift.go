@@ -77,17 +77,14 @@ func apiError(ctx *context.Context, status int, obj any) {
 		Detail string `json:"detail"`
 	}
 
-	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		setResponseHeaders(ctx.Resp, &headers{
-			Status:      status,
-			ContentType: "application/problem+json",
-		})
-		if err := json.NewEncoder(ctx.Resp).Encode(Problem{
-			Status: status,
-			Detail: message,
-		}); err != nil {
-			log.Error("JSON encode: %v", err)
-		}
+	message := helper.ProcessErrorForUser(ctx, status, obj)
+	setResponseHeaders(ctx.Resp, &headers{
+		Status:      status,
+		ContentType: "application/problem+json",
+	})
+	_ = json.NewEncoder(ctx.Resp).Encode(Problem{
+		Status: status,
+		Detail: message,
 	})
 }
 
@@ -230,6 +227,7 @@ func PackageVersionMetadata(ctx *context.Context) {
 			},
 			Author: swift_module.Person{
 				Type:       "Person",
+				Name:       metadata.Author.String(),
 				GivenName:  metadata.Author.GivenName,
 				MiddleName: metadata.Author.MiddleName,
 				FamilyName: metadata.Author.FamilyName,
@@ -302,7 +300,7 @@ func formFileOptionalReadCloser(ctx *context.Context, formKey string) (io.ReadCl
 
 	content := ctx.Req.FormValue(formKey)
 	if content == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate that the content does not exist
 	}
 	return io.NopCloser(strings.NewReader(content)), nil
 }
@@ -429,7 +427,7 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	pf := pd.Files[0].File
 
-	s, u, _, err := packages_service.GetPackageFileStream(ctx, pf)
+	s, u, _, err := packages_service.OpenFileForDownload(ctx, pf, ctx.Req.Method)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

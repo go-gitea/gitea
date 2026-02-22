@@ -11,7 +11,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/packet"
@@ -232,7 +231,7 @@ Q0KHb+QcycSgbDx0ZAvdIacuKvBBcbxrsmFUI4LR+oIup0G9gUc0roPvr014jYQL
 =zHo9
 -----END PGP PUBLIC KEY BLOCK-----`
 
-	keys, err := AddGPGKey(db.DefaultContext, 1, testEmailWithUpperCaseLetters, "", "")
+	keys, err := AddGPGKey(t.Context(), 1, testEmailWithUpperCaseLetters, "", "")
 	assert.NoError(t, err)
 	if assert.NotEmpty(t, keys) {
 		key := keys[0]
@@ -398,7 +397,7 @@ epiDVQ==
 func TestTryGetKeyIDFromSignature(t *testing.T) {
 	assert.Empty(t, TryGetKeyIDFromSignature(&packet.Signature{}))
 	assert.Equal(t, "038D1A3EADDBEA9C", TryGetKeyIDFromSignature(&packet.Signature{
-		IssuerKeyId: util.ToPointer(uint64(0x38D1A3EADDBEA9C)),
+		IssuerKeyId: new(uint64(0x38D1A3EADDBEA9C)),
 	}))
 	assert.Equal(t, "038D1A3EADDBEA9C", TryGetKeyIDFromSignature(&packet.Signature{
 		IssuerFingerprint: []uint8{0xb, 0x23, 0x24, 0xc7, 0xe6, 0xfe, 0x4f, 0x3a, 0x6, 0x26, 0xc1, 0x21, 0x3, 0x8d, 0x1a, 0x3e, 0xad, 0xdb, 0xea, 0x9c},
@@ -407,21 +406,21 @@ func TestTryGetKeyIDFromSignature(t *testing.T) {
 
 func TestParseGPGKey(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	assert.NoError(t, db.Insert(db.DefaultContext, &user_model.EmailAddress{UID: 1, Email: "email1@example.com", IsActivated: true}))
+	assert.NoError(t, db.Insert(t.Context(), &user_model.EmailAddress{UID: 1, Email: "email1@example.com", IsActivated: true}))
 
 	// create a key for test email
 	e, err := openpgp.NewEntity("name", "comment", "email1@example.com", nil)
 	require.NoError(t, err)
-	k, err := parseGPGKey(db.DefaultContext, 1, e, true)
+	k, err := parseGPGKey(t.Context(), 1, e, true)
 	require.NoError(t, err)
 	assert.NotEmpty(t, k.KeyID)
 	assert.NotEmpty(t, k.Emails) // the key is valid, matches the email
 
 	// then revoke the key
 	for _, id := range e.Identities {
-		id.Revocations = append(id.Revocations, &packet.Signature{RevocationReason: util.ToPointer(packet.KeyCompromised)})
+		id.Revocations = append(id.Revocations, &packet.Signature{RevocationReason: new(packet.KeyCompromised)})
 	}
-	k, err = parseGPGKey(db.DefaultContext, 1, e, true)
+	k, err = parseGPGKey(t.Context(), 1, e, true)
 	require.NoError(t, err)
 	assert.NotEmpty(t, k.KeyID)
 	assert.Empty(t, k.Emails) // the key is revoked, matches no email

@@ -23,12 +23,6 @@ func NoHTTPRedirector() {
 	graceful.GetManager().InformCleanup()
 }
 
-// NoMainListener tells our cleanup routine that we will not be using a possibly provided listener
-// for our main HTTP/HTTPS service
-func NoMainListener() {
-	graceful.GetManager().InformCleanup()
-}
-
 // NoInstallListener tells our cleanup routine that we will not be using a possibly provided listener
 // for our install HTTP/HTTPS service
 func NoInstallListener() {

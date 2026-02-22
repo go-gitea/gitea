@@ -38,3 +38,14 @@
   repo_id: 0
   description: "This runner is going to be deleted"
   agent_labels: '["runner_to_be_deleted","linux"]'
+-
+  id: 34350
+  name: runner_to_be_deleted-org-ephemeral
+  uuid: 3FF231BD-FBB7-4E4B-9602-E6F28363EF20
+  token_hash: 3FF231BD-FBB7-4E4B-9602-E6F28363EF20
+  ephemeral: true
+  version: "1.0.0"
+  owner_id: 3
+  repo_id: 0
+  description: "This runner is going to be deleted"
+  agent_labels: '["runner_to_be_deleted","linux"]'

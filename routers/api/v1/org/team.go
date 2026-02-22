@@ -54,8 +54,9 @@ func ListTeams(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
+	listOptions := utils.GetListOptions(ctx)
 	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		OrgID:       ctx.Org.Organization.ID,
 	})
 	if err != nil {
@@ -69,6 +70,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiTeams)
 }
@@ -93,8 +95,9 @@ func ListUserTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
+	listOptions := utils.GetListOptions(ctx)
 	teams, count, err := organization.SearchTeam(ctx, &organization.SearchTeamOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		UserID:      ctx.Doer.ID,
 	})
 	if err != nil {
@@ -108,6 +111,7 @@ func ListUserTeams(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiTeams)
 }
@@ -392,8 +396,9 @@ func GetTeamMembers(ctx *context.APIContext) {
 		return
 	}
 
+	listOptions := utils.GetListOptions(ctx)
 	teamMembers, err := organization.GetTeamMembers(ctx, &organization.SearchMembersOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		TeamID:      ctx.Org.Team.ID,
 	})
 	if err != nil {
@@ -406,6 +411,7 @@ func GetTeamMembers(ctx *context.APIContext) {
 		members[i] = convert.ToUser(ctx, member, ctx.Doer)
 	}
 
+	ctx.SetLinkHeader(ctx.Org.Team.NumMembers, listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(ctx.Org.Team.NumMembers))
 	ctx.JSON(http.StatusOK, members)
 }
@@ -426,7 +432,7 @@ func GetTeamMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the member to list
+	//   description: username of the user whose data is to be listed
 	//   type: string
 	//   required: true
 	// responses:
@@ -467,7 +473,7 @@ func AddTeamMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user to add
+	//   description: username of the user to add to a team
 	//   type: string
 	//   required: true
 	// responses:
@@ -509,7 +515,7 @@ func RemoveTeamMember(ctx *context.APIContext) {
 	//   required: true
 	// - name: username
 	//   in: path
-	//   description: username of the user to remove
+	//   description: username of the user to remove from a team
 	//   type: string
 	//   required: true
 	// responses:
@@ -559,8 +565,9 @@ func GetTeamRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	team := ctx.Org.Team
+	listOptions := utils.GetListOptions(ctx)
 	teamRepos, err := repo_model.GetTeamRepositories(ctx, &repo_model.SearchTeamRepoOptions{
-		ListOptions: utils.GetListOptions(ctx),
+		ListOptions: listOptions,
 		TeamID:      team.ID,
 	})
 	if err != nil {
@@ -576,6 +583,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 		}
 		repos[i] = convert.ToRepo(ctx, repo, permission)
 	}
+	ctx.SetLinkHeader(team.NumRepos, listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(team.NumRepos))
 	ctx.JSON(http.StatusOK, repos)
 }
@@ -874,7 +882,7 @@ func ListTeamActivityFeeds(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
-
 	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
 }

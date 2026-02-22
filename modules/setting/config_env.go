@@ -51,10 +51,10 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 	for _, unescapeIdx := range escapeStringIndices {
 		preceding := encoded[last:unescapeIdx[0]]
 		if !inKey {
-			if splitter := strings.Index(preceding, "__"); splitter > -1 {
-				section += preceding[:splitter]
+			if before, after, cutOk := strings.Cut(preceding, "__"); cutOk {
+				section += before
 				inKey = true
-				key += preceding[splitter+2:]
+				key += after
 			} else {
 				section += preceding
 			}
@@ -65,7 +65,7 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 		decodedBytes := make([]byte, len(toDecode)/2)
 		for i := 0; i < len(toDecode)/2; i++ {
 			// Can ignore error here as we know these should be hexadecimal from the regexp
-			byteInt, _ := strconv.ParseInt(toDecode[2*i:2*i+2], 16, 0)
+			byteInt, _ := strconv.ParseInt(toDecode[2*i:2*i+2], 16, 8)
 			decodedBytes[i] = byte(byteInt)
 		}
 		if inKey {
@@ -77,9 +77,9 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 	}
 	remaining := encoded[last:]
 	if !inKey {
-		if splitter := strings.Index(remaining, "__"); splitter > -1 {
-			section += remaining[:splitter]
-			key += remaining[splitter+2:]
+		if before, after, cutOk := strings.Cut(remaining, "__"); cutOk {
+			section += before
+			key += after
 		} else {
 			section += remaining
 		}
@@ -97,7 +97,7 @@ func decodeEnvSectionKey(encoded string) (ok bool, section, key string) {
 
 // decodeEnvironmentKey decode the environment key to section and key
 // The environment key is in the form of GITEA__SECTION__KEY or GITEA__SECTION__KEY__FILE
-func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, section, key string, useFileValue bool) { //nolint:unparam
+func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, section, key string, useFileValue bool) {
 	if !strings.HasPrefix(envKey, prefixGitea) {
 		return false, "", "", false
 	}
@@ -111,21 +111,21 @@ func decodeEnvironmentKey(prefixGitea, suffixFile, envKey string) (ok bool, sect
 
 func EnvironmentToConfig(cfg ConfigProvider, envs []string) (changed bool) {
 	for _, kv := range envs {
-		idx := strings.IndexByte(kv, '=')
-		if idx < 0 {
+		before, after, ok := strings.Cut(kv, "=")
+		if !ok {
 			continue
 		}
 
 		// parse the environment variable to config section name and key name
-		envKey := kv[:idx]
-		envValue := kv[idx+1:]
+		envKey := before
+		envValue := after
 		ok, sectionName, keyName, useFileValue := decodeEnvironmentKey(EnvConfigKeyPrefixGitea, EnvConfigKeySuffixFile, envKey)
 		if !ok {
 			continue
 		}
 
 		// use environment value as config value, or read the file content as value if the key indicates a file
-		keyValue := envValue
+		keyValue := envValue //nolint:staticcheck // false positive
 		if useFileValue {
 			fileContent, err := os.ReadFile(envValue)
 			if err != nil {
@@ -167,24 +167,13 @@ func EnvironmentToConfig(cfg ConfigProvider, envs []string) (changed bool) {
 	return changed
 }
 
-// InitGiteaEnvVars initializes the environment variables for gitea
-func InitGiteaEnvVars() {
+func UnsetUnnecessaryEnvVars() {
 	// Ideally Gitea should only accept the environment variables which it clearly knows instead of unsetting the ones it doesn't want,
-	// but the ideal behavior would be a breaking change, and it seems not bringing enough benefits to end users,
-	// so at the moment we could still keep "unsetting the unnecessary environments"
+	// but the ideal behavior would be a breaking change, and it seems not bringing enough benefits to end users.
+	// So at the moment we just keep "unsetting the unnecessary environment variables".
 
 	// HOME is managed by Gitea, Gitea's git should use "HOME/.gitconfig".
 	// But git would try "XDG_CONFIG_HOME/git/config" first if "HOME/.gitconfig" does not exist,
 	// then our git.InitFull would still write to "XDG_CONFIG_HOME/git/config" if XDG_CONFIG_HOME is set.
 	_ = os.Unsetenv("XDG_CONFIG_HOME")
-}
-
-func InitGiteaEnvVarsForTesting() {
-	InitGiteaEnvVars()
-	_ = os.Unsetenv("GIT_AUTHOR_NAME")
-	_ = os.Unsetenv("GIT_AUTHOR_EMAIL")
-	_ = os.Unsetenv("GIT_AUTHOR_DATE")
-	_ = os.Unsetenv("GIT_COMMITTER_NAME")
-	_ = os.Unsetenv("GIT_COMMITTER_EMAIL")
-	_ = os.Unsetenv("GIT_COMMITTER_DATE")
 }
