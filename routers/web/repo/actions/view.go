@@ -489,7 +489,7 @@ func Rerun(ctx *context_module.Context) {
 				return
 			}
 
-			err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars)
+			err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars, nil)
 			if err != nil {
 				ctx.ServerError("EvaluateRunConcurrencyFillModel", err)
 				return
