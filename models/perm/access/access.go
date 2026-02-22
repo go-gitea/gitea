@@ -105,8 +105,10 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 	}
 
 	newAccesses := make([]Access, 0, len(accessMap))
+	keysToDelete := []int64{}
 	for userID, ua := range accessMap {
 		if ua.Mode < minMode && !ua.User.IsRestricted {
+			keysToDelete = append(keysToDelete, userID)
 			continue
 		}
 
@@ -115,6 +117,9 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 			RepoID: repo.ID,
 			Mode:   ua.Mode,
 		})
+	}
+	for _, uid := range keysToDelete {
+		delete(accessMap, uid)
 	}
 
 	// Delete old accesses and insert new ones for repository.
