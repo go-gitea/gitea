@@ -219,8 +219,8 @@ func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
 		"alg": key.SigningMethod().Alg(),
 		"kid": key.id,
 		"crv": pubKey.Params().Name,
-		"x":   base64.RawURLEncoding.EncodeToString(pubKey.X.Bytes()),
-		"y":   base64.RawURLEncoding.EncodeToString(pubKey.Y.Bytes()),
+		"x":   base64.RawURLEncoding.EncodeToString(pubKey.X.Bytes()), //nolint:staticcheck // deprecated in Go 1.26, but no easy alternative for JWK encoding
+		"y":   base64.RawURLEncoding.EncodeToString(pubKey.Y.Bytes()), //nolint:staticcheck // deprecated in Go 1.26, but no easy alternative for JWK encoding
 	}, nil
 }
 
