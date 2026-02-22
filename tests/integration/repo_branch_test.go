@@ -13,11 +13,16 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubURL, newBranchName string, expectedStatus int) string {
@@ -33,6 +38,25 @@ func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubU
 
 func TestCreateBranch(t *testing.T) {
 	onGiteaRun(t, testCreateBranches)
+}
+
+func TestDeleteBranchReturnsNotFoundWhenMissing(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		require.NoError(t, err)
+		defer gitRepo.Close()
+
+		require.NoError(t, repo_service.DeleteBranch(t.Context(), doer, repo, gitRepo, "branch2", nil))
+
+		err = repo_service.DeleteBranch(t.Context(), doer, repo, gitRepo, "branch2", nil)
+		assert.True(t, git.IsErrBranchNotExist(err))
+
+		err = repo_service.DeleteBranch(t.Context(), doer, repo, gitRepo, "branch-does-not-exist", nil)
+		assert.True(t, git.IsErrBranchNotExist(err))
+	})
 }
 
 func testCreateBranches(t *testing.T, giteaURL *url.URL) {
