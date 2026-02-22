@@ -474,7 +474,6 @@ const persistDraftState = () => {
 
 // Initialize Fomantic UI dropdowns for label selection
 const initLabelDropdowns = () => {
-  await nextTick();
   const dropdowns = elRoot.value?.querySelectorAll('.ui.dropdown');
   if (dropdowns) {
     dropdowns.forEach((dropdown) => {
@@ -487,8 +486,9 @@ const initLabelDropdowns = () => {
 };
 
 // Watch for edit mode changes to initialize dropdowns
-watch(isInEditMode, (newVal) => {
+watch(isInEditMode, async (newVal) => {
   if (newVal) {
+    await nextTick();
     initLabelDropdowns();
   }
 });
