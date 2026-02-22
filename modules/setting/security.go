@@ -14,6 +14,12 @@ import (
 )
 
 // Security settings
+var Security = struct {
+	// TODO: move more settings to this struct in future
+	XFrameOptions string
+}{
+	XFrameOptions: "SAMEORIGIN",
+}
 
 var (
 	InstallLock                        bool
@@ -139,6 +145,13 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
+
+	deprecatedSetting(rootCfg, "cors", "X_FRAME_OPTIONS", "security", "X_FRAME_OPTIONS", "v1.26.0")
+	if sec.HasKey("X_FRAME_OPTIONS") {
+		Security.XFrameOptions = sec.Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
+	} else {
+		Security.XFrameOptions = rootCfg.Section("cors").Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
+	}
 
 	twoFactorAuth := sec.Key("TWO_FACTOR_AUTH").String()
 	switch twoFactorAuth {
