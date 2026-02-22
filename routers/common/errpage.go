@@ -32,8 +32,8 @@ func renderServerErrorPage(w http.ResponseWriter, req *http.Request, respCode in
 	}
 
 	httpcache.SetCacheControlInHeader(w.Header(), &httpcache.CacheControlOptions{NoTransform: true})
-	if setting.UseXFrameOptions {
-		w.Header().Set(`X-Frame-Options`, setting.XFrameOptions)
+	if setting.Security.XFrameOptions != "unset" {
+		w.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
 	}
 
 	tmplCtx := context.NewTemplateContext(req.Context(), req)
