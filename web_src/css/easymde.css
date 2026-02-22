@@ -272,28 +272,6 @@
   z-index: 9;
 }
 
-.EasyMDEContainer .editor-toolbar.fullscreen::before {
-  width: 20px;
-  height: 50px;
-  background: linear-gradient(to right, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0) 100%);
-  position: fixed;
-  top: 0;
-  left: 0;
-  margin: 0;
-  padding: 0;
-}
-
-.EasyMDEContainer .editor-toolbar.fullscreen::after {
-  width: 20px;
-  height: 50px;
-  background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 1) 100%);
-  position: fixed;
-  top: 0;
-  right: 0;
-  margin: 0;
-  padding: 0;
-}
-
 .EasyMDEContainer .editor-toolbar button {
   background: transparent;
   display: inline-block;
