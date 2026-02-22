@@ -156,7 +156,10 @@ type User struct {
 	Theme               string `xorm:"NOT NULL DEFAULT ''"`
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
 
-	ExtDoerData ExtDoerData
+	// When the user model is used as a doer (all existing code does so), the doer can have extra details.
+	// * Actions task doer need to bind to the task ID
+	// * Project workflow doer need to bind to the project ID and workflow event
+	ExtDoerData ExtDoerData `xorm:"-"`
 }
 
 // Meta defines the meta information of a user, to be stored in the K/V table
