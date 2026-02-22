@@ -14,6 +14,12 @@ import (
 )
 
 // Security settings
+var Security = struct {
+	// TODO: move more settings to this struct in future
+	XFrameOptions string
+}{
+	XFrameOptions: "SAMEORIGIN",
+}
 
 var (
 	InstallLock                        bool
@@ -38,8 +44,6 @@ var (
 	DisableQueryAuthToken              bool
 	RecordUserSignupMetadata           = false
 	TwoFactorAuthEnforced              = false
-	XFrameOptions                      string
-	UseXFrameOptions                   bool
 )
 
 // loadSecret load the secret from ini by uriKey or verbatimKey, only one of them could be set
@@ -143,17 +147,11 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	deprecatedSetting(rootCfg, "cors", "X_FRAME_OPTIONS", "security", "X_FRAME_OPTIONS", "v1.26.0")
-	if val := sec.Key("X_FRAME_OPTIONS").String(); val != "" {
-		XFrameOptions = val
-	} else if val := rootCfg.Section("cors").Key("X_FRAME_OPTIONS").String(); val != "" {
-		XFrameOptions = val
+	if sec.HasKey("X_FRAME_OPTIONS") {
+		Security.XFrameOptions = sec.Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
 	} else {
-		XFrameOptions = "SAMEORIGIN"
+		Security.XFrameOptions = rootCfg.Section("cors").Key("X_FRAME_OPTIONS").MustString(Security.XFrameOptions)
 	}
-	if XFrameOptions != "SAMEORIGIN" && XFrameOptions != "DENY" && XFrameOptions != "false" {
-		log.Fatal("Invalid X_FRAME_OPTIONS value: %q, expected one of: SAMEORIGIN, DENY, false", XFrameOptions)
-	}
-	UseXFrameOptions = XFrameOptions != "false"
 
 	twoFactorAuth := sec.Key("TWO_FACTOR_AUTH").String()
 	switch twoFactorAuth {

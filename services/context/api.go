@@ -235,11 +235,6 @@ func APIContexter() func(http.Handler) http.Handler {
 			}
 
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
-
-			if setting.UseXFrameOptions {
-				ctx.Resp.Header().Set(`X-Frame-Options`, setting.XFrameOptions)
-			}
-
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 		})
 	}
