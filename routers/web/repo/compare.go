@@ -718,7 +718,7 @@ func CompareDiff(ctx *context.Context) {
 		config := unit.PullRequestsConfig()
 		ctx.Data["AllowMaintainerEdit"] = config.DefaultAllowMaintainerEdit
 	} else {
-		ctx.Data["AllowMaintainerEdit"] = false
+		ctx.Data["AllowMaintainerEdit"] = true
 	}
 
 	ctx.HTML(http.StatusOK, tplCompare)
