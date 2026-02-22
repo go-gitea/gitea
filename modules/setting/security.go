@@ -143,10 +143,12 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	deprecatedSetting(rootCfg, "cors", "X_FRAME_OPTIONS", "security", "X_FRAME_OPTIONS", "v1.26.0")
-	if val := rootCfg.Section("cors").Key("X_FRAME_OPTIONS").String(); val != "" {
+	if val := sec.Key("X_FRAME_OPTIONS").String(); val != "" {
+		XFrameOptions = val
+	} else if val := rootCfg.Section("cors").Key("X_FRAME_OPTIONS").String(); val != "" {
 		XFrameOptions = val
 	} else {
-		XFrameOptions = sec.Key("X_FRAME_OPTIONS").MustString("SAMEORIGIN")
+		XFrameOptions = "SAMEORIGIN"
 	}
 	if XFrameOptions != "SAMEORIGIN" && XFrameOptions != "DENY" && XFrameOptions != "false" {
 		log.Fatal("Invalid X_FRAME_OPTIONS value: %q, expected one of: SAMEORIGIN, DENY, false", XFrameOptions)
