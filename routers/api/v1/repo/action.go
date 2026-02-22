@@ -1011,7 +1011,6 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/RunDetails"
-	//     description: If return_run_details is true you get the runid
 	//   "204":
 	//     description: No Content, if return_run_details is missing or false
 	//   "400":
