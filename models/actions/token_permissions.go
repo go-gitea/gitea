@@ -8,7 +8,6 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/log"
 )
 
 // ComputeJobTokenPermissions computes the effective permissions for a job token against the target repository.
@@ -46,12 +45,10 @@ func ComputeJobTokenPermissions(ctx context.Context, job *ActionRunJob, targetRe
 
 	if !actionsCfg.OverrideOrgConfig {
 		ownerCfg, err := GetUserActionsConfig(ctx, runRepo.OwnerID)
-		if err == nil {
-			effectivePerms = ownerCfg.ClampPermissions(effectivePerms)
-		} else {
-			// At minimum log the error to avoid silent privilege escalation if store is unavailable
-			log.Error("GetUserActionsConfig failed for owner %d: %v", runRepo.OwnerID, err)
+		if err != nil {
+			return nil, err
 		}
+		effectivePerms = ownerCfg.ClampPermissions(effectivePerms)
 	}
 	effectivePerms = actionsCfg.ClampPermissions(effectivePerms)
 

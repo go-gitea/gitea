@@ -118,7 +118,10 @@ func InsertRun(ctx context.Context, run *actions_model.ActionRun, jobs []*jobpar
 			// Parse workflow/job permissions (no clamping here)
 			var tokenPermissions string
 			if perms := ExtractJobPermissionsFromWorkflow(v, job); perms != nil {
-				tokenPermissions = repo_model.MarshalTokenPermissions(*perms)
+				tokenPermissions, err = repo_model.MarshalTokenPermissions(*perms)
+				if err != nil {
+					return err
+				}
 			}
 
 			job.Name = util.EllipsisDisplayString(job.Name, 255)

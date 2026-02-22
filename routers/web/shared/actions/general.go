@@ -19,6 +19,32 @@ const (
 	tplUserSettingsActionsGeneral templates.TplName = "user/settings/actions_general"
 )
 
+// ParseMaxTokenPermissions parses the maximum token permissions from form values
+func ParseMaxTokenPermissions(ctx *context.Context) *repo_model.ActionsTokenPermissions {
+	parseMaxPerm := func(name string) perm.AccessMode {
+		value := ctx.FormString("max_" + name)
+		switch value {
+		case "write":
+			return perm.AccessModeWrite
+		case "read":
+			return perm.AccessModeRead
+		default:
+			return perm.AccessModeNone
+		}
+	}
+
+	return &repo_model.ActionsTokenPermissions{
+		Code:         parseMaxPerm("code"),
+		Issues:       parseMaxPerm("issues"),
+		Packages:     parseMaxPerm("packages"),
+		PullRequests: parseMaxPerm("pull_requests"),
+		Wiki:         parseMaxPerm("wiki"),
+		Actions:      parseMaxPerm("actions"),
+		Releases:     parseMaxPerm("releases"),
+		Projects:     parseMaxPerm("projects"),
+	}
+}
+
 // GeneralSettings renders the actions general settings page
 func GeneralSettings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("actions.actions")
@@ -69,6 +95,7 @@ func GeneralSettings(ctx *context.Context) {
 		}
 	}
 	ctx.Data["AllowedRepos"] = allowedRepos
+	ctx.Data["OwnerID"] = rCtx.OwnerID
 
 	generalLink := rCtx.RedirectLink + "../general"
 	ctx.Data["Link"] = generalLink
@@ -118,28 +145,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	enableMaxPermissions := ctx.FormBool("enable_max_permissions")
 	// Update Maximum Permissions (radio buttons: none/read/write)
 	if enableMaxPermissions {
-		parseMaxPerm := func(name string) perm.AccessMode {
-			value := ctx.FormString("max_" + name)
-			switch value {
-			case "write":
-				return perm.AccessModeWrite
-			case "read":
-				return perm.AccessModeRead
-			default:
-				return perm.AccessModeNone
-			}
-		}
-
-		actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
-			Code:         parseMaxPerm("code"),
-			Issues:       parseMaxPerm("issues"),
-			Packages:     parseMaxPerm("packages"),
-			PullRequests: parseMaxPerm("pull_requests"),
-			Wiki:         parseMaxPerm("wiki"),
-			Actions:      parseMaxPerm("actions"),
-			Releases:     parseMaxPerm("releases"),
-			Projects:     parseMaxPerm("projects"),
-		}
+		actionsCfg.MaxTokenPermissions = ParseMaxTokenPermissions(ctx)
 	} else {
 		actionsCfg.MaxTokenPermissions = nil
 	}

@@ -161,7 +161,8 @@ func TestMarshalUnmarshalTokenPermissions(t *testing.T) {
 	}
 
 	// Marshal
-	jsonStr := repo_model.MarshalTokenPermissions(original)
+	jsonStr, err := repo_model.MarshalTokenPermissions(original)
+	assert.NoError(t, err)
 	assert.NotEmpty(t, jsonStr)
 
 	// Unmarshal

@@ -305,12 +305,12 @@ func GetReadOnlyPermissions() ActionsTokenPermissions {
 }
 
 // MarshalTokenPermissions serializes ActionsTokenPermissions to JSON
-func MarshalTokenPermissions(perms ActionsTokenPermissions) string {
+func MarshalTokenPermissions(perms ActionsTokenPermissions) (string, error) {
 	data, err := json.Marshal(perms)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return string(data)
+	return string(data), nil
 }
 
 // UnmarshalTokenPermissions deserializes JSON to ActionsTokenPermissions

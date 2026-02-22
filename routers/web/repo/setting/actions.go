@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/util"
+	shared_actions "code.gitea.io/gitea/routers/web/shared/actions"
 	"code.gitea.io/gitea/services/context"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
@@ -105,7 +105,7 @@ func AddCollaborativeOwner(ctx *context.Context) {
 	actionsCfg := actionsUnit.ActionsConfig()
 	actionsCfg.AddCollaborativeOwner(ownerID)
 	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
-		ctx.ServerError("UpdateRepoUnit", err)
+		ctx.ServerError("UpdateRepoUnitConfig", err)
 		return
 	}
 
@@ -128,7 +128,7 @@ func DeleteCollaborativeOwner(ctx *context.Context) {
 	}
 	actionsCfg.RemoveCollaborativeOwner(ownerID)
 	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
-		ctx.ServerError("UpdateRepoUnit", err)
+		ctx.ServerError("UpdateRepoUnitConfig", err)
 		return
 	}
 
@@ -172,28 +172,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	enableMaxPermissions := ctx.FormBool("enable_max_permissions")
 	if shouldUpdate {
 		if enableMaxPermissions {
-			parseMaxPerm := func(name string) perm.AccessMode {
-				value := ctx.FormString("max_" + name)
-				switch value {
-				case "write":
-					return perm.AccessModeWrite
-				case "read":
-					return perm.AccessModeRead
-				default:
-					return perm.AccessModeNone
-				}
-			}
-
-			actionsCfg.MaxTokenPermissions = &repo_model.ActionsTokenPermissions{
-				Code:         parseMaxPerm("code"),
-				Issues:       parseMaxPerm("issues"),
-				Packages:     parseMaxPerm("packages"),
-				PullRequests: parseMaxPerm("pull_requests"),
-				Wiki:         parseMaxPerm("wiki"),
-				Actions:      parseMaxPerm("actions"),
-				Releases:     parseMaxPerm("releases"),
-				Projects:     parseMaxPerm("projects"),
-			}
+			actionsCfg.MaxTokenPermissions = shared_actions.ParseMaxTokenPermissions(ctx)
 		} else {
 			// If not enabled, ensure any sent permissions are ignored and set to nil
 			actionsCfg.MaxTokenPermissions = nil
@@ -201,7 +180,7 @@ func UpdateTokenPermissions(ctx *context.Context) {
 	}
 
 	if err := repo_model.UpdateRepoUnitConfig(ctx, actionsUnit); err != nil {
-		ctx.ServerError("UpdateRepoUnit", err)
+		ctx.ServerError("UpdateRepoUnitConfig", err)
 		return
 	}
 

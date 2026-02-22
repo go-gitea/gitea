@@ -749,7 +749,8 @@ jobs:
 					finalPerms = defaultPerms
 				}
 				finalPerms = cfg.ClampPermissions(finalPerms)
-				permsJSON := repo_model.MarshalTokenPermissions(finalPerms)
+				permsJSON, err := repo_model.MarshalTokenPermissions(finalPerms)
+				require.NoError(t, err)
 
 				job := &actions_model.ActionRunJob{
 					RunID:            run.ID,

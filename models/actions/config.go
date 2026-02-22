@@ -22,7 +22,7 @@ func GetUserActionsConfig(ctx context.Context, userID int64) (*repo_model.Action
 	cfg := &repo_model.ActionsConfig{}
 	if val == "" {
 		// Return defaults if no config exists
-		cfg.CrossRepoMode = repo_model.ActionsCrossRepoModeAll
+		cfg.CrossRepoMode = repo_model.ActionsCrossRepoModeNone
 		return cfg, nil
 	}
 
