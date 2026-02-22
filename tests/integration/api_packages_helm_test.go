@@ -64,11 +64,7 @@ dependencies:
 	provContent := `-----BEGIN PGP SIGNED MESSAGE-----
 Hash: SHA512
 
-apiVersion: v2
-description: ` + packageDescription + `
-name: ` + packageName + `
-type: application
-version: ` + packageVersion + `
+` + chartContent + `
 
 ...
 files:
@@ -85,6 +81,17 @@ qtgooNdohoyGSzR5oapd7fEvauRQswJxOA0m0V+u9/eyLR0+JcYB8Udi1prnWf8=
 -----END PGP SIGNATURE-----`
 
 	url := fmt.Sprintf("/api/packages/%s/helm", user.Name)
+
+	t.Run("UploadProvFileWithoutChart", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		provURL := url + "/api/prov"
+
+		// Attempt to upload provenance file without chart to back it.
+		req := NewRequestWithBody(t, "POST", provURL, bytes.NewReader([]byte(provContent))).
+			AddBasicAuth(user.Name)
+		MakeRequest(t, req, http.StatusNotFound)
+	})
 
 	t.Run("Upload", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()

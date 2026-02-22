@@ -209,6 +209,7 @@ func UploadPackage(ctx *context.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
+// UploadProvenanceFile uploads and attaches the provenance file to existing helm chart
 func UploadProvenanceFile(ctx *context.Context) {
 	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
@@ -241,18 +242,13 @@ func UploadProvenanceFile(ctx *context.Context) {
 		return
 	}
 
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+	_, err = packages_service.AddFileToExistingPackage(
 		ctx,
-		&packages_service.PackageCreationInfo{
-			PackageInfo: packages_service.PackageInfo{
-				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeHelm,
-				Name:        metadata.Name,
-				Version:     metadata.Version,
-			},
-			SemverCompatible: true,
-			Creator:          ctx.Doer,
-			Metadata:         metadata,
+		&packages_service.PackageInfo{
+			Owner:       ctx.Package.Owner,
+			PackageType: packages_model.TypeHelm,
+			Name:        metadata.Name,
+			Version:     metadata.Version,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -266,8 +262,8 @@ func UploadProvenanceFile(ctx *context.Context) {
 	)
 	if err != nil {
 		switch err {
-		case packages_model.ErrDuplicatePackageVersion:
-			apiError(ctx, http.StatusConflict, err)
+		case packages_model.ErrPackageNotExist:
+			apiError(ctx, http.StatusNotFound, err)
 		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
 			apiError(ctx, http.StatusForbidden, err)
 		default:
