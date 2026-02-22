@@ -241,12 +241,6 @@ const (
 	SpecialDoerNameProjectWorkflow SpecialDoerNameType = "PROJECT_WORKFLOW"
 )
 
-type ProjectWorkflowCommentMeta struct {
-	ProjectTitle         string
-	ProjectWorkflowID    int64
-	ProjectWorkflowEvent project_model.WorkflowEvent
-}
-
 // CommentMetaData stores metadata for a comment, these data will not be changed once inserted into database
 type CommentMetaData struct {
 	ProjectColumnID    int64  `json:"project_column_id,omitempty"`
@@ -259,18 +253,25 @@ type CommentMetaData struct {
 	SpecialDoerName SpecialDoerNameType `json:"special_doer_name,omitempty"` // e.g. "CODEOWNERS" for CODEOWNERS-triggered review requests
 }
 
-type commentMetaDataKey struct{}
-
-func WithProjectWorkflowCommentMeta(ctx context.Context, meta ProjectWorkflowCommentMeta) context.Context {
-	if meta.ProjectWorkflowID == 0 {
-		return ctx
-	}
-	return context.WithValue(ctx, commentMetaDataKey{}, meta)
+type projectWorkflowDoer struct {
+	projectTitle         string
+	projectWorkflowID    int64
+	projectWorkflowEvent project_model.WorkflowEvent
 }
 
-func getProjectWorkflowCommentMeta(ctx context.Context) (ProjectWorkflowCommentMeta, bool) {
-	meta, ok := ctx.Value(commentMetaDataKey{}).(ProjectWorkflowCommentMeta)
-	return meta, ok
+func (p projectWorkflowDoer) GetDoerUserID() int64 {
+	return -1
+}
+
+func NewProjectWorkflowDoer(title string, workflowID int64, workflowEvent project_model.WorkflowEvent) *user_model.User {
+	return &user_model.User{
+		ID: -1,
+		ExtDoerData: &projectWorkflowDoer{
+			projectTitle:         title,
+			projectWorkflowID:    workflowID,
+			projectWorkflowEvent: workflowEvent,
+		},
+	}
 }
 
 // Comment represents a comment in commit and issue page.
@@ -836,35 +837,37 @@ func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdSt
 	return locale.Tr("repo.issues.review.add_review_request", teamName, createdStr)
 }
 
+func buildCreateCommentMetaData(ctx context.Context, opts *CreateCommentOptions) (commentMetaData *CommentMetaData) {
+	makeCommentMetaData := func() {
+		if commentMetaData == nil {
+			commentMetaData = &CommentMetaData{}
+		}
+	}
+	if opts.ProjectColumnTitle != "" {
+		makeCommentMetaData()
+		commentMetaData.ProjectColumnID = opts.ProjectColumnID
+		commentMetaData.ProjectColumnTitle = opts.ProjectColumnTitle
+		commentMetaData.ProjectTitle = opts.ProjectTitle
+	}
+	if opts.SpecialDoerName != "" {
+		makeCommentMetaData()
+		commentMetaData.SpecialDoerName = opts.SpecialDoerName
+	}
+	if extDoer, ok := opts.Doer.ExtDoerData.(projectWorkflowDoer); ok {
+		makeCommentMetaData()
+		commentMetaData.ProjectWorkflowID = extDoer.projectWorkflowID
+		commentMetaData.ProjectWorkflowEvent = extDoer.projectWorkflowEvent
+		commentMetaData.ProjectTitle = extDoer.projectTitle
+	}
+	return commentMetaData
+}
+
 // CreateComment creates comment with context
 func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
 	return db.WithTx2(ctx, func(ctx context.Context) (*Comment, error) {
 		var LabelID int64
 		if opts.Label != nil {
 			LabelID = opts.Label.ID
-		}
-
-		var commentMetaData *CommentMetaData
-		if opts.ProjectColumnTitle != "" {
-			commentMetaData = &CommentMetaData{
-				ProjectColumnID:    opts.ProjectColumnID,
-				ProjectColumnTitle: opts.ProjectColumnTitle,
-				ProjectTitle:       opts.ProjectTitle,
-			}
-		}
-		if opts.SpecialDoerName != "" {
-			commentMetaData = &CommentMetaData{
-				SpecialDoerName: opts.SpecialDoerName,
-			}
-		}
-		if workflowMeta, ok := getProjectWorkflowCommentMeta(ctx); ok {
-			if commentMetaData == nil {
-				commentMetaData = &CommentMetaData{}
-			}
-			commentMetaData.ProjectWorkflowID = workflowMeta.ProjectWorkflowID
-			commentMetaData.ProjectWorkflowEvent = workflowMeta.ProjectWorkflowEvent
-			commentMetaData.ProjectTitle = workflowMeta.ProjectTitle
-			commentMetaData.SpecialDoerName = SpecialDoerNameProjectWorkflow
 		}
 
 		comment := &Comment{
@@ -900,7 +903,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 			RefIsPull:        opts.RefIsPull,
 			IsForcePush:      opts.IsForcePush,
 			Invalidated:      opts.Invalidated,
-			CommentMetaData:  commentMetaData,
+			CommentMetaData:  buildCreateCommentMetaData(ctx, opts),
 		}
 		if err = db.Insert(ctx, comment); err != nil {
 			return nil, err
