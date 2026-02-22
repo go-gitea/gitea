@@ -196,7 +196,10 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 
 			httpcache.SetCacheControlInHeader(ctx.Resp.Header(), &httpcache.CacheControlOptions{NoTransform: true})
-			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
+
+			if setting.Security.XFrameOptions != "unset" {
+				ctx.Resp.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
+			}
 
 			ctx.Data["SystemConfig"] = setting.Config()
 

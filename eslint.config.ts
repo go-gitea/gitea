@@ -911,9 +911,10 @@ export default defineConfig([
   },
   {
     ...playwright.configs['flat/recommended'],
-    files: ['tests/e2e/**'],
+    files: ['tests/e2e/**/*.test.ts'],
     rules: {
       ...playwright.configs['flat/recommended'].rules,
+      'playwright/expect-expect': [0],
     },
   },
   {
