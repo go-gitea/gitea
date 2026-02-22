@@ -808,7 +808,7 @@ func (c *Comment) MetaSpecialDoerTr(locale translation.Locale) template.HTML {
 	case SpecialDoerNameProjectWorkflow:
 		res := locale.Tr("repo.issues.project_workflow")
 		if c.CommentMetaData.ProjectWorkflowID > 0 {
-			res += " <span class=\"muted text black tw-font-semibold\">" + locale.Tr(c.CommentMetaData.ProjectWorkflowEvent.LangKey()) + "</span>"
+			res += ` <span class="text black tw-font-semibold">` + locale.Tr(c.CommentMetaData.ProjectWorkflowEvent.LangKey()) + "</span>"
 		}
 		return res
 	default:
@@ -838,7 +838,7 @@ func (c *Comment) TimelineRequestedReviewTr(locale translation.Locale, createdSt
 	return locale.Tr("repo.issues.review.add_review_request", teamName, createdStr)
 }
 
-func buildCreateCommentMetaData(ctx context.Context, opts *CreateCommentOptions) (commentMetaData *CommentMetaData) {
+func buildCreateCommentMetaData(opts *CreateCommentOptions) (commentMetaData *CommentMetaData) {
 	makeCommentMetaData := func() {
 		if commentMetaData == nil {
 			commentMetaData = &CommentMetaData{}
@@ -905,7 +905,7 @@ func CreateComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment,
 			RefIsPull:        opts.RefIsPull,
 			IsForcePush:      opts.IsForcePush,
 			Invalidated:      opts.Invalidated,
-			CommentMetaData:  buildCreateCommentMetaData(ctx, opts),
+			CommentMetaData:  buildCreateCommentMetaData(opts),
 		}
 		if err = db.Insert(ctx, comment); err != nil {
 			return nil, err

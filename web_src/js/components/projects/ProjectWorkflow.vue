@@ -473,7 +473,7 @@ const persistDraftState = () => {
 };
 
 // Initialize Fomantic UI dropdowns for label selection
-const initLabelDropdowns = async () => {
+const initLabelDropdowns = () => {
   await nextTick();
   const dropdowns = elRoot.value?.querySelectorAll('.ui.dropdown');
   if (dropdowns) {
@@ -487,9 +487,9 @@ const initLabelDropdowns = async () => {
 };
 
 // Watch for edit mode changes to initialize dropdowns
-watch(isInEditMode, async (newVal) => {
+watch(isInEditMode, (newVal) => {
   if (newVal) {
-    await initLabelDropdowns();
+    initLabelDropdowns();
   }
 });
 
@@ -830,7 +830,7 @@ onUnmounted(() => {
 
                 <div class="field" v-if="hasFilter('labels')">
                   <label>{{ locale.onlyIfHasLabels }}</label>
-                  <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
+                  <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown custom label-dropdown">
                     <input type="hidden" :value="store.workflowFilters.labels.join(',')">
                     <i class="dropdown icon"/>
                     <div class="text" :class="{ default: !store.workflowFilters.labels?.length }">
@@ -895,7 +895,7 @@ onUnmounted(() => {
 
                 <div class="field" v-if="hasAction('add_labels')">
                   <label>{{ locale.addLabels }}</label>
-                  <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
+                  <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown custom label-dropdown">
                     <input type="hidden" :value="store.workflowActions.addLabels.join(',')">
                     <i class="dropdown icon"/>
                     <div class="text" :class="{ default: !store.workflowActions.addLabels?.length }">
@@ -937,7 +937,7 @@ onUnmounted(() => {
 
                 <div class="field" v-if="hasAction('remove_labels')">
                   <label>{{ locale.removeLabels }}</label>
-                  <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown label-dropdown">
+                  <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown custom label-dropdown">
                     <input type="hidden" :value="store.workflowActions.removeLabels.join(',')">
                     <i class="dropdown icon"/>
                     <div class="text" :class="{ default: !store.workflowActions.removeLabels?.length }">
