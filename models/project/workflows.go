@@ -6,6 +6,7 @@ package project
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
@@ -26,24 +27,22 @@ const (
 	WorkflowEventPullRequestMerged      WorkflowEvent = "pull_request_merged"
 )
 
-var workflowEvents = []WorkflowEvent{
-	WorkflowEventItemOpened,
-	WorkflowEventItemAddedToProject,
-	WorkflowEventItemRemovedFromProject,
-	WorkflowEventItemReopened,
-	WorkflowEventItemClosed,
-	WorkflowEventItemColumnChanged,
-	WorkflowEventCodeChangesRequested,
-	WorkflowEventCodeReviewApproved,
-	WorkflowEventPullRequestMerged,
-}
-
-func GetWorkflowEvents() []WorkflowEvent {
-	return workflowEvents
-}
+var GetWorkflowEvents = sync.OnceValue(func() []WorkflowEvent {
+	return []WorkflowEvent{
+		WorkflowEventItemOpened,
+		WorkflowEventItemAddedToProject,
+		WorkflowEventItemRemovedFromProject,
+		WorkflowEventItemReopened,
+		WorkflowEventItemClosed,
+		WorkflowEventItemColumnChanged,
+		WorkflowEventCodeChangesRequested,
+		WorkflowEventCodeReviewApproved,
+		WorkflowEventPullRequestMerged,
+	}
+})
 
 func IsValidWorkflowEvent(event string) bool {
-	for _, we := range workflowEvents {
+	for _, we := range GetWorkflowEvents() {
 		if we.EventID() == event {
 			return true
 		}
@@ -115,7 +114,7 @@ type WorkflowEventCapabilities struct {
 }
 
 // GetWorkflowEventCapabilities returns the capabilities for each workflow event
-func GetWorkflowEventCapabilities() map[WorkflowEvent]WorkflowEventCapabilities {
+var GetWorkflowEventCapabilities = sync.OnceValue(func () map[WorkflowEvent]WorkflowEventCapabilities {
 	return map[WorkflowEvent]WorkflowEventCapabilities{
 		WorkflowEventItemOpened: {
 			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},
@@ -154,7 +153,7 @@ func GetWorkflowEventCapabilities() map[WorkflowEvent]WorkflowEventCapabilities 
 			AvailableActions: []WorkflowActionType{WorkflowActionTypeColumn, WorkflowActionTypeAddLabels, WorkflowActionTypeRemoveLabels},
 		},
 	}
-}
+})
 
 type Workflow struct {
 	ID              int64
