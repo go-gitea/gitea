@@ -148,6 +148,9 @@ func loadSecurityFrom(rootCfg ConfigProvider) {
 	} else {
 		XFrameOptions = sec.Key("X_FRAME_OPTIONS").MustString("SAMEORIGIN")
 	}
+	if XFrameOptions != "SAMEORIGIN" && XFrameOptions != "DENY" && XFrameOptions != "false" {
+		log.Fatal("Invalid X_FRAME_OPTIONS value: %q, expected one of: SAMEORIGIN, DENY, false", XFrameOptions)
+	}
 	UseXFrameOptions = XFrameOptions != "false"
 
 	twoFactorAuth := sec.Key("TWO_FACTOR_AUTH").String()
