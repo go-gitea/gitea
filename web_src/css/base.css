@@ -1107,6 +1107,14 @@ table th[data-sortt-desc] .svg {
   min-width: 0; /* make ellipsis work */
 }
 
+.ui.ui.button {
+  gap: calc(2 * var(--gap-inline));
+}
+
+.ui.ui.button.compact {
+  gap: var(--gap-inline);
+}
+
 .ui.multiple.selection.dropdown {
   flex-wrap: wrap;
 }
