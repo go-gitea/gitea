@@ -84,19 +84,24 @@
 								<div class="field footer">
 									<div class="flex-text-block tw-justify-end">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
+											{{$btnIconColor := ""}}{{$btnIcon := ""}}{{$btnTextNoComment := ""}}{{$btnTextWithComment := ""}}{{$btnValue := ""}}
 											{{if .Issue.IsClosed}}
-												<button id="status-button" class="ui primary basic button" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
-													{{ctx.Locale.Tr "repo.issues.reopen_issue"}}
-												</button>
+												{{$btnValue = "reopen"}}
+												{{$btnIconColor = "tw-text-green"}}
+												{{$btnIcon = Iif .Issue.IsPull "octicon-git-pull-request" "octicon-issue-reopened"}}
+												{{$btnTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.reopen" "repo.issues.reopen_issue")}}
+												{{$btnTextWithComment = ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}{{/* general: Reopen with Comment */}}
 											{{else}}
-												{{$closeTranslationKey := "repo.issues.close"}}
-												{{if .Issue.IsPull}}
-													{{$closeTranslationKey = "repo.pulls.close"}}
-												{{end}}
-												<button id="status-button" class="ui red basic button" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
-													{{ctx.Locale.Tr $closeTranslationKey}}
-												</button>
+												{{$btnValue = "close"}}
+												{{$btnIconColor = "tw-text-red"}}
+												{{$btnIcon = Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed"}}
+												{{$btnTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.close" "repo.issues.close")}}
+												{{$btnTextWithComment = ctx.Locale.Tr "repo.issues.close_comment_issue"}}{{/* general: Close with Comment */}}
 											{{end}}
+											<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="{{$btnValue}}">
+												<span class="status-button-icon {{$btnIconColor}}">{{svg $btnIcon}}</span>
+												<span class="status-button-text">{{$btnTextNoComment}}</span>
+											</button>
 										{{end}}
 										<button id="comment-button" class="ui primary button">
 											{{ctx.Locale.Tr "repo.issues.create_comment"}}
