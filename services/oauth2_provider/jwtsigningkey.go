@@ -211,6 +211,9 @@ func (key ecdsaSingingKey) VerifyKey() any {
 	return key.key.Public()
 }
 
+// ecdsaCurveByCoordLen maps EC coordinate byte length to JWK curve name
+var ecdsaCurveByCoordLen = map[int]string{32: "P-256", 48: "P-384", 66: "P-521"}
+
 func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
 	pubKey := key.key.Public().(*ecdsa.PublicKey)
 
@@ -220,12 +223,16 @@ func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
 		return nil, err
 	}
 	coordLen := (len(pubKeyBytes) - 1) / 2
+	curveName, ok := ecdsaCurveByCoordLen[coordLen]
+	if !ok {
+		return nil, fmt.Errorf("unsupported EC coordinate length: %d", coordLen)
+	}
 
 	return map[string]string{
 		"kty": "EC",
 		"alg": key.SigningMethod().Alg(),
 		"kid": key.id,
-		"crv": pubKey.Params().Name,
+		"crv": curveName,
 		"x":   base64.RawURLEncoding.EncodeToString(pubKeyBytes[1 : 1+coordLen]),
 		"y":   base64.RawURLEncoding.EncodeToString(pubKeyBytes[1+coordLen:]),
 	}, nil
