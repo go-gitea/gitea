@@ -27,6 +27,7 @@ import (
 	shared_user "code.gitea.io/gitea/routers/web/shared/user"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
+	issues_servie "code.gitea.io/gitea/services/issue"
 	project_service "code.gitea.io/gitea/services/projects"
 )
 
@@ -373,20 +374,10 @@ func ViewProject(ctx *context.Context) {
 	}
 	ctx.Data["LinkedPRs"] = linkedPrsMap
 
-	labels, err := issues_model.GetLabelsByRepoID(ctx, project.RepoID, "", db.ListOptions{})
+	labels, err := project_service.GetProjectLabels(ctx, project)
 	if err != nil {
-		ctx.ServerError("GetLabelsByRepoID", err)
+		ctx.ServerError("GetProjectLabels", err)
 		return
-	}
-
-	if ctx.Repo.Owner.IsOrganization() {
-		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, "", db.ListOptions{})
-		if err != nil {
-			ctx.ServerError("GetLabelsByOrgID", err)
-			return
-		}
-
-		labels = append(labels, orgLabels...)
 	}
 
 	// Get the exclusive scope for every label ID
@@ -464,7 +455,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		if issue.Project != nil && issue.Project.ID == projectID {
 			continue
 		}
-		if err := issues_model.IssueAssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
+		if err := issues_servie.AssignOrRemoveProject(ctx, issue, ctx.Doer, projectID, 0); err != nil {
 			if errors.Is(err, util.ErrPermissionDenied) {
 				continue
 			}
@@ -702,6 +693,7 @@ func MoveIssues(ctx *context.Context) {
 	form := &movedIssuesForm{}
 	if err = json.NewDecoder(ctx.Req.Body).Decode(&form); err != nil {
 		ctx.ServerError("DecodeMovedIssuesForm", err)
+		return
 	}
 
 	issueIDs := make([]int64, 0, len(form.Issues))
