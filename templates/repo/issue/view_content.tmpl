@@ -84,21 +84,23 @@
 								<div class="field footer">
 									<div class="flex-text-block tw-justify-end">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
-											{{$statusIconColor := ""}}{{$statusButtonIcon := ""}}{{$statusButtonTextNoComment := ""}}{{$statusButtonTextWithComment := ""}}
+											{{$btnIconColor := ""}}{{$btnIcon := ""}}{{$btnTextNoComment := ""}}{{$btnTextWithComment := ""}}{{$btnValue := ""}}
 											{{if .Issue.IsClosed}}
-												{{$statusIconColor = "tw-text-green"}}
-												{{$statusButtonIcon = Iif .Issue.IsPull "octicon-git-pull-request" "octicon-issue-reopened"}}
-												{{$statusButtonTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.reopen" "repo.issues.reopen_issue")}}
-												{{$statusButtonTextWithComment = ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}
+												{{$btnValue = "reopen"}}
+												{{$btnIconColor = "tw-text-green"}}
+												{{$btnIcon = Iif .Issue.IsPull "octicon-git-pull-request" "octicon-issue-reopened"}}
+												{{$btnTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.reopen" "repo.issues.reopen_issue")}}
+												{{$btnTextWithComment = ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}
 											{{else}}
-												{{$statusIconColor = "tw-text-red"}}
-												{{$statusButtonIcon = Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed"}}
-												{{$statusButtonTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.close" "repo.issues.close")}}
-												{{$statusButtonTextWithComment = ctx.Locale.Tr "repo.issues.close_comment_issue"}}
+												{{$btnValue = "close"}}
+												{{$btnIconColor = "tw-text-red"}}
+												{{$btnIcon = Iif .Issue.IsPull "octicon-git-pull-request-closed" "octicon-issue-closed"}}
+												{{$btnTextNoComment = ctx.Locale.Tr (Iif .Issue.IsPull "repo.pulls.close" "repo.issues.close")}}
+												{{$btnTextWithComment = ctx.Locale.Tr "repo.issues.close_comment_issue"}}
 											{{end}}
-											<button id="status-button" class="ui button" data-status="{{$statusButtonTextNoComment}}" data-status-and-comment="{{$statusButtonTextWithComment}}" name="status" value="close">
-												<span class="status-button-icon {{$statusIconColor}}">{{svg $statusButtonIcon}}</span>
-												<span class="status-button-text">{{$statusButtonTextNoComment}}</span>
+											<button id="status-button" class="ui button" data-status="{{$btnTextNoComment}}" data-status-and-comment="{{$btnTextWithComment}}" name="status" value="{{$btnValue}}">
+												<span class="status-button-icon {{$btnIconColor}}">{{svg $btnIcon}}</span>
+												<span class="status-button-text">{{$btnTextNoComment}}</span>
 											</button>
 										{{end}}
 										<button id="comment-button" class="ui primary button">
