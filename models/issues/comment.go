@@ -855,6 +855,7 @@ func buildCreateCommentMetaData(ctx context.Context, opts *CreateCommentOptions)
 	}
 	if extDoer, ok := opts.Doer.ExtDoerData.(projectWorkflowDoer); ok {
 		makeCommentMetaData()
+		commentMetaData.SpecialDoerName = SpecialDoerNameProjectWorkflow
 		commentMetaData.ProjectWorkflowID = extDoer.projectWorkflowID
 		commentMetaData.ProjectWorkflowEvent = extDoer.projectWorkflowEvent
 		commentMetaData.ProjectTitle = extDoer.projectTitle
