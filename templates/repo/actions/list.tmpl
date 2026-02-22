@@ -5,8 +5,8 @@
 		{{template "base/alert" .}}
 
 		{{if .HasWorkflowsOrRuns}}
-		<div class="ui stackable grid">
-			<div class="four wide column">
+		<div class="flex-container">
+			<div class="flex-container-nav">
 				<div class="ui fluid vertical menu flex-items-block">
 					<a class="item {{if not $.CurWorkflow}}active{{end}}" href="?actor={{$.CurActor}}&status={{$.CurStatus}}">{{ctx.Locale.Tr "actions.runs.all_workflows"}}</a>
 					{{range .workflows}}
@@ -24,8 +24,10 @@
 					{{end}}
 				</div>
 			</div>
-			<div class="twelve wide column content">
-				<div class="ui secondary filter menu tw-justify-end tw-flex tw-items-center">
+			<div class="flex-container-main">
+				<div class="ui top attached header tw-flex tw-items-center tw-justify-between">
+					<span class="tw-text-base tw-font-semibold">{{ctx.Locale.Tr "actions.runs.workflow_run_count" .Page.Paginater.Total}}</span>
+					<div class="ui secondary filter menu tw-flex tw-items-center tw-m-0">
 					<!-- Actor -->
 					<div class="ui{{if not .Actors}} disabled{{end}} dropdown jump item">
 						<span class="text">{{ctx.Locale.Tr "actions.runs.actor"}}</span>
@@ -75,13 +77,16 @@
 							</div>
 						</button>
 					{{end}}
+					</div>
 				</div>
 
 				{{if .WorkflowDispatchConfig}}
 					{{template "repo/actions/workflow_dispatch" .}}
 				{{end}}
 
-				{{template "repo/actions/runs_list" .}}
+				<div class="ui attached segment">
+					{{template "repo/actions/runs_list" .}}
+				</div>
 			</div>
 		</div>
 		{{else}}
