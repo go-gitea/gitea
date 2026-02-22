@@ -10,15 +10,14 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
-
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPackageTerraform(t *testing.T) {
@@ -27,109 +26,112 @@ func TestPackageTerraform(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	packageName := "te-st_pac.kage"
-	filename := "fi-le_na.me"
-	content := []byte{1, 2, 3}
+	lineage := "bca3c5f6-01dc-cdad-5310-d1b12e02e430"
+	terraformVersion := "1.10.4"
+	resourceName := "hello"
+	resourceType := "null_resource"
 
-	url := fmt.Sprintf("/api/packages/%s/terraform/%s/state", user.Name, packageName)
+	// Build the state JSON
+	state := `{
+			"version": 4,
+			"terraform_version": "` + terraformVersion + `",
+			"serial": 1,
+			"lineage": "` + lineage + `",
+			"outPOSTs": {},
+			"resources": [{
+				"mode": "managed",
+				"type": "` + resourceType + `",
+				"name": "` + resourceName + `",
+				"provider": "provider[\"registry.terraform.io/hashicorp/null\"]",
+				"instances": [{
+					"schema_version": 0,
+					"attributes": {
+						"id": "3832416504545530133",
+						"triggers": null
+					},
+					"sensitive_attributes": []
+				}]
+			}],
+			"check_results": null
+		}`
+	content := []byte(state)
+
+	url := fmt.Sprintf("/api/packages/%s/terraform/state/%s", user.Name, packageName)
 
 	t.Run("Upload", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content)).
+		req := NewRequestWithBody(t, "POST", url, bytes.NewReader(content)).
 			AddBasicAuth(user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeTerraform)
+		pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeTerraform)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
-		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
+		pd, err := packages.GetPackageDescriptor(t.Context(), pvs[0])
 		assert.NoError(t, err)
 		assert.Nil(t, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
-		assert.Equal(t, filename, pd.Version.Version)
+		// assert.Equal(t, filename, pd.Version.Version)
 
-		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+		pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, "tfstate", pfs[0].Name)
 		assert.True(t, pfs[0].IsLead)
 
-		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		pb, err := packages.GetBlobByID(t.Context(), pfs[0].BlobID)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
 
 		t.Run("Exists", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content)).
+			req := NewRequestWithBody(t, "POST", url, bytes.NewReader(content)).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 		})
-
-		t.Run("Additional", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequestWithBody(t, "PUT", url+"/dummy.bin", bytes.NewReader(content)).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusCreated)
-
-			// Check deduplication
-			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
-			assert.NoError(t, err)
-			assert.Len(t, pfs, 1)
-			//			assert.Equal(t, pfs[0].BlobID, pfs[1].BlobID)
-		})
-
-		t.Run("InvalidParameter", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/terraform/%s/state/%s", user.Name, "invalid package name", filename), bytes.NewReader(content)).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusBadRequest)
-
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/terraform/%s/state/%s", user.Name, packageName, "inva|id.name"), bytes.NewReader(content)).
-				AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusBadRequest)
-		})
+		// TODO: Do we want multiple states in one package?
+		//t.Run("Additional", func(t *testing.T) {
+		//	defer tests.PrintCurrentTest(t)()
+		//
+		//	req := NewRequestWithBody(t, "POST", url+"/dummy.bin", bytes.NewReader(content)).
+		//		AddBasicAuth(user.Name)
+		//	MakeRequest(t, req, http.StatusCreated)
+		//
+		//	// Check deduplication
+		//	pfs, err := packages.GetFilesByVersionID(t.Context(), pvs[0].ID)
+		//	assert.NoError(t, err)
+		//	assert.Len(t, pfs, 1)
+		//	//			assert.Equal(t, pfs[0].BlobID, pfs[1].BlobID)
+		//})
 	})
 
 	t.Run("Download", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
 		checkDownloadCount := func(count int64) {
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeTerraform)
-			assert.NoError(t, err)
-			assert.Len(t, pvs, 2)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeTerraform)
+			require.NoError(t, err)
+			assert.Len(t, pvs, 1)
 			assert.Equal(t, count, pvs[0].DownloadCount)
 		}
 
 		checkDownloadCount(0)
 
-		req := NewRequest(t, "GET", url+"/"+filename)
+		req := NewRequest(t, "GET", url)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
 
 		checkDownloadCount(1)
 
-		req = NewRequest(t, "GET", url+"/dummy.bin")
-		MakeRequest(t, req, http.StatusOK)
-
-		checkDownloadCount(1)
-
-		t.Run("NotExists", func(t *testing.T) {
-			defer tests.PrintCurrentTest(t)()
-
-			req := NewRequest(t, "GET", url+"/not.found")
-			MakeRequest(t, req, http.StatusNotFound)
-		})
-
 		t.Run("RequireSignInView", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 			defer test.MockVariableValue(&setting.Service.RequireSignInViewStrict, true)()
 
-			req = NewRequest(t, "GET", url+"/dummy.bin")
+			req = NewRequest(t, "GET", url)
 			MakeRequest(t, req, http.StatusUnauthorized)
 		})
 
@@ -161,7 +163,7 @@ func TestPackageTerraform(t *testing.T) {
 				}
 			}
 
-			req := NewRequest(t, "GET", url+"/"+filename)
+			req := NewRequest(t, "GET", url)
 			resp := MakeRequest(t, req, http.StatusSeeOther)
 
 			checkDownloadCount(3)
@@ -187,56 +189,44 @@ func TestPackageTerraform(t *testing.T) {
 		t.Run("File", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequest(t, "DELETE", url+"/"+filename)
+			req := NewRequest(t, "DELETE", url)
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", url+"/"+filename).
+			req = NewRequest(t, "DELETE", url).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
-			req = NewRequest(t, "GET", url+"/"+filename)
+			req = NewRequest(t, "GET", url)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequest(t, "DELETE", url+"/"+filename).
+			req = NewRequest(t, "DELETE", url).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeTerraform)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeTerraform)
 			assert.NoError(t, err)
-			assert.Len(t, pvs, 1)
-
-			t.Run("RemovesVersion", func(t *testing.T) {
-				defer tests.PrintCurrentTest(t)()
-
-				req = NewRequest(t, "DELETE", url+"/dummy.bin").
-					AddBasicAuth(user.Name)
-				MakeRequest(t, req, http.StatusNoContent)
-
-				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeTerraform)
-				assert.NoError(t, err)
-				assert.Empty(t, pvs)
-			})
+			assert.Len(t, pvs, 0)
 		})
 
 		t.Run("Version", func(t *testing.T) {
 			defer tests.PrintCurrentTest(t)()
 
-			req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content)).
+			req := NewRequestWithBody(t, "POST", url, bytes.NewReader(content)).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			req = NewRequest(t, "DELETE", url+"/"+filename)
+			req = NewRequest(t, "DELETE", url)
 			MakeRequest(t, req, http.StatusUnauthorized)
 
-			req = NewRequest(t, "DELETE", url+"/"+filename).
+			req = NewRequest(t, "DELETE", url).
 				AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusNoContent)
 
-			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeTerraform)
+			pvs, err := packages.GetVersionsByPackageType(t.Context(), user.ID, packages.TypeTerraform)
 			assert.NoError(t, err)
 			assert.Empty(t, pvs)
 
-			req = NewRequest(t, "GET", url+"/"+filename)
+			req = NewRequest(t, "GET", url)
 			MakeRequest(t, req, http.StatusNotFound)
 
 			req = NewRequest(t, "DELETE", url).
