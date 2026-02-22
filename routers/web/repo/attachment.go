@@ -46,7 +46,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	defer file.Close()
 
 	uploaderFile := attachment.NewLimitedUploaderKnownSize(file, header.Size)
-	attach, err := attachment.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, allowedTypes, &repo_model.Attachment{
+	attach, err := attachment.UploadAttachmentReleaseSizeLimit(ctx, uploaderFile, allowedTypes, &repo_model.Attachment{
 		Name:       header.Filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     repoID,
@@ -56,7 +56,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
 			return
 		}
-		ctx.ServerError("UploadAttachmentGeneralSizeLimit", err)
+		ctx.ServerError("UploadAttachmentReleaseSizeLimit", err)
 		return
 	}
 
