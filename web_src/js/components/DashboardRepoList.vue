@@ -430,7 +430,7 @@ export default defineComponent({
           <li class="tw-flex tw-items-center tw-py-2" v-for="(repo, index) in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class="repo-list-icon"/>
-              <div class="text truncate">{{ repo.full_name }}</div>
+              <div class="tw-inline-block tw-truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
@@ -494,7 +494,7 @@ export default defineComponent({
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class="repo-list-icon"/>
-              <div class="text truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
+              <div class="tw-inline-block tw-truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}

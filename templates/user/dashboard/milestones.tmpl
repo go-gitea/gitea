@@ -26,7 +26,7 @@
 										{{- end -}}
 									{{- end -}}
 								]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
-								<span class="text truncate">{{$Repo.FullName}}</span>
+								<span class="tw-inline-block tw-truncate tw-w-3/4">{{$Repo.FullName}}</span>
 								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{index $.Counts $Repo.ID}}</div>
 							</a>
 						{{end}}

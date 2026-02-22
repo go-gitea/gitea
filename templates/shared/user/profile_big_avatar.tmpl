@@ -30,7 +30,7 @@
 			{{if .UserBlocking}}
 				<li class="tw-text-red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</li>
 				{{if .UserBlocking.Note}}
-					<li class="text small tw-text-red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlocking.Note}}</li>
+					<li class="tw-text-xs tw-text-red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlocking.Note}}</li>
 				{{end}}
 			{{end}}
 			{{if .ContextUser.Location}}

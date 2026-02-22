@@ -553,10 +553,6 @@ img.ui.avatar,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-.text.small {
-  font-size: 0.75em;
-}
-
 /* popover box shadows */
 .ui.dropdown .menu,
 .ui.upward.dropdown > .menu,
@@ -569,13 +565,6 @@ img.ui.avatar,
 }
 .ui.floating.dropdown .menu {
   box-shadow: 0 6px 18px var(--color-shadow) !important;
-}
-
-.ui .text.truncate {
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
 }
 
 .ui .message.flash-message {
