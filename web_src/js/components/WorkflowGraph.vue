@@ -50,13 +50,13 @@ const lastMousePos = ref({ x: 0, y: 0 });
 const animationFrameId = ref<number | null>(null);
 const container = ref<HTMLElement | null>(null);
 const hoveredJobId = ref<number | null>(null);
-const storegeKey = 'workflow-graph-states';
+const storageKey = 'workflow-graph-states';
 const maxStoredStates = 15;
 
 const loadSavedState = () => {
   try {
     const currentRunId = getCurrentRunId();
-    const allStates = JSON.parse(localStorage.getItem(storegeKey) || '{}');
+    const allStates = JSON.parse(localStorage.getItem(storageKey) || '{}');
     const saved = allStates[currentRunId];
 
     if (saved) {
@@ -83,7 +83,7 @@ const getCurrentRunId = () => {
 const saveState = () => {
   try {
     const currentRunId = getCurrentRunId();
-    const allStates = JSON.parse(localStorage.getItem(storegeKey) || '{}') as Record<string, StoredState>;
+    const allStates = JSON.parse(localStorage.getItem(storageKey) || '{}') as Record<string, StoredState>;
 
     allStates[currentRunId] = {
       scale: scale.value,
@@ -97,7 +97,7 @@ const saveState = () => {
       .slice(0, maxStoredStates);
 
     const limitedStates = Object.fromEntries(sortedStates);
-    localStorage.setItem(storegeKey, JSON.stringify(limitedStates));
+    localStorage.setItem(storageKey, JSON.stringify(limitedStates));
   } catch (e) {
     console.error('Failed to save workflow graph state:', e);
   }
