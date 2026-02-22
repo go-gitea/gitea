@@ -215,8 +215,8 @@ func (r *Review) LoadAttributes(ctx context.Context) (err error) {
 	return err
 }
 
-// HTMLTypeColorName returns the color used in the ui indicating the review
-func (r *Review) HTMLTypeColorName() string {
+// HTMLTypeColorClass returns the CSS class used in the ui indicating the review
+func (r *Review) HTMLTypeColorClass() string {
 	switch r.Type {
 	case ReviewTypeApprove:
 		if !r.Official {

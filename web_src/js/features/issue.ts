@@ -1,6 +1,6 @@
 import type {Issue} from '../types.ts';
 
-// the getIssueIcon/getIssueColor logic should be kept the same as "templates/shared/issueicon.tmpl"
+// the getIssueIcon/getIssueColorClass logic should be kept the same as "templates/shared/issueicon.tmpl"
 
 export function getIssueIcon(issue: Issue) {
   if (issue.pull_request) {
@@ -21,7 +21,7 @@ export function getIssueIcon(issue: Issue) {
   return 'octicon-issue-closed'; // Closed Issue
 }
 
-export function getIssueColor(issue: Issue) {
+export function getIssueColorClass(issue: Issue) {
   if (issue.pull_request) {
     if (issue.state === 'open') {
       if (issue.pull_request.draft) {
