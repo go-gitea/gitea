@@ -323,6 +323,10 @@ Maintainers are encouraged to review pull requests in areas where they have expe
 
 - Provide actionable feedback. Clearly explain what needs to be changed and why, and distinguish between required changes and optional suggestions.
 
+- When responding to reviewer questions, use real-world cases or examples and avoid speculation.
+
+- Focus feedback on the issue itself and avoid comments about the contributor's abilities.
+
 - If you request changes (i.e., block a PR), you must provide a clear rationale and, whenever possible, outline a concrete path to resolution. Reviews that do not include sufficient explanation are not constructive and may be disregarded.
 
 - Only approve a PR when you are fully satisfied with its current state.
