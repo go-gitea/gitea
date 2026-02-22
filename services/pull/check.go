@@ -362,7 +362,17 @@ func manuallyMerged(ctx context.Context, pr *issues_model.PullRequest) bool {
 		return false
 	}
 
-	merger, _ := user_model.GetUserByEmail(ctx, commit.Author.Email)
+	var merger *user_model.User
+	if commit.ParentCount() > 1 {
+		merger, _ = user_model.GetUserByEmail(ctx, commit.Author.Email)
+	} else {
+		branch, err := git_model.GetBranch(ctx, pr.BaseRepoID, pr.BaseBranch)
+		if err == nil {
+			if err = branch.LoadPusher(ctx); err == nil {
+				merger = branch.Pusher
+			}
+		}
+	}
 
 	// When the commit author is unknown set the BaseRepo owner as merger
 	if merger == nil {
