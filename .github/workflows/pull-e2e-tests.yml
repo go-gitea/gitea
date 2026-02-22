@@ -1,0 +1,43 @@
+name: e2e-tests
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  files-changed:
+    uses: ./.github/workflows/files-changed.yml
+    permissions:
+      contents: read
+
+  test-e2e:
+    if: needs.files-changed.outputs.backend == 'true' || needs.files-changed.outputs.frontend == 'true'
+    needs: files-changed
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          check-latest: true
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: make deps-frontend
+      - run: make frontend
+      - run: make deps-backend
+      - run: make gitea-e2e
+      - run: make playwright
+      - run: make test-e2e
+        timeout-minutes: 10
+        env:
+          FORCE_COLOR: 1
+          GITEA_TEST_E2E_DEBUG: 1
