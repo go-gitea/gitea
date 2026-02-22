@@ -24,11 +24,18 @@ func urlIsRelative(s string, u *url.URL) bool {
 	if len(s) > 1 && (s[0] == '/' || s[0] == '\\') && (s[1] == '/' || s[1] == '\\') {
 		return false
 	}
-	// Backslashes (including encoded) can be normalized by browsers into slashes and allow open redirects.
-	if strings.Contains(s, "\\") || strings.Contains(strings.ToLower(s), "%5c") {
+	if u == nil || u.Scheme != "" || u.Host != "" {
 		return false
 	}
-	return u != nil && u.Scheme == "" && u.Host == ""
+	// Browsers may normalize backslashes in paths to slashes, so a path like
+	// "/a/../\example.com" can resolve to "//example.com" (protocol-relative redirect).
+	// Backslashes are not valid in URL paths, so reject them. We check u.Path (the
+	// parsed, decoded path) rather than the raw string to avoid false positives on
+	// query parameters and to correctly handle percent-encoded backslashes (%5c).
+	if strings.ContainsRune(u.Path, '\\') {
+		return false
+	}
+	return true
 }
 
 // IsRelativeURL detects if a URL is relative (no scheme or host)
