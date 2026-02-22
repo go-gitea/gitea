@@ -23,7 +23,6 @@ const allFiles = ref<string[]>([]);
 const selectedIndex = ref(0);
 const isLoadingFileList = ref(false);
 const hasLoadedFileList = ref(false);
-
 const showPopup = computed(() => searchQuery.value.length > 0);
 
 const filteredFiles = computed(() => {
@@ -45,8 +44,8 @@ const handleKeyDown = (e: KeyboardEvent) => {
   if (e.isComposing) return;
 
   if (e.key === 'Escape') {
-    e.preventDefault();
     clearSearch();
+    nextTick(() => refElemInput.value.blur());
     return;
   }
   if (!searchQuery.value || filteredFiles.value.length === 0) return;
@@ -145,12 +144,14 @@ watch([searchQuery, filteredFiles], async () => {
 
 <template>
   <div>
-    <div class="ui small input">
+    <div class="ui small input repo-file-search-input-wrapper">
       <input
         ref="searchInput" :placeholder="placeholder" autocomplete="off"
         role="combobox" aria-autocomplete="list" :aria-expanded="searchQuery ? 'true' : 'false'"
+        aria-keyshortcuts="t"
         @input="handleSearchInput" @keydown="handleKeyDown"
       >
+      <kbd data-global-keyboard-shortcut="t" class="repo-file-search-shortcut-hint" aria-hidden="true">T</kbd>
     </div>
 
     <Teleport to="body">
@@ -183,6 +184,37 @@ watch([searchQuery, filteredFiles], async () => {
 </template>
 
 <style scoped>
+.repo-file-search-input-wrapper {
+  position: relative;
+}
+
+.repo-file-search-input-wrapper input {
+  padding-right: 32px !important;
+  border-right: 1px solid var(--color-input-border) !important;
+  border-top-right-radius: var(--border-radius) !important;
+  border-bottom-right-radius: var(--border-radius) !important;
+}
+
+.repo-file-search-input-wrapper input:focus {
+  border-color: var(--color-primary) !important;
+}
+
+.repo-file-search-shortcut-hint {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-block;
+  padding: 2px 5px;
+  font-size: 11px;
+  line-height: 12px;
+  color: var(--color-text-light-2);
+  background-color: var(--color-box-body);
+  border: 1px solid var(--color-secondary);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
 .file-search-popup {
   position: absolute;
   background: var(--color-box-body);
