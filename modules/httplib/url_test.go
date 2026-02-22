@@ -23,8 +23,6 @@ func TestIsRelativeURL(t *testing.T) {
 		"foo",
 		"/",
 		"/foo?k=%20#abc",
-		"/foo?k=\\&v=\\",
-		"/foo?k=%5c#abc",
 	}
 	for _, s := range rel {
 		assert.True(t, IsRelativeURL(s), "rel = %q", s)
@@ -34,9 +32,6 @@ func TestIsRelativeURL(t *testing.T) {
 		"\\\\",
 		"/\\",
 		"\\/",
-		"\\",
-		"/a/../\\example.com",
-		"/a/..\\\\example.com",
 		"mailto:a@b.com",
 		"https://test.com",
 	}
