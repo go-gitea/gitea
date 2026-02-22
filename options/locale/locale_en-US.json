@@ -3561,6 +3561,8 @@
   "packages.swift.registry": "Set up this registry from the command line:",
   "packages.swift.install": "Add the package in your <code>Package.swift</code> file:",
   "packages.swift.install2": "and run the following command:",
+  "packages.terraform.install": "Setup this registry to your backend config",
+  "packages.terraform.install2": "and run the following command:",
   "packages.vagrant.install": "To add a Vagrant box, run the following command:",
   "packages.settings.link": "Link this package to a repository",
   "packages.settings.link.description": "If you link a package with a repository, the package will appear in the repository's package list. Only repositories under the same owner can be linked. Leaving the field empty will remove the link.",
