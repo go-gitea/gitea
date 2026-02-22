@@ -99,6 +99,22 @@ func home(ctx *context.Context, viewRepositories bool) {
 		return
 	}
 	ctx.Data["Members"] = members
+	if ctx.Org.IsMember && ctx.Org.Teams == nil {
+		shouldSeeAllTeams, err := ctx.Org.Organization.CanUserSeeAllTeams(ctx, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("CanUserSeeAllTeams", err)
+			return
+		}
+		if shouldSeeAllTeams {
+			ctx.Org.Teams, err = ctx.Org.Organization.LoadTeams(ctx)
+		} else {
+			ctx.Org.Teams, err = ctx.Org.Organization.GetUserTeams(ctx, ctx.Doer.ID)
+		}
+		if err != nil {
+			ctx.ServerError("LoadTeams", err)
+			return
+		}
+	}
 	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["ShowMemberAndTeamTab"] = ctx.Org.IsMember || len(members) > 0
