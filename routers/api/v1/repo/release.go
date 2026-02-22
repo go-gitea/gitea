@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -20,6 +21,28 @@ import (
 	"code.gitea.io/gitea/services/convert"
 	release_service "code.gitea.io/gitea/services/release"
 )
+
+func hasRepoWriteScope(ctx *context.APIContext) bool {
+	scope, ok := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
+	if ctx.Data["IsApiToken"] != true || !ok {
+		return true
+	}
+
+	requiredScopes := auth_model.GetRequiredScopes(auth_model.Write, auth_model.AccessTokenScopeCategoryRepository)
+	allow, err := scope.HasScope(requiredScopes...)
+	if err != nil {
+		ctx.APIError(http.StatusForbidden, "checking scope failed: "+err.Error())
+		return false
+	}
+	return allow
+}
+
+func canAccessDraftRelease(ctx *context.APIContext) bool {
+	if !ctx.IsSigned || !ctx.Repo.CanWrite(unit.TypeReleases) {
+		return false
+	}
+	return hasRepoWriteScope(ctx)
+}
 
 // GetRelease get a single release of a repository
 func GetRelease(ctx *context.APIContext) {
@@ -60,6 +83,15 @@ func GetRelease(ctx *context.APIContext) {
 	if err != nil && repo_model.IsErrReleaseNotExist(err) || release.IsTag {
 		ctx.APIErrorNotFound()
 		return
+	}
+
+	if release.IsDraft { // only the users with write access can see draft releases
+		if !canAccessDraftRelease(ctx) {
+			if !ctx.Written() {
+				ctx.APIErrorNotFound()
+			}
+			return
+		}
 	}
 
 	if err := release.LoadAttributes(ctx); err != nil {
@@ -151,9 +183,13 @@ func ListReleases(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	listOptions := utils.GetListOptions(ctx)
 
+	includeDrafts := (ctx.Repo.AccessMode >= perm.AccessModeWrite || ctx.Repo.UnitAccessMode(unit.TypeReleases) >= perm.AccessModeWrite) && hasRepoWriteScope(ctx)
+	if ctx.Written() {
+		return
+	}
 	opts := repo_model.FindReleasesOptions{
 		ListOptions:   listOptions,
-		IncludeDrafts: ctx.Repo.AccessMode >= perm.AccessModeWrite || ctx.Repo.UnitAccessMode(unit.TypeReleases) >= perm.AccessModeWrite,
+		IncludeDrafts: includeDrafts,
 		IncludeTags:   false,
 		IsDraft:       ctx.FormOptionalBool("draft"),
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),

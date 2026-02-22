@@ -34,6 +34,14 @@ func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {
 		ctx.APIErrorNotFound()
 		return false
 	}
+	if release.IsDraft {
+		if !canAccessDraftRelease(ctx) {
+			if !ctx.Written() {
+				ctx.APIErrorNotFound()
+			}
+			return false
+		}
+	}
 	return true
 }
 
@@ -140,6 +148,14 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	if release.RepoID != ctx.Repo.Repository.ID {
 		ctx.APIErrorNotFound()
 		return
+	}
+	if release.IsDraft {
+		if !canAccessDraftRelease(ctx) {
+			if !ctx.Written() {
+				ctx.APIErrorNotFound()
+			}
+			return
+		}
 	}
 	if err := release.LoadAttributes(ctx); err != nil {
 		ctx.APIErrorInternal(err)
