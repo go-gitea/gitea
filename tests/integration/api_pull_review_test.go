@@ -530,6 +530,48 @@ func TestAPIPullReviewStayDismissed(t *testing.T) {
 		pullIssue.ID, user8.ID, 2, 0, 3, false)
 }
 
+func TestAPIPullReviewCommentReply(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	require.NoError(t, pullIssue.LoadRepo(t.Context()))
+	require.NoError(t, pullIssue.LoadPullRequest(t.Context()))
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	gitRepo, err := gitrepo.OpenRepository(t.Context(), pullIssue.Repo)
+	require.NoError(t, err)
+	defer gitRepo.Close()
+
+	commitID, err := gitRepo.GetRefCommitID(pullIssue.PullRequest.GetGitHeadRefName())
+	require.NoError(t, err)
+
+	// create an initial code comment to reply to
+	originalComment, err := pull_service.CreateCodeComment(t.Context(), doer, gitRepo, pullIssue, 1, "original comment", "README.md", false, 0, commitID, nil)
+	require.NoError(t, err)
+
+	session := loginUser(t, doer.Name)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteRepository)
+
+	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews", pullIssue.Repo.OwnerName, pullIssue.Repo.Name, pullIssue.Index), &api.CreatePullReviewOptions{
+		Event: "COMMENT",
+		Comments: []api.CreatePullReviewComment{{
+			Path: "README.md", Body: "reply to original", NewLineNum: 1, InReplyToID: originalComment.ID,
+		}},
+	}).AddTokenAuth(token)
+	resp := MakeRequest(t, req, http.StatusOK)
+
+	var review api.PullReview
+	DecodeJSON(t, resp, &review)
+	assert.EqualValues(t, "COMMENT", review.State)
+
+	// verify the reply is threaded under the original review
+	comments, err := issues_model.FindComments(t.Context(), &issues_model.FindCommentsOptions{
+		ReviewID: originalComment.ReviewID,
+		Type:     issues_model.CommentTypeCode,
+	})
+	require.NoError(t, err)
+	assert.GreaterOrEqual(t, len(comments), 2)
+}
+
 func reviewsCountCheck(t *testing.T, name string, issueID, reviewerID int64, expectedDismissed, expectedRequested, expectedTotal int, expectApproval bool) {
 	t.Run(name, func(t *testing.T) {
 		unittest.AssertCountByCond(t, "review", builder.Eq{
