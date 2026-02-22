@@ -377,10 +377,12 @@ func (cfg *ActionsConfig) IsCollaborativeOwner(ownerID int64) bool {
 
 // GetTokenPermissionMode returns the token permission mode (defaults to permissive for backwards compatibility)
 func (cfg *ActionsConfig) GetTokenPermissionMode() ActionsTokenPermissionMode {
-	if cfg.TokenPermissionMode == "" {
+	switch cfg.TokenPermissionMode {
+	case ActionsTokenPermissionModeRestricted, ActionsTokenPermissionModeCustom:
+		return cfg.TokenPermissionMode
+	default:
 		return ActionsTokenPermissionModePermissive
 	}
-	return cfg.TokenPermissionMode
 }
 
 // GetDefaultTokenPermissions returns the default token permissions based on settings and context
