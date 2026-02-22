@@ -248,7 +248,7 @@ var (
 		}{
 			AllowedTypes:     "",
 			DefaultPagingNum: 10,
-			FileMaxSize:      2048, // Same defaults as attachment
+			FileMaxSize:      2048,
 			MaxFiles:         5,
 		},
 
