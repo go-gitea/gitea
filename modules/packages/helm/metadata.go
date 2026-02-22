@@ -25,6 +25,8 @@ var (
 	ErrInvalidVersion = util.NewInvalidArgumentErrorf("package version is invalid")
 	// ErrInvalidChart indicates an invalid chart
 	ErrInvalidChart = util.NewInvalidArgumentErrorf("chart is invalid")
+	// ErrInvalidProvenance indicates an invalid provenance file
+	ErrInvalidProvenance = util.NewInvalidArgumentErrorf("provenance file is invalid")
 )
 
 // Metadata for a Chart file. This models the structure of a Chart.yaml file.
@@ -127,4 +129,44 @@ func ParseChartFile(r io.Reader) (*Metadata, error) {
 	}
 
 	return metadata, nil
+}
+
+// ParseProvenanceFile parses a provenance file to retrieve the metadata of a Helm chart
+func ParseProvenanceFile(r io.Reader) (*Metadata, error) {
+	data, err := io.ReadAll(io.LimitReader(r, 1<<20))
+	if err != nil {
+		return nil, err
+	}
+
+	content := string(data)
+
+	// A provenance file is a PGP signed message.
+	// The content is between the header and the signature.
+	const (
+		header    = "-----BEGIN PGP SIGNED MESSAGE-----"
+		separator = "...\n"
+	)
+
+	i := strings.Index(content, header)
+	if i == -1 {
+		// Not a PGP signed message, so it's not a valid prov file
+		return nil, ErrInvalidProvenance
+	}
+
+	content = content[i+len(header):]
+	// Skip Hash: ${hash} from header
+	// https://www.gnupg.org/gph/en/manual/x135.html
+	i = strings.Index(content, "\n\n")
+	if i != -1 {
+		content = content[i+2:]
+	}
+	i = strings.Index(content, separator)
+	if i == -1 {
+		// The file HAS to include the separator
+		// https://helm.sh/docs/topics/provenance/#the-provenance-file
+		return nil, ErrInvalidProvenance
+	}
+	content = content[:i] // We only need the chart.yaml part
+
+	return ParseChartFile(strings.NewReader(content))
 }
