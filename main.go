@@ -26,9 +26,8 @@ import (
 
 // these flags will be set by the build flags
 var (
-	Version     = "development" // program version for this build
-	Tags        = ""            // the Golang build tags
-	MakeVersion = ""            // "make" program version if built with make
+	Version = "development" // program version for this build
+	Tags    = ""            // the Golang build tags
 )
 
 func init() {
@@ -50,9 +49,6 @@ func main() {
 
 func formatBuiltWith() string {
 	version := runtime.Version()
-	if len(MakeVersion) > 0 {
-		version = MakeVersion + ", " + runtime.Version()
-	}
 	if len(Tags) == 0 {
 		return " built with " + version
 	}

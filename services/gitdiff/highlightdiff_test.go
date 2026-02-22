@@ -64,7 +64,7 @@ func TestDiffWithHighlight(t *testing.T) {
 		outDel = hcd.diffLineWithHighlight(DiffLineDel, codeA, codeB)
 		assert.Equal(t, `<span>line1</span>`+"\n"+`<span class="removed-code"><span>line2</span></span>`, string(outDel))
 		outAdd = hcd.diffLineWithHighlight(DiffLineAdd, codeA, codeB)
-		assert.Equal(t, `<span>line1</span>`+"\n"+`<span class="added-code"><span>line!</span></span>`, string(outAdd))
+		assert.Equal(t, `<span>line1</span>`+"\n"+`<span><span class="added-code">line!</span></span>`, string(outAdd))
 	})
 
 	t.Run("OpenCloseTags", func(t *testing.T) {
@@ -75,12 +75,53 @@ func TestDiffWithHighlight(t *testing.T) {
 		assert.Empty(t, string(hcd.recoverOneDiff("C")))
 	})
 
-	t.Run("ComplexDiff", func(t *testing.T) {
-		oldCode, _ := highlight.RenderCodeFast("a.go", "Go", `xxx || yyy`)
-		newCode, _ := highlight.RenderCodeFast("a.go", "Go", `bot.xxx || bot.yyy`)
+	t.Run("ComplexDiff1", func(t *testing.T) {
+		oldCode, _, _ := highlight.RenderCodeSlowGuess("a.go", "Go", `xxx || yyy`)
+		newCode, _, _ := highlight.RenderCodeSlowGuess("a.go", "Go", `bot&xxx || bot&yyy`)
 		hcd := newHighlightCodeDiff()
 		out := hcd.diffLineWithHighlight(DiffLineAdd, oldCode, newCode)
-		assert.Equal(t, `<span class="added-code"><span class="nx">bot</span><span class="p">.</span></span><span class="nx">xxx</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="added-code"><span class="nx">bot</span><span class="p">.</span></span><span class="nx">yyy</span>`, string(out))
+		assert.Equal(t, strings.ReplaceAll(`
+<span class="added-code"><span class="nx">bot</span></span><span class="o"><span class="added-code">&amp;</span></span>
+<span class="nx">xxx</span><span class="w"> </span><span class="o">||</span><span class="w"> </span>
+<span class="added-code"><span class="nx">bot</span></span><span class="o"><span class="added-code">&amp;</span></span>
+<span class="nx">yyy</span>`, "\n", ""), string(out))
+	})
+
+	forceTokenAsPlaceholder := func(hcd *highlightCodeDiff, r rune, token string) rune {
+		// for testing purpose only
+		hcd.tokenPlaceholderMap[token] = r
+		hcd.placeholderTokenMap[r] = token
+		return r
+	}
+
+	t.Run("ComplexDiff2", func(t *testing.T) {
+		// When running "diffLineWithHighlight", the newly inserted "added-code", and "removed-code" tags may break the original layout.
+		// The newly inserted tags can appear in any position, because the "diff" algorithm can make outputs like:
+		// * Equal: <span>
+		// * Insert: xx</span><span>yy
+		// * Equal: zz</span>
+		// Then the newly inserted tags will make this output, the tags mismatch.
+		// * <span>  <added>xx</span><span>yy</added>  zz</span>
+		// So we need to fix it to:
+		// * <span>  <added>xx</added></span> <span><added>yy</added>  zz</span>
+		hcd := newHighlightCodeDiff()
+		hcd.diffCodeAddedOpen = forceTokenAsPlaceholder(hcd, '[', "<add>")
+		hcd.diffCodeClose = forceTokenAsPlaceholder(hcd, ']', "</add>")
+		forceTokenAsPlaceholder(hcd, '{', "<T>")
+		forceTokenAsPlaceholder(hcd, '}', "</T>")
+		assert.Equal(t, `aa<T>xx<add>yy</add>zz</T>bb`, string(hcd.recoverOneDiff("aa{xx[yy]zz}bb")))
+		assert.Equal(t, `aa<add>xx</add><T><add>yy</add></T><add>zz</add>bb`, string(hcd.recoverOneDiff("aa[xx{yy}zz]bb")))
+		assert.Equal(t, `aa<T>xx<add>yy</add></T><add>zz</add>bb`, string(hcd.recoverOneDiff("aa{xx[yy}zz]bb")))
+		assert.Equal(t, `aa<add>xx</add><T><add>yy</add>zz</T>bb`, string(hcd.recoverOneDiff("aa[xx{yy]zz}bb")))
+		assert.Equal(t, `aa<add>xx</add><T><add>yy</add><add>zz</add></T><add>bb</add>cc`, string(hcd.recoverOneDiff("aa[xx{yy][zz}bb]cc")))
+
+		// And do a simple test for "diffCodeRemovedOpen", it shares the same logic as "diffCodeAddedOpen"
+		hcd = newHighlightCodeDiff()
+		hcd.diffCodeRemovedOpen = forceTokenAsPlaceholder(hcd, '[', "<del>")
+		hcd.diffCodeClose = forceTokenAsPlaceholder(hcd, ']', "</del>")
+		forceTokenAsPlaceholder(hcd, '{', "<T>")
+		forceTokenAsPlaceholder(hcd, '}', "</T>")
+		assert.Equal(t, `aa<del>xx</del><T><del>yy</del><del>zz</del></T><del>bb</del>cc`, string(hcd.recoverOneDiff("aa[xx{yy][zz}bb]cc")))
 	})
 }
 

@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
+	"code.gitea.io/gitea/modules/testlogger"
 
 	"github.com/hashicorp/go-version"
 )
@@ -185,21 +186,19 @@ func InitFull() (err error) {
 // RunGitTests helps to init the git module and run tests.
 // FIXME: GIT-PACKAGE-DEPENDENCY: the dependency is not right, setting.Git.HomePath is initialized in this package but used in gitcmd package
 func RunGitTests(m interface{ Run() int }) {
-	fatalf := func(exitCode int, format string, args ...any) {
-		_, _ = fmt.Fprintf(os.Stderr, format, args...)
-		os.Exit(exitCode)
-	}
+	os.Exit(runGitTests(m))
+}
+
+func runGitTests(m interface{ Run() int }) int {
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
-		fatalf(1, "unable to create temp dir: %s", err.Error())
+		testlogger.Panicf("unable to create temp dir: %s", err.Error())
 	}
 	defer cleanup()
 
 	setting.Git.HomePath = gitHomePath
 	if err = InitFull(); err != nil {
-		fatalf(1, "failed to call Init: %s", err.Error())
+		testlogger.Panicf("failed to call Init: %s", err.Error())
 	}
-	if exitCode := m.Run(); exitCode != 0 {
-		fatalf(exitCode, "run test failed, ExitCode=%d", exitCode)
-	}
+	return m.Run()
 }

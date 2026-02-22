@@ -37,7 +37,7 @@ func (o *Option[T]) UnmarshalYAML(value *yaml.Node) error {
 
 func (o Option[T]) MarshalYAML() (any, error) {
 	if !o.Has() {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil to indicate no value to marshal
 	}
 
 	value := new(yaml.Node)

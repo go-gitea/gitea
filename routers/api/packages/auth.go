@@ -32,14 +32,14 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 	}
 
 	if packageMeta == nil || packageMeta.UserID == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	var u *user_model.User
 	switch packageMeta.UserID {
 	case user_model.GhostUserID:
 		if !a.AllowGhostUser {
-			return nil, nil
+			return nil, nil //nolint:nilnil // the auth method is not applicable
 		}
 		u = user_model.NewGhostUser()
 	case user_model.ActionsUserID:

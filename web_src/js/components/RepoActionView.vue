@@ -107,6 +107,8 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
 type LocaleStorageOptions = {
   autoScroll: boolean;
   expandRunning: boolean;
+  actionsLogShowSeconds: boolean;
+  actionsLogShowTimestamps: boolean;
 };
 
 export default defineComponent({
@@ -135,8 +137,8 @@ export default defineComponent({
   },
 
   data() {
-    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false};
-    const {autoScroll, expandRunning} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
+    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false, actionsLogShowSeconds: false, actionsLogShowTimestamps: false};
+    const {autoScroll, expandRunning, actionsLogShowSeconds, actionsLogShowTimestamps} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
     return {
       // internal state
       loadingAbortController: null as AbortController | null,
@@ -146,11 +148,11 @@ export default defineComponent({
       menuVisible: false,
       isFullScreen: false,
       timeVisible: {
-        'log-time-stamp': false,
-        'log-time-seconds': false,
+        'log-time-stamp': actionsLogShowTimestamps,
+        'log-time-seconds': actionsLogShowSeconds,
       },
-      optionAlwaysAutoScroll: autoScroll ?? false,
-      optionAlwaysExpandRunning: expandRunning ?? false,
+      optionAlwaysAutoScroll: autoScroll,
+      optionAlwaysExpandRunning: expandRunning,
 
       // provided by backend
       run: {
@@ -253,7 +255,12 @@ export default defineComponent({
 
   methods: {
     saveLocaleStorageOptions() {
-      const opts: LocaleStorageOptions = {autoScroll: this.optionAlwaysAutoScroll, expandRunning: this.optionAlwaysExpandRunning};
+      const opts: LocaleStorageOptions = {
+        autoScroll: this.optionAlwaysAutoScroll,
+        expandRunning: this.optionAlwaysExpandRunning,
+        actionsLogShowSeconds: this.timeVisible['log-time-seconds'],
+        actionsLogShowTimestamps: this.timeVisible['log-time-stamp'],
+      };
       localUserSettings.setJsonObject('actions-view-options', opts);
     },
 
@@ -470,6 +477,7 @@ export default defineComponent({
       for (const el of this.elStepsContainer().querySelectorAll(`.log-time-${type}`)) {
         toggleElem(el, this.timeVisible[`log-time-${type}`]);
       }
+      this.saveLocaleStorageOptions();
     },
 
     toggleFullScreen() {

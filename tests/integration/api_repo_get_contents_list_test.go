@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/gitrepo"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
@@ -35,9 +34,9 @@ func getExpectedContentsListResponseForContents(ref, refType, lastCommitSHA stri
 			Name:              path.Base(treePath),
 			Path:              treePath,
 			SHA:               sha,
-			LastCommitSHA:     util.ToPointer(lastCommitSHA),
-			LastCommitterDate: util.ToPointer(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
-			LastAuthorDate:    util.ToPointer(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
+			LastCommitSHA:     new(lastCommitSHA),
+			LastCommitterDate: new(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
+			LastAuthorDate:    new(time.Date(2017, time.March, 19, 16, 47, 59, 0, time.FixedZone("", -14400))),
 			Type:              "file",
 			Size:              30,
 			URL:               &selfURL,

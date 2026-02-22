@@ -234,7 +234,7 @@ func TeamReviewRequest(ctx context.Context, issue *issues_model.Issue, doer *use
 	}
 
 	if comment == nil || !isAdd {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil because no comment was created or it is a removal
 	}
 
 	return comment, teamReviewRequestNotify(ctx, issue, doer, reviewer, isAdd, comment)

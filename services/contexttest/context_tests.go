@@ -192,7 +192,7 @@ func LoadGitRepo(t *testing.T, ctx gocontext.Context) {
 type MockRender struct{}
 
 func (tr *MockRender) TemplateLookup(tmpl string, _ gocontext.Context) (templates.TemplateExecutor, error) {
-	return nil, nil
+	return nil, nil //nolint:nilnil // mock implementation returns nil to indicate no template found
 }
 
 func (tr *MockRender) HTML(w io.Writer, status int, _ templates.TplName, _ any, _ gocontext.Context) error {

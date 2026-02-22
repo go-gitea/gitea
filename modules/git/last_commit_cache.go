@@ -55,12 +55,12 @@ func (c *LastCommitCache) Put(ref, entryPath, commitID string) error {
 // Get gets the last commit information by commit id and entry path
 func (c *LastCommitCache) Get(ref, entryPath string) (*Commit, error) {
 	if c == nil || c.cache == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil when cache is not available
 	}
 
 	commitID, ok := c.cache.Get(getCacheKey(c.repoPath, ref, entryPath))
 	if !ok || commitID == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil when cache miss
 	}
 
 	log.Debug("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, commitID)

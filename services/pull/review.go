@@ -465,7 +465,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	}
 
 	if !isDismiss {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil because this is not a dismiss action
 	}
 
 	if err := review.Issue.LoadAttributes(ctx); err != nil {

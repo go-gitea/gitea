@@ -214,6 +214,17 @@ func TestLinguist(t *testing.T) {
 				},
 				ExpectedLanguageOrder: []string{"Markdown"},
 			},
+			// case 14: linguist-detectable on a configuration/data file (YAML) without linguist-language
+			{
+				GitAttributesContent: "*.yaml linguist-detectable",
+				FilesToAdd: []*files_service.ChangeRepoFile{
+					{
+						TreePath:      "config.yaml",
+						ContentReader: strings.NewReader("name: test\ndescription: A test yaml file\n"),
+					},
+				},
+				ExpectedLanguageOrder: []string{"YAML"},
+			},
 		}
 
 		for i, c := range cases {

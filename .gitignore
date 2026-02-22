@@ -55,6 +55,7 @@ cpu.out
 *.log.*.gz
 
 /gitea
+/gitea-e2e
 /gitea-vet
 /debug
 /integrations.test
@@ -67,13 +68,9 @@ cpu.out
 /indexers
 /log
 /public/assets/img/avatar
+/tests/e2e-output
 /tests/integration/gitea-integration-*
 /tests/integration/indexers-*
-/tests/e2e/gitea-e2e-*
-/tests/e2e/indexers-*
-/tests/e2e/reports
-/tests/e2e/test-artifacts
-/tests/e2e/test-snapshots
 /tests/*.ini
 /tests/**/*.git/**/*.sample
 /node_modules
@@ -89,7 +86,6 @@ cpu.out
 /vendor
 /VERSION
 /.air
-/.go-licenses
 
 # Files and folders that were previously generated
 /public/assets/img/webpack

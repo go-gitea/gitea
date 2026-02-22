@@ -7,6 +7,10 @@
   flex-shrink: 0;
 }
 
+.ui.label.commit-sign-badge > * {
+  display: flex;
+}
+
 .ui.label.commit-id-short {
   font-family: var(--fonts-monospace);
   height: 24px;

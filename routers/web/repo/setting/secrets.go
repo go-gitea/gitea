@@ -46,7 +46,7 @@ func getSecretsCtx(ctx *context.Context) (*secretsCtx, error) {
 	if ctx.Data["PageIsOrgSettings"] == true {
 		if _, err := shared_user.RenderUserOrgHeader(ctx); err != nil {
 			ctx.ServerError("RenderUserOrgHeader", err)
-			return nil, nil
+			return nil, nil //nolint:nilnil // error is already handled by ctx.ServerError
 		}
 		return &secretsCtx{
 			OwnerID:         ctx.ContextUser.ID,

@@ -113,7 +113,7 @@ func getIssueFromRef(ctx context.Context, repo *repo_model.Repository, index int
 	issue, err := issues_model.GetIssueByIndex(ctx, repo.ID, index)
 	if err != nil {
 		if issues_model.IsErrIssueNotExist(err) {
-			return nil, nil
+			return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 		}
 		return nil, err
 	}

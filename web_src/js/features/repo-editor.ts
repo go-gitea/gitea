@@ -113,8 +113,8 @@ export function initRepoEditor() {
         warningDiv = document.createElement('div');
         warningDiv.classList.add('ui', 'warning', 'message', 'flash-message', 'flash-warning', 'space-related');
         warningDiv.innerHTML = html`<p>File path contains leading or trailing whitespace.</p>`;
-        // Add display 'block' because display is set to 'none' in formantic\build\semantic.css
-        warningDiv.style.display = 'block';
+        // Change to `block` display because it is set to 'none' in fomantic/build/semantic.css
+        warningDiv.classList.add('tw-block');
         const inputContainer = document.querySelector('.repo-editor-header')!;
         inputContainer.insertAdjacentElement('beforebegin', warningDiv);
       }

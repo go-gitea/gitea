@@ -79,6 +79,12 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusForbidden)
 
+	// Deletion should be scoped to the issue in the URL
+	time5 := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{ID: 5})
+	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d", user2.Name, issue2.Repo.Name, issue2.Index, time5.ID).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
+
 	time3 := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{ID: 3})
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d", user2.Name, issue2.Repo.Name, issue2.Index, time3.ID).
 		AddTokenAuth(token)

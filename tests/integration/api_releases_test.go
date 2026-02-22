@@ -335,7 +335,7 @@ func TestAPIDeleteReleaseByTagName(t *testing.T) {
 
 func TestAPIUploadAssetRelease(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.Attachment.MaxSize, 1)()
+	defer test.MockVariableValue(&setting.Repository.Release.FileMaxSize, 1)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})

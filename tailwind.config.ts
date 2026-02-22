@@ -80,10 +80,10 @@ export default {
       semibold: 'var(--font-weight-semibold)',
       bold: 'var(--font-weight-bold)',
     },
-    fontSize: { // not using `rem` units because our root is currently 14px
-      'xs': '12px',
-      'sm': '14px',
-      'base': '16px',
+    fontSize: { // rarely used, but "text-base" (matching body's 1em=14px) is useful to reset font-size in a header container
+      'xs': '11px',
+      'sm': '12px',
+      'base': '14px',
       'lg': '18px',
       'xl': '20px',
       '2xl': '24px',

@@ -37,6 +37,10 @@ type CommitSignature struct {
 
 // Message returns the commit message. Same as retrieving CommitMessage directly.
 func (c *Commit) Message() string {
+	// FIXME: GIT-COMMIT-MESSAGE-ENCODING: this logic is not right
+	// * When need to use commit message in templates/database, it should be valid UTF-8
+	// * When need to get the original commit message, it should just use "c.CommitMessage"
+	// It's not easy to refactor at the moment, many templates need to be updated and tested
 	return c.CommitMessage
 }
 

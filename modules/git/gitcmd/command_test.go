@@ -12,23 +12,27 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
+	"code.gitea.io/gitea/modules/testlogger"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestMain(m *testing.M) {
+func testMain(m *testing.M) int {
 	// FIXME: GIT-PACKAGE-DEPENDENCY: the dependency is not right.
 	// "setting.Git.HomePath" is initialized in "git" package but really used in "gitcmd" package
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "unable to create temp dir: %v", err)
-		os.Exit(1)
+		testlogger.Panicf("failed to create temp dir: %v", err)
 	}
 	defer cleanup()
 
 	setting.Git.HomePath = gitHomePath
-	os.Exit(m.Run())
+	return m.Run()
+}
+
+func TestMain(m *testing.M) {
+	os.Exit(testMain(m))
 }
 
 func TestRunWithContextStd(t *testing.T) {

@@ -384,7 +384,7 @@ func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error
 // GetCurrentReview returns the current pending review of reviewer for given issue
 func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Issue) (*Review, error) {
 	if reviewer == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil when reviewer is nil
 	}
 	reviews, err := FindReviews(ctx, FindReviewOptions{
 		Types:      []ReviewType{ReviewTypePending},

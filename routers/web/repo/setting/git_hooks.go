@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -41,6 +42,7 @@ func GitHooksEdit(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Hook"] = hook
+	ctx.Data["CodeEditorConfig"] = repo.CodeEditorConfig{} // not really editing a repo file, so no editor config
 	ctx.HTML(http.StatusOK, tplGithookEdit)
 }
 

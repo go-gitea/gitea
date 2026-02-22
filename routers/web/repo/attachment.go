@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/attachment"
 	"code.gitea.io/gitea/services/context"
@@ -47,7 +46,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	defer file.Close()
 
 	uploaderFile := attachment.NewLimitedUploaderKnownSize(file, header.Size)
-	attach, err := attachment.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, allowedTypes, &repo_model.Attachment{
+	attach, err := attachment.UploadAttachmentReleaseSizeLimit(ctx, uploaderFile, allowedTypes, &repo_model.Attachment{
 		Name:       header.Filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     repoID,
@@ -57,7 +56,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 			ctx.HTTPError(http.StatusBadRequest, err.Error())
 			return
 		}
-		ctx.ServerError("UploadAttachmentGeneralSizeLimit", err)
+		ctx.ServerError("UploadAttachmentReleaseSizeLimit", err)
 		return
 	}
 
@@ -200,7 +199,7 @@ func ServeAttachment(ctx *context.Context, uuid string) {
 	}
 	defer fr.Close()
 
-	common.ServeContentByReadSeeker(ctx.Base, attach.Name, util.ToPointer(attach.CreatedUnix.AsTime()), fr)
+	common.ServeContentByReadSeeker(ctx.Base, attach.Name, new(attach.CreatedUnix.AsTime()), fr)
 }
 
 // GetAttachment serve attachments

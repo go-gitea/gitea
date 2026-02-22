@@ -259,7 +259,7 @@ func (t *TemporaryUploadRepository) CommitTree(ctx context.Context, opts *Commit
 	authorDate := opts.AuthorTime
 	committerDate := opts.CommitterTime
 	if authorDate == nil && committerDate == nil {
-		authorDate = util.ToPointer(time.Now())
+		authorDate = new(time.Now())
 		committerDate = authorDate
 	} else if authorDate == nil {
 		authorDate = committerDate

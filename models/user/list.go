@@ -48,7 +48,7 @@ func (users UserList) GetTwoFaStatus(ctx context.Context) map[int64]bool {
 
 func (users UserList) loadTwoFactorStatus(ctx context.Context) (map[int64]*auth.TwoFactor, error) {
 	if len(users) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // returns nil when there are no users
 	}
 
 	userIDs := users.GetUserIDs()

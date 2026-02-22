@@ -56,7 +56,7 @@ func CreateAuthorizationToken(u *user_model.User, packageScope auth_model.Access
 func ParseAuthorizationRequest(req *http.Request) (*PackageMeta, error) {
 	h := req.Header.Get("Authorization")
 	if h == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	parts := strings.SplitN(h, " ", 2)

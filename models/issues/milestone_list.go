@@ -24,6 +24,18 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 	return ids
 }
 
+// SplitByOpenClosed splits the milestone list into open and closed milestones
+func (milestones MilestoneList) SplitByOpenClosed() (open, closed MilestoneList) {
+	for _, m := range milestones {
+		if m.IsClosed {
+			closed = append(closed, m)
+		} else {
+			open = append(open, m)
+		}
+	}
+	return open, closed
+}
+
 // FindMilestoneOptions contain options to get milestones
 type FindMilestoneOptions struct {
 	db.ListOptions

@@ -173,7 +173,7 @@ func Init() {
 	log.RegisterEventWriter("test", newTestLoggerWriter)
 }
 
-func Fatalf(format string, args ...any) {
-	Printf(format+"\n", args...)
-	os.Exit(1)
+func Panicf(format string, args ...any) {
+	// don't call os.Exit, otherwise the "defer" functions won't be executed
+	panic(fmt.Sprintf(format, args...))
 }

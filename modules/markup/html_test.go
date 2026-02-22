@@ -71,6 +71,7 @@ func TestRender_Commits(t *testing.T) {
 }
 
 func TestRender_CrossReferences(t *testing.T) {
+	defer testModule.MockVariableValue(&setting.AppURL, markup.TestAppURL)()
 	defer testModule.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
 	test := func(input, expected string) {
 		rctx := markup.NewTestRenderContext(markup.TestAppURL, localMetas).WithRelativePath("a.md")
@@ -98,17 +99,17 @@ func TestRender_CrossReferences(t *testing.T) {
 		util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
 		`<p><a href="`+util.URLJoin(markup.TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
 
-	inputURL := "https://host/a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
+	inputURL := setting.AppURL + "a/b/commit/0123456789012345678901234567890123456789/foo.txt?a=b#L2-L3"
 	test(
 		inputURL,
 		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789/foo.txt (L2-L3)</code></a></p>`)
 
-	inputURL = "https://example.com/repo/owner/archive/0123456789012345678901234567890123456789.tar.gz"
+	inputURL = setting.AppURL + "repo/owner/archive/0123456789012345678901234567890123456789.tar.gz"
 	test(
 		inputURL,
 		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.tar.gz</code></a></p>`)
 
-	inputURL = "https://example.com/owner/repo/commit/0123456789012345678901234567890123456789.patch?key=val"
+	inputURL = setting.AppURL + "owner/repo/commit/0123456789012345678901234567890123456789.patch?key=val"
 	test(
 		inputURL,
 		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.patch</code></a></p>`)
@@ -575,13 +576,15 @@ func TestFuzz(t *testing.T) {
 }
 
 func TestIssue18471(t *testing.T) {
-	data := `http://domain/org/repo/compare/783b039...da951ce`
+	defer testModule.MockVariableValue(&setting.AppURL, markup.TestAppURL)()
+
+	data := markup.TestAppURL + `org/repo/compare/783b039...da951ce`
 
 	var res strings.Builder
 	err := markup.PostProcessDefault(markup.NewTestRenderContext(localMetas), strings.NewReader(data), &res)
 
 	assert.NoError(t, err)
-	assert.Equal(t, `<a href="http://domain/org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
+	assert.Equal(t, `<a href="`+markup.TestAppURL+`org/repo/compare/783b039...da951ce" class="compare"><code>783b039...da951ce</code></a>`, res.String())
 }
 
 func TestIsFullURL(t *testing.T) {

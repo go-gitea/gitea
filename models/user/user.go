@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -212,7 +213,7 @@ func (u *User) SetLastLogin() {
 
 // GetPlaceholderEmail returns an noreply email
 func (u *User) GetPlaceholderEmail() string {
-	return fmt.Sprintf("%s@%s", u.LowerName, setting.Service.NoReplyAddress)
+	return fmt.Sprintf("%d+%s@%s", u.ID, u.LowerName, setting.Service.NoReplyAddress)
 }
 
 // GetEmail returns a noreply email, if the user has set to keep his
@@ -495,10 +496,10 @@ func (u *User) ShortName(length int) string {
 	return util.EllipsisDisplayString(u.Name, length)
 }
 
-// IsMailable checks if a user is eligible
-// to receive emails.
+// IsMailable checks if a user is eligible to receive emails.
+// System users like Ghost and Gitea Actions are excluded.
 func (u *User) IsMailable() bool {
-	return u.IsActive
+	return u.IsActive && !u.IsGiteaActions() && !u.IsGhost()
 }
 
 // IsUserExist checks if given username exist,
@@ -1192,19 +1193,23 @@ func (eum *EmailUserMap) GetByEmail(email string) *User {
 
 func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, error) {
 	if len(emails) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil when there are no emails to look up
 	}
 
 	needCheckEmails := make(container.Set[string])
 	needCheckUserNames := make(container.Set[string])
+	needCheckUserIDs := make(container.Set[int64])
 	noReplyAddressSuffix := "@" + strings.ToLower(setting.Service.NoReplyAddress)
 	for _, email := range emails {
 		emailLower := strings.ToLower(email)
-		if noReplyUserNameLower, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
-			needCheckUserNames.Add(noReplyUserNameLower)
-			needCheckEmails.Add(emailLower)
-		} else {
-			needCheckEmails.Add(emailLower)
+		needCheckEmails.Add(emailLower)
+		if localPart, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix); ok {
+			name, id := parseLocalPartToNameID(localPart)
+			if id != 0 {
+				needCheckUserIDs.Add(id)
+			} else if name != "" {
+				needCheckUserNames.Add(name)
+			}
 		}
 	}
 
@@ -1234,14 +1239,57 @@ func GetUsersByEmails(ctx context.Context, emails []string) (*EmailUserMap, erro
 		}
 	}
 
-	users := make(map[int64]*User, len(needCheckUserNames))
-	if err := db.GetEngine(ctx).In("lower_name", needCheckUserNames.Values()).Find(&users); err != nil {
-		return nil, err
+	usersByIDs := make(map[int64]*User)
+	if len(needCheckUserIDs) > 0 || len(needCheckUserNames) > 0 {
+		cond := builder.NewCond()
+		if len(needCheckUserIDs) > 0 {
+			cond = cond.Or(builder.In("id", needCheckUserIDs.Values()))
+		}
+		if len(needCheckUserNames) > 0 {
+			cond = cond.Or(builder.In("lower_name", needCheckUserNames.Values()))
+		}
+		if err := db.GetEngine(ctx).Where(cond).Find(&usersByIDs); err != nil {
+			return nil, err
+		}
 	}
-	for _, user := range users {
-		results[strings.ToLower(user.GetPlaceholderEmail())] = user
+
+	usersByName := make(map[string]*User)
+	for _, user := range usersByIDs {
+		usersByName[user.LowerName] = user
 	}
+
+	for _, email := range emails {
+		emailLower := strings.ToLower(email)
+		if _, ok := results[emailLower]; ok {
+			continue
+		}
+
+		localPart, ok := strings.CutSuffix(emailLower, noReplyAddressSuffix)
+		if !ok {
+			continue
+		}
+		name, id := parseLocalPartToNameID(localPart)
+		if user, ok := usersByIDs[id]; ok {
+			results[emailLower] = user
+		} else if user, ok := usersByName[name]; ok {
+			results[emailLower] = user
+		}
+	}
+
 	return &EmailUserMap{results}, nil
+}
+
+// parseLocalPartToNameID attempts to unparse local-part of email that's in format id+user
+// returns user and id if possible
+func parseLocalPartToNameID(localPart string) (string, int64) {
+	var id int64
+	idstr, name, hasPlus := strings.Cut(localPart, "+")
+	if hasPlus {
+		id, _ = strconv.ParseInt(idstr, 10, 64)
+	} else {
+		name = idstr
+	}
+	return name, id
 }
 
 // GetUserByEmail returns the user object by given e-mail if exists.
@@ -1262,16 +1310,12 @@ func GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Finally, if email address is the protected email address:
-	if before, ok := strings.CutSuffix(email, "@"+setting.Service.NoReplyAddress); ok {
-		username := before
-		user := &User{}
-		has, err := db.GetEngine(ctx).Where("lower_name=?", username).Get(user)
-		if err != nil {
-			return nil, err
+	if localPart, ok := strings.CutSuffix(email, strings.ToLower("@"+setting.Service.NoReplyAddress)); ok {
+		name, id := parseLocalPartToNameID(localPart)
+		if id != 0 {
+			return GetUserByID(ctx, id)
 		}
-		if has {
-			return user, nil
-		}
+		return GetUserByName(ctx, name)
 	}
 
 	return nil, ErrUserNotExist{Name: email}

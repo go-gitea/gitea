@@ -130,7 +130,7 @@ func GetLFSLockByRepoID(ctx context.Context, repoID int64, page, pageSize int) (
 // GetTreePathLock returns LSF lock for the treePath
 func GetTreePathLock(ctx context.Context, repoID int64, treePath string) (*LFSLock, error) {
 	if !setting.LFS.StartServer {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil when LFS is not started
 	}
 
 	locks, err := GetLFSLockByRepoID(ctx, repoID, 0, 0)
@@ -142,7 +142,7 @@ func GetTreePathLock(ctx context.Context, repoID int64, treePath string) (*LFSLo
 			return lock, nil
 		}
 	}
-	return nil, nil
+	return nil, nil //nolint:nilnil // return nil to indicate that the object does not exist
 }
 
 // CountLFSLockByRepoID returns a count of all LFSLocks associated with a repository.

@@ -16,7 +16,7 @@ func (c *Commit) GetSubModules() (*ObjectCache[*SubModule], error) {
 	entry, err := c.GetTreeEntryByPath(".gitmodules")
 	if err != nil {
 		if _, ok := err.(ErrNotExist); ok {
-			return nil, nil
+			return nil, nil //nolint:nilnil // return nil to indicate that the submodule does not exist
 		}
 		return nil, err
 	}
@@ -48,5 +48,5 @@ func (c *Commit) GetSubModule(entryName string) (*SubModule, error) {
 			return module, nil
 		}
 	}
-	return nil, nil
+	return nil, nil //nolint:nilnil // return nil to indicate that the submodule does not exist
 }

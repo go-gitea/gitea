@@ -108,7 +108,7 @@ func GetLanguageStats(repo *git_module.Repository, commitID string) (map[string]
 		if (!isVendored.Has() && analyze.IsVendor(f.Name)) ||
 			enry.IsDotFile(f.Name) ||
 			(!isDocumentation.Has() && enry.IsDocumentation(f.Name)) ||
-			enry.IsConfiguration(f.Name) {
+			(!isDetectable.Has() && enry.IsConfiguration(f.Name)) {
 			return nil
 		}
 

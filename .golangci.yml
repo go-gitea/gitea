@@ -18,6 +18,7 @@ linters:
     - mirror
     - modernize
     - nakedret
+    - nilnil
     - nolintlint
     - perfsprint
     - revive
@@ -66,35 +67,24 @@ linters:
     revive:
       severity: error
       rules:
-        - name: atomic
-        - name: bare-return
         - name: blank-imports
         - name: constant-logical-expr
         - name: context-as-argument
         - name: context-keys-type
         - name: dot-imports
-        - name: duplicated-imports
         - name: empty-lines
-        - name: error-naming
         - name: error-return
         - name: error-strings
-        - name: errorf
         - name: exported
         - name: identical-branches
         - name: if-return
         - name: increment-decrement
-        - name: indent-error-flow
         - name: modifies-value-receiver
         - name: package-comments
-        - name: range
-        - name: receiver-naming
         - name: redefines-builtin-id
-        - name: string-of-int
         - name: superfluous-else
         - name: time-naming
-        - name: unconditional-recursion
         - name: unexported-return
-        - name: unreachable-code
         - name: var-declaration
         - name: var-naming
           arguments:
@@ -132,16 +122,12 @@ linters:
       - linters:
           - dupl
           - errcheck
-          - gocyclo
-          - gosec
           - staticcheck
           - unparam
         path: _test\.go
       - linters:
           - dupl
           - errcheck
-          - gocyclo
-          - gosec
         path: models/migrations/v
       - linters:
           - forbidigo
@@ -153,7 +139,6 @@ linters:
           - gocritic
         text: (?i)`ID' should not be capitalized
       - linters:
-          - deadcode
           - unused
         text: (?i)swagger
       - linters:

@@ -61,7 +61,7 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 		return nil, err
 	}
 	if u == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	pub, err := getUserPublicKey(req.Context(), u)
@@ -88,7 +88,7 @@ func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataS
 func getUserFromRequest(req *http.Request) (*user_model.User, error) {
 	username := req.Header.Get("X-Ops-Userid")
 	if username == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	return user_model.GetUserByName(req.Context(), username)

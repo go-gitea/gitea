@@ -1,14 +1,25 @@
 import {createApp} from 'vue';
 import ActivityHeatmap from '../components/ActivityHeatmap.vue';
 import {translateMonth, translateDay} from '../utils.ts';
+import {GET} from '../modules/fetch.ts';
 
-export function initHeatmap() {
-  const el = document.querySelector('#user-heatmap');
+type HeatmapResponse = {
+  heatmapData: Array<[number, number]>; // [[1617235200, 2]] = [unix timestamp, count]
+  totalContributions: number;
+};
+
+export async function initHeatmap() {
+  const el = document.querySelector<HTMLElement>('#user-heatmap');
   if (!el) return;
 
   try {
+    const url = el.getAttribute('data-heatmap-url')!;
+    const resp = await GET(url);
+    if (!resp.ok) throw new Error(`Failed to load heatmap data: ${resp.status} ${resp.statusText}`);
+    const {heatmapData, totalContributions} = await resp.json() as HeatmapResponse;
+
     const heatmap: Record<string, number> = {};
-    for (const {contributions, timestamp} of JSON.parse(el.getAttribute('data-heatmap-data')!)) {
+    for (const [timestamp, contributions] of heatmapData) {
       // Convert to user timezone and sum contributions by date
       const dateStr = new Date(timestamp * 1000).toDateString();
       heatmap[dateStr] = (heatmap[dateStr] || 0) + contributions;
@@ -17,6 +28,9 @@ export function initHeatmap() {
     const values = Object.keys(heatmap).map((v) => {
       return {date: new Date(v), count: heatmap[v]};
     });
+
+    const totalFormatted = totalContributions.toLocaleString();
+    const textTotalContributions = el.getAttribute('data-locale-total-contributions')!.replace('%s', totalFormatted);
 
     // last heatmap tooltip localization attempt https://github.com/go-gitea/gitea/pull/24131/commits/a83761cbbae3c2e3b4bced71e680f44432073ac8
     const locale = {
@@ -28,7 +42,7 @@ export function initHeatmap() {
         less: el.getAttribute('data-locale-less'),
       },
       tooltipUnit: 'contributions',
-      textTotalContributions: el.getAttribute('data-locale-total-contributions'),
+      textTotalContributions,
       noDataText: el.getAttribute('data-locale-no-contributions'),
     };
 

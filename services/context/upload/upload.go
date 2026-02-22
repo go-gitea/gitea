@@ -95,8 +95,8 @@ func AddUploadContext(ctx *context.Context, uploadType string) {
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/releases/attachments/remove"
 		ctx.Data["UploadLinkUrl"] = ctx.Repo.RepoLink + "/releases/attachments"
 		ctx.Data["UploadAccepts"] = strings.ReplaceAll(setting.Repository.Release.AllowedTypes, "|", ",")
-		ctx.Data["UploadMaxFiles"] = setting.Attachment.MaxFiles
-		ctx.Data["UploadMaxSize"] = setting.Attachment.MaxSize
+		ctx.Data["UploadMaxFiles"] = setting.Repository.Release.MaxFiles
+		ctx.Data["UploadMaxSize"] = setting.Repository.Release.FileMaxSize
 	case "comment":
 		ctx.Data["UploadUrl"] = ctx.Repo.RepoLink + "/issues/attachments"
 		ctx.Data["UploadRemoveUrl"] = ctx.Repo.RepoLink + "/issues/attachments/remove"

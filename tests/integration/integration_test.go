@@ -1,7 +1,6 @@
 // Copyright 2017 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
-//nolint:forbidigo // use of print functions is allowed in tests
 package integration
 
 import (
@@ -27,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/testlogger"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -79,14 +79,14 @@ func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
 	}
 }
 
-func TestMain(m *testing.M) {
+func testMain(m *testing.M) int {
 	defer log.GetManager().Close()
 
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
-	tests.InitTest(true)
+	tests.InitTest()
 	testWebRoutes = routers.NormalRoutes()
 
 	err := unittest.InitFixtures(
@@ -95,8 +95,7 @@ func TestMain(m *testing.M) {
 		},
 	)
 	if err != nil {
-		fmt.Printf("Error initializing test database: %v\n", err)
-		os.Exit(1)
+		testlogger.Panicf("InitFixtures: %v", err)
 	}
 
 	// FIXME: the console logger is deleted by mistake, so if there is any `log.Fatal`, developers won't see any error message.
@@ -104,15 +103,16 @@ func TestMain(m *testing.M) {
 	exitCode := m.Run()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
-		fmt.Printf("util.RemoveAll: %v\n", err)
-		os.Exit(1)
+		log.Error("Failed to remove indexer path: %v", err)
 	}
 	if err = util.RemoveAll(setting.Indexer.RepoPath); err != nil {
-		fmt.Printf("Unable to remove repo indexer: %v\n", err)
-		os.Exit(1)
+		log.Error("Failed to remove indexer path: %v", err)
 	}
+	return exitCode
+}
 
-	os.Exit(exitCode)
+func TestMain(m *testing.M) {
+	os.Exit(testMain(m))
 }
 
 type TestSession struct {

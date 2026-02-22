@@ -301,7 +301,7 @@ export function createElementFromHTML<T extends HTMLElement>(htmlString: string)
   return div.firstChild as T;
 }
 
-export function createElementFromAttrs(tagName: string, attrs: Record<string, any> | null, ...children: (Node | string)[]): HTMLElement {
+export function createElementFromAttrs<T extends HTMLElement>(tagName: string, attrs: Record<string, any> | null, ...children: (Node | string)[]): T {
   const el = document.createElement(tagName);
   for (const [key, value] of Object.entries(attrs || {})) {
     if (value === undefined || value === null) continue;
@@ -314,7 +314,7 @@ export function createElementFromAttrs(tagName: string, attrs: Record<string, an
   for (const child of children) {
     el.append(child instanceof Node ? child : document.createTextNode(child));
   }
-  return el;
+  return el as T;
 }
 
 export function animateOnce(el: Element, animationClassName: string): Promise<void> {
@@ -350,22 +350,6 @@ export function addDelegatedEventListener<T extends HTMLElement, E extends Event
 /** Returns whether a click event is a left-click without any modifiers held */
 export function isPlainClick(e: MouseEvent) {
   return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey;
-}
-
-let cssRootVariablesTextCache: string = '';
-export function getCssRootVariablesText(): string {
-  if (cssRootVariablesTextCache) return cssRootVariablesTextCache;
-  const style = getComputedStyle(document.documentElement);
-  let text = ':root {\n';
-  for (let i = 0; i < style.length; i++) {
-    const name = style.item(i);
-    if (name.startsWith('--')) {
-      text += ` ${name}: ${style.getPropertyValue(name)};\n`;
-    }
-  }
-  text += '}\n';
-  cssRootVariablesTextCache = text;
-  return text;
 }
 
 let elemIdCounter = 0;

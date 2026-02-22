@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/util"
 
@@ -121,6 +122,11 @@ func fullHashPatternProcessor(ctx *RenderContext, node *html.Node) {
 		if ret.QueryHash != "" {
 			text += " (" + ret.QueryHash + ")"
 		}
+		// only turn commit links to the current instance into hash link
+		if !httplib.IsCurrentGiteaSiteURL(ctx, ret.FullURL) {
+			node = node.NextSibling
+			continue
+		}
 		replaceContent(node, ret.PosStart, ret.PosEnd, createCodeLink(ret.FullURL, text, "commit"))
 		node = node.NextSibling.NextSibling
 	}
@@ -165,6 +171,12 @@ func comparePatternProcessor(ctx *RenderContext, node *html.Node) {
 			} else if text2 != "" {
 				text2 = text2[:len(text2)-1]
 			}
+		}
+
+		// only turn compare links to the current instance into hash link
+		if !httplib.IsCurrentGiteaSiteURL(ctx, urlFull) {
+			node = node.NextSibling
+			continue
 		}
 
 		text := text1 + textDots + text2

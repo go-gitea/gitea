@@ -1,0 +1,42 @@
+{{/* Milestone filter dropdown partial
+* QueryLink: the base query link for building filter URLs
+* MilestoneID: the currently selected milestone ID (0=all, -1=none, >0=specific)
+* OpenMilestones: list of open milestones
+* ClosedMilestones: list of closed milestones
+*/}}
+{{$queryLink := .QueryLink}}
+<div class="item ui dropdown jump {{if not (or .OpenMilestones .ClosedMilestones)}}disabled{{end}}">
+	<span class="text">
+		{{ctx.Locale.Tr "repo.issues.filter_milestone"}}
+	</span>
+	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+	<div class="menu">
+		<div class="ui icon search input">
+			<i class="icon">{{svg "octicon-search" 16}}</i>
+			<input type="text" placeholder="{{ctx.Locale.Tr "repo.issues.filter_milestone"}}">
+		</div>
+		<div class="divider"></div>
+		<a class="{{if not .MilestoneID}}active selected {{end}}item" href="{{QueryBuild $queryLink "milestone" NIL}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_all"}}</a>
+		<a class="{{if .MilestoneID}}{{if eq .MilestoneID -1}}active selected {{end}}{{end}}item" href="{{QueryBuild $queryLink "milestone" -1}}">{{ctx.Locale.Tr "repo.issues.filter_milestone_none"}}</a>
+		{{if .OpenMilestones}}
+			<div class="divider"></div>
+			<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_open"}}</div>
+			{{range .OpenMilestones}}
+			<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{QueryBuild $queryLink "milestone" .ID}}">
+				{{svg "octicon-milestone" 16 "mr-2"}}
+				{{.Name}}
+			</a>
+			{{end}}
+		{{end}}
+		{{if .ClosedMilestones}}
+			<div class="divider"></div>
+			<div class="header">{{ctx.Locale.Tr "repo.issues.filter_milestone_closed"}}</div>
+			{{range .ClosedMilestones}}
+			<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected {{end}}{{end}}item" href="{{QueryBuild $queryLink "milestone" .ID}}">
+				{{svg "octicon-milestone" 16 "mr-2"}}
+				{{.Name}}
+			</a>
+			{{end}}
+		{{end}}
+	</div>
+</div>
