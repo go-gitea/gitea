@@ -36,7 +36,7 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/model"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 	"xorm.io/builder"
 )
 
@@ -446,7 +446,7 @@ func Rerun(ctx *context_module.Context) {
 			return
 		}
 
-		err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars)
+		err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars, nil)
 		if err != nil {
 			ctx.ServerError("EvaluateRunConcurrencyFillModel", err)
 			return
@@ -526,7 +526,7 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	}
 
 	if job.RawConcurrency != "" && !shouldBlock {
-		err = actions_service.EvaluateJobConcurrencyFillModel(ctx, job.Run, job, vars)
+		err = actions_service.EvaluateJobConcurrencyFillModel(ctx, job.Run, job, vars, nil)
 		if err != nil {
 			return fmt.Errorf("evaluate job concurrency: %w", err)
 		}
