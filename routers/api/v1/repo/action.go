@@ -1004,9 +1004,16 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 	//   in: body
 	//   schema:
 	//     "$ref": "#/definitions/CreateActionWorkflowDispatch"
+	// - name: return_run_details
+	//   description: Whether the response should include the workflow run ID and URLs.
+	//   in: query
+	//   type: boolean
 	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RunDetails"
+	//     description: If return_run_details is true you get the runid
 	//   "204":
-	//     description: No Content
+	//     description: No Content, if return_run_details is missing or false
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "403":
@@ -1023,7 +1030,7 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		return
 	}
 
-	err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, opt.Ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
+	runID, err := actions_service.DispatchActionWorkflow(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, workflowID, opt.Ref, func(workflowDispatch *model.WorkflowDispatch, inputs map[string]any) error {
 		if strings.Contains(ctx.Req.Header.Get("Content-Type"), "form-urlencoded") {
 			// The chi framework's "Binding" doesn't support to bind the form map values into a map[string]string
 			// So we have to manually read the `inputs[key]` from the form
@@ -1054,7 +1061,22 @@ func ActionsDispatchWorkflow(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	if !ctx.FormBool("return_run_details") {
+		ctx.Status(http.StatusNoContent)
+		return
+	}
+
+	workflowRun, err := actions_model.GetRunByRepoAndID(ctx, ctx.Repo.Repository.ID, runID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, &api.RunDetails{
+		WorkflowRunID: runID,
+		HTMLURL:       fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.Repository.HTMLURL(), workflowRun.Index),
+		RunURL:        fmt.Sprintf("%s/actions/runs/%d", ctx.Repo.Repository.APIURL(), runID),
+	})
 }
 
 func ActionsEnableWorkflow(ctx *context.APIContext) {
