@@ -26,10 +26,10 @@ type CreateRepoForm struct {
 	Description   string `binding:"MaxSize(2048)"`
 	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
 	AutoInit      bool
-	Gitignores    string
-	IssueLabels   string
-	License       string
-	Readme        string
+	Gitignores    string `binding:"MaxSize(255)"`
+	IssueLabels   string `binding:"MaxSize(255)"`
+	License       string `binding:"MaxSize(100)"`
+	Readme        string `binding:"MaxSize(255)"`
 	Template      bool
 
 	RepoTemplate    int64
@@ -41,7 +41,7 @@ type CreateRepoForm struct {
 	Labels          bool
 	ProtectedBranch bool
 
-	ForkSingleBranch string
+	ForkSingleBranch string `binding:"MaxSize(255)"`
 	ObjectFormatName string
 }
 
