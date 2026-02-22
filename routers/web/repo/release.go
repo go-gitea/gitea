@@ -451,11 +451,6 @@ func NewReleasePost(ctx *context.Context) {
 		return
 	}
 
-	if exist, _ := git_model.IsBranchExist(ctx, ctx.Repo.Repository.ID, form.Target); !exist {
-		ctx.RenderWithErr(ctx.Tr("form.target_branch_not_exist"), tplReleaseNew, &form)
-		return
-	}
-
 	if !form.TagOnly && form.Title == "" {
 		// if not "tag only", then the title of the release cannot be empty
 		ctx.RenderWithErr(ctx.Tr("repo.release.title_empty"), tplReleaseNew, &form)
@@ -473,6 +468,8 @@ func NewReleasePost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_invalid"), tplReleaseNew, &form)
 		case release_service.IsErrProtectedTagName(err):
 			ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_protected"), tplReleaseNew, &form)
+		case git.IsErrNotExist(err):
+			ctx.RenderWithErr(ctx.Tr("repo.release.tag_target_not_exist", form.Target), tplReleaseNew, &form)
 		default:
 			ctx.ServerError("handleTagReleaseError", err)
 		}
@@ -512,7 +509,7 @@ func NewReleasePost(ctx *context.Context) {
 			IsPrerelease: form.Prerelease,
 			IsTag:        false,
 		}
-		if err = release_service.CreateRelease(ctx.Repo.GitRepo, rel, attachmentUUIDs, newTagMsg); err != nil {
+		if err = release_service.CreateRelease(ctx, ctx.Repo.GitRepo, rel, attachmentUUIDs, newTagMsg); err != nil {
 			handleTagReleaseError(err)
 			return
 		}
