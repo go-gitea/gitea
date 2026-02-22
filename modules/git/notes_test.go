@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -47,5 +49,5 @@ func TestGetNonExistentNotes(t *testing.T) {
 	note := Note{}
 	err = GetNote(t.Context(), bareRepo1, "non_existent_sha", &note)
 	assert.Error(t, err)
-	assert.IsType(t, ErrNotExist{}, err)
+	assert.ErrorIs(t, err, util.ErrNotExist)
 }

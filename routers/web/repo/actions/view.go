@@ -490,7 +490,7 @@ func Rerun(ctx *context_module.Context) {
 				return
 			}
 
-			err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars)
+			err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars, nil)
 			if err != nil {
 				ctx.ServerError("EvaluateRunConcurrencyFillModel", err)
 				return
@@ -542,10 +542,6 @@ func Rerun(ctx *context_module.Context) {
 	}
 
 	ctx.JSONOK()
-}
-
-
-	return actions_service.RerunJob(ctx, job, shouldBlock)
 }
 
 func Logs(ctx *context_module.Context) {
