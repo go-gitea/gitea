@@ -141,7 +141,7 @@ type PullRequest struct {
 	HeadCommitID        string `xorm:"-"`
 	BaseBranch          string
 	MergeBase           string `xorm:"VARCHAR(64)"`
-	AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
+	AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT true"`
 
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(64)"`

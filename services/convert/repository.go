@@ -102,7 +102,7 @@ func innerToRepo(ctx context.Context, repo *repo_model.Repository, permissionInR
 	autodetectManualMerge := false
 	defaultDeleteBranchAfterMerge := false
 	defaultMergeStyle := repo_model.MergeStyleMerge
-	defaultAllowMaintainerEdit := false
+	defaultAllowMaintainerEdit := true
 	defaultTargetBranch := ""
 	if unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
