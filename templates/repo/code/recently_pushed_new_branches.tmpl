@@ -6,7 +6,7 @@
 	{{range $recentBranch := $data.RecentlyPushedNewBranches}}
 	<div class="ui positive message flex-text-block">
 		<div class="tw-flex-1">
-			{{$timeSince := DateUtils.TimeSince $recentBranch.CommitTime}}
+			{{$timeSince := DateUtils.TimeSince $recentBranch.PushedTime}}
 			{{$branchLink := HTMLFormat `<a href="%s">%s</a>` $recentBranch.BranchLink .BranchDisplayName}}
 			{{ctx.Locale.Tr "repo.pulls.recently_pushed_new_branches" $branchLink $timeSince}}
 		</div>
