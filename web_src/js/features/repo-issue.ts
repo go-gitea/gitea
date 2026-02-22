@@ -514,7 +514,7 @@ async function initSingleCommentEditor(commentForm: HTMLFormElement) {
     const editorText = editor.value().trim(), isUploading = editor.isUploading();
     if (statusButton) {
       const statusText = statusButton.getAttribute(editorText ? 'data-status-and-comment' : 'data-status') ?? '';
-      (statusButton.querySelector<HTMLElement>('.status-button-text') ?? statusButton).textContent = statusText;
+      statusButton.querySelector<HTMLElement>('.status-button-text')!.textContent = statusText;
       statusButton.disabled = isUploading;
     }
     if (commentButton) {
