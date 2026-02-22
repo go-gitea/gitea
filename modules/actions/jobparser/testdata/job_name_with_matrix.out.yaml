@@ -1,0 +1,101 @@
+name: test
+jobs:
+  job1:
+    name: test_version_1.17_on_ubuntu-20.04
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-20.04
+        version:
+          - 1.17
+---
+name: test
+jobs:
+  job1:
+    name: test_version_1.18_on_ubuntu-20.04
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-20.04
+        version:
+          - 1.18
+---
+name: test
+jobs:
+  job1:
+    name: test_version_1.19_on_ubuntu-20.04
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-20.04
+        version:
+          - 1.19
+---
+name: test
+jobs:
+  job1:
+    name: test_version_1.17_on_ubuntu-22.04
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-22.04
+        version:
+          - 1.17
+---
+name: test
+jobs:
+  job1:
+    name: test_version_1.18_on_ubuntu-22.04
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-22.04
+        version:
+          - 1.18
+---
+name: test
+jobs:
+  job1:
+    name: test_version_1.19_on_ubuntu-22.04
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.version }}
+      - run: uname -a && go version
+    strategy:
+      matrix:
+        os:
+          - ubuntu-22.04
+        version:
+          - 1.19
