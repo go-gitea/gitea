@@ -85,16 +85,17 @@
 									<div class="flex-text-block tw-justify-end">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 											{{if .Issue.IsClosed}}
-												<button id="status-button" class="ui primary basic button" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
-													{{ctx.Locale.Tr "repo.issues.reopen_issue"}}
+												<button id="status-button" class="ui button" data-status="{{ctx.Locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.reopen_comment_issue"}}" name="status" value="reopen">
+													<span class="status-button-icon tw-mr-1 tw-text-green">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request"}}{{else}}{{svg "octicon-issue-reopened"}}{{end}}</span>
+													<span class="status-button-text">{{ctx.Locale.Tr "repo.issues.reopen_issue"}}</span>
 												</button>
 											{{else}}
 												{{$closeTranslationKey := "repo.issues.close"}}
 												{{if .Issue.IsPull}}
 													{{$closeTranslationKey = "repo.pulls.close"}}
 												{{end}}
-												<button id="status-button" class="ui red basic button" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
-													<span class="status-button-icon tw-mr-1">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request-closed"}}{{else}}{{svg "octicon-issue-closed"}}{{end}}</span>
+												<button id="status-button" class="ui button" data-status="{{ctx.Locale.Tr $closeTranslationKey}}" data-status-and-comment="{{ctx.Locale.Tr "repo.issues.close_comment_issue"}}" name="status" value="close">
+													<span class="status-button-icon tw-mr-1 tw-text-red">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request-closed"}}{{else}}{{svg "octicon-issue-closed"}}{{end}}</span>
 													<span class="status-button-text">{{ctx.Locale.Tr $closeTranslationKey}}</span>
 												</button>
 											{{end}}
