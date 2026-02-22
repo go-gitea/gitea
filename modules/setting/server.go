@@ -182,8 +182,19 @@ func MakeAbsoluteAssetURL(appURL, staticURLPrefix string) string {
 }
 
 func loadServerFrom(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("server")
 	AppName = rootCfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
+
+	sec := rootCfg.Section("server")
+	AppDataPath = sec.Key("APP_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data"))
+	if !filepath.IsAbs(AppDataPath) {
+		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
+	}
+	if IsInTesting && HasInstallLock(rootCfg) {
+		// FIXME: in testing, the "app data" directory is not correctly initialized before loading settings
+		if _, err := os.Stat(AppDataPath); err != nil {
+			_ = os.MkdirAll(AppDataPath, os.ModePerm)
+		}
+	}
 
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
@@ -228,7 +239,9 @@ func loadServerFrom(rootCfg ConfigProvider) {
 				deprecatedSetting(rootCfg, "server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY", "v1.19.0")
 				AcmeLiveDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
 			}
-
+			if !filepath.IsAbs(AcmeLiveDirectory) {
+				AcmeLiveDirectory = filepath.Join(AppDataPath, AcmeLiveDirectory)
+			}
 			if sec.HasKey("ACME_EMAIL") {
 				AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
 			} else {
@@ -269,7 +282,7 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 		if !filepath.IsAbs(HTTPAddr) {
-			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
+			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr) // FIXME: it shouldn't default to AppWorkPath (which is not writable in some cases)
 		}
 	default:
 		log.Fatal("Invalid PROTOCOL %q", protocolCfg)
@@ -352,16 +365,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	}
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
-	AppDataPath = sec.Key("APP_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data"))
-	if !filepath.IsAbs(AppDataPath) {
-		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
-	}
-	if IsInTesting && HasInstallLock(rootCfg) {
-		// FIXME: in testing, the "app data" directory is not correctly initialized before loading settings
-		if _, err := os.Stat(AppDataPath); err != nil {
-			_ = os.MkdirAll(AppDataPath, os.ModePerm)
-		}
-	}
 
 	appTempPathInternal = sec.Key("APP_TEMP_PATH").String()
 	if appTempPathInternal != "" {
@@ -376,9 +379,9 @@ func loadServerFrom(rootCfg ConfigProvider) {
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
-	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(filepath.Join(AppWorkPath, "data/tmp/pprof"))
+	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(filepath.Join(AppDataPath, "tmp/pprof"))
 	if !filepath.IsAbs(PprofDataPath) {
-		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
+		PprofDataPath = filepath.Join(AppDataPath, PprofDataPath)
 	}
 	checkOverlappedPath("[server].PPROF_DATA_PATH", PprofDataPath)
 
