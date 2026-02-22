@@ -39,11 +39,11 @@ func TestInstanceNoticeVisibility(t *testing.T) {
 		assert.Contains(t, resp.Body.String(), "Planned <strong>upgrade</strong> in progress.")
 	})
 
-	t.Run("AdminSeesBannerAndEditHint", func(t *testing.T) {
+	t.Run("AdminSeesBannerWithoutEditHint", func(t *testing.T) {
 		sess := loginUser(t, "user1")
 		resp := sess.MakeRequest(t, NewRequest(t, "GET", "/-/admin"), http.StatusOK)
 		assert.Contains(t, resp.Body.String(), "Planned <strong>upgrade</strong> in progress.")
-		assert.Contains(t, resp.Body.String(), "Edit this banner")
+		assert.NotContains(t, resp.Body.String(), "Edit this banner")
 	})
 
 	t.Run("APIRequestUnchanged", func(t *testing.T) {
@@ -86,7 +86,8 @@ func TestInstanceNoticeAdminCRUD(t *testing.T) {
 		"enabled": "true",
 		"message": "Admin set banner",
 	})
-	adminSession.MakeRequest(t, req, http.StatusSeeOther)
+	resp := adminSession.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/-/admin/config/settings#instance-notice", resp.Header().Get("Location"))
 
 	notice := setting.GetInstanceNotice(t.Context())
 	assert.True(t, notice.Enabled)
@@ -96,7 +97,8 @@ func TestInstanceNoticeAdminCRUD(t *testing.T) {
 		"enabled": "true",
 		"message": strings.Repeat("a", 2001),
 	})
-	adminSession.MakeRequest(t, req, http.StatusSeeOther)
+	resp = adminSession.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/-/admin/config/settings#instance-notice", resp.Header().Get("Location"))
 
 	notice = setting.GetInstanceNotice(t.Context())
 	assert.Equal(t, "Admin set banner", notice.Message)
@@ -104,7 +106,8 @@ func TestInstanceNoticeAdminCRUD(t *testing.T) {
 	req = NewRequestWithValues(t, "POST", "/-/admin/config/instance_notice", map[string]string{
 		"action": "delete",
 	})
-	adminSession.MakeRequest(t, req, http.StatusSeeOther)
+	resp = adminSession.MakeRequest(t, req, http.StatusSeeOther)
+	assert.Equal(t, "/-/admin/config/settings#instance-notice", resp.Header().Get("Location"))
 
 	notice = setting.GetInstanceNotice(t.Context())
 	assert.Equal(t, setting.DefaultInstanceNotice(), notice)

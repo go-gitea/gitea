@@ -149,16 +149,6 @@ func Config(ctx *context.Context) {
 	ctx.Data["Service"] = setting.Service
 	ctx.Data["DbCfg"] = setting.Database
 	ctx.Data["Webhook"] = setting.Webhook
-	instanceNotice := setting.GetInstanceNotice(ctx)
-	ctx.Data["InstanceNotice"] = instanceNotice
-	ctx.Data["InstanceNoticeMessageMaxLength"] = instanceNoticeMessageMaxLength
-	if instanceNotice.StartTime > 0 {
-		ctx.Data["InstanceNoticeStartTime"] = time.Unix(instanceNotice.StartTime, 0).In(setting.DefaultUILocation).Format("2006-01-02T15:04")
-	}
-	if instanceNotice.EndTime > 0 {
-		ctx.Data["InstanceNoticeEndTime"] = time.Unix(instanceNotice.EndTime, 0).In(setting.DefaultUILocation).Format("2006-01-02T15:04")
-	}
-
 	ctx.Data["MailerEnabled"] = false
 	if setting.MailService != nil {
 		ctx.Data["MailerEnabled"] = true
@@ -233,7 +223,7 @@ func SetInstanceNotice(ctx *context.Context) {
 			return
 		}
 		ctx.Flash.Success(ctx.Tr("admin.config.instance_notice.delete_success"))
-		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
 		return
 	}
 
@@ -242,28 +232,28 @@ func SetInstanceNotice(ctx *context.Context) {
 	startTime, err := parseDatetimeLocalValue(strings.TrimSpace(ctx.FormString("start_time")))
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time"))
-		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
 		return
 	}
 	endTime, err := parseDatetimeLocalValue(strings.TrimSpace(ctx.FormString("end_time")))
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time"))
-		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
 		return
 	}
 	if enabled && message == "" {
 		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.message_required"))
-		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
 		return
 	}
 	if utf8.RuneCountInString(message) > instanceNoticeMessageMaxLength {
 		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.message_too_long", instanceNoticeMessageMaxLength))
-		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
 		return
 	}
 	if startTime > 0 && endTime > 0 && endTime < startTime {
 		ctx.Flash.Error(ctx.Tr("admin.config.instance_notice.invalid_time_range"))
-		ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+		ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
 		return
 	}
 
@@ -280,7 +270,7 @@ func SetInstanceNotice(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.config.instance_notice.save_success"))
-	ctx.Redirect(setting.AppSubURL + "/-/admin/config#instance-notice")
+	ctx.Redirect(setting.AppSubURL + "/-/admin/config/settings#instance-notice")
 }
 
 func ConfigSettings(ctx *context.Context) {
@@ -288,6 +278,15 @@ func ConfigSettings(ctx *context.Context) {
 	ctx.Data["PageIsAdminConfig"] = true
 	ctx.Data["PageIsAdminConfigSettings"] = true
 	ctx.Data["DefaultOpenWithEditorAppsString"] = setting.DefaultOpenWithEditorApps().ToTextareaString()
+	instanceNotice := setting.GetInstanceNotice(ctx)
+	ctx.Data["InstanceNotice"] = instanceNotice
+	ctx.Data["InstanceNoticeMessageMaxLength"] = instanceNoticeMessageMaxLength
+	if instanceNotice.StartTime > 0 {
+		ctx.Data["InstanceNoticeStartTime"] = time.Unix(instanceNotice.StartTime, 0).In(setting.DefaultUILocation).Format("2006-01-02T15:04")
+	}
+	if instanceNotice.EndTime > 0 {
+		ctx.Data["InstanceNoticeEndTime"] = time.Unix(instanceNotice.EndTime, 0).In(setting.DefaultUILocation).Format("2006-01-02T15:04")
+	}
 	ctx.HTML(http.StatusOK, tplConfigSettings)
 }
 

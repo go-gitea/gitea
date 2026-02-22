@@ -12,9 +12,10 @@ vi.mock('../modules/user-settings.ts', () => ({
 function createBannerDOM(dismissKey: string) {
   document.body.innerHTML = `
     <div id="instance-notice-banner" class="ui info attached message" data-dismiss-key="${dismissKey}">
-      <div class="tw-flex tw-items-center tw-justify-center tw-gap-3">
-        <div class="render-content markup tw-text-center tw-flex-1">Maintenance in progress</div>
-        <button type="button" class="ui mini icon button instance-notice-dismiss">X</button>
+      <div class="tw-grid tw-grid-cols-[auto_1fr_auto] tw-items-center tw-gap-3">
+        <div class="ui mini icon button tw-invisible tw-pointer-events-none tw-m-0" aria-hidden="true">X</div>
+        <div class="render-content markup tw-text-center">Maintenance in progress</div>
+        <button type="button" class="ui mini icon button instance-notice-dismiss tw-m-0">X</button>
       </div>
     </div>
   `;

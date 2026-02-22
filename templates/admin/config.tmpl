@@ -265,53 +265,6 @@
 			</dl>
 		</div>
 
-		<h4 id="instance-notice" class="ui top attached header">
-			{{ctx.Locale.Tr "admin.config.instance_notice"}}
-		</h4>
-		<div class="ui attached table segment">
-			<dl class="admin-dl-horizontal">
-				<dt class="tw-py-1 tw-flex tw-items-center">{{ctx.Locale.Tr "admin.config.instance_notice.settings"}}</dt>
-				<dd class="tw-py-0">
-					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/instance_notice" method="post">
-						<div class="field">
-							<div class="ui checkbox">
-								<input type="checkbox" name="enabled" value="true" {{if .InstanceNotice.Enabled}}checked{{end}}>
-								<label>{{ctx.Locale.Tr "admin.config.instance_notice.enabled"}}</label>
-							</div>
-						</div>
-							<div class="field">
-								<label>{{ctx.Locale.Tr "admin.config.instance_notice.message"}}</label>
-								<textarea name="message" rows="4" maxlength="{{.InstanceNoticeMessageMaxLength}}" placeholder="{{ctx.Locale.Tr "admin.config.instance_notice.message_placeholder"}}">{{.InstanceNotice.Message}}</textarea>
-							</div>
-							<div class="two fields">
-							<div class="field">
-								<label>{{ctx.Locale.Tr "admin.config.instance_notice.start_time"}}</label>
-								<input type="datetime-local" name="start_time" value="{{.InstanceNoticeStartTime}}">
-							</div>
-							<div class="field">
-								<label>{{ctx.Locale.Tr "admin.config.instance_notice.end_time"}}</label>
-								<input type="datetime-local" name="end_time" value="{{.InstanceNoticeEndTime}}">
-							</div>
-						</div>
-						<div class="field">
-								<label>{{ctx.Locale.Tr "admin.config.instance_notice.preview"}}</label>
-								<div id="instance-notice-preview" class="ui info message tw-mt-2">
-									<div class="tw-flex tw-items-center tw-justify-center">
-										<div id="instance-notice-preview-content" class="render-content markup tw-text-center">{{ctx.RenderUtils.MarkdownToHtml .InstanceNotice.Message}}</div>
-									</div>
-								</div>
-							</div>
-
-						<button class="ui tiny primary button">{{ctx.Locale.Tr "admin.config.instance_notice.save"}}</button>
-					</form>
-					<form class="ui form ignore-dirty tw-mt-3" action="{{AppSubUrl}}/-/admin/config/instance_notice" method="post">
-						<input type="hidden" name="action" value="delete">
-						<button class="ui tiny button">{{ctx.Locale.Tr "admin.config.instance_notice.delete"}}</button>
-					</form>
-				</dd>
-			</dl>
-		</div>
-
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.config.session_config"}}
 		</h4>
