@@ -69,9 +69,9 @@ The variables in "ctx.Data" are different in each case, making this template fra
 											{{ctx.AvatarUtils.Avatar .Poster 20}}
 										</a>
 									{{end}}
-									<span class="text grey muted-links">
+									<span class="tw-text-text-light muted-links">
 										{{if .OriginalAuthor}}
-											<span class="text black">
+											<span class="tw-text-text">
 												{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 												{{.OriginalAuthor}}
 											</span>

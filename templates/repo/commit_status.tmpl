@@ -1,19 +1,19 @@
 <!-- make sure this matches the color logic in web_src/js/components/DashboardRepoList.vue -->
 {{if eq .State "pending"}}
-	{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
+	{{svg "octicon-dot-fill" 18 "commit-status icon tw-text-yellow"}}
 {{end}}
 {{if eq .State "success"}}
-	{{svg "octicon-check" 18 "commit-status icon text green"}}
+	{{svg "octicon-check" 18 "commit-status icon tw-text-green"}}
 {{end}}
 {{if eq .State "error"}}
-	{{svg "gitea-exclamation" 18 "commit-status icon text red"}}
+	{{svg "gitea-exclamation" 18 "commit-status icon tw-text-red"}}
 {{end}}
 {{if eq .State "failure"}}
-	{{svg "octicon-x" 18 "commit-status icon text red"}}
+	{{svg "octicon-x" 18 "commit-status icon tw-text-red"}}
 {{end}}
 {{if eq .State "warning"}}
-	{{svg "gitea-exclamation" 18 "commit-status icon text yellow"}}
+	{{svg "gitea-exclamation" 18 "commit-status icon tw-text-yellow"}}
 {{end}}
 {{if eq .State "skipped"}}
-	{{svg "octicon-skip" 18 "commit-status icon text grey"}}
+	{{svg "octicon-skip" 18 "commit-status icon tw-text-text-light"}}
 {{end}}

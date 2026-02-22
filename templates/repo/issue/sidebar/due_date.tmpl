@@ -3,7 +3,7 @@
 <div class="ui form tw-mt-2">
 	{{if .Issue.DeadlineUnix}}
 		<div class="tw-flex tw-justify-between tw-items-center tw-gap-2">
-			<div class="due-date {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
+			<div class="due-date {{if .Issue.IsOverdue}}tw-text-red{{end}}" {{if .Issue.IsOverdue}}data-tooltip-content="{{ctx.Locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
 				{{svg "octicon-calendar"}} {{DateUtils.AbsoluteLong .Issue.DeadlineUnix}}
 			</div>
 			<div class="flex-text-block">

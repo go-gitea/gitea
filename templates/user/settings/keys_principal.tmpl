@@ -17,7 +17,7 @@
 			{{range .Principals}}
 				<div class="flex-item">
 					<div class="flex-item-leading">
-						<span class="text {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
+						<span class="{{if .HasRecentActivity}}tw-text-green{{end}}" {{if .HasRecentActivity}}data-tooltip-content="{{ctx.Locale.Tr "settings.principal_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 					</div>
 					<div class="flex-item-main">
 						<div class="flex-item-title">{{.Name}}</div>

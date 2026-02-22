@@ -17,12 +17,12 @@ type CommitStatusMap = {
 
 // make sure this matches templates/repo/commit_status.tmpl
 const commitStatus: CommitStatusMap = {
-  pending: {name: 'octicon-dot-fill', color: 'yellow'},
-  success: {name: 'octicon-check', color: 'green'},
-  error: {name: 'gitea-exclamation', color: 'red'},
-  failure: {name: 'octicon-x', color: 'red'},
-  warning: {name: 'gitea-exclamation', color: 'yellow'},
-  skipped: {name: 'octicon-skip', color: 'grey'},
+  pending: {name: 'octicon-dot-fill', color: 'tw-text-yellow'},
+  success: {name: 'octicon-check', color: 'tw-text-green'},
+  error: {name: 'gitea-exclamation', color: 'tw-text-red'},
+  failure: {name: 'octicon-x', color: 'tw-text-red'},
+  warning: {name: 'gitea-exclamation', color: 'tw-text-yellow'},
+  skipped: {name: 'octicon-skip', color: 'tw-text-text-light'},
 };
 
 export default defineComponent({
@@ -430,14 +430,14 @@ export default defineComponent({
           <li class="tw-flex tw-items-center tw-py-2" v-for="(repo, index) in repos" :class="{'active': index === activeIndex}" :key="repo.id">
             <a class="repo-list-link muted" :href="repo.link">
               <svg-icon :name="repoIcon(repo)" :size="16" class="repo-list-icon"/>
-              <div class="text truncate">{{ repo.full_name }}</div>
+              <div class="tw-inline-block tw-truncate">{{ repo.full_name }}</div>
               <div v-if="repo.archived">
                 <svg-icon name="octicon-archive" :size="16"/>
               </div>
             </a>
             <a class="tw-flex tw-items-center" v-if="repo.latest_commit_status_state" :href="repo.latest_commit_status_state_link || null" :data-tooltip-content="repo.locale_latest_commit_status_state">
               <!-- the commit status icon logic is taken from templates/repo/commit_status.tmpl -->
-              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'tw-ml-2 commit-status icon text ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
+              <svg-icon :name="statusIcon(repo.latest_commit_status_state)" :class="'tw-ml-2 commit-status icon ' + statusColor(repo.latest_commit_status_state)" :size="16"/>
             </a>
           </li>
         </ul>
@@ -494,14 +494,14 @@ export default defineComponent({
           <li class="tw-flex tw-items-center tw-py-2" v-for="org in organizations" :key="org.name">
             <a class="repo-list-link muted" :href="subUrl + '/' + encodeURIComponent(org.name)">
               <svg-icon name="octicon-organization" :size="16" class="repo-list-icon"/>
-              <div class="text truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
+              <div class="tw-inline-block tw-truncate">{{ org.full_name ? `${org.full_name} (${org.name})` : org.name }}</div>
               <div><!-- div to prevent underline of label on hover -->
                 <span class="ui tiny basic label" v-if="org.org_visibility !== 'public'">
                   {{ org.org_visibility === 'limited' ? textOrgVisibilityLimited: textOrgVisibilityPrivate }}
                 </span>
               </div>
             </a>
-            <div class="text light grey tw-flex tw-items-center tw-ml-2">
+            <div class="tw-text-grey-light tw-flex tw-items-center tw-ml-2">
               {{ org.num_repos }}
               <svg-icon name="octicon-repo" :size="16" class="tw-ml-1 tw-mt-0.5"/>
             </div>

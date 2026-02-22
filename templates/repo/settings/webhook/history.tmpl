@@ -20,15 +20,15 @@
 					<div class="flex-text-block tw-justify-between">
 						<div class="flex-text-inline">
 							{{if .IsSucceed}}
-								<span class="text green">{{svg "octicon-check"}}</span>
+								<span class="tw-text-green">{{svg "octicon-check"}}</span>
 							{{else if not .IsDelivered}}
-								<span class="text orange">{{svg "octicon-stopwatch"}}</span>
+								<span class="tw-text-orange">{{svg "octicon-stopwatch"}}</span>
 							{{else}}
-								<span class="text red">{{svg "octicon-alert"}}</span>
+								<span class="tw-text-red">{{svg "octicon-alert"}}</span>
 							{{end}}
 							<button class="btn interact-bg tw-p-2 toggle show-panel" data-panel="#info-{{.ID}}">{{.UUID}}</button>
 						</div>
-						<span class="text grey">
+						<span class="tw-text-text-light">
 							{{DateUtils.TimeSince .Delivered}}
 						</span>
 					</div>

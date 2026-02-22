@@ -145,11 +145,11 @@ func TestRepoCommitsWithStatus(t *testing.T) {
 		testRepoCommitsWithStatus(t, "/api/v1/repos/user2/repo1/commits/v1.1/statuses", "/api/v1/repos/user2/repo1/commits/v1.1/status", state)
 	}
 
-	t.Run("pending", func(t *testing.T) { testRefMaster(t, "pending", "octicon-dot-fill", "yellow") })
-	t.Run("success", func(t *testing.T) { testRefMaster(t, "success", "octicon-check", "green") })
-	t.Run("error", func(t *testing.T) { testRefMaster(t, "error", "gitea-exclamation", "red") })
-	t.Run("failure", func(t *testing.T) { testRefMaster(t, "failure", "octicon-x", "red") })
-	t.Run("warning", func(t *testing.T) { testRefMaster(t, "warning", "gitea-exclamation", "yellow") })
+	t.Run("pending", func(t *testing.T) { testRefMaster(t, "pending", "octicon-dot-fill", "tw-text-yellow") })
+	t.Run("success", func(t *testing.T) { testRefMaster(t, "success", "octicon-check", "tw-text-green") })
+	t.Run("error", func(t *testing.T) { testRefMaster(t, "error", "gitea-exclamation", "tw-text-red") })
+	t.Run("failure", func(t *testing.T) { testRefMaster(t, "failure", "octicon-x", "tw-text-red") })
+	t.Run("warning", func(t *testing.T) { testRefMaster(t, "warning", "gitea-exclamation", "tw-text-yellow") })
 	t.Run("BranchWithSlash", func(t *testing.T) {
 		_ = db.TruncateBeans(t.Context(), &git_model.CommitStatus{})
 

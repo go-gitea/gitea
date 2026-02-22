@@ -40,7 +40,7 @@
 		{{range .CommitStatuses}}
 			<div class="commit-status-item">
 				{{template "repo/commit_status" .}}
-				<div class="status-context gt-ellipsis">{{.Context}} <span class="text light-2">{{.Description}}</span></div>
+				<div class="status-context gt-ellipsis">{{.Context}} <span class="tw-text-text-light-2">{{.Description}}</span></div>
 				<div class="ui status-details">
 					{{if and $statusCheckData $statusCheckData.IsContextRequired}}
 						{{if (call $statusCheckData.IsContextRequired .Context)}}<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
@@ -52,7 +52,7 @@
 		{{if $statusCheckData}}
 			{{range $statusCheckData.MissingRequiredChecks}}
 				<div class="commit-status-item">
-					{{svg "octicon-dot-fill" 18 "commit-status icon text yellow"}}
+					{{svg "octicon-dot-fill" 18 "commit-status icon tw-text-yellow"}}
 					<div class="status-context gt-ellipsis">{{.}}</div>
 					<div class="ui label">{{ctx.Locale.Tr "repo.pulls.status_checks_requested"}}</div>
 				</div>

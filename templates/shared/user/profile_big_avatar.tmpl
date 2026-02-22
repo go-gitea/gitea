@@ -21,16 +21,16 @@
 		<div class="tw-mt-2">
 			<a class="muted" href="{{.ContextUser.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "tw-mr-1"}}{{.NumFollowers}} {{ctx.Locale.Tr "user.followers"}}</a> · <a class="muted" href="{{.ContextUser.HomeLink}}?tab=following">{{.NumFollowing}} {{ctx.Locale.Tr "user.following"}}</a>
 			{{if .EnableFeed}}
-				<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui text grey tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
+				<a href="{{.ContextUser.HomeLink}}.rss"><i class="ui tw-text-text-light tw-ml-2" data-tooltip-content="{{ctx.Locale.Tr "rss_feed"}}">{{svg "octicon-rss" 18}}</i></a>
 			{{end}}
 		</div>
 	</div>
 	<div class="extra content tw-break-anywhere">
 		<ul>
 			{{if .UserBlocking}}
-				<li class="text red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</li>
+				<li class="tw-text-red">{{svg "octicon-circle-slash"}} {{ctx.Locale.Tr "user.block.blocked"}}</li>
 				{{if .UserBlocking.Note}}
-					<li class="text small red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlocking.Note}}</li>
+					<li class="tw-text-xs tw-text-red">{{ctx.Locale.Tr "user.block.note"}}: {{.UserBlocking.Note}}</li>
 				{{end}}
 			{{end}}
 			{{if .ContextUser.Location}}
