@@ -13,7 +13,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 
 	act_model "github.com/nektos/act/pkg/model"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // EvaluateRunConcurrencyFillModel evaluates the expressions in a run-level (workflow) concurrency,

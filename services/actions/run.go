@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	notify_service "code.gitea.io/gitea/services/notify"
 
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 // PrepareRunAndInsert prepares a run and inserts it into the database

@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 
 	"github.com/nektos/act/pkg/model"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
