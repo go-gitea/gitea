@@ -211,10 +211,23 @@ func (key ecdsaSingingKey) VerifyKey() any {
 	return key.key.Public()
 }
 
-// ecdsaCurveByCoordLen maps EC coordinate byte length to JWK curve name
-var ecdsaCurveByCoordLen = map[int]string{32: "P-256", 48: "P-384", 66: "P-521"}
+// ecdsaCurveParams maps JWT signing algorithm to JWK curve name and coordinate byte length.
+var ecdsaCurveParams = map[string]struct {
+	curveName string
+	coordLen  int
+}{
+	"ES256": {"P-256", 32},
+	"ES384": {"P-384", 48},
+	"ES512": {"P-521", 66},
+}
 
 func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
+	alg := key.SigningMethod().Alg()
+	params, ok := ecdsaCurveParams[alg]
+	if !ok {
+		return nil, fmt.Errorf("unsupported ECDSA signing algorithm: %s", alg)
+	}
+
 	pubKey := key.key.Public().(*ecdsa.PublicKey)
 
 	// PublicKey.Bytes returns the uncompressed SEC 1 format: 0x04 || X || Y
@@ -222,19 +235,19 @@ func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	coordLen := (len(pubKeyBytes) - 1) / 2
-	curveName, ok := ecdsaCurveByCoordLen[coordLen]
-	if !ok {
-		return nil, fmt.Errorf("unsupported EC coordinate length: %d", coordLen)
+
+	expectedLen := 1 + 2*params.coordLen
+	if len(pubKeyBytes) != expectedLen || pubKeyBytes[0] != 0x04 {
+		return nil, fmt.Errorf("invalid SEC 1 uncompressed point encoding for %s", alg)
 	}
 
 	return map[string]string{
 		"kty": "EC",
-		"alg": key.SigningMethod().Alg(),
+		"alg": alg,
 		"kid": key.id,
-		"crv": curveName,
-		"x":   base64.RawURLEncoding.EncodeToString(pubKeyBytes[1 : 1+coordLen]),
-		"y":   base64.RawURLEncoding.EncodeToString(pubKeyBytes[1+coordLen:]),
+		"crv": params.curveName,
+		"x":   base64.RawURLEncoding.EncodeToString(pubKeyBytes[1 : 1+params.coordLen]),
+		"y":   base64.RawURLEncoding.EncodeToString(pubKeyBytes[1+params.coordLen:]),
 	}, nil
 }
 
