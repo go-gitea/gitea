@@ -7,11 +7,82 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestIsWorkflow(t *testing.T) {
+	oldDirs := setting.Actions.WorkflowDirs
+	defer func() {
+		setting.Actions.WorkflowDirs = oldDirs
+	}()
+
+	tests := []struct {
+		name     string
+		dirs     []string
+		path     string
+		expected bool
+	}{
+		{
+			name:     "default with yml extension",
+			dirs:     []string{".gitea/workflows", ".github/workflows"},
+			path:     ".gitea/workflows/test.yml",
+			expected: true,
+		},
+		{
+			name:     "default with yaml extension",
+			dirs:     []string{".gitea/workflows", ".github/workflows"},
+			path:     ".github/workflows/test.yaml",
+			expected: true,
+		},
+		{
+			name:     "only gitea configured, github path rejected",
+			dirs:     []string{".gitea/workflows"},
+			path:     ".github/workflows/test.yml",
+			expected: false,
+		},
+		{
+			name:     "only github configured, gitea path rejected",
+			dirs:     []string{".github/workflows"},
+			path:     ".gitea/workflows/test.yml",
+			expected: false,
+		},
+		{
+			name:     "custom workflow dir",
+			dirs:     []string{".custom/workflows"},
+			path:     ".custom/workflows/deploy.yml",
+			expected: true,
+		},
+		{
+			name:     "non-workflow file",
+			dirs:     []string{".gitea/workflows", ".github/workflows"},
+			path:     ".gitea/workflows/readme.md",
+			expected: false,
+		},
+		{
+			name:     "directory boundary",
+			dirs:     []string{".gitea/workflows"},
+			path:     ".gitea/workflows2/test.yml",
+			expected: false,
+		},
+		{
+			name:     "unrelated path",
+			dirs:     []string{".gitea/workflows", ".github/workflows"},
+			path:     "src/main.go",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			setting.Actions.WorkflowDirs = tt.dirs
+			assert.Equal(t, tt.expected, IsWorkflow(tt.path))
+		})
+	}
+}
 
 func TestDetectMatched(t *testing.T) {
 	testCases := []struct {
