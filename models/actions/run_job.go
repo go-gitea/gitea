@@ -51,6 +51,11 @@ type ActionRunJob struct {
 	ConcurrencyGroup  string `xorm:"index(repo_concurrency) NOT NULL DEFAULT ''"` // evaluated concurrency.group
 	ConcurrencyCancel bool   `xorm:"NOT NULL DEFAULT FALSE"`                      // evaluated concurrency.cancel-in-progress
 
+	// TokenPermissions stores the explicit permissions from workflow/job YAML (no org/repo clamps applied).
+	// Org/repo clamps are enforced when the token is used at runtime.
+	// It is JSON-encoded repo_model.ActionsTokenPermissions and may be empty if not specified.
+	TokenPermissions string `xorm:"TEXT"`
+
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`

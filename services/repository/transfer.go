@@ -6,8 +6,10 @@ package repository
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
+	actions_model "code.gitea.io/gitea/models/actions"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -244,6 +246,24 @@ func transferOwnership(ctx context.Context, doer *user_model.User, newOwnerName 
 	} else if err := access_model.RecalculateAccesses(ctx, repo); err != nil {
 		// Organization called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %w", err)
+	}
+
+	// Remove repository from old owner's Actions AllowedCrossRepoIDs if present
+	if oldActionsCfg, err := actions_model.GetUserActionsConfig(ctx, oldOwner.ID); err == nil {
+		if slices.Contains(oldActionsCfg.AllowedCrossRepoIDs, repo.ID) {
+			newIDs := make([]int64, 0, len(oldActionsCfg.AllowedCrossRepoIDs))
+			for _, id := range oldActionsCfg.AllowedCrossRepoIDs {
+				if id != repo.ID {
+					newIDs = append(newIDs, id)
+				}
+			}
+			oldActionsCfg.AllowedCrossRepoIDs = newIDs
+			if err := actions_model.SetUserActionsConfig(ctx, oldOwner.ID, oldActionsCfg); err != nil {
+				return fmt.Errorf("SetUserActionsConfig: %w", err)
+			}
+		}
+	} else {
+		return fmt.Errorf("GetUserActionsConfig: %w", err)
 	}
 
 	// Update repository count.

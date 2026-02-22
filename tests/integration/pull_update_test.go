@@ -67,7 +67,7 @@ func enableRepoAllowUpdateWithRebase(t *testing.T, repoID int64, allow bool) {
 
 	repoUnit := unittest.AssertExistsAndLoadBean(t, &repo_model.RepoUnit{RepoID: repoID, Type: unit.TypePullRequests})
 	repoUnit.PullRequestsConfig().AllowRebaseUpdate = allow
-	assert.NoError(t, repo_model.UpdateRepoUnit(t.Context(), repoUnit))
+	assert.NoError(t, repo_model.UpdateRepoUnitConfig(t.Context(), repoUnit))
 }
 
 func TestAPIPullUpdateByRebase(t *testing.T) {

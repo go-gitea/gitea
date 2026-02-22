@@ -32,7 +32,6 @@ import (
 	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
-	org_setting "code.gitea.io/gitea/routers/web/org/setting"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/repo/actions"
 	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
@@ -655,7 +654,17 @@ func registerWebRoutes(m *web.Router) {
 		}, packagesEnabled)
 
 		m.Group("/actions", func() {
-			m.Get("", user_setting.RedirectToDefaultSetting)
+			m.Get("", func(ctx *context.Context) {
+				ctx.Redirect(setting.AppSubURL + "/user/settings/actions/general")
+			})
+			m.Group("/general", func() {
+				m.Get("", shared_actions.GeneralSettings)
+				m.Post("", shared_actions.UpdateTokenPermissions)
+				m.Group("/allowed_repos", func() {
+					m.Post("/add", shared_actions.AllowedReposAdd)
+					m.Post("/remove", shared_actions.AllowedReposRemove)
+				})
+			})
 			addSettingsRunnersRoutes()
 			addSettingsSecretsRoutes()
 			addSettingsVariablesRoutes()
@@ -958,7 +967,17 @@ func registerWebRoutes(m *web.Router) {
 				})
 
 				m.Group("/actions", func() {
-					m.Get("", org_setting.RedirectToDefaultSetting)
+					m.Get("", func(ctx *context.Context) {
+						ctx.Redirect(ctx.Org.OrgLink + "/settings/actions/general")
+					})
+					m.Group("/general", func() {
+						m.Get("", shared_actions.GeneralSettings)
+						m.Post("", shared_actions.UpdateTokenPermissions)
+						m.Group("/allowed_repos", func() {
+							m.Post("/add", shared_actions.AllowedReposAdd)
+							m.Post("/remove", shared_actions.AllowedReposRemove)
+						})
+					})
 					addSettingsRunnersRoutes()
 					addSettingsSecretsRoutes()
 					addSettingsVariablesRoutes()
@@ -1165,6 +1184,7 @@ func registerWebRoutes(m *web.Router) {
 					m.Post("/add", repo_setting.AddCollaborativeOwner)
 					m.Post("/delete", repo_setting.DeleteCollaborativeOwner)
 				})
+				m.Post("/token_permissions", repo_setting.UpdateTokenPermissions)
 			})
 		}, actions.MustEnableActions)
 		// the follow handler must be under "settings", otherwise this incomplete repo can't be accessed
