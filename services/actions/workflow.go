@@ -44,16 +44,16 @@ func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnabl
 	return repo_model.UpdateRepoUnit(ctx, cfgUnit)
 }
 
-func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) error {
+func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, repo *repo_model.Repository, gitRepo *git.Repository, workflowID, ref string, processInputs func(model *model.WorkflowDispatch, inputs map[string]any) error) (runID int64, workflowError error) {
 	if workflowID == "" {
-		return util.ErrorWrapTranslatable(
+		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("workflowID is empty"),
 			"actions.workflow.not_found", workflowID,
 		)
 	}
 
 	if ref == "" {
-		return util.ErrorWrapTranslatable(
+		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("ref is empty"),
 			"form.target_ref_not_exist", ref,
 		)
@@ -63,7 +63,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	cfgUnit := repo.MustGetUnit(ctx, unit.TypeActions)
 	cfg := cfgUnit.ActionsConfig()
 	if cfg.IsWorkflowDisabled(workflowID) {
-		return util.ErrorWrapTranslatable(
+		return 0, util.ErrorWrapTranslatable(
 			util.NewPermissionDeniedErrorf("workflow is disabled"),
 			"actions.workflow.disabled",
 		)
@@ -82,7 +82,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 		runTargetCommit, err = gitRepo.GetBranchCommit(ref)
 	}
 	if err != nil {
-		return util.ErrorWrapTranslatable(
+		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("ref %q doesn't exist", ref),
 			"form.target_ref_not_exist", ref,
 		)
@@ -91,7 +91,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	// get workflow entry from runTargetCommit
 	_, entries, err := actions.ListWorkflows(runTargetCommit)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// find workflow from commit
@@ -122,7 +122,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	}
 
 	if entry == nil {
-		return util.ErrorWrapTranslatable(
+		return 0, util.ErrorWrapTranslatable(
 			util.NewNotExistErrorf("workflow %q doesn't exist", workflowID),
 			"actions.workflow.not_found", workflowID,
 		)
@@ -130,12 +130,12 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 
 	content, err := actions.GetContentFromEntry(entry)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	singleWorkflow := &jobparser.SingleWorkflow{}
 	if err := yaml.Unmarshal(content, singleWorkflow); err != nil {
-		return fmt.Errorf("failed to unmarshal workflow content: %w", err)
+		return 0, fmt.Errorf("failed to unmarshal workflow content: %w", err)
 	}
 	// get inputs from post
 	workflow := &model.Workflow{
@@ -144,7 +144,7 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 	inputsWithDefaults := make(map[string]any)
 	if workflowDispatch := workflow.WorkflowDispatchConfig(); workflowDispatch != nil {
 		if err = processInputs(workflowDispatch, inputsWithDefaults); err != nil {
-			return err
+			return 0, err
 		}
 	}
 
@@ -161,13 +161,13 @@ func DispatchActionWorkflow(ctx reqctx.RequestContext, doer *user_model.User, re
 
 	var eventPayload []byte
 	if eventPayload, err = workflowDispatchPayload.JSONPayload(); err != nil {
-		return fmt.Errorf("JSONPayload: %w", err)
+		return 0, fmt.Errorf("JSONPayload: %w", err)
 	}
 	run.EventPayload = string(eventPayload)
 
 	// Insert the action run and its associated jobs into the database
 	if err := PrepareRunAndInsert(ctx, content, run, inputsWithDefaults); err != nil {
-		return fmt.Errorf("PrepareRun: %w", err)
+		return 0, fmt.Errorf("PrepareRun: %w", err)
 	}
-	return nil
+	return run.ID, nil
 }
