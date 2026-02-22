@@ -214,13 +214,20 @@ func (key ecdsaSingingKey) VerifyKey() any {
 func (key ecdsaSingingKey) ToJWK() (map[string]string, error) {
 	pubKey := key.key.Public().(*ecdsa.PublicKey)
 
+	// PublicKey.Bytes returns the uncompressed SEC 1 format: 0x04 || X || Y
+	pubKeyBytes, err := pubKey.Bytes()
+	if err != nil {
+		return nil, err
+	}
+
+	coordLen := (len(pubKeyBytes) - 1) / 2
 	return map[string]string{
 		"kty": "EC",
 		"alg": key.SigningMethod().Alg(),
 		"kid": key.id,
 		"crv": pubKey.Params().Name,
-		"x":   base64.RawURLEncoding.EncodeToString(pubKey.X.Bytes()),
-		"y":   base64.RawURLEncoding.EncodeToString(pubKey.Y.Bytes()),
+		"x":   base64.RawURLEncoding.EncodeToString(pubKeyBytes[1 : 1+coordLen]),
+		"y":   base64.RawURLEncoding.EncodeToString(pubKeyBytes[1+coordLen:]),
 	}, nil
 }
 
