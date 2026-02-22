@@ -1,0 +1,15 @@
+name: test
+jobs:
+  job1:
+    name: job1
+    runs-on: linux
+    uses: .gitea/workflows/build.yml
+    with:
+      package: service
+
+  job2:
+    name: job2
+    runs-on: linux
+    uses: .gitea/workflows/build.yml
+    with:
+      package: module
