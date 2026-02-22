@@ -108,9 +108,9 @@
 					<span class="text truncate issue title">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "comment_issue" "approve_pull_request" "reject_pull_request" "comment_pull"}}
 					<a href="{{.GetCommentLink ctx}}" class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</a>
-					{{$comment := index .GetIssueInfos 1}}
+					{{$comment := .GetCommentPreview}}
 					{{if $comment}}
-						<div class="render-content markup tw-text-14">{{ctx.RenderUtils.MarkdownToHtml $comment}}</div>
+						<div class="render-content markup tw-text-14">{{ctx.RenderUtils.MarkdownToHTMLWithPreviewLimit $comment}}</div>
 					{{end}}
 				{{else if .GetOpType.InActions "merge_pull_request"}}
 					<div class="flex-item-body text black">{{index .GetIssueInfos 1 | ctx.RenderUtils.RenderIssueSimpleTitle}}</div>
@@ -118,7 +118,7 @@
 					<span class="text truncate issue title">{{(.GetIssueTitle ctx) | ctx.RenderUtils.RenderIssueSimpleTitle}}</span>
 				{{else if .GetOpType.InActions "pull_review_dismissed"}}
 				<div class="flex-item-body text black">{{ctx.Locale.Tr "action.review_dismissed_reason"}}</div>
-				<div class="flex-item-body text black">{{index .GetIssueInfos 2 | ctx.RenderUtils.RenderEmoji}}</div>
+				<div class="flex-item-body text black">{{.GetCommentPreview | ctx.RenderUtils.RenderEmoji}}</div>
 				{{end}}
 			</div>
 			<div class="flex-item-trailing">

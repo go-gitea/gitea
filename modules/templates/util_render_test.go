@@ -218,6 +218,71 @@ func TestRenderLabels(t *testing.T) {
 	assert.Equal(t, expectedLabel, string(ut.RenderLabelWithLink(label, "")))
 }
 
+func TestTruncateToPreviewLines(t *testing.T) {
+	t.Run("short input unchanged", func(t *testing.T) {
+		preview, truncated := TruncateToPreviewLines("hello")
+		assert.Equal(t, "hello", preview)
+		assert.False(t, truncated)
+	})
+
+	t.Run("exactly MaxPreviewLines", func(t *testing.T) {
+		input := "1\n2\n3\n4\n5"
+		preview, truncated := TruncateToPreviewLines(input)
+		assert.Equal(t, input, preview)
+		assert.False(t, truncated)
+	})
+
+	t.Run("exceeds MaxPreviewLines", func(t *testing.T) {
+		input := "1\n2\n3\n4\n5\n6\n7"
+		preview, truncated := TruncateToPreviewLines(input)
+		assert.Equal(t, "1\n2\n3\n4\n5", preview)
+		assert.True(t, truncated)
+	})
+
+	t.Run("single long line capped by MaxPreviewChars", func(t *testing.T) {
+		input := strings.Repeat("a", MaxPreviewChars+500)
+		preview, truncated := TruncateToPreviewLines(input)
+		assert.Len(t, preview, MaxPreviewChars)
+		assert.True(t, truncated)
+	})
+
+	t.Run("multi-line within char budget", func(t *testing.T) {
+		input := "short\nlines\nhere"
+		preview, truncated := TruncateToPreviewLines(input)
+		assert.Equal(t, input, preview)
+		assert.False(t, truncated)
+	})
+
+	t.Run("multi-byte runes not broken", func(t *testing.T) {
+		input := strings.Repeat("\U0001f600", MaxPreviewChars+10)
+		preview, truncated := TruncateToPreviewLines(input)
+		assert.Equal(t, strings.Repeat("\U0001f600", MaxPreviewChars), preview)
+		assert.True(t, truncated)
+	})
+}
+
+func TestMarkdownToHTMLWithPreviewLimit(t *testing.T) {
+	defer test.MockVariableValue(&markup.RenderBehaviorForTesting.DisableAdditionalAttributes, true)()
+
+	t.Run("short input has no truncation indicator", func(t *testing.T) {
+		out := string(newTestRenderUtils(t).MarkdownToHTMLWithPreviewLimit("hello"))
+		assert.NotContains(t, out, `<span class="tw-text-text-light">`)
+		assert.Contains(t, out, "hello")
+	})
+
+	t.Run("truncated input has indicator", func(t *testing.T) {
+		input := "1\n2\n3\n4\n5\n6"
+		out := string(newTestRenderUtils(t).MarkdownToHTMLWithPreviewLimit(input))
+		assert.Contains(t, out, `<span class="tw-text-text-light">…</span>`)
+	})
+
+	t.Run("exactly MaxPreviewChars not truncated", func(t *testing.T) {
+		input := strings.Repeat("\U0001f600", MaxPreviewChars)
+		out := string(newTestRenderUtils(t).MarkdownToHTMLWithPreviewLimit(input))
+		assert.NotContains(t, out, `<span class="tw-text-text-light">`)
+	})
+}
+
 func TestUserMention(t *testing.T) {
 	markup.RenderBehaviorForTesting.DisableAdditionalAttributes = true
 	rendered := newTestRenderUtils(t).MarkdownToHtml("@no-such-user @mention-user @mention-user")

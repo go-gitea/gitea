@@ -6,6 +6,7 @@ package activities_test
 import (
 	"fmt"
 	"path"
+	"strings"
 	"testing"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -156,4 +157,59 @@ func TestDeleteIssueActions(t *testing.T) {
 	unittest.AssertCount(t, &activities_model.Action{}, 2)
 	assert.NoError(t, activities_model.DeleteIssueActions(t.Context(), issue.RepoID, issue.ID, issue.Index))
 	unittest.AssertCount(t, &activities_model.Action{}, 0)
+}
+
+func TestGetCommentPreview(t *testing.T) {
+	t.Run("live comment preferred over snapshot", func(t *testing.T) {
+		action := &activities_model.Action{
+			OpType:  activities_model.ActionCommentIssue,
+			Content: "1|stale snapshot",
+			Comment: &issue_model.Comment{Content: "fresh content"},
+		}
+		assert.Equal(t, "fresh content", action.GetCommentPreview())
+	})
+
+	t.Run("snapshot fallback when comment not loaded", func(t *testing.T) {
+		action := &activities_model.Action{
+			OpType:  activities_model.ActionCommentIssue,
+			Content: "1|snapshot body",
+		}
+		assert.Equal(t, "snapshot body", action.GetCommentPreview())
+	})
+
+	t.Run("dismiss review reads field 2 as fallback", func(t *testing.T) {
+		action := &activities_model.Action{
+			OpType:  activities_model.ActionPullReviewDismissed,
+			Content: "5|reviewer|dismiss reason",
+		}
+		assert.Equal(t, "dismiss reason", action.GetCommentPreview())
+	})
+
+	t.Run("dismiss review prefers live comment", func(t *testing.T) {
+		action := &activities_model.Action{
+			OpType:  activities_model.ActionPullReviewDismissed,
+			Content: "5|reviewer|old reason",
+			Comment: &issue_model.Comment{Content: "updated reason"},
+		}
+		assert.Equal(t, "updated reason", action.GetCommentPreview())
+	})
+
+	t.Run("returns full content for rendering", func(t *testing.T) {
+		long := strings.Repeat("a", 300)
+		action := &activities_model.Action{
+			OpType:  activities_model.ActionCommentPull,
+			Comment: &issue_model.Comment{Content: long},
+		}
+		preview := action.GetCommentPreview()
+		assert.Equal(t, long, preview)
+	})
+
+	t.Run("empty live comment preferred over snapshot", func(t *testing.T) {
+		action := &activities_model.Action{
+			OpType:  activities_model.ActionCommentIssue,
+			Content: "1|old content",
+			Comment: &issue_model.Comment{Content: ""},
+		}
+		assert.Empty(t, action.GetCommentPreview())
+	})
 }

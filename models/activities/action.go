@@ -382,6 +382,21 @@ func (a *Action) GetIssueInfos() []string {
 	return ret
 }
 
+// GetCommentPreview returns the comment body for feed rendering,
+// preferring the live Comment.Content over the snapshot in Action.Content.
+func (a *Action) GetCommentPreview() string {
+	if a.Comment != nil {
+		return a.Comment.Content
+	}
+
+	switch a.OpType {
+	case ActionPullReviewDismissed:
+		return a.GetIssueInfos()[2]
+	default:
+		return a.GetIssueInfos()[1]
+	}
+}
+
 func (a *Action) getIssueIndex() int64 {
 	infos := a.GetIssueInfos()
 	if len(infos) == 0 {
