@@ -67,6 +67,8 @@ const loadSavedState = () => {
 }
 
 const saveState = () => {
+  // TODO: different repos might have the same workflowId, but at the moment, we don't have repo id
+  // If overwritten occurs, acceptable, not too bad
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
   allStates[props.workflowId] = {
     scale: scale.value,
@@ -176,12 +178,10 @@ const edges = computed<Edge[]>(() => {
 
   const jobsByJobId = new Map<string, ActionsJob[]>();
   for (const job of props.jobs) {
-    if (job.jobId) {
-      if (!jobsByJobId.has(job.jobId)) {
-        jobsByJobId.set(job.jobId, []);
-      }
-      jobsByJobId.get(job.jobId)!.push(job);
+    if (!jobsByJobId.has(job.jobId)) {
+      jobsByJobId.set(job.jobId, []);
     }
+    jobsByJobId.get(job.jobId)!.push(job);
   }
 
   for (const job of props.jobs) {
