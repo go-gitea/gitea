@@ -508,9 +508,10 @@ export default defineComponent({
   <!-- make the view container full width to make users easier to read logs -->
   <div class="ui fluid container">
     <div class="action-view-header">
+      <a class="action-view-back" :href="run.workflowLink"><SvgIcon name="octicon-arrow-left"/> {{ run.workflowID.replace(/\.(yml|yaml)$/i, '') }}</a>
       <div class="action-info-summary">
         <div class="action-info-summary-title">
-          <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="20"/>
+          <ActionRunStatus :locale-status="locale.status[run.status]" :status="run.status" :size="22"/>
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
@@ -525,7 +526,7 @@ export default defineComponent({
         </button>
       </div>
       <div class="action-commit-summary">
-        <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
+        <span><a class="muted" :href="`${run.link}/workflow`"><b>{{ run.workflowID }}</b></a>:</span>
         <template v-if="run.isSchedule">
           {{ locale.scheduled }}
         </template>
@@ -668,7 +669,17 @@ export default defineComponent({
 /* action view header */
 
 .action-view-header {
-  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  margin-top: -7px;
+}
+
+.action-view-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: var(--color-text-light-1);
 }
 
 .action-info-summary {
@@ -700,8 +711,9 @@ export default defineComponent({
   display: flex;
   align-items: center;
   flex-wrap: wrap;
+  line-height: normal;
   gap: 5px;
-  margin-left: 28px;
+  margin-left: 30px;
 }
 
 @media (max-width: 767.98px) {
