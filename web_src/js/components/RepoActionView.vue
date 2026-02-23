@@ -8,10 +8,9 @@ import {renderAnsi} from '../render/ansi.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
+import WorkflowGraph from './WorkflowGraph.vue'
 import {localUserSettings} from '../modules/user-settings.ts';
-
-// see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
-type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+import type {ActionsRunStatus, ActionsJob} from '../modules/gitea-actions.ts';
 
 type StepContainerElement = HTMLElement & {
   // To remember the last active logs container, for example: a batch of logs only starts a group but doesn't end it,
@@ -54,19 +53,10 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '::remove-matcher': 'hidden', // it has arguments
 };
 
-
-type Job = {
-  id: number;
-  name: string;
-  status: RunStatus;
-  canRerun: boolean;
-  duration: string;
-}
-
 type Step = {
   summary: string,
   duration: string,
-  status: RunStatus,
+  status: ActionsRunStatus,
 }
 
 type JobStepState = {
@@ -107,6 +97,7 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
 type LocaleStorageOptions = {
   autoScroll: boolean;
   expandRunning: boolean;
+  showWorkflowGraph: boolean;
   actionsLogShowSeconds: boolean;
   actionsLogShowTimestamps: boolean;
 };
@@ -116,20 +107,12 @@ export default defineComponent({
   components: {
     SvgIcon,
     ActionRunStatus,
+    WorkflowGraph,
   },
   props: {
-    runIndex: {
-      type: String,
-      default: '',
-    },
-    jobIndex: {
-      type: String,
-      default: '',
-    },
-    actionsURL: {
-      type: String,
-      default: '',
-    },
+    runIndex: {type: Number, required: true},
+    jobIndex: {type: Number, required: true},
+    actionsURL: {type: String, required: true},
     locale: {
       type: Object as PropType<Record<string, any>>,
       default: null,
@@ -137,8 +120,8 @@ export default defineComponent({
   },
 
   data() {
-    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false, actionsLogShowSeconds: false, actionsLogShowTimestamps: false};
-    const {autoScroll, expandRunning, actionsLogShowSeconds, actionsLogShowTimestamps} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
+    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false, showWorkflowGraph: false, actionsLogShowSeconds: false, actionsLogShowTimestamps: false};
+    const {autoScroll, expandRunning, showWorkflowGraph, actionsLogShowSeconds, actionsLogShowTimestamps} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
     return {
       // internal state
       loadingAbortController: null as AbortController | null,
@@ -147,6 +130,7 @@ export default defineComponent({
       artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
       isFullScreen: false,
+      showWorkflowGraph: showWorkflowGraph,
       timeVisible: {
         'log-time-stamp': actionsLogShowTimestamps,
         'log-time-seconds': actionsLogShowSeconds,
@@ -159,7 +143,7 @@ export default defineComponent({
         link: '',
         title: '',
         titleHTML: '',
-        status: '' as RunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
+        status: '' as ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
         canCancel: false,
         canApprove: false,
         canRerun: false,
@@ -176,7 +160,7 @@ export default defineComponent({
           //   canRerun: false,
           //   duration: '',
           // },
-        ] as Array<Job>,
+        ] as Array<ActionsJob>,
         commit: {
           localeCommit: '',
           localePushedBy: '',
@@ -212,6 +196,9 @@ export default defineComponent({
       this.saveLocaleStorageOptions();
     },
     optionAlwaysExpandRunning() {
+      this.saveLocaleStorageOptions();
+    },
+    showWorkflowGraph() {
       this.saveLocaleStorageOptions();
     },
   },
@@ -258,6 +245,7 @@ export default defineComponent({
       const opts: LocaleStorageOptions = {
         autoScroll: this.optionAlwaysAutoScroll,
         expandRunning: this.optionAlwaysExpandRunning,
+        showWorkflowGraph: this.showWorkflowGraph,
         actionsLogShowSeconds: this.timeVisible['log-time-seconds'],
         actionsLogShowTimestamps: this.timeVisible['log-time-stamp'],
       };
@@ -456,11 +444,11 @@ export default defineComponent({
       }
     },
 
-    isDone(status: RunStatus) {
+    isDone(status: ActionsRunStatus) {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
     },
 
-    isExpandable(status: RunStatus) {
+    isExpandable(status: ActionsRunStatus) {
       return ['success', 'running', 'failure', 'cancelled'].includes(status);
     },
 
@@ -514,15 +502,20 @@ export default defineComponent({
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
-        <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
-          {{ locale.approve }}
-        </button>
-        <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
-          {{ locale.cancel }}
-        </button>
-        <button class="ui basic small compact button link-action tw-shrink-0" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
-          {{ locale.rerun_all }}
-        </button>
+        <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
+          <button class="ui basic small compact button primary" @click="showWorkflowGraph = !showWorkflowGraph" :class="{ active: showWorkflowGraph }" v-if="run.jobs.length > 1">
+            {{ locale.workflowGraph }}
+          </button>
+          <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
+            {{ locale.approve }}
+          </button>
+          <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+            {{ locale.cancel }}
+          </button>
+          <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+            {{ locale.rerun_all }}
+          </button>
+        </div>
       </div>
       <div class="action-commit-summary">
         <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
@@ -545,7 +538,7 @@ export default defineComponent({
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
+            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="jobIndex === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
@@ -585,6 +578,15 @@ export default defineComponent({
       </div>
 
       <div class="action-view-right">
+        <WorkflowGraph
+          v-if="showWorkflowGraph && run.jobs.length > 1"
+          :jobs="run.jobs"
+          :current-job-index="jobIndex"
+          :run-link="run.link"
+          :workflow-id="run.workflowID"
+          class="workflow-graph-container"
+        />
+
         <div class="job-info-header">
           <div class="job-info-header-left gt-ellipsis">
             <h3 class="job-info-header-title gt-ellipsis">
@@ -673,6 +675,7 @@ export default defineComponent({
 
 .action-info-summary {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
