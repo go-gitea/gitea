@@ -59,13 +59,6 @@ func (o Option[T]) ValueOrDefault(v T) T {
 	return v
 }
 
-// SetPtrTo sets target to the value of src if src is not nil.
-func SetPtrTo[T any](target, src *T) {
-	if src != nil {
-		*target = *src
-	}
-}
-
 // ParseBool get the corresponding optional.Option[bool] of a string using strconv.ParseBool
 func ParseBool(s string) Option[bool] {
 	v, e := strconv.ParseBool(s)
@@ -73,4 +66,18 @@ func ParseBool(s string) Option[bool] {
 		return None[bool]()
 	}
 	return Some(v)
+}
+
+func AssignPtrValue[T comparable](changed *bool, target, src *T) {
+	if src != nil && *src != *target {
+		*target = *src
+		*changed = true
+	}
+}
+
+func AssignPtrString[TO, FROM ~string](changed *bool, target *TO, src *FROM) {
+	if src != nil && string(*src) != string(*target) {
+		*target = TO(*src)
+		*changed = true
+	}
 }

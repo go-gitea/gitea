@@ -230,14 +230,6 @@ type EditRepoOption struct {
 	EnablePrune *bool `json:"enable_prune,omitempty"`
 }
 
-// HasPullRequestOptions returns true if any pull request unit config options are set.
-func (o EditRepoOption) HasPullRequestOptions() bool {
-	return o.IgnoreWhitespaceConflicts != nil || o.AllowMerge != nil || o.AllowRebase != nil ||
-		o.AllowRebaseMerge != nil || o.AllowSquash != nil || o.AllowFastForwardOnly != nil ||
-		o.AllowManualMerge != nil || o.AutodetectManualMerge != nil || o.AllowRebaseUpdate != nil ||
-		o.DefaultDeleteBranchAfterMerge != nil || o.DefaultMergeStyle != nil || o.DefaultAllowMaintainerEdit != nil
-}
-
 // GenerateRepoOption options when creating a repository using a template
 // swagger:model
 type GenerateRepoOption struct {
