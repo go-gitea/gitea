@@ -16,11 +16,11 @@ export function initGlobalCopyToClipboardListener() {
     e.preventDefault();
 
     let text = target.getAttribute('data-clipboard-text');
-    if (!text) {
+    if (text === null) {
       const textSelector = target.getAttribute('data-clipboard-target')!;
       const textTarget = document.querySelector(textSelector)!;
       if (textTarget.nodeName === 'INPUT' || textTarget.nodeName === 'TEXTAREA') {
-        text = (textTarget as HTMLInputElement).value;
+        text = (textTarget as HTMLInputElement | HTMLTextAreaElement).value;
       } else if (textTarget.nodeName === 'DIV') {
         text = textTarget.textContent;
       } else {
