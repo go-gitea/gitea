@@ -11,8 +11,8 @@ export function initRepositoryActionView() {
   if (parentFullHeight) parentFullHeight.classList.add('tw-pb-0');
 
   const view = createApp(RepoActionView, {
-    runIndex: el.getAttribute('data-run-index'),
-    jobIndex: el.getAttribute('data-job-index'),
+    runIndex: parseInt(el.getAttribute('data-run-index')!),
+    jobIndex: parseInt(el.getAttribute('data-job-index')!),
     actionsURL: el.getAttribute('data-actions-url'),
     locale: {
       approve: el.getAttribute('data-locale-approve'),

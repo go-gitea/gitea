@@ -35,6 +35,8 @@ interface StoredState {
 const props = defineProps<{
   jobs: ActionsJob[];
   currentJobIndex: number;
+  runLink: string;
+  workflowId: string;
 }>()
 
 const settingKey = 'workflow-graph-states';
@@ -50,26 +52,17 @@ const graphContainer = ref<HTMLElement | null>(null);
 const hoveredJobId = ref<number | null>(null);
 
 const loadSavedState = () => {
-  const currentRunId = getCurrentRunId();
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKey, {});
-  const saved = allStates[currentRunId];
+  const saved = allStates[props.workflowId];
   if (!saved) return;
   scale.value = saved.scale ?? scale.value;
   translateX.value = saved.translateX ?? translateX.value;
   translateY.value = saved.translateY ?? translateY.value;
 }
 
-const getCurrentRunId = () => {
-  // FIXME: it is fragile
-  const runMatch = window.location.pathname.match(/\/runs\/(\d+)/);
-  return runMatch ? runMatch[1] : 'unknown';
-};
-
 const saveState = () => {
-  const currentRunId = getCurrentRunId();
   const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKey, {});
-
-  allStates[currentRunId] = {
+  allStates[props.workflowId] = {
     scale: scale.value,
     translateX: translateX.value,
     translateY: translateY.value,
@@ -140,7 +133,6 @@ const jobsWithLayout = computed<JobNode[]>(() => {
       levelJobs.forEach((job, jobIndex) => {
         result.push({
           ...job,
-          status: job.status,
           x: startX + jobIndex * currentHorizontalSpacing,
           y: margin + levelIndex * verticalSpacing,
           level: levelIndex,
@@ -626,44 +618,15 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
   return levels;
 }
 
-function onNodeClick(job: JobNode, event?: MouseEvent) {
-  if (job.index === props.currentJobIndex) {
+function onNodeClick(job: JobNode, event: MouseEvent) {
+  if (job.index === props.currentJobIndex) return;
+
+  const link = `${props.runLink}/jobs/${job.index}`;
+  if (event.ctrlKey || event.metaKey) {
+    window.open(link, '_blank');
     return;
   }
-
-  const currentPath = window.location.pathname;
-  // TODO: it is fragile
-  const jobsIndex = currentPath.indexOf('/jobs/');
-
-  if (jobsIndex !== -1) {
-    const basePath = currentPath.substring(0, jobsIndex);
-    // TODO: it is fragile
-    const newJobUrl = `${basePath}/jobs/${job.index}`;
-
-    const isCtrlClick = event?.ctrlKey || event?.metaKey;
-    const isMiddleClick = event?.button === 1;
-    const isNewTab = isCtrlClick || isMiddleClick;
-
-    if (isNewTab) {
-      window.open(newJobUrl, '_blank');
-    } else {
-      window.location.href = newJobUrl;
-    }
-  } else {
-    // TODO: it is fragile
-    const runMatch = currentPath.match(/\/runs\/(\d+)/);
-    if (runMatch) {
-      const runId = runMatch[1];
-      const pathParts = currentPath.split(`/runs/${runId}`);
-      const newJobUrl = `${pathParts[0]}/runs/${runId}/jobs/${job.id}`;
-
-      if (event?.ctrlKey || event?.metaKey) {
-        window.open(newJobUrl, '_blank');
-      } else {
-        window.location.href = newJobUrl;
-      }
-    }
-  }
+  window.location.href = link;
 }
 </script>
 

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	actions_model "code.gitea.io/gitea/models/actions"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/repo/actions"
@@ -58,8 +59,8 @@ func generateMockStepsLog(logCur actions.LogCursor, opts generateMockStepsLogOpt
 }
 
 func MockActionsView(ctx *context.Context) {
-	ctx.Data["RunID"] = ctx.PathParam("run")
-	ctx.Data["JobID"] = ctx.PathParam("job")
+	ctx.Data["RunIndex"] = ctx.PathParam("run")
+	ctx.Data["JobIndex"] = ctx.PathParam("job")
 	ctx.HTML(http.StatusOK, "devtest/repo-action-view")
 }
 
@@ -69,6 +70,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	req := web.GetForm(ctx).(*actions.ViewRequest)
 	resp := &actions.ViewResponse{}
 	resp.State.Run.TitleHTML = `mock run title <a href="/">link</a>`
+	resp.State.Run.Link = setting.AppSubURL + "/devtest/repo-action-view/runs/" + strconv.FormatInt(runID, 10)
 	resp.State.Run.Status = actions_model.StatusRunning.String()
 	resp.State.Run.CanCancel = runID == 10
 	resp.State.Run.CanApprove = runID == 20

@@ -110,18 +110,9 @@ export default defineComponent({
     WorkflowGraph,
   },
   props: {
-    runIndex: {
-      type: String,
-      default: '',
-    },
-    jobIndex: {
-      type: String,
-      default: '',
-    },
-    actionsURL: {
-      type: String,
-      default: '',
-    },
+    runIndex: {type: Number, required: true},
+    jobIndex: {type: Number, required: true},
+    actionsURL: {type: String, required: true},
     locale: {
       type: Object as PropType<Record<string, any>>,
       default: null,
@@ -547,7 +538,7 @@ export default defineComponent({
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
+            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="jobIndex === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
@@ -590,7 +581,9 @@ export default defineComponent({
         <WorkflowGraph
           v-if="showWorkflowGraph && run.jobs.length > 1"
           :jobs="run.jobs"
-          :current-job-index="parseInt(jobIndex)"
+          :current-job-index="jobIndex"
+          :run-link="run.link"
+          :workflow-id="run.workflowID"
           class="workflow-graph-container"
         />
 
