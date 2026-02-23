@@ -1,5 +1,3 @@
-import {describe, test, expect, beforeEach, afterEach} from 'vitest';
-
 // The keyboard shortcut mechanism is driven by global event delegation in observer.ts.
 // These tests set up the same event listeners to verify the behavior in isolation.
 
