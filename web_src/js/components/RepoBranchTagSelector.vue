@@ -267,7 +267,7 @@ export default defineComponent({
             <svg-icon name="octicon-git-branch" class="tw-mr-1"/>
             <span v-text="textCreateBranch.replace('%s', searchTerm)"/>
           </div>
-          <div class="text small">
+          <div class="tw-text-xs">
             {{ textCreateRefFrom.replace('%s', currentRefShortName) }}
           </div>
           <form ref="createNewRefForm" method="post" :action="createNewRefFormActionUrl">
