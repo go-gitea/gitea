@@ -287,7 +287,7 @@ func WorkflowsLabels(ctx *context.Context, project *project_model.Project) {
 	ctx.JSON(http.StatusOK, outputLabels)
 }
 
-func Workflows(ctx *context.Context) {
+func prepareProject(ctx *context.Context) *project_model.Project {
 	projectID := ctx.PathParamInt64("id")
 	p, err := project_model.GetProjectByID(ctx, projectID)
 	if err != nil {
@@ -296,14 +296,22 @@ func Workflows(ctx *context.Context) {
 		} else {
 			ctx.ServerError("GetProjectByID", err)
 		}
-		return
+		return nil
 	}
 	if p.Type == project_model.TypeRepository && p.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound(nil)
-		return
+		return nil
 	}
 	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && p.OwnerID != ctx.ContextUser.ID {
 		ctx.NotFound(nil)
+		return nil
+	}
+	return p
+}
+
+func Workflows(ctx *context.Context) {
+	p := prepareProject(ctx)
+	if p == nil {
 		return
 	}
 
@@ -327,7 +335,7 @@ func Workflows(ctx *context.Context) {
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["Project"] = p
 
-	workflows, err := project_model.FindWorkflowsByProjectID(ctx, projectID)
+	workflows, err := project_model.FindWorkflowsByProjectID(ctx, p.ID)
 	if err != nil {
 		ctx.ServerError("FindWorkflowsByProjectID", err)
 		return
@@ -358,7 +366,7 @@ func Workflows(ctx *context.Context) {
 		}
 	}
 	ctx.Data["CurWorkflow"] = curWorkflow
-	ctx.Data["ProjectLink"] = project_model.ProjectLinkForRepo(ctx.Repo.Repository, projectID)
+	ctx.Data["ProjectLink"] = project_model.ProjectLinkForRepo(ctx.Repo.Repository, p.ID)
 
 	if p.Type == project_model.TypeRepository {
 		ctx.HTML(http.StatusOK, tmplRepoWorkflows)
@@ -375,22 +383,8 @@ type WorkflowsPostForm struct {
 
 // WorkflowsPost handles creating or updating a workflow
 func WorkflowsPost(ctx *context.Context) {
-	projectID := ctx.PathParamInt64("id")
-	p, err := project_model.GetProjectByID(ctx, projectID)
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
-		return
-	}
-	if p.Type == project_model.TypeRepository && p.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(nil)
-		return
-	}
-	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && p.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound(nil)
+	p := prepareProject(ctx)
+	if p == nil {
 		return
 	}
 
@@ -432,7 +426,7 @@ func WorkflowsPost(ctx *context.Context) {
 
 		// Create a new workflow for the given event
 		wf := &project_model.Workflow{
-			ProjectID:       projectID,
+			ProjectID:       p.ID,
 			WorkflowEvent:   project_model.WorkflowEvent(form.EventID),
 			WorkflowFilters: filters,
 			WorkflowActions: actions,
@@ -466,7 +460,7 @@ func WorkflowsPost(ctx *context.Context) {
 		ctx.ServerError("GetWorkflowByID", err)
 		return
 	}
-	if wf.ProjectID != projectID {
+	if wf.ProjectID != p.ID {
 		ctx.NotFound(nil)
 		return
 	}
@@ -495,33 +489,18 @@ func WorkflowsPost(ctx *context.Context) {
 }
 
 func WorkflowsStatus(ctx *context.Context) {
-	projectID := ctx.PathParamInt64("id")
+	p := prepareProject(ctx)
+	if p == nil {
+		return
+	}
+
 	workflowID, _ := strconv.ParseInt(ctx.PathParam("workflow_id"), 10, 64)
-
-	p, err := project_model.GetProjectByID(ctx, projectID)
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
-		return
-	}
-	if p.Type == project_model.TypeRepository && p.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(nil)
-		return
-	}
-	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && p.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound(nil)
-		return
-	}
-
 	wf, err := project_model.GetWorkflowByID(ctx, workflowID)
 	if err != nil {
 		ctx.ServerError("GetWorkflowByID", err)
 		return
 	}
-	if wf.ProjectID != projectID {
+	if wf.ProjectID != p.ID {
 		ctx.NotFound(nil)
 		return
 	}
@@ -550,27 +529,12 @@ func WorkflowsStatus(ctx *context.Context) {
 }
 
 func WorkflowsDelete(ctx *context.Context) {
-	projectID := ctx.PathParamInt64("id")
+	p := prepareProject(ctx)
+	if p == nil {
+		return
+	}
+
 	workflowID, _ := strconv.ParseInt(ctx.PathParam("workflow_id"), 10, 64)
-
-	p, err := project_model.GetProjectByID(ctx, projectID)
-	if err != nil {
-		if project_model.IsErrProjectNotExist(err) {
-			ctx.NotFound(nil)
-		} else {
-			ctx.ServerError("GetProjectByID", err)
-		}
-		return
-	}
-	if p.Type == project_model.TypeRepository && p.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound(nil)
-		return
-	}
-	if (p.Type == project_model.TypeOrganization || p.Type == project_model.TypeIndividual) && p.OwnerID != ctx.ContextUser.ID {
-		ctx.NotFound(nil)
-		return
-	}
-
 	wf, err := project_model.GetWorkflowByID(ctx, workflowID)
 	if err != nil {
 		if db.IsErrNotExist(err) {
@@ -580,7 +544,7 @@ func WorkflowsDelete(ctx *context.Context) {
 		}
 		return
 	}
-	if wf.ProjectID != projectID {
+	if wf.ProjectID != p.ID {
 		ctx.NotFound(nil)
 		return
 	}
