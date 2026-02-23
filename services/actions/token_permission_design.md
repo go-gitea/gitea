@@ -4,10 +4,9 @@ This document details the design of the Actions Token Permission system within G
 
 ## Design Philosophy & GitHub Differences
 
-Gitea Actions draws inspiration from GitHub Actions but diverges in its security philosophy regarding token permissions:
-- On GitHub, workflows can escalate their permissions beyond the repository's default "Restricted" mode simply by declaring higher permissions in the workflow file.
-- **In Gitea, workflows cannot bypass organizational or repository-level restrictions.** Because Gitea relies heavily on trust boundaries, allowing workflows to arbitrarily escalate permissions would pose a severe security risk.
-- Therefore, Gitea relies on a **strict clamping mechanism**. The maximum allowable permissions are set at the Repository or Organization level, and any permissions requested by a workflow are strictly clamped by this ceiling policy.
+Gitea Actions uses a **strict clamping mechanism** for token permissions. While workflows can request explicit permissions that exceed the repository's default baseline (e.g., requesting `write` when the default mode is `Restricted`), these requests are always bounded by a hard ceiling.
+
+The maximum allowable permissions (`MaxTokenPermissions`) are set at the Repository or Organization level. **Any permissions requested by a workflow are strictly clamped by this ceiling policy.** This ensures that workflows cannot bypass organizational or repository-level security restrictions.
 
 ## Terminology
 
@@ -22,24 +21,26 @@ Gitea Actions draws inspiration from GitHub Actions but diverges in its security
 
 ### 3. Actions Token Permissions
 - A structure representing the granular permission scopes available to a token.
-- Includes scopes like: Code (contents), Issues, PullRequests, Packages, Actions, Wiki, Releases, and Projects.
+- Includes scopes like: Code, Releases (both grouped under `contents` in workflow syntax), Issues, PullRequests, Packages, Actions, Wiki, and Projects.
 
 ### 4. Cross-Repository Access
-- By default, a token can only access the repository where the workflow is running.
-- Users and organizations can configure `ActionsCrossRepoMode` to allow the token to access other repositories they own.
+- By default, a token can access the repository where the workflow is running, as well as any **public repositories (read-only)** on the instance.
+- Users and organizations can configure `ActionsCrossRepoMode` to grant the token access to other private/internal repositories they own.
 - Allowed modes:
-  - **None**: No cross-repository access allowed (default for enhanced security).
+  - **None**: No cross-repository access to other private repositories (default for enhanced security).
   - **All**: The token can access all repositories owned by the user/org (subject to the target repository's own permissions).
   - **Selected**: The token can access a specific list of repositories (`AllowedCrossRepoIDs`).
+- In any mode, individual jobs can disable or limit cross-repo access by explicitly restricting their permissions (e.g., `permissions: none`).
 
 ## Token Lifecycle & Permission Evaluation
 
 When a job starts, Gitea evaluates the requested permissions for the `GITEA_TOKEN` through a multi-step clamping process:
 
 ### Step 1: Determine Base Permissions From Workflow
-- If the job explicitly specifies a `permissions:` block, Gitea parses it.
+- If the job explicitly specifies a valid `permissions:` block, Gitea parses it.
 - If the job inherits a top-level `permissions:` block, Gitea parses that.
-- If no explicit permissions are found, Gitea uses the repository's default `TokenPermissionMode` (Permissive or Restricted) to generate base permissions.
+- If an invalid or unparseable `permissions:` block is specified, Gitea assumes `permissions: none` as a safety fallback.
+- If no explicit permissions are defined at all, Gitea uses the repository's default `TokenPermissionMode` (Permissive or Restricted) to generate base permissions.
 
 ### Step 2: Apply Repository Clamping
 - Repositories can define `MaxTokenPermissions` in their Actions settings.
@@ -73,7 +74,8 @@ permissions:
 
 ### 2. Fork Pull Requests
 - Workflows triggered by Pull Requests from forks inherently operate in `Restricted` mode for security reasons.
-- The base permissions are automatically downgraded to `read` (or `none`), preventing untrusted code from modifying the repository.
+- The base permissions for the current repository are automatically downgraded to `read` (or `none`), preventing untrusted code from modifying the repository.
+- **Cross-Repo Access in Forks**: For workflows triggered by fork pull requests, cross-repository access to other private repositories is strictly denied, regardless of the `ActionsCrossRepoMode` configuration. Fork PRs can only read the target repository and truly public repositories.
 
 ### 3. Public Repositories in Cross-Repo Access
-- If `CrossRepoMode` is `None`, a token can still read from another repository in the same user/org IF that target repository is public and accessible anonymously.
+- As mentioned in Cross-Repository Access, truly public repositories can always be read by the token, regardless of the `ActionsCrossRepoMode` setting. The `CrossRepoMode` only governs access to private/internal repositories owned by the same user or organization.
