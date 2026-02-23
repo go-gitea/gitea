@@ -23,7 +23,6 @@
     "add-asset-webpack-plugin": "3.1.1",
     "ansi_up": "6.0.6",
     "asciinema-player": "3.15.0",
-    "camelcase-keys": "10.0.1",
     "chart.js": "4.5.1",
     "chartjs-adapter-dayjs-4": "1.0.4",
     "chartjs-plugin-zoom": "2.2.0",

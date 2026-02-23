@@ -12,7 +12,7 @@ const elRoot = useTemplateRef('elRoot');
 
 const props = defineProps<{
   projectLink: string;
-  eventID: string;
+  eventId: string;
   locale: {
     defaultWorkflows: string;
     moveToColumn: string;
@@ -57,7 +57,7 @@ const props = defineProps<{
 
 const store = createWorkflowStore(props);
 
-type WorkflowListItem = WorkflowEvent & {isConfigured?: boolean};
+type WorkflowListItem = WorkflowEvent & {is_configured?: boolean};
 
 // Track edit state directly on workflow objects
 const previousSelection = ref<{selectedItem: string | null, selectedWorkflow: WorkflowEvent | null} | null>(null);
@@ -85,28 +85,28 @@ const setEditMode = (enabled: boolean) => {
 const showCancelButton = computed(() => {
   if (!store.selectedWorkflow) return false;
   if (store.selectedWorkflow.id > 0) return true;
-  const eventId = store.selectedWorkflow.eventId ?? '';
-  return typeof eventId === 'string' && eventId.startsWith('clone-');
+  const event_id = store.selectedWorkflow.event_id ?? '';
+  return typeof event_id === 'string' && event_id.startsWith('clone-');
 });
 
 const isTemporaryWorkflow = (workflow?: WorkflowEvent | null) => {
   if (!workflow) return false;
   if (workflow.id > 0) return false;
-  const eventId = typeof workflow.eventId === 'string' ? workflow.eventId : '';
-  return eventId.startsWith('clone-') || eventId.startsWith('new-');
+  const event_id = typeof workflow.event_id === 'string' ? workflow.event_id : '';
+  return event_id.startsWith('clone-') || event_id.startsWith('new-');
 };
 
 const removeTemporaryWorkflow = (workflow?: WorkflowEvent | null) => {
   if (!workflow || !isTemporaryWorkflow(workflow)) return;
 
-  const eventId = workflow.eventId;
-  const tempIndex = store.workflowEvents.findIndex((w: WorkflowEvent) => w.eventId === eventId);
+  const event_id = workflow.event_id;
+  const tempIndex = store.workflowEvents.findIndex((w: WorkflowEvent) => w.event_id === event_id);
   if (tempIndex >= 0) {
     store.workflowEvents.splice(tempIndex, 1);
   }
 
   if (typeof store.clearDraft === 'function') {
-    store.clearDraft(eventId);
+    store.clearDraft(event_id);
   }
 };
 
@@ -126,20 +126,20 @@ const toggleEditMode = () => {
       store.selectedItem = previousSelection.value.selectedItem;
       store.selectedWorkflow = previousSelection.value.selectedWorkflow;
       if (previousSelection.value.selectedWorkflow) {
-        store.loadWorkflowData(previousSelection.value.selectedWorkflow.eventId);
+        store.loadWorkflowData(previousSelection.value.selectedWorkflow.event_id);
       }
       previousSelection.value = null;
     } else if (hadTemporarySelection) {
       // If we removed a temporary item but have no previous selection, fall back to first workflow
       const fallback = store.workflowEvents.find((w: WorkflowEvent) => {
         if (!canceledWorkflow) return false;
-        const baseType = canceledWorkflow.workflowEvent;
-        return baseType && (w.workflowEvent === baseType || w.eventId === baseType);
+        const baseType = canceledWorkflow.workflow_event;
+        return baseType && (w.workflow_event === baseType || w.event_id === baseType);
       }) || store.workflowEvents[0];
       if (fallback) {
-        store.selectedItem = fallback.eventId;
+        store.selectedItem = fallback.event_id;
         store.selectedWorkflow = fallback;
-        store.loadWorkflowData(fallback.eventId);
+        store.loadWorkflowData(fallback.event_id);
       } else {
         store.selectedItem = null;
         store.selectedWorkflow = null;
@@ -175,7 +175,7 @@ const deleteWorkflow = async () => {
   // If deleting a temporary workflow (new or cloned, unsaved), just remove from list
   if (currentSelection.id === 0) {
     const tempIndex = store.workflowEvents.findIndex((w: WorkflowEvent) =>
-      w.eventId === currentSelection.eventId,
+      w.event_id === currentSelection.event_id,
     );
     if (tempIndex >= 0) {
       store.workflowEvents.splice(tempIndex, 1);
@@ -189,21 +189,21 @@ const deleteWorkflow = async () => {
 
   // Find workflows for the same base event type
   const sameEventWorkflows = store.workflowEvents.filter((w: WorkflowEvent) =>
-    (w.workflowEvent === currentSelection.workflowEvent)
+    (w.workflow_event === currentSelection.workflow_event)
   );
 
   let workflowToSelect: WorkflowListItem | null = null;
 
   if (sameEventWorkflows.length > 0) {
     // Prefer configured workflows over placeholders
-    const configured = sameEventWorkflows.find((w: WorkflowEvent) => w.isConfigured || w.id > 0);
+    const configured = sameEventWorkflows.find((w: WorkflowEvent) => w.is_configured || w.id > 0);
     workflowToSelect = configured || sameEventWorkflows[0];
   }
 
   // If no same-type workflow found, select the first available workflow
   if (!workflowToSelect && store.workflowEvents.length > 0) {
     // Try to find any configured workflow first
-    const anyConfigured = store.workflowEvents.find((w: WorkflowEvent) => w.isConfigured || w.id > 0);
+    const anyConfigured = store.workflowEvents.find((w: WorkflowEvent) => w.is_configured || w.id > 0);
     workflowToSelect = anyConfigured || store.workflowEvents[0];
   }
 
@@ -211,7 +211,7 @@ const deleteWorkflow = async () => {
     await selectWorkflowItem(workflowToSelect);
 
     // If selected workflow is unconfigured, automatically enter edit mode
-    if (!workflowToSelect.isConfigured && workflowToSelect.id === 0) {
+    if (!workflowToSelect.is_configured && workflowToSelect.id === 0) {
       previousSelection.value = null;
       setEditMode(true);
       return; // Early return to avoid setting edit mode to false below
@@ -232,27 +232,27 @@ const cloneWorkflow = (sourceWorkflow?: WorkflowEvent | null) => {
   if (!sourceWorkflow) return;
 
   // Generate a unique temporary ID for the cloned workflow
-  const tempId = `${sourceWorkflow.workflowEvent}`;
+  const tempId = `${sourceWorkflow.workflow_event}`;
 
   // Extract base name without any parenthetical descriptions
-  const baseName = (sourceWorkflow.displayName || sourceWorkflow.workflowEvent || sourceWorkflow.eventId)
+  const baseName = (sourceWorkflow.display_name || sourceWorkflow.workflow_event || sourceWorkflow.event_id)
     .replace(/\s*\([^)]*\)\s*/g, '');
 
   // Create a new workflow object based on the source
   const clonedWorkflow = {
     id: 0, // New workflow
-    eventId: tempId,
-    displayName: `${baseName} (Copy)`,
-    workflowEvent: sourceWorkflow.workflowEvent,
+    event_id: tempId,
+    display_name: `${baseName} (Copy)`,
+    workflow_event: sourceWorkflow.workflow_event,
     capabilities: sourceWorkflow.capabilities,
     filters: JSON.parse(JSON.stringify(sourceWorkflow.filters || [])), // Deep clone
     actions: JSON.parse(JSON.stringify(sourceWorkflow.actions || [])), // Deep clone
     enabled: false, // Cloned workflows start disabled
-    isConfigured: false, // Mark as new/unsaved
+    is_configured: false, // Mark as new/unsaved
   };
 
   // Insert cloned workflow right after the source workflow (keep same type together)
-  const sourceIndex = store.workflowEvents.findIndex((w: WorkflowEvent) => w.eventId === sourceWorkflow.eventId);
+  const sourceIndex = store.workflowEvents.findIndex((w: WorkflowEvent) => w.event_id === sourceWorkflow.event_id);
   if (sourceIndex >= 0) {
     store.workflowEvents.splice(sourceIndex + 1, 0, clonedWorkflow);
   } else {
@@ -278,7 +278,7 @@ const cloneWorkflow = (sourceWorkflow?: WorkflowEvent | null) => {
 
   // Update URL
   const newUrl = `${props.projectLink}/workflows/${tempId}`;
-  window.history.pushState({eventId: tempId}, '', newUrl);
+  window.history.pushState({event_id: tempId}, '', newUrl);
 };
 
 const selectWorkflowEvent = async (event: WorkflowEvent) => {
@@ -286,22 +286,22 @@ const selectWorkflowEvent = async (event: WorkflowEvent) => {
   if (store.loading) return;
 
   // If already selected, do nothing (keep selection active)
-  if (store.selectedItem === event.eventId) {
+  if (store.selectedItem === event.event_id) {
     return;
   }
 
   try {
-    store.selectedItem = event.eventId;
+    store.selectedItem = event.event_id;
     store.selectedWorkflow = event;
 
     // Wait for DOM update before proceeding
     await nextTick();
 
-    await store.loadWorkflowData(event.eventId);
+    await store.loadWorkflowData(event.event_id);
 
     // Update URL without page reload
-    const newUrl = `${props.projectLink}/workflows/${event.eventId}`;
-    window.history.pushState({eventId: event.eventId}, '', newUrl);
+    const newUrl = `${props.projectLink}/workflows/${event.event_id}`;
+    window.history.pushState({event_id: event.event_id}, '', newUrl);
   } catch (error) {
     console.error('Error selecting workflow event:', error);
     // On error, try to select the first available workflow instead of clearing
@@ -323,7 +323,7 @@ const saveWorkflow = async () => {
 
 const isWorkflowConfigured = (event: WorkflowEvent) => {
   // Check if the event_id is a number (saved workflow ID) or if it has id > 0
-  return !Number.isNaN(parseInt(event.eventId)) || (event.id !== undefined && event.id > 0);
+  return !Number.isNaN(parseInt(event.event_id)) || (event.id !== undefined && event.id > 0);
 };
 
 // Get flat list of all workflows - use cached data to prevent frequent recomputation
@@ -336,8 +336,8 @@ const workflowList = computed<WorkflowListItem[]>(() => {
 
   return workflows.map((workflow: WorkflowEvent) => ({
     ...workflow,
-    isConfigured: isWorkflowConfigured(workflow),
-    displayName: workflow.displayName || workflow.workflowEvent || workflow.eventId,
+    is_configured: isWorkflowConfigured(workflow),
+    display_name: workflow.display_name || workflow.workflow_event || workflow.event_id,
   }));
 });
 
@@ -350,21 +350,21 @@ const selectWorkflowItem = async (item: WorkflowListItem) => {
   // Wait for DOM update to prevent conflicts
   await nextTick();
 
-  if (item.isConfigured) {
+  if (item.is_configured) {
     // This is a configured workflow, select it
     await selectWorkflowEvent(item);
   } else {
     // This is an unconfigured event - check if we already have a workflow object for it
     const existingWorkflow = store.workflowEvents.find((w: WorkflowEvent) =>
-      w.id === 0 && w.workflowEvent === item.workflowEvent,
+      w.id === 0 && w.workflow_event === item.workflow_event,
     );
 
     const workflowToSelect = existingWorkflow || item;
     await selectWorkflowEvent(workflowToSelect);
 
     // Update URL for workflow
-    const newUrl = `${props.projectLink}/workflows/${item.workflowEvent}`;
-    window.history.pushState({eventId: item.workflowEvent}, '', newUrl);
+    const newUrl = `${props.projectLink}/workflows/${item.workflow_event}`;
+    window.history.pushState({event_id: item.workflow_event}, '', newUrl);
   }
 };
 
@@ -373,15 +373,15 @@ const debouncedSelectWorkflowItem = debounce(150, (item: WorkflowListItem) => {
 });
 
 const hasAvailableFilters = computed(() => {
-  return (store.selectedWorkflow?.capabilities?.availableFilters?.length ?? 0) > 0;
+  return (store.selectedWorkflow?.capabilities?.available_filters?.length ?? 0) > 0;
 });
 
 const hasFilter = (filterType: any) => {
-  return store.selectedWorkflow?.capabilities?.availableFilters?.includes(filterType);
+  return store.selectedWorkflow?.capabilities?.available_filters?.includes(filterType);
 };
 
 const hasAction = (actionType: any) => {
-  return store.selectedWorkflow?.capabilities?.availableActions?.includes(actionType);
+  return store.selectedWorkflow?.capabilities?.available_actions?.includes(actionType);
 };
 
 // Toggle label selection for add_labels, remove_labels, or filter_labels
@@ -408,7 +408,7 @@ const getLabelTextColor = (hexColor: any) => {
 };
 
 const getStatusClass = (item: WorkflowListItem) => {
-  if (!item.isConfigured) {
+  if (!item.is_configured) {
     return 'status-inactive'; // Gray dot for unconfigured
   }
 
@@ -423,23 +423,23 @@ const getStatusClass = (item: WorkflowListItem) => {
 const isItemSelected = (item: WorkflowListItem) => {
   if (!store.selectedItem) return false;
 
-  if (item.isConfigured || item.id === 0) {
+  if (item.is_configured || item.id === 0) {
     // For configured workflows or temporary workflows (new), match by event_id
-    return store.selectedItem === item.eventId;
+    return store.selectedItem === item.event_id;
   }
     // For unconfigured events, match by workflow_event
-  return store.selectedItem === item.workflowEvent;
+  return store.selectedItem === item.workflow_event;
 };
 
 // Get display name for workflow with numbering for same types
 const getWorkflowDisplayName = (item: WorkflowListItem, _index: number) => {
   const list = workflowList.value;
-  const displayName = item.displayName || item.workflowEvent || item.eventId || '';
+  const displayName = item.display_name || item.workflow_event || item.event_id || '';
 
   // Find all workflows of the same type
   const sameTypeWorkflows = list.filter((w: WorkflowListItem) =>
-    w.workflowEvent === item.workflowEvent &&
-    (w.isConfigured || w.id === 0) // Only count configured workflows
+    w.workflow_event === item.workflow_event &&
+    (w.is_configured || w.id === 0) // Only count configured workflows
   );
 
   // If there's only one of this type, return the display name as-is
@@ -448,8 +448,7 @@ const getWorkflowDisplayName = (item: WorkflowListItem, _index: number) => {
   }
 
   // Find the index of this workflow among same-type workflows
-  const sameTypeIndex = sameTypeWorkflows.findIndex((w: WorkflowListItem) => w.eventId === item.eventId);
-
+  const sameTypeIndex = sameTypeWorkflows.findIndex((w: WorkflowListItem) => w.event_id === item.event_id);
   // Extract base name without filter summary (remove anything in parentheses)
   const baseName = displayName.replace(/\s*\([^)]*\)\s*$/g, '');
 
@@ -460,7 +459,7 @@ const getWorkflowDisplayName = (item: WorkflowListItem, _index: number) => {
 
 const getCurrentDraftKey = () => {
   if (!store.selectedWorkflow) return null;
-  return store.selectedWorkflow.eventId || store.selectedWorkflow.workflowEvent;
+  return store.selectedWorkflow.event_id || store.selectedWorkflow.workflow_event;
 };
 
 const persistDraftState = () => {
@@ -532,19 +531,19 @@ onMounted(async () => {
   }
 
   // Auto-select logic
-  if (props.eventID) {
-    // If eventID is provided in URL, try to find and select it
-    const selectedEvent = store.workflowEvents.find((e: WorkflowEvent) => e.eventId === props.eventID);
+  if (props.eventId) {
+    // If event_id is provided in URL, try to find and select it
+    const selectedEvent = store.workflowEvents.find((e: WorkflowEvent) => e.event_id === props.eventId);
     if (selectedEvent) {
       // Found existing configured workflow
-      store.selectedItem = props.eventID;
+      store.selectedItem = props.eventId;
       store.selectedWorkflow = selectedEvent;
-      await store.loadWorkflowData(props.eventID);
+      await store.loadWorkflowData(props.eventId);
     } else {
-      // Check if eventID matches a base event type (unconfigured workflow)
+      // Check if event_id matches a base event type (unconfigured workflow)
       const items = workflowList.value;
       const matchingUnconfigured = items.find((item: WorkflowListItem) =>
-        !item.isConfigured && (item.workflowEvent === props.eventID || item.eventId === props.eventID),
+        !item.is_configured && (item.workflow_event === props.eventId || item.event_id === props.eventId),
       );
       if (matchingUnconfigured) {
         // Select the placeholder workflow for this base event type
@@ -553,7 +552,7 @@ onMounted(async () => {
       } else {
         // Fallback: select first available item
         if (items.length > 0) {
-          const firstConfigured = items.find((item: WorkflowListItem) => item.isConfigured);
+          const firstConfigured = items.find((item: WorkflowListItem) => item.is_configured);
           if (firstConfigured) {
             selectWorkflowItem(firstConfigured);
           } else {
@@ -567,7 +566,7 @@ onMounted(async () => {
     const items = workflowList.value;
     if (items.length > 0) {
       // Find first configured workflow
-      const firstConfigured = items.find((item: WorkflowListItem) => item.isConfigured);
+      const firstConfigured = items.find((item: WorkflowListItem) => item.is_configured);
 
       if (firstConfigured) {
         // Select first configured workflow
@@ -586,16 +585,16 @@ onMounted(async () => {
 
 // Define popstateHandler at component level
 const popstateHandler = (e: PopStateEvent) => {
-  if (e.state?.eventId) {
+  if (e.state?.event_id) {
     // Handle browser back/forward navigation
-    const event = store.workflowEvents.find((ev: WorkflowEvent) => ev.eventId === e.state.eventId);
+    const event = store.workflowEvents.find((ev: WorkflowEvent) => ev.event_id === e.state.event_id);
     if (event) {
       void selectWorkflowEvent(event);
     } else {
       // Check if it's a base event type
       const items = workflowList.value;
       const matchingUnconfigured = items.find((item: WorkflowListItem) =>
-        !item.isConfigured && (item.workflowEvent === e.state.eventId || item.eventId === e.state.eventId),
+        !item.is_configured && (item.workflow_event === e.state.event_id || item.event_id === e.state.event_id),
       );
       if (matchingUnconfigured) {
         void selectWorkflowEvent(matchingUnconfigured);
@@ -633,7 +632,7 @@ onUnmounted(() => {
         <div class="workflow-items">
           <div
             v-for="(item, index) in workflowList"
-            :key="`workflow-${item.eventId}-${item.isConfigured ? 'configured' : 'unconfigured'}`"
+            :key="`workflow-${item.event_id}-${item.is_configured ? 'configured' : 'unconfigured'}`"
             class="workflow-item"
             :class="{ active: isItemSelected(item) }"
             :data-workflow-item="JSON.stringify(item)"
@@ -676,7 +675,7 @@ onUnmounted(() => {
           <div class="editor-title">
             <h2>
               <i class="settings icon"/>
-              {{ store.selectedWorkflow.displayName }}
+              {{ store.selectedWorkflow.display_name }}
               <span
                 v-if="store.selectedWorkflow.id > 0 && !isInEditMode"
                 class="workflow-status"
@@ -757,7 +756,7 @@ onUnmounted(() => {
               <label>{{ locale.when }}</label>
               <div class="segment">
                 <div class="description">
-                  {{ locale.runWhen }}<strong>{{ store.selectedWorkflow.displayName }}</strong>
+                  {{ locale.runWhen }}<strong>{{ store.selectedWorkflow.display_name }}</strong>
                 </div>
               </div>
             </div>
@@ -771,15 +770,15 @@ onUnmounted(() => {
                   <select
                     v-if="isInEditMode"
                     class="column-select"
-                    v-model="store.workflowFilters.issueType"
+                    v-model="store.workflowFilters.issue_type"
                   >
                     <option value="">{{ locale.issuesAndPullRequests }}</option>
                     <option value="issue">{{ locale.issuesOnly }}</option>
                     <option value="pull_request">{{ locale.pullRequestsOnly }}</option>
                   </select>
                   <div v-else class="readonly-value">
-                    {{ store.workflowFilters.issueType === 'issue' ? locale.issuesOnly :
-                      store.workflowFilters.issueType === 'pull_request' ? locale.pullRequestsOnly :
+                    {{ store.workflowFilters.issue_type === 'issue' ? locale.issuesOnly :
+                      store.workflowFilters.issue_type === 'pull_request' ? locale.pullRequestsOnly :
                       locale.issuesAndPullRequests }}
                   </div>
                 </div>
@@ -788,7 +787,7 @@ onUnmounted(() => {
                   <label>{{ locale.whenMovedFromColumn }}</label>
                   <select
                     v-if="isInEditMode"
-                    v-model="store.workflowFilters.sourceColumn"
+                    v-model="store.workflowFilters.source_column"
                     class="column-select"
                   >
                     <option value="">{{ locale.anyColumn }}</option>
@@ -797,7 +796,7 @@ onUnmounted(() => {
                     </option>
                   </select>
                   <div v-else class="readonly-value">
-                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.sourceColumn)?.title || locale.anyColumn }}
+                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.source_column)?.title || locale.anyColumn }}
                   </div>
                 </div>
 
@@ -805,7 +804,7 @@ onUnmounted(() => {
                   <label>{{ locale.whenMovedToColumn }}</label>
                   <select
                     v-if="isInEditMode"
-                    v-model="store.workflowFilters.targetColumn"
+                    v-model="store.workflowFilters.target_column"
                     class="column-select"
                   >
                     <option value="">{{ locale.anyColumn }}</option>
@@ -814,7 +813,7 @@ onUnmounted(() => {
                     </option>
                   </select>
                   <div v-else class="readonly-value">
-                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.targetColumn)?.title || locale.anyColumn }}
+                    {{ store.projectColumns.find(c => String(c.id) === store.workflowFilters.target_column)?.title || locale.anyColumn }}
                   </div>
                 </div>
 
@@ -886,13 +885,13 @@ onUnmounted(() => {
                 <div class="field" v-if="hasAction('add_labels')">
                   <label>{{ locale.addLabels }}</label>
                   <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown custom label-dropdown">
-                    <input type="hidden" :value="store.workflowActions.addLabels.join(',')">
+                    <input type="hidden" :value="store.workflowActions.add_labels.join(',')">
                     <i class="dropdown icon"/>
-                    <div class="text" :class="{ default: !store.workflowActions.addLabels?.length }">
-                      <span v-if="!store.workflowActions.addLabels?.length">{{ locale.none }}</span>
+                    <div class="text" :class="{ default: !store.workflowActions.add_labels?.length }">
+                      <span v-if="!store.workflowActions.add_labels?.length">{{ locale.none }}</span>
                       <template v-else>
                         <span
-                          v-for="labelId in store.workflowActions.addLabels" :key="labelId"
+                          v-for="labelId in store.workflowActions.add_labels" :key="labelId"
                           class="ui label"
                           :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`"
                         >
@@ -905,7 +904,7 @@ onUnmounted(() => {
                         class="item" v-for="label in store.projectLabels" :key="label.id"
                         :data-value="String(label.id)"
                         @click.prevent="toggleLabel('add_labels', String(label.id))"
-                        :class="{ active: store.workflowActions.addLabels.includes(String(label.id)), selected: store.workflowActions.addLabels.includes(String(label.id)) }"
+                        :class="{ active: store.workflowActions.add_labels.includes(String(label.id)), selected: store.workflowActions.add_labels.includes(String(label.id)) }"
                       >
                         <span class="ui label" :style="`background-color: ${label.color}; color: ${getLabelTextColor(label.color)}`">
                           {{ label.name }}
@@ -914,9 +913,9 @@ onUnmounted(() => {
                     </div>
                   </div>
                   <div v-else class="ui list labels-list">
-                    <span v-if="!store.workflowActions.addLabels?.length" class="text-muted">{{ locale.none }}</span>
+                    <span v-if="!store.workflowActions.add_labels?.length" class="text-muted">{{ locale.none }}</span>
                     <span
-                      v-for="labelId in store.workflowActions.addLabels" :key="labelId"
+                      v-for="labelId in store.workflowActions.add_labels" :key="labelId"
                       class="ui label"
                       :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`"
                     >
@@ -928,13 +927,13 @@ onUnmounted(() => {
                 <div class="field" v-if="hasAction('remove_labels')">
                   <label>{{ locale.removeLabels }}</label>
                   <div v-if="isInEditMode" class="ui fluid multiple search selection dropdown custom label-dropdown">
-                    <input type="hidden" :value="store.workflowActions.removeLabels.join(',')">
+                    <input type="hidden" :value="store.workflowActions.remove_labels.join(',')">
                     <i class="dropdown icon"/>
-                    <div class="text" :class="{ default: !store.workflowActions.removeLabels?.length }">
-                      <span v-if="!store.workflowActions.removeLabels?.length">{{ locale.none }}</span>
+                    <div class="text" :class="{ default: !store.workflowActions.remove_labels?.length }">
+                      <span v-if="!store.workflowActions.remove_labels?.length">{{ locale.none }}</span>
                       <template v-else>
                         <span
-                          v-for="labelId in store.workflowActions.removeLabels" :key="labelId"
+                          v-for="labelId in store.workflowActions.remove_labels" :key="labelId"
                           class="ui label"
                           :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`"
                         >
@@ -947,7 +946,7 @@ onUnmounted(() => {
                         class="item" v-for="label in store.projectLabels" :key="label.id"
                         :data-value="String(label.id)"
                         @click.prevent="toggleLabel('remove_labels', String(label.id))"
-                        :class="{ active: store.workflowActions.removeLabels.includes(String(label.id)), selected: store.workflowActions.removeLabels.includes(String(label.id)) }"
+                        :class="{ active: store.workflowActions.remove_labels.includes(String(label.id)), selected: store.workflowActions.remove_labels.includes(String(label.id)) }"
                       >
                         <span class="ui label" :style="`background-color: ${label.color}; color: ${getLabelTextColor(label.color)}`">
                           {{ label.name }}
@@ -956,9 +955,9 @@ onUnmounted(() => {
                     </div>
                   </div>
                   <div v-else class="ui list labels-list">
-                    <span v-if="!store.workflowActions.removeLabels?.length" class="text-muted">{{ locale.none }}</span>
+                    <span v-if="!store.workflowActions.remove_labels?.length" class="text-muted">{{ locale.none }}</span>
                     <span
-                      v-for="labelId in store.workflowActions.removeLabels" :key="labelId"
+                      v-for="labelId in store.workflowActions.remove_labels" :key="labelId"
                       class="ui label"
                       :style="`background-color: ${store.projectLabels.find(l => String(l.id) === labelId)?.color}; color: ${getLabelTextColor(store.projectLabels.find(l => String(l.id) === labelId)?.color)}`"
                     >
@@ -973,15 +972,15 @@ onUnmounted(() => {
                     v-if="isInEditMode"
                     id="issue-state-action"
                     class="column-select"
-                    v-model="store.workflowActions.issueState"
+                    v-model="store.workflowActions.issue_state"
                   >
                     <option value="">{{ locale.noChange }}</option>
                     <option value="close">{{ locale.closeIssue }}</option>
                     <option value="reopen">{{ locale.reopenIssue }}</option>
                   </select>
                   <div v-else class="readonly-value">
-                    {{ store.workflowActions.issueState === 'close' ? locale.closeIssue :
-                      store.workflowActions.issueState === 'reopen' ? locale.reopenIssue : locale.noChange }}
+                    {{ store.workflowActions.issue_state === 'close' ? locale.closeIssue :
+                      store.workflowActions.issue_state === 'reopen' ? locale.reopenIssue : locale.noChange }}
                   </div>
                 </div>
               </div>
