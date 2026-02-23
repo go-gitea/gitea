@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import {onMounted, onUnmounted, useTemplateRef, computed, ref, nextTick, watch} from 'vue';
+import {debounce} from 'throttle-debounce';
 import {createWorkflowStore} from './WorkflowStore.ts';
 import type {WorkflowEvent} from './WorkflowStore.ts';
 import {svg} from '../../svg.ts';
@@ -340,16 +341,8 @@ const workflowList = computed<WorkflowListItem[]>(() => {
   }));
 });
 
-// Add debounce mechanism
-let selectTimeout: ReturnType<typeof setTimeout> | null = null;
-
 const selectWorkflowItem = async (item: WorkflowListItem) => {
-  // Prevent rapid successive clicks with debounce
-  if (store.loading || selectTimeout) return;
-
-  selectTimeout = setTimeout(() => {
-    selectTimeout = null;
-  }, 300);
+  if (store.loading) return;
 
   previousSelection.value = null; // Clear previous selection when manually selecting
   // Don't reset edit mode when switching - each workflow keeps its own state
@@ -374,6 +367,10 @@ const selectWorkflowItem = async (item: WorkflowListItem) => {
     window.history.pushState({eventId: item.workflowEvent}, '', newUrl);
   }
 };
+
+const debouncedSelectWorkflowItem = debounce(150, (item: WorkflowListItem) => {
+  void selectWorkflowItem(item);
+});
 
 const hasAvailableFilters = computed(() => {
   return (store.selectedWorkflow?.capabilities?.availableFilters?.length ?? 0) > 0;
@@ -522,7 +519,9 @@ onMounted(async () => {
         if (itemData) {
           try {
             const item = JSON.parse(itemData) as WorkflowListItem;
-            void selectWorkflowItem(item);
+            if (!store.loading) {
+              debouncedSelectWorkflowItem(item);
+            }
           } catch (error) {
             console.error('Error parsing workflow item data:', error);
           }
@@ -610,10 +609,7 @@ let workflowClickHandler: ((e: MouseEvent) => void) | null = null;
 
 onUnmounted(() => {
   // Clean up resources
-  if (selectTimeout) {
-    clearTimeout(selectTimeout);
-    selectTimeout = null;
-  }
+  debouncedSelectWorkflowItem.cancel();
   window.removeEventListener('popstate', popstateHandler);
 
   // Remove native click event listener
