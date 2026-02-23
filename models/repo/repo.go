@@ -316,6 +316,11 @@ func (repo *Repository) MarkAsBrokenEmpty() {
 	repo.IsEmpty = true
 }
 
+// HasAvatar check if repo has avatar
+func (repo *Repository) HasAvatar() bool {
+	return len(repo.Avatar) > 0
+}
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (repo *Repository) AfterLoad() {
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues

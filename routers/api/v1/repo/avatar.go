@@ -52,7 +52,7 @@ func UpdateAvatar(ctx *context.APIContext) {
 		return
 	}
 
-	hasAvatar := len(ctx.Repo.Repository.Avatar) > 0
+	hasAvatar := ctx.Repo.Repository.HasAvatar()
 
 	err = repo_service.UploadAvatar(ctx, ctx.Repo.Repository, content)
 	if err != nil {
@@ -90,11 +90,17 @@ func DeleteAvatar(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	hasAvatar := ctx.Repo.Repository.HasAvatar()
+
 	err := repo_service.DeleteAvatar(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	if hasAvatar {
+		ctx.Status(http.StatusNoContent)
+	} else {
+		ctx.Status(http.StatusNotFound)
+	}
 }

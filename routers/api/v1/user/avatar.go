@@ -65,11 +65,17 @@ func DeleteAvatar(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	hasAvatar := ctx.Doer.HasAvatar()
+
 	err := user_service.DeleteAvatar(ctx, ctx.Doer)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	if hasAvatar {
+		ctx.Status(http.StatusNoContent)
+	} else {
+		ctx.Status(http.StatusNotFound)
+	}
 }

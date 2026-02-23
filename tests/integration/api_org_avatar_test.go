@@ -30,17 +30,12 @@ func TestAPIUpdateOrgAvatar(t *testing.T) {
 		assert.FailNow(t, "Unable to open avatar.png")
 	}
 
-	// needs to delete avatar to test create
-	req := NewRequest(t, "DELETE", "/api/v1/orgs/org3/avatar").
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-
 	opts := api.UserAvatarOption{
 		Image: base64.StdEncoding.EncodeToString(avatar),
 	}
 
 	// created
-	req = NewRequestWithJSON(t, "POST", "/api/v1/orgs/org3/avatar", &opts).
+	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs/org3/avatar", &opts).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
@@ -81,7 +76,25 @@ func TestAPIDeleteOrgAvatar(t *testing.T) {
 
 	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
 
-	req := NewRequest(t, "DELETE", "/api/v1/orgs/org3/avatar").
+	// Need to create an avatar to be able to delete it
+	avatar, err := os.ReadFile("tests/integration/avatar.png")
+	assert.NoError(t, err)
+	if err != nil {
+		assert.FailNow(t, "Unable to open avatar.png")
+	}
+	opts := api.UserAvatarOption{
+		Image: base64.StdEncoding.EncodeToString(avatar),
+	}
+	req := NewRequestWithJSON(t, "POST", "/api/v1/orgs/org3/avatar", &opts).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequest(t, "DELETE", "/api/v1/orgs/org3/avatar").
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
+
+	// deleting again is an error
+	req = NewRequest(t, "DELETE", "/api/v1/orgs/org3/avatar").
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }

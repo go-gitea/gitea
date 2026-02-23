@@ -34,17 +34,12 @@ func TestAPIUpdateRepoAvatar(t *testing.T) {
 		assert.FailNow(t, "Unable to open avatar.png")
 	}
 
-	// needs to delete avatar to test create
-	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name)).
-		AddTokenAuth(token)
-	MakeRequest(t, req, http.StatusNoContent)
-
 	opts := api.UpdateRepoAvatarOption{
 		Image: base64.StdEncoding.EncodeToString(avatar),
 	}
 
 	// created
-	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusCreated)
 
@@ -85,7 +80,25 @@ func TestAPIDeleteRepoAvatar(t *testing.T) {
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeWriteRepository)
 
-	req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name)).
+	// Need to create an avatar to be able to delete it
+	avatar, err := os.ReadFile("tests/integration/avatar.png")
+	assert.NoError(t, err)
+	if err != nil {
+		assert.FailNow(t, "Unable to open avatar.png")
+	}
+	opts := api.UpdateRepoAvatarOption{
+		Image: base64.StdEncoding.EncodeToString(avatar),
+	}
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name), &opts).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusCreated)
+
+	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name)).
 		AddTokenAuth(token)
 	MakeRequest(t, req, http.StatusNoContent)
+
+	// deleting again is an error
+	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/avatar", repo.OwnerName, repo.Name)).
+		AddTokenAuth(token)
+	MakeRequest(t, req, http.StatusNotFound)
 }
