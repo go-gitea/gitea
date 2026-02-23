@@ -594,9 +594,7 @@ export default defineComponent({
           class="workflow-graph-container"
         />
 
-        <div
-          class="job-info-header"
-        >
+        <div class="job-info-header">
           <div class="job-info-header-left gt-ellipsis">
             <h3 class="job-info-header-title gt-ellipsis">
               {{ currentJob.title }}
@@ -644,11 +642,7 @@ export default defineComponent({
           </div>
         </div>
         <!-- always create the node because we have our own event listeners on it, don't use "v-if" -->
-        <div
-          class="job-step-container"
-          ref="stepsContainer"
-          v-show="currentJob.steps.length"
-        >
+        <div class="job-step-container" ref="stepsContainer" v-show="currentJob.steps.length">
           <div class="job-step-section" v-for="(jobStep, i) in currentJob.steps" :key="i">
             <div class="job-step-summary" @click.stop="isExpandable(jobStep.status) && toggleStepLogs(i)" :class="[currentJobStepsStates[i].expanded ? 'selected' : '', isExpandable(jobStep.status) && 'step-expandable']">
               <!-- If the job is done and the job step log is loaded for the first time, show the loading icon
