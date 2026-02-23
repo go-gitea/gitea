@@ -890,27 +890,15 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		if mustDeletePullRequestUnit {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 		} else {
-			// We do allow setting individual PR settings through the API, so
-			// we get the config settings and then set them
-			// if those settings were provided in the opts.
+			// We do allow setting individual PR settings through the API,
+			// so we get the config settings and then set them if those settings were provided in the opts.
 			unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests)
 			if err != nil && !errors.Is(err, util.ErrNotExist) {
 				return err
 			}
-
 			if unit == nil {
 				// Unit doesn't exist yet but is being enabled, create with defaults
-				// FIXME: use shared logic of "create repo"
-				unit = &repo_model.RepoUnit{Config: &repo_model.PullRequestsConfig{
-					AllowMerge:           true,
-					AllowRebase:          true,
-					AllowRebaseMerge:     true,
-					AllowSquash:          true,
-					AllowFastForwardOnly: true,
-					AllowManualMerge:     true,
-					AllowRebaseUpdate:    true,
-					DefaultMergeStyle:    repo_model.MergeStyleMerge,
-				}}
+				unit = new(repo_service.DefaultPullRequestsUnit(repo.ID))
 			}
 
 			changed := new(false)

@@ -336,6 +336,18 @@ func CreateRepositoryDirectly(ctx context.Context, doer, owner *user_model.User,
 	return repo, nil
 }
 
+func DefaultPullRequestsUnit(repoID int64) repo_model.RepoUnit {
+	return repo_model.RepoUnit{
+		RepoID: repoID,
+		Type:   unit.TypePullRequests,
+		Config: 	&repo_model.PullRequestsConfig{
+			AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, AllowFastForwardOnly: true,
+			DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle),
+			AllowRebaseUpdate: true,
+		},
+	}
+}
+
 // createRepositoryInDB creates a repository for the user/organization.
 func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, isFork bool) (err error) {
 	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
@@ -383,15 +395,7 @@ func createRepositoryInDB(ctx context.Context, doer, u *user_model.User, repo *r
 				},
 			})
 		case unit.TypePullRequests:
-			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   tp,
-				Config: &repo_model.PullRequestsConfig{
-					AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, AllowFastForwardOnly: true,
-					DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle),
-					AllowRebaseUpdate: true,
-				},
-			})
+			units = append(units, DefaultPullRequestsUnit(repo.ID))
 		case unit.TypeProjects:
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
