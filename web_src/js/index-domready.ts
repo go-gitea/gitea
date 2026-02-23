@@ -65,6 +65,7 @@ import {initGlobalComboMarkdownEditor, initGlobalEnterQuickSubmit, initGlobalFor
 import {callInitFunctions} from './modules/init.ts';
 import {initRepoViewFileTree} from './features/repo-view-file-tree.ts';
 import {initActionsPermissionsTable} from './features/repo-settings-actions.ts';
+import {initGlobalShortcut} from './modules/shortcut.ts';
 
 const initStartTime = performance.now();
 const initPerformanceTracer = callInitFunctions([
@@ -84,6 +85,7 @@ const initPerformanceTracer = callInitFunctions([
   initGlobalComboMarkdownEditor,
   initGlobalDeleteButton,
   initGlobalInput,
+  initGlobalShortcut,
 
   initCommonOrganization,
   initCommonIssueListQuickGoto,
