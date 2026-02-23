@@ -26,7 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
 
-	"github.com/nektos/act/pkg/jobparser"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -7,8 +7,8 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 
-	"github.com/nektos/act/pkg/jobparser"
-	"gopkg.in/yaml.v3"
+	"code.gitea.io/gitea/modules/actions/jobparser"
+	"go.yaml.in/yaml/v4"
 )
 
 // ExtractJobPermissionsFromWorkflow extracts permissions from an already parsed workflow/job.
