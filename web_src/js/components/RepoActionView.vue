@@ -590,7 +590,7 @@ export default defineComponent({
         <WorkflowGraph
           v-if="showWorkflowGraph && run.jobs.length > 1"
           :jobs="run.jobs"
-          :current-job-idx="parseInt(jobIndex)"
+          :current-job-index="parseInt(jobIndex)"
           class="workflow-graph-container"
         />
 

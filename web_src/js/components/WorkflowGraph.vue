@@ -3,7 +3,7 @@ import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import {SvgIcon} from '../svg.ts';
 import {localUserSettings} from "../modules/user-settings.ts";
 import {debounce} from "throttle-debounce";
-import type {ActionsJob} from '../modules/gitea-actions.ts';
+import type {ActionsJob, ActionsRunStatus} from '../modules/gitea-actions.ts';
 
 interface JobNode extends ActionsJob {
   // TODO: fragile, it might conflict with ActionsJob's fields in the future
@@ -34,8 +34,11 @@ interface StoredState {
 
 const props = defineProps<{
   jobs: ActionsJob[];
-  currentJobIdx?: number;
+  currentJobIndex: number;
 }>()
+
+const settingKey = 'workflow-graph-states';
+const maxStoredStates = 15;
 
 const scale = ref(1);
 const translateX = ref(0);
@@ -45,12 +48,10 @@ const dragStart = ref({ x: 0, y: 0 });
 const lastMousePos = ref({ x: 0, y: 0 });
 const graphContainer = ref<HTMLElement | null>(null);
 const hoveredJobId = ref<number | null>(null);
-const storageKey = 'workflow-graph-states';
-const maxStoredStates = 15;
 
 const loadSavedState = () => {
   const currentRunId = getCurrentRunId();
-  const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(storageKey, {});
+  const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKey, {});
   const saved = allStates[currentRunId];
   if (!saved) return;
   scale.value = saved.scale ?? scale.value;
@@ -66,7 +67,7 @@ const getCurrentRunId = () => {
 
 const saveState = () => {
   const currentRunId = getCurrentRunId();
-  const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(storageKey, {});
+  const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKey, {});
 
   allStates[currentRunId] = {
     scale: scale.value,
@@ -80,7 +81,7 @@ const saveState = () => {
     .slice(0, maxStoredStates);
 
   const limitedStates = Object.fromEntries(sortedStates);
-  localUserSettings.setJsonObject(storageKey, limitedStates);
+  localUserSettings.setJsonObject(settingKey, limitedStates);
 };
 
 loadSavedState();
@@ -234,9 +235,7 @@ const bezierEdges = computed<BezierEdge[]>(() => {
 });
 
 const graphMetrics = computed(() => {
-  const successCount = jobsWithLayout.value.filter(job =>
-    ['success', 'completed'].includes(job.status)
-  ).length;
+  const successCount = jobsWithLayout.value.filter(job => job.status === 'success').length;
 
   const levels = new Map<number, number>();
   jobsWithLayout.value.forEach(job => {
@@ -275,7 +274,6 @@ function handleMouseDown(e: MouseEvent) {
   const target = e.target as Element;
   // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
   const interactive = target.closest('div, p, a, span, button, input, text');
-  console.log(e, interactive, interactive?.closest('svg'));
   if (interactive?.closest('svg')) return;
 
   e.preventDefault();
@@ -339,8 +337,8 @@ function isEdgeHighlighted(edge: BezierEdge): boolean {
   return edge.from === hoveredJob.name || edge.to === hoveredJob.name;
 }
 
-function getNodeColor(status: string): string {
-  if (status === 'success' || status === 'completed') {
+function getNodeColor(status: ActionsRunStatus): string {
+  if (status === 'success') {
     return 'var(--color-green-dark-2)';
   } else if (status === 'failure') {
     return 'var(--color-red-dark-2)';
@@ -352,8 +350,8 @@ function getNodeColor(status: string): string {
   return 'var(--color-text-light-3)';
 }
 
-function getStatusDotColor(status: string): string {
-  if (status === 'success' || status === 'completed') {
+function getStatusDotColor(status: ActionsRunStatus): string {
+  if (status === 'success') {
     return 'var(--color-green)';
   } else if (status === 'failure') {
     return 'var(--color-red)';
@@ -415,17 +413,17 @@ function getDisplayName(name: string): string {
   return name.substring(0, maxChars - 3) + '...';
 }
 
-function formatStatus(status: string): string {
-  const statusMap: Record<string, string> = {
+function formatStatus(status: ActionsRunStatus): string {
+  const statusMap: Record<ActionsRunStatus, string> = {
+    skipped: 'Skipped',
+    unknown: 'Unknown',
     success: 'Success',
     failure: 'Failed',
     running: 'Running',
     waiting: 'Waiting',
     cancelled: 'Cancelled',
-    completed: 'Completed',
-    blocked: 'Blocked',
+    blocked: 'Blocked'
   };
-
   return statusMap[status] || status;
 }
 
@@ -452,7 +450,7 @@ function getEdgeStyle(edge: BezierEdge) {
   };
 }
 
-function getStrokeWidth(fromStatus: string, toStatus: string): string {
+function getStrokeWidth(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus): string {
   if (fromStatus === 'running' || toStatus === 'running') {
     return '3';
   }
@@ -464,7 +462,7 @@ function getStrokeWidth(fromStatus: string, toStatus: string): string {
   return '2';
 }
 
-function getDashArray(fromStatus: string, toStatus: string): string {
+function getDashArray(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus): string {
   if (fromStatus === 'waiting' || toStatus === 'waiting') {
     return '5,3';
   }
@@ -480,7 +478,7 @@ function getDashArray(fromStatus: string, toStatus: string): string {
   return 'none';
 }
 
-function getEdgeOpacity(fromStatus: string, toStatus: string): number {
+function getEdgeOpacity(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus): number {
   if (fromStatus === 'success' && toStatus === 'success') {
     return 0.6;
   }
@@ -496,7 +494,7 @@ function getEdgeOpacity(fromStatus: string, toStatus: string): number {
   return 0.8;
 }
 
-function getMarkerEnd(fromStatus: string, toStatus: string): string {
+function getMarkerEnd(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus): string {
   if (fromStatus === 'failure' || toStatus === 'failure') {
     return 'url(#arrowhead-failure)';
   }
@@ -510,7 +508,7 @@ function getMarkerEnd(fromStatus: string, toStatus: string): string {
       return 'url(#arrowhead-ready)';
     }
 
-    if (toStatus === 'success' || toStatus === 'completed') {
+    if (toStatus === 'success') {
       return 'url(#arrowhead-success)';
     }
   }
@@ -629,7 +627,7 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
 }
 
 function onNodeClick(job: JobNode, event?: MouseEvent) {
-  if (job.index === props.currentJobIdx) {
+  if (job.index === props.currentJobIndex) {
     return;
   }
 
@@ -724,7 +722,7 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
           :key="job.id"
           class="job-node-group"
           :class="{
-            'current-job': job.index === currentJobIdx
+            'current-job': job.index === currentJobIndex
           }"
           @click="onNodeClick(job, $event)"
           @mouseenter="handleNodeMouseEnter(job)"
@@ -737,8 +735,8 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
             :height="nodeHeight"
             rx="8"
             :fill="getNodeColor(job.status)"
-            :stroke="job.index === currentJobIdx ? 'var(--color-primary)' : 'var(--color-card-border)'"
-            :stroke-width="job.index === currentJobIdx ? '3' : '2'"
+            :stroke="job.index === currentJobIndex ? 'var(--color-primary)' : 'var(--color-card-border)'"
+            :stroke-width="job.index === currentJobIndex ? '3' : '2'"
             class="job-rect"
           />
 
