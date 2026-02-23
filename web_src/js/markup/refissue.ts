@@ -19,6 +19,14 @@ function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
   if (!issuePathInfo.ownerName) return;
 
   const el = document.createElement('div');
+  const onShowAsync = async () => {
+    const {default: ContextPopup} = await import(/* webpackChunkName: "ContextPopup" */ '../components/ContextPopup.vue');
+    const view = createApp(ContextPopup, {
+      // backend: GetIssueInfo
+      loadIssueInfoUrl: `${window.config.appSubUrl}/${issuePathInfo.ownerName}/${issuePathInfo.repoName}/issues/${issuePathInfo.indexString}/info`,
+    });
+    view.mount(el);
+  };
   const tippy = createTippy(refIssue, {
     theme: 'default',
     content: el,
@@ -28,16 +36,7 @@ function showMarkupRefIssuePopup(e: MouseEvent | FocusEvent) {
     role: 'dialog',
     interactiveBorder: 5,
     // onHide() { return false }, // help to keep the popup and debug the layout
-    onShow: () => {
-      (async () => {
-        const {default: ContextPopup} = await import(/* webpackChunkName: "ContextPopup" */ '../components/ContextPopup.vue');
-        const view = createApp(ContextPopup, {
-          // backend: GetIssueInfo
-          loadIssueInfoUrl: `${window.config.appSubUrl}/${issuePathInfo.ownerName}/${issuePathInfo.repoName}/issues/${issuePathInfo.indexString}/info`,
-        });
-        view.mount(el);
-      })();
-    },
+    onShow: () => { onShowAsync() },
   });
   tippy.show();
 }
