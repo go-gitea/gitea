@@ -79,12 +79,9 @@ func IsErrorCanceledOrKilled(err error) bool {
 
 func IsStdErrorNotValidObjectName(err error) bool {
 	stderr, ok := ErrorAsStderr(err)
-	if !ok {
-		return false
-	}
-	// Git is lowercasing the fatal: Not a valid object name error message
+	// Git is lowercasing the "fatal: Not a valid object name" error message
 	// ref: https://lore.kernel.org/git/pull.2052.git.1771836302101.gitgitgadget@gmail.com
-	return strings.Contains(strings.ToLower(stderr), "fatal: not a valid object name")
+	return ok && strings.Contains(strings.ToLower(stderr), "fatal: not a valid object name")
 }
 
 type pipelineError struct {
