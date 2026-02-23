@@ -45,8 +45,8 @@ const props = defineProps<{
   workflowId: string;
 }>()
 
-const settingKey = 'workflow-graph-states';
-const maxStoredStates = 15;
+const settingKeyStates = 'actions-graph-states';
+const maxStoredStates = 10;
 
 const scale = ref(1);
 const translateX = ref(0);
@@ -58,7 +58,7 @@ const graphContainer = ref<HTMLElement | null>(null);
 const hoveredJobId = ref<number | null>(null);
 
 const loadSavedState = () => {
-  const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKey, {});
+  const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
   const saved = allStates[props.workflowId];
   if (!saved) return;
   scale.value = saved.scale ?? scale.value;
@@ -67,7 +67,7 @@ const loadSavedState = () => {
 }
 
 const saveState = () => {
-  const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKey, {});
+  const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(settingKeyStates, {});
   allStates[props.workflowId] = {
     scale: scale.value,
     translateX: translateX.value,
@@ -80,7 +80,7 @@ const saveState = () => {
     .slice(0, maxStoredStates);
 
   const limitedStates = Object.fromEntries(sortedStates);
-  localUserSettings.setJsonObject(settingKey, limitedStates);
+  localUserSettings.setJsonObject(settingKeyStates, limitedStates);
 };
 
 loadSavedState();
@@ -156,11 +156,17 @@ const jobsWithLayout = computed<JobNode[]>(() => {
     return result;
   } catch (error) {
     return props.jobs.map((job, index) => ({
-      ...job,
+      id: job.id,
+      name: job.name,
+      status: job.status,
+      needs: job.needs,
+      duration: job.duration,
+
+      index: index,
+
       x: margin + index * (nodeWidth.value + 40),
       y: margin,
       level: 0,
-      index: index,
     }));
   }
 });
@@ -273,11 +279,10 @@ function resetView() {
 }
 
 function handleMouseDown(e: MouseEvent) {
-  // TODO: de-duplicate with mermaid's dragging
   if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return; // only left mouse button can drag
   const target = e.target as Element;
   // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
-  const interactive = target.closest('div, p, a, span, button, input, text');
+  const interactive = target.closest('div, p, a, span, button, input, text, .job-node-group');
   if (interactive?.closest('svg')) return;
 
   e.preventDefault();
@@ -305,7 +310,6 @@ function handleMouseMoveOnDocument(event: MouseEvent) {
 
 function handleMouseUpOnDocument() {
   if (!isDragging.value) return;
-
   isDragging.value = false;
   graphContainer.value!.style.cursor = 'grab';
 }
@@ -661,10 +665,8 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
         <g
           v-for="job in jobsWithLayout"
           :key="job.id"
+          :class="{'current-job': job.index === currentJobIndex}"
           class="job-node-group"
-          :class="{
-            'current-job': job.index === currentJobIndex
-          }"
           @click="onNodeClick(job, $event)"
           @mouseenter="handleNodeMouseEnter(job)"
           @mouseleave="handleNodeMouseLeave"
@@ -856,6 +858,10 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 10;
+}
+
+.job-node-group.current-job {
+  cursor: default;
 }
 
 .job-node-group.current-job .job-rect {
