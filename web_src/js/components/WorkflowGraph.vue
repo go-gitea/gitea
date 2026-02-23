@@ -9,7 +9,7 @@ interface JobNode {
   id: number;
   name: string;
   status: ActionsRunStatus;
-  needs?: string[];
+  needs: string[];
   duration: string;
 
   index: number;
@@ -141,7 +141,7 @@ const jobsWithLayout = computed<JobNode[]>(() => {
           id: job.id,
           name: job.name,
           status: job.status,
-          needs: job.needs,
+          needs: job.needs || [],
           duration: job.duration,
 
           index: props.jobs.findIndex(j => j.id === job.id),
@@ -159,7 +159,7 @@ const jobsWithLayout = computed<JobNode[]>(() => {
       id: job.id,
       name: job.name,
       status: job.status,
-      needs: job.needs,
+      needs: job.needs || [],
       duration: job.duration,
 
       index: index,
@@ -175,34 +175,27 @@ const edges = computed<Edge[]>(() => {
   const edgesList: Edge[] = [];
 
   const jobsByJobId = new Map<string, ActionsJob[]>();
-  props.jobs.forEach(job => {
+  for (const job of props.jobs) {
     if (job.jobId) {
       if (!jobsByJobId.has(job.jobId)) {
         jobsByJobId.set(job.jobId, []);
       }
       jobsByJobId.get(job.jobId)!.push(job);
     }
-  })
+  }
 
-  props.jobs.forEach(job => {
-    if (job.needs && job.needs.length > 0 && job.jobId) {
-      job.needs.forEach(need => {
-        const targetJobs = jobsByJobId.get(need) || [];
-
-        if (targetJobs.length > 0) {
-          targetJobs.forEach(targetJob => {
-            edgesList.push({
-              from: targetJob.name,
-              to: job.name,
-              key: `${targetJob.id}-${job.id}`,
-            })
-          });
-        } else {
-          console.warn(`Job "${job.name}": need "${need}" not found`);
-        }
-      });
+  for (const job of props.jobs) {
+    for (const need of job.needs || []) {
+      const targetJobs = jobsByJobId.get(need) || [];
+      for (const targetJob of targetJobs) {
+        edgesList.push({
+          from: targetJob.name,
+          to: job.name,
+          key: `${targetJob.id}-${job.id}`,
+        });
+      }
     }
-  });
+  }
 
   return edgesList;
 });
@@ -560,12 +553,8 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
       return 0;
     }
 
-    if (!job.needs || job.needs.length === 0) {
-      levels.set(job.name, 0);
-      if (job.jobId && job.jobId !== job.name) {
-        levels.set(job.jobId, 0);
-      }
-
+    if (!job.needs?.length) {
+      levels.set(job.jobId, 0);
       recursionStack.delete(jobNameOrId);
       return 0;
     }
@@ -573,9 +562,7 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
     let maxLevel = -1;
     for (const need of job.needs) {
       const needJob = jobMap.get(need);
-      if (!needJob) {
-        continue;
-      }
+      if (!needJob) continue;
 
       const needLevel = dfs(need, depth + 1);
       maxLevel = Math.max(maxLevel, needLevel);
@@ -749,7 +736,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           </rect>
 
           <text
-            v-if="job.needs && job.needs.length > 0"
+            v-if="job.needs?.length"
             :x="job.x + nodeWidth / 2"
             :y="job.y - 8"
             fill="var(--color-text-light-2)"
