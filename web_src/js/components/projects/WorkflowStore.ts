@@ -411,7 +411,7 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
 
         // Remove workflow from the list
         const existingIndex = store.workflowEvents.findIndex((e: WorkflowEvent) => e.eventId === selected.eventId);
-       if (existingIndex >= 0) {
+        if (existingIndex >= 0) {
           store.workflowEvents.splice(existingIndex, 1);
         }
       } catch (error) {
