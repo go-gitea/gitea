@@ -204,15 +204,16 @@ func FindWorkflowsByProjectID(ctx context.Context, projectID int64) ([]*Workflow
 	return workflows, nil
 }
 
-func GetWorkflowByID(ctx context.Context, id int64) (*Workflow, error) {
-	p, exist, err := db.GetByID[Workflow](ctx, id)
+func GetWorkflowByProjectAndID(ctx context.Context, projectID, workflowID int64) (*Workflow, error) {
+	var workflow Workflow
+	exist, err := db.GetEngine(ctx).Where("project_id=? AND id=?", projectID, workflowID).Get(&workflow)
 	if err != nil {
 		return nil, err
 	}
 	if !exist {
-		return nil, db.ErrNotExist{Resource: "ProjectWorkflow", ID: id}
+		return nil, db.ErrNotExist{Resource: "ProjectWorkflow", ID: workflowID}
 	}
-	return p, nil
+	return &workflow, nil
 }
 
 func CreateWorkflow(ctx context.Context, wf *Workflow) error {

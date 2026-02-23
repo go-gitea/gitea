@@ -20,7 +20,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/indexer/issues"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
@@ -138,9 +138,7 @@ func testNewIssue(t *testing.T, session *TestSession, user, repo string, opts ne
 	link, exists := htmlDoc.doc.Find("form.ui.form").Attr("action")
 	assert.True(t, exists, "The template has changed")
 
-	labelIDs := container.FilterSlice(opts.LabelIDs, func(id int64) (string, bool) {
-		return strconv.FormatInt(id, 10), id != 0
-	})
+	labelIDs := base.Int64sToStrings(opts.LabelIDs)
 
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"title":      opts.Title,

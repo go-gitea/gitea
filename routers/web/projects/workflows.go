@@ -363,6 +363,10 @@ func Workflows(ctx *context.Context) {
 					break
 				}
 			}
+			if curWorkflow == nil {
+				ctx.NotFound(nil)
+				return
+			}
 		}
 	}
 	ctx.Data["CurWorkflow"] = curWorkflow
@@ -455,13 +459,13 @@ func WorkflowsPost(ctx *context.Context) {
 	}
 
 	// Update an existing workflow
-	wf, err := project_model.GetWorkflowByID(ctx, eventID)
+	wf, err := project_model.GetWorkflowByProjectAndID(ctx, p.ID, eventID)
 	if err != nil {
-		ctx.ServerError("GetWorkflowByID", err)
-		return
-	}
-	if wf.ProjectID != p.ID {
-		ctx.NotFound(nil)
+		if db.IsErrNotExist(err) {
+			ctx.NotFound(nil)
+		} else {
+			ctx.ServerError("GetWorkflowByID", err)
+		}
 		return
 	}
 
@@ -494,14 +498,14 @@ func WorkflowsStatus(ctx *context.Context) {
 		return
 	}
 
-	workflowID, _ := strconv.ParseInt(ctx.PathParam("workflow_id"), 10, 64)
-	wf, err := project_model.GetWorkflowByID(ctx, workflowID)
+	workflowID := ctx.PathParamInt64("workflow_id")
+	wf, err := project_model.GetWorkflowByProjectAndID(ctx, p.ID, workflowID)
 	if err != nil {
-		ctx.ServerError("GetWorkflowByID", err)
-		return
-	}
-	if wf.ProjectID != p.ID {
-		ctx.NotFound(nil)
+		if db.IsErrNotExist(err) {
+			ctx.NotFound(nil)
+		} else {
+			ctx.ServerError("GetWorkflowByID", err)
+		}
 		return
 	}
 
@@ -534,8 +538,8 @@ func WorkflowsDelete(ctx *context.Context) {
 		return
 	}
 
-	workflowID, _ := strconv.ParseInt(ctx.PathParam("workflow_id"), 10, 64)
-	wf, err := project_model.GetWorkflowByID(ctx, workflowID)
+	workflowID := ctx.PathParamInt64("workflow_id")
+	wf, err := project_model.GetWorkflowByProjectAndID(ctx, p.ID, workflowID)
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.NotFound(nil)
@@ -544,12 +548,8 @@ func WorkflowsDelete(ctx *context.Context) {
 		}
 		return
 	}
-	if wf.ProjectID != p.ID {
-		ctx.NotFound(nil)
-		return
-	}
 
-	if err := project_model.DeleteWorkflow(ctx, workflowID); err != nil {
+	if err := project_model.DeleteWorkflow(ctx, wf.ID); err != nil {
 		ctx.ServerError("DeleteWorkflow", err)
 		return
 	}

@@ -698,7 +698,6 @@ onUnmounted(() => {
                 class="ui small button"
                 @click="toggleEditMode"
               >
-                <i class="times icon"/>
                 {{ locale.cancel }}
               </button>
 
@@ -708,7 +707,6 @@ onUnmounted(() => {
                 @click="saveWorkflow"
                 :disabled="store.saving"
               >
-                <i class="save icon"/>
                 {{ locale.save }}
               </button>
 
@@ -718,7 +716,6 @@ onUnmounted(() => {
                 class="ui small red button"
                 @click="deleteWorkflow"
               >
-                <i class="trash icon"/>
                 {{ locale.delete }}
               </button>
             </template>
@@ -730,17 +727,15 @@ onUnmounted(() => {
                 class="ui small primary button"
                 @click="toggleEditMode"
               >
-                <i class="edit icon"/>
                 {{ locale.edit }}
               </button>
 
               <!-- Enable/Disable Button -->
               <button
                 class="ui small button"
-                :class="store.selectedWorkflow.enabled ? 'basic red' : 'green'"
+                :class="store.selectedWorkflow.enabled ? 'red' : 'green'"
                 @click="toggleWorkflowStatus"
               >
-                <i :class="store.selectedWorkflow.enabled ? 'pause icon' : 'play icon'"/>
                 {{ store.selectedWorkflow.enabled ? locale.disable : locale.enable }}
               </button>
 
@@ -750,7 +745,6 @@ onUnmounted(() => {
                 @click="cloneWorkflow(store.selectedWorkflow)"
                 title="Clone this workflow"
               >
-                <i class="copy icon"/>
                 {{ locale.clone }}
               </button>
             </template>

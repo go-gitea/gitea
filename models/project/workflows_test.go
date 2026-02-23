@@ -126,7 +126,7 @@ func TestCreateWorkflow(t *testing.T) {
 	assert.NotZero(t, workflow.ID, "Workflow ID should be set after creation")
 
 	// Verify the workflow was created
-	createdWorkflow, err := GetWorkflowByID(t.Context(), workflow.ID)
+	createdWorkflow, err := GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, project.ID, createdWorkflow.ProjectID)
 	assert.Equal(t, WorkflowEventItemOpened, createdWorkflow.WorkflowEvent)
@@ -167,7 +167,7 @@ func TestUpdateWorkflow(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify the update
-	updatedWorkflow, err := GetWorkflowByID(t.Context(), workflow.ID)
+	updatedWorkflow, err := GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
 	assert.NoError(t, err)
 	assert.True(t, updatedWorkflow.Enabled)
 	assert.Len(t, updatedWorkflow.WorkflowFilters, 1)
@@ -198,7 +198,7 @@ func TestDeleteWorkflow(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Verify it was deleted
-	_, err = GetWorkflowByID(t.Context(), workflowID)
+	_, err = GetWorkflowByProjectAndID(t.Context(), project.ID, workflowID)
 	assert.Error(t, err)
 	assert.True(t, db.IsErrNotExist(err), "Should return ErrNotExist")
 }
@@ -224,7 +224,7 @@ func TestEnableDisableWorkflow(t *testing.T) {
 	err = DisableWorkflow(t.Context(), workflow.ID)
 	assert.NoError(t, err)
 
-	disabledWorkflow, err := GetWorkflowByID(t.Context(), workflow.ID)
+	disabledWorkflow, err := GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
 	assert.NoError(t, err)
 	assert.False(t, disabledWorkflow.Enabled)
 
@@ -232,7 +232,7 @@ func TestEnableDisableWorkflow(t *testing.T) {
 	err = EnableWorkflow(t.Context(), workflow.ID)
 	assert.NoError(t, err)
 
-	enabledWorkflow, err := GetWorkflowByID(t.Context(), workflow.ID)
+	enabledWorkflow, err := GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
 	assert.NoError(t, err)
 	assert.True(t, enabledWorkflow.Enabled)
 }
@@ -294,7 +294,7 @@ func TestWorkflowLoadProject(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Get the workflow
-	loadedWorkflow, err := GetWorkflowByID(t.Context(), workflow.ID)
+	loadedWorkflow, err := GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
 	assert.NoError(t, err)
 	assert.Nil(t, loadedWorkflow.Project)
 

@@ -275,7 +275,7 @@ func TestProjectWorkflowUpdate(t *testing.T) {
 	assert.True(t, result["success"].(bool))
 
 	// Verify workflow was updated
-	updatedWorkflow, err := project_model.GetWorkflowByID(t.Context(), workflow.ID)
+	updatedWorkflow, err := project_model.GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
 	assert.NoError(t, err)
 	assert.True(t, updatedWorkflow.Enabled)
 	assert.Len(t, updatedWorkflow.WorkflowFilters, 1)
@@ -327,7 +327,7 @@ func TestProjectWorkflowToggleStatus(t *testing.T) {
 		assert.True(t, result["success"].(bool), "Response should indicate success")
 
 		// Verify status was changed to disabled
-		updatedWorkflow, err := project_model.GetWorkflowByID(t.Context(), workflow.ID)
+		updatedWorkflow, err := project_model.GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
 		assert.NoError(t, err)
 		assert.False(t, updatedWorkflow.Enabled, "Workflow should be disabled")
 	})
@@ -348,7 +348,7 @@ func TestProjectWorkflowToggleStatus(t *testing.T) {
 		assert.True(t, result["success"].(bool), "Response should indicate success")
 
 		// Verify status was changed back to enabled
-		updatedWorkflow, err := project_model.GetWorkflowByID(t.Context(), workflow.ID)
+		updatedWorkflow, err := project_model.GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
 		assert.NoError(t, err)
 		assert.True(t, updatedWorkflow.Enabled, "Workflow should be enabled")
 	})
@@ -395,7 +395,7 @@ func TestProjectWorkflowDelete(t *testing.T) {
 	assert.True(t, result["success"].(bool), "Delete response should indicate success")
 
 	// Verify workflow was deleted - should return ErrNotExist
-	_, err = project_model.GetWorkflowByID(t.Context(), workflow.ID)
+	_, err = project_model.GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
 	assert.Error(t, err, "Should return an error when workflow doesn't exist")
 	assert.True(t, db.IsErrNotExist(err), "Error should be ErrNotExist type")
 
@@ -548,7 +548,7 @@ func TestProjectWorkflowValidation(t *testing.T) {
 		assert.Equal(t, "At least one action must be configured", result["errorMessage"])
 
 		// Verify the workflow was not changed
-		unchangedWorkflow, err := project_model.GetWorkflowByID(t.Context(), workflow.ID)
+		unchangedWorkflow, err := project_model.GetWorkflowByProjectAndID(t.Context(), project.ID, workflow.ID)
 		assert.NoError(t, err)
 		assert.Len(t, unchangedWorkflow.WorkflowActions, 1, "Workflow should still have the original action")
 	})
