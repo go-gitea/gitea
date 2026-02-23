@@ -3785,7 +3785,7 @@
   "projects.workflows.close_issue": "Close issue",
   "projects.workflows.reopen_issue": "Reopen issue",
   "projects.workflows.save_workflow_failed": "Failed to save workflow",
-  "projects.workflows.update_workflow_failed": "Failed to update workflow status",
+  "projects.workflows.update_workflow_failed": "Failed to update workflow",
   "projects.workflows.delete_workflow_failed": "Failed to delete workflow",
   "projects.workflows.at_least_one_action_required": "At least one action must be configured",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",

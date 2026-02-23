@@ -258,7 +258,7 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
         });
 
         if (!response.ok) {
-          let errorMessage = `${props.locale.failedToSaveWorkflow}: ${response.status} ${response.statusText}`;
+          let errorMessage = `${props.locale.saveWorkflowFailed}: ${response.status} ${response.statusText}`;
           try {
             const errorData = await response.json();
             if (errorData.errorMessage) {
@@ -315,11 +315,11 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
           }
         } else {
           console.error('Unexpected response format:', result);
-          showErrorToast(`${props.locale.failedToSaveWorkflow}: Unexpected response format`);
+          showErrorToast(`${props.locale.saveWorkflowFailed}: Unexpected response format`);
         }
       } catch (error) {
         console.error('Failed to save workflow:', error);
-        showErrorToast(`${props.locale.failedToSaveWorkflow}: ${error.message}`);
+        showErrorToast(`${props.locale.saveWorkflowFailed}: ${error.message}`);
       } finally {
         store.saving = false;
       }
@@ -345,7 +345,7 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Failed to update workflow status:', errorText);
-          showErrorToast(`${props.locale.failedToUpdateWorkflowStatus}: ${response.status} ${response.statusText}`);
+          showErrorToast(`${props.locale.updateWorkflowFailed}: ${response.status} ${response.statusText}`);
           // Revert the status change on error
           selected.enabled = previousEnabled;
           return;
@@ -361,13 +361,13 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
         } else {
           // Revert the status change on failure
           selected.enabled = previousEnabled;
-          showErrorToast(`${props.locale.failedToUpdateWorkflowStatus}: Unexpected error`);
+          showErrorToast(`${props.locale.updateWorkflowFailed}: Unexpected error`);
         }
       } catch (error) {
         console.error('Failed to update workflow status:', error);
         // Revert the status change on error
         selected.enabled = previousEnabled;
-        showErrorToast(`${props.locale.failedToUpdateWorkflowStatus}: ${error.message}`);
+        showErrorToast(`${props.locale.updateWorkflowFailed}: ${error.message}`);
       }
     },
 
@@ -385,7 +385,7 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Failed to delete workflow:', errorText);
-          showErrorToast(`${props.locale.failedToDeleteWorkflow}: ${response.status} ${response.statusText}`);
+          showErrorToast(`${props.locale.deleteWorkflowFailed}: ${response.status} ${response.statusText}`);
           return;
         }
 
@@ -396,7 +396,7 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
         }
       } catch (error) {
         console.error('Error deleting workflow:', error);
-        showErrorToast(`${props.locale.failedToDeleteWorkflow}: ${error.message}`);
+        showErrorToast(`${props.locale.deleteWorkflowFailed}: ${error.message}`);
       }
     },
 
