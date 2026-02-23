@@ -416,7 +416,7 @@ func WorkflowsPost(ctx *context.Context) {
 
 	// Validate: at least one action must be configured
 	if len(actions) == 0 {
-		ctx.JSONError(ctx.Tr("projects.workflows.error.at_least_one_action"))
+		ctx.JSONError(ctx.Tr("projects.workflows.at_least_one_action_required"))
 		return
 	}
 

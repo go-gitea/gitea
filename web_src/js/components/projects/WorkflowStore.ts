@@ -83,7 +83,7 @@ type WorkflowStoreState = {
 const createDefaultFilters = (): WorkflowFilters => ({issue_type: '', source_column: '', target_column: '', labels: []});
 const createDefaultActions = (): WorkflowActions => ({column: '', add_labels: [], remove_labels: [], issue_state: ''});
 
-function convertFilters(workflow: any): WorkflowFilters {
+function convertFilters(workflow?: WorkflowEvent | null): WorkflowFilters {
   const filters = createDefaultFilters();
   if (workflow?.filters && Array.isArray(workflow.filters)) {
     for (const filter of workflow.filters) {
@@ -101,7 +101,7 @@ function convertFilters(workflow: any): WorkflowFilters {
   return filters;
 }
 
-function convertActions(workflow: any): WorkflowActions {
+function convertActions(workflow?: WorkflowEvent | null): WorkflowActions {
   const actions = createDefaultActions();
 
   if (workflow?.actions && Array.isArray(workflow.actions)) {

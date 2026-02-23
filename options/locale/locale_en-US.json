@@ -3788,7 +3788,6 @@
   "projects.workflows.update_workflow_failed": "Failed to update workflow status",
   "projects.workflows.delete_workflow_failed": "Failed to delete workflow",
   "projects.workflows.at_least_one_action_required": "At least one action must be configured",
-  "projects.workflows.error.at_least_one_action": "At least one action must be configured",
   "git.filemode.changed_filemode": "%[1]s → %[2]s",
   "git.filemode.directory": "Directory",
   "git.filemode.normal_file": "Regular",
