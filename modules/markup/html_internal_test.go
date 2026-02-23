@@ -376,6 +376,12 @@ func TestRegExp_anySHA1Pattern(t *testing.T) {
 			CommitID:  "d8a994ef243349f321568f9e36d5c3f444b99cae",
 			QueryHash: "diff-2",
 		},
+		"https://github.com/jquery/jquery/commit/0705be475092aede1eddae01": {
+			CommitID: "0705be475092aede1eddae01",
+		},
+		"https://github.com/jquery/jquery/commit/0705be4": {
+			CommitID: "0705be4",
+		},
 		"non-url": {},
 		"http://a/b/c/d/e/1234567812345678123456781234567812345678123456781234567812345678?a=b#L1-L2": {
 			CommitID:  "1234567812345678123456781234567812345678123456781234567812345678",

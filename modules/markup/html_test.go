@@ -113,6 +113,16 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		inputURL,
 		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789.patch</code></a></p>`)
+
+	// abbreviated commit hash URLs should also be rendered as code links
+	inputURL = setting.AppURL + "owner/repo/commit/01234567890123456789012345"
+	test(
+		inputURL,
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456789</code></a></p>`)
+	inputURL = setting.AppURL + "owner/repo/commit/0123456"
+	test(
+		inputURL,
+		`<p><a href="`+inputURL+`" rel="nofollow"><code>0123456</code></a></p>`)
 }
 
 func TestRender_links(t *testing.T) {
