@@ -376,8 +376,7 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 	}
 
 	return &api.ActionWorkflowJob{
-		ID:    job.ID,
-		JobID: job.JobID,
+		ID: job.ID,
 		// missing api endpoint for this location
 		URL:     fmt.Sprintf("%s/actions/jobs/%d", repo.APIURL(), job.ID),
 		HTMLURL: fmt.Sprintf("%s/jobs/%d", job.Run.HTMLURL(), jobIndex),
@@ -393,7 +392,6 @@ func ToActionWorkflowJob(ctx context.Context, repo *repo_model.Repository, task 
 		Conclusion:  conclusion,
 		RunnerID:    runnerID,
 		RunnerName:  runnerName,
-		Needs:       job.Needs,
 		Steps:       util.SliceNilAsEmpty(steps),
 		CreatedAt:   job.Created.AsTime().UTC(),
 		StartedAt:   job.Started.AsTime().UTC(),
