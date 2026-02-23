@@ -1130,7 +1130,7 @@ func Routes() *web.Router {
 			}, reqWebhooksEnabled())
 
 			m.Group("/avatar", func() {
-				m.Post("", bind(api.UserAvatarOption{}), user.UpdateAvatar)
+				m.Post("", bind(api.UpdateUserAvatarOption{}), user.UpdateAvatar)
 				m.Delete("", user.DeleteAvatar)
 			})
 
@@ -1658,7 +1658,7 @@ func Routes() *web.Router {
 					Delete(org.DeleteHook)
 			}, reqToken(), reqOrgOwnership(), reqWebhooksEnabled())
 			m.Group("/avatar", func() {
-				m.Post("", bind(api.UserAvatarOption{}), org.UpdateAvatar)
+				m.Post("", bind(api.UpdateUserAvatarOption{}), org.UpdateAvatar)
 				m.Delete("", org.DeleteAvatar)
 			}, reqToken(), reqOrgOwnership())
 			m.Get("/activities/feeds", org.ListOrgActivityFeeds)
