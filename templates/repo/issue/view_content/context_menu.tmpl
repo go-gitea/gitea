@@ -10,7 +10,7 @@
 			{{$referenceUrl = printf "%s/files#%s" ctx.RootData.Issue.Link .item.HashTag}}
 		{{end}}
 		<div class="item context js-aria-clickable" data-clipboard-text-type="url" data-clipboard-text="{{$referenceUrl}}">{{ctx.Locale.Tr "repo.issues.context.copy_link"}}</div>
-		<div class="item context js-aria-clickable copy-source" data-target="{{.item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</div>
+		<div class="item context js-aria-clickable copy-source" data-clipboard-target="#{{.item.HashTag}}-raw">{{ctx.Locale.Tr "repo.issues.context.copy_source"}}</div>
 		{{if ctx.RootData.IsSigned}}
 			{{$needDivider := false}}
 			{{if not ctx.RootData.Repository.IsArchived}}
