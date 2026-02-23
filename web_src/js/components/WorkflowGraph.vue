@@ -150,7 +150,7 @@ const jobsWithLayout = computed<JobNode[]>(() => {
           x: startX + jobIndex * currentHorizontalSpacing,
           y: margin + levelIndex * verticalSpacing,
           level: levelIndex,
-          index: props.jobs.findIndex(j => j.id === job.id)
+          index: props.jobs.findIndex(j => j.id === job.id),
         });
       });
     });
@@ -162,7 +162,7 @@ const jobsWithLayout = computed<JobNode[]>(() => {
       x: margin + index * (nodeWidth.value + 40),
       y: margin,
       level: 0,
-      index: index
+      index: index,
     }));
   }
 });
@@ -190,7 +190,7 @@ const edges = computed<Edge[]>(() => {
             edgesList.push({
               from: targetJob.name,
               to: job.name,
-              key: `${targetJob.id}-${job.id}`
+              key: `${targetJob.id}-${job.id}`,
             })
           });
         } else {
@@ -233,7 +233,7 @@ const bezierEdges = computed<BezierEdge[]>(() => {
       ...edge,
       path,
       fromNode,
-      toNode
+      toNode,
     });
   });
 
@@ -254,7 +254,7 @@ const graphMetrics = computed(() => {
 
   return {
     successRate: `${((successCount / jobsWithLayout.value.length) * 100).toFixed(0)}%`,
-    parallelism
+    parallelism,
   };
 })
 
@@ -282,6 +282,7 @@ function handleMouseDown(e: MouseEvent) {
   const target = e.target as Element;
   // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
   const interactive = target.closest('div, p, a, span, button, input, text');
+  console.log(e, interactive, interactive?.closest('svg'));
   if (interactive?.closest('svg')) return;
 
   e.preventDefault();
@@ -289,7 +290,7 @@ function handleMouseDown(e: MouseEvent) {
   isDragging.value = true;
   dragStart.value = {
     x: e.clientX - translateX.value,
-    y: e.clientY - translateY.value
+    y: e.clientY - translateY.value,
   };
   lastMousePos.value = { x: e.clientX, y: e.clientY };
   graphContainer.value!.style.cursor = 'grabbing';
@@ -429,7 +430,7 @@ function formatStatus(status: string): string {
     waiting: 'Waiting',
     cancelled: 'Cancelled',
     completed: 'Completed',
-    blocked: 'Blocked'
+    blocked: 'Blocked',
   };
 
   return statusMap[status] || status;
@@ -440,7 +441,7 @@ function getEdgeStyle(edge: BezierEdge) {
     return {
       stroke: 'var(--color-secondary)',
       strokeWidth: '2',
-      opacity: '0.7'
+      opacity: '0.7',
     };
   }
 
@@ -454,7 +455,7 @@ function getEdgeStyle(edge: BezierEdge) {
     strokeDasharray: getDashArray(fromStatus, toStatus),
     opacity: isHighlighted ? 1 : getEdgeOpacity(fromStatus, toStatus),
     markerEnd: getMarkerEnd(fromStatus, toStatus),
-    transition: 'all 0.2s ease'
+    transition: 'all 0.2s ease',
   };
 }
 
@@ -464,10 +465,10 @@ function getStrokeWidth(fromStatus: string, toStatus: string): string {
   }
 
   if (fromStatus === 'failure' || toStatus === 'failure') {
-    return '2.5'
+    return '2.5';
   }
 
-  return '2'
+  return '2';
 }
 
 function getDashArray(fromStatus: string, toStatus: string): string {
@@ -499,7 +500,7 @@ function getEdgeOpacity(fromStatus: string, toStatus: string): number {
     return 1;
   }
 
-  return 0.8
+  return 0.8;
 }
 
 function getMarkerEnd(fromStatus: string, toStatus: string): string {
@@ -951,8 +952,6 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
   min-height: 300px;
   max-height: 600px;
   position: relative;
-  -webkit-user-select: none;
-  user-select: none;
 }
 
 .graph-container.dragging {
@@ -996,6 +995,7 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
   text-overflow: ellipsis;
   overflow: hidden;
   white-space: nowrap;
+  user-select: none;
   pointer-events: none;
 }
 
@@ -1004,17 +1004,6 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
 .job-deps-label {
   user-select: none;
   pointer-events: none;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.1);
-  }
 }
 
 @keyframes shimmer {

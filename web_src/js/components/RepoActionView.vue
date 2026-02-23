@@ -524,8 +524,8 @@ export default defineComponent({
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
-        <div class="tw-flex tw-space-x-2">
-          <button class="ui basic small compact button primary tw-shrink-0" @click="showWorkflowGraph = !showWorkflowGraph" :class="{ active: showWorkflowGraph }" v-if="run.jobs.length > 1">
+        <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
+          <button class="ui basic small compact button primary" @click="showWorkflowGraph = !showWorkflowGraph" :class="{ active: showWorkflowGraph }" v-if="run.jobs.length > 1">
             {{ locale.workflowGraph }}
           </button>
           <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
@@ -534,7 +534,7 @@ export default defineComponent({
           <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
             {{ locale.cancel }}
           </button>
-          <button class="ui basic small compact button link-action tw-shrink-0" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+          <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
             {{ locale.rerun_all }}
           </button>
         </div>
@@ -701,6 +701,7 @@ export default defineComponent({
 
 .action-info-summary {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
