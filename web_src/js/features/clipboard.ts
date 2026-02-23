@@ -6,7 +6,7 @@ const {copy_success, copy_error} = window.config.i18n;
 
 // Enable clipboard copy from HTML attributes. These properties are supported:
 // - data-clipboard-text: Direct text to copy
-// - data-clipboard-target: Holds a selector for an element. "value" of <input> or <textarea>, or "textContent" of other elements will be copied
+// - data-clipboard-target: Holds a selector for an element. "value" of <input> or <textarea>, or "textContent" of <div> will be copied
 // - data-clipboard-text-type: When set to 'url' will convert relative to absolute urls
 export function initGlobalCopyToClipboardListener() {
   document.addEventListener('click', async (e) => {
