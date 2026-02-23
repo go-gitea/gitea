@@ -775,8 +775,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
 
 <style scoped>
 .workflow-graph {
-  padding: 5px 12px;
-  background: var(--color-box-body);
   position: relative;
 }
 
@@ -785,7 +783,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
-  padding-bottom: 12px;
+  padding: 6px 12px;
   border-bottom: 1px solid var(--color-secondary-alpha-20);
   gap: 15px;
   flex-wrap: wrap;
@@ -821,7 +819,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
   overflow: auto;
   padding: 12px;
   border-radius: 8px;
-  background: var(--color-body);
   cursor: grab;
   min-height: 300px;
   max-height: 600px;
