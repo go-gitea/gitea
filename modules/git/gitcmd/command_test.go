@@ -64,7 +64,7 @@ func TestRunWithContextStd(t *testing.T) {
 		stdout, stderr, err := cmd.RunStdBytes(t.Context())
 		if assert.Error(t, err) {
 			assert.Equal(t, string(stderr), err.Stderr())
-			stderrLower := strings.ToLower(err.Error()) // see: IsStdErrorNotValidObjectName
+			stderrLower := strings.ToLower(err.Stderr()) // see: IsStdErrorNotValidObjectName
 			assert.Equal(t, "fatal: not a valid object name no-such\n", stderrLower)
 			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
 			errLower := strings.ToLower(err.Error())
