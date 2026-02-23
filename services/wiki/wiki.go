@@ -59,7 +59,7 @@ func prepareGitPath(gitRepo *git.Repository, defaultWikiBranch string, wikiPath 
 	// Look for both files
 	filesInIndex, err := gitRepo.LsTree(defaultWikiBranch, unescaped, gitPath)
 	if err != nil {
-		if strings.Contains(err.Error(), "Not a valid object name") {
+		if strings.Contains(strings.ToLower(err.Error()), "not a valid object name") {
 			return false, gitPath, nil // branch doesn't exist
 		}
 		log.Error("Wiki LsTree failed, err: %v", err)
