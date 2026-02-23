@@ -884,77 +884,51 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if opts.HasPullRequests != nil && !unit_model.TypePullRequests.UnitGlobalDisabled() {
-		if *opts.HasPullRequests {
+	if !unit_model.TypePullRequests.UnitGlobalDisabled() {
+		if opts.HasPullRequests != nil && !*opts.HasPullRequests {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
+		} else {
 			// We do allow setting individual PR settings through the API, so
 			// we get the config settings and then set them
 			// if those settings were provided in the opts.
 			unit, err := repo.GetUnit(ctx, unit_model.TypePullRequests)
-			var config *repo_model.PullRequestsConfig
-			if err != nil {
-				// Unit type doesn't exist so we make a new config file with default values
-				config = &repo_model.PullRequestsConfig{
-					IgnoreWhitespaceConflicts:     false,
-					AllowMerge:                    true,
-					AllowRebase:                   true,
-					AllowRebaseMerge:              true,
-					AllowSquash:                   true,
-					AllowFastForwardOnly:          true,
-					AllowManualMerge:              true,
-					AutodetectManualMerge:         false,
-					AllowRebaseUpdate:             true,
-					DefaultDeleteBranchAfterMerge: false,
-					DefaultMergeStyle:             repo_model.MergeStyleMerge,
-					DefaultAllowMaintainerEdit:    false,
+			if err != nil && opts.HasPullRequests != nil {
+				// Unit doesn't exist yet but is being enabled, create with defaults
+				unit = &repo_model.RepoUnit{Config: &repo_model.PullRequestsConfig{
+					AllowMerge:           true,
+					AllowRebase:          true,
+					AllowRebaseMerge:     true,
+					AllowSquash:          true,
+					AllowFastForwardOnly: true,
+					AllowManualMerge:     true,
+					AllowRebaseUpdate:    true,
+					DefaultMergeStyle:    repo_model.MergeStyleMerge,
+				}}
+				err = nil
+			}
+			if err == nil {
+				config := unit.PullRequestsConfig()
+				optional.SetPtrTo(&config.IgnoreWhitespaceConflicts, opts.IgnoreWhitespaceConflicts)
+				optional.SetPtrTo(&config.AllowMerge, opts.AllowMerge)
+				optional.SetPtrTo(&config.AllowRebase, opts.AllowRebase)
+				optional.SetPtrTo(&config.AllowRebaseMerge, opts.AllowRebaseMerge)
+				optional.SetPtrTo(&config.AllowSquash, opts.AllowSquash)
+				optional.SetPtrTo(&config.AllowFastForwardOnly, opts.AllowFastForwardOnly)
+				optional.SetPtrTo(&config.AllowManualMerge, opts.AllowManualMerge)
+				optional.SetPtrTo(&config.AutodetectManualMerge, opts.AutodetectManualMerge)
+				optional.SetPtrTo(&config.AllowRebaseUpdate, opts.AllowRebaseUpdate)
+				optional.SetPtrTo(&config.DefaultDeleteBranchAfterMerge, opts.DefaultDeleteBranchAfterMerge)
+				optional.SetPtrTo(&config.DefaultAllowMaintainerEdit, opts.DefaultAllowMaintainerEdit)
+				if opts.DefaultMergeStyle != nil {
+					config.DefaultMergeStyle = repo_model.MergeStyle(*opts.DefaultMergeStyle)
 				}
-			} else {
-				config = unit.PullRequestsConfig()
-			}
 
-			if opts.IgnoreWhitespaceConflicts != nil {
-				config.IgnoreWhitespaceConflicts = *opts.IgnoreWhitespaceConflicts
+				units = append(units, repo_model.RepoUnit{
+					RepoID: repo.ID,
+					Type:   unit_model.TypePullRequests,
+					Config: config,
+				})
 			}
-			if opts.AllowMerge != nil {
-				config.AllowMerge = *opts.AllowMerge
-			}
-			if opts.AllowRebase != nil {
-				config.AllowRebase = *opts.AllowRebase
-			}
-			if opts.AllowRebaseMerge != nil {
-				config.AllowRebaseMerge = *opts.AllowRebaseMerge
-			}
-			if opts.AllowSquash != nil {
-				config.AllowSquash = *opts.AllowSquash
-			}
-			if opts.AllowFastForwardOnly != nil {
-				config.AllowFastForwardOnly = *opts.AllowFastForwardOnly
-			}
-			if opts.AllowManualMerge != nil {
-				config.AllowManualMerge = *opts.AllowManualMerge
-			}
-			if opts.AutodetectManualMerge != nil {
-				config.AutodetectManualMerge = *opts.AutodetectManualMerge
-			}
-			if opts.AllowRebaseUpdate != nil {
-				config.AllowRebaseUpdate = *opts.AllowRebaseUpdate
-			}
-			if opts.DefaultDeleteBranchAfterMerge != nil {
-				config.DefaultDeleteBranchAfterMerge = *opts.DefaultDeleteBranchAfterMerge
-			}
-			if opts.DefaultMergeStyle != nil {
-				config.DefaultMergeStyle = repo_model.MergeStyle(*opts.DefaultMergeStyle)
-			}
-			if opts.DefaultAllowMaintainerEdit != nil {
-				config.DefaultAllowMaintainerEdit = *opts.DefaultAllowMaintainerEdit
-			}
-
-			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   unit_model.TypePullRequests,
-				Config: config,
-			})
-		} else {
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 		}
 	}
 
