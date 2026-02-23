@@ -29,12 +29,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIListReleases(t *testing.T) {
+func TestAPIListReleasesWithWriteToken(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeReadRepository)
+	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeWriteRepository)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
 	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
@@ -79,6 +79,76 @@ func TestAPIListReleases(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"false"}, "pre-release": {"false"}}, 1, "exclude drafts and pre-releases")
 	testFilterByLen(true, url.Values{"pre-release": {"true"}}, 1, "only get pre-release")
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
+}
+
+func TestAPIListReleasesWithReadToken(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeReadRepository)
+
+	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
+	resp := MakeRequest(t, NewRequest(t, "GET", link.String()).AddTokenAuth(token), http.StatusOK)
+	var apiReleases []*api.Release
+	DecodeJSON(t, resp, &apiReleases)
+	if assert.Len(t, apiReleases, 2) {
+		for _, release := range apiReleases {
+			switch release.ID {
+			case 1:
+				assert.False(t, release.IsDraft)
+				assert.False(t, release.IsPrerelease)
+				assert.True(t, strings.HasSuffix(release.UploadURL, "/api/v1/repos/user2/repo1/releases/1/assets"), release.UploadURL)
+			case 5:
+				assert.False(t, release.IsDraft)
+				assert.True(t, release.IsPrerelease)
+				assert.True(t, strings.HasSuffix(release.UploadURL, "/api/v1/repos/user2/repo1/releases/5/assets"), release.UploadURL)
+			default:
+				assert.NoError(t, fmt.Errorf("unexpected release: %v", release))
+			}
+		}
+	}
+
+	// test filter
+	testFilterByLen := func(auth bool, query url.Values, expectedLength int, msgAndArgs ...string) {
+		link.RawQuery = query.Encode()
+		req := NewRequest(t, "GET", link.String())
+		if auth {
+			req.AddTokenAuth(token)
+		}
+		resp = MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &apiReleases)
+		assert.Len(t, apiReleases, expectedLength, msgAndArgs)
+	}
+
+	testFilterByLen(false, url.Values{"draft": {"true"}}, 0, "anon should not see drafts")
+	testFilterByLen(true, url.Values{"draft": {"true"}}, 0, "repo owner with read token should not see drafts")
+	testFilterByLen(true, url.Values{"draft": {"false"}}, 2, "exclude drafts")
+	testFilterByLen(true, url.Values{"draft": {"false"}, "pre-release": {"false"}}, 1, "exclude drafts and pre-releases")
+	testFilterByLen(true, url.Values{"pre-release": {"true"}}, 1, "only get pre-release")
+	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
+}
+
+func TestAPIGetDraftRelease(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 4})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	reader := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases/%d", owner.Name, repo.Name, release.ID)
+
+	MakeRequest(t, NewRequest(t, "GET", urlStr), http.StatusNotFound)
+
+	readerToken := getUserToken(t, reader.LowerName, auth_model.AccessTokenScopeReadRepository)
+	MakeRequest(t, NewRequest(t, "GET", urlStr).AddTokenAuth(readerToken), http.StatusNotFound)
+
+	ownerToken := getUserToken(t, owner.LowerName, auth_model.AccessTokenScopeWriteRepository)
+	resp := MakeRequest(t, NewRequest(t, "GET", urlStr).AddTokenAuth(ownerToken), http.StatusOK)
+	var apiRelease api.Release
+	DecodeJSON(t, resp, &apiRelease)
+	assert.Equal(t, release.Title, apiRelease.Title)
 }
 
 func createNewReleaseUsingAPI(t *testing.T, token string, owner *user_model.User, repo *repo_model.Repository, name, target, title, desc string) *api.Release {
@@ -335,7 +405,7 @@ func TestAPIDeleteReleaseByTagName(t *testing.T) {
 
 func TestAPIUploadAssetRelease(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	defer test.MockVariableValue(&setting.Attachment.MaxSize, 1)()
+	defer test.MockVariableValue(&setting.Repository.Release.FileMaxSize, 1)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})

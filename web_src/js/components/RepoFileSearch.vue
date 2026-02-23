@@ -45,8 +45,8 @@ const handleKeyDown = (e: KeyboardEvent) => {
   if (e.isComposing) return;
 
   if (e.key === 'Escape') {
-    e.preventDefault();
     clearSearch();
+    nextTick(() => refElemInput.value.blur());
     return;
   }
   if (!searchQuery.value || filteredFiles.value.length === 0) return;
@@ -145,12 +145,13 @@ watch([searchQuery, filteredFiles], async () => {
 
 <template>
   <div>
-    <div class="ui small input">
+    <div class="ui small input global-shortcut-wrapper">
       <input
         ref="searchInput" :placeholder="placeholder" autocomplete="off"
         role="combobox" aria-autocomplete="list" :aria-expanded="searchQuery ? 'true' : 'false'"
         @input="handleSearchInput" @keydown="handleKeyDown"
       >
+      <kbd data-global-init="onGlobalShortcut" data-shortcut-keys="t">T</kbd>
     </div>
 
     <Teleport to="body">
