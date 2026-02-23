@@ -10,6 +10,17 @@ const {appSubUrl} = window.config;
 // fetchActionDoRedirect does real redirection to bypass the browser's limitations of "location"
 // more details are in the backend's fetch-redirect handler
 function fetchActionDoRedirect(redirect: string) {
+  // External URLs (e.g. OIDC end_session_endpoint) can't go through the
+  // fetch-redirect delegate which only allows same-site URLs. Use a direct
+  // navigation for these.
+  try {
+    const url = new URL(redirect, window.location.origin);
+    if (url.origin !== window.location.origin) {
+      window.location.href = redirect;
+      return;
+    }
+  } catch { /* fall through to form-based redirect */ }
+
   const form = document.createElement('form');
   const input = document.createElement('input');
   form.method = 'post';
