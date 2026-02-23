@@ -1,6 +1,8 @@
 .ui.button {
   cursor: pointer;
   display: inline-flex;
+  align-items: center;
+  min-width: 0;
   outline: none;
   font-family: var(--fonts-regular);
   margin: 0 0.25em 0 0;
@@ -100,11 +102,13 @@
 
 /* reference sizes (not exactly at the moment): normal: padding-x=21, height=38 ; compact: padding-x=15, height=32 */
 .ui.button { /* stylelint-disable-line no-duplicate-selectors */
+  gap: var(--gap-block);
   min-height: 38px;
   padding: 0.57em /* around 8px */ 1.43em /* around 20px */;
 }
 .ui.compact.buttons .button,
 .ui.compact.button {
+  gap: var(--gap-inline);
   padding: 0.42em /* around 8px */ 1.07em /* around 15px */;
   min-height: 32px;
 }
@@ -118,6 +122,7 @@
 .ui.mini.buttons .dropdown .menu > .item,
 .ui.mini.buttons .button,
 .ui.ui.ui.ui.mini.button {
+  gap: var(--gap-inline);
   font-size: 11px;
   min-height: 30px;
 }
@@ -130,6 +135,7 @@
 .ui.tiny.buttons .dropdown .menu > .item,
 .ui.tiny.buttons .button,
 .ui.ui.ui.ui.tiny.button {
+  gap: var(--gap-inline);
   font-size: 12px;
   min-height: 32px;
 }

@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import {SvgIcon} from '../svg.ts';
 import {GET} from '../modules/fetch.ts';
-import {getIssueColor, getIssueIcon} from '../features/issue.ts';
+import {getIssueColorClass, getIssueIcon} from '../features/issue.ts';
 import {computed, onMounted, shallowRef} from 'vue';
 import type {Issue} from '../types.ts';
 
@@ -53,7 +53,7 @@ onMounted(async () => {
         on {{ createdAt }}
       </div>
       <div class="flex-text-block">
-        <svg-icon :name="getIssueIcon(issue)" :class="['text', getIssueColor(issue)]"/>
+        <svg-icon :name="getIssueIcon(issue)" :class="getIssueColorClass(issue)"/>
         <span class="issue-title tw-font-semibold tw-break-anywhere">
           {{ issue.title }}
           <span class="index">#{{ issue.number }}</span>
