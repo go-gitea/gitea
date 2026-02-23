@@ -134,10 +134,25 @@ type PullRequestsConfig struct {
 	DefaultTargetBranch           string
 }
 
+func DefaultPullRequestsConfig() *PullRequestsConfig {
+	cfg := &PullRequestsConfig{
+		AllowMerge:                 true,
+		AllowRebase:                true,
+		AllowRebaseMerge:           true,
+		AllowSquash:                true,
+		AllowFastForwardOnly:       true,
+		AllowRebaseUpdate:          true,
+		DefaultAllowMaintainerEdit: true,
+	}
+	cfg.DefaultMergeStyle = MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
+	cfg.DefaultMergeStyle = util.IfZero(cfg.DefaultMergeStyle, MergeStyleMerge)
+	return cfg
+}
+
 // FromDB fills up a PullRequestsConfig from serialized format.
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
-	// AllowRebaseUpdate = true as default for existing PullRequestConfig in DB
-	cfg.AllowRebaseUpdate = true
+	// set default values for existing PullRequestConfig in DB
+	*cfg = *DefaultPullRequestsConfig()
 	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
@@ -156,17 +171,8 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 		mergeStyle == MergeStyleManuallyMerged && cfg.AllowManualMerge
 }
 
-// GetDefaultMergeStyle returns the default merge style for this pull request
-func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
-	if len(cfg.DefaultMergeStyle) != 0 {
-		return cfg.DefaultMergeStyle
-	}
-
-	if setting.Repository.PullRequest.DefaultMergeStyle != "" {
-		return MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
-	}
-
-	return MergeStyleMerge
+func DefaultPullRequestsUnit(repoID int64) RepoUnit {
+	return RepoUnit{RepoID: repoID, Type: unit.TypePullRequests, Config: DefaultPullRequestsConfig()}
 }
 
 type ActionsConfig struct {

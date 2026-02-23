@@ -898,7 +898,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			}
 			if unit == nil {
 				// Unit doesn't exist yet but is being enabled, create with defaults
-				unit = new(repo_service.DefaultPullRequestsUnit(repo.ID))
+				unit = new(repo_model.DefaultPullRequestsUnit(repo.ID))
 			}
 
 			changed := new(false)
