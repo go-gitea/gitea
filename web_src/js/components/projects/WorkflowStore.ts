@@ -50,6 +50,7 @@ export type WorkflowEvent = {
   filters?: Array<{type: string, value: string}>;
   actions?: Array<{type: string, value: string}>;
   _isEditing?: boolean;
+  _clonedFromEventId?: string;
   is_configured?: boolean;
 } & Record<string, unknown>;
 

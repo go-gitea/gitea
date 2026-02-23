@@ -85,6 +85,7 @@ const setEditMode = (enabled: boolean) => {
 const showCancelButton = computed(() => {
   if (!store.selectedWorkflow) return false;
   if (store.selectedWorkflow.id > 0) return true;
+  if (store.selectedWorkflow._clonedFromEventId) return true;
   const event_id = store.selectedWorkflow.event_id ?? '';
   return typeof event_id === 'string' && event_id.startsWith('clone-');
 });
@@ -92,9 +93,18 @@ const showCancelButton = computed(() => {
 const isTemporaryWorkflow = (workflow?: WorkflowEvent | null) => {
   if (!workflow) return false;
   if (workflow.id > 0) return false;
+  if (workflow._clonedFromEventId) return true;
   const event_id = typeof workflow.event_id === 'string' ? workflow.event_id : '';
   return event_id.startsWith('clone-') || event_id.startsWith('new-');
 };
+
+const canCloneSelectedWorkflow = computed(() => {
+  const selected = store.selectedWorkflow;
+  if (!selected || selected.id <= 0) return false;
+  return !store.workflowEvents.some((workflow: WorkflowEvent) =>
+    workflow.id === 0 && workflow._clonedFromEventId === selected.event_id,
+  );
+});
 
 const removeTemporaryWorkflow = (workflow?: WorkflowEvent | null) => {
   if (!workflow || !isTemporaryWorkflow(workflow)) return;
@@ -230,6 +240,7 @@ const deleteWorkflow = async () => {
 
 const cloneWorkflow = (sourceWorkflow?: WorkflowEvent | null) => {
   if (!sourceWorkflow) return;
+  if (!canCloneSelectedWorkflow.value) return;
 
   // Generate a unique temporary ID for the cloned workflow
   const tempId = `${sourceWorkflow.workflow_event}`;
@@ -244,6 +255,7 @@ const cloneWorkflow = (sourceWorkflow?: WorkflowEvent | null) => {
     event_id: tempId,
     display_name: `${baseName} (Copy)`,
     workflow_event: sourceWorkflow.workflow_event,
+    _clonedFromEventId: sourceWorkflow.event_id,
     capabilities: sourceWorkflow.capabilities,
     filters: JSON.parse(JSON.stringify(sourceWorkflow.filters || [])), // Deep clone
     actions: JSON.parse(JSON.stringify(sourceWorkflow.actions || [])), // Deep clone
@@ -447,8 +459,17 @@ const getWorkflowDisplayName = (item: WorkflowListItem, _index: number) => {
     return displayName;
   }
 
+  const orderedSameTypeWorkflows = [...sameTypeWorkflows].sort((a, b) => {
+    const aTemporary = isTemporaryWorkflow(a);
+    const bTemporary = isTemporaryWorkflow(b);
+    if (aTemporary !== bTemporary) {
+      return aTemporary ? 1 : -1;
+    }
+    return list.indexOf(a) - list.indexOf(b);
+  });
+
   // Find the index of this workflow among same-type workflows
-  const sameTypeIndex = sameTypeWorkflows.findIndex((w: WorkflowListItem) => w.event_id === item.event_id);
+  const sameTypeIndex = orderedSameTypeWorkflows.findIndex((w: WorkflowListItem) => w.event_id === item.event_id);
   // Extract base name without filter summary (remove anything in parentheses)
   const baseName = displayName.replace(/\s*\([^)]*\)\s*$/g, '');
 
@@ -742,6 +763,7 @@ onUnmounted(() => {
               <button
                 class="ui small button"
                 @click="cloneWorkflow(store.selectedWorkflow)"
+                :disabled="!canCloneSelectedWorkflow"
                 title="Clone this workflow"
               >
                 {{ locale.clone }}
