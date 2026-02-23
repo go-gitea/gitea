@@ -6,8 +6,8 @@ package actions
 import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-
 	"code.gitea.io/gitea/modules/actions/jobparser"
+
 	"go.yaml.in/yaml/v4"
 )
 

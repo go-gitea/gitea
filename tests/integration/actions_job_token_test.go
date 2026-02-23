@@ -21,12 +21,12 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 	actions_service "code.gitea.io/gitea/services/actions"
 
-	"code.gitea.io/gitea/modules/actions/jobparser"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -382,26 +382,26 @@ func TestActionsCrossRepoAccess(t *testing.T) {
 			Reponame: "repo-B",
 		}
 
-		// Case A: Default (AllowCrossRepoAccess = true by default now) -> Should Succeed (200) Read-Only
-		// API returns 404 if denied (hidden), 200 if allowed.
-		testCtx.ExpectedCode = http.StatusOK
-		t.Run("Cross-Repo Access Allowed (Default)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-			assert.Equal(t, "repo-B", r.Name)
-		}))
+		// Case A: Default (AllowCrossRepoAccess = false by default now) -> Should Fail (404)
+		// API returns 404 if denied (hidden)
+		testCtx.ExpectedCode = http.StatusNotFound
+		t.Run("Cross-Repo Access Denied (Default None)", doAPIGetRepository(testCtx, nil))
 
-		// Case B: Explicitly Disable AllowCrossRepoAccess
+		// Case B: Explicitly Enable AllowCrossRepoAccess All
 		org, err := org_model.GetOrgByName(t.Context(), orgName)
 		require.NoError(t, err)
 
 		cfg := &repo_model.ActionsConfig{
-			CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
+			CrossRepoMode: repo_model.ActionsCrossRepoModeAll,
 		}
 		err = actions_model.SetUserActionsConfig(t.Context(), org.ID, cfg)
 		require.NoError(t, err)
 
-		// Retry -> Should Fail (404 Not Found)
-		testCtx.ExpectedCode = http.StatusNotFound
-		t.Run("Cross-Repo Access Denied (Disabled)", doAPIGetRepository(testCtx, nil))
+		// Retry -> Should Succeed (200) Read-Only
+		testCtx.ExpectedCode = http.StatusOK
+		t.Run("Cross-Repo Access Allowed (All Enabled)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+			assert.Equal(t, "repo-B", r.Name)
+		}))
 
 		// Case C: Public Repository Access -> Should Succeed even if cross-repo is disabled
 		bFalse := false
@@ -501,19 +501,33 @@ func TestActionsUserCrossRepoAccess(t *testing.T) {
 			Reponame: "repo-user-B",
 		}
 
-		// Case A: Default (AllowCrossRepoAccess = true by default now) -> Should Succeed (200) Read-Only
-		testCtx.ExpectedCode = http.StatusOK
-		t.Run("User Cross-Repo Access Allowed (Default)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
-			assert.Equal(t, "repo-user-B", r.Name)
-		}))
+		// Case A: Default (AllowCrossRepoAccess = false by default now) -> Should Fail (404 Not Found)
+		testCtx.ExpectedCode = http.StatusNotFound
+		t.Run("User Cross-Repo Access Denied (Default None)", doAPIGetRepository(testCtx, nil))
 
 		userObj := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: userName})
 
-		// Case B: Explicitly Disable AllowCrossRepoAccess
+		// Case B: Explicitly Enable AllowCrossRepoAccess All
+		user2, err := user_model.GetUserByName(t.Context(), userName)
+		require.NoError(t, err)
+
 		cfg := &repo_model.ActionsConfig{
+			CrossRepoMode: repo_model.ActionsCrossRepoModeAll,
+		}
+		err = actions_model.SetUserActionsConfig(t.Context(), user2.ID, cfg)
+		require.NoError(t, err)
+
+		// Retry -> Should Succeed (200) Read-Only
+		testCtx.ExpectedCode = http.StatusOK
+		t.Run("User Cross-Repo Access Allowed (All Enabled)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+			assert.Equal(t, "repo-user-B", r.Name)
+		}))
+
+		// Case C: Explicitly Disable AllowCrossRepoAccess
+		cfg = &repo_model.ActionsConfig{
 			CrossRepoMode: repo_model.ActionsCrossRepoModeNone,
 		}
-		err := actions_model.SetUserActionsConfig(t.Context(), userObj.ID, cfg)
+		err = actions_model.SetUserActionsConfig(t.Context(), userObj.ID, cfg)
 		require.NoError(t, err)
 
 		// Retry -> Should Fail (404 Not Found)
@@ -1016,7 +1030,7 @@ func TestActionsOverrideOrgConfig(t *testing.T) {
 		testCtx.ExpectedCode = http.StatusForbidden
 		t.Run("Override=False Org Clamping (Should Fail Write)", doAPICreateFile(testCtx, "fail-file.txt", &structs.CreateFileOptions{
 			FileOptions: structs.FileOptions{
-				BranchName: "main",
+				BranchName: "master",
 				Message:    "fail write test",
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("fail")),
@@ -1039,7 +1053,7 @@ func TestActionsOverrideOrgConfig(t *testing.T) {
 		testCtx.ExpectedCode = http.StatusCreated
 		t.Run("Override=True Repo Config (Should Succeed Write)", doAPICreateFile(testCtx, "success-file.txt", &structs.CreateFileOptions{
 			FileOptions: structs.FileOptions{
-				BranchName: "main",
+				BranchName: "master",
 				Message:    "success write test",
 			},
 			ContentBase64: base64.StdEncoding.EncodeToString([]byte("success")),
