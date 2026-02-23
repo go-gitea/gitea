@@ -55,13 +55,6 @@ function callGlobalInitFunc(el: HTMLElement) {
   func(el);
 }
 
-function initKeyboardShortcutKbd(kbd: HTMLElement) {
-  // Handle initial state: hide the kbd hint if the associated input already has a value
-  // (e.g., from browser autofill or back/forward navigation cache)
-  const input = kbd.parentElement?.querySelector<HTMLInputElement>('input, textarea, select');
-  if (input?.value) kbd.style.display = 'none';
-}
-
 function attachGlobalEvents() {
   // add global "[data-global-click]" event handler
   document.addEventListener('click', (e) => {
@@ -72,60 +65,6 @@ function attachGlobalEvents() {
     if (!func) throw new Error(`Global event function "click:${funcName}" not found`);
     func(elem, e);
   });
-
-  // add global "kbd[data-global-keyboard-shortcut]" event handlers
-  // A <kbd> element next to an <input> declares a keyboard shortcut for that input.
-  // When the matching key is pressed, the sibling input is focused.
-  // When Escape is pressed inside such an input, the input is cleared and blurred.
-  // The <kbd> element is shown/hidden automatically based on input focus and value.
-  document.addEventListener('keydown', (e: KeyboardEvent) => {
-    const target = e.target as HTMLElement;
-
-    // Handle Escape: clear and blur inputs that have an associated keyboard shortcut
-    if (e.key === 'Escape' && target.matches('input, textarea, select')) {
-      const kbd = target.parentElement?.querySelector<HTMLElement>('kbd[data-global-keyboard-shortcut]');
-      if (kbd) {
-        (target as HTMLInputElement).value = '';
-        (target as HTMLInputElement).blur();
-        return;
-      }
-    }
-
-    // Don't trigger shortcuts when typing in input fields or contenteditable areas
-    if (target.matches('input, textarea, select') || target.isContentEditable) {
-      return;
-    }
-
-    // Don't trigger shortcuts when modifier keys are pressed
-    if (e.ctrlKey || e.metaKey || e.altKey) {
-      return;
-    }
-
-    // Find kbd element with matching shortcut (case-insensitive), then focus its sibling input
-    const key = e.key.toLowerCase();
-    const escapedKey = CSS.escape(key);
-    const kbd = document.querySelector<HTMLElement>(`kbd[data-global-keyboard-shortcut="${escapedKey}"]`);
-    if (!kbd) return;
-
-    e.preventDefault();
-    const input = kbd.parentElement?.querySelector<HTMLInputElement>('input, textarea, select');
-    if (input) input.focus();
-  });
-
-  // Toggle kbd shortcut hint visibility on input focus/blur
-  document.addEventListener('focusin', (e) => {
-    const target = e.target as HTMLElement;
-    if (!target.matches('input, textarea, select')) return;
-    const kbd = target.parentElement?.querySelector<HTMLElement>('kbd[data-global-keyboard-shortcut]');
-    if (kbd) kbd.style.display = 'none';
-  });
-
-  document.addEventListener('focusout', (e) => {
-    const target = e.target as HTMLElement;
-    if (!target.matches('input, textarea, select')) return;
-    const kbd = target.parentElement?.querySelector<HTMLElement>('kbd[data-global-keyboard-shortcut]');
-    if (kbd) kbd.style.display = (target as HTMLInputElement).value ? 'none' : '';
-  });
 }
 
 export function initGlobalSelectorObserver(perfTracer: InitPerformanceTracer | null): void {
@@ -135,7 +74,6 @@ export function initGlobalSelectorObserver(perfTracer: InitPerformanceTracer | n
   attachGlobalEvents();
 
   selectorHandlers.push({selector: '[data-global-init]', handler: callGlobalInitFunc});
-  selectorHandlers.push({selector: 'kbd[data-global-keyboard-shortcut]', handler: initKeyboardShortcutKbd});
   const observer = new MutationObserver((mutationList) => {
     const len = mutationList.length;
     for (let i = 0; i < len; i++) {
