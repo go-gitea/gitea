@@ -521,8 +521,7 @@ watch(() => store.workflowActions, () => {
 onMounted(async () => {
   // Load all necessary data
   store.workflowEvents = await store.loadEvents();
-  await store.loadProjectColumns();
-  await store.loadProjectLabels();
+  await store.loadProjectOptions();
 
   // Add native event listener to prevent conflicts with Gitea
   await nextTick();

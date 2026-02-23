@@ -233,7 +233,7 @@ func WorkflowsEvents(ctx *context.Context, project *project_model.Project) {
 	ctx.JSON(http.StatusOK, outputWorkflows)
 }
 
-func WorkflowsColumns(ctx *context.Context, project *project_model.Project) {
+func WorkflowsOptions(ctx *context.Context, project *project_model.Project) {
 	columns, err := project.GetColumns(ctx)
 	if err != nil {
 		ctx.ServerError("GetProjectColumns", err)
@@ -254,10 +254,6 @@ func WorkflowsColumns(ctx *context.Context, project *project_model.Project) {
 		})
 	}
 
-	ctx.JSON(http.StatusOK, outputColumns)
-}
-
-func WorkflowsLabels(ctx *context.Context, project *project_model.Project) {
 	labels, err := project_service.GetProjectLabels(ctx, project)
 	if err != nil {
 		ctx.ServerError("GetProjectLabels", err)
@@ -284,7 +280,10 @@ func WorkflowsLabels(ctx *context.Context, project *project_model.Project) {
 		})
 	}
 
-	ctx.JSON(http.StatusOK, outputLabels)
+	ctx.JSON(http.StatusOK, map[string]any{
+		"columns": outputColumns,
+		"labels":  outputLabels,
+	})
 }
 
 func prepareProject(ctx *context.Context) *project_model.Project {
@@ -320,12 +319,8 @@ func Workflows(ctx *context.Context) {
 		WorkflowsEvents(ctx, p)
 		return
 	}
-	if workflowIDStr == "columns" {
-		WorkflowsColumns(ctx, p)
-		return
-	}
-	if workflowIDStr == "labels" {
-		WorkflowsLabels(ctx, p)
+	if workflowIDStr == "options" {
+		WorkflowsOptions(ctx, p)
 		return
 	}
 

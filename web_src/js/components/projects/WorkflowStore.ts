@@ -71,9 +71,8 @@ type WorkflowStoreState = {
   updateDraft(event_id: string, filters: WorkflowFilters, actions: WorkflowActions): void;
   clearDraft(event_id: string): void;
   loadEvents(): Promise<WorkflowEvent[]>;
-  loadProjectColumns(): Promise<void>;
+  loadProjectOptions(): Promise<void>;
   loadWorkflowData(event_id: string): Promise<void>;
-  loadProjectLabels(): Promise<void>;
   resetWorkflowData(): void;
   saveWorkflow(): Promise<void>;
   saveWorkflowStatus(): Promise<void>;
@@ -176,13 +175,16 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
       return store.workflowEvents;
     },
 
-    async loadProjectColumns(): Promise<void> {
+    async loadProjectOptions(): Promise<void> {
       try {
-        const response = await GET(`${props.projectLink}/workflows/columns`);
-        store.projectColumns = await response.json() as ProjectColumn[];
+        const response = await GET(`${props.projectLink}/workflows/options`);
+        const data = await response.json();
+        store.projectColumns = data.columns as ProjectColumn[];
+        store.projectLabels = data.labels as ProjectLabel[];
       } catch (error) {
-        console.error('Failed to load project columns:', error);
+        console.error('Failed to load project columns and labels:', error);
         store.projectColumns = [];
+        store.projectLabels = [];
       }
     },
 
@@ -190,8 +192,7 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
       store.loading = true;
       try {
         // Load project columns and labels for the dropdowns
-        await store.loadProjectColumns();
-        await store.loadProjectLabels();
+        await store.loadProjectOptions();
 
         const draft = store.getDraft(event_id);
         if (draft) {
@@ -208,16 +209,6 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
         store.updateDraft(event_id, store.workflowFilters, store.workflowActions);
       } finally {
         store.loading = false;
-      }
-    },
-
-    async loadProjectLabels(): Promise<void> {
-      try {
-        const response = await GET(`${props.projectLink}/workflows/labels`);
-        store.projectLabels = await response.json() as ProjectLabel[];
-      } catch (error) {
-        console.error('Failed to load project labels:', error);
-        store.projectLabels = [];
       }
     },
 
