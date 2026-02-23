@@ -31,6 +31,7 @@ The maximum allowable permissions (`MaxTokenPermissions`) are set at the Reposit
   - **All**: The token can access all repositories owned by the user/org (subject to the target repository's own permissions).
   - **Selected**: The token can access a specific list of repositories (`AllowedCrossRepoIDs`).
 - In any mode, individual jobs can disable or limit cross-repo access by explicitly restricting their permissions (e.g., `permissions: none`).
+- **Note on Forks**: Cross-repository access to private repositories is fundamentally denied for workflows triggered by fork pull requests (see [Special Cases](#2-fork-pull-requests)).
 
 ## Token Lifecycle & Permission Evaluation
 
@@ -39,8 +40,7 @@ When a job starts, Gitea evaluates the requested permissions for the `GITEA_TOKE
 ### Step 1: Determine Base Permissions From Workflow
 - If the job explicitly specifies a valid `permissions:` block, Gitea parses it.
 - If the job inherits a top-level `permissions:` block, Gitea parses that.
-- If an invalid or unparseable `permissions:` block is specified, Gitea assumes `permissions: none` as a safety fallback.
-- If no explicit permissions are defined at all, Gitea uses the repository's default `TokenPermissionMode` (Permissive or Restricted) to generate base permissions.
+- If an invalid or unparseable `permissions:` block is specified, or no explicit permissions are defined at all, Gitea falls back to using the repository's default `TokenPermissionMode` (Permissive or Restricted) to generate base permissions.
 
 ### Step 2: Apply Repository Clamping
 - Repositories can define `MaxTokenPermissions` in their Actions settings.
