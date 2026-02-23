@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/actions"
+	"code.gitea.io/gitea/modules/actions/jobparser"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/reqctx"
 	api "code.gitea.io/gitea/modules/structs"
@@ -21,9 +22,8 @@ import (
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/convert"
 
-	"github.com/nektos/act/pkg/jobparser"
 	"github.com/nektos/act/pkg/model"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 func EnableOrDisableWorkflow(ctx *context.APIContext, workflowID string, isEnable bool) error {
