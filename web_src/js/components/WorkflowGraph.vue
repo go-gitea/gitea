@@ -5,12 +5,18 @@ import {localUserSettings} from "../modules/user-settings.ts";
 import {debounce} from "throttle-debounce";
 import type {ActionsJob, ActionsRunStatus} from '../modules/gitea-actions.ts';
 
-interface JobNode extends ActionsJob {
-  // TODO: fragile, it might conflict with ActionsJob's fields in the future
+interface JobNode {
+  id: number;
+  name: string;
+  status: ActionsRunStatus;
+  needs?: string[];
+  duration: string;
+
+  index: number;
+
   x: number;
   y: number;
   level: number;
-  index: number;
 }
 
 interface Edge {
@@ -132,11 +138,17 @@ const jobsWithLayout = computed<JobNode[]>(() => {
 
       levelJobs.forEach((job, jobIndex) => {
         result.push({
-          ...job,
+          id: job.id,
+          name: job.name,
+          status: job.status,
+          needs: job.needs,
+          duration: job.duration,
+
+          index: props.jobs.findIndex(j => j.id === job.id),
+
           x: startX + jobIndex * currentHorizontalSpacing,
           y: margin + levelIndex * verticalSpacing,
           level: levelIndex,
-          index: props.jobs.findIndex(j => j.id === job.id),
         });
       });
     });
@@ -353,10 +365,6 @@ function getStatusDotColor(status: ActionsRunStatus): string {
   return 'var(--color-text-light-2)';
 }
 
-function getRunningGradientEndColor(): string {
-  return 'var(--color-yellow-light)';
-}
-
 function getEdgeColor(edge: BezierEdge): string {
   if (!edge.fromNode || !edge.toNode) {
     return 'var(--color-secondary)';
@@ -422,9 +430,9 @@ function formatStatus(status: ActionsRunStatus): string {
 function getEdgeStyle(edge: BezierEdge) {
   if (!edge.fromNode || !edge.toNode) {
     return {
-      stroke: 'var(--color-secondary)',
-      strokeWidth: '2',
-      opacity: '0.7',
+      'stroke': 'var(--color-secondary)',
+      'stroke-width': '2',
+      'opacity': '0.7',
     };
   }
 
@@ -433,12 +441,11 @@ function getEdgeStyle(edge: BezierEdge) {
   const isHighlighted = isEdgeHighlighted(edge);
 
   return {
-    stroke: fromStatus === 'running' ? 'url(#edge-running-gradient)' : getEdgeColor(edge),
-    strokeWidth: isHighlighted ? '3' : getStrokeWidth(fromStatus, toStatus),
-    strokeDasharray: getDashArray(fromStatus, toStatus),
-    opacity: isHighlighted ? 1 : getEdgeOpacity(fromStatus, toStatus),
-    markerEnd: getMarkerEnd(fromStatus, toStatus),
-    transition: 'all 0.2s ease',
+    'stroke': getEdgeColor(edge),
+    'stroke-width': isHighlighted ? '3' : getStrokeWidth(fromStatus, toStatus),
+    'stroke-dasharray': getDashArray(fromStatus, toStatus),
+    'opacity': isHighlighted ? 1 : getEdgeOpacity(fromStatus, toStatus),
+    'transition': 'all 0.2s ease',
   };
 }
 
@@ -486,32 +493,6 @@ function getEdgeOpacity(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus
   return 0.8;
 }
 
-function getMarkerEnd(fromStatus: ActionsRunStatus, toStatus: ActionsRunStatus): string {
-  if (fromStatus === 'failure' || toStatus === 'failure') {
-    return 'url(#arrowhead-failure)';
-  }
-
-  if (fromStatus === 'running') {
-    return 'url(#arrowhead-running)';
-  }
-
-  if (fromStatus === 'success') {
-    if (toStatus === 'running') {
-      return 'url(#arrowhead-ready)';
-    }
-
-    if (toStatus === 'success') {
-      return 'url(#arrowhead-success)';
-    }
-  }
-
-  if (fromStatus === 'waiting' || fromStatus === 'blocked') {
-    return 'url(#arrowhead-waiting)';
-  }
-
-  return 'none';
-}
-
 function getEdgeClass(edge: BezierEdge): string {
   if (!edge.fromNode || !edge.toNode) return '';
 
@@ -543,10 +524,7 @@ function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
   const jobMap = new Map<string, ActionsJob>()
   jobs.forEach(job => {
     jobMap.set(job.name, job);
-
-    if (job.jobId) {
-      jobMap.set(job.jobId, job);
-    }
+    if (job.jobId) jobMap.set(job.jobId, job);
   });
 
   const levels = new Map<string, number>();
@@ -726,7 +704,7 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
           </text>
 
           <text
-            v-if="job.duration && ['success', 'failure', 'completed'].includes(job.status)"
+            v-if="job.duration || (job.status === 'success' || job.status === 'failure')"
             :x="job.x + nodeWidth - 10"
             :y="job.y + nodeHeight - 25"
             fill="rgba(255,255,255,0.7)"
@@ -786,66 +764,6 @@ function onNodeClick(job: JobNode, event: MouseEvent) {
             <stop offset="0%" :stop-color="getStatusDotColor('running')" stop-opacity="0.2"/>
             <stop offset="50%" :stop-color="getStatusDotColor('running')" stop-opacity="0.4"/>
             <stop offset="100%" :stop-color="getStatusDotColor('running')" stop-opacity="0.2"/>
-          </linearGradient>
-
-          <marker
-            id="arrowhead-success"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" :fill="getStatusDotColor('success')"/>
-          </marker>
-
-          <marker
-            id="arrowhead-failure"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" :fill="getStatusDotColor('failure')"/>
-          </marker>
-
-          <marker
-            id="arrowhead-running"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" :fill="getStatusDotColor('running')"/>
-          </marker>
-
-          <marker
-            id="arrowhead-ready"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" fill="var(--color-primary)"/>
-          </marker>
-
-          <marker
-            id="arrowhead-waiting"
-            markerWidth="10"
-            markerHeight="7"
-            refX="9"
-            refY="3.5"
-            orient="auto"
-          >
-            <polygon points="0 0, 10 3.5, 0 7" :fill="getStatusDotColor('waiting')"/>
-          </marker>
-
-          <linearGradient id="edge-running-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" :stop-color="getStatusDotColor('running')" stop-opacity="0.7"/>
-            <stop offset="100%" :stop-color="getRunningGradientEndColor()" stop-opacity="0.9"/>
           </linearGradient>
         </defs>
       </svg>
