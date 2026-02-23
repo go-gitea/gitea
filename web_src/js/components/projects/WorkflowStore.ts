@@ -409,15 +409,10 @@ export function createWorkflowStore(props: any): WorkflowStoreState {
           return;
         }
 
-        const result = await response.json();
-        if (result.success) {
-          // Remove workflow from the list
-          const existingIndex = store.workflowEvents.findIndex((e: WorkflowEvent) => e.eventId === selected.eventId);
-          if (existingIndex >= 0) {
-            store.workflowEvents.splice(existingIndex, 1);
-          }
-        } else {
-          showErrorToast(`${props.locale.failedToDeleteWorkflow}: Unexpected error`);
+        // Remove workflow from the list
+        const existingIndex = store.workflowEvents.findIndex((e: WorkflowEvent) => e.eventId === selected.eventId);
+       if (existingIndex >= 0) {
+          store.workflowEvents.splice(existingIndex, 1);
         }
       } catch (error) {
         console.error('Error deleting workflow:', error);

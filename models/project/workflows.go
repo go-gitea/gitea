@@ -114,7 +114,7 @@ type WorkflowEventCapabilities struct {
 }
 
 // GetWorkflowEventCapabilities returns the capabilities for each workflow event
-var GetWorkflowEventCapabilities = sync.OnceValue(func () map[WorkflowEvent]WorkflowEventCapabilities {
+var GetWorkflowEventCapabilities = sync.OnceValue(func() map[WorkflowEvent]WorkflowEventCapabilities {
 	return map[WorkflowEvent]WorkflowEventCapabilities{
 		WorkflowEventItemOpened: {
 			AvailableFilters: []WorkflowFilterType{WorkflowFilterTypeIssueType, WorkflowFilterTypeLabels},

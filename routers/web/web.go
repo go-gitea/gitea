@@ -462,6 +462,14 @@ func registerWebRoutes(m *web.Router) {
 		})
 	}
 
+	addProjectWorkflowsRouters := func() {
+		m.Get("", projects.Workflows)
+		m.Get("/{workflow_id}", projects.Workflows)
+		m.Post("/{workflow_id}", projects.WorkflowsPost)
+		m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
+		m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 
@@ -1034,13 +1042,7 @@ func registerWebRoutes(m *web.Router) {
 				m.Get("", org.Projects)
 				m.Get("/{id}", org.ViewProject)
 			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeRead, true))
-			m.Group("/{id}/workflows", func() {
-				m.Get("", projects.Workflows)
-				m.Get("/{workflow_id}", projects.Workflows)
-				m.Post("/{workflow_id}", projects.WorkflowsPost)
-				m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
-				m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
-			}, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
+			m.Group("/{id}/workflows", addProjectWorkflowsRouters, reqUnitAccess(unit.TypeProjects, perm.AccessModeWrite, true))
 			m.Group("", func() {
 				m.Get("/new", org.RenderNewProject)
 				m.Post("/new", web.Bind(forms.CreateProjectForm{}), org.NewProjectPost)
@@ -1459,13 +1461,7 @@ func registerWebRoutes(m *web.Router) {
 					m.Post("/move", repo.MoveIssues)
 				})
 
-				m.Group("/workflows", func() {
-					m.Get("", projects.Workflows)
-					m.Get("/{workflow_id}", projects.Workflows)
-					m.Post("/{workflow_id}", projects.WorkflowsPost)
-					m.Post("/{workflow_id}/status", projects.WorkflowsStatus)
-					m.Post("/{workflow_id}/delete", projects.WorkflowsDelete)
-				})
+				m.Group("/workflows", addProjectWorkflowsRouters)
 			})
 		}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
 	}, optSignIn, context.RepoAssignment, reqRepoProjectsReader, repo.MustEnableRepoProjects)

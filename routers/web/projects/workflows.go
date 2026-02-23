@@ -361,9 +361,9 @@ func Workflows(ctx *context.Context) {
 	ctx.Data["ProjectLink"] = project_model.ProjectLinkForRepo(ctx.Repo.Repository, projectID)
 
 	if p.Type == project_model.TypeRepository {
-		ctx.HTML(200, tmplRepoWorkflows)
+		ctx.HTML(http.StatusOK, tmplRepoWorkflows)
 	} else {
-		ctx.HTML(200, tmplOrgWorkflows)
+		ctx.HTML(http.StatusOK, tmplOrgWorkflows)
 	}
 }
 
@@ -590,7 +590,5 @@ func WorkflowsDelete(ctx *context.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, map[string]any{
-		"success": true,
-	})
+	ctx.JSONOK()
 }
