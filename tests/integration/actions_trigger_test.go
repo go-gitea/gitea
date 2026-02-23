@@ -29,7 +29,6 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 	webhook_module "code.gitea.io/gitea/modules/webhook"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -690,6 +689,144 @@ func insertFakeStatus(t *testing.T, repo *repo_model.Repository, sha, targetURL,
 		Context:   context,
 	})
 	assert.NoError(t, err)
+}
+
+func TestPullRequestReviewCommitStatusEvent(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of the repo
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}) // reviewer
+
+		// create a repo
+		repo, err := repo_service.CreateRepository(t.Context(), user2, user2, repo_service.CreateRepoOptions{
+			Name:          "repo-pull-request-review",
+			Description:   "test pull-request-review commit status",
+			AutoInit:      true,
+			Gitignores:    "Go",
+			License:       "MIT",
+			Readme:        "Default",
+			DefaultBranch: "main",
+			IsPrivate:     false,
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, repo)
+
+		// add user4 as collaborator so they can review
+		ctx := NewAPITestContext(t, repo.OwnerName, repo.Name, auth_model.AccessTokenScopeWriteRepository)
+		t.Run("AddUser4AsCollaboratorWithWriteAccess", doAPIAddCollaborator(ctx, "user4", perm.AccessModeWrite))
+
+		// add workflow file that triggers on pull_request_review
+		addWorkflow, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation: "create",
+					TreePath:  ".gitea/workflows/pr-review.yml",
+					ContentReader: strings.NewReader(`name: test
+on:
+  pull_request_review:
+    types: [submitted]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo helloworld
+`),
+				},
+			},
+			Message:   "add workflow",
+			OldBranch: "main",
+			NewBranch: "main",
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addWorkflow)
+
+		// create a branch and a PR
+		testBranch := "test-review-branch"
+		err = repo_service.CreateNewBranch(t.Context(), user2, repo, "main", testBranch)
+		assert.NoError(t, err)
+
+		// add a file on the test branch so the PR has changes
+		addFileResp, err := files_service.ChangeRepoFiles(t.Context(), repo, user2, &files_service.ChangeRepoFilesOptions{
+			Files: []*files_service.ChangeRepoFile{
+				{
+					Operation:     "create",
+					TreePath:      "test.txt",
+					ContentReader: strings.NewReader("test content"),
+				},
+			},
+			Message:   "add test file",
+			OldBranch: testBranch,
+			NewBranch: testBranch,
+			Author: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Committer: &files_service.IdentityOptions{
+				GitUserName:  user2.Name,
+				GitUserEmail: user2.Email,
+			},
+			Dates: &files_service.CommitDateOptions{
+				Author:    time.Now(),
+				Committer: time.Now(),
+			},
+		})
+		assert.NoError(t, err)
+		assert.NotEmpty(t, addFileResp)
+		sha := addFileResp.Commit.SHA
+
+		pullIssue := &issues_model.Issue{
+			RepoID:   repo.ID,
+			Title:    "A test PR for review",
+			PosterID: user2.ID,
+			Poster:   user2,
+			IsPull:   true,
+		}
+		pullRequest := &issues_model.PullRequest{
+			HeadRepoID: repo.ID,
+			BaseRepoID: repo.ID,
+			HeadBranch: testBranch,
+			BaseBranch: "main",
+			HeadRepo:   repo,
+			BaseRepo:   repo,
+			Type:       issues_model.PullRequestGitea,
+		}
+		prOpts := &pull_service.NewPullRequestOptions{Repo: repo, Issue: pullIssue, PullRequest: pullRequest}
+		err = pull_service.NewPullRequest(t.Context(), prOpts)
+		assert.NoError(t, err)
+
+		// submit an approval review as user4
+		gitRepo, err := gitrepo.OpenRepository(t.Context(), repo)
+		assert.NoError(t, err)
+		defer gitRepo.Close()
+
+		_, _, err = pull_service.SubmitReview(t.Context(), user4, gitRepo, pullIssue, issues_model.ReviewTypeApprove, "lgtm", sha, nil)
+		assert.NoError(t, err)
+
+		// verify that a commit status was created for the review event
+		assert.Eventually(t, func() bool {
+			latestCommitStatuses, err := git_model.GetLatestCommitStatus(t.Context(), repo.ID, sha, db.ListOptionsAll)
+			assert.NoError(t, err)
+			if len(latestCommitStatuses) == 0 {
+				return false
+			}
+			if latestCommitStatuses[0].State == commitstatus.CommitStatusPending {
+				insertFakeStatus(t, repo, sha, latestCommitStatuses[0].TargetURL, latestCommitStatuses[0].Context)
+				return true
+			}
+			return false
+		}, 1*time.Second, 100*time.Millisecond)
+	})
 }
 
 func TestWorkflowDispatchPublicApi(t *testing.T) {
@@ -1406,7 +1543,7 @@ jobs:
 		// user4 forks the repo
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", baseRepo.OwnerName, baseRepo.Name),
 			&api.CreateForkOption{
-				Name: util.ToPointer("close-pull-request-with-path-fork"),
+				Name: new("close-pull-request-with-path-fork"),
 			}).AddTokenAuth(user4Token)
 		resp := MakeRequest(t, req, http.StatusAccepted)
 		var apiForkRepo api.Repository

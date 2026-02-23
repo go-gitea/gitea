@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
@@ -35,7 +36,7 @@ import (
 	notify_service "code.gitea.io/gitea/services/notify"
 
 	"github.com/nektos/act/pkg/model"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 	"xorm.io/builder"
 )
 
@@ -302,7 +303,7 @@ func ViewPost(ctx *context_module.Context) {
 	resp.State.CurrentJob.Steps = make([]*ViewJobStep, 0) // marshal to '[]' instead fo 'null' in json
 	resp.Logs.StepsLog = make([]*ViewStepLog, 0)          // marshal to '[]' instead fo 'null' in json
 	if task != nil {
-		steps, logs, err := convertToViewModel(ctx, req.LogCursors, task)
+		steps, logs, err := convertToViewModel(ctx, ctx.Locale, req.LogCursors, task)
 		if err != nil {
 			ctx.ServerError("convertToViewModel", err)
 			return
@@ -314,7 +315,7 @@ func ViewPost(ctx *context_module.Context) {
 	ctx.JSON(http.StatusOK, resp)
 }
 
-func convertToViewModel(ctx *context_module.Context, cursors []LogCursor, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
+func convertToViewModel(ctx context.Context, locale translation.Locale, cursors []LogCursor, task *actions_model.ActionTask) ([]*ViewJobStep, []*ViewStepLog, error) {
 	var viewJobs []*ViewJobStep
 	var logs []*ViewStepLog
 
@@ -344,7 +345,7 @@ func convertToViewModel(ctx *context_module.Context, cursors []LogCursor, task *
 					Lines: []*ViewStepLogLine{
 						{
 							Index:   1,
-							Message: ctx.Locale.TrString("actions.runs.expire_log_message"),
+							Message: locale.TrString("actions.runs.expire_log_message"),
 							// Timestamp doesn't mean anything when the log is expired.
 							// Set it to the task's updated time since it's probably the time when the log has expired.
 							Timestamp: float64(task.Updated.AsTime().UnixNano()) / float64(time.Second),
@@ -445,7 +446,7 @@ func Rerun(ctx *context_module.Context) {
 			return
 		}
 
-		err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars)
+		err = actions_service.EvaluateRunConcurrencyFillModel(ctx, run, &rawConcurrency, vars, nil)
 		if err != nil {
 			ctx.ServerError("EvaluateRunConcurrencyFillModel", err)
 			return
@@ -525,7 +526,7 @@ func rerunJob(ctx *context_module.Context, job *actions_model.ActionRunJob, shou
 	}
 
 	if job.RawConcurrency != "" && !shouldBlock {
-		err = actions_service.EvaluateJobConcurrencyFillModel(ctx, job.Run, job, vars)
+		err = actions_service.EvaluateJobConcurrencyFillModel(ctx, job.Run, job, vars, nil)
 		if err != nil {
 			return fmt.Errorf("evaluate job concurrency: %w", err)
 		}

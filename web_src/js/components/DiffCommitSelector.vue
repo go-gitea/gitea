@@ -236,7 +236,7 @@ export default defineComponent({
         <div class="gt-ellipsis">
           {{ locale.show_all_commits }}
         </div>
-        <div class="gt-ellipsis text light-2 tw-mb-0">
+        <div class="gt-ellipsis tw-text-text-light-2 tw-mb-0">
           {{ locale.stats_num_commits }}
         </div>
       </div>
@@ -251,11 +251,11 @@ export default defineComponent({
         <div class="gt-ellipsis">
           {{ locale.show_changes_since_your_last_review }}
         </div>
-        <div class="gt-ellipsis text light-2">
+        <div class="gt-ellipsis tw-text-text-light-2">
           {{ commitsSinceLastReview }} commits
         </div>
       </div>
-      <span v-if="!isLoading" class="info text light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
+      <span v-if="!isLoading" class="info tw-text-text-light-2">{{ locale.select_commit_hold_shift_for_range }}</span>
       <template v-for="(commit, idx) in commits" :key="commit.id">
         <div
           class="item" role="menuitem"
@@ -273,7 +273,7 @@ export default defineComponent({
             <div class="gt-ellipsis commit-list-summary">
               {{ commit.summary }}
             </div>
-            <div class="gt-ellipsis text light-2">
+            <div class="gt-ellipsis tw-text-text-light-2">
               {{ commit.committer_or_author_name }}
               <span class="text right">
                 <!-- TODO: make this respect the PreferredTimestampTense setting -->

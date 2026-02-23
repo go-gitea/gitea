@@ -24,12 +24,14 @@ func responseAPIUsers(ctx *context.APIContext, users []*user_model.User) {
 }
 
 func listUserFollowers(ctx *context.APIContext, u *user_model.User) {
-	users, count, err := user_model.GetUserFollowers(ctx, u, ctx.Doer, utils.GetListOptions(ctx))
+	listOptions := utils.GetListOptions(ctx)
+	users, count, err := user_model.GetUserFollowers(ctx, u, ctx.Doer, listOptions)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	responseAPIUsers(ctx, users)
 }
@@ -88,12 +90,14 @@ func ListFollowers(ctx *context.APIContext) {
 }
 
 func listUserFollowing(ctx *context.APIContext, u *user_model.User) {
-	users, count, err := user_model.GetUserFollowing(ctx, u, ctx.Doer, utils.GetListOptions(ctx))
+	listOptions := utils.GetListOptions(ctx)
+	users, count, err := user_model.GetUserFollowing(ctx, u, ctx.Doer, listOptions)
 	if err != nil {
 		ctx.APIErrorInternal(err)
 		return
 	}
 
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
 	ctx.SetTotalCountHeader(count)
 	responseAPIUsers(ctx, users)
 }

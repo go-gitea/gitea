@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
@@ -14,9 +15,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	context_service "code.gitea.io/gitea/services/context"
 )
 
@@ -62,17 +65,33 @@ func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePa
 	return f(originTreePath, commit)
 }
 
-// getContextRepoEditorConfig returns the editorconfig JSON string for given treePath or "null"
-func getContextRepoEditorConfig(ctx *context_service.Context, treePath string) string {
+// CodeEditorConfig is also used by frontend, defined in "codeeditor.ts"
+type CodeEditorConfig struct {
+	PreviewableExtensions []string `json:"previewable_extensions"`
+	LineWrapExtensions    []string `json:"line_wrap_extensions"`
+	LineWrapOn            bool     `json:"line_wrap_on"`
+
+	IndentStyle            string `json:"indent_style"`
+	IndentSize             int    `json:"indent_size"`
+	TabWidth               int    `json:"tab_width"`
+	TrimTrailingWhitespace *bool  `json:"trim_trailing_whitespace,omitempty"`
+}
+
+func getCodeEditorConfig(ctx *context_service.Context, treePath string) (ret CodeEditorConfig) {
+	ret.PreviewableExtensions = markup.PreviewableExtensions()
+	ret.LineWrapExtensions = setting.Repository.Editor.LineWrapExtensions
+	ret.LineWrapOn = util.SliceContainsString(ret.LineWrapExtensions, path.Ext(treePath), true)
 	ec, _, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
-			jsonStr, _ := json.Marshal(def)
-			return string(jsonStr)
+			ret.IndentStyle = def.IndentStyle
+			ret.IndentSize, _ = strconv.Atoi(def.IndentSize)
+			ret.TabWidth = def.TabWidth
+			ret.TrimTrailingWhitespace = def.TrimTrailingWhitespace
 		}
 	}
-	return "null"
+	return ret
 }
 
 // getParentTreeFields returns list of parent tree names and corresponding tree paths based on given treePath.

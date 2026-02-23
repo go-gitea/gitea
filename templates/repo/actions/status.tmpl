@@ -6,18 +6,18 @@
 {{- $className := Iif .className .className "" -}}
 <span data-tooltip-content="{{ctx.Locale.Tr (printf "actions.status.%s" .status)}}">
 {{if eq .status "success"}}
-	{{svg "octicon-check-circle-fill" $size (printf "text green %s" $className)}}
+	{{svg "octicon-check-circle-fill" $size (printf "tw-text-green %s" $className)}}
 {{else if eq .status "skipped"}}
-	{{svg "octicon-skip" $size (printf "text grey %s" $className)}}
+	{{svg "octicon-skip" $size (printf "tw-text-text-light %s" $className)}}
 {{else if eq .status "cancelled"}}
-	{{svg "octicon-stop" $size (printf "text grey %s" $className)}}
+	{{svg "octicon-stop" $size (printf "tw-text-text-light %s" $className)}}
 {{else if eq .status "waiting"}}
-	{{svg "octicon-circle" $size (printf "text grey %s" $className)}}
+	{{svg "octicon-circle" $size (printf "tw-text-text-light %s" $className)}}
 {{else if eq .status "blocked"}}
-	{{svg "octicon-blocked" $size (printf "text yellow %s" $className)}}
+	{{svg "octicon-blocked" $size (printf "tw-text-yellow %s" $className)}}
 {{else if eq .status "running"}}
-	{{svg "gitea-running" $size (printf "text yellow rotate-clockwise %s" $className)}}
+	{{svg "gitea-running" $size (printf "tw-text-yellow rotate-clockwise %s" $className)}}
 {{else}}{{/*failure, unknown*/}}
-	{{svg "octicon-x-circle-fill" $size (printf "text red %s" $className)}}
+	{{svg "octicon-x-circle-fill" $size (printf "tw-text-red %s" $className)}}
 {{end}}
 </span>

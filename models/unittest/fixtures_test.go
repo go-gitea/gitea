@@ -4,6 +4,7 @@
 package unittest_test
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -16,7 +17,7 @@ import (
 )
 
 var NewFixturesLoaderVendor = func(e *xorm.Engine, opts unittest.FixturesOptions) (unittest.FixturesLoader, error) {
-	return nil, nil
+	return nil, nil //nolint:nilnil // no vendor fixtures loader configured
 }
 
 /*
@@ -58,9 +59,14 @@ func NewFixturesLoaderVendorGoTestfixtures(e *xorm.Engine, opts unittest.Fixture
 }
 */
 
+func TestMain(m *testing.M) {
+	setting.SetupGiteaTestEnv()
+	os.Exit(m.Run())
+}
+
 func prepareTestFixturesLoaders(t testing.TB) unittest.FixturesOptions {
 	_ = user_model.User{}
-	giteaRoot := setting.SetupGiteaTestEnv()
+	giteaRoot := setting.GetGiteaTestSourceRoot()
 	opts := unittest.FixturesOptions{Dir: filepath.Join(giteaRoot, "models", "fixtures"), Files: []string{
 		"user.yml",
 	}}
