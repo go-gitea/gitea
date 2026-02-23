@@ -6,6 +6,8 @@ import {hideElem, querySingleVisibleElem, showElem} from '../utils/dom.ts';
 import {triggerUploadStateChanged} from './comp/EditorUpload.ts';
 import {convertHtmlToMarkdown} from '../markup/html2markdown.ts';
 import {applyAreYouSure, reinitializeAreYouSure} from '../vendor/jquery.are-you-sure.ts';
+import {clippie} from 'clippie';
+import {showTemporaryTooltip} from '../modules/tippy.ts';
 
 async function tryOnEditContent(e: Event) {
   const clickTarget = (e.target as HTMLElement).closest('.edit-content');
@@ -149,9 +151,23 @@ async function tryOnQuoteReply(e: Event) {
   editor.moveCursorToEnd();
 }
 
+async function tryOnCopySource(e: Event) {
+  const clickTarget = (e.target as HTMLElement).closest('.copy-source');
+  if (!clickTarget) return;
+
+  e.preventDefault();
+  const rawElem = document.querySelector<HTMLElement>(`#${clickTarget.getAttribute('data-target')}.raw-content`);
+  if (!rawElem) return;
+
+  const {copy_success, copy_error} = window.config.i18n;
+  const success = await clippie(rawElem.textContent ?? '');
+  showTemporaryTooltip(clickTarget, success ? copy_success : copy_error);
+}
+
 export function initRepoIssueCommentEdit() {
   document.addEventListener('click', (e) => {
     tryOnEditContent(e); // Edit issue or comment content
     tryOnQuoteReply(e); // Quote reply to the comment editor
+    tryOnCopySource(e); // Copy raw source of a comment to clipboard
   });
 }
