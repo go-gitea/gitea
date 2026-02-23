@@ -887,7 +887,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	if !unit_model.TypePullRequests.UnitGlobalDisabled() {
 		if opts.HasPullRequests != nil && !*opts.HasPullRequests {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
-		} else {
+		} else if opts.HasPullRequests != nil || opts.HasPullRequestOptions() {
 			// We do allow setting individual PR settings through the API, so
 			// we get the config settings and then set them
 			// if those settings were provided in the opts.
