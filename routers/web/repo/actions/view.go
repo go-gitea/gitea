@@ -144,7 +144,7 @@ type ViewResponse struct {
 
 type ViewJob struct {
 	ID       int64    `json:"id"`
-	JobID    string   `json:"job_id,omitempty"`
+	JobID    string   `json:"jobId,omitempty"`
 	Name     string   `json:"name"`
 	Status   string   `json:"status"`
 	CanRerun bool     `json:"canRerun"`

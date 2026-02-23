@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue';
+import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
 import { SvgIcon } from '../svg.ts';
+import {localUserSettings} from "../modules/user-settings.ts";
+import {debounce} from "throttle-debounce";
 
 interface Job {
   id: number;
-  job_id: string;
+  jobId: string;
   name: string;
   status: string;
   needs?: string[];
@@ -48,68 +50,49 @@ const translateY = ref(0);
 const isDragging = ref(false);
 const dragStart = ref({ x: 0, y: 0 });
 const lastMousePos = ref({ x: 0, y: 0 });
-const animationFrameId = ref<number | null>(null);
-const container = ref<HTMLElement | null>(null);
+const graphContainer = ref<HTMLElement | null>(null);
 const hoveredJobId = ref<number | null>(null);
 const storageKey = 'workflow-graph-states';
 const maxStoredStates = 15;
 
 const loadSavedState = () => {
-  try {
-    const currentRunId = getCurrentRunId();
-    const allStates = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    const saved = allStates[currentRunId];
-
-    if (saved) {
-      if (saved.scale !== undefined) {
-        scale.value = saved.scale;
-      }
-      if (saved.translateX !== undefined) {
-        translateX.value = saved.translateX;
-      }
-      if (saved.translateY !== undefined) {
-        translateY.value = saved.translateY;
-      }
-    }
-  } catch (e) {
-    console.error('Failed to load workflow graph state from localStorage:', e);
-  }
+  const currentRunId = getCurrentRunId();
+  const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(storageKey, {});
+  const saved = allStates[currentRunId];
+  if (!saved) return;
+  scale.value = saved.scale ?? scale.value;
+  translateX.value = saved.translateX ?? translateX.value;
+  translateY.value = saved.translateY ?? translateY.value;
 }
 
 const getCurrentRunId = () => {
+  // FIXME: it is fragile
   const runMatch = window.location.pathname.match(/\/runs\/(\d+)/);
   return runMatch ? runMatch[1] : 'unknown';
 };
 
 const saveState = () => {
-  try {
-    const currentRunId = getCurrentRunId();
-    const allStates = JSON.parse(localStorage.getItem(storageKey) || '{}') as Record<string, StoredState>;
+  const currentRunId = getCurrentRunId();
+  const allStates = localUserSettings.getJsonObject<Record<string, StoredState>>(storageKey, {});
 
-    allStates[currentRunId] = {
-      scale: scale.value,
-      translateX: translateX.value,
-      translateY: translateY.value,
-      timestamp: Date.now()
-    };
+  allStates[currentRunId] = {
+    scale: scale.value,
+    translateX: translateX.value,
+    translateY: translateY.value,
+    timestamp: Date.now(),
+  };
 
-    const sortedStates = Object.entries(allStates)
-      .sort(([, a], [, b]) => b.timestamp - a.timestamp)
-      .slice(0, maxStoredStates);
+  const sortedStates = Object.entries(allStates)
+    .sort(([, a], [, b]) => b.timestamp - a.timestamp)
+    .slice(0, maxStoredStates);
 
-    const limitedStates = Object.fromEntries(sortedStates);
-    localStorage.setItem(storageKey, JSON.stringify(limitedStates));
-  } catch (e) {
-    console.error('Failed to save workflow graph state:', e);
-  }
+  const limitedStates = Object.fromEntries(sortedStates);
+  localUserSettings.setJsonObject(storageKey, limitedStates);
 };
 
-onMounted(() => {
-  loadSavedState();
-})
-
+loadSavedState();
 watch([translateX, translateY, scale], () => {
-  saveState();
+  debounce(500, saveState);
 })
 
 const nodeWidth = computed(() => {
@@ -139,7 +122,7 @@ const jobsWithLayout = computed<JobNode[]>(() => {
     let maxJobsPerLevel = 0;
 
     props.jobs.forEach(job => {
-      const level = levels.get(job.name) || levels.get(job.job_id) || 0;
+      const level = levels.get(job.name) || levels.get(job.jobId) || 0;
 
       if (!jobsByLevel[level]) {
         jobsByLevel[level] = [];
@@ -163,7 +146,7 @@ const jobsWithLayout = computed<JobNode[]>(() => {
       levelJobs.forEach((job, jobIndex) => {
         result.push({
           ...job,
-          status: job.status.toLowerCase(),
+          status: job.status,
           x: startX + jobIndex * currentHorizontalSpacing,
           y: margin + levelIndex * verticalSpacing,
           level: levelIndex,
@@ -189,16 +172,16 @@ const edges = computed<Edge[]>(() => {
 
   const jobsByJobId = new Map<string, Job[]>();
   props.jobs.forEach(job => {
-    if (job.job_id) {
-      if (!jobsByJobId.has(job.job_id)) {
-        jobsByJobId.set(job.job_id, []);
+    if (job.jobId) {
+      if (!jobsByJobId.has(job.jobId)) {
+        jobsByJobId.set(job.jobId, []);
       }
-      jobsByJobId.get(job.job_id)!.push(job);
+      jobsByJobId.get(job.jobId)!.push(job);
     }
   })
 
   props.jobs.forEach(job => {
-    if (job.needs && job.needs.length > 0 && job.job_id) {
+    if (job.needs && job.needs.length > 0 && job.jobId) {
       job.needs.forEach(need => {
         const targetJobs = jobsByJobId.get(need) || [];
 
@@ -280,11 +263,11 @@ const verticalSpacing = 120;
 const margin = 40;
 
 function zoomIn() {
-  scale.value = Math.min(scale.value + 0.25, 3);
+  scale.value = Math.min(scale.value * 1.2, 3);
 }
 
 function zoomOut() {
-  scale.value = Math.max(scale.value - 0.25, 0.5);
+  scale.value = Math.max(scale.value / 1.2, 0.5);
 }
 
 function resetView() {
@@ -293,68 +276,53 @@ function resetView() {
   translateY.value = 0;
 }
 
-function handleMouseDown(event: MouseEvent) {
-  if (event.button !== 0) {
-    return
-  }
-  event.preventDefault();
+function handleMouseDown(e: MouseEvent) {
+  // TODO: de-duplicate with mermaid's dragging
+  if (e.button !== 0 || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return; // only left mouse button can drag
+  const target = e.target as Element;
+  // don't start the drag if the click is on an interactive element (e.g.: link, button) or text element
+  const interactive = target.closest('div, p, a, span, button, input, text');
+  if (interactive?.closest('svg')) return;
+
+  e.preventDefault();
 
   isDragging.value = true;
   dragStart.value = {
-    x: event.clientX - translateX.value,
-    y: event.clientY - translateY.value
+    x: e.clientX - translateX.value,
+    y: e.clientY - translateY.value
   };
-  lastMousePos.value = { x: event.clientX, y: event.clientY };
-
-  if (container.value) {
-    container.value.style.cursor = 'grabbing';
-  }
-
-  document.body.style.userSelect = 'none';
-  document.addEventListener('mouseup', handleMouseUpOnDocument);
-  document.addEventListener('mousemove', handleMouseMoveOnDocument);
+  lastMousePos.value = { x: e.clientX, y: e.clientY };
+  graphContainer.value!.style.cursor = 'grabbing';
 }
 
 function handleMouseMoveOnDocument(event: MouseEvent) {
-  if (!isDragging.value) {
-    return
-  };
+  if (!isDragging.value) return;
 
-  if (animationFrameId.value !== null) {
-    cancelAnimationFrame(animationFrameId.value);
-  }
+  const dx = event.clientX - lastMousePos.value.x;
+  const dy = event.clientY - lastMousePos.value.y;
 
-  animationFrameId.value = requestAnimationFrame(() => {
-    const dx = event.clientX - lastMousePos.value.x;
-    const dy = event.clientY - lastMousePos.value.y;
+  translateX.value += dx;
+  translateY.value += dy;
 
-    translateX.value += dx;
-    translateY.value += dy;
-
-    lastMousePos.value = { x: event.clientX, y: event.clientY };
-  })
+  lastMousePos.value = { x: event.clientX, y: event.clientY };
 }
 
 function handleMouseUpOnDocument() {
-  if (!isDragging.value) {
-    return;
-  }
-
-  if (animationFrameId.value !== null) {
-    cancelAnimationFrame(animationFrameId.value);
-    animationFrameId.value = null;
-  }
+  if (!isDragging.value) return;
 
   isDragging.value = false;
-
-  if (container.value) {
-    container.value.style.cursor = 'grab';
-  }
-
-  document.body.style.userSelect = '';
-  document.removeEventListener('mouseup', handleMouseUpOnDocument);
-  document.removeEventListener('mousemove', handleMouseMoveOnDocument);
+  graphContainer.value!.style.cursor = 'grab';
 }
+
+onMounted(() => {
+  document.addEventListener('mousemove', handleMouseMoveOnDocument);
+  document.addEventListener('mouseup', handleMouseUpOnDocument);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', handleMouseMoveOnDocument);
+  document.removeEventListener('mouseup', handleMouseUpOnDocument);
+});
 
 function handleNodeMouseEnter(job: JobNode) {
   hoveredJobId.value = job.id;
@@ -374,37 +342,30 @@ function isEdgeHighlighted(edge: BezierEdge): boolean {
     return false;
   }
 
-  const highlighted = edge.from === hoveredJob.name || edge.to === hoveredJob.name;
-  return highlighted;
+  return edge.from === hoveredJob.name || edge.to === hoveredJob.name;
 }
 
 function getNodeColor(status: string): string {
-  const statusLower = status;
-
-  if (statusLower === 'success' || statusLower === 'completed') {
+  if (status === 'success' || status === 'completed') {
     return 'var(--color-green-dark-2)';
-  } else if (statusLower === 'failure') {
+  } else if (status === 'failure') {
     return 'var(--color-red-dark-2)';
-  } else if (statusLower === 'running') {
+  } else if (status === 'running') {
     return 'var(--color-yellow-dark-2)';
-  } else if (statusLower === 'blocked') {
+  } else if (status === 'blocked') {
     return 'var(--color-purple)';
   }
-
   return 'var(--color-text-light-3)';
 }
 
 function getStatusDotColor(status: string): string {
-  const statusLower = status;
-
-  if (statusLower === 'success' || statusLower === 'completed') {
+  if (status === 'success' || status === 'completed') {
     return 'var(--color-green)';
-  } else if (statusLower === 'failure') {
+  } else if (status === 'failure') {
     return 'var(--color-red)';
-  } else if (statusLower === 'running') {
+  } else if (status === 'running') {
     return 'var(--color-yellow)';
   }
-
   return 'var(--color-text-light-2)';
 }
 
@@ -599,8 +560,8 @@ function computeJobLevels(jobs: Job[]): Map<string, number> {
   jobs.forEach(job => {
     jobMap.set(job.name, job);
 
-    if (job.job_id) {
-      jobMap.set(job.job_id, job);
+    if (job.jobId) {
+      jobMap.set(job.jobId, job);
     }
   });
 
@@ -635,8 +596,8 @@ function computeJobLevels(jobs: Job[]): Map<string, number> {
 
     if (!job.needs || job.needs.length === 0) {
       levels.set(job.name, 0);
-      if (job.job_id && job.job_id !== job.name) {
-        levels.set(job.job_id, 0);
+      if (job.jobId && job.jobId !== job.name) {
+        levels.set(job.jobId, 0);
       }
 
       recursionStack.delete(jobNameOrId);
@@ -656,8 +617,8 @@ function computeJobLevels(jobs: Job[]): Map<string, number> {
 
     const level = maxLevel + 1
     levels.set(job.name, level);
-    if (job.job_id && job.job_id !== job.name) {
-      levels.set(job.job_id, level);
+    if (job.jobId && job.jobId !== job.name) {
+      levels.set(job.jobId, level);
     }
 
     recursionStack.delete(jobNameOrId);
@@ -665,7 +626,7 @@ function computeJobLevels(jobs: Job[]): Map<string, number> {
   }
 
   jobs.forEach(job => {
-    if (!visited.has(job.name) && !visited.has(job.job_id)) {
+    if (!visited.has(job.name) && !visited.has(job.jobId)) {
       dfs(job.name);
     }
   })
@@ -679,10 +640,12 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
   }
 
   const currentPath = window.location.pathname;
+  // TODO: it is fragile
   const jobsIndex = currentPath.indexOf('/jobs/');
 
   if (jobsIndex !== -1) {
     const basePath = currentPath.substring(0, jobsIndex);
+    // TODO: it is fragile
     const newJobUrl = `${basePath}/jobs/${job.index}`;
 
     const isCtrlClick = event?.ctrlKey || event?.metaKey;
@@ -695,6 +658,7 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
       window.location.href = newJobUrl;
     }
   } else {
+    // TODO: it is fragile
     const runMatch = currentPath.match(/\/runs\/(\d+)/);
     if (runMatch) {
       const runId = runMatch[1];
@@ -736,7 +700,7 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
 
     <div
       class="graph-container"
-      ref="container"
+      ref="graphContainer"
       @mousedown="handleMouseDown"
       :class="{ 'dragging': isDragging }"
     >

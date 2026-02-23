@@ -152,7 +152,7 @@ export default defineComponent({
       artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
       isFullScreen: false,
-      showWorkflowGraph: showWorkflowGraph ?? false,
+      showWorkflowGraph: showWorkflowGraph,
       timeVisible: {
         'log-time-stamp': actionsLogShowTimestamps,
         'log-time-seconds': actionsLogShowSeconds,
