@@ -51,7 +51,7 @@ func RerunJob(ctx context.Context, job *actions_model.ActionRunJob, shouldBlock 
 	}
 
 	if job.RawConcurrency != "" && !shouldBlock {
-		err = EvaluateJobConcurrencyFillModel(ctx, job.Run, job, vars)
+		err = EvaluateJobConcurrencyFillModel(ctx, job.Run, job, vars, nil)
 		if err != nil {
 			return fmt.Errorf("evaluate job concurrency: %w", err)
 		}

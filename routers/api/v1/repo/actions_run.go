@@ -139,6 +139,10 @@ func RerunWorkflowRun(ctx *context.APIContext) {
 
 	// Rerun all jobs
 	for _, job := range jobs {
+		if err := job.LoadRun(ctx); err != nil {
+			ctx.APIErrorInternal(err)
+			return
+		}
 		// If the job has needs, it should be set to "blocked" status to wait for other jobs
 		shouldBlock := len(job.Needs) > 0
 		if err := actions_service.RerunJob(ctx, job, shouldBlock); err != nil {
