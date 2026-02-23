@@ -402,6 +402,7 @@ func TestAPIBranchProtection(t *testing.T) {
 	// Test branch deletion
 	testAPIDeleteBranch(t, "master", http.StatusForbidden)
 	testAPIDeleteBranch(t, "branch2", http.StatusNoContent)
+	testAPIDeleteBranch(t, "branch2", http.StatusNotFound)
 }
 
 func TestAPICreateBranchWithSyncBranches(t *testing.T) {
