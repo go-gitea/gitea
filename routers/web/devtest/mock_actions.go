@@ -112,6 +112,7 @@ func MockActionsRunsJobs(ctx *context.Context) {
 
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID * 10,
+		JobID:    "job-100",
 		Name:     "job 100",
 		Status:   actions_model.StatusRunning.String(),
 		CanRerun: true,
@@ -119,17 +120,21 @@ func MockActionsRunsJobs(ctx *context.Context) {
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 1,
+		JobID:    "job-101",
 		Name:     "job 101",
 		Status:   actions_model.StatusWaiting.String(),
 		CanRerun: false,
 		Duration: "2h",
+		Needs:    []string{"job-100"},
 	})
 	resp.State.Run.Jobs = append(resp.State.Run.Jobs, &actions.ViewJob{
 		ID:       runID*10 + 2,
+		JobID:    "job-102",
 		Name:     "job 102",
 		Status:   actions_model.StatusFailure.String(),
 		CanRerun: false,
 		Duration: "3h",
+		Needs:    []string{"job-100", "job-101"},
 	})
 
 	var mockLogOptions []generateMockStepsLogOptions

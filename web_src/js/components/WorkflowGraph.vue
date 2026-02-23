@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted } from 'vue';
+import { SvgIcon } from '../svg.ts';
 
 interface Job {
   id: number;
@@ -274,12 +275,6 @@ const graphMetrics = computed(() => {
   };
 })
 
-const statusTypes = computed(() => {
-  const statuses = new Set<string>();
-  jobsWithLayout.value.forEach(job => statuses.add(job.status));
-  return Array.from(statuses);
-})
-
 const nodeHeight = 50;
 const verticalSpacing = 120;
 const margin = 40;
@@ -296,19 +291,6 @@ function resetView() {
   scale.value = 1;
   translateX.value = 0;
   translateY.value = 0;
-}
-
-function handleWheel(event: WheelEvent) {
-  event.preventDefault();
-
-  if (animationFrameId.value !== null) {
-    cancelAnimationFrame(animationFrameId.value);
-  }
-
-  animationFrameId.value = requestAnimationFrame(() => {
-    const delta = event.deltaY > 0 ? 0.9 : 1.1;
-    scale.value = Math.min(Math.max(scale.value * delta, 0.5), 3);
-  })
 }
 
 function handleMouseDown(event: MouseEvent) {
@@ -591,7 +573,7 @@ function getEdgeClass(edge: BezierEdge): string {
   const fromStatus = edge.fromNode.status;
   const toStatus = edge.toNode.status;
 
-  const classes: string[] = [];
+  const classes: string[] = ['node-edge'];
 
   if (fromStatus === 'running' || toStatus === 'running') {
     classes.push('running-edge');
@@ -736,35 +718,25 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
       <div class="graph-stats">
         {{ jobs.length }} jobs • {{ edges.length }} dependencies
         <span v-if="graphMetrics" class="graph-metrics">
-          • {{ graphMetrics.successRate }} success • Parallelism: {{ graphMetrics.parallelism }}
+          • {{ graphMetrics.successRate }} success
         </span>
       </div>
-      <div class="graph-controls">
-        <button @click="resetView" class="control-btn" title="Reset view">
-          <svg class="control-icon" viewBox="0 0 16 16" width="16" height="16">
-            <path fill="currentColor" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
-          </svg>
+      <div class="flex-text-block">
+        <button @click="zoomIn" class="ui compact tiny icon button" title="Zoom in">
+          <SvgIcon name="octicon-zoom-in" :size="12"/>
         </button>
-        <div class="zoom-controls">
-          <button @click="zoomOut" class="control-btn" title="Zoom out">
-            <svg class="control-icon" viewBox="0 0 16 16" width="16" height="16">
-              <path fill="currentColor" d="M2.75 7.25a.75.75 0 0 0 0 1.5h10.5a.75.75 0 0 0 0-1.5H2.75z"/>
-            </svg>
-          </button>
-          <span class="zoom-level">{{ Math.round(scale * 100) }}%</span>
-          <button @click="zoomIn" class="control-btn" title="Zoom in">
-            <svg class="control-icon" viewBox="0 0 16 16" width="16" height="16">
-              <path fill="currentColor" d="M8.75 3.75a.75.75 0 0 0-1.5 0v3.5h-3.5a.75.75 0 0 0 0 1.5h3.5v3.5a.75.75 0 0 0 1.5 0v-3.5h3.5a.75.75 0 0 0 0-1.5h-3.5v-3.5z"/>
-            </svg>
-          </button>
-        </div>
+        <button @click="resetView" class="ui compact tiny icon button" title="Reset view">
+          <SvgIcon name="octicon-sync" :size="12"/>
+        </button>
+        <button @click="zoomOut" class="ui compact tiny icon button" title="Zoom out">
+          <SvgIcon name="octicon-zoom-out" :size="12"/>
+        </button>
       </div>
     </div>
 
     <div
       class="graph-container"
       ref="container"
-      @wheel="handleWheel"
       @mousedown="handleMouseDown"
       :class="{ 'dragging': isDragging }"
     >
@@ -823,38 +795,9 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
             opacity="0.3"
             class="running-background"
           />
-
-          <g
-            :transform="`translate(${job.x + 12}, ${job.y + 12})`"
-            class="status-icon"
-          >
-            <circle
-              v-if="job.status === 'success'"
-              r="6"
-              :fill="getStatusDotColor('success')"
-            />
-            <polygon
-              v-else-if="job.status === 'failure'"
-              points="0,-5 5,3 -5,3"
-              :fill="getStatusDotColor('failure')"
-            />
-            <circle
-              v-else-if="job.status === 'running'"
-              r="5"
-              :fill="getStatusDotColor('running')"
-              :class="{ 'pulse-dot': job.status === 'running' }"
-            />
-            <circle
-              v-else
-              r="4"
-              :fill="getStatusDotColor('waiting')"
-              :stroke="getStatusDotColor('waiting')"
-              stroke-width="2"
-            />
-          </g>
           <text
-            :x="job.x + 25"
-            :y="job.y + 16"
+            :x="job.x + 8"
+            :y="job.y + 18"
             fill="white"
             font-size="12"
             text-anchor="start"
@@ -988,19 +931,6 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
         </defs>
       </svg>
     </div>
-
-    <div class="graph-legend">
-      <div class="legend-item" v-for="status in statusTypes" :key="status">
-        <span
-          :class="['legend-dot', `status-${status.toLowerCase()}`]"
-        />
-        <span
-          class="legend-text"
-        >
-          {{ formatStatus(status) }}
-        </span>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -1034,9 +964,6 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
 .graph-stats {
   color: var(--color-text-light-2);
   font-size: 13px;
-  padding: 4px 8px;
-  background: var(--color-secondary-alpha-10);
-  border-radius: 6px;
   white-space: nowrap;
 }
 
@@ -1049,51 +976,6 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
   display: flex;
   align-items: center;
   gap: 10px;
-}
-
-.control-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--color-body);
-  border: 1px solid var(--color-secondary-alpha-30);
-  border-radius: 4px;
-  color: var(--color-text);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  padding: 0;
-}
-
-.control-btn:hover {
-  background: var(--color-secondary-alpha-10);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.control-icon {
-  width: 16px;
-  height: 16px;
-}
-
-.zoom-controls {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--color-body);
-}
-
-.zoom-level {
-  display: flex;
-  font-size: 12px;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-light);
-  min-width: 40px;
-  min-height: 28px;
-  border: 1px solid var(--color-secondary-alpha-30);
-  border-radius: 4px;
 }
 
 .graph-container {
@@ -1171,10 +1053,6 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
   }
 }
 
-.status-icon circle.pulse-dot {
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
 @keyframes shimmer {
   0% {
     background-position: -200px 0;
@@ -1224,25 +1102,25 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
   }
 }
 
-.running-edge {
+.node-edge.running-edge {
   stroke-dasharray: 10, 5;
   animation: flowRunning 1s linear infinite;
 }
 
-.failure-edge {
+.node-edge.failure-edge {
   animation: pulseFailure 0.8s ease-in-out infinite;
 }
 
-.waiting-edge {
+.node-edge.waiting-edge {
   stroke-dasharray: 5, 3;
   animation: shimmerEdge 2s linear infinite;
 }
 
-.success-edge {
+.node-edge.success-edge {
   transition: stroke-width 0.3s ease, opacity 0.3s ease;
 }
 
-.success-edge:hover {
+.node-edge.success-edge:hover {
   stroke-width: 3;
   opacity: 1;
 }
@@ -1260,59 +1138,11 @@ function onNodeClick(job: JobNode, event?: MouseEvent) {
   }
 }
 
-.graph-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-secondary-alpha-20);
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.legend-dot.status-success {
-  background: var(--color-green);
-}
-
-.legend-dot.status-failure {
-  background: var(--color-red);
-}
-
-.legend-dot.status-running {
-  background: var(--color-yellow);
-}
-
-.legend-dot.status-waiting {
-  background: var(--color-text-light-2);
-}
-
-.legend-text {
-  color: var(--color-text-light);
-  font-size: 12px;
-  text-transform: capitalize;
-}
-
 @media (max-width: 768px) {
   .graph-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
-  }
-
-  .graph-controls {
-    align-self: flex-end;
   }
 
   .graph-stats {
