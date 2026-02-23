@@ -917,6 +917,11 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 		Event:             "push",
 		TriggerEvent:      "push",
 	}
+
+	index, err := db.GetNextResourceIndex(t.Context(), "action_run_index", repoID)
+	require.NoError(t, err)
+	run.Index = index
+
 	require.NoError(t, db.Insert(t.Context(), run))
 
 	job := &actions_model.ActionRunJob{
@@ -939,7 +944,7 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 	require.NoError(t, db.Insert(t.Context(), task))
 
 	job.TaskID = task.ID
-	_, err := actions_model.UpdateRunJob(t.Context(), job, nil, "task_id")
+	_, err = actions_model.UpdateRunJob(t.Context(), job, nil, "task_id")
 	require.NoError(t, err)
 
 	task.Job = job
