@@ -10,9 +10,7 @@ import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
 import WorkflowGraph from './WorkflowGraph.vue'
 import {localUserSettings} from '../modules/user-settings.ts';
-
-// see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
-type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+import type {ActionsRunStatus, ActionsJob} from '../modules/gitea-actions.ts';
 
 type StepContainerElement = HTMLElement & {
   // To remember the last active logs container, for example: a batch of logs only starts a group but doesn't end it,
@@ -55,21 +53,10 @@ const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
   '::remove-matcher': 'hidden', // it has arguments
 };
 
-
-type Job = {
-  id: number;
-  job_id: string;
-  name: string;
-  status: RunStatus;
-  canRerun: boolean;
-  needs?: string[];
-  duration: string;
-}
-
 type Step = {
   summary: string,
   duration: string,
-  status: RunStatus,
+  status: ActionsRunStatus,
 }
 
 type JobStepState = {
@@ -120,7 +107,7 @@ export default defineComponent({
   components: {
     SvgIcon,
     ActionRunStatus,
-    WorkflowGraph
+    WorkflowGraph,
   },
   props: {
     runIndex: {
@@ -165,7 +152,7 @@ export default defineComponent({
         link: '',
         title: '',
         titleHTML: '',
-        status: '' as RunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
+        status: '' as ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
         canCancel: false,
         canApprove: false,
         canRerun: false,
@@ -182,7 +169,7 @@ export default defineComponent({
           //   canRerun: false,
           //   duration: '',
           // },
-        ] as Array<Job>,
+        ] as Array<ActionsJob>,
         commit: {
           localeCommit: '',
           localePushedBy: '',
@@ -466,11 +453,11 @@ export default defineComponent({
       }
     },
 
-    isDone(status: RunStatus) {
+    isDone(status: ActionsRunStatus) {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
     },
 
-    isExpandable(status: RunStatus) {
+    isExpandable(status: ActionsRunStatus) {
       return ['success', 'running', 'failure', 'cancelled'].includes(status);
     },
 

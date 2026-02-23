@@ -1,19 +1,12 @@
 <script setup lang="ts">
 import {computed, onMounted, onUnmounted, ref, watch} from 'vue';
-import { SvgIcon } from '../svg.ts';
+import {SvgIcon} from '../svg.ts';
 import {localUserSettings} from "../modules/user-settings.ts";
 import {debounce} from "throttle-debounce";
+import type {ActionsJob} from '../modules/gitea-actions.ts';
 
-interface Job {
-  id: number;
-  jobId: string;
-  name: string;
-  status: string;
-  needs?: string[];
-  duration?: string | number;
-}
-
-interface JobNode extends Job {
+interface JobNode extends ActionsJob {
+  // TODO: fragile, it might conflict with ActionsJob's fields in the future
   x: number;
   y: number;
   level: number;
@@ -40,7 +33,7 @@ interface StoredState {
 }
 
 const props = defineProps<{
-  jobs: Job[];
+  jobs: ActionsJob[];
   currentJobIdx?: number;
 }>()
 
@@ -118,7 +111,7 @@ const jobsWithLayout = computed<JobNode[]>(() => {
     const levels = computeJobLevels(props.jobs);
     const currentHorizontalSpacing = horizontalSpacing.value;
 
-    const jobsByLevel: Job[][] = [];
+    const jobsByLevel: ActionsJob[][] = [];
     let maxJobsPerLevel = 0;
 
     props.jobs.forEach(job => {
@@ -170,7 +163,7 @@ const jobsWithLayout = computed<JobNode[]>(() => {
 const edges = computed<Edge[]>(() => {
   const edgesList: Edge[] = [];
 
-  const jobsByJobId = new Map<string, Job[]>();
+  const jobsByJobId = new Map<string, ActionsJob[]>();
   props.jobs.forEach(job => {
     if (job.jobId) {
       if (!jobsByJobId.has(job.jobId)) {
@@ -556,8 +549,8 @@ function getEdgeClass(edge: BezierEdge): string {
   return classes.join(' ');
 }
 
-function computeJobLevels(jobs: Job[]): Map<string, number> {
-  const jobMap = new Map<string, Job>()
+function computeJobLevels(jobs: ActionsJob[]): Map<string, number> {
+  const jobMap = new Map<string, ActionsJob>()
   jobs.forEach(job => {
     jobMap.set(job.name, job);
 
