@@ -225,6 +225,7 @@ function attachDomEvents(dropdown: HTMLElement, focusable: HTMLElement, menu: HT
   };
 
   dropdown.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.isComposing) return;
     // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
     if (e.key === 'Enter') {
       const elItem = menu.querySelector<HTMLElement>(':scope > .item.selected, .menu > .item.selected');

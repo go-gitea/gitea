@@ -8,39 +8,55 @@ import {renderAnsi} from '../render/ansi.ts';
 import {POST, DELETE} from '../modules/fetch.ts';
 import type {IntervalId} from '../types.ts';
 import {toggleFullScreen} from '../utils.ts';
+import WorkflowGraph from './WorkflowGraph.vue'
 import {localUserSettings} from '../modules/user-settings.ts';
+import type {ActionsRunStatus, ActionsJob} from '../modules/gitea-actions.ts';
 
-// see "models/actions/status.go", if it needs to be used somewhere else, move it to a shared file like "types/actions.ts"
-type RunStatus = 'unknown' | 'waiting' | 'running' | 'success' | 'failure' | 'cancelled' | 'skipped' | 'blocked';
+type StepContainerElement = HTMLElement & {
+  // To remember the last active logs container, for example: a batch of logs only starts a group but doesn't end it,
+  // then the following batches of logs should still use the same group (active logs container).
+  // maybe it can be refactored to decouple from the HTML element in the future.
+  _stepLogsActiveContainer?: HTMLElement;
+}
 
-type StepContainerElement = HTMLElement & {_stepLogsActiveContainer?: HTMLElement}
-
-type LogLine = {
+export type LogLine = {
   index: number;
   timestamp: number;
   message: string;
 };
 
-const LogLinePrefixesGroup = ['::group::', '##[group]'];
-const LogLinePrefixesEndGroup = ['::endgroup::', '##[endgroup]'];
 
+type LogLineCommandName = 'group' | 'endgroup' | 'command' | 'error' | 'hidden';
 type LogLineCommand = {
-  name: 'group' | 'endgroup',
+  name: LogLineCommandName,
   prefix: string,
 }
 
-type Job = {
-  id: number;
-  name: string;
-  status: RunStatus;
-  canRerun: boolean;
-  duration: string;
-}
+// How GitHub Actions logs work:
+// * Workflow command outputs log commands like "::group::the-title", "::add-matcher::...."
+// * Workflow runner parses and processes the commands to "##[group]", apply "matchers", hide secrets, etc.
+// * The reported logs are the processed logs.
+// HOWEVER: Gitea runner does not completely process those commands. Many works are done by the frontend at the moment.
+const LogLinePrefixCommandMap: Record<string, LogLineCommandName> = {
+  '::group::': 'group',
+  '##[group]': 'group',
+  '::endgroup::': 'endgroup',
+  '##[endgroup]': 'endgroup',
+
+  '##[error]': 'error',
+  '[command]': 'command',
+
+  // https://github.com/actions/toolkit/blob/master/docs/commands.md
+  // https://github.com/actions/runner/blob/main/docs/adrs/0276-problem-matchers.md#registration
+  '::add-matcher::': 'hidden',
+  '##[add-matcher]': 'hidden',
+  '::remove-matcher': 'hidden', // it has arguments
+};
 
 type Step = {
   summary: string,
   duration: string,
-  status: RunStatus,
+  status: ActionsRunStatus,
 }
 
 type JobStepState = {
@@ -49,18 +65,27 @@ type JobStepState = {
   manuallyCollapsed: boolean, // whether the user manually collapsed the step, used to avoid auto-expanding it again
 }
 
-function parseLineCommand(line: LogLine): LogLineCommand | null {
-  for (const prefix of LogLinePrefixesGroup) {
+export function parseLogLineCommand(line: LogLine): LogLineCommand | null {
+  // TODO: in the future it can be refactored to be a general parser that can parse arguments, drop the "prefix match"
+  for (const prefix in LogLinePrefixCommandMap) {
     if (line.message.startsWith(prefix)) {
-      return {name: 'group', prefix};
-    }
-  }
-  for (const prefix of LogLinePrefixesEndGroup) {
-    if (line.message.startsWith(prefix)) {
-      return {name: 'endgroup', prefix};
+      return {name: LogLinePrefixCommandMap[prefix], prefix};
     }
   }
   return null;
+}
+
+export function createLogLineMessage(line: LogLine, cmd: LogLineCommand | null) {
+  const logMsgAttrs = {class: 'log-msg'};
+  if (cmd?.name) logMsgAttrs.class += ` log-cmd-${cmd?.name}`; // make it easier to add styles to some commands like "error"
+
+  // TODO: for some commands (::group::), the "prefix removal" works well, for some commands with "arguments" (::remove-matcher ...::),
+  // it needs to do further processing in the future (fortunately, at the moment we don't need to handle these commands)
+  const msgContent = cmd ? line.message.substring(cmd.prefix.length) : line.message;
+
+  const logMsg = createElementFromAttrs('span', logMsgAttrs);
+  logMsg.innerHTML = renderAnsi(msgContent);
+  return logMsg;
 }
 
 function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPortHeight: 0}): boolean {
@@ -72,6 +97,9 @@ function isLogElementInViewport(el: Element, {extraViewPortHeight}={extraViewPor
 type LocaleStorageOptions = {
   autoScroll: boolean;
   expandRunning: boolean;
+  showWorkflowGraph: boolean;
+  actionsLogShowSeconds: boolean;
+  actionsLogShowTimestamps: boolean;
 };
 
 export default defineComponent({
@@ -79,20 +107,12 @@ export default defineComponent({
   components: {
     SvgIcon,
     ActionRunStatus,
+    WorkflowGraph,
   },
   props: {
-    runIndex: {
-      type: String,
-      default: '',
-    },
-    jobIndex: {
-      type: String,
-      default: '',
-    },
-    actionsURL: {
-      type: String,
-      default: '',
-    },
+    runIndex: {type: Number, required: true},
+    jobIndex: {type: Number, required: true},
+    actionsURL: {type: String, required: true},
     locale: {
       type: Object as PropType<Record<string, any>>,
       default: null,
@@ -100,8 +120,8 @@ export default defineComponent({
   },
 
   data() {
-    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false};
-    const {autoScroll, expandRunning} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
+    const defaultViewOptions: LocaleStorageOptions = {autoScroll: true, expandRunning: false, showWorkflowGraph: false, actionsLogShowSeconds: false, actionsLogShowTimestamps: false};
+    const {autoScroll, expandRunning, showWorkflowGraph, actionsLogShowSeconds, actionsLogShowTimestamps} = localUserSettings.getJsonObject('actions-view-options', defaultViewOptions);
     return {
       // internal state
       loadingAbortController: null as AbortController | null,
@@ -110,19 +130,20 @@ export default defineComponent({
       artifacts: [] as Array<Record<string, any>>,
       menuVisible: false,
       isFullScreen: false,
+      showWorkflowGraph: showWorkflowGraph,
       timeVisible: {
-        'log-time-stamp': false,
-        'log-time-seconds': false,
+        'log-time-stamp': actionsLogShowTimestamps,
+        'log-time-seconds': actionsLogShowSeconds,
       },
-      optionAlwaysAutoScroll: autoScroll ?? false,
-      optionAlwaysExpandRunning: expandRunning ?? false,
+      optionAlwaysAutoScroll: autoScroll,
+      optionAlwaysExpandRunning: expandRunning,
 
       // provided by backend
       run: {
         link: '',
         title: '',
         titleHTML: '',
-        status: '' as RunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
+        status: '' as ActionsRunStatus, // do not show the status before initialized, otherwise it would show an incorrect "error" icon
         canCancel: false,
         canApprove: false,
         canRerun: false,
@@ -139,7 +160,7 @@ export default defineComponent({
           //   canRerun: false,
           //   duration: '',
           // },
-        ] as Array<Job>,
+        ] as Array<ActionsJob>,
         commit: {
           localeCommit: '',
           localePushedBy: '',
@@ -175,6 +196,9 @@ export default defineComponent({
       this.saveLocaleStorageOptions();
     },
     optionAlwaysExpandRunning() {
+      this.saveLocaleStorageOptions();
+    },
+    showWorkflowGraph() {
       this.saveLocaleStorageOptions();
     },
   },
@@ -218,7 +242,13 @@ export default defineComponent({
 
   methods: {
     saveLocaleStorageOptions() {
-      const opts: LocaleStorageOptions = {autoScroll: this.optionAlwaysAutoScroll, expandRunning: this.optionAlwaysExpandRunning};
+      const opts: LocaleStorageOptions = {
+        autoScroll: this.optionAlwaysAutoScroll,
+        expandRunning: this.optionAlwaysExpandRunning,
+        showWorkflowGraph: this.showWorkflowGraph,
+        actionsLogShowSeconds: this.timeVisible['log-time-seconds'],
+        actionsLogShowTimestamps: this.timeVisible['log-time-stamp'],
+      };
       localUserSettings.setJsonObject('actions-view-options', opts);
     },
 
@@ -236,11 +266,7 @@ export default defineComponent({
     beginLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
       const el = (this.$refs.logs as any)[stepIndex] as StepContainerElement;
       const elJobLogGroupSummary = createElementFromAttrs('summary', {class: 'job-log-group-summary'},
-        this.createLogLine(stepIndex, startTime, {
-          index: line.index,
-          timestamp: line.timestamp,
-          message: line.message.substring(cmd.prefix.length),
-        }),
+        this.createLogLine(stepIndex, startTime, line, cmd),
       );
       const elJobLogList = createElementFromAttrs('div', {class: 'job-log-list'});
       const elJobLogGroup = createElementFromAttrs('details', {class: 'job-log-group'},
@@ -254,11 +280,7 @@ export default defineComponent({
     endLogGroup(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand) {
       const el = (this.$refs.logs as any)[stepIndex];
       el._stepLogsActiveContainer = null;
-      el.append(this.createLogLine(stepIndex, startTime, {
-        index: line.index,
-        timestamp: line.timestamp,
-        message: line.message.substring(cmd.prefix.length),
-      }));
+      el.append(this.createLogLine(stepIndex, startTime, line, cmd));
     },
 
     // show/hide the step logs for a step
@@ -279,7 +301,7 @@ export default defineComponent({
       POST(`${this.run.link}/approve`);
     },
 
-    createLogLine(stepIndex: number, startTime: number, line: LogLine) {
+    createLogLine(stepIndex: number, startTime: number, line: LogLine, cmd: LogLineCommand | null) {
       const lineNum = createElementFromAttrs('a', {class: 'line-num muted', href: `#jobstep-${stepIndex}-${line.index}`},
         String(line.index),
       );
@@ -288,9 +310,7 @@ export default defineComponent({
         formatDatetime(new Date(line.timestamp * 1000)), // for "Show timestamps"
       );
 
-      const logMsg = createElementFromAttrs('span', {class: 'log-msg'});
-      logMsg.innerHTML = renderAnsi(line.message);
-
+      const logMsg = createLogLineMessage(line, cmd);
       const seconds = Math.floor(line.timestamp - startTime);
       const logTimeSeconds = createElementFromAttrs('span', {class: 'log-time-seconds'},
         `${seconds}s`, // for "Show seconds"
@@ -315,16 +335,20 @@ export default defineComponent({
 
     appendLogs(stepIndex: number, startTime: number, logLines: LogLine[]) {
       for (const line of logLines) {
-        const el = this.getActiveLogsContainer(stepIndex);
-        const cmd = parseLineCommand(line);
-        if (cmd?.name === 'group') {
-          this.beginLogGroup(stepIndex, startTime, line, cmd);
-          continue;
-        } else if (cmd?.name === 'endgroup') {
-          this.endLogGroup(stepIndex, startTime, line, cmd);
-          continue;
+        const cmd = parseLogLineCommand(line);
+        switch (cmd?.name) {
+          case 'hidden':
+            continue;
+          case 'group':
+            this.beginLogGroup(stepIndex, startTime, line, cmd);
+            continue;
+          case 'endgroup':
+            this.endLogGroup(stepIndex, startTime, line, cmd);
+            continue;
         }
-        el.append(this.createLogLine(stepIndex, startTime, line));
+        // the active logs container may change during the loop, for example: entering and leaving a group
+        const el = this.getActiveLogsContainer(stepIndex);
+        el.append(this.createLogLine(stepIndex, startTime, line, cmd));
       }
     },
 
@@ -420,11 +444,11 @@ export default defineComponent({
       }
     },
 
-    isDone(status: RunStatus) {
+    isDone(status: ActionsRunStatus) {
       return ['success', 'skipped', 'failure', 'cancelled'].includes(status);
     },
 
-    isExpandable(status: RunStatus) {
+    isExpandable(status: ActionsRunStatus) {
       return ['success', 'running', 'failure', 'cancelled'].includes(status);
     },
 
@@ -441,6 +465,7 @@ export default defineComponent({
       for (const el of this.elStepsContainer().querySelectorAll(`.log-time-${type}`)) {
         toggleElem(el, this.timeVisible[`log-time-${type}`]);
       }
+      this.saveLocaleStorageOptions();
     },
 
     toggleFullScreen() {
@@ -477,15 +502,20 @@ export default defineComponent({
           <!-- eslint-disable-next-line vue/no-v-html -->
           <h2 class="action-info-summary-title-text" v-html="run.titleHTML"/>
         </div>
-        <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
-          {{ locale.approve }}
-        </button>
-        <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
-          {{ locale.cancel }}
-        </button>
-        <button class="ui basic small compact button link-action tw-shrink-0" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
-          {{ locale.rerun_all }}
-        </button>
+        <div class="flex-text-block tw-shrink-0 tw-flex-wrap">
+          <button class="ui basic small compact button primary" @click="showWorkflowGraph = !showWorkflowGraph" :class="{ active: showWorkflowGraph }" v-if="run.jobs.length > 1">
+            {{ locale.workflowGraph }}
+          </button>
+          <button class="ui basic small compact button primary" @click="approveRun()" v-if="run.canApprove">
+            {{ locale.approve }}
+          </button>
+          <button class="ui basic small compact button red" @click="cancelRun()" v-else-if="run.canCancel">
+            {{ locale.cancel }}
+          </button>
+          <button class="ui basic small compact button link-action" :data-url="`${run.link}/rerun`" v-else-if="run.canRerun">
+            {{ locale.rerun_all }}
+          </button>
+        </div>
       </div>
       <div class="action-commit-summary">
         <span><a class="muted" :href="run.workflowLink"><b>{{ run.workflowID }}</b></a>:</span>
@@ -508,7 +538,7 @@ export default defineComponent({
       <div class="action-view-left">
         <div class="job-group-section">
           <div class="job-brief-list">
-            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="parseInt(jobIndex) === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
+            <a class="job-brief-item" :href="run.link+'/jobs/'+index" :class="jobIndex === index ? 'selected' : ''" v-for="(job, index) in run.jobs" :key="job.id">
               <div class="job-brief-item-left">
                 <ActionRunStatus :locale-status="locale.status[job.status]" :status="job.status"/>
                 <span class="job-brief-name tw-mx-2 gt-ellipsis">{{ job.name }}</span>
@@ -529,17 +559,17 @@ export default defineComponent({
               <li class="job-artifacts-item">
                 <template v-if="artifact.status !== 'expired'">
                   <a class="flex-text-inline" target="_blank" :href="run.link+'/artifacts/'+artifact.name">
-                    <SvgIcon name="octicon-file" class="text black"/>
+                    <SvgIcon name="octicon-file" class="tw-text-text"/>
                     <span class="gt-ellipsis">{{ artifact.name }}</span>
                   </a>
                   <a v-if="run.canDeleteArtifact" @click="deleteArtifact(artifact.name)">
-                    <SvgIcon name="octicon-trash" class="text black"/>
+                    <SvgIcon name="octicon-trash" class="tw-text-text"/>
                   </a>
                 </template>
-                <span v-else class="flex-text-inline text light grey">
+                <span v-else class="flex-text-inline tw-text-grey-light">
                   <SvgIcon name="octicon-file"/>
                   <span class="gt-ellipsis">{{ artifact.name }}</span>
-                  <span class="ui label text light grey tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
+                  <span class="ui label tw-text-grey-light tw-flex-shrink-0">{{ locale.artifactExpired }}</span>
                 </span>
               </li>
             </template>
@@ -548,6 +578,15 @@ export default defineComponent({
       </div>
 
       <div class="action-view-right">
+        <WorkflowGraph
+          v-if="showWorkflowGraph && run.jobs.length > 1"
+          :jobs="run.jobs"
+          :current-job-index="jobIndex"
+          :run-link="run.link"
+          :workflow-id="run.workflowID"
+          class="workflow-graph-container"
+        />
+
         <div class="job-info-header">
           <div class="job-info-header-left gt-ellipsis">
             <h3 class="job-info-header-title gt-ellipsis">
@@ -636,6 +675,7 @@ export default defineComponent({
 
 .action-info-summary {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
@@ -974,6 +1014,14 @@ export default defineComponent({
   white-space: break-spaces;
   margin-left: 10px;
   overflow-wrap: anywhere;
+}
+
+.job-step-logs .job-log-line .log-cmd-command {
+  color: var(--color-ansi-blue);
+}
+
+.job-step-logs .job-log-line .log-cmd-error {
+  color: var(--color-ansi-red);
 }
 
 /* selectors here are intentionally exact to only match fullscreen */

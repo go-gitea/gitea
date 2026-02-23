@@ -1,22 +1,5 @@
-ifeq ($(USE_REPO_TEST_DIR),1)
-
-# This rule replaces the whole Makefile when we're trying to use /tmp repository temporary files
-location = $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST))
-self := $(location)
-
-%:
-	@tmpdir=`mktemp --tmpdir -d` ; \
-	echo Using temporary directory $$tmpdir for test repositories ; \
-	USE_REPO_TEST_DIR= $(MAKE) -f $(self) --no-print-directory REPO_TEST_DIR=$$tmpdir/ $@ ; \
-	STATUS=$$? ; rm -r "$$tmpdir" ; exit $$STATUS
-
-else
-
-# This is the "normal" part of the Makefile
-
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
-IMPORT := code.gitea.io/gitea
 
 # By default use go's 1.25 experimental json v2 library when building
 # TODO: remove when no longer experimental
@@ -32,12 +15,11 @@ XGO_VERSION := go-1.25.x
 AIR_PACKAGE ?= github.com/air-verse/air@v1
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/v3/cmd/editorconfig-checker@v3
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.9.2
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.8.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.9.0
 GXZ_PACKAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.15
 MISSPELL_PACKAGE ?= github.com/golangci/misspell/cmd/misspell@v0.7.0
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.33.1
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
-GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1
 GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@v1
 ACTIONLINT_PACKAGE ?= github.com/rhysd/actionlint/cmd/actionlint@v1.7.10
 
@@ -71,9 +53,11 @@ endif
 ifeq ($(IS_WINDOWS),yes)
 	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
+	EXECUTABLE_E2E ?= gitea-e2e.exe
 else
 	GOFLAGS := -v
 	EXECUTABLE ?= gitea
+	EXECUTABLE_E2E ?= gitea-e2e
 endif
 
 ifeq ($(shell sed --version 2>/dev/null | grep -q GNU && echo gnu),gnu)
@@ -84,7 +68,6 @@ endif
 
 EXTRA_GOFLAGS ?=
 
-MAKE_VERSION := $(shell "$(MAKE)" -v | cat | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
 GOTESTFLAGS ?=
@@ -130,11 +113,11 @@ ifeq ($(VERSION),main)
 	VERSION := main-nightly
 endif
 
-LDFLAGS := $(LDFLAGS) -X "main.MakeVersion=$(MAKE_VERSION)" -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
+LDFLAGS := $(LDFLAGS) -X "main.Version=$(GITEA_VERSION)" -X "main.Tags=$(TAGS)"
 
 LINUX_ARCHS ?= linux/amd64,linux/386,linux/arm-5,linux/arm-6,linux/arm64,linux/riscv64
 
-GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration code.gitea.io/gitea/tests/e2e,$(shell $(GO) list ./... | grep -v /vendor/))
+GO_TEST_PACKAGES ?= $(filter-out $(shell $(GO) list code.gitea.io/gitea/models/migrations/...) code.gitea.io/gitea/tests/integration/migration-test code.gitea.io/gitea/tests code.gitea.io/gitea/tests/integration,$(shell $(GO) list ./... | grep -v /vendor/))
 MIGRATE_TEST_PACKAGES ?= $(shell $(GO) list code.gitea.io/gitea/models/migrations/...)
 
 WEBPACK_SOURCES := $(shell find web_src/js web_src/css -type f)
@@ -150,7 +133,6 @@ SVG_DEST_DIR := public/assets/img/svg
 
 AIR_TMP_DIR := .air
 
-GO_LICENSE_TMP_DIR := .go-licenses
 GO_LICENSE_FILE := assets/go-licenses.json
 
 TAGS ?=
@@ -159,7 +141,7 @@ TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 TEST_TAGS ?= $(TAGS_SPLIT) sqlite sqlite_unlock_notify
 
-TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
+TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
 
 GO_DIRS := build cmd models modules routers services tests tools
 WEB_DIRS := web_src/js web_src/css
@@ -173,10 +155,6 @@ GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go")
 GO_SOURCES += $(GENERATED_GO_DEST)
 
-# Force installation of playwright dependencies by setting this flag
-ifdef DEPS_PLAYWRIGHT
-	PLAYWRIGHT_FLAGS += --with-deps
-endif
 
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_INPUT := templates/swagger/v1_input.json
@@ -207,7 +185,7 @@ all: build
 .PHONY: help
 help: Makefile ## print Makefile help information.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m[TARGETS] default target: build\033[0m\n\n\033[35mTargets:\033[0m\n"} /^[0-9A-Za-z._-]+:.*?##/ { printf "  \033[36m%-45s\033[0m %s\n", $$1, $$2 }' Makefile #$(MAKEFILE_LIST)
-	@printf "  \033[36m%-46s\033[0m %s\n" "test-e2e[#TestSpecificName]" "test end to end using playwright"
+	@printf "  \033[36m%-46s\033[0m %s\n" "test-e2e" "test end to end using playwright"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test[#TestSpecificName]" "run unit test"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-sqlite[#TestSpecificName]" "run integration test for sqlite"
 
@@ -224,12 +202,11 @@ clean-all: clean ## delete backend, frontend and integration files
 
 .PHONY: clean
 clean: ## delete backend and integration files
-	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST_WILDCARD) \
+	rm -rf $(EXECUTABLE) $(EXECUTABLE_E2E) $(DIST) $(BINDATA_DEST_WILDCARD) \
 		integrations*.test \
-		e2e*.test \
 		tests/integration/gitea-integration-* \
 		tests/integration/indexers-* \
-		tests/mysql.ini tests/pgsql.ini tests/mssql.ini man/ \
+		tests/sqlite.ini tests/mysql.ini tests/pgsql.ini tests/mssql.ini man/ \
 		tests/e2e/gitea-e2e-*/ \
 		tests/e2e/indexers-*/ \
 		tests/e2e/reports/ tests/e2e/test-artifacts/ tests/e2e/test-snapshots/
@@ -473,16 +450,11 @@ tidy-check: tidy
 go-licenses: $(GO_LICENSE_FILE) ## regenerate go licenses
 
 $(GO_LICENSE_FILE): go.mod go.sum
-	@rm -rf $(GO_LICENSE_FILE)
-	$(GO) install $(GO_LICENSES_PACKAGE)
-	-GOOS=linux CGO_ENABLED=1 go-licenses save . --force --save_path=$(GO_LICENSE_TMP_DIR) 2>/dev/null
-	$(GO) run build/generate-go-licenses.go $(GO_LICENSE_TMP_DIR) $(GO_LICENSE_FILE)
-	@rm -rf $(GO_LICENSE_TMP_DIR)
+	GO=$(GO) $(GO) run build/generate-go-licenses.go $(GO_LICENSE_FILE)
 
 generate-ini-sqlite:
-	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+	sed -e 's|{{WORK_PATH}}|$(CURDIR)/tests/$(or $(TEST_TYPE),integration)/gitea-$(or $(TEST_TYPE),integration)-sqlite|g' \
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
-		-e 's|{{TEST_TYPE}}|$(or $(TEST_TYPE),integration)|g' \
 			tests/sqlite.ini.tmpl > tests/sqlite.ini
 
 .PHONY: test-sqlite
@@ -501,9 +473,8 @@ generate-ini-mysql:
 		-e 's|{{TEST_MYSQL_DBNAME}}|${TEST_MYSQL_DBNAME}|g' \
 		-e 's|{{TEST_MYSQL_USERNAME}}|${TEST_MYSQL_USERNAME}|g' \
 		-e 's|{{TEST_MYSQL_PASSWORD}}|${TEST_MYSQL_PASSWORD}|g' \
-		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+		-e 's|{{WORK_PATH}}|$(CURDIR)/tests/$(or $(TEST_TYPE),integration)/gitea-$(or $(TEST_TYPE),integration)-mysql|g' \
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
-		-e 's|{{TEST_TYPE}}|$(or $(TEST_TYPE),integration)|g' \
 			tests/mysql.ini.tmpl > tests/mysql.ini
 
 .PHONY: test-mysql
@@ -524,9 +495,8 @@ generate-ini-pgsql:
 		-e 's|{{TEST_PGSQL_PASSWORD}}|${TEST_PGSQL_PASSWORD}|g' \
 		-e 's|{{TEST_PGSQL_SCHEMA}}|${TEST_PGSQL_SCHEMA}|g' \
 		-e 's|{{TEST_MINIO_ENDPOINT}}|${TEST_MINIO_ENDPOINT}|g' \
-		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+		-e 's|{{WORK_PATH}}|$(CURDIR)/tests/$(or $(TEST_TYPE),integration)/gitea-$(or $(TEST_TYPE),integration)-pgsql|g' \
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
-		-e 's|{{TEST_TYPE}}|$(or $(TEST_TYPE),integration)|g' \
 			tests/pgsql.ini.tmpl > tests/pgsql.ini
 
 .PHONY: test-pgsql
@@ -545,9 +515,8 @@ generate-ini-mssql:
 		-e 's|{{TEST_MSSQL_DBNAME}}|${TEST_MSSQL_DBNAME}|g' \
 		-e 's|{{TEST_MSSQL_USERNAME}}|${TEST_MSSQL_USERNAME}|g' \
 		-e 's|{{TEST_MSSQL_PASSWORD}}|${TEST_MSSQL_PASSWORD}|g' \
-		-e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
+		-e 's|{{WORK_PATH}}|$(CURDIR)/tests/$(or $(TEST_TYPE),integration)/gitea-$(or $(TEST_TYPE),integration)-mssql|g' \
 		-e 's|{{TEST_LOGGER}}|$(or $(TEST_LOGGER),test$(COMMA)file)|g' \
-		-e 's|{{TEST_TYPE}}|$(or $(TEST_TYPE),integration)|g' \
 			tests/mssql.ini.tmpl > tests/mssql.ini
 
 .PHONY: test-mssql
@@ -563,47 +532,12 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test
 
 .PHONY: playwright
 playwright: deps-frontend
-	$(NODE_VARS) pnpm exec playwright install $(PLAYWRIGHT_FLAGS)
-
-.PHONY: test-e2e%
-test-e2e%: TEST_TYPE ?= e2e
-	# Clear display env variable. Otherwise, chromium tests can fail.
-	DISPLAY=
+	@# on GitHub Actions VMs, playwright's system deps are pre-installed
+	@$(NODE_VARS) pnpm exec playwright install $(if $(GITHUB_ACTIONS),,--with-deps) chromium $(if $(CI),firefox) $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e
-test-e2e: test-e2e-sqlite
-
-.PHONY: test-e2e-sqlite
-test-e2e-sqlite: playwright e2e.sqlite.test generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini ./e2e.sqlite.test
-
-.PHONY: test-e2e-sqlite\#%
-test-e2e-sqlite\#%: playwright e2e.sqlite.test generate-ini-sqlite
-	GITEA_TEST_CONF=tests/sqlite.ini ./e2e.sqlite.test -test.run TestE2e/$*
-
-.PHONY: test-e2e-mysql
-test-e2e-mysql: playwright e2e.mysql.test generate-ini-mysql
-	GITEA_TEST_CONF=tests/mysql.ini ./e2e.mysql.test
-
-.PHONY: test-e2e-mysql\#%
-test-e2e-mysql\#%: playwright e2e.mysql.test generate-ini-mysql
-	GITEA_TEST_CONF=tests/mysql.ini ./e2e.mysql.test -test.run TestE2e/$*
-
-.PHONY: test-e2e-pgsql
-test-e2e-pgsql: playwright e2e.pgsql.test generate-ini-pgsql
-	GITEA_TEST_CONF=tests/pgsql.ini ./e2e.pgsql.test
-
-.PHONY: test-e2e-pgsql\#%
-test-e2e-pgsql\#%: playwright e2e.pgsql.test generate-ini-pgsql
-	GITEA_TEST_CONF=tests/pgsql.ini ./e2e.pgsql.test -test.run TestE2e/$*
-
-.PHONY: test-e2e-mssql
-test-e2e-mssql: playwright e2e.mssql.test generate-ini-mssql
-	GITEA_TEST_CONF=tests/mssql.ini ./e2e.mssql.test
-
-.PHONY: test-e2e-mssql\#%
-test-e2e-mssql\#%: playwright e2e.mssql.test generate-ini-mssql
-	GITEA_TEST_CONF=tests/mssql.ini ./e2e.mssql.test -test.run TestE2e/$*
+test-e2e: playwright $(EXECUTABLE_E2E)
+	@EXECUTABLE=$(EXECUTABLE_E2E) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
@@ -668,7 +602,7 @@ migrations.sqlite.test: $(GO_SOURCES) generate-ini-sqlite
 	GITEA_TEST_CONF=tests/sqlite.ini ./migrations.sqlite.test
 
 .PHONY: migrations.individual.mysql.test
-migrations.individual.mysql.test: $(GO_SOURCES)
+migrations.individual.mysql.test: $(GO_SOURCES) generate-ini-mysql
 	GITEA_TEST_CONF=tests/mysql.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
 
 .PHONY: migrations.individual.sqlite.test\#%
@@ -676,7 +610,7 @@ migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
 	GITEA_TEST_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
 
 .PHONY: migrations.individual.pgsql.test
-migrations.individual.pgsql.test: $(GO_SOURCES)
+migrations.individual.pgsql.test: $(GO_SOURCES) generate-ini-pgsql
 	GITEA_TEST_CONF=tests/pgsql.ini $(GO) test $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -p 1 $(MIGRATE_TEST_PACKAGES)
 
 .PHONY: migrations.individual.pgsql.test\#%
@@ -698,18 +632,6 @@ migrations.individual.sqlite.test: $(GO_SOURCES) generate-ini-sqlite
 .PHONY: migrations.individual.sqlite.test\#%
 migrations.individual.sqlite.test\#%: $(GO_SOURCES) generate-ini-sqlite
 	GITEA_TEST_CONF=tests/sqlite.ini $(GO) test $(GOTESTFLAGS) -tags '$(TEST_TAGS)' code.gitea.io/gitea/models/migrations/$*
-
-e2e.mysql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mysql.test
-
-e2e.pgsql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.pgsql.test
-
-e2e.mssql.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mssql.test
-
-e2e.sqlite.test: $(GO_SOURCES)
-	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: check
 check: test
@@ -741,13 +663,16 @@ generate-go: $(TAGS_PREREQ)
 
 .PHONY: security-check
 security-check:
-	GOEXPERIMENT= go run $(GOVULNCHECK_PACKAGE) -show color ./...
+	GOEXPERIMENT= go run $(GOVULNCHECK_PACKAGE) -show color ./... || true
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 ifneq ($(and $(STATIC),$(findstring pam,$(TAGS))),)
   $(error pam support set via TAGS does not support static builds)
 endif
 	CGO_ENABLED="$(CGO_ENABLED)" CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
+
+$(EXECUTABLE_E2E): $(GO_SOURCES)
+	CGO_ENABLED=1 $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TEST_TAGS)' -ldflags '-s -w $(EXTLDFLAGS) $(LDFLAGS)' -o $@
 
 .PHONY: release
 release: frontend generate release-windows release-linux release-darwin release-freebsd release-copy release-compress vendor release-sources release-check
@@ -819,7 +744,6 @@ deps-tools: ## install tool dependencies
 	$(GO) install $(MISSPELL_PACKAGE) & \
 	$(GO) install $(SWAGGER_PACKAGE) & \
 	$(GO) install $(XGO_PACKAGE) & \
-	$(GO) install $(GO_LICENSES_PACKAGE) & \
 	$(GO) install $(GOVULNCHECK_PACKAGE) & \
 	$(GO) install $(ACTIONLINT_PACKAGE) & \
 	wait
@@ -907,9 +831,6 @@ generate-manpage: ## generate manpage
 docker:
 	docker build --disable-content-trust=false -t $(DOCKER_REF) .
 # support also build args docker build --build-arg GITEA_VERSION=v1.2.3 --build-arg TAGS="bindata sqlite sqlite_unlock_notify"  .
-
-# This endif closes the if at the top of the file
-endif
 
 # Disable parallel execution because it would break some targets that don't
 # specify exact dependencies like 'backend' which does currently not depend

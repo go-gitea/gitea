@@ -20,6 +20,7 @@
 @import "./modules/modal.css";
 @import "./modules/tab.css";
 @import "./modules/form.css";
+@import "./modules/shortcut.css";
 
 @import "./modules/tippy.css";
 @import "./modules/breadcrumb.css";
@@ -46,7 +47,7 @@
 @import "./features/captcha.css";
 
 @import "./markup/content.css";
-@import "./markup/codecopy.css";
+@import "./markup/codeblock.css";
 @import "./markup/codepreview.css";
 @import "./markup/asciicast.css";
 

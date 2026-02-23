@@ -18,6 +18,7 @@
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
   --octicon-chevron-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg>');
+  --select-arrows: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="m4.074 9.427 3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.043 9H4.251a.25.25 0 0 0-.177.427m0-1.957L7.47 4.073a.25.25 0 0 1 .354 0L11.22 7.47a.25.25 0 0 1-.177.426H4.251a.25.25 0 0 1-.177-.426"/></svg>');
   /* other variables */
   --border-radius: 4px;
   --border-radius-medium: 6px;
@@ -30,6 +31,7 @@
   --page-spacing: 16px; /* space between page elements */
   --page-margin-x: 32px; /* minimum space on left and right side of page */
   --page-space-bottom: 64px; /* space between last page element and footer */
+  --transition-hover-fade: opacity 0.2s ease; /* fade transition for elements that show on hover */
 
   /* z-index */
   --z-index-modal: 1001; /* modal dialog, hard-coded from Fomantic modal.css */
@@ -308,6 +310,34 @@ a.label,
   text-decoration-line: none !important;
 }
 
+.native-select {
+  position: relative;
+}
+
+.native-select > select {
+  appearance: none; /* hide default triangle */
+  padding: 6px 26px 6px 10px;
+  border-radius: var(--border-radius);
+}
+
+/* ::before and ::after pseudo elements don't work on select elements,
+   so we need to put it on the parent wrapper element. */
+.native-select::after {
+  position: absolute;
+  pointer-events: none; /* make the click event can pass through the svg to the select element */
+  top: 50%;
+  transform: translateY(-50%);
+  right: 5px;
+  content: "";
+  width: 16px;
+  height: 16px;
+  mask-size: cover;
+  -webkit-mask-size: cover;
+  mask-image: var(--select-arrows);
+  -webkit-mask-image: var(--select-arrows);
+  background: currentcolor;
+}
+
 .ui.search > .results {
   background: var(--color-body);
   border-color: var(--color-secondary);
@@ -415,7 +445,9 @@ a.label,
 .ui.selection.dropdown .menu > .item {
   border-color: var(--color-secondary);
 }
-
+.ui.selection.dropdown .menu .item:first-of-type {
+  border-radius: 0;
+}
 .ui.selection.visible.dropdown > .text:not(.default) {
   color: var(--color-text);
 }
@@ -521,67 +553,6 @@ img.ui.avatar,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-.text.primary {
-  color: var(--color-primary) !important;
-}
-
-.text.red {
-  color: var(--color-red) !important;
-}
-
-.text.orange {
-  color: var(--color-orange) !important;
-}
-
-.text.yellow {
-  color: var(--color-yellow) !important;
-}
-
-.text.green {
-  color: var(--color-green) !important;
-}
-
-.text.blue {
-  color: var(--color-blue) !important;
-}
-
-.text.purple {
-  color: var(--color-purple) !important;
-}
-
-/* it is different from tw-text-black: this one changes in dark theme */
-.text.black {
-  color: var(--color-text) !important;
-}
-
-.text.grey {
-  color: var(--color-text-light) !important;
-}
-
-.text.light {
-  color: var(--color-text-light) !important;
-}
-
-.text.light-2 {
-  color: var(--color-text-light-2) !important;
-}
-
-.text.light-3 {
-  color: var(--color-text-light-3) !important;
-}
-
-.text.light.grey {
-  color: var(--color-grey-light) !important;
-}
-
-.text.gold {
-  color: var(--color-gold) !important;
-}
-
-.text.small {
-  font-size: 0.75em;
-}
-
 /* popover box shadows */
 .ui.dropdown .menu,
 .ui.upward.dropdown > .menu,
@@ -594,13 +565,6 @@ img.ui.avatar,
 }
 .ui.floating.dropdown .menu {
   box-shadow: 0 6px 18px var(--color-shadow) !important;
-}
-
-.ui .text.truncate {
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
 }
 
 .ui .message.flash-message {
@@ -1063,7 +1027,6 @@ table th[data-sortt-desc] .svg {
 }
 
 .btn,
-.ui.ui.button,
 .ui.ui.dropdown,
 .flex-text-inline,
 .flex-text-inline > a,

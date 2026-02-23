@@ -1,4 +1,5 @@
 // Copyright 2015 The Gogs Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package user
@@ -53,11 +54,11 @@ func composePublicKeysAPILink() string {
 func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	var keys []*asymkey_model.PublicKey
 	var err error
-	var count int
+	var count int64
 
 	fingerprint := ctx.FormString("fingerprint")
 	username := ctx.PathParam("username")
-
+	listOptions := utils.GetListOptions(ctx)
 	if fingerprint != "" {
 		var userID int64 // Unrestricted
 		// Querying not just listing
@@ -65,20 +66,18 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 			// Restrict to provided uid
 			userID = user.ID
 		}
-		keys, err = db.Find[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+		keys, count, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+			ListOptions: listOptions,
 			OwnerID:     userID,
 			Fingerprint: fingerprint,
 		})
-		count = len(keys)
 	} else {
-		var total int64
 		// Use ListPublicKeys
-		keys, total, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
-			ListOptions: utils.GetListOptions(ctx),
+		keys, count, err = db.FindAndCount[asymkey_model.PublicKey](ctx, asymkey_model.FindPublicKeyOptions{
+			ListOptions: listOptions,
 			OwnerID:     user.ID,
 			NotKeytype:  asymkey_model.KeyTypePrincipal,
 		})
-		count = int(total)
 	}
 
 	if err != nil {
@@ -95,7 +94,8 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 		}
 	}
 
-	ctx.SetTotalCountHeader(int64(count))
+	ctx.SetLinkHeader(int(count), listOptions.PageSize)
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 

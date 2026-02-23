@@ -1,6 +1,7 @@
 import {emojiKeys, emojiHTML, emojiString} from './emoji.ts';
 import {html, htmlRaw} from '../utils/html.ts';
 import type {TributeCollection} from 'tributejs';
+import type {MentionValue} from '../types.ts';
 
 export async function attachTribute(element: HTMLElement) {
   const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
@@ -28,7 +29,7 @@ export async function attachTribute(element: HTMLElement) {
     },
   };
 
-  const mentionCollection: TributeCollection<Record<string, any>> = {
+  const mentionCollection: TributeCollection<MentionValue> = {
     values: window.config.mentionValues,
     requireLeadingSpace: true,
     menuItemTemplate: (item) => {
@@ -44,7 +45,10 @@ export async function attachTribute(element: HTMLElement) {
   };
 
   const tribute = new Tribute({
-    collection: [emojiCollection as TributeCollection<any>, mentionCollection],
+    collection: [
+      emojiCollection as TributeCollection<any>,
+      mentionCollection as TributeCollection<any>,
+    ],
     noMatchTemplate: () => '',
   });
   tribute.attach(element);

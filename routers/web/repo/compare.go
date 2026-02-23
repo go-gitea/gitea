@@ -4,11 +4,9 @@
 package repo
 
 import (
-	"bufio"
 	gocontext "context"
 	"encoding/csv"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -247,7 +245,7 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	}
 
 	// 4 get base and head refs
-	baseRefName := util.IfZero(compareReq.BaseOriRef, baseRepo.DefaultBranch)
+	baseRefName := util.IfZero(compareReq.BaseOriRef, baseRepo.GetPullRequestTargetBranch(ctx))
 	headRefName := util.IfZero(compareReq.HeadOriRef, headRepo.DefaultBranch)
 
 	baseRef := ctx.Repo.GitRepo.UnstableGuessRefByShortName(baseRefName)
@@ -276,9 +274,9 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	ctx.Data["BaseBranch"] = baseRef.ShortName() // for legacy templates
 	ctx.Data["HeadUser"] = headOwner
 	ctx.Data["HeadBranch"] = headRef.ShortName() // for legacy templates
-	ctx.Repo.PullRequest.SameRepo = isSameRepo
-
 	ctx.Data["IsPull"] = true
+
+	context.InitRepoPullRequestCtx(ctx, baseRepo, headRepo)
 
 	// The current base and head repositories and branches may not
 	// actually be the intended branches that the user wants to
@@ -427,6 +425,36 @@ func ParseCompareInfo(ctx *context.Context) *git_service.CompareInfo {
 	return compareInfo
 }
 
+func prepareNewPullRequestTitleContent(ci *git_service.CompareInfo, commits []*git_model.SignCommitWithStatuses) (title, content string) {
+	title = ci.HeadRef.ShortName()
+
+	if len(commits) > 0 {
+		// the "commits" are from "ShowPrettyFormatLogToList", which is ordered from newest to oldest, here take the oldest one
+		c := commits[len(commits)-1]
+		title = strings.TrimSpace(c.UserCommit.Summary())
+	}
+
+	if len(commits) == 1 {
+		// FIXME: GIT-COMMIT-MESSAGE-ENCODING: try to convert the encoding for commit message explicitly, ideally it should be done by a git commit struct method
+		c := commits[0]
+		_, content, _ = strings.Cut(strings.TrimSpace(c.UserCommit.CommitMessage), "\n")
+		content = strings.TrimSpace(content)
+		content = string(charset.ToUTF8([]byte(content), charset.ConvertOpts{}))
+	}
+
+	var titleTrailer string
+	// TODO: 255 doesn't seem to be a good limit for title, just keep the old behavior
+	title, titleTrailer = util.EllipsisDisplayStringX(title, 255)
+	if titleTrailer != "" {
+		if content != "" {
+			content = titleTrailer + "\n\n" + content
+		} else {
+			content = titleTrailer + "\n"
+		}
+	}
+	return title, content
+}
+
 // PrepareCompareDiff renders compare diff page
 func PrepareCompareDiff(
 	ctx *context.Context,
@@ -540,30 +568,7 @@ func PrepareCompareDiff(
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 
-	title := ci.HeadRef.ShortName()
-	if len(commits) == 1 {
-		c := commits[0]
-		title = strings.TrimSpace(c.UserCommit.Summary())
-
-		body := strings.Split(strings.TrimSpace(c.UserCommit.Message()), "\n")
-		if len(body) > 1 {
-			ctx.Data["content"] = strings.Join(body[1:], "\n")
-		}
-	}
-
-	if len(title) > 255 {
-		var trailer string
-		title, trailer = util.EllipsisDisplayStringX(title, 255)
-		if len(trailer) > 0 {
-			if ctx.Data["content"] != nil {
-				ctx.Data["content"] = fmt.Sprintf("%s\n\n%s", trailer, ctx.Data["content"])
-			} else {
-				ctx.Data["content"] = trailer + "\n"
-			}
-		}
-	}
-
-	ctx.Data["title"] = title
+	ctx.Data["title"], ctx.Data["content"] = prepareNewPullRequestTitleContent(ci, commits)
 	ctx.Data["Username"] = ci.HeadRepo.OwnerName
 	ctx.Data["Reponame"] = ci.HeadRepo.Name
 
@@ -744,13 +749,16 @@ func attachHiddenCommentIDs(section *gitdiff.DiffSection, lineComments map[int64
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.PathParam("sha")
-	lastLeft := ctx.FormInt("last_left")
-	lastRight := ctx.FormInt("last_right")
-	idxLeft := ctx.FormInt("left")
-	idxRight := ctx.FormInt("right")
-	leftHunkSize := ctx.FormInt("left_hunk_size")
-	rightHunkSize := ctx.FormInt("right_hunk_size")
-	direction := ctx.FormString("direction")
+	opts := gitdiff.BlobExcerptOptions{
+		LastLeft:      ctx.FormInt("last_left"),
+		LastRight:     ctx.FormInt("last_right"),
+		LeftIndex:     ctx.FormInt("left"),
+		RightIndex:    ctx.FormInt("right"),
+		LeftHunkSize:  ctx.FormInt("left_hunk_size"),
+		RightHunkSize: ctx.FormInt("right_hunk_size"),
+		Direction:     ctx.FormString("direction"),
+		Language:      ctx.FormString("filelang"),
+	}
 	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
 
@@ -770,61 +778,27 @@ func ExcerptBlob(ctx *context.Context) {
 		diffBlobExcerptData.BaseLink = ctx.Repo.RepoLink + "/wiki/blob_excerpt"
 	}
 
-	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "GetCommit")
+		ctx.ServerError("GetCommit", err)
 		return
 	}
-	section := &gitdiff.DiffSection{
-		FileName: filePath,
-	}
-	if direction == "up" && (idxLeft-lastLeft) > chunkSize {
-		idxLeft -= chunkSize
-		idxRight -= chunkSize
-		leftHunkSize += chunkSize
-		rightHunkSize += chunkSize
-		section.Lines, err = getExcerptLines(commit, filePath, idxLeft-1, idxRight-1, chunkSize)
-	} else if direction == "down" && (idxLeft-lastLeft) > chunkSize {
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, chunkSize)
-		lastLeft += chunkSize
-		lastRight += chunkSize
-	} else {
-		offset := -1
-		if direction == "down" {
-			offset = 0
-		}
-		section.Lines, err = getExcerptLines(commit, filePath, lastLeft, lastRight, idxRight-lastRight+offset)
-		leftHunkSize = 0
-		rightHunkSize = 0
-		idxLeft = lastLeft
-		idxRight = lastRight
-	}
+	blob, err := commit.Tree.GetBlobByPath(filePath)
 	if err != nil {
-		ctx.HTTPError(http.StatusInternalServerError, "getExcerptLines")
+		ctx.ServerError("GetBlobByPath", err)
 		return
 	}
-
-	newLineSection := &gitdiff.DiffLine{
-		Type: gitdiff.DiffLineSection,
-		SectionInfo: &gitdiff.DiffLineSectionInfo{
-			Path:          filePath,
-			LastLeftIdx:   lastLeft,
-			LastRightIdx:  lastRight,
-			LeftIdx:       idxLeft,
-			RightIdx:      idxRight,
-			LeftHunkSize:  leftHunkSize,
-			RightHunkSize: rightHunkSize,
-		},
+	reader, err := blob.DataAsync()
+	if err != nil {
+		ctx.ServerError("DataAsync", err)
+		return
 	}
-	if newLineSection.GetExpandDirection() != "" {
-		newLineSection.Content = fmt.Sprintf("@@ -%d,%d +%d,%d @@\n", idxLeft, leftHunkSize, idxRight, rightHunkSize)
-		switch direction {
-		case "up":
-			section.Lines = append([]*gitdiff.DiffLine{newLineSection}, section.Lines...)
-		case "down":
-			section.Lines = append(section.Lines, newLineSection)
-		}
+	defer reader.Close()
+
+	section, err := gitdiff.BuildBlobExcerptDiffSection(filePath, reader, opts)
+	if err != nil {
+		ctx.ServerError("BuildBlobExcerptDiffSection", err)
+		return
 	}
 
 	diffBlobExcerptData.PullIssueIndex = ctx.FormInt64("pull_issue_index")
@@ -864,38 +838,4 @@ func ExcerptBlob(ctx *context.Context) {
 	ctx.Data["DiffBlobExcerptData"] = diffBlobExcerptData
 
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)
-}
-
-func getExcerptLines(commit *git.Commit, filePath string, idxLeft, idxRight, chunkSize int) ([]*gitdiff.DiffLine, error) {
-	blob, err := commit.Tree.GetBlobByPath(filePath)
-	if err != nil {
-		return nil, err
-	}
-	reader, err := blob.DataAsync()
-	if err != nil {
-		return nil, err
-	}
-	defer reader.Close()
-	scanner := bufio.NewScanner(reader)
-	var diffLines []*gitdiff.DiffLine
-	for line := 0; line < idxRight+chunkSize; line++ {
-		if ok := scanner.Scan(); !ok {
-			break
-		}
-		if line < idxRight {
-			continue
-		}
-		lineText := scanner.Text()
-		diffLine := &gitdiff.DiffLine{
-			LeftIdx:  idxLeft + (line - idxRight) + 1,
-			RightIdx: line + 1,
-			Type:     gitdiff.DiffLinePlain,
-			Content:  " " + lineText,
-		}
-		diffLines = append(diffLines, diffLine)
-	}
-	if err = scanner.Err(); err != nil {
-		return nil, fmt.Errorf("getExcerptLines scan: %w", err)
-	}
-	return diffLines, nil
 }

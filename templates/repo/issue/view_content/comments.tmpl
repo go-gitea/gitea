@@ -1,5 +1,5 @@
 {{template "base/alert"}}
-{{range .Issue.Comments}}
+{{range $comment := .Issue.Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
 		{{$createdStr:= DateUtils.TimeSince .CreatedUnix}}
 
@@ -29,7 +29,7 @@
 					<div class="comment-header avatar-content-left-arrow" role="heading" aria-level="3">
 						<div class="comment-header-left">
 							{{if .OriginalAuthor}}
-								<span class="text black tw-font-semibold tw-mr-1">
+								<span class="tw-text-text tw-font-semibold tw-mr-1">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{.OriginalAuthor}}
 								</span>
@@ -220,11 +220,11 @@
 			</div>
 		{{else if eq .Type 10}}
 			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-pencil"}}</span>
+				<span class="badge">{{ctx.RenderUtils.RenderTimelineEventBadge $comment}}</span>
 				{{template "shared/user/avatarlink" dict "user" .Poster}}
 				<span class="comment-text-line">
 					{{template "shared/user/authorlink" .Poster}}
-					{{ctx.Locale.Tr "repo.issues.change_title_at" (.OldTitle|ctx.RenderUtils.RenderEmoji) (.NewTitle|ctx.RenderUtils.RenderEmoji) $createdStr}}
+					{{ctx.RenderUtils.RenderTimelineEventComment $comment $createdStr}}
 				</span>
 			</div>
 		{{else if eq .Type 11}}
@@ -403,7 +403,7 @@
 								{{end}}
 								<span class="comment-text-line">
 									{{if .OriginalAuthor}}
-										<span class="text black tw-font-semibold">
+										<span class="tw-text-text tw-font-semibold">
 											{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 											{{.OriginalAuthor}}
 										</span>

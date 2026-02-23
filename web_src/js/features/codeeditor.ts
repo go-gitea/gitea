@@ -1,6 +1,6 @@
-import tinycolor from 'tinycolor2';
+import {colord} from 'colord';
 import {basename, extname, isObject, isDarkTheme} from '../utils.ts';
-import {onInputDebounce} from '../utils/dom.ts';
+import {onInputDebounce, toggleElem} from '../utils/dom.ts';
 import type MonacoNamespace from 'monaco-editor';
 
 type Monaco = typeof MonacoNamespace;
@@ -10,15 +10,11 @@ type IGlobalEditorOptions = MonacoNamespace.editor.IGlobalEditorOptions;
 type ITextModelUpdateOptions = MonacoNamespace.editor.ITextModelUpdateOptions;
 type MonacoOpts = IEditorOptions & IGlobalEditorOptions & ITextModelUpdateOptions;
 
-type EditorConfig = {
+type CodeEditorConfig = {
   indent_style?: 'tab' | 'space',
-  indent_size?: string | number, // backend emits this as string
+  indent_size?: number,
   tab_width?: string | number, // backend emits this as string
-  end_of_line?: 'lf' | 'cr' | 'crlf',
-  charset?: 'latin1' | 'utf-8' | 'utf-8-bom' | 'utf-16be' | 'utf-16le',
   trim_trailing_whitespace?: boolean,
-  insert_final_newline?: boolean,
-  root?: boolean,
 };
 
 const languagesByFilename: Record<string, string> = {};
@@ -38,14 +34,16 @@ const baseOptions: MonacoOpts = {
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6, alwaysConsumeMouseWheel: false},
   scrollBeyondLastLine: false,
   automaticLayout: true,
+  indentSize: 'tabSize',
   wrappingIndent: 'none',
   wordWrapBreakAfterCharacters: '',
   wordWrapBreakBeforeCharacters: '',
   matchBrackets: 'never',
+  editContext: false, // https://github.com/microsoft/monaco-editor/issues/5081
 };
 
-function getEditorconfig(input: HTMLInputElement): EditorConfig | null {
-  const json = input.getAttribute('data-editorconfig');
+function getCodeEditorConfig(input: HTMLInputElement): CodeEditorConfig | null {
+  const json = input.getAttribute('data-code-editor-config');
   if (!json) return null;
   try {
     return JSON.parse(json);
@@ -96,7 +94,7 @@ function updateTheme(monaco: Monaco): void {
   // https://github.com/microsoft/monaco-editor/issues/2427
   // also, monaco can only parse 6-digit hex colors, so we convert the colors to that format
   const styles = window.getComputedStyle(document.documentElement);
-  const getColor = (name: string) => tinycolor(styles.getPropertyValue(name).trim()).toString('hex6');
+  const getColor = (name: string) => colord(styles.getPropertyValue(name).trim()).alpha(1).toHex();
 
   monaco.editor.defineTheme('gitea', {
     base: isDarkTheme() ? 'vs-dark' : 'vs',
@@ -152,6 +150,7 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
   const editor = monaco.editor.create(container, {
     model,
     theme: 'gitea',
+    ...baseOptions,
     ...other,
   });
 
@@ -166,6 +165,22 @@ export async function createMonaco(textarea: HTMLTextAreaElement, filename: stri
     });
     textarea.dispatchEvent(new Event('change')); // seems to be needed for jquery-are-you-sure
   });
+
+  const elEditorOptions = textarea.closest('form')?.querySelector('.code-editor-options');
+  if (elEditorOptions) {
+    elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-style-select')!.addEventListener('change', (e) => {
+      const insertSpaces = (e.target as HTMLSelectElement).value === 'space';
+      editor.updateOptions({insertSpaces, useTabStops: !insertSpaces});
+    });
+    elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-size-select')!.addEventListener('change', (e) => {
+      const tabSize = Number((e.target as HTMLSelectElement).value);
+      editor.updateOptions({tabSize});
+    });
+    elEditorOptions.querySelector<HTMLSelectElement>('.js-line-wrap-select')!.addEventListener('change', (e) => {
+      const wordWrap = (e.target as HTMLSelectElement).value as IEditorOptions['wordWrap'];
+      editor.updateOptions({wordWrap});
+    });
+  }
 
   exportEditor(editor);
 
@@ -182,19 +197,19 @@ function getFileBasedOptions(filename: string, lineWrapExts: string[]): MonacoOp
 }
 
 function togglePreviewDisplay(previewable: boolean): void {
+  // FIXME: here and below, the selector is too broad, it should only query in the editor related scope
   const previewTab = document.querySelector<HTMLElement>('a[data-tab="preview"]');
+  // the "preview tab" exists for "file code editor", but doesn't exist for "git hook editor"
   if (!previewTab) return;
 
-  if (previewable) {
-    previewTab.style.display = '';
-  } else {
-    previewTab.style.display = 'none';
-    // If the "preview" tab was active, user changes the filename to a non-previewable one,
-    // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
-    if (previewTab.classList.contains('active')) {
-      const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
-      writeTab?.click();
-    }
+  toggleElem(previewTab, previewable);
+  if (previewable) return;
+
+  // If not previewable but the "preview" tab was active (user changes the filename to a non-previewable one),
+  // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
+  if (previewTab.classList.contains('active')) {
+    const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
+    writeTab?.click(); // TODO: it shouldn't need null-safe operator, writeTab must exist
   }
 }
 
@@ -203,14 +218,13 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
   const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
   const isPreviewable = previewableExts.has(extname(filename));
-  const editorConfig = getEditorconfig(filenameInput);
+  const editorConfig = getCodeEditorConfig(filenameInput);
 
   togglePreviewDisplay(isPreviewable);
 
   const {monaco, editor} = await createMonaco(textarea, filename, {
-    ...baseOptions,
     ...getFileBasedOptions(filenameInput.value, lineWrapExts),
-    ...getEditorConfigOptions(editorConfig),
+    ...getMonacoOptsByCodeEditorConfig(editorConfig),
   });
 
   filenameInput.addEventListener('input', onInputDebounce(() => {
@@ -223,20 +237,15 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
   return editor;
 }
 
-function getEditorConfigOptions(ec: EditorConfig | null): MonacoOpts {
+function getMonacoOptsByCodeEditorConfig(ec: CodeEditorConfig | null): MonacoOpts {
   if (!ec || !isObject(ec)) return {};
 
   const opts: MonacoOpts = {};
-  opts.detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
+  opts.detectIndentation = !ec.indent_style || !ec.indent_size;
 
-  if ('indent_size' in ec) {
-    opts.indentSize = Number(ec.indent_size);
-  }
-  if ('tab_width' in ec) {
-    opts.tabSize = Number(ec.tab_width) || Number(ec.indent_size);
-  }
-  if ('max_line_length' in ec) {
-    opts.rulers = [Number(ec.max_line_length)];
+  // with indentSize='tabSize', this also controls the `indentSize` option
+  if (!opts.detectIndentation) {
+    opts.tabSize = Number(ec.tab_width) || Number(ec.indent_size) || 4;
   }
 
   opts.trimAutoWhitespace = ec.trim_trailing_whitespace === true;

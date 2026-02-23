@@ -34,6 +34,14 @@ func checkReleaseMatchRepo(ctx *context.APIContext, releaseID int64) bool {
 		ctx.APIErrorNotFound()
 		return false
 	}
+	if release.IsDraft {
+		if !canAccessDraftRelease(ctx) {
+			if !ctx.Written() {
+				ctx.APIErrorNotFound()
+			}
+			return false
+		}
+	}
 	return true
 }
 
@@ -141,6 +149,14 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 		ctx.APIErrorNotFound()
 		return
 	}
+	if release.IsDraft {
+		if !canAccessDraftRelease(ctx) {
+			if !ctx.Written() {
+				ctx.APIErrorNotFound()
+			}
+			return
+		}
+	}
 	if err := release.LoadAttributes(ctx); err != nil {
 		ctx.APIErrorInternal(err)
 		return
@@ -234,7 +250,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment_service.UploadAttachmentGeneralSizeLimit(ctx, uploaderFile, setting.Repository.Release.AllowedTypes, &repo_model.Attachment{
+	attach, err := attachment_service.UploadAttachmentReleaseSizeLimit(ctx, uploaderFile, setting.Repository.Release.AllowedTypes, &repo_model.Attachment{
 		Name:       filename,
 		UploaderID: ctx.Doer.ID,
 		RepoID:     ctx.Repo.Repository.ID,

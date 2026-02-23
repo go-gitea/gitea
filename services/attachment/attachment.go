@@ -58,6 +58,10 @@ func UploadAttachmentGeneralSizeLimit(ctx context.Context, file *UploaderFile, a
 	return uploadAttachment(ctx, file, allowedTypes, setting.Attachment.MaxSize<<20, attach)
 }
 
+func UploadAttachmentReleaseSizeLimit(ctx context.Context, file *UploaderFile, allowedTypes string, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
+	return uploadAttachment(ctx, file, allowedTypes, setting.Repository.Release.FileMaxSize<<20, attach)
+}
+
 func uploadAttachment(ctx context.Context, file *UploaderFile, allowedTypes string, maxFileSize int64, attach *repo_model.Attachment) (*repo_model.Attachment, error) {
 	src := file.rd
 	if file.size < 0 {

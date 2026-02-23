@@ -397,9 +397,15 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 
 		if protectedBranch != nil {
 			// there is a protect rule for this branch
-			protectedBranch.RuleName = to
-			if _, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch); err != nil {
+			existingRule, err := GetProtectedBranchRuleByName(ctx, repo.ID, to)
+			if err != nil {
 				return err
+			}
+			if existingRule == nil || existingRule.ID == protectedBranch.ID {
+				protectedBranch.RuleName = to
+				if _, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch); err != nil {
+					return err
+				}
 			}
 		} else {
 			// some glob protect rules may match this branch
@@ -444,7 +450,7 @@ func RenameBranch(ctx context.Context, repo *repo_model.Repository, from, to str
 type FindRecentlyPushedNewBranchesOptions struct {
 	Repo            *repo_model.Repository
 	BaseRepo        *repo_model.Repository
-	CommitAfterUnix int64
+	PushedAfterUnix int64
 	MaxCount        int
 }
 
@@ -454,11 +460,11 @@ type RecentlyPushedNewBranch struct {
 	BranchDisplayName string
 	BranchLink        string
 	BranchCompareURL  string
-	CommitTime        timeutil.TimeStamp
+	PushedTime        timeutil.TimeStamp
 }
 
 // FindRecentlyPushedNewBranches return at most 2 new branches pushed by the user in 2 hours which has no opened PRs created
-// if opts.CommitAfterUnix is 0, we will find the branches that were committed to in the last 2 hours
+// if opts.PushedAfterUnix is 0, we will find the branches that were pushed in the last 2 hours
 // if opts.ListOptions is not set, we will only display top 2 latest branches.
 // Protected branches will be skipped since they are unlikely to be used to create new PRs.
 func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, opts FindRecentlyPushedNewBranchesOptions) ([]*RecentlyPushedNewBranch, error) {
@@ -486,16 +492,29 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 	}
 	repoIDs := builder.Select("id").From("repository").Where(repoCond)
 
-	if opts.CommitAfterUnix == 0 {
-		opts.CommitAfterUnix = time.Now().Add(-time.Hour * 2).Unix()
+	if opts.PushedAfterUnix == 0 {
+		opts.PushedAfterUnix = time.Now().Add(-time.Hour * 2).Unix()
 	}
 
-	baseBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
+	var ignoredCommitIDs []string
+	baseDefaultBranch, err := GetBranch(ctx, opts.BaseRepo.ID, opts.BaseRepo.DefaultBranch)
 	if err != nil {
-		return nil, err
+		log.Warn("GetBranch:DefaultBranch: %v", err)
+	} else {
+		ignoredCommitIDs = append(ignoredCommitIDs, baseDefaultBranch.CommitID)
 	}
 
-	// find all related branches, these branches may already created PRs, we will check later
+	baseDefaultTargetBranchName := opts.BaseRepo.MustGetUnit(ctx, unit.TypePullRequests).PullRequestsConfig().DefaultTargetBranch
+	if baseDefaultTargetBranchName != "" && baseDefaultTargetBranchName != opts.BaseRepo.DefaultBranch {
+		baseDefaultTargetBranch, err := GetBranch(ctx, opts.BaseRepo.ID, baseDefaultTargetBranchName)
+		if err != nil {
+			log.Warn("GetBranch:DefaultTargetBranch: %v", err)
+		} else {
+			ignoredCommitIDs = append(ignoredCommitIDs, baseDefaultTargetBranch.CommitID)
+		}
+	}
+
+	// find all related branches, these branches may already have PRs, we will check later
 	var branches []*Branch
 	if err := db.GetEngine(ctx).
 		Where(builder.And(
@@ -503,10 +522,10 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 				"pusher_id":  doer.ID,
 				"is_deleted": false,
 			},
-			builder.Gte{"commit_time": opts.CommitAfterUnix},
+			builder.Gte{"updated_unix": opts.PushedAfterUnix},
 			builder.In("repo_id", repoIDs),
 			// newly created branch have no changes, so skip them
-			builder.Neq{"commit_id": baseBranch.CommitID},
+			builder.NotIn("commit_id", ignoredCommitIDs),
 		)).
 		OrderBy(db.SearchOrderByRecentUpdated.String()).
 		Find(&branches); err != nil {
@@ -514,10 +533,8 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 	}
 
 	newBranches := make([]*RecentlyPushedNewBranch, 0, len(branches))
-	if opts.MaxCount == 0 {
-		// by default we display 2 recently pushed new branch
-		opts.MaxCount = 2
-	}
+	opts.MaxCount = util.IfZero(opts.MaxCount, 2) // by default, we display 2 recently pushed new branch
+	baseTargetBranchName := opts.BaseRepo.GetPullRequestTargetBranch(ctx)
 	for _, branch := range branches {
 		// whether the branch is protected
 		protected, err := IsBranchProtected(ctx, branch.RepoID, branch.Name)
@@ -555,8 +572,8 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 				BranchDisplayName: branchDisplayName,
 				BranchName:        branch.Name,
 				BranchLink:        fmt.Sprintf("%s/src/branch/%s", branch.Repo.Link(), util.PathEscapeSegments(branch.Name)),
-				BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, branch.Name),
-				CommitTime:        branch.CommitTime,
+				BranchCompareURL:  branch.Repo.ComposeBranchCompareURL(opts.BaseRepo, baseTargetBranchName, branch.Name),
+				PushedTime:        branch.UpdatedUnix,
 			})
 		}
 		if len(newBranches) == opts.MaxCount {

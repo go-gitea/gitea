@@ -23,21 +23,24 @@ type packageClaims struct {
 	PackageMeta
 }
 type PackageMeta struct {
-	UserID int64
-	Scope  auth_model.AccessTokenScope
+	UserID            int64
+	Scope             auth_model.AccessTokenScope
+	ActionsUserTaskID int64
 }
 
 func CreateAuthorizationToken(u *user_model.User, packageScope auth_model.AccessTokenScope) (string, error) {
 	now := time.Now()
 
+	actionsUserTaskID, _ := user_model.GetActionsUserTaskID(u)
 	claims := packageClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(24 * time.Hour)),
 			NotBefore: jwt.NewNumericDate(now),
 		},
 		PackageMeta: PackageMeta{
-			UserID: u.ID,
-			Scope:  packageScope,
+			UserID:            u.ID,
+			Scope:             packageScope,
+			ActionsUserTaskID: actionsUserTaskID,
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -53,7 +56,7 @@ func CreateAuthorizationToken(u *user_model.User, packageScope auth_model.Access
 func ParseAuthorizationRequest(req *http.Request) (*PackageMeta, error) {
 	h := req.Header.Get("Authorization")
 	if h == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // the auth method is not applicable
 	}
 
 	parts := strings.SplitN(h, " ", 2)

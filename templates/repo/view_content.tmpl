@@ -20,15 +20,10 @@
 		"ShowViewAllRefsEntry" true
 	}}
 
-	{{if and .CanCompareOrPull .RefFullName.IsBranch (not .Repository.IsArchived)}}
-		{{$cmpBranch := ""}}
-		{{if ne .Repository.ID .BaseRepo.ID}}
-			{{$cmpBranch = printf "%s/%s:" (.Repository.OwnerName|PathEscape) (.Repository.Name|PathEscape)}}
-		{{end}}
-		{{$cmpBranch = print $cmpBranch (.BranchName|PathEscapeSegments)}}
-		{{$compareLink := printf "%s/compare/%s...%s" .BaseRepo.Link (.BaseRepo.DefaultBranch|PathEscapeSegments) $cmpBranch}}
+	{{if and .PullRequestCtx.CanCreateNewPull .RefFullName.IsBranch}}
+		{{$compareLink := .PullRequestCtx.MakeDefaultCompareLink .BranchName}}
 		<a id="new-pull-request" role="button" class="ui compact basic button" href="{{QueryBuild $compareLink "expand" 1}}"
-			data-tooltip-content="{{if .PullRequestCtx.Allowed}}{{ctx.Locale.Tr "repo.pulls.compare_changes"}}{{else}}{{ctx.Locale.Tr "action.compare_branch"}}{{end}}">
+			data-tooltip-content="{{ctx.Locale.Tr "repo.pulls.compare_changes"}}">
 			{{svg "octicon-git-pull-request"}}
 		</a>
 	{{end}}
@@ -121,7 +116,7 @@
 		{{end}}
 		{{if and (not $isTreePathRoot) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
 			<a class="ui compact button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
-				{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
+				{{svg "octicon-history"}}{{ctx.Locale.Tr "repo.file_history"}}
 			</a>
 		{{end}}
 	</div>
