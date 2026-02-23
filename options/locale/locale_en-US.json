@@ -3782,7 +3782,7 @@
   "actions.general.token_permissions.max_permissions": "Maximum Permissions",
   "actions.general.token_permissions.max_permissions.desc": "Configure better restrictions for the GITEA_TOKEN running in this repository.",
   "actions.general.token_permissions.cross_repo": "Allow Cross-Repository Access",
-  "actions.general.token_permissions.cross_repo_desc": "Control whether the token can access other repositories and packages owned by this user or organization.",
+  "actions.general.token_permissions.cross_repo_desc": "Control whether the token can access other repositories owned by this user or organization.",
   "actions.general.token_permissions.cross_repo_all": "All repositories owned by this user or organization",
   "actions.general.token_permissions.cross_repo_selected": "Selected repositories only",
   "actions.general.token_permissions.allowed_repos": "Target Repositories",

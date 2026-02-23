@@ -15,6 +15,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	org_model "code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -943,4 +944,121 @@ func createActionTask(t *testing.T, repoID int64, isFork bool) *actions_model.Ac
 
 	task.Job = job
 	return task
+}
+
+func TestActionsOverrideOrgConfig(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user2")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteUser, auth_model.AccessTokenScopeWriteRepository, auth_model.AccessTokenScopeWriteOrganization)
+
+		orgName := "org-override-test"
+		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &structs.CreateOrgOption{
+			UserName: orgName,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+		org, err := user_model.GetUserByName(t.Context(), orgName)
+		require.NoError(t, err)
+
+		// 1. Set Org Config to RESTRICTED and Max=Read
+		orgCfg := &repo_model.ActionsConfig{
+			TokenPermissionMode: repo_model.ActionsTokenPermissionModeRestricted,
+			MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
+				Issues: perm.AccessModeRead,
+				Code:   perm.AccessModeRead,
+			},
+		}
+		require.NoError(t, actions_model.SetUserActionsConfig(t.Context(), org.ID, orgCfg))
+
+		// 2. Create Repository in Org
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName), &structs.CreateRepoOption{
+			Name:     "repo-override",
+			AutoInit: true,
+			Private:  true,
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var apiRepo structs.Repository
+		DecodeJSON(t, resp, &apiRepo)
+		repoID := apiRepo.ID
+
+		enableActions := func(override bool, mode repo_model.ActionsTokenPermissionMode) {
+			err := db.Insert(t.Context(), &repo_model.RepoUnit{
+				RepoID: repoID,
+				Type:   unit_model.TypeActions,
+				Config: &repo_model.ActionsConfig{
+					OverrideOrgConfig:   override,
+					TokenPermissionMode: mode,
+					MaxTokenPermissions: &repo_model.ActionsTokenPermissions{
+						Issues: perm.AccessModeWrite, // Repo tries to be more permissive than org
+						Code:   perm.AccessModeWrite,
+					},
+				},
+			})
+			require.NoError(t, err)
+		}
+
+		// 3. Test OverrideOrgConfig = false (Org config clamping should apply)
+		enableActions(false, repo_model.ActionsTokenPermissionModePermissive)
+		task1 := createActionTask(t, repoID, false)
+
+		testCtx := APITestContext{
+			Session:  emptyTestSession(t),
+			Token:    task1.Token,
+			Username: orgName,
+			Reponame: "repo-override",
+		}
+
+		// Write should FAIL because Override=false means Org config (Max=READ, Default=RESTRICTED) is used
+		testCtx.ExpectedCode = http.StatusForbidden
+		t.Run("Override=False Org Clamping (Should Fail Write)", doAPICreateFile(testCtx, "fail-file.txt", &structs.CreateFileOptions{
+			FileOptions: structs.FileOptions{
+				BranchName: "main",
+				Message:    "fail write test",
+			},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("fail")),
+		}))
+
+		// Read should SUCCEED
+		testCtx.ExpectedCode = http.StatusOK
+		t.Run("Override=False Org Clamping (Should Succeed Read)", doAPIGetRepository(testCtx, nil))
+
+		// Clean up the repo unit to reset
+		_, err = db.DeleteByBean(t.Context(), &repo_model.RepoUnit{RepoID: repoID, Type: unit_model.TypeActions})
+		require.NoError(t, err)
+
+		// 4. Test OverrideOrgConfig = true (Repo config should apply, clamping bypassed)
+		enableActions(true, repo_model.ActionsTokenPermissionModePermissive)
+		task2 := createActionTask(t, repoID, false)
+		testCtx.Token = task2.Token
+
+		// Write should SUCCEED because Override=true bypasses Org restrictions
+		testCtx.ExpectedCode = http.StatusCreated
+		t.Run("Override=True Repo Config (Should Succeed Write)", doAPICreateFile(testCtx, "success-file.txt", &structs.CreateFileOptions{
+			FileOptions: structs.FileOptions{
+				BranchName: "main",
+				Message:    "success write test",
+			},
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("success")),
+		}))
+
+		// 5. Test empty permissions mapping `permissions: {}` (None/Restricted)
+		// We simulate this by overriding the specific job permissions in the DB to match what the parser does for `permissions: {}`
+		// which results in all None.
+		task3 := createActionTask(t, repoID, false)
+		job, err := actions_model.GetRunJobByID(t.Context(), task3.JobID)
+		require.NoError(t, err)
+
+		emptyPerms, _ := repo_model.MarshalTokenPermissions(repo_model.ActionsTokenPermissions{})
+		job.TokenPermissions = emptyPerms
+		_, err = db.GetEngine(t.Context()).ID(job.ID).Cols("token_permissions").Update(job)
+		require.NoError(t, err)
+		require.NoError(t, task3.GenerateToken())
+		require.NoError(t, actions_model.UpdateTask(t.Context(), task3, "token_hash", "token_salt", "token_last_eight"))
+
+		testCtx.Token = task3.Token
+		// Read should FAIL because permissions: {} sets EVERYTHING to none
+		testCtx.ExpectedCode = http.StatusNotFound
+		t.Run("Empty Permissions Mapping (Should Fail Read)", doAPIGetRepository(testCtx, func(t *testing.T, r structs.Repository) {
+			// Should not reach here
+		}))
+	})
 }
