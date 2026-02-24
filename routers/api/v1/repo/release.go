@@ -32,7 +32,7 @@ func canAccessReleaseDraft(ctx *context.APIContext) bool {
 	// the request is from an access token with scope
 	scope := ctx.Data["ApiTokenScope"].(auth_model.AccessTokenScope)
 	requiredScopes := auth_model.GetRequiredScopes(auth_model.Write, auth_model.AccessTokenScopeCategoryRepository)
-	allow, _ := scope.HasScope(requiredScopes...) // err (invalid token) can be safely ignore
+	allow, _ := scope.HasScope(requiredScopes...) // err (invalid token) can be safely ignored
 	return allow
 }
 
