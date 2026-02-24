@@ -18,7 +18,6 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     permissions:
-      actions: write # to use GHA cache
       contents: read
     steps:
       - uses: actions/checkout@v6
@@ -31,7 +30,6 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/riscv64
           push: false
           cache-from: type=gha
-          cache-to: type=gha,mode=max
       - name: Build rootless container image
         uses: docker/build-push-action@v6
         with:
@@ -40,4 +38,3 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/riscv64
           file: Dockerfile.rootless
           cache-from: type=gha
-          cache-to: type=gha,mode=max
