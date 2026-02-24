@@ -212,7 +212,7 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
     },
   });
 
-  // on elements where the tooltip is re-loacted like "Copy Link" inside fomantic dropdowns, tippy.js gets
+  // on elements where the tooltip is re-locacted like "Copy Link" inside fomantic dropdowns, tippy.js gets
   // no mouseOut event so we have to hide the tooltip manually.
   if (useHideTimeout) {
     setTimeout(() => {
