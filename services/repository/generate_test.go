@@ -87,6 +87,16 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 		assert.Equal(t, expected, string(data), "file content mismatch for %s", path)
 	}
 
+	assertAbsFileContent := func(path, expected string) {
+		data, err := os.ReadFile(path)
+		if expected == "" {
+			assert.ErrorIs(t, err, os.ErrNotExist)
+			return
+		}
+		require.NoError(t, err)
+		assert.Equal(t, expected, string(data), "file content mismatch for %s", path)
+	}
+
 	assertSymLink := func(path, expected string) {
 		link, err := os.Readlink(filepath.Join(tmpDir, path))
 		if expected == "" {
@@ -98,7 +108,7 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 	}
 
 	require.NoError(t, os.MkdirAll(tmpDir+"/.gitea", 0o755))
-	require.NoError(t, os.WriteFile(tmpDir+"/.gitea/template", []byte("*\ninclude/**"), 0o644))
+	require.NoError(t, os.WriteFile(tmpDir+"/.gitea/template", []byte("*\ninclude/**\n**/hook"), 0o644))
 	require.NoError(t, os.MkdirAll(tmpDir+"/sub", 0o755))
 	require.NoError(t, os.MkdirAll(tmpDir+"/include/foo/bar", 0o755))
 
@@ -137,6 +147,15 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 		require.NoError(t, os.Symlink(tmpDir+"/sub/link-target", tmpDir+"/subst-${TEMPLATE_NAME}-from-link"))
 		// pre-check
 		assertSubstTemplateName("dummy subst template name normal", "dummy subst template name to link", "link target content from ${TEMPLATE_NAME}")
+	}
+
+	// case-5
+	outsideDir := t.TempDir()
+	{
+		require.NoError(t, os.MkdirAll(tmpDir+"/subst-${TEMPLATE_NAME}-via-link", 0o755))
+		require.NoError(t, os.WriteFile(tmpDir+"/subst-${TEMPLATE_NAME}-via-link/hook", []byte("hook content ${TEMPLATE_NAME}"), 0o644))
+		require.NoError(t, os.WriteFile(filepath.Join(outsideDir, "hook"), []byte("outside hook"), 0o644))
+		require.NoError(t, os.Symlink(outsideDir, tmpDir+"/subst-TemplateRepoName-via-link"))
 	}
 
 	// process the template files
@@ -180,6 +199,13 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 		assertSymLink("subst-TemplateRepoName-to-link", tmpDir+"/sub/link-target")
 		// subst from a link, skip, and the target is unchanged
 		assertSymLink("subst-${TEMPLATE_NAME}-from-link", tmpDir+"/sub/link-target")
+	}
+
+	// case-5
+	{
+		assertFileContent("subst-${TEMPLATE_NAME}-via-link/hook", "")
+		assertSymLink("subst-TemplateRepoName-via-link", outsideDir)
+		assertAbsFileContent(filepath.Join(outsideDir, "hook"), "outside hook")
 	}
 
 	{

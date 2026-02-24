@@ -178,6 +178,9 @@ func substGiteaTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, t
 	generatedContent := generateExpansion(ctx, string(content), templateRepo, generateRepo)
 	substSubPath := filePathSanitize(generateExpansion(ctx, tmpDirSubPath, templateRepo, generateRepo))
 	newLocalPath := filepath.Join(tmpDir, substSubPath)
+	if err := ensureNoSymlinkInPath(tmpDir, newLocalPath); err != nil {
+		return nil
+	}
 	regular, err := util.IsRegularFile(newLocalPath)
 	if canWrite := regular || errors.Is(err, fs.ErrNotExist); !canWrite {
 		return nil
@@ -336,4 +339,39 @@ func filePathSanitize(s string) string {
 		fields[i] = field
 	}
 	return filepath.Clean(filepath.FromSlash(strings.Trim(strings.Join(fields, "/"), "/")))
+}
+
+func ensureNoSymlinkInPath(baseDir, targetPath string) error {
+	relPath, err := filepath.Rel(baseDir, targetPath)
+	if err != nil {
+		return err
+	}
+	if relPath == "." {
+		return nil
+	}
+	if relPath == ".." || strings.HasPrefix(relPath, ".."+string(filepath.Separator)) {
+		return fmt.Errorf("path escapes base directory: %s", targetPath)
+	}
+
+	current := baseDir
+	for part := range strings.SplitSeq(relPath, string(filepath.Separator)) {
+		if part == "" || part == "." {
+			continue
+		}
+		current = filepath.Join(current, part)
+		info, err := os.Lstat(current)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil
+			}
+			return err
+		}
+		if info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("path contains symlink: %s", current)
+		}
+		if !info.IsDir() {
+			return nil
+		}
+	}
+	return nil
 }
