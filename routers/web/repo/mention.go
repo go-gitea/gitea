@@ -42,7 +42,7 @@ func MentionValues(ctx *context.Context) {
 	if issueIndex := ctx.FormInt64("issue_index"); issueIndex > 0 {
 		issue, err := issues_model.GetIssueByIndex(ctx, ctx.Repo.Repository.ID, issueIndex)
 		if err != nil {
-			ctx.ServerError("GetIssueByIndex", err)
+			ctx.NotFoundOrServerError("GetIssueByIndex", issues_model.IsErrIssueNotExist, err)
 			return
 		}
 		userIDs, err := issue.GetParticipantIDsByIssue(ctx)

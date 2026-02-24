@@ -31,22 +31,22 @@ export function matchEmoji(queryText: string): string[] {
   return sortAndReduce(results);
 }
 
-let cachedMentionValues: MentionValue[] | undefined;
+let cachedMentionValues: MentionValue[];
 
 export async function fetchMentionValues(): Promise<MentionValue[]> {
-  if (cachedMentionValues === undefined) {
-    try {
-      const {ownerName, repoName} = parseRepoOwnerPathInfo(window.location.pathname);
-      if (ownerName && repoName) {
+  if (!cachedMentionValues) {
+    cachedMentionValues = [];
+    const {ownerName, repoName} = parseRepoOwnerPathInfo(window.location.pathname);
+    if (ownerName && repoName) {
+      try {
         const {indexString} = parseIssueHref(window.location.href);
         const query = indexString ? `?issue_index=${indexString}` : '';
         const res = await GET(`${window.config.appSubUrl}/${ownerName}/${repoName}/-/mentionvalues${query}`);
         cachedMentionValues = await res.json();
+      } catch (e) {
+        showErrorToast(`Failed to load mention values: ${e}`);
       }
-    } catch (e) {
-      showErrorToast(`Failed to load mention values: ${e}`);
     }
-    cachedMentionValues ??= [];
   }
   return cachedMentionValues;
 }
