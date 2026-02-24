@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLabel_ToLabel(t *testing.T) {
@@ -84,59 +85,42 @@ func TestToStopWatchesRespectsPermissions(t *testing.T) {
 	assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{visibleAdmin[0].RepoName, visibleAdmin[1].RepoName})
 }
 
-func TestToTrackedTimeListRespectsPermissions(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func TestToTrackedTime(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
 
 	ctx := t.Context()
 	publicIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1})
 	privateIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 3})
-
 	regularUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
-	publicTT := &issues_model.TrackedTime{IssueID: publicIssue.ID, UserID: regularUser.ID, Time: 3600}
-	privateTT := &issues_model.TrackedTime{IssueID: privateIssue.ID, UserID: regularUser.ID, Time: 1800}
-	assert.NoError(t, db.Insert(ctx, publicTT))
-	assert.NoError(t, db.Insert(ctx, privateTT))
+	publicTrackedTime := &issues_model.TrackedTime{IssueID: publicIssue.ID, UserID: regularUser.ID, Time: 3600}
+	privateTrackedTime := &issues_model.TrackedTime{IssueID: privateIssue.ID, UserID: regularUser.ID, Time: 1800}
+	require.NoError(t, db.Insert(ctx, publicTrackedTime))
+	require.NoError(t, db.Insert(ctx, privateTrackedTime))
 
-	trackedTimes := issues_model.TrackedTimeList{publicTT, privateTT}
-	assert.NoError(t, trackedTimes.LoadAttributes(ctx))
+	t.Run("NilIssues", func(t *testing.T) {
+		list := ToTrackedTimeList(ctx, regularUser, issues_model.TrackedTimeList{publicTrackedTime, privateTrackedTime})
+		assert.Empty(t, list)
+	})
 
-	visible := ToTrackedTimeList(ctx, regularUser, trackedTimes)
-	assert.Len(t, visible, 1)
-	assert.Equal(t, "repo1", visible[0].Issue.Repo.Name)
+	t.Run("NilRepo", func(t *testing.T) {
+		badTrackedTime := &issues_model.TrackedTime{Issue: &issues_model.Issue{RepoID: 999999}}
+		visible := ToTrackedTimeList(ctx, regularUser, issues_model.TrackedTimeList{badTrackedTime})
+		assert.Empty(t, visible)
+	})
 
-	visibleAdmin := ToTrackedTimeList(ctx, adminUser, trackedTimes)
-	assert.Len(t, visibleAdmin, 2)
-	assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{visibleAdmin[0].Issue.Repo.Name, visibleAdmin[1].Issue.Repo.Name})
-}
+	trackedTimes := issues_model.TrackedTimeList{publicTrackedTime, privateTrackedTime}
+	require.NoError(t, trackedTimes.LoadAttributes(ctx))
 
-func TestToTrackedTimeListSkipsUnloadedIssues(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	ctx := t.Context()
-	publicIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1})
-	regularUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-
-	publicTT := &issues_model.TrackedTime{IssueID: publicIssue.ID, UserID: regularUser.ID, Time: 3600}
-	assert.NoError(t, db.Insert(ctx, publicTT))
-
-	trackedTimes := issues_model.TrackedTimeList{publicTT}
-	visible := ToTrackedTimeList(ctx, regularUser, trackedTimes)
-	assert.Empty(t, visible)
-}
-
-func TestToTrackedTimeListSkipsRepoLoadErrors(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	ctx := t.Context()
-	regularUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
-
-	trackedTimes := issues_model.TrackedTimeList{
-		{
-			Issue: &issues_model.Issue{RepoID: 999999, IsPull: false},
-		},
-	}
-	visible := ToTrackedTimeList(ctx, regularUser, trackedTimes)
-	assert.Empty(t, visible)
+	t.Run("ToRegularUser", func(t *testing.T) {
+		list := ToTrackedTimeList(ctx, regularUser, trackedTimes)
+		require.Len(t, list, 1)
+		assert.Equal(t, "repo1", list[0].Issue.Repo.Name)
+	})
+	t.Run("ToAdminUser", func(t *testing.T) {
+		list := ToTrackedTimeList(ctx, adminUser, trackedTimes)
+		require.Len(t, list, 2)
+		assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{list[0].Issue.Repo.Name, list[1].Issue.Repo.Name})
+	})
 }
