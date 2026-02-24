@@ -9,7 +9,6 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
-	"strings"
 
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -17,7 +16,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/gitrepo"
-	"code.gitea.io/gitea/modules/htmlutil"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -291,12 +289,8 @@ func UpdateCommentContent(ctx *context.Context) {
 		}
 	}
 
-	if strings.TrimSpace(string(renderedContent)) == "" {
-		renderedContent = htmlutil.HTMLFormat(`<span class="no-content">%s</span>`, ctx.Tr("repo.issues.no_content"))
-	}
-
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":        renderedContent,
+		"content":        renderNoContentMessage(ctx, renderedContent),
 		"contentVersion": comment.ContentVersion,
 		"attachments":    attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
