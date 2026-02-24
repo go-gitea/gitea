@@ -370,7 +370,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":        renderNoContentMessage(ctx, content),
+		"content":        commentContentHTML(ctx, content),
 		"contentVersion": issue.ContentVersion,
 		"attachments":    attachmentsHTML(ctx, issue.Attachments, issue.Content),
 	})
@@ -630,7 +630,7 @@ func updateAttachments(ctx *context.Context, item any, files []string) error {
 	return err
 }
 
-func renderNoContentMessage(ctx *context.Context, content template.HTML) template.HTML {
+func commentContentHTML(ctx *context.Context, content template.HTML) template.HTML {
 	if strings.TrimSpace(string(content)) == "" {
 		return htmlutil.HTMLFormat(`<span class="no-content">%s</span>`, ctx.Tr("repo.issues.no_content"))
 	}

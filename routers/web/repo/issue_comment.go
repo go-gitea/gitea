@@ -290,7 +290,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, map[string]any{
-		"content":        renderNoContentMessage(ctx, renderedContent),
+		"content":        commentContentHTML(ctx, renderedContent),
 		"contentVersion": comment.ContentVersion,
 		"attachments":    attachmentsHTML(ctx, comment.Attachments, comment.Content),
 	})
