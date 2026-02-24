@@ -61,6 +61,7 @@ async function tryOnEditContent(e: Event) {
       renderContent = newRenderContent;
 
       rawContent.textContent = comboMarkdownEditor.value();
+      document.querySelector(`[data-clipboard-target="#${rawContent.id}"]`)?.classList.toggle('disabled', !comboMarkdownEditor.value());
 
       if (!commentContent.querySelector('.dropzone-attachments')) {
         if (data.attachments !== '') {
