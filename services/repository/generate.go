@@ -151,7 +151,7 @@ func readGiteaTemplateFile(tmpDir string) (*giteaTemplateFileMatcher, error) {
 func substGiteaTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, templateRepo, generateRepo *repo_model.Repository) error {
 	content, err := util.ReadRegularPathFile(tmpDir, tmpDirSubPath, 1024*1024)
 	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) || errors.Is(err, util.ErrNotRegularPathFile) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return nil
 		}
 		return err
@@ -162,20 +162,18 @@ func substGiteaTemplateFile(ctx context.Context, tmpDir, tmpDirSubPath string, t
 
 	generatedContent := generateExpansion(ctx, string(content), templateRepo, generateRepo)
 	substSubPath := filePathSanitize(generateExpansion(ctx, tmpDirSubPath, templateRepo, generateRepo))
-	err = util.WriteRegularPathFile(tmpDir, substSubPath, []byte(generatedContent), 0o755, 0o644)
-	return util.Iif(errors.Is(err, util.ErrNotRegularPathFile), nil, err)
+	return util.WriteRegularPathFile(tmpDir, substSubPath, []byte(generatedContent), 0o755, 0o644)
 }
 
-func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, generateRepo *repo_model.Repository, fileMatcher *giteaTemplateFileMatcher) error {
+func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, generateRepo *repo_model.Repository, fileMatcher *giteaTemplateFileMatcher) (skippedFiles []string, _ error) {
 	if err := os.Remove(util.FilePathJoinAbs(tmpDir, fileMatcher.relPath)); err != nil {
-		return fmt.Errorf("unable to remove .gitea/template: %w", err)
+		return nil, fmt.Errorf("unable to remove .gitea/template: %w", err)
 	}
 	if !fileMatcher.HasRules() {
-		return nil // Avoid walking tree if there are no globs
+		return skippedFiles, nil // Avoid walking tree if there are no globs
 	}
 
-	defer util.RemoveAll(util.FilePathJoinAbs(tmpDir, ".git"))
-	return filepath.WalkDir(tmpDir, func(fullPath string, d os.DirEntry, walkErr error) error {
+	err := filepath.WalkDir(tmpDir, func(fullPath string, d os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
@@ -187,10 +185,22 @@ func processGiteaTemplateFile(ctx context.Context, tmpDir string, templateRepo, 
 			return err
 		}
 		if fileMatcher.Match(filepath.ToSlash(tmpDirSubPath)) {
-			return substGiteaTemplateFile(ctx, tmpDir, tmpDirSubPath, templateRepo, generateRepo)
+			err := substGiteaTemplateFile(ctx, tmpDir, tmpDirSubPath, templateRepo, generateRepo)
+			if errors.Is(err, util.ErrNotRegularPathFile) {
+				skippedFiles = append(skippedFiles, tmpDirSubPath)
+			} else if err != nil {
+				return err
+			}
 		}
 		return nil
 	}) // end: WalkDir
+	if err != nil {
+		return nil, err
+	}
+	if err = util.RemoveAll(util.FilePathJoinAbs(tmpDir, ".git")); err != nil {
+		return nil, err
+	}
+	return skippedFiles, nil
 }
 
 func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *repo_model.Repository, tmpDir string) error {
@@ -215,7 +225,7 @@ func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *r
 	// Variable expansion
 	fileMatcher, err := readGiteaTemplateFile(tmpDir)
 	if err == nil {
-		err = processGiteaTemplateFile(ctx, tmpDir, templateRepo, generateRepo, fileMatcher)
+		_, err = processGiteaTemplateFile(ctx, tmpDir, templateRepo, generateRepo, fileMatcher)
 		if err != nil {
 			return fmt.Errorf("processGiteaTemplateFile: %w", err)
 		}

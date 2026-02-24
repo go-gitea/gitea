@@ -117,14 +117,22 @@ func IsDir(dir string) (bool, error) {
 
 var ErrNotRegularPathFile = errors.New("not a regular file")
 
+// ReadRegularPathFile reads a file with given sub path in root dir.
+// It returns error when the path is not a regular file, or any parent path is not a regular directory.
 func ReadRegularPathFile(root, filePathIn string, limit int) ([]byte, error) {
-	pathCleaned := PathJoinRelX(filePathIn)
-	pathFields := strings.Split(pathCleaned, "/")
-	targetPath := root
-	for i := 0; i < len(pathFields); i++ {
-		targetPath += string(filepath.Separator) + pathFields[i]
+	pathFields := strings.Split(PathJoinRelX(filePathIn), "/")
+
+	targetPathBuilder := strings.Builder{}
+	targetPathBuilder.Grow(len(root) + len(filePathIn) + 2)
+	targetPathBuilder.WriteString(root)
+	targetPathString := root
+	for i, subPath := range pathFields {
+		targetPathBuilder.WriteByte(filepath.Separator)
+		targetPathBuilder.WriteString(subPath)
+		targetPathString = targetPathBuilder.String()
+
 		expectFile := i == len(pathFields)-1
-		st, err := os.Lstat(targetPath)
+		st, err := os.Lstat(targetPathString)
 		if err != nil {
 			return nil, err
 		}
@@ -132,7 +140,7 @@ func ReadRegularPathFile(root, filePathIn string, limit int) ([]byte, error) {
 			return nil, fmt.Errorf("%w: %s", ErrNotRegularPathFile, filePathIn)
 		}
 	}
-	f, err := os.Open(filepath.Join(root, pathCleaned))
+	f, err := os.Open(targetPathString)
 	if err != nil {
 		return nil, err
 	}
@@ -140,14 +148,23 @@ func ReadRegularPathFile(root, filePathIn string, limit int) ([]byte, error) {
 	return ReadWithLimit(f, limit)
 }
 
-func WriteRegularPathFile(root, filePathIn string, data []byte, dirMode, fileMode int) error {
-	pathCleaned := PathJoinRelX(filePathIn)
-	pathFields := strings.Split(pathCleaned, "/")
-	targetPath := root
-	for i := 0; i < len(pathFields); i++ {
-		targetPath += string(filepath.Separator) + pathFields[i]
+// WriteRegularPathFile writes data to a file with given sub path in root dir, it creates parent directories if necessary.
+// The file is created with fileMode, and the directories are created with dirMode.
+// It returns error when the path already exists but is not a regular file, or any parent path is not a regular directory.
+func WriteRegularPathFile(root, filePathIn string, data []byte, dirMode, fileMode os.FileMode) error {
+	pathFields := strings.Split(PathJoinRelX(filePathIn), "/")
+
+	targetPathBuilder := strings.Builder{}
+	targetPathBuilder.Grow(len(root) + len(filePathIn) + 2)
+	targetPathBuilder.WriteString(root)
+	targetPathString := root
+	for i, subPath := range pathFields {
+		targetPathBuilder.WriteByte(filepath.Separator)
+		targetPathBuilder.WriteString(subPath)
+		targetPathString = targetPathBuilder.String()
+
 		expectFile := i == len(pathFields)-1
-		st, err := os.Lstat(targetPath)
+		st, err := os.Lstat(targetPathString)
 		if err == nil {
 			if expectFile && !st.Mode().IsRegular() || !expectFile && !st.Mode().IsDir() {
 				return fmt.Errorf("%w: %s", ErrNotRegularPathFile, filePathIn)
@@ -158,12 +175,12 @@ func WriteRegularPathFile(root, filePathIn string, data []byte, dirMode, fileMod
 			return err
 		}
 		if !expectFile {
-			if err = os.Mkdir(targetPath, os.FileMode(dirMode)); err != nil {
+			if err = os.Mkdir(targetPathString, dirMode); err != nil {
 				return err
 			}
 		}
 	}
-	return os.WriteFile(targetPath, data, os.FileMode(fileMode))
+	return os.WriteFile(targetPathString, data, fileMode)
 }
 
 // IsExist checks whether a file or directory exists.

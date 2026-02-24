@@ -250,7 +250,7 @@ func TestReadWriteRegularPathFile(t *testing.T) {
 
 		content, err = ReadRegularPathFile(rootDir, "../other-file", readLimit)
 		require.ErrorIs(t, err, os.ErrNotExist)
-		assert.Equal(t, "", string(content))
+		assert.Empty(t, string(content))
 
 		content, err = ReadRegularPathFile(rootDir, "real-dir/real-file", readLimit)
 		require.NoError(t, err)
@@ -294,6 +294,7 @@ func TestReadWriteRegularPathFile(t *testing.T) {
 		assertFileContent(rootDir+"/other-file", "new-content")
 
 		err = WriteRegularPathFile(rootDir, "real-dir/real-file", []byte("changed-content"), 0o755, 0o644)
+		require.NoError(t, err)
 		assertFileContent(rootDir+"/real-dir/real-file", "changed-content")
 	})
 }
