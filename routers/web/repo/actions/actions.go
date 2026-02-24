@@ -29,7 +29,7 @@ import (
 	"code.gitea.io/gitea/services/convert"
 
 	act_model "github.com/nektos/act/pkg/model"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 )
 
 const (
