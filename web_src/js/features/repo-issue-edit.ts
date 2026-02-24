@@ -61,7 +61,7 @@ async function tryOnEditContent(e: Event) {
       renderContent = newRenderContent;
 
       rawContent.textContent = comboMarkdownEditor.value();
-      # update "Copy Source" menu item disabled state
+      // update "Copy Source" menu item disabled state
       document.querySelector(`[data-clipboard-target="#${rawContent.id}"]`)?.classList.toggle('disabled', !comboMarkdownEditor.value());
 
       if (!commentContent.querySelector('.dropzone-attachments')) {
