@@ -116,7 +116,7 @@
 		{{end}}
 		{{if and (not $isTreePathRoot) (not .IsViewFile) (not .IsBlame)}}{{/* IsViewDirectory (not home), TODO: split the templates, avoid using "if" tricks */}}
 			<a class="ui compact button" href="{{.RepoLink}}/commits/{{.RefTypeNameSubURL}}/{{.TreePath | PathEscapeSegments}}">
-				{{svg "octicon-history" 16 "tw-mr-2"}}{{ctx.Locale.Tr "repo.file_history"}}
+				{{svg "octicon-history"}}{{ctx.Locale.Tr "repo.file_history"}}
 			</a>
 		{{end}}
 	</div>
