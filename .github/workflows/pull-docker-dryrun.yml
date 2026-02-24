@@ -18,6 +18,7 @@ jobs:
     needs: files-changed
     runs-on: ubuntu-latest
     permissions:
+      actions: write # to use GHA cache
       contents: read
     steps:
       - uses: actions/checkout@v6

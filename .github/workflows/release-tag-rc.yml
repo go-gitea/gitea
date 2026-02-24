@@ -74,6 +74,7 @@ jobs:
   container:
     runs-on: namespace-profile-gitea-release-docker
     permissions:
+      actions: write # to use GHA cache
       contents: read
       packages: write # to publish to ghcr.io
     steps:
