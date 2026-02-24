@@ -64,7 +64,7 @@ func PathJoinRelX(elem ...string) string {
 	return PathJoinRel(elems...)
 }
 
-const pathSeparator = string(os.PathSeparator)
+const filepathSeparator = string(os.PathSeparator)
 
 // FilePathJoinAbs joins the path elements into a single file path, each element is cleaned by filepath.Clean separately.
 // All slashes/backslashes are converted to path separators before cleaning, the result only contains path separators.
@@ -82,7 +82,7 @@ func FilePathJoinAbs(base string, sub ...string) string {
 	if isOSWindows() {
 		elems[0] = filepath.Clean(base)
 	} else {
-		elems[0] = filepath.Clean(strings.ReplaceAll(base, "\\", pathSeparator))
+		elems[0] = filepath.Clean(strings.ReplaceAll(base, "\\", filepathSeparator))
 	}
 	if !filepath.IsAbs(elems[0]) {
 		// This shouldn't happen. If there is really necessary to pass in relative path, return the full path with filepath.Abs() instead
@@ -93,9 +93,9 @@ func FilePathJoinAbs(base string, sub ...string) string {
 			continue
 		}
 		if isOSWindows() {
-			elems = append(elems, filepath.Clean(pathSeparator+s))
+			elems = append(elems, filepath.Clean(filepathSeparator+s))
 		} else {
-			elems = append(elems, filepath.Clean(pathSeparator+strings.ReplaceAll(s, "\\", pathSeparator)))
+			elems = append(elems, filepath.Clean(filepathSeparator+strings.ReplaceAll(s, "\\", filepathSeparator)))
 		}
 	}
 	// the elems[0] must be an absolute path, just join them together
@@ -115,12 +115,55 @@ func IsDir(dir string) (bool, error) {
 	return false, err
 }
 
-func IsRegularFile(filePath string) (bool, error) {
-	f, err := os.Lstat(filePath)
-	if err == nil {
-		return f.Mode().IsRegular(), nil
+var ErrNotRegularPathFile = errors.New("not a regular file")
+
+func ReadRegularPathFile(root, filePathIn string, limit int) ([]byte, error) {
+	pathCleaned := PathJoinRelX(filePathIn)
+	pathFields := strings.Split(pathCleaned, "/")
+	targetPath := root
+	for i := 0; i < len(pathFields); i++ {
+		targetPath += string(filepath.Separator) + pathFields[i]
+		expectFile := i == len(pathFields)-1
+		st, err := os.Lstat(targetPath)
+		if err != nil {
+			return nil, err
+		}
+		if expectFile && !st.Mode().IsRegular() || !expectFile && !st.Mode().IsDir() {
+			return nil, fmt.Errorf("%w: %s", ErrNotRegularPathFile, filePathIn)
+		}
 	}
-	return false, err
+	f, err := os.Open(filepath.Join(root, pathCleaned))
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return ReadWithLimit(f, limit)
+}
+
+func WriteRegularPathFile(root, filePathIn string, data []byte, dirMode, fileMode int) error {
+	pathCleaned := PathJoinRelX(filePathIn)
+	pathFields := strings.Split(pathCleaned, "/")
+	targetPath := root
+	for i := 0; i < len(pathFields); i++ {
+		targetPath += string(filepath.Separator) + pathFields[i]
+		expectFile := i == len(pathFields)-1
+		st, err := os.Lstat(targetPath)
+		if err == nil {
+			if expectFile && !st.Mode().IsRegular() || !expectFile && !st.Mode().IsDir() {
+				return fmt.Errorf("%w: %s", ErrNotRegularPathFile, filePathIn)
+			}
+			continue
+		}
+		if !os.IsNotExist(err) {
+			return err
+		}
+		if !expectFile {
+			if err = os.Mkdir(targetPath, os.FileMode(dirMode)); err != nil {
+				return err
+			}
+		}
+	}
+	return os.WriteFile(targetPath, data, os.FileMode(fileMode))
 }
 
 // IsExist checks whether a file or directory exists.

@@ -97,6 +97,8 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 		assert.Equal(t, expected, link, "symlink target mismatch for %s", path)
 	}
 
+	require.NoError(t, os.MkdirAll(tmpDir+"/.git", 0o755))
+	require.NoError(t, os.WriteFile(tmpDir+"/.git/config", []byte("git-config-dummy"), 0o644))
 	require.NoError(t, os.MkdirAll(tmpDir+"/.gitea", 0o755))
 	require.NoError(t, os.WriteFile(tmpDir+"/.gitea/template", []byte("*\ninclude/**"), 0o644))
 	require.NoError(t, os.MkdirAll(tmpDir+"/sub", 0o755))
@@ -143,10 +145,12 @@ func TestProcessGiteaTemplateFile(t *testing.T) {
 	{
 		templateRepo := &repo_model.Repository{Name: "TemplateRepoName"}
 		generatedRepo := &repo_model.Repository{Name: "/../.gIt/name"}
+		assertFileContent(".git/config", "git-config-dummy")
 		fileMatcher, _ := readGiteaTemplateFile(tmpDir)
 		err := processGiteaTemplateFile(t.Context(), tmpDir, templateRepo, generatedRepo, fileMatcher)
 		require.NoError(t, err)
 		assertFileContent("include/foo/bar/test.txt", "include subdir TemplateRepoName")
+		assertFileContent(".git/config", "")
 	}
 
 	// the lin target should never be modified, and since it is in a subdirectory, it is not affected by the template either
