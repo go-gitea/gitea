@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/optional"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -492,4 +493,58 @@ func ListOrgActivityFeeds(ctx *context.APIContext) {
 	ctx.SetTotalCountHeader(count)
 
 	ctx.JSON(http.StatusOK, convert.ToActivities(ctx, feeds, ctx.Doer))
+}
+
+func DeleteOrgRepos(ctx *context.APIContext) {
+	// swagger:operation DELETE /orgs/{org}/repos organization orgDeleteRepos
+	// ---
+	// summary: Delete all repositories in an organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/DeleteOrgReposResponse"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	org := ctx.Org.Organization
+	repos, err := repo_model.GetOrgRepositories(ctx, org.ID)
+	if err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+	response := &api.DeleteOrgReposResponse{
+		Deleted: []string{},
+		Failed:  []api.DeleteRepoFailure{},
+	}
+	for _, repo := range repos {
+		canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
+		if !canDelete || err != nil {
+			reason := "Permission denied"
+			if err != nil {
+				reason = err.Error()
+			}
+			response.Failed = append(response.Failed, api.DeleteRepoFailure{
+				RepoName: repo.Name,
+				Reason:   reason,
+			})
+			continue
+		}
+		if err := repo_service.DeleteRepository(ctx, ctx.Doer, repo, true); err != nil {
+			response.Failed = append(response.Failed, api.DeleteRepoFailure{
+				RepoName: repo.Name,
+				Reason:   err.Error(),
+			})
+		} else {
+			response.Deleted = append(response.Deleted, repo.Name)
+		}
+	}
+	response.SuccessCount = len(response.Deleted)
+	response.FailureCount = len(response.Failed)
+	ctx.JSON(http.StatusOK, response)
 }

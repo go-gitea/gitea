@@ -440,3 +440,15 @@ type UpdateRepoAvatarOption struct {
 	// image must be base64 encoded
 	Image string `json:"image" binding:"Required"`
 }
+
+type DeleteOrgReposResponse struct {
+	SuccessCount int                 `json:"success_count"`
+	FailureCount int                 `json:"failure_count"`
+	Deleted      []string            `json:"deleted"`
+	Failed       []DeleteRepoFailure `json:"failed"`
+}
+
+type DeleteRepoFailure struct {
+	RepoName string `json:"repo_name"`
+	Reason   string `json:"reason"`
+}
