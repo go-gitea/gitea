@@ -1074,6 +1074,11 @@ func registerWebRoutes(m *web.Router) {
 	}, optSignIn, context.RepoAssignment, reqUnitCodeReader)
 	// end "/{username}/{reponame}/-": migrate
 
+	m.Group("/{username}/{reponame}/-", func() {
+		m.Get("/mentionvalues", repo.MentionValues)
+	}, optSignIn, context.RepoAssignment)
+	// end "/{username}/{reponame}/-": mentionvalues
+
 	m.Group("/{username}/{reponame}/settings", func() {
 		m.Group("", func() {
 			m.Combo("").Get(repo_setting.Settings).

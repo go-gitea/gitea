@@ -155,8 +155,7 @@ func (d *IssuePageMetaData) retrieveAssigneesData(ctx *context.Context) {
 		}
 		d.AssigneesData.SelectedAssigneeIDs = strings.Join(ids, ",")
 	}
-	// FIXME: this is a tricky part which writes ctx.Data["Mentionable*"]
-	handleMentionableAssigneesAndTeams(ctx, d.AssigneesData.CandidateAssignees)
+	ctx.Data["Assignees"] = d.AssigneesData.CandidateAssignees
 }
 
 func (d *IssuePageMetaData) retrieveProjectsDataForIssueWriter(ctx *context.Context) {

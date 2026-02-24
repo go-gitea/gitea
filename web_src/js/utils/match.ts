@@ -1,6 +1,8 @@
 import emojis from '../../../assets/emoji.json' with {type: 'json'};
 import {GET} from '../modules/fetch.ts';
-import type {Issue} from '../types.ts';
+import {showErrorToast} from '../modules/toast.ts';
+import {parseIssueHref, parseRepoOwnerPathInfo} from '../utils.ts';
+import type {Issue, MentionValue} from '../types.ts';
 
 const maxMatches = 6;
 
@@ -29,13 +31,34 @@ export function matchEmoji(queryText: string): string[] {
   return sortAndReduce(results);
 }
 
+let cachedMentionValues: MentionValue[] | undefined;
+
+export async function fetchMentionValues(): Promise<MentionValue[]> {
+  if (cachedMentionValues === undefined) {
+    try {
+      const {ownerName, repoName} = parseRepoOwnerPathInfo(window.location.pathname);
+      if (ownerName && repoName) {
+        const {indexString} = parseIssueHref(window.location.href);
+        const query = indexString ? `?issue_index=${indexString}` : '';
+        const res = await GET(`${window.config.appSubUrl}/${ownerName}/${repoName}/-/mentionvalues${query}`);
+        cachedMentionValues = await res.json();
+      }
+    } catch (e) {
+      showErrorToast(`Failed to load mention values: ${e}`);
+    }
+    cachedMentionValues ??= [];
+  }
+  return cachedMentionValues;
+}
+
 type MentionSuggestion = {value: string; name: string; fullname: string; avatar: string};
-export function matchMention(queryText: string): MentionSuggestion[] {
+export async function matchMention(queryText: string): Promise<MentionSuggestion[]> {
+  const values = await fetchMentionValues();
   const query = queryText.toLowerCase();
 
   // results is a map of weights, lower is better
   const results = new Map<MentionSuggestion, number>();
-  for (const obj of window.config.mentionValues) {
+  for (const obj of values) {
     const index = obj.key.toLowerCase().indexOf(query);
     if (index === -1) continue;
     const existing = results.get(obj);

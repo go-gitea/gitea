@@ -29,7 +29,6 @@ interface Window {
     pageData: Record<string, any>,
     notificationSettings: Record<string, any>,
     enableTimeTracking: boolean,
-    mentionValues: Array<import('./types.ts').MentionValue>,
     mermaidMaxSourceCharacters: number,
     i18n: Record<string, string>,
   },

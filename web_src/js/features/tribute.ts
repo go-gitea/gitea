@@ -1,5 +1,6 @@
 import {emojiKeys, emojiHTML, emojiString} from './emoji.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import {fetchMentionValues} from '../utils/match.ts';
 import type {TributeCollection} from 'tributejs';
 import type {MentionValue} from '../types.ts';
 
@@ -30,7 +31,9 @@ export async function attachTribute(element: HTMLElement) {
   };
 
   const mentionCollection: TributeCollection<MentionValue> = {
-    values: window.config.mentionValues,
+    values: async (_query: string, cb: (matches: MentionValue[]) => void) => { // eslint-disable-line @typescript-eslint/no-misused-promises
+      cb(await fetchMentionValues());
+    },
     requireLeadingSpace: true,
     menuItemTemplate: (item) => {
       const fullNameHtml = item.original.fullname && item.original.fullname !== '' ? html`<span class="fullname">${item.original.fullname}</span>` : '';
