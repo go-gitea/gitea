@@ -124,7 +124,8 @@
   margin: 0;
 }
 
-.ui.action.input:not([class*="left action"]) > input {
+.ui.action.input:not([class*="left action"]) > input,
+.ui.action.input:not([class*="left action"]) > .ui.input > input {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
   border-right-color: transparent;

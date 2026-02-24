@@ -3695,6 +3695,7 @@
   "actions.runs.delete.description": "Are you sure you want to permanently delete this workflow run? This action cannot be undone.",
   "actions.runs.not_done": "This workflow run is not done.",
   "actions.runs.view_workflow_file": "View workflow file",
+  "actions.runs.workflow_graph": "Workflow Graph",
   "actions.workflow.disable": "Disable Workflow",
   "actions.workflow.disable_success": "Workflow '%s' disabled successfully.",
   "actions.workflow.enable": "Enable Workflow",
