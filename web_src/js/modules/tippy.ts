@@ -185,6 +185,7 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
   // if the target is inside a dropdown or tippy popup, the menu will be hidden soon
   // so display the tooltip on the "aria-controls" element or dropdown instead
   let refClientRect: DOMRect | undefined;
+  let useHideTimeout = false;
   const popupTippyId = target.closest(`[data-tippy-root]`)?.id;
   if (popupTippyId) {
     // for example, the "Copy Permalink" button in the "File View" page for the selected lines
@@ -195,11 +196,13 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
     // for example, the "Copy Link" button in the issue header dropdown menu
     target = target.closest('.ui.dropdown') ?? target;
     refClientRect = target.getBoundingClientRect();
+    useHideTimeout = true;
   }
   const tooltipTippy = target._tippy ?? attachTooltip(target, content);
   tooltipTippy.setContent(content);
   tooltipTippy.setProps({getReferenceClientRect: () => refClientRect});
   if (!tooltipTippy.state.isShown) tooltipTippy.show();
+
   tooltipTippy.setProps({
     onHidden: (tippy) => {
       // reset the default tooltip content, if no default, then this temporary tooltip could be destroyed
@@ -208,6 +211,14 @@ export function showTemporaryTooltip(target: Element, content: Content): void {
       }
     },
   });
+
+  // on elements where the tooltip is re-loacted like "Copy Link" inside fomantic dropdowns, tippy.js gets
+  // no mouseOut event so we have to hide the tooltip manually.
+  if (useHideTimeout) {
+    setTimeout(() => {
+      if (tooltipTippy.state.isVisible) tooltipTippy.hide();
+    }, 1500);
+  }
 }
 
 export function getAttachedTippyInstance(el: Element): Instance | null {
