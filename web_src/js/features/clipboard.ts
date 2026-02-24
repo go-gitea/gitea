@@ -11,7 +11,7 @@ const {copy_success, copy_error} = window.config.i18n;
 export function initGlobalCopyToClipboardListener() {
   document.addEventListener('click', async (e) => {
     const target = (e.target as HTMLElement).closest('[data-clipboard-text], [data-clipboard-target]');
-    if (!target) return;
+    if (!target || target.classList.contains('disabled')) return;
 
     e.preventDefault();
 
