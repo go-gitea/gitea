@@ -229,10 +229,7 @@ func ToTrackedTimeList(ctx context.Context, doer *user_model.User, tl issues_mod
 	permCache := make(map[int64]access_model.Permission)
 	for _, t := range tl {
 		// If the issue is not loaded, conservatively skip this entry to avoid bypassing permission checks.
-		if t.Issue == nil {
-			continue
-		}
-		if err := t.Issue.LoadRepo(ctx); err != nil {
+		if t.Issue == nil || t.Issue.Repo == nil {
 			continue
 		}
 		perm, ok := permCache[t.Issue.RepoID]
