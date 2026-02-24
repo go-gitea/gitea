@@ -265,9 +265,20 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 	loadQosSetting(rootCfg)
 }
 
+var defaultOpenIDBlacklist = []string{
+	"localhost",
+	"127\\.0\\.0\\.1",
+	"10\\..*",
+	"192\\.168\\..*",
+	"172\\.(1[6-9]|2[0-9]|3[0-1])\\..*",
+	"\\[::1\\]",
+	"\\[f[c-d][0-9a-fA-F]{2}:.*\\]",
+	"\\[fe80:.*\\]",
+}
+
 func loadOpenIDSetting(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("openid")
-	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(!InstallLock)
+	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(false)
 	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)
 	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
 	if len(pats) != 0 {
@@ -277,6 +288,9 @@ func loadOpenIDSetting(rootCfg ConfigProvider) {
 		}
 	}
 	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
+	if len(pats) == 0 {
+		pats = defaultOpenIDBlacklist
+	}
 	if len(pats) != 0 {
 		Service.OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
 		for i, p := range pats {
