@@ -366,7 +366,7 @@ func LockState(ctx *context.Context) {
 	}
 
 	if len(props) > 0 && props[0].Value != "" {
-		apiError(ctx, http.StatusLocked, errors.New("terraform state is already locked"))
+		apiError(ctx, http.StatusLocked, props[0].Value)
 		return
 	}
 

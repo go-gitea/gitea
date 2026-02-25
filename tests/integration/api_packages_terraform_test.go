@@ -192,7 +192,8 @@ func TestPackageTerraform(t *testing.T) {
 
 			// Another lock attempt should fail
 			req = NewRequestWithBody(t, "POST", lockURL, strings.NewReader(lockInfo2)).AddBasicAuth(user.Name)
-			MakeRequest(t, req, http.StatusLocked)
+			resp := MakeRequest(t, req, http.StatusLocked)
+			assert.JSONEq(t, lockInfo1, resp.Body.String())
 
 			// Unlock with wrong ID should fail
 			req = NewRequestWithBody(t, "DELETE", lockURL, strings.NewReader(lockInfo2)).AddBasicAuth(user.Name)
