@@ -14,10 +14,13 @@ import (
 
 // LoadProject load the project the issue was assigned to
 func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
-	if len(issue.Projects) == 0 {
+	if !issue.isProjectsLoaded {
 		err = db.GetEngine(ctx).Table("project").
 			Join("INNER", "project_issue", "project.id=project_issue.project_id").
 			Where("project_issue.issue_id = ?", issue.ID).Find(&issue.Projects)
+		if err == nil {
+			issue.isProjectsLoaded = true
+		}
 	}
 	return err
 }

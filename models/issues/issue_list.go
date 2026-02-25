@@ -223,6 +223,7 @@ func (issues IssueList) LoadProjects(ctx context.Context) error {
 				issue.Projects = append(issue.Projects, projectMaps[i])
 			}
 		}
+		issue.isProjectsLoaded = true
 	}
 	return nil
 }
