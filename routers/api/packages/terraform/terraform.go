@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
 
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -53,7 +54,7 @@ func GetTerraformState(ctx *context.Context) {
 		apiError(ctx, http.StatusNotFound, nil)
 		return
 	}
-	log.Info("GetTerraformState: %v", pvs[0].Version)
+
 	streamState(ctx, stateName, pvs[0].Version)
 }
 
@@ -107,6 +108,8 @@ type TFState struct {
 	Version          int    `json:"version"`
 	TerraformVersion string `json:"terraform_version"`
 	Serial           uint64 `json:"serial"`
+	Lineage          string `json:"lineage"`
+	// modules are ommited
 }
 
 // UploadState uploads the specific terraform package.
@@ -143,11 +146,39 @@ func UploadState(ctx *context.Context) {
 		return
 	}
 
+	// Check lineage
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName)
+	if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if p != nil {
+		// Check lock
+		props, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock")
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if len(props) > 0 && props[0].Value != "" {
+			var existingLock LockInfo
+			if err := json.Unmarshal([]byte(props[0].Value), &existingLock); err != nil {
+				apiError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+			if existingLock.ID != ctx.FormString("ID") {
+				ctx.Resp.Header().Set("Content-Type", "application/json")
+				ctx.Resp.WriteHeader(http.StatusLocked)
+				_, _ = ctx.Resp.Write([]byte(props[0].Value))
+				return
+			}
+		}
+	}
+
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -169,10 +200,10 @@ func UploadState(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		switch err {
-		case packages_model.ErrDuplicatePackageFile:
+		switch {
+		case errors.Is(err, packages_model.ErrDuplicatePackageFile):
 			apiError(ctx, http.StatusConflict, err)
-		case packages_service.ErrQuotaTotalCount, packages_service.ErrQuotaTypeSize, packages_service.ErrQuotaTotalSize:
+		case errors.Is(err, packages_service.ErrQuotaTotalCount), errors.Is(err, packages_service.ErrQuotaTypeSize), errors.Is(err, packages_service.ErrQuotaTotalSize):
 			apiError(ctx, http.StatusForbidden, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
@@ -180,84 +211,43 @@ func UploadState(ctx *context.Context) {
 		return
 	}
 
+	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, pv.PackageID, "terraform.lineage", state.Lineage); err != nil {
+		log.Error("InsertOrUpdateProperty: %v", err)
+	}
+
 	ctx.Status(http.StatusCreated)
 }
 
-// DeletePackage deletes the specific terraform package.
-func DeletePackage(ctx *context.Context) {
-	err := packages_service.RemovePackageVersionByNameAndVersion(
-		ctx,
-		ctx.Doer,
-		&packages_service.PackageInfo{
-			Owner:       ctx.Package.Owner,
-			PackageType: packages_model.TypeTerraform,
-			Name:        ctx.PathParam("packagename"),
-			//			Version:     ctx.PathParam("filename"),
-		},
-	)
-	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	ctx.Status(http.StatusNoContent)
-}
-
-// DeleteState deletes the specific file of a terraform package.
-func DeleteState(ctx *context.Context) {
-	pv, pf, err := func() (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
-		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, ctx.PathParam("packagename"), ctx.PathParam("filename"))
-		if err != nil {
-			return nil, nil, err
-		}
-
-		pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, "tfstate", packages_model.EmptyFileKey)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		return pv, pf, nil
-	}()
-	if err != nil {
-		if errors.Is(err, packages_model.ErrPackageNotExist) || errors.Is(err, packages_model.ErrPackageFileNotExist) {
-			apiError(ctx, http.StatusNotFound, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	if len(pfs) == 1 {
-		if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-	} else {
-		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-	}
-
-	ctx.Status(http.StatusNoContent)
-}
-
+// DeleteStateBySerial deletes the specific serial of a terraform package as long as it's not the latest one.
 func DeleteStateBySerial(ctx *context.Context) {
 	serial := ctx.PathParam("serial")
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, ctx.PathParam("name"), serial)
-	if err != nil {
-		// TODO: check for not exist
+	if errors.Is(err, packages_model.ErrPackageFileNotExist) {
+		apiError(ctx, http.StatusNotFound, err)
+		return
+	} else if err != nil {
+
 		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeTerraform,
+		Name:       packages_model.SearchValue{ExactMatch: true, Value: ctx.PathParam("name")},
+		IsInternal: optional.Some(false),
+		Sort:       packages_model.SortCreatedDesc,
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	}
+	if pvs[0].ID == pv.ID {
+		apiError(ctx, http.StatusForbidden, errors.New("cannot delete the latest version"))
 		return
 	}
 
@@ -269,17 +259,125 @@ func DeleteStateBySerial(ctx *context.Context) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// LockState locks the specific terraform state.
-func LockState(ctx *context.Context) {
+// DeleteState deletes the specific file of a terraform package.
+// Fails if the state is locked
+func DeleteState(ctx *context.Context) {
 	packageName := ctx.PathParam("name")
 
-	ok, _, err := globallock.TryLock(ctx, fmt.Sprintf("%d/%s", ctx.Package.Owner.ID, packageName))
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName)
+	if err != nil {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pp, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock")
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if !ok {
-		apiError(ctx, http.StatusLocked, err)
+	if len(pp) > 0 && pp[0].Value != "" {
+		apiError(ctx, http.StatusLocked, errors.New("terraform state is locked"))
+		return
+	}
+
+	pvs, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+		PackageID:  p.ID,
+		IsInternal: optional.None[bool](),
+	})
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	for _, pv := range pvs {
+		if err := packages_service.RemovePackageVersion(ctx, ctx.Doer, pv); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	if err := packages_model.DeletePackageByID(ctx, p.ID); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
+
+// LockInfo is the metadata for a terraform lock.
+type LockInfo struct {
+	ID        string    `json:"ID"`
+	Operation string    `json:"Operation"`
+	Info      string    `json:"Info"`
+	Who       string    `json:"Who"`
+	Version   string    `json:"Version"`
+	Created   time.Time `json:"Created"`
+	Path      string    `json:"Path"`
+}
+
+// LockState locks the specific terraform state.
+// Internally, it adds a property to the package with the lock information
+// Cavieat being that it allocates a package one doesn't exist to attach the property
+func LockState(ctx *context.Context) {
+	var reqLockInfo LockInfo
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&reqLockInfo); err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	packageName := ctx.PathParam("name")
+	lockKey := fmt.Sprintf("terraform_lock_%d_%s", ctx.Package.Owner.ID, packageName)
+
+	release, err := globallock.Lock(ctx, lockKey)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer release()
+
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName)
+	if err != nil {
+		// If the package doesn't exist, allocate it for the lock.
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
+			p = &packages_model.Package{
+				OwnerID:   ctx.Package.Owner.ID,
+				Type:      packages_model.TypeTerraform,
+				Name:      packageName,
+				LowerName: strings.ToLower(packageName),
+			}
+			if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
+				apiError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	props, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock")
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	if len(props) > 0 && props[0].Value != "" {
+		apiError(ctx, http.StatusLocked, errors.New("terraform state is already locked"))
+		return
+	}
+
+	jsonBytes, err := json.Marshal(reqLockInfo)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock", string(jsonBytes)); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -287,10 +385,69 @@ func LockState(ctx *context.Context) {
 }
 
 // UnlockState unlock the specific terraform state.
+// Internally, it clears the package property
 func UnlockState(ctx *context.Context) {
-	packageName := ctx.PathParam("name")
+	var reqLockInfo LockInfo
+	if err := json.NewDecoder(ctx.Req.Body).Decode(&reqLockInfo); err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
 
-	_ = globallock.Unlock(ctx, fmt.Sprintf("%d/%s", ctx.Package.Owner.ID, packageName))
+	packageName := ctx.PathParam("name")
+	lockKey := fmt.Sprintf("terraform_lock_%d_%s", ctx.Package.Owner.ID, packageName)
+
+	release, err := globallock.Lock(ctx, lockKey)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	defer release()
+
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName)
+	if err != nil {
+		if errors.Is(err, packages_model.ErrPackageNotExist) {
+			ctx.Status(http.StatusOK)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	props, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock")
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	// If there are no properties or the property is empty, it should be unlocked
+	if len(props) == 0 || props[0].Value == "" {
+		ctx.Status(http.StatusOK)
+		return
+	}
+
+	var existingLock LockInfo
+	if err := json.Unmarshal([]byte(props[0].Value), &existingLock); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	// we can bypass messing with the lock since it's empty
+	if existingLock.ID == "" {
+		ctx.Status(http.StatusOK)
+		return
+	}
+
+	// Unlocking ID must be the same as locker one.
+	if existingLock.ID != reqLockInfo.ID {
+		apiError(ctx, http.StatusLocked, errors.New("lock ID mismatch"))
+		return
+	}
+
+	// We can clear the state if lock id matches
+	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock", ""); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 
 	ctx.Status(http.StatusOK)
 }
