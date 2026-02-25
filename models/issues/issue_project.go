@@ -160,10 +160,19 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 				return util.NewPermissionDeniedErrorf("issue %d can't be accessed by project %d", issue.ID, newProject.ID)
 			}
 
+			projectColumnID := newColumnID
+			if projectColumnID == 0 {
+				defaultColumn, err := project_model.GetDefaultColumn(ctx, projectID)
+				if err != nil {
+					return err
+				}
+				projectColumnID = defaultColumn.ID
+			}
+
 			pi = append(pi, &project_model.ProjectIssue{
 				IssueID:         issue.ID,
 				ProjectID:       projectID,
-				ProjectColumnID: newColumnID,
+				ProjectColumnID: projectColumnID,
 				Sorting:         newSorting,
 			})
 
