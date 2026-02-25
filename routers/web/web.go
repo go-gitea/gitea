@@ -1076,7 +1076,7 @@ func registerWebRoutes(m *web.Router) {
 
 	m.Group("/{username}/{reponame}/-", func() {
 		m.Get("/mentions", repo.GetMentions)
-	}, optSignIn, context.RepoAssignment)
+	}, optSignIn, context.RepoAssignment, reqUnitsWithMarkdown)
 	// end "/{username}/{reponame}/-": mentions
 
 	m.Group("/{username}/{reponame}/settings", func() {
