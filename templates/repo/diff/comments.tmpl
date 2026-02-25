@@ -13,11 +13,11 @@
 		<div class="comment-header avatar-content-left-arrow">
 			<div class="comment-header-left">
 				{{if .OriginalAuthor}}
-					<span class="text black tw-font-semibold tw-mr-1">
+					<span class="tw-text-text tw-font-semibold tw-mr-1">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
 						{{.OriginalAuthor}}
 					</span>
-					<span class="text grey muted-links">
+					<span class="tw-text-text-light muted-links">
 						{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
 					</span>
 					<span class="text migrate">
@@ -26,7 +26,7 @@
 						{{end}}
 					</span>
 				{{else}}
-					<span class="text grey muted-links">
+					<span class="tw-text-text-light muted-links">
 						{{template "shared/user/namelink" .Poster}}
 						{{ctx.Locale.Tr "repo.issues.commented_at" .HashTag $createdStr}}
 					</span>

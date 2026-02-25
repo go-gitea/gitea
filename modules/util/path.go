@@ -64,7 +64,7 @@ func PathJoinRelX(elem ...string) string {
 	return PathJoinRel(elems...)
 }
 
-const pathSeparator = string(os.PathSeparator)
+const filepathSeparator = string(os.PathSeparator)
 
 // FilePathJoinAbs joins the path elements into a single file path, each element is cleaned by filepath.Clean separately.
 // All slashes/backslashes are converted to path separators before cleaning, the result only contains path separators.
@@ -82,7 +82,7 @@ func FilePathJoinAbs(base string, sub ...string) string {
 	if isOSWindows() {
 		elems[0] = filepath.Clean(base)
 	} else {
-		elems[0] = filepath.Clean(strings.ReplaceAll(base, "\\", pathSeparator))
+		elems[0] = filepath.Clean(strings.ReplaceAll(base, "\\", filepathSeparator))
 	}
 	if !filepath.IsAbs(elems[0]) {
 		// This shouldn't happen. If there is really necessary to pass in relative path, return the full path with filepath.Abs() instead
@@ -93,9 +93,9 @@ func FilePathJoinAbs(base string, sub ...string) string {
 			continue
 		}
 		if isOSWindows() {
-			elems = append(elems, filepath.Clean(pathSeparator+s))
+			elems = append(elems, filepath.Clean(filepathSeparator+s))
 		} else {
-			elems = append(elems, filepath.Clean(pathSeparator+strings.ReplaceAll(s, "\\", pathSeparator)))
+			elems = append(elems, filepath.Clean(filepathSeparator+strings.ReplaceAll(s, "\\", filepathSeparator)))
 		}
 	}
 	// the elems[0] must be an absolute path, just join them together
@@ -115,12 +115,72 @@ func IsDir(dir string) (bool, error) {
 	return false, err
 }
 
-func IsRegularFile(filePath string) (bool, error) {
-	f, err := os.Lstat(filePath)
-	if err == nil {
-		return f.Mode().IsRegular(), nil
+var ErrNotRegularPathFile = errors.New("not a regular file")
+
+// ReadRegularPathFile reads a file with given sub path in root dir.
+// It returns error when the path is not a regular file, or any parent path is not a regular directory.
+func ReadRegularPathFile(root, filePathIn string, limit int) ([]byte, error) {
+	pathFields := strings.Split(PathJoinRelX(filePathIn), "/")
+
+	targetPathBuilder := strings.Builder{}
+	targetPathBuilder.Grow(len(root) + len(filePathIn) + 2)
+	targetPathBuilder.WriteString(root)
+	targetPathString := root
+	for i, subPath := range pathFields {
+		targetPathBuilder.WriteByte(filepath.Separator)
+		targetPathBuilder.WriteString(subPath)
+		targetPathString = targetPathBuilder.String()
+
+		expectFile := i == len(pathFields)-1
+		st, err := os.Lstat(targetPathString)
+		if err != nil {
+			return nil, err
+		}
+		if expectFile && !st.Mode().IsRegular() || !expectFile && !st.Mode().IsDir() {
+			return nil, fmt.Errorf("%w: %s", ErrNotRegularPathFile, filePathIn)
+		}
 	}
-	return false, err
+	f, err := os.Open(targetPathString)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return ReadWithLimit(f, limit)
+}
+
+// WriteRegularPathFile writes data to a file with given sub path in root dir, it creates parent directories if necessary.
+// The file is created with fileMode, and the directories are created with dirMode.
+// It returns error when the path already exists but is not a regular file, or any parent path is not a regular directory.
+func WriteRegularPathFile(root, filePathIn string, data []byte, dirMode, fileMode os.FileMode) error {
+	pathFields := strings.Split(PathJoinRelX(filePathIn), "/")
+
+	targetPathBuilder := strings.Builder{}
+	targetPathBuilder.Grow(len(root) + len(filePathIn) + 2)
+	targetPathBuilder.WriteString(root)
+	targetPathString := root
+	for i, subPath := range pathFields {
+		targetPathBuilder.WriteByte(filepath.Separator)
+		targetPathBuilder.WriteString(subPath)
+		targetPathString = targetPathBuilder.String()
+
+		expectFile := i == len(pathFields)-1
+		st, err := os.Lstat(targetPathString)
+		if err == nil {
+			if expectFile && !st.Mode().IsRegular() || !expectFile && !st.Mode().IsDir() {
+				return fmt.Errorf("%w: %s", ErrNotRegularPathFile, filePathIn)
+			}
+			continue
+		}
+		if !os.IsNotExist(err) {
+			return err
+		}
+		if !expectFile {
+			if err = os.Mkdir(targetPathString, dirMode); err != nil {
+				return err
+			}
+		}
+	}
+	return os.WriteFile(targetPathString, data, fileMode)
 }
 
 // IsExist checks whether a file or directory exists.
