@@ -14,6 +14,10 @@ func NewSliceUtils() *SliceUtils {
 	return &SliceUtils{}
 }
 
+func (su *SliceUtils) Pack(args ...any) []any {
+	return args
+}
+
 func (su *SliceUtils) Contains(s, v any) bool {
 	if s == nil {
 		return false

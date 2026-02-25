@@ -64,26 +64,12 @@ function initRepoPullRequestCommitStatus(el: HTMLElement) {
 }
 
 function initRepoPullRequestMergeForm(box: HTMLElement) {
-  const el = box.querySelector('#pull-request-merge-form');
+  const el = box.querySelector<HTMLElement>('#pull-request-merge-form');
   if (!el) return;
 
+  window.config.pageData.pullRequestMergeForm = JSON.parse(el.getAttribute('data-merge-form')!);
   const view = createApp(PullRequestMergeForm);
   view.mount(el);
-}
-
-function executeScripts(elem: HTMLElement) {
-  for (const oldScript of elem.querySelectorAll('script')) {
-    // TODO: that's the only way to load the data for the merge form. In the future
-    //  we need to completely decouple the page data and embedded script
-    // eslint-disable-next-line github/no-dynamic-script-tag
-    const newScript = document.createElement('script');
-    for (const attr of oldScript.attributes) {
-      if (attr.name === 'type' && attr.value === 'module') continue;
-      newScript.setAttribute(attr.name, attr.value);
-    }
-    newScript.text = oldScript.text;
-    document.body.append(newScript);
-  }
 }
 
 export function initRepoPullMergeBox(el: HTMLElement) {
@@ -124,7 +110,6 @@ export function initRepoPullMergeBox(el: HTMLElement) {
     }
     document.removeEventListener('visibilitychange', onVisibilityChange);
     const newElem = createElementFromHTML(await resp.text());
-    executeScripts(newElem);
     el.replaceWith(newElem);
   };
 
