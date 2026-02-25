@@ -124,7 +124,7 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 // SettingsDeleteOrgPost response for deleting an organization
 func SettingsDeleteOrgPost(ctx *context.Context) {
 	if ctx.Org.Organization.Name != ctx.FormString("org_name") {
-		ctx.JSONError(ctx.Tr("form.enterred_invalid_org_name"))
+		ctx.JSONError(ctx.Tr("form.entered_invalid_org_name"))
 		return
 	}
 
@@ -205,7 +205,7 @@ func SettingsRenamePost(ctx *context.Context) {
 	oldOrgName, newOrgName := ctx.Org.Organization.Name, form.NewOrgName
 
 	if form.OrgName != oldOrgName {
-		ctx.JSONError(ctx.Tr("form.enterred_invalid_org_name"))
+		ctx.JSONError(ctx.Tr("form.entered_invalid_org_name"))
 		return
 	}
 	if newOrgName == oldOrgName {

@@ -733,7 +733,7 @@ func handleSettingsPostConvert(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.entered_invalid_repo_name"), tplSettingsOptions, nil)
 		return
 	}
 
@@ -767,7 +767,7 @@ func handleSettingsPostConvertFork(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.entered_invalid_repo_name"), tplSettingsOptions, nil)
 		return
 	}
 
@@ -803,14 +803,14 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.entered_invalid_repo_name"), tplSettingsOptions, nil)
 		return
 	}
 
 	newOwner, err := user_model.GetUserByName(ctx, ctx.FormString("new_owner_name"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.entered_invalid_owner_name"), tplSettingsOptions, nil)
 			return
 		}
 		ctx.ServerError("IsUserExist", err)
@@ -820,7 +820,7 @@ func handleSettingsPostTransfer(ctx *context.Context) {
 	if newOwner.Type == user_model.UserTypeOrganization {
 		if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx, ctx.Doer.ID) {
 			// The user shouldn't know about this organization
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.entered_invalid_owner_name"), tplSettingsOptions, nil)
 			return
 		}
 	}
@@ -895,7 +895,7 @@ func handleSettingsPostDelete(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.entered_invalid_repo_name"), tplSettingsOptions, nil)
 		return
 	}
 
@@ -922,7 +922,7 @@ func handleSettingsPostDeleteWiki(ctx *context.Context) {
 		return
 	}
 	if repo.Name != form.RepoName {
-		ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_repo_name"), tplSettingsOptions, nil)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.entered_invalid_repo_name"), tplSettingsOptions, nil)
 		return
 	}
 

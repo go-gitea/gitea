@@ -263,7 +263,7 @@ func DeleteAccount(ctx *context.Context) {
 		case errors.As(err, &db.ErrUserPasswordInvalid{}):
 			loadAccountData(ctx)
 
-			ctx.RenderWithErrDeprecated(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.entered_invalid_password"), tplSettingsAccount, nil)
 		default:
 			ctx.ServerError("UserSignIn", err)
 		}
