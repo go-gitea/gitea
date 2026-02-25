@@ -9,7 +9,7 @@ import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 const {appSubUrl} = window.config;
 
-async function initInstanceNoticePreview(comboEditorContainer: HTMLElement) {
+async function initInstanceBannerPreview(comboEditorContainer: HTMLElement) {
   const form = comboEditorContainer.closest<HTMLFormElement>('form')!;
   const comboEditor = await initComboMarkdownEditor(comboEditorContainer);
   const previewContent = form.querySelector('.instance-banner-content')!;
@@ -22,7 +22,7 @@ async function initInstanceNoticePreview(comboEditorContainer: HTMLElement) {
         const rendered = await response.text();
         previewContent.innerHTML = html`${htmlRaw(rendered)}`;
       } catch (error) {
-        console.error('Error rendering instance notice preview:', error);
+        console.error('Error rendering instance banner preview:', error);
       }
     } catch {}
   };
@@ -229,6 +229,6 @@ export function initAdminConfigs(): void {
   registerGlobalInitFunc('initAdminConfigSettings', (el) => {
     queryElems(el, 'input[type="checkbox"][data-config-dyn-key]', initSystemConfigAutoCheckbox);
     queryElems(el, 'form.system-config-form', initSystemConfigForm);
-    queryElems(el, '.instance-banner-content-editor', initInstanceNoticePreview);
+    queryElems(el, '.instance-banner-content-editor', initInstanceBannerPreview);
   });
 }

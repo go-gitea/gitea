@@ -20,9 +20,9 @@ import (
 
 func TestInstanceBanner(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	setInstanceBanner := func(t *testing.T, notice setting.InstanceBannerType) {
+	setInstanceBanner := func(t *testing.T, banner setting.InstanceBannerType) {
 		t.Helper()
-		marshaled, err := json.Marshal(notice)
+		marshaled, err := json.Marshal(banner)
 		require.NoError(t, err)
 		require.NoError(t, system_model.SetSettings(t.Context(), map[string]string{
 			setting.Config().WebUI.InstanceBanner.DynKey(): string(marshaled),
@@ -58,6 +58,7 @@ func TestInstanceBanner(t *testing.T) {
 			MakeRequest(t, NewRequest(t, "GET", "/api/v1/version"), http.StatusOK)
 		})
 	})
+
 	t.Run("TimeWindow", func(t *testing.T) {
 		now := time.Now().Unix()
 		setInstanceBanner(t, setting.InstanceBannerType{
