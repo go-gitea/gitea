@@ -507,6 +507,11 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		mileIDs = []int64{milestoneID}
 	}
 
+	var projectIDs []int64
+	if projectID != 0 {
+		projectIDs = []int64{projectID}
+	}
+
 	preparedLabelFilter := issue.PrepareFilterIssueLabels(ctx, repo.ID, ctx.Repo.Owner)
 	if ctx.Written() {
 		return
@@ -520,6 +525,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		RepoIDs:           []int64{repo.ID},
 		LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
 		MilestoneIDs:      mileIDs,
+		ProjectIDs:        projectIDs,
 		AssigneeID:        assigneeID,
 		MentionedID:       mentionedID,
 		PosterID:          posterUserID,
@@ -527,10 +533,6 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 		ReviewedID:        reviewedID,
 		IsPull:            isPullOption,
 		IssueIDs:          nil,
-	}
-
-	if projectID != 0 {
-		statsOpts.ProjectIDs = []int64{projectID}
 	}
 
 	if keyword != "" {
@@ -604,7 +606,7 @@ func prepareIssueFilterAndList(ctx *context.Context, milestoneID, projectID int6
 			ReviewRequestedID: reviewRequestedID,
 			ReviewedID:        reviewedID,
 			MilestoneIDs:      mileIDs,
-			ProjectIDs:        []int64{projectID},
+			ProjectIDs:        projectIDs,
 			IsClosed:          isShowClosed,
 			IsPull:            isPullOption,
 			LabelIDs:          preparedLabelFilter.SelectedLabelIDs,
