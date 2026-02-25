@@ -7,7 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nektos/act/pkg/jobparser"
+	"code.gitea.io/gitea/modules/actions/jobparser"
+
 	"github.com/stretchr/testify/assert"
 )
 

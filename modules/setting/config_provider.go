@@ -348,23 +348,6 @@ func deprecatedSettingDB(rootCfg ConfigProvider, oldSection, oldKey string) {
 	}
 }
 
-// NewConfigProviderForLocale loads locale configuration from source and others. "string" if for a local file path, "[]byte" is for INI content
-func NewConfigProviderForLocale(source any, others ...any) (ConfigProvider, error) {
-	iniFile, err := ini.LoadSources(ini.LoadOptions{
-		IgnoreInlineComment:         true,
-		UnescapeValueCommentSymbols: true,
-		IgnoreContinuation:          true,
-	}, source, others...)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load locale ini: %w", err)
-	}
-	iniFile.BlockMode = false
-	return &iniConfigProvider{
-		ini:             iniFile,
-		loadedFromEmpty: true,
-	}, nil
-}
-
 func init() {
 	ini.PrettyFormat = false
 }
