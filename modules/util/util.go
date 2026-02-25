@@ -273,17 +273,6 @@ func DiffSlice[T comparable](oldSlice, newSlice []T) (added, removed []T) {
 	return added, removed
 }
 
-func RemoveValue[T comparable](a []T, target T) []T {
-	n := 0
-	for _, v := range a {
-		if v != target {
-			a[n] = v
-			n++
-		}
-	}
-	return a[:n]
-}
-
 func JoinSlice[T any](items []T, toString func(T) string) string {
 	var b strings.Builder
 	sep := ""
