@@ -160,7 +160,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	}
 	rebaseAllowed = rebaseAllowed && prBaseUnit.PullRequestsConfig().AllowRebaseUpdate
 
-	// 3. if the pull creator allows maintainer to edit, we needs to check whether
+	// 3. if the pull creator allows maintainer to edit, we need to check whether
 	// user is a maintainer and inherit pull request creator's permission
 	if pull.AllowMaintainerEdit && (!pushAllowed || !rebaseAllowed) {
 		baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)
