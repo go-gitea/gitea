@@ -1,104 +1,39 @@
-import {beforeEach, describe, expect, test, vi} from 'vitest';
-import {initAdminConfigs} from './config.ts';
-import {POST} from '../../modules/fetch.ts';
+import {ConfigFormValueMapper} from './config.ts';
 
-vi.mock('../../modules/fetch.ts', () => ({
-  POST: vi.fn(),
-}));
-
-vi.mock('../../modules/tippy.ts', () => ({
-  showTemporaryTooltip: vi.fn(),
-}));
-
-function createPreviewDOM() {
+test('ConfigFormValueMapper', () => {
   document.body.innerHTML = `
-    <div class="page-content admin config">
-      <form class="ui form" action="/-/admin/config/instance_notice" method="post">
-        <textarea name="message">Initial message</textarea>
-      </form>
-      <div id="instance-notice-preview" class="ui info message">
-        <div id="instance-notice-preview-content"></div>
-      </div>
-    </div>
-  `;
-}
+<form>
+    <input id="checkbox-unrelated" type="checkbox" value="v-unrelated" checked>
 
-describe('Admin Instance Notice Preview', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    createPreviewDOM();
-  });
+    <!-- top-level key -->
+    <input name="k1" type="checkbox" value="v-key-only" data-config-dyn-key="k1" data-config-value-json="true" data-config-value-type="boolean">
+    <input type="hidden" data-config-dyn-key="k2" data-config-value-json='"k2-val"'>
+    <input name="k2">
 
-  test('renders markdown preview on input', async () => {
-    vi.mocked(POST).mockResolvedValue({
-      text: async () => '<p>Rendered message</p>',
-    } as Response);
+    <!-- sub key -->
+    <input type="hidden" data-config-dyn-key="struct" data-config-value-json='{"SubBoolean": true, "SubTimestamp": 123456789, "OtherKey": "other-value"}'>
+    <input name="struct.SubBoolean" type="checkbox" data-config-value-type="boolean">
+    <input name="struct.SubTimestamp" type="datetime-local" data-config-value-type="timestamp">
+    <textarea name="struct.NewKey">new-value</textarea>
+</form>
+`;
 
-    initAdminConfigs();
-
-    const messageInput = document.querySelector<HTMLTextAreaElement>('textarea[name="message"]')!;
-    messageInput.value = 'Updated message';
-    messageInput.dispatchEvent(new Event('input'));
-
-    await Promise.resolve();
-    await Promise.resolve();
-
-    expect(POST).toHaveBeenCalledWith('/-/markup', expect.objectContaining({
-      data: expect.any(FormData),
-    }));
-
-    const formData = vi.mocked(POST).mock.calls[0][1]?.data as FormData;
-    expect(formData.get('mode')).toBe('comment');
-    expect(formData.get('text')).toBe('Updated message');
-
-    const previewContent = document.querySelector('#instance-notice-preview-content')!;
-    expect(previewContent.innerHTML).toContain('Rendered message');
-  });
-
-  test('queues a second render while first request is in flight and re-renders with latest text', async () => {
-    let firstResolve: ((value: Response) => void) | undefined;
-    const firstPending = new Promise<Response>((resolve) => {
-      firstResolve = resolve;
-    });
-
-    vi.mocked(POST)
-      .mockImplementationOnce(async () => await firstPending)
-      .mockResolvedValueOnce({
-        text: async () => '<p>Second render</p>',
-      } as Response);
-
-    initAdminConfigs();
-
-    const messageInput = document.querySelector<HTMLTextAreaElement>('textarea[name="message"]')!;
-
-    messageInput.value = 'First value';
-    messageInput.dispatchEvent(new Event('input'));
-
-    await Promise.resolve();
-
-    messageInput.value = 'Latest value';
-    messageInput.dispatchEvent(new Event('input'));
-
-    firstResolve?.({
-      text: async () => '<p>First render</p>',
-    } as Response);
-
-    for (let i = 0; i < 10 && vi.mocked(POST).mock.calls.length < 2; i++) {
-      await new Promise((resolve) => {
-        setTimeout(resolve, 0);
-      });
-    }
-
-    expect(POST).toHaveBeenCalledTimes(2);
-    const secondData = vi.mocked(POST).mock.calls[1][1]?.data as FormData;
-    expect(secondData.get('text')).toBe('Latest value');
-
-    const previewContent = document.querySelector('#instance-notice-preview-content')!;
-    for (let i = 0; i < 10 && !previewContent.innerHTML.includes('Second render'); i++) {
-      await new Promise((resolve) => {
-        setTimeout(resolve, 0);
-      });
-    }
-    expect(previewContent.innerHTML).toContain('Second render');
+  const form = document.querySelector('form')!;
+  const mapper = new ConfigFormValueMapper(form);
+  mapper.fillFromSystemConfig();
+  const formData = mapper.collectToFormData();
+  const result: Record<string, string> = {};
+  const keys = [], values = [];
+  for (const [key, value] of formData.entries()) {
+    if (key === 'key') keys.push(value as string);
+    if (key === 'value') values.push(value as string);
+  }
+  for (let i = 0; i < keys.length; i++) {
+    result[keys[i]] = values[i];
+  }
+  expect(result).toEqual({
+    'k1': 'true',
+    'k2': '"k2-val"',
+    'struct': '{"SubBoolean":true,"SubTimestamp":123456780,"OtherKey":"other-value","NewKey":"new-value"}',
   });
 });

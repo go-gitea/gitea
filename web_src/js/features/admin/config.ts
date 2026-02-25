@@ -183,7 +183,7 @@ export class ConfigFormValueMapper {
     return JSON.stringify(cfgVal);
   }
 
-  collectToDataForm(): FormData {
+  collectToFormData(): FormData {
     const namedElems: Array<GeneralFormFieldElement | null> = [];
     queryElems(this.form, '[name]', (el) => namedElems.push(el as GeneralFormFieldElement));
 
@@ -215,7 +215,7 @@ function initSystemConfigForm(form: HTMLFormElement) {
   form.addEventListener('submit', async (e) => {
     if (!form.reportValidity()) return;
     e.preventDefault();
-    const formData = formMapper.collectToDataForm();
+    const formData = formMapper.collectToFormData();
     await submitFormFetchAction(form, {formData});
   });
 }

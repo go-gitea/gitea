@@ -193,7 +193,7 @@ func ConfigSettings(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplConfigSettings)
 }
 
-func validateConfigKeyValue(dynKey string, input string) error {
+func validateConfigKeyValue(dynKey, input string) error {
 	opt := config.GetConfigOption(dynKey)
 	if opt == nil {
 		return util.NewInvalidArgumentErrorf("unknown config key: %s", dynKey)

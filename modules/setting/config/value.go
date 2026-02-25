@@ -120,6 +120,7 @@ func (opt *Option[T]) ValueRevision(ctx context.Context) (v T, rev int, has bool
 	opt.mu.Lock()
 	opt.value = v
 	opt.revision = rev
+	opt.has = has
 	opt.mu.Unlock()
 	return v, rev, has
 }
