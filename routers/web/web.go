@@ -1075,9 +1075,9 @@ func registerWebRoutes(m *web.Router) {
 	// end "/{username}/{reponame}/-": migrate
 
 	m.Group("/{username}/{reponame}/-", func() {
-		m.Get("/mentionvalues", repo.MentionValues)
+		m.Get("/mentions", repo.GetMentions)
 	}, optSignIn, context.RepoAssignment)
-	// end "/{username}/{reponame}/-": mentionvalues
+	// end "/{username}/{reponame}/-": mentions
 
 	m.Group("/{username}/{reponame}/settings", func() {
 		m.Group("", func() {

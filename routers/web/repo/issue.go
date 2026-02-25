@@ -14,7 +14,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
-	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/models/renderhelper"
@@ -640,27 +639,4 @@ func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment,
 		return ""
 	}
 	return attachHTML
-}
-
-// getMentionableTeams returns the teams that the current user can mention in the repo context.
-func getMentionableTeams(ctx *context.Context) ([]*organization.Team, error) {
-	if ctx.Doer == nil || !ctx.Repo.Owner.IsOrganization() {
-		return nil, nil
-	}
-
-	org := organization.OrgFromUser(ctx.Repo.Owner)
-	// Admin has super access.
-	isAdmin := ctx.Doer.IsAdmin
-	if !isAdmin {
-		var err error
-		isAdmin, err = org.IsOwnedBy(ctx, ctx.Doer.ID)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if isAdmin {
-		return org.LoadTeams(ctx)
-	}
-	return org.GetUserTeams(ctx, ctx.Doer.ID)
 }

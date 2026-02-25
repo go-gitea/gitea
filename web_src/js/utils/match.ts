@@ -2,7 +2,7 @@ import emojis from '../../../assets/emoji.json' with {type: 'json'};
 import {GET} from '../modules/fetch.ts';
 import {showErrorToast} from '../modules/toast.ts';
 import {parseIssueHref, parseRepoOwnerPathInfo} from '../utils.ts';
-import type {Issue, MentionValue} from '../types.ts';
+import type {Issue, Mention} from '../types.ts';
 
 const maxMatches = 6;
 
@@ -31,29 +31,29 @@ export function matchEmoji(queryText: string): string[] {
   return sortAndReduce(results);
 }
 
-let cachedMentionValues: MentionValue[];
+let cachedMentions: Mention[];
 
-export async function fetchMentionValues(): Promise<MentionValue[]> {
-  if (!cachedMentionValues) {
-    cachedMentionValues = [];
+export async function fetchMentions(): Promise<Mention[]> {
+  if (!cachedMentions) {
+    cachedMentions = [];
     const {ownerName, repoName} = parseRepoOwnerPathInfo(window.location.pathname);
     if (ownerName && repoName) {
       try {
         const {indexString} = parseIssueHref(window.location.href);
         const query = indexString ? `?issue_index=${indexString}` : '';
-        const res = await GET(`${window.config.appSubUrl}/${ownerName}/${repoName}/-/mentionvalues${query}`);
-        cachedMentionValues = await res.json();
+        const res = await GET(`${window.config.appSubUrl}/${ownerName}/${repoName}/-/mentions${query}`);
+        cachedMentions = await res.json();
       } catch (e) {
-        showErrorToast(`Failed to load mention values: ${e}`);
+        showErrorToast(`Failed to load mentions: ${e}`);
       }
     }
   }
-  return cachedMentionValues;
+  return cachedMentions;
 }
 
 type MentionSuggestion = {value: string; name: string; fullname: string; avatar: string};
 export async function matchMention(queryText: string): Promise<MentionSuggestion[]> {
-  const values = await fetchMentionValues();
+  const values = await fetchMentions();
   const query = queryText.toLowerCase();
 
   // results is a map of weights, lower is better

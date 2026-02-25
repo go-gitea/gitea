@@ -1,8 +1,8 @@
 import {emojiKeys, emojiHTML, emojiString} from './emoji.ts';
 import {html, htmlRaw} from '../utils/html.ts';
-import {fetchMentionValues} from '../utils/match.ts';
+import {fetchMentions} from '../utils/match.ts';
 import type {TributeCollection} from 'tributejs';
-import type {MentionValue} from '../types.ts';
+import type {Mention} from '../types.ts';
 
 export async function attachTribute(element: HTMLElement) {
   const {default: Tribute} = await import(/* webpackChunkName: "tribute" */'tributejs');
@@ -30,9 +30,9 @@ export async function attachTribute(element: HTMLElement) {
     },
   };
 
-  const mentionCollection: TributeCollection<MentionValue> = {
-    values: async (_query: string, cb: (matches: MentionValue[]) => void) => { // eslint-disable-line @typescript-eslint/no-misused-promises
-      cb(await fetchMentionValues());
+  const mentionCollection: TributeCollection<Mention> = {
+    values: async (_query: string, cb: (matches: Mention[]) => void) => { // eslint-disable-line @typescript-eslint/no-misused-promises
+      cb(await fetchMentions());
     },
     requireLeadingSpace: true,
     menuItemTemplate: (item) => {

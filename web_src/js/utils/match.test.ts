@@ -5,7 +5,7 @@ vi.mock('../modules/fetch.ts', () => ({
   GET: vi.fn(),
 }));
 
-const testMentionValues = [
+const testMentions = [
   {key: 'user1 User 1', value: 'user1', name: 'user1', fullname: 'User 1', avatar: 'https://avatar1.com'},
   {key: 'user2 User 2', value: 'user2', name: 'user2', fullname: 'User 2', avatar: 'https://avatar2.com'},
   {key: 'org3 User 3', value: 'org3', name: 'org3', fullname: 'User 3', avatar: 'https://avatar3.com'},
@@ -74,8 +74,8 @@ test('matchEmoji', () => {
 test('matchMention', async () => {
   const oldLocation = String(window.location);
   window.location.assign('http://localhost/owner/repo/issues/1');
-  vi.mocked(GET).mockResolvedValue({json: () => Promise.resolve(testMentionValues)} as Response);
-  expect(await matchMention('')).toEqual(testMentionValues.slice(0, 6));
-  expect(await matchMention('user4')).toEqual([testMentionValues[3]]);
+  vi.mocked(GET).mockResolvedValue({json: () => Promise.resolve(testMentions)} as Response);
+  expect(await matchMention('')).toEqual(testMentions.slice(0, 6));
+  expect(await matchMention('user4')).toEqual([testMentions[3]]);
   window.location.assign(oldLocation);
 });
