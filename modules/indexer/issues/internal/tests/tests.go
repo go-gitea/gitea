@@ -314,12 +314,7 @@ var cases = []*testIndexerCase{
 				assert.Contains(t, data[v.ID].ProjectIDs, int64(1))
 			}
 			assert.Equal(t, countIndexerData(data, func(v *internal.IndexerData) bool {
-				for _, id := range v.ProjectIDs {
-					if id == 1 {
-						return true
-					}
-				}
-				return false
+				return slices.Contains(v.ProjectIDs, int64(1))
 			}), result.Total)
 		},
 	},
