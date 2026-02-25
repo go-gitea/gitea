@@ -9,6 +9,7 @@ test('ConfigFormValueMapper', () => {
     <input name="k1" type="checkbox" value="v-key-only" data-config-dyn-key="k1" data-config-value-json="true" data-config-value-type="boolean">
     <input type="hidden" data-config-dyn-key="k2" data-config-value-json='"k2-val"'>
     <input name="k2">
+    <textarea name="repository.open-with.editor-apps"> a = b\n</textarea>
 
     <!-- sub key -->
     <input type="hidden" data-config-dyn-key="struct" data-config-value-json='{"SubBoolean": true, "SubTimestamp": 123456789, "OtherKey": "other-value"}'>
@@ -34,6 +35,7 @@ test('ConfigFormValueMapper', () => {
   expect(result).toEqual({
     'k1': 'true',
     'k2': '"k2-val"',
+    'repository.open-with.editor-apps': '[{"DisplayName":"a","OpenURL":"b"}]', // TODO: OPEN-WITH-EDITOR-APP-JSON: it must match backend
     'struct': '{"SubBoolean":true,"SubTimestamp":123456780,"OtherKey":"other-value","NewKey":"new-value"}',
   });
 });
