@@ -99,8 +99,10 @@ func LoadIssuesFromColumn(ctx context.Context, b *project_model.Column, opts *Is
 	return issueList, nil
 }
 
-// IssueAssignOrRemoveProject changes the project associated with an issue
-// If newProjectID is 0, the issue is removed from the project
+// IssueAssignOrRemoveProject updates the projects associated with an issue.
+// It adds projects that are in newProjectIDs but not currently assigned, and removes
+// projects that are currently assigned but not in newProjectIDs. If newProjectIDs is
+// empty or nil, all projects are removed from the issue.
 func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectIDs []int64, newColumnID int64) error {
 	return db.WithTx(ctx, func(ctx context.Context) error {
 		oldProjectIDs, err := issue.projectIDs(ctx)
