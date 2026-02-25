@@ -2630,6 +2630,7 @@
   "repo.release.tag_name_invalid": "The tag name is not valid.",
   "repo.release.tag_name_protected": "The tag name is protected.",
   "repo.release.tag_already_exist": "This tag name already exists.",
+  "repo.release.tag_target_not_exist": "The tag target \"%s\" does not exist.",
   "repo.release.downloads": "Downloads",
   "repo.release.download_count": "Downloads: %s",
   "repo.release.add_tag_msg": "Use the title and content of release as tag message.",
