@@ -1,4 +1,3 @@
-import {beforeEach, describe, expect, test, vi} from 'vitest';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';
 import {POST} from '../modules/fetch.ts';
 import {createSortable} from '../modules/sortable.ts';

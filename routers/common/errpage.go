@@ -32,7 +32,9 @@ func renderServerErrorPage(w http.ResponseWriter, req *http.Request, respCode in
 	}
 
 	httpcache.SetCacheControlInHeader(w.Header(), &httpcache.CacheControlOptions{NoTransform: true})
-	w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
+	if setting.Security.XFrameOptions != "unset" {
+		w.Header().Set(`X-Frame-Options`, setting.Security.XFrameOptions)
+	}
 
 	tmplCtx := context.NewTemplateContext(req.Context(), req)
 	tmplCtx["Locale"] = middleware.Locale(w, req)

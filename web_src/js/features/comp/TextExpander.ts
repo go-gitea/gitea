@@ -3,7 +3,7 @@ import {emojiString} from '../emoji.ts';
 import {svg} from '../../svg.ts';
 import {parseIssueHref, parseRepoOwnerPathInfo} from '../../utils.ts';
 import {createElementFromAttrs, createElementFromHTML} from '../../utils/dom.ts';
-import {getIssueColor, getIssueIcon} from '../issue.ts';
+import {getIssueColorClass, getIssueIcon} from '../issue.ts';
 import {debounce} from 'perfect-debounce';
 import type TextExpanderElement from '@github/text-expander-element';
 import type {TextExpanderChangeEvent, TextExpanderResult} from '@github/text-expander-element';
@@ -25,7 +25,7 @@ async function fetchIssueSuggestions(key: string, text: string): Promise<TextExp
   for (const issue of matches) {
     const li = createElementFromAttrs(
       'li', {role: 'option', class: 'tw-flex tw-gap-2', 'data-value': `${key}${issue.number}`},
-      createElementFromHTML(svg(getIssueIcon(issue), 16, ['text', getIssueColor(issue)])),
+      createElementFromHTML(svg(getIssueIcon(issue), 16, [getIssueColorClass(issue)])),
       createElementFromAttrs('span', null, `#${issue.number}`),
       createElementFromAttrs('span', null, issue.title),
     );
