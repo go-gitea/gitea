@@ -1,0 +1,79 @@
+{{template "base/head" .}}
+
+<div class="page-content repository actions">
+	{{template "repo/header" .}}
+
+	<div class="ui container artifact-preview-page">
+		<div class="artifact-preview-header">
+			<div class="artifact-preview-title">
+				<h2 class="ui header">{{ctx.Locale.Tr "preview"}}: <span class="gt-ellipsis">{{.ArtifactName}}</span></h2>
+				<div class="artifact-preview-subtitle">
+					<a href="{{.RunURL}}">{{ctx.Locale.Tr "go_back"}}</a>
+				</div>
+			</div>
+			<a class="ui button" href="{{.DownloadURL}}">
+				{{svg "octicon-download"}}
+				{{ctx.Locale.Tr "repo.download_file"}}
+			</a>
+		</div>
+
+		<div class="ui stackable grid">
+			<div class="four wide column">
+				<div class="ui fluid vertical menu">
+					<div class="item">
+						<b>{{ctx.Locale.Tr "files"}}</b>
+					</div>
+					{{range .PreviewFiles}}
+						<a class="item gt-ellipsis {{if .Selected}}active{{end}}" href="{{$.PreviewURL}}?path={{QueryEscape .Path}}" title="{{.Path}}">
+							{{.Path}}
+						</a>
+					{{else}}
+						<div class="item disabled">{{ctx.Locale.Tr "none"}}</div>
+					{{end}}
+				</div>
+			</div>
+			<div class="twelve wide column">
+				{{if .SelectedPath}}
+					<iframe class="artifact-preview-frame" src="{{.PreviewRawURL}}?path={{QueryEscape .SelectedPath}}" referrerpolicy="same-origin"></iframe>
+				{{else}}
+					<div class="ui attached segment">{{ctx.Locale.Tr "none"}}</div>
+				{{end}}
+			</div>
+		</div>
+	</div>
+</div>
+
+<style>
+.artifact-preview-page {
+	margin-top: 1rem;
+}
+
+.artifact-preview-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.artifact-preview-title {
+	min-width: 0;
+}
+
+.artifact-preview-title .ui.header {
+	margin-bottom: 0.25rem;
+}
+
+.artifact-preview-subtitle {
+	color: var(--color-text-light-3);
+}
+
+.artifact-preview-frame {
+	width: 100%;
+	min-height: 70vh;
+	border: 1px solid var(--color-secondary);
+	border-radius: var(--border-radius);
+}
+</style>
+
+{{template "base/footer" .}}
