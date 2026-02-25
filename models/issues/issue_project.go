@@ -112,11 +112,10 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			return err
 		}
 
-		projectDB := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID)
 		newProjectIDs, oldProjectIDs := util.DiffSlice(oldProjectIDs, newProjectIDs)
 
 		if len(oldProjectIDs) > 0 {
-			if _, err := projectDB.Where("issue_id=?", issue.ID).In("project_id", oldProjectIDs).Delete(&project_model.ProjectIssue{}); err != nil {
+			if _, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).In("project_id", oldProjectIDs).Delete(&project_model.ProjectIssue{}); err != nil {
 				return err
 			}
 			for _, projectID := range oldProjectIDs {
@@ -141,7 +140,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			MaxSorting int64
 			IssueCount int64
 		}{}
-		if _, err := projectDB.Select("max(sorting) as max_sorting, count(*) as issue_count").Table("project_issue").
+		if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").Table("project_issue").
 			In("project_id", newProjectIDs).
 			And("project_board_id=?", newColumnID).
 			Get(&res); err != nil {
