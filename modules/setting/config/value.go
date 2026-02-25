@@ -28,12 +28,12 @@ type Option[T any] struct {
 	cfgSecKey CfgSecKey
 	dynKey    string
 
-	value     T
-	defSimple T
-	defFunc   func() T
-	zeroAsDef bool
-	has       bool
-	revision  int
+	value      T
+	defSimple  T
+	defFunc    func() T
+	emptyAsDef bool
+	has        bool
+	revision   int
 }
 
 func (opt *Option[T]) GetDefaultValue() any {
@@ -100,7 +100,7 @@ func (opt *Option[T]) ValueRevision(ctx context.Context) (v T, rev int, has bool
 
 	// try to parse the config and cache it
 	var valStr *string
-	if dynVal, has := dg.GetValue(ctx, opt.dynKey); has {
+	if dynVal, hasDbValue := dg.GetValue(ctx, opt.dynKey); hasDbValue {
 		valStr = &dynVal
 	} else if cfgVal, has := GetCfgSecKeyGetter().GetValue(opt.cfgSecKey.Sec, opt.cfgSecKey.Key); has {
 		valStr = &cfgVal
@@ -110,7 +110,7 @@ func (opt *Option[T]) ValueRevision(ctx context.Context) (v T, rev int, has bool
 		has = false
 	} else {
 		v = opt.parse(opt.dynKey, *valStr)
-		if isZeroOrEmpty(v) {
+		if opt.emptyAsDef && isZeroOrEmpty(v) {
 			v = opt.DefaultValue()
 		} else {
 			has = true
@@ -151,8 +151,8 @@ func (opt *Option[T]) WithDefaultSimple(def T) *Option[T] {
 	return opt
 }
 
-func (opt *Option[T]) WithZeroAsDefault() *Option[T] {
-	opt.zeroAsDef = true
+func (opt *Option[T]) WithEmptyAsDefault() *Option[T] {
+	opt.emptyAsDef = true
 	return opt
 }
 

@@ -85,6 +85,10 @@ func PageGlobalData(ctx *context.Context) {
 	data.GetNotificationUnreadCount = sync.OnceValue(func() int64 { return notificationUnreadCount(ctx) })
 	data.GetActiveStopwatch = sync.OnceValue(func() *StopwatchTmplInfo { return getActiveStopwatch(ctx) })
 
+	// Using revision as a simple approach to determine if the banner has been changed after the user dismissed it.
+	// There could be some false-positives because revision can be changed even if the banner isn't.
+	// While it should be still good enough (no admin would keep changing the settings) and doesn't really harm end users (just a few more times to see the banner)
+	// So it doesn't need to make it more complicated by allocating unique IDs or using hashes.
 	dismissedInstanceBannerRevision, _ := strconv.Atoi(ctx.GetSiteCookie(middleware.CookieInstanceBannerDismissed))
 	instanceBanner, revision, _ := setting.Config().WebUI.InstanceBanner.ValueRevision(ctx)
 	if instanceBanner.ShouldDisplay() && dismissedInstanceBannerRevision != revision {

@@ -199,12 +199,13 @@ func validateConfigKeyValue(dynKey, input string) error {
 		return util.NewInvalidArgumentErrorf("unknown config key: %s", dynKey)
 	}
 
-	if !json.Valid([]byte(input)) {
-		return util.NewInvalidArgumentErrorf("invalid json value for key: %s", dynKey)
-	}
 	const limit = 64 * 1024
 	if len(input) > limit {
 		return util.NewInvalidArgumentErrorf("value length exceeds limit of %d", limit)
+	}
+
+	if !json.Valid([]byte(input)) {
+		return util.NewInvalidArgumentErrorf("invalid json value for key: %s", dynKey)
 	}
 	return nil
 }

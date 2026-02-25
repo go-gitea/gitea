@@ -102,8 +102,8 @@ func initDefaultConfig() {
 			EnableFederatedAvatar: config.NewOption[bool]("picture.enable_federated_avatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "ENABLE_FEDERATED_AVATAR"}),
 		},
 		Repository: &RepositoryStruct{
-			OpenWithEditorApps: config.NewOption[OpenWithEditorAppsType]("repository.open-with.editor-apps").WithZeroAsDefault().WithDefaultFunc(openWithEditorAppsDefaultValue),
-			GitGuideRemoteName: config.NewOption[string]("repository.git-guide-remote-name").WithZeroAsDefault().WithDefaultSimple("origin"),
+			OpenWithEditorApps: config.NewOption[OpenWithEditorAppsType]("repository.open-with.editor-apps").WithEmptyAsDefault().WithDefaultFunc(openWithEditorAppsDefaultValue),
+			GitGuideRemoteName: config.NewOption[string]("repository.git-guide-remote-name").WithEmptyAsDefault().WithDefaultSimple("origin"),
 		},
 		WebUI: &WebUIStruct{
 			InstanceBanner: config.NewOption[InstanceBannerType]("web_ui.instance_banner"),

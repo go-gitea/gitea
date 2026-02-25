@@ -135,7 +135,7 @@ export class ConfigFormValueMapper {
       // oldVal: for future use when we support array value with checkbox
     } else if (el.matches('[type="datetime-local"]')) {
       if (valType !== 'timestamp') RequireExplicitValueType(el);
-      val = Math.floor(new Date(el.value).getTime() / 1000) ?? 0;
+      val = Math.floor(new Date(el.value).getTime() / 1000) ?? 0; // NaN is fine to JSON.stringify, it becomes null.
     } else if (el.matches('textarea')) {
       val = el.value;
     } else if (el.matches('input') && (el.getAttribute('type') ?? 'text') === 'text') {
