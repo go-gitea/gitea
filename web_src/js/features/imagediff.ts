@@ -27,7 +27,7 @@ function getDefaultSvgBoundsIfUndefined(text: string, src: string) {
       const viewBox = svg.viewBox.baseVal;
       return {
         width: defaultSize,
-        height: defaultSize * viewBox.width / viewBox.height,
+        height: defaultSize * viewBox.height / viewBox.width,
       };
     }
     return {
