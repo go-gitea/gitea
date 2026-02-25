@@ -70,6 +70,7 @@ type Issue struct {
 	Milestone         *Milestone               `xorm:"-"`
 	isMilestoneLoaded bool                     `xorm:"-"`
 	Projects          []*project_model.Project `xorm:"-"`
+	isProjectsLoaded  bool                     `xorm:"-"`
 	Priority          int
 	AssigneeID        int64            `xorm:"-"`
 	Assignee          *user_model.User `xorm:"-"`
@@ -362,6 +363,7 @@ func (issue *Issue) ResetAttributesLoaded() {
 	issue.isMilestoneLoaded = false
 	issue.isAttachmentsLoaded = false
 	issue.isAssigneeLoaded = false
+	issue.isProjectsLoaded = false
 }
 
 // GetIsRead load the `IsRead` field of the issue
