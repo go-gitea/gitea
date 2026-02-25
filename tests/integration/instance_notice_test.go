@@ -23,7 +23,7 @@ func TestInstanceNoticeVisibility(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	setInstanceNoticeForTest(t, setting.DefaultInstanceNotice())
 
-	setInstanceNoticeForTest(t, setting.InstanceNotice{
+	setInstanceNoticeForTest(t, setting.InstanceBannerType{
 		Enabled: true,
 		Message: "Planned **upgrade** in progress.",
 	})
@@ -56,7 +56,7 @@ func TestInstanceNoticeTimeWindow(t *testing.T) {
 	setInstanceNoticeForTest(t, setting.DefaultInstanceNotice())
 
 	now := time.Now().Unix()
-	setInstanceNoticeForTest(t, setting.InstanceNotice{
+	setInstanceNoticeForTest(t, setting.InstanceBannerType{
 		Enabled:   true,
 		Message:   "Future banner",
 		StartTime: now + 3600,
@@ -66,7 +66,7 @@ func TestInstanceNoticeTimeWindow(t *testing.T) {
 	resp := MakeRequest(t, NewRequest(t, "GET", "/"), http.StatusOK)
 	assert.NotContains(t, resp.Body.String(), "Future banner")
 
-	setInstanceNoticeForTest(t, setting.InstanceNotice{
+	setInstanceNoticeForTest(t, setting.InstanceBannerType{
 		Enabled:   true,
 		Message:   "Expired banner",
 		StartTime: now - 7200,
@@ -113,12 +113,12 @@ func TestInstanceNoticeAdminCRUD(t *testing.T) {
 	assert.Equal(t, setting.DefaultInstanceNotice(), notice)
 }
 
-func setInstanceNoticeForTest(t *testing.T, notice setting.InstanceNotice) {
+func setInstanceNoticeForTest(t *testing.T, notice setting.InstanceBannerType) {
 	t.Helper()
 	marshaled, err := json.Marshal(notice)
 	require.NoError(t, err)
 	require.NoError(t, system_model.SetSettings(t.Context(), map[string]string{
-		setting.Config().InstanceNotice.Banner.DynKey(): string(marshaled),
+		setting.Config().WebUI.Banner.DynKey(): string(marshaled),
 	}))
 	config.GetDynGetter().InvalidateCache()
 }

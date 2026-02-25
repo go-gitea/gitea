@@ -14,7 +14,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-const cookieRedirectTo = "redirect_to"
+const (
+	CookieInstanceBannerDismissed = "gitea_disbnr"
+
+	cookieRedirectTo = "redirect_to"
+)
 
 func GetRedirectToCookie(req *http.Request) string {
 	return GetSiteCookie(req, cookieRedirectTo)

@@ -1,39 +1,48 @@
 <h4 id="instance-notice" class="ui top attached header">
-	{{ctx.Locale.Tr "admin.config.instance_notice"}}
+	{{ctx.Locale.Tr "admin.config.instance_banner"}}
 </h4>
 <div class="ui attached segment">
-	<form class="ui form ignore-dirty" action="{{AppSubUrl}}/-/admin/config/instance_notice" method="post">
+	{{$cfgKey := $.SystemConfig.WebUI.InstanceBanner.DynKey}}
+	{{$instanceBanner := $.SystemConfig.WebUI.InstanceBanner.Value ctx}}
+	<form class="ui form ignore-dirty system-config-form" method="post" action="{{AppSubUrl}}/-/admin/config">
+		<input type="hidden" data-config-dyn-key="{{$cfgKey}}" data-config-value-json="{{JsonUtils.EncodeToString $instanceBanner}}">
 		<div class="field">
 			<div class="ui checkbox">
-				<input type="checkbox" name="enabled" value="true" {{if .InstanceNotice.Enabled}}checked{{end}}>
-				<label>{{ctx.Locale.Tr "admin.config.instance_notice.enabled"}}</label>
+				<input type="checkbox" name="{{$cfgKey}}.DisplayEnabled" value="true" data-config-value-type="boolean">
+				<label>{{ctx.Locale.Tr "admin.config.instance_banner.enabled"}}</label>
 			</div>
 		</div>
 		<div class="field">
-			<label>{{ctx.Locale.Tr "admin.config.instance_notice.message"}}</label>
-			<textarea name="message" rows="4" maxlength="{{.InstanceNoticeMessageMaxLength}}" placeholder="{{ctx.Locale.Tr "admin.config.instance_notice.message_placeholder"}}">{{.InstanceNotice.Message}}</textarea>
+			<label>{{ctx.Locale.Tr "admin.config.instance_banner.message"}}</label>
+			{{template "shared/combomarkdowneditor" (dict
+				"CustomInit" true
+				"ContainerClasses" "instance-banner-content-editor"
+				"MarkdownPreviewMode" "none"
+				"TextareaName" (print $cfgKey ".ContentMessage")
+				"TextareaContent" $instanceBanner.ContentMessage
+				"TextareaPlaceholder" (ctx.Locale.Tr "admin.config.instance_banner.message_placeholder")
+			)}}
 		</div>
-		<div class="two fields">
+		<div class="fields">
 			<div class="field">
-				<label>{{ctx.Locale.Tr "admin.config.instance_notice.start_time"}}</label>
-				<input type="datetime-local" name="start_time" value="{{.InstanceNoticeStartTime}}">
+				<label>{{ctx.Locale.Tr "admin.config.instance_banner.start_time"}}</label>
+				<input type="datetime-local" name="{{$cfgKey}}.StartTimeUnix" data-config-value-type="timestamp">
 			</div>
 			<div class="field">
-				<label>{{ctx.Locale.Tr "admin.config.instance_notice.end_time"}}</label>
-				<input type="datetime-local" name="end_time" value="{{.InstanceNoticeEndTime}}">
+				<label>{{ctx.Locale.Tr "admin.config.instance_banner.end_time"}}</label>
+				<input type="datetime-local" name="{{$cfgKey}}.EndTimeUnix" data-config-value-type="timestamp">
 			</div>
 		</div>
 		<div class="field">
-			<label>{{ctx.Locale.Tr "admin.config.instance_notice.preview"}}</label>
-			<div id="instance-notice-preview" class="ui info message tw-mt-2">
-				<div class="tw-flex tw-items-center tw-justify-center">
-					<div id="instance-notice-preview-content" class="render-content markup tw-text-center">{{ctx.RenderUtils.MarkdownToHtml .InstanceNotice.Message}}</div>
+			<label>{{ctx.Locale.Tr "admin.config.instance_banner.preview"}}</label>
+			<div class="ui info message tw-mt-2">
+				<div class="render-content markup instance-banner-content">
+					{{ctx.RenderUtils.MarkdownToHtml $instanceBanner.ContentMessage}}
 				</div>
 			</div>
 		</div>
 		<div class="field">
 			<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
-			<button type="submit" name="action" value="delete" formnovalidate class="ui button tw-ml-2">{{ctx.Locale.Tr "remove"}}</button>
 		</div>
 	</form>
 </div>

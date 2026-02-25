@@ -176,15 +176,14 @@
 		</div>
 	{{end}}
 </nav>
-{{if and .PageGlobalData .PageGlobalData.InstanceNoticeBanner}}
-		{{$banner := .PageGlobalData.InstanceNoticeBanner}}
-		<div id="instance-notice-banner" class="ui info attached message tw-m-0 tw-rounded-none" data-dismiss-key="{{$banner.DismissKey}}">
-			<div class="tw-grid tw-grid-cols-[auto_1fr_auto] tw-items-center tw-gap-3">
-				<div class="ui mini icon button tw-invisible tw-pointer-events-none tw-m-0" aria-hidden="true">
-					{{svg "octicon-x"}}
+{{$instanceBanner := .PageGlobalData.CurrentInstanceBanner}}
+{{if $instanceBanner}}
+		<div class="ui info message tw-m-0 tw-rounded-none">
+			<div class="tw-grid tw-grid-cols-[1fr_auto] tw-items-center tw-gap-3">
+				<div class="render-content markup instance-banner-content">
+					{{ctx.RenderUtils.MarkdownToHtml $instanceBanner.ContentMessage}}
 				</div>
-				<div class="render-content markup tw-text-center">{{ctx.RenderUtils.MarkdownToHtml $banner.Message}}</div>
-				<button type="button" class="ui mini icon button instance-notice-dismiss tw-m-0" aria-label="{{ctx.Locale.Tr "admin.config.instance_notice.dismiss"}}">
+				<button type="button" class="btn link-action" aria-label="{{ctx.Locale.Tr "admin.config.instance_banner.dismiss"}}" data-url="{{AppSubUrl}}/-/instance-banner/dismiss">
 					{{svg "octicon-x"}}
 				</button>
 			</div>

@@ -4,17 +4,17 @@
 package setting
 
 import (
-	"context"
 	"strings"
 	"sync"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting/config"
 )
 
 type PictureStruct struct {
-	DisableGravatar       *config.Value[bool]
-	EnableFederatedAvatar *config.Value[bool]
+	DisableGravatar       *config.Option[bool]
+	EnableFederatedAvatar *config.Option[bool]
 }
 
 type OpenWithEditorApp struct {
@@ -24,6 +24,8 @@ type OpenWithEditorApp struct {
 
 type OpenWithEditorAppsType []OpenWithEditorApp
 
+// ToTextareaString is only used in templates, for help prompt only
+// TODO: OPEN-WITH-EDITOR-APP-JSON: Because there is no "rich UI", a plain text editor is used to manage the list of apps
 func (t OpenWithEditorAppsType) ToTextareaString() string {
 	var ret strings.Builder
 	for _, app := range t {
@@ -32,7 +34,7 @@ func (t OpenWithEditorAppsType) ToTextareaString() string {
 	return ret.String()
 }
 
-func DefaultOpenWithEditorApps() OpenWithEditorAppsType {
+func openWithEditorAppsDefaultValue() OpenWithEditorAppsType {
 	return OpenWithEditorAppsType{
 		{
 			DisplayName: "VS Code",
@@ -50,47 +52,40 @@ func DefaultOpenWithEditorApps() OpenWithEditorAppsType {
 }
 
 type RepositoryStruct struct {
-	OpenWithEditorApps *config.Value[OpenWithEditorAppsType]
-	GitGuideRemoteName *config.Value[string]
+	OpenWithEditorApps *config.Option[OpenWithEditorAppsType]
+	GitGuideRemoteName *config.Option[string]
 }
 
-type InstanceNotice struct {
-	Enabled bool
-	Message string
-
-	StartTime int64
-	EndTime   int64
+// InstanceBannerType fields are directly used in templates, do remember to update the template if you change the fields
+type InstanceBannerType struct {
+	DisplayEnabled bool
+	ContentMessage string
+	StartTimeUnix  int64
+	EndTimeUnix    int64
 }
 
-func DefaultInstanceNotice() InstanceNotice {
-	return InstanceNotice{}
-}
-
-func (n *InstanceNotice) IsActive(now int64) bool {
-	if !n.Enabled || n.Message == "" {
+func (n InstanceBannerType) ShouldDisplay() bool {
+	if !n.DisplayEnabled || n.ContentMessage == "" {
 		return false
 	}
-	if n.StartTime > 0 && now < n.StartTime {
+	now := time.Now().Unix()
+	if n.StartTimeUnix > 0 && now < n.StartTimeUnix {
 		return false
 	}
-	if n.EndTime > 0 && now > n.EndTime {
+	if n.EndTimeUnix > 0 && now > n.EndTimeUnix {
 		return false
 	}
 	return true
 }
 
-func GetInstanceNotice(ctx context.Context) InstanceNotice {
-	return Config().InstanceNotice.Banner.Value(ctx)
-}
-
-type InstanceNoticeStruct struct {
-	Banner *config.Value[InstanceNotice]
+type WebUIStruct struct {
+	InstanceBanner *config.Option[InstanceBannerType]
 }
 
 type ConfigStruct struct {
-	Picture        *PictureStruct
-	Repository     *RepositoryStruct
-	InstanceNotice *InstanceNoticeStruct
+	Picture    *PictureStruct
+	Repository *RepositoryStruct
+	WebUI      *WebUIStruct
 }
 
 var (
@@ -102,15 +97,15 @@ func initDefaultConfig() {
 	config.SetCfgSecKeyGetter(&cfgSecKeyGetter{})
 	defaultConfig = &ConfigStruct{
 		Picture: &PictureStruct{
-			DisableGravatar:       config.ValueJSON[bool]("picture.disable_gravatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "DISABLE_GRAVATAR"}),
-			EnableFederatedAvatar: config.ValueJSON[bool]("picture.enable_federated_avatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "ENABLE_FEDERATED_AVATAR"}),
+			DisableGravatar:       config.NewOption[bool]("picture.disable_gravatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "DISABLE_GRAVATAR"}),
+			EnableFederatedAvatar: config.NewOption[bool]("picture.enable_federated_avatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "ENABLE_FEDERATED_AVATAR"}),
 		},
 		Repository: &RepositoryStruct{
-			OpenWithEditorApps: config.ValueJSON[OpenWithEditorAppsType]("repository.open-with.editor-apps"),
-			GitGuideRemoteName: config.ValueJSON[string]("repository.git-guide-remote-name").WithDefault("origin"),
+			OpenWithEditorApps: config.NewOption[OpenWithEditorAppsType]("repository.open-with.editor-apps").WithZeroAsDefault().WithDefaultFunc(openWithEditorAppsDefaultValue),
+			GitGuideRemoteName: config.NewOption[string]("repository.git-guide-remote-name").WithZeroAsDefault().WithDefaultSimple("origin"),
 		},
-		InstanceNotice: &InstanceNoticeStruct{
-			Banner: config.ValueJSON[InstanceNotice]("instance.notice").WithDefault(DefaultInstanceNotice()),
+		WebUI: &WebUIStruct{
+			InstanceBanner: config.NewOption[InstanceBannerType]("web_ui.instance_banner"),
 		},
 	}
 }

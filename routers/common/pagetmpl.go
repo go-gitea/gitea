@@ -5,9 +5,8 @@ package common
 
 import (
 	goctx "context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
+	"strconv"
 	"sync"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -15,7 +14,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/context"
 )
 
@@ -73,36 +72,23 @@ type pageGlobalDataType struct {
 	IsSigned    bool
 	IsSiteAdmin bool
 
-	InstanceNoticeBanner *InstanceNoticeBannerTmplInfo
+	CurrentInstanceBanner *setting.InstanceBannerType
 
 	GetNotificationUnreadCount func() int64
 	GetActiveStopwatch         func() *StopwatchTmplInfo
-}
-
-type InstanceNoticeBannerTmplInfo struct {
-	Message    string
-	DismissKey string
-}
-
-func getInstanceNoticeBanner(ctx *context.Context) *InstanceNoticeBannerTmplInfo {
-	notice := setting.GetInstanceNotice(ctx)
-	if !notice.IsActive(int64(timeutil.TimeStampNow())) {
-		return nil
-	}
-	h := sha256.Sum256([]byte(notice.Message))
-	dismissKey := hex.EncodeToString(h[:])[:16]
-	return &InstanceNoticeBannerTmplInfo{
-		Message:    notice.Message,
-		DismissKey: dismissKey,
-	}
 }
 
 func PageGlobalData(ctx *context.Context) {
 	var data pageGlobalDataType
 	data.IsSigned = ctx.Doer != nil
 	data.IsSiteAdmin = ctx.Doer != nil && ctx.Doer.IsAdmin
-	data.InstanceNoticeBanner = getInstanceNoticeBanner(ctx)
 	data.GetNotificationUnreadCount = sync.OnceValue(func() int64 { return notificationUnreadCount(ctx) })
 	data.GetActiveStopwatch = sync.OnceValue(func() *StopwatchTmplInfo { return getActiveStopwatch(ctx) })
+
+	dismissedInstanceBannerRevision, _ := strconv.Atoi(ctx.GetSiteCookie(middleware.CookieInstanceBannerDismissed))
+	instanceBanner, revision, _ := setting.Config().WebUI.InstanceBanner.ValueRevision(ctx)
+	if instanceBanner.ShouldDisplay() && dismissedInstanceBannerRevision != revision {
+		data.CurrentInstanceBanner = &instanceBanner
+	}
 	ctx.Data["PageGlobalData"] = data
 }

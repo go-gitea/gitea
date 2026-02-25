@@ -480,7 +480,7 @@ func registerWebRoutes(m *web.Router) {
 	}, optionsCorsHandler())
 
 	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
-
+	m.Post("/-/instance-banner/dismiss", misc.InstanceBannerDismiss)
 	m.Get("/-/web-theme/list", misc.WebThemeList)
 	m.Post("/-/web-theme/apply", optSignIn, misc.WebThemeApply)
 
@@ -717,7 +717,6 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("/config", func() {
 			m.Get("", admin.Config)
 			m.Post("", admin.ChangeConfig)
-			m.Post("/instance_notice", admin.SetInstanceNotice)
 			m.Post("/test_mail", admin.SendTestMail)
 			m.Post("/test_cache", admin.TestCache)
 			m.Get("/settings", admin.ConfigSettings)
