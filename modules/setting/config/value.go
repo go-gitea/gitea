@@ -141,6 +141,7 @@ func (opt *Option[T]) WithDefaultSimple(def T) *Option[T] {
 	switch v.(type) {
 	case string, bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
 	default:
+		// TODO: use reflect to support convertable basic types like `type State string`
 		r := reflect.ValueOf(v)
 		if r.Kind() != reflect.Struct {
 			panic("invalid type for default value, use WithDefaultFunc instead")

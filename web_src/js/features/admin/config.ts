@@ -88,7 +88,12 @@ export class ConfigFormValueMapper {
     for (const el of queryElems<HTMLInputElement>(form, '[data-config-value-json]')) {
       const dynKey = el.getAttribute('data-config-dyn-key')!;
       const jsonStr = el.getAttribute('data-config-value-json');
-      this.presetJsonValues[dynKey] = JSON.parse(jsonStr || '{}'); // empty string also is valid, default to an empty object
+      try {
+        this.presetJsonValues[dynKey] = JSON.parse(jsonStr || '{}'); // empty string also is valid, default to an empty object
+      } catch (error) {
+        this.presetJsonValues[dynKey] = {}; // in case the value in database is corrupted, don't break the whole form
+        console.error(`Error parsing JSON for config ${dynKey}:`, error);
+      }
     }
     for (const el of queryElems<HTMLInputElement>(form, '[data-config-value-type]')) {
       const valKey = el.getAttribute('data-config-dyn-key') || el.name;
@@ -164,7 +169,7 @@ export class ConfigFormValueMapper {
     }
   }
 
-  // TODO: OPEN-WITH-EDITOR-APP-JSON: Because there is no "rich UI", a plain text editor is used to manage the list of apps
+  // TODO: OPEN-WITH-EDITOR-APP-JSON: need to use the same logic as backend
   marshalConfigValueOpenWithEditorApps(cfgVal: string): string {
     const apps: Array<{DisplayName: string, OpenURL: string}> = [];
     const lines = cfgVal.split('\n');

@@ -26,6 +26,7 @@ type OpenWithEditorAppsType []OpenWithEditorApp
 
 // ToTextareaString is only used in templates, for help prompt only
 // TODO: OPEN-WITH-EDITOR-APP-JSON: Because there is no "rich UI", a plain text editor is used to manage the list of apps
+// Maybe we can use some better formats like Yaml in the future, then a simple textarea can manage the config clearly
 func (t OpenWithEditorAppsType) ToTextareaString() string {
 	var ret strings.Builder
 	for _, app := range t {

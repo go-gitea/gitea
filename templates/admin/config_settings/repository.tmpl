@@ -11,6 +11,7 @@
 			</details>
 		</div>
 		<div class="field">
+			{{/* TODO: OPEN-WITH-EDITOR-APP-JSON: use a simple textarea */}}
 			<textarea name="{{$cfg.DynKey}}">{{if $cfg.HasValue ctx}}{{($cfg.Value ctx).ToTextareaString}}{{end}}</textarea>
 		</div>
 
