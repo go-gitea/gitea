@@ -103,7 +103,7 @@ func SearchIssues(ctx *context.APIContext) {
 	//   default: open
 	// - name: labels
 	//   in: query
-	//   description: Comma-separated list of label names. Fetch only issues that have any of these labels. Non existent labels are discarded.
+	//   description: Comma-separated list of label names. Fetch only issues that have all of these labels. Non existent labels are discarded.
 	//   type: string
 	// - name: milestones
 	//   in: query
@@ -249,7 +249,7 @@ func SearchIssues(ctx *context.APIContext) {
 		AllPublic:           allPublic,
 		IsPull:              isPull,
 		IsClosed:            isClosed,
-		IncludedAnyLabelIDs: includedAnyLabels,
+		IncludedLabelIDs: includedAnyLabels,
 		MilestoneIDs:        includedMilestones,
 		SortBy:              issue_indexer.SortByCreatedDesc,
 	}
@@ -329,7 +329,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   enum: [closed, open, all]
 	// - name: labels
 	//   in: query
-	//   description: comma separated list of label names. Fetch only issues that have any of this label names. Non existent labels are discarded.
+	//   description: comma separated list of label names. Fetch only issues that have all of these labels. Non-existent labels are discarded.
 	//   type: string
 	// - name: q
 	//   in: query
@@ -342,7 +342,7 @@ func ListIssues(ctx *context.APIContext) {
 	//   enum: [issues, pulls]
 	// - name: milestones
 	//   in: query
-	//   description: comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of this milestones. Non existent milestones are discarded
+	//   description: comma separated list of milestone names or ids. It uses names and fall back to ids. Fetch only issues that have any of these milestones. Non-existent milestones are discarded
 	//   type: string
 	// - name: since
 	//   in: query
