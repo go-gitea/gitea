@@ -835,6 +835,7 @@ func registerWebRoutes(m *web.Router) {
 
 	// the legacy names "reqRepoXxx" should be renamed to the correct name "reqUnitXxx", these permissions are for units, not repos
 	reqUnitsWithMarkdown := context.RequireUnitReader(unit.TypeCode, unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki)
+	reqUnitCommentWriter := context.RequireUnitReader(unit.TypeIssues, unit.TypePullRequests, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects)
 	reqUnitCodeReader := context.RequireUnitReader(unit.TypeCode)
 	reqUnitIssuesReader := context.RequireUnitReader(unit.TypeIssues)
 	reqUnitPullsReader := context.RequireUnitReader(unit.TypePullRequests)
@@ -1076,7 +1077,7 @@ func registerWebRoutes(m *web.Router) {
 
 	m.Group("/{username}/{reponame}/-", func() {
 		m.Get("/mentions", repo.GetMentions)
-	}, optSignIn, context.RepoAssignment, reqUnitsWithMarkdown)
+	}, optSignIn, context.RepoAssignment, reqUnitCommentWriter)
 	// end "/{username}/{reponame}/-": mentions
 
 	m.Group("/{username}/{reponame}/settings", func() {
