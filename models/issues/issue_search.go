@@ -206,7 +206,7 @@ func applyProjectCondition(sess *xorm.Session, opts *IssuesOptions) {
 		sess.Join("INNER", "project_issue", "issue.id = project_issue.issue_id").
 			In("project_issue.project_id", opts.ProjectIDs)
 	}
-	// opts.ProjectID == 0 means all projects,
+	// empty opts.ProjectIDs means all projects,
 	// do not need to apply any condition
 }
 
