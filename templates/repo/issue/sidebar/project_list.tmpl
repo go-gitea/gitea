@@ -24,7 +24,7 @@
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.open_projects"}}</div>
 					{{range $data.OpenProjects}}
 						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
-							{{svg .IconName 18 "tw-shrink-0"}}<span class="gt-ellipsis tw-flex-1">{{.Title}}</span>
+							{{svg .IconName 18 "tw-shrink-0"}}<span class="gt-ellipsis tw-flex-1" data-tooltip-content="{{.Title}}">{{.Title}}</span>
 						</a>
 					{{end}}
 				{{end}}
@@ -33,7 +33,7 @@
 					<div class="header">{{ctx.Locale.Tr "repo.issues.new.closed_projects"}}</div>
 					{{range $data.ClosedProjects}}
 						<a class="item muted" data-value="{{.ID}}" href="{{.Link ctx}}">
-							{{svg .IconName 18 "tw-shrink-0"}}<span class="gt-ellipsis tw-flex-1">{{.Title}}</span>
+							{{svg .IconName 18 "tw-shrink-0"}}<span class="gt-ellipsis tw-flex-1" data-tooltip-content="{{.Title}}">{{.Title}}</span>
 						</a>
 					{{end}}
 				{{end}}
@@ -44,7 +44,7 @@
 		<span class="item empty-list {{if $issueProject}}tw-hidden{{end}}">{{ctx.Locale.Tr "repo.issues.new.no_projects"}}</span>
 		{{if $issueProject}}
 			<a class="item" href="{{$issueProject.Link ctx}}">
-				{{svg $issueProject.IconName 18 "tw-shrink-0"}}<span class="gt-ellipsis tw-flex-1">{{$issueProject.Title}}</span>
+				{{svg $issueProject.IconName 18 "tw-shrink-0"}}<span class="gt-ellipsis tw-flex-1" data-tooltip-content="{{$issueProject.Title}}">{{$issueProject.Title}}</span>
 			</a>
 		{{end}}
 	</div>
