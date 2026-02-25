@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// LoadProject load the project the issue was assigned to
+// LoadProjects loads all projects the issue is assigned to
 func (issue *Issue) LoadProjects(ctx context.Context) (err error) {
 	if !issue.isProjectsLoaded {
 		err = db.GetEngine(ctx).Table("project").
