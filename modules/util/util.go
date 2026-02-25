@@ -272,14 +272,3 @@ func DiffSlice[T comparable](oldSlice, newSlice []T) (added, removed []T) {
 	}
 	return added, removed
 }
-
-func JoinSlice[T any](items []T, toString func(T) string) string {
-	var b strings.Builder
-	sep := ""
-	for _, item := range items {
-		b.WriteString(sep)
-		b.WriteString(toString(item))
-		sep = ","
-	}
-	return b.String()
-}
