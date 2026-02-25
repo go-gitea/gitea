@@ -2450,7 +2450,7 @@
   "repo.settings.block_outdated_branch": "Block merge if pull request is outdated",
   "repo.settings.block_outdated_branch_desc": "Merging will not be possible when head branch is behind base branch.",
   "repo.settings.block_admin_merge_override": "Administrators must follow branch protection rules",
-  "repo.settings.block_admin_merge_override_desc": "Administrators must follow branch protection rules and cannot circumvent it.",
+  "repo.settings.block_admin_merge_override_desc": "Administrators must follow branch protection rules and cannot circumvent it. Users or teams in the bypass allowlist can still bypass these rules if bypass allowlist is enabled.",
   "repo.settings.default_branch_desc": "Select a default branch for code commits.",
   "repo.settings.default_target_branch_desc": "Pull requests can use different default target branch if it is set in the Pull Requests section of Repository Advance Settings.",
   "repo.settings.merge_style_desc": "Merge Styles",

@@ -19,6 +19,7 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -1139,6 +1140,59 @@ func TestPullNonMergeForAdminWithBranchProtection(t *testing.T) {
 		}).AddTokenAuth(token)
 
 		session.MakeRequest(t, mergeReq, http.StatusMethodNotAllowed)
+	})
+}
+
+func TestPullForceMergeForBypassAllowlistUser(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		ownerSession := loginUser(t, "user2")
+		ownerCtx := NewAPITestContext(t, "user2", "repo1", auth_model.AccessTokenScopeWriteRepository)
+
+		bypassUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user4"})
+		doAPIAddCollaborator(ownerCtx, bypassUser.Name, perm.AccessModeWrite)(t)
+
+		bypassSession := loginUser(t, bypassUser.Name)
+		forkedName := "repo1-bypass-allowlist"
+		testRepoFork(t, bypassSession, "user2", "repo1", bypassUser.Name, forkedName, "")
+		defer testDeleteRepository(t, bypassSession, bypassUser.Name, forkedName)
+
+		testEditFile(t, bypassSession, bypassUser.Name, forkedName, "master", "README.md", "Hello, World (Bypass Allowlist)\n")
+		resp := testPullCreate(t, bypassSession, bypassUser.Name, forkedName, false, "master", "master", "Bypass allowlist merge test pull")
+		elem := strings.Split(test.RedirectURL(resp), "/")
+		assert.Equal(t, "pulls", elem[3])
+
+		prIndex, err := strconv.ParseInt(elem[4], 10, 64)
+		assert.NoError(t, err)
+
+		pbCreateReq := NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/edit", map[string]string{
+			"rule_name":                  "master",
+			"enable_push":                "all",
+			"enable_status_check":        "true",
+			"status_check_contexts":      "gitea/actions",
+			"block_admin_merge_override": "true",
+			"enable_bypass_allowlist":    "on",
+			"bypass_allowlist_users":     strconv.FormatInt(bypassUser.ID, 10),
+		})
+		ownerSession.MakeRequest(t, pbCreateReq, http.StatusSeeOther)
+
+		token := getTokenForLoggedInUser(t, bypassSession, auth_model.AccessTokenScopeWriteRepository)
+
+		mergeReq := func(forceMerge bool) *RequestWrapper {
+			return NewRequestWithValues(t, "POST", fmt.Sprintf("/api/v1/repos/user2/repo1/pulls/%d/merge", prIndex), map[string]string{
+				"head_commit_id":            "",
+				"merge_when_checks_succeed": "false",
+				"force_merge":               strconv.FormatBool(forceMerge),
+				"do":                        "rebase",
+			}).AddTokenAuth(token)
+		}
+
+		bypassSession.MakeRequest(t, mergeReq(false), http.StatusMethodNotAllowed)
+		bypassSession.MakeRequest(t, mergeReq(true), http.StatusOK)
+
+		baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "repo1"})
+		pr, err := issues_model.GetPullRequestByIndex(t.Context(), baseRepo.ID, prIndex)
+		assert.NoError(t, err)
+		assert.True(t, pr.HasMerged)
 	})
 }
 
