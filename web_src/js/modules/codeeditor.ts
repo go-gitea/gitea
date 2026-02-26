@@ -109,7 +109,7 @@ async function createCodemirrorEditor(
       cm.language.bracketMatching(),
       indentUnitComp.of(
         cm.language.indentUnit.of(
-          editorOpts.indentStyle === 'tab' ? '\t' : ' '.repeat(editorOpts.indentSize || 2),
+          editorOpts.indentStyle === 'tab' ? '\t' : ' '.repeat(editorOpts.indentSize || 4),
         ),
       ),
       cm.autocomplete.closeBrackets(),
@@ -144,23 +144,25 @@ function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: Codem
   if (!elEditorOptions) return;
 
   const {compartments, view} = editor;
+  const indentStyleSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-style-select');
+  const indentSizeSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-size-select');
 
-  elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-style-select')?.addEventListener('change', async (e) => {
-    const target = e.target as HTMLSelectElement;
+  const applyIndentSettings = async (style: string, size: number) => {
     const cm = await importCodemirror();
     view.dispatch({
-      effects: compartments.indentUnit.reconfigure(
-        cm.language.indentUnit.of(target.value === 'tab' ? '\t' : ' '.repeat(4)),
-      ),
+      effects: [
+        compartments.indentUnit.reconfigure(cm.language.indentUnit.of(style === 'tab' ? '\t' : ' '.repeat(size))),
+        compartments.tabSize.reconfigure(cm.state.EditorState.tabSize.of(size)),
+      ],
     });
+  };
+
+  indentStyleSelect?.addEventListener('change', () => {
+    applyIndentSettings(indentStyleSelect.value, Number(indentSizeSelect?.value) || 4);
   });
 
-  elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-size-select')?.addEventListener('change', async (e) => {
-    const target = e.target as HTMLSelectElement;
-    const cm = await importCodemirror();
-    view.dispatch({
-      effects: compartments.tabSize.reconfigure(cm.state.EditorState.tabSize.of(Number(target.value))),
-    });
+  indentSizeSelect?.addEventListener('change', () => {
+    applyIndentSettings(indentStyleSelect?.value || 'space', Number(indentSizeSelect.value) || 4);
   });
 
   elEditorOptions.querySelector<HTMLSelectElement>('.js-line-wrap-select')?.addEventListener('change', async (e) => {

@@ -72,8 +72,8 @@ function initRepoSettingsSearchTeamBox() {
 
 function initRepoSettingsGitHook() {
   if (!document.querySelector('.page-content.repository.settings.edit.githook')) return;
-  const filename = document.querySelector('.hook-filename')!.textContent;
-  createCodeEditor(document.querySelector<HTMLTextAreaElement>('#content')!, filename);
+  // git hook filenames have no extension, use synthetic .sh for shell syntax highlighting
+  createCodeEditor(document.querySelector<HTMLTextAreaElement>('#content')!, 'hook.sh');
 }
 
 function initRepoSettingsBranches() {
