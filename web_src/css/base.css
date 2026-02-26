@@ -525,20 +525,6 @@ img.ui.avatar,
   display: inline-block;
 }
 
-/* popover box shadows */
-.ui.dropdown .menu,
-.ui.upward.dropdown > .menu,
-.ui.menu .dropdown.item .menu,
-.ui.selection.active.dropdown .menu,
-.ui.upward.selection.dropdown .menu,
-.ui.selection.active.dropdown:hover .menu,
-.ui.upward.active.selection.dropdown:hover .menu {
-  box-shadow: 0 6px 18px var(--color-shadow);
-}
-.ui.floating.dropdown .menu {
-  box-shadow: 0 6px 18px var(--color-shadow) !important;
-}
-
 .ui .message.flash-message {
   text-align: center;
 }
