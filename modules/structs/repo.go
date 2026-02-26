@@ -135,7 +135,7 @@ type CreateRepoOption struct {
 	// Whether the repository is private
 	Private bool `json:"private"`
 	// Label-Set to use
-	IssueLabels string `json:"issue_labels"`
+	IssueLabels string `json:"issue_labels" binding:"MaxSize(255)"`
 	// Whether the repository should be auto-initialized?
 	AutoInit bool `json:"auto_init"`
 	// Whether the repository is template
@@ -143,15 +143,15 @@ type CreateRepoOption struct {
 	// Gitignores to use
 	Gitignores string `json:"gitignores"`
 	// License to use
-	License string `json:"license"`
+	License string `json:"license" binding:"MaxSize(100)"`
 	// Readme of the repository to create
-	Readme string `json:"readme"`
+	Readme string `json:"readme" binding:"MaxSize(255)"`
 	// DefaultBranch of the repository (used when initializes and in template)
 	DefaultBranch string `json:"default_branch" binding:"GitRefName;MaxSize(100)"`
 	// TrustModel of the repository
 	// enum: default,collaborator,committer,collaboratorcommitter
 	TrustModel string `json:"trust_model"`
-	// ObjectFormatName of the underlying git repository
+	// ObjectFormatName of the underlying git repository, empty string for default (sha1)
 	// enum: sha1,sha256
 	ObjectFormatName string `json:"object_format_name" binding:"MaxSize(6)"`
 }
