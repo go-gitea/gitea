@@ -260,12 +260,12 @@ func DiffSlice[T comparable](oldSlice, newSlice []T) (added, removed []T) {
 		newSet[v] = struct{}{}
 	}
 
-	for v := range newSet {
+	for _, v := range newSlice {
 		if _, found := oldSet[v]; !found {
 			added = append(added, v)
 		}
 	}
-	for v := range oldSet {
+	for _, v := range oldSlice {
 		if _, found := newSet[v]; !found {
 			removed = append(removed, v)
 		}
