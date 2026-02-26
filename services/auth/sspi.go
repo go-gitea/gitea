@@ -84,7 +84,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		store.GetData()["Flash"] = map[string]string{
 			"ErrorMsg": err.Error(),
 		}
-		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
+		store.GetData()["EnableOpenIDSignIn"] = setting.OpenID.EnableSignIn
 		store.GetData()["EnableSSPI"] = true
 		// in this case, the Verify function is called in Gitea's web context
 		// FIXME: it doesn't look good to render the page here, why not redirect?

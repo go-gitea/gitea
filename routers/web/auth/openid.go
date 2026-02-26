@@ -44,7 +44,7 @@ func SignInOpenID(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSignInOpenID)
 }
 
-// Check if the given OpenID URI is allowed by blacklist/whitelist
+// Check if the given OpenID URI is allowed by blocklist/allowlist
 func allowedOpenIDURI(uri string) (err error) {
 	parsed, err := url.Parse(uri)
 	if err != nil {
@@ -57,17 +57,17 @@ func allowedOpenIDURI(uri string) (err error) {
 
 	// In case a Whitelist is present, URI must be in it
 	// in order to be accepted
-	if allowList := setting.Service.OpenIDWhitelist; allowList != nil && !allowList.IsEmpty() {
+	if allowList := setting.OpenID.Allowlist; allowList != nil && !allowList.IsEmpty() {
 		if allowList.MatchHostName(host) {
 			return nil // pass
 		}
 		// must match one of this or be refused
-		return errors.New("URI not allowed by whitelist")
+		return errors.New("URI not allowed by allowlist")
 	}
 
-	// A blacklist match expliclty forbids
-	if blockList := setting.Service.OpenIDBlacklist; blockList != nil && blockList.MatchHostName(host) {
-		return errors.New("URI forbidden by blacklist")
+	// A blocklist match expliclty forbids
+	if blockList := setting.OpenID.Blocklist; blockList != nil && blockList.MatchHostName(host) {
+		return errors.New("URI forbidden by blocklist")
 	}
 
 	return nil
@@ -227,7 +227,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 		return
 	}
 
-	if u != nil || !setting.Service.EnableOpenIDSignUp || setting.Service.AllowOnlyInternalRegistration {
+	if u != nil || !setting.OpenID.EnableSignUp || setting.Service.AllowOnlyInternalRegistration {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/connect")
 	} else {
 		ctx.Redirect(setting.AppSubURL + "/user/openid/register")
@@ -244,7 +244,7 @@ func ConnectOpenID(ctx *context.Context) {
 	ctx.Data["Title"] = "OpenID connect"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDConnect"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["EnableOpenIDSignUp"] = setting.OpenID.EnableSignUp
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
@@ -265,7 +265,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 	ctx.Data["Title"] = "OpenID connect"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDConnect"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["EnableOpenIDSignUp"] = setting.OpenID.EnableSignUp
 	ctx.Data["OpenID"] = oid
 
 	u, _, err := auth.UserSignIn(ctx, form.UserName, form.Password)
@@ -302,7 +302,7 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["Title"] = "OpenID signup"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["EnableOpenIDSignUp"] = setting.OpenID.EnableSignUp
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["EnableCaptcha"] = setting.Service.EnableCaptcha
 	ctx.Data["Captcha"] = context.GetImageCaptcha()
@@ -337,7 +337,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["Title"] = "OpenID signup"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsOpenIDRegister"] = true
-	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
+	ctx.Data["EnableOpenIDSignUp"] = setting.OpenID.EnableSignUp
 	context.SetCaptchaData(ctx)
 	ctx.Data["OpenID"] = oid
 

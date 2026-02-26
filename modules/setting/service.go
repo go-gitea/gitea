@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/glob"
-	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -84,12 +83,6 @@ var Service = struct {
 	DefaultOrgMemberVisible                 bool
 	UserDeleteWithCommentsMaxTime           time.Duration
 	ValidSiteURLSchemes                     []string
-
-	// OpenID settings
-	EnableOpenIDSignIn bool
-	EnableOpenIDSignUp bool
-	OpenIDWhitelist    *hostmatcher.HostMatchList
-	OpenIDBlacklist    *hostmatcher.HostMatchList
 
 	// Explore page settings
 	Explore struct {
@@ -263,43 +256,6 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 
 	loadOpenIDSetting(rootCfg)
 	loadQosSetting(rootCfg)
-}
-
-var defaultOpenIDBlacklist = []string{
-	"localhost",
-	hostmatcher.MatchBuiltinLoopback,
-	hostmatcher.MatchBuiltinPrivate,
-	"fe80::/10",
-}
-
-func splitOpenIDHostList(raw string) []string {
-	return strings.FieldsFunc(raw, func(r rune) bool {
-		switch r {
-		case ',', ' ', '\t', '\n', '\r':
-			return true
-		default:
-			return false
-		}
-	})
-}
-
-func loadOpenIDSetting(rootCfg ConfigProvider) {
-	sec := rootCfg.Section("openid")
-	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(false)
-	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)
-	Service.OpenIDWhitelist = nil
-	Service.OpenIDBlacklist = nil
-	whitelist := splitOpenIDHostList(sec.Key("WHITELISTED_URIS").String())
-	if len(whitelist) != 0 {
-		Service.OpenIDWhitelist = hostmatcher.ParseHostMatchList("openid.WHITELISTED_URIS", strings.Join(whitelist, ","))
-	}
-	blacklist := splitOpenIDHostList(sec.Key("BLACKLISTED_URIS").String())
-	if len(blacklist) == 0 {
-		blacklist = defaultOpenIDBlacklist
-	}
-	if len(blacklist) != 0 {
-		Service.OpenIDBlacklist = hostmatcher.ParseHostMatchList("openid.BLACKLISTED_URIS", strings.Join(blacklist, ","))
-	}
 }
 
 func loadQosSetting(rootCfg ConfigProvider) {

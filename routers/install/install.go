@@ -119,8 +119,8 @@ func Install(ctx *context.Context) {
 	form.DisableGravatar = setting.DisableGravatar             // when installing, there is no database connection so that given a default value
 	form.EnableFederatedAvatar = setting.EnableFederatedAvatar // when installing, there is no database connection so that given a default value
 
-	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
-	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
+	form.EnableOpenIDSignIn = setting.OpenID.EnableSignIn
+	form.EnableOpenIDSignUp = setting.OpenID.EnableSignUp
 	form.DisableRegistration = setting.Service.DisableRegistration
 	form.AllowOnlyExternalRegistration = setting.Service.AllowOnlyExternalRegistration
 	form.EnableCaptcha = setting.Service.EnableCaptcha
