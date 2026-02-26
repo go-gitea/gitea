@@ -224,7 +224,7 @@ gitea-theme-meta-info {
   --color-secondary-bg: #f2f5f8;
   --color-expand-button: #cfe8fa;
   --color-placeholder-text: var(--color-text-light-3);
-  --color-editor-line-highlight: var(--color-primary-light-6);
+  --color-editor-line-highlight: #ecf2f8;
   --color-project-column-bg: var(--color-secondary-light-4);
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000170a;

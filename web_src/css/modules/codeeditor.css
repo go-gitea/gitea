@@ -58,7 +58,7 @@
 
 .code-editor-container .cm-activeLine,
 .code-editor-container .cm-activeLineGutter {
-  background-color: color-mix(in srgb, var(--color-editor-line-highlight) 40%, transparent);
+  background-color: var(--color-editor-line-highlight);
 }
 
 .code-editor-container .cm-gutters {
