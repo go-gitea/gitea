@@ -322,11 +322,11 @@ lint-md-fix: node_modules ## lint markdown files and fix issues
 
 .PHONY: lint-spell
 lint-spell: ## lint spelling
-	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error $(SPELLCHECK_FILES)
+	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -error
 
 .PHONY: lint-spell-fix
 lint-spell-fix: ## lint spelling and fix issues
-	@go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w $(SPELLCHECK_FILES)
+	@git ls-files $(SPELLCHECK_FILES) | xargs go run $(MISSPELL_PACKAGE) -dict assets/misspellings.csv -w
 
 .PHONY: lint-go
 lint-go: ## lint go files
