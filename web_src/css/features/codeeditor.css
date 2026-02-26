@@ -1,3 +1,8 @@
+.editor-loading {
+  padding: 1rem;
+  text-align: center;
+}
+
 .monaco-editor-container,
 .editor-loading.is-loading {
   width: 100%;

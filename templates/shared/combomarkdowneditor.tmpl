@@ -4,7 +4,7 @@
 * ContainerClasses: additional classes for the container element
 * MarkdownPreviewInRepo: the repo to preview markdown
 * MarkdownPreviewContext: preview context (the related url path when rendering) for the preview tab, eg: repo link or user home link
-* MarkdownPreviewMode: content mode for the editor, eg: wiki, comment or default
+* MarkdownPreviewMode: content mode for the editor, eg: wiki, comment or default, can be disabled by "none"
 * TextareaName: name attribute for the textarea
 * TextareaContent: content for the textarea
 * TextareaMaxLength: maxlength attribute for the textarea
@@ -29,10 +29,12 @@
 		data-preview-url="{{$previewUrl}}"
 		data-preview-context="{{$previewContext}}"
 >
+	{{if ne $previewMode "none"}}
 	<div class="ui top tabular menu">
 		<a class="active item" data-tab-for="markdown-writer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "write")}}</a>
 		<a class="item" data-tab-for="markdown-previewer">{{template "shared/misc/tabtitle" (ctx.Locale.Tr "preview")}}</a>
 	</div>
+	{{end}}
 	<div class="ui tab active" data-tab-panel="markdown-writer">
 		<markdown-toolbar>
 			<div class="markdown-toolbar-group">
@@ -87,9 +89,9 @@
 	</div>
 	<div class="markdown-add-table-panel tippy-target">
 		<div class="ui form tw-p-4 flex-text-block">
-			<input type="number" name="rows" min="1" value="3" size="3" class="tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.rows"}}">
+			<input type="number" min="1" value="3" size="3" class="add-table-rows tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.rows"}}">
 			x
-			<input type="number" name="cols" min="1" value="3" size="3" class="tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.cols"}}">
+			<input type="number" min="1" value="3" size="3" class="add-table-cols tw-w-24" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.cols"}}">
 			<button class="ui button primary" type="button">{{ctx.Locale.Tr "editor.buttons.table.add.insert"}}</button>
 		</div>
 	</div>

@@ -52,7 +52,6 @@
 @import "./markup/asciicast.css";
 
 @import "./chroma/base.css";
-@import "./codemirror/base.css";
 @import "./font_i18n.css";
 @import "./base.css";
 @import "./home.css";
@@ -74,7 +73,6 @@
 @import "./repo/commit-sign.css";
 @import "./repo/packages.css";
 
-@import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";
 
 @import "./org.css";
