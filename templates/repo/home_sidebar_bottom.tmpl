@@ -21,7 +21,7 @@
 							</div>
 						</div>
 						<div class="flex-item-body">
-							<span class="time">{{DateUtils.TimeSince .LatestRelease.PublishedUnix}}</span>
+							<span class="time">{{DateUtils.TimeSince (Iif .LatestRelease.PublishedUnix.IsZero .LatestRelease.CreatedUnix .LatestRelease.PublishedUnix)}}</span>
 						</div>
 					</div>
 				</div>
