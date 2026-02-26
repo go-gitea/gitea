@@ -11,6 +11,7 @@
   is_prerelease: false
   is_tag: false
   created_unix: 946684800
+  published_unix: 946684800
 
 - id: 2
   repo_id: 40
@@ -25,6 +26,7 @@
   is_prerelease: false
   is_tag: false
   created_unix: 946684800
+  published_unix: 946684800
 
 - id: 3
   repo_id: 1
@@ -66,6 +68,7 @@
   is_prerelease: true
   is_tag: false
   created_unix: 946684800
+  published_unix: 946684800
 
 - id: 6
   repo_id: 57
@@ -80,6 +83,7 @@
   is_prerelease: false
   is_tag: false
   created_unix: 946684801
+  published_unix: 946684801
 
 - id: 7
   repo_id: 57
@@ -94,6 +98,7 @@
   is_prerelease: false
   is_tag: false
   created_unix: 946684802
+  published_unix: 946684802
 
 - id: 8
   repo_id: 57
@@ -108,6 +113,7 @@
   is_prerelease: false
   is_tag: false
   created_unix: 946684803
+  published_unix: 946684803
 
 - id: 9
   repo_id: 57
@@ -122,6 +128,7 @@
   is_prerelease: false
   is_tag: false
   created_unix: 946684803
+  published_unix: 946684803
 
 - id: 10
   repo_id: 57
@@ -136,6 +143,7 @@
   is_prerelease: false
   is_tag: false
   created_unix: 946684803
+  published_unix: 946684803
 
 - id: 11
   repo_id: 2
@@ -150,3 +158,4 @@
   is_prerelease: false
   is_tag: false
   created_unix: 946684803
+  published_unix: 946684803

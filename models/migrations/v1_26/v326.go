@@ -13,6 +13,6 @@ func AddPublishedUnixToRelease(x *xorm.Engine) error {
 		return err
 	}
 	// Initialize published_unix from created_unix for existing published releases
-	_, err := x.Exec("UPDATE `release` SET published_unix = created_unix WHERE published_unix = 0 AND is_tag = ? AND is_draft = ?", false, false)
+	_, err := x.Exec("UPDATE `release` SET published_unix = created_unix WHERE (published_unix IS NULL OR published_unix = 0) AND is_tag = ? AND is_draft = ?", false, false)
 	return err
 }
