@@ -2867,6 +2867,7 @@
   "admin.badges.details": "Badge Details",
   "admin.badges.new_badge": "Create New Badge",
   "admin.badges.slug": "Slug",
+  "admin.badges.slug_been_taken": "The slug is already taken.",
   "admin.badges.description": "Description",
   "admin.badges.image_url": "Image URL",
   "admin.badges.slug.must_fill": "Slug must be filled.",

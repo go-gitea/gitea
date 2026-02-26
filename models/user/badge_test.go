@@ -1,4 +1,4 @@
-// Copyright 2025 The Gitea Authors. All rights reserved.
+// Copyright 2026 The Gitea Authors. All rights reserved.
 // SPDX-License-Identifier: MIT
 
 package user_test
@@ -20,6 +20,23 @@ func TestGetBadgeNotExist(t *testing.T) {
 	assert.Nil(t, badge)
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrBadgeNotExist(err))
+}
+
+func TestCreateBadgeAlreadyExists(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	badge := &user_model.Badge{
+		Slug:        "duplicate-badge-slug",
+		Description: "First",
+	}
+	assert.NoError(t, user_model.CreateBadge(t.Context(), badge))
+
+	err := user_model.CreateBadge(t.Context(), &user_model.Badge{
+		Slug:        "duplicate-badge-slug",
+		Description: "Second",
+	})
+	assert.Error(t, err)
+	assert.True(t, user_model.IsErrBadgeAlreadyExist(err))
 }
 
 func TestGetBadgeUsers(t *testing.T) {

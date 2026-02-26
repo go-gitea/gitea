@@ -3,11 +3,9 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.badges.edit_badge"}}
 		</h4>
-		<div class="ui attached segment">
-			<form class="ui form" action="./edit" method="post">
-				{{.CsrfTokenHtml}}
-
-				<div class="field">
+			<div class="ui attached segment">
+				<form class="ui form" action="./edit" method="post">
+					<div class="field">
 					<label>{{ctx.Locale.Tr "admin.badges.slug"}}</label>
 					<input value="{{.Badge.Slug}}" readonly>
 				</div>
@@ -38,7 +36,6 @@
 	<form class="ui form" method="post" action="./delete">
 		<div class="content">
 			<p>{{ctx.Locale.Tr "admin.badges.delete_badge_desc"}}</p>
-			{{$.CsrfTokenHtml}}
 		</div>
 		{{template "base/modal_actions_confirm" .}}
 	</form>

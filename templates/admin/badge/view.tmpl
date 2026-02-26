@@ -1,4 +1,4 @@
-{{template "admin/layout_head" (dict "ctxData" . "pageClass" "admin view badge")}}
+{{template "admin/layout_head" (dict "ctxData" .)}}
 
 <div class="admin-setting-content">
 	<div class="admin-responsive-columns">
@@ -12,7 +12,7 @@
 			<div class="ui attached segment">
 				<div class="flex-list">
 					<div class="flex-item">
-						{{if .Image}}
+						{{if .Badge.ImageURL}}
 						<div class="flex-item-leading">
 							<img width="64" height="64" src="{{.Badge.ImageURL}}" alt="{{.Badge.Description}}" data-tooltip-content="{{.Badge.Description}}">
 						</div>

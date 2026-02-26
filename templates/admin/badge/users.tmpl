@@ -5,8 +5,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
-				<div class="ui search input tw-align-middle">
+				<div id="search-user-box" class="ui search input tw-align-middle">
 					<input class="prompt" name="user" placeholder="{{ctx.Locale.Tr "search.user_kind"}}" autocomplete="off" autofocus required>
 				</div>
 				<button class="ui primary button">{{ctx.Locale.Tr "admin.badges.add_user"}}</button>

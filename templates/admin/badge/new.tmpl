@@ -3,11 +3,9 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.badges.new_badge"}}
 		</h4>
-		<div class="ui attached segment">
-			<form class="ui form" action="{{.Link}}" method="post">
-				{{.CsrfTokenHtml}}
-
-				<div class="required field {{if .Err_Slug}}error{{end}}">
+			<div class="ui attached segment">
+				<form class="ui form" action="{{.Link}}" method="post">
+					<div class="required field {{if .Err_Slug}}error{{end}}">
 					<label for="slug">{{ctx.Locale.Tr "admin.badges.slug"}}</label>
 					<input autofocus required id="slug" name="slug" value="{{.slug}}">
 				</div>

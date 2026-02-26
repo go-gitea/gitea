@@ -125,9 +125,23 @@ func GetBadgeUsers(ctx context.Context, opts *GetBadgeUsersOptions) ([]*User, in
 
 // CreateBadge creates a new badge.
 func CreateBadge(ctx context.Context, badge *Badge) error {
-	// this will fail if the badge already exists due to the UNIQUE constraint
-	_, err := db.GetEngine(ctx).Insert(badge)
-	return err
+	exists, err := db.GetEngine(ctx).Where("slug = ?", badge.Slug).Exist(new(Badge))
+	if err != nil {
+		return err
+	}
+	if exists {
+		return ErrBadgeAlreadyExist{Slug: badge.Slug}
+	}
+
+	if _, err := db.GetEngine(ctx).Insert(badge); err != nil {
+		// Handle race between existence check and insert.
+		exists, existErr := db.GetEngine(ctx).Where("slug = ?", badge.Slug).Exist(new(Badge))
+		if existErr == nil && exists {
+			return ErrBadgeAlreadyExist{Slug: badge.Slug}
+		}
+		return err
+	}
+	return nil
 }
 
 // GetBadge returns a specific badge
@@ -230,7 +244,7 @@ func RemoveAllUserBadges(ctx context.Context, u *User) error {
 	return err
 }
 
-// SearchBadgeOptions represents the options when fdin badges
+// SearchBadgeOptions represents the options when finding badges
 type SearchBadgeOptions struct {
 	db.ListOptions
 

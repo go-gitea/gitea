@@ -1,4 +1,4 @@
-// Copyright 2024 The Gitea Authors.
+// Copyright 2026 The Gitea Authors.
 // SPDX-License-Identifier: MIT
 
 package admin
@@ -90,7 +90,12 @@ func NewBadgePost(ctx *context.Context) {
 	}
 
 	if err := user_model.CreateBadge(ctx, b); err != nil {
-		ctx.ServerError("CreateBadge", err)
+		if user_model.IsErrBadgeAlreadyExist(err) {
+			ctx.Data["Err_Slug"] = true
+			ctx.RenderWithErr(ctx.Tr("admin.badges.slug_been_taken"), tplBadgeNew, &form)
+		} else {
+			ctx.ServerError("CreateBadge", err)
+		}
 		return
 	}
 
