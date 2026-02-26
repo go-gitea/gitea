@@ -261,7 +261,7 @@
 }
 
 .code-editor-container .cm-editor.cm-focused {
-  outline: 1px dotted var(--color-text-light-3);
+  outline: 1px sold var(--color-secondary);
 }
 
 .code-editor-container .cm-editor.cm-focused .cm-matchingBracket {
