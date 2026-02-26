@@ -5,9 +5,9 @@
 package admin
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	system_model "code.gitea.io/gitea/models/system"
@@ -145,7 +145,6 @@ func Config(ctx *context.Context) {
 	ctx.Data["Service"] = setting.Service
 	ctx.Data["DbCfg"] = setting.Database
 	ctx.Data["Webhook"] = setting.Webhook
-
 	ctx.Data["MailerEnabled"] = false
 	if setting.MailService != nil {
 		ctx.Data["MailerEnabled"] = true
@@ -191,52 +190,27 @@ func ConfigSettings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.config_settings")
 	ctx.Data["PageIsAdminConfig"] = true
 	ctx.Data["PageIsAdminConfigSettings"] = true
-	ctx.Data["DefaultOpenWithEditorAppsString"] = setting.DefaultOpenWithEditorApps().ToTextareaString()
 	ctx.HTML(http.StatusOK, tplConfigSettings)
 }
 
+func validateConfigKeyValue(dynKey, input string) error {
+	opt := config.GetConfigOption(dynKey)
+	if opt == nil {
+		return util.NewInvalidArgumentErrorf("unknown config key: %s", dynKey)
+	}
+
+	const limit = 64 * 1024
+	if len(input) > limit {
+		return util.NewInvalidArgumentErrorf("value length exceeds limit of %d", limit)
+	}
+
+	if !json.Valid([]byte(input)) {
+		return util.NewInvalidArgumentErrorf("invalid json value for key: %s", dynKey)
+	}
+	return nil
+}
+
 func ChangeConfig(ctx *context.Context) {
-	cfg := setting.Config()
-
-	marshalBool := func(v string) ([]byte, error) {
-		b, _ := strconv.ParseBool(v)
-		return json.Marshal(b)
-	}
-
-	marshalString := func(emptyDefault string) func(v string) ([]byte, error) {
-		return func(v string) ([]byte, error) {
-			return json.Marshal(util.IfZero(v, emptyDefault))
-		}
-	}
-
-	marshalOpenWithApps := func(value string) ([]byte, error) {
-		// TODO: move the block alongside OpenWithEditorAppsType.ToTextareaString
-		lines := strings.Split(value, "\n")
-		var openWithEditorApps setting.OpenWithEditorAppsType
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if line == "" {
-				continue
-			}
-			displayName, openURL, ok := strings.Cut(line, "=")
-			displayName, openURL = strings.TrimSpace(displayName), strings.TrimSpace(openURL)
-			if !ok || displayName == "" || openURL == "" {
-				continue
-			}
-			openWithEditorApps = append(openWithEditorApps, setting.OpenWithEditorApp{
-				DisplayName: strings.TrimSpace(displayName),
-				OpenURL:     strings.TrimSpace(openURL),
-			})
-		}
-		return json.Marshal(openWithEditorApps)
-	}
-	marshallers := map[string]func(string) ([]byte, error){
-		cfg.Picture.DisableGravatar.DynKey():       marshalBool,
-		cfg.Picture.EnableFederatedAvatar.DynKey(): marshalBool,
-		cfg.Repository.OpenWithEditorApps.DynKey(): marshalOpenWithApps,
-		cfg.Repository.GitGuideRemoteName.DynKey(): marshalString(cfg.Repository.GitGuideRemoteName.DefaultValue()),
-	}
-
 	_ = ctx.Req.ParseForm()
 	configKeys := ctx.Req.Form["key"]
 	configValues := ctx.Req.Form["value"]
@@ -249,18 +223,16 @@ loop:
 		}
 		value := configValues[i]
 
-		marshaller, hasMarshaller := marshallers[key]
-		if !hasMarshaller {
-			ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
-			break loop
-		}
-
-		marshaledValue, err := marshaller(value)
+		err := validateConfigKeyValue(key, value)
 		if err != nil {
-			ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+			if errors.Is(err, util.ErrInvalidArgument) {
+				ctx.JSONError(err.Error())
+			} else {
+				ctx.JSONError(ctx.Tr("admin.config.set_setting_failed", key))
+			}
 			break loop
 		}
-		configSettings[key] = string(marshaledValue)
+		configSettings[key] = value
 	}
 	if ctx.Written() {
 		return
