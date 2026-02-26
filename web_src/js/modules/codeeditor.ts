@@ -254,15 +254,14 @@ async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, 
   const {compartments, view, languages: editorLanguages} = editor;
 
   const fileOption = getFileBasedOptions(filename, lineWrapExts);
-  view.dispatch({
-    effects: compartments.wordWrap.reconfigure(
-      fileOption.wordWrap ? cmView.EditorView.lineWrapping : [],
-    ),
-  });
-
   const newLanguage = cmLanguage.LanguageDescription.matchFilename(editorLanguages, filename);
   view.dispatch({
-    effects: compartments.language.reconfigure(newLanguage ? await newLanguage.load() : []),
+    effects: [
+      compartments.wordWrap.reconfigure(
+        fileOption.wordWrap ? cmView.EditorView.lineWrapping : [],
+      ),
+      compartments.language.reconfigure(newLanguage ? await newLanguage.load() : []),
+    ],
   });
 }
 
