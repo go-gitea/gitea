@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAPIReleaseRead(t *testing.T) {
@@ -256,11 +257,12 @@ func TestAPIReleasePublishedAt(t *testing.T) {
 
 		var release api.Release
 		DecodeJSON(t, resp, &release)
+		require.NotNil(t, release.PublishedAt)
 		assert.False(t, release.PublishedAt.IsZero())
 		assert.False(t, release.PublishedAt.Before(timeBefore))
 	})
 
-	t.Run("DraftHasZeroPublishedAt", func(t *testing.T) {
+	t.Run("DraftHasNullPublishedAt", func(t *testing.T) {
 		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
 			TagName: "v0.0.2-draft",
 			Title:   "Draft Release",
@@ -271,7 +273,31 @@ func TestAPIReleasePublishedAt(t *testing.T) {
 
 		var release api.Release
 		DecodeJSON(t, resp, &release)
-		assert.True(t, release.PublishedAt.IsZero() || release.PublishedAt.Unix() == 0)
+		assert.Nil(t, release.PublishedAt)
+		// Verify raw JSON contains null (GitHub-compatible)
+		assert.Contains(t, resp.Body.String(), `"published_at":null`)
+	})
+
+	t.Run("FallbackToCreatedAtWhenPublishedUnixZero", func(t *testing.T) {
+		// Simulate a pre-migration release with published_unix=0
+		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
+			TagName: "v0.0.2b-fallback",
+			Title:   "Fallback Test",
+			Target:  "master",
+		}).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusCreated)
+		var release api.Release
+		DecodeJSON(t, resp, &release)
+
+		_, err := db.GetEngine(t.Context()).Exec("UPDATE `release` SET published_unix = 0 WHERE id = ?", release.ID)
+		require.NoError(t, err)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/%d", urlStr, release.ID)).AddTokenAuth(token)
+		resp = MakeRequest(t, req, http.StatusOK)
+		var fetched api.Release
+		DecodeJSON(t, resp, &fetched)
+		require.NotNil(t, fetched.PublishedAt)
+		assert.Equal(t, fetched.CreatedAt.Unix(), fetched.PublishedAt.Unix())
 	})
 
 	t.Run("PublishDraftSetsPublishedAt", func(t *testing.T) {
@@ -296,6 +322,7 @@ func TestAPIReleasePublishedAt(t *testing.T) {
 		var published api.Release
 		DecodeJSON(t, resp, &published)
 
+		require.NotNil(t, published.PublishedAt)
 		assert.False(t, published.PublishedAt.IsZero())
 		assert.False(t, published.PublishedAt.Before(timeBefore))
 
@@ -325,6 +352,8 @@ func TestAPIReleasePublishedAt(t *testing.T) {
 		DecodeJSON(t, resp, &edited)
 
 		assert.Equal(t, "Edit Test - Updated", edited.Title)
+		require.NotNil(t, original.PublishedAt)
+		require.NotNil(t, edited.PublishedAt)
 		assert.Equal(t, original.PublishedAt.Unix(), edited.PublishedAt.Unix())
 	})
 
@@ -356,6 +385,7 @@ func TestAPIReleasePublishedAt(t *testing.T) {
 		var republished api.Release
 		DecodeJSON(t, resp, &republished)
 
+		require.NotNil(t, republished.PublishedAt)
 		assert.False(t, republished.PublishedAt.Before(timeBefore))
 	})
 
@@ -377,6 +407,7 @@ func TestAPIReleasePublishedAt(t *testing.T) {
 		var release api.Release
 		DecodeJSON(t, resp, &release)
 
+		require.NotNil(t, release.PublishedAt)
 		assert.False(t, release.PublishedAt.Before(timeBefore))
 
 		rel := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: release.ID})
