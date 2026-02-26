@@ -132,14 +132,14 @@ func getExpectedFileResponseForRepoFilesCreate(commitID string, lastCommit *git.
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
@@ -202,14 +202,14 @@ func getExpectedFileResponseForRepoFilesUpdate(commitID, filename, lastCommitSHA
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 				Date: time.Now().UTC().Format(time.RFC3339),
 			},
@@ -312,13 +312,13 @@ func getExpectedFileResponseForRepoFilesUpdateRename(commitID, lastCommitSHA str
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 			},
 			Committer: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  "User Two",
-					Email: "user2@noreply.example.org",
+					Email: "2+user2@noreply.example.org",
 				},
 			},
 			Parents: []*api.CommitMeta{

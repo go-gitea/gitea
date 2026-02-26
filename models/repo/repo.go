@@ -281,7 +281,7 @@ func (repo *Repository) SizeDetailsString() string {
 	var str strings.Builder
 	sizeDetails := repo.SizeDetails()
 	for _, detail := range sizeDetails {
-		str.WriteString(fmt.Sprintf("%s: %s, ", detail.Name, base.FileSize(detail.Size)))
+		fmt.Fprintf(&str, "%s: %s, ", detail.Name, base.FileSize(detail.Size))
 	}
 	return strings.TrimSuffix(str.String(), ", ")
 }
@@ -878,7 +878,7 @@ func IsRepositoryModelExist(ctx context.Context, u *user_model.User, repoName st
 // non-generated repositories, and TemplateRepo will be left untouched)
 func GetTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error) {
 	if !repo.IsGenerated() {
-		return nil, nil
+		return nil, nil //nolint:nilnil // return nil for non-generated repositories
 	}
 
 	return GetRepositoryByID(ctx, repo.TemplateID)

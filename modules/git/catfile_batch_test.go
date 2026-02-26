@@ -5,9 +5,11 @@ package git
 
 import (
 	"io"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/modules/test"
 
@@ -37,6 +39,45 @@ func testCatFileBatch(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	simulateQueryTerminated := func(pipeCloseDelay, pipeReadDelay time.Duration) (errRead error) {
+		catFileBatchDebugWaitClose.Store(int64(pipeCloseDelay))
+		defer catFileBatchDebugWaitClose.Store(0)
+		batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
+		require.NoError(t, err)
+		defer batch.Close()
+		_, _ = batch.QueryInfo("e2129701f1a4d54dc44f03c93bca0a2aec7c5449")
+		var c *catFileBatchCommunicator
+		switch b := batch.(type) {
+		case *catFileBatchLegacy:
+			c = b.batchCheck
+			_, _ = c.reqWriter.Write([]byte("in-complete-line-"))
+		case *catFileBatchCommand:
+			c = b.batch
+			_, _ = c.reqWriter.Write([]byte("info"))
+		default:
+			t.FailNow()
+		}
+
+		wg := sync.WaitGroup{}
+		wg.Go(func() {
+			time.Sleep(pipeReadDelay)
+			var n int
+			n, errRead = c.respReader.Read(make([]byte, 100))
+			assert.Zero(t, n)
+		})
+		time.Sleep(10 * time.Millisecond)
+		c.debugGitCmd.DebugKill()
+		wg.Wait()
+		return errRead
+	}
+
+	t.Run("QueryTerminated", func(t *testing.T) {
+		err := simulateQueryTerminated(0, 20*time.Millisecond)
+		assert.ErrorIs(t, err, os.ErrClosed) // pipes are closed faster
+		err = simulateQueryTerminated(40*time.Millisecond, 20*time.Millisecond)
+		assert.ErrorIs(t, err, io.EOF) // reader is faster
+	})
+
 	batch, err := NewBatch(t.Context(), filepath.Join(testReposDir, "repo1_bare"))
 	require.NoError(t, err)
 	defer batch.Close()
@@ -59,31 +100,5 @@ func testCatFileBatch(t *testing.T) {
 		content, err := io.ReadAll(io.LimitReader(rd, info.Size))
 		require.NoError(t, err)
 		require.Equal(t, "file1\n", string(content))
-	})
-
-	t.Run("QueryTerminated", func(t *testing.T) {
-		var c *catFileBatchCommunicator
-		switch b := batch.(type) {
-		case *catFileBatchLegacy:
-			c = b.batchCheck
-			_, _ = c.reqWriter.Write([]byte("in-complete-line-"))
-		case *catFileBatchCommand:
-			c = b.batch
-			_, _ = c.reqWriter.Write([]byte("info"))
-		default:
-			t.FailNow()
-			return
-		}
-
-		wg := sync.WaitGroup{}
-		wg.Go(func() {
-			buf := make([]byte, 100)
-			_, _ = c.respReader.Read(buf)
-			n, errRead := c.respReader.Read(buf)
-			assert.Zero(t, n)
-			assert.ErrorIs(t, errRead, io.EOF) // the pipe is closed due to command being killed
-		})
-		c.debugGitCmd.DebugKill()
-		wg.Wait()
 	})
 }

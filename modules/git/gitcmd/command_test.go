@@ -7,28 +7,33 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/tempdir"
+	"code.gitea.io/gitea/modules/testlogger"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestMain(m *testing.M) {
+func testMain(m *testing.M) int {
 	// FIXME: GIT-PACKAGE-DEPENDENCY: the dependency is not right.
 	// "setting.Git.HomePath" is initialized in "git" package but really used in "gitcmd" package
 	gitHomePath, cleanup, err := tempdir.OsTempDir("gitea-test").MkdirTempRandom("git-home")
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "unable to create temp dir: %v", err)
-		os.Exit(1)
+		testlogger.Panicf("failed to create temp dir: %v", err)
 	}
 	defer cleanup()
 
 	setting.Git.HomePath = gitHomePath
-	os.Exit(m.Run())
+	return m.Run()
+}
+
+func TestMain(m *testing.M) {
+	os.Exit(testMain(m))
 }
 
 func TestRunWithContextStd(t *testing.T) {
@@ -45,9 +50,11 @@ func TestRunWithContextStd(t *testing.T) {
 		stdout, stderr, err := cmd.RunStdString(t.Context())
 		if assert.Error(t, err) {
 			assert.Equal(t, stderr, err.Stderr())
-			assert.Equal(t, "fatal: Not a valid object name no-such\n", err.Stderr())
+			stderrLower := strings.ToLower(stderr) // see: IsStdErrorNotValidObjectName
+			assert.Equal(t, "fatal: not a valid object name no-such\n", stderrLower)
 			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
-			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such", err.Error())
+			errLower := strings.ToLower(err.Error())
+			assert.Equal(t, "exit status 128 - fatal: not a valid object name no-such", errLower)
 			assert.Empty(t, stdout)
 		}
 	}
@@ -57,9 +64,11 @@ func TestRunWithContextStd(t *testing.T) {
 		stdout, stderr, err := cmd.RunStdBytes(t.Context())
 		if assert.Error(t, err) {
 			assert.Equal(t, string(stderr), err.Stderr())
-			assert.Equal(t, "fatal: Not a valid object name no-such\n", err.Stderr())
+			stderrLower := strings.ToLower(err.Stderr()) // see: IsStdErrorNotValidObjectName
+			assert.Equal(t, "fatal: not a valid object name no-such\n", stderrLower)
 			// FIXME: GIT-CMD-STDERR: it is a bad design, the stderr should not be put in the error message
-			assert.Equal(t, "exit status 128 - fatal: Not a valid object name no-such", err.Error())
+			errLower := strings.ToLower(err.Error())
+			assert.Equal(t, "exit status 128 - fatal: not a valid object name no-such", errLower)
 			assert.Empty(t, stdout)
 		}
 	}

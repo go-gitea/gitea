@@ -480,7 +480,7 @@ func registerWebRoutes(m *web.Router) {
 	}, optionsCorsHandler())
 
 	m.Post("/-/markup", reqSignIn, web.Bind(structs.MarkupOption{}), misc.Markup)
-
+	m.Post("/-/web-banner/dismiss", misc.WebBannerDismiss)
 	m.Get("/-/web-theme/list", misc.WebThemeList)
 	m.Post("/-/web-theme/apply", optSignIn, misc.WebThemeApply)
 
@@ -888,6 +888,8 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("/{org}", func() {
 			m.Get("/dashboard", user.Dashboard)
 			m.Get("/dashboard/{team}", user.Dashboard)
+			m.Get("/dashboard/-/heatmap", user.DashboardHeatmap)
+			m.Get("/dashboard/-/heatmap/{team}", user.DashboardHeatmap)
 			m.Get("/issues", user.Issues)
 			m.Get("/issues/{team}", user.Issues)
 			m.Get("/pulls", user.Pulls)
@@ -1024,6 +1026,7 @@ func registerWebRoutes(m *web.Router) {
 		}
 
 		m.Get("/repositories", org.Repositories)
+		m.Get("/heatmap", user.DashboardHeatmap)
 
 		m.Group("/projects", func() {
 			m.Group("", func() {
@@ -1673,7 +1676,7 @@ func registerWebRoutes(m *web.Router) {
 			m.Any("/mail-preview", devtest.MailPreview)
 			m.Any("/mail-preview/*", devtest.MailPreviewRender)
 			m.Any("/{sub}", devtest.TmplCommon)
-			m.Get("/repo-action-view/{run}/{job}", devtest.MockActionsView)
+			m.Get("/repo-action-view/runs/{run}/jobs/{job}", devtest.MockActionsView)
 			m.Post("/actions-mock/runs/{run}/jobs/{job}", web.Bind(actions.ViewRequest{}), devtest.MockActionsRunsJobs)
 		})
 	}

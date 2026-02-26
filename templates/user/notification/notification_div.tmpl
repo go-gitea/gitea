@@ -28,14 +28,14 @@
 						{{if $one.Issue}}
 							{{template "shared/issueicon" $one.Issue}}
 						{{else}}
-							{{svg "octicon-repo" 16 "text grey"}}
+							{{svg "octicon-repo" 16 "tw-text-text-light"}}
 						{{end}}
 					</div>
 					<a class="notifications-link silenced tw-flex-1" href="{{$one.Link ctx}}">
 						<div class="flex-text-block tw-text-[0.95em]">
-							{{$one.Repository.FullName}} {{if $one.Issue}}<span class="text light-3">#{{$one.Issue.Index}}</span>{{end}}
+							{{$one.Repository.FullName}} {{if $one.Issue}}<span class="tw-text-text-light-3">#{{$one.Issue.Index}}</span>{{end}}
 							{{if eq $one.Status $statusPinned}}
-								{{svg "octicon-pin" 13 "text blue"}}
+								{{svg "octicon-pin" 13 "tw-text-blue"}}
 							{{end}}
 						</div>
 						<div class="tw-text-16 tw-py-0.5">
