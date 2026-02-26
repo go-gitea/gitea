@@ -56,12 +56,10 @@
 				<md-task-list class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.list.task.tooltip"}}">{{svg "octicon-tasklist"}}</md-task-list>
 				<button class="markdown-toolbar-button markdown-button-table-add" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.table.add.tooltip"}}">{{svg "octicon-table"}}</button>
 			</div>
-			{{if eq $previewMode "comment"}}
 			<div class="markdown-toolbar-group">
 				<md-mention class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.mention.tooltip"}}">{{svg "octicon-mention"}}</md-mention>
 				<md-ref class="markdown-toolbar-button" data-tooltip-content="{{ctx.Locale.Tr "editor.buttons.ref.tooltip"}}">{{svg "octicon-cross-reference"}}</md-ref>
 			</div>
-			{{end}}
 			<div class="markdown-toolbar-group">
 				<button class="markdown-toolbar-button markdown-switch-monospace" role="switch" data-enable-text="{{ctx.Locale.Tr "editor.buttons.enable_monospace_font"}}" data-disable-text="{{ctx.Locale.Tr "editor.buttons.disable_monospace_font"}}">{{svg "octicon-typography"}}</button>
 				{{if $supportEasyMDE}}
