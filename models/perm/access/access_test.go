@@ -167,3 +167,32 @@ func TestRepository_RecalculateAccesses_UpdateMode(t *testing.T) {
 	assert.True(t, has, "Access should still exist")
 	assert.Equal(t, newMode, updatedAccess.Mode, "Access mode should be updated to new collaboration mode")
 }
+
+func TestRepository_RecalculateAccesses_RemoveAccess(t *testing.T) {
+	// Test the delete path in refreshAccesses optimization
+	// Scenario: Remove a user's collaboration, access should be deleted
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
+	assert.NoError(t, repo.LoadOwner(t.Context()))
+
+	// Verify initial access exists
+	initialAccess := &access_model.Access{UserID: 4, RepoID: 4}
+	has, err := db.GetEngine(t.Context()).Get(initialAccess)
+	assert.NoError(t, err)
+	assert.True(t, has, "Access should exist initially")
+
+	// Remove the collaboration to trigger delete path
+	_, err = db.GetEngine(t.Context()).
+		Where("user_id = ? AND repo_id = ?", 4, 4).
+		Delete(&repo_model.Collaboration{})
+	assert.NoError(t, err)
+
+	// Recalculate accesses - should DELETE the access record
+	assert.NoError(t, access_model.RecalculateAccesses(t.Context(), repo))
+
+	// Verify access was deleted
+	removedAccess := &access_model.Access{UserID: 4, RepoID: 4}
+	has, err = db.GetEngine(t.Context()).Get(removedAccess)
+	assert.NoError(t, err)
+	assert.False(t, has, "Access should be deleted after removing collaboration")
+}

@@ -91,6 +91,9 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mo
 	}
 }
 
+// refreshAccesses updates the repository's access records in the database by comparing the provided accessMap
+// with existing records. It minimizes DB operations by performing selective inserts, updates, and deletes
+// instead of removing all existing records and re-adding them.
 func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap map[int64]*userAccess) (err error) {
 	minMode := perm.AccessModeRead
 	if err := repo.LoadOwner(ctx); err != nil {
@@ -113,17 +116,19 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 		existingMap[a.UserID] = a.Mode
 	}
 
-	var toDelete []int64
-	var toInsert []Access
-	var toUpdate []struct {
+	type accessUpdate struct {
 		UserID int64
 		Mode   perm.AccessMode
 	}
 
+	var toDelete []int64
+	var toInsert []Access
+	var toUpdate []accessUpdate
+
 	// Determine changes
 	for userID, ua := range accessMap {
 		if ua.Mode < minMode && !ua.User.IsRestricted {
-			// Should not have access
+			// No explicit access record needed (handled by default permissions, e.g., public repo access)
 			if _, exists := existingMap[userID]; exists {
 				toDelete = append(toDelete, userID)
 			}
@@ -131,10 +136,7 @@ func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap
 			desiredMode := ua.Mode
 			if existingMode, exists := existingMap[userID]; exists {
 				if existingMode != desiredMode {
-					toUpdate = append(toUpdate, struct {
-						UserID int64
-						Mode   perm.AccessMode
-					}{UserID: userID, Mode: desiredMode})
+					toUpdate = append(toUpdate, accessUpdate{UserID: userID, Mode: desiredMode})
 				}
 			} else {
 				toInsert = append(toInsert, Access{
