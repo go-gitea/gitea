@@ -4,12 +4,12 @@
 package setting
 
 import (
-	"regexp"
 	"runtime"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/glob"
+	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -88,8 +88,8 @@ var Service = struct {
 	// OpenID settings
 	EnableOpenIDSignIn bool
 	EnableOpenIDSignUp bool
-	OpenIDWhitelist    []*regexp.Regexp
-	OpenIDBlacklist    []*regexp.Regexp
+	OpenIDWhitelist    *hostmatcher.HostMatchList
+	OpenIDBlacklist    *hostmatcher.HostMatchList
 
 	// Explore page settings
 	Explore struct {
@@ -267,35 +267,38 @@ func loadServiceFrom(rootCfg ConfigProvider) {
 
 var defaultOpenIDBlacklist = []string{
 	"localhost",
-	"127\\.0\\.0\\.1",
-	"10\\..*",
-	"192\\.168\\..*",
-	"172\\.(1[6-9]|2[0-9]|3[0-1])\\..*",
-	"\\[::1\\]",
-	"\\[f[c-d][0-9a-fA-F]{2}:.*\\]",
-	"\\[fe80:.*\\]",
+	hostmatcher.MatchBuiltinLoopback,
+	hostmatcher.MatchBuiltinPrivate,
+	"fe80::/10",
+}
+
+func splitOpenIDHostList(raw string) []string {
+	return strings.FieldsFunc(raw, func(r rune) bool {
+		switch r {
+		case ',', ' ', '\t', '\n', '\r':
+			return true
+		default:
+			return false
+		}
+	})
 }
 
 func loadOpenIDSetting(rootCfg ConfigProvider) {
 	sec := rootCfg.Section("openid")
 	Service.EnableOpenIDSignIn = sec.Key("ENABLE_OPENID_SIGNIN").MustBool(false)
 	Service.EnableOpenIDSignUp = sec.Key("ENABLE_OPENID_SIGNUP").MustBool(!Service.DisableRegistration && Service.EnableOpenIDSignIn)
-	pats := sec.Key("WHITELISTED_URIS").Strings(" ")
-	if len(pats) != 0 {
-		Service.OpenIDWhitelist = make([]*regexp.Regexp, len(pats))
-		for i, p := range pats {
-			Service.OpenIDWhitelist[i] = regexp.MustCompilePOSIX(p)
-		}
+	Service.OpenIDWhitelist = nil
+	Service.OpenIDBlacklist = nil
+	whitelist := splitOpenIDHostList(sec.Key("WHITELISTED_URIS").String())
+	if len(whitelist) != 0 {
+		Service.OpenIDWhitelist = hostmatcher.ParseHostMatchList("openid.WHITELISTED_URIS", strings.Join(whitelist, ","))
 	}
-	pats = sec.Key("BLACKLISTED_URIS").Strings(" ")
-	if len(pats) == 0 {
-		pats = defaultOpenIDBlacklist
+	blacklist := splitOpenIDHostList(sec.Key("BLACKLISTED_URIS").String())
+	if len(blacklist) == 0 {
+		blacklist = defaultOpenIDBlacklist
 	}
-	if len(pats) != 0 {
-		Service.OpenIDBlacklist = make([]*regexp.Regexp, len(pats))
-		for i, p := range pats {
-			Service.OpenIDBlacklist[i] = regexp.MustCompilePOSIX(p)
-		}
+	if len(blacklist) != 0 {
+		Service.OpenIDBlacklist = hostmatcher.ParseHostMatchList("openid.BLACKLISTED_URIS", strings.Join(blacklist, ","))
 	}
 }
 

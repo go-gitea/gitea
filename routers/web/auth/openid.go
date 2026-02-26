@@ -46,23 +46,28 @@ func SignInOpenID(ctx *context.Context) {
 
 // Check if the given OpenID URI is allowed by blacklist/whitelist
 func allowedOpenIDURI(uri string) (err error) {
+	parsed, err := url.Parse(uri)
+	if err != nil {
+		return err
+	}
+	host := parsed.Hostname()
+	if host == "" {
+		return errors.New("invalid OpenID URI host")
+	}
+
 	// In case a Whitelist is present, URI must be in it
 	// in order to be accepted
-	if len(setting.Service.OpenIDWhitelist) != 0 {
-		for _, pat := range setting.Service.OpenIDWhitelist {
-			if pat.MatchString(uri) {
-				return nil // pass
-			}
+	if allowList := setting.Service.OpenIDWhitelist; allowList != nil && !allowList.IsEmpty() {
+		if allowList.MatchHostName(host) {
+			return nil // pass
 		}
 		// must match one of this or be refused
 		return errors.New("URI not allowed by whitelist")
 	}
 
 	// A blacklist match expliclty forbids
-	for _, pat := range setting.Service.OpenIDBlacklist {
-		if pat.MatchString(uri) {
-			return errors.New("URI forbidden by blacklist")
-		}
+	if blockList := setting.Service.OpenIDBlacklist; blockList != nil && blockList.MatchHostName(host) {
+		return errors.New("URI forbidden by blacklist")
 	}
 
 	return nil
