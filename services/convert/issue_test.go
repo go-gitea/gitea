@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLabel_ToLabel(t *testing.T) {
@@ -82,4 +83,44 @@ func TestToStopWatchesRespectsPermissions(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, visibleAdmin, 2)
 	assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{visibleAdmin[0].RepoName, visibleAdmin[1].RepoName})
+}
+
+func TestToTrackedTime(t *testing.T) {
+	require.NoError(t, unittest.PrepareTestDatabase())
+
+	ctx := t.Context()
+	publicIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 1})
+	privateIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: 3})
+	regularUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	publicTrackedTime := &issues_model.TrackedTime{IssueID: publicIssue.ID, UserID: regularUser.ID, Time: 3600}
+	privateTrackedTime := &issues_model.TrackedTime{IssueID: privateIssue.ID, UserID: regularUser.ID, Time: 1800}
+	require.NoError(t, db.Insert(ctx, publicTrackedTime))
+	require.NoError(t, db.Insert(ctx, privateTrackedTime))
+
+	t.Run("NilIssues", func(t *testing.T) {
+		list := ToTrackedTimeList(ctx, regularUser, issues_model.TrackedTimeList{publicTrackedTime, privateTrackedTime})
+		assert.Empty(t, list)
+	})
+
+	t.Run("NilRepo", func(t *testing.T) {
+		badTrackedTime := &issues_model.TrackedTime{Issue: &issues_model.Issue{RepoID: 999999}}
+		visible := ToTrackedTimeList(ctx, regularUser, issues_model.TrackedTimeList{badTrackedTime})
+		assert.Empty(t, visible)
+	})
+
+	trackedTimes := issues_model.TrackedTimeList{publicTrackedTime, privateTrackedTime}
+	require.NoError(t, trackedTimes.LoadAttributes(ctx))
+
+	t.Run("ToRegularUser", func(t *testing.T) {
+		list := ToTrackedTimeList(ctx, regularUser, trackedTimes)
+		require.Len(t, list, 1)
+		assert.Equal(t, "repo1", list[0].Issue.Repo.Name)
+	})
+	t.Run("ToAdminUser", func(t *testing.T) {
+		list := ToTrackedTimeList(ctx, adminUser, trackedTimes)
+		require.Len(t, list, 2)
+		assert.ElementsMatch(t, []string{"repo1", "repo3"}, []string{list[0].Issue.Repo.Name, list[1].Issue.Repo.Name})
+	})
 }
