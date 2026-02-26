@@ -1,34 +1,10 @@
 import {showTemporaryTooltip} from '../../modules/tippy.ts';
 import {POST} from '../../modules/fetch.ts';
-import {html, htmlRaw} from '../../utils/html.ts';
 import {registerGlobalInitFunc} from '../../modules/observer.ts';
 import {queryElems} from '../../utils/dom.ts';
-import {ComboMarkdownEditor, initComboMarkdownEditor} from '../comp/ComboMarkdownEditor.ts';
-import {debounce} from 'throttle-debounce';
 import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 const {appSubUrl} = window.config;
-
-async function initWebBannerPreview(comboEditorContainer: HTMLElement) {
-  const form = comboEditorContainer.closest<HTMLFormElement>('form')!;
-  const comboEditor = await initComboMarkdownEditor(comboEditorContainer);
-  const previewContent = form.querySelector('.web-banner-content')!;
-  const renderPreviewMarkdown = async () => {
-    try {
-      const formData = new FormData();
-      formData.append('text', comboEditor.value());
-      try {
-        const response = await POST(`${appSubUrl}/-/markup`, {data: formData});
-        const rendered = await response.text();
-        previewContent.innerHTML = html`${htmlRaw(rendered)}`;
-      } catch (error) {
-        console.error('Error rendering instance banner preview:', error);
-      }
-    } catch {}
-  };
-  const debounceRender = debounce(500, renderPreviewMarkdown);
-  comboEditorContainer.addEventListener(ComboMarkdownEditor.EventEditorContentChanged, debounceRender);
-}
 
 function initSystemConfigAutoCheckbox(el: HTMLInputElement) {
   el.addEventListener('change', async () => {
@@ -230,6 +206,5 @@ export function initAdminConfigs(): void {
   registerGlobalInitFunc('initAdminConfigSettings', (el) => {
     queryElems(el, 'input[type="checkbox"][data-config-dyn-key]', initSystemConfigAutoCheckbox);
     queryElems(el, 'form.system-config-form', initSystemConfigForm);
-    queryElems(el, '.web-banner-content-editor', initWebBannerPreview);
   });
 }

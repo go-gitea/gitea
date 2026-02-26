@@ -3286,8 +3286,6 @@
   "admin.config.instance_maintenance_mode.admin_web_access_only": "Only allow admin to access the web UI",
   "admin.config.instance_web_banner.enabled": "Show banner",
   "admin.config.instance_web_banner.message_placeholder": "Banner message (supports markdown)",
-  "admin.config.instance_web_banner.preview": "Preview",
-  "admin.config.instance_web_banner.dismiss": "Dismiss",
   "admin.config.session_config": "Session Configuration",
   "admin.config.session_provider": "Session Provider",
   "admin.config.provider_config": "Provider Config",
