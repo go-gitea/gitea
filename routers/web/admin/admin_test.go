@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
@@ -89,4 +90,22 @@ func TestSelfCheckPost(t *testing.T) {
 	assert.Equal(t, []string{
 		ctx.Locale.TrString("admin.self_check.location_origin_mismatch", "http://frontend/sub/", "http://config/sub/"),
 	}, data.Problems)
+}
+
+func TestDeleteBadgeUserRedirectEscapesSlug(t *testing.T) {
+	unittest.PrepareTestEnv(t)
+	ctx, resp := contexttest.MockContext(t, "POST /-/admin/badges/badge/users/delete")
+	ctx.SetPathParam("badge_slug", "badge/slug with space")
+	ctx.Req.Form.Set("id", "999999")
+
+	DeleteBadgeUser(ctx)
+
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	data := struct {
+		Redirect string `json:"redirect"`
+	}{}
+	err := json.Unmarshal(resp.Body.Bytes(), &data)
+	assert.NoError(t, err)
+	assert.Equal(t, setting.AppSubURL+"/-/admin/badges/badge%2Fslug%20with%20space/users", data.Redirect)
 }
