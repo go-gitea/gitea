@@ -12,8 +12,8 @@ import (
 )
 
 type PictureStruct struct {
-	DisableGravatar       *config.Value[bool]
-	EnableFederatedAvatar *config.Value[bool]
+	DisableGravatar       *config.Option[bool]
+	EnableFederatedAvatar *config.Option[bool]
 }
 
 type OpenWithEditorApp struct {
@@ -23,6 +23,9 @@ type OpenWithEditorApp struct {
 
 type OpenWithEditorAppsType []OpenWithEditorApp
 
+// ToTextareaString is only used in templates, for help prompt only
+// TODO: OPEN-WITH-EDITOR-APP-JSON: Because there is no "rich UI", a plain text editor is used to manage the list of apps
+// Maybe we can use some better formats like Yaml in the future, then a simple textarea can manage the config clearly
 func (t OpenWithEditorAppsType) ToTextareaString() string {
 	var ret strings.Builder
 	for _, app := range t {
@@ -31,7 +34,7 @@ func (t OpenWithEditorAppsType) ToTextareaString() string {
 	return ret.String()
 }
 
-func DefaultOpenWithEditorApps() OpenWithEditorAppsType {
+func openWithEditorAppsDefaultValue() OpenWithEditorAppsType {
 	return OpenWithEditorAppsType{
 		{
 			DisplayName: "VS Code",
@@ -49,13 +52,14 @@ func DefaultOpenWithEditorApps() OpenWithEditorAppsType {
 }
 
 type RepositoryStruct struct {
-	OpenWithEditorApps *config.Value[OpenWithEditorAppsType]
-	GitGuideRemoteName *config.Value[string]
+	OpenWithEditorApps *config.Option[OpenWithEditorAppsType]
+	GitGuideRemoteName *config.Option[string]
 }
 
 type ConfigStruct struct {
 	Picture    *PictureStruct
 	Repository *RepositoryStruct
+	Instance   *InstanceStruct
 }
 
 var (
@@ -67,12 +71,16 @@ func initDefaultConfig() {
 	config.SetCfgSecKeyGetter(&cfgSecKeyGetter{})
 	defaultConfig = &ConfigStruct{
 		Picture: &PictureStruct{
-			DisableGravatar:       config.ValueJSON[bool]("picture.disable_gravatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "DISABLE_GRAVATAR"}),
-			EnableFederatedAvatar: config.ValueJSON[bool]("picture.enable_federated_avatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "ENABLE_FEDERATED_AVATAR"}),
+			DisableGravatar:       config.NewOption[bool]("picture.disable_gravatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "DISABLE_GRAVATAR"}),
+			EnableFederatedAvatar: config.NewOption[bool]("picture.enable_federated_avatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "ENABLE_FEDERATED_AVATAR"}),
 		},
 		Repository: &RepositoryStruct{
-			OpenWithEditorApps: config.ValueJSON[OpenWithEditorAppsType]("repository.open-with.editor-apps"),
-			GitGuideRemoteName: config.ValueJSON[string]("repository.git-guide-remote-name").WithDefault("origin"),
+			OpenWithEditorApps: config.NewOption[OpenWithEditorAppsType]("repository.open-with.editor-apps").WithEmptyAsDefault().WithDefaultFunc(openWithEditorAppsDefaultValue),
+			GitGuideRemoteName: config.NewOption[string]("repository.git-guide-remote-name").WithEmptyAsDefault().WithDefaultSimple("origin"),
+		},
+		Instance: &InstanceStruct{
+			WebBanner:       config.NewOption[WebBannerType]("instance.web_banner"),
+			MaintenanceMode: config.NewOption[MaintenanceModeType]("instance.maintenance_mode"),
 		},
 	}
 }
