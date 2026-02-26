@@ -51,7 +51,7 @@
 @import "./markup/codepreview.css";
 @import "./markup/asciicast.css";
 
-@import "./chroma/base.css";
+@import "./modules/chroma.css";
 @import "./font_i18n.css";
 @import "./base.css";
 @import "./home.css";
