@@ -67,8 +67,7 @@ function initRepoPullRequestMergeForm(box: HTMLElement) {
   const el = box.querySelector<HTMLElement>('#pull-request-merge-form');
   if (!el) return;
 
-  window.config.pageData.pullRequestMergeForm = JSON.parse(el.getAttribute('data-merge-form')!);
-  const view = createApp(PullRequestMergeForm);
+  const view = createApp(PullRequestMergeForm, {elRoot: el});
   view.mount(el);
 }
 
