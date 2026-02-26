@@ -46,20 +46,20 @@ func TestAdminConfig(t *testing.T) {
 		assert.True(t, cfg.HasValue(t.Context()))
 	})
 
-	t.Run("InstanceBanner", func(t *testing.T) {
-		banner, rev1, has := setting.Config().WebUI.InstanceBanner.ValueRevision(t.Context())
+	t.Run("InstanceWebBanner", func(t *testing.T) {
+		banner, rev1, has := setting.Config().Instance.WebBanner.ValueRevision(t.Context())
 		assert.False(t, has)
-		assert.Equal(t, setting.InstanceBannerType{}, banner)
+		assert.Equal(t, setting.WebBannerType{}, banner)
 
 		req = NewRequestWithValues(t, "POST", "/-/admin/config", map[string]string{
-			"key":   "web_ui.instance_banner",
+			"key":   "instance.web_banner",
 			"value": `{"DisplayEnabled":true,"ContentMessage":"test-msg","StartTimeUnix":123,"EndTimeUnix":456}`,
 		})
 		session.MakeRequest(t, req, http.StatusOK)
-		banner, rev2, has := setting.Config().WebUI.InstanceBanner.ValueRevision(t.Context())
+		banner, rev2, has := setting.Config().Instance.WebBanner.ValueRevision(t.Context())
 		assert.NotEqual(t, rev1, rev2)
 		assert.True(t, has)
-		assert.Equal(t, setting.InstanceBannerType{
+		assert.Equal(t, setting.WebBannerType{
 			DisplayEnabled: true,
 			ContentMessage: "test-msg",
 			StartTimeUnix:  123,

@@ -177,13 +177,13 @@
 	{{end}}
 </nav>
 
-{{$instanceBanner := .PageGlobalData.CurrentInstanceBanner}}
-{{if $instanceBanner}}
-<div class="ui info message instance-banner-container">
-	<div class="render-content markup instance-banner-content">
-		{{ctx.RenderUtils.MarkdownToHtml $instanceBanner.ContentMessage}}
+{{$banner := .PageGlobalData.CurrentWebBanner}}
+{{if $banner}}
+<div class="ui info message web-banner-container">
+	<div class="render-content markup web-banner-content">
+		{{ctx.RenderUtils.MarkdownToHtml $banner.ContentMessage}}
 	</div>
-	<button type="button" class="btn dismiss-banner link-action" aria-label="{{ctx.Locale.Tr "admin.config.instance_banner.dismiss"}}" data-url="{{AppSubUrl}}/-/instance-banner/dismiss">
+	<button type="button" class="btn dismiss-banner link-action" aria-label="{{ctx.Locale.Tr "dismiss"}}" data-url="{{AppSubUrl}}/-/web-banner/dismiss">
 		{{svg "octicon-x"}}
 	</button>
 </div>

@@ -18,20 +18,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestInstanceBanner(t *testing.T) {
+func TestInstanceWebBanner(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	setInstanceBanner := func(t *testing.T, banner setting.InstanceBannerType) {
-		t.Helper()
+	setTestBanner := func(t *testing.T, banner setting.WebBannerType) {
 		marshaled, err := json.Marshal(banner)
 		require.NoError(t, err)
 		require.NoError(t, system_model.SetSettings(t.Context(), map[string]string{
-			setting.Config().WebUI.InstanceBanner.DynKey(): string(marshaled),
+			setting.Config().Instance.WebBanner.DynKey(): string(marshaled),
 		}))
 		config.GetDynGetter().InvalidateCache()
 	}
 
 	t.Run("Visibility", func(t *testing.T) {
-		setInstanceBanner(t, setting.InstanceBannerType{
+		setTestBanner(t, setting.WebBannerType{
 			DisplayEnabled: true,
 			ContentMessage: "Planned **upgrade** in progress.",
 		})
@@ -61,7 +60,7 @@ func TestInstanceBanner(t *testing.T) {
 
 	t.Run("TimeWindow", func(t *testing.T) {
 		now := time.Now().Unix()
-		setInstanceBanner(t, setting.InstanceBannerType{
+		setTestBanner(t, setting.WebBannerType{
 			DisplayEnabled: true,
 			ContentMessage: "Future banner",
 			StartTimeUnix:  now + 3600,
@@ -71,7 +70,7 @@ func TestInstanceBanner(t *testing.T) {
 		resp := MakeRequest(t, NewRequest(t, "GET", "/"), http.StatusOK)
 		assert.NotContains(t, resp.Body.String(), "Future banner")
 
-		setInstanceBanner(t, setting.InstanceBannerType{
+		setTestBanner(t, setting.WebBannerType{
 			DisplayEnabled: true,
 			ContentMessage: "Expired banner",
 			StartTimeUnix:  now - 7200,

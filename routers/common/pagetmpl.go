@@ -72,7 +72,7 @@ type pageGlobalDataType struct {
 	IsSigned    bool
 	IsSiteAdmin bool
 
-	CurrentInstanceBanner *setting.InstanceBannerType
+	CurrentWebBanner *setting.WebBannerType
 
 	GetNotificationUnreadCount func() int64
 	GetActiveStopwatch         func() *StopwatchTmplInfo
@@ -89,10 +89,10 @@ func PageGlobalData(ctx *context.Context) {
 	// There could be some false-positives because revision can be changed even if the banner isn't.
 	// While it should be still good enough (no admin would keep changing the settings) and doesn't really harm end users (just a few more times to see the banner)
 	// So it doesn't need to make it more complicated by allocating unique IDs or using hashes.
-	dismissedInstanceBannerRevision, _ := strconv.Atoi(ctx.GetSiteCookie(middleware.CookieInstanceBannerDismissed))
-	instanceBanner, revision, _ := setting.Config().WebUI.InstanceBanner.ValueRevision(ctx)
-	if instanceBanner.ShouldDisplay() && dismissedInstanceBannerRevision != revision {
-		data.CurrentInstanceBanner = &instanceBanner
+	dismissedBannerRevision, _ := strconv.Atoi(ctx.GetSiteCookie(middleware.CookieWebBannerDismissed))
+	banner, revision, _ := setting.Config().Instance.WebBanner.ValueRevision(ctx)
+	if banner.ShouldDisplay() && dismissedBannerRevision != revision {
+		data.CurrentWebBanner = &banner
 	}
 	ctx.Data["PageGlobalData"] = data
 }

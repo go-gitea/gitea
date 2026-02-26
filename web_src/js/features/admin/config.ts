@@ -9,10 +9,10 @@ import {submitFormFetchAction} from '../common-fetch-action.ts';
 
 const {appSubUrl} = window.config;
 
-async function initInstanceBannerPreview(comboEditorContainer: HTMLElement) {
+async function initWebBannerPreview(comboEditorContainer: HTMLElement) {
   const form = comboEditorContainer.closest<HTMLFormElement>('form')!;
   const comboEditor = await initComboMarkdownEditor(comboEditorContainer);
-  const previewContent = form.querySelector('.instance-banner-content')!;
+  const previewContent = form.querySelector('.web-banner-content')!;
   const renderPreviewMarkdown = async () => {
     try {
       const formData = new FormData();
@@ -148,7 +148,8 @@ export class ConfigFormValueMapper {
 
   collectConfigSubValues(namedElems: Array<GeneralFormFieldElement | null>, dynKey: string, cfgVal: Record<string, any>) {
     for (let idx = 0; idx < namedElems.length; idx++) {
-      const el = namedElems[idx]!;
+      const el = namedElems[idx];
+      if (!el) continue;
       const subKey = extractElemConfigSubKey(el, dynKey);
       if (!subKey) continue; // if not match, skip
       cfgVal[subKey] = this.collectConfigValueFromElement(el, cfgVal[subKey]);
@@ -193,7 +194,7 @@ export class ConfigFormValueMapper {
     queryElems(this.form, '[name]', (el) => namedElems.push(el as GeneralFormFieldElement));
 
     // first, process the config options with sub values, for example:
-    // merge "web_ui.instance_banner.DisplayEnabled", "web_ui.instance_banner.ContentMessage" to "web_ui.instance_banner"
+    // merge "foo.bar.Enalbed", "foo.bar.Message" to "foo.bar"
     const formData = new FormData();
     for (const [dynKey, cfgVal] of Object.entries(this.presetJsonValues)) {
       this.collectConfigSubValues(namedElems, dynKey, cfgVal);
@@ -229,6 +230,6 @@ export function initAdminConfigs(): void {
   registerGlobalInitFunc('initAdminConfigSettings', (el) => {
     queryElems(el, 'input[type="checkbox"][data-config-dyn-key]', initSystemConfigAutoCheckbox);
     queryElems(el, 'form.system-config-form', initSystemConfigForm);
-    queryElems(el, '.instance-banner-content-editor', initInstanceBannerPreview);
+    queryElems(el, '.web-banner-content-editor', initWebBannerPreview);
   });
 }

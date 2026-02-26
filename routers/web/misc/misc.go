@@ -51,8 +51,8 @@ func StaticRedirect(target string) func(w http.ResponseWriter, req *http.Request
 	}
 }
 
-func InstanceBannerDismiss(ctx *context.Context) {
-	_, rev, _ := setting.Config().WebUI.InstanceBanner.ValueRevision(ctx)
-	middleware.SetSiteCookie(ctx.Resp, middleware.CookieInstanceBannerDismissed, strconv.Itoa(rev), 48*3600)
+func WebBannerDismiss(ctx *context.Context) {
+	_, rev, _ := setting.Config().Instance.WebBanner.ValueRevision(ctx)
+	middleware.SetSiteCookie(ctx.Resp, middleware.CookieWebBannerDismissed, strconv.Itoa(rev), 48*3600)
 	ctx.JSONOK()
 }

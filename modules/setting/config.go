@@ -6,7 +6,6 @@ package setting
 import (
 	"strings"
 	"sync"
-	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting/config"
@@ -57,36 +56,10 @@ type RepositoryStruct struct {
 	GitGuideRemoteName *config.Option[string]
 }
 
-// InstanceBannerType fields are directly used in templates, do remember to update the template if you change the fields
-type InstanceBannerType struct {
-	DisplayEnabled bool
-	ContentMessage string
-	StartTimeUnix  int64
-	EndTimeUnix    int64
-}
-
-func (n InstanceBannerType) ShouldDisplay() bool {
-	if !n.DisplayEnabled || n.ContentMessage == "" {
-		return false
-	}
-	now := time.Now().Unix()
-	if n.StartTimeUnix > 0 && now < n.StartTimeUnix {
-		return false
-	}
-	if n.EndTimeUnix > 0 && now > n.EndTimeUnix {
-		return false
-	}
-	return true
-}
-
-type WebUIStruct struct {
-	InstanceBanner *config.Option[InstanceBannerType]
-}
-
 type ConfigStruct struct {
 	Picture    *PictureStruct
 	Repository *RepositoryStruct
-	WebUI      *WebUIStruct
+	Instance   *InstanceStruct
 }
 
 var (
@@ -105,8 +78,9 @@ func initDefaultConfig() {
 			OpenWithEditorApps: config.NewOption[OpenWithEditorAppsType]("repository.open-with.editor-apps").WithEmptyAsDefault().WithDefaultFunc(openWithEditorAppsDefaultValue),
 			GitGuideRemoteName: config.NewOption[string]("repository.git-guide-remote-name").WithEmptyAsDefault().WithDefaultSimple("origin"),
 		},
-		WebUI: &WebUIStruct{
-			InstanceBanner: config.NewOption[InstanceBannerType]("web_ui.instance_banner"),
+		Instance: &InstanceStruct{
+			WebBanner:       config.NewOption[WebBannerType]("instance.web_banner"),
+			MaintenanceMode: config.NewOption[MaintenanceModeType]("instance.maintenance_mode"),
 		},
 	}
 }

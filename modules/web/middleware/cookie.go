@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	CookieInstanceBannerDismissed = "gitea_disbnr"
+	CookieWebBannerDismissed = "gitea_disbnr"
 
 	cookieRedirectTo = "redirect_to"
 )
