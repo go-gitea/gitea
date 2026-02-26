@@ -45,6 +45,10 @@
   padding-left: 0;
 }
 
+.code-editor-container .cm-indent-markers::before {
+  left: -0.5ch;
+}
+
 .code-editor-container .cm-cursor,
 .code-editor-container .cm-dropCursor {
   border-left-color: var(--color-caret);
@@ -199,6 +203,11 @@
 
 .code-editor-container .cm-tooltip.cm-tooltip-autocomplete > ul > li {
   padding: 0.5em;
+}
+
+.code-editor-container .cm-completionIcon {
+  font-size: 16px;
+  padding-right: 4px;
 }
 
 .code-editor-container .cm-tooltip-autocomplete ul li[aria-selected] {

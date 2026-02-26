@@ -83,6 +83,9 @@ importers:
       '@primer/octicons':
         specifier: 19.22.0
         version: 19.22.0
+      '@replit/codemirror-indentation-markers':
+        specifier: 6.5.3
+        version: 6.5.3(@codemirror/language@6.12.2)(@codemirror/state@6.5.4)(@codemirror/view@6.39.15)
       '@resvg/resvg-wasm':
         specifier: 2.6.2
         version: 2.6.2
@@ -1073,6 +1076,13 @@ packages:
 
   '@primer/octicons@19.22.0':
     resolution: {integrity: sha512-nWoh9PlE6u7xbiZF3KcUm3ktLpN2rQPt11trwp/t4EsKuYRNVWVbBp1LkCBsvZq7ScckNKUURLigIU0wS1FQdw==}
+
+  '@replit/codemirror-indentation-markers@6.5.3':
+    resolution: {integrity: sha512-hL5Sfvw3C1vgg7GolLe/uxX5T3tmgOA3ZzqlMv47zjU1ON51pzNWiVbS22oh6crYhtVhv8b3gdXwoYp++2ilHw==}
+    peerDependencies:
+      '@codemirror/language': ^6.0.0
+      '@codemirror/state': ^6.0.0
+      '@codemirror/view': ^6.0.0
 
   '@resvg/resvg-wasm@2.6.2':
     resolution: {integrity: sha512-FqALmHI8D4o6lk/LRWDnhw95z5eO+eAa6ORjVg09YRR7BkcM6oPHU9uyC0gtQG5vpFLvgpeU4+zEAz2H8APHNw==}
@@ -5358,6 +5368,12 @@ snapshots:
   '@primer/octicons@19.22.0':
     dependencies:
       object-assign: 4.1.1
+
+  '@replit/codemirror-indentation-markers@6.5.3(@codemirror/language@6.12.2)(@codemirror/state@6.5.4)(@codemirror/view@6.39.15)':
+    dependencies:
+      '@codemirror/language': 6.12.2
+      '@codemirror/state': 6.5.4
+      '@codemirror/view': 6.39.15
 
   '@resvg/resvg-wasm@2.6.2': {}
 

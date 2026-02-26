@@ -50,7 +50,7 @@ function exportEditor(editor: EditorView): void {
 }
 
 async function importCodemirror() {
-  const [view, state, search, language, commands, autocomplete, languageData, highlight] = await Promise.all([
+  const [view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers] = await Promise.all([
     import(/* webpackChunkName: "codemirror" */ '@codemirror/view'),
     import(/* webpackChunkName: "codemirror" */ '@codemirror/state'),
     import(/* webpackChunkName: "codemirror" */ '@codemirror/search'),
@@ -59,8 +59,9 @@ async function importCodemirror() {
     import(/* webpackChunkName: "codemirror" */ '@codemirror/autocomplete'),
     import(/* webpackChunkName: "codemirror" */ '@codemirror/language-data'),
     import(/* webpackChunkName: "codemirror" */ '@lezer/highlight'),
+    import(/* webpackChunkName: "codemirror" */ '@replit/codemirror-indentation-markers'),
   ]);
-  return {view, state, search, language, commands, autocomplete, languageData, highlight};
+  return {view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers};
 }
 
 async function createCodemirrorEditor(
@@ -130,6 +131,15 @@ async function createCodemirrorEditor(
       ),
       cm.autocomplete.closeBrackets(),
       cm.autocomplete.autocompletion(),
+      cm.state.EditorState.languageData.of(() => [{autocomplete: cm.autocomplete.completeAnyWord}]),
+      cm.indentMarkers.indentationMarkers({
+        colors: {
+          light: 'var(--color-secondary)',
+          dark: 'var(--color-secondary)',
+          activeLight: 'var(--color-secondary-dark-2)',
+          activeDark: 'var(--color-secondary-dark-2)',
+        },
+      }),
       cm.commands.history(),
       tabSize.of(cm.state.EditorState.tabSize.of(editorOpts.tabSize || 4)),
       wordWrap.of(editorOpts.wordWrap ? cm.view.EditorView.lineWrapping : []),
