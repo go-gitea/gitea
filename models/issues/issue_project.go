@@ -114,13 +114,13 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			return err
 		}
 
-		newProjectIDs, oldProjectIDs := util.DiffSlice(oldProjectIDs, newProjectIDs)
+		projectsToAdd, projectsToRemove := util.DiffSlice(oldProjectIDs, newProjectIDs)
 
-		if len(oldProjectIDs) > 0 {
-			if _, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).In("project_id", oldProjectIDs).Delete(&project_model.ProjectIssue{}); err != nil {
+		if len(projectsToRemove) > 0 {
+			if _, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).In("project_id", projectsToRemove).Delete(&project_model.ProjectIssue{}); err != nil {
 				return err
 			}
-			for _, projectID := range oldProjectIDs {
+			for _, projectID := range projectsToRemove {
 				if _, err := CreateComment(ctx, &CreateCommentOptions{
 					Type:         CommentTypeProject,
 					Doer:         doer,
@@ -134,7 +134,7 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			}
 		}
 
-		if len(newProjectIDs) == 0 {
+		if len(projectsToAdd) == 0 {
 			return nil
 		}
 
@@ -143,16 +143,16 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			IssueCount int64
 		}{}
 		if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").Table("project_issue").
-			In("project_id", newProjectIDs).
+			In("project_id", projectsToAdd).
 			And("project_board_id=?", newColumnID).
 			Get(&res); err != nil {
 			return err
 		}
 		newSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 
-		pi := make([]*project_model.ProjectIssue, 0, len(newProjectIDs))
+		pi := make([]*project_model.ProjectIssue, 0, len(projectsToAdd))
 
-		for _, projectID := range newProjectIDs {
+		for _, projectID := range projectsToAdd {
 			if projectID == 0 {
 				continue
 			}
