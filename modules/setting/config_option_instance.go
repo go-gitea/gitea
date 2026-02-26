@@ -1,3 +1,6 @@
+// Copyright 2026 The Gitea Authors. All rights reserved.
+// SPDX-License-Identifier: MIT
+
 package setting
 
 import (
@@ -35,7 +38,7 @@ type MaintenanceModeType struct {
 	EndTimeUnix        int64
 }
 
-func (m MaintenanceModeType) IsActiva() bool {
+func (m MaintenanceModeType) IsActive() bool {
 	if !m.AdminWebAccessOnly {
 		return false
 	}

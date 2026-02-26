@@ -16,8 +16,8 @@ import (
 
 const (
 	CookieWebBannerDismissed = "gitea_disbnr"
-
-	cookieRedirectTo = "redirect_to"
+	CookieTheme              = "gitea_theme"
+	cookieRedirectTo         = "redirect_to"
 )
 
 func GetRedirectToCookie(req *http.Request) string {

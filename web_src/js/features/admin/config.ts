@@ -194,7 +194,7 @@ export class ConfigFormValueMapper {
     queryElems(this.form, '[name]', (el) => namedElems.push(el as GeneralFormFieldElement));
 
     // first, process the config options with sub values, for example:
-    // merge "foo.bar.Enalbed", "foo.bar.Message" to "foo.bar"
+    // merge "foo.bar.Enabled", "foo.bar.Message" to "foo.bar"
     const formData = new FormData();
     for (const [dynKey, cfgVal] of Object.entries(this.presetJsonValues)) {
       this.collectConfigSubValues(namedElems, dynKey, cfgVal);
