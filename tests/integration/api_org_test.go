@@ -249,3 +249,100 @@ func TestAPIOrgGeneral(t *testing.T) {
 		MakeRequest(t, req, http.StatusForbidden)
 	})
 }
+
+func TestAPIDeleteOrgRepos(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	t.Run("Delete all repos successfully", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// Create test org with owner
+		session := loginUser(t, "user1")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
+
+		orgName := "test_delete_org"
+		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &api.CreateOrgOption{
+			UserName: orgName,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// Create 60 repos to test efficiency
+		for i := range 60 {
+			repoName := fmt.Sprintf("test_repo_%d", i)
+			req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos", orgName), &api.CreateRepoOption{
+				Name: repoName,
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
+		}
+
+		// Delete all repos
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var result api.DeleteOrgReposResponse
+		DecodeJSON(t, resp, &result)
+
+		assert.Equal(t, 60, result.SuccessCount)
+		assert.Equal(t, 0, result.FailureCount)
+		assert.Len(t, result.Deleted, 60)
+		assert.Empty(t, result.Failed)
+	})
+
+	t.Run("Verify response structure", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		session := loginUser(t, "user1")
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
+
+		orgName := "test_response_org"
+		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs", &api.CreateOrgOption{
+			UserName: orgName,
+		}).AddTokenAuth(token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// Create a few repos
+		for i := range 3 {
+			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos", orgName), &api.CreateRepoOption{
+				Name: fmt.Sprintf("repo_%d", i),
+			}).AddTokenAuth(token)
+			MakeRequest(t, req, http.StatusCreated)
+		}
+
+		// Delete all repos
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName)).AddTokenAuth(token)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var result api.DeleteOrgReposResponse
+		DecodeJSON(t, resp, &result)
+
+		// Verify response structure
+		assert.Equal(t, 3, result.SuccessCount)
+		assert.Equal(t, 0, result.FailureCount)
+		assert.Len(t, result.Deleted, 3)
+		assert.Empty(t, result.Failed)
+		assert.NotNil(t, result.Deleted)
+		assert.NotNil(t, result.Failed)
+	})
+
+	t.Run("Fail without permissions", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		// user2 is owner of org3
+		ownerSession := loginUser(t, "user2")
+		ownerToken := getTokenForLoggedInUser(t, ownerSession, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
+
+		// Create repo in org3
+		req := NewRequestWithJSON(t, "POST", "/api/v1/org/org3/repos", &api.CreateRepoOption{
+			Name: "test_perm_repo",
+		}).AddTokenAuth(ownerToken)
+		MakeRequest(t, req, http.StatusCreated)
+
+		// user4 is not owner of org3
+		nonOwnerSession := loginUser(t, "user4")
+		nonOwnerToken := getTokenForLoggedInUser(t, nonOwnerSession, auth_model.AccessTokenScopeWriteOrganization)
+
+		// Try to delete repos without owner permission
+		req = NewRequest(t, "DELETE", "/api/v1/orgs/org3/repos").AddTokenAuth(nonOwnerToken)
+		MakeRequest(t, req, http.StatusForbidden)
+	})
+}

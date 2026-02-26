@@ -3638,6 +3638,33 @@
             "$ref": "#/responses/notFound"
           }
         }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Delete all repositories in an organization",
+        "operationId": "orgDeleteRepos",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/DeleteOrgReposList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
       }
     },
     "/orgs/{org}/teams": {
@@ -24180,6 +24207,58 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "DeleteOrgReposResponse": {
+      "description": "DeleteOrgReposResponse represents the response for deleting organization repositories",
+      "type": "object",
+      "properties": {
+        "deleted": {
+          "description": "List of repository names that were deleted",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Deleted"
+        },
+        "failed": {
+          "description": "Details about repositories that failed to delete",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DeleteRepoFailure"
+          },
+          "x-go-name": "Failed"
+        },
+        "failure_count": {
+          "description": "Number of repositories that failed to delete",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "FailureCount"
+        },
+        "success_count": {
+          "description": "Number of repositories successfully deleted",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "SuccessCount"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "DeleteRepoFailure": {
+      "description": "DeleteRepoFailure represents a repository that failed to delete ",
+      "type": "object",
+      "properties": {
+        "reason": {
+          "description": "Reason for deletion failure",
+          "type": "string",
+          "x-go-name": "Reason"
+        },
+        "repo_name": {
+          "description": "Repository name",
+          "type": "string",
+          "x-go-name": "RepoName"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "DeployKey": {
       "description": "DeployKey a deploy key",
       "type": "object",
@@ -29725,6 +29804,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Cron"
+        }
+      }
+    },
+    "DeleteOrgReposList": {
+      "description": "DeleteOrgReposList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/DeleteOrgReposResponse"
         }
       }
     },
