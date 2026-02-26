@@ -15,7 +15,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -528,22 +527,6 @@ func DeleteOrgRepos(ctx *context.APIContext) {
 		Failed:  []api.DeleteRepoFailure{},
 	}
 	for _, repo := range repos {
-		canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
-		if !canDelete {
-			response.Failed = append(response.Failed, api.DeleteRepoFailure{
-				RepoName: repo.Name,
-				Message:  "Insufficient permissions to delete repository",
-			})
-			continue
-		}
-		if err != nil {
-			log.Error("Error checking delete permission for repo %s: %v", repo.Name, err)
-			response.Failed = append(response.Failed, api.DeleteRepoFailure{
-				RepoName: repo.Name,
-				Message:  "Failed to verify delete permissions",
-			})
-			continue
-		}
 		if err := repo_service.DeleteRepository(ctx, ctx.Doer, repo, true); err != nil {
 			log.Error("Error deleting repo %s: %v", repo.Name, err)
 			response.Failed = append(response.Failed, api.DeleteRepoFailure{
