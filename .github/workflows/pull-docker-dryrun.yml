@@ -29,7 +29,7 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64,linux/riscv64
           push: false
-          cache-from: type=gha
+          cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache
       - name: Build rootless container image
         uses: docker/build-push-action@v6
         with:
@@ -37,4 +37,4 @@ jobs:
           push: false
           platforms: linux/amd64,linux/arm64,linux/riscv64
           file: Dockerfile.rootless
-          cache-from: type=gha
+          cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache-rootless

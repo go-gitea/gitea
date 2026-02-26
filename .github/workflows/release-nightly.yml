@@ -64,7 +64,6 @@ jobs:
   nightly-container:
     runs-on: namespace-profile-gitea-release-docker
     permissions:
-      actions: write # to use GHA cache
       contents: read
       packages: write # to publish to ghcr.io
     steps:
@@ -121,8 +120,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           annotations: ${{ steps.meta.outputs.annotations }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache
+          cache-to: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache,mode=max
       - name: build rootless docker image
         uses: docker/build-push-action@v6
         with:
@@ -132,5 +131,5 @@ jobs:
           file: Dockerfile.rootless
           tags: ${{ steps.meta_rootless.outputs.tags }}
           annotations: ${{ steps.meta_rootless.outputs.annotations }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache-rootless
+          cache-to: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache-rootless,mode=max
