@@ -120,8 +120,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           annotations: ${{ steps.meta.outputs.annotations }}
-          cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache
-          cache-to: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache,mode=max
+          cache-from: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache-rootful
+          cache-to: type=registry,ref=ghcr.io/go-gitea/gitea:buildcache-rootful,mode=max
       - name: build rootless docker image
         uses: docker/build-push-action@v6
         with:
