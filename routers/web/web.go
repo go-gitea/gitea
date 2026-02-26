@@ -1026,6 +1026,7 @@ func registerWebRoutes(m *web.Router) {
 			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 
+		m.Get("/mentions", org.GetMentions)
 		m.Get("/repositories", org.Repositories)
 		m.Get("/heatmap", user.DashboardHeatmap)
 

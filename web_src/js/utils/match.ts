@@ -39,9 +39,18 @@ export async function fetchMentions(): Promise<Mention[]> {
     const {ownerName, repoName} = parseRepoOwnerPathInfo(window.location.pathname);
     if (ownerName && repoName) {
       try {
-        const {indexString} = parseIssueHref(window.location.href);
-        const query = indexString ? `?issue_index=${indexString}` : '';
-        const res = await GET(`${window.config.appSubUrl}/${ownerName}/${repoName}/-/mentions${query}`);
+        let mentionsUrl: string;
+        if (repoName === '-') {
+          // org/user-level page: /{owner}/-/mentions
+          mentionsUrl = `${window.config.appSubUrl}/${ownerName}/-/mentions`;
+        } else {
+          // repo-level page: /{owner}/{repo}/-/mentions
+          const {indexString} = parseIssueHref(window.location.href);
+          const query = indexString ? `?issue_index=${indexString}` : '';
+          mentionsUrl = `${window.config.appSubUrl}/${ownerName}/${repoName}/-/mentions${query}`;
+        }
+        const res = await GET(mentionsUrl);
+        if (!res.ok) throw new Error(res.statusText);
         cachedMentions = await res.json();
       } catch (e) {
         showErrorToast(`Failed to load mentions: ${e}`);
