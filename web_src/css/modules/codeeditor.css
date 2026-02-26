@@ -41,6 +41,10 @@
   padding: 0;
 }
 
+.code-editor-container .cm-line {
+  padding-left: 0;
+}
+
 .code-editor-container .cm-cursor,
 .code-editor-container .cm-dropCursor {
   border-left-color: var(--color-caret);
@@ -48,7 +52,7 @@
 
 .code-editor-container .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
 .code-editor-container .cm-selectionBackground {
-  background-color: var(--color-primary-light-3);
+  background-color: var(--color-primary-alpha-30);
 }
 
 .code-editor-container .cm-panels {
@@ -94,7 +98,8 @@
   margin: 0;
 }
 
-.code-editor-container .cm-panel.cm-search .cm-button + label {
+.code-editor-container .cm-panel.cm-search .cm-button + label,
+.code-editor-container .cm-panel.cm-search label + label {
   margin-left: 4px;
 }
 
@@ -126,7 +131,7 @@
 }
 
 .code-editor-container .cm-gutters .cm-lineNumbers .cm-gutterElement {
-  min-width: 40px !important;
+  min-width: 30px;
 }
 
 .code-editor-container .cm-foldGutter .cm-gutterElement {
@@ -153,8 +158,8 @@
 
 .code-editor-container .cm-editor .cm-line ::selection,
 .code-editor-container .cm-editor .cm-line::selection {
-  color: inherit !important;
-  background-color: var(--color-primary-light-3) !important;
+  color: inherit;
+  background-color: var(--color-primary-alpha-30);
 }
 
 .code-editor-container .cm-foldPlaceholder {
@@ -179,7 +184,7 @@
 }
 
 .code-editor-container .cm-searchMatch-selected {
-  background-color: var(--color-primary-alpha-40);
+  background-color: var(--color-primary-alpha-30);
 }
 
 .code-editor-container .cm-selectionMatch {
@@ -240,6 +245,42 @@
 
 .code-editor-container .cm-trailingSpace {
   background-color: var(--color-error-bg);
+}
+
+.code-editor-container .cm-editor.cm-focused {
+  outline: 1px dotted var(--color-text-light-3);
+}
+
+.code-editor-container .cm-editor.cm-focused .cm-matchingBracket {
+  background-color: var(--color-syntax-matching-bracket-bg);
+}
+
+.code-editor-container .cm-editor.cm-focused .cm-nonmatchingBracket {
+  background-color: var(--color-syntax-nonmatching-bracket-bg);
+}
+
+.code-editor-container .cm-panels-top {
+  border-bottom-color: var(--color-secondary);
+}
+
+.code-editor-container .cm-panels-bottom {
+  border-top-color: var(--color-secondary);
+}
+
+.code-editor-container .cm-snippetField {
+  background-color: var(--color-primary-alpha-10);
+}
+
+.code-editor-container .cm-snippetFieldPosition {
+  border-left-color: var(--color-text-light-3);
+}
+
+.code-editor-container .cm-tooltip.cm-tooltip-autocomplete > ul > completion-section {
+  border-bottom-color: var(--color-secondary);
+}
+
+.code-editor-container .cm-tooltip-autocomplete-disabled ul li[aria-selected] {
+  background-color: var(--color-secondary);
 }
 
 /* syntax highlighting classes from @lezer/highlight classHighlighter */

@@ -222,7 +222,7 @@ gitea-theme-meta-info {
   --color-secondary-bg: #f2f5f8;
   --color-expand-button: #cfe8fa;
   --color-placeholder-text: var(--color-text-light-3);
-  --color-editor-line-highlight: #ecf2f8;
+  --color-editor-line-highlight: var(--color-secondary-alpha-30);
   --color-project-column-bg: var(--color-secondary-light-4);
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000170a;
@@ -283,6 +283,8 @@ gitea-theme-meta-info {
   --color-syntax-output: #888888;
   --color-syntax-prompt: #555555;
   --color-syntax-traceback: #aa0000;
+  --color-syntax-matching-bracket-bg: #00b5ad38;
+  --color-syntax-nonmatching-bracket-bg: #db282838;
   accent-color: var(--color-accent);
   color-scheme: light;
 }
