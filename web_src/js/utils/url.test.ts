@@ -1,7 +1,7 @@
 import {cleanUrl, findUrlAt, pathEscapeSegments, toOriginUrl, urlRawRegex} from './url.ts';
 
 function matchUrls(text: string): string[] {
-  return [...text.matchAll(urlRawRegex)].map((m) => cleanUrl(m[0]));
+  return Array.from(text.matchAll(urlRawRegex), (m) => cleanUrl(m[0]));
 }
 
 test('urlRawRegex and cleanUrl', () => {
