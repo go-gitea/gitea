@@ -34,6 +34,7 @@
 									<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 										data-previewable-extensions="{{StringUtils.Join $.CodeEditorConfig.PreviewableExtensions ","}}"
 										data-line-wrap-extensions="{{StringUtils.Join $.CodeEditorConfig.LineWrapExtensions ","}}"
+										{{template "repo/editor/code_editor_phrases" .}}
 										data-placeholder="{{ctx.Locale.Tr "repo.editor.file_content_placeholder"}}">{{.FileContent}}</textarea>
 									<div class="editor-loading is-loading"></div>
 								</div>

@@ -319,6 +319,7 @@ func EditFile(ctx *context.Context) {
 	}
 
 	ctx.Data["CodeEditorConfig"] = getCodeEditorConfig(ctx, ctx.Repo.TreePath)
+	ctx.Data["CodeEditorPhrases"] = CodeEditorPhrases(ctx)
 	ctx.HTML(http.StatusOK, tplEditFile)
 }
 

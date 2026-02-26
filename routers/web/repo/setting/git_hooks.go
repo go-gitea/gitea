@@ -43,6 +43,7 @@ func GitHooksEdit(ctx *context.Context) {
 	}
 	ctx.Data["Hook"] = hook
 	ctx.Data["CodeEditorConfig"] = repo.CodeEditorConfig{} // not really editing a repo file, so no editor config
+	ctx.Data["CodeEditorPhrases"] = repo.CodeEditorPhrases(ctx)
 	ctx.HTML(http.StatusOK, tplGithookEdit)
 }
 

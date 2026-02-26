@@ -141,6 +141,7 @@ async function createCodemirrorEditor(
         },
       }),
       cm.commands.history(),
+      cm.state.EditorState.phrases.of(JSON.parse(textarea.getAttribute('data-code-editor-phrases') || '{}')),
       tabSize.of(cm.state.EditorState.tabSize.of(editorOpts.tabSize || 4)),
       wordWrap.of(editorOpts.wordWrap ? cm.view.EditorView.lineWrapping : []),
       language.of(matchedLang ? await matchedLang.load() : []),
