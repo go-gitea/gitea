@@ -1,5 +1,5 @@
 import {html, htmlRaw} from '../utils/html.ts';
-import {createCodeEditor} from './codeeditor.ts';
+import {createCodeEditor} from '../modules/codeeditor.ts';
 import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
@@ -176,7 +176,9 @@ export function initRepoEditor() {
     const params = new URLSearchParams(window.location.search);
     const value = params.get('value');
     if (value) {
-      editor.setValue(value);
+      editor.view.dispatch({
+        changes: {from: 0, to: editor.view.state.doc.length, insert: value},
+      });
     }
 
     commitButton.addEventListener('click', async (e) => {

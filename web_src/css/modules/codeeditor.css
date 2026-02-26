@@ -1,0 +1,117 @@
+.editor-loading {
+  padding: 1rem;
+  text-align: center;
+}
+
+.editor-loading.is-loading {
+  width: 100%;
+  min-height: 200px;
+  height: 90vh;
+}
+
+.edit.githook .code-editor-container {
+  border: 1px solid var(--color-secondary);
+}
+
+/* editor layout */
+.code-editor-container .cm-editor {
+  color: var(--color-text);
+  background-color: var(--color-code-bg);
+  max-height: 90vh;
+}
+
+.code-editor-container .cm-editor,
+.code-editor-container .cm-editor .cm-scroller {
+  border-radius: 0 0 var(--border-radius) var(--border-radius);
+}
+
+.code-editor-container .cm-content,
+.code-editor-container .cm-gutter {
+  min-height: 200px;
+}
+
+.code-editor-container .cm-scroller {
+  overflow: auto;
+}
+
+.code-editor-container .cm-content {
+  caret-color: var(--color-caret);
+  font-family: var(--fonts-monospace);
+  font-size: 14px;
+  padding: 0;
+}
+
+.code-editor-container .cm-cursor,
+.code-editor-container .cm-dropCursor {
+  border-left-color: var(--color-caret);
+}
+
+.code-editor-container .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
+.code-editor-container .cm-selectionBackground {
+  background-color: var(--color-primary-light-3);
+}
+
+.code-editor-container .cm-panels {
+  background-color: var(--color-body);
+  border-color: var(--color-secondary);
+}
+
+.code-editor-container .cm-activeLine,
+.code-editor-container .cm-activeLineGutter {
+  background-color: var(--color-editor-line-highlight);
+}
+
+.code-editor-container .cm-gutters {
+  background-color: var(--color-code-bg);
+  color: var(--color-secondary-dark-6);
+  border-right: none;
+}
+
+.code-editor-container .cm-gutters .cm-lineNumbers .cm-gutterElement {
+  min-width: 40px !important;
+}
+
+.code-editor-container .cm-gutters .cm-lineNumbers .cm-activeLineGutter {
+  color: var(--color-text-light);
+}
+
+.code-editor-container .cm-line ::selection,
+.code-editor-container .cm-line::selection {
+  color: inherit !important;
+}
+
+.code-editor-container .cm-searchMatch {
+  background-color: var(--color-highlight-bg);
+  outline: 1px solid var(--color-highlight-fg);
+}
+
+.code-editor-container .cm-tooltip.cm-tooltip-autocomplete > ul > li {
+  padding: 0.5em;
+}
+
+/* syntax highlighting classes from @lezer/highlight classHighlighter */
+.code-editor-container .tok-keyword,
+.code-editor-container .tok-atom,
+.code-editor-container .tok-bool { color: var(--color-syntax-keyword); }
+.code-editor-container .tok-variableName { color: var(--color-syntax-name); }
+.code-editor-container .tok-variableName2 { color: var(--color-syntax-keyword); }
+.code-editor-container .tok-propertyName { color: var(--color-syntax-name); }
+.code-editor-container .tok-typeName,
+.code-editor-container .tok-className,
+.code-editor-container .tok-namespace { color: var(--color-syntax-type); }
+.code-editor-container .tok-macroName { color: var(--color-syntax-name); }
+.code-editor-container .tok-labelName { color: var(--color-syntax-name); }
+.code-editor-container .tok-number { color: var(--color-syntax-number); }
+.code-editor-container .tok-string,
+.code-editor-container .tok-string2 { color: var(--color-syntax-string); }
+.code-editor-container .tok-operator { color: var(--color-syntax-operator); }
+.code-editor-container .tok-punctuation { color: var(--color-syntax-operator); }
+.code-editor-container .tok-comment { color: var(--color-syntax-comment); }
+.code-editor-container .tok-meta { color: var(--color-syntax-comment); }
+.code-editor-container .tok-invalid { color: var(--color-syntax-invalid); }
+.code-editor-container .tok-link { color: var(--color-syntax-link); text-decoration: underline; }
+.code-editor-container .tok-heading { color: var(--color-syntax-type); }
+.code-editor-container .tok-emphasis { font-style: italic; }
+.code-editor-container .tok-strong { font-weight: var(--font-weight-bold); }
+.code-editor-container .tok-inserted { color: var(--color-syntax-string); }
+.code-editor-container .tok-deleted { color: var(--color-syntax-invalid); }

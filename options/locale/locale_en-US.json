@@ -1260,6 +1260,7 @@
   "repo.editor.directory_delete_success": "Directory \"%s\" has been deleted.",
   "repo.editor.delete_directory": "Delete directory '%s'",
   "repo.editor.name_your_file": "Name your file…",
+  "repo.editor.file_content_placeholder": "Enter file content here",
   "repo.editor.filename_help": "Add a directory by typing its name followed by a slash ('/'). Remove a directory by typing backspace at the beginning of the input field.",
   "repo.editor.or": "or",
   "repo.editor.cancel_lower": "Cancel",

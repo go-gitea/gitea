@@ -40,7 +40,7 @@ interface Window {
     _inited: boolean,
     push: (e: ErrorEvent & PromiseRejectionEvent) => void | number,
   },
-  codeEditors: any[], // export editor for customization
+  codeEditors: any[], // export CodeMirror EditorView instances for customization
   localUserSettings: typeof import('./modules/user-settings.ts').localUserSettings,
 
   // various captcha plugins

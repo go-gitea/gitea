@@ -1,5 +1,4 @@
 @import "../chroma/light.css";
-@import "../codemirror/light.css";
 
 gitea-theme-meta-info {
   --theme-display-name: "Light";
@@ -249,6 +248,17 @@ gitea-theme-meta-info {
   --color-danger: var(--color-red);
   --color-transparency-grid-light: #fafafa;
   --color-transparency-grid-dark: #e2e2e2;
+  --color-syntax-keyword: #0064ff;
+  --color-syntax-control: #af00db;
+  --color-syntax-name: #383a42;
+  --color-syntax-type: #267f99;
+  --color-syntax-number: #098658;
+  --color-syntax-operator: #383a42;
+  --color-syntax-regexp: #af00db;
+  --color-syntax-string: #a31515;
+  --color-syntax-comment: #6b6b6b;
+  --color-syntax-invalid: #e51400;
+  --color-syntax-link: #006ab1;
   accent-color: var(--color-accent);
   color-scheme: light;
 }

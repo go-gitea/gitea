@@ -39,7 +39,7 @@
 @import "./features/gitgraph.css";
 @import "./features/heatmap.css";
 @import "./features/imagediff.css";
-@import "./features/codeeditor.css";
+@import "./modules/codeeditor.css";
 @import "./features/projects.css";
 @import "./features/expander.css";
 @import "./features/cropper.css";

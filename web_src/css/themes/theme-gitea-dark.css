@@ -1,5 +1,4 @@
 @import "../chroma/dark.css";
-@import "../codemirror/dark.css";
 
 gitea-theme-meta-info {
   --theme-display-name: "Dark";
@@ -249,6 +248,17 @@ gitea-theme-meta-info {
   --color-danger: var(--color-red);
   --color-transparency-grid-light: #2a2a2a;
   --color-transparency-grid-dark: #1a1a1a;
+  --color-syntax-keyword: #569cd6;
+  --color-syntax-control: #c586c0;
+  --color-syntax-name: #9cdcfe;
+  --color-syntax-type: #4ec9b0;
+  --color-syntax-number: #b5cea8;
+  --color-syntax-operator: #d4d4d4;
+  --color-syntax-regexp: #d16969;
+  --color-syntax-string: #ce9178;
+  --color-syntax-comment: #6a9955;
+  --color-syntax-invalid: #ff0000;
+  --color-syntax-link: #6a9955;
   accent-color: var(--color-accent);
   color-scheme: dark;
 }
