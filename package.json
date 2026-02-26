@@ -26,6 +26,7 @@
     "@mermaid-js/layout-elk": "0.2.0",
     "@primer/octicons": "19.22.0",
     "@replit/codemirror-indentation-markers": "6.5.3",
+    "@replit/codemirror-vscode-keymap": "6.0.2",
     "@resvg/resvg-wasm": "2.6.2",
     "@silverwind/vue3-calendar-heatmap": "2.1.1",
     "@techknowlogick/license-checker-webpack-plugin": "0.3.0",

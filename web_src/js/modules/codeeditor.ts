@@ -50,7 +50,7 @@ function exportEditor(editor: EditorView): void {
 }
 
 async function importCodemirror() {
-  const [view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers] = await Promise.all([
+  const [view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers, vscodeKeymap] = await Promise.all([
     import(/* webpackChunkName: "codemirror" */ '@codemirror/view'),
     import(/* webpackChunkName: "codemirror" */ '@codemirror/state'),
     import(/* webpackChunkName: "codemirror" */ '@codemirror/search'),
@@ -60,8 +60,9 @@ async function importCodemirror() {
     import(/* webpackChunkName: "codemirror" */ '@codemirror/language-data'),
     import(/* webpackChunkName: "codemirror" */ '@lezer/highlight'),
     import(/* webpackChunkName: "codemirror" */ '@replit/codemirror-indentation-markers'),
+    import(/* webpackChunkName: "codemirror" */ '@replit/codemirror-vscode-keymap'),
   ]);
-  return {view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers};
+  return {view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers, vscodeKeymap};
 }
 
 async function createCodemirrorEditor(
@@ -113,12 +114,10 @@ async function createCodemirrorEditor(
       cm.search.highlightSelectionMatches(),
       cm.view.keymap.of([
         ...cm.autocomplete.closeBracketsKeymap,
-        ...cm.commands.defaultKeymap,
-        ...cm.commands.historyKeymap,
+        ...cm.vscodeKeymap.vscodeKeymap,
         ...cm.search.searchKeymap,
-        ...cm.language.foldKeymap,
-        ...cm.autocomplete.completionKeymap,
         cm.commands.indentWithTab,
+        {key: 'Mod-k Mod-x', run: (view) => { trimTrailingWhitespaceFromView(view); return true }, preventDefault: true},
       ]),
       cm.state.EditorState.allowMultipleSelections.of(true),
       cm.language.indentOnInput(),
