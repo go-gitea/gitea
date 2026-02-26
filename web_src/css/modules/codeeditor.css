@@ -17,6 +17,8 @@
 .code-editor-container .cm-editor {
   color: var(--color-text);
   background-color: var(--color-code-bg);
+  font-family: var(--fonts-monospace);
+  font-size: 12px;
   max-height: 90vh;
 }
 
@@ -36,8 +38,6 @@
 
 .code-editor-container .cm-content {
   caret-color: var(--color-caret);
-  font-family: var(--fonts-monospace);
-  font-size: 14px;
   padding: 0;
 }
 
@@ -53,7 +53,65 @@
 
 .code-editor-container .cm-panels {
   background-color: var(--color-body);
+  color: var(--color-text);
   border-color: var(--color-secondary);
+  font-family: var(--fonts-regular);
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+.code-editor-container .cm-panel.cm-search {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  padding-right: 24px;
+}
+
+.code-editor-container .cm-panel.cm-search br {
+  display: none;
+}
+
+.code-editor-container .cm-panel.cm-search::after {
+  content: "";
+  flex-basis: 100%;
+  order: 1;
+}
+
+.code-editor-container .cm-panel.cm-search .cm-textfield {
+  width: 200px;
+}
+
+.code-editor-container .cm-panel.cm-search br + input.cm-textfield,
+.code-editor-container .cm-panel.cm-search br + input.cm-textfield ~ * {
+  order: 2;
+}
+
+.code-editor-container .cm-panel.cm-search input,
+.code-editor-container .cm-panel.cm-search button,
+.code-editor-container .cm-panel.cm-search label {
+  margin: 0;
+}
+
+.code-editor-container .cm-panel.cm-search .cm-button + label {
+  margin-left: 4px;
+}
+
+.code-editor-container .cm-panel.cm-search label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.code-editor-container .cm-panel.cm-search input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.code-editor-container .cm-panel.cm-search button[name="close"] {
+  position: absolute;
+  right: 8px;
+  top: 8px;
 }
 
 .code-editor-container .cm-activeLine,
@@ -71,6 +129,24 @@
   min-width: 40px !important;
 }
 
+.code-editor-container .cm-foldGutter .cm-gutterElement {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 2px;
+}
+
+.code-editor-container .cm-foldGutter .cm-gutterElement svg {
+  width: 12px;
+  height: 12px;
+  color: var(--color-text-light-2);
+  cursor: pointer;
+}
+
+.code-editor-container .cm-foldGutter .cm-gutterElement:hover svg {
+  color: var(--color-text);
+}
+
 .code-editor-container .cm-gutters .cm-lineNumbers .cm-activeLineGutter {
   color: var(--color-text-light);
 }
@@ -81,13 +157,85 @@
   background-color: var(--color-primary-light-3) !important;
 }
 
+.code-editor-container .cm-foldPlaceholder {
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--color-text-light-2);
+  cursor: pointer;
+  vertical-align: middle;
+  padding: 0 1px;
+  margin: 0 2px;
+}
+
+.code-editor-container .cm-foldPlaceholder:hover {
+  color: var(--color-text);
+}
+
 .code-editor-container .cm-searchMatch {
   background-color: var(--color-highlight-bg);
   outline: 1px solid var(--color-highlight-fg);
 }
 
+.code-editor-container .cm-searchMatch-selected {
+  background-color: var(--color-primary-alpha-40);
+}
+
+.code-editor-container .cm-selectionMatch {
+  background-color: var(--color-highlight-bg);
+}
+
+.code-editor-container .cm-tooltip {
+  background-color: var(--color-body);
+  color: var(--color-text);
+  border-color: var(--color-secondary);
+}
+
 .code-editor-container .cm-tooltip.cm-tooltip-autocomplete > ul > li {
   padding: 0.5em;
+}
+
+.code-editor-container .cm-tooltip-autocomplete ul li[aria-selected] {
+  background-color: var(--color-primary-alpha-30);
+  color: var(--color-text);
+}
+
+.code-editor-container .cm-placeholder {
+  color: var(--color-placeholder-text);
+}
+
+.code-editor-container .cm-button {
+  background-image: none;
+  background-color: var(--color-button);
+  color: var(--color-text);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  height: 28px;
+  padding: 0 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.code-editor-container .cm-button:hover {
+  background-color: var(--color-hover);
+}
+
+.code-editor-container .cm-textfield {
+  background-color: var(--color-input-background);
+  color: var(--color-input-text);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--border-radius);
+  height: 28px;
+  padding: 0 6px;
+}
+
+.code-editor-container .cm-textfield:focus {
+  border-color: var(--color-primary);
+}
+
+.code-editor-container .cm-specialChar {
+  color: var(--color-syntax-invalid);
 }
 
 /* syntax highlighting classes from @lezer/highlight classHighlighter */

@@ -1,5 +1,7 @@
 import {basename, extname, isObject} from '../utils.ts';
-import {onInputDebounce, toggleElem} from '../utils/dom.ts';
+import {createElementFromHTML, onInputDebounce, toggleElem} from '../utils/dom.ts';
+import {html, htmlRaw} from '../utils/html.ts';
+import {svg} from '../svg.ts';
 import type {LanguageDescription} from '@codemirror/language';
 import type {Compartment} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
@@ -83,7 +85,18 @@ async function createCodemirrorEditor(
     parent: container,
     extensions: [
       cm.view.lineNumbers(),
-      cm.language.foldGutter(),
+      cm.language.codeFolding({
+        placeholderDOM(_view: EditorView, onclick: (event: Event) => void) {
+          const el = createElementFromHTML(html`<span class="cm-foldPlaceholder">${htmlRaw(svg('octicon-kebab-horizontal', 16))}</span>`);
+          el.addEventListener('click', onclick);
+          return el as unknown as HTMLElement;
+        },
+      }),
+      cm.language.foldGutter({
+        markerDOM(open: boolean) {
+          return createElementFromHTML(svg(open ? 'octicon-chevron-down' : 'octicon-chevron-right', 16));
+        },
+      }),
       cm.view.highlightActiveLineGutter(),
       cm.view.highlightSpecialChars(),
       cm.view.highlightActiveLine(),
@@ -92,7 +105,7 @@ async function createCodemirrorEditor(
       cm.view.rectangularSelection(),
       cm.view.crosshairCursor(),
       textarea.getAttribute('data-placeholder') ? cm.view.placeholder(textarea.getAttribute('data-placeholder')!) : [],
-      cm.search.search(),
+      cm.search.search({top: true}),
       cm.search.highlightSelectionMatches(),
       cm.view.keymap.of([
         ...cm.autocomplete.closeBracketsKeymap,
