@@ -35,7 +35,7 @@
 										data-previewable-extensions="{{StringUtils.Join $.CodeEditorConfig.PreviewableExtensions ","}}"
 										data-line-wrap-extensions="{{StringUtils.Join $.CodeEditorConfig.LineWrapExtensions ","}}"
 										{{template "repo/editor/code_editor_phrases" .}}
-										data-placeholder="{{ctx.Locale.Tr "repo.editor.file_content_placeholder"}}">{{.FileContent}}</textarea>
+										data-placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}">{{.FileContent}}</textarea>
 									<div class="editor-loading is-loading"></div>
 								</div>
 								<div class="ui tab tw-px-4 tw-py-3" data-tab="preview">

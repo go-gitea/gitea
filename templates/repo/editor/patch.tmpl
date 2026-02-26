@@ -33,7 +33,7 @@
 						<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
 							data-context="{{.RepoLink}}"
 							{{template "repo/editor/code_editor_phrases" .}}
-							data-placeholder="{{ctx.Locale.Tr "repo.editor.file_content_placeholder"}}">{{.FileContent}}</textarea>
+							data-placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}">{{.FileContent}}</textarea>
 						<div class="editor-loading is-loading"></div>
 					</div>
 				</div>
