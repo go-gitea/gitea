@@ -202,10 +202,14 @@
 }
 
 .code-editor-container .cm-tooltip.cm-tooltip-autocomplete > ul > li {
-  padding: 0.5em;
+  display: flex;
+  align-items: center;
+  padding: 4px;
 }
 
 .code-editor-container .cm-completionIcon {
+  display: flex;
+  align-items: center;
   font-size: 16px;
   padding-right: 4px;
 }
