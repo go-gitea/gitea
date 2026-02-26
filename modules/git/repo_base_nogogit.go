@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -21,14 +22,15 @@ const isGogit = false
 type Repository struct {
 	Path string
 
-	tagCache *ObjectCache[*Tag]
+	tagCache    *ObjectCache[*Tag]
+	commitCache map[string]*Commit
 
 	mu                 sync.Mutex
 	catFileBatchCloser CatFileBatchCloser
 	catFileBatchInUse  bool
 
 	Ctx             context.Context
-	LastCommitCache *LastCommitCache
+	lastCommitCache *lastCommitCache
 
 	objectFormat ObjectFormat
 }
@@ -47,11 +49,14 @@ func OpenRepository(ctx context.Context, repoPath string) (*Repository, error) {
 		return nil, util.NewNotExistErrorf("no such file or directory")
 	}
 
-	return &Repository{
-		Path:     repoPath,
-		tagCache: newObjectCache[*Tag](),
-		Ctx:      ctx,
-	}, nil
+	repo := &Repository{
+		Path:        repoPath,
+		tagCache:    newObjectCache[*Tag](),
+		commitCache: make(map[string]*Commit),
+		Ctx:         ctx,
+	}
+	repo.lastCommitCache = newLastCommitCache(repoPath, repo, cache.GetCache())
+	return repo, nil
 }
 
 // CatFileBatch obtains a "batch object provider" for this repository.
@@ -96,7 +101,8 @@ func (repo *Repository) Close() error {
 		repo.catFileBatchCloser = nil
 		repo.catFileBatchInUse = false
 	}
-	repo.LastCommitCache = nil
+	repo.lastCommitCache = nil
 	repo.tagCache = nil
+	repo.commitCache = nil
 	return nil
 }

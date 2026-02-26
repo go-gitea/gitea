@@ -10,14 +10,11 @@ import (
 )
 
 // CacheCommit will cache the commit from the gitRepository
-func (c *Commit) CacheCommit(ctx context.Context) error {
-	if c.repo.LastCommitCache == nil {
-		return nil
-	}
-	return c.recursiveCache(ctx, &c.Tree, "", 1)
+func (c *lastCommitCache) CacheCommit(ctx context.Context, commit *Commit) error {
+	return c.recursiveCache(ctx, commit, &commit.Tree, "", 1)
 }
 
-func (c *Commit) recursiveCache(ctx context.Context, tree *Tree, treePath string, level int) error {
+func (c *lastCommitCache) recursiveCache(ctx context.Context, commit *Commit, tree *Tree, treePath string, level int) error {
 	if level == 0 {
 		return nil
 	}
@@ -32,7 +29,7 @@ func (c *Commit) recursiveCache(ctx context.Context, tree *Tree, treePath string
 		entryPaths[i] = entry.Name()
 	}
 
-	_, err = WalkGitLog(ctx, c.repo, c, treePath, entryPaths...)
+	_, err = WalkGitLog(ctx, c.repo, commit, treePath, entryPaths...)
 	if err != nil {
 		return err
 	}
@@ -44,7 +41,7 @@ func (c *Commit) recursiveCache(ctx context.Context, tree *Tree, treePath string
 			if err != nil {
 				return err
 			}
-			if err := c.recursiveCache(ctx, subTree, treeEntry.Name(), level-1); err != nil {
+			if err := c.recursiveCache(ctx, commit, subTree, treeEntry.Name(), level-1); err != nil {
 				return err
 			}
 		}

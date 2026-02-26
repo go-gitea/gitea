@@ -215,7 +215,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				notify_service.PushCommits(ctx, pusher, repo, opts, commits)
 
 				// Cache for big repository
-				if err := CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
+				if err := CacheRef(graceful.GetManager().HammerContext(), gitRepo, opts.RefFullName); err != nil {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {
