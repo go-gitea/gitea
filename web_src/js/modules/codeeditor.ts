@@ -198,7 +198,7 @@ async function createCodemirrorEditor(
       }),
       cm.commands.history(),
       clickableLinks(cm),
-      cm.state.EditorState.phrases.of(JSON.parse(textarea.getAttribute('data-phrases'))),
+      cm.state.EditorState.phrases.of(JSON.parse(textarea.getAttribute('data-phrases')!)),
       tabSize.of(cm.state.EditorState.tabSize.of(editorOpts.tabSize || 4)),
       wordWrap.of(editorOpts.wordWrap ? cm.view.EditorView.lineWrapping : []),
       language.of(matchedLang ? await matchedLang.load() : []),
