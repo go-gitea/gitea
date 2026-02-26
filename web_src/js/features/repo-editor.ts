@@ -171,6 +171,10 @@ export function initRepoEditor() {
   (async () => {
     const editor = await createCodeEditor(editArea, filenameInput);
 
+    if (editArea.hasAttribute('data-autofocus')) {
+      editor.view.focus();
+    }
+
     // Update the editor from query params, if available,
     // only after the dirtyFileClass initialization
     const params = new URLSearchParams(window.location.search);
