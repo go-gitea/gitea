@@ -25,14 +25,14 @@ function initSystemConfigAutoCheckbox(el: HTMLInputElement) {
 
 type GeneralFormFieldElement = HTMLInputElement;
 
-function NotSupportedElement(el: Element): never {
+function unsupportedElement(el: Element): never {
   // HINT: for future developers: if you need to handle a config that cannot be directly mapped to a form element, you should either:
   // * Add a "hidden" input to store the value (not configurable)
   // * Design a new "component" to handle the config
   throw new Error(`Unsupported config form value mapping for ${el.nodeName} (name=${(el as HTMLInputElement).name},type=${(el as HTMLInputElement).type}), please add more and design carefully`);
 }
 
-function RequireExplicitValueType(el: Element): never {
+function requireExplicitValueType(el: Element): never {
   throw new Error(`Unsupported config form value type for ${el.nodeName} (name=${(el as HTMLInputElement).name},type=${(el as HTMLInputElement).type}), please add explicit value type with "data-config-value-type" attribute`);
 }
 
@@ -87,17 +87,17 @@ export class ConfigFormValueMapper {
     if (val === null) return true; // if name matches, but no value to assign, also succeed because the form element does exist
     const valType = this.presetValueTypes[el.name];
     if (el.matches('[type="checkbox"]')) {
-      if (valType !== 'boolean') RequireExplicitValueType(el);
+      if (valType !== 'boolean') requireExplicitValueType(el);
       el.checked = Boolean(val ?? el.checked);
     } else if (el.matches('[type="datetime-local"]')) {
-      if (valType !== 'timestamp') RequireExplicitValueType(el);
+      if (valType !== 'timestamp') requireExplicitValueType(el);
       if (val) el.value = toDatetimeLocalValue(val);
     } else if (el.matches('textarea')) {
       el.value = String(val ?? el.value);
     } else if (el.matches('input') && (el.getAttribute('type') ?? 'text') === 'text') {
       el.value = String(val ?? el.value);
     } else {
-      NotSupportedElement(el);
+      unsupportedElement(el);
     }
     return true;
   }
@@ -106,18 +106,18 @@ export class ConfigFormValueMapper {
     let val: any;
     const valType = this.presetValueTypes[el.name];
     if (el.matches('[type="checkbox"]')) {
-      if (valType !== 'boolean') RequireExplicitValueType(el);
+      if (valType !== 'boolean') requireExplicitValueType(el);
       val = el.checked;
       // oldVal: for future use when we support array value with checkbox
     } else if (el.matches('[type="datetime-local"]')) {
-      if (valType !== 'timestamp') RequireExplicitValueType(el);
+      if (valType !== 'timestamp') requireExplicitValueType(el);
       val = Math.floor(new Date(el.value).getTime() / 1000) ?? 0; // NaN is fine to JSON.stringify, it becomes null.
     } else if (el.matches('textarea')) {
       val = el.value;
     } else if (el.matches('input') && (el.getAttribute('type') ?? 'text') === 'text') {
       val = el.value;
     } else {
-      NotSupportedElement(el);
+      unsupportedElement(el);
     }
     return val;
   }
