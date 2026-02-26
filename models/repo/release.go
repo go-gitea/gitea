@@ -87,7 +87,7 @@ type Release struct {
 	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
-	PublishedUnix    timeutil.TimeStamp `xorm:"INDEX"`
+	PublishedUnix    timeutil.TimeStamp `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
