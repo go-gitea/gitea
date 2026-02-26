@@ -38,7 +38,7 @@
 
 .code-editor-container .cm-content {
   caret-color: var(--color-caret);
-  line-height: var(--code-line-height);
+  line-height: var(--line-height-code);
   padding: 0;
 }
 

@@ -844,7 +844,7 @@ td .commit-summary {
   width: 1%;
   min-width: 50px;
   font-family: monospace;
-  line-height: var(--code-line-height);
+  line-height: var(--line-height-code);
   color: var(--color-text-light-1);
   white-space: nowrap;
   vertical-align: top;
