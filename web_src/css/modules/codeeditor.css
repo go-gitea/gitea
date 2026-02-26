@@ -58,7 +58,7 @@
 
 .code-editor-container .cm-activeLine,
 .code-editor-container .cm-activeLineGutter {
-  background-color: transparent;
+  background-color: color-mix(in srgb, var(--color-editor-line-highlight) 40%, transparent);
 }
 
 .code-editor-container .cm-gutters {
@@ -78,6 +78,7 @@
 .code-editor-container .cm-editor .cm-line ::selection,
 .code-editor-container .cm-editor .cm-line::selection {
   color: inherit !important;
+  background-color: var(--color-primary-light-3) !important;
 }
 
 .code-editor-container .cm-searchMatch {
