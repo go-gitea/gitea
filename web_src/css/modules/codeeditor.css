@@ -75,9 +75,10 @@
   color: var(--color-text-light);
 }
 
-.code-editor-container .cm-line ::selection,
-.code-editor-container .cm-line::selection {
+.code-editor-container .cm-editor .cm-line ::selection,
+.code-editor-container .cm-editor .cm-line::selection {
   color: inherit !important;
+  background-color: var(--color-primary-light-3) !important;
 }
 
 .code-editor-container .cm-searchMatch {
