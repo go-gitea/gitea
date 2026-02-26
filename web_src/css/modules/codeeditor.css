@@ -38,6 +38,7 @@
 
 .code-editor-container .cm-content {
   caret-color: var(--color-caret);
+  line-height: var(--code-line-height);
   padding: 0;
 }
 
@@ -260,6 +261,11 @@
   background-color: var(--color-error-bg);
 }
 
+.code-editor-container.cm-mod-held .cm-url {
+  text-decoration: underline dotted var(--color-syntax-link);
+  cursor: pointer;
+}
+
 .code-editor-container .cm-editor.cm-focused {
   outline: 1px sold var(--color-secondary);
 }
@@ -316,7 +322,7 @@
 .code-editor-container .tok-comment { color: var(--color-syntax-comment); }
 .code-editor-container .tok-meta { color: var(--color-syntax-comment); }
 .code-editor-container .tok-invalid { color: var(--color-syntax-invalid); }
-.code-editor-container .tok-link { color: var(--color-syntax-link); text-decoration: underline; }
+.code-editor-container .tok-link { color: var(--color-syntax-link); }
 .code-editor-container .tok-heading { color: var(--color-syntax-type); }
 .code-editor-container .tok-emphasis { font-style: italic; }
 .code-editor-container .tok-strong { font-weight: var(--font-weight-bold); }

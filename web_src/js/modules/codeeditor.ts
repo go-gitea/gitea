@@ -1,6 +1,7 @@
 import {basename, extname, isObject} from '../utils.ts';
 import {createElementFromHTML, onInputDebounce, toggleElem} from '../utils/dom.ts';
 import {html, htmlRaw} from '../utils/html.ts';
+import {cleanUrl, findUrlAt, urlRawRegex} from '../utils/url.ts';
 import {svg} from '../svg.ts';
 import type {LanguageDescription} from '@codemirror/language';
 import type {Compartment} from '@codemirror/state';
@@ -63,6 +64,60 @@ async function importCodemirror() {
     import(/* webpackChunkName: "codemirror" */ '@replit/codemirror-vscode-keymap'),
   ]);
   return {view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers, vscodeKeymap};
+}
+
+function clickableLinks(cm: Awaited<ReturnType<typeof importCodemirror>>) {
+  const urlMark = cm.view.Decoration.mark({class: 'cm-url'});
+  const urlDecorator = new cm.view.MatchDecorator({
+    regexp: urlRawRegex,
+    decorate: (add, from, _to, match) => {
+      const cleaned = cleanUrl(match[0]);
+      add(from, from + cleaned.length, urlMark);
+    },
+  });
+
+  const plugin = cm.view.ViewPlugin.fromClass(class {
+    decorations: ReturnType<typeof urlDecorator.createDeco>;
+    constructor(view: EditorView) {
+      this.decorations = urlDecorator.createDeco(view);
+    }
+    update(update: ViewUpdate) {
+      this.decorations = urlDecorator.updateDeco(update, this.decorations);
+    }
+  }, {decorations: (v) => v.decorations});
+
+  const handler = cm.view.EditorView.domEventHandlers({
+    mousedown(event: MouseEvent, view: EditorView) {
+      if (!(event.metaKey || event.ctrlKey)) return false;
+      const pos = view.posAtCoords({x: event.clientX, y: event.clientY});
+      if (pos === null) return false;
+      const url = findUrlAt(view.state.doc.toString(), pos);
+      if (!url) return false;
+      window.open(url, '_blank', 'noopener,noreferrer');
+      event.preventDefault();
+      return true;
+    },
+  });
+
+  const modClass = cm.view.ViewPlugin.fromClass(class {
+    container: Element | null;
+    handleKeyDown: (e: KeyboardEvent) => void;
+    handleKeyUp: (e: KeyboardEvent) => void;
+    constructor(view: EditorView) {
+      this.container = view.dom.closest('.code-editor-container');
+      this.handleKeyDown = (e) => { if (e.key === 'Meta' || e.key === 'Control') this.container?.classList.add('cm-mod-held'); };
+      this.handleKeyUp = (e) => { if (e.key === 'Meta' || e.key === 'Control') this.container?.classList.remove('cm-mod-held'); };
+      document.addEventListener('keydown', this.handleKeyDown);
+      document.addEventListener('keyup', this.handleKeyUp);
+    }
+    destroy() {
+      document.removeEventListener('keydown', this.handleKeyDown);
+      document.removeEventListener('keyup', this.handleKeyUp);
+      this.container?.classList.remove('cm-mod-held');
+    }
+  });
+
+  return [plugin, handler, modClass];
 }
 
 async function createCodemirrorEditor(
@@ -142,6 +197,7 @@ async function createCodemirrorEditor(
         },
       }),
       cm.commands.history(),
+      clickableLinks(cm),
       cm.state.EditorState.phrases.of(JSON.parse(textarea.getAttribute('data-code-editor-phrases') || '{}')),
       tabSize.of(cm.state.EditorState.tabSize.of(editorOpts.tabSize || 4)),
       wordWrap.of(editorOpts.wordWrap ? cm.view.EditorView.lineWrapping : []),

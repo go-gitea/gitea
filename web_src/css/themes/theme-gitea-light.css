@@ -256,7 +256,7 @@ gitea-theme-meta-info {
   --color-syntax-string: #106303;
   --color-syntax-comment: #6a737d;
   --color-syntax-invalid: #aa0000;
-  --color-syntax-link: #22863a;
+  --color-syntax-link: var(--color-primary);
   --color-syntax-tag: #22863a;
   --color-syntax-attribute: #d73a49;
   --color-syntax-variable: #008080;
