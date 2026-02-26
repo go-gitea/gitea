@@ -1,5 +1,5 @@
 import {html, htmlRaw} from '../utils/html.ts';
-import {createCodeEditor} from '../modules/codeeditor.ts';
+import {createCodeEditor, trimTrailingWhitespaceFromView} from '../modules/codeeditor.ts';
 import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
@@ -182,6 +182,9 @@ export function initRepoEditor() {
     }
 
     commitButton.addEventListener('click', async (e) => {
+      if (editor.trimTrailingWhitespace) {
+        trimTrailingWhitespaceFromView(editor.view);
+      }
       // A modal which asks if an empty file should be committed
       if (!editArea.value) {
         e.preventDefault();

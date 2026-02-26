@@ -238,6 +238,10 @@
   color: var(--color-syntax-invalid);
 }
 
+.code-editor-container .cm-trailingSpace {
+  background-color: var(--color-error-bg);
+}
+
 /* syntax highlighting classes from @lezer/highlight classHighlighter */
 .code-editor-container .tok-keyword,
 .code-editor-container .tok-atom,

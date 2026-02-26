@@ -10,6 +10,7 @@ type CodeEditorConfig = {
   indent_style?: 'tab' | 'space',
   indent_size?: number,
   tab_width?: string | number, // backend emits this as string
+  trim_trailing_whitespace?: boolean,
 };
 
 type EditorOptions = {
@@ -17,10 +18,12 @@ type EditorOptions = {
   indentSize?: number;
   tabSize?: number;
   wordWrap: boolean;
+  trimTrailingWhitespace: boolean;
 };
 
 export type CodemirrorEditor = {
   view: EditorView;
+  trimTrailingWhitespace: boolean;
   languages: LanguageDescription[];
   compartments: {
     wordWrap: Compartment;
@@ -104,6 +107,7 @@ async function createCodemirrorEditor(
       cm.view.rectangularSelection(),
       cm.view.crosshairCursor(),
       textarea.getAttribute('data-placeholder') ? cm.view.placeholder(textarea.getAttribute('data-placeholder')!) : [],
+      editorOpts.trimTrailingWhitespace ? cm.view.highlightTrailingWhitespace() : [],
       cm.search.search({top: true}),
       cm.search.highlightSelectionMatches(),
       cm.view.keymap.of([
@@ -146,6 +150,7 @@ async function createCodemirrorEditor(
 
   return {
     view,
+    trimTrailingWhitespace: editorOpts.trimTrailingWhitespace,
     languages: languageDescriptions,
     compartments: {wordWrap, language, tabSize, indentUnit: indentUnitComp},
   };
@@ -222,10 +227,11 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
     editorOpts = {
       ...getFileBasedOptions(filenameInput.value, lineWrapExts),
       indentStyle: configOpts.indentStyle || 'space',
+      trimTrailingWhitespace: false,
       ...configOpts,
     };
   } else {
-    editorOpts = {indentStyle: 'tab', tabSize: 4, wordWrap: false};
+    editorOpts = {indentStyle: 'tab', tabSize: 4, wordWrap: false, trimTrailingWhitespace: false};
   }
 
   const editor = await createCodemirrorEditor(textarea, filename, editorOpts);
@@ -260,11 +266,25 @@ async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, 
   });
 }
 
+export function trimTrailingWhitespaceFromView(view: EditorView): void {
+  const changes = [];
+  const doc = view.state.doc;
+  for (let i = 1; i <= doc.lines; i++) {
+    const line = doc.line(i);
+    const trimmed = line.text.replace(/\s+$/, '');
+    if (trimmed.length < line.text.length) {
+      changes.push({from: line.from + trimmed.length, to: line.to});
+    }
+  }
+  if (changes.length) view.dispatch({changes});
+}
+
 function getEditorConfigOptions(ec: CodeEditorConfig | null): Partial<EditorOptions> {
   if (!ec || !isObject(ec)) return {indentStyle: 'space'};
 
   const opts: Partial<EditorOptions> = {
     indentStyle: ec.indent_style || 'space',
+    trimTrailingWhitespace: ec.trim_trailing_whitespace === true,
   };
   if (ec.indent_size) opts.indentSize = ec.indent_size;
   if (ec.tab_width) opts.tabSize = Number(ec.tab_width) || opts.indentSize;
