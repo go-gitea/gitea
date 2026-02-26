@@ -300,7 +300,7 @@ func releasesToFeedItems(ctx *context.Context, releases []*repo_model.Release) (
 		items = append(items, &feeds.Item{
 			Title:   title,
 			Link:    link,
-			Created: rel.CreatedUnix.AsTime(),
+			Created: util.Iif(!rel.PublishedUnix.IsZero(), rel.PublishedUnix.AsTime(), rel.CreatedUnix.AsTime()),
 			Author: &feeds.Author{
 				Name:  rel.Publisher.GetDisplayName(),
 				Email: rel.Publisher.GetEmail(),

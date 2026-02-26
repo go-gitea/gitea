@@ -142,6 +142,9 @@ func createTag(ctx context.Context, gitRepo *git.Repository, rel *repo_model.Rel
 			notify_service.CreateRef(ctx, rel.Publisher, rel.Repo, refFullName, commit.ID.String())
 			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
+		if !rel.IsTag {
+			rel.PublishedUnix = timeutil.TimeStampNow()
+		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)
 		if err != nil {
 			return false, fmt.Errorf("GetTagCommit: %w", err)
@@ -273,6 +276,10 @@ func UpdateRelease(ctx context.Context, doer *user_model.User, gitRepo *git.Repo
 		return err
 	}
 	isConvertedFromTag := oldRelease.IsTag && !rel.IsTag
+	isPublished := isConvertedFromTag || (oldRelease.IsDraft && !rel.IsDraft)
+	if isPublished && rel.PublishedUnix.IsZero() {
+		rel.PublishedUnix = timeutil.TimeStampNow()
+	}
 
 	if err := db.WithTx(ctx, func(ctx context.Context) error {
 		if err = repo_model.UpdateRelease(ctx, rel); err != nil {

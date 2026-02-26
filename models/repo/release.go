@@ -87,6 +87,7 @@ type Release struct {
 	IsTag            bool               `xorm:"NOT NULL DEFAULT false"` // will be true only if the record is a tag and has no related releases
 	Attachments      []*Attachment      `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
+	PublishedUnix    timeutil.TimeStamp `xorm:"INDEX"`
 }
 
 func init() {
@@ -336,7 +337,7 @@ func GetLatestReleaseByRepoID(ctx context.Context, repoID int64) (*Release, erro
 
 	rel := new(Release)
 	has, err := db.GetEngine(ctx).
-		Desc("created_unix", "id").
+		Desc("published_unix", "created_unix", "id").
 		Where(cond).
 		Get(rel)
 	if err != nil {

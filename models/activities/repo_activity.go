@@ -369,7 +369,7 @@ func (stats *ActivityStats) FillReleases(ctx context.Context, repoID int64, from
 
 	// Published releases list
 	sess := releasesForActivityStatement(ctx, repoID, fromTime)
-	sess.OrderBy("`release`.created_unix DESC")
+	sess.OrderBy("`release`.published_unix DESC")
 	stats.PublishedReleases = make([]*repo_model.Release, 0)
 	if err = sess.Find(&stats.PublishedReleases); err != nil {
 		return err
@@ -388,5 +388,5 @@ func (stats *ActivityStats) FillReleases(ctx context.Context, repoID int64, from
 func releasesForActivityStatement(ctx context.Context, repoID int64, fromTime time.Time) *xorm.Session {
 	return db.GetEngine(ctx).Where("`release`.repo_id = ?", repoID).
 		And("`release`.is_draft = ?", false).
-		And("`release`.created_unix >= ?", fromTime.Unix())
+		And("`release`.published_unix >= ?", fromTime.Unix())
 }

@@ -26,7 +26,7 @@ func ToAPIRelease(ctx context.Context, repo *repo_model.Repository, r *repo_mode
 		IsDraft:      r.IsDraft,
 		IsPrerelease: r.IsPrerelease,
 		CreatedAt:    r.CreatedUnix.AsTime(),
-		PublishedAt:  r.CreatedUnix.AsTime(),
+		PublishedAt:  r.PublishedUnix.AsTime(),
 		Publisher:    ToUser(ctx, r.Publisher, nil),
 		Attachments:  ToAPIAttachments(repo, r.Attachments),
 	}
