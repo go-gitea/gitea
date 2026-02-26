@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
@@ -514,6 +515,8 @@ func DeleteOrgRepos(ctx *context.APIContext) {
 	//     "$ref": "#/responses/DeleteOrgReposList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	org := ctx.Org.Organization
 	repos, err := repo_model.GetOrgRepositories(ctx, org.ID)
 	if err != nil {
@@ -526,21 +529,26 @@ func DeleteOrgRepos(ctx *context.APIContext) {
 	}
 	for _, repo := range repos {
 		canDelete, err := repo_module.CanUserDelete(ctx, repo, ctx.Doer)
-		if !canDelete || err != nil {
-			reason := "Permission denied"
-			if err != nil {
-				reason = err.Error()
-			}
+		if !canDelete {
 			response.Failed = append(response.Failed, api.DeleteRepoFailure{
 				RepoName: repo.Name,
-				Reason:   reason,
+				Message:  "Insufficient permissions to delete repository",
+			})
+			continue
+		}
+		if err != nil {
+			log.Error("Error checking delete permission for repo %s: %v", repo.Name, err)
+			response.Failed = append(response.Failed, api.DeleteRepoFailure{
+				RepoName: repo.Name,
+				Message:  "Failed to verify delete permissions",
 			})
 			continue
 		}
 		if err := repo_service.DeleteRepository(ctx, ctx.Doer, repo, true); err != nil {
+			log.Error("Error deleting repo %s: %v", repo.Name, err)
 			response.Failed = append(response.Failed, api.DeleteRepoFailure{
 				RepoName: repo.Name,
-				Reason:   err.Error(),
+				Message:  "Failed to delete repository",
 			})
 		} else {
 			response.Deleted = append(response.Deleted, repo.Name)

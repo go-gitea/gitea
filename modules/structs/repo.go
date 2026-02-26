@@ -455,9 +455,10 @@ type DeleteOrgReposResponse struct {
 }
 
 // DeleteRepoFailure represents a repository that failed to delete
+// swagger:model
 type DeleteRepoFailure struct {
 	// Repository name
 	RepoName string `json:"repo_name"`
-	// Reason for deletion failure
-	Reason string `json:"reason"`
+	// Message to be displayed
+	Message string `json:"reason"`
 }

@@ -3663,6 +3663,9 @@
           },
           "403": {
             "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -24247,9 +24250,9 @@
       "type": "object",
       "properties": {
         "reason": {
-          "description": "Reason for deletion failure",
+          "description": "Message to be displayed",
           "type": "string",
-          "x-go-name": "Reason"
+          "x-go-name": "Message"
         },
         "repo_name": {
           "description": "Repository name",
@@ -29810,10 +29813,7 @@
     "DeleteOrgReposList": {
       "description": "DeleteOrgReposList",
       "schema": {
-        "type": "array",
-        "items": {
-          "$ref": "#/definitions/DeleteOrgReposResponse"
-        }
+        "$ref": "#/definitions/DeleteOrgReposResponse"
       }
     },
     "DeployKey": {
