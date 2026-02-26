@@ -162,6 +162,11 @@ func consumeAuthRedirectLink(ctx *context.Context) string {
 }
 
 func redirectAfterAuth(ctx *context.Context) {
+	if setting.Config().Instance.MaintenanceMode.Value(ctx).IsActive() {
+		// in maintenance mode, redirect to admin dashboard, it is the only accessible page
+		ctx.Redirect(setting.AppSubURL + "/-/admin")
+		return
+	}
 	ctx.RedirectToCurrentSite(consumeAuthRedirectLink(ctx))
 }
 

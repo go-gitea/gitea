@@ -1,0 +1,11 @@
+{{$banner := ctx.CurrentWebBanner}}
+{{if $banner}}
+<div class="ui info message web-banner-container">
+	<div class="render-content markup web-banner-content">
+		{{ctx.RenderUtils.MarkdownToHtml $banner.ContentMessage}}
+	</div>
+	<button type="button" class="btn dismiss-banner link-action" aria-label="{{ctx.Locale.Tr "dismiss"}}" data-url="{{AppSubUrl}}/-/web-banner/dismiss">
+		{{svg "octicon-x"}}
+	</button>
+</div>
+{{end}}

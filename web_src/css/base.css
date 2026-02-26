@@ -42,7 +42,7 @@
   --gap-inline: 0.25rem; /* gap for inline texts and elements, for example: the spaces for sentence with labels, button text, etc */
   --gap-block: 0.5rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
 
-  --background-view-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAG0lEQVQYlWN4+vTpf3SMDTAMBYXYBLFpHgoKAeiOf0SGE9kbAAAAAElFTkSuQmCC") right bottom var(--color-primary-light-7);
+  --background-view-image: repeating-conic-gradient(var(--color-transparency-grid-dark) 0 25%, var(--color-transparency-grid-light) 0 50%) 0 0 / 18px 18px;
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
@@ -525,6 +525,20 @@ img.ui.avatar,
   display: inline-block;
 }
 
+/* popover box shadows */
+.ui.dropdown .menu,
+.ui.upward.dropdown > .menu,
+.ui.menu .dropdown.item .menu,
+.ui.selection.active.dropdown .menu,
+.ui.upward.selection.dropdown .menu,
+.ui.selection.active.dropdown:hover .menu,
+.ui.upward.active.selection.dropdown:hover .menu {
+  box-shadow: 0 6px 18px var(--color-shadow);
+}
+.ui.floating.dropdown .menu {
+  box-shadow: 0 6px 18px var(--color-shadow) !important;
+}
+
 .ui .message.flash-message {
   text-align: center;
 }
@@ -905,7 +919,6 @@ table th[data-sortt-desc] .svg {
 }
 
 .btn,
-.ui.ui.button,
 .ui.ui.dropdown,
 .flex-text-inline,
 .flex-text-inline > a,

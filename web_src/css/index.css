@@ -21,6 +21,7 @@
 @import "./modules/tab.css";
 @import "./modules/form.css";
 @import "./modules/dropdown.css";
+@import "./modules/shortcut.css";
 
 @import "./modules/tippy.css";
 @import "./modules/breadcrumb.css";
@@ -52,7 +53,6 @@
 @import "./markup/asciicast.css";
 
 @import "./chroma/base.css";
-@import "./codemirror/base.css";
 @import "./font_i18n.css";
 @import "./base.css";
 @import "./home.css";
@@ -74,7 +74,6 @@
 @import "./repo/commit-sign.css";
 @import "./repo/packages.css";
 
-@import "./editor/fileeditor.css";
 @import "./editor/combomarkdowneditor.css";
 
 @import "./org.css";

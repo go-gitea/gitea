@@ -19,7 +19,7 @@
 			</span>
 		</div>
 		{{if .RenderedDescription}}<div class="render-content markup">{{.RenderedDescription}}</div>{{end}}
-		<div class="text light meta tw-mt-1">
+		<div class="tw-text-text-light meta tw-mt-1">
 			{{if .Org.Location}}<div class="flex-text-block">{{svg "octicon-location"}} <span>{{.Org.Location}}</span></div>{{end}}
 			{{if .Org.Website}}<div class="flex-text-block">{{svg "octicon-link"}} <a class="muted" target="_blank" rel="me" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
 			{{if .IsSigned}}
