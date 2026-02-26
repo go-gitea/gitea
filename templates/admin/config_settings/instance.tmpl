@@ -1,0 +1,63 @@
+<h4 class="ui top attached header">{{ctx.Locale.Tr "admin.config.instance_maintenance"}}</h4>
+<div class="ui attached segment">
+	<form class="ui form ignore-dirty system-config-form" method="post" action="{{AppSubUrl}}/-/admin/config">
+		{{$cfgOpt := $.SystemConfig.Instance.MaintenanceMode}}
+		{{$cfgKey := $cfgOpt.DynKey}}
+		{{$maintenanceMode := $cfgOpt.Value ctx}}
+		<input type="hidden" data-config-dyn-key="{{$cfgKey}}" data-config-value-json="{{JsonUtils.EncodeToString $maintenanceMode}}">
+		<div class="field">
+			<div class="ui checkbox tw-mb-2">
+				<input type="checkbox" name="{{$cfgKey}}.AdminWebAccessOnly" value="true" {{if $maintenanceMode.AdminWebAccessOnly}}checked{{end}} data-config-value-type="boolean">
+				<label>{{ctx.Locale.Tr "admin.config.instance_maintenance_mode.admin_web_access_only"}}</label>
+			</div>
+		</div>
+		<div class="field">
+			<div class="fields tw-mb-1">
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.config.common.start_time"}}</label>
+					<input type="datetime-local" name="{{$cfgKey}}.StartTimeUnix" data-config-value-type="timestamp">
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.config.common.end_time"}}</label>
+					<input type="datetime-local" name="{{$cfgKey}}.EndTimeUnix" data-config-value-type="timestamp">
+				</div>
+			</div>
+			<div class="help">{{ctx.Locale.Tr "admin.config.common.skip_time_check"}}</div>
+		</div>
+
+		<div class="divider"></div>
+
+		{{$cfgOpt = $.SystemConfig.Instance.WebBanner}}
+		{{$cfgKey = $cfgOpt.DynKey}}
+		{{$banner := $cfgOpt.Value ctx}}
+		<input type="hidden" data-config-dyn-key="{{$cfgKey}}" data-config-value-json="{{JsonUtils.EncodeToString $banner}}">
+		<div class="field">
+			<div class="ui checkbox tw-mb-2">
+				<input type="checkbox" name="{{$cfgKey}}.DisplayEnabled" value="true" {{if $banner.DisplayEnabled}}checked{{end}} data-config-value-type="boolean">
+				<label>{{ctx.Locale.Tr "admin.config.instance_web_banner.enabled"}}</label>
+			</div>
+			{{template "shared/combomarkdowneditor" (dict
+				"ContainerClasses" "web-banner-content-editor"
+				"TextareaName" (print $cfgKey ".ContentMessage")
+				"TextareaContent" $banner.ContentMessage
+				"TextareaPlaceholder" (ctx.Locale.Tr "admin.config.instance_web_banner.message_placeholder")
+			)}}
+		</div>
+		<div class="field">
+			<div class="fields tw-mb-1">
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.config.common.start_time"}}</label>
+					<input type="datetime-local" name="{{$cfgKey}}.StartTimeUnix" data-config-value-type="timestamp">
+				</div>
+				<div class="field">
+					<label>{{ctx.Locale.Tr "admin.config.common.end_time"}}</label>
+					<input type="datetime-local" name="{{$cfgKey}}.EndTimeUnix" data-config-value-type="timestamp">
+				</div>
+			</div>
+			<div class="help">{{ctx.Locale.Tr "admin.config.common.skip_time_check"}}</div>
+		</div>
+		<div class="field">
+			<button class="ui primary button">{{ctx.Locale.Tr "save"}}</button>
+		</div>
+	</form>
+</div>
