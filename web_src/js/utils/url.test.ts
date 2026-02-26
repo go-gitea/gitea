@@ -4,7 +4,7 @@ function matchUrls(text: string): string[] {
   return Array.from(text.matchAll(urlRawRegex), (m) => cleanUrl(m[0]));
 }
 
-test('urlRawRegex and cleanUrl', () => {
+test('matchUrls', () => {
   expect(matchUrls('visit https://example.com for info')).toEqual(['https://example.com']);
   expect(matchUrls('see https://example.com.')).toEqual(['https://example.com']);
   expect(matchUrls('see https://example.com, and')).toEqual(['https://example.com']);
