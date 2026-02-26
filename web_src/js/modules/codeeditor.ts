@@ -113,7 +113,6 @@ async function createCodemirrorEditor(
       cm.search.search({top: true}),
       cm.search.highlightSelectionMatches(),
       cm.view.keymap.of([
-        ...cm.autocomplete.closeBracketsKeymap,
         ...cm.vscodeKeymap.vscodeKeymap,
         ...cm.search.searchKeymap,
         cm.commands.indentWithTab,
