@@ -42,7 +42,7 @@
   --gap-inline: 0.25rem; /* gap for inline texts and elements, for example: the spaces for sentence with labels, button text, etc */
   --gap-block: 0.5rem; /* gap for element blocks, for example: spaces between buttons, menu image & title, header icon & title etc */
 
-  --background-view-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAG0lEQVQYlWN4+vTpf3SMDTAMBYXYBLFpHgoKAeiOf0SGE9kbAAAAAElFTkSuQmCC") right bottom var(--color-primary-light-7);
+  --background-view-image: repeating-conic-gradient(var(--color-transparency-grid-dark) 0 25%, var(--color-transparency-grid-light) 0 50%) 0 0 / 18px 18px;
 }
 
 @media (min-width: 768px) and (max-width: 1200px) {
@@ -553,67 +553,6 @@ img.ui.avatar,
   margin-top: calc(var(--page-spacing) - 1rem);
 }
 
-.text.primary {
-  color: var(--color-primary) !important;
-}
-
-.text.red {
-  color: var(--color-red) !important;
-}
-
-.text.orange {
-  color: var(--color-orange) !important;
-}
-
-.text.yellow {
-  color: var(--color-yellow) !important;
-}
-
-.text.green {
-  color: var(--color-green) !important;
-}
-
-.text.blue {
-  color: var(--color-blue) !important;
-}
-
-.text.purple {
-  color: var(--color-purple) !important;
-}
-
-/* it is different from tw-text-black: this one changes in dark theme */
-.text.black {
-  color: var(--color-text) !important;
-}
-
-.text.grey {
-  color: var(--color-text-light) !important;
-}
-
-.text.light {
-  color: var(--color-text-light) !important;
-}
-
-.text.light-2 {
-  color: var(--color-text-light-2) !important;
-}
-
-.text.light-3 {
-  color: var(--color-text-light-3) !important;
-}
-
-.text.light.grey {
-  color: var(--color-grey-light) !important;
-}
-
-.text.gold {
-  color: var(--color-gold) !important;
-}
-
-.text.small {
-  font-size: 0.75em;
-}
-
 /* popover box shadows */
 .ui.dropdown .menu,
 .ui.upward.dropdown > .menu,
@@ -626,13 +565,6 @@ img.ui.avatar,
 }
 .ui.floating.dropdown .menu {
   box-shadow: 0 6px 18px var(--color-shadow) !important;
-}
-
-.ui .text.truncate {
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
 }
 
 .ui .message.flash-message {
@@ -1095,7 +1027,6 @@ table th[data-sortt-desc] .svg {
 }
 
 .btn,
-.ui.ui.button,
 .ui.ui.dropdown,
 .flex-text-inline,
 .flex-text-inline > a,
