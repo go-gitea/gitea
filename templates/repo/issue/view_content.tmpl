@@ -16,11 +16,11 @@
 					<div class="comment-header avatar-content-left-arrow" role="heading" aria-level="3">
 						<div class="comment-header-left">
 							{{if .Issue.OriginalAuthor}}
-								<span class="text black tw-font-semibold">
+								<span class="tw-text-text tw-font-semibold">
 									{{svg (MigrationIcon .Repository.GetOriginalURLHostname)}}
 									{{.Issue.OriginalAuthor}}
 								</span>
-								<span class="text grey muted-links">
+								<span class="tw-text-text-light muted-links">
 									{{ctx.Locale.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr}}
 								</span>
 								<span class="text migrate">
@@ -30,7 +30,7 @@
 								<a class="inline-timeline-avatar" href="{{.Issue.Poster.HomeLink}}">
 									{{ctx.AvatarUtils.Avatar .Issue.Poster 24}}
 								</a>
-								<span class="text grey muted-links">
+								<span class="tw-text-text-light muted-links">
 									{{template "shared/user/authorlink" .Issue.Poster}}
 									{{ctx.Locale.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr}}
 								</span>

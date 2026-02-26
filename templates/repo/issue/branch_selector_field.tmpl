@@ -39,7 +39,7 @@ Still needs to figure out:
 		<div class="branch-tag-divider"></div>
 		<div id="branch-list" class="scrolling menu reference-list-menu">
 			{{if or .Reference (not .Issue)}}
-				<div class="item text small" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
+				<div class="item tw-text-xs" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}
 			{{range .Branches}}
 				<div class="item" data-id="refs/heads/{{.}}" data-name="{{.}}" data-id-selector="#ref_selector" title="{{.}}">{{.}}</div>
@@ -49,7 +49,7 @@ Still needs to figure out:
 		</div>
 		<div id="tag-list" class="scrolling menu reference-list-menu tw-hidden">
 			{{if or .Reference (not .Issue)}}
-				<div class="item text small" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
+				<div class="item tw-text-xs" data-id="" data-name="{{ctx.Locale.Tr "repo.issues.no_ref"}}" data-id-selector="#ref_selector"><strong><a href="#">{{ctx.Locale.Tr "repo.clear_ref"}}</a></strong></div>
 			{{end}}
 			{{range .Tags}}
 				<div class="item" data-id="refs/tags/{{.}}" data-name="tags/{{.}}" data-id-selector="#ref_selector">{{.}}</div>

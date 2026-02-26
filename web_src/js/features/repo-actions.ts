@@ -11,8 +11,8 @@ export function initRepositoryActionView() {
   if (parentFullHeight) parentFullHeight.classList.add('tw-pb-0');
 
   const view = createApp(RepoActionView, {
-    runIndex: el.getAttribute('data-run-index'),
-    jobIndex: el.getAttribute('data-job-index'),
+    runIndex: parseInt(el.getAttribute('data-run-index')!),
+    jobIndex: parseInt(el.getAttribute('data-job-index')!),
     actionsURL: el.getAttribute('data-actions-url'),
     locale: {
       approve: el.getAttribute('data-locale-approve'),
@@ -22,6 +22,7 @@ export function initRepositoryActionView() {
       scheduled: el.getAttribute('data-locale-runs-scheduled'),
       commit: el.getAttribute('data-locale-runs-commit'),
       pushedBy: el.getAttribute('data-locale-runs-pushed-by'),
+      workflowGraph: el.getAttribute('data-locale-runs-workflow-graph'),
       artifactsTitle: el.getAttribute('data-locale-artifacts-title'),
       areYouSure: el.getAttribute('data-locale-are-you-sure'),
       artifactExpired: el.getAttribute('data-locale-artifact-expired'),
