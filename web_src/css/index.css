@@ -29,6 +29,8 @@
 @import "./modules/toast.css";
 @import "./modules/svg.css";
 @import "./modules/flexcontainer.css";
+@import "./modules/codeeditor.css";
+@import "./modules/chroma.css";
 
 @import "./shared/flex-list.css";
 @import "./shared/milestone.css";
@@ -39,7 +41,6 @@
 @import "./features/gitgraph.css";
 @import "./features/heatmap.css";
 @import "./features/imagediff.css";
-@import "./modules/codeeditor.css";
 @import "./features/projects.css";
 @import "./features/expander.css";
 @import "./features/cropper.css";
@@ -51,7 +52,6 @@
 @import "./markup/codepreview.css";
 @import "./markup/asciicast.css";
 
-@import "./modules/chroma.css";
 @import "./font_i18n.css";
 @import "./base.css";
 @import "./home.css";
