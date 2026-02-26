@@ -17,7 +17,7 @@
 					<div class="field">
 						<label for="content">{{ctx.Locale.Tr "repo.settings.githook_content"}}</label>
 						<textarea id="content" name="content" class="tw-hidden"
-							{{template "repo/editor/code_editor_phrases" .}}
+							data-phrases="{{JsonUtils.EncodeToString $.CodeEditorPhrases}}"
 						>{{if .IsActive}}{{.Content}}{{else}}{{.Sample}}{{end}}</textarea>
 						<div class="editor-loading is-loading"></div>
 					</div>
