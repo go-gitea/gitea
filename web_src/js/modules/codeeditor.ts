@@ -46,7 +46,6 @@ function exportEditor(editor: EditorView): void {
   if (!window.codeEditors.includes(editor)) window.codeEditors.push(editor);
 }
 
-// all codemirror modules are in the same webpack chunk so re-importing is free (cached)
 async function importCodemirror() {
   const [view, state, search, language, commands, autocomplete, languageData, highlight] = await Promise.all([
     import(/* webpackChunkName: "codemirror" */ '@codemirror/view'),
