@@ -67,7 +67,7 @@ export function clickableUrls(cm: Awaited<ReturnType<typeof importCodemirror>>) 
       if (pos === null) return false;
       const url = findUrlAtPosition(view.state.doc.toString(), pos);
       if (!url) return false;
-      window.open(url, '_blank', 'noopener,noreferrer');
+      window.open(url);
       event.preventDefault();
       return true;
     },

@@ -400,8 +400,10 @@
 .cm-command-palette-keys {
   flex-shrink: 0;
   display: flex;
+  align-items: center;
   gap: 2px;
   margin-left: 8px;
+  font-size: 8px;
 }
 
 .cm-command-palette-keys kbd {
@@ -413,6 +415,7 @@
   padding: 0 3px;
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow-kbd);
   background-color: var(--color-button);
   color: var(--color-text-light);
   font-family: var(--fonts-regular);

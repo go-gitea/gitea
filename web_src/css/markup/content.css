@@ -524,7 +524,7 @@ In markup content, we always use bottom margin for all elements */
   background-color: var(--color-markup-code-inline);
   border: 1px solid var(--color-secondary);
   border-radius: var(--border-radius);
-  box-shadow: inset 0 -1px 0 var(--color-secondary);
+  box-shadow: var(--box-shadow-kbd);
 }
 
 .markup .ui.list .list,
