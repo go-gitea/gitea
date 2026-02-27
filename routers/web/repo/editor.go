@@ -443,7 +443,6 @@ func DeleteFilePost(ctx *context.Context) {
 
 func UploadFile(ctx *context.Context) {
 	ctx.Data["PageIsUpload"] = true
-	ctx.Data["IsNewFile"] = true
 	prepareTreePathFieldsAndPaths(ctx, ctx.Repo.TreePath)
 	opts := prepareEditorPage(ctx, "_upload")
 	if ctx.Written() {
