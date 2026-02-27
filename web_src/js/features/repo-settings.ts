@@ -1,4 +1,4 @@
-import {createCodeEditor} from '../modules/codeeditor.ts';
+import {createCodeEditor} from '../modules/codeeditor/main.ts';
 import {onInputDebounce, queryElems, toggleElem} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initRepoSettingsBranchesDrag} from './repo-settings-branches.ts';

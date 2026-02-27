@@ -11,11 +11,13 @@ function initShortcutKbd(kbd: HTMLElement) {
 }
 
 function elemFromKbd(kbd: HTMLElement): HTMLInputElement | HTMLTextAreaElement | null {
-  return kbd.parentElement!.querySelector<HTMLInputElement>('input, textarea') || null;
+  const parent = kbd.closest('.global-shortcut-wrapper');
+  return parent?.querySelector<HTMLInputElement>('input, textarea') || null;
 }
 
 function kbdFromElem(input: HTMLElement): HTMLElement | null {
-  return input.parentElement!.querySelector<HTMLElement>('kbd') || null;
+  const parent = input.closest('.global-shortcut-wrapper');
+  return parent?.querySelector<HTMLElement>('kbd') || null;
 }
 
 export function initGlobalShortcut() {

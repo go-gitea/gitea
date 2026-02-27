@@ -415,7 +415,7 @@
   border-radius: var(--border-radius);
   background-color: var(--color-button);
   color: var(--color-text-light);
-  font-family: var(--fonts-monospace);
+  font-family: var(--fonts-regular);
   font-size: 10px;
   line-height: 1;
 }
