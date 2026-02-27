@@ -159,7 +159,7 @@ func SearchIssues(ctx *context.Context) {
 
 	var includedProjectIDs []int64
 	{
-		projectID := ctx.FormInt64("project");
+		projectID := ctx.FormInt64("project")
 		if projectID > 0 {
 			includedProjectIDs = append(includedProjectIDs, projectID)
 		}
@@ -338,12 +338,12 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		Keyword:  keyword,
-		RepoIDs:  []int64{ctx.Repo.Repository.ID},
+		Keyword:    keyword,
+		RepoIDs:    []int64{ctx.Repo.Repository.ID},
 		ProjectIDs: []int64{ctx.FormInt64("project")},
-		IsPull:   isPull,
-		IsClosed: isClosed,
-		SortBy:   issue_indexer.SortByCreatedDesc,
+		IsPull:     isPull,
+		IsClosed:   isClosed,
+		SortBy:     issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
