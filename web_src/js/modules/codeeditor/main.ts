@@ -84,7 +84,7 @@ async function createCodemirrorEditor(
     }),
     cm.language.LanguageDescription.of({
       name: 'Makefile', filename: /^(GNUm|M|m)akefile$/,
-      load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/cmake')).cmake)),
+      load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/shell')).shell)),
     }),
     cm.language.LanguageDescription.of({
       name: 'JSON5', extensions: ['json5', 'jsonc'],
@@ -271,8 +271,6 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {fil
     const configOpts = getCodeEditorConfigOptions(editorConfig);
     editorOpts = {
       ...getFileBasedOptions(filename, lineWrapExts),
-      indentStyle: configOpts.indentStyle || 'space',
-      trimTrailingWhitespace: false,
       ...configOpts,
     };
   }

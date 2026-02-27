@@ -77,16 +77,20 @@ export function clickableUrls(cm: Awaited<ReturnType<typeof importCodemirror>>) 
     container: Element;
     handleKeyDown: (e: KeyboardEvent) => void;
     handleKeyUp: (e: KeyboardEvent) => void;
+    handleBlur: () => void;
     constructor(view: EditorView) {
       this.container = view.dom.closest('.code-editor-container')!;
       this.handleKeyDown = (e) => { if (e.key === 'Meta' || e.key === 'Control') this.container.classList.add('cm-mod-held'); };
       this.handleKeyUp = (e) => { if (e.key === 'Meta' || e.key === 'Control') this.container.classList.remove('cm-mod-held'); };
+      this.handleBlur = () => this.container.classList.remove('cm-mod-held');
       document.addEventListener('keydown', this.handleKeyDown);
       document.addEventListener('keyup', this.handleKeyUp);
+      window.addEventListener('blur', this.handleBlur);
     }
     destroy() {
       document.removeEventListener('keydown', this.handleKeyDown);
       document.removeEventListener('keyup', this.handleKeyUp);
+      window.removeEventListener('blur', this.handleBlur);
       this.container.classList.remove('cm-mod-held');
     }
   });
