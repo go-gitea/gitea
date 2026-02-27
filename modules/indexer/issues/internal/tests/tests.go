@@ -705,7 +705,7 @@ func generateDefaultIndexerData() []*internal.IndexerData {
 				LabelIDs:           labelIDs,
 				NoLabel:            len(labelIDs) == 0,
 				MilestoneID:        issueIndex % 4,
-				ProjectIDs:         []int64{issueIndex % 5},
+				ProjectIDs:         projectIDs,
 				ProjectColumnID:    issueIndex % 6,
 				PosterID:           id%10 + 1, // PosterID should not be 0
 				AssigneeID:         issueIndex % 10,
