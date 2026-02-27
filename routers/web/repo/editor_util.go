@@ -125,6 +125,31 @@ func CodeEditorPhrases(ctx *context_service.Context) map[string]string {
 		"Fold line":                ctx.Locale.TrString("editor.code_editor.fold_line"),
 		"Unfold line":              ctx.Locale.TrString("editor.code_editor.unfold_line"),
 		"Selection deleted":        ctx.Locale.TrString("editor.code_editor.selection_deleted"),
+
+		// command palette
+		"Type a command...":        ctx.Locale.TrString("editor.code_editor.type_a_command"),
+		"Undo":                     ctx.Locale.TrString("editor.code_editor.undo"),
+		"Redo":                     ctx.Locale.TrString("editor.code_editor.redo"),
+		"Select All":               ctx.Locale.TrString("editor.code_editor.select_all"),
+		"Delete Line":              ctx.Locale.TrString("editor.code_editor.delete_line"),
+		"Move Line Up":             ctx.Locale.TrString("editor.code_editor.move_line_up"),
+		"Move Line Down":           ctx.Locale.TrString("editor.code_editor.move_line_down"),
+		"Copy Line Up":             ctx.Locale.TrString("editor.code_editor.copy_line_up"),
+		"Copy Line Down":           ctx.Locale.TrString("editor.code_editor.copy_line_down"),
+		"Toggle Comment":           ctx.Locale.TrString("editor.code_editor.toggle_comment"),
+		"Insert Blank Line":        ctx.Locale.TrString("editor.code_editor.insert_blank_line"),
+		"Add Cursor Above":         ctx.Locale.TrString("editor.code_editor.add_cursor_above"),
+		"Add Cursor Below":         ctx.Locale.TrString("editor.code_editor.add_cursor_below"),
+		"Add Next Occurrence":      ctx.Locale.TrString("editor.code_editor.add_next_occurrence"),
+		"Go to Matching Bracket":   ctx.Locale.TrString("editor.code_editor.go_to_matching_bracket"),
+		"Indent More":              ctx.Locale.TrString("editor.code_editor.indent_more"),
+		"Indent Less":              ctx.Locale.TrString("editor.code_editor.indent_less"),
+		"Fold Code":                ctx.Locale.TrString("editor.code_editor.fold_code"),
+		"Unfold Code":              ctx.Locale.TrString("editor.code_editor.unfold_code"),
+		"Fold All":                 ctx.Locale.TrString("editor.code_editor.fold_all"),
+		"Unfold All":               ctx.Locale.TrString("editor.code_editor.unfold_all"),
+		"Trigger Autocomplete":     ctx.Locale.TrString("editor.code_editor.trigger_autocomplete"),
+		"Trim Trailing Whitespace": ctx.Locale.TrString("editor.code_editor.trim_trailing_whitespace"),
 	}
 }
 
