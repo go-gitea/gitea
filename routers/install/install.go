@@ -17,7 +17,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	db_install "code.gitea.io/gitea/models/db/install"
-	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/password/hash"
 	"code.gitea.io/gitea/modules/generate"
@@ -113,11 +112,6 @@ func Install(ctx *context.Context) {
 	}
 	form.RegisterConfirm = setting.Service.RegisterEmailConfirm
 	form.MailNotify = setting.Service.EnableNotifyMail
-
-	// Server and other services settings
-	form.OfflineMode = setting.OfflineMode
-	form.DisableGravatar = setting.DisableGravatar             // when installing, there is no database connection so that given a default value
-	form.EnableFederatedAvatar = setting.EnableFederatedAvatar // when installing, there is no database connection so that given a default value
 
 	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
 	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
@@ -404,15 +398,6 @@ func SubmitInstall(ctx *context.Context) {
 	}
 	cfg.Section("service").Key("REGISTER_EMAIL_CONFIRM").SetValue(strconv.FormatBool(form.RegisterConfirm))
 	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(strconv.FormatBool(form.MailNotify))
-
-	cfg.Section("server").Key("OFFLINE_MODE").SetValue(strconv.FormatBool(form.OfflineMode))
-	if err := system_model.SetSettings(ctx, map[string]string{
-		setting.Config().Picture.DisableGravatar.DynKey():       strconv.FormatBool(form.DisableGravatar),
-		setting.Config().Picture.EnableFederatedAvatar.DynKey(): strconv.FormatBool(form.EnableFederatedAvatar),
-	}); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
-		return
-	}
 
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(strconv.FormatBool(form.EnableOpenIDSignIn))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(strconv.FormatBool(form.EnableOpenIDSignUp))

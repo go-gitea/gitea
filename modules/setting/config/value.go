@@ -102,7 +102,7 @@ func (opt *Option[T]) ValueRevision(ctx context.Context) (v T, rev int, has bool
 	var valStr *string
 	if dynVal, hasDbValue := dg.GetValue(ctx, opt.dynKey); hasDbValue {
 		valStr = &dynVal
-	} else if cfgVal, has := GetCfgSecKeyGetter().GetValue(opt.cfgSecKey.Sec, opt.cfgSecKey.Key); has {
+	} else if cfgVal, hasCfgValue := GetCfgSecKeyGetter().GetValue(opt.cfgSecKey.Sec, opt.cfgSecKey.Key); hasCfgValue {
 		valStr = &cfgVal
 	}
 	if valStr == nil {
