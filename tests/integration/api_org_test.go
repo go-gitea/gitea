@@ -275,17 +275,9 @@ func TestAPIDeleteOrgRepos(t *testing.T) {
 			MakeRequest(t, req, http.StatusCreated)
 		}
 
-		// Delete all repos
+		// Delete all repos - should return 202 Accepted
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName)).AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		var result api.DeleteOrgReposResponse
-		DecodeJSON(t, resp, &result)
-
-		assert.Equal(t, 60, result.SuccessCount)
-		assert.Equal(t, 0, result.FailureCount)
-		assert.Len(t, result.Deleted, 60)
-		assert.Empty(t, result.Failed)
+		MakeRequest(t, req, http.StatusAccepted)
 	})
 
 	t.Run("Verify response structure", func(t *testing.T) {
@@ -308,20 +300,9 @@ func TestAPIDeleteOrgRepos(t *testing.T) {
 			MakeRequest(t, req, http.StatusCreated)
 		}
 
-		// Delete all repos
+		// Delete all repos - should return 202 Accepted
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/orgs/%s/repos", orgName)).AddTokenAuth(token)
-		resp := MakeRequest(t, req, http.StatusOK)
-
-		var result api.DeleteOrgReposResponse
-		DecodeJSON(t, resp, &result)
-
-		// Verify response structure
-		assert.Equal(t, 3, result.SuccessCount)
-		assert.Equal(t, 0, result.FailureCount)
-		assert.Len(t, result.Deleted, 3)
-		assert.Empty(t, result.Failed)
-		assert.NotNil(t, result.Deleted)
-		assert.NotNil(t, result.Failed)
+		MakeRequest(t, req, http.StatusAccepted)
 	})
 
 	t.Run("Fail without permissions", func(t *testing.T) {

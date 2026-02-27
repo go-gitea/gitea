@@ -440,25 +440,3 @@ type UpdateRepoAvatarOption struct {
 	// image must be base64 encoded
 	Image string `json:"image" binding:"Required"`
 }
-
-// DeleteOrgReposResponse represents the response for deleting organization repositories
-// swagger:model
-type DeleteOrgReposResponse struct {
-	// Number of repositories successfully deleted
-	SuccessCount int `json:"success_count"`
-	// Number of repositories that failed to delete
-	FailureCount int `json:"failure_count"`
-	// List of repository names that were deleted
-	Deleted []string `json:"deleted"`
-	// Details about repositories that failed to delete
-	Failed []DeleteRepoFailure `json:"failed"`
-}
-
-// DeleteRepoFailure represents a repository that failed to delete
-// swagger:model
-type DeleteRepoFailure struct {
-	// Repository name
-	RepoName string `json:"repo_name"`
-	// Message to be displayed
-	Message string `json:"reason"`
-}

@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	api "code.gitea.io/gitea/modules/structs"
@@ -510,8 +511,8 @@ func DeleteOrgRepos(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//   "200":
-	//     "$ref": "#/responses/DeleteOrgReposList"
+	//   "202":
+	//     description: Deletion started
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -522,22 +523,29 @@ func DeleteOrgRepos(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	response := &api.DeleteOrgReposResponse{
-		Deleted: []string{},
-		Failed:  []api.DeleteRepoFailure{},
-	}
-	for _, repo := range repos {
-		if err := repo_service.DeleteRepository(ctx, ctx.Doer, repo, true); err != nil {
-			log.Error("Error deleting repo %s: %v", repo.Name, err)
-			response.Failed = append(response.Failed, api.DeleteRepoFailure{
-				RepoName: repo.Name,
-				Message:  "Failed to delete repository",
-			})
-		} else {
-			response.Deleted = append(response.Deleted, repo.Name)
+
+	doer := ctx.Doer
+
+	// Start deletion in background with detached context
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Error("Panic during org repo deletion: %v", r)
+			}
+		}()
+
+		// Use HammerContext so deletion continues even if client disconnects
+		bgCtx := graceful.GetManager().HammerContext()
+
+		for _, repo := range repos {
+			if err := repo_service.DeleteRepository(bgCtx, doer, repo, true); err != nil {
+				log.Error("Failed to delete repository %s (ID: %d) in org %s: %v", repo.Name, repo.ID, org.Name, err)
+			} else {
+				log.Info("Successfully deleted repository %s (ID: %d) in org %s", repo.Name, repo.ID, org.Name)
+			}
 		}
-	}
-	response.SuccessCount = len(response.Deleted)
-	response.FailureCount = len(response.Failed)
-	ctx.JSON(http.StatusOK, response)
+		log.Info("Completed deletion of %d repositories in org %s", len(repos), org.Name)
+	}()
+
+	ctx.Status(http.StatusAccepted)
 }

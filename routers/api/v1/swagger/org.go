@@ -41,11 +41,3 @@ type swaggerResponseOrganizationPermissions struct {
 	// in:body
 	Body api.OrganizationPermissions `json:"body"`
 }
-
-// DeleteOrgReposList
-// swagger:response DeleteOrgReposList
-type swaggerDeleteOrgReposList struct {
-	// List of successfully deleted repositories and failures
-	//in:body
-	Body api.DeleteOrgReposResponse `json:"body"`
-}
