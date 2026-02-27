@@ -19,6 +19,8 @@ type globalVarsStruct struct {
 	externalTrackerRegex   *regexp.Regexp
 	validUsernamePattern   *regexp.Regexp
 	invalidUsernamePattern *regexp.Regexp
+	validSlugPattern       *regexp.Regexp
+	invalidSlugPattern     *regexp.Regexp
 }
 
 var globalVars = sync.OnceValue(func() *globalVarsStruct {
@@ -26,6 +28,8 @@ var globalVars = sync.OnceValue(func() *globalVarsStruct {
 		externalTrackerRegex:   regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`),
 		validUsernamePattern:   regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`),
 		invalidUsernamePattern: regexp.MustCompile(`[-._]{2,}|[-._]$`), // No consecutive or trailing non-alphanumeric chars
+		validSlugPattern:       regexp.MustCompile(`^[\da-zA-Z][-.\w]*$`),
+		invalidSlugPattern:     regexp.MustCompile(`[-._]{2,}|[-._]$`),
 	}
 })
 
@@ -133,5 +137,6 @@ func IsValidUsername(name string) bool {
 }
 
 func IsValidSlug(slug string) bool {
-	return IsValidUsername(slug)
+	vars := globalVars()
+	return vars.validSlugPattern.MatchString(slug) && !vars.invalidSlugPattern.MatchString(slug)
 }

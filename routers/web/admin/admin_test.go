@@ -94,7 +94,7 @@ func TestSelfCheckPost(t *testing.T) {
 
 func TestDeleteBadgeUserRedirectEscapesSlug(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx, resp := contexttest.MockContext(t, "POST /-/admin/badges/badge/users/delete")
+	ctx, resp := contexttest.MockContext(t, "POST /-/admin/badges/slug/badge/users/delete")
 	ctx.SetPathParam("badge_slug", "badge/slug with space")
 	ctx.Req.Form.Set("id", "999999")
 
@@ -107,5 +107,5 @@ func TestDeleteBadgeUserRedirectEscapesSlug(t *testing.T) {
 	}{}
 	err := json.Unmarshal(resp.Body.Bytes(), &data)
 	assert.NoError(t, err)
-	assert.Equal(t, setting.AppSubURL+"/-/admin/badges/badge%2Fslug%20with%20space/users", data.Redirect)
+	assert.Equal(t, setting.AppSubURL+"/-/admin/badges/slug/badge%2Fslug%20with%20space/users", data.Redirect)
 }

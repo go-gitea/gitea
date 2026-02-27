@@ -5,8 +5,6 @@ package user
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/util"
@@ -37,50 +35,6 @@ func (n *UserBadge) TableIndices() []*schemas.Index {
 	ubUnique.AddColumn("user_id", "badge_id")
 	indices = append(indices, ubUnique)
 	return indices
-}
-
-// ErrBadgeAlreadyExist represents a "badge already exists" error.
-type ErrBadgeAlreadyExist struct {
-	Slug string
-}
-
-// IsErrBadgeAlreadyExist checks if an error is a ErrBadgeAlreadyExist.
-func IsErrBadgeAlreadyExist(err error) bool {
-	_, ok := err.(ErrBadgeAlreadyExist)
-	return ok
-}
-
-func (err ErrBadgeAlreadyExist) Error() string {
-	return fmt.Sprintf("badge already exists [slug: %s]", err.Slug)
-}
-
-// Unwrap unwraps this error as a ErrExist error
-func (err ErrBadgeAlreadyExist) Unwrap() error {
-	return util.ErrAlreadyExist
-}
-
-// ErrBadgeNotExist represents a "BadgeNotExist" kind of error.
-type ErrBadgeNotExist struct {
-	Slug string
-	ID   int64
-}
-
-func (err ErrBadgeNotExist) Error() string {
-	if err.ID > 0 {
-		return fmt.Sprintf("badge does not exist [id: %d]", err.ID)
-	}
-	return fmt.Sprintf("badge does not exist [slug: %s]", err.Slug)
-}
-
-// IsErrBadgeNotExist checks if an error is a ErrBadgeNotExist.
-func IsErrBadgeNotExist(err error) bool {
-	_, ok := err.(ErrBadgeNotExist)
-	return ok
-}
-
-// Unwrap unwraps this error as a ErrNotExist error
-func (err ErrBadgeNotExist) Unwrap() error {
-	return util.ErrNotExist
 }
 
 func init() {
@@ -130,14 +84,14 @@ func CreateBadge(ctx context.Context, badge *Badge) error {
 		return err
 	}
 	if exists {
-		return ErrBadgeAlreadyExist{Slug: badge.Slug}
+		return util.NewAlreadyExistErrorf("badge already exists [slug: %s]", badge.Slug)
 	}
 
 	if _, err := db.GetEngine(ctx).Insert(badge); err != nil {
 		// Handle race between existence check and insert.
 		exists, existErr := db.GetEngine(ctx).Where("slug = ?", badge.Slug).Exist(new(Badge))
 		if existErr == nil && exists {
-			return ErrBadgeAlreadyExist{Slug: badge.Slug}
+			return util.NewAlreadyExistErrorf("badge already exists [slug: %s]", badge.Slug)
 		}
 		return err
 	}
@@ -152,7 +106,7 @@ func GetBadge(ctx context.Context, slug string) (*Badge, error) {
 		return nil, err
 	}
 	if !has {
-		return nil, ErrBadgeNotExist{Slug: slug}
+		return nil, util.NewNotExistErrorf("badge does not exist [slug: %s]", slug)
 	}
 	return badge, nil
 }
@@ -195,7 +149,7 @@ func AddUserBadges(ctx context.Context, u *User, badges []*Badge) error {
 			if err != nil {
 				return err
 			} else if !has {
-				return ErrBadgeNotExist{Slug: badge.Slug}
+				return util.NewNotExistErrorf("badge does not exist [slug: %s]", badge.Slug)
 			}
 			if err := db.Insert(ctx, &UserBadge{
 				BadgeID: badge.ID,
@@ -259,10 +213,9 @@ func (opts *SearchBadgeOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 
 	if opts.Keyword != "" {
-		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
-			builder.Like{"LOWER(badge.slug)", lowerKeyword},
-			builder.Like{"LOWER(badge.description)", lowerKeyword},
+			db.BuildCaseInsensitiveLike("badge.slug", opts.Keyword),
+			db.BuildCaseInsensitiveLike("badge.description", opts.Keyword),
 		)
 		cond = cond.And(keywordCond)
 	}
@@ -295,7 +248,7 @@ func GetBadgeByID(ctx context.Context, id int64) (*Badge, error) {
 		return nil, err
 	}
 	if !has {
-		return nil, ErrBadgeNotExist{ID: id}
+		return nil, util.NewNotExistErrorf("badge does not exist [id: %d]", id)
 	}
 	return badge, nil
 }

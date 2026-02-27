@@ -4,6 +4,7 @@
 package admin
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"strings"
@@ -13,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
@@ -39,9 +41,6 @@ func Badges(ctx *context.Context) {
 		sortType = BadgeSearchDefaultAdminSort
 		ctx.SetFormString("sort", sortType)
 	}
-	ctx.PageData["adminBadgeListSearchForm"] = map[string]any{
-		"SortType": sortType,
-	}
 
 	RenderBadgeSearch(ctx, &user_model.SearchBadgeOptions{
 		Actor: ctx.Doer,
@@ -63,11 +62,9 @@ func NewBadge(ctx *context.Context) {
 // NewBadgePost response for adding a new badge
 func NewBadgePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminCreateBadgeForm)
-	ctx.Data["Title"] = ctx.Tr("admin.badges.new_badge")
-	ctx.Data["PageIsAdminBadges"] = true
 
 	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplBadgeNew)
+		ctx.JSONError(ctx.GetErrMsg())
 		return
 	}
 
@@ -77,22 +74,9 @@ func NewBadgePost(ctx *context.Context) {
 		ImageURL:    form.ImageURL,
 	}
 
-	if len(form.Slug) < 1 {
-		ctx.Data["Err_Slug"] = true
-		ctx.RenderWithErr(ctx.Tr("admin.badges.slug.must_fill"), tplBadgeNew, &form)
-		return
-	}
-
-	if len(form.Description) < 1 {
-		ctx.Data["Err_Description"] = true
-		ctx.RenderWithErr(ctx.Tr("admin.badges.description.must_fill"), tplBadgeNew, &form)
-		return
-	}
-
 	if err := user_model.CreateBadge(ctx, b); err != nil {
-		if user_model.IsErrBadgeAlreadyExist(err) {
-			ctx.Data["Err_Slug"] = true
-			ctx.RenderWithErr(ctx.Tr("admin.badges.slug_been_taken"), tplBadgeNew, &form)
+		if errors.Is(err, util.ErrAlreadyExist) {
+			ctx.JSONError(ctx.Tr("admin.badges.slug_been_taken"))
 		} else {
 			ctx.ServerError("CreateBadge", err)
 		}
@@ -102,13 +86,13 @@ func NewBadgePost(ctx *context.Context) {
 	log.Trace("Badge created by admin (%s): %s", ctx.Doer.Name, b.Slug)
 
 	ctx.Flash.Success(ctx.Tr("admin.badges.new_success", b.Slug))
-	ctx.Redirect(setting.AppSubURL + "/-/admin/badges/" + url.PathEscape(b.Slug))
+	ctx.JSONRedirect(setting.AppSubURL + "/-/admin/badges/slug/" + url.PathEscape(b.Slug))
 }
 
 func prepareBadgeInfo(ctx *context.Context) *user_model.Badge {
 	b, err := user_model.GetBadge(ctx, ctx.PathParam("badge_slug"))
 	if err != nil {
-		if user_model.IsErrBadgeNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.Redirect(setting.AppSubURL + "/-/admin/badges")
 		} else {
 			ctx.ServerError("GetBadge", err)
@@ -125,11 +109,7 @@ func prepareBadgeInfo(ctx *context.Context) *user_model.Badge {
 	}
 	users, count, err := user_model.GetBadgeUsers(ctx, opts)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.Redirect(setting.AppSubURL + "/-/admin/badges")
-		} else {
-			ctx.ServerError("GetBadgeUsers", err)
-		}
+		ctx.ServerError("GetBadgeUsers", err)
 		return nil
 	}
 	ctx.Data["Users"] = users
@@ -188,7 +168,7 @@ func EditBadgePost(ctx *context.Context) {
 	log.Trace("Badge updated by admin (%s): %s", ctx.Doer.Name, b.Slug)
 
 	ctx.Flash.Success(ctx.Tr("admin.badges.update_success"))
-	ctx.Redirect(setting.AppSubURL + "/-/admin/badges/" + url.PathEscape(ctx.PathParam("badge_slug")))
+	ctx.Redirect(setting.AppSubURL + "/-/admin/badges/slug/" + url.PathEscape(ctx.PathParam("badge_slug")))
 }
 
 // DeleteBadge response for deleting a badge
@@ -253,7 +233,7 @@ func BadgeUsersPost(ctx *context.Context) {
 	}
 
 	if err = user_model.AddUserBadge(ctx, u, &user_model.Badge{Slug: ctx.PathParam("badge_slug")}); err != nil {
-		if user_model.IsErrBadgeNotExist(err) {
+		if errors.Is(err, util.ErrNotExist) {
 			ctx.Flash.Error(ctx.Tr("admin.badges.not_found"))
 			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		} else {
@@ -268,7 +248,7 @@ func BadgeUsersPost(ctx *context.Context) {
 
 // DeleteBadgeUser delete a badge from a user
 func DeleteBadgeUser(ctx *context.Context) {
-	badgeUsersURL := setting.AppSubURL + "/-/admin/badges/" + url.PathEscape(ctx.PathParam("badge_slug")) + "/users"
+	badgeUsersURL := setting.AppSubURL + "/-/admin/badges/slug/" + url.PathEscape(ctx.PathParam("badge_slug")) + "/users"
 
 	user, err := user_model.GetUserByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
@@ -299,8 +279,6 @@ func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions
 		orderBy db.SearchOrderBy
 	)
 
-	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
-
 	sortOrder := ctx.FormString("sort")
 	if sortOrder == "" {
 		sortOrder = setting.UI.ExploreDefaultSort
@@ -317,7 +295,7 @@ func RenderBadgeSearch(ctx *context.Context, opts *user_model.SearchBadgeOptions
 	case "alphabetically":
 		orderBy = "`badge`.slug ASC"
 	default:
-		// in case the sortType is not valid, we set it to recent update
+		// In case the sort type is invalid, keep admin default sorting.
 		ctx.Data["SortType"] = "oldest"
 		orderBy = "`badge`.id ASC"
 	}

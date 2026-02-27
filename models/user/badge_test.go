@@ -9,22 +9,29 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestGetBadgeNotExist(t *testing.T) {
+func TestBadge(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
+	t.Run("GetBadgeNotExist", testGetBadgeNotExist)
+	t.Run("CreateBadgeAlreadyExists", testCreateBadgeAlreadyExists)
+	t.Run("GetBadgeUsers", testGetBadgeUsers)
+	t.Run("AddAndRemoveUserBadges", testAddAndRemoveUserBadges)
+	t.Run("SearchBadgesOrderingAndKeyword", testSearchBadgesOrderingAndKeyword)
+}
+
+func testGetBadgeNotExist(t *testing.T) {
 	badge, err := user_model.GetBadge(t.Context(), "does-not-exist")
 	assert.Nil(t, badge)
 	assert.Error(t, err)
-	assert.True(t, user_model.IsErrBadgeNotExist(err))
+	assert.ErrorIs(t, err, util.ErrNotExist)
 }
 
-func TestCreateBadgeAlreadyExists(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testCreateBadgeAlreadyExists(t *testing.T) {
 	badge := &user_model.Badge{
 		Slug:        "duplicate-badge-slug",
 		Description: "First",
@@ -36,15 +43,13 @@ func TestCreateBadgeAlreadyExists(t *testing.T) {
 		Description: "Second",
 	})
 	assert.Error(t, err)
-	assert.True(t, user_model.IsErrBadgeAlreadyExist(err))
+	assert.ErrorIs(t, err, util.ErrAlreadyExist)
 }
 
-func TestGetBadgeUsers(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testGetBadgeUsers(t *testing.T) {
 	// Create a test badge
 	badge := &user_model.Badge{
-		Slug:        "test-badge",
+		Slug:        "test-badge-users",
 		Description: "Test Badge",
 		ImageURL:    "test.png",
 	}
@@ -56,6 +61,10 @@ func TestGetBadgeUsers(t *testing.T) {
 
 	assert.NoError(t, user_model.AddUserBadge(t.Context(), user1, badge))
 	assert.NoError(t, user_model.AddUserBadge(t.Context(), user2, badge))
+	defer func() {
+		assert.NoError(t, user_model.RemoveUserBadge(t.Context(), user1, badge))
+		assert.NoError(t, user_model.RemoveUserBadge(t.Context(), user2, badge))
+	}()
 
 	// Test getting users with pagination
 	opts := &user_model.GetBadgeUsersOptions{
@@ -86,8 +95,7 @@ func TestGetBadgeUsers(t *testing.T) {
 	assert.Empty(t, users)
 }
 
-func TestAddAndRemoveUserBadges(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+func testAddAndRemoveUserBadges(t *testing.T) {
 	badge1 := unittest.AssertExistsAndLoadBean(t, &user_model.Badge{ID: 1})
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
@@ -114,9 +122,7 @@ func TestAddAndRemoveUserBadges(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestSearchBadgesOrderingAndKeyword(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
+func testSearchBadgesOrderingAndKeyword(t *testing.T) {
 	createdBadges := []*user_model.Badge{
 		{Slug: "badge-sort-b", Description: "Badge Sort B"},
 		{Slug: "badge-sort-c", Description: "Badge Sort C"},

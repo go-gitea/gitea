@@ -3,21 +3,20 @@
 		<h4 class="ui top attached header">
 			{{ctx.Locale.Tr "admin.badges.new_badge"}}
 		</h4>
-			<div class="ui attached segment">
-				<form class="ui form" action="{{.Link}}" method="post">
-					<div class="required field {{if .Err_Slug}}error{{end}}">
+		<div class="ui attached segment">
+			<form class="ui form form-fetch-action" action="{{.Link}}" method="post">
+				<div class="required field">
 					<label for="slug">{{ctx.Locale.Tr "admin.badges.slug"}}</label>
-					<input autofocus required id="slug" name="slug" value="{{.slug}}">
+					<input autofocus required id="slug" name="slug">
 				</div>
-				<div class="required field {{if .Err_Description}}error{{end}}">
+				<div class="required field">
 					<label for="description">{{ctx.Locale.Tr "admin.badges.description"}}</label>
-					<textarea id="description" type="text" name="description" rows="2" required>{{.description}}</textarea>
+					<textarea id="description" name="description" rows="2" required></textarea>
 				</div>
-				<div class="field {{if .Err_ImageURL}}error{{end}}">
+				<div class="field">
 					<label for="image_url">{{ctx.Locale.Tr "admin.badges.image_url"}}</label>
-					<input id="image_url" type="url" name="image_url" value="{{.image_url}}">
+					<input id="image_url" type="url" name="image_url">
 				</div>
-
 				<div class="field">
 					<button class="ui primary button">{{ctx.Locale.Tr "admin.badges.new_badge"}}</button>
 				</div>
