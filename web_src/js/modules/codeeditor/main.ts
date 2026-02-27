@@ -8,7 +8,7 @@ import type {LanguageDescription} from '@codemirror/language';
 import type {Compartment} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
 
-type EditorConfig = {
+type CodeEditorConfig = {
   indent_style?: 'tab' | 'space',
   indent_size?: number,
   tab_width?: string | number, // backend emits this as string
@@ -36,7 +36,7 @@ export type CodemirrorEditor = {
   };
 };
 
-function getEditorConfig(input: HTMLInputElement): EditorConfig | null {
+function getCodeEditorConfig(input: HTMLInputElement): CodeEditorConfig | null {
   const json = input.getAttribute('data-code-editor-config');
   if (!json) return null;
   try {
@@ -267,16 +267,17 @@ function togglePreviewDisplay(previewable: boolean): void {
   }
 }
 
-export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {filenameInput?: HTMLInputElement, defaultFilename?: string}): Promise<CodemirrorEditor> {
-  const filename = opts.filenameInput?.value ?? opts.defaultFilename!;
+export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {filenameInput: HTMLInputElement} | {defaultFilename: string}): Promise<CodemirrorEditor> {
+  const filename = 'filenameInput' in opts ? opts.filenameInput.value : opts.defaultFilename;
   const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
   const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
 
   let editorOpts: EditorOptions = {indentStyle: 'tab', tabSize: 4, wordWrap: false, trimTrailingWhitespace: false};
+  const filenameInput = 'filenameInput' in opts ? opts.filenameInput : null;
 
-  if (opts.filenameInput) {
-    const editorConfig = getEditorConfig(opts.filenameInput);
-    const configOpts = getEditorConfigOptions(editorConfig);
+  if (filenameInput) {
+    const editorConfig = getCodeEditorConfig(filenameInput);
+    const configOpts = getCodeEditorConfigOptions(editorConfig);
     editorOpts = {
       ...getFileBasedOptions(filename, lineWrapExts),
       indentStyle: configOpts.indentStyle || 'space',
@@ -288,10 +289,10 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {fil
   const editor = await createCodemirrorEditor(textarea, filename, editorOpts);
   setupEditorOptionListeners(textarea, editor);
 
-  if (opts.filenameInput) {
+  if (filenameInput) {
     togglePreviewDisplay(previewableExts.has(extname(filename)));
-    opts.filenameInput.addEventListener('input', onInputDebounce(async () => {
-      const newFilename = opts.filenameInput!.value;
+    filenameInput.addEventListener('input', onInputDebounce(async () => {
+      const newFilename = filenameInput.value;
       togglePreviewDisplay(previewableExts.has(extname(newFilename)));
       await updateEditorLanguage(editor, newFilename, lineWrapExts);
     }));
@@ -318,7 +319,7 @@ async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, 
 
 export {trimTrailingWhitespaceFromView} from './utils.ts';
 
-function getEditorConfigOptions(ec: EditorConfig | null): Partial<EditorOptions> {
+function getCodeEditorConfigOptions(ec: CodeEditorConfig | null): Partial<EditorOptions> {
   if (!ec || !isObject(ec)) return {indentStyle: 'space'};
 
   const opts: Partial<EditorOptions> = {

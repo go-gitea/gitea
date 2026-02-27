@@ -4,7 +4,7 @@ import {trimTrailingWhitespaceFromView} from './utils.ts';
 
 type PaletteCommand = {
   label: string;
-  keys?: string;
+  keys: string;
   run: (view: EditorView) => void;
 };
 
@@ -75,6 +75,7 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
             } else {
               this.show();
             }
+            return;
           }
         }
       }
@@ -153,19 +154,17 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
         }
         item.append(label);
 
-        if (cmd.keys) {
-          const keysEl = document.createElement('span');
-          keysEl.className = 'cm-command-palette-keys';
-          for (const [chordIndex, chord] of formatKeys(cmd.keys).entries()) {
-            if (chordIndex > 0) keysEl.append('\u2192');
-            for (const k of chord) {
-              const kbd = document.createElement('kbd');
-              kbd.textContent = k;
-              keysEl.append(kbd);
-            }
+        const keysEl = document.createElement('span');
+        keysEl.className = 'cm-command-palette-keys';
+        for (const [chordIndex, chord] of formatKeys(cmd.keys).entries()) {
+          if (chordIndex > 0) keysEl.append('\u2192');
+          for (const k of chord) {
+            const kbd = document.createElement('kbd');
+            kbd.textContent = k;
+            keysEl.append(kbd);
           }
-          item.append(keysEl);
         }
+        item.append(keysEl);
 
         item.addEventListener('mousedown', (e) => {
           e.preventDefault();

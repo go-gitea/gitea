@@ -171,7 +171,7 @@ export function initRepoEditor() {
   (async () => {
     const editor = await createCodeEditor(editArea, {filenameInput});
 
-    if (editArea.hasAttribute('data-autofocus')) {
+    if (editArea.hasAttribute('autofocus')) {
       editor.view.focus();
     }
 
