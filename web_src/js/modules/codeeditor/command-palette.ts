@@ -133,17 +133,17 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
       cmd.run(view);
     };
 
-    list.addEventListener('pointerenter', (e) => {
+    list.addEventListener('pointerover', (e) => {
       const item = (e.target as Element).closest<HTMLElement>('.cm-command-palette-item');
       if (!item) return;
       selectedIndex = Number(item.getAttribute('data-index'));
       updateSelected();
-    }, true);
+    });
 
     list.addEventListener('mousedown', (e) => {
-      e.preventDefault();
       const item = (e.target as Element).closest<HTMLElement>('.cm-command-palette-item');
       if (!item) return;
+      e.preventDefault();
       const cmd = filtered[Number(item.getAttribute('data-index'))];
       if (cmd) execute(cmd);
     });
