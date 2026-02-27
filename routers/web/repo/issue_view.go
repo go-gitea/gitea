@@ -911,14 +911,9 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 
 	ctx.Data["AutodetectManualMerge"] = prConfig.AutodetectManualMerge
 
-	var mergeStyle repo_model.MergeStyle
-	// Check correct values and select default
-	if ms, ok := ctx.Data["MergeStyle"].(repo_model.MergeStyle); !ok ||
-		!prConfig.IsMergeStyleAllowed(ms) {
-		defaultMergeStyle := prConfig.GetDefaultMergeStyle()
-		if prConfig.IsMergeStyleAllowed(defaultMergeStyle) && !ok {
-			mergeStyle = defaultMergeStyle
-		} else if prConfig.AllowMerge {
+	mergeStyle := prConfig.GetDefaultMergeStyle()
+	if !prConfig.IsMergeStyleAllowed(mergeStyle) {
+		if prConfig.AllowMerge {
 			mergeStyle = repo_model.MergeStyleMerge
 		} else if prConfig.AllowRebase {
 			mergeStyle = repo_model.MergeStyleRebase
@@ -933,23 +928,17 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		}
 	}
 
-	ctx.Data["MergeStyle"] = mergeStyle
-
 	defaultMergeMessage, defaultMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, mergeStyle)
 	if err != nil {
 		ctx.ServerError("GetDefaultMergeMessage", err)
 		return
 	}
-	ctx.Data["DefaultMergeMessage"] = defaultMergeMessage
-	ctx.Data["DefaultMergeBody"] = defaultMergeBody
 
 	defaultSquashMergeMessage, defaultSquashMergeBody, err := pull_service.GetDefaultMergeMessage(ctx, ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
 	if err != nil {
 		ctx.ServerError("GetDefaultSquashMergeMessage", err)
 		return
 	}
-	ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
-	ctx.Data["DefaultSquashMergeBody"] = defaultSquashMergeBody
 
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
 	if err != nil {
@@ -1003,13 +992,11 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
 
 	// Check if there is a pending pr merge
-	hasPendingPullRequestMerge, pendingPullRequestMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
+	_, pendingPullRequestMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
 	if err != nil {
 		ctx.ServerError("GetScheduledMergeByPullID", err)
 		return
 	}
-	ctx.Data["HasPendingPullRequestMerge"] = hasPendingPullRequestMerge
-	ctx.Data["PendingPullRequestMerge"] = pendingPullRequestMerge
 
 	preparePullViewMergeFormData(ctx, issue, &mergeFormParams{
 		AllowMerge:                        allowMerge,
