@@ -20,6 +20,7 @@
 @import "./modules/modal.css";
 @import "./modules/tab.css";
 @import "./modules/form.css";
+@import "./modules/dropdown.css";
 @import "./modules/shortcut.css";
 
 @import "./modules/tippy.css";
