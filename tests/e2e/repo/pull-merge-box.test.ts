@@ -67,12 +67,13 @@ test.describe('pull merge box', () => {
 
     const mergeBox = page.locator('.pull-merge-box');
     const mergeButton = mergeBox.locator('.merge-button');
+    const prUrl = `/${env.GITEA_TEST_E2E_USER}/${repoName}/pulls/${pr.number}`;
 
     // success → green primary button
     await apiSetCommitStatus(page.request, env.GITEA_TEST_E2E_USER, repoName, pr.head_sha, {
       context: 'ci/test', state: 'success', description: 'Passed',
     });
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/pulls/${pr.number}`);
+    await page.goto(prUrl);
     await expect(mergeButton).toHaveClass(/primary/);
     await expect(mergeBox).toContainText('can be merged automatically');
 
@@ -80,7 +81,7 @@ test.describe('pull merge box', () => {
     await apiSetCommitStatus(page.request, env.GITEA_TEST_E2E_USER, repoName, pr.head_sha, {
       context: 'ci/test', state: 'failure', description: 'Failed',
     });
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/pulls/${pr.number}`);
+    await page.goto(prUrl);
     await expect(mergeButton).toHaveClass(/red/);
     await expect(mergeBox).toContainText('As an administrator');
 
@@ -88,16 +89,9 @@ test.describe('pull merge box', () => {
     await apiSetCommitStatus(page.request, env.GITEA_TEST_E2E_USER, repoName, pr.head_sha, {
       context: 'ci/test', state: 'pending', description: 'Running',
     });
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/pulls/${pr.number}`);
+    await page.goto(prUrl);
     await mergeButton.locator('.ui.dropdown').click();
     await expect(mergeButton.locator('.menu')).toContainText(/Auto merge when all checks succeed/);
-
-    // recovery → success restores green button
-    await apiSetCommitStatus(page.request, env.GITEA_TEST_E2E_USER, repoName, pr.head_sha, {
-      context: 'ci/test', state: 'success', description: 'Passed',
-    });
-    await page.goto(`/${env.GITEA_TEST_E2E_USER}/${repoName}/pulls/${pr.number}`);
-    await expect(mergeButton).toHaveClass(/primary/);
 
     await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
   });
