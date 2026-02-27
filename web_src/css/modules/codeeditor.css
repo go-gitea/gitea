@@ -291,10 +291,6 @@
   cursor: pointer;
 }
 
-.code-editor-container .cm-editor.cm-focused {
-  outline: 1px sold var(--color-secondary);
-}
-
 .code-editor-container .cm-editor.cm-focused .cm-matchingBracket {
   background-color: var(--color-syntax-matching-bracket-bg);
 }

@@ -245,7 +245,7 @@ function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: Codem
 
 function getFileBasedOptions(filename: string, lineWrapExts: string[]): Pick<EditorOptions, 'wordWrap'> {
   return {
-    wordWrap: (lineWrapExts || []).includes(extname(filename)),
+    wordWrap: lineWrapExts.includes(extname(filename)),
   };
 }
 
