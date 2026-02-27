@@ -264,6 +264,15 @@ function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: Codem
     applyIndentSettings(indentStyleSelect?.value || 'space', Number(indentSizeSelect.value) || 4);
   });
 
+  elEditorOptions.querySelector('.js-code-find')?.addEventListener('click', async () => {
+    const cm = await importCodemirror();
+    if (cm.search.searchPanelOpen(view.state)) {
+      cm.search.closeSearchPanel(view);
+    } else {
+      cm.search.openSearchPanel(view);
+    }
+  });
+
   elEditorOptions.querySelector<HTMLSelectElement>('.js-line-wrap-select')?.addEventListener('change', async (e) => {
     const target = e.target as HTMLSelectElement;
     const cm = await importCodemirror();

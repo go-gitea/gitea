@@ -2,6 +2,7 @@
 {{$indentSize := or $.CodeEditorConfig.IndentSize 4}}
 {{$lineWrapOn := $.CodeEditorConfig.LineWrapOn}}
 <div class="flex-text-block code-editor-options">
+	<button type="button" class="js-code-find ui compact small button">{{ctx.Locale.Tr "editor.code_editor.find"}}</button>
 	<div class="native-select">
 		<select class="js-indent-style-select" aria-label="{{ctx.Locale.Tr "text_indent_style"}}">
 			<optgroup label="{{ctx.Locale.Tr "text_indent_style"}}">

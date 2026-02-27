@@ -207,6 +207,10 @@ td .commit-summary {
   padding: 0 !important;
 }
 
+.repo-editor-menu {
+  min-height: auto !important;
+}
+
 .repo-editor-header {
   display: flex;
   margin: 1rem 0;

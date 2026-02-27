@@ -122,6 +122,20 @@
   position: absolute;
   right: 8px;
   top: 8px;
+  font-size: 0;
+  width: 16px;
+  height: 16px;
+  background-color: currentcolor;
+  mask-image: var(--octicon-x);
+  mask-size: cover;
+  -webkit-mask-image: var(--octicon-x);
+  -webkit-mask-size: cover;
+  border-radius: var(--border-radius);
+}
+
+.code-editor-container .cm-panel.cm-search button[name="close"]:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .code-editor-container .cm-activeLine,
@@ -259,6 +273,10 @@
 
 .code-editor-container .cm-trailingSpace {
   background-color: var(--color-error-bg);
+}
+
+.code-editor-container .cm-activeLine .cm-trailingSpace {
+  background-color: transparent;
 }
 
 .code-editor-container.cm-mod-held .cm-url {

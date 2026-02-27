@@ -78,7 +78,6 @@ input,
 textarea,
 .ui.input > input,
 .ui.form input,
-.ui.form select,
 .ui.form textarea,
 .ui.selection.dropdown,
 .ui.search > .prompt {
@@ -91,7 +90,6 @@ input:hover,
 textarea:hover,
 .ui.input input:hover,
 .ui.form input:hover,
-.ui.form select:hover,
 .ui.form textarea:hover,
 .ui.search > .prompt:hover {
   background: var(--color-input-background);
@@ -103,7 +101,6 @@ input:focus,
 textarea:focus,
 .ui.input input:focus,
 .ui.form input:focus,
-.ui.form select:focus,
 .ui.form textarea:focus,
 .ui.search > .prompt:focus {
   background: var(--color-input-background);
