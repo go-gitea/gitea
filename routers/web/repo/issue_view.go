@@ -947,17 +947,24 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		return
 	}
 
+	var isBlockedByApprovals, isBlockedByRejection, isBlockedByOfficialReviewRequests bool
+	var isBlockedByOutdatedBranch, isBlockedByChangedProtectedFiles bool
 	if pb != nil {
 		pb.Repo = pull.BaseRepo
 		ctx.Data["ProtectedBranch"] = pb
-		ctx.Data["IsBlockedByApprovals"] = !issues_model.HasEnoughApprovals(ctx, pb, pull)
-		ctx.Data["IsBlockedByRejection"] = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
-		ctx.Data["IsBlockedByOfficialReviewRequests"] = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
-		ctx.Data["IsBlockedByOutdatedBranch"] = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
+		isBlockedByApprovals = !issues_model.HasEnoughApprovals(ctx, pb, pull)
+		isBlockedByRejection = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
+		isBlockedByOfficialReviewRequests = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
+		isBlockedByOutdatedBranch = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
+		isBlockedByChangedProtectedFiles = len(pull.ChangedProtectedFiles) != 0
+		ctx.Data["IsBlockedByApprovals"] = isBlockedByApprovals
+		ctx.Data["IsBlockedByRejection"] = isBlockedByRejection
+		ctx.Data["IsBlockedByOfficialReviewRequests"] = isBlockedByOfficialReviewRequests
+		ctx.Data["IsBlockedByOutdatedBranch"] = isBlockedByOutdatedBranch
+		ctx.Data["IsBlockedByChangedProtectedFiles"] = isBlockedByChangedProtectedFiles
 		ctx.Data["GrantedApprovals"] = issues_model.GetGrantedApprovalsCount(ctx, pb, pull)
 		ctx.Data["RequireSigned"] = pb.RequireSignedCommits
 		ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
-		ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 		ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
 		ctx.Data["RequireApprovalsWhitelist"] = pb.EnableApprovalsWhitelist
 	}
@@ -989,13 +996,31 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
 
 	// Check if there is a pending pr merge
-	ctx.Data["HasPendingPullRequestMerge"], ctx.Data["PendingPullRequestMerge"], err = pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
+	hasPendingPullRequestMerge, pendingPullRequestMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
 	if err != nil {
 		ctx.ServerError("GetScheduledMergeByPullID", err)
 		return
 	}
+	ctx.Data["HasPendingPullRequestMerge"] = hasPendingPullRequestMerge
+	ctx.Data["PendingPullRequestMerge"] = pendingPullRequestMerge
 
-	preparePullViewMergeFormData(ctx, issue)
+	preparePullViewMergeFormData(ctx, issue, &mergeFormParams{
+		AllowMerge:                        allowMerge,
+		ProtectedBranch:                   pb,
+		PullRequestsConfig:                prConfig,
+		MergeStyle:                        mergeStyle,
+		DefaultMergeMessage:               defaultMergeMessage,
+		DefaultMergeBody:                  defaultMergeBody,
+		DefaultSquashMergeMessage:         defaultSquashMergeMessage,
+		DefaultSquashMergeBody:            defaultSquashMergeBody,
+		HasPendingPullRequestMerge:        hasPendingPullRequestMerge,
+		PendingPullRequestMerge:           pendingPullRequestMerge,
+		IsBlockedByApprovals:              isBlockedByApprovals,
+		IsBlockedByRejection:              isBlockedByRejection,
+		IsBlockedByOfficialReviewRequests: isBlockedByOfficialReviewRequests,
+		IsBlockedByOutdatedBranch:         isBlockedByOutdatedBranch,
+		IsBlockedByChangedProtectedFiles:  isBlockedByChangedProtectedFiles,
+	})
 }
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {

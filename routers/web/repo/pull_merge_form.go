@@ -4,13 +4,10 @@
 package repo
 
 import (
-	"fmt"
-
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/services/context"
@@ -50,85 +47,80 @@ type mergeFormField struct {
 	MergeStyles                    []mergeStyleField `json:"mergeStyles"`
 }
 
+// mergeFormParams holds values computed in preparePullViewReviewAndMerge, passed
+// directly to avoid re-reading them from ctx.Data.
+type mergeFormParams struct {
+	AllowMerge                        bool
+	ProtectedBranch                   *git_model.ProtectedBranch
+	PullRequestsConfig                *repo_model.PullRequestsConfig
+	MergeStyle                        repo_model.MergeStyle
+	DefaultMergeMessage               string
+	DefaultMergeBody                  string
+	DefaultSquashMergeMessage         string
+	DefaultSquashMergeBody            string
+	HasPendingPullRequestMerge        bool
+	PendingPullRequestMerge           *pull_model.AutoMerge
+	IsBlockedByApprovals              bool
+	IsBlockedByRejection              bool
+	IsBlockedByOfficialReviewRequests bool
+	IsBlockedByOutdatedBranch         bool
+	IsBlockedByChangedProtectedFiles  bool
+}
+
 // preparePullViewMergeFormData builds the JSON data for the merge form Vue component.
 // It must be called after preparePullViewReviewAndMerge so all necessary ctx.Data values exist.
-func preparePullViewMergeFormData(ctx *context.Context, issue *issues_model.Issue) {
-	if !issue.IsPull {
-		return
-	}
+func preparePullViewMergeFormData(ctx *context.Context, issue *issues_model.Issue, params *mergeFormParams) {
 	pull := issue.PullRequest
 
 	if pull.HasMerged || issue.IsClosed {
 		return
 	}
 
-	// The merge form is only shown when CanAutoMerge or IsEmpty
 	if !pull.CanAutoMerge() && !pull.IsEmpty() {
 		return
 	}
 
-	allowMerge, _ := ctx.Data["AllowMerge"].(bool)
-	if !allowMerge {
+	if !params.AllowMerge {
 		return
 	}
 
-	prUnit, err := issue.Repo.GetUnit(ctx, unit.TypePullRequests)
-	if err != nil {
-		return
-	}
-	prConfig := prUnit.PullRequestsConfig()
-
+	prConfig := params.PullRequestsConfig
 	if !(prConfig.AllowMerge || prConfig.AllowRebase || prConfig.AllowRebaseMerge || prConfig.AllowSquash || prConfig.AllowFastForwardOnly) {
 		return
 	}
 
-	// Compute notAllOverridableChecksOk (same logic as template)
-	isBlockedByApprovals, _ := ctx.Data["IsBlockedByApprovals"].(bool)
-	isBlockedByRejection, _ := ctx.Data["IsBlockedByRejection"].(bool)
-	isBlockedByOfficialReviewRequests, _ := ctx.Data["IsBlockedByOfficialReviewRequests"].(bool)
-	isBlockedByOutdatedBranch, _ := ctx.Data["IsBlockedByOutdatedBranch"].(bool)
-	isBlockedByChangedProtectedFiles, _ := ctx.Data["IsBlockedByChangedProtectedFiles"].(bool)
+	// Values set by preparePullViewPullInfo
 	enableStatusCheck, _ := ctx.Data["EnableStatusCheck"].(bool)
-
 	requiredStatusCheckSuccess := false
 	if statusCheckData, ok := ctx.Data["StatusCheckData"].(*pullCommitStatusCheckData); ok && statusCheckData != nil {
 		requiredStatusCheckSuccess = statusCheckData.RequiredChecksState.IsSuccess()
 	}
 
-	notAllOverridableChecksOk := isBlockedByApprovals || isBlockedByRejection ||
-		isBlockedByOfficialReviewRequests || isBlockedByOutdatedBranch ||
-		isBlockedByChangedProtectedFiles || (enableStatusCheck && !requiredStatusCheckSuccess)
+	notAllOverridableChecksOk := params.IsBlockedByApprovals || params.IsBlockedByRejection ||
+		params.IsBlockedByOfficialReviewRequests || params.IsBlockedByOutdatedBranch ||
+		params.IsBlockedByChangedProtectedFiles || (enableStatusCheck && !requiredStatusCheckSuccess)
 
-	// Compute canMergeNow (same logic as template)
 	isRepoAdmin := ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
-	blockAdminMergeOverride := false
-	if pb, ok := ctx.Data["ProtectedBranch"].(*git_model.ProtectedBranch); ok && pb != nil {
-		blockAdminMergeOverride = pb.BlockAdminMergeOverride
+	willSign, _ := ctx.Data["WillSign"].(bool) // set by preparePullViewSigning
+
+	var requireSigned, blockAdminMergeOverride bool
+	if params.ProtectedBranch != nil {
+		requireSigned = params.ProtectedBranch.RequireSignedCommits
+		blockAdminMergeOverride = params.ProtectedBranch.BlockAdminMergeOverride
 	}
-	requireSigned, _ := ctx.Data["RequireSigned"].(bool)
-	willSign, _ := ctx.Data["WillSign"].(bool)
 
 	canMergeNow := ((!blockAdminMergeOverride && isRepoAdmin) || !notAllOverridableChecksOk) &&
-		(!allowMerge || !requireSigned || willSign)
+		(!params.AllowMerge || !requireSigned || willSign)
 
 	generalHideAutoMerge := canMergeNow && !notAllOverridableChecksOk
 
-	// Build hasPendingPullRequestMergeTip
-	hasPendingPullRequestMerge, _ := ctx.Data["HasPendingPullRequestMerge"].(bool)
 	hasPendingPullRequestMergeTip := ""
-	if hasPendingPullRequestMerge {
-		if pendingMerge, ok := ctx.Data["PendingPullRequestMerge"].(*pull_model.AutoMerge); ok && pendingMerge != nil {
-			createdPRMergeStr := templates.TimeSince(pendingMerge.CreatedUnix)
-			hasPendingPullRequestMergeTip = string(ctx.Locale.Tr("repo.pulls.auto_merge_has_pending_schedule", pendingMerge.Doer.Name, createdPRMergeStr))
-		}
+	if params.HasPendingPullRequestMerge && params.PendingPullRequestMerge != nil {
+		createdPRMergeStr := templates.TimeSince(params.PendingPullRequestMerge.CreatedUnix)
+		hasPendingPullRequestMergeTip = ctx.Locale.TrString("repo.pulls.auto_merge_has_pending_schedule", params.PendingPullRequestMerge.Doer.Name, createdPRMergeStr)
 	}
 
-	// Get values from ctx.Data
-	mergeStyle, _ := ctx.Data["MergeStyle"].(repo_model.MergeStyle)
-	defaultMergeMessage, _ := ctx.Data["DefaultMergeMessage"].(string)
-	defaultMergeBody, _ := ctx.Data["DefaultMergeBody"].(string)
-	defaultSquashMergeMessage, _ := ctx.Data["DefaultSquashMergeMessage"].(string)
-	defaultSquashMergeBody, _ := ctx.Data["DefaultSquashMergeBody"].(string)
+	// Values set by preparePullViewPullInfo and preparePullViewDeleteBranch
 	pullHeadCommitID, _ := ctx.Data["PullHeadCommitID"].(string)
 	isPullBranchDeletable, _ := ctx.Data["IsPullBranchDeletable"].(bool)
 	headTarget, _ := ctx.Data["HeadTarget"].(string)
@@ -136,68 +128,68 @@ func preparePullViewMergeFormData(ctx *context.Context, issue *issues_model.Issu
 
 	form := &mergeFormField{
 		BaseLink:                       issue.Link(),
-		TextCancel:                     string(ctx.Locale.Tr("cancel")),
-		TextDeleteBranch:               string(ctx.Locale.Tr("repo.branch.delete", headTarget)),
-		TextAutoMergeButtonWhenSucceed: string(ctx.Locale.Tr("repo.pulls.auto_merge_button_when_succeed")),
-		TextAutoMergeWhenSucceed:       string(ctx.Locale.Tr("repo.pulls.auto_merge_when_succeed")),
-		TextAutoMergeCancelSchedule:    string(ctx.Locale.Tr("repo.pulls.auto_merge_cancel_schedule")),
-		TextClearMergeMessage:          string(ctx.Locale.Tr("repo.pulls.clear_merge_message")),
-		TextClearMergeMessageHint:      string(ctx.Locale.Tr("repo.pulls.clear_merge_message_hint")),
-		TextMergeCommitID:              string(ctx.Locale.Tr("repo.pulls.merge_commit_id")),
+		TextCancel:                     ctx.Locale.TrString("cancel"),
+		TextDeleteBranch:               ctx.Locale.TrString("repo.branch.delete", headTarget),
+		TextAutoMergeButtonWhenSucceed: ctx.Locale.TrString("repo.pulls.auto_merge_button_when_succeed"),
+		TextAutoMergeWhenSucceed:       ctx.Locale.TrString("repo.pulls.auto_merge_when_succeed"),
+		TextAutoMergeCancelSchedule:    ctx.Locale.TrString("repo.pulls.auto_merge_cancel_schedule"),
+		TextClearMergeMessage:          ctx.Locale.TrString("repo.pulls.clear_merge_message"),
+		TextClearMergeMessageHint:      ctx.Locale.TrString("repo.pulls.clear_merge_message_hint"),
+		TextMergeCommitID:              ctx.Locale.TrString("repo.pulls.merge_commit_id"),
 		CanMergeNow:                    canMergeNow,
 		AllOverridableChecksOk:         !notAllOverridableChecksOk,
 		EmptyCommit:                    pull.IsEmpty(),
 		PullHeadCommitID:               pullHeadCommitID,
 		IsPullBranchDeletable:          isPullBranchDeletable,
-		DefaultMergeStyle:              string(mergeStyle),
+		DefaultMergeStyle:              string(params.MergeStyle),
 		DefaultDeleteBranchAfterMerge:  prConfig.DefaultDeleteBranchAfterMerge,
-		MergeMessageFieldPlaceHolder:   string(ctx.Locale.Tr("repo.editor.commit_message_desc")),
-		DefaultMergeMessage:            defaultMergeBody,
-		HasPendingPullRequestMerge:     hasPendingPullRequestMerge,
+		MergeMessageFieldPlaceHolder:   ctx.Locale.TrString("repo.editor.commit_message_desc"),
+		DefaultMergeMessage:            params.DefaultMergeBody,
+		HasPendingPullRequestMerge:     params.HasPendingPullRequestMerge,
 		HasPendingPullRequestMergeTip:  hasPendingPullRequestMergeTip,
 		MergeStyles: []mergeStyleField{
 			{
 				Name:                  "merge",
 				Allowed:               prConfig.AllowMerge,
-				TextDoMerge:           string(ctx.Locale.Tr("repo.pulls.merge_pull_request")),
-				MergeTitleFieldText:   defaultMergeMessage,
-				MergeMessageFieldText: defaultMergeBody,
+				TextDoMerge:           ctx.Locale.TrString("repo.pulls.merge_pull_request"),
+				MergeTitleFieldText:   params.DefaultMergeMessage,
+				MergeMessageFieldText: params.DefaultMergeBody,
 				HideAutoMerge:         generalHideAutoMerge,
 			},
 			{
 				Name:                  "rebase",
 				Allowed:               prConfig.AllowRebase,
-				TextDoMerge:           string(ctx.Locale.Tr("repo.pulls.rebase_merge_pull_request")),
+				TextDoMerge:           ctx.Locale.TrString("repo.pulls.rebase_merge_pull_request"),
 				HideMergeMessageTexts: true,
 				HideAutoMerge:         generalHideAutoMerge,
 			},
 			{
 				Name:                  "rebase-merge",
 				Allowed:               prConfig.AllowRebaseMerge,
-				TextDoMerge:           string(ctx.Locale.Tr("repo.pulls.rebase_merge_commit_pull_request")),
-				MergeTitleFieldText:   defaultMergeMessage,
-				MergeMessageFieldText: defaultMergeBody,
+				TextDoMerge:           ctx.Locale.TrString("repo.pulls.rebase_merge_commit_pull_request"),
+				MergeTitleFieldText:   params.DefaultMergeMessage,
+				MergeMessageFieldText: params.DefaultMergeBody,
 				HideAutoMerge:         generalHideAutoMerge,
 			},
 			{
 				Name:                  "squash",
 				Allowed:               prConfig.AllowSquash,
-				TextDoMerge:           string(ctx.Locale.Tr("repo.pulls.squash_merge_pull_request")),
-				MergeTitleFieldText:   defaultSquashMergeMessage,
-				MergeMessageFieldText: fmt.Sprintf("%s%s", getCommitMessages, defaultSquashMergeBody),
+				TextDoMerge:           ctx.Locale.TrString("repo.pulls.squash_merge_pull_request"),
+				MergeTitleFieldText:   params.DefaultSquashMergeMessage,
+				MergeMessageFieldText: getCommitMessages + params.DefaultSquashMergeBody,
 				HideAutoMerge:         generalHideAutoMerge,
 			},
 			{
 				Name:                  "fast-forward-only",
 				Allowed:               prConfig.AllowFastForwardOnly && pull.CommitsBehind == 0,
-				TextDoMerge:           string(ctx.Locale.Tr("repo.pulls.fast_forward_only_merge_pull_request")),
+				TextDoMerge:           ctx.Locale.TrString("repo.pulls.fast_forward_only_merge_pull_request"),
 				HideMergeMessageTexts: true,
 				HideAutoMerge:         generalHideAutoMerge,
 			},
 			{
 				Name:                  "manually-merged",
 				Allowed:               prConfig.AllowManualMerge,
-				TextDoMerge:           string(ctx.Locale.Tr("repo.pulls.merge_manually")),
+				TextDoMerge:           ctx.Locale.TrString("repo.pulls.merge_manually"),
 				HideMergeMessageTexts: true,
 				HideAutoMerge:         true,
 			},
