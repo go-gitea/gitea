@@ -44,10 +44,16 @@ importers:
       '@codemirror/commands':
         specifier: 6.10.2
         version: 6.10.2
+      '@codemirror/lang-json':
+        specifier: 6.0.2
+        version: 6.0.2
       '@codemirror/language':
         specifier: 6.12.2
         version: 6.12.2
       '@codemirror/language-data':
+        specifier: 6.5.2
+        version: 6.5.2
+      '@codemirror/legacy-modes':
         specifier: 6.5.2
         version: 6.5.2
       '@codemirror/search':

@@ -49,7 +49,7 @@
 
 .code-editor-container .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
 .code-editor-container .cm-selectionBackground {
-  background-color: var(--color-primary-alpha-50);
+  background-color: var(--color-primary-alpha-30);
 }
 
 .code-editor-container .cm-panels {
@@ -170,7 +170,7 @@
 .code-editor-container .cm-editor .cm-line ::selection,
 .code-editor-container .cm-editor .cm-line::selection {
   color: inherit;
-  background-color: var(--color-primary-alpha-50);
+  background-color: var(--color-primary-alpha-30);
 }
 
 .code-editor-container .cm-foldPlaceholder {

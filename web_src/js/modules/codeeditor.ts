@@ -140,6 +140,14 @@ async function createCodemirrorEditor(
       name: 'Svelte', extensions: ['svelte'],
       load: async () => (await import('@replit/codemirror-lang-svelte')).svelte(),
     }),
+    cm.language.LanguageDescription.of({
+      name: 'Makefile', filename: /^(GNUm|M|m)akefile$/,
+      load: async () => new cm.language.LanguageSupport(cm.language.StreamLanguage.define((await import('@codemirror/legacy-modes/mode/cmake')).cmake)),
+    }),
+    cm.language.LanguageDescription.of({
+      name: 'JSON5', extensions: ['json5', 'jsonc'],
+      load: async () => (await import('@codemirror/lang-json')).json(),
+    }),
   ];
   const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, filename);
 
