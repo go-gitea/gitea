@@ -421,16 +421,20 @@ func SignOut(ctx *context.Context) {
 		})
 	}
 
-	// Check for OIDC end_session_endpoint before destroying the session
-	redirectTo := setting.AppSubURL + "/"
-	if ctx.Doer != nil && ctx.Doer.LoginType == auth.OAuth2 {
-		if s := buildOIDCEndSessionURL(ctx, ctx.Doer); s != "" {
-			redirectTo = s
-		}
-	}
-
+	// prepare the sign-out URL before destroying the session
+	redirectTo := buildSignOutRedirectURL(ctx)
 	HandleSignOut(ctx)
 	ctx.Redirect(redirectTo)
+}
+
+func buildSignOutRedirectURL(ctx *context.Context) string {
+	// TODO: can also support REVERSE_PROXY_AUTHENTICATION logout URL in the future
+	if ctx.Doer != nil && ctx.Doer.LoginType == auth.OAuth2 {
+		if s := buildOIDCEndSessionURL(ctx, ctx.Doer); s != "" {
+			return s
+		}
+	}
+	return setting.AppSubURL + "/"
 }
 
 // SignUp render the register page

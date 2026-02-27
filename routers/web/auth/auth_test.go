@@ -5,20 +5,22 @@ package auth
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 
 	auth_model "code.gitea.io/gitea/models/auth"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/contexttest"
-
 	"github.com/markbates/goth"
 	"github.com/markbates/goth/gothic"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func addOAuth2Source(t *testing.T, authName string, cfg oauth2.Source) {
@@ -29,10 +31,10 @@ func addOAuth2Source(t *testing.T, authName string, cfg oauth2.Source) {
 		IsActive: true,
 		Cfg:      &cfg,
 	})
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
-func TestUserLogin(t *testing.T) {
+func TestWebAuthUserLogin(t *testing.T) {
 	ctx, resp := contexttest.MockContext(t, "/user/login")
 	SignIn(ctx)
 	assert.Equal(t, http.StatusOK, resp.Code)
@@ -60,7 +62,7 @@ func TestUserLogin(t *testing.T) {
 	assert.Equal(t, "/", test.RedirectURL(resp))
 }
 
-func TestSignUpOAuth2Login(t *testing.T) {
+func TestWebAuthOAuth2(t *testing.T) {
 	defer test.MockVariableValue(&setting.OAuth2Client.EnableAutoRegistration, true)()
 
 	_ = oauth2.Init(t.Context())
@@ -91,5 +93,39 @@ func TestSignUpOAuth2Login(t *testing.T) {
 		assert.Equal(t, http.StatusSeeOther, resp.Code)
 		assert.Equal(t, "/user/login", test.RedirectURL(resp))
 		assert.Contains(t, ctx.Flash.ErrorMsg, "auth.oauth.signin.error.general")
+	})
+
+	t.Run("OIDCLogout", func(t *testing.T) {
+		var mockServer *httptest.Server
+		mockServer = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/.well-known/openid-configuration":
+				_, _ = w.Write([]byte(`{
+				"issuer": "` + mockServer.URL + `",
+				"authorization_endpoint": "` + mockServer.URL + `/authorize",
+				"token_endpoint": "` + mockServer.URL + `/token",
+				"userinfo_endpoint": "` + mockServer.URL + `/userinfo",
+				"end_session_endpoint": "https://example.com/oidc-logout"
+			}`))
+			default:
+				http.NotFound(w, r)
+			}
+		}))
+		defer mockServer.Close()
+
+		addOAuth2Source(t, "oidc-auth-source", oauth2.Source{
+			Provider:                      "openidConnect",
+			ClientID:                      "mock-client-id",
+			OpenIDConnectAutoDiscoveryURL: mockServer.URL + "/.well-known/openid-configuration",
+		})
+		authSource, err := auth_model.GetActiveOAuth2SourceByAuthName(t.Context(), "oidc-auth-source")
+		require.NoError(t, err)
+
+		mockOpt := contexttest.MockContextOption{SessionStore: session.NewMockMemStore("dummy-sid")}
+		ctx, resp := contexttest.MockContext(t, "/user/logout", mockOpt)
+		ctx.Doer = &user_model.User{ID: 1, LoginType: auth_model.OAuth2, LoginSource: authSource.ID}
+		SignOut(ctx)
+		assert.Equal(t, http.StatusSeeOther, resp.Code)
+		assert.Equal(t, "https://example.com/oidc-logout?client_id=mock-client-id&post_logout_redirect_uri=https%3A%2F%2Ftry.gitea.io%2F", test.RedirectURL(resp))
 	})
 }
