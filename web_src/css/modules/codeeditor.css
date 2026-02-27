@@ -172,7 +172,7 @@
 
 .code-editor-container .cm-editor .cm-line ::selection,
 .code-editor-container .cm-editor .cm-line::selection {
-  color: inherit;
+  color: currentcolor;
   background-color: var(--color-primary-alpha-30);
 }
 
