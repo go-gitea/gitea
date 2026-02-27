@@ -1,6 +1,6 @@
 {{$indentStyle := $.CodeEditorConfig.IndentStyle}}
 {{$indentSize := or $.CodeEditorConfig.IndentSize 4}}
-{{$lineWrapOn := $.CodeEditorConfig.LineWrapOn}}
+{{$lineWrap := $.CodeEditorConfig.LineWrap}}
 <div class="flex-text-block code-editor-options">
 	<button type="button" class="js-code-find ui compact mini icon button" aria-label="{{ctx.Locale.Tr "editor.code_editor.find"}}">{{svg "octicon-search"}}</button>
 	<button type="button" class="js-code-command-palette ui compact mini icon button" aria-label="{{ctx.Locale.Tr "editor.code_editor.command_palette"}}">{{svg "octicon-command-palette"}}</button>
@@ -24,8 +24,8 @@
 	<div class="native-select">
 		<select class="js-line-wrap-select" aria-label="{{ctx.Locale.Tr "text_line_wrap_mode"}}">
 			<optgroup label="{{ctx.Locale.Tr "text_line_wrap_mode"}}">
-				<option{{if $lineWrapOn}} selected{{end}} value="on">{{ctx.Locale.Tr "text_line_wrap"}}</option>
-				<option{{if not $lineWrapOn}} selected{{end}} value="off">{{ctx.Locale.Tr "text_line_nowrap"}}</option>
+				<option{{if $lineWrap}} selected{{end}} value="on">{{ctx.Locale.Tr "text_line_wrap"}}</option>
+				<option{{if not $lineWrap}} selected{{end}} value="off">{{ctx.Locale.Tr "text_line_nowrap"}}</option>
 			</optgroup>
 		</select>
 	</div>

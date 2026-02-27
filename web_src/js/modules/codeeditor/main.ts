@@ -12,7 +12,8 @@ type CodeEditorConfig = {
   indent_style: string;
   indent_size?: number;
   tab_width?: number;
-  word_wrap: boolean;
+  line_wrap_extensions?: string[];
+  line_wrap: boolean;
   trim_trailing_whitespace: boolean;
 };
 
@@ -29,8 +30,8 @@ export type CodemirrorEditor = {
   };
 };
 
-function getCodeEditorConfig(input: HTMLInputElement): Omit<CodeEditorConfig, 'word_wrap'> {
-  const defaults: Omit<CodeEditorConfig, 'word_wrap'> = {indent_style: 'space', trim_trailing_whitespace: false};
+function getCodeEditorConfig(input: HTMLInputElement): CodeEditorConfig {
+  const defaults: CodeEditorConfig = {indent_style: 'space', line_wrap: false, trim_trailing_whitespace: false};
   const json = input.getAttribute('data-code-editor-config');
   if (!json) return defaults;
   try {
@@ -159,7 +160,7 @@ async function createCodemirrorEditor(
       palette.extensions,
       clickableUrls(cm),
       tabSize.of(cm.state.EditorState.tabSize.of(editorOpts.tab_width || 4)),
-      wordWrap.of(editorOpts.word_wrap ? cm.view.EditorView.lineWrapping : []),
+      wordWrap.of(editorOpts.line_wrap ? cm.view.EditorView.lineWrapping : []),
       language.of(matchedLang ? await matchedLang.load() : []),
       cm.view.EditorView.updateListener.of((update: ViewUpdate) => {
         if (update.docChanged) {
@@ -230,9 +231,9 @@ function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: Codem
   });
 }
 
-function getFileBasedOptions(filename: string, lineWrapExts: string[]): Pick<CodeEditorConfig, 'word_wrap'> {
+function getFileBasedOptions(filename: string, lineWrapExts: string[]): Pick<CodeEditorConfig, 'line_wrap'> {
   return {
-    word_wrap: lineWrapExts.includes(extname(filename)),
+    line_wrap: lineWrapExts.includes(extname(filename)),
   };
 }
 
@@ -256,17 +257,10 @@ function togglePreviewDisplay(previewable: boolean): void {
 export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {filenameInput: HTMLInputElement} | {defaultFilename: string}): Promise<CodemirrorEditor> {
   const filename = 'filenameInput' in opts ? opts.filenameInput.value : opts.defaultFilename;
   const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
-  const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
 
-  let editorOpts: CodeEditorConfig = {indent_style: 'tab', tab_width: 4, word_wrap: false, trim_trailing_whitespace: false};
   const filenameInput = 'filenameInput' in opts ? opts.filenameInput : null;
-
-  if (filenameInput) {
-    editorOpts = {
-      ...getFileBasedOptions(filename, lineWrapExts),
-      ...getCodeEditorConfig(filenameInput),
-    };
-  }
+  const editorOpts = filenameInput ? getCodeEditorConfig(filenameInput) : {indent_style: 'tab', tab_width: 4, line_wrap: false, trim_trailing_whitespace: false} as CodeEditorConfig;
+  const lineWrapExts = editorOpts.line_wrap_extensions || [];
 
   const editor = await createCodemirrorEditor(textarea, filename, editorOpts);
   setupEditorOptionListeners(textarea, editor);
@@ -292,7 +286,7 @@ async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, 
   view.dispatch({
     effects: [
       compartments.wordWrap.reconfigure(
-        fileOption.word_wrap ? cmView.EditorView.lineWrapping : [],
+        fileOption.line_wrap ? cmView.EditorView.lineWrapping : [],
       ),
       compartments.language.reconfigure(newLanguage ? await newLanguage.load() : []),
     ],

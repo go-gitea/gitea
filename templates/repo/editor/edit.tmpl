@@ -33,7 +33,6 @@
 								<div class="ui active tab tw-rounded-b" data-tab="write">
 									<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 										data-previewable-extensions="{{StringUtils.Join $.CodeEditorConfig.PreviewableExtensions ","}}"
-										data-line-wrap-extensions="{{StringUtils.Join $.CodeEditorConfig.LineWrapExtensions ","}}"
 										data-placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}"
 										{{if not .IsNewFile}}autofocus{{end}}>{{.FileContent}}</textarea>
 									<div class="editor-loading is-loading"></div>

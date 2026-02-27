@@ -69,7 +69,7 @@ func getClosestParentWithFiles(gitRepo *git.Repository, branchName, originTreePa
 type CodeEditorConfig struct {
 	PreviewableExtensions []string `json:"previewable_extensions"`
 	LineWrapExtensions    []string `json:"line_wrap_extensions"`
-	LineWrapOn            bool     `json:"line_wrap_on"`
+	LineWrap              bool     `json:"line_wrap"`
 
 	IndentStyle            string `json:"indent_style"`
 	IndentSize             int    `json:"indent_size"`
@@ -80,7 +80,7 @@ type CodeEditorConfig struct {
 func getCodeEditorConfig(ctx *context_service.Context, treePath string) (ret CodeEditorConfig) {
 	ret.PreviewableExtensions = markup.PreviewableExtensions()
 	ret.LineWrapExtensions = setting.Repository.Editor.LineWrapExtensions
-	ret.LineWrapOn = util.SliceContainsString(ret.LineWrapExtensions, path.Ext(treePath), true)
+	ret.LineWrap = util.SliceContainsString(ret.LineWrapExtensions, path.Ext(treePath), true)
 	ec, _, err := ctx.Repo.GetEditorconfig()
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
