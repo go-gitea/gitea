@@ -45,7 +45,7 @@ func OpenIDPost(ctx *context.Context) {
 	if err != nil {
 		loadSecurityData(ctx)
 
-		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &form)
+		ctx.RenderWithErrDeprecated(err.Error(), tplSettingsSecurity, &form)
 		return
 	}
 	form.Openid = id
@@ -63,7 +63,7 @@ func OpenIDPost(ctx *context.Context) {
 		if obj.URI == id {
 			loadSecurityData(ctx)
 
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &form)
 			return
 		}
 	}
@@ -73,7 +73,7 @@ func OpenIDPost(ctx *context.Context) {
 	if err != nil {
 		loadSecurityData(ctx)
 
-		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &form)
+		ctx.RenderWithErrDeprecated(err.Error(), tplSettingsSecurity, &form)
 		return
 	}
 	ctx.Redirect(url)
@@ -87,7 +87,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 	id, err := openid.Verify(fullURL)
 	if err != nil {
-		ctx.RenderWithErr(err.Error(), tplSettingsSecurity, &forms.AddOpenIDForm{
+		ctx.RenderWithErrDeprecated(err.Error(), tplSettingsSecurity, &forms.AddOpenIDForm{
 			Openid: id,
 		})
 		return
@@ -98,7 +98,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 	oid := &user_model.UserOpenID{UID: ctx.Doer.ID, URI: id}
 	if err = user_model.AddUserOpenID(ctx, oid); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &forms.AddOpenIDForm{Openid: id})
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &forms.AddOpenIDForm{Openid: id})
 			return
 		}
 		ctx.ServerError("AddUserOpenID", err)
