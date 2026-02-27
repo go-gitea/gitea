@@ -40,23 +40,15 @@ func apiError(ctx *context.Context, status int, obj any) {
 // GetTerraformState serves the latest version of the state
 func GetTerraformState(ctx *context.Context) {
 	stateName := ctx.PathParam("name")
-	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID:    ctx.Package.Owner.ID,
-		Type:       packages_model.TypeTerraform,
-		Name:       packages_model.SearchValue{ExactMatch: true, Value: stateName},
-		IsInternal: optional.Some(false),
-		Sort:       packages_model.SortCreatedDesc,
-	})
-	if err != nil {
+	pv, err := getLatestVersion(ctx, stateName)
+	if errors.Is(err, packages_model.ErrPackageNotExist) {
+		apiError(ctx, http.StatusNotFound, nil)
+		return
+	} else if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, nil)
-		return
-	}
-
-	streamState(ctx, stateName, pvs[0].Version)
+	streamState(ctx, stateName, pv.Version)
 }
 
 // GetTerraformStateBySerial serves a specific version of terraform state.
@@ -76,7 +68,6 @@ func streamState(ctx *context.Context, name, serial string) {
 		},
 		&packages_service.PackageFileInfo{
 			Filename: stateFilename,
-			//			CompositeKey: "state",
 		},
 		ctx.Req.Method,
 	)
@@ -116,6 +107,24 @@ func UploadState(ctx *context.Context) {
 		return
 	}
 
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName)
+	if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	if p != nil {
+		// Check lock
+		lock, err := getLock(ctx, p.ID)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		if lock.ID != ctx.FormString("ID") {
+			ctx.JSON(http.StatusLocked, lock)
+			return
+		}
+	}
+
 	upload, needToClose, err := ctx.UploadStream()
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -141,31 +150,6 @@ func UploadState(ctx *context.Context) {
 		return
 	}
 
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName)
-	if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-	if p != nil {
-		// Check lock
-		props, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, lockFile)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		if len(props) > 0 && props[0].Value != "" {
-			var existingLock LockInfo
-			if err := json.Unmarshal([]byte(props[0].Value), &existingLock); err != nil {
-				apiError(ctx, http.StatusInternalServerError, err)
-				return
-			}
-			if existingLock.ID != ctx.FormString("ID") {
-				apiError(ctx, http.StatusLocked, props[0].Value)
-				return
-			}
-		}
-	}
-
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -185,10 +169,9 @@ func UploadState(ctx *context.Context) {
 			PackageFileInfo: packages_service.PackageFileInfo{
 				Filename: stateFilename,
 			},
-			Creator:           ctx.Doer,
-			Data:              buf,
-			IsLead:            true,
-			OverwriteExisting: true,
+			Creator: ctx.Doer,
+			Data:    buf,
+			IsLead:  true,
 		},
 	)
 	if err != nil {
@@ -218,22 +201,15 @@ func DeleteStateBySerial(ctx *context.Context) {
 		return
 	}
 
-	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID:    ctx.Package.Owner.ID,
-		Type:       packages_model.TypeTerraform,
-		Name:       packages_model.SearchValue{ExactMatch: true, Value: ctx.PathParam("name")},
-		IsInternal: optional.Some(false),
-		Sort:       packages_model.SortCreatedDesc,
-	})
-	if err != nil {
+	pvLatest, err := getLatestVersion(ctx, ctx.PathParam("name"))
+	if errors.Is(err, packages_model.ErrPackageNotExist) {
+		apiError(ctx, http.StatusNotFound, err)
+		return
+	} else if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if len(pvs) == 0 {
-		apiError(ctx, http.StatusNotFound, nil)
-		return
-	}
-	if pvs[0].ID == pv.ID {
+	if pvLatest.ID == pv.ID {
 		apiError(ctx, http.StatusForbidden, errors.New("cannot delete the latest version"))
 		return
 	}
@@ -261,12 +237,12 @@ func DeleteState(ctx *context.Context) {
 		return
 	}
 
-	pp, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, lockFile)
+	lock, err := getLock(ctx, p.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if len(pp) > 0 && pp[0].Value != "" {
+	if lock.ID != "" {
 		apiError(ctx, http.StatusLocked, errors.New("terraform state is locked"))
 		return
 	}
@@ -346,14 +322,14 @@ func LockState(ctx *context.Context) {
 		}
 	}
 
-	props, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock")
+	currentLock, err := getLock(ctx, p.ID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	if len(props) > 0 && props[0].Value != "" {
-		apiError(ctx, http.StatusLocked, props[0].Value)
+	if currentLock.ID != "" {
+		ctx.JSON(http.StatusLocked, currentLock)
 		return
 	}
 
@@ -400,20 +376,8 @@ func UnlockState(ctx *context.Context) {
 		return
 	}
 
-	props, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock")
+	existingLock, err := getLock(ctx, p.ID)
 	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	// If there are no properties or the property is empty, it should be unlocked
-	if len(props) == 0 || props[0].Value == "" {
-		ctx.Status(http.StatusOK)
-		return
-	}
-
-	var existingLock LockInfo
-	if err := json.Unmarshal([]byte(props[0].Value), &existingLock); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -437,4 +401,35 @@ func UnlockState(ctx *context.Context) {
 	}
 
 	ctx.Status(http.StatusOK)
+}
+
+func getLock(ctx *context.Context, packageID int64) (LockInfo, error) {
+	var lock LockInfo
+	locks, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, packageID, lockFile)
+	if err != nil {
+		return lock, err
+	}
+	if len(locks) == 0 || locks[0].Value == "" {
+		return lock, nil
+	}
+
+	err = json.Unmarshal([]byte(locks[0].Value), &lock)
+	return lock, err
+}
+
+func getLatestVersion(ctx *context.Context, packageName string) (*packages_model.PackageVersion, error) {
+	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeTerraform,
+		Name:       packages_model.SearchValue{ExactMatch: true, Value: packageName},
+		IsInternal: optional.Some(false),
+		Sort:       packages_model.SortCreatedDesc,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(pvs) == 0 {
+		return nil, packages_model.ErrPackageNotExist
+	}
+	return pvs[0], nil
 }
