@@ -148,7 +148,7 @@ function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>) {
 
       this.input = document.createElement('input');
       this.input.className = 'cm-command-palette-input';
-      this.input.placeholder = this.view.state.phrase('Type a command...');
+      this.input.placeholder = 'Type a command...';
       this.input.addEventListener('input', () => this.filter());
       this.input.addEventListener('keydown', (e) => this.handleKey(e));
 
@@ -172,7 +172,7 @@ function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>) {
     filter() {
       const q = this.input!.value.toLowerCase();
       this.filtered = q ?
-        commands.filter((cmd) => this.view.state.phrase(cmd.label).toLowerCase().includes(q)) :
+        commands.filter((cmd) => cmd.label.toLowerCase().includes(q)) :
         commands;
       this.selectedIndex = 0;
       this.renderList();
@@ -184,7 +184,7 @@ function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>) {
       this.list.textContent = '';
 
       for (const [index, cmd] of this.filtered.entries()) {
-        const translated = this.view.state.phrase(cmd.label);
+        const translated = cmd.label;
         const item = document.createElement('div');
         item.className = 'cm-command-palette-item';
         item.setAttribute('role', 'option');
@@ -443,7 +443,6 @@ async function createCodemirrorEditor(
       cm.commands.history(),
       commandPalette(cm),
       clickableLinks(cm),
-      cm.state.EditorState.phrases.of(JSON.parse(textarea.getAttribute('data-phrases')!)),
       tabSize.of(cm.state.EditorState.tabSize.of(editorOpts.tabSize || 4)),
       wordWrap.of(editorOpts.wordWrap ? cm.view.EditorView.lineWrapping : []),
       language.of(matchedLang ? await matchedLang.load() : []),

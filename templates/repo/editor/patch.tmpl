@@ -32,7 +32,6 @@
 					<div class="ui active tab tw-rounded-b" data-tab="write">
 						<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-patch"
 							data-context="{{.RepoLink}}"
-							data-phrases="{{JsonUtils.EncodeToString $.CodeEditorPhrases}}"
 							data-placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}">{{.FileContent}}</textarea>
 						<div class="editor-loading is-loading"></div>
 					</div>

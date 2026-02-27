@@ -94,65 +94,6 @@ func getCodeEditorConfig(ctx *context_service.Context, treePath string) (ret Cod
 	return ret
 }
 
-// CodeEditorPhrases returns a map of CodeMirror phrase keys to translated strings.
-// The keys must match the exact phrases used by CodeMirror's built-in extensions.
-func CodeEditorPhrases(ctx *context_service.Context) map[string]string {
-	return map[string]string{
-		"Find":                     ctx.Locale.TrString("editor.code_editor.find"),
-		"Replace":                  ctx.Locale.TrString("editor.code_editor.replace"),
-		"next":                     ctx.Locale.TrString("editor.code_editor.next"),
-		"previous":                 ctx.Locale.TrString("editor.code_editor.previous"),
-		"all":                      ctx.Locale.TrString("editor.code_editor.all"),
-		"match case":               ctx.Locale.TrString("editor.code_editor.match_case"),
-		"regexp":                   ctx.Locale.TrString("editor.code_editor.regexp"),
-		"by word":                  ctx.Locale.TrString("editor.code_editor.by_word"),
-		"replace":                  ctx.Locale.TrString("editor.code_editor.replace_one"),
-		"replace all":              ctx.Locale.TrString("editor.code_editor.replace_all"),
-		"close":                    ctx.Locale.TrString("editor.code_editor.close"),
-		"current match":            ctx.Locale.TrString("editor.code_editor.current_match"),
-		"on line":                  ctx.Locale.TrString("editor.code_editor.on_line"),
-		"Go to line":               ctx.Locale.TrString("editor.code_editor.go_to_line"),
-		"go":                       ctx.Locale.TrString("editor.code_editor.go"),
-		"replaced match on line $": ctx.Locale.TrString("editor.code_editor.replaced_match_on_line"),
-		"replaced $ matches":       ctx.Locale.TrString("editor.code_editor.replaced_matches"),
-		"Control character":        ctx.Locale.TrString("editor.code_editor.control_character"),
-		"Completions":              ctx.Locale.TrString("editor.code_editor.completions"),
-		"Folded lines":             ctx.Locale.TrString("editor.code_editor.folded_lines"),
-		"Unfolded lines":           ctx.Locale.TrString("editor.code_editor.unfolded_lines"),
-		"to":                       ctx.Locale.TrString("editor.code_editor.to"),
-		"folded code":              ctx.Locale.TrString("editor.code_editor.folded_code"),
-		"unfold":                   ctx.Locale.TrString("editor.code_editor.unfold"),
-		"Fold line":                ctx.Locale.TrString("editor.code_editor.fold_line"),
-		"Unfold line":              ctx.Locale.TrString("editor.code_editor.unfold_line"),
-		"Selection deleted":        ctx.Locale.TrString("editor.code_editor.selection_deleted"),
-
-		// command palette
-		"Type a command...":        ctx.Locale.TrString("editor.code_editor.type_a_command"),
-		"Undo":                     ctx.Locale.TrString("editor.code_editor.undo"),
-		"Redo":                     ctx.Locale.TrString("editor.code_editor.redo"),
-		"Select All":               ctx.Locale.TrString("editor.code_editor.select_all"),
-		"Delete Line":              ctx.Locale.TrString("editor.code_editor.delete_line"),
-		"Move Line Up":             ctx.Locale.TrString("editor.code_editor.move_line_up"),
-		"Move Line Down":           ctx.Locale.TrString("editor.code_editor.move_line_down"),
-		"Copy Line Up":             ctx.Locale.TrString("editor.code_editor.copy_line_up"),
-		"Copy Line Down":           ctx.Locale.TrString("editor.code_editor.copy_line_down"),
-		"Toggle Comment":           ctx.Locale.TrString("editor.code_editor.toggle_comment"),
-		"Insert Blank Line":        ctx.Locale.TrString("editor.code_editor.insert_blank_line"),
-		"Add Cursor Above":         ctx.Locale.TrString("editor.code_editor.add_cursor_above"),
-		"Add Cursor Below":         ctx.Locale.TrString("editor.code_editor.add_cursor_below"),
-		"Add Next Occurrence":      ctx.Locale.TrString("editor.code_editor.add_next_occurrence"),
-		"Go to Matching Bracket":   ctx.Locale.TrString("editor.code_editor.go_to_matching_bracket"),
-		"Indent More":              ctx.Locale.TrString("editor.code_editor.indent_more"),
-		"Indent Less":              ctx.Locale.TrString("editor.code_editor.indent_less"),
-		"Fold Code":                ctx.Locale.TrString("editor.code_editor.fold_code"),
-		"Unfold Code":              ctx.Locale.TrString("editor.code_editor.unfold_code"),
-		"Fold All":                 ctx.Locale.TrString("editor.code_editor.fold_all"),
-		"Unfold All":               ctx.Locale.TrString("editor.code_editor.unfold_all"),
-		"Trigger Autocomplete":     ctx.Locale.TrString("editor.code_editor.trigger_autocomplete"),
-		"Trim Trailing Whitespace": ctx.Locale.TrString("editor.code_editor.trim_trailing_whitespace"),
-	}
-}
-
 // getParentTreeFields returns list of parent tree names and corresponding tree paths based on given treePath.
 // eg: []{"a", "b", "c"}, []{"a", "a/b", "a/b/c"}
 // or: []{""}, []{""} for the root treePath

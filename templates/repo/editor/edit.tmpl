@@ -34,7 +34,6 @@
 									<textarea id="edit_area" name="content" class="tw-hidden" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
 										data-previewable-extensions="{{StringUtils.Join $.CodeEditorConfig.PreviewableExtensions ","}}"
 										data-line-wrap-extensions="{{StringUtils.Join $.CodeEditorConfig.LineWrapExtensions ","}}"
-										data-phrases="{{JsonUtils.EncodeToString $.CodeEditorPhrases}}"
 										data-placeholder="{{ctx.Locale.Tr "editor.code_editor.placeholder"}}"
 										{{if not .IsNewFile}}data-autofocus{{end}}>{{.FileContent}}</textarea>
 									<div class="editor-loading is-loading"></div>
