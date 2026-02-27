@@ -711,14 +711,17 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		ctx.APIErrorInternal(err)
 		return
 	}
-	bypassAllowlistUsers, err := user_model.GetUserIDsByNames(ctx, form.BypassAllowlistUsernames, false)
-	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
-			ctx.APIError(http.StatusUnprocessableEntity, err)
+	var bypassAllowlistUsers []int64
+	if form.EnableBypassAllowlist {
+		bypassAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.BypassAllowlistUsernames, false)
+		if err != nil {
+			if user_model.IsErrUserNotExist(err) {
+				ctx.APIError(http.StatusUnprocessableEntity, err)
+				return
+			}
+			ctx.APIErrorInternal(err)
 			return
 		}
-		ctx.APIErrorInternal(err)
-		return
 	}
 	var whitelistTeams, forcePushAllowlistTeams, mergeWhitelistTeams, approvalsWhitelistTeams, bypassAllowlistTeams []int64
 	if repo.Owner.IsOrganization() {
@@ -758,14 +761,16 @@ func CreateBranchProtection(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
-		bypassAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.BypassAllowlistTeams, false)
-		if err != nil {
-			if organization.IsErrTeamNotExist(err) {
-				ctx.APIError(http.StatusUnprocessableEntity, err)
+		if form.EnableBypassAllowlist {
+			bypassAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.BypassAllowlistTeams, false)
+			if err != nil {
+				if organization.IsErrTeamNotExist(err) {
+					ctx.APIError(http.StatusUnprocessableEntity, err)
+					return
+				}
+				ctx.APIErrorInternal(err)
 				return
 			}
-			ctx.APIErrorInternal(err)
-			return
 		}
 	}
 
@@ -1036,7 +1041,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	} else {
 		approvalsWhitelistUsers = protectBranch.ApprovalsWhitelistUserIDs
 	}
-	if form.BypassAllowlistUsernames != nil {
+	if form.BypassAllowlistUsernames != nil && protectBranch.EnableBypassAllowlist {
 		bypassAllowlistUsers, err = user_model.GetUserIDsByNames(ctx, form.BypassAllowlistUsernames, false)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -1046,6 +1051,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 			ctx.APIErrorInternal(err)
 			return
 		}
+	} else if !protectBranch.EnableBypassAllowlist {
+		bypassAllowlistUsers = nil
 	} else {
 		bypassAllowlistUsers = protectBranch.BypassAllowlistUserIDs
 	}
@@ -1104,7 +1111,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		} else {
 			approvalsWhitelistTeams = protectBranch.ApprovalsWhitelistTeamIDs
 		}
-		if form.BypassAllowlistTeams != nil {
+		if form.BypassAllowlistTeams != nil && protectBranch.EnableBypassAllowlist {
 			bypassAllowlistTeams, err = organization.GetTeamIDsByNames(ctx, repo.OwnerID, form.BypassAllowlistTeams, false)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
@@ -1114,6 +1121,8 @@ func EditBranchProtection(ctx *context.APIContext) {
 				ctx.APIErrorInternal(err)
 				return
 			}
+		} else if !protectBranch.EnableBypassAllowlist {
+			bypassAllowlistTeams = nil
 		} else {
 			bypassAllowlistTeams = protectBranch.BypassAllowlistTeamIDs
 		}

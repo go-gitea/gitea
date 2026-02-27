@@ -16,6 +16,8 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/cachegroup"
 	"code.gitea.io/gitea/modules/glob"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -230,9 +232,12 @@ func CanBypassBranchProtection(ctx context.Context, protectBranch *ProtectedBran
 		return false
 	}
 
-	in, err := organization.IsUserInTeams(ctx, user.ID, protectBranch.BypassAllowlistTeamIDs)
+	cacheKey := fmt.Sprintf("%d:%d:%v", user.ID, protectBranch.RepoID, protectBranch.BypassAllowlistTeamIDs)
+	in, err := cache.GetWithContextCache(ctx, cachegroup.BypassAllowlist, cacheKey, func(ctx context.Context, _ string) (bool, error) {
+		return organization.IsUserInTeams(ctx, user.ID, protectBranch.BypassAllowlistTeamIDs)
+	})
 	if err != nil {
-		log.Error("IsUserInTeams: %v", err)
+		log.Error("IsUserInTeams failed: userID=%d, repoID=%d, allowlistTeamIDs=%v, err=%v", user.ID, protectBranch.RepoID, protectBranch.BypassAllowlistTeamIDs, err)
 		return false
 	}
 	return in

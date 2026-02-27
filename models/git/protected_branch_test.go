@@ -188,4 +188,17 @@ func TestCanBypassBranchProtection(t *testing.T) {
 	// Blocked admin can bypass when allowlisted.
 	pb.BypassAllowlistUserIDs = []int64{user.ID}
 	assert.True(t, CanBypassBranchProtection(ctx, pb, user, true))
+
+	teamMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	nonTeamMember := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+
+	// User bypasses via team allowlist membership.
+	pb.EnableBypassAllowlist = true
+	pb.BlockAdminMergeOverride = false
+	pb.BypassAllowlistUserIDs = nil
+	pb.BypassAllowlistTeamIDs = []int64{1} // team 1 contains user 2 in test fixtures
+	assert.True(t, CanBypassBranchProtection(ctx, pb, teamMember, false))
+
+	// User does not bypass when not in allowlisted teams.
+	assert.False(t, CanBypassBranchProtection(ctx, pb, nonTeamMember, false))
 }
