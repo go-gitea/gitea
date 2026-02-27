@@ -264,18 +264,10 @@ func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) (*
 	if !issue.IsPull {
 		return nil, nil
 	}
-	var compareInfo *git_service.CompareInfo
 	if issue.PullRequest.HasMerged {
-		compareInfo = prepareMergedViewPullInfo(ctx, issue)
-	} else {
-		compareInfo = prepareViewPullInfo(ctx, issue)
+		return prepareMergedViewPullInfo(ctx, issue), nil
 	}
-	mergeInputs := &pullViewMergeInputs{}
-	mergeInputs.PullHeadCommitID, _ = ctx.Data["PullHeadCommitID"].(string)
-	mergeInputs.HeadTarget, _ = ctx.Data["HeadTarget"].(string)
-	mergeInputs.GetCommitMessages, _ = ctx.Data["GetCommitMessages"].(string)
-	mergeInputs.StatusCheckData, _ = ctx.Data["StatusCheckData"].(*pullCommitStatusCheckData)
-	return compareInfo, mergeInputs
+	return prepareViewPullInfo(ctx, issue)
 }
 
 // prepareMergedViewPullInfo show meta information for a merged pull request view page
@@ -382,7 +374,7 @@ func getViewPullHeadBranchInfo(ctx *context.Context, pull *issues_model.PullRequ
 }
 
 // prepareViewPullInfo show meta information for a pull request preview page
-func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_service.CompareInfo {
+func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) (compareInfo *git_service.CompareInfo, mergeInputs *pullViewMergeInputs) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 
 	repo := ctx.Repo.Repository
@@ -390,12 +382,12 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 
 	if err := pull.LoadHeadRepo(ctx); err != nil {
 		ctx.ServerError("LoadHeadRepo", err)
-		return nil
+		return compareInfo, mergeInputs
 	}
 
 	if err := pull.LoadBaseRepo(ctx); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
-		return nil
+		return compareInfo, mergeInputs
 	}
 
 	setMergeTarget(ctx, pull)
@@ -403,7 +395,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, repo.ID, pull.BaseBranch)
 	if err != nil {
 		ctx.ServerError("LoadProtectedBranch", err)
-		return nil
+		return compareInfo, mergeInputs
 	}
 	ctx.Data["EnableStatusCheck"] = pb != nil && pb.EnableStatusCheck
 
@@ -414,7 +406,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		baseGitRepo, err := gitrepo.OpenRepository(ctx, pull.BaseRepo)
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
-			return nil
+			return compareInfo, mergeInputs
 		}
 		defer baseGitRepo.Close()
 	}
@@ -430,12 +422,12 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		sha, err := baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
 		if err != nil {
 			ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitHeadRefName()), err)
-			return nil
+			return compareInfo, mergeInputs
 		}
 		commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptionsAll)
 		if err != nil {
 			ctx.ServerError("GetLatestCommitStatus", err)
-			return nil
+			return compareInfo, mergeInputs
 		}
 		if !ctx.Repo.CanRead(unit.TypeActions) {
 			git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
@@ -447,7 +439,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 			ctx.Data["LatestCommitStatus"] = statusCheckData.LatestCommitStatus
 		}
 
-		compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
+		ci, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
 			git.RefName(pull.MergeBase), git.RefName(pull.GetGitHeadRefName()), false, false)
 		if err != nil {
 			if gitcmd.IsStdErrorNotValidObjectName(err) {
@@ -455,34 +447,34 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 				ctx.Data["BaseTarget"] = pull.BaseBranch
 				ctx.Data["NumCommits"] = 0
 				ctx.Data["NumFiles"] = 0
-				return nil
+				return compareInfo, mergeInputs
 			}
 
 			ctx.ServerError("GetCompareInfo", err)
-			return nil
+			return compareInfo, mergeInputs
 		}
 
-		ctx.Data["NumCommits"] = len(compareInfo.Commits)
-		ctx.Data["NumFiles"] = compareInfo.NumFiles
-		return compareInfo
+		ctx.Data["NumCommits"] = len(ci.Commits)
+		ctx.Data["NumFiles"] = ci.NumFiles
+		compareInfo = ci
+		return compareInfo, mergeInputs
 	}
 
 	headBranchSha, headBranchExist, err := getViewPullHeadBranchInfo(ctx, pull, baseGitRepo)
 	if err != nil {
 		ctx.ServerError("getViewPullHeadBranchInfo", err)
-		return nil
+		return compareInfo, mergeInputs
 	}
 
+	var getCommitMessages string
 	if headBranchExist {
 		var err error
 		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(ctx, pull, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
-			return nil
+			return compareInfo, mergeInputs
 		}
-		ctx.Data["GetCommitMessages"] = pull_service.GetSquashMergeCommitMessages(ctx, pull)
-	} else {
-		ctx.Data["GetCommitMessages"] = ""
+		getCommitMessages = pull_service.GetSquashMergeCommitMessages(ctx, pull)
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitHeadRefName())
@@ -499,10 +491,10 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 			ctx.Data["BaseTarget"] = pull.BaseBranch
 			ctx.Data["NumCommits"] = 0
 			ctx.Data["NumFiles"] = 0
-			return nil
+			return compareInfo, mergeInputs
 		}
 		ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitHeadRefName()), err)
-		return nil
+		return compareInfo, mergeInputs
 	}
 
 	ctx.Data["StatusCheckData"] = statusCheckData
@@ -511,7 +503,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 	commitStatuses, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptionsAll)
 	if err != nil {
 		ctx.ServerError("GetLatestCommitStatus", err)
-		return nil
+		return compareInfo, mergeInputs
 	}
 	if !ctx.Repo.CanRead(unit.TypeActions) {
 		git_model.CommitStatusesHideActionsURL(ctx, commitStatuses)
@@ -520,7 +512,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 	runs, err := actions_service.GetRunsFromCommitStatuses(ctx, commitStatuses)
 	if err != nil {
 		ctx.ServerError("GetRunsFromCommitStatuses", err)
-		return nil
+		return compareInfo, mergeInputs
 	}
 	for _, run := range runs {
 		if run.NeedApproval {
@@ -589,7 +581,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		}
 	}
 
-	compareInfo, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
+	ci, err := git_service.GetCompareInfo(ctx, pull.BaseRepo, pull.BaseRepo, baseGitRepo,
 		git.RefNameFromBranch(pull.BaseBranch), git.RefName(pull.GetGitHeadRefName()), false, false)
 	if err != nil {
 		if gitcmd.IsStdErrorNotValidObjectName(err) {
@@ -597,14 +589,14 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 			ctx.Data["BaseTarget"] = pull.BaseBranch
 			ctx.Data["NumCommits"] = 0
 			ctx.Data["NumFiles"] = 0
-			return nil
+			return compareInfo, mergeInputs
 		}
 
 		ctx.ServerError("GetCompareInfo", err)
-		return nil
+		return compareInfo, mergeInputs
 	}
 
-	if compareInfo.HeadCommitID == compareInfo.MergeBase {
+	if ci.HeadCommitID == ci.MergeBase {
 		ctx.Data["IsNothingToCompare"] = true
 	}
 
@@ -618,9 +610,16 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_s
 		ctx.Data["ConflictedFiles"] = pull.ConflictedFiles
 	}
 
-	ctx.Data["NumCommits"] = len(compareInfo.Commits)
-	ctx.Data["NumFiles"] = compareInfo.NumFiles
-	return compareInfo
+	ctx.Data["NumCommits"] = len(ci.Commits)
+	ctx.Data["NumFiles"] = ci.NumFiles
+	compareInfo = ci
+	mergeInputs = &pullViewMergeInputs{
+		PullHeadCommitID:  sha,
+		HeadTarget:        ctx.Data["HeadTarget"].(string),
+		GetCommitMessages: getCommitMessages,
+		StatusCheckData:   statusCheckData,
+	}
+	return compareInfo, mergeInputs
 }
 
 func createRequiredContextMatcher(requiredContext string) func(string) bool {
