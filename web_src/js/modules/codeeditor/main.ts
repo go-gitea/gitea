@@ -260,37 +260,35 @@ function togglePreviewDisplay(previewable: boolean): void {
   }
 }
 
-export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameInput?: HTMLInputElement | string): Promise<CodemirrorEditor> {
-  const filename = basename(typeof filenameInput === 'string' ? filenameInput : filenameInput?.value || '');
+export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {filenameInput?: HTMLInputElement, defaultFilename?: string}): Promise<CodemirrorEditor> {
+  const filename = opts.filenameInput?.value ?? opts.defaultFilename!;
   const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
   const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
 
-  let editorOpts: EditorOptions;
-  if (typeof filenameInput === 'object') {
-    const editorConfig = getCodeEditorConfig(filenameInput);
-    togglePreviewDisplay(previewableExts.has(extname(filename)));
+  let editorOpts: EditorOptions = {indentStyle: 'tab', tabSize: 4, wordWrap: false, trimTrailingWhitespace: false};
+
+  if (opts.filenameInput) {
+    const editorConfig = getCodeEditorConfig(opts.filenameInput);
     const configOpts = getEditorConfigOptions(editorConfig);
     editorOpts = {
-      ...getFileBasedOptions(filenameInput.value, lineWrapExts),
+      ...getFileBasedOptions(filename, lineWrapExts),
       indentStyle: configOpts.indentStyle || 'space',
       trimTrailingWhitespace: false,
       ...configOpts,
     };
-  } else {
-    editorOpts = {indentStyle: 'tab', tabSize: 4, wordWrap: false, trimTrailingWhitespace: false};
   }
 
   const editor = await createCodemirrorEditor(textarea, filename, editorOpts);
+  setupEditorOptionListeners(textarea, editor);
 
-  if (typeof filenameInput === 'object') {
-    filenameInput.addEventListener('input', onInputDebounce(async () => {
-      const newFilename = filenameInput.value;
+  if (opts.filenameInput) {
+    togglePreviewDisplay(previewableExts.has(extname(filename)));
+    opts.filenameInput.addEventListener('input', onInputDebounce(async () => {
+      const newFilename = opts.filenameInput!.value;
       togglePreviewDisplay(previewableExts.has(extname(newFilename)));
       await updateEditorLanguage(editor, newFilename, lineWrapExts);
     }));
   }
-
-  setupEditorOptionListeners(textarea, editor);
 
   return editor;
 }

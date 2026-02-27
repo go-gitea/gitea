@@ -169,7 +169,7 @@ export function initRepoEditor() {
   initEditPreviewTab(elForm);
 
   (async () => {
-    const editor = await createCodeEditor(editArea, filenameInput);
+    const editor = await createCodeEditor(editArea, {filenameInput});
 
     if (editArea.hasAttribute('data-autofocus')) {
       editor.view.focus();
