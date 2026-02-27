@@ -46,12 +46,6 @@ function getCodeEditorConfig(input: HTMLInputElement): CodeEditorConfig | null {
   }
 }
 
-// export editor for customization - https://github.com/go-gitea/gitea/issues/10409
-function exportEditor(editor: EditorView): void {
-  if (!window.codeEditors) window.codeEditors = [];
-  if (!window.codeEditors.includes(editor)) window.codeEditors.push(editor);
-}
-
 export async function importCodemirror() {
   const [view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers, vscodeKeymap] = await Promise.all([
     import(/* webpackChunkName: "codemirror" */ '@codemirror/view'),
@@ -180,8 +174,6 @@ async function createCodemirrorEditor(
       }),
     ],
   });
-
-  exportEditor(view);
 
   const loading = document.querySelector('.editor-loading');
   if (loading) loading.remove();
