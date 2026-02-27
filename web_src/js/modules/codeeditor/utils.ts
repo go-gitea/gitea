@@ -32,7 +32,7 @@ export function trimUrlPunctuation(url: string): string {
 export function findUrlAtPosition(doc: string, pos: number): string | null {
   for (const match of doc.matchAll(urlRawRegex)) {
     const url = trimUrlPunctuation(match[0]);
-    if (pos >= match.index && pos <= match.index + url.length) {
+    if (match.index !== undefined && pos >= match.index && pos <= match.index + url.length) {
       return url;
     }
   }
