@@ -1,0 +1,11 @@
+{{template "devtest/devtest-header"}}
+<div class="page-content devtest">
+	<div class="ui container">
+		<div class="ui message">
+			<p>Runner settings mock page for enable/disable UI verification.</p>
+			<p>Use <a href="{{AppSubUrl}}/devtest/runner-edit/disable">/disable</a> and <a href="{{AppSubUrl}}/devtest/runner-edit/enable">/enable</a> to preview both states.</p>
+		</div>
+		{{template "shared/actions/runner_edit" .}}
+	</div>
+</div>
+{{template "devtest/devtest-footer"}}
