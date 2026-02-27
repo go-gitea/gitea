@@ -222,7 +222,8 @@
 						<div class="divider"></div>
 						{{$generalHideAutoMerge := and $canMergeNow (not $notAllOverridableChecksOk)}}
 						{{$showGeneralMergeForm = true}}
-						<div id="pull-request-merge-form" data-merge-form="{{JsonUtils.EncodeToString (dict
+						{{/* The merge form is a Vue component. After mounted, it has a button for choosing merge style, so make it have min-height to avoid layout shifting */}}
+						<div id="pull-request-merge-form" class="tw-min-h-[40px]" data-merge-form="{{JsonUtils.EncodeToString (dict
 							"baseLink" .Issue.Link
 							"textCancel" (ctx.Locale.Tr "cancel")
 							"textDeleteBranch" (ctx.Locale.Tr "repo.branch.delete" .HeadTarget)

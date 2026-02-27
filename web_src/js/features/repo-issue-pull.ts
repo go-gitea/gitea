@@ -1,5 +1,4 @@
 import {createApp} from 'vue';
-import PullRequestMergeForm from '../components/PullRequestMergeForm.vue';
 import {GET, POST} from '../modules/fetch.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {createElementFromHTML} from '../utils/dom.ts';
@@ -63,10 +62,11 @@ function initRepoPullRequestCommitStatus(el: HTMLElement) {
   }
 }
 
-function initRepoPullRequestMergeForm(box: HTMLElement) {
+async function initRepoPullRequestMergeForm(box: HTMLElement) {
   const el = box.querySelector<HTMLElement>('#pull-request-merge-form');
   if (!el) return;
 
+  const {default: PullRequestMergeForm} = await import(/* webpackChunkName: "PullRequestMergeForm" */ '../components/PullRequestMergeForm.vue');
   const view = createApp(PullRequestMergeForm, {elRoot: el});
   view.mount(el);
 }
