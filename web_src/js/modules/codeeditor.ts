@@ -129,28 +129,16 @@ async function createCodemirrorEditor(
   const languageDescriptions = [
     ...cm.languageData.languages,
     cm.language.LanguageDescription.of({
-      name: 'Elixir',
-      extensions: ['ex', 'exs'],
-      async load() {
-        const m = await import('codemirror-lang-elixir');
-        return m.elixir();
-      },
+      name: 'Elixir', extensions: ['ex', 'exs'],
+      load: async () => (await import('codemirror-lang-elixir')).elixir(),
     }),
     cm.language.LanguageDescription.of({
-      name: 'Nix',
-      extensions: ['nix'],
-      async load() {
-        const m = await import('@replit/codemirror-lang-nix');
-        return m.nix();
-      },
+      name: 'Nix', extensions: ['nix'],
+      load: async () => (await import('@replit/codemirror-lang-nix')).nix(),
     }),
     cm.language.LanguageDescription.of({
-      name: 'Svelte',
-      extensions: ['svelte'],
-      async load() {
-        const m = await import('@replit/codemirror-lang-svelte');
-        return m.svelte();
-      },
+      name: 'Svelte', extensions: ['svelte'],
+      load: async () => (await import('@replit/codemirror-lang-svelte')).svelte(),
     }),
   ];
   const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, filename);
