@@ -220,6 +220,70 @@
         }
       }
     },
+    "/admin/actions/runners/{runner_id}/disable": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Disable a global runner",
+        "operationId": "disableAdminRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/admin/actions/runners/{runner_id}/enable": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "admin"
+        ],
+        "summary": "Enable a global runner",
+        "operationId": "enableAdminRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/admin/actions/runs": {
       "get": {
         "produces": [
@@ -2164,6 +2228,84 @@
         "responses": {
           "204": {
             "description": "runner has been deleted"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/actions/runners/{runner_id}/disable": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Disable an org-level runner",
+        "operationId": "disableOrgRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/orgs/{org}/actions/runners/{runner_id}/enable": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Enable an org-level runner",
+        "operationId": "enableOrgRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -5069,7 +5211,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get an repo-level runner",
+        "summary": "Get a repo-level runner",
         "operationId": "getRepoRunner",
         "parameters": [
           {
@@ -5113,7 +5255,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Delete an repo-level runner",
+        "summary": "Delete a repo-level runner",
         "operationId": "deleteRepoRunner",
         "parameters": [
           {
@@ -5141,6 +5283,98 @@
         "responses": {
           "204": {
             "description": "runner has been deleted"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runners/{runner_id}/disable": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Disable a repo-level runner",
+        "operationId": "disableRepoRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/actions/runners/{runner_id}/enable": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Enable a repo-level runner",
+        "operationId": "enableRepoRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -18515,7 +18749,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Get an user-level runner",
+        "summary": "Get a user-level runner",
         "operationId": "getUserRunner",
         "parameters": [
           {
@@ -18545,7 +18779,7 @@
         "tags": [
           "user"
         ],
-        "summary": "Delete an user-level runner",
+        "summary": "Delete a user-level runner",
         "operationId": "deleteUserRunner",
         "parameters": [
           {
@@ -18559,6 +18793,70 @@
         "responses": {
           "204": {
             "description": "runner has been deleted"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/actions/runners/{runner_id}/disable": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Disable a user-level runner",
+        "operationId": "disableUserRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/actions/runners/{runner_id}/enable": {
+      "put": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Enable a user-level runner",
+        "operationId": "enableUserRunner",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "id of the runner",
+            "name": "runner_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/definitions/ActionRunner"
           },
           "400": {
             "$ref": "#/responses/error"
@@ -21150,6 +21448,10 @@
         "busy": {
           "type": "boolean",
           "x-go-name": "Busy"
+        },
+        "disabled": {
+          "type": "boolean",
+          "x-go-name": "Disabled"
         },
         "ephemeral": {
           "type": "boolean",

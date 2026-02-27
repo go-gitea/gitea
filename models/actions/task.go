@@ -231,6 +231,10 @@ func makeTaskStepDisplayName(step *jobparser.Step, limit int) (name string) {
 }
 
 func CreateTaskForRunner(ctx context.Context, runner *ActionRunner) (*ActionTask, bool, error) {
+	if runner.IsDisabled {
+		return nil, false, nil
+	}
+
 	ctx, committer, err := db.TxContext(ctx)
 	if err != nil {
 		return nil, false, err

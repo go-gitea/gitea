@@ -456,6 +456,8 @@ func registerWebRoutes(m *web.Router) {
 			m.Get("", shared_actions.Runners)
 			m.Combo("/{runnerid}").Get(shared_actions.RunnersEdit).
 				Post(web.Bind(forms.EditRunnerForm{}), shared_actions.RunnersEditPost)
+			m.Post("/{runnerid}/disable", shared_actions.RunnerDisablePost)
+			m.Post("/{runnerid}/enable", shared_actions.RunnerEnablePost)
 			m.Post("/{runnerid}/delete", shared_actions.RunnerDeletePost)
 			m.Post("/reset_registration_token", shared_actions.ResetRunnerRegistrationToken)
 		})

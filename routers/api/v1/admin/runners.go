@@ -102,3 +102,49 @@ func DeleteRunner(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 	shared.DeleteRunner(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
 }
+
+// DisableRunner disable a global runner
+func DisableRunner(ctx *context.APIContext) {
+	// swagger:operation PUT /admin/actions/runners/{runner_id}/disable admin disableAdminRunner
+	// ---
+	// summary: Disable a global runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.DisableRunner(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
+}
+
+// EnableRunner enable a global runner
+func EnableRunner(ctx *context.APIContext) {
+	// swagger:operation PUT /admin/actions/runners/{runner_id}/enable admin enableAdminRunner
+	// ---
+	// summary: Enable a global runner
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: runner_id
+	//   in: path
+	//   description: id of the runner
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/definitions/ActionRunner"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	shared.EnableRunner(ctx, 0, 0, ctx.PathParamInt64("runner_id"))
+}

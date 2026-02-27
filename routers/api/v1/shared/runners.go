@@ -125,3 +125,32 @@ func DeleteRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
 	}
 	ctx.Status(http.StatusNoContent)
 }
+
+func updateRunnerDisabled(ctx *context.APIContext, ownerID, repoID, runnerID int64, isDisabled bool) {
+	runner, ok := getRunnerByID(ctx, ownerID, repoID, runnerID)
+	if !ok {
+		return
+	}
+
+	if runner.IsDisabled == isDisabled {
+		ctx.JSON(http.StatusOK, convert.ToActionRunner(ctx, runner))
+		return
+	}
+
+	if err := actions_model.SetRunnerDisabled(ctx, runner, isDisabled); err != nil {
+		ctx.APIErrorInternal(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToActionRunner(ctx, runner))
+}
+
+// DisableRunner disables a runner for api route validated ownerID and repoID.
+func DisableRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
+	updateRunnerDisabled(ctx, ownerID, repoID, runnerID, true)
+}
+
+// EnableRunner enables a runner for api route validated ownerID and repoID.
+func EnableRunner(ctx *context.APIContext, ownerID, repoID, runnerID int64) {
+	updateRunnerDisabled(ctx, ownerID, repoID, runnerID, false)
+}

@@ -24,6 +24,10 @@ func PickTask(ctx context.Context, runner *actions_model.ActionRunner) (*runnerv
 		actionTask *actions_model.ActionTask
 	)
 
+	if runner.IsDisabled {
+		return nil, false, nil
+	}
+
 	if runner.Ephemeral {
 		var task actions_model.ActionTask
 		has, err := db.GetEngine(ctx).Where("runner_id = ?", runner.ID).Get(&task)

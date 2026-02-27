@@ -196,6 +196,7 @@ type ActionRunner struct {
 	Name      string               `json:"name"`
 	Status    string               `json:"status"`
 	Busy      bool                 `json:"busy"`
+	Disabled  bool                 `json:"disabled"`
 	Ephemeral bool                 `json:"ephemeral"`
 	Labels    []*ActionRunnerLabel `json:"labels"`
 }
