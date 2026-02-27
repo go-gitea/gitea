@@ -1,5 +1,6 @@
 import type {EditorView} from '@codemirror/view';
 import type {importCodemirror} from './main.ts';
+import {isMac, keySymbols} from '../../utils.ts';
 import {trimTrailingWhitespaceFromView} from './utils.ts';
 
 type PaletteCommand = {
@@ -7,11 +8,6 @@ type PaletteCommand = {
   keys: string;
   run: (view: EditorView) => void;
 };
-
-const isMac = /Mac/i.test(navigator.userAgent);
-const keySymbols: Record<string, string> = isMac ?
-  {Mod: '\u2318', Alt: '\u2325', Shift: '\u21E7', Ctrl: '\u2303', Up: '\u2191', Down: '\u2193', Enter: '\u23CE'} :
-  {Mod: 'Ctrl', Shift: 'Shift', Alt: 'Alt', Up: '\u2191', Down: '\u2193', Enter: '\u23CE'};
 
 function formatKeys(keys: string): string[][] {
   return keys.split(' ').map((chord) => chord.split('+').map((k) => keySymbols[k] || k));
