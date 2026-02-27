@@ -18,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/optional"
 	"code.gitea.io/gitea/modules/session"
@@ -538,8 +539,7 @@ func buildOIDCEndSessionURL(ctx *context.Context, doer *user_model.User) string 
 	// https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout
 	params := endSessionURL.Query()
 	params.Set("client_id", oauth2Cfg.ClientID)
-	params.Set("post_logout_redirect_uri", setting.AppURL)
+	params.Set("post_logout_redirect_uri", httplib.GuessCurrentAppURL(ctx))
 	endSessionURL.RawQuery = params.Encode()
-
 	return endSessionURL.String()
 }

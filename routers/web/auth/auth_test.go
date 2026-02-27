@@ -105,7 +105,7 @@ func TestWebAuthOAuth2(t *testing.T) {
 				"authorization_endpoint": "` + mockServer.URL + `/authorize",
 				"token_endpoint": "` + mockServer.URL + `/token",
 				"userinfo_endpoint": "` + mockServer.URL + `/userinfo",
-				"end_session_endpoint": "https://example.com/oidc-logout"
+				"end_session_endpoint": "https://example.com/oidc-logout?oidc-key=oidc-val"
 			}`))
 			default:
 				http.NotFound(w, r)
@@ -126,6 +126,11 @@ func TestWebAuthOAuth2(t *testing.T) {
 		ctx.Doer = &user_model.User{ID: 1, LoginType: auth_model.OAuth2, LoginSource: authSource.ID}
 		SignOut(ctx)
 		assert.Equal(t, http.StatusSeeOther, resp.Code)
-		assert.Equal(t, "https://example.com/oidc-logout?client_id=mock-client-id&post_logout_redirect_uri=https%3A%2F%2Ftry.gitea.io%2F", test.RedirectURL(resp))
+		u, err := url.Parse(test.RedirectURL(resp))
+		require.NoError(t, err)
+		expectedValues := url.Values{"oidc-key": []string{"oidc-val"}, "post_logout_redirect_uri": []string{setting.AppURL}, "client_id": []string{"mock-client-id"}}
+		assert.Equal(t, expectedValues, u.Query())
+		u.RawQuery = ""
+		assert.Equal(t, "https://example.com/oidc-logout", u.String())
 	})
 }
