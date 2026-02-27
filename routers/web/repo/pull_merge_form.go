@@ -47,8 +47,6 @@ type mergeFormField struct {
 	MergeStyles                    []mergeStyleField `json:"mergeStyles"`
 }
 
-// pullViewMergeInputs carries data from preparePullViewPullInfo to the merge form builder,
-// avoiding ctx.Data round-trips for values set by other prepare functions.
 type pullViewMergeInputs struct {
 	PullHeadCommitID  string
 	HeadTarget        string
@@ -57,6 +55,7 @@ type pullViewMergeInputs struct {
 }
 
 type mergeFormParams struct {
+	pullViewMergeInputs
 	AllowMerge                        bool
 	ProtectedBranch                   *git_model.ProtectedBranch
 	PrConfig                          *repo_model.PullRequestsConfig
@@ -65,16 +64,12 @@ type mergeFormParams struct {
 	DefaultMergeBody                  string
 	DefaultSquashMergeMessage         string
 	DefaultSquashMergeBody            string
-	GetCommitMessages                 string
 	PendingPullRequestMerge           *pull_model.AutoMerge
 	IsBlockedByApprovals              bool
 	IsBlockedByRejection              bool
 	IsBlockedByOfficialReviewRequests bool
 	WillSign                          bool
 	IsPullBranchDeletable             bool
-	PullHeadCommitID                  string
-	HeadTarget                        string
-	StatusCheckData                   *pullCommitStatusCheckData
 }
 
 // preparePullViewMergeFormData builds the JSON data for the merge form Vue component.
@@ -92,16 +87,16 @@ func preparePullViewMergeFormData(ctx *context.Context, issue *issues_model.Issu
 
 	pb := params.ProtectedBranch
 	requiredStatusCheckSuccess := params.StatusCheckData != nil && params.StatusCheckData.RequiredChecksState.IsSuccess()
-
 	allOverridableChecksOk := !params.IsBlockedByApprovals && !params.IsBlockedByRejection &&
 		!params.IsBlockedByOfficialReviewRequests &&
 		(pb == nil || !pb.BlockOnOutdatedBranch || pull.CommitsBehind == 0) &&
 		len(pull.ChangedProtectedFiles) == 0 &&
 		(pb == nil || !pb.EnableStatusCheck || requiredStatusCheckSuccess)
-
 	isRepoAdmin := ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	canMergeNow := (((pb == nil || !pb.BlockAdminMergeOverride) && isRepoAdmin) || allOverridableChecksOk) &&
 		(pb == nil || !pb.RequireSignedCommits || params.WillSign)
+	ctx.Data["AllOverridableChecksOk"] = allOverridableChecksOk
+	ctx.Data["CanMergeNow"] = canMergeNow
 	hideAutoMerge := canMergeNow && allOverridableChecksOk
 
 	hasPendingPullRequestMergeTip := ""

@@ -260,12 +260,12 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 	return baseCommit
 }
 
-func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) (*git_service.CompareInfo, *pullViewMergeInputs) {
+func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) (*git_service.CompareInfo, pullViewMergeInputs) {
 	if !issue.IsPull {
-		return nil, nil
+		return nil, pullViewMergeInputs{}
 	}
 	if issue.PullRequest.HasMerged {
-		return prepareMergedViewPullInfo(ctx, issue), nil
+		return prepareMergedViewPullInfo(ctx, issue), pullViewMergeInputs{}
 	}
 	return prepareViewPullInfo(ctx, issue)
 }
@@ -374,7 +374,7 @@ func getViewPullHeadBranchInfo(ctx *context.Context, pull *issues_model.PullRequ
 }
 
 // prepareViewPullInfo show meta information for a pull request preview page
-func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) (compareInfo *git_service.CompareInfo, mergeInputs *pullViewMergeInputs) {
+func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) (compareInfo *git_service.CompareInfo, mergeInputs pullViewMergeInputs) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 
 	repo := ctx.Repo.Repository
@@ -613,7 +613,7 @@ func prepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) (compa
 	ctx.Data["NumCommits"] = len(ci.Commits)
 	ctx.Data["NumFiles"] = ci.NumFiles
 	compareInfo = ci
-	mergeInputs = &pullViewMergeInputs{
+	mergeInputs = pullViewMergeInputs{
 		PullHeadCommitID:  sha,
 		HeadTarget:        ctx.Data["HeadTarget"].(string),
 		GetCommitMessages: getCommitMessages,

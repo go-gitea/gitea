@@ -169,14 +169,8 @@
 					</div>
 				{{end}}
 
-				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not $requiredStatusCheckState.IsSuccess))}}
-
-				{{/* admin can merge without checks, writer can merge when checks succeed */}}
-				{{$canMergeNow := and (or (and (not $.ProtectedBranch.BlockAdminMergeOverride) $.IsRepoAdmin) (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
-				{{/* admin and writer both can make an auto merge schedule */}}
-
-				{{if $canMergeNow}}
-					{{if $notAllOverridableChecksOk}}
+				{{if .CanMergeNow}}
+					{{if not .AllOverridableChecksOk}}
 						<div class="item">
 							{{svg "octicon-dot-fill"}}
 							{{ctx.Locale.Tr "repo.pulls.required_status_check_administrator"}}

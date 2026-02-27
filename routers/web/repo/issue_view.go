@@ -837,7 +837,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 	ctx.Data["NumParticipants"] = len(participants)
 }
 
-func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Issue, mergeInputs *pullViewMergeInputs) {
+func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Issue, mergeInputs pullViewMergeInputs) {
 	getBranchData(ctx, issue)
 	if !issue.IsPull {
 		return
@@ -975,21 +975,9 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		return
 	}
 
-	stillCanManualMerge := func() bool {
-		if pull.HasMerged || issue.IsClosed || !ctx.IsSigned {
-			return false
-		}
-		if pull.CanAutoMerge() || pull.IsWorkInProgress(ctx) || pull.IsChecking() {
-			return false
-		}
-		if allowMerge && prConfig.AllowManualMerge {
-			return true
-		}
-
-		return false
-	}
-
-	ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
+	ctx.Data["StillCanManualMerge"] = !pull.HasMerged && !issue.IsClosed && ctx.IsSigned &&
+		!pull.CanAutoMerge() && !pull.IsWorkInProgress(ctx) && !pull.IsChecking() &&
+		allowMerge && prConfig.AllowManualMerge
 
 	// Check if there is a pending pr merge
 	_, pendingPullRequestMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
@@ -999,6 +987,7 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	}
 
 	preparePullViewMergeFormData(ctx, issue, &mergeFormParams{
+		pullViewMergeInputs:               mergeInputs,
 		AllowMerge:                        allowMerge,
 		ProtectedBranch:                   pb,
 		PrConfig:                          prConfig,
@@ -1007,16 +996,12 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		DefaultMergeBody:                  defaultMergeBody,
 		DefaultSquashMergeMessage:         defaultSquashMergeMessage,
 		DefaultSquashMergeBody:            defaultSquashMergeBody,
-		GetCommitMessages:                 mergeInputs.GetCommitMessages,
 		PendingPullRequestMerge:           pendingPullRequestMerge,
 		IsBlockedByApprovals:              isBlockedByApprovals,
 		IsBlockedByRejection:              isBlockedByRejection,
 		IsBlockedByOfficialReviewRequests: isBlockedByOfficialReviewRequests,
 		WillSign:                          willSign,
 		IsPullBranchDeletable:             isPullBranchDeletable,
-		PullHeadCommitID:                  mergeInputs.PullHeadCommitID,
-		HeadTarget:                        mergeInputs.HeadTarget,
-		StatusCheckData:                   mergeInputs.StatusCheckData,
 	})
 }
 
