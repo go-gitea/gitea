@@ -42,14 +42,6 @@
   padding: 0;
 }
 
-.code-editor-container .cm-line {
-  padding-left: 0;
-}
-
-.code-editor-container .cm-indent-markers::before {
-  left: -0.5ch;
-}
-
 .code-editor-container .cm-cursor,
 .code-editor-container .cm-dropCursor {
   border-left-color: var(--color-caret);
