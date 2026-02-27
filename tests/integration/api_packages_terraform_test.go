@@ -251,11 +251,9 @@ func TestPackageTerraform(t *testing.T) {
 			req = NewRequest(t, "DELETE", url).AddBasicAuth(user.Name)
 			MakeRequest(t, req, http.StatusLocked)
 
-			// Verify package STILL EXISTS (testing the bug I found, though it might fail if I didn't fix it yet)
-			// User said "Don't modify the logic that exists currently", so I'll just add the assertion.
-			// If it fails, it proves the bug.
+			// Verify package exists
 			p, err := packages.GetPackageByName(t.Context(), user.ID, packages.TypeTerraform, packageName)
-			assert.NoError(t, err, "Package should still exist because it is locked")
+			require.NoError(t, err)
 			assert.NotNil(t, p)
 
 			// Cleanup

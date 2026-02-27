@@ -25,9 +25,11 @@ import (
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
-var (
-	packageNameRegex = regexp.MustCompile(`\A[-_+.\w]+\z`)
-	filenameRegex    = regexp.MustCompile(`\A[-_+=:;.()\[\]{}~!@#$%^& \w]+\z`)
+var packageNameRegex = regexp.MustCompile(`\A[-_+.\w]+\z`)
+
+const (
+	stateFilename = "tfstate"
+	lockFile      = "terraform.lock"
 )
 
 func apiError(ctx *context.Context, status int, obj any) {
@@ -46,7 +48,6 @@ func GetTerraformState(ctx *context.Context) {
 		Sort:       packages_model.SortCreatedDesc,
 	})
 	if err != nil {
-		// TODO: should this be some other fail? When does this error out?
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -74,7 +75,7 @@ func streamState(ctx *context.Context, name, serial string) {
 			Version:     serial,
 		},
 		&packages_service.PackageFileInfo{
-			Filename: "tfstate",
+			Filename: stateFilename,
 			//			CompositeKey: "state",
 		},
 		ctx.Req.Method,
@@ -98,18 +99,12 @@ func isValidPackageName(packageName string) bool {
 	return packageNameRegex.MatchString(packageName) && packageName != ".."
 }
 
-func isValidFileName(filename string) bool {
-	return filenameRegex.MatchString(filename) &&
-		strings.TrimSpace(filename) == filename &&
-		filename != "." && filename != ".."
-}
-
 type TFState struct {
 	Version          int    `json:"version"`
 	TerraformVersion string `json:"terraform_version"`
 	Serial           uint64 `json:"serial"`
 	Lineage          string `json:"lineage"`
-	// modules are ommited
+	// modules are omitted
 }
 
 // UploadState uploads the specific terraform package.
@@ -146,7 +141,6 @@ func UploadState(ctx *context.Context) {
 		return
 	}
 
-	// Check lineage
 	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName)
 	if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -154,7 +148,7 @@ func UploadState(ctx *context.Context) {
 	}
 	if p != nil {
 		// Check lock
-		props, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock")
+		props, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, lockFile)
 		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
@@ -166,9 +160,7 @@ func UploadState(ctx *context.Context) {
 				return
 			}
 			if existingLock.ID != ctx.FormString("ID") {
-				ctx.Resp.Header().Set("Content-Type", "application/json")
-				ctx.Resp.WriteHeader(http.StatusLocked)
-				_, _ = ctx.Resp.Write([]byte(props[0].Value))
+				apiError(ctx, http.StatusLocked, props[0].Value)
 				return
 			}
 		}
@@ -178,7 +170,7 @@ func UploadState(ctx *context.Context) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	pv, _, err := packages_service.CreatePackageOrAddFileToExisting(
+	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		ctx,
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
@@ -191,7 +183,7 @@ func UploadState(ctx *context.Context) {
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
-				Filename: "tfstate",
+				Filename: stateFilename,
 			},
 			Creator:           ctx.Doer,
 			Data:              buf,
@@ -211,10 +203,6 @@ func UploadState(ctx *context.Context) {
 		return
 	}
 
-	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, pv.PackageID, "terraform.lineage", state.Lineage); err != nil {
-		log.Error("InsertOrUpdateProperty: %v", err)
-	}
-
 	ctx.Status(http.StatusCreated)
 }
 
@@ -226,7 +214,6 @@ func DeleteStateBySerial(ctx *context.Context) {
 		apiError(ctx, http.StatusNotFound, err)
 		return
 	} else if err != nil {
-
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -274,7 +261,7 @@ func DeleteState(ctx *context.Context) {
 		return
 	}
 
-	pp, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock")
+	pp, err := packages_model.GetPropertiesByName(ctx, packages_model.PropertyTypePackage, p.ID, lockFile)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -323,7 +310,7 @@ type LockInfo struct {
 // Internally, it adds a property to the package with the lock information
 // Cavieat being that it allocates a package one doesn't exist to attach the property
 func LockState(ctx *context.Context) {
-	var reqLockInfo LockInfo
+	var reqLockInfo *LockInfo
 	if err := json.NewDecoder(ctx.Req.Body).Decode(&reqLockInfo); err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
@@ -376,7 +363,7 @@ func LockState(ctx *context.Context) {
 		return
 	}
 
-	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock", string(jsonBytes)); err != nil {
+	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, lockFile, string(jsonBytes)); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -444,7 +431,7 @@ func UnlockState(ctx *context.Context) {
 	}
 
 	// We can clear the state if lock id matches
-	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, "terraform.lock", ""); err != nil {
+	if err := packages_model.InsertOrUpdateProperty(ctx, packages_model.PropertyTypePackage, p.ID, lockFile, ""); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
