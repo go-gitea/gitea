@@ -116,7 +116,7 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
 
     renderList() {
       if (!this.list) return;
-      const query = this.input?.value.toLowerCase() || '';
+      const query = this.input!.value.toLowerCase() || '';
       this.list.textContent = '';
 
       for (const [index, cmd] of this.filtered.entries()) {

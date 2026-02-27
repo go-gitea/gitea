@@ -74,20 +74,20 @@ export function clickableUrls(cm: Awaited<ReturnType<typeof importCodemirror>>) 
   });
 
   const modClass = cm.view.ViewPlugin.fromClass(class {
-    container: Element | null;
+    container: Element;
     handleKeyDown: (e: KeyboardEvent) => void;
     handleKeyUp: (e: KeyboardEvent) => void;
     constructor(view: EditorView) {
-      this.container = view.dom.closest('.code-editor-container');
-      this.handleKeyDown = (e) => { if (e.key === 'Meta' || e.key === 'Control') this.container?.classList.add('cm-mod-held'); };
-      this.handleKeyUp = (e) => { if (e.key === 'Meta' || e.key === 'Control') this.container?.classList.remove('cm-mod-held'); };
+      this.container = view.dom.closest('.code-editor-container')!;
+      this.handleKeyDown = (e) => { if (e.key === 'Meta' || e.key === 'Control') this.container.classList.add('cm-mod-held'); };
+      this.handleKeyUp = (e) => { if (e.key === 'Meta' || e.key === 'Control') this.container.classList.remove('cm-mod-held'); };
       document.addEventListener('keydown', this.handleKeyDown);
       document.addEventListener('keyup', this.handleKeyUp);
     }
     destroy() {
       document.removeEventListener('keydown', this.handleKeyDown);
       document.removeEventListener('keyup', this.handleKeyUp);
-      this.container?.classList.remove('cm-mod-held');
+      this.container.classList.remove('cm-mod-held');
     }
   });
 

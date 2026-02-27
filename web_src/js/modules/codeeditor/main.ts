@@ -194,12 +194,12 @@ async function createCodemirrorEditor(
 }
 
 function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: CodemirrorEditor): void {
-  const elEditorOptions = textarea.closest('form')?.querySelector('.code-editor-options');
+  const elEditorOptions = textarea.closest('form')!.querySelector('.code-editor-options');
   if (!elEditorOptions) return;
 
   const {compartments, view} = editor;
-  const indentStyleSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-style-select');
-  const indentSizeSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-size-select');
+  const indentStyleSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-style-select')!;
+  const indentSizeSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-size-select')!;
 
   const applyIndentSettings = async (style: string, size: number) => {
     const cm = await importCodemirror();
@@ -211,15 +211,15 @@ function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: Codem
     });
   };
 
-  indentStyleSelect?.addEventListener('change', () => {
-    applyIndentSettings(indentStyleSelect.value, Number(indentSizeSelect?.value) || 4);
+  indentStyleSelect.addEventListener('change', () => {
+    applyIndentSettings(indentStyleSelect.value, Number(indentSizeSelect.value) || 4);
   });
 
-  indentSizeSelect?.addEventListener('change', () => {
-    applyIndentSettings(indentStyleSelect?.value || 'space', Number(indentSizeSelect.value) || 4);
+  indentSizeSelect.addEventListener('change', () => {
+    applyIndentSettings(indentStyleSelect.value || 'space', Number(indentSizeSelect.value) || 4);
   });
 
-  elEditorOptions.querySelector('.js-code-find')?.addEventListener('click', async () => {
+  elEditorOptions.querySelector('.js-code-find')!.addEventListener('click', async () => {
     const cm = await importCodemirror();
     if (cm.search.searchPanelOpen(view.state)) {
       cm.search.closeSearchPanel(view);
@@ -228,7 +228,7 @@ function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: Codem
     }
   });
 
-  elEditorOptions.querySelector<HTMLSelectElement>('.js-line-wrap-select')?.addEventListener('change', async (e) => {
+  elEditorOptions.querySelector<HTMLSelectElement>('.js-line-wrap-select')!.addEventListener('change', async (e) => {
     const target = e.target as HTMLSelectElement;
     const cm = await importCodemirror();
     view.dispatch({
@@ -256,7 +256,7 @@ function togglePreviewDisplay(previewable: boolean): void {
   // then the "preview" tab becomes inactive (hidden), so the "write" tab should become active
   if (previewTab.classList.contains('active')) {
     const writeTab = document.querySelector<HTMLElement>('a[data-tab="write"]');
-    writeTab?.click(); // TODO: it shouldn't need null-safe operator, writeTab must exist
+    writeTab!.click();
   }
 }
 
