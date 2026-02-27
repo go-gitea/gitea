@@ -9,4 +9,6 @@ type CreateForkOption struct {
 	Organization *string `json:"organization"`
 	// name of the forked repository
 	Name *string `json:"name"`
+	// set the target fork as the parent of the source repository
+	Reparent bool `json:"reparent"`
 }

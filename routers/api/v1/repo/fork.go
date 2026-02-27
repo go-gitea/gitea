@@ -133,6 +133,32 @@ func CreateFork(ctx *context.APIContext) {
 			return
 		}
 		if !ctx.Doer.IsAdmin {
+			if form.Reparent {
+				// we need to have owner rights in source and target to use reparent option
+				err := repo.LoadOwner(ctx)
+				if err != nil {
+					ctx.APIErrorInternal(err)
+					return
+				}
+				if repo.Owner.IsOrganization() {
+					srcOrg, err := organization.GetOrgByID(ctx, repo.OwnerID)
+					if err != nil {
+						ctx.APIErrorInternal(err)
+						return
+					}
+					isAdminForSrc, err := srcOrg.IsOrgAdmin(ctx, ctx.Doer.ID)
+					if err != nil {
+						ctx.APIErrorInternal(err)
+						return
+					}
+					if !isAdminForSrc {
+						ctx.APIError(http.StatusForbidden, fmt.Sprintf("User '%s' is not an Admin of the Organization '%s'", ctx.Doer.Name, srcOrg.Name))
+						return
+					}
+				} else if repo.OwnerID != ctx.Doer.ID {
+					ctx.APIError(http.StatusForbidden, fmt.Sprintf("User '%s' is not the owner of the source repository and repository is in user space", ctx.Doer.Name))
+				}
+			}
 			isMember, err := org.IsOrgMember(ctx, ctx.Doer.ID)
 			if err != nil {
 				ctx.APIErrorInternal(err)
@@ -156,6 +182,7 @@ func CreateFork(ctx *context.APIContext) {
 		BaseRepo:    repo,
 		Name:        name,
 		Description: repo.Description,
+		Reparent:    form.Reparent,
 	})
 	if err != nil {
 		if errors.Is(err, util.ErrAlreadyExist) || repo_model.IsErrReachLimitOfRepo(err) {
