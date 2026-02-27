@@ -233,7 +233,6 @@
 						{{ctx.Locale.Tr "repo.pulls.no_merge_access"}}
 					</div>
 				{{end}} {{/* end if user is allowed to merge or not */}}
-
 			{{else}}
 				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
 				{{if .IsBlockedByApprovals}}
