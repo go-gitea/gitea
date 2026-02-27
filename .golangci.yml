@@ -142,9 +142,6 @@ linters:
           - unused
         text: (?i)swagger
       - linters:
-          - staticcheck
-        text: (?i)argument x is overwritten before first use
-      - linters:
           - gocritic
         text: '(?i)commentFormatting: put a space between `//` and comment text'
       - linters:

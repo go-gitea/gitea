@@ -59,7 +59,7 @@
 				data-tree-list-url="{{.RepoLink}}/tree-list/{{.RefTypeNameSubURL}}"
 				data-no-results-text="{{ctx.Locale.Tr "repo.find_file.no_matching"}}"
 				data-placeholder="{{ctx.Locale.Tr "repo.find_file.go_to_file"}}"
-		></div>
+		><div class="ui small input global-shortcut-wrapper"><input placeholder="{{ctx.Locale.Tr "repo.find_file.go_to_file"}}"><kbd>T</kbd></div></div>
 
 		{{if .RefFullName.IsBranch}}
 			{{$addFilePath := .TreePath}}

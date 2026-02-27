@@ -53,7 +53,7 @@ func (f Format) Flag() string {
 	var formatFlag strings.Builder
 	for i, field := range f.fieldNames {
 		// field key and field value
-		formatFlag.WriteString(fmt.Sprintf("%s %%(%s)", field, field))
+		fmt.Fprintf(&formatFlag, "%s %%(%s)", field, field)
 
 		if i < len(f.fieldNames)-1 {
 			// note: escape delimiters to allow control characters as
