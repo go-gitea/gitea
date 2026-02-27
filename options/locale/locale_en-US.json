@@ -211,6 +211,7 @@
   "editor.buttons.switch_to_legacy.tooltip": "Use the legacy editor instead",
   "editor.buttons.enable_monospace_font": "Enable monospace font",
   "editor.buttons.disable_monospace_font": "Disable monospace font",
+  "editor.code_editor.command_palette": "Command Palette",
   "editor.code_editor.find": "Find",
   "editor.code_editor.placeholder": "Enter file content here",
   "filter.string.asc": "A–Z",

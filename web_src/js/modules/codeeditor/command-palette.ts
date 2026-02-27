@@ -59,7 +59,8 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
     constructor(view: EditorView) {
       this.view = view;
       this.handleClickOutside = (e: MouseEvent) => {
-        if (this.overlay && !this.overlay.contains(e.target as Node)) {
+        const target = e.target as Element;
+        if (this.overlay && !this.overlay.contains(target) && !target.closest('.js-code-command-palette')) {
           this.removeOverlay();
         }
       };
@@ -68,8 +69,12 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
     update(upd: ViewUpdate) {
       for (const tr of upd.transactions) {
         for (const e of tr.effects) {
-          if (e.is(openEffect) && !this.overlay) {
-            this.show();
+          if (e.is(openEffect)) {
+            if (this.overlay) {
+              this.removeOverlay();
+            } else {
+              this.show();
+            }
           }
         }
       }
@@ -215,13 +220,16 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
     }
   });
 
-  function openPalette(view: EditorView) {
+  function togglePalette(view: EditorView) {
     view.dispatch({effects: openEffect.of(null)});
     return true;
   }
 
-  return [plugin, cm.view.keymap.of([
-    {key: 'Mod-Shift-p', run: openPalette, preventDefault: true},
-    {key: 'F1', run: openPalette, preventDefault: true},
-  ])];
+  return {
+    extensions: [plugin, cm.view.keymap.of([
+      {key: 'Mod-Shift-p', run: togglePalette, preventDefault: true},
+      {key: 'F1', run: togglePalette, preventDefault: true},
+    ])],
+    togglePalette,
+  };
 }

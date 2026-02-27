@@ -26,6 +26,7 @@ type EditorOptions = {
 export type CodemirrorEditor = {
   view: EditorView;
   trimTrailingWhitespace: boolean;
+  togglePalette: (view: EditorView) => boolean;
   languages: LanguageDescription[];
   compartments: {
     wordWrap: Compartment;
@@ -107,6 +108,7 @@ async function createCodemirrorEditor(
   const language = new cm.state.Compartment();
   const tabSize = new cm.state.Compartment();
   const indentUnitComp = new cm.state.Compartment();
+  const palette = commandPalette(cm);
 
   const view = new cm.view.EditorView({
     doc: textarea.value,
@@ -166,7 +168,7 @@ async function createCodemirrorEditor(
         },
       }),
       cm.commands.history(),
-      commandPalette(cm),
+      palette.extensions,
       clickableUrls(cm),
       tabSize.of(cm.state.EditorState.tabSize.of(editorOpts.tabSize || 4)),
       wordWrap.of(editorOpts.wordWrap ? cm.view.EditorView.lineWrapping : []),
@@ -188,6 +190,7 @@ async function createCodemirrorEditor(
   return {
     view,
     trimTrailingWhitespace: editorOpts.trimTrailingWhitespace,
+    togglePalette: palette.togglePalette,
     languages: languageDescriptions,
     compartments: {wordWrap, language, tabSize, indentUnit: indentUnitComp},
   };
@@ -226,6 +229,10 @@ function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: Codem
     } else {
       cm.search.openSearchPanel(view);
     }
+  });
+
+  elEditorOptions.querySelector('.js-code-command-palette')!.addEventListener('click', () => {
+    editor.togglePalette(view);
   });
 
   elEditorOptions.querySelector<HTMLSelectElement>('.js-line-wrap-select')!.addEventListener('change', async (e) => {

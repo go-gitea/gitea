@@ -319,14 +319,9 @@ a.label,
 .native-select > select {
   appearance: none; /* hide default triangle */
   padding: 6px 26px 6px 10px;
-  background: var(--color-input-background);
-  border: 1px solid var(--color-light-border);
-  color: var(--color-input-text);
+  border: 1px solid var(--color-light-border) !important;
+  color: var(--color-text);
   border-radius: var(--border-radius);
-}
-
-.native-select > select:focus {
-  border-color: var(--color-primary);
 }
 
 /* ::before and ::after pseudo elements don't work on select elements,
