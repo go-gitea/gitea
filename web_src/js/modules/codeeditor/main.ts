@@ -8,7 +8,7 @@ import type {LanguageDescription} from '@codemirror/language';
 import type {Compartment} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
 
-type CodeEditorConfig = {
+type EditorConfig = {
   indent_style?: 'tab' | 'space',
   indent_size?: number,
   tab_width?: string | number, // backend emits this as string
@@ -35,7 +35,7 @@ export type CodemirrorEditor = {
   };
 };
 
-function getCodeEditorConfig(input: HTMLInputElement): CodeEditorConfig | null {
+function getEditorConfig(input: HTMLInputElement): EditorConfig | null {
   const json = input.getAttribute('data-code-editor-config');
   if (!json) return null;
   try {
@@ -268,7 +268,7 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {fil
   let editorOpts: EditorOptions = {indentStyle: 'tab', tabSize: 4, wordWrap: false, trimTrailingWhitespace: false};
 
   if (opts.filenameInput) {
-    const editorConfig = getCodeEditorConfig(opts.filenameInput);
+    const editorConfig = getEditorConfig(opts.filenameInput);
     const configOpts = getEditorConfigOptions(editorConfig);
     editorOpts = {
       ...getFileBasedOptions(filename, lineWrapExts),
@@ -311,7 +311,7 @@ async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, 
 
 export {trimTrailingWhitespaceFromView} from './utils.ts';
 
-function getEditorConfigOptions(ec: CodeEditorConfig | null): Partial<EditorOptions> {
+function getEditorConfigOptions(ec: EditorConfig | null): Partial<EditorOptions> {
   if (!ec || !isObject(ec)) return {indentStyle: 'space'};
 
   const opts: Partial<EditorOptions> = {
