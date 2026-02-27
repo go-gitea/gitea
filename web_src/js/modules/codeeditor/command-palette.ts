@@ -1,4 +1,4 @@
-import type {EditorView, ViewUpdate} from '@codemirror/view';
+import type {EditorView} from '@codemirror/view';
 import type {importCodemirror} from './main.ts';
 import {trimTrailingWhitespaceFromView} from './utils.ts';
 
@@ -18,8 +18,6 @@ function formatKeys(keys: string): string[][] {
 }
 
 export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>) {
-  const openEffect = cm.state.StateEffect.define();
-
   const commands: PaletteCommand[] = [
     {label: 'Undo', keys: 'Mod+Z', run: cm.commands.undo},
     {label: 'Redo', keys: 'Mod+Shift+Z', run: cm.commands.redo},
@@ -47,196 +45,167 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
     {label: 'Trim Trailing Whitespace', keys: 'Mod+K Mod+X', run: trimTrailingWhitespaceFromView},
   ];
 
-  const plugin = cm.view.ViewPlugin.fromClass(class {
-    overlay: HTMLElement | null = null;
-    input: HTMLInputElement | null = null;
-    list: HTMLElement | null = null;
-    filtered: PaletteCommand[] = commands;
+  let overlay: HTMLElement | null = null;
+  let filtered: PaletteCommand[] = [];
+  let selectedIndex = 0;
+  let cleanupClickOutside: (() => void) | null = null;
+
+  function hide(view: EditorView) {
+    if (!overlay) return;
+    cleanupClickOutside?.();
+    cleanupClickOutside = null;
+    overlay.remove();
+    overlay = null;
+    view.focus();
+  }
+
+  function renderList(list: HTMLElement, query: string) {
+    list.textContent = '';
+    if (!filtered.length) {
+      const empty = document.createElement('div');
+      empty.className = 'cm-command-palette-empty';
+      empty.textContent = 'No matches';
+      list.append(empty);
+      return;
+    }
+    for (const [index, cmd] of filtered.entries()) {
+      const item = document.createElement('div');
+      item.className = 'cm-command-palette-item';
+      item.setAttribute('role', 'option');
+      item.dataset.index = String(index);
+      if (index === selectedIndex) item.setAttribute('aria-selected', 'true');
+
+      const label = document.createElement('span');
+      label.className = 'cm-command-palette-label';
+      const matchIndex = query ? cmd.label.toLowerCase().indexOf(query) : -1;
+      if (matchIndex !== -1) {
+        label.append(cmd.label.slice(0, matchIndex));
+        const mark = document.createElement('mark');
+        mark.textContent = cmd.label.slice(matchIndex, matchIndex + query.length);
+        label.append(mark, cmd.label.slice(matchIndex + query.length));
+      } else {
+        label.textContent = cmd.label;
+      }
+      item.append(label);
+
+      const keysEl = document.createElement('span');
+      keysEl.className = 'cm-command-palette-keys';
+      for (const [chordIndex, chord] of formatKeys(cmd.keys).entries()) {
+        if (chordIndex > 0) keysEl.append('\u2192');
+        for (const k of chord) {
+          const kbd = document.createElement('kbd');
+          kbd.textContent = k;
+          keysEl.append(kbd);
+        }
+      }
+      item.append(keysEl);
+      list.append(item);
+    }
+  }
+
+  function show(view: EditorView) {
+    const container = view.dom.closest('.code-editor-container');
+    if (!container) return;
+
+    overlay = document.createElement('div');
+    overlay.className = 'cm-command-palette';
+
+    const input = document.createElement('input');
+    input.className = 'cm-command-palette-input';
+    input.placeholder = 'Type a command...';
+
+    const list = document.createElement('div');
+    list.className = 'cm-command-palette-list';
+    list.setAttribute('role', 'listbox');
+
+    filtered = commands;
     selectedIndex = 0;
-    handleClickOutside: (e: MouseEvent) => void;
-    view: EditorView;
 
-    constructor(view: EditorView) {
-      this.view = view;
-      this.handleClickOutside = (e: MouseEvent) => {
-        const target = e.target as Element;
-        if (this.overlay && !this.overlay.contains(target) && !target.closest('.js-code-command-palette')) {
-          this.removeOverlay();
-        }
-      };
-    }
-
-    update(upd: ViewUpdate) {
-      for (const tr of upd.transactions) {
-        for (const e of tr.effects) {
-          if (e.is(openEffect)) {
-            if (this.overlay) {
-              this.removeOverlay();
-            } else {
-              this.show();
-            }
-            return;
-          }
-        }
-      }
-    }
-
-    show() {
-      const container = this.view.dom.closest('.code-editor-container');
-      if (!container) return;
-
-      this.overlay = document.createElement('div');
-      this.overlay.className = 'cm-command-palette';
-
-      this.input = document.createElement('input');
-      this.input.className = 'cm-command-palette-input';
-      this.input.placeholder = 'Type a command...';
-      this.input.addEventListener('input', () => this.filter());
-      this.input.addEventListener('keydown', (e) => this.handleKey(e));
-
-      this.list = document.createElement('div');
-      this.list.className = 'cm-command-palette-list';
-      this.list.setAttribute('role', 'listbox');
-
-      this.overlay.append(this.input, this.list);
-      container.append(this.overlay);
-
-      this.filtered = commands;
-      this.selectedIndex = 0;
-      this.renderList();
-      this.input.focus();
-
-      requestAnimationFrame(() => {
-        document.addEventListener('mousedown', this.handleClickOutside);
-      });
-    }
-
-    filter() {
-      const q = this.input!.value.toLowerCase();
-      this.filtered = q ?
-        commands.filter((cmd) => cmd.label.toLowerCase().includes(q)) :
-        commands;
-      this.selectedIndex = 0;
-      this.renderList();
-    }
-
-    renderList() {
-      if (!this.list) return;
-      const query = this.input!.value.toLowerCase() || '';
-      this.list.textContent = '';
-
-      if (!this.filtered.length) {
-        const empty = document.createElement('div');
-        empty.className = 'cm-command-palette-empty';
-        empty.textContent = 'No matches';
-        this.list.append(empty);
-        return;
-      }
-
-      for (const [index, cmd] of this.filtered.entries()) {
-        const item = document.createElement('div');
-        item.className = 'cm-command-palette-item';
-        item.setAttribute('role', 'option');
-        if (index === this.selectedIndex) {
-          item.setAttribute('aria-selected', 'true');
-        }
-
-        const label = document.createElement('span');
-        label.className = 'cm-command-palette-label';
-        const matchIndex = query ? cmd.label.toLowerCase().indexOf(query) : -1;
-        if (matchIndex !== -1) {
-          label.append(cmd.label.slice(0, matchIndex));
-          const mark = document.createElement('mark');
-          mark.textContent = cmd.label.slice(matchIndex, matchIndex + query.length);
-          label.append(mark, cmd.label.slice(matchIndex + query.length));
-        } else {
-          label.textContent = cmd.label;
-        }
-        item.append(label);
-
-        const keysEl = document.createElement('span');
-        keysEl.className = 'cm-command-palette-keys';
-        for (const [chordIndex, chord] of formatKeys(cmd.keys).entries()) {
-          if (chordIndex > 0) keysEl.append('\u2192');
-          for (const k of chord) {
-            const kbd = document.createElement('kbd');
-            kbd.textContent = k;
-            keysEl.append(kbd);
-          }
-        }
-        item.append(keysEl);
-
-        item.addEventListener('mousedown', (e) => {
-          e.preventDefault();
-          this.execute(cmd);
-        });
-        item.addEventListener('pointerenter', () => {
-          this.selectedIndex = index;
-          this.updateSelected();
-        });
-        this.list.append(item);
-      }
-    }
-
-    updateSelected() {
-      if (!this.list) return;
-      this.list.querySelector('[aria-selected]')?.removeAttribute('aria-selected');
-      const el = this.list.children[this.selectedIndex];
+    const updateSelected = () => {
+      list.querySelector('[aria-selected]')?.removeAttribute('aria-selected');
+      const el = list.children[selectedIndex];
       if (el) {
         el.setAttribute('aria-selected', 'true');
         el.scrollIntoView({block: 'nearest'});
       }
-    }
+    };
 
-    handleKey(e: KeyboardEvent) {
+    const execute = (cmd: PaletteCommand) => {
+      hide(view);
+      cmd.run(view);
+    };
+
+    list.addEventListener('pointerenter', (e) => {
+      const item = (e.target as Element).closest<HTMLElement>('.cm-command-palette-item');
+      if (!item) return;
+      selectedIndex = Number(item.dataset.index);
+      updateSelected();
+    }, true);
+
+    list.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      const item = (e.target as Element).closest<HTMLElement>('.cm-command-palette-item');
+      if (!item) return;
+      const cmd = filtered[Number(item.dataset.index)];
+      if (cmd) execute(cmd);
+    });
+
+    input.addEventListener('input', () => {
+      const q = input.value.toLowerCase();
+      filtered = q ? commands.filter((cmd) => cmd.label.toLowerCase().includes(q)) : commands;
+      selectedIndex = 0;
+      renderList(list, q);
+    });
+
+    input.addEventListener('keydown', (e) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        this.selectedIndex = Math.min(this.selectedIndex + 1, this.filtered.length - 1);
-        this.updateSelected();
+        selectedIndex = Math.min(selectedIndex + 1, filtered.length - 1);
+        updateSelected();
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
-        this.updateSelected();
+        selectedIndex = Math.max(selectedIndex - 1, 0);
+        updateSelected();
       } else if (e.key === 'Enter') {
         e.preventDefault();
-        if (this.filtered[this.selectedIndex]) {
-          this.execute(this.filtered[this.selectedIndex]);
-        }
+        if (filtered[selectedIndex]) execute(filtered[selectedIndex]);
       } else if (e.key === 'Escape') {
         e.preventDefault();
-        this.removeOverlay();
+        hide(view);
       }
-    }
+    });
 
-    execute(cmd: PaletteCommand) {
-      this.removeOverlay();
-      cmd.run(this.view);
-    }
+    overlay.append(input, list);
+    container.append(overlay);
+    renderList(list, '');
+    input.focus();
 
-    removeOverlay() {
-      document.removeEventListener('mousedown', this.handleClickOutside);
-      this.overlay?.remove();
-      this.overlay = null;
-      this.input = null;
-      this.list = null;
-      this.view.focus();
-    }
-
-    destroy() {
-      this.removeOverlay();
-    }
-  });
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (overlay && !overlay.contains(target) && !target.closest('.js-code-command-palette')) {
+        hide(view);
+      }
+    };
+    requestAnimationFrame(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    });
+    cleanupClickOutside = () => document.removeEventListener('mousedown', handleClickOutside);
+  }
 
   function togglePalette(view: EditorView) {
-    view.dispatch({effects: openEffect.of(null)});
+    if (overlay) {
+      hide(view);
+    } else {
+      show(view);
+    }
     return true;
   }
 
   return {
-    extensions: [plugin, cm.view.keymap.of([
+    extensions: cm.view.keymap.of([
       {key: 'Mod-Shift-p', run: togglePalette, preventDefault: true},
       {key: 'F1', run: togglePalette, preventDefault: true},
-    ])],
+    ]),
     togglePalette,
   };
 }
