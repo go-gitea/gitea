@@ -159,10 +159,10 @@ async function createCodemirrorEditor(
       cm.state.EditorState.languageData.of(() => [{autocomplete: cm.autocomplete.completeAnyWord}]),
       cm.indentMarkers.indentationMarkers({
         colors: {
-          light: 'var(--color-secondary)',
-          dark: 'var(--color-secondary)',
-          activeLight: 'var(--color-secondary-dark-2)',
-          activeDark: 'var(--color-secondary-dark-2)',
+          light: 'transparent',
+          dark: 'transparent',
+          activeLight: 'var(--color-secondary-dark-3)',
+          activeDark: 'var(--color-secondary-dark-3)',
         },
       }),
       cm.commands.history(),
