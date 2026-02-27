@@ -9,18 +9,11 @@ import type {Compartment} from '@codemirror/state';
 import type {EditorView, ViewUpdate} from '@codemirror/view';
 
 type CodeEditorConfig = {
-  indent_style?: 'tab' | 'space',
-  indent_size?: number,
-  tab_width?: string | number, // backend emits this as string
-  trim_trailing_whitespace?: boolean,
-};
-
-type EditorOptions = {
-  indentStyle: string;
-  indentSize?: number;
-  tabSize?: number;
-  wordWrap: boolean;
-  trimTrailingWhitespace: boolean;
+  indent_style: string;
+  indent_size?: number;
+  tab_width?: number;
+  word_wrap: boolean;
+  trim_trailing_whitespace: boolean;
 };
 
 export type CodemirrorEditor = {
@@ -36,13 +29,15 @@ export type CodemirrorEditor = {
   };
 };
 
-function getCodeEditorConfig(input: HTMLInputElement): CodeEditorConfig | null {
+function getCodeEditorConfig(input: HTMLInputElement): Omit<CodeEditorConfig, 'word_wrap'> {
+  const defaults: Omit<CodeEditorConfig, 'word_wrap'> = {indent_style: 'space', trim_trailing_whitespace: false};
   const json = input.getAttribute('data-code-editor-config');
-  if (!json) return null;
+  if (!json) return defaults;
   try {
-    return JSON.parse(json);
+    const ec = JSON.parse(json);
+    return isObject(ec) ? {...defaults, ...ec} : defaults;
   } catch {
-    return null;
+    return defaults;
   }
 }
 
@@ -65,7 +60,7 @@ export async function importCodemirror() {
 async function createCodemirrorEditor(
   textarea: HTMLTextAreaElement,
   filename: string,
-  editorOpts: EditorOptions,
+  editorOpts: CodeEditorConfig,
 ): Promise<CodemirrorEditor> {
   const cm = await importCodemirror();
   const languageDescriptions = [
@@ -128,7 +123,7 @@ async function createCodemirrorEditor(
       cm.view.rectangularSelection(),
       cm.view.crosshairCursor(),
       textarea.getAttribute('data-placeholder') ? cm.view.placeholder(textarea.getAttribute('data-placeholder')!) : [],
-      editorOpts.trimTrailingWhitespace ? cm.view.highlightTrailingWhitespace() : [],
+      editorOpts.trim_trailing_whitespace ? cm.view.highlightTrailingWhitespace() : [],
       cm.search.search({top: true}),
       cm.search.highlightSelectionMatches(),
       cm.view.keymap.of([
@@ -146,7 +141,7 @@ async function createCodemirrorEditor(
       cm.language.bracketMatching(),
       indentUnitComp.of(
         cm.language.indentUnit.of(
-          editorOpts.indentStyle === 'tab' ? '\t' : ' '.repeat(editorOpts.indentSize || 4),
+          editorOpts.indent_style === 'tab' ? '\t' : ' '.repeat(editorOpts.indent_size || 4),
         ),
       ),
       cm.autocomplete.closeBrackets(),
@@ -163,8 +158,8 @@ async function createCodemirrorEditor(
       cm.commands.history(),
       palette.extensions,
       clickableUrls(cm),
-      tabSize.of(cm.state.EditorState.tabSize.of(editorOpts.tabSize || 4)),
-      wordWrap.of(editorOpts.wordWrap ? cm.view.EditorView.lineWrapping : []),
+      tabSize.of(cm.state.EditorState.tabSize.of(editorOpts.tab_width || 4)),
+      wordWrap.of(editorOpts.word_wrap ? cm.view.EditorView.lineWrapping : []),
       language.of(matchedLang ? await matchedLang.load() : []),
       cm.view.EditorView.updateListener.of((update: ViewUpdate) => {
         if (update.docChanged) {
@@ -180,7 +175,7 @@ async function createCodemirrorEditor(
 
   return {
     view,
-    trimTrailingWhitespace: editorOpts.trimTrailingWhitespace,
+    trimTrailingWhitespace: editorOpts.trim_trailing_whitespace,
     togglePalette: palette.togglePalette,
     languages: languageDescriptions,
     compartments: {wordWrap, language, tabSize, indentUnit: indentUnitComp},
@@ -235,9 +230,9 @@ function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: Codem
   });
 }
 
-function getFileBasedOptions(filename: string, lineWrapExts: string[]): Pick<EditorOptions, 'wordWrap'> {
+function getFileBasedOptions(filename: string, lineWrapExts: string[]): Pick<CodeEditorConfig, 'word_wrap'> {
   return {
-    wordWrap: lineWrapExts.includes(extname(filename)),
+    word_wrap: lineWrapExts.includes(extname(filename)),
   };
 }
 
@@ -263,15 +258,13 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {fil
   const previewableExts = new Set((textarea.getAttribute('data-previewable-extensions') || '').split(','));
   const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
 
-  let editorOpts: EditorOptions = {indentStyle: 'tab', tabSize: 4, wordWrap: false, trimTrailingWhitespace: false};
+  let editorOpts: CodeEditorConfig = {indent_style: 'tab', tab_width: 4, word_wrap: false, trim_trailing_whitespace: false};
   const filenameInput = 'filenameInput' in opts ? opts.filenameInput : null;
 
   if (filenameInput) {
-    const editorConfig = getCodeEditorConfig(filenameInput);
-    const configOpts = getCodeEditorConfigOptions(editorConfig);
     editorOpts = {
       ...getFileBasedOptions(filename, lineWrapExts),
-      ...configOpts,
+      ...getCodeEditorConfig(filenameInput),
     };
   }
 
@@ -299,7 +292,7 @@ async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, 
   view.dispatch({
     effects: [
       compartments.wordWrap.reconfigure(
-        fileOption.wordWrap ? cmView.EditorView.lineWrapping : [],
+        fileOption.word_wrap ? cmView.EditorView.lineWrapping : [],
       ),
       compartments.language.reconfigure(newLanguage ? await newLanguage.load() : []),
     ],
@@ -307,15 +300,3 @@ async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, 
 }
 
 export {trimTrailingWhitespaceFromView} from './utils.ts';
-
-function getCodeEditorConfigOptions(ec: CodeEditorConfig | null): Omit<EditorOptions, 'wordWrap'> {
-  if (!ec || !isObject(ec)) return {indentStyle: 'space', trimTrailingWhitespace: false};
-
-  const indentSize = ec.indent_size || undefined;
-  return {
-    indentStyle: ec.indent_style || 'space',
-    trimTrailingWhitespace: ec.trim_trailing_whitespace === true,
-    ...(indentSize !== undefined && {indentSize}),
-    ...(ec.tab_width ? {tabSize: Number(ec.tab_width) || indentSize} : {}),
-  };
-}
