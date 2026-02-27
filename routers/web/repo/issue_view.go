@@ -387,8 +387,6 @@ func ViewIssue(ctx *context.Context) {
 		prepareIssueViewSidebarTimeTracker,
 		prepareIssueViewSidebarDependency,
 		prepareIssueViewSidebarPin,
-		func(ctx *context.Context, issue *issues_model.Issue) { preparePullViewPullInfo(ctx, issue) },
-		preparePullViewReviewAndMerge,
 	}
 
 	for _, prepareFunc := range prepareFuncs {
@@ -396,6 +394,15 @@ func ViewIssue(ctx *context.Context) {
 		if ctx.Written() {
 			return
 		}
+	}
+
+	_, mergeInputs := preparePullViewPullInfo(ctx, issue)
+	if ctx.Written() {
+		return
+	}
+	preparePullViewReviewAndMerge(ctx, issue, mergeInputs)
+	if ctx.Written() {
+		return
 	}
 
 	// Get more information if it's a pull request.
@@ -443,8 +450,8 @@ func ViewPullMergeBox(ctx *context.Context) {
 		ctx.NotFound(nil)
 		return
 	}
-	preparePullViewPullInfo(ctx, issue)
-	preparePullViewReviewAndMerge(ctx, issue)
+	_, mergeInputs := preparePullViewPullInfo(ctx, issue)
+	preparePullViewReviewAndMerge(ctx, issue, mergeInputs)
 	ctx.Data["PullMergeBoxReloading"] = issue.PullRequest.IsChecking()
 
 	// TODO: it should use a dedicated struct to render the pull merge box, to make sure all data is prepared correctly
@@ -488,14 +495,15 @@ func prepareIssueViewSidebarDependency(ctx *context.Context, issue *issues_model
 	ctx.Data["BlockingDependencies"], ctx.Data["BlockingDependenciesNotPermitted"] = checkBlockedByIssues(ctx, blocking)
 }
 
-func preparePullViewSigning(ctx *context.Context, issue *issues_model.Issue) {
+func preparePullViewSigning(ctx *context.Context, issue *issues_model.Issue) (willSign bool) {
 	if !issue.IsPull {
-		return
+		return false
 	}
 	pull := issue.PullRequest
 	ctx.Data["WillSign"] = false
 	if ctx.Doer != nil {
 		sign, key, _, err := asymkey_service.SignMerge(ctx, pull, ctx.Doer, ctx.Repo.GitRepo)
+		willSign = sign
 		ctx.Data["WillSign"] = sign
 		ctx.Data["SigningKeyMergeDisplay"] = asymkey_model.GetDisplaySigningKey(key)
 		if err != nil {
@@ -509,6 +517,7 @@ func preparePullViewSigning(ctx *context.Context, issue *issues_model.Issue) {
 	} else {
 		ctx.Data["WontSignReason"] = "not_signed_in"
 	}
+	return willSign
 }
 
 func prepareIssueViewSidebarWatch(ctx *context.Context, issue *issues_model.Issue) {
@@ -558,9 +567,9 @@ func prepareIssueViewSidebarTimeTracker(ctx *context.Context, issue *issues_mode
 	}
 }
 
-func preparePullViewDeleteBranch(ctx *context.Context, issue *issues_model.Issue, canDelete bool) {
+func preparePullViewDeleteBranch(ctx *context.Context, issue *issues_model.Issue, canDelete bool) bool {
 	if !issue.IsPull {
-		return
+		return false
 	}
 	pull := issue.PullRequest
 	isPullBranchDeletable := canDelete &&
@@ -574,12 +583,13 @@ func preparePullViewDeleteBranch(ctx *context.Context, issue *issues_model.Issue
 		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pull.HeadRepoID, pull.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
-			return
+			return false
 		}
 
 		isPullBranchDeletable = !exist
 	}
 	ctx.Data["IsPullBranchDeletable"] = isPullBranchDeletable
+	return isPullBranchDeletable
 }
 
 func prepareIssueViewSidebarPin(ctx *context.Context, issue *issues_model.Issue) {
@@ -827,7 +837,7 @@ func prepareIssueViewCommentsAndSidebarParticipants(ctx *context.Context, issue 
 	ctx.Data["NumParticipants"] = len(participants)
 }
 
-func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Issue) {
+func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Issue, mergeInputs *pullViewMergeInputs) {
 	getBranchData(ctx, issue)
 	if !issue.IsPull {
 		return
@@ -947,12 +957,16 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		return
 	}
 
+	var isBlockedByApprovals, isBlockedByRejection, isBlockedByOfficialReviewRequests bool
 	if pb != nil {
 		pb.Repo = pull.BaseRepo
 		ctx.Data["ProtectedBranch"] = pb
-		ctx.Data["IsBlockedByApprovals"] = !issues_model.HasEnoughApprovals(ctx, pb, pull)
-		ctx.Data["IsBlockedByRejection"] = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
-		ctx.Data["IsBlockedByOfficialReviewRequests"] = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
+		isBlockedByApprovals = !issues_model.HasEnoughApprovals(ctx, pb, pull)
+		isBlockedByRejection = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
+		isBlockedByOfficialReviewRequests = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
+		ctx.Data["IsBlockedByApprovals"] = isBlockedByApprovals
+		ctx.Data["IsBlockedByRejection"] = isBlockedByRejection
+		ctx.Data["IsBlockedByOfficialReviewRequests"] = isBlockedByOfficialReviewRequests
 		ctx.Data["IsBlockedByOutdatedBranch"] = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
 		ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 		ctx.Data["GrantedApprovals"] = issues_model.GetGrantedApprovalsCount(ctx, pb, pull)
@@ -962,12 +976,12 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		ctx.Data["RequireApprovalsWhitelist"] = pb.EnableApprovalsWhitelist
 	}
 
-	preparePullViewSigning(ctx, issue)
+	willSign := preparePullViewSigning(ctx, issue)
 	if ctx.Written() {
 		return
 	}
 
-	preparePullViewDeleteBranch(ctx, issue, canDelete)
+	isPullBranchDeletable := preparePullViewDeleteBranch(ctx, issue, canDelete)
 	if ctx.Written() {
 		return
 	}
@@ -997,7 +1011,26 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 	ctx.Data["HasPendingPullRequestMerge"] = hasPendingPullRequestMerge
 	ctx.Data["PendingPullRequestMerge"] = pendingPullRequestMerge
 
-	preparePullViewMergeFormData(ctx, issue)
+	preparePullViewMergeFormData(ctx, issue, &mergeFormParams{
+		AllowMerge:                        allowMerge,
+		ProtectedBranch:                   pb,
+		PrConfig:                          prConfig,
+		MergeStyle:                        mergeStyle,
+		DefaultMergeMessage:               defaultMergeMessage,
+		DefaultMergeBody:                  defaultMergeBody,
+		DefaultSquashMergeMessage:         defaultSquashMergeMessage,
+		DefaultSquashMergeBody:            defaultSquashMergeBody,
+		GetCommitMessages:                 mergeInputs.GetCommitMessages,
+		PendingPullRequestMerge:           pendingPullRequestMerge,
+		IsBlockedByApprovals:              isBlockedByApprovals,
+		IsBlockedByRejection:              isBlockedByRejection,
+		IsBlockedByOfficialReviewRequests: isBlockedByOfficialReviewRequests,
+		WillSign:                          willSign,
+		IsPullBranchDeletable:             isPullBranchDeletable,
+		PullHeadCommitID:                  mergeInputs.PullHeadCommitID,
+		HeadTarget:                        mergeInputs.HeadTarget,
+		StatusCheckData:                   mergeInputs.StatusCheckData,
+	})
 }
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {

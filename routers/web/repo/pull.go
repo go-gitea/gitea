@@ -260,14 +260,22 @@ func GetMergedBaseCommitID(ctx *context.Context, issue *issues_model.Issue) stri
 	return baseCommit
 }
 
-func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git_service.CompareInfo {
+func preparePullViewPullInfo(ctx *context.Context, issue *issues_model.Issue) (*git_service.CompareInfo, *pullViewMergeInputs) {
 	if !issue.IsPull {
-		return nil
+		return nil, nil
 	}
+	var compareInfo *git_service.CompareInfo
 	if issue.PullRequest.HasMerged {
-		return prepareMergedViewPullInfo(ctx, issue)
+		compareInfo = prepareMergedViewPullInfo(ctx, issue)
+	} else {
+		compareInfo = prepareViewPullInfo(ctx, issue)
 	}
-	return prepareViewPullInfo(ctx, issue)
+	mergeInputs := &pullViewMergeInputs{}
+	mergeInputs.PullHeadCommitID, _ = ctx.Data["PullHeadCommitID"].(string)
+	mergeInputs.HeadTarget, _ = ctx.Data["HeadTarget"].(string)
+	mergeInputs.GetCommitMessages, _ = ctx.Data["GetCommitMessages"].(string)
+	mergeInputs.StatusCheckData, _ = ctx.Data["StatusCheckData"].(*pullCommitStatusCheckData)
+	return compareInfo, mergeInputs
 }
 
 // prepareMergedViewPullInfo show meta information for a merged pull request view page
@@ -672,7 +680,7 @@ func ViewPullCommits(ctx *context.Context) {
 		return
 	}
 
-	prInfo := preparePullViewPullInfo(ctx, issue)
+	prInfo, _ := preparePullViewPullInfo(ctx, issue)
 	if ctx.Written() {
 		return
 	} else if prInfo == nil {
@@ -725,7 +733,7 @@ func viewPullFiles(ctx *context.Context, beforeCommitID, afterCommitID string) {
 
 	gitRepo := ctx.Repo.GitRepo
 
-	prInfo := preparePullViewPullInfo(ctx, issue)
+	prInfo, _ := preparePullViewPullInfo(ctx, issue)
 	if ctx.Written() {
 		return
 	} else if prInfo == nil {
