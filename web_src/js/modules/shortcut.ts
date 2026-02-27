@@ -11,7 +11,7 @@ function initShortcutKbd(kbd: HTMLElement) {
 }
 
 function shortcutWrapper(el: HTMLElement): HTMLElement | null {
-  const parent = el.parentElement!;
+  const parent = el.parentElement;
   return parent?.matches('.global-shortcut-wrapper') ? parent : null;
 }
 
