@@ -138,18 +138,6 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 			return nil
 		}
 
-		res := struct {
-			MaxSorting int64
-			IssueCount int64
-		}{}
-		if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").Table("project_issue").
-			In("project_id", projectsToAdd).
-			And("project_board_id=?", newColumnID).
-			Get(&res); err != nil {
-			return err
-		}
-		newSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
-
 		pi := make([]*project_model.ProjectIssue, 0, len(projectsToAdd))
 
 		for _, projectID := range projectsToAdd {
@@ -172,6 +160,18 @@ func IssueAssignOrRemoveProject(ctx context.Context, issue *Issue, doer *user_mo
 				}
 				projectColumnID = defaultColumn.ID
 			}
+
+			res := struct {
+				MaxSorting int64
+				IssueCount int64
+			}{}
+			if _, err := db.GetEngine(ctx).Select("max(sorting) as max_sorting, count(*) as issue_count").Table("project_issue").
+				And("project_id=?", projectID).
+				And("project_board_id=?", projectColumnID).
+				Get(&res); err != nil {
+				return err
+			}
+			newSorting := util.Iif(res.IssueCount > 0, res.MaxSorting+1, 0)
 
 			pi = append(pi, &project_model.ProjectIssue{
 				IssueID:         issue.ID,
