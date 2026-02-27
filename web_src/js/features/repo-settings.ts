@@ -72,7 +72,7 @@ function initRepoSettingsSearchTeamBox() {
 
 function initRepoSettingsGitHook() {
   if (!document.querySelector('.page-content.repository.settings.edit.githook')) return;
-  const hookName = document.querySelector('.hook-filename')!.textContent!.trim() || 'hook';
+  const hookName = document.querySelector('.hook-filename')!.textContent.trim() || 'hook';
   createCodeEditor(document.querySelector<HTMLTextAreaElement>('#content')!, {defaultFilename: `${hookName}.sh`});
 }
 
