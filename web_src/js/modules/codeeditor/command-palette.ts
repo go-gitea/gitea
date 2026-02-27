@@ -198,7 +198,6 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
 
     execute(cmd: PaletteCommand) {
       this.removeOverlay();
-      this.view.focus();
       cmd.run(this.view);
     }
 
@@ -208,6 +207,7 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
       this.overlay = null;
       this.input = null;
       this.list = null;
+      this.view.focus();
     }
 
     destroy() {
