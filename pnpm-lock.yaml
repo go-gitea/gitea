@@ -132,8 +132,8 @@ importers:
         specifier: 4.1.10
         version: 4.1.10
       codemirror-lang-elixir:
-        specifier: 4.0.0
-        version: 4.0.0
+        specifier: 4.0.1
+        version: 4.0.1
       colord:
         specifier: 2.9.3
         version: 2.9.3
@@ -2120,8 +2120,8 @@ packages:
     resolution: {integrity: sha512-neHB9xuzh/wk0dIHweyAXv2aPGZIVk3pLMe+/RNzINf17fe0OG96QroktYAUm7SM1PBnzTabaLboqqxDyMU+SQ==}
     engines: {node: '>=6'}
 
-  codemirror-lang-elixir@4.0.0:
-    resolution: {integrity: sha512-mzFesxo/t6KOxwnkqVd34R/q7yk+sMtHh6vUKGAvjwHmpL7bERHB+vQAsmU/nqrndkwVeJEHWGw/z/ybfdiudA==}
+  codemirror-lang-elixir@4.0.1:
+    resolution: {integrity: sha512-z6W/XB4b7TZrp9EZYBGVq93vQfvKbff+1iM8YZaVErL0dguBAeLmVRlEv1NuDZHOP1qjJ3NwyibkUkNWn7q9VQ==}
 
   codemirror-spell-checker@1.1.2:
     resolution: {integrity: sha512-2Tl6n0v+GJRsC9K3MLCdLaMOmvWL0uukajNJseorZJsslaxZyZMgENocPU8R0DyoTAiKsyqiemSOZo7kjGV0LQ==}
@@ -3287,8 +3287,8 @@ packages:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
 
-  lezer-elixir@1.1.2:
-    resolution: {integrity: sha512-K3yPMJcNhqCL6ugr5NkgOC1g37rcOM38XZezO9lBXy0LwWFd8zdWXfmRbY829vZVk0OGCQoI02yDWp9FF2OWZA==}
+  lezer-elixir@1.1.3:
+    resolution: {integrity: sha512-Ymc58/WhxdZS9yEOlnKbF3rdeBdFcPm4OEm26KMqA1Za9vztXi7I5qwGw1KxYmm3Nv0iDHq//EQyBwSEzKG9Mg==}
 
   lilconfig@3.1.3:
     resolution: {integrity: sha512-/vlFKAoH5Cgt3Ie+JLhRbwOsCQePABiU3tJ1egGvyQ+33R/vcwM2Zl2QR/LzjsBeItPt3oSVXapn+m4nQDvpzw==}
@@ -6423,10 +6423,10 @@ snapshots:
       kind-of: 6.0.3
       shallow-clone: 3.0.1
 
-  codemirror-lang-elixir@4.0.0:
+  codemirror-lang-elixir@4.0.1:
     dependencies:
       '@codemirror/language': 6.12.2
-      lezer-elixir: 1.1.2
+      lezer-elixir: 1.1.3
 
   codemirror-spell-checker@1.1.2:
     dependencies:
@@ -7651,7 +7651,7 @@ snapshots:
       prelude-ls: 1.2.1
       type-check: 0.4.0
 
-  lezer-elixir@1.1.2:
+  lezer-elixir@1.1.3:
     dependencies:
       '@lezer/highlight': 1.2.3
       '@lezer/lr': 1.4.8

@@ -224,8 +224,6 @@ export default {
       },
       override: {
         'khroma@*': {licenseName: 'MIT'}, // https://github.com/fabiospampinato/khroma/pull/33
-        'codemirror-lang-elixir@*': {licenseName: 'Apache-2.0'}, // https://github.com/livebook-dev/codemirror-lang-elixir/issues/1
-        'lezer-elixir@*': {licenseName: 'Apache-2.0'}, // https://github.com/livebook-dev/lezer-elixir/issues/1
       },
       emitError: true,
       allow: '(Apache-2.0 OR 0BSD OR BSD-2-Clause OR BSD-3-Clause OR MIT OR ISC OR CPAL-1.0 OR Unlicense OR EPL-1.0 OR EPL-2.0)',
