@@ -68,6 +68,8 @@ type mergeFormParams struct {
 	IsBlockedByApprovals              bool
 	IsBlockedByRejection              bool
 	IsBlockedByOfficialReviewRequests bool
+	IsBlockedByOutdatedBranch         bool
+	IsBlockedByChangedProtectedFiles  bool
 	WillSign                          bool
 	IsPullBranchDeletable             bool
 }
@@ -88,9 +90,8 @@ func preparePullViewMergeFormData(ctx *context.Context, issue *issues_model.Issu
 	pb := params.ProtectedBranch
 	requiredStatusCheckSuccess := params.StatusCheckData != nil && params.StatusCheckData.RequiredChecksState.IsSuccess()
 	allOverridableChecksOk := !params.IsBlockedByApprovals && !params.IsBlockedByRejection &&
-		!params.IsBlockedByOfficialReviewRequests &&
-		(pb == nil || !pb.BlockOnOutdatedBranch || pull.CommitsBehind == 0) &&
-		len(pull.ChangedProtectedFiles) == 0 &&
+		!params.IsBlockedByOfficialReviewRequests && !params.IsBlockedByOutdatedBranch &&
+		!params.IsBlockedByChangedProtectedFiles &&
 		(pb == nil || !pb.EnableStatusCheck || requiredStatusCheckSuccess)
 	isRepoAdmin := ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
 	canMergeNow := (((pb == nil || !pb.BlockAdminMergeOverride) && isRepoAdmin) || allOverridableChecksOk) &&
