@@ -241,7 +241,7 @@ gitea-theme-meta-info {
   --color-accent: var(--color-primary-light-1);
   --color-small-accent: var(--color-primary-light-6);
   --color-highlight-fg: #eed200;
-  --color-highlight-bg: #fffbdd;
+  --color-highlight-bg: #f5efc5;
   --color-overlay-backdrop: #080808c0;
   --color-danger: var(--color-red);
   --color-transparency-grid-light: #fafafa;
