@@ -1,4 +1,4 @@
-import {basename, extname, isObject} from '../../utils.ts';
+import {extname, isObject} from '../../utils.ts';
 import {createElementFromHTML, onInputDebounce, toggleElem} from '../../utils/dom.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {svg} from '../../svg.ts';
