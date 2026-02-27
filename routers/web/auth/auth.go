@@ -422,18 +422,13 @@ func SignOut(ctx *context.Context) {
 	}
 
 	// Check for OIDC end_session_endpoint before destroying the session
-	var endSessionURL string
+	redirectTo := setting.AppSubURL + "/"
 	if ctx.Doer != nil && ctx.Doer.LoginType == auth.OAuth2 {
-		endSessionURL = buildOIDCEndSessionURL(ctx, ctx.Doer)
+		redirectTo = buildOIDCEndSessionURL(ctx, ctx.Doer)
 	}
 
 	HandleSignOut(ctx)
-
-	if endSessionURL != "" {
-		ctx.JSONRedirect(endSessionURL)
-	} else {
-		ctx.JSONRedirect(setting.AppSubURL + "/")
-	}
+	ctx.Redirect(redirectTo)
 }
 
 // SignUp render the register page
