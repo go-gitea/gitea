@@ -424,7 +424,9 @@ func SignOut(ctx *context.Context) {
 	// Check for OIDC end_session_endpoint before destroying the session
 	redirectTo := setting.AppSubURL + "/"
 	if ctx.Doer != nil && ctx.Doer.LoginType == auth.OAuth2 {
-		redirectTo = buildOIDCEndSessionURL(ctx, ctx.Doer)
+		if s := buildOIDCEndSessionURL(ctx, ctx.Doer); s != "" {
+			redirectTo = s
+		}
 	}
 
 	HandleSignOut(ctx)
