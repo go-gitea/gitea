@@ -298,11 +298,6 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		}
 	}
 
-	var projectIDs []int64
-	if v := ctx.FormInt64("project"); v > 0 {
-		projectIDs = []int64{v}
-	}
-
 	isPull := optional.None[bool]()
 	switch ctx.FormString("type") {
 	case "pulls":
@@ -332,12 +327,10 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		},
 		Keyword:  keyword,
 		RepoIDs:  []int64{ctx.Repo.Repository.ID},
+		ProjectIDs: []int64{ctx.FormInt64("project")},
 		IsPull:   isPull,
 		IsClosed: isClosed,
 		SortBy:   issue_indexer.SortByCreatedDesc,
-	}
-	if v, has := projectID.Get(); has {
-		searchOpt.ProjectIDs = []int64{v}
 	}
 	if since != 0 {
 		searchOpt.UpdatedAfterUnix = optional.Some(since)
