@@ -994,6 +994,8 @@ func preparePullViewReviewAndMerge(ctx *context.Context, issue *issues_model.Iss
 		ctx.ServerError("GetScheduledMergeByPullID", err)
 		return
 	}
+
+	preparePullViewMergeFormData(ctx, issue)
 }
 
 func prepareIssueViewContent(ctx *context.Context, issue *issues_model.Issue) {

@@ -38,7 +38,6 @@
 		)}}
 		</div>
 		{{end}}
-		{{$showGeneralMergeForm := false}}
 		<div class="ui attached segment merge-section {{if not $.LatestCommitStatus}}avatar-content-left-arrow{{end}} flex-items-block">
 			{{if .Issue.PullRequest.HasMerged}}
 				{{if .IsPullBranchDeletable}}
@@ -211,99 +210,21 @@
 					</div>
 				{{end}}
 
-				{{if .AllowMerge}} {{/* user is allowed to merge */}}
-					{{$prUnit := .Repository.MustGetUnit ctx ctx.Consts.RepoUnitTypePullRequests}}
-					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash $prUnit.PullRequestsConfig.AllowFastForwardOnly}}
-						{{$hasPendingPullRequestMergeTip := ""}}
-						{{if .HasPendingPullRequestMerge}}
-							{{$createdPRMergeStr := DateUtils.TimeSince .PendingPullRequestMerge.CreatedUnix}}
-							{{$hasPendingPullRequestMergeTip = ctx.Locale.Tr "repo.pulls.auto_merge_has_pending_schedule" .PendingPullRequestMerge.Doer.Name $createdPRMergeStr}}
-						{{end}}
-						<div class="divider"></div>
-						{{$generalHideAutoMerge := and $canMergeNow (not $notAllOverridableChecksOk)}}
-						{{$showGeneralMergeForm = true}}
-						{{/* The merge form is a Vue component. After mounted, it has a button for choosing merge style, so make it have min-height to avoid layout shifting */}}
-						<div id="pull-request-merge-form" class="tw-min-h-[40px]" data-merge-form="{{JsonUtils.EncodeToString (dict
-							"baseLink" .Issue.Link
-							"textCancel" (ctx.Locale.Tr "cancel")
-							"textDeleteBranch" (ctx.Locale.Tr "repo.branch.delete" .HeadTarget)
-							"textAutoMergeButtonWhenSucceed" (ctx.Locale.Tr "repo.pulls.auto_merge_button_when_succeed")
-							"textAutoMergeWhenSucceed" (ctx.Locale.Tr "repo.pulls.auto_merge_when_succeed")
-							"textAutoMergeCancelSchedule" (ctx.Locale.Tr "repo.pulls.auto_merge_cancel_schedule")
-							"textClearMergeMessage" (ctx.Locale.Tr "repo.pulls.clear_merge_message")
-							"textClearMergeMessageHint" (ctx.Locale.Tr "repo.pulls.clear_merge_message_hint")
-							"textMergeCommitId" (ctx.Locale.Tr "repo.pulls.merge_commit_id")
-							"canMergeNow" $canMergeNow
-							"allOverridableChecksOk" (not $notAllOverridableChecksOk)
-							"emptyCommit" .Issue.PullRequest.IsEmpty
-							"pullHeadCommitID" .PullHeadCommitID
-							"isPullBranchDeletable" .IsPullBranchDeletable
-							"defaultMergeStyle" .MergeStyle
-							"defaultDeleteBranchAfterMerge" $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge
-							"mergeMessageFieldPlaceHolder" (ctx.Locale.Tr "repo.editor.commit_message_desc")
-							"defaultMergeMessage" .DefaultMergeBody
-							"hasPendingPullRequestMerge" .HasPendingPullRequestMerge
-							"hasPendingPullRequestMergeTip" $hasPendingPullRequestMergeTip
-							"mergeStyles" (SliceUtils.Pack
-								(dict
-									"name" "merge"
-									"allowed" $prUnit.PullRequestsConfig.AllowMerge
-									"textDoMerge" (ctx.Locale.Tr "repo.pulls.merge_pull_request")
-									"mergeTitleFieldText" .DefaultMergeMessage
-									"mergeMessageFieldText" .DefaultMergeBody
-									"hideAutoMerge" $generalHideAutoMerge
-								)
-								(dict
-									"name" "rebase"
-									"allowed" $prUnit.PullRequestsConfig.AllowRebase
-									"textDoMerge" (ctx.Locale.Tr "repo.pulls.rebase_merge_pull_request")
-									"hideMergeMessageTexts" true
-									"hideAutoMerge" $generalHideAutoMerge
-								)
-								(dict
-									"name" "rebase-merge"
-									"allowed" $prUnit.PullRequestsConfig.AllowRebaseMerge
-									"textDoMerge" (ctx.Locale.Tr "repo.pulls.rebase_merge_commit_pull_request")
-									"mergeTitleFieldText" .DefaultMergeMessage
-									"mergeMessageFieldText" .DefaultMergeBody
-									"hideAutoMerge" $generalHideAutoMerge
-								)
-								(dict
-									"name" "squash"
-									"allowed" $prUnit.PullRequestsConfig.AllowSquash
-									"textDoMerge" (ctx.Locale.Tr "repo.pulls.squash_merge_pull_request")
-									"mergeTitleFieldText" .DefaultSquashMergeMessage
-									"mergeMessageFieldText" (printf "%s%s" .GetCommitMessages .DefaultSquashMergeBody)
-									"hideAutoMerge" $generalHideAutoMerge
-								)
-								(dict
-									"name" "fast-forward-only"
-									"allowed" (and $prUnit.PullRequestsConfig.AllowFastForwardOnly (eq .Issue.PullRequest.CommitsBehind 0))
-									"textDoMerge" (ctx.Locale.Tr "repo.pulls.fast_forward_only_merge_pull_request")
-									"hideMergeMessageTexts" true
-									"hideAutoMerge" $generalHideAutoMerge
-								)
-								(dict
-									"name" "manually-merged"
-									"allowed" $prUnit.PullRequestsConfig.AllowManualMerge
-									"textDoMerge" (ctx.Locale.Tr "repo.pulls.merge_manually")
-									"hideMergeMessageTexts" true
-									"hideAutoMerge" true
-								)
-							)
-						)}}"></div>
-					{{else}}
-						{{/* no merge style was set in repo setting: not or ($prUnit.PullRequestsConfig.AllowMerge ...) */}}
-						<div class="divider"></div>
-						<div class="item tw-text-red">
-							{{svg "octicon-x"}}
-							{{ctx.Locale.Tr "repo.pulls.no_merge_desc"}}
-						</div>
-						<div class="item">
-							{{svg "octicon-info"}}
-							{{ctx.Locale.Tr "repo.pulls.no_merge_helper"}}
-						</div>
-					{{end}} {{/* end if the repo was set to use any merge style */}}
+				{{if .MergeFormJSON}}
+					<div class="divider"></div>
+					{{/* The merge form is a Vue component. After mounted, it has a button for choosing merge style, so make it have min-height to avoid layout shifting */}}
+					<div id="pull-request-merge-form" class="tw-min-h-[40px]" data-merge-form="{{.MergeFormJSON}}"></div>
+				{{else if .AllowMerge}}
+					{{/* no merge style was set in repo setting */}}
+					<div class="divider"></div>
+					<div class="item tw-text-red">
+						{{svg "octicon-x"}}
+						{{ctx.Locale.Tr "repo.pulls.no_merge_desc"}}
+					</div>
+					<div class="item">
+						{{svg "octicon-info"}}
+						{{ctx.Locale.Tr "repo.pulls.no_merge_helper"}}
+					</div>
 				{{else}}
 					{{/* user is not allowed to merge */}}
 					<div class="divider"></div>
@@ -312,6 +233,7 @@
 						{{ctx.Locale.Tr "repo.pulls.no_merge_access"}}
 					</div>
 				{{end}} {{/* end if user is allowed to merge or not */}}
+
 			{{else}}
 				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
 				{{if .IsBlockedByApprovals}}
@@ -374,7 +296,7 @@
 			* - Make some conflicts between the base branch and the pull request branch
 			* Then the Manually Merged form will be shown in the merge form
 			*/}}
-			{{if and $.StillCanManualMerge (not $showGeneralMergeForm)}}
+			{{if and $.StillCanManualMerge (not $.ShowGeneralMergeForm)}}
 				<div class="divider"></div>
 				<form class="ui form form-fetch-action" action="{{.Issue.Link}}/merge" method="post">{{/* another similar form is in PullRequestMergeForm.vue*/}}
 					<div class="field">
