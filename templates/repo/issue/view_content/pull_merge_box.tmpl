@@ -295,7 +295,7 @@
 			* - Make some conflicts between the base branch and the pull request branch
 			* Then the Manually Merged form will be shown in the merge form
 			*/}}
-			{{if and $.StillCanManualMerge (not $.ShowGeneralMergeForm)}}
+			{{if and $.StillCanManualMerge (not $.MergeFormJSON)}}
 				<div class="divider"></div>
 				<form class="ui form form-fetch-action" action="{{.Issue.Link}}/merge" method="post">{{/* another similar form is in PullRequestMergeForm.vue*/}}
 					<div class="field">
