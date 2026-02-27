@@ -15,8 +15,6 @@
 				<dd>{{.AppUrl}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.domain"}}</dt>
 				<dd>{{.Domain}}</dd>
-				<dt>{{ctx.Locale.Tr "admin.config.offline_mode"}}</dt>
-				<dd>{{svg (Iif .OfflineMode "octicon-check" "octicon-x")}}</dd>
 				<dt>{{ctx.Locale.Tr "admin.config.disable_router_log"}}</dt>
 				<dd>{{svg (Iif .DisableRouterLog "octicon-check" "octicon-x")}}</dd>
 

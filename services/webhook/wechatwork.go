@@ -86,8 +86,8 @@ func (wc wechatworkConvertor) Push(p *api.PushPayload) (WechatworkPayload, error
 		}
 
 		message := strings.ReplaceAll(commit.Message, "\n\n", "\r\n")
-		text.WriteString(fmt.Sprintf(" > [%s](%s) \r\n ><font color=\"info\">%s</font> \n ><font color=\"warning\">%s</font>", commit.ID[:7], commit.URL,
-			message, authorName))
+		fmt.Fprintf(&text, " > [%s](%s) \r\n ><font color=\"info\">%s</font> \n ><font color=\"warning\">%s</font>", commit.ID[:7], commit.URL,
+			message, authorName)
 
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
