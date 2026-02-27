@@ -61,11 +61,6 @@ func (l *memoryLocker) TryLock(_ context.Context, key string) (bool, ReleaseFunc
 	return false, func() {}, nil
 }
 
-func (l *memoryLocker) Unlock(_ context.Context, key string) error {
-	l.locks.Delete(key)
-	return nil
-}
-
 func (l *memoryLocker) tryLock(key string) bool {
 	_, loaded := l.locks.LoadOrStore(key, struct{}{})
 	return !loaded
