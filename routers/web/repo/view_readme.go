@@ -102,7 +102,7 @@ func findReadmeFileInEntries(ctx *context.Context, parentDir string, entries []*
 				return "", nil, err
 			}
 
-			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, parentDir, childEntries, false)
+			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, path.Join(parentDir, subTreeEntry.Name()), childEntries, false)
 			if err != nil && !git.IsErrNotExist(err) {
 				return "", nil, err
 			}
