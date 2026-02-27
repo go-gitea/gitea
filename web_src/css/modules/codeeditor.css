@@ -1,3 +1,7 @@
+.code-editor-options {
+  flex-wrap: wrap;
+}
+
 .editor-loading {
   padding: 1rem;
   text-align: center;
