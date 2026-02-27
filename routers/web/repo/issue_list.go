@@ -19,6 +19,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
 	db_indexer "code.gitea.io/gitea/modules/indexer/issues/db"
 	"code.gitea.io/gitea/modules/log"
@@ -156,9 +157,21 @@ func SearchIssues(ctx *context.Context) {
 		}
 	}
 
-	var projectIDs []int64
-	if v := ctx.FormInt64("project"); v > 0 {
-		projectIDs = []int64{v}
+	var includedProjectIDs []int64
+	{
+		projectID := ctx.FormInt64("project");
+		if projectID > 0 {
+			includedProjectIDs = append(includedProjectIDs, projectID)
+		}
+
+		projectIDs, err := base.StringsToInt64s(strings.Split(ctx.FormTrim("projects"), ","))
+		if err != nil {
+			ctx.HTTPError(http.StatusInternalServerError, "StringsToInt64s", err.Error())
+			return
+		}
+		if len(projectIDs) > 0 {
+			includedProjectIDs = projectIDs
+		}
 	}
 
 	// this api is also used in UI,
@@ -182,7 +195,7 @@ func SearchIssues(ctx *context.Context) {
 		IsClosed:            isClosed,
 		IncludedAnyLabelIDs: includedAnyLabels,
 		MilestoneIDs:        includedMilestones,
-		ProjectIDs:          projectIDs,
+		ProjectIDs:          includedProjectIDs,
 		SortBy:              issue_indexer.SortByCreatedDesc,
 	}
 
