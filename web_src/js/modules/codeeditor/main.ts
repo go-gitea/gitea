@@ -231,12 +231,6 @@ function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: Codem
   });
 }
 
-function getFileBasedOptions(filename: string, lineWrapExts: string[]): Pick<CodeEditorConfig, 'line_wrap'> {
-  return {
-    line_wrap: lineWrapExts.includes(extname(filename)),
-  };
-}
-
 function togglePreviewDisplay(previewable: boolean): void {
   // FIXME: here and below, the selector is too broad, it should only query in the editor related scope
   const previewTab = document.querySelector<HTMLElement>('a[data-tab="preview"]');
@@ -281,12 +275,11 @@ async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, 
   const {view: cmView, language: cmLanguage} = await importCodemirror();
   const {compartments, view, languages: editorLanguages} = editor;
 
-  const fileOption = getFileBasedOptions(filename, lineWrapExts);
   const newLanguage = cmLanguage.LanguageDescription.matchFilename(editorLanguages, filename);
   view.dispatch({
     effects: [
       compartments.wordWrap.reconfigure(
-        fileOption.line_wrap ? cmView.EditorView.lineWrapping : [],
+        lineWrapExts.includes(extname(filename)) ? cmView.EditorView.lineWrapping : [],
       ),
       compartments.language.reconfigure(newLanguage ? await newLanguage.load() : []),
     ],
