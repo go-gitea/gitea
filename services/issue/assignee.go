@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/optional"
 	notify_service "code.gitea.io/gitea/services/notify"
 )
 
@@ -116,7 +117,7 @@ func isValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		}
 	}
 
-	lastReview, err := issues_model.GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
+	lastReview, err := issues_model.GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID, optional.None[bool]())
 	if err != nil && !issues_model.IsErrReviewNotExist(err) {
 		return err
 	}
