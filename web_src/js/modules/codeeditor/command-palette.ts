@@ -186,9 +186,7 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
         hide(view);
       }
     };
-    requestAnimationFrame(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-    });
+    document.addEventListener('mousedown', handleClickOutside);
     cleanupClickOutside = () => document.removeEventListener('mousedown', handleClickOutside);
   }
 
