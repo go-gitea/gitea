@@ -14,8 +14,8 @@ async function createPullRequestWithFile(requestContext, repoName: string): Prom
   });
 }
 
-test.describe('Pull request merge box', () => {
-  test('merge form UI and style switching', async ({page}) => {
+test.describe('pull merge box', () => {
+  test('style switching and form fields', async ({page}) => {
     const repoName = `e2e-merge-box-${Date.now()}`;
     await login(page);
     await apiCreateRepo(page.request, {name: repoName});
@@ -56,7 +56,7 @@ test.describe('Pull request merge box', () => {
     await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
   });
 
-  test('status checks affect merge button and auto-merge', async ({page}) => {
+  test('status checks and auto-merge', async ({page}) => {
     const repoName = `e2e-merge-box-${Date.now()}`;
     await login(page);
     await apiCreateRepo(page.request, {name: repoName});
@@ -102,7 +102,7 @@ test.describe('Pull request merge box', () => {
     await apiDeleteRepo(page.request, env.GITEA_TEST_E2E_USER, repoName);
   });
 
-  test('perform actual merge', async ({page}) => {
+  test('merge and show merged', async ({page}) => {
     const repoName = `e2e-merge-box-${Date.now()}`;
     await login(page);
     await apiCreateRepo(page.request, {name: repoName});
