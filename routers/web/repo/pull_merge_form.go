@@ -71,33 +71,26 @@ func preparePullViewMergeFormData(ctx *context.Context, issue *issues_model.Issu
 	isBlockedByApprovals, _ := ctx.Data["IsBlockedByApprovals"].(bool)
 	isBlockedByRejection, _ := ctx.Data["IsBlockedByRejection"].(bool)
 	isBlockedByOfficialReviewRequests, _ := ctx.Data["IsBlockedByOfficialReviewRequests"].(bool)
-	isBlockedByOutdatedBranch, _ := ctx.Data["IsBlockedByOutdatedBranch"].(bool)
-	isBlockedByChangedProtectedFiles, _ := ctx.Data["IsBlockedByChangedProtectedFiles"].(bool)
-	enableStatusCheck, _ := ctx.Data["EnableStatusCheck"].(bool)
 	requiredStatusCheckSuccess := false
 	if statusCheckData, ok := ctx.Data["StatusCheckData"].(*pullCommitStatusCheckData); ok && statusCheckData != nil {
 		requiredStatusCheckSuccess = statusCheckData.RequiredChecksState.IsSuccess()
 	}
 
 	allOverridableChecksOk := !isBlockedByApprovals && !isBlockedByRejection &&
-		!isBlockedByOfficialReviewRequests && !isBlockedByOutdatedBranch &&
-		!isBlockedByChangedProtectedFiles && (!enableStatusCheck || requiredStatusCheckSuccess)
+		!isBlockedByOfficialReviewRequests &&
+		(pb == nil || !pb.BlockOnOutdatedBranch || pull.CommitsBehind == 0) &&
+		len(pull.ChangedProtectedFiles) == 0 &&
+		(pb == nil || !pb.EnableStatusCheck || requiredStatusCheckSuccess)
 
 	willSign, _ := ctx.Data["WillSign"].(bool)
 	isRepoAdmin := ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.Doer.IsAdmin)
-	var requireSigned, blockAdminMergeOverride bool
-	if pb != nil {
-		requireSigned = pb.RequireSignedCommits
-		blockAdminMergeOverride = pb.BlockAdminMergeOverride
-	}
-	canMergeNow := ((!blockAdminMergeOverride && isRepoAdmin) || allOverridableChecksOk) &&
-		(!allowMerge || !requireSigned || willSign)
-
+	canMergeNow := (((pb == nil || !pb.BlockAdminMergeOverride) && isRepoAdmin) || allOverridableChecksOk) &&
+		(pb == nil || !pb.RequireSignedCommits || willSign)
 	hideAutoMerge := canMergeNow && allOverridableChecksOk
 
-	hasPendingPullRequestMerge, _ := ctx.Data["HasPendingPullRequestMerge"].(bool)
+	pendingPullRequestMerge, _ := ctx.Data["PendingPullRequestMerge"].(*pull_model.AutoMerge)
 	hasPendingPullRequestMergeTip := ""
-	if pendingPullRequestMerge, ok := ctx.Data["PendingPullRequestMerge"].(*pull_model.AutoMerge); ok && pendingPullRequestMerge != nil {
+	if pendingPullRequestMerge != nil {
 		hasPendingPullRequestMergeTip = ctx.Locale.TrString("repo.pulls.auto_merge_has_pending_schedule",
 			pendingPullRequestMerge.Doer.Name, templates.TimeSince(pendingPullRequestMerge.CreatedUnix))
 	}
@@ -131,7 +124,7 @@ func preparePullViewMergeFormData(ctx *context.Context, issue *issues_model.Issu
 		DefaultDeleteBranchAfterMerge:  prConfig.DefaultDeleteBranchAfterMerge,
 		MergeMessageFieldPlaceHolder:   ctx.Locale.TrString("repo.editor.commit_message_desc"),
 		DefaultMergeMessage:            defaultMergeBody,
-		HasPendingPullRequestMerge:     hasPendingPullRequestMerge,
+		HasPendingPullRequestMerge:     pendingPullRequestMerge != nil,
 		HasPendingPullRequestMergeTip:  hasPendingPullRequestMergeTip,
 		MergeStyles: []mergeStyleField{
 			{
