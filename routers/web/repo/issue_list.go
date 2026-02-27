@@ -156,9 +156,9 @@ func SearchIssues(ctx *context.Context) {
 		}
 	}
 
-	projectID := optional.None[int64]()
+	var projectIDs []int64
 	if v := ctx.FormInt64("project"); v > 0 {
-		projectID = optional.Some(v)
+		projectIDs = []int64{v}
 	}
 
 	// this api is also used in UI,
@@ -182,7 +182,7 @@ func SearchIssues(ctx *context.Context) {
 		IsClosed:            isClosed,
 		IncludedAnyLabelIDs: includedAnyLabels,
 		MilestoneIDs:        includedMilestones,
-		ProjectIDs:          projectID,
+		ProjectIDs:          projectIDs,
 		SortBy:              issue_indexer.SortByCreatedDesc,
 	}
 
@@ -298,9 +298,9 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		}
 	}
 
-	projectID := optional.None[int64]()
+	var projectIDs []int64
 	if v := ctx.FormInt64("project"); v > 0 {
-		projectID = optional.Some(v)
+		projectIDs = []int64{v}
 	}
 
 	isPull := optional.None[bool]()
@@ -334,7 +334,7 @@ func SearchRepoIssuesJSON(ctx *context.Context) {
 		RepoIDs:    []int64{ctx.Repo.Repository.ID},
 		IsPull:     isPull,
 		IsClosed:   isClosed,
-		ProjectIDs: projectID,
+		ProjectIDs: projectIDs,
 		SortBy:     issue_indexer.SortByCreatedDesc,
 	}
 	if since != 0 {
