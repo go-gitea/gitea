@@ -1,8 +1,9 @@
 import {env} from 'node:process';
 import {test, expect} from '@playwright/test';
 import {login, apiBaseUrl, apiHeaders, apiCreateRepo, apiDeleteRepo, apiCreateBranch, apiCreatePullRequest, apiSetCommitStatus, apiSetBranchProtection} from '../utils.ts';
+import type {APIRequestContext} from '@playwright/test';
 
-async function createPullRequestWithFile(requestContext, repoName: string): Promise<{number: number; head_sha: string}> {
+async function createPullRequestWithFile(requestContext: APIRequestContext, repoName: string): Promise<{number: number; head_sha: string}> {
   await apiCreateBranch(requestContext, env.GITEA_TEST_E2E_USER, repoName, 'test-branch');
   await requestContext.post(`${apiBaseUrl()}/api/v1/repos/${env.GITEA_TEST_E2E_USER}/${repoName}/contents/branch-file.txt`, {
     headers: apiHeaders(),
