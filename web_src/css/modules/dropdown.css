@@ -21,14 +21,12 @@
   padding: 0;
   background: var(--color-menu);
   font-size: 1em;
-  text-shadow: none;
   text-align: left;
   box-shadow: 0 6px 18px var(--color-shadow);
   border: 1px solid var(--color-secondary);
   border-radius: 0.28571429rem;
   z-index: 11;
   left: 0;
-  will-change: transform, opacity;
 }
 
 .ui.dropdown .menu > * {
@@ -80,20 +78,6 @@
 
 .ui.dropdown .menu > .item:first-child {
   border-top-width: 0;
-}
-
-.ui.dropdown > .text > [class*="right floated"],
-.ui.dropdown .menu .item > [class*="right floated"] {
-  float: right !important;
-  margin-right: 0 !important;
-  margin-left: 1em !important;
-}
-
-.ui.dropdown > .text > [class*="left floated"],
-.ui.dropdown .menu .item > [class*="left floated"] {
-  float: left !important;
-  margin-left: 0 !important;
-  margin-right: 1em !important;
 }
 
 .ui.dropdown .menu > .header {
@@ -171,11 +155,6 @@
   right: 0;
 }
 
-/* No Margin On Icon Button */
-.ui.dropdown.icon.button > .dropdown.icon {
-  margin: 0;
-}
-
 .ui.button.dropdown .menu {
   min-width: 100%;
 }
@@ -224,10 +203,6 @@ select.ui.dropdown {
   margin: -0.78571429em;
   padding: 0.91666667em;
   opacity: 0.8;
-}
-
-.ui.compact.selection.dropdown {
-  min-width: 0;
 }
 
 .ui.selection.dropdown .menu {
@@ -396,8 +371,7 @@ select.ui.dropdown {
   pointer-events: none;
 }
 
-.ui.active.search.dropdown input.search:focus + .text i.icon,
-.ui.active.search.dropdown input.search:focus + .text .flag {
+.ui.active.search.dropdown input.search:focus + .text i.icon {
   opacity: var(--opacity-disabled);
 }
 
@@ -590,11 +564,6 @@ select.ui.dropdown {
   animation: loader 0.6s infinite linear;
   border: 0.2em solid var(--color-text-light-2);
   border-radius: 500rem;
-}
-
-.ui.loading.dropdown.button > i.icon::before,
-.ui.loading.dropdown.button > i.icon::after {
-  display: none;
 }
 
 .ui.dropdown .loading.menu {
@@ -801,19 +770,6 @@ select.ui.dropdown {
   margin: 0 0 0 -0.25em;
 }
 
-.ui.top.left.pointing.dropdown > .menu {
-  inset: 100% auto auto 0;
-  margin: 1em 0 0;
-}
-
-.ui.top.left.pointing.dropdown > .menu::after {
-  top: -0.25em;
-  left: 1em;
-  right: auto;
-  margin: 0;
-  transform: rotate(45deg);
-}
-
 .ui.top.right.pointing.dropdown > .menu {
   inset: 100% 0 auto auto;
   margin: 1em 0 0;
@@ -826,22 +782,6 @@ select.ui.dropdown {
   right: 1em !important;
   margin: 0;
   transform: rotate(45deg);
-}
-
-.ui.pointing.upward.dropdown .menu,
-.ui.top.pointing.upward.dropdown .menu {
-  top: auto !important;
-  bottom: 100% !important;
-  margin: 0 0 0.78571429rem;
-  border-radius: 0.28571429rem;
-}
-
-.ui.pointing.upward.dropdown .menu::after,
-.ui.top.pointing.upward.dropdown .menu::after {
-  top: 100% !important;
-  bottom: auto !important;
-  box-shadow: 1px 1px 0 0 var(--color-secondary);
-  margin: -0.25em 0 0;
 }
 
 .ui.dropdown,
@@ -862,11 +802,6 @@ select.ui.dropdown {
 .ui.small.dropdown,
 .ui.small.dropdown .menu > .item {
   font-size: 0.92857143rem;
-}
-
-.ui.large.dropdown,
-.ui.large.dropdown .menu > .item {
-  font-size: 1.14285714rem;
 }
 
 /* This rule must come AFTER .ui.selection.dropdown because both have
@@ -955,10 +890,6 @@ select.ui.dropdown {
 
 .ui.dropdown.button {
   padding-right: 22px;
-}
-
-.ui.dropdown.large.button {
-  padding-right: 24px;
 }
 
 .ui.multiple.selection.dropdown {
