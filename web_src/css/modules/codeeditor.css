@@ -143,6 +143,9 @@
 
 .code-editor-container .cm-gutters .cm-lineNumbers .cm-gutterElement {
   min-width: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .code-editor-container .cm-foldGutter .cm-gutterElement {
@@ -219,11 +222,19 @@
   align-items: center;
   font-size: 16px;
   padding-right: 4px;
+  color: var(--color-text-light);
+  opacity: 1;
 }
 
 .code-editor-container .cm-tooltip-autocomplete ul li[aria-selected] {
   background-color: var(--color-primary-alpha-30);
   color: var(--color-text);
+}
+
+.code-editor-container .cm-completionMatchedText {
+  text-decoration: none;
+  color: var(--color-primary-dark-1);
+  font-weight: var(--font-weight-semibold);
 }
 
 .code-editor-container .cm-placeholder {
