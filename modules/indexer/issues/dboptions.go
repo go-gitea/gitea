@@ -46,7 +46,9 @@ func ToSearchOptions(keyword string, opts *issues_model.IssuesOptions) *SearchOp
 		searchOpt.MilestoneIDs = opts.MilestoneIDs
 	}
 
-	if len(opts.ProjectIDs) > 0 {
+	if len(opts.ProjectIDs) == 1 && opts.ProjectIDs[0] == db.NoConditionID {
+		searchOpt.ProjectIDs = []int64{0}
+	} else {
 		searchOpt.ProjectIDs = opts.ProjectIDs
 	}
 
