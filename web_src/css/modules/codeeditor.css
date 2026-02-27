@@ -384,6 +384,11 @@
   background-color: var(--color-primary-alpha-30);
 }
 
+.cm-command-palette-empty {
+  color: var(--color-text-light);
+  text-align: center;
+}
+
 .cm-command-palette-label {
   flex: 1;
   overflow: hidden;

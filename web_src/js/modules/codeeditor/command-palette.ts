@@ -124,6 +124,14 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
       const query = this.input!.value.toLowerCase() || '';
       this.list.textContent = '';
 
+      if (!this.filtered.length) {
+        const empty = document.createElement('div');
+        empty.className = 'cm-command-palette-empty';
+        empty.textContent = 'No matches';
+        this.list.append(empty);
+        return;
+      }
+
       for (const [index, cmd] of this.filtered.entries()) {
         const item = document.createElement('div');
         item.className = 'cm-command-palette-item';
