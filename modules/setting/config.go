@@ -71,7 +71,7 @@ func initDefaultConfig() {
 	config.SetCfgSecKeyGetter(&cfgSecKeyGetter{})
 	defaultConfig = &ConfigStruct{
 		Picture: &PictureStruct{
-			DisableGravatar:       config.NewOption[bool]("picture.disable_gravatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "DISABLE_GRAVATAR"}),
+			DisableGravatar:       config.NewOption[bool]("picture.disable_gravatar").WithDefaultSimple(true).WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "DISABLE_GRAVATAR"}),
 			EnableFederatedAvatar: config.NewOption[bool]("picture.enable_federated_avatar").WithFileConfig(config.CfgSecKey{Sec: "picture", Key: "ENABLE_FEDERATED_AVATAR"}),
 		},
 		Repository: &RepositoryStruct{
