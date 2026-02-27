@@ -91,7 +91,6 @@ var (
 	RedirectOtherPort          bool
 	RedirectorUseProxyProtocol bool
 	PortToRedirect             string
-	OfflineMode                bool
 	CertFile                   string
 	KeyFile                    string
 	StaticRootPath             string
@@ -346,7 +345,6 @@ func loadServerFrom(rootCfg ConfigProvider) {
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
-	OfflineMode = sec.Key("OFFLINE_MODE").MustBool(true)
 	if len(StaticRootPath) == 0 {
 		StaticRootPath = AppWorkPath
 	}
