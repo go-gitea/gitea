@@ -308,14 +308,14 @@ async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, 
 
 export {trimTrailingWhitespaceFromView} from './utils.ts';
 
-function getCodeEditorConfigOptions(ec: CodeEditorConfig | null): Partial<EditorOptions> {
-  if (!ec || !isObject(ec)) return {indentStyle: 'space'};
+function getCodeEditorConfigOptions(ec: CodeEditorConfig | null): Omit<EditorOptions, 'wordWrap'> {
+  if (!ec || !isObject(ec)) return {indentStyle: 'space', trimTrailingWhitespace: false};
 
-  const opts: Partial<EditorOptions> = {
+  const indentSize = ec.indent_size || undefined;
+  return {
     indentStyle: ec.indent_style || 'space',
     trimTrailingWhitespace: ec.trim_trailing_whitespace === true,
+    ...(indentSize !== undefined && {indentSize}),
+    ...(ec.tab_width ? {tabSize: Number(ec.tab_width) || indentSize} : {}),
   };
-  if (ec.indent_size) opts.indentSize = ec.indent_size;
-  if (ec.tab_width) opts.tabSize = Number(ec.tab_width) || opts.indentSize;
-  return opts;
 }
