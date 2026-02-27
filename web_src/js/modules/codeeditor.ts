@@ -126,7 +126,33 @@ async function createCodemirrorEditor(
   editorOpts: EditorOptions,
 ): Promise<CodemirrorEditor> {
   const cm = await importCodemirror();
-  const languageDescriptions = cm.languageData.languages;
+  const languageDescriptions = [
+    ...cm.languageData.languages,
+    cm.language.LanguageDescription.of({
+      name: 'Elixir',
+      extensions: ['ex', 'exs'],
+      async load() {
+        const m = await import('codemirror-lang-elixir');
+        return m.elixir();
+      },
+    }),
+    cm.language.LanguageDescription.of({
+      name: 'Nix',
+      extensions: ['nix'],
+      async load() {
+        const m = await import('@replit/codemirror-lang-nix');
+        return m.nix();
+      },
+    }),
+    cm.language.LanguageDescription.of({
+      name: 'Svelte',
+      extensions: ['svelte'],
+      async load() {
+        const m = await import('@replit/codemirror-lang-svelte');
+        return m.svelte();
+      },
+    }),
+  ];
   const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, filename);
 
   const container = document.createElement('div');
