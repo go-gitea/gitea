@@ -101,8 +101,7 @@ async function createCodemirrorEditor(
 
   const container = document.createElement('div');
   container.className = 'code-editor-container';
-  if (!textarea.parentNode) throw new Error('Parent node absent');
-  textarea.parentNode.append(container);
+  textarea.parentNode!.append(container);
 
   const wordWrap = new cm.state.Compartment();
   const language = new cm.state.Compartment();

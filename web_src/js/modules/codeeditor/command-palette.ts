@@ -72,7 +72,7 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
       const item = document.createElement('div');
       item.className = 'cm-command-palette-item';
       item.setAttribute('role', 'option');
-      item.dataset.index = String(index);
+      item.setAttribute('data-index', String(index));
       if (index === selectedIndex) item.setAttribute('aria-selected', 'true');
 
       const label = document.createElement('span');
@@ -104,9 +104,7 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
   }
 
   function show(view: EditorView) {
-    const container = view.dom.closest('.code-editor-container');
-    if (!container) return;
-
+    const container = view.dom.closest('.code-editor-container')!;
     overlay = document.createElement('div');
     overlay.className = 'cm-command-palette';
 
@@ -138,7 +136,7 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
     list.addEventListener('pointerenter', (e) => {
       const item = (e.target as Element).closest<HTMLElement>('.cm-command-palette-item');
       if (!item) return;
-      selectedIndex = Number(item.dataset.index);
+      selectedIndex = Number(item.getAttribute('data-index'));
       updateSelected();
     }, true);
 
@@ -146,7 +144,7 @@ export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>)
       e.preventDefault();
       const item = (e.target as Element).closest<HTMLElement>('.cm-command-palette-item');
       if (!item) return;
-      const cmd = filtered[Number(item.dataset.index)];
+      const cmd = filtered[Number(item.getAttribute('data-index'))];
       if (cmd) execute(cmd);
     });
 
