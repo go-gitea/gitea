@@ -1,5 +1,5 @@
 import {extname} from '../../utils.ts';
-import {createElementFromHTML, onInputDebounce, toggleElem} from '../../utils/dom.ts';
+import {createElementFromHTML, toggleElem} from '../../utils/dom.ts';
 import {html, htmlRaw} from '../../utils/html.ts';
 import {svg} from '../../svg.ts';
 import {commandPalette} from './command-palette.ts';
@@ -10,7 +10,7 @@ import type {EditorView, ViewUpdate} from '@codemirror/view';
 
 // CodeEditorConfig is also used by backend, defined in "editor_util.go"
 type CodeEditorConfig = {
-  file_path: string; // the current file path, used for language detection
+  file_name: string; // the current filename, used for language detection
   autofocus?: boolean; // whether to autofocus the editor on load
   previewable_extensions?: string[]; // file extensions that support preview rendering
   indent_style: string; // "space" or "tab", from .editorconfig
@@ -23,8 +23,10 @@ type CodeEditorConfig = {
 
 export type CodemirrorEditor = {
   view: EditorView;
+  autofocus: boolean;
   trimTrailingWhitespace: boolean;
   togglePalette: (view: EditorView) => boolean;
+  updateFilename: (filename: string) => Promise<void>;
   languages: LanguageDescription[];
   compartments: {
     wordWrap: Compartment;
@@ -52,10 +54,10 @@ export async function importCodemirror() {
 
 async function createCodemirrorEditor(
   textarea: HTMLTextAreaElement,
-  filePath: string,
   config: CodeEditorConfig,
 ): Promise<CodemirrorEditor> {
   const cm = await importCodemirror();
+  const filename = config.file_name;
   const languageDescriptions = [
     ...cm.languageData.languages,
     cm.language.LanguageDescription.of({
@@ -79,7 +81,7 @@ async function createCodemirrorEditor(
       load: async () => (await import('@codemirror/lang-json')).json(),
     }),
   ];
-  const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, filePath);
+  const matchedLang = cm.language.LanguageDescription.matchFilename(languageDescriptions, filename);
 
   const container = document.createElement('div');
   container.className = 'code-editor-container';
@@ -240,41 +242,33 @@ function togglePreviewDisplay(previewable: boolean): void {
   }
 }
 
-export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameInput?: HTMLInputElement): Promise<CodemirrorEditor> {
+export async function createCodeEditor(textarea: HTMLTextAreaElement): Promise<CodemirrorEditor> {
   const config: CodeEditorConfig = JSON.parse(textarea.getAttribute('data-code-editor-config')!);
-  const filePath = filenameInput ? filenameInput.value : config.file_path;
   const previewableExts = new Set(config.previewable_extensions || []);
   const lineWrapExts = config.line_wrap_extensions || [];
 
-  const editor = await createCodemirrorEditor(textarea, filePath, config);
+  const editor = await createCodemirrorEditor(textarea, config);
   setupEditorOptionListeners(textarea, editor);
 
-  if (config.autofocus) {
-    editor.view.focus();
-  } else if (filenameInput) {
-    filenameInput.focus();
-  }
-  if (filenameInput) {
-    togglePreviewDisplay(previewableExts.has(extname(filePath)));
-    filenameInput.addEventListener('input', onInputDebounce(async () => {
-      const newFilePath = filenameInput.value;
-      togglePreviewDisplay(previewableExts.has(extname(newFilePath)));
-      await updateEditorLanguage(editor, newFilePath, lineWrapExts);
-    }));
-  }
-
-  return editor;
+  return {
+    ...editor,
+    autofocus: config.autofocus,
+    async updateFilename(filename: string) {
+      togglePreviewDisplay(previewableExts.has(extname(filename)));
+      await updateEditorLanguage(editor, filename, lineWrapExts);
+    },
+  };
 }
 
-async function updateEditorLanguage(editor: CodemirrorEditor, filePath: string, lineWrapExts: string[]): Promise<void> {
+async function updateEditorLanguage(editor: CodemirrorEditor, filename: string, lineWrapExts: string[]): Promise<void> {
   const {view: cmView, language: cmLanguage} = await importCodemirror();
   const {compartments, view, languages: editorLanguages} = editor;
 
-  const newLanguage = cmLanguage.LanguageDescription.matchFilename(editorLanguages, filePath);
+  const newLanguage = cmLanguage.LanguageDescription.matchFilename(editorLanguages, filename);
   view.dispatch({
     effects: [
       compartments.wordWrap.reconfigure(
-        lineWrapExts.includes(extname(filePath)) ? cmView.EditorView.lineWrapping : [],
+        lineWrapExts.includes(extname(filename)) ? cmView.EditorView.lineWrapping : [],
       ),
       compartments.language.reconfigure(newLanguage ? await newLanguage.load() : []),
     ],

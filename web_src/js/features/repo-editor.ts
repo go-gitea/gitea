@@ -33,7 +33,7 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
   });
 }
 
-export function initRepoEditor() {
+export async function initRepoEditor() {
   const dropzoneUpload = document.querySelector<HTMLElement>('.page-content.repository.editor.upload .dropzone');
   if (dropzoneUpload) initDropzone(dropzoneUpload);
 
@@ -63,6 +63,42 @@ export function initRepoEditor() {
     }
     document.querySelector<HTMLInputElement>('#tree_path')!.value = parts.join('/');
   }
+
+  const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form')!;
+
+  // on the upload page, there is no editor(textarea)
+  const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
+  if (!editArea) return;
+
+  // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
+  // to enable or disable the commit button
+  const commitButton = document.querySelector<HTMLButtonElement>('#commit-button')!;
+  const dirtyFileClass = 'dirty-file';
+
+  const syncCommitButtonState = () => {
+    const dirty = elForm.classList.contains(dirtyFileClass);
+    commitButton.disabled = !dirty;
+  };
+  // Registering a custom listener for the file path and the file content
+  // FIXME: it is not quite right here (old bug), it causes double-init, the global areYouSure "dirty" class will also be added
+  applyAreYouSure(elForm, {
+    silent: true,
+    dirtyClass: dirtyFileClass,
+    fieldSelector: ':input:not(.commit-form-wrapper :input)',
+    change: syncCommitButtonState,
+  });
+  syncCommitButtonState(); // disable the "commit" button when no content changes
+
+  initEditPreviewTab(elForm);
+
+  const editor = await createCodeEditor(editArea);
+  if (editor.autofocus) {
+    editor.view.focus();
+  } else {
+    filenameInput.focus();
+  }
+  await editor.updateFilename(filenameInput.value);
+
   filenameInput.addEventListener('input', function () {
     const parts = filenameInput.value.split('/');
     const links = Array.from(document.querySelectorAll('.breadcrumb span.section'));
@@ -123,6 +159,7 @@ export function initRepoEditor() {
       hideElem(warningDiv);
     }
     joinTreePath();
+    editor.updateFilename(filenameInput.value);
   });
   filenameInput.addEventListener('keydown', function (e) {
     const sections = queryElems(document, '.breadcrumb span.section');
@@ -141,63 +178,32 @@ export function initRepoEditor() {
     }
   });
 
-  const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form')!;
-
-  // on the upload page, there is no editor(textarea)
-  const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
-  if (!editArea) return;
-
-  // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
-  // to enable or disable the commit button
-  const commitButton = document.querySelector<HTMLButtonElement>('#commit-button')!;
-  const dirtyFileClass = 'dirty-file';
-
-  const syncCommitButtonState = () => {
-    const dirty = elForm.classList.contains(dirtyFileClass);
-    commitButton.disabled = !dirty;
-  };
-  // Registering a custom listener for the file path and the file content
-  // FIXME: it is not quite right here (old bug), it causes double-init, the global areYouSure "dirty" class will also be added
-  applyAreYouSure(elForm, {
-    silent: true,
-    dirtyClass: dirtyFileClass,
-    fieldSelector: ':input:not(.commit-form-wrapper :input)',
-    change: syncCommitButtonState,
-  });
-  syncCommitButtonState(); // disable the "commit" button when no content changes
-
-  initEditPreviewTab(elForm);
-
-  (async () => {
-    const editor = await createCodeEditor(editArea, filenameInput);
-
-    // Update the editor from query params, if available,
-    // only after the dirtyFileClass initialization
-    const params = new URLSearchParams(window.location.search);
-    const value = params.get('value');
-    if (value) {
-      editor.view.dispatch({
-        changes: {from: 0, to: editor.view.state.doc.length, insert: value},
-      });
-    }
-
-    commitButton.addEventListener('click', async (e) => {
-      if (editor.trimTrailingWhitespace) {
-        trimTrailingWhitespaceFromView(editor.view);
-      }
-      // A modal which asks if an empty file should be committed
-      if (!editArea.value) {
-        e.preventDefault();
-        if (await confirmModal({
-          header: elForm.getAttribute('data-text-empty-confirm-header')!,
-          content: elForm.getAttribute('data-text-empty-confirm-content')!,
-        })) {
-          ignoreAreYouSure(elForm);
-          submitFormFetchAction(elForm);
-        }
-      }
+  // Update the editor from query params, if available,
+  // only after the dirtyFileClass initialization
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get('value');
+  if (value) {
+    editor.view.dispatch({
+      changes: {from: 0, to: editor.view.state.doc.length, insert: value},
     });
-  })();
+  }
+
+  commitButton.addEventListener('click', async (e) => {
+    if (editor.trimTrailingWhitespace) {
+      trimTrailingWhitespaceFromView(editor.view);
+    }
+    // A modal which asks if an empty file should be committed
+    if (!editArea.value) {
+      e.preventDefault();
+      if (await confirmModal({
+        header: elForm.getAttribute('data-text-empty-confirm-header')!,
+        content: elForm.getAttribute('data-text-empty-confirm-content')!,
+      })) {
+        ignoreAreYouSure(elForm);
+        submitFormFetchAction(elForm);
+      }
+    }
+  });
 }
 
 export function renderPreviewPanelContent(previewPanel: Element, htmlContent: string) {

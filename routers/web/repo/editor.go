@@ -319,7 +319,6 @@ func EditFile(ctx *context.Context) {
 	}
 
 	editorConfig := getCodeEditorConfig(ctx, ctx.Repo.TreePath)
-	editorConfig.FilePath = ctx.Repo.TreePath
 	editorConfig.Autofocus = !isNewFile
 	ctx.Data["CodeEditorConfig"] = editorConfig
 	ctx.HTML(http.StatusOK, tplEditFile)
