@@ -53,17 +53,16 @@ data 12
 
 			ctx, _ := contexttest.MockContext(t, "/")
 			ctx.Repo.Commit = commit
-			ctx.Repo.TreePath = ""
-			subfolder, readmeFile, err := findReadmeFileInEntries(ctx, "", entries, true)
+			foundDir, foundReadme, err := findReadmeFileInEntries(ctx, "", entries, true)
 			require.NoError(t, err)
-			require.NotNil(t, readmeFile)
+			require.NotNil(t, foundReadme)
 
-			assert.Equal(t, subdir, subfolder)
-			assert.Equal(t, "README.md", readmeFile.Name())
-			assert.True(t, readmeFile.IsLink())
+			assert.Equal(t, subdir, foundDir)
+			assert.Equal(t, "README.md", foundReadme.Name())
+			assert.True(t, foundReadme.IsLink())
 
 			// Verify that it can follow the link
-			res, err := git.EntryFollowLinks(commit, path.Join(subfolder, readmeFile.Name()), readmeFile)
+			res, err := git.EntryFollowLinks(commit, path.Join(foundDir, foundReadme.Name()), foundReadme)
 			require.NoError(t, err)
 			assert.Equal(t, "target.md", res.TargetFullPath)
 		})
