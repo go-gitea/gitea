@@ -670,7 +670,7 @@ func (d *CodebaseDownloader) GetOrgRepositories(ctx context.Context, orgName str
 	// We'll query for all projects and then paginate in code
 	err := d.callAPI(
 		ctx,
-		fmt.Sprintf("/%s", orgName),
+		"/"+orgName,
 		nil,
 		&rawProjects,
 	)

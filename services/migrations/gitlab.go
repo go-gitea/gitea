@@ -786,7 +786,7 @@ func (g *GitlabDownloader) GetOrgRepositories(ctx context.Context, groupName str
 			Page:    page,
 			PerPage: perPage,
 		},
-		IncludeSubGroups: gitlab.Ptr(true),
+		IncludeSubGroups: new(bool),
 	}
 
 	projects, resp, err := g.client.Groups.ListGroupProjects(groupName, opt, gitlab.WithContext(ctx))
