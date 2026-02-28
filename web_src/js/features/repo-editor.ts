@@ -50,6 +50,9 @@ export function initRepoEditor() {
     });
   }
 
+  // ATTENTION: two pages have this filename input
+  // * new/edit file page: there is a code editor
+  // * upload page: there is no code editor, but a uploader
   const filenameInput = document.querySelector<HTMLInputElement>('#file-name')!;
   if (!filenameInput) return;
   function joinTreePath() {
@@ -143,7 +146,8 @@ export function initRepoEditor() {
 
   const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form')!;
 
-  // on the upload page, there is no editor(textarea)
+  // see the ATTENTION above, on the upload page, there is no editor(textarea)
+  // so only the filename input above is initialized, the code below (for the code editor) will be skipped
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
   if (!editArea) return;
 
