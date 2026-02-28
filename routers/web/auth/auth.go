@@ -162,6 +162,11 @@ func consumeAuthRedirectLink(ctx *context.Context) string {
 }
 
 func redirectAfterAuth(ctx *context.Context) {
+	if setting.Config().Instance.MaintenanceMode.Value(ctx).IsActive() {
+		// in maintenance mode, redirect to admin dashboard, it is the only accessible page
+		ctx.Redirect(setting.AppSubURL + "/-/admin")
+		return
+	}
 	ctx.RedirectToCurrentSite(consumeAuthRedirectLink(ctx))
 }
 
@@ -240,10 +245,10 @@ func SignInPost(ctx *context.Context) {
 	u, source, err := auth_service.UserSignIn(ctx, form.UserName, form.Password)
 	if err != nil {
 		if errors.Is(err, util.ErrNotExist) || errors.Is(err, util.ErrInvalidArgument) {
-			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
 			log.Warn("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 		} else if user_model.IsErrEmailAlreadyUsed(err) {
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignIn, &form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tplSignIn, &form)
 			log.Warn("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 		} else if user_model.IsErrUserProhibitLogin(err) {
 			log.Warn("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
@@ -486,23 +491,23 @@ func SignUpPost(ctx *context.Context) {
 	}
 
 	if !form.IsEmailDomainAllowed() {
-		ctx.RenderWithErr(ctx.Tr("auth.email_domain_blacklisted"), tplSignUp, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("auth.email_domain_blacklisted"), tplSignUp, &form)
 		return
 	}
 
 	if form.Password != form.Retype {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("form.password_not_match"), tplSignUp, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("form.password_not_match"), tplSignUp, &form)
 		return
 	}
 	if len(form.Password) < setting.MinPasswordLength {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplSignUp, &form)
+		ctx.RenderWithErrDeprecated(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplSignUp, &form)
 		return
 	}
 	if !password.IsComplexEnough(form.Password) {
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(password.BuildComplexityError(ctx.Locale), tplSignUp, &form)
+		ctx.RenderWithErrDeprecated(password.BuildComplexityError(ctx.Locale), tplSignUp, &form)
 		return
 	}
 	if err := password.IsPwned(ctx, form.Password); err != nil {
@@ -512,7 +517,7 @@ func SignUpPost(ctx *context.Context) {
 			errMsg = ctx.Tr("auth.password_pwned_err")
 		}
 		ctx.Data["Err_Password"] = true
-		ctx.RenderWithErr(errMsg, tplSignUp, &form)
+		ctx.RenderWithErrDeprecated(errMsg, tplSignUp, &form)
 		return
 	}
 
@@ -582,25 +587,25 @@ func createUserInContext(ctx *context.Context, tpl templates.TplName, form any, 
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.username_been_taken"), tpl, form)
 		case user_model.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_been_used"), tpl, form)
 		case user_model.IsErrEmailCharIsNotSupported(err):
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tpl, form)
 		case user_model.IsErrEmailInvalid(err):
 			ctx.Data["Err_Email"] = true
-			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("form.email_invalid"), tpl, form)
 		case db.IsErrNameReserved(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(db.ErrNameReserved).Name), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_reserved", err.(db.ErrNameReserved).Name), tpl, form)
 		case db.IsErrNamePatternNotAllowed(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
 		case db.IsErrNameCharsNotAllowed(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_chars_not_allowed", err.(db.ErrNameCharsNotAllowed).Name), tpl, form)
+			ctx.RenderWithErrDeprecated(ctx.Tr("user.form.name_chars_not_allowed", err.(db.ErrNameCharsNotAllowed).Name), tpl, form)
 		default:
 			ctx.ServerError("CreateUser", err)
 		}

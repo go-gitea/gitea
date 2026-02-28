@@ -583,3 +583,12 @@ func FindRecentlyPushedNewBranches(ctx context.Context, doer *user_model.User, o
 
 	return newBranches, nil
 }
+
+// CountBranches returns the number of branches in the repository
+func CountBranches(ctx context.Context, repoID int64, includeDeleted bool) (int64, error) {
+	sess := db.GetEngine(ctx).Where("repo_id=?", repoID)
+	if !includeDeleted {
+		sess.And("is_deleted=?", false)
+	}
+	return sess.Count(new(Branch))
+}

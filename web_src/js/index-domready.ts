@@ -1,5 +1,4 @@
 import '../fomantic/build/fomantic.js';
-import '../../node_modules/easymde/dist/easymde.min.css'; // TODO: lazy load in "switchToEasyMDE"
 
 import {initHtmx} from './htmx.ts';
 import {initDashboardRepoList} from './features/dashboard.ts';

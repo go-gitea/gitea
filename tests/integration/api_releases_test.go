@@ -29,9 +29,19 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAPIListReleasesWithWriteToken(t *testing.T) {
+func TestAPIReleaseRead(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
+	t.Run("DraftReleaseAttachmentAccess", testAPIDraftReleaseAttachmentAccess)
+	t.Run("ListReleasesWithWriteToken", testAPIListReleasesWithWriteToken)
+	t.Run("ListReleasesWithReadToken", testAPIListReleasesWithReadToken)
+	t.Run("GetDraftRelease", testAPIGetDraftRelease)
+	t.Run("GetLatestRelease", testAPIGetLatestRelease)
+	t.Run("GetReleaseByTag", testAPIGetReleaseByTag)
+	t.Run("GetDraftReleaseByTag", testAPIGetDraftReleaseByTag)
+	t.Run("EditReleaseAttachmentWithUnallowedFile", testAPIEditReleaseAttachmentWithUnallowedFile) // failed attempt, so it is also a read test
+}
 
+func testAPIListReleasesWithWriteToken(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeWriteRepository)
@@ -81,9 +91,7 @@ func TestAPIListReleasesWithWriteToken(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
 }
 
-func TestAPIListReleasesWithReadToken(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIListReleasesWithReadToken(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	token := getUserToken(t, user2.LowerName, auth_model.AccessTokenScopeReadRepository)
@@ -129,9 +137,7 @@ func TestAPIListReleasesWithReadToken(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
 }
 
-func TestAPIGetDraftRelease(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIGetDraftRelease(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	release := unittest.AssertExistsAndLoadBean(t, &repo_model.Release{ID: 4})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -300,9 +306,7 @@ func TestAPICreateReleaseGivenInvalidTarget(t *testing.T) {
 	MakeRequest(t, req, http.StatusNotFound)
 }
 
-func TestAPIGetLatestRelease(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIGetLatestRelease(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -315,9 +319,7 @@ func TestAPIGetLatestRelease(t *testing.T) {
 	assert.Equal(t, "testing-release", release.Title)
 }
 
-func TestAPIGetReleaseByTag(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIGetReleaseByTag(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
@@ -341,9 +343,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 	assert.NotEmpty(t, err.Message)
 }
 
-func TestAPIGetDraftReleaseByTag(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-
+func testAPIGetDraftReleaseByTag(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
