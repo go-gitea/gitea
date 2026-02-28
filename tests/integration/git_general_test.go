@@ -199,10 +199,10 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string, sizes ...int) (pushedFil
 		_, _, err = gitcmd.NewCommand("lfs").AddArguments("track").AddDynamicArguments(prefix + "*").
 			WithDir(dstPath).RunStdString(t.Context())
 		assert.NoError(t, err)
-		err = git.AddChanges(t.Context(), dstPath, false, ".gitattributes")
+		err = gitAddChangesDeprecated(t.Context(), dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
 
-		err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+		err = gitCommitChangesDeprecated(t.Context(), dstPath, gitCommitChangesOptions{
 			Committer: &git.Signature{
 				Email: "user2@example.com",
 				Name:  "User Two",
@@ -347,11 +347,11 @@ func generateCommitWithNewData(ctx context.Context, size int, repoPath, email, f
 	_ = tmpFile.Close()
 
 	// Commit
-	err = git.AddChanges(ctx, repoPath, false, filepath.Base(tmpFile.Name()))
+	err = gitAddChangesDeprecated(ctx, repoPath, false, filepath.Base(tmpFile.Name()))
 	if err != nil {
 		return "", err
 	}
-	err = git.CommitChanges(ctx, repoPath, git.CommitChangesOptions{
+	err = gitCommitChangesDeprecated(ctx, repoPath, gitCommitChangesOptions{
 		Committer: &git.Signature{
 			Email: email,
 			Name:  fullName,
@@ -837,10 +837,10 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			err := os.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content"), 0o666)
 			require.NoError(t, err)
 
-			err = git.AddChanges(t.Context(), dstPath, true)
+			err = gitAddChangesDeprecated(t.Context(), dstPath, true)
 			assert.NoError(t, err)
 
-			err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+			err = gitCommitChangesDeprecated(t.Context(), dstPath, gitCommitChangesOptions{
 				Committer: &git.Signature{
 					Email: "user2@example.com",
 					Name:  "user2",
@@ -909,10 +909,10 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, headBranch string
 			err := os.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content \n ## test content 2"), 0o666)
 			require.NoError(t, err)
 
-			err = git.AddChanges(t.Context(), dstPath, true)
+			err = gitAddChangesDeprecated(t.Context(), dstPath, true)
 			assert.NoError(t, err)
 
-			err = git.CommitChanges(t.Context(), dstPath, git.CommitChangesOptions{
+			err = gitCommitChangesDeprecated(t.Context(), dstPath, gitCommitChangesOptions{
 				Committer: &git.Signature{
 					Email: "user2@example.com",
 					Name:  "user2",
