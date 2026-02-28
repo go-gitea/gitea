@@ -566,8 +566,10 @@ func MigrateOrganization(ctx context.Context, doer *user_model.User, opts OrgMig
 	}
 
 	// Create a downloader to list repositories
+	// The factory expects a path like /owner/repo, but GetOrgRepositories only uses the orgName parameter.
+	// We add a placeholder repo name to prevent the factory from panicking when parsing the URL.
 	downloaderOpts := base.MigrateOptions{
-		CloneAddr:      opts.CloneAddr,
+		CloneAddr:      opts.CloneAddr + "/" + opts.SourceOrgName + "/placeholder",
 		AuthUsername:   opts.AuthUsername,
 		AuthPassword:   opts.AuthPassword,
 		AuthToken:      opts.AuthToken,

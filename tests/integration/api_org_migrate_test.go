@@ -34,7 +34,7 @@ func TestAPIOrgMigrate(t *testing.T) {
 	// Test that target org must exist
 	t.Run("TargetOrgNotExist", func(t *testing.T) {
 		session := loginUser(t, "user1")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs/migrate", &api.MigrateOrgOptions{
 			CloneAddr:     "https://github.com",
@@ -49,7 +49,7 @@ func TestAPIOrgMigrate(t *testing.T) {
 	// Test that user must be org owner (user4 is in org3 but not an owner)
 	t.Run("NotOrgOwner", func(t *testing.T) {
 		session := loginUser(t, "user4")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
 
 		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs/migrate", &api.MigrateOrgOptions{
 			CloneAddr:     "https://github.com",
@@ -65,7 +65,7 @@ func TestAPIOrgMigrate(t *testing.T) {
 	t.Run("ValidRequest", func(t *testing.T) {
 		// user2 is owner of org3
 		session := loginUser(t, "user2")
-		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
+		token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
 
 		// Verify org3 exists
 		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{LowerName: "org3", Type: user_model.UserTypeOrganization})
@@ -175,7 +175,7 @@ func TestAPIOrgMigrateServiceTypes(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
 
 	// Test each supported service type
 	serviceTypes := []struct {
@@ -211,7 +211,7 @@ func TestAPIOrgMigrateURLValidation(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
-	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization)
+	token := getTokenForLoggedInUser(t, session, auth_model.AccessTokenScopeWriteOrganization, auth_model.AccessTokenScopeWriteRepository)
 
 	urlTests := []struct {
 		name       string
