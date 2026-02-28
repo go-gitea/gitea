@@ -1,13 +1,12 @@
 import {html, htmlRaw} from '../utils/html.ts';
 import {createCodeEditor, trimTrailingWhitespaceFromView} from '../modules/codeeditor/main.ts';
-import {hideElem, queryElems, showElem, createElementFromHTML} from '../utils/dom.ts';
+import {hideElem, queryElems, showElem, createElementFromHTML, onInputDebounce} from '../utils/dom.ts';
 import {POST} from '../modules/fetch.ts';
 import {initDropzone} from './dropzone.ts';
 import {confirmModal} from './comp/ConfirmModal.ts';
 import {applyAreYouSure, ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {submitFormFetchAction} from './common-fetch-action.ts';
-import {debounce} from 'throttle-debounce';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {
   const elTabMenu = elForm.querySelector('.repo-editor-menu')!;
@@ -171,9 +170,7 @@ export function initRepoEditor() {
 
   (async () => {
     const editor = await createCodeEditor(editArea, filenameInput);
-    filenameInput.addEventListener('input', debounce(300, () => {
-      editor.updateFilename(filenameInput.value);
-    }));
+    filenameInput.addEventListener('input', onInputDebounce(() => editor.updateFilename(filenameInput.value)));
 
     // Update the editor from query params, if available,
     // only after the dirtyFileClass initialization
