@@ -14,7 +14,7 @@ import (
 )
 
 // Artifacts using the v4 backend are stored as a single combined zip file per artifact on the backend
-// The v4 backend ensures ContentEncoding is set to "application/zip", which is not the case for the old backend
+// The v4 backend ensures ContentEncoding contains a slash (otherwise this uses application/zip instead of the custom mime type), which is not the case for the old backend
 func IsArtifactV4(art *actions_model.ActionArtifact) bool {
 	return strings.Contains(art.ContentEncoding, "/")
 }
