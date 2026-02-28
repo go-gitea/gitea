@@ -7,6 +7,7 @@ import {confirmModal} from './comp/ConfirmModal.ts';
 import {applyAreYouSure, ignoreAreYouSure} from '../vendor/jquery.are-you-sure.ts';
 import {fomanticQuery} from '../modules/fomantic/base.ts';
 import {submitFormFetchAction} from './common-fetch-action.ts';
+import {debounce} from 'throttle-debounce';
 
 function initEditPreviewTab(elForm: HTMLFormElement) {
   const elTabMenu = elForm.querySelector('.repo-editor-menu')!;
@@ -170,9 +171,9 @@ export function initRepoEditor() {
 
   (async () => {
     const editor = await createCodeEditor(editArea, filenameInput);
-    filenameInput.addEventListener('input', () => {
+    filenameInput.addEventListener('input', debounce(300, () => {
       editor.updateFilename(filenameInput.value);
-    });
+    }));
 
     // Update the editor from query params, if available,
     // only after the dirtyFileClass initialization
