@@ -1,5 +1,5 @@
 import type {EditorView, ViewUpdate} from '@codemirror/view';
-import type {importCodemirror} from './main.ts';
+import type {CodemirrorModules} from './main.ts';
 
 /** Remove trailing whitespace from all lines in the editor. */
 export function trimTrailingWhitespaceFromView(view: EditorView): void {
@@ -40,7 +40,7 @@ export function findUrlAtPosition(doc: string, pos: number): string | null {
 }
 
 /** CodeMirror extension that makes URLs clickable via Ctrl/Cmd+click. */
-export function clickableUrls(cm: Awaited<ReturnType<typeof importCodemirror>>) {
+export function clickableUrls(cm: CodemirrorModules) {
   const urlMark = cm.view.Decoration.mark({class: 'cm-url'});
   const urlDecorator = new cm.view.MatchDecorator({
     regexp: urlRawRegex,

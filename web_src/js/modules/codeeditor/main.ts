@@ -35,7 +35,9 @@ export type CodemirrorEditor = {
   };
 };
 
-export async function importCodemirror() {
+export type CodemirrorModules = Awaited<ReturnType<typeof importCodemirror>>;
+
+async function importCodemirror() {
   const [view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers, vscodeKeymap] = await Promise.all([
     import(/* webpackChunkName: "codemirror" */ '@codemirror/view'),
     import(/* webpackChunkName: "codemirror" */ '@codemirror/state'),

@@ -1,7 +1,7 @@
-import type {EditorView} from '@codemirror/view';
-import type {importCodemirror} from './main.ts';
 import {isMac, keySymbols} from '../../utils.ts';
 import {trimTrailingWhitespaceFromView} from './utils.ts';
+import type {EditorView} from '@codemirror/view';
+import type {CodemirrorModules} from './main.ts';
 
 type PaletteCommand = {
   label: string;
@@ -13,7 +13,7 @@ function formatKeys(keys: string): string[][] {
   return keys.split(' ').map((chord) => chord.split('+').map((k) => keySymbols[k] || k));
 }
 
-export function commandPalette(cm: Awaited<ReturnType<typeof importCodemirror>>) {
+export function commandPalette(cm: CodemirrorModules) {
   const commands: PaletteCommand[] = [
     {label: 'Undo', keys: 'Mod+Z', run: cm.commands.undo},
     {label: 'Redo', keys: 'Mod+Shift+Z', run: cm.commands.redo},
