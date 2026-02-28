@@ -394,7 +394,7 @@ func CheckSizeQuotaExceeded(ctx context.Context, doer, owner *user_model.User, p
 		typeSpecificSize = setting.Packages.LimitSizeRubyGems
 	case packages_model.TypeSwift:
 		typeSpecificSize = setting.Packages.LimitSizeSwift
-	case packages_model.TypeTerraform:
+	case packages_model.TypeTerraformState:
 		typeSpecificSize = setting.Packages.LimitSizeTerraform
 	case packages_model.TypeVagrant:
 		typeSpecificSize = setting.Packages.LimitSizeVagrant

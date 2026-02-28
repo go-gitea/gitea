@@ -62,7 +62,7 @@ func streamState(ctx *context.Context, name, serial string) {
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
-			PackageType: packages_model.TypeTerraform,
+			PackageType: packages_model.TypeTerraformState,
 			Name:        name,
 			Version:     serial,
 		},
@@ -107,7 +107,7 @@ func UploadState(ctx *context.Context) {
 		return
 	}
 
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName)
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformState, packageName)
 	if err != nil && !errors.Is(err, packages_model.ErrPackageNotExist) {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -159,7 +159,7 @@ func UploadState(ctx *context.Context) {
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
-				PackageType: packages_model.TypeTerraform,
+				PackageType: packages_model.TypeTerraformState,
 				Name:        packageName,
 				Version:     strconv.FormatUint(state.Serial, 10),
 			},
@@ -192,7 +192,7 @@ func UploadState(ctx *context.Context) {
 // DeleteStateBySerial deletes the specific serial of a terraform package as long as it's not the latest one.
 func DeleteStateBySerial(ctx *context.Context) {
 	serial := ctx.PathParam("serial")
-	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, ctx.PathParam("name"), serial)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformState, ctx.PathParam("name"), serial)
 	if errors.Is(err, packages_model.ErrPackageFileNotExist) {
 		apiError(ctx, http.StatusNotFound, err)
 		return
@@ -227,7 +227,7 @@ func DeleteStateBySerial(ctx *context.Context) {
 func DeleteState(ctx *context.Context) {
 	packageName := ctx.PathParam("name")
 
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName)
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformState, packageName)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			apiError(ctx, http.StatusNotFound, err)
@@ -302,13 +302,13 @@ func LockState(ctx *context.Context) {
 	}
 	defer release()
 
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName)
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformState, packageName)
 	if err != nil {
 		// If the package doesn't exist, allocate it for the lock.
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			p = &packages_model.Package{
 				OwnerID:   ctx.Package.Owner.ID,
-				Type:      packages_model.TypeTerraform,
+				Type:      packages_model.TypeTerraformState,
 				Name:      packageName,
 				LowerName: strings.ToLower(packageName),
 			}
@@ -366,7 +366,7 @@ func UnlockState(ctx *context.Context) {
 	}
 	defer release()
 
-	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraform, packageName)
+	p, err := packages_model.GetPackageByName(ctx, ctx.Package.Owner.ID, packages_model.TypeTerraformState, packageName)
 	if err != nil {
 		if errors.Is(err, packages_model.ErrPackageNotExist) {
 			ctx.Status(http.StatusOK)
@@ -420,7 +420,7 @@ func getLock(ctx *context.Context, packageID int64) (LockInfo, error) {
 func getLatestVersion(ctx *context.Context, packageName string) (*packages_model.PackageVersion, error) {
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID:    ctx.Package.Owner.ID,
-		Type:       packages_model.TypeTerraform,
+		Type:       packages_model.TypeTerraformState,
 		Name:       packages_model.SearchValue{ExactMatch: true, Value: packageName},
 		IsInternal: optional.Some(false),
 		Sort:       packages_model.SortCreatedDesc,

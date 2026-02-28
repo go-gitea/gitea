@@ -83,7 +83,7 @@ func TestPackageTerraform(t *testing.T) {
 		MakeRequest(t, req, http.StatusOK)
 
 		// Verify lock property in DB
-		p, err := packages.GetPackageByName(t.Context(), user.ID, packages.TypeTerraform, packageName)
+		p, err := packages.GetPackageByName(t.Context(), user.ID, packages.TypeTerraformState, packageName)
 		require.NoError(t, err)
 		props, err := packages.GetPropertiesByName(t.Context(), packages.PropertyTypePackage, p.ID, "terraform.lock")
 		require.NoError(t, err)
@@ -96,7 +96,7 @@ func TestPackageTerraform(t *testing.T) {
 		MakeRequest(t, req, http.StatusCreated)
 
 		// Verify version created
-		pv, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeTerraform, packageName, "1")
+		pv, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeTerraformState, packageName, "1")
 		assert.NoError(t, err)
 		assert.NotNil(t, pv)
 
@@ -125,7 +125,7 @@ func TestPackageTerraform(t *testing.T) {
 		MakeRequest(t, req, http.StatusOK)
 
 		// Verify package is deleted from DB
-		_, err = packages.GetPackageByName(t.Context(), user.ID, packages.TypeTerraform, packageName)
+		_, err = packages.GetPackageByName(t.Context(), user.ID, packages.TypeTerraformState, packageName)
 		assert.ErrorIs(t, err, packages.ErrPackageNotExist)
 	})
 
@@ -152,7 +152,7 @@ func TestPackageTerraform(t *testing.T) {
 		MakeRequest(t, req, http.StatusNoContent)
 
 		// Verify version 1 is gone from DB
-		_, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeTerraform, packageName, "1")
+		_, err := packages.GetVersionByNameAndVersion(t.Context(), user.ID, packages.TypeTerraformState, packageName, "1")
 		assert.ErrorIs(t, err, packages.ErrPackageNotExist)
 
 		// Verify version 1 is gone from API
@@ -252,7 +252,7 @@ func TestPackageTerraform(t *testing.T) {
 			MakeRequest(t, req, http.StatusLocked)
 
 			// Verify package exists
-			p, err := packages.GetPackageByName(t.Context(), user.ID, packages.TypeTerraform, packageName)
+			p, err := packages.GetPackageByName(t.Context(), user.ID, packages.TypeTerraformState, packageName)
 			require.NoError(t, err)
 			assert.NotNil(t, p)
 
