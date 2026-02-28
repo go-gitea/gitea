@@ -33,7 +33,7 @@ function initEditPreviewTab(elForm: HTMLFormElement) {
   });
 }
 
-export async function initRepoEditor() {
+export function initRepoEditor() {
   const dropzoneUpload = document.querySelector<HTMLElement>('.page-content.repository.editor.upload .dropzone');
   if (dropzoneUpload) initDropzone(dropzoneUpload);
 
@@ -141,11 +141,11 @@ export async function initRepoEditor() {
     }
   });
 
+  const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form')!;
+
   // on the upload page, there is no editor(textarea)
   const editArea = document.querySelector<HTMLTextAreaElement>('.page-content.repository.editor textarea#edit_area');
   if (!editArea) return;
-
-  const elForm = document.querySelector<HTMLFormElement>('.repository.editor .edit.form')!;
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
@@ -168,38 +168,40 @@ export async function initRepoEditor() {
 
   initEditPreviewTab(elForm);
 
-  const editor = await createCodeEditor(editArea, filenameInput);
-  await editor.updateFilename(filenameInput.value);
-  filenameInput.addEventListener('input', () => {
-    editor.updateFilename(filenameInput.value);
-  });
-
-  // Update the editor from query params, if available,
-  // only after the dirtyFileClass initialization
-  const params = new URLSearchParams(window.location.search);
-  const value = params.get('value');
-  if (value) {
-    editor.view.dispatch({
-      changes: {from: 0, to: editor.view.state.doc.length, insert: value},
+  (async () => {
+    const editor = await createCodeEditor(editArea, filenameInput);
+    await editor.updateFilename(filenameInput.value);
+    filenameInput.addEventListener('input', () => {
+      editor.updateFilename(filenameInput.value);
     });
-  }
 
-  commitButton.addEventListener('click', async (e) => {
-    if (editor.trimTrailingWhitespace) {
-      trimTrailingWhitespaceFromView(editor.view);
+    // Update the editor from query params, if available,
+    // only after the dirtyFileClass initialization
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get('value');
+    if (value) {
+      editor.view.dispatch({
+        changes: {from: 0, to: editor.view.state.doc.length, insert: value},
+      });
     }
-    // A modal which asks if an empty file should be committed
-    if (!editArea.value) {
-      e.preventDefault();
-      if (await confirmModal({
-        header: elForm.getAttribute('data-text-empty-confirm-header')!,
-        content: elForm.getAttribute('data-text-empty-confirm-content')!,
-      })) {
-        ignoreAreYouSure(elForm);
-        submitFormFetchAction(elForm);
+
+    commitButton.addEventListener('click', async (e) => {
+      if (editor.trimTrailingWhitespace) {
+        trimTrailingWhitespaceFromView(editor.view);
       }
-    }
-  });
+      // A modal which asks if an empty file should be committed
+      if (!editArea.value) {
+        e.preventDefault();
+        if (await confirmModal({
+          header: elForm.getAttribute('data-text-empty-confirm-header')!,
+          content: elForm.getAttribute('data-text-empty-confirm-content')!,
+        })) {
+          ignoreAreYouSure(elForm);
+          submitFormFetchAction(elForm);
+        }
+      }
+    });
+  })();
 }
 
 export function renderPreviewPanelContent(previewPanel: Element, htmlContent: string) {
