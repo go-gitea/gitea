@@ -406,18 +406,18 @@ func (r *artifactV4Routes) finalizeArtifact(ctx *ArtifactContext) {
 	if err != nil {
 		log.Warn("Failed to read BlockList, fallback to old behavior: %v", err)
 		chunkMap, err := listChunksByRunID(r.fs, runID)
-		if os.IsNotExist(err) {
-			chunks, err = listChunksByRunIDV4(r.fs, runID, artifact.ID, nil)
-		} else {
-			if err != nil {
-				log.Error("Error merge chunks: %v", err)
+		if err == nil {
+			chunks, ok = chunkMap[artifact.ID]
+			if !ok {
+				log.Error("Error merge chunks")
 				ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
 				return
 			}
-			chunks, ok = chunkMap[artifact.ID]
+		} else if os.IsNotExist(err) {
+			chunks, err = listChunksByRunIDV4(r.fs, runID, artifact.ID, nil)
 		}
-		if !ok {
-			log.Error("Error merge chunks")
+		if err != nil {
+			log.Error("Error merge chunks: %v", err)
 			ctx.HTTPError(http.StatusInternalServerError, "Error merge chunks")
 			return
 		}
