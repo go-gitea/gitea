@@ -1009,7 +1009,6 @@ func Routes() *web.Router {
 		// Users (requires user scope)
 		m.Group("/users", func() {
 			m.Group("/{username}", func() {
-				m.Get("/keys", user.ListPublicKeys)
 				m.Get("/gpg_keys", user.ListGPGKeys)
 
 				m.Get("/followers", user.ListFollowers)
@@ -1023,6 +1022,13 @@ func Routes() *web.Router {
 				m.Get("/subscriptions", user.GetWatchedRepos)
 			}, context.UserAssignmentAPI(), checkTokenPublicOnly())
 		}, tokenRequiresScopes(auth_model.AccessTokenScopeCategoryUser), reqToken())
+
+		// Users SSH keys (publicly readable)
+		m.Group("/users", func() {
+			m.Group("/{username}", func() {
+				m.Get("/keys", user.ListPublicKeys)
+			}, context.UserAssignmentAPI())
+		})
 
 		// Users (requires user scope)
 		m.Group("/user", func() {
