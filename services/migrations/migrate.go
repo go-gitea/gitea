@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -508,6 +509,142 @@ func migrateRepository(ctx context.Context, doer *user_model.User, downloader ba
 	}
 
 	return uploader.Finish(ctx)
+}
+
+// OrgMigrateOptions defines the options for migrating an organization
+type OrgMigrateOptions struct {
+	// Source URL (e.g., https://github.com/myorg)
+	CloneAddr string `json:"clone_addr" binding:"Required"`
+	// Auth credentials
+	AuthUsername string `json:"auth_username"`
+	AuthPassword string `json:"-"`
+	AuthToken    string `json:"-"`
+	// Target organization name (will be created if doesn't exist)
+	TargetOrgName string `json:"target_org_name" binding:"Required"`
+	// Original organization name to migrate from
+	SourceOrgName string `json:"source_org_name" binding:"Required"`
+	// Git service type
+	GitServiceType structs.GitServiceType
+	// Migration options
+	Private        bool   `json:"private"`
+	Mirror         bool   `json:"mirror"`
+	LFS            bool   `json:"lfs"`
+	LFSEndpoint    string `json:"lfs_endpoint"`
+	Wiki           bool
+	Issues         bool
+	Milestones     bool
+	Labels         bool
+	Releases       bool
+	Comments       bool
+	PullRequests   bool
+	ReleaseAssets  bool
+	MirrorInterval string `json:"mirror_interval"`
+}
+
+// OrgMigrationResult contains the result of an organization migration
+type OrgMigrationResult struct {
+	TotalRepos    int
+	MigratedRepos []string
+	FailedRepos   []OrgMigrationFailure
+}
+
+// OrgMigrationFailure contains details about a failed repository migration
+type OrgMigrationFailure struct {
+	RepoName string
+	Error    error
+}
+
+// MigrateOrganization migrates all repositories from an organization
+func MigrateOrganization(ctx context.Context, doer *user_model.User, opts OrgMigrateOptions, messenger base.Messenger) (*OrgMigrationResult, error) {
+	if setting.Repository.DisableMigrations {
+		return nil, errors.New("the site administrator has disabled migrations")
+	}
+
+	err := IsMigrateURLAllowed(opts.CloneAddr, doer)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a downloader to list repositories
+	downloaderOpts := base.MigrateOptions{
+		CloneAddr:      opts.CloneAddr,
+		AuthUsername:   opts.AuthUsername,
+		AuthPassword:   opts.AuthPassword,
+		AuthToken:      opts.AuthToken,
+		GitServiceType: opts.GitServiceType,
+	}
+
+	downloader, err := newDownloader(ctx, opts.SourceOrgName, downloaderOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create downloader: %w", err)
+	}
+
+	result := &OrgMigrationResult{
+		MigratedRepos: make([]string, 0),
+		FailedRepos:   make([]OrgMigrationFailure, 0),
+	}
+
+	// List all repositories in the organization
+	perPage := 100
+	for page := 1; ; page++ {
+		repos, isEnd, err := downloader.GetOrgRepositories(ctx, opts.SourceOrgName, page, perPage)
+		if err != nil {
+			if base.IsErrNotSupported(err) {
+				return nil, fmt.Errorf("organization migration is not supported for this git service type")
+			}
+			return nil, fmt.Errorf("failed to list repositories: %w", err)
+		}
+
+		for _, repo := range repos {
+			result.TotalRepos++
+
+			repoOpts := base.MigrateOptions{
+				CloneAddr:      opts.CloneAddr + "/" + repo.Owner + "/" + repo.Name,
+				AuthUsername:   opts.AuthUsername,
+				AuthPassword:   opts.AuthPassword,
+				AuthToken:      opts.AuthToken,
+				RepoName:       repo.Name,
+				Description:    repo.Description,
+				Private:        opts.Private || repo.IsPrivate,
+				Mirror:         opts.Mirror,
+				LFS:            opts.LFS,
+				LFSEndpoint:    opts.LFSEndpoint,
+				Wiki:           opts.Wiki,
+				Issues:         opts.Issues,
+				Milestones:     opts.Milestones,
+				Labels:         opts.Labels,
+				Releases:       opts.Releases,
+				Comments:       opts.Comments,
+				PullRequests:   opts.PullRequests,
+				ReleaseAssets:  opts.ReleaseAssets,
+				MirrorInterval: opts.MirrorInterval,
+				OriginalURL:    repo.OriginalURL,
+				GitServiceType: opts.GitServiceType,
+			}
+
+			if messenger != nil {
+				messenger("repo.migrate.migrating_repo", repo.Name)
+			}
+
+			_, err := MigrateRepository(ctx, doer, opts.TargetOrgName, repoOpts, messenger)
+			if err != nil {
+				log.Error("Failed to migrate repository %s: %v", repo.Name, err)
+				result.FailedRepos = append(result.FailedRepos, OrgMigrationFailure{
+					RepoName: repo.Name,
+					Error:    err,
+				})
+				continue
+			}
+
+			result.MigratedRepos = append(result.MigratedRepos, repo.Name)
+		}
+
+		if isEnd {
+			break
+		}
+	}
+
+	return result, nil
 }
 
 // Init migrations service

@@ -310,3 +310,29 @@ func convertGogsLabel(label *gogs.Label) *base.Label {
 		Color: label.Color,
 	}
 }
+
+// GetOrgRepositories returns all repositories in an organization.
+// Note: the Gogs SDK does not support pagination for listing org repos, so all
+// repositories are fetched in a single request regardless of the page/perPage parameters.
+// This may cause memory pressure for organizations with many repositories.
+func (g *GogsDownloader) GetOrgRepositories(ctx context.Context, orgName string, _, _ int) ([]*base.Repository, bool, error) {
+	repos, err := g.client(ctx).ListOrgRepos(orgName)
+	if err != nil {
+		return nil, false, err
+	}
+
+	result := make([]*base.Repository, 0, len(repos))
+	for _, repo := range repos {
+		result = append(result, &base.Repository{
+			Owner:         orgName,
+			Name:          repo.Name,
+			IsPrivate:     repo.Private,
+			Description:   repo.Description,
+			CloneURL:      repo.CloneURL,
+			OriginalURL:   repo.HTMLURL,
+			DefaultBranch: repo.DefaultBranch,
+		})
+	}
+
+	return result, true, nil
+}

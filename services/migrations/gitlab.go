@@ -773,3 +773,39 @@ func (g *GitlabDownloader) awardsToReactions(awards []*gitlab.AwardEmoji) []*bas
 	}
 	return result
 }
+
+// GetOrgRepositories returns all repositories in a GitLab group
+// In GitLab, organizations are called "groups"
+func (g *GitlabDownloader) GetOrgRepositories(ctx context.Context, groupName string, page, perPage int) ([]*base.Repository, bool, error) {
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
+
+	opt := &gitlab.ListGroupProjectsOptions{
+		ListOptions: gitlab.ListOptions{
+			Page:    page,
+			PerPage: perPage,
+		},
+		IncludeSubGroups: gitlab.Ptr(true),
+	}
+
+	projects, resp, err := g.client.Groups.ListGroupProjects(groupName, opt, gitlab.WithContext(ctx))
+	if err != nil {
+		return nil, false, err
+	}
+
+	result := make([]*base.Repository, 0, len(projects))
+	for _, project := range projects {
+		result = append(result, &base.Repository{
+			Name:          project.Name,
+			Owner:         project.Namespace.Path,
+			IsPrivate:     project.Visibility != gitlab.PublicVisibility,
+			Description:   project.Description,
+			OriginalURL:   project.WebURL,
+			CloneURL:      project.HTTPURLToRepo,
+			DefaultBranch: project.DefaultBranch,
+		})
+	}
+
+	return result, resp.NextPage == 0, nil
+}

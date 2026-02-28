@@ -878,6 +878,8 @@ func registerWebRoutes(m *web.Router) {
 		m.Group("", func() {
 			m.Get("/create", org.Create)
 			m.Post("/create", web.Bind(forms.CreateOrgForm{}), org.CreatePost)
+			m.Get("/migrate", org.MigrateOrg)
+			m.Post("/migrate", web.Bind(forms.MigrateOrgForm{}), org.MigrateOrgPost)
 		})
 
 		m.Group("/invite/{token}", func() {

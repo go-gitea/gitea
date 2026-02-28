@@ -175,8 +175,10 @@ type swaggerParameterBodies struct {
 	DismissPullReviewOptions api.DismissPullReviewOptions
 
 	// in:body
-	MigrateRepoOptions api.MigrateRepoOptions
+MigrateRepoOptions api.MigrateRepoOptions
 
+	// in:body
+	MigrateOrgOptions api.MigrateOrgOptions
 	// in:body
 	PullReviewRequestOptions api.PullReviewRequestOptions
 
