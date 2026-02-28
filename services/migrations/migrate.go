@@ -590,7 +590,7 @@ func MigrateOrganization(ctx context.Context, doer *user_model.User, opts OrgMig
 		repos, isEnd, err := downloader.GetOrgRepositories(ctx, opts.SourceOrgName, page, perPage)
 		if err != nil {
 			if base.IsErrNotSupported(err) {
-				return nil, fmt.Errorf("organization migration is not supported for this git service type")
+				return nil, errors.New("organization migration is not supported for this git service type")
 			}
 			return nil, fmt.Errorf("failed to list repositories: %w", err)
 		}
