@@ -51,54 +51,6 @@ export async function importCodemirror() {
   return {view, state, search, language, commands, autocomplete, languageData, highlight, indentMarkers, vscodeKeymap};
 }
 
-function setupEditorOptionListeners(textarea: HTMLTextAreaElement, editor: CodemirrorEditor): void {
-  const elEditorOptions = textarea.closest('form')!.querySelector('.code-editor-options');
-  if (!elEditorOptions) return;
-
-  const {compartments, view} = editor;
-  const indentStyleSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-style-select')!;
-  const indentSizeSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-size-select')!;
-
-  const applyIndentSettings = async (style: string, size: number) => {
-    const cm = await importCodemirror();
-    view.dispatch({
-      effects: [
-        compartments.indentUnit.reconfigure(cm.language.indentUnit.of(style === 'tab' ? '\t' : ' '.repeat(size))),
-        compartments.tabSize.reconfigure(cm.state.EditorState.tabSize.of(size)),
-      ],
-    });
-  };
-
-  indentStyleSelect.addEventListener('change', () => {
-    applyIndentSettings(indentStyleSelect.value, Number(indentSizeSelect.value) || 4);
-  });
-
-  indentSizeSelect.addEventListener('change', () => {
-    applyIndentSettings(indentStyleSelect.value || 'space', Number(indentSizeSelect.value) || 4);
-  });
-
-  elEditorOptions.querySelector('.js-code-find')!.addEventListener('click', async () => {
-    const cm = await importCodemirror();
-    if (cm.search.searchPanelOpen(view.state)) {
-      cm.search.closeSearchPanel(view);
-    } else {
-      cm.search.openSearchPanel(view);
-    }
-  });
-
-  elEditorOptions.querySelector('.js-code-command-palette')!.addEventListener('click', () => {
-    editor.togglePalette(view);
-  });
-
-  elEditorOptions.querySelector<HTMLSelectElement>('.js-line-wrap-select')!.addEventListener('change', async (e) => {
-    const target = e.target as HTMLSelectElement;
-    const cm = await importCodemirror();
-    view.dispatch({
-      effects: compartments.wordWrap.reconfigure(target.value === 'on' ? cm.view.EditorView.lineWrapping : []),
-    });
-  });
-}
-
 function togglePreviewDisplay(previewable: boolean): void {
   // FIXME: here and below, the selector is too broad, it should only query in the editor related scope
   const previewTab = document.querySelector<HTMLElement>('a[data-tab="preview"]');
@@ -244,7 +196,48 @@ export async function createCodeEditor(textarea: HTMLTextAreaElement, filenameIn
     compartments: {wordWrap, language, tabSize, indentUnit: indentUnitComp},
   };
 
-  setupEditorOptionListeners(textarea, editor);
+  const elEditorOptions = textarea.closest('form')!.querySelector('.code-editor-options');
+  if (elEditorOptions) {
+    const indentStyleSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-style-select')!;
+    const indentSizeSelect = elEditorOptions.querySelector<HTMLSelectElement>('.js-indent-size-select')!;
+
+    const applyIndentSettings = (style: string, size: number) => {
+      view.dispatch({
+        effects: [
+          indentUnitComp.reconfigure(cm.language.indentUnit.of(style === 'tab' ? '\t' : ' '.repeat(size))),
+          tabSize.reconfigure(cm.state.EditorState.tabSize.of(size)),
+        ],
+      });
+    };
+
+    indentStyleSelect.addEventListener('change', () => {
+      applyIndentSettings(indentStyleSelect.value, Number(indentSizeSelect.value) || 4);
+    });
+
+    indentSizeSelect.addEventListener('change', () => {
+      applyIndentSettings(indentStyleSelect.value || 'space', Number(indentSizeSelect.value) || 4);
+    });
+
+    elEditorOptions.querySelector('.js-code-find')!.addEventListener('click', () => {
+      if (cm.search.searchPanelOpen(view.state)) {
+        cm.search.closeSearchPanel(view);
+      } else {
+        cm.search.openSearchPanel(view);
+      }
+    });
+
+    elEditorOptions.querySelector('.js-code-command-palette')!.addEventListener('click', () => {
+      palette.togglePalette(view);
+    });
+
+    elEditorOptions.querySelector<HTMLSelectElement>('.js-line-wrap-select')!.addEventListener('change', (e) => {
+      const target = e.target as HTMLSelectElement;
+      view.dispatch({
+        effects: wordWrap.reconfigure(target.value === 'on' ? cm.view.EditorView.lineWrapping : []),
+      });
+    });
+  }
+
   togglePreviewDisplay(previewableExts.has(extname(config.file_name)));
 
   if (config.autofocus) {
