@@ -801,6 +801,7 @@ func ArtifactsDownloadView(ctx *context_module.Context) {
 
 	if len(artifacts) == 1 && actions.IsArtifactV4(artifacts[0]) {
 		ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s; filename*=UTF-8''%s", url.PathEscape(artifacts[0].ArtifactPath), artifacts[0].ArtifactPath))
+		ctx.Resp.Header().Set("Content-Security-Policy", "sandbox; default-src 'none';")
 		err := actions.DownloadArtifactV4(ctx.Base, artifacts[0])
 		if err != nil {
 			ctx.ServerError("DownloadArtifactV4", err)
