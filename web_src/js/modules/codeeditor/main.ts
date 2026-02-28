@@ -52,7 +52,7 @@ export async function importCodemirror() {
 async function createCodemirrorEditor(
   textarea: HTMLTextAreaElement,
   filename: string,
-  editorOpts: CodeEditorConfig,
+  config: CodeEditorConfig,
 ): Promise<CodemirrorEditor> {
   const cm = await importCodemirror();
   const languageDescriptions = [
@@ -115,7 +115,7 @@ async function createCodemirrorEditor(
       cm.view.rectangularSelection(),
       cm.view.crosshairCursor(),
       textarea.getAttribute('data-placeholder') ? cm.view.placeholder(textarea.getAttribute('data-placeholder')!) : [],
-      editorOpts.trim_trailing_whitespace ? cm.view.highlightTrailingWhitespace() : [],
+      config.trim_trailing_whitespace ? cm.view.highlightTrailingWhitespace() : [],
       cm.search.search({top: true}),
       cm.search.highlightSelectionMatches(),
       cm.view.keymap.of([
@@ -133,7 +133,7 @@ async function createCodemirrorEditor(
       cm.language.bracketMatching(),
       indentUnitComp.of(
         cm.language.indentUnit.of(
-          editorOpts.indent_style === 'tab' ? '\t' : ' '.repeat(editorOpts.indent_size || 4),
+          config.indent_style === 'tab' ? '\t' : ' '.repeat(config.indent_size || 4),
         ),
       ),
       cm.autocomplete.closeBrackets(),
@@ -150,8 +150,8 @@ async function createCodemirrorEditor(
       cm.commands.history(),
       palette.extensions,
       clickableUrls(cm),
-      tabSize.of(cm.state.EditorState.tabSize.of(editorOpts.tab_width || 4)),
-      wordWrap.of(editorOpts.line_wrap ? cm.view.EditorView.lineWrapping : []),
+      tabSize.of(cm.state.EditorState.tabSize.of(config.tab_width || 4)),
+      wordWrap.of(config.line_wrap ? cm.view.EditorView.lineWrapping : []),
       language.of(matchedLang ? await matchedLang.load() : []),
       cm.view.EditorView.updateListener.of((update: ViewUpdate) => {
         if (update.docChanged) {
@@ -167,7 +167,7 @@ async function createCodemirrorEditor(
 
   return {
     view,
-    trimTrailingWhitespace: editorOpts.trim_trailing_whitespace,
+    trimTrailingWhitespace: config.trim_trailing_whitespace,
     togglePalette: palette.togglePalette,
     languages: languageDescriptions,
     compartments: {wordWrap, language, tabSize, indentUnit: indentUnitComp},
@@ -241,15 +241,15 @@ function togglePreviewDisplay(previewable: boolean): void {
 
 export async function createCodeEditor(textarea: HTMLTextAreaElement, opts: {filenameInput: HTMLInputElement} | {defaultFilename: string}): Promise<CodemirrorEditor> {
   const filename = 'filenameInput' in opts ? opts.filenameInput.value : opts.defaultFilename;
-  const editorOpts: CodeEditorConfig = JSON.parse(textarea.getAttribute('data-code-editor-config')!);
-  const previewableExts = new Set(editorOpts.previewable_extensions || []);
-  const lineWrapExts = editorOpts.line_wrap_extensions || [];
+  const config: CodeEditorConfig = JSON.parse(textarea.getAttribute('data-code-editor-config')!);
+  const previewableExts = new Set(config.previewable_extensions || []);
+  const lineWrapExts = config.line_wrap_extensions || [];
 
-  const editor = await createCodemirrorEditor(textarea, filename, editorOpts);
+  const editor = await createCodemirrorEditor(textarea, filename, config);
   setupEditorOptionListeners(textarea, editor);
 
   // for new files, the autofocus will be on the filename input, for existing files focus the editor
-  if (editorOpts.is_new_file === false) {
+  if (config.is_new_file === false) {
     editor.view.focus();
   }
 
